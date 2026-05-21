@@ -1,0 +1,31 @@
+{
+  "human_confirm_panel": {
+    "pending_items": [
+      {
+        "confirm_id": "confirm-cand-002",
+        "candidate_id": "cand-002",
+        "reason": "Chair requested review because KIS evidence depth is still conservative.",
+        "required_by": "Chair",
+        "safe_actions": ["ViewOnly", "MarkReviewed", "Defer"],
+        "forbidden_actions": ["ExecuteOrder", "PlaceTrade", "ModifyAccount"],
+        "reason_codes": ["RequireConfirmBlockedInAuto"]
+      }
+    ],
+    "reviewed_items": [],
+    "deferred_items": [
+      {
+        "confirm_id": "confirm-cand-006",
+        "candidate_id": "cand-006",
+        "reason": "Research-only candidate kept visible without any execution path.",
+        "required_by": "ResearchOnly",
+        "safe_actions": ["ViewOnly", "Defer"],
+        "forbidden_actions": ["ExecuteOrder", "PlaceTrade", "ModifyAccount"],
+        "reason_codes": ["ResearchOnlyOverride"]
+      }
+    ],
+    "reason_codes": [
+      "DeterministicPath",
+      "DashboardHumanConfirmPanelBuilt"
+    ]
+  }
+}

@@ -1,0 +1,22 @@
+followup_id = "sprint74-real-evidence-followup"
+sprint73_final_bundle_paths = [
+  "examples/sprint74_data/sprint73_final_briefing_state.json",
+  "examples/sprint74_data/sprint73_final_gate.json",
+]
+kis_canonical_csv_paths = ["examples/sprint74_data/kis_real_canonical_sample.csv"]
+kis_provenance_paths = ["examples/sprint74_data/kis_real_provenance_sample.json"]
+kis_preflight_paths = ["examples/sprint74_data/kis_real_preflight_sample.json"]
+kis_manifest_paths = ["examples/sprint74_data/kis_real_manifest_sample.json"]
+sequence_export_manifest_paths = ["examples/sprint74_data/kis_real_manifest_sample.json"]
+model_ops_paths = ["examples/sprint74_data/model_ops_state.json"]
+output_root = "target/soma_real_evidence_followup"
+max_artifacts = 32
+max_rows = 8192
+max_symbols = 16
+max_timeframes = 8
+max_bytes = 1000000
+prefer_local_import = true
+allow_operator_market_data_collection = false
+require_provenance = true
+require_preflight = true
+require_no_lookahead_safe = true

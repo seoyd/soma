@@ -1,0 +1,11 @@
+{
+  "briefing_state_after": "BriefingReadyWithWarnings",
+  "warning_kinds": [
+    "EvidenceFixtureOnly",
+    "ModelPredictionsStale",
+    "DirectWatchMonitoringOnly",
+    "RuntimeMambaDeferred",
+    "LiveTradingForbidden",
+    "BrokerForbidden"
+  ]
+}

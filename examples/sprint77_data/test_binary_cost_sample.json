@@ -1,0 +1,60 @@
+{
+  "test_binary_cost_report": {
+    "report_id": "sample-test-binary-cost",
+    "records": [
+      {
+        "test_binary": "cargo test --workspace --quiet",
+        "cost_kind": "RunHeavy",
+        "timing_ms": 420000,
+        "estimated_cost": "VeryHigh",
+        "cause_summary": "full workspace compile and execution remains expensive",
+        "recommended_action": "KeepFullOnly"
+      },
+      {
+        "test_binary": "focused Sprint 77 tests",
+        "cost_kind": "CompileHeavy",
+        "timing_ms": 82000,
+        "estimated_cost": "High",
+        "cause_summary": "focused sprint tests still compile multiple dedicated binaries",
+        "recommended_action": "SplitTest"
+      },
+      {
+        "test_binary": "representative CLI smoke",
+        "cost_kind": "CliSmokeHeavy",
+        "timing_ms": 15000,
+        "estimated_cost": "High",
+        "cause_summary": "representative smoke still repeats command-family setup",
+        "recommended_action": "MoveToSprintTier"
+      },
+      {
+        "test_binary": "shared fixture load",
+        "cost_kind": "FixtureHeavy",
+        "timing_ms": 12000,
+        "estimated_cost": "High",
+        "cause_summary": "fixture setup still repeats local sample loading",
+        "recommended_action": "FixtureCache"
+      },
+      {
+        "test_binary": "bundle render",
+        "cost_kind": "ArtifactHeavy",
+        "timing_ms": 8000,
+        "estimated_cost": "Medium",
+        "cause_summary": "bundle rendering repeats deterministic output work",
+        "recommended_action": "ArtifactCache"
+      }
+    ],
+    "high_cost_count": 3,
+    "very_high_cost_count": 1,
+    "primary_bottleneck": "cargo test --workspace --quiet",
+    "report_status": "CostReportReady"
+  },
+  "dev_loop_savings_estimate": {
+    "estimate_id": "sample-dev-loop-savings",
+    "baseline_loop_ms": 455000,
+    "optimized_loop_ms": 33000,
+    "estimated_savings_ms": 422000,
+    "estimated_savings_ratio": "0.93",
+    "confidence": "Low",
+    "estimate_status": "SavingsEstimatedWithLowConfidence"
+  }
+}

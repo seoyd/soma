@@ -1,0 +1,14 @@
+scaleout_id = "sprint47-future-window-scaleout"
+multi_row_set_config_path = "examples/soma_multi_row_official_set_multi_row.toml"
+canonical_csv_paths = ["examples/sprint47_data/aapl_1d_extended_multi.csv", "examples/sprint47_data/msft_1d_extended_multi.csv"]
+output_root = "target/soma_sprint47_examples/future_window_scaleout"
+max_jobs = 10
+max_symbols = 4
+max_rows_per_job = 10
+max_requests_per_job = 10
+max_total_bytes = 1000000
+group_by_symbol_timeframe = true
+prefer_local_extension = true
+generate_provider_jobs = true
+run_local_extension_jobs = true
+run_provider_collection_jobs = false

@@ -1,0 +1,107 @@
+{
+  "deterministic_sort_applied": true,
+  "canonical_field_order_ready": true,
+  "fixtures": [
+    {
+      "kind": "official_evidence_depth_before",
+      "path": "examples/sprint82_data/official_evidence_depth_before.json",
+      "source_class": "OfficialKIS",
+      "source_boundary_fields_present": true,
+      "no_lookahead_fields_present": true,
+      "deterministic": true,
+      "required_fields_present": true,
+      "size_bytes": 1200
+    },
+    {
+      "kind": "official_evidence_depth_after",
+      "path": "examples/sprint82_data/official_evidence_depth_after.json",
+      "source_class": "OfficialKIS",
+      "source_boundary_fields_present": true,
+      "no_lookahead_fields_present": true,
+      "deterministic": true,
+      "required_fields_present": true,
+      "size_bytes": 1500
+    },
+    {
+      "kind": "official_scenarios_v3",
+      "path": "examples/sprint82_data/official_scenarios_v3.json",
+      "source_class": "OfficialKIS",
+      "source_boundary_fields_present": true,
+      "no_lookahead_fields_present": true,
+      "deterministic": true,
+      "required_fields_present": true,
+      "size_bytes": 900
+    },
+    {
+      "kind": "official_outcomes_v3",
+      "path": "examples/sprint82_data/official_outcomes_v3.json",
+      "source_class": "OfficialKIS",
+      "source_boundary_fields_present": true,
+      "no_lookahead_fields_present": true,
+      "deterministic": true,
+      "required_fields_present": true,
+      "size_bytes": 700
+    },
+    {
+      "kind": "official_baselines_v3",
+      "path": "examples/sprint82_data/official_baselines_v3.json",
+      "source_class": "OfficialKIS",
+      "source_boundary_fields_present": true,
+      "no_lookahead_fields_present": true,
+      "deterministic": true,
+      "required_fields_present": true,
+      "size_bytes": 700
+    },
+    {
+      "kind": "official_notrade_counterfactuals_v3",
+      "path": "examples/sprint82_data/official_notrade_counterfactuals_v3.json",
+      "source_class": "OfficialKIS",
+      "source_boundary_fields_present": true,
+      "no_lookahead_fields_present": true,
+      "deterministic": true,
+      "required_fields_present": true,
+      "size_bytes": 700
+    },
+    {
+      "kind": "official_riskdenied_counterfactuals_v3",
+      "path": "examples/sprint82_data/official_riskdenied_counterfactuals_v3.json",
+      "source_class": "OfficialKIS",
+      "source_boundary_fields_present": true,
+      "no_lookahead_fields_present": true,
+      "deterministic": true,
+      "required_fields_present": true,
+      "size_bytes": 700
+    },
+    {
+      "kind": "sequence_core_confidence_before",
+      "path": "examples/sprint82_data/sequence_core_confidence_before.json",
+      "source_class": "DiagnosticOnly",
+      "source_boundary_fields_present": true,
+      "no_lookahead_fields_present": true,
+      "deterministic": true,
+      "required_fields_present": true,
+      "size_bytes": 500
+    },
+    {
+      "kind": "sequence_core_confidence_after",
+      "path": "examples/sprint82_data/sequence_core_confidence_after.json",
+      "source_class": "DiagnosticOnly",
+      "source_boundary_fields_present": true,
+      "no_lookahead_fields_present": true,
+      "deterministic": true,
+      "required_fields_present": true,
+      "size_bytes": 500
+    },
+    {
+      "kind": "expected_summary",
+      "path": "examples/sprint82_data/expected_evidence_depth_summary.json",
+      "source_class": "FixtureOnly",
+      "source_boundary_fields_present": true,
+      "no_lookahead_fields_present": true,
+      "deterministic": true,
+      "required_fields_present": true,
+      "size_bytes": 300
+    }
+  ]
+}
+

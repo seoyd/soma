@@ -1,0 +1,6 @@
+{
+  "recovery_status": "GateImprovedButBlocked",
+  "previous_gate_status": "FullWorkspaceStillBlocked",
+  "current_gate_status": "FullWorkspaceStillBlocked"
+}
+

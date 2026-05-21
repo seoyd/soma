@@ -1,0 +1,36 @@
+pack_id = "sprint42-official-controlled-pack"
+canonical_csv_paths = [
+  "examples/sprint42_data/aapl_1d.csv",
+  "examples/sprint42_data/controlled_aapl_1d.csv",
+]
+provenance_paths = [
+  "examples/sprint42_data/aapl_1d_provenance.json",
+  "examples/sprint42_data/controlled_aapl_1d_provenance.json",
+]
+preflight_report_paths = [
+  "examples/sprint42_data/aapl_1d_preflight.json",
+  "examples/sprint42_data/controlled_aapl_1d_preflight.json",
+]
+manifest_paths = [
+  "examples/sprint42_data/aapl_1d_manifest.json",
+  "examples/sprint42_data/controlled_aapl_1d_manifest.json",
+]
+output_root = "target/soma_sprint42_examples"
+max_rows = 1000
+max_symbols = 5
+max_timeframes = 5
+max_bytes = 5000000
+require_official_source = false
+require_provenance = true
+require_preflight = true
+require_manifest = false
+allow_crypto_only = true
+allow_controlled_fixture = true
+allow_yfinance_research = false
+allow_fixture = false
+allow_synthetic_test = false
+allow_timeframe_aggregation = false
+allow_timestamp_tolerance = true
+timestamp_tolerance_ms = 60000
+require_no_lookahead_safe = true
+reason_codes = ["DeterministicPath"]

@@ -1,0 +1,13 @@
+audit_id = "remaining-test-binary-inventory"
+sprint84_bundle_paths = [
+  "examples/sprint85_data/sprint84_summary.json",
+  "examples/sprint85_data/domain_suite_plan_expected.json",
+  "examples/sprint85_data/workspace_acceptance_attempt_expected.json",
+  "examples/sprint85_data/full_gate_recovery_expected.json",
+]
+test_inventory_paths = [
+  "examples/sprint85_data/remaining_test_binary_inventory_before.json",
+  "examples/sprint85_data/remaining_test_binary_inventory_after.json",
+]
+output_root = "target/soma_sprint85_workspace_gate_recovery"
+

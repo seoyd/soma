@@ -1,0 +1,50 @@
+{
+  "report_id": "workspace-timeout-observation-backlog-import-v1",
+  "backlog_items_imported": [
+    {
+      "item": "no-run-observation",
+      "category": "no-run",
+      "required": true,
+      "status": "Queued"
+    },
+    {
+      "item": "full-workspace-observation",
+      "category": "full",
+      "required": true,
+      "status": "Queued"
+    },
+    {
+      "item": "cargo-json-observation",
+      "category": "cargo-json",
+      "required": true,
+      "status": "Queued"
+    },
+    {
+      "item": "cargo-artifact-ordering",
+      "category": "artifact-ordering",
+      "required": true,
+      "status": "Queued"
+    },
+    {
+      "item": "timeout-cleanup-consistency",
+      "category": "cleanup",
+      "required": true,
+      "status": "Queued"
+    }
+  ],
+  "no_run_items": 1,
+  "full_items": 1,
+  "cargo_json_items": 1,
+  "artifact_ordering_items": 1,
+  "cleanup_items": 1,
+  "import_status": "BacklogImported",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

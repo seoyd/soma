@@ -1,0 +1,78 @@
+{
+  "checklist_id": "sprint71-operator-briefing-evidence-gap-closure",
+  "gaps": [
+    {
+      "gap_id": "sprint71-operator-briefing-gap-leaderboard-ext-model-a-1-2-0",
+      "gap_kind": "MissingLeaderboardEvidence",
+      "target_id": "ext-model-a:1.2.0",
+      "summary": "rollup still marks ext-model-a:1.2.0 leaderboard_status=Unknown and no conservative leaderboard entry is available, so the warning is explained but not over-claimed as closed",
+      "closeable_now": true,
+      "requires_owner_review": false,
+      "reason_codes": [
+        "EvidenceGapClosureChecklistBuilt"
+      ]
+    },
+    {
+      "gap_id": "sprint71-operator-briefing-gap-owner-reason-ext-model-a-1-2-0",
+      "gap_kind": "MissingOwnerReason",
+      "target_id": "ext-model-a:1.2.0",
+      "summary": "ext-model-a:1.2.0 has no explicit owner note in the rollup summary and should stay conservative",
+      "closeable_now": false,
+      "requires_owner_review": true,
+      "reason_codes": [
+        "EvidenceGapClosureChecklistBuilt"
+      ]
+    },
+    {
+      "gap_id": "sprint71-operator-briefing-gap-retirement-ext-model-a-1-0-0",
+      "gap_kind": "MissingRetirementEvidence",
+      "target_id": "ext-model-a:1.0.0",
+      "summary": "keep ext-model-a:1.0.0 diagnostic-only and retired-from-current-comparison pending more evidence",
+      "closeable_now": false,
+      "requires_owner_review": true,
+      "reason_codes": [
+        "EvidenceGapClosureChecklistBuilt"
+      ]
+    },
+    {
+      "gap_id": "sprint71-operator-briefing-gap-regression-ext-model-a-1-0-0",
+      "gap_kind": "MissingRegressionEvidence",
+      "target_id": "ext-model-a:1.0.0",
+      "summary": "retirement still lacks explicit conservative regression evidence",
+      "closeable_now": false,
+      "requires_owner_review": false,
+      "reason_codes": [
+        "EvidenceGapClosureChecklistBuilt"
+      ]
+    },
+    {
+      "gap_id": "sprint71-operator-briefing-gap-predictions-ext-model-b-1-0-0",
+      "gap_kind": "MissingPredictionHistory",
+      "target_id": "ext-model-b:1.0.0",
+      "summary": "ext-model-b:1.0.0 still needs more offline prediction history",
+      "closeable_now": false,
+      "requires_owner_review": false,
+      "reason_codes": [
+        "EvidenceGapClosureChecklistBuilt"
+      ]
+    },
+    {
+      "gap_id": "sprint71-operator-briefing-gap-sequence",
+      "gap_kind": "MissingSequenceRows",
+      "target_id": "sequence-dataset",
+      "summary": "sequence dataset rows are not attached to the operator briefing and stay deferred",
+      "closeable_now": false,
+      "requires_owner_review": false,
+      "reason_codes": [
+        "EvidenceGapClosureChecklistBuilt"
+      ]
+    }
+  ],
+  "gap_count": 6,
+  "closeable_now_count": 1,
+  "requires_data_count": 3,
+  "requires_owner_review_count": 2,
+  "reason_codes": [
+    "EvidenceGapClosureChecklistBuilt"
+  ]
+}

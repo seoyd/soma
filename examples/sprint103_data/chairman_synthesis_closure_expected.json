@@ -1,0 +1,21 @@
+{
+  "report_id": "chairman-synthesis-warning-closure-report",
+  "previous_status": "ChairmanSynthesisReadyWithWarnings",
+  "recommendation": "NoTrade",
+  "recommendation_reason_complete": true,
+  "conflict_summary_complete": true,
+  "style_weight_audit_ref_present": true,
+  "risk_governor_review_required": true,
+  "remaining_chairman_warnings": 0,
+  "closure_status": "ChairmanSynthesisWarningsClosedWithNotes",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "report_id": "committee-member-proposal-quality-report",
+  "proposal_count": 8,
+  "proposals_with_evidence_refs": 8,
+  "proposals_with_entry_timing": 4,
+  "proposals_with_wait_conditions": 8,
+  "proposals_with_invalidation_conditions": 8,
+  "proposals_with_expected_risk": 8,
+  "proposals_with_reason_codes": 8,
+  "confidence_bounds_valid": true,
+  "insufficient_evidence_count": 0,
+  "safety_blocked_count": 0,
+  "quality_status": "ProposalQualityReadyWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

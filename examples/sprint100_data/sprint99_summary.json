@@ -1,0 +1,701 @@
+{
+  "committee_member_proposal_quality_report": {
+    "report_id": "committee-member-proposal-quality-report",
+    "proposal_count": 8,
+    "proposals_with_evidence_refs": 8,
+    "proposals_with_entry_timing": 4,
+    "proposals_with_wait_conditions": 8,
+    "proposals_with_invalidation_conditions": 8,
+    "proposals_with_expected_risk": 8,
+    "proposals_with_reason_codes": 8,
+    "confidence_bounds_valid": true,
+    "insufficient_evidence_count": 0,
+    "safety_blocked_count": 0,
+    "quality_status": "ProposalQualityReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "entry_timing_proposal_quality_report": {
+    "report_id": "entry-timing-proposal-quality-report",
+    "timing_proposal_count": 4,
+    "immediate_paper_only_count": 0,
+    "next_candle_count": 1,
+    "next_n_candles_count": 0,
+    "pullback_confirmation_count": 1,
+    "breakout_retest_count": 0,
+    "volatility_cooldown_count": 1,
+    "no_entry_count": 1,
+    "proposals_with_confirmation_conditions": 4,
+    "proposals_with_cancellation_conditions": 4,
+    "proposals_with_required_risk_checks": 4,
+    "paper_only_timing_confirmed": true,
+    "timing_quality_status": "EntryTimingQualityReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "committee_debate_quality_report": {
+    "report_id": "committee-debate-quality-report",
+    "debate_session_count": 1,
+    "member_turn_count": 7,
+    "participating_member_count": 7,
+    "support_entry_count": 3,
+    "oppose_entry_count": 1,
+    "wait_for_confirmation_count": 1,
+    "demand_risk_deny_count": 0,
+    "demand_no_trade_count": 0,
+    "request_more_evidence_count": 2,
+    "disagreement_present": true,
+    "groupthink_risk": false,
+    "consensus_state": "NeedMoreEvidence",
+    "debate_quality_status": "DebateNeedsMoreEvidence",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "debate_evidence_sufficiency_report": {
+    "report_id": "debate-evidence-sufficiency-report",
+    "evidence_ref_count": 10,
+    "official_evidence_count": 1,
+    "research_evidence_count": 9,
+    "diagnostic_evidence_count": 0,
+    "fixture_evidence_count": 0,
+    "source_boundary_ok": true,
+    "no_lookahead_ok": true,
+    "missing_evidence_kinds": [],
+    "evidence_status": "EvidenceSufficientForPaperDebate",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "chairman_rulebook_quality_report": {
+    "report_id": "chairman-rulebook-quality-report",
+    "rulebook_version_count": 1,
+    "rule_proposal_count": 1,
+    "audited_rule_count": 4,
+    "unaudited_rule_count": 0,
+    "owner_review_required_count": 1,
+    "risk_governor_review_required_count": 1,
+    "paper_only_rules_count": 4,
+    "live_use_forbidden_confirmed": true,
+    "unsafe_rule_count": 2,
+    "rulebook_quality_status": "UnsafeRuleDetected",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "chairman_rule_proposal_risk_audit_v2": {
+    "audit_id": "chairman-rule-proposal-risk-audit-v2",
+    "rule_proposal_id": "chairman-rule-proposal-v1",
+    "bypass_risk_governor_detected": false,
+    "live_application_detected": false,
+    "unaudited_change_detected": false,
+    "overfit_risk": 0.24,
+    "safety_risk": 0.12,
+    "expected_behavior_change": "more consistent debate coverage without changing live runtime posture",
+    "audit_status": "RuleProposalSafeForPaper",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "rulebook_version_diff_report": {
+    "report_id": "rulebook-version-diff-report",
+    "previous_version_id": "chairman-rulebook-v0",
+    "current_version_id": "chairman-rulebook-v1",
+    "added_rules": 4,
+    "removed_rules": 0,
+    "changed_rules": 1,
+    "risk_weight_changes": 0,
+    "evidence_weight_changes": 0,
+    "no_trade_bias_changes": 0,
+    "quorum_changes": 1,
+    "diff_status": "RulebookDiffReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "promotion_demotion_calibration_report": {
+    "report_id": "promotion-demotion-calibration-report",
+    "axis_count": 14,
+    "return_quality_weight": 0.1,
+    "calibration_weight": 0.12,
+    "drawdown_control_weight": 0.1,
+    "risk_governor_alignment_weight": 0.12,
+    "no_trade_discipline_weight": 0.1,
+    "risk_denied_respect_weight": 0.07,
+    "evidence_quality_weight": 0.09,
+    "source_boundary_weight": 0.07,
+    "no_lookahead_weight": 0.07,
+    "debate_contribution_weight": 0.06,
+    "defensive_value_weight": 0.03,
+    "opportunity_cost_awareness_weight": 0.02,
+    "overfit_risk_weight": 0.02,
+    "raw_return_only_ranking_blocked": true,
+    "calibration_status": "PromotionCalibrationReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "member_scorecard_calibration_report": {
+    "report_id": "member-scorecard-calibration-report",
+    "scorecard_count": 8,
+    "calibrated_scorecards": 6,
+    "uncalibrated_scorecards": 2,
+    "members_need_more_evidence": 0,
+    "rank_stability_summary": "top_rank=8;bottom_rank=1;avg_rank=4.500",
+    "risk_alignment_summary": "avg_risk_alignment=0.615",
+    "no_trade_discipline_summary": "avg_no_trade_discipline=0.625",
+    "debate_quality_summary": "avg_debate_turn_quality=0.605",
+    "scorecard_status": "ScorecardCalibrationReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "member_overfit_risk_report": {
+    "report_id": "member-overfit-risk-report",
+    "member_count": 8,
+    "high_overfit_risk_members": 0,
+    "medium_overfit_risk_members": 5,
+    "low_overfit_risk_members": 3,
+    "overfit_indicators": [
+      "macro-interpreter:overfit_risk=0.360",
+      "value-skeptic:overfit_risk=0.420",
+      "liquidity-executor:overfit_risk=0.480",
+      "counterfactual-reviewer:overfit_risk=0.540",
+      "chair-candidate:overfit_risk=0.600"
+    ],
+    "mitigation_actions": [
+      "keep promotion multi-axis and never raw-return-only",
+      "require chair audit for scorecard-driven roster changes",
+      "preserve no-trade and risk-alignment weights"
+    ],
+    "overfit_status": "OverfitRiskControlledWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "member_style_drift_report": {
+    "report_id": "member-style-drift-report",
+    "member_count": 8,
+    "style_consistent_members": 8,
+    "style_drift_members": 0,
+    "drift_examples": [],
+    "style_drift_status": "StyleDriftControlled",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "investor_style_blindspot_report": {
+    "report_id": "investor-style-blindspot-report",
+    "style_count": 8,
+    "blindspots_by_style": {
+      "counterfactual-historian": [
+        "conservative bias after adverse historical samples"
+      ],
+      "liquidity-execution": [
+        "missed opportunities in illiquid rebounds"
+      ],
+      "macro-reflexive": [
+        "headline sensitivity and narrative whipsaw"
+      ],
+      "quality-compounder": [
+        "slow reaction to short-horizon inflections"
+      ],
+      "regime-cycle": [
+        "narrative overfitting to noisy macro changes"
+      ],
+      "risk-first-defensive": [
+        "underreacting to valid upside regime shifts"
+      ],
+      "trend-follower": [
+        "late entries during fast reversals",
+        "crowded breakout risk"
+      ],
+      "value-discipline": [
+        "value traps in deteriorating regimes"
+      ]
+    },
+    "mitigation_by_style": {
+      "counterfactual-historian": [
+        "counterfactual archives",
+        "debate transcripts",
+        "paper decision logs"
+      ],
+      "liquidity-execution": [
+        "spread snapshots",
+        "volume profiles",
+        "paper execution assumptions"
+      ],
+      "macro-reflexive": [
+        "macro catalysts",
+        "event calendars",
+        "external prediction prototypes"
+      ],
+      "quality-compounder": [
+        "scorecards",
+        "rule audits",
+        "long-horizon evidence"
+      ],
+      "regime-cycle": [
+        "regime features",
+        "volatility context",
+        "official market breadth proxies"
+      ],
+      "risk-first-defensive": [
+        "risk snapshots",
+        "drawdown evidence",
+        "source boundary checks"
+      ],
+      "trend-follower": [
+        "official candles",
+        "regime labels",
+        "paper liquidity notes"
+      ],
+      "value-discipline": [
+        "fundamental notes",
+        "counterfactual history",
+        "official daily data"
+      ]
+    },
+    "missing_counterbalance_styles": [],
+    "blindspot_status": "BlindspotsDocumented",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "committee_roster_balance_report": {
+    "report_id": "committee-roster-balance-report",
+    "active_member_count": 6,
+    "watchlist_member_count": 1,
+    "diagnostic_member_count": 1,
+    "retired_member_count": 0,
+    "isolated_sentinel_count": 1,
+    "style_coverage": [
+      "CounterfactualHistorian",
+      "LiquidityExecution",
+      "MacroReflexive",
+      "QualityCompounder",
+      "RegimeCycle",
+      "RiskFirstDefensive",
+      "TrendFollower",
+      "ValueDiscipline"
+    ],
+    "risk_defense_coverage": true,
+    "entry_scout_coverage": true,
+    "counterfactual_coverage": true,
+    "roster_balance_status": "RosterBalancedWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "paper_only_decision_replay_report": {
+    "report_id": "paper-only-decision-replay-report",
+    "replayed_decision_count": 1,
+    "watch_candidate_count": 0,
+    "paper_approved_count": 0,
+    "paper_rejected_count": 0,
+    "no_trade_count": 0,
+    "risk_denied_count": 0,
+    "need_more_evidence_count": 1,
+    "broker_execution_allowed_count": 0,
+    "live_execution_allowed_count": 0,
+    "replay_status": "ReplayReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "paper_decision_trace_completeness_report": {
+    "report_id": "paper-decision-trace-completeness-report",
+    "decision_count": 1,
+    "decisions_with_member_proposals": 1,
+    "decisions_with_debate_session": 1,
+    "decisions_with_chair_synthesis": 1,
+    "decisions_with_risk_governor_decision": 1,
+    "decisions_with_reason_codes": 1,
+    "decisions_missing_trace": 0,
+    "trace_status": "TraceComplete",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "risk_governor_debate_handoff_report": {
+    "report_id": "risk-governor-debate-handoff-report",
+    "debate_session_count": 1,
+    "sessions_with_risk_handoff": 1,
+    "sessions_with_no_trade": 0,
+    "sessions_with_risk_denied": 1,
+    "bypass_attempt_count": 0,
+    "risk_governor_final_veto_confirmed": true,
+    "handoff_status": "RiskHandoffReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "committee_owned_architecture_regression_guard": {
+    "guard_id": "committee-owned-architecture-regression-guard",
+    "central_core_deprecated_confirmed": true,
+    "committee_owned_core_confirmed": true,
+    "member_core_refs_present": true,
+    "central_signal_layer_control_absent": true,
+    "runtime_deferred_confirmed": true,
+    "training_deferred_confirmed": true,
+    "live_execution_absent": true,
+    "regression_status": "NoRegression",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "workspace_acceptance_truth_closure_plan": {
+    "plan_id": "workspace-acceptance-truth-closure-plan",
+    "imported_truth_status": "FullWorkspaceNotRun",
+    "can_claim_full_acceptance": false,
+    "no_run_gate_status": "NoRunGatePending",
+    "full_workspace_gate_status": "FullWorkspaceNotRun",
+    "recommended_actions": [
+      "RunRealNoRunWithLongerTimeout",
+      "RunRealFullWorkspaceWithLongerTimeout",
+      "UseNextestAsOptionalLocalDiagnostic",
+      "UseSccacheAsOptionalLocalDiagnostic",
+      "KeepFocusedTestsSeparate",
+      "DoNotClaimFullAcceptance"
+    ],
+    "closure_status": "WorkspaceTruthStillOpen",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "workspace_acceptance_attempt_v16": {
+    "attempt_id": "workspace-acceptance-attempt-v16",
+    "command_no_run": "cargo test --workspace --no-run --quiet",
+    "command_full": "cargo test --workspace --quiet",
+    "no_run_started": false,
+    "no_run_finished": false,
+    "no_run_passed": null,
+    "full_started": false,
+    "full_finished": false,
+    "full_passed": null,
+    "timeout_ms": null,
+    "can_claim_full_acceptance": false,
+    "attempt_status": "FullWorkspaceNotRun",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "safety_coverage_preservation_report_v15": {
+    "report_id": "safety-coverage-preservation-v15",
+    "live_trading_guard_present": true,
+    "broker_guard_present": true,
+    "order_guard_present": true,
+    "account_guard_present": true,
+    "runtime_llm_guard_present": true,
+    "mamba_runtime_guard_present": true,
+    "gated_runtime_guard_present": true,
+    "model_training_guard_present": true,
+    "rust_neural_training_guard_present": true,
+    "python_training_dependency_guard_present": true,
+    "secret_guard_present": true,
+    "no_lookahead_guard_present": true,
+    "source_boundary_guard_present": true,
+    "browser_execution_guard_present": true,
+    "ui_order_control_guard_present": true,
+    "committee_owned_core_guard_present": true,
+    "investor_impersonation_guard_present": true,
+    "chairman_risk_bypass_guard_present": true,
+    "promotion_capital_allocation_guard_present": true,
+    "paper_only_debate_guard_present": true,
+    "safety_status": "SafetyCoveragePreservedWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "control_tower_ai_committee_quality_panel": {
+    "panel_id": "control-tower-ai-committee-quality-panel",
+    "architecture_status": "CommitteeOwnedCoreReadyWithWarnings",
+    "proposal_quality_status": "ProposalQualityReadyWithWarnings",
+    "entry_timing_quality_status": "EntryTimingQualityReady",
+    "debate_quality_status": "DebateNeedsMoreEvidence",
+    "evidence_sufficiency_status": "EvidenceSufficientForPaperDebate",
+    "chairman_rulebook_quality_status": "UnsafeRuleDetected",
+    "promotion_calibration_status": "PromotionCalibrationReady",
+    "scorecard_calibration_status": "ScorecardCalibrationReadyWithWarnings",
+    "overfit_risk_status": "OverfitRiskControlledWithWarnings",
+    "style_drift_status": "StyleDriftControlled",
+    "roster_balance_status": "RosterBalancedWithWarnings",
+    "paper_decision_replay_status": "ReplayReadyWithWarnings",
+    "risk_governor_handoff_status": "RiskHandoffReadyWithWarnings",
+    "workspace_acceptance_truth_status": "FullWorkspaceNotRun",
+    "safety_coverage_status": "SafetyCoveragePreservedWithWarnings",
+    "runtime_deferred_summary": "runtime deferred, training deferred, live execution forbidden, paper-only quality layer",
+    "member_quality_rows": [
+      {
+        "member_id": "trend-scout",
+        "proposal_status": "ProposalReady",
+        "scorecard_status": "ScorecardReady",
+        "overfit_band": "Low",
+        "style_note": "TrendFollower"
+      },
+      {
+        "member_id": "risk-defender",
+        "proposal_status": "ProposalReady",
+        "scorecard_status": "ScorecardReady",
+        "overfit_band": "Low",
+        "style_note": "RiskFirstDefensive"
+      },
+      {
+        "member_id": "regime-interpreter",
+        "proposal_status": "ProposalReady",
+        "scorecard_status": "ScorecardReady",
+        "overfit_band": "Low",
+        "style_note": "RegimeCycle"
+      },
+      {
+        "member_id": "macro-interpreter",
+        "proposal_status": "ProposalReady",
+        "scorecard_status": "ScorecardReady",
+        "overfit_band": "Medium",
+        "style_note": "MacroReflexive"
+      },
+      {
+        "member_id": "value-skeptic",
+        "proposal_status": "ProposalReady",
+        "scorecard_status": "ScorecardReady",
+        "overfit_band": "Medium",
+        "style_note": "ValueDiscipline"
+      },
+      {
+        "member_id": "liquidity-executor",
+        "proposal_status": "ProposalReady",
+        "scorecard_status": "ScorecardReady",
+        "overfit_band": "Medium",
+        "style_note": "LiquidityExecution"
+      },
+      {
+        "member_id": "counterfactual-reviewer",
+        "proposal_status": "ProposalReady",
+        "scorecard_status": "ScorecardReadyWithWarnings",
+        "overfit_band": "Medium",
+        "style_note": "CounterfactualHistorian"
+      },
+      {
+        "member_id": "chair-candidate",
+        "proposal_status": "ProposalReady",
+        "scorecard_status": "ScorecardReadyWithWarnings",
+        "overfit_band": "Medium",
+        "style_note": "QualityCompounder"
+      }
+    ],
+    "next_actions": [
+      "keep focused quality tests separate from full workspace acceptance",
+      "keep chairman rule changes audited and paper-only",
+      "keep runtime/training/live execution deferred"
+    ],
+    "warnings": [
+      "static/read-only panel only",
+      "no train/runtime/live/order/account/browser controls",
+      "quality readiness does not imply live trading readiness"
+    ],
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "storage_report": {
+    "report_id": "control-tower-ai-committee-quality-panel-storage-report",
+    "output_dir": "target/soma_sprint99_committee_quality_hardening/sprint99-committee-quality-example",
+    "file_count": 23,
+    "files": [
+      "committee_member_proposal_quality.txt",
+      "entry_timing_proposal_quality.txt",
+      "committee_debate_quality.txt",
+      "debate_evidence_sufficiency.txt",
+      "chairman_rulebook_quality.txt",
+      "chairman_rule_proposal_risk_audit_v2.txt",
+      "rulebook_version_diff.txt",
+      "promotion_demotion_calibration.txt",
+      "member_scorecard_calibration.txt",
+      "member_overfit_risk.txt",
+      "member_style_drift.txt",
+      "investor_style_blindspot.txt",
+      "committee_roster_balance.txt",
+      "paper_only_decision_replay.txt",
+      "paper_decision_trace_completeness.txt",
+      "risk_governor_debate_handoff.txt",
+      "committee_owned_architecture_regression_guard.txt",
+      "workspace_acceptance_truth_closure_plan.txt",
+      "workspace_acceptance_attempt_v16.txt",
+      "safety_coverage_preservation_v15.txt",
+      "control_tower_ai_committee_quality_panel.txt",
+      "storage_report.txt",
+      "summary.txt"
+    ],
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "final_summary": "## 1. Sprint summary\n- Implemented Sprint 99 paper-only AI committee quality hardening over the Sprint 98 committee-owned architecture.\n\n## 2. Why Sprint 99 was needed\n- Sprint 98 corrected the architecture; Sprint 99 calibrates proposal, debate, rulebook, scorecard, replay, and workspace-truth reporting without adding runtime or live features.\n\n## 3. Files added\n- Sprint 99 examples, docs, fixtures, and focused tests added.\n\n## 4. Files changed\n- committee-owned core module, exports, CLI, and test support extended for Sprint 99.\n\n## 5. Committee member proposal quality\n- status: ProposalQualityReadyWithWarnings\n- proposal_count=8\n\n## 6. Entry timing proposal quality\n- status: EntryTimingQualityReady\n- timing_proposal_count=4\n\n## 7. Committee debate quality\n- status: DebateNeedsMoreEvidence\n- debate_session_count=1\n\n## 8. Debate evidence sufficiency\n- status: EvidenceSufficientForPaperDebate\n- evidence_ref_count=10\n\n## 9. Chairman rulebook quality\n- status: UnsafeRuleDetected\n- rule_proposal_count=1\n\n## 10. Chairman rule risk audit v2\n- status: RuleProposalSafeForPaper\n- rule_proposal_id=chairman-rule-proposal-v1\n\n## 11. Rulebook version diff\n- status: RulebookDiffReadyWithWarnings\n- changed_rules=1\n\n## 12. Promotion/demotion calibration\n- status: PromotionCalibrationReady\n- axis_count=14\n\n## 13. Member scorecard calibration\n- status: ScorecardCalibrationReadyWithWarnings\n- scorecard_count=8\n\n## 14. Member overfit risk\n- status: OverfitRiskControlledWithWarnings\n\n## 15. Member style drift\n- status: StyleDriftControlled\n\n## 16. Investor style blindspots\n- status: BlindspotsDocumented\n\n## 17. Committee roster balance\n- status: RosterBalancedWithWarnings\n\n## 18. Paper-only decision replay\n- status: ReplayReadyWithWarnings\n- replayed_decision_count=1\n\n## 19. Paper decision trace completeness\n- status: TraceComplete\n- decisions_missing_trace=0\n\n## 20. Risk Governor debate handoff\n- status: RiskHandoffReadyWithWarnings\n- sessions_with_risk_handoff=1\n\n## 21. Architecture regression guard\n- status: NoRegression\n\n## 22. Workspace acceptance truth closure\n- status: WorkspaceTruthStillOpen\n- can_claim_full_acceptance=false\n\n## 23. Workspace acceptance attempt v16\n- status: FullWorkspaceNotRun\n- full_finished=false\n\n## 24. Safety coverage preservation v15\n- status: SafetyCoveragePreservedWithWarnings\n\n## 25. Control Tower AI committee quality panel\n- workspace_truth_status: FullWorkspaceNotRun\n- runtime_deferred_summary=runtime deferred, training deferred, live execution forbidden, paper-only quality layer\n\n## 26. Output bundle\n- output_files=23\n\n## 27. CLI and examples\n- sprint99-committee-quality-harden and focused quality subcommands share one local-only config surface.\n\n## 28. Tests added\n- focused Sprint 99 quality, safety, CLI, and determinism tests added.\n\n## 29. Test results\n- see validation commands run after implementation.\n\n## 30. Proposal quality status\n- ProposalQualityReadyWithWarnings\n\n## 31. Debate quality status\n- DebateNeedsMoreEvidence\n\n## 32. Rulebook quality status\n- UnsafeRuleDetected\n\n## 33. Promotion/demotion calibration status\n- PromotionCalibrationReady\n\n## 34. Paper decision replay status\n- ReplayReadyWithWarnings\n\n## 35. Architecture regression status\n- NoRegression\n\n## 36. Workspace acceptance truth status\n- FullWorkspaceNotRun\n\n## 37. Runtime deferred status\n- runtime deferred, training deferred, live execution forbidden, paper-only quality layer\n\n## 38. Safety coverage status\n- SafetyCoveragePreservedWithWarnings\n\n## 39. Risk review\n- chairman cannot bypass Risk Governor; paper-only semantics preserved; workspace truth remains honest.\n\n## 40. Deferred items\n- runtime, training, live inference, live trading, broker/order/account, Mamba runtime, and Gated runtime remain deferred or forbidden.\n\n## 41. Next gstack sprint recommendation\n- Keep research-only, keep paper-only, and pursue workspace-truth closure separately from committee quality hardening.\n",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

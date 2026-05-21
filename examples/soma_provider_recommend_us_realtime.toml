@@ -1,0 +1,7 @@
+market = "USEquity"
+desired_use_case = "RealtimeScalping"
+budget_preference = "FreeOnly"
+need_realtime = true
+need_official_readiness = false
+max_data_size_preference = "compact"
+reason_codes = []

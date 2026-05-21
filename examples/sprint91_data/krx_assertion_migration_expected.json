@@ -1,0 +1,22 @@
+{
+  "donor_files": [
+    "tests/krx_evidence_job_plan.rs",
+    "tests/krx_evidence_recovery.rs",
+    "tests/krx_auth_readiness.rs",
+    "tests/krx_operator_actions.rs",
+    "tests/official_replication_operator_actions.rs",
+    "tests/krx_collection_dry_run.rs",
+    "tests/krx_collection_batch_plan.rs",
+    "tests/krx_collection_closure_runner.rs",
+    "tests/krx_collection_closure_cli_safety.rs",
+    "tests/krx_raw_archive_secret_safety.rs",
+    "tests/krx_canonical_batch_validation.rs",
+    "tests/krx_candle_sufficiency.rs",
+    "tests/krx_outcome_link_closure.rs",
+    "tests/krx_downstream_rerun_v2.rs"
+  ],
+  "target_suite": "tests/krx_evidence_suite.rs",
+  "high_risk_assertions_kept_separate": [
+    "tests/krx_raw_archive_secret_safety.rs::archive_redaction_assertions remain separate for secret-safety isolation"
+  ]
+}

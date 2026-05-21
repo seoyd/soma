@@ -1,0 +1,10 @@
+closure_id = "sprint42-controlled-closure"
+candle_pack_config_path = "examples/soma_candle_pack_official_controlled.toml"
+backfill_config_path = "examples/soma_comparable_backfill_controlled.toml"
+output_root = "target/soma_sprint42_examples"
+run_candle_pack = true
+run_backfill = true
+run_reference_generation = false
+run_counterfactual_depth_close = false
+run_core_scorecard_rerun = false
+reason_codes = ["DeterministicPath"]

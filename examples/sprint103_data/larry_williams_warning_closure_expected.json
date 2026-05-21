@@ -1,0 +1,22 @@
+{
+  "report_id": "larry-williams-warning-closure-report",
+  "previous_status": "LarryWilliamsEvidenceStillWarningBacked",
+  "exact_numeric_rule_claims_downweighted": true,
+  "statistical_seasonality_scope_preserved": true,
+  "evidence_refs_added": [
+    "larry-published-seasonal-study"
+  ],
+  "confidence_changed": false,
+  "remains_warning_backed": true,
+  "closure_status": "LarryWilliamsStillWarningBacked",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

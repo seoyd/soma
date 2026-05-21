@@ -1,0 +1,15 @@
+{
+  "auth_ready": true,
+  "endpoint_policy_status": "MarketDataOnly",
+  "domestic_market_data_ready": true,
+  "overseas_market_data_ready": true,
+  "realtime_ready": false,
+  "blocked_reasons": [
+    "Realtime remains disabled until explicit local-only market-data smoke completes."
+  ],
+  "base_url_preview_redacted": "configured(redacted;base_url=***.kis.local;https=true;query=true)",
+  "reason_codes": [
+    "KISAuthReadinessBuilt",
+    "KISBaseUrlPreviewRedacted"
+  ]
+}

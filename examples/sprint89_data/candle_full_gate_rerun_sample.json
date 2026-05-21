@@ -1,0 +1,14 @@
+{
+  "started": false,
+  "finished": false,
+  "passed": null,
+  "duration_ms": null,
+  "remaining_blocker_families": [
+    "ExternalPrediction",
+    "KrxEvidence",
+    "DashboardRenderer",
+    "CommitteeCliSafety",
+    "BaselineSignal",
+    "CounterfactualBackfill"
+  ]
+}

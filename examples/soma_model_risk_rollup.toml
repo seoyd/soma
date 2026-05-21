@@ -1,0 +1,16 @@
+rollup_id = "sprint67-model-risk-rollup"
+model_review_closure_paths = ["examples/sprint67_data/model_review_closure.json"]
+prediction_history_pack_paths = ["examples/sprint67_data/prediction_history_pack.json"]
+model_ops_decision_log_paths = ["examples/sprint67_data/model_ops_decision_log.json"]
+model_ops_operator_qa_paths = ["examples/sprint67_data/model_ops_operator_qa.json"]
+model_ops_regression_guard_paths = ["examples/sprint67_data/model_ops_regression_guard.json"]
+control_tower_model_ops_refresh_paths = ["examples/sprint67_data/control_tower_model_ops_refresh.json"]
+external_model_research_ops_paths = ["examples/sprint67_data/external_model_research_ops.json"]
+conservative_leaderboard_paths = ["examples/sprint67_data/conservative_leaderboard.json"]
+calibration_drift_paths = ["examples/sprint67_data/calibration_drift.json"]
+owner_model_review_paths = ["examples/sprint67_data/owner_model_review_actions.json"]
+output_root = "target/soma_model_ops_rollup"
+max_models = 8
+max_versions = 16
+max_artifacts = 16
+max_bytes = 200000

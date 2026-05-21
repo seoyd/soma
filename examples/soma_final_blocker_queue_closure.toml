@@ -1,0 +1,61 @@
+reduction_id = "sprint97-counterfactual-backfill-recover"
+sprint96_bundle_paths = [
+  "target/soma_sprint96_baseline_signal_recovery/sprint96-baseline-signal-recover",
+  "examples/sprint97_data/sprint96_summary.json",
+]
+counterfactual_backfill_suite_paths = ["tests/counterfactual_backfill_suite.rs"]
+counterfactual_backfill_paths = [
+  "tests/counterfactual_backfill_recovery.rs",
+  "tests/counterfactual_backfill_entry_gate.rs",
+  "tests/counterfactual_backfill_readiness_precheck.rs",
+]
+no_trade_fixture_paths = [
+  "tests/counterfactual_backfill_suite.rs",
+  "tests/risk_counterfactual.rs",
+]
+risk_denied_fixture_paths = [
+  "tests/counterfactual_backfill_suite.rs",
+  "tests/risk_counterfactual.rs",
+  "src/risk/governor.rs",
+]
+defensive_value_fixture_paths = [
+  "tests/counterfactual_backfill_suite.rs",
+  "tests/risk_counterfactual.rs",
+  "src/league/counterfactual_reference_generator.rs",
+]
+opportunity_cost_fixture_paths = [
+  "tests/counterfactual_backfill_suite.rs",
+  "tests/risk_counterfactual.rs",
+  "src/league/counterfactual_reference_generator.rs",
+]
+no_fabricated_outcome_paths = [
+  "tests/counterfactual_backfill_suite.rs",
+  "src/league/counterfactual_completion_v2.rs",
+  "src/league/outcome_linkage_v3.rs",
+]
+no_lookahead_fixture_paths = [
+  "tests/counterfactual_backfill_suite.rs",
+  "src/league/counterfactual_backfill_plan.rs",
+  "src/league/outcome_linkage_v3.rs",
+]
+source_boundary_paths = [
+  "tests/support/sprint45_support.rs",
+  "src/league/counterfactual_backfill_plan.rs",
+]
+cargo_metadata_paths = ["examples/sprint97_data/counterfactual_backfill_compile_impact_sample.json"]
+cargo_timings_paths = []
+output_root = "target/soma_sprint97_counterfactual_backfill_recovery"
+target_family = "CounterfactualBackfill"
+run_real_no_run_after_reduction = false
+run_real_full_after_reduction = false
+preserve_assertions = true
+preserve_safety_guards = true
+preserve_no_trade_counterfactuals = true
+preserve_risk_denied_counterfactuals = true
+preserve_defensive_value = true
+preserve_opportunity_cost = true
+preserve_no_fabricated_outcomes = true
+preserve_no_lookahead_checks = true
+preserve_source_boundary_checks = true
+preserve_research_only_interpretation = true
+preserve_determinism_checks = true

@@ -1,0 +1,18 @@
+closure_id = "kis-candle-sufficiency"
+kis_activation_report_paths = []
+kis_canonical_csv_paths = [
+  "examples/sprint51_data/kis_kr_005930_1d_eod.csv",
+  "examples/sprint51_data/kis_us_nasd_AAPL_1d_delayed.csv"
+]
+kis_candle_sufficiency_paths = []
+official_ready_rows_paths = []
+barrier_profile_registry_path = "examples/soma_barrier_profiles_primary.toml"
+output_root = "state/experiments/kis_examples"
+run_future_window_requirements = true
+run_outcome_linkage_v3 = true
+run_counterfactual_completion_v2 = true
+run_complete_row_close_v2 = true
+run_official_evidence_scaleout = false
+run_official_evidence_diversity_sweep = false
+run_core_performance = false
+reason_codes = ["DeterministicPath"]

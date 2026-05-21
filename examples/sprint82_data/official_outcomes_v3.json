@@ -1,0 +1,11 @@
+{
+  "pack_id": "official-outcomes-v3",
+  "outcome_reference_count": 5,
+  "take_profit_count": 2,
+  "stop_loss_count": 2,
+  "time_expired_count": 1,
+  "future_window_safe_count": 5,
+  "no_lookahead_safe": true,
+  "pack_status": "OutcomeReferencePackReady"
+}
+

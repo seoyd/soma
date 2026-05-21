@@ -1,0 +1,12 @@
+review_id = "sprint59-review-safety-block"
+core_completion_audit_paths = ["examples/sprint59_data/core_ready_sample.json"]
+kis_smoke_report_paths = ["examples/sprint58_data/kis_market_data_smoke_sample.json"]
+control_tower_state_paths = ["examples/sprint59_data/safety_block_sample.json"]
+trinity_loop_report_paths = ["examples/sprint59_data/trinity_ready_sample.json"]
+chair_report_paths = ["examples/sprint59_data/chair_ready_sample.json"]
+owner_review_queue_paths = ["examples/sprint54_data/owner_review_queue_sample.json"]
+paper_lifecycle_paths = ["examples/sprint52_data/paper_positions_sample.json"]
+operational_runbook_paths = ["examples/sprint58_data/operational_runbook_v2_expected.json"]
+dashboard_json_paths = ["examples/sprint59_data/safety_block_sample.json"]
+artifact_diff_config_path = "examples/soma_system_benchmark_diff.toml"
+output_root = "target/sprint59"

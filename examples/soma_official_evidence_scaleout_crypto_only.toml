@@ -1,0 +1,17 @@
+scaleout_id = "sprint47-scaleout-crypto-only"
+multi_row_set_config_path = "examples/sprint47_data/crypto_only_multi_row_set.json"
+output_root = "target/soma_sprint47_examples/scaleout"
+run_multi_row_set = true
+run_future_window_scaleout = false
+run_batch_outcome_linkage = false
+run_batch_counterfactual_completion = false
+run_complete_row_rebuild = false
+run_committee_official_benchmark = false
+run_outcome_coverage = false
+run_counterfactual_depth_close = false
+run_core_performance = false
+run_sufficiency_v2 = true
+max_rows = 10
+max_symbols = 2
+max_bytes = 1000000
+require_core_check = false

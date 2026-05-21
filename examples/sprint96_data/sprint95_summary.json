@@ -1,0 +1,8 @@
+{
+  "committee_cli_safety": "CommitteeCliSafetyKeptIsolated",
+  "baseline_signal_entry": "BaselineSignalEntryReady",
+  "no_run": "RealNoRunStillBlocked",
+  "full_workspace": "FullWorkspaceStillBlocked",
+  "next_family": "BaselineSignal",
+  "compile_impact": "CompileImpactSampleBacked"
+}

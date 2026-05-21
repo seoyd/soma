@@ -1,0 +1,18 @@
+{
+  "report_id": "sprint95-committee-cli-safety-recover-forbidden-command",
+  "no_train_command": true,
+  "no_runtime_command": true,
+  "no_live_inference_command": true,
+  "no_live_trading_command": true,
+  "no_order_command": true,
+  "no_account_command": true,
+  "no_broker_command": true,
+  "no_browser_execution_command": true,
+  "no_tauri_svelte_command": true,
+  "no_persona_expansion_command": true,
+  "forbidden_command_status": "ForbiddenCommandsAbsent",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

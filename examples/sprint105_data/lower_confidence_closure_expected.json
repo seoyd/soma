@@ -1,0 +1,21 @@
+{
+  "report_id": "lower-confidence-carry-forward-closure-report",
+  "warning_backed_candidates": [
+    "ArthurHayes",
+    "LarryWilliams",
+    "Wonyotti"
+  ],
+  "silent_upgrade_count": 0,
+  "live_activation_allowed": false,
+  "closure_status": "LowerConfidenceCarryForwardStillExplicit",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

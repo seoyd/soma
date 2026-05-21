@@ -1,0 +1,39 @@
+{
+  "inventory_id": "compile-families-before",
+  "records": [
+    { "binary_name": "tests/future_window_requirements.rs", "test_file": "tests/future_window_requirements.rs", "family": "FutureWindow", "consolidation_candidate": true },
+    { "binary_name": "tests/future_window_extension_job.rs", "test_file": "tests/future_window_extension_job.rs", "family": "FutureWindow", "consolidation_candidate": true },
+    { "binary_name": "tests/official_evidence_diversity_gap.rs", "test_file": "tests/official_evidence_diversity_gap.rs", "family": "OfficialDiversity", "consolidation_candidate": true },
+    { "binary_name": "tests/outcome_diversity_audit.rs", "test_file": "tests/outcome_diversity_audit.rs", "family": "OfficialDiversity", "consolidation_candidate": true },
+    { "binary_name": "tests/trinity_operational_loop_runner.rs", "test_file": "tests/trinity_operational_loop_runner.rs", "family": "TrinityOperational", "consolidation_candidate": true },
+    { "binary_name": "tests/dataset_export.rs", "test_file": "tests/dataset_export.rs", "family": "DatasetExport", "consolidation_candidate": true },
+    { "binary_name": "tests/sequence_dataset_export.rs", "test_file": "tests/sequence_dataset_export.rs", "family": "DatasetExport", "consolidation_candidate": true },
+    { "binary_name": "tests/control_tower_v1.rs", "test_file": "tests/control_tower_v1.rs", "family": "ControlTowerV1", "consolidation_candidate": true },
+    { "binary_name": "tests/official_candle_expansion_runner.rs", "test_file": "tests/official_candle_expansion_runner.rs", "family": "CandleExpansionOps", "consolidation_candidate": true },
+    { "binary_name": "tests/external_prediction_ablation.rs", "test_file": "tests/external_prediction_ablation.rs", "family": "ExternalPrediction", "consolidation_candidate": true },
+    { "binary_name": "tests/ext_model_b_prediction_closure.rs", "test_file": "tests/ext_model_b_prediction_closure.rs", "family": "ExternalPrediction", "consolidation_candidate": true },
+    { "binary_name": "tests/krx_evidence_job_plan.rs", "test_file": "tests/krx_evidence_job_plan.rs", "family": "KrxEvidence", "consolidation_candidate": true },
+    { "binary_name": "tests/dashboard_renderer.rs", "test_file": "tests/dashboard_renderer.rs", "family": "DashboardRenderer", "consolidation_candidate": true },
+    { "binary_name": "tests/dashboard_v1_renderer.rs", "test_file": "tests/dashboard_v1_renderer.rs", "family": "DashboardRenderer", "consolidation_candidate": true },
+    { "binary_name": "tests/baseline_signal.rs", "test_file": "tests/baseline_signal.rs", "family": "BaselineSignal", "consolidation_candidate": true },
+    { "binary_name": "tests/counterfactual_backfill_plan.rs", "test_file": "tests/counterfactual_backfill_plan.rs", "family": "CounterfactualBackfill", "consolidation_candidate": true },
+    { "binary_name": "committee_cli_safety", "crate_name": "committee_cli_safety", "family": "CommitteeCliSafety", "consolidation_candidate": false, "keep_separate_reason": "retain dedicated compile-only CLI safety isolation" }
+  ],
+  "total_target_count": 17,
+  "high_volume_count": 16,
+  "family_distribution": {
+    "FutureWindow": 2,
+    "OfficialDiversity": 2,
+    "TrinityOperational": 1,
+    "DatasetExport": 2,
+    "ControlTowerV1": 1,
+    "CandleExpansionOps": 1,
+    "ExternalPrediction": 2,
+    "KrxEvidence": 1,
+    "DashboardRenderer": 2,
+    "BaselineSignal": 1,
+    "CounterfactualBackfill": 1,
+    "CommitteeCliSafety": 1
+  },
+  "inventory_status": "CompileFamiliesReadyWithWarnings"
+}

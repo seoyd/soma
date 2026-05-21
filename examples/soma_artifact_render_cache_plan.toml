@@ -1,0 +1,4 @@
+timing_id = "artifact-render-cache-plan-example"
+sample_timing_paths = [
+  "examples/sprint77_data/artifact_render_cost_sample.json",
+]

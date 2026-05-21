@@ -1,0 +1,19 @@
+{
+  "source_kind": "OfficialApiCollected",
+  "source_label": "krx-local-fixture-000660",
+  "provider_label": "krx-open-api",
+  "upstream_label": "krx-open-api",
+  "local_path": "examples/sprint49_data/krx_000660_1d_compact.csv",
+  "generated_by": "sprint49-fixture",
+  "user_supplied": true,
+  "downloaded_by_soma": false,
+  "remote_url_present": false,
+  "official_provider": true,
+  "affiliated_or_endorsed": true,
+  "intended_use": "research-only bounded KRX market-data fixture",
+  "readiness_eligible": true,
+  "benchmark_eligible": true,
+  "license_note": "local sprint49 fixture",
+  "notes": "no secret values",
+  "reason_codes": ["DeterministicPath", "OfficialApiCollected"]
+}

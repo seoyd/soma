@@ -1,0 +1,34 @@
+{
+  "report_id": "debate-needs-more-evidence-closure-report",
+  "previous_debate_status": "DebateNeedsMoreEvidence",
+  "missing_evidence_items": [],
+  "added_or_confirmed_evidence_items": [
+    "official-evidence",
+    "research-evidence",
+    "source-boundary-proof",
+    "no-lookahead-proof",
+    "paper-debate-evidence-bundle"
+  ],
+  "remaining_evidence_items": [],
+  "need_more_evidence_reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ],
+  "debate_closure_status": "DebateEvidenceClosedWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

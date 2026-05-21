@@ -1,0 +1,26 @@
+{
+  "report_id": "real-full-workspace-execution-v18",
+  "attempted": false,
+  "command": "cargo test --workspace --quiet",
+  "started": false,
+  "finished": false,
+  "passed": null,
+  "duration_ms": null,
+  "timeout_ms": 420000,
+  "exit_code": null,
+  "timed_out": false,
+  "cleanup_performed": false,
+  "remaining_cargo_processes": null,
+  "remaining_rustc_processes": null,
+  "full_workspace_accepted": false,
+  "execution_status": "RealFullWorkspaceDeferred",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

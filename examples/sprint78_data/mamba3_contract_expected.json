@@ -1,0 +1,14 @@
+{
+  "mamba3_contract_expected": {
+    "input_tensor_spec": "batch x sequence_len x feature_count tensor with feature-order hash and manifest locks",
+    "feature_schema_hash_required": true,
+    "label_manifest_hash_required": true,
+    "sequence_window_spec": "fixed no-lookahead windows over OHLCV, derived features, and barrier labels",
+    "supported_horizons": [
+      5,
+      10,
+      20
+    ]
+  }
+}
+

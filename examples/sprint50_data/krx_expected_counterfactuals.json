@@ -1,0 +1,7 @@
+{
+  "summary": "counterfactual placeholder rows",
+  "rows": [
+    {"symbol": "005930", "counterfactual": "NoTrade"},
+    {"symbol": "000660", "counterfactual": "RiskDenied"}
+  ]
+}

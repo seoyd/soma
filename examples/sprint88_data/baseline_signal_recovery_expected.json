@@ -1,0 +1,8 @@
+{
+  "feature_regime_flow_covered": true,
+  "conservative_no_trade_default_covered": true,
+  "poor_data_quality_denial_covered": true,
+  "risk_governor_veto_covered": true,
+  "deterministic_summary_covered": true,
+  "recovery_status": "BaselineSignalReduced"
+}

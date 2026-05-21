@@ -1,0 +1,17 @@
+{
+  "report_id": "safety-boolean-coverage-audit-report",
+  "actual_guard_booleans_count": 10,
+  "missing_guard_booleans": [],
+  "guard_mismatch_count": 0,
+  "audit_status": "SafetyBooleanCoverageVerified",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

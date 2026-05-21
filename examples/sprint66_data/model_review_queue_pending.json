@@ -1,0 +1,391 @@
+{
+  "queue_id": "sprint65-external-model-review-queue",
+  "pending_items": [
+    {
+      "review_id": "ext-model-a:1.0.0:CalibrationDriftReview",
+      "model_id": "ext-model-a",
+      "model_version": "1.0.0",
+      "item_kind": "CalibrationDriftReview",
+      "status": "Pending",
+      "summary": "calibration drift or insufficient history requires conservative review",
+      "recommended_actions": [
+        "AddModelNote",
+        "KeepResearchCandidate",
+        "MarkModelDiagnosticOnly",
+        "RequestCalibrationReview",
+        "RequestMorePredictions",
+        "RequestRiskReview",
+        "RetireModelVersion",
+        "WatchModel"
+      ],
+      "forbidden_actions": [
+        "BrokerIntegration",
+        "BypassRiskGovernor",
+        "EnableRuntimeInference",
+        "EnableTraining",
+        "ExecuteTrade",
+        "PromoteToLive"
+      ],
+      "reason_codes": [
+        "ExternalModelReviewQueueBuilt"
+      ]
+    },
+    {
+      "review_id": "ext-model-a:1.0.0:MambaFamilyReview",
+      "model_id": "ext-model-a",
+      "model_version": "1.0.0",
+      "item_kind": "MambaFamilyReview",
+      "status": "Pending",
+      "summary": "Mamba3Fin family remains artifact-only and runtime-deferred",
+      "recommended_actions": [
+        "AddModelNote",
+        "KeepResearchCandidate",
+        "MarkModelDiagnosticOnly",
+        "RequestCalibrationReview",
+        "RequestMorePredictions",
+        "RequestRiskReview",
+        "RetireModelVersion",
+        "WatchModel"
+      ],
+      "forbidden_actions": [
+        "BrokerIntegration",
+        "BypassRiskGovernor",
+        "EnableRuntimeInference",
+        "EnableTraining",
+        "ExecuteTrade",
+        "PromoteToLive"
+      ],
+      "reason_codes": [
+        "ExternalModelReviewQueueBuilt"
+      ]
+    },
+    {
+      "review_id": "ext-model-a:1.0.0:NewModelVersion",
+      "model_id": "ext-model-a",
+      "model_version": "1.0.0",
+      "item_kind": "NewModelVersion",
+      "status": "Pending",
+      "summary": "new or current model version requires research review",
+      "recommended_actions": [
+        "AddModelNote",
+        "KeepResearchCandidate",
+        "MarkModelDiagnosticOnly",
+        "RequestCalibrationReview",
+        "RequestMorePredictions",
+        "RequestRiskReview",
+        "RetireModelVersion",
+        "WatchModel"
+      ],
+      "forbidden_actions": [
+        "BrokerIntegration",
+        "BypassRiskGovernor",
+        "EnableRuntimeInference",
+        "EnableTraining",
+        "ExecuteTrade",
+        "PromoteToLive"
+      ],
+      "reason_codes": [
+        "ExternalModelReviewQueueBuilt"
+      ]
+    },
+    {
+      "review_id": "ext-model-a:1.1.0:LeaderboardChangeReview",
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "item_kind": "LeaderboardChangeReview",
+      "status": "Pending",
+      "summary": "leaderboard rank or score changed",
+      "recommended_actions": [
+        "AddModelNote",
+        "KeepResearchCandidate",
+        "MarkModelDiagnosticOnly",
+        "RequestCalibrationReview",
+        "RequestMorePredictions",
+        "RequestRiskReview",
+        "RetireModelVersion",
+        "WatchModel"
+      ],
+      "forbidden_actions": [
+        "BrokerIntegration",
+        "BypassRiskGovernor",
+        "EnableRuntimeInference",
+        "EnableTraining",
+        "ExecuteTrade",
+        "PromoteToLive"
+      ],
+      "reason_codes": [
+        "ExternalModelReviewQueueBuilt"
+      ]
+    },
+    {
+      "review_id": "ext-model-a:1.1.0:MambaFamilyReview",
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "item_kind": "MambaFamilyReview",
+      "status": "Pending",
+      "summary": "Mamba3Fin family remains artifact-only and runtime-deferred",
+      "recommended_actions": [
+        "AddModelNote",
+        "KeepResearchCandidate",
+        "MarkModelDiagnosticOnly",
+        "RequestCalibrationReview",
+        "RequestMorePredictions",
+        "RequestRiskReview",
+        "RetireModelVersion",
+        "WatchModel"
+      ],
+      "forbidden_actions": [
+        "BrokerIntegration",
+        "BypassRiskGovernor",
+        "EnableRuntimeInference",
+        "EnableTraining",
+        "ExecuteTrade",
+        "PromoteToLive"
+      ],
+      "reason_codes": [
+        "ExternalModelReviewQueueBuilt"
+      ]
+    },
+    {
+      "review_id": "ext-model-a:1.1.0:NewModelVersion",
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "item_kind": "NewModelVersion",
+      "status": "Pending",
+      "summary": "new or current model version requires research review",
+      "recommended_actions": [
+        "AddModelNote",
+        "KeepResearchCandidate",
+        "MarkModelDiagnosticOnly",
+        "RequestCalibrationReview",
+        "RequestMorePredictions",
+        "RequestRiskReview",
+        "RetireModelVersion",
+        "WatchModel"
+      ],
+      "forbidden_actions": [
+        "BrokerIntegration",
+        "BypassRiskGovernor",
+        "EnableRuntimeInference",
+        "EnableTraining",
+        "ExecuteTrade",
+        "PromoteToLive"
+      ],
+      "reason_codes": [
+        "ExternalModelReviewQueueBuilt"
+      ]
+    },
+    {
+      "review_id": "ext-model-a:1.1.0:OwnerRequestedReview",
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "item_kind": "OwnerRequestedReview",
+      "status": "Pending",
+      "summary": "owner requested additional conservative review",
+      "recommended_actions": [
+        "AddModelNote",
+        "KeepResearchCandidate",
+        "MarkModelDiagnosticOnly",
+        "RequestCalibrationReview",
+        "RequestMorePredictions",
+        "RequestRiskReview",
+        "RetireModelVersion",
+        "WatchModel"
+      ],
+      "forbidden_actions": [
+        "BrokerIntegration",
+        "BypassRiskGovernor",
+        "EnableRuntimeInference",
+        "EnableTraining",
+        "ExecuteTrade",
+        "PromoteToLive"
+      ],
+      "reason_codes": [
+        "ExternalModelReviewQueueBuilt"
+      ]
+    },
+    {
+      "review_id": "ext-model-b:1.0.0:CalibrationDriftReview",
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "item_kind": "CalibrationDriftReview",
+      "status": "Pending",
+      "summary": "calibration drift or insufficient history requires conservative review",
+      "recommended_actions": [
+        "AddModelNote",
+        "KeepResearchCandidate",
+        "MarkModelDiagnosticOnly",
+        "RequestCalibrationReview",
+        "RequestMorePredictions",
+        "RequestRiskReview",
+        "RetireModelVersion",
+        "WatchModel"
+      ],
+      "forbidden_actions": [
+        "BrokerIntegration",
+        "BypassRiskGovernor",
+        "EnableRuntimeInference",
+        "EnableTraining",
+        "ExecuteTrade",
+        "PromoteToLive"
+      ],
+      "reason_codes": [
+        "ExternalModelReviewQueueBuilt"
+      ]
+    },
+    {
+      "review_id": "ext-model-b:1.0.0:CoverageWeakReview",
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "item_kind": "CoverageWeakReview",
+      "status": "Pending",
+      "summary": "coverage or evidence depth is weak",
+      "recommended_actions": [
+        "AddModelNote",
+        "KeepResearchCandidate",
+        "MarkModelDiagnosticOnly",
+        "RequestCalibrationReview",
+        "RequestMorePredictions",
+        "RequestRiskReview",
+        "RetireModelVersion",
+        "WatchModel"
+      ],
+      "forbidden_actions": [
+        "BrokerIntegration",
+        "BypassRiskGovernor",
+        "EnableRuntimeInference",
+        "EnableTraining",
+        "ExecuteTrade",
+        "PromoteToLive"
+      ],
+      "reason_codes": [
+        "ExternalModelReviewQueueBuilt"
+      ]
+    },
+    {
+      "review_id": "ext-model-b:1.0.0:LeaderboardChangeReview",
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "item_kind": "LeaderboardChangeReview",
+      "status": "Pending",
+      "summary": "leaderboard rank or score changed",
+      "recommended_actions": [
+        "AddModelNote",
+        "KeepResearchCandidate",
+        "MarkModelDiagnosticOnly",
+        "RequestCalibrationReview",
+        "RequestMorePredictions",
+        "RequestRiskReview",
+        "RetireModelVersion",
+        "WatchModel"
+      ],
+      "forbidden_actions": [
+        "BrokerIntegration",
+        "BypassRiskGovernor",
+        "EnableRuntimeInference",
+        "EnableTraining",
+        "ExecuteTrade",
+        "PromoteToLive"
+      ],
+      "reason_codes": [
+        "ExternalModelReviewQueueBuilt"
+      ]
+    },
+    {
+      "review_id": "ext-model-b:1.0.0:NewModelVersion",
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "item_kind": "NewModelVersion",
+      "status": "Pending",
+      "summary": "new or current model version requires research review",
+      "recommended_actions": [
+        "AddModelNote",
+        "KeepResearchCandidate",
+        "MarkModelDiagnosticOnly",
+        "RequestCalibrationReview",
+        "RequestMorePredictions",
+        "RequestRiskReview",
+        "RetireModelVersion",
+        "WatchModel"
+      ],
+      "forbidden_actions": [
+        "BrokerIntegration",
+        "BypassRiskGovernor",
+        "EnableRuntimeInference",
+        "EnableTraining",
+        "ExecuteTrade",
+        "PromoteToLive"
+      ],
+      "reason_codes": [
+        "ExternalModelReviewQueueBuilt"
+      ]
+    },
+    {
+      "review_id": "ext-model-b:1.0.0:OwnerRequestedReview",
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "item_kind": "OwnerRequestedReview",
+      "status": "Pending",
+      "summary": "owner requested additional conservative review",
+      "recommended_actions": [
+        "AddModelNote",
+        "KeepResearchCandidate",
+        "MarkModelDiagnosticOnly",
+        "RequestCalibrationReview",
+        "RequestMorePredictions",
+        "RequestRiskReview",
+        "RetireModelVersion",
+        "WatchModel"
+      ],
+      "forbidden_actions": [
+        "BrokerIntegration",
+        "BypassRiskGovernor",
+        "EnableRuntimeInference",
+        "EnableTraining",
+        "ExecuteTrade",
+        "PromoteToLive"
+      ],
+      "reason_codes": [
+        "ExternalModelReviewQueueBuilt"
+      ]
+    }
+  ],
+  "reviewed_items": [],
+  "deferred_items": [],
+  "retired_items": [
+    {
+      "review_id": "ext-model-a:1.0.0:RetirementReview",
+      "model_id": "ext-model-a",
+      "model_version": "1.0.0",
+      "item_kind": "RetirementReview",
+      "status": "Retired",
+      "summary": "model version was retired from active research comparison",
+      "recommended_actions": [
+        "AddModelNote",
+        "KeepResearchCandidate",
+        "MarkModelDiagnosticOnly",
+        "RequestCalibrationReview",
+        "RequestMorePredictions",
+        "RequestRiskReview",
+        "RetireModelVersion",
+        "WatchModel"
+      ],
+      "forbidden_actions": [
+        "BrokerIntegration",
+        "BypassRiskGovernor",
+        "EnableRuntimeInference",
+        "EnableTraining",
+        "ExecuteTrade",
+        "PromoteToLive"
+      ],
+      "reason_codes": [
+        "ExternalModelReviewQueueBuilt"
+      ]
+    }
+  ],
+  "downgraded_items": [],
+  "blocked_items": [],
+  "reason_codes": [
+    "ExternalModelReviewQueueBuilt"
+  ]
+}

@@ -1,0 +1,13 @@
+batch_id = "sprint47-batch-counterfactuals"
+multi_row_set_config_path = "examples/soma_multi_row_official_set_multi_row.toml"
+outcome_linkage_batch_path = "examples/soma_batch_outcome_linkage_v3_multi_row.toml"
+committee_decision_paths = ["examples/sprint47_data/multi_row_committee_decisions.json"]
+risk_decision_paths = ["examples/sprint47_data/multi_row_risk_decisions.json"]
+output_root = "target/soma_sprint47_examples/batch_counterfactuals"
+build_no_trade = true
+build_risk_denied = true
+credit_avoided_loss_factor = 1.0
+penalize_missed_gain_factor = 1.0
+max_missed_gain_penalty = 1.0
+require_outcome_reference = true
+require_no_lookahead_safe = true

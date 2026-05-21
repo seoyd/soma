@@ -1,0 +1,27 @@
+{
+  "report_id": "paper-decision-replay-warning-closure-report",
+  "previous_replay_status": "ReplayReadyWithWarnings",
+  "replayed_decision_count": 1,
+  "replay_warnings": [
+    "NeedMoreEvidenceDecisionPresent"
+  ],
+  "closed_warnings": [
+    "BrokerExecutionForbidden",
+    "LiveExecutionForbidden",
+    "TraceComplete"
+  ],
+  "remaining_warnings": [],
+  "broker_execution_allowed_count": 0,
+  "live_execution_allowed_count": 0,
+  "closure_status": "ReplayWarningsClosedWithNotes",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

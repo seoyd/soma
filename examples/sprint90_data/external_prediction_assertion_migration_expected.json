@@ -1,0 +1,12 @@
+{
+  "donor_files": [
+    "tests/external_prediction_import_v2.rs",
+    "tests/external_prediction_suite.rs",
+    "tests/prediction_import.rs",
+    "tests/real_evidence_prediction_import.rs",
+    "tests/sequence_core_prototype_comparison.rs"
+  ],
+  "target_suite": "tests/external_prediction_family_suite.rs",
+  "high_risk_assertions_kept_separate": [],
+  "notes": "historical donor lineage stays explicit while high-risk external prediction checks remain preserved"
+}

@@ -1,0 +1,5 @@
+{
+  "full_workspace_status": "FullWorkspaceBlockedByCompilation",
+  "gate_status": "BlockedByFullWorkspace",
+  "smoke_status": "SmokeCompressionReady"
+}

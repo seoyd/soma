@@ -1,0 +1,25 @@
+{
+  "observed_command": "cargo test --workspace --quiet",
+  "observed_status": "stopped_long_running_compilation",
+  "bottleneck_kind": "TestBinaryExplosion",
+  "suspected_crates": [
+    "soma-zero"
+  ],
+  "suspected_test_binaries": [
+    "model_leaderboard_changelog",
+    "persona_operational_status",
+    "real_evidence_model_ops_impact"
+  ],
+  "suspected_artifact_generators": [
+    "deterministic text reports",
+    "fixture golden-file bundles"
+  ],
+  "target_dir_size_bytes": 73400320,
+  "suggested_actions": [
+    "SplitFullWorkspaceByTier",
+    "RunFullWorkspaceWithExtendedTimeout",
+    "InvestigateTestBinaryExplosion",
+    "ReuseArtifactGoldenFiles"
+  ]
+}
+

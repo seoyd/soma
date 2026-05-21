@@ -1,0 +1,4 @@
+modernization_id = "toolchain-version-report-example"
+current_toolchain_report_paths = [
+  "examples/sprint76_data/toolchain_previous_sample.json",
+]

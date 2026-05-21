@@ -1,0 +1,20 @@
+benchmark_id = "committee_benchmark_diagnostics_only"
+materialization_config_path = "examples/soma_committee_materialize_fixture.toml"
+output_root = "target/soma_committee_benchmark"
+max_decisions = 8
+require_core_check = true
+run_replay = true
+run_chair_diagnostics = true
+run_risk_diagnostics = true
+run_vs_baseline_comparison = false
+run_actionability_report = true
+run_attribution_report = true
+run_readiness_gate = true
+allow_fixture = true
+allow_yfinance_research = false
+allow_crypto_only = true
+min_official_rows = 3
+min_total_rows = 3
+min_outcome_references = 2
+reason_codes = []
+

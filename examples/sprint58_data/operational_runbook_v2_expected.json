@@ -1,0 +1,150 @@
+{
+  "runbook_id": "sprint58-operational-runbook-v2",
+  "steps": [
+    {
+      "step_id": "step-01-kis-auth-closure",
+      "step_kind": "KISAuthClosure",
+      "command_suggestion": "cargo run --quiet --bin soma_experiment -- kis-auth-close --config examples/soma_kis_auth_close.toml",
+      "expected_artifact": "target/sprint58/kis_auth_closure/",
+      "blocked": false,
+      "reason_codes": [
+        "DeterministicPath"
+      ]
+    },
+    {
+      "step_id": "step-02-kis-market-data-dry-run",
+      "step_kind": "KISMarketDataDryRun",
+      "command_suggestion": "cargo run --quiet --bin soma_experiment -- kis-market-data-dry-run --config examples/soma_kis_market_data_dry_run.toml",
+      "expected_artifact": "target/sprint58/kis_market_data_dry_run/",
+      "blocked": false,
+      "reason_codes": [
+        "DeterministicPath"
+      ]
+    },
+    {
+      "step_id": "step-03-kis-collection-plan-v2",
+      "step_kind": "KISCollectionPlanV2",
+      "command_suggestion": "cargo run --quiet --bin soma_experiment -- kis-collection-plan-v2 --config examples/soma_kis_collection_plan_v2_fixture.toml",
+      "expected_artifact": "target/sprint58/kis_collection_plan_v2/",
+      "blocked": false,
+      "reason_codes": [
+        "DeterministicPath"
+      ]
+    },
+    {
+      "step_id": "step-04-kis-market-data-smoke",
+      "step_kind": "KISMarketDataSmoke",
+      "command_suggestion": "cargo run --quiet --bin soma_experiment -- kis-market-data-smoke --config examples/soma_kis_market_data_smoke_fixture.toml",
+      "expected_artifact": "target/soma_kis_market_data_smoke/",
+      "blocked": false,
+      "reason_codes": [
+        "DeterministicPath"
+      ]
+    },
+    {
+      "step_id": "step-05-kis-evidence-depth-run",
+      "step_kind": "KISEvidenceDepthRun",
+      "command_suggestion": "cargo run --quiet --bin soma_experiment -- kis-evidence-depth-run --config examples/soma_kis_evidence_depth_run.toml",
+      "expected_artifact": "target/sprint57/kis_evidence_depth/",
+      "blocked": false,
+      "reason_codes": [
+        "DeterministicPath"
+      ]
+    },
+    {
+      "step_id": "step-06-trinity-operational-loop",
+      "step_kind": "TrinityOperationalLoop",
+      "command_suggestion": "cargo run --quiet --bin soma_experiment -- trinity-operational-loop --config examples/soma_trinity_operational_loop_kis.toml",
+      "expected_artifact": "target/sprint56/sprint56-operational-loop-kis/",
+      "blocked": false,
+      "reason_codes": [
+        "DeterministicPath"
+      ]
+    },
+    {
+      "step_id": "step-07-control-tower-refresh",
+      "step_kind": "ControlTowerRefresh",
+      "command_suggestion": "cargo run --quiet --bin soma_experiment -- control-tower-auto-refresh --config examples/soma_control_tower_auto_refresh.toml",
+      "expected_artifact": "target/sprint58/control_tower_auto_refresh/",
+      "blocked": false,
+      "reason_codes": [
+        "DeterministicPath"
+      ]
+    },
+    {
+      "step_id": "step-08-dashboard-open",
+      "step_kind": "DashboardOpen",
+      "command_suggestion": "cargo run --quiet --bin soma_experiment -- dashboard-open --config examples/soma_control_tower_v1_kis.toml",
+      "expected_artifact": "target/sprint58/control_tower_auto_refresh/",
+      "blocked": false,
+      "reason_codes": [
+        "DeterministicPath"
+      ]
+    },
+    {
+      "step_id": "step-09-owner-review-queue",
+      "step_kind": "OwnerReviewQueue",
+      "command_suggestion": "cargo run --quiet --bin soma_experiment -- owner-review-queue --config examples/soma_owner_review_queue.toml",
+      "expected_artifact": "owner review queue text output",
+      "blocked": false,
+      "reason_codes": [
+        "DeterministicPath"
+      ]
+    },
+    {
+      "step_id": "step-10-core-performance",
+      "step_kind": "CorePerformance",
+      "command_suggestion": "cargo run --quiet --bin soma_experiment -- core-performance --config examples/soma_core_performance_diagnostics_only.toml",
+      "expected_artifact": "target/core_performance_diagnostics_only/",
+      "blocked": false,
+      "reason_codes": [
+        "DeterministicPath"
+      ]
+    }
+  ],
+  "ordered_steps": [
+    "step-01-kis-auth-closure",
+    "step-02-kis-market-data-dry-run",
+    "step-03-kis-collection-plan-v2",
+    "step-04-kis-market-data-smoke",
+    "step-05-kis-evidence-depth-run",
+    "step-06-trinity-operational-loop",
+    "step-07-control-tower-refresh",
+    "step-08-dashboard-open",
+    "step-09-owner-review-queue",
+    "step-10-core-performance"
+  ],
+  "required_steps": 8,
+  "optional_steps": 2,
+  "blocked_steps": 0,
+  "primary_next_step": "step-01-kis-auth-closure",
+  "command_suggestions": [
+    "cargo run --quiet --bin soma_experiment -- kis-auth-close --config examples/soma_kis_auth_close.toml",
+    "cargo run --quiet --bin soma_experiment -- kis-market-data-dry-run --config examples/soma_kis_market_data_dry_run.toml",
+    "cargo run --quiet --bin soma_experiment -- kis-collection-plan-v2 --config examples/soma_kis_collection_plan_v2_fixture.toml",
+    "cargo run --quiet --bin soma_experiment -- kis-market-data-smoke --config examples/soma_kis_market_data_smoke_fixture.toml",
+    "cargo run --quiet --bin soma_experiment -- kis-evidence-depth-run --config examples/soma_kis_evidence_depth_run.toml",
+    "cargo run --quiet --bin soma_experiment -- trinity-operational-loop --config examples/soma_trinity_operational_loop_kis.toml",
+    "cargo run --quiet --bin soma_experiment -- control-tower-auto-refresh --config examples/soma_control_tower_auto_refresh.toml",
+    "cargo run --quiet --bin soma_experiment -- dashboard-open --config examples/soma_control_tower_v1_kis.toml",
+    "cargo run --quiet --bin soma_experiment -- owner-review-queue --config examples/soma_owner_review_queue.toml",
+    "cargo run --quiet --bin soma_experiment -- core-performance --config examples/soma_core_performance_diagnostics_only.toml"
+  ],
+  "expected_artifacts": [
+    "target/sprint58/kis_auth_closure/",
+    "target/sprint58/kis_market_data_dry_run/",
+    "target/sprint58/kis_collection_plan_v2/",
+    "target/soma_kis_market_data_smoke/",
+    "target/sprint57/kis_evidence_depth/",
+    "target/sprint56/sprint56-operational-loop-kis/",
+    "target/sprint58/control_tower_auto_refresh/",
+    "target/sprint58/control_tower_auto_refresh/",
+    "owner review queue text output",
+    "target/core_performance_diagnostics_only/"
+  ],
+  "final_status": "ReadyToRun",
+  "reason_codes": [
+    "DeterministicPath",
+    "OperationalRunbookV2Built"
+  ]
+}

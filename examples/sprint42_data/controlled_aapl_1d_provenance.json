@@ -1,0 +1,21 @@
+{
+  "source_kind": "RealLocal",
+  "source_label": "controlled-aapl",
+  "provider_label": "LocalFixture",
+  "local_path": "examples/sprint42_data/controlled_aapl_1d.csv",
+  "official_provider": false,
+  "affiliated_or_endorsed": false,
+  "readiness_eligible": false,
+  "benchmark_eligible": true,
+  "upstream_label": null,
+  "generated_by": null,
+  "user_supplied": true,
+  "downloaded_by_soma": false,
+  "remote_url_present": false,
+  "intended_use": "research-only",
+  "license_note": null,
+  "notes": null,
+  "reason_codes": [
+    "DeterministicPath"
+  ]
+}

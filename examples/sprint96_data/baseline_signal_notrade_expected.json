@@ -1,0 +1,6 @@
+{
+  "no_trade_status": "NoTradeDefaultPreserved",
+  "default_action_no_trade_preserved": true,
+  "uncertain_signal_goes_no_trade": true,
+  "poor_data_goes_no_trade": true
+}

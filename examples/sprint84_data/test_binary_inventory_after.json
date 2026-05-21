@@ -1,0 +1,43 @@
+{
+  "inventory_id": "sprint84-after",
+  "test_binary_count": 2,
+  "files": [
+    {
+      "file": "tests/sprint82_evidence_depth_suite.rs",
+      "preserved_tests": [
+        "sprint82_bundle_conservative_coverage_preserved",
+        "sprint82_config_defaults_and_remote_guard_hold",
+        "sprint82_weak_official_depth_stays_conservative",
+        "sprint82_reference_pack_quality_is_preserved_and_deterministic",
+        "sprint82_cli_help_and_local_only_guards_are_present",
+        "sprint82_grouped_suite_is_deterministic"
+      ],
+      "assertion_count": 24,
+      "contains_safety_tests": true,
+      "contains_cli_safety_tests": true,
+      "contains_determinism_tests": true
+    },
+    {
+      "file": "tests/sprint83_acceptance_recovery_suite.rs",
+      "preserved_tests": [
+        "sprint83_bundle_is_constructed_and_conservative",
+        "sprint83_config_defaults_and_remote_guard_hold",
+        "sprint83_full_workspace_report_keeps_blocked_state_honest",
+        "sprint83_long_compilation_diagnosis_is_reported",
+        "sprint83_fixture_hardening_reports_and_packs_are_ready",
+        "sprint83_fixture_determinism_regression_is_ready",
+        "sprint83_smoke_compression_and_runtime_plan_preserve_safety",
+        "sprint83_fixture_boundary_audit_and_gate_remain_conservative",
+        "sprint83_fixture_boundary_audit_blocks_source_boundary_issues",
+        "sprint83_recovery_panel_is_read_only_and_runtime_deferred",
+        "sprint83_cli_help_and_local_only_guards_are_present",
+        "sprint83_grouped_suite_is_deterministic"
+      ],
+      "assertion_count": 28,
+      "contains_safety_tests": true,
+      "contains_cli_safety_tests": true,
+      "contains_determinism_tests": true
+    }
+  ]
+}
+

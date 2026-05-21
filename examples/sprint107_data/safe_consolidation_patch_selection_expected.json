@@ -1,0 +1,25 @@
+{
+  "report_id": "safe-consolidation-patch-selection",
+  "candidate_targets": [
+    "tests/fixture_setup_cost_attribution_v2.rs",
+    "tests/shared_fixture_harness_expansion_plan_v2.rs"
+  ],
+  "selected_target_group": "fixture-harness-diagnostics",
+  "selection_reason": "selected the lowest-risk repeated fixture harness diagnostics target; CommitteeCliSafety sentinel kept isolated; high-risk safety/determinism/paper lifecycle sentinels remain isolated",
+  "risk_class": "Low",
+  "target_count_to_consolidate": 1,
+  "expected_assertion_moves": 2,
+  "expected_binary_delta": -1,
+  "selected_status": "PatchCandidateSelected",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "DeterministicPath",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt",
+    "LocalFileOnly"
+  ]
+}

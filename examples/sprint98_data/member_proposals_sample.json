@@ -1,0 +1,336 @@
+[
+  {
+    "proposal_id": "trend-scout-proposal",
+    "member_id": "trend-scout",
+    "style_archetype": "TrendFollower",
+    "proposed_action": "EnterLong",
+    "proposed_entry_timing": {
+      "timing_id": "trend-scout-entry-window",
+      "member_id": "trend-scout",
+      "symbol": "005930.KS",
+      "timeframe": "OneDay",
+      "entry_window": "NextCandle",
+      "earliest_entry_timestamp": 1730086400000,
+      "latest_entry_timestamp": 1730172800000,
+      "confirmation_conditions": [
+        "breakout holds above prior swing high on paper close"
+      ],
+      "cancellation_conditions": [
+        "risk governor denies or breakout fails immediately"
+      ],
+      "required_risk_checks": [
+        "spread-within-paper-limit",
+        "paper-size-capped"
+      ],
+      "timing_status": "EntryTimingReady",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault"
+      ]
+    },
+    "confidence": 0.79,
+    "expected_return_proxy": 0.63,
+    "expected_risk_proxy": 0.31,
+    "invalidation_condition": "breakout loses follow-through immediately",
+    "wait_condition": "wait until next paper candle confirms breakout",
+    "stop_condition": "paper stop if breakout closes back inside range",
+    "take_profit_condition": "paper take-profit into measured extension",
+    "evidence_refs": [
+      "official-evidence/sample-market-context",
+      "member-study-notes/trend-scout"
+    ],
+    "dissent_refs": [
+      "risk-governor-paper-veto-gate"
+    ],
+    "proposal_status": "ProposalReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  {
+    "proposal_id": "risk-defender-proposal",
+    "member_id": "risk-defender",
+    "style_archetype": "RiskFirstDefensive",
+    "proposed_action": "RiskDeny",
+    "proposed_entry_timing": {
+      "timing_id": "risk-defender-no-entry",
+      "member_id": "risk-defender",
+      "symbol": "005930.KS",
+      "timeframe": "OneDay",
+      "entry_window": "NoEntry",
+      "earliest_entry_timestamp": null,
+      "latest_entry_timestamp": null,
+      "confirmation_conditions": [
+        "none until defensive drawdown improves"
+      ],
+      "cancellation_conditions": [
+        "fresh evidence of lower downside risk"
+      ],
+      "required_risk_checks": [
+        "paper drawdown below veto threshold"
+      ],
+      "timing_status": "NoEntryRecommended",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault"
+      ]
+    },
+    "confidence": 0.88,
+    "expected_return_proxy": null,
+    "expected_risk_proxy": 0.84,
+    "invalidation_condition": "new risk evidence lowers veto score",
+    "wait_condition": "wait until downside risk compresses",
+    "stop_condition": null,
+    "take_profit_condition": null,
+    "evidence_refs": [
+      "official-evidence/sample-market-context",
+      "member-study-notes/risk-defender"
+    ],
+    "dissent_refs": [
+      "risk-governor-paper-veto-gate"
+    ],
+    "proposal_status": "ProposalReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  {
+    "proposal_id": "regime-interpreter-proposal",
+    "member_id": "regime-interpreter",
+    "style_archetype": "RegimeCycle",
+    "proposed_action": "WatchCandidate",
+    "proposed_entry_timing": null,
+    "confidence": 0.66,
+    "expected_return_proxy": 0.58,
+    "expected_risk_proxy": 0.42,
+    "invalidation_condition": "regime flips back to range",
+    "wait_condition": "wait for regime persistence across two paper closes",
+    "stop_condition": null,
+    "take_profit_condition": null,
+    "evidence_refs": [
+      "official-evidence/sample-market-context",
+      "member-study-notes/regime-interpreter"
+    ],
+    "dissent_refs": [
+      "risk-governor-paper-veto-gate"
+    ],
+    "proposal_status": "ProposalReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  {
+    "proposal_id": "macro-interpreter-proposal",
+    "member_id": "macro-interpreter",
+    "style_archetype": "MacroReflexive",
+    "proposed_action": "Wait",
+    "proposed_entry_timing": {
+      "timing_id": "macro-interpreter-wait-window",
+      "member_id": "macro-interpreter",
+      "symbol": "005930.KS",
+      "timeframe": "OneDay",
+      "entry_window": "VolatilityCooldown",
+      "earliest_entry_timestamp": 1730172800000,
+      "latest_entry_timestamp": 1730432000000,
+      "confirmation_conditions": [
+        "macro volatility regime cools below paper threshold"
+      ],
+      "cancellation_conditions": [
+        "new macro shock evidence"
+      ],
+      "required_risk_checks": [
+        "risk governor cooldown cleared"
+      ],
+      "timing_status": "EntryTimingConditional",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault"
+      ]
+    },
+    "confidence": 0.61,
+    "expected_return_proxy": 0.46,
+    "expected_risk_proxy": 0.48,
+    "invalidation_condition": "new macro shock evidence arrives",
+    "wait_condition": "wait until macro volatility cools",
+    "stop_condition": null,
+    "take_profit_condition": null,
+    "evidence_refs": [
+      "official-evidence/sample-market-context",
+      "member-study-notes/macro-interpreter"
+    ],
+    "dissent_refs": [
+      "risk-governor-paper-veto-gate"
+    ],
+    "proposal_status": "ProposalReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  {
+    "proposal_id": "value-skeptic-proposal",
+    "member_id": "value-skeptic",
+    "style_archetype": "ValueDiscipline",
+    "proposed_action": "RequestMoreEvidence",
+    "proposed_entry_timing": {
+      "timing_id": "value-skeptic-pullback",
+      "member_id": "value-skeptic",
+      "symbol": "005930.KS",
+      "timeframe": "OneDay",
+      "entry_window": "PullbackConfirmation",
+      "earliest_entry_timestamp": 1730086400000,
+      "latest_entry_timestamp": 1730604800000,
+      "confirmation_conditions": [
+        "pullback respects valuation support zone"
+      ],
+      "cancellation_conditions": [
+        "support breaks with weak evidence quality"
+      ],
+      "required_risk_checks": [
+        "source-boundary-clean",
+        "no-lookahead-proof-present"
+      ],
+      "timing_status": "EntryTimingConditional",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault"
+      ]
+    },
+    "confidence": 0.64,
+    "expected_return_proxy": 0.52,
+    "expected_risk_proxy": 0.39,
+    "invalidation_condition": "valuation support breaks",
+    "wait_condition": "wait for pullback support and valuation evidence",
+    "stop_condition": "paper stop on failed support retest",
+    "take_profit_condition": "paper trim after mean reversion",
+    "evidence_refs": [
+      "official-evidence/sample-market-context",
+      "member-study-notes/value-skeptic"
+    ],
+    "dissent_refs": [
+      "risk-governor-paper-veto-gate"
+    ],
+    "proposal_status": "ProposalReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  {
+    "proposal_id": "liquidity-executor-proposal",
+    "member_id": "liquidity-executor",
+    "style_archetype": "LiquidityExecution",
+    "proposed_action": "NoTrade",
+    "proposed_entry_timing": null,
+    "confidence": 0.72,
+    "expected_return_proxy": null,
+    "expected_risk_proxy": 0.67,
+    "invalidation_condition": "paper liquidity improves beyond threshold",
+    "wait_condition": "wait until spread compresses materially",
+    "stop_condition": null,
+    "take_profit_condition": null,
+    "evidence_refs": [
+      "official-evidence/sample-market-context",
+      "member-study-notes/liquidity-executor"
+    ],
+    "dissent_refs": [
+      "risk-governor-paper-veto-gate"
+    ],
+    "proposal_status": "ProposalReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  {
+    "proposal_id": "counterfactual-reviewer-proposal",
+    "member_id": "counterfactual-reviewer",
+    "style_archetype": "CounterfactualHistorian",
+    "proposed_action": "RequestMoreEvidence",
+    "proposed_entry_timing": null,
+    "confidence": 0.69,
+    "expected_return_proxy": 0.41,
+    "expected_risk_proxy": 0.37,
+    "invalidation_condition": "counterfactual analogs fail",
+    "wait_condition": "wait for stronger analog cases",
+    "stop_condition": null,
+    "take_profit_condition": null,
+    "evidence_refs": [
+      "official-evidence/sample-market-context",
+      "member-study-notes/counterfactual-reviewer"
+    ],
+    "dissent_refs": [
+      "risk-governor-paper-veto-gate"
+    ],
+    "proposal_status": "ProposalReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  {
+    "proposal_id": "chair-candidate-proposal",
+    "member_id": "chair-candidate",
+    "style_archetype": "QualityCompounder",
+    "proposed_action": "WatchCandidate",
+    "proposed_entry_timing": null,
+    "confidence": 0.58,
+    "expected_return_proxy": null,
+    "expected_risk_proxy": 0.28,
+    "invalidation_condition": "governance audit flags unsafe shortcut",
+    "wait_condition": "wait until debate and rulebook checks close",
+    "stop_condition": null,
+    "take_profit_condition": null,
+    "evidence_refs": [
+      "official-evidence/sample-market-context",
+      "member-study-notes/chair-candidate"
+    ],
+    "dissent_refs": [
+      "risk-governor-paper-veto-gate"
+    ],
+    "proposal_status": "ProposalReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  }
+]

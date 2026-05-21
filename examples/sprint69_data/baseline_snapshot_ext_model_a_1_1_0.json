@@ -1,0 +1,20 @@
+{
+  "models": {
+    "ext-model-a:1.1.0": {
+      "coverage_ratio": "1.0000",
+      "calibration_status": "Stable",
+      "risk_level": "Low",
+      "artifact_completeness_ratio": "0.8889",
+      "leaderboard_status": "NoChange",
+      "recommended_action": "KeepResearchCandidate",
+      "dataset_fingerprint": "118f8e19e94a668b",
+      "feature_schema_hash": "01c25ac23c41ca00",
+      "label_manifest_hash": "8eff63ae77f20914",
+      "artifacts": ["model_card", "leaderboard"],
+      "metrics": {
+        "comparability_status": "Comparable"
+      }
+    }
+  }
+}
+

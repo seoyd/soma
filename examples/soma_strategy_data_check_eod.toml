@@ -1,0 +1,3 @@
+provider = "alphavantage"
+use_case = "EodSwing"
+

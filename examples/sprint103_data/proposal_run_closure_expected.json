@@ -1,0 +1,23 @@
+{
+  "report_id": "proposal-run-warning-closure-report",
+  "previous_status": "ProposalRunReadyWithWarnings",
+  "proposal_count": 7,
+  "proposals_with_evidence_refs": 7,
+  "proposals_with_timing": 4,
+  "proposals_with_risk_fields": 7,
+  "proposals_with_wait_condition": 7,
+  "proposals_with_invalidation_condition": 7,
+  "proposals_with_reason_codes": 7,
+  "remaining_proposal_warnings": 0,
+  "closure_status": "ProposalRunWarningsClosed",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

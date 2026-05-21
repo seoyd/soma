@@ -1,0 +1,18 @@
+{
+  "pack_id": "official-scenarios-v3",
+  "scenarios": [
+    "KRX:005930:1d:bull:tp",
+    "KRX:000660:4h:range:sl",
+    "KRX:035420:1h:panic:te",
+    "KRX:005930:1d:bull:notrade"
+  ],
+  "official_count": 8,
+  "research_only_count": 1,
+  "diagnostic_only_count": 0,
+  "fixture_count": 0,
+  "symbol_count": 3,
+  "timeframe_count": 3,
+  "horizon_count": 2,
+  "pack_status": "ScenarioReferencePackReady"
+}
+

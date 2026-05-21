@@ -1,0 +1,63 @@
+{
+  "queue_id": "workspace-timeout-reduction-queue-v1",
+  "ordered_items": [
+    {
+      "item_id": "cargo-json-reason-analysis",
+      "item_kind": "CargoJsonReasonAnalysis",
+      "description": "Keep cargo JSON reason analysis supporting-only and classify blocker families.",
+      "supporting_only": true
+    },
+    {
+      "item_id": "timeout-boundary-repeat",
+      "item_kind": "TimeoutBoundaryRepeat",
+      "description": "Repeat timeout boundary with truthful wrappers and exact cleanup accounting.",
+      "supporting_only": true
+    },
+    {
+      "item_id": "target-family-drilldown",
+      "item_kind": "TargetFamilyDrilldown",
+      "description": "Drill down suspect integration, link, macro, fixture, render, and CLI families.",
+      "supporting_only": true
+    },
+    {
+      "item_id": "nextest-followup",
+      "item_kind": "NextestDiagnosticFollowup",
+      "description": "Use nextest only as diagnostic follow-up, never as full acceptance substitute.",
+      "supporting_only": true
+    },
+    {
+      "item_id": "sccache-followup",
+      "item_kind": "SccacheDiagnosticFollowup",
+      "description": "Check local-only sccache observations without claiming guaranteed speedup.",
+      "supporting_only": true
+    },
+    {
+      "item_id": "truthful-no-run",
+      "item_kind": "NoRunAttempt",
+      "description": "Attempt truthful no-run recovery without confusing it with full acceptance.",
+      "supporting_only": true
+    },
+    {
+      "item_id": "truthful-full-workspace",
+      "item_kind": "FullWorkspaceAttempt",
+      "description": "Attempt full workspace only after blocker evidence is narrowed; only a pass can accept.",
+      "supporting_only": false
+    },
+    {
+      "item_id": "stop-consolidation-hold",
+      "item_kind": "StopConsolidationHold",
+      "description": "Keep consolidation paused and keep the fifth patch unapplied.",
+      "supporting_only": true
+    }
+  ],
+  "queue_status": "TimeoutReductionQueueReady",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

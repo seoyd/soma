@@ -1,0 +1,9 @@
+{
+  "records": [
+    {
+      "local_path": "examples/sprint74_data/kis_real_canonical_sample.csv",
+      "passed": true,
+      "data_quality_score": 0.98
+    }
+  ]
+}

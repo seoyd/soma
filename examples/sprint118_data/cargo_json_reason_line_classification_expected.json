@@ -1,0 +1,508 @@
+{
+  "report_id": "cargo-json-reason-line-classification-v1",
+  "reason_lines": [
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-0.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-1.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-2.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-3.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-4.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-5.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-6.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-7.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-8.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-9.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-10.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-11.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-12.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-13.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-14.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-15.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-16.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-17.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-18.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-19.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-20.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-21.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-22.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-23.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-24.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-25.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-26.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-27.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-28.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-29.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-30.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-31.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-32.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-33.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-34.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-35.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-36.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-37.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-38.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-39.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-40.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-41.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-42.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-43.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-44.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-45.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-46.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-47.rlib\"], \"profile\": {\"test\": false}}",
+    "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 0\"}}",
+    "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 1\"}}",
+    "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 2\"}}",
+    "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 3\"}}",
+    "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 4\"}}",
+    "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 5\"}}",
+    "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 6\"}}",
+    "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 7\"}}",
+    "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 8\"}}",
+    "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 9\"}}",
+    "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 10\"}}",
+    "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 11\"}}",
+    "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 12\"}}",
+    "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 13\"}}",
+    "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 14\"}}",
+    "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 15\"}}",
+    "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 16\"}}",
+    "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 17\"}}",
+    "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 18\"}}",
+    "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 19\"}}",
+    "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 20\"}}",
+    "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 21\"}}",
+    "{\"reason\": \"build-script-executed\", \"target\": {\"name\": \"fixture_render_integration\"}, \"package_id\": \"fixture-render-0\"}",
+    "{\"reason\": \"build-script-executed\", \"target\": {\"name\": \"fixture_render_integration\"}, \"package_id\": \"fixture-render-1\"}",
+    "{\"reason\": \"build-script-executed\", \"target\": {\"name\": \"fixture_render_integration\"}, \"package_id\": \"fixture-render-2\"}",
+    "{\"reason\": \"build-script-executed\", \"target\": {\"name\": \"fixture_render_integration\"}, \"package_id\": \"fixture-render-3\"}",
+    "{\"reason\": \"build-script-executed\", \"target\": {\"name\": \"fixture_render_integration\"}, \"package_id\": \"fixture-render-4\"}",
+    "{\"reason\": \"build-script-executed\", \"target\": {\"name\": \"fixture_render_integration\"}, \"package_id\": \"fixture-render-5\"}",
+    "{\"reason\": \"build-script-executed\", \"target\": {\"name\": \"fixture_render_integration\"}, \"package_id\": \"fixture-render-6\"}",
+    "{\"reason\": \"build-script-executed\", \"target\": {\"name\": \"fixture_render_integration\"}, \"package_id\": \"fixture-render-7\"}",
+    "{\"reason\": \"build-script-executed\", \"target\": {\"name\": \"fixture_render_integration\"}, \"package_id\": \"fixture-render-8\"}",
+    "{\"reason\": \"build-script-executed\", \"target\": {\"name\": \"fixture_render_integration\"}, \"package_id\": \"fixture-render-9\"}",
+    "{\"reason\": \"build-script-executed\", \"target\": {\"name\": \"fixture_render_integration\"}, \"package_id\": \"fixture-render-10\"}",
+    "{\"reason\": \"build-script-executed\", \"target\": {\"name\": \"fixture_render_integration\"}, \"package_id\": \"fixture-render-11\"}",
+    "{\"reason\": \"build-script-executed\", \"target\": {\"name\": \"fixture_render_integration\"}, \"package_id\": \"fixture-render-12\"}",
+    "{\"reason\": \"build-script-executed\", \"target\": {\"name\": \"fixture_render_integration\"}, \"package_id\": \"fixture-render-13\"}",
+    "{\"reason\": \"build-script-executed\", \"target\": {\"name\": \"fixture_render_integration\"}, \"package_id\": \"fixture-render-14\"}",
+    "{\"reason\": \"build-script-executed\", \"target\": {\"name\": \"fixture_render_integration\"}, \"package_id\": \"fixture-render-15\"}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_timeout_guard\"}, \"profile\": {\"test\": true}, \"executable\": \"target/debug/deps/workspace_timeout_guard-0\"}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_timeout_guard\"}, \"profile\": {\"test\": true}, \"executable\": \"target/debug/deps/workspace_timeout_guard-1\"}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_timeout_guard\"}, \"profile\": {\"test\": true}, \"executable\": \"target/debug/deps/workspace_timeout_guard-2\"}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_timeout_guard\"}, \"profile\": {\"test\": true}, \"executable\": \"target/debug/deps/workspace_timeout_guard-3\"}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_timeout_guard\"}, \"profile\": {\"test\": true}, \"executable\": \"target/debug/deps/workspace_timeout_guard-4\"}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_timeout_guard\"}, \"profile\": {\"test\": true}, \"executable\": \"target/debug/deps/workspace_timeout_guard-5\"}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_timeout_guard\"}, \"profile\": {\"test\": true}, \"executable\": \"target/debug/deps/workspace_timeout_guard-6\"}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_timeout_guard\"}, \"profile\": {\"test\": true}, \"executable\": \"target/debug/deps/workspace_timeout_guard-7\"}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_timeout_guard\"}, \"profile\": {\"test\": true}, \"executable\": \"target/debug/deps/workspace_timeout_guard-8\"}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_timeout_guard\"}, \"profile\": {\"test\": true}, \"executable\": \"target/debug/deps/workspace_timeout_guard-9\"}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_timeout_guard\"}, \"profile\": {\"test\": true}, \"executable\": \"target/debug/deps/workspace_timeout_guard-10\"}",
+    "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_timeout_guard\"}, \"profile\": {\"test\": true}, \"executable\": \"target/debug/deps/workspace_timeout_guard-11\"}"
+  ],
+  "line_classes": [
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-0.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-1.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-2.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-3.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-4.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-5.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-6.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-7.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-8.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-9.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-10.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-11.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-12.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-13.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-14.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-15.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-16.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-17.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-18.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-19.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-20.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-21.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-22.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-23.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-24.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-25.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-26.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-27.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-28.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-29.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-30.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-31.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-32.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-33.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-34.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-35.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-36.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-37.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-38.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-39.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-40.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-41.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-42.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-43.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-44.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-45.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-46.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_cli_integration\"}, \"filenames\": [\"target/debug/deps/workspace_cli_integration-47.rlib\"], \"profile\": {\"test\": false}}",
+      "class": "LinkArtifact"
+    },
+    {
+      "line": "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 0\"}}",
+      "class": "CompilerMessage"
+    },
+    {
+      "line": "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 1\"}}",
+      "class": "CompilerMessage"
+    },
+    {
+      "line": "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 2\"}}",
+      "class": "CompilerMessage"
+    },
+    {
+      "line": "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 3\"}}",
+      "class": "CompilerMessage"
+    },
+    {
+      "line": "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 4\"}}",
+      "class": "CompilerMessage"
+    },
+    {
+      "line": "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 5\"}}",
+      "class": "CompilerMessage"
+    },
+    {
+      "line": "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 6\"}}",
+      "class": "CompilerMessage"
+    },
+    {
+      "line": "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 7\"}}",
+      "class": "CompilerMessage"
+    },
+    {
+      "line": "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 8\"}}",
+      "class": "CompilerMessage"
+    },
+    {
+      "line": "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 9\"}}",
+      "class": "CompilerMessage"
+    },
+    {
+      "line": "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 10\"}}",
+      "class": "CompilerMessage"
+    },
+    {
+      "line": "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 11\"}}",
+      "class": "CompilerMessage"
+    },
+    {
+      "line": "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 12\"}}",
+      "class": "CompilerMessage"
+    },
+    {
+      "line": "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 13\"}}",
+      "class": "CompilerMessage"
+    },
+    {
+      "line": "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 14\"}}",
+      "class": "CompilerMessage"
+    },
+    {
+      "line": "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 15\"}}",
+      "class": "CompilerMessage"
+    },
+    {
+      "line": "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 16\"}}",
+      "class": "CompilerMessage"
+    },
+    {
+      "line": "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 17\"}}",
+      "class": "CompilerMessage"
+    },
+    {
+      "line": "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 18\"}}",
+      "class": "CompilerMessage"
+    },
+    {
+      "line": "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 19\"}}",
+      "class": "CompilerMessage"
+    },
+    {
+      "line": "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 20\"}}",
+      "class": "CompilerMessage"
+    },
+    {
+      "line": "{\"reason\": \"compiler-message\", \"target\": {\"name\": \"macro_link_heavy_suite\"}, \"message\": {\"rendered\": \"macro expansion still active at batch 21\"}}",
+      "class": "CompilerMessage"
+    },
+    {
+      "line": "{\"reason\": \"build-script-executed\", \"target\": {\"name\": \"fixture_render_integration\"}, \"package_id\": \"fixture-render-0\"}",
+      "class": "BuildScript"
+    },
+    {
+      "line": "{\"reason\": \"build-script-executed\", \"target\": {\"name\": \"fixture_render_integration\"}, \"package_id\": \"fixture-render-1\"}",
+      "class": "BuildScript"
+    },
+    {
+      "line": "{\"reason\": \"build-script-executed\", \"target\": {\"name\": \"fixture_render_integration\"}, \"package_id\": \"fixture-render-2\"}",
+      "class": "BuildScript"
+    },
+    {
+      "line": "{\"reason\": \"build-script-executed\", \"target\": {\"name\": \"fixture_render_integration\"}, \"package_id\": \"fixture-render-3\"}",
+      "class": "BuildScript"
+    },
+    {
+      "line": "{\"reason\": \"build-script-executed\", \"target\": {\"name\": \"fixture_render_integration\"}, \"package_id\": \"fixture-render-4\"}",
+      "class": "BuildScript"
+    },
+    {
+      "line": "{\"reason\": \"build-script-executed\", \"target\": {\"name\": \"fixture_render_integration\"}, \"package_id\": \"fixture-render-5\"}",
+      "class": "BuildScript"
+    },
+    {
+      "line": "{\"reason\": \"build-script-executed\", \"target\": {\"name\": \"fixture_render_integration\"}, \"package_id\": \"fixture-render-6\"}",
+      "class": "BuildScript"
+    },
+    {
+      "line": "{\"reason\": \"build-script-executed\", \"target\": {\"name\": \"fixture_render_integration\"}, \"package_id\": \"fixture-render-7\"}",
+      "class": "BuildScript"
+    },
+    {
+      "line": "{\"reason\": \"build-script-executed\", \"target\": {\"name\": \"fixture_render_integration\"}, \"package_id\": \"fixture-render-8\"}",
+      "class": "BuildScript"
+    },
+    {
+      "line": "{\"reason\": \"build-script-executed\", \"target\": {\"name\": \"fixture_render_integration\"}, \"package_id\": \"fixture-render-9\"}",
+      "class": "BuildScript"
+    },
+    {
+      "line": "{\"reason\": \"build-script-executed\", \"target\": {\"name\": \"fixture_render_integration\"}, \"package_id\": \"fixture-render-10\"}",
+      "class": "BuildScript"
+    },
+    {
+      "line": "{\"reason\": \"build-script-executed\", \"target\": {\"name\": \"fixture_render_integration\"}, \"package_id\": \"fixture-render-11\"}",
+      "class": "BuildScript"
+    },
+    {
+      "line": "{\"reason\": \"build-script-executed\", \"target\": {\"name\": \"fixture_render_integration\"}, \"package_id\": \"fixture-render-12\"}",
+      "class": "BuildScript"
+    },
+    {
+      "line": "{\"reason\": \"build-script-executed\", \"target\": {\"name\": \"fixture_render_integration\"}, \"package_id\": \"fixture-render-13\"}",
+      "class": "BuildScript"
+    },
+    {
+      "line": "{\"reason\": \"build-script-executed\", \"target\": {\"name\": \"fixture_render_integration\"}, \"package_id\": \"fixture-render-14\"}",
+      "class": "BuildScript"
+    },
+    {
+      "line": "{\"reason\": \"build-script-executed\", \"target\": {\"name\": \"fixture_render_integration\"}, \"package_id\": \"fixture-render-15\"}",
+      "class": "BuildScript"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_timeout_guard\"}, \"profile\": {\"test\": true}, \"executable\": \"target/debug/deps/workspace_timeout_guard-0\"}",
+      "class": "TestExecutable"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_timeout_guard\"}, \"profile\": {\"test\": true}, \"executable\": \"target/debug/deps/workspace_timeout_guard-1\"}",
+      "class": "TestExecutable"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_timeout_guard\"}, \"profile\": {\"test\": true}, \"executable\": \"target/debug/deps/workspace_timeout_guard-2\"}",
+      "class": "TestExecutable"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_timeout_guard\"}, \"profile\": {\"test\": true}, \"executable\": \"target/debug/deps/workspace_timeout_guard-3\"}",
+      "class": "TestExecutable"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_timeout_guard\"}, \"profile\": {\"test\": true}, \"executable\": \"target/debug/deps/workspace_timeout_guard-4\"}",
+      "class": "TestExecutable"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_timeout_guard\"}, \"profile\": {\"test\": true}, \"executable\": \"target/debug/deps/workspace_timeout_guard-5\"}",
+      "class": "TestExecutable"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_timeout_guard\"}, \"profile\": {\"test\": true}, \"executable\": \"target/debug/deps/workspace_timeout_guard-6\"}",
+      "class": "TestExecutable"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_timeout_guard\"}, \"profile\": {\"test\": true}, \"executable\": \"target/debug/deps/workspace_timeout_guard-7\"}",
+      "class": "TestExecutable"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_timeout_guard\"}, \"profile\": {\"test\": true}, \"executable\": \"target/debug/deps/workspace_timeout_guard-8\"}",
+      "class": "TestExecutable"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_timeout_guard\"}, \"profile\": {\"test\": true}, \"executable\": \"target/debug/deps/workspace_timeout_guard-9\"}",
+      "class": "TestExecutable"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_timeout_guard\"}, \"profile\": {\"test\": true}, \"executable\": \"target/debug/deps/workspace_timeout_guard-10\"}",
+      "class": "TestExecutable"
+    },
+    {
+      "line": "{\"reason\": \"compiler-artifact\", \"target\": {\"name\": \"workspace_timeout_guard\"}, \"profile\": {\"test\": true}, \"executable\": \"target/debug/deps/workspace_timeout_guard-11\"}",
+      "class": "TestExecutable"
+    }
+  ],
+  "unknown_line_count": 0,
+  "status": "CargoJsonReasonClassified",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

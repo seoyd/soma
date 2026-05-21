@@ -1,0 +1,50 @@
+[
+  {
+    "action_id": "keep-ext-model-a-v1_1_0",
+    "model_id": "ext-model-a",
+    "model_version": "1.1.0",
+    "action_kind": "KeepResearchCandidate",
+    "note": "retain latest comparable version for offline research candidate tracking",
+    "allowed": true,
+    "diagnostic_only": false,
+    "reason_codes": [
+      "OwnerModelReviewWorkflowBuilt"
+    ]
+  },
+  {
+    "action_id": "retire-ext-model-a-v1_0_0",
+    "model_id": "ext-model-a",
+    "model_version": "1.0.0",
+    "action_kind": "RetireModelVersion",
+    "note": "retire superseded version after newer comparable version is available",
+    "allowed": true,
+    "diagnostic_only": true,
+    "reason_codes": [
+      "OwnerModelReviewWorkflowBuilt"
+    ]
+  },
+  {
+    "action_id": "request-more-predictions-ext-model-b-v1_0_0",
+    "model_id": "ext-model-b",
+    "model_version": "1.0.0",
+    "action_kind": "RequestMorePredictions",
+    "note": "coverage remains weak and needs more offline prediction history",
+    "allowed": true,
+    "diagnostic_only": false,
+    "reason_codes": [
+      "OwnerModelReviewWorkflowBuilt"
+    ]
+  },
+  {
+    "action_id": "watch-ext-model-a-v1_1_0",
+    "model_id": "ext-model-a",
+    "model_version": "1.1.0",
+    "action_kind": "WatchModel",
+    "note": "keep current candidate on operator watchlist",
+    "allowed": true,
+    "diagnostic_only": false,
+    "reason_codes": [
+      "OwnerModelReviewWorkflowBuilt"
+    ]
+  }
+]

@@ -1,0 +1,258 @@
+{
+  "report_id": "investor-impersonation-risk-report",
+  "candidate_count": 18,
+  "high_impersonation_risk_candidates": [],
+  "medium_impersonation_risk_candidates": [
+    "arthur-hayes",
+    "benjamin-graham",
+    "charlie-munger",
+    "chris-burniske",
+    "howard-marks",
+    "john-bogle",
+    "larry-williams",
+    "linda-raschke",
+    "mark-minervini",
+    "michael-saylor",
+    "paul-tudor-jones",
+    "peter-lynch",
+    "richard-dennis",
+    "vitalik-buterin",
+    "warren-buffett",
+    "william-oneil",
+    "willy-woo",
+    "wonyotti"
+  ],
+  "low_impersonation_risk_candidates": [],
+  "blocked_impersonation_claims": [
+    "arthur-hayes: viral quote snippet without primary source",
+    "arthur-hayes: unsupported biography implying guaranteed cycle tops",
+    "benjamin-graham: viral quote card without primary source",
+    "benjamin-graham: unsupported biography that implies omniscience",
+    "charlie-munger: viral quote card without primary source",
+    "charlie-munger: unsupported biography that implies omniscience",
+    "chris-burniske: viral quote snippet without primary source",
+    "chris-burniske: unsupported biography implying guaranteed cycle tops",
+    "howard-marks: viral quote card without primary source",
+    "howard-marks: unsupported biography that implies omniscience",
+    "john-bogle: viral quote card without primary source",
+    "john-bogle: unsupported biography that implies omniscience",
+    "larry-williams: unsourced calendar edge quote",
+    "larry-williams: unsupported claim that statistics alone decide every trade",
+    "linda-raschke: unsourced one-line pattern rule",
+    "linda-raschke: unsupported claim that every pattern came from private instinct",
+    "mark-minervini: \"never lose on true VCP\" quote without source",
+    "mark-minervini: claimed perfect win-rate biography",
+    "michael-saylor: viral quote snippet without primary source",
+    "michael-saylor: unsupported biography implying guaranteed cycle tops",
+    "paul-tudor-jones: \"losers average losers\" meme quote without source chain",
+    "paul-tudor-jones: claim that every macro call was perfectly timed",
+    "peter-lynch: viral quote card without primary source",
+    "peter-lynch: unsupported biography that implies omniscience",
+    "richard-dennis: \"the trend is all that matters\" unsourced quote",
+    "richard-dennis: myth that every turtle copied exact trades",
+    "vitalik-buterin: viral quote snippet without primary source",
+    "vitalik-buterin: unsupported biography implying guaranteed cycle tops",
+    "warren-buffett: viral quote card without primary source",
+    "warren-buffett: unsupported biography that implies omniscience",
+    "william-oneil: \"market direction never lies\" unsourced quote",
+    "william-oneil: claimed clairvoyant tape-reading origin story",
+    "willy-woo: viral quote snippet without primary source",
+    "willy-woo: unsupported biography implying guaranteed cycle tops",
+    "wonyotti: viral quote snippet without primary source",
+    "wonyotti: unsupported biography implying guaranteed cycle tops"
+  ],
+  "archetype_disclaimer_present": true,
+  "rows": [
+    {
+      "candidate_id": "arthur-hayes",
+      "public_name": "Arthur Hayes",
+      "risk_score": 0.57,
+      "blocked_impersonation_claims": [
+        "viral quote snippet without primary source",
+        "unsupported biography implying guaranteed cycle tops"
+      ],
+      "required_disclaimer": "public-philosophy-inspired archetype only; not an exact investor clone"
+    },
+    {
+      "candidate_id": "benjamin-graham",
+      "public_name": "Benjamin Graham",
+      "risk_score": 0.57,
+      "blocked_impersonation_claims": [
+        "viral quote card without primary source",
+        "unsupported biography that implies omniscience"
+      ],
+      "required_disclaimer": "public-philosophy-inspired archetype only; not an exact investor clone"
+    },
+    {
+      "candidate_id": "charlie-munger",
+      "public_name": "Charlie Munger",
+      "risk_score": 0.57,
+      "blocked_impersonation_claims": [
+        "viral quote card without primary source",
+        "unsupported biography that implies omniscience"
+      ],
+      "required_disclaimer": "public-philosophy-inspired archetype only; not an exact investor clone"
+    },
+    {
+      "candidate_id": "chris-burniske",
+      "public_name": "Chris Burniske",
+      "risk_score": 0.57,
+      "blocked_impersonation_claims": [
+        "viral quote snippet without primary source",
+        "unsupported biography implying guaranteed cycle tops"
+      ],
+      "required_disclaimer": "public-philosophy-inspired archetype only; not an exact investor clone"
+    },
+    {
+      "candidate_id": "howard-marks",
+      "public_name": "Howard Marks",
+      "risk_score": 0.57,
+      "blocked_impersonation_claims": [
+        "viral quote card without primary source",
+        "unsupported biography that implies omniscience"
+      ],
+      "required_disclaimer": "public-philosophy-inspired archetype only; not an exact investor clone"
+    },
+    {
+      "candidate_id": "john-bogle",
+      "public_name": "John Bogle",
+      "risk_score": 0.57,
+      "blocked_impersonation_claims": [
+        "viral quote card without primary source",
+        "unsupported biography that implies omniscience"
+      ],
+      "required_disclaimer": "public-philosophy-inspired archetype only; not an exact investor clone"
+    },
+    {
+      "candidate_id": "larry-williams",
+      "public_name": "Larry Williams",
+      "risk_score": 0.57,
+      "blocked_impersonation_claims": [
+        "unsourced calendar edge quote",
+        "unsupported claim that statistics alone decide every trade"
+      ],
+      "required_disclaimer": "public-philosophy-inspired archetype only; not an exact investor clone"
+    },
+    {
+      "candidate_id": "linda-raschke",
+      "public_name": "Linda Bradford Raschke",
+      "risk_score": 0.57,
+      "blocked_impersonation_claims": [
+        "unsourced one-line pattern rule",
+        "unsupported claim that every pattern came from private instinct"
+      ],
+      "required_disclaimer": "public-philosophy-inspired archetype only; not an exact investor clone"
+    },
+    {
+      "candidate_id": "mark-minervini",
+      "public_name": "Mark Minervini",
+      "risk_score": 0.57,
+      "blocked_impersonation_claims": [
+        "\"never lose on true VCP\" quote without source",
+        "claimed perfect win-rate biography"
+      ],
+      "required_disclaimer": "public-philosophy-inspired archetype only; not an exact investor clone"
+    },
+    {
+      "candidate_id": "michael-saylor",
+      "public_name": "Michael Saylor / Strategy",
+      "risk_score": 0.57,
+      "blocked_impersonation_claims": [
+        "viral quote snippet without primary source",
+        "unsupported biography implying guaranteed cycle tops"
+      ],
+      "required_disclaimer": "public-philosophy-inspired archetype only; not an exact investor clone"
+    },
+    {
+      "candidate_id": "paul-tudor-jones",
+      "public_name": "Paul Tudor Jones",
+      "risk_score": 0.57,
+      "blocked_impersonation_claims": [
+        "\"losers average losers\" meme quote without source chain",
+        "claim that every macro call was perfectly timed"
+      ],
+      "required_disclaimer": "public-philosophy-inspired archetype only; not an exact investor clone"
+    },
+    {
+      "candidate_id": "peter-lynch",
+      "public_name": "Peter Lynch",
+      "risk_score": 0.57,
+      "blocked_impersonation_claims": [
+        "viral quote card without primary source",
+        "unsupported biography that implies omniscience"
+      ],
+      "required_disclaimer": "public-philosophy-inspired archetype only; not an exact investor clone"
+    },
+    {
+      "candidate_id": "richard-dennis",
+      "public_name": "Richard Dennis / Turtle Traders",
+      "risk_score": 0.57,
+      "blocked_impersonation_claims": [
+        "\"the trend is all that matters\" unsourced quote",
+        "myth that every turtle copied exact trades"
+      ],
+      "required_disclaimer": "public-philosophy-inspired archetype only; not an exact investor clone"
+    },
+    {
+      "candidate_id": "vitalik-buterin",
+      "public_name": "Vitalik Buterin / Ethereum",
+      "risk_score": 0.57,
+      "blocked_impersonation_claims": [
+        "viral quote snippet without primary source",
+        "unsupported biography implying guaranteed cycle tops"
+      ],
+      "required_disclaimer": "public-philosophy-inspired archetype only; not an exact investor clone"
+    },
+    {
+      "candidate_id": "warren-buffett",
+      "public_name": "Warren Buffett",
+      "risk_score": 0.57,
+      "blocked_impersonation_claims": [
+        "viral quote card without primary source",
+        "unsupported biography that implies omniscience"
+      ],
+      "required_disclaimer": "public-philosophy-inspired archetype only; not an exact investor clone"
+    },
+    {
+      "candidate_id": "william-oneil",
+      "public_name": "William J. O’Neil",
+      "risk_score": 0.57,
+      "blocked_impersonation_claims": [
+        "\"market direction never lies\" unsourced quote",
+        "claimed clairvoyant tape-reading origin story"
+      ],
+      "required_disclaimer": "public-philosophy-inspired archetype only; not an exact investor clone"
+    },
+    {
+      "candidate_id": "willy-woo",
+      "public_name": "Willy Woo",
+      "risk_score": 0.57,
+      "blocked_impersonation_claims": [
+        "viral quote snippet without primary source",
+        "unsupported biography implying guaranteed cycle tops"
+      ],
+      "required_disclaimer": "public-philosophy-inspired archetype only; not an exact investor clone"
+    },
+    {
+      "candidate_id": "wonyotti",
+      "public_name": "Wonyotti / AOA",
+      "risk_score": 0.57,
+      "blocked_impersonation_claims": [
+        "viral quote snippet without primary source",
+        "unsupported biography implying guaranteed cycle tops"
+      ],
+      "required_disclaimer": "public-philosophy-inspired archetype only; not an exact investor clone"
+    }
+  ],
+  "report_status": "ImpersonationRiskControlled",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

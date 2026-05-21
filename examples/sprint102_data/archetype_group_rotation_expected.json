@@ -1,0 +1,83 @@
+{
+  "plan_id": "archetype-group-rotation-plan",
+  "scenario_to_group_routes": {
+    "crypto-cycle-liquidity": [
+      "Crypto",
+      "CommonRisk"
+    ],
+    "crypto-high-volatility": [
+      "Crypto",
+      "CommonRisk"
+    ],
+    "insufficient-evidence-halt": [
+      "CounterfactualReview",
+      "CommonRisk"
+    ],
+    "korean-equity-trend-breakout": [
+      "ShortTermSwing",
+      "CommonRisk"
+    ],
+    "macro-shift-cross-asset": [
+      "ShortTermSwing",
+      "LongTermEquity",
+      "CommonRisk"
+    ],
+    "multi-asset-drawdown-risk": [
+      "LongTermEquity",
+      "CommonRisk"
+    ],
+    "us-equity-range-bound": [
+      "ShortTermSwing",
+      "LongTermEquity",
+      "CommonRisk"
+    ]
+  },
+  "short_term_swing_assignments": [
+    "korean-equity-trend-breakout",
+    "us-equity-range-bound",
+    "macro-shift-cross-asset"
+  ],
+  "long_term_equity_assignments": [
+    "us-equity-range-bound",
+    "multi-asset-drawdown-risk",
+    "macro-shift-cross-asset"
+  ],
+  "crypto_assignments": [
+    "crypto-high-volatility",
+    "crypto-cycle-liquidity"
+  ],
+  "common_risk_assignments": [
+    "korean-equity-trend-breakout",
+    "us-equity-range-bound",
+    "crypto-high-volatility",
+    "multi-asset-drawdown-risk",
+    "macro-shift-cross-asset",
+    "crypto-cycle-liquidity",
+    "insufficient-evidence-halt"
+  ],
+  "cross_group_debate_assignments": [
+    "us-equity-range-bound",
+    "macro-shift-cross-asset",
+    "insufficient-evidence-halt"
+  ],
+  "rotation_order": [
+    "korean-equity-trend-breakout",
+    "us-equity-range-bound",
+    "crypto-high-volatility",
+    "multi-asset-drawdown-risk",
+    "macro-shift-cross-asset",
+    "crypto-cycle-liquidity",
+    "insufficient-evidence-halt"
+  ],
+  "plan_status": "RotationPlanReadyWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

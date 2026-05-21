@@ -1,0 +1,71 @@
+{
+  "slow_inventory": {
+    "inventory_id": "sample-slow-tests",
+    "slow_tests": [
+      {
+        "test_name": "cargo test --workspace --quiet",
+        "test_file": "tests/workspace_acceptance_v2.rs",
+        "estimated_runtime_ms": 240000,
+        "category": "FullWorkspace",
+        "recommendation": "KeepFullOnly"
+      },
+      {
+        "test_name": "representative CLI smoke",
+        "test_file": "tests/rust_toolchain_cli_safety.rs",
+        "estimated_runtime_ms": 14000,
+        "category": "CliSmoke",
+        "recommendation": "MoveToSprintTier"
+      },
+      {
+        "test_name": "fixture loading pass",
+        "test_file": "tests/heavy_fixture_inventory.rs",
+        "estimated_runtime_ms": 12000,
+        "category": "HeavyFixture",
+        "recommendation": "FixtureCache"
+      },
+      {
+        "test_name": "bundle rendering",
+        "test_file": "tests/rust_toolchain_determinism.rs",
+        "estimated_runtime_ms": 9000,
+        "category": "ArtifactRendering",
+        "recommendation": "DeduplicateSetup"
+      }
+    ],
+    "slow_test_count": 4,
+    "heavy_fixture_tests": [
+      "examples/sprint76_data/test_runtime_sample.json",
+      "examples/sprint76_data/workspace_acceptance_sample.json"
+    ],
+    "heavy_cli_smoke_tests": [
+      "rust-toolchain-modernize",
+      "workspace-acceptance-v2"
+    ],
+    "repeated_artifact_generation_tests": [
+      "rust-toolchain-modernize",
+      "workspace-acceptance-v2"
+    ],
+    "recommended_actions": [
+      "CacheFixture",
+      "DeduplicateSetup",
+      "KeepFullWorkspaceAsFinalGate"
+    ],
+    "inventory_status": "SlowTestsIdentified"
+  },
+  "heavy_fixture_inventory": {
+    "fixture_id": "sample-heavy-fixtures",
+    "fixture_paths": [
+      "examples/sprint76_data/test_runtime_sample.json",
+      "examples/sprint76_data/workspace_acceptance_sample.json",
+      "examples/sprint76_data/workspace_acceptance_sample.json"
+    ],
+    "total_fixture_bytes": 16384,
+    "duplicate_fixture_candidates": [
+      "workspace_acceptance_sample.json"
+    ],
+    "repeated_load_candidates": [
+      "test_runtime_sample.json",
+      "workspace_acceptance_sample.json"
+    ],
+    "recommendation": "DeduplicateFixture"
+  }
+}

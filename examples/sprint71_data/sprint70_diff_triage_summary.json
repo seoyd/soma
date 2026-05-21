@@ -1,0 +1,29 @@
+{
+  "panel_id": "sprint70-unexpected-diff-triage",
+  "panel_status": "NeedMoreEvidence",
+  "unexpected_diff_summary": "UnexpectedDiffExplained;triaged=2;explained=2;unknown=0",
+  "contract_alignment_summary": "ContractAligned;aligned=2;changed=0;clarify=0",
+  "owner_review_closure_summary": "OwnerReviewClosureReady;missing=3;resolved=3;pending=0",
+  "trace_warning_summary": "TraceWarningsReduced;original=4;reduced=3;remaining=1;ratio=0.7500",
+  "downgrade_evidence_summary": "DowngradeEvidenceStillIncomplete;ready=1;incomplete=1",
+  "disposition_summary": "NeedMoreEvidence;keep=2;review=0;diagnostic=1;need_more_evidence=1",
+  "per_model_dispositions": {
+    "ext-model-a:1.0.0": "NeedMoreEvidence",
+    "ext-model-a:1.1.0": "KeepResearchCandidate",
+    "ext-model-a:1.2.0": "KeepResearchCandidate",
+    "ext-model-b:1.0.0": "MarkDiagnosticOnly"
+  },
+  "next_actions": [
+    "HoldMamba3RuntimeDeferred",
+    "KeepBaselineAndTrinity",
+    "KeepStaticDashboardNow",
+    "KeepTrinity",
+    "MarkDiagnosticOnly:ext-model-b:1.0.0",
+    "NeedMoreEvidence:ext-model-a:1.0.0",
+    "ResolveWarning:ext-model-a:1.2.0:Leaderboard"
+  ],
+  "mamba_deferred_status": "PredictionCsvOnly+ContractOnly+RuntimeDeferred",
+  "reason_codes": [
+    "ControlTowerDiffTriagePanelBuilt"
+  ]
+}

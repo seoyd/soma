@@ -1,0 +1,5 @@
+sequence_id,model_id,model_version,prediction_timestamp_ms,p_take_profit,p_stop_loss,p_time_expired,p_win,expected_return_pct,expected_drawdown_pct,confidence,predicted_label,rank_score,reason_code
+70169ad73045cb5d,ext-model-b,1.0.0,1714611600000,0.62,0.18,0.20,0.63,0.011,0.008,0.60,TakeProfit,0.71,
+b276f8dfd6ffbd8e,ext-model-b,1.0.0,1714698000000,0.20,0.56,0.24,0.27,-0.006,0.013,0.59,StopLoss,0.31,
+421ec1a6000d9174,ext-model-b,1.0.0,1714784400000,0.28,0.24,0.48,0.39,0.000,0.010,0.50,TimeExpired,0.33,
+8bcba9b7061a26a9,ext-model-b,1.0.0,1714870800000,0.52,0.20,0.28,0.57,0.009,0.008,0.58,TakeProfit,0.62,

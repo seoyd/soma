@@ -1,0 +1,22 @@
+[
+  {
+    "source_kind": "KISOfficialEvidence",
+    "source_report_path": "examples/sprint56_data/paper_approved_candidate.json#AAPL",
+    "symbol": "AAPL",
+    "market": "USEquity",
+    "timeframe": "1d",
+    "horizon_bars": 18,
+    "evidence_status": "ready",
+    "data_quality_score": 0.96,
+    "outcome_link_count": 3,
+    "counterfactual_count": 2,
+    "signal_summary": "paper approved candidate",
+    "expected_edge": 0.025,
+    "expected_drawdown": 0.012,
+    "timestamp_ms": 1715000000800,
+    "confidence": 0.80,
+    "spread_bps": 3.0,
+    "trade_value": 850000.0,
+    "regime": "TrendUp"
+  }
+]

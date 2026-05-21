@@ -1,0 +1,8 @@
+{
+  "official_krx_reference_preserved": true,
+  "official_api_collected_preserved": true,
+  "fixture_only_preserved": true,
+  "diagnostic_only_preserved": true,
+  "no_source_promotion": true,
+  "no_lookahead_preserved": true
+}

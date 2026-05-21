@@ -1,0 +1,8 @@
+{
+  "sccache_available": true,
+  "sccache_version": "sccache 0.8.1-synthetic",
+  "cache_hits": 12,
+  "cache_misses": 4,
+  "duration_before_ms": 4100,
+  "duration_after_ms": 3600
+}

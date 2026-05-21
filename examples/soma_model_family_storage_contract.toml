@@ -1,0 +1,13 @@
+materialization_id = "sprint79-storage"
+output_root = "target/soma_sequence_core_storage"
+storage_root = "target/soma_sequence_core_storage/data"
+training_data_storage_config_paths = [
+  "examples/sprint79_data/training_data_storage_plan.json",
+]
+training_data_layout_plan_paths = [
+  "examples/sprint79_data/training_data_storage_plan.json",
+]
+training_data_registry_spec_paths = [
+  "examples/sprint79_data/training_data_registry_spec.json",
+]
+

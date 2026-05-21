@@ -1,0 +1,5 @@
+diagnostic_id = "committee_diagnostics_yfinance"
+committee_smoke_config_path = "examples/soma_committee_smoke_yfinance_research.toml"
+output_root = "target/soma_committee_diagnostics"
+reason_codes = []
+

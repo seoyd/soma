@@ -1,0 +1,62 @@
+{
+  "comparison_id": "sprint81-comparison",
+  "common_dataset_version": "sprint80-dataset-v1",
+  "common_feature_schema_hash": "feature-hash-sprint80",
+  "common_label_manifest_hash": "label-hash-sprint80",
+  "common_split_policy": "walk_forward_v1",
+  "comparable_rows": 4,
+  "mamba3fin_summary": {
+    "family": "Mamba3Fin",
+    "model_id": "mamba3fin-prototype",
+    "model_version": "v0.1",
+    "coverage_ratio": "0.8300",
+    "brier_score": "0.1200",
+    "ece": "0.0900",
+    "risk_adjusted_score": "0.0300",
+    "no_trade_comparison": "-0.0100",
+    "risk_denied_defensive_value": "0.0200",
+    "evaluation_status": "EvaluationReadyWithWarnings"
+  },
+  "gated_deltanet_summary": {
+    "family": "GatedDeltaNet",
+    "model_id": "gated-deltanet-prototype",
+    "model_version": "v0.1",
+    "coverage_ratio": "0.8100",
+    "brier_score": "0.1100",
+    "ece": "0.0800",
+    "risk_adjusted_score": "0.0280",
+    "no_trade_comparison": "-0.0080",
+    "risk_denied_defensive_value": "0.0180",
+    "evaluation_status": "EvaluationReadyWithWarnings"
+  },
+  "no_trade_summary": {
+    "family": "BaselineSignal",
+    "model_id": "no-trade",
+    "model_version": "v1",
+    "coverage_ratio": "1.0000",
+    "risk_adjusted_score": "0.0000",
+    "no_trade_comparison": "0.0000",
+    "risk_denied_defensive_value": "0.0300",
+    "evaluation_status": "DiagnosticOnly"
+  },
+  "risk_denied_summary": {
+    "family": "BaselineSignal",
+    "model_id": "risk-denied",
+    "model_version": "v1",
+    "coverage_ratio": "1.0000",
+    "risk_adjusted_score": "0.0000",
+    "no_trade_comparison": "0.0000",
+    "risk_denied_defensive_value": "0.0400",
+    "evaluation_status": "DiagnosticOnly"
+  },
+  "metric_delta_summary": {
+    "risk_adjusted_delta": "0.0020",
+    "brier_delta": "0.0100"
+  },
+  "latency_budget_estimate": "offline-only",
+  "storage_budget_estimate": "within-materialized-budget",
+  "test_budget_estimate": "focused-fixture-scale",
+  "comparison_status": "Mixed",
+  "final_recommendation": "NeedCommitteeComparison",
+  "reason_codes": ["SequenceCoreComparisonDiagnosticOnly", "DeterministicPath"]
+}

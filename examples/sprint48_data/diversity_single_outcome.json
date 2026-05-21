@@ -1,0 +1,53 @@
+{
+  "batch_id": "sprint48-single-outcome",
+  "records": [
+    {
+      "row_id": "aapl-single",
+      "scenario_row_id": "scenario-aapl-single",
+      "candle_series_id": "aapl-single-series",
+      "status": "OutcomeGenerated",
+      "outcome_reference": {
+        "outcome_id": "aapl-single-outcome",
+        "decision_id": "scenario-aapl-single",
+        "symbol": "AAPL",
+        "timestamp_ms": 1700000000000,
+        "horizon_bars": 3,
+        "triple_barrier_label": "TakeProfit",
+        "net_return_pct": 0.012,
+        "max_favorable_excursion_pct": 0.022,
+        "max_adverse_excursion_pct": -0.005,
+        "cost_bps": 5.0,
+        "slippage_bps": 2.0,
+        "source_kind": "OfficialApiCollected",
+        "no_lookahead_safe": true,
+        "reason_codes": [
+          "DeterministicPath"
+        ]
+      },
+      "net_return_pct": 0.012,
+      "mfe_pct": 0.022,
+      "mae_pct": -0.005,
+      "cost_bps": 5.0,
+      "slippage_bps": 2.0,
+      "reason_codes": [
+        "DeterministicPath"
+      ]
+    }
+  ],
+  "total_rows": 1,
+  "eligible_rows": 1,
+  "generated_outcome_count": 1,
+  "official_outcome_count": 1,
+  "skipped_missing_future_window_count": 0,
+  "skipped_missing_scenario_count": 0,
+  "skipped_timestamp_mismatch_count": 0,
+  "skipped_horizon_mismatch_count": 0,
+  "rejected_no_lookahead_count": 0,
+  "take_profit_count": 1,
+  "stop_loss_count": 0,
+  "time_expired_count": 0,
+  "linkage_status": "OfficialBatchOutcomeLinksImproved",
+  "reason_codes": [
+    "DeterministicPath"
+  ]
+}

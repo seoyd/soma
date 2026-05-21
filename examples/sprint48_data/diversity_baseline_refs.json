@@ -1,0 +1,20 @@
+{
+  "baseline_references": [
+    {
+      "row_id": "aapl-tp",
+      "baseline_action": "Approve"
+    },
+    {
+      "row_id": "msft-sl",
+      "baseline_action": "Approve"
+    },
+    {
+      "row_id": "nvda-te",
+      "baseline_action": "Approve"
+    },
+    {
+      "row_id": "aapl-4h-tp",
+      "baseline_action": "Approve"
+    }
+  ]
+}

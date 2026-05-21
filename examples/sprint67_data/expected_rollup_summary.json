@@ -1,0 +1,429 @@
+{
+  "summary_id": "sprint67-model-ops-rollup",
+  "cards": [
+    {
+      "rollup_key": {
+        "model_id": "ext-model-a",
+        "model_version": "1.0.0",
+        "model_family": "Mamba3FinLiteExternal",
+        "dataset_fingerprint": "118f8e19e94a668b",
+        "feature_schema_hash": "01c25ac23c41ca00",
+        "label_manifest_hash": "8eff63ae77f20914",
+        "split_policy": "ChronologicalHoldout",
+        "prediction_schema_version": "v2"
+      },
+      "display_name": "ext-model-a:1.0.0",
+      "lifecycle_status": "Retired",
+      "review_status": "RetireModelVersion|RetireModelVersion|RetireModelVersion",
+      "watchlist_status": "Retired",
+      "leaderboard_status": "NoChange",
+      "promotion_status": "ResearchCandidate",
+      "coverage_ratio": "1.0000",
+      "calibration_status": "Stable",
+      "drift_status": "InsufficientHistory",
+      "risk_level": "DiagnosticOnly",
+      "ablation_status": "Stable",
+      "regression_status": "NoRegression",
+      "artifact_completeness_ratio": "0.8889",
+      "decision_counts": {
+        "KeepResearchCandidate": 1,
+        "RetireModelVersion": 4
+      },
+      "regression_causes": [],
+      "owner_notes_summary": "retire superseded version after newer comparable version is available",
+      "recommended_action": "RetireModelVersion",
+      "forbidden_actions": [
+        "account",
+        "broker",
+        "live",
+        "order",
+        "runtime",
+        "train"
+      ],
+      "reason_codes": [
+        "ModelVersionSummaryCardBuilt"
+      ]
+    },
+    {
+      "rollup_key": {
+        "model_id": "ext-model-a",
+        "model_version": "1.1.0",
+        "model_family": "Mamba3FinLiteExternal",
+        "dataset_fingerprint": "118f8e19e94a668b",
+        "feature_schema_hash": "01c25ac23c41ca00",
+        "label_manifest_hash": "8eff63ae77f20914",
+        "split_policy": "ChronologicalHoldout",
+        "prediction_schema_version": "v2"
+      },
+      "display_name": "ext-model-a:1.1.0",
+      "lifecycle_status": "Watchlisted",
+      "review_status": "KeepResearchCandidate|KeepResearchCandidate|KeepResearchCandidate|KeepResearchCandidate",
+      "watchlist_status": "Active",
+      "leaderboard_status": "RankUp",
+      "promotion_status": "ResearchCandidate",
+      "coverage_ratio": "1.0000",
+      "calibration_status": "Stable",
+      "drift_status": "Stable",
+      "risk_level": "Low",
+      "ablation_status": "Stable",
+      "regression_status": "NoRegression",
+      "artifact_completeness_ratio": "0.8889",
+      "decision_counts": {
+        "KeepResearchCandidate": 7,
+        "WatchModel": 1
+      },
+      "regression_causes": [],
+      "owner_notes_summary": "retain latest comparable version for offline research candidate tracking | keep current candidate on operator watchlist",
+      "recommended_action": "KeepResearchCandidate",
+      "forbidden_actions": [
+        "account",
+        "broker",
+        "live",
+        "order",
+        "runtime",
+        "train"
+      ],
+      "reason_codes": [
+        "ModelVersionSummaryCardBuilt"
+      ]
+    },
+    {
+      "rollup_key": {
+        "model_id": "ext-model-a",
+        "model_version": "1.2.0",
+        "model_family": null,
+        "dataset_fingerprint": null,
+        "feature_schema_hash": null,
+        "label_manifest_hash": null,
+        "split_policy": null,
+        "prediction_schema_version": null
+      },
+      "display_name": "ext-model-a:1.2.0",
+      "lifecycle_status": "DiagnosticOnly",
+      "review_status": "NoClosureDecision",
+      "watchlist_status": "NotWatched",
+      "leaderboard_status": "Unknown",
+      "promotion_status": null,
+      "coverage_ratio": null,
+      "calibration_status": null,
+      "drift_status": null,
+      "risk_level": null,
+      "ablation_status": null,
+      "regression_status": "NoRegression",
+      "artifact_completeness_ratio": null,
+      "decision_counts": {},
+      "regression_causes": [],
+      "owner_notes_summary": "no owner note",
+      "recommended_action": "KeepResearchCandidate",
+      "forbidden_actions": [
+        "account",
+        "broker",
+        "live",
+        "order",
+        "runtime",
+        "train"
+      ],
+      "reason_codes": [
+        "ModelVersionSummaryCardBuilt"
+      ]
+    },
+    {
+      "rollup_key": {
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "model_family": "OtherExternal",
+        "dataset_fingerprint": "118f8e19e94a668b",
+        "feature_schema_hash": "01c25ac23c41ca00",
+        "label_manifest_hash": "8eff63ae77f20914",
+        "split_policy": "ChronologicalHoldout",
+        "prediction_schema_version": "v2"
+      },
+      "display_name": "ext-model-b:1.0.0",
+      "lifecycle_status": "NeedsMorePredictions",
+      "review_status": "RequestMorePredictions|RequestMorePredictions|RequestMorePredictions|RequestMorePredictions|RequestMorePredictions",
+      "watchlist_status": "Removed",
+      "leaderboard_status": "NewlyBlocked",
+      "promotion_status": null,
+      "coverage_ratio": "0.6667",
+      "calibration_status": "Review",
+      "drift_status": "InsufficientHistory",
+      "risk_level": "Critical",
+      "ablation_status": "Missing",
+      "regression_status": "RegressionNeedsReview",
+      "artifact_completeness_ratio": "0.6667",
+      "decision_counts": {
+        "RequestMorePredictions": 8
+      },
+      "regression_causes": [
+        "artifact completeness regressed and evidence should be rebuilt conservatively",
+        "calibration drift needs review before further comparison",
+        "comparability regressed and the model should stay diagnostic-only until clarified",
+        "prediction coverage regressed and needs more offline history",
+        "leaderboard status regressed and ranking should be treated conservatively",
+        "risk behavior regressed and needs conservative review"
+      ],
+      "owner_notes_summary": "coverage remains weak and needs more offline prediction history",
+      "recommended_action": "RequestMorePredictions",
+      "forbidden_actions": [
+        "account",
+        "broker",
+        "live",
+        "order",
+        "runtime",
+        "train"
+      ],
+      "reason_codes": [
+        "ModelVersionSummaryCardBuilt"
+      ]
+    }
+  ],
+  "regression_explanations": {
+    "explanations": [
+      {
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "cause_kind": "ArtifactCompletenessRegression",
+        "severity": "Warning",
+        "human_summary": "artifact completeness regressed and evidence should be rebuilt conservatively",
+        "technical_summary": "artifact completeness band weakened versus baseline snapshot",
+        "recommended_action": "RequestMorePredictions",
+        "reason_codes": [
+          "RegressionCauseExplanationBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "cause_kind": "CalibrationRegression",
+        "severity": "Warning",
+        "human_summary": "calibration drift needs review before further comparison",
+        "technical_summary": "calibration band weakened versus baseline snapshot",
+        "recommended_action": "RequestCalibrationReview",
+        "reason_codes": [
+          "RegressionCauseExplanationBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "cause_kind": "ComparabilityRegression",
+        "severity": "Error",
+        "human_summary": "comparability regressed and the model should stay diagnostic-only until clarified",
+        "technical_summary": "comparability band weakened versus baseline snapshot",
+        "recommended_action": "DowngradeToDiagnostic",
+        "reason_codes": [
+          "RegressionCauseExplanationBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "cause_kind": "CoverageRegression",
+        "severity": "Warning",
+        "human_summary": "prediction coverage regressed and needs more offline history",
+        "technical_summary": "coverage band weakened versus baseline snapshot",
+        "recommended_action": "RequestMorePredictions",
+        "reason_codes": [
+          "RegressionCauseExplanationBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "cause_kind": "LeaderboardRegression",
+        "severity": "Error",
+        "human_summary": "leaderboard status regressed and ranking should be treated conservatively",
+        "technical_summary": "leaderboard band weakened versus baseline snapshot",
+        "recommended_action": "RetireModelVersion",
+        "reason_codes": [
+          "RegressionCauseExplanationBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "cause_kind": "RiskRegression",
+        "severity": "Critical",
+        "human_summary": "risk behavior regressed and needs conservative review",
+        "technical_summary": "risk band weakened versus baseline snapshot",
+        "recommended_action": "RequestRiskReview",
+        "reason_codes": [
+          "RegressionCauseExplanationBuilt"
+        ]
+      }
+    ],
+    "by_model": {
+      "ext-model-b:1.0.0": [
+        "artifact completeness regressed and evidence should be rebuilt conservatively",
+        "calibration drift needs review before further comparison",
+        "comparability regressed and the model should stay diagnostic-only until clarified",
+        "prediction coverage regressed and needs more offline history",
+        "leaderboard status regressed and ranking should be treated conservatively",
+        "risk behavior regressed and needs conservative review"
+      ]
+    },
+    "critical_count": 1,
+    "warning_count": 5,
+    "no_regression_count": 0,
+    "report_status": "RegressionDetected",
+    "reason_codes": [
+      "RegressionCauseExplanationReportBuilt"
+    ]
+  },
+  "operator_qa_rollup": {
+    "items": [
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.0.0",
+        "checklist_summary": "NoTrade/RiskDenied reference preserved | calibration reviewed | evaluation exists | leaderboard position reviewed | model card exists | no live/runtime/training path | no secret/order/account fields | predictions cover known sequences | risk behavior reviewed",
+        "safe_actions": [
+          "RetireModelVersion"
+        ],
+        "blocked_actions": [],
+        "required_owner_actions": [
+          "RetireModelVersion"
+        ],
+        "next_command": "cargo run --quiet --bin soma_experiment -- model-risk-rollup --config examples/soma_model_risk_rollup.toml",
+        "status": "NeedsRiskReview",
+        "reason_codes": [
+          "OperatorQARollupReportBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.1.0",
+        "checklist_summary": "NoTrade/RiskDenied reference preserved | calibration reviewed | evaluation exists | leaderboard position reviewed | model card exists | no live/runtime/training path | no secret/order/account fields | predictions cover known sequences | risk behavior reviewed",
+        "safe_actions": [
+          "KeepResearchCandidate",
+          "WatchModel",
+          "WatchModel"
+        ],
+        "blocked_actions": [],
+        "required_owner_actions": [
+          "KeepResearchCandidate",
+          "WatchModel"
+        ],
+        "next_command": "cargo run --quiet --bin soma_experiment -- control-tower-model-ops-rollup --config examples/soma_control_tower_model_ops_rollup.toml",
+        "status": "ReadyForOperatorReview",
+        "reason_codes": [
+          "OperatorQARollupReportBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.2.0",
+        "checklist_summary": "NoTrade/RiskDenied reference preserved | calibration reviewed | evaluation exists | leaderboard position reviewed | model card exists | no live/runtime/training path | no secret/order/account fields | predictions cover known sequences | risk behavior reviewed",
+        "safe_actions": [],
+        "blocked_actions": [],
+        "required_owner_actions": [],
+        "next_command": "cargo run --quiet --bin soma_experiment -- control-tower-model-ops-rollup --config examples/soma_control_tower_model_ops_rollup.toml",
+        "status": "ReadyForOperatorReview",
+        "reason_codes": [
+          "OperatorQARollupReportBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "checklist_summary": "NoTrade/RiskDenied reference preserved | calibration reviewed | evaluation exists | leaderboard position reviewed | model card exists | no live/runtime/training path | no secret/order/account fields | predictions cover known sequences | risk behavior reviewed",
+        "safe_actions": [
+          "RequestMorePredictions"
+        ],
+        "blocked_actions": [],
+        "required_owner_actions": [
+          "RequestMorePredictions"
+        ],
+        "next_command": "cargo run --quiet --bin soma_experiment -- model-ops-rollup --config examples/soma_model_ops_rollup.toml",
+        "status": "NeedsMorePredictions",
+        "reason_codes": [
+          "OperatorQARollupReportBuilt"
+        ]
+      }
+    ],
+    "ready_count": 2,
+    "needs_prediction_count": 1,
+    "needs_calibration_count": 0,
+    "needs_risk_count": 1,
+    "blocked_count": 0,
+    "report_status": "NeedsMorePredictions",
+    "reason_codes": [
+      "OperatorQARollupReportBuilt"
+    ]
+  },
+  "action_priority": {
+    "required_actions": [
+      {
+        "priority": "Required",
+        "action": "RequestMorePredictions",
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "reason": "weak coverage or missing prediction evidence; final_risk_level=Critical",
+        "command_suggestion": "cargo run --quiet --bin soma_experiment -- model-ops-rollup --config examples/soma_model_ops_rollup.toml",
+        "safe_to_run": true,
+        "reason_codes": [
+          "ModelOpsActionPriorityReportBuilt"
+        ]
+      },
+      {
+        "priority": "Required",
+        "action": "RetireModelVersion",
+        "model_id": "ext-model-a",
+        "model_version": "1.0.0",
+        "reason": "retired or critically regressed model version; final_risk_level=High",
+        "command_suggestion": "cargo run --quiet --bin soma_experiment -- decision-log-rollup --config examples/soma_decision_log_rollup.toml",
+        "safe_to_run": true,
+        "reason_codes": [
+          "ModelOpsActionPriorityReportBuilt"
+        ]
+      }
+    ],
+    "recommended_actions": [],
+    "optional_actions": [
+      {
+        "priority": "Optional",
+        "action": "KeepResearchCandidate",
+        "model_id": "ext-model-a",
+        "model_version": "1.2.0",
+        "reason": "keep as offline research candidate",
+        "command_suggestion": "cargo run --quiet --bin soma_experiment -- control-tower-model-ops-rollup --config examples/soma_control_tower_model_ops_rollup.toml",
+        "safe_to_run": true,
+        "reason_codes": [
+          "ModelOpsActionPriorityReportBuilt"
+        ]
+      },
+      {
+        "priority": "Optional",
+        "action": "WatchModel",
+        "model_id": "ext-model-a",
+        "model_version": "1.1.0",
+        "reason": "keep as offline research candidate",
+        "command_suggestion": "cargo run --quiet --bin soma_experiment -- control-tower-model-ops-rollup --config examples/soma_control_tower_model_ops_rollup.toml",
+        "safe_to_run": true,
+        "reason_codes": [
+          "ModelOpsActionPriorityReportBuilt"
+        ]
+      }
+    ],
+    "blocked_actions": [],
+    "primary_next_action": {
+      "priority": "Required",
+      "action": "RequestMorePredictions",
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "reason": "weak coverage or missing prediction evidence; final_risk_level=Critical",
+      "command_suggestion": "cargo run --quiet --bin soma_experiment -- model-ops-rollup --config examples/soma_model_ops_rollup.toml",
+      "safe_to_run": true,
+      "reason_codes": [
+        "ModelOpsActionPriorityReportBuilt"
+      ]
+    },
+    "reason_codes": [
+      "ModelOpsActionPriorityReportBuilt"
+    ]
+  },
+  "overall_status": "NeedsMorePredictions",
+  "plain_language_summary": "rollup_id=sprint67-model-ops-rollup cards=4 overall_status=NeedsMorePredictions; regression_status=RegressionDetected; operator_qa_status=NeedsMorePredictions; primary_next_action=RequestMorePredictions:ext-model-b:1.0.0; mamba_runtime=deferred; no live or production claim",
+  "reason_codes": [
+    "ModelOpsStaticSummaryReportBuilt"
+  ]
+}

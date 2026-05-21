@@ -1,0 +1,326 @@
+{
+  "report_id": "investor-archetype-source-confidence-report",
+  "candidate_count": 18,
+  "high_confidence_count": 15,
+  "medium_confidence_count": 3,
+  "low_confidence_count": 0,
+  "blocked_count": 0,
+  "weak_source_items": [
+    "arthur-hayes: high-narrative macro commentary requires down-weighting",
+    "larry-williams: old anecdotal forum summaries",
+    "wonyotti: weakly sourced community lore"
+  ],
+  "official_source_items": [
+    "arthur-hayes: public thesis archive",
+    "arthur-hayes: public protocol or treasury material",
+    "benjamin-graham: published letters or books",
+    "benjamin-graham: public interview archive",
+    "charlie-munger: published letters or books",
+    "charlie-munger: public interview archive",
+    "chris-burniske: public thesis archive",
+    "chris-burniske: public protocol or treasury material",
+    "howard-marks: published letters or books",
+    "howard-marks: public interview archive",
+    "john-bogle: published letters or books",
+    "john-bogle: public interview archive",
+    "larry-williams: published seasonal study summary",
+    "linda-raschke: public pattern book",
+    "linda-raschke: conference interview summary",
+    "mark-minervini: published interview summary",
+    "mark-minervini: book chapter on setup discipline",
+    "michael-saylor: public thesis archive",
+    "michael-saylor: public protocol or treasury material",
+    "paul-tudor-jones: public television interview",
+    "paul-tudor-jones: public risk-management remarks",
+    "peter-lynch: published letters or books",
+    "peter-lynch: public interview archive",
+    "richard-dennis: public interview on system trading",
+    "vitalik-buterin: public thesis archive",
+    "vitalik-buterin: public protocol or treasury material",
+    "warren-buffett: published letters or books",
+    "warren-buffett: public interview archive",
+    "william-oneil: published book rules",
+    "william-oneil: archived newspaper interview",
+    "willy-woo: public thesis archive",
+    "willy-woo: public protocol or treasury material",
+    "wonyotti: public thesis archive",
+    "wonyotti: public protocol or treasury material"
+  ],
+  "community_anecdote_items": [
+    "richard-dennis: community retelling of turtle legends",
+    "wonyotti: community chat recap"
+  ],
+  "entries": [
+    {
+      "candidate_id": "arthur-hayes",
+      "public_name": "Arthur Hayes",
+      "source_category": "PublicInterview",
+      "confidence_grade": "B",
+      "source_confidence": 0.79,
+      "confidence_weight": 0.74,
+      "weak_source_items": [
+        "high-narrative macro commentary requires down-weighting"
+      ],
+      "official_source_items": [
+        "public thesis archive",
+        "public protocol or treasury material"
+      ],
+      "community_anecdote_items": []
+    },
+    {
+      "candidate_id": "benjamin-graham",
+      "public_name": "Benjamin Graham",
+      "source_category": "PublishedBook",
+      "confidence_grade": "A",
+      "source_confidence": 0.94,
+      "confidence_weight": 0.93,
+      "weak_source_items": [],
+      "official_source_items": [
+        "published letters or books",
+        "public interview archive"
+      ],
+      "community_anecdote_items": []
+    },
+    {
+      "candidate_id": "charlie-munger",
+      "public_name": "Charlie Munger",
+      "source_category": "PublicInterview",
+      "confidence_grade": "A",
+      "source_confidence": 0.93,
+      "confidence_weight": 0.92,
+      "weak_source_items": [],
+      "official_source_items": [
+        "published letters or books",
+        "public interview archive"
+      ],
+      "community_anecdote_items": []
+    },
+    {
+      "candidate_id": "chris-burniske",
+      "public_name": "Chris Burniske",
+      "source_category": "PublishedBook",
+      "confidence_grade": "BPlus",
+      "source_confidence": 0.84,
+      "confidence_weight": 0.8,
+      "weak_source_items": [],
+      "official_source_items": [
+        "public thesis archive",
+        "public protocol or treasury material"
+      ],
+      "community_anecdote_items": []
+    },
+    {
+      "candidate_id": "howard-marks",
+      "public_name": "Howard Marks",
+      "source_category": "PublishedBook",
+      "confidence_grade": "A",
+      "source_confidence": 0.92,
+      "confidence_weight": 0.9,
+      "weak_source_items": [],
+      "official_source_items": [
+        "published letters or books",
+        "public interview archive"
+      ],
+      "community_anecdote_items": []
+    },
+    {
+      "candidate_id": "john-bogle",
+      "public_name": "John Bogle",
+      "source_category": "PublishedBook",
+      "confidence_grade": "A",
+      "source_confidence": 0.94,
+      "confidence_weight": 0.91,
+      "weak_source_items": [],
+      "official_source_items": [
+        "published letters or books",
+        "public interview archive"
+      ],
+      "community_anecdote_items": []
+    },
+    {
+      "candidate_id": "larry-williams",
+      "public_name": "Larry Williams",
+      "source_category": "PublishedBook",
+      "confidence_grade": "B",
+      "source_confidence": 0.78,
+      "confidence_weight": 0.73,
+      "weak_source_items": [
+        "old anecdotal forum summaries"
+      ],
+      "official_source_items": [
+        "published seasonal study summary"
+      ],
+      "community_anecdote_items": []
+    },
+    {
+      "candidate_id": "linda-raschke",
+      "public_name": "Linda Bradford Raschke",
+      "source_category": "PublishedBook",
+      "confidence_grade": "BPlus",
+      "source_confidence": 0.88,
+      "confidence_weight": 0.87,
+      "weak_source_items": [],
+      "official_source_items": [
+        "public pattern book",
+        "conference interview summary"
+      ],
+      "community_anecdote_items": []
+    },
+    {
+      "candidate_id": "mark-minervini",
+      "public_name": "Mark Minervini",
+      "source_category": "PublishedBook",
+      "confidence_grade": "A",
+      "source_confidence": 0.9,
+      "confidence_weight": 0.9,
+      "weak_source_items": [],
+      "official_source_items": [
+        "published interview summary",
+        "book chapter on setup discipline"
+      ],
+      "community_anecdote_items": []
+    },
+    {
+      "candidate_id": "michael-saylor",
+      "public_name": "Michael Saylor / Strategy",
+      "source_category": "OfficialCompanyMaterial",
+      "confidence_grade": "A",
+      "source_confidence": 0.91,
+      "confidence_weight": 0.88,
+      "weak_source_items": [],
+      "official_source_items": [
+        "public thesis archive",
+        "public protocol or treasury material"
+      ],
+      "community_anecdote_items": []
+    },
+    {
+      "candidate_id": "paul-tudor-jones",
+      "public_name": "Paul Tudor Jones",
+      "source_category": "PublicInterview",
+      "confidence_grade": "BPlus",
+      "source_confidence": 0.86,
+      "confidence_weight": 0.85,
+      "weak_source_items": [],
+      "official_source_items": [
+        "public television interview",
+        "public risk-management remarks"
+      ],
+      "community_anecdote_items": []
+    },
+    {
+      "candidate_id": "peter-lynch",
+      "public_name": "Peter Lynch",
+      "source_category": "PublishedBook",
+      "confidence_grade": "A",
+      "source_confidence": 0.9,
+      "confidence_weight": 0.89,
+      "weak_source_items": [],
+      "official_source_items": [
+        "published letters or books",
+        "public interview archive"
+      ],
+      "community_anecdote_items": []
+    },
+    {
+      "candidate_id": "richard-dennis",
+      "public_name": "Richard Dennis / Turtle Traders",
+      "source_category": "PublicInterview",
+      "confidence_grade": "BPlus",
+      "source_confidence": 0.84,
+      "confidence_weight": 0.82,
+      "weak_source_items": [],
+      "official_source_items": [
+        "public interview on system trading"
+      ],
+      "community_anecdote_items": [
+        "community retelling of turtle legends"
+      ]
+    },
+    {
+      "candidate_id": "vitalik-buterin",
+      "public_name": "Vitalik Buterin / Ethereum",
+      "source_category": "OfficialCompanyMaterial",
+      "confidence_grade": "A",
+      "source_confidence": 0.9,
+      "confidence_weight": 0.88,
+      "weak_source_items": [],
+      "official_source_items": [
+        "public thesis archive",
+        "public protocol or treasury material"
+      ],
+      "community_anecdote_items": []
+    },
+    {
+      "candidate_id": "warren-buffett",
+      "public_name": "Warren Buffett",
+      "source_category": "PublishedBook",
+      "confidence_grade": "A",
+      "source_confidence": 0.95,
+      "confidence_weight": 0.95,
+      "weak_source_items": [],
+      "official_source_items": [
+        "published letters or books",
+        "public interview archive"
+      ],
+      "community_anecdote_items": []
+    },
+    {
+      "candidate_id": "william-oneil",
+      "public_name": "William J. O’Neil",
+      "source_category": "PublishedBook",
+      "confidence_grade": "A",
+      "source_confidence": 0.91,
+      "confidence_weight": 0.91,
+      "weak_source_items": [],
+      "official_source_items": [
+        "published book rules",
+        "archived newspaper interview"
+      ],
+      "community_anecdote_items": []
+    },
+    {
+      "candidate_id": "willy-woo",
+      "public_name": "Willy Woo",
+      "source_category": "PublicInterview",
+      "confidence_grade": "BPlus",
+      "source_confidence": 0.83,
+      "confidence_weight": 0.79,
+      "weak_source_items": [],
+      "official_source_items": [
+        "public thesis archive",
+        "public protocol or treasury material"
+      ],
+      "community_anecdote_items": []
+    },
+    {
+      "candidate_id": "wonyotti",
+      "public_name": "Wonyotti / AOA",
+      "source_category": "CommunityAnecdote",
+      "confidence_grade": "BMinus",
+      "source_confidence": 0.72,
+      "confidence_weight": 0.62,
+      "weak_source_items": [
+        "weakly sourced community lore"
+      ],
+      "official_source_items": [
+        "public thesis archive",
+        "public protocol or treasury material"
+      ],
+      "community_anecdote_items": [
+        "community chat recap"
+      ]
+    }
+  ],
+  "source_confidence_status": "SourceConfidenceReadyWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

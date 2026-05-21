@@ -1,0 +1,20 @@
+{
+  "report_id": "equivalent-coverage-feasibility-drilldown-v1",
+  "equivalent_coverage_destination": "tests/shared_fixture_harness_application_v1.rs",
+  "coverage_proof_refs": [
+    "focused matrix remained green in Sprint 113",
+    "shared fixture harness already covers setup determinism"
+  ],
+  "coverage_gaps": [],
+  "feasible": true,
+  "status": "EquivalentCoverageFeasible",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

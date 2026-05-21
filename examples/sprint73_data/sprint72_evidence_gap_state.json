@@ -1,0 +1,87 @@
+{
+  "prediction_history_expansion_report": {
+    "expansion_id": "sprint72-offline-evidence-attachment-prediction-history",
+    "model_id": "ext-model-b",
+    "model_version": "1.0.0",
+    "prediction_files_before": 0,
+    "prediction_files_after": 1,
+    "coverage_before": 0.0,
+    "coverage_after": 0.5,
+    "history_status_before": "NeedMorePredictionHistory",
+    "history_status_after": "NeedMorePredictionHistory",
+    "added_prediction_files": [
+      "ext_model_b_predictions_v2.csv"
+    ],
+    "added_model_cards": [
+      "ext_model_b_model_card_v2.json"
+    ],
+    "expansion_status": "StillNeedMorePredictions",
+    "reason_codes": [
+      "PredictionHistoryExpansionReportBuilt"
+    ]
+  },
+  "evidence_gap_closure_v2_report": {
+    "closure_id": "sprint72-offline-evidence-attachment-gap-close-v2",
+    "gaps_before": 6,
+    "gaps_after": 1,
+    "closeable_now_before": 1,
+    "closeable_now_after": 0,
+    "requires_data_before": 3,
+    "requires_data_after": 1,
+    "requires_owner_review_before": 2,
+    "requires_owner_review_after": 0,
+    "closed_gaps": [
+      "ext-model-a:1.0.0",
+      "ext-model-a:1.0.0",
+      "ext-model-a:1.2.0",
+      "ext-model-a:1.2.0",
+      "sequence-dataset"
+    ],
+    "remaining_gaps": [
+      "ext-model-b:1.0.0"
+    ],
+    "closure_status": "StillNeedsData",
+    "reason_codes": [
+      "EvidenceGapClosureV2Built"
+    ]
+  },
+  "owner_checklist_closure_report": {
+    "closure_id": "sprint72-offline-evidence-attachment-owner-checklist-close",
+    "checklist_items_before": 4,
+    "checklist_items_after": 0,
+    "required_before": 3,
+    "required_after": 0,
+    "recommended_before": 1,
+    "recommended_after": 0,
+    "blocked_before": 1,
+    "blocked_after": 0,
+    "closed_items": [
+      "Provide more offline predictions for ext-model-b:1.0.0",
+      "Review ext-model-a:1.0.0 retirement evidence",
+      "Review ext-model-a:1.2.0 leaderboard warning",
+      "Review ext-model-b:1.0.0 model disposition"
+    ],
+    "remaining_items": [],
+    "closure_status": "OwnerChecklistClosed",
+    "reason_codes": [
+      "OwnerChecklistClosureReportBuilt"
+    ]
+  },
+  "retirement_regression_evidence_pack": {
+    "pack_id": "sprint72-offline-evidence-attachment-retirement-pack",
+    "target_model_id": "ext-model-a",
+    "target_model_version": "1.0.0",
+    "regression_evidence_present": true,
+    "calibration_evidence_present": false,
+    "risk_evidence_present": true,
+    "leaderboard_evidence_present": true,
+    "owner_reason_present": true,
+    "supports_retirement": true,
+    "supports_diagnostic_only": true,
+    "supports_more_evidence_request": false,
+    "pack_status": "RetirementEvidenceReady",
+    "reason_codes": [
+      "RetirementRegressionEvidencePackBuilt"
+    ]
+  }
+}

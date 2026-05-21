@@ -1,0 +1,16 @@
+interpretation_id = "sprint81-prototype-winner-gate"
+sequence_core_prototype_comparison_paths = ["examples/sprint81_data/sequence_core_prototype_comparison.json"]
+prototype_evaluation_paths = [
+  "examples/sprint81_data/mamba3fin_evaluation.json",
+  "examples/sprint81_data/gated_deltanet_evaluation.json",
+]
+prototype_calibration_paths = ["examples/sprint81_data/prototype_calibration.json"]
+prototype_risk_interaction_paths = ["examples/sprint81_data/prototype_risk.json"]
+prototype_ablation_paths = ["examples/sprint81_data/prototype_ablation.json"]
+committee_vs_sequence_paths = ["examples/sprint81_data/committee_vs_sequence_core.json"]
+committee_scenario_pack_paths = ["examples/sprint81_data/committee_scenario_pack_v2.json"]
+committee_outcome_pack_paths = ["examples/sprint81_data/committee_outcome_reference_pack_v2.json"]
+committee_counterfactual_pack_paths = ["examples/sprint81_data/committee_counterfactual_reference_pack.json"]
+training_artifact_population_paths = ["examples/sprint81_data/training_data_artifact_population.json"]
+training_populated_integrity_paths = ["examples/sprint81_data/training_data_populated_integrity.json"]
+output_root = "target/soma_prototype_interpretation"

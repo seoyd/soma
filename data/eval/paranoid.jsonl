@@ -1,0 +1,3 @@
+{"id": "paranoid_1", "prompt": "sqrt(2) * sqrt(8)", "expected": "4", "kind": "math"}
+{"id": "paranoid_2", "prompt": "What is the integral of x^2?", "expected": "x^3/3 + C", "kind": "math"}
+{"id": "paranoid_3", "prompt": "Solve: 2x + 5 = 13", "expected": "x = 4", "kind": "math"}

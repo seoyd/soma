@@ -1,0 +1,26 @@
+policy_id = "kis-market-data-only-policy"
+allowed_market_data_categories = [
+  "DomesticStockPeriodPrice",
+  "OverseasStockPeriodPrice",
+  "DomesticStockRealtimeQuote",
+  "OverseasStockRealtimeQuote"
+]
+denied_broker_categories = [
+  "DomesticOrder",
+  "OverseasOrder",
+  "DomesticAccount",
+  "OverseasAccount",
+  "Balance",
+  "Position",
+  "Holdings",
+  "BuyingPower",
+  "OrderableQuantity",
+  "OrderCorrectionCancel",
+  "ExecutionNotification",
+  "RealizedPnl",
+  "AccountAssetInquiry"
+]
+oauth_allowed = true
+websocket_approval_allowed = true
+strict_unknown_deny = true
+reason_codes = ["KISEndpointPolicyBuilt", "DeniedByDefault"]

@@ -1,0 +1,43 @@
+{
+  "panel_id": "control-tower-ai-committee-closure-panel",
+  "proposal_warning_closure_status": "ProposalWarningsClosedWithMinorNotes",
+  "proposal_evidence_status": "ProposalEvidenceComplete",
+  "proposal_risk_field_status": "ProposalRiskFieldsComplete",
+  "entry_timing_condition_status": "EntryTimingConditionsComplete",
+  "debate_evidence_closure_status": "DebateEvidenceClosedWithWarnings",
+  "debate_dissent_status": "DissentCoverageReadyWithWarnings",
+  "debate_participation_status": "ParticipationBalancedWithWarnings",
+  "chairman_unsafe_rule_closure_status": "UnsafeRuleClosedWithPaperOnlyRestriction",
+  "rulebook_repair_status": "RulebookRepairPlanReadyWithWarnings",
+  "rulebook_approval_status": "RulebookApprovedForPaper",
+  "scorecard_warning_closure_status": "ScorecardWarningsClosedWithNotes",
+  "paper_replay_warning_closure_status": "ReplayWarningsClosedWithNotes",
+  "risk_handoff_warning_closure_status": "RiskHandoffWarningsClosedWithNotes",
+  "paper_readiness_gate_status": "PaperCommitteeReadyWithWarnings",
+  "paper_dry_run_plan_status": "PaperLoopDryRunPlanReadyWithWarnings",
+  "workspace_acceptance_truth_status": "FullWorkspaceNotRun",
+  "runtime_deferred_summary": "runtime deferred, training deferred, live inference forbidden, live trading forbidden, paper-only closure layer",
+  "safety_coverage_status": "SafetyCoveragePreservedWithWarnings",
+  "next_actions": [
+    "keep paper-loop dry-run local-only and research-only",
+    "keep workspace acceptance truth separate from focused readiness reports",
+    "keep chairman rulebook mutations paper-only and audit-gated"
+  ],
+  "warnings": [
+    "static/read-only panel only",
+    "no train/runtime/live/order/account/browser controls",
+    "no auto-rule-apply button",
+    "paper readiness does not imply broker execution or live trading"
+  ],
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "set_id": "sprint47-diagnostics-only-set",
+  "items": [
+    {
+      "row_id": "aapl-diagnostic-window",
+      "symbol": "AAPL",
+      "market": "USEquity",
+      "timeframe": "1d",
+      "horizon_bars": 3,
+      "timestamp_ms": 1700000000000,
+      "source_kind": "RealLocal",
+      "source_class": "ControlledDiagnostic",
+      "official_ready_match": true,
+      "future_window_sufficient": true,
+      "outcome_reference_available": false,
+      "baseline_reference_available": false,
+      "no_trade_counterfactual_available": false,
+      "risk_denied_counterfactual_available": false,
+      "committee_decision_available": false,
+      "risk_decision_available": false,
+      "no_lookahead_safe": true,
+      "status": "DiagnosticControlled",
+      "reason_codes": ["DeterministicPath"]
+    }
+  ],
+  "total_rows": 1,
+  "official_complete_rows": 0,
+  "official_partial_rows": 0,
+  "non_crypto_official_rows": 0,
+  "crypto_only_rows": 0,
+  "controlled_rows": 1,
+  "yfinance_rows": 0,
+  "fixture_rows": 0,
+  "outcome_reference_count": 0,
+  "baseline_reference_count": 0,
+  "no_trade_counterfactual_count": 0,
+  "risk_denied_counterfactual_count": 0,
+  "no_lookahead_safe_count": 1,
+  "storage_bytes": 256,
+  "status": "DiagnosticControlled",
+  "warnings": ["controlled diagnostic evidence remains insufficient for usefulness claims"],
+  "reason_codes": ["DeterministicPath"]
+}

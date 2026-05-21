@@ -1,0 +1,7 @@
+closure_id = "sprint72-evidence-gap-close-v2"
+evidence_gap_checklist_paths = ["examples/sprint72_data/evidence_gap_checklist.json"]
+offline_attachment_registry_paths = ["target/soma_offline_evidence_attachment/sprint72-offline-evidence-attachment/offline_evidence_attachment_registry.txt"]
+prediction_history_expansion_paths = ["target/soma_offline_evidence_attachment/sprint72-offline-evidence-attachment/prediction_history_expansion_report.txt"]
+retirement_evidence_pack_paths = ["target/soma_offline_evidence_attachment/sprint72-offline-evidence-attachment/retirement_regression_evidence_pack.txt"]
+owner_checklist_paths = ["examples/sprint72_data/owner_action_checklist.json"]
+output_root = "target/soma_offline_evidence_attachment"

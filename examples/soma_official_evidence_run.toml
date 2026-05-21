@@ -1,0 +1,11 @@
+collection_report_path = "target/soma_official_collection/sprint20_official_compact/official_collection_report.json"
+generated_rerun_configs = []
+output_root = "target/soma_official_collection/sprint20_official_compact/official_evidence_run"
+run_real_evidence = true
+run_batch = true
+run_ablation = true
+require_ready_entries = false
+min_ready_entries = 1
+min_outcome_records = 20
+min_comparable_variants = 2
+reason_codes = ["DeterministicPath"]

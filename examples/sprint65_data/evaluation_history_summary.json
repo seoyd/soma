@@ -1,0 +1,94 @@
+{
+  "history_id": "sprint64-external-evaluation-history",
+  "model_histories": [
+    {
+      "model_id": "ext-model-a",
+      "versions": [
+        "1.0.0",
+        "1.1.0"
+      ],
+      "metrics_by_version": {
+        "1.0.0": {
+          "calibration:brier_score": 0.07091666666666667,
+          "calibration:ece": 0.25833333333333336,
+          "ranking:top_k_precision": 0.6666666666666666,
+          "return:net_return_proxy": 0.007333333333333332,
+          "risk:risk_adjusted_score": 1.146341463414634
+        },
+        "1.1.0": {
+          "calibration:brier_score": 0.07091666666666667,
+          "calibration:ece": 0.25833333333333336,
+          "ranking:top_k_precision": 0.6666666666666666,
+          "return:net_return_proxy": 0.007333333333333332,
+          "risk:risk_adjusted_score": 1.3428571428571427
+        }
+      },
+      "best_version_by_metric": {
+        "calibration:brier_score": "1.0.0",
+        "calibration:ece": "1.0.0",
+        "ranking:top_k_precision": "1.0.0",
+        "return:net_return_proxy": "1.0.0",
+        "risk:risk_adjusted_score": "1.1.0"
+      },
+      "latest_vs_previous_delta": {
+        "calibration:brier_score": 0.0,
+        "calibration:ece": 0.0,
+        "ranking:top_k_precision": 0.0,
+        "return:net_return_proxy": 0.0,
+        "risk:risk_adjusted_score": 0.1965156794425087
+      },
+      "reason_codes": [
+        "ExternalEvaluationHistoryReportBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-b",
+      "versions": [
+        "1.0.0"
+      ],
+      "metrics_by_version": {
+        "1.0.0": {
+          "calibration:brier_score": 0.13670000000000002,
+          "calibration:ece": 0.365,
+          "ranking:top_k_precision": 0.6666666666666666,
+          "return:net_return_proxy": 0.01075,
+          "risk:risk_adjusted_score": 1.1538461538461535
+        }
+      },
+      "best_version_by_metric": {
+        "calibration:brier_score": "1.0.0",
+        "calibration:ece": "1.0.0",
+        "ranking:top_k_precision": "1.0.0",
+        "return:net_return_proxy": "1.0.0",
+        "risk:risk_adjusted_score": "1.0.0"
+      },
+      "latest_vs_previous_delta": {},
+      "reason_codes": [
+        "ExternalEvaluationHistoryReportBuilt"
+      ]
+    }
+  ],
+  "baseline_reference_summary": "1 reference artifact(s)",
+  "trinity_reference_summary": "1 reference artifact(s)",
+  "no_trade_reference_summary": "1 reference artifact(s)",
+  "risk_denied_reference_summary": "1 reference artifact(s)",
+  "latest_model_versions": {
+    "ext-model-a": "1.1.0"
+  },
+  "previous_model_versions": {
+    "ext-model-a": "1.0.0"
+  },
+  "metric_deltas": {
+    "ext-model-a": {
+      "calibration:brier_score": 0.0,
+      "calibration:ece": 0.0,
+      "ranking:top_k_precision": 0.0,
+      "return:net_return_proxy": 0.0,
+      "risk:risk_adjusted_score": 0.1965156794425087
+    }
+  },
+  "history_status": "NeedMoreVersions",
+  "reason_codes": [
+    "ExternalEvaluationHistoryReportBuilt"
+  ]
+}

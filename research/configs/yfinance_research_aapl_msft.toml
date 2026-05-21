@@ -1,0 +1,6 @@
+tickers = ["AAPL", "MSFT"]
+interval = "1d"
+period = "3mo"
+fixture = "research/fixtures/yfinance_multi_ticker_daily.csv"
+out = "target/yfinance_research_aapl_msft"
+adjusted_price_policy = "adjusted"

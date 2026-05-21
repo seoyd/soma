@@ -1,0 +1,28 @@
+{
+  "attempt_id": "real-cargo-json-observation-attempt-v17",
+  "command": "cargo test --workspace --no-run --message-format=json",
+  "attempted": false,
+  "started": false,
+  "finished": false,
+  "duration_ms": null,
+  "timeout_ms": 420000,
+  "exit_code": null,
+  "timed_out": false,
+  "actual_json_parsing_enabled": true,
+  "parsed_message_count": 0,
+  "parse_error_count": 0,
+  "malformed_line_count": 0,
+  "last_seen_targets": [],
+  "last_seen_artifacts": [],
+  "supporting_only": true,
+  "attempt_status": "CargoJsonNotRun",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

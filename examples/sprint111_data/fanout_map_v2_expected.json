@@ -1,0 +1,117 @@
+{
+  "map_id": "test-family-fanout-map-v2",
+  "family_clusters": [
+    {
+      "cluster_id": "helper-fanout",
+      "targets": [
+        "tests/shared_fixture_harness_application_v1.rs"
+      ],
+      "fanout_count": 1,
+      "high_risk": false
+    },
+    {
+      "cluster_id": "fixture-fanout",
+      "targets": [
+        "tests/workspace_timeout_root_cause.rs",
+        "tests/workspace_no_run_progress_trace_v1.rs",
+        "tests/cargo_json_progress_capture_v5.rs"
+      ],
+      "fanout_count": 3,
+      "high_risk": false
+    },
+    {
+      "cluster_id": "render-fanout",
+      "targets": [
+        "tests/control_tower_workspace_timeout_root_cause_panel.rs",
+        "tests/control_tower_fifth_patch_decision_panel.rs"
+      ],
+      "fanout_count": 2,
+      "high_risk": false
+    },
+    {
+      "cluster_id": "cli-fanout",
+      "targets": [
+        "tests/sprint111_cli_safety.rs"
+      ],
+      "fanout_count": 1,
+      "high_risk": false
+    },
+    {
+      "cluster_id": "sentinel-fanout",
+      "targets": [
+        "tests/committee_cli_safety.rs",
+        "tests/workspace_cli_safety_suite.rs",
+        "tests/workspace_determinism_suite.rs",
+        "tests/paper_lifecycle_warning_closure.rs"
+      ],
+      "fanout_count": 4,
+      "high_risk": true
+    }
+  ],
+  "helper_fanout_clusters": [
+    {
+      "cluster_id": "helper-fanout",
+      "targets": [
+        "tests/shared_fixture_harness_application_v1.rs"
+      ],
+      "fanout_count": 1,
+      "high_risk": false
+    }
+  ],
+  "fixture_fanout_clusters": [
+    {
+      "cluster_id": "fixture-fanout",
+      "targets": [
+        "tests/workspace_timeout_root_cause.rs",
+        "tests/workspace_no_run_progress_trace_v1.rs",
+        "tests/cargo_json_progress_capture_v5.rs"
+      ],
+      "fanout_count": 3,
+      "high_risk": false
+    }
+  ],
+  "render_fanout_clusters": [
+    {
+      "cluster_id": "render-fanout",
+      "targets": [
+        "tests/control_tower_workspace_timeout_root_cause_panel.rs",
+        "tests/control_tower_fifth_patch_decision_panel.rs"
+      ],
+      "fanout_count": 2,
+      "high_risk": false
+    }
+  ],
+  "cli_fanout_clusters": [
+    {
+      "cluster_id": "cli-fanout",
+      "targets": [
+        "tests/sprint111_cli_safety.rs"
+      ],
+      "fanout_count": 1,
+      "high_risk": false
+    }
+  ],
+  "sentinel_clusters": [
+    {
+      "cluster_id": "sentinel-fanout",
+      "targets": [
+        "tests/committee_cli_safety.rs",
+        "tests/workspace_cli_safety_suite.rs",
+        "tests/workspace_determinism_suite.rs",
+        "tests/paper_lifecycle_warning_closure.rs"
+      ],
+      "fanout_count": 4,
+      "high_risk": true
+    }
+  ],
+  "fanout_status": "FanoutMapReady",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

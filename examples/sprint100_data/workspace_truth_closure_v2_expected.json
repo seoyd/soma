@@ -1,0 +1,27 @@
+{
+  "plan_id": "workspace-acceptance-truth-closure-plan-v2",
+  "previous_truth_status": "FullWorkspaceNotRun",
+  "current_truth_status": "FullWorkspaceNotRun",
+  "can_claim_full_acceptance": false,
+  "no_run_gate_status": "NoRunGatePending",
+  "full_workspace_gate_status": "FullWorkspaceNotRun",
+  "recommended_actions": [
+    "RunRealNoRunWithLongerTimeout",
+    "RunRealFullWorkspaceWithLongerTimeout",
+    "KeepFocusedTestsSeparate",
+    "ConsiderNextestLocalDiagnostic",
+    "ConsiderSccacheLocalDiagnostic",
+    "DoNotClaimFullAcceptance"
+  ],
+  "closure_status": "WorkspaceTruthStillOpen",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

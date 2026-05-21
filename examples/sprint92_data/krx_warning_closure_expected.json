@@ -1,0 +1,14 @@
+{
+  "report_id": "sprint92-krx-warning-close-warning-closure",
+  "previous_status": "KrxEvidenceReducedWithWarnings",
+  "secret_safety_isolation_status": "KeepIsolatedSentinel",
+  "raw_archive_redaction_status": "RedactionCoverageReadyWithIsolatedSentinel",
+  "manual_review_status": "ManualReviewClosedWithIsolatedSentinel",
+  "genuine_reduction_gate_status": "KrxEvidenceReducedWithIsolatedSentinel",
+  "dashboard_entry_gate_status": "DashboardRendererEntryBlockedByUnknownGateCause",
+  "closure_status": "KrxWarningsClosedWithIsolatedSentinel",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

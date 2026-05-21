@@ -1,0 +1,190 @@
+{
+  "runbook_id": "sprint57-operational-runbook",
+  "steps": [
+    {
+      "step_id": "step-01-kis-auth-check",
+      "step_kind": "KISAuthCheck",
+      "command_suggestion": "cargo run --quiet --bin soma_experiment -- kis-auth-readiness --config examples/soma_kis_auth_readiness.toml",
+      "expected_artifact": "KIS auth readiness text output",
+      "preconditions": [
+        "KIS_APP_KEY, KIS_APP_SECRET, KIS_BASE_URL must be present in env"
+      ],
+      "blockers": [
+        "KIS env auth is missing"
+      ],
+      "safe_to_run": true,
+      "reason_codes": [
+        "DeterministicPath",
+        "KISAuthReadinessBuilt"
+      ]
+    },
+    {
+      "step_id": "step-02-kis-market-data-activate",
+      "step_kind": "KISMarketDataActivate",
+      "command_suggestion": "cargo run --quiet --bin soma_experiment -- kis-market-data-activate --config examples/soma_kis_market_data_activate_local_import.toml",
+      "expected_artifact": "target/sprint51/kis_market_data_activate_local_import/",
+      "preconditions": [
+        "auth check completed"
+      ],
+      "blockers": [
+        "KIS auth must pass first"
+      ],
+      "safe_to_run": false,
+      "reason_codes": [
+        "DeterministicPath",
+        "KISMarketDataActivationRan"
+      ]
+    },
+    {
+      "step_id": "step-03-kis-candle-sufficiency",
+      "step_kind": "KISCandleSufficiency",
+      "command_suggestion": "cargo run --quiet --bin soma_experiment -- kis-candle-sufficiency --config examples/soma_kis_candle_sufficiency.toml",
+      "expected_artifact": "target/sprint51/kis_candle_sufficiency/",
+      "preconditions": [
+        "market data activation artifact exists"
+      ],
+      "blockers": [
+        "KIS auth must pass first"
+      ],
+      "safe_to_run": false,
+      "reason_codes": [
+        "DeterministicPath",
+        "KISCandleSufficiencyBuilt"
+      ]
+    },
+    {
+      "step_id": "step-04-kis-outcome-link-close",
+      "step_kind": "KISOutcomeLinkClose",
+      "command_suggestion": "cargo run --quiet --bin soma_experiment -- kis-outcome-link-close --config examples/soma_kis_outcome_link_close.toml",
+      "expected_artifact": "target/sprint51/kis_outcome_link_close/",
+      "preconditions": [
+        "candle sufficiency output exists"
+      ],
+      "blockers": [
+        "KIS auth must pass first"
+      ],
+      "safe_to_run": false,
+      "reason_codes": [
+        "DeterministicPath",
+        "KISOutcomeLinkClosureBuilt"
+      ]
+    },
+    {
+      "step_id": "step-05-kis-evidence-depth-run",
+      "step_kind": "KISEvidenceDepthRun",
+      "command_suggestion": "cargo run --quiet --bin soma_experiment -- kis-evidence-depth-run --config examples/soma_kis_evidence_depth_run.toml",
+      "expected_artifact": "target/sprint57/kis_evidence_depth/sprint57-kis-evidence-depth/kis_evidence_depth_report.txt",
+      "preconditions": [
+        "local evidence artifacts prepared"
+      ],
+      "blockers": [],
+      "safe_to_run": true,
+      "reason_codes": [
+        "DeterministicPath",
+        "OfficialEvidenceCounted"
+      ]
+    },
+    {
+      "step_id": "step-06-trinity-operational-loop",
+      "step_kind": "TrinityOperationalLoop",
+      "command_suggestion": "cargo run --quiet --bin soma_experiment -- trinity-operational-loop --config examples/soma_trinity_operational_loop_kis.toml",
+      "expected_artifact": "target/sprint56/sprint56-operational-loop-kis/trinity_operational_loop_report.json",
+      "preconditions": [
+        "evidence depth report available"
+      ],
+      "blockers": [],
+      "safe_to_run": true,
+      "reason_codes": [
+        "DeterministicPath",
+        "PaperExecutionOnly"
+      ]
+    },
+    {
+      "step_id": "step-07-control-tower-refresh",
+      "step_kind": "ControlTowerRefresh",
+      "command_suggestion": "cargo run --quiet --bin soma_experiment -- control-tower-refresh --config examples/soma_control_tower_refresh_after_kis_depth.toml",
+      "expected_artifact": "target/sprint57/control_tower_refresh/sprint57-control-tower-refresh/dashboard_state_v1.json",
+      "preconditions": [
+        "trinity loop summary available"
+      ],
+      "blockers": [],
+      "safe_to_run": true,
+      "reason_codes": [
+        "DashboardRendered",
+        "DeterministicPath"
+      ]
+    },
+    {
+      "step_id": "step-08-dashboard-open",
+      "step_kind": "DashboardOpen",
+      "command_suggestion": "cargo run --quiet --bin soma_experiment -- dashboard-open --config examples/soma_control_tower_v1_kis.toml",
+      "expected_artifact": "target/sprint57/control_tower_refresh/sprint57-control-tower-refresh/dashboard_v1.html",
+      "preconditions": [
+        "refreshed dashboard html exists"
+      ],
+      "blockers": [],
+      "safe_to_run": true,
+      "reason_codes": [
+        "DashboardRendered",
+        "DeterministicPath"
+      ]
+    },
+    {
+      "step_id": "step-09-owner-review-queue",
+      "step_kind": "OwnerReviewQueue",
+      "command_suggestion": "cargo run --quiet --bin soma_experiment -- owner-review-queue --config examples/soma_owner_review_queue.toml",
+      "expected_artifact": "owner review queue text output",
+      "preconditions": [
+        "run after dashboard refresh if owner items exist"
+      ],
+      "blockers": [],
+      "safe_to_run": true,
+      "reason_codes": [
+        "DeterministicPath",
+        "OwnerReviewQueueBuilt"
+      ]
+    },
+    {
+      "step_id": "step-10-core-performance",
+      "step_kind": "CorePerformance",
+      "command_suggestion": "cargo run --quiet --bin soma_experiment -- core-performance --config examples/soma_core_performance_diagnostics_only.toml",
+      "expected_artifact": "target/core_performance_diagnostics_only/",
+      "preconditions": [
+        "use for conservative scorecard rerun only"
+      ],
+      "blockers": [],
+      "safe_to_run": true,
+      "reason_codes": [
+        "CorePerformanceScorecardBuilt",
+        "DeterministicPath"
+      ]
+    },
+    {
+      "step_id": "step-99-stop-due-to-blocker",
+      "step_kind": "StopDueToBlocker",
+      "command_suggestion": null,
+      "expected_artifact": null,
+      "preconditions": [
+        "resolve blockers before continuing"
+      ],
+      "blockers": [
+        "KIS env auth is missing"
+      ],
+      "safe_to_run": false,
+      "reason_codes": [
+        "DeterministicPath",
+        "ResearchOnlyOverride"
+      ]
+    }
+  ],
+  "required_steps": 8,
+  "optional_steps": 3,
+  "blocked_steps": 4,
+  "final_status": "BlockedByKISAuth",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly",
+    "MissingAuth"
+  ],
+  "fingerprint": "158f50c3d1a06da4"
+}

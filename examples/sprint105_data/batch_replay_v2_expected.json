@@ -1,0 +1,19 @@
+{
+  "report_id": "paper-candidate-batch-replay-v2-report",
+  "replay_count": 7,
+  "paper_approved_count": 1,
+  "paper_rejected_count": 1,
+  "broker_execution_allowed_count": 0,
+  "live_execution_allowed_count": 0,
+  "report_status": "PaperCandidateBatchReplayV2Ready",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

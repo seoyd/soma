@@ -1,0 +1,27 @@
+{
+  "plan_id": "assertion-destination-proof-plan-v1",
+  "destination_candidates": [
+    "tests/shared_fixture_harness_application_v1.rs",
+    "tests/workspace_timeout_root_cause.rs",
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs"
+  ],
+  "proof_requirements": [
+    "DestinationCapacity",
+    "SemanticIsolation",
+    "DeterminismPreservation",
+    "CliSurfacePreservation",
+    "SafetyPreservation",
+    "EvidenceClarityPreservation",
+    "EquivalentCoverage"
+  ],
+  "plan_status": "AssertionDestinationProofPlanReadyWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

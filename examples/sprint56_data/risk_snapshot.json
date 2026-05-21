@@ -1,0 +1,9 @@
+{
+  "daily_pnl_pct": 0.0,
+  "consecutive_losses": 0,
+  "current_positions_count": 0,
+  "total_exposure_pct": 0.0,
+  "symbol_exposure_pct": 0.0,
+  "api_health_score": 1.0,
+  "data_quality_score": 0.95
+}

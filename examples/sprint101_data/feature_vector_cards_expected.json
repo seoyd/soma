@@ -1,0 +1,956 @@
+[
+  {
+    "card_id": "feature-card-arthur-hayes",
+    "candidate_id": "arthur-hayes",
+    "archetype_name": "HayesLiquidityDerivatives",
+    "primary_features": [
+      "on-chain or liquidity regime awareness",
+      "cycle and risk framing",
+      "custody/governance sensitivity"
+    ],
+    "secondary_features": [
+      "treasury or protocol adoption lens",
+      "derivatives stress monitoring"
+    ],
+    "entry_conditions": [
+      "enter only when crypto-specific evidence and liquidity align",
+      "require risk-manager signoff for volatility regimes"
+    ],
+    "exit_conditions": [
+      "exit on liquidity breakdown, thesis break, or governance risk shock"
+    ],
+    "risk_rules": [
+      "respect extreme volatility and custody risk",
+      "treat leverage as suspect by default"
+    ],
+    "sizing_rules": [
+      "size below equity groups under comparable confidence",
+      "reduce into reflexive leverage regimes"
+    ],
+    "no_trade_conditions": [
+      "skip when custody, governance, or liquidity is unclear",
+      "skip narrative-only token stories"
+    ],
+    "preferred_data_sources": [
+      "on-chain metrics",
+      "exchange liquidity",
+      "protocol governance artifacts"
+    ],
+    "required_validation": [
+      "confirm crypto signal with risk and liquidity checks",
+      "validate custody/governance assumptions"
+    ],
+    "feature_card_status": "FeatureCardReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  {
+    "card_id": "feature-card-benjamin-graham",
+    "candidate_id": "benjamin-graham",
+    "archetype_name": "GrahamMarginOfSafety",
+    "primary_features": [
+      "valuation discipline",
+      "balance-sheet review",
+      "durable thesis framing"
+    ],
+    "secondary_features": [
+      "capital allocation review",
+      "portfolio patience"
+    ],
+    "entry_conditions": [
+      "enter when downside is favorable relative to durable value",
+      "require thesis and evidence alignment"
+    ],
+    "exit_conditions": [
+      "exit when thesis durability breaks or valuation becomes extreme"
+    ],
+    "risk_rules": [
+      "avoid leverage-driven fragility",
+      "treat narratives below evidence"
+    ],
+    "sizing_rules": [
+      "size from durability and downside coverage",
+      "trim if thesis concentration rises"
+    ],
+    "no_trade_conditions": [
+      "skip when evidence is thin",
+      "skip fragile balance sheets"
+    ],
+    "preferred_data_sources": [
+      "financial statements",
+      "capital allocation letters",
+      "industry context"
+    ],
+    "required_validation": [
+      "confirm thesis against filings",
+      "validate downside case"
+    ],
+    "feature_card_status": "FeatureCardReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  {
+    "card_id": "feature-card-charlie-munger",
+    "candidate_id": "charlie-munger",
+    "archetype_name": "MungerErrorFilter",
+    "primary_features": [
+      "valuation discipline",
+      "balance-sheet review",
+      "durable thesis framing"
+    ],
+    "secondary_features": [
+      "capital allocation review",
+      "portfolio patience"
+    ],
+    "entry_conditions": [
+      "enter when downside is favorable relative to durable value",
+      "require thesis and evidence alignment"
+    ],
+    "exit_conditions": [
+      "exit when thesis durability breaks or valuation becomes extreme"
+    ],
+    "risk_rules": [
+      "avoid leverage-driven fragility",
+      "treat narratives below evidence"
+    ],
+    "sizing_rules": [
+      "size from durability and downside coverage",
+      "trim if thesis concentration rises"
+    ],
+    "no_trade_conditions": [
+      "skip when evidence is thin",
+      "skip fragile balance sheets"
+    ],
+    "preferred_data_sources": [
+      "financial statements",
+      "capital allocation letters",
+      "industry context"
+    ],
+    "required_validation": [
+      "confirm thesis against filings",
+      "validate downside case"
+    ],
+    "feature_card_status": "FeatureCardReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  {
+    "card_id": "feature-card-chris-burniske",
+    "candidate_id": "chris-burniske",
+    "archetype_name": "BurniskeTokenValuation",
+    "primary_features": [
+      "on-chain or liquidity regime awareness",
+      "cycle and risk framing",
+      "custody/governance sensitivity"
+    ],
+    "secondary_features": [
+      "treasury or protocol adoption lens",
+      "derivatives stress monitoring"
+    ],
+    "entry_conditions": [
+      "enter only when crypto-specific evidence and liquidity align",
+      "require risk-manager signoff for volatility regimes"
+    ],
+    "exit_conditions": [
+      "exit on liquidity breakdown, thesis break, or governance risk shock"
+    ],
+    "risk_rules": [
+      "respect extreme volatility and custody risk",
+      "treat leverage as suspect by default"
+    ],
+    "sizing_rules": [
+      "size below equity groups under comparable confidence",
+      "reduce into reflexive leverage regimes"
+    ],
+    "no_trade_conditions": [
+      "skip when custody, governance, or liquidity is unclear",
+      "skip narrative-only token stories"
+    ],
+    "preferred_data_sources": [
+      "on-chain metrics",
+      "exchange liquidity",
+      "protocol governance artifacts"
+    ],
+    "required_validation": [
+      "confirm crypto signal with risk and liquidity checks",
+      "validate custody/governance assumptions"
+    ],
+    "feature_card_status": "FeatureCardReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  {
+    "card_id": "feature-card-howard-marks",
+    "candidate_id": "howard-marks",
+    "archetype_name": "MarksCycleRiskPremium",
+    "primary_features": [
+      "valuation discipline",
+      "balance-sheet review",
+      "durable thesis framing"
+    ],
+    "secondary_features": [
+      "capital allocation review",
+      "portfolio patience"
+    ],
+    "entry_conditions": [
+      "enter when downside is favorable relative to durable value",
+      "require thesis and evidence alignment"
+    ],
+    "exit_conditions": [
+      "exit when thesis durability breaks or valuation becomes extreme"
+    ],
+    "risk_rules": [
+      "avoid leverage-driven fragility",
+      "treat narratives below evidence"
+    ],
+    "sizing_rules": [
+      "size from durability and downside coverage",
+      "trim if thesis concentration rises"
+    ],
+    "no_trade_conditions": [
+      "skip when evidence is thin",
+      "skip fragile balance sheets"
+    ],
+    "preferred_data_sources": [
+      "financial statements",
+      "capital allocation letters",
+      "industry context"
+    ],
+    "required_validation": [
+      "confirm thesis against filings",
+      "validate downside case"
+    ],
+    "feature_card_status": "FeatureCardReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  {
+    "card_id": "feature-card-john-bogle",
+    "candidate_id": "john-bogle",
+    "archetype_name": "BogleLowCostCore",
+    "primary_features": [
+      "valuation discipline",
+      "balance-sheet review",
+      "durable thesis framing"
+    ],
+    "secondary_features": [
+      "capital allocation review",
+      "portfolio patience"
+    ],
+    "entry_conditions": [
+      "enter when downside is favorable relative to durable value",
+      "require thesis and evidence alignment"
+    ],
+    "exit_conditions": [
+      "exit when thesis durability breaks or valuation becomes extreme"
+    ],
+    "risk_rules": [
+      "avoid leverage-driven fragility",
+      "treat narratives below evidence"
+    ],
+    "sizing_rules": [
+      "size from durability and downside coverage",
+      "trim if thesis concentration rises"
+    ],
+    "no_trade_conditions": [
+      "skip when evidence is thin",
+      "skip fragile balance sheets"
+    ],
+    "preferred_data_sources": [
+      "financial statements",
+      "capital allocation letters",
+      "industry context"
+    ],
+    "required_validation": [
+      "confirm thesis against filings",
+      "validate downside case"
+    ],
+    "feature_card_status": "FeatureCardReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  {
+    "card_id": "feature-card-larry-williams",
+    "candidate_id": "larry-williams",
+    "archetype_name": "LarryWilliamsStatisticalSeasonality",
+    "primary_features": [
+      "seasonality lens",
+      "statistical tendency review",
+      "event-timing discipline"
+    ],
+    "secondary_features": [
+      "sentiment context",
+      "cycle windows"
+    ],
+    "entry_conditions": [
+      "enter only when statistical tendency matches current context",
+      "demand liquidity and timing window alignment"
+    ],
+    "exit_conditions": [
+      "exit when timing window closes or signal decays"
+    ],
+    "risk_rules": [
+      "treat seasonality as low-authority evidence",
+      "avoid blind calendar trades"
+    ],
+    "sizing_rules": [
+      "size lower for seasonal-only signals",
+      "increase only with multi-signal confirmation"
+    ],
+    "no_trade_conditions": [
+      "skip when tendency lacks current confirmation",
+      "skip stale seasonal stories"
+    ],
+    "preferred_data_sources": [
+      "seasonality studies",
+      "price history",
+      "event calendar"
+    ],
+    "required_validation": [
+      "validate current-cycle fit",
+      "confirm signal is not lookahead leakage"
+    ],
+    "feature_card_status": "FeatureCardReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  {
+    "card_id": "feature-card-linda-raschke",
+    "candidate_id": "linda-raschke",
+    "archetype_name": "RaschkeProcessManager",
+    "primary_features": [
+      "pattern process discipline",
+      "stop-first risk management",
+      "mean-reversion vs breakout separation"
+    ],
+    "secondary_features": [
+      "intraday to swing context",
+      "execution checklist"
+    ],
+    "entry_conditions": [
+      "enter only after setup classification is clear",
+      "prefer repeatable liquid patterns"
+    ],
+    "exit_conditions": [
+      "exit when pattern thesis fails or time stop hits"
+    ],
+    "risk_rules": [
+      "risk defined before entry",
+      "avoid style-mixing without evidence"
+    ],
+    "sizing_rules": [
+      "size from stop distance and liquidity",
+      "reduce size in unstable volatility"
+    ],
+    "no_trade_conditions": [
+      "skip ambiguous patterns",
+      "skip setups without exit clarity"
+    ],
+    "preferred_data_sources": [
+      "price structure",
+      "volatility bands",
+      "liquidity context"
+    ],
+    "required_validation": [
+      "confirm setup family",
+      "validate exit map before entry"
+    ],
+    "feature_card_status": "FeatureCardReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  {
+    "card_id": "feature-card-mark-minervini",
+    "candidate_id": "mark-minervini",
+    "archetype_name": "MinerviniVcpBreakout",
+    "primary_features": [
+      "volatility contraction setup",
+      "breakout confirmation",
+      "relative strength leadership"
+    ],
+    "secondary_features": [
+      "earnings acceleration check",
+      "liquidity screen"
+    ],
+    "entry_conditions": [
+      "enter on breakout with volume confirmation",
+      "require market trend support"
+    ],
+    "exit_conditions": [
+      "exit on failed breakout or trailing stop breach"
+    ],
+    "risk_rules": [
+      "hard stop below setup support",
+      "avoid weak market breadth"
+    ],
+    "sizing_rules": [
+      "size down when volatility expands",
+      "cap concentration per setup"
+    ],
+    "no_trade_conditions": [
+      "skip late-stage breakouts",
+      "skip illiquid tickers"
+    ],
+    "preferred_data_sources": [
+      "daily price/volume",
+      "earnings dates",
+      "market breadth"
+    ],
+    "required_validation": [
+      "confirm relative strength vs benchmark",
+      "validate volume expansion"
+    ],
+    "feature_card_status": "FeatureCardReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  {
+    "card_id": "feature-card-michael-saylor",
+    "candidate_id": "michael-saylor",
+    "archetype_name": "SaylorTreasury",
+    "primary_features": [
+      "on-chain or liquidity regime awareness",
+      "cycle and risk framing",
+      "custody/governance sensitivity"
+    ],
+    "secondary_features": [
+      "treasury or protocol adoption lens",
+      "derivatives stress monitoring"
+    ],
+    "entry_conditions": [
+      "enter only when crypto-specific evidence and liquidity align",
+      "require risk-manager signoff for volatility regimes"
+    ],
+    "exit_conditions": [
+      "exit on liquidity breakdown, thesis break, or governance risk shock"
+    ],
+    "risk_rules": [
+      "respect extreme volatility and custody risk",
+      "treat leverage as suspect by default"
+    ],
+    "sizing_rules": [
+      "size below equity groups under comparable confidence",
+      "reduce into reflexive leverage regimes"
+    ],
+    "no_trade_conditions": [
+      "skip when custody, governance, or liquidity is unclear",
+      "skip narrative-only token stories"
+    ],
+    "preferred_data_sources": [
+      "on-chain metrics",
+      "exchange liquidity",
+      "protocol governance artifacts"
+    ],
+    "required_validation": [
+      "confirm crypto signal with risk and liquidity checks",
+      "validate custody/governance assumptions"
+    ],
+    "feature_card_status": "FeatureCardReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  {
+    "card_id": "feature-card-paul-tudor-jones",
+    "candidate_id": "paul-tudor-jones",
+    "archetype_name": "PtjMacroAsymmetricRisk",
+    "primary_features": [
+      "asymmetric payoff framing",
+      "macro regime awareness",
+      "fast risk cutting"
+    ],
+    "secondary_features": [
+      "cross-asset confirmation",
+      "narrative stress testing"
+    ],
+    "entry_conditions": [
+      "enter when macro regime and price confirm together",
+      "favor asymmetric setups with defined invalidation"
+    ],
+    "exit_conditions": [
+      "exit quickly when macro thesis loses confirmation"
+    ],
+    "risk_rules": [
+      "cut risk early on invalidation",
+      "respect event risk and liquidity"
+    ],
+    "sizing_rules": [
+      "size to event volatility and liquidity depth",
+      "trim before binary events"
+    ],
+    "no_trade_conditions": [
+      "skip when macro narrative lacks price confirmation",
+      "skip crowded asymmetric stories"
+    ],
+    "preferred_data_sources": [
+      "rates and FX context",
+      "futures term structure",
+      "price action"
+    ],
+    "required_validation": [
+      "confirm cross-asset alignment",
+      "validate event calendar risk"
+    ],
+    "feature_card_status": "FeatureCardReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  {
+    "card_id": "feature-card-peter-lynch",
+    "candidate_id": "peter-lynch",
+    "archetype_name": "LynchGarpConsumerGrowth",
+    "primary_features": [
+      "valuation discipline",
+      "balance-sheet review",
+      "durable thesis framing"
+    ],
+    "secondary_features": [
+      "capital allocation review",
+      "portfolio patience"
+    ],
+    "entry_conditions": [
+      "enter when downside is favorable relative to durable value",
+      "require thesis and evidence alignment"
+    ],
+    "exit_conditions": [
+      "exit when thesis durability breaks or valuation becomes extreme"
+    ],
+    "risk_rules": [
+      "avoid leverage-driven fragility",
+      "treat narratives below evidence"
+    ],
+    "sizing_rules": [
+      "size from durability and downside coverage",
+      "trim if thesis concentration rises"
+    ],
+    "no_trade_conditions": [
+      "skip when evidence is thin",
+      "skip fragile balance sheets"
+    ],
+    "preferred_data_sources": [
+      "financial statements",
+      "capital allocation letters",
+      "industry context"
+    ],
+    "required_validation": [
+      "confirm thesis against filings",
+      "validate downside case"
+    ],
+    "feature_card_status": "FeatureCardReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  {
+    "card_id": "feature-card-richard-dennis",
+    "candidate_id": "richard-dennis",
+    "archetype_name": "TurtleTrendSystem",
+    "primary_features": [
+      "trend breakout system",
+      "rule-based risk units",
+      "portfolio diversification"
+    ],
+    "secondary_features": [
+      "systematic exits",
+      "volatility sizing"
+    ],
+    "entry_conditions": [
+      "enter on confirmed breakout system signals",
+      "stagger entries by risk unit"
+    ],
+    "exit_conditions": [
+      "exit on system stop or trend reversal"
+    ],
+    "risk_rules": [
+      "fixed fractional unit risk",
+      "diversify across markets"
+    ],
+    "sizing_rules": [
+      "scale positions by ATR risk unit",
+      "cap portfolio heat"
+    ],
+    "no_trade_conditions": [
+      "skip non-system discretionary overrides",
+      "skip when data quality is weak"
+    ],
+    "preferred_data_sources": [
+      "futures price history",
+      "volatility measures",
+      "cross-market correlations"
+    ],
+    "required_validation": [
+      "confirm rule trigger objectively",
+      "check portfolio heat"
+    ],
+    "feature_card_status": "FeatureCardReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  {
+    "card_id": "feature-card-vitalik-buterin",
+    "candidate_id": "vitalik-buterin",
+    "archetype_name": "VitalikProtocolFundamental",
+    "primary_features": [
+      "on-chain or liquidity regime awareness",
+      "cycle and risk framing",
+      "custody/governance sensitivity"
+    ],
+    "secondary_features": [
+      "treasury or protocol adoption lens",
+      "derivatives stress monitoring"
+    ],
+    "entry_conditions": [
+      "enter only when crypto-specific evidence and liquidity align",
+      "require risk-manager signoff for volatility regimes"
+    ],
+    "exit_conditions": [
+      "exit on liquidity breakdown, thesis break, or governance risk shock"
+    ],
+    "risk_rules": [
+      "respect extreme volatility and custody risk",
+      "treat leverage as suspect by default"
+    ],
+    "sizing_rules": [
+      "size below equity groups under comparable confidence",
+      "reduce into reflexive leverage regimes"
+    ],
+    "no_trade_conditions": [
+      "skip when custody, governance, or liquidity is unclear",
+      "skip narrative-only token stories"
+    ],
+    "preferred_data_sources": [
+      "on-chain metrics",
+      "exchange liquidity",
+      "protocol governance artifacts"
+    ],
+    "required_validation": [
+      "confirm crypto signal with risk and liquidity checks",
+      "validate custody/governance assumptions"
+    ],
+    "feature_card_status": "FeatureCardReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  {
+    "card_id": "feature-card-warren-buffett",
+    "candidate_id": "warren-buffett",
+    "archetype_name": "BuffettQualityMoat",
+    "primary_features": [
+      "valuation discipline",
+      "balance-sheet review",
+      "durable thesis framing"
+    ],
+    "secondary_features": [
+      "capital allocation review",
+      "portfolio patience"
+    ],
+    "entry_conditions": [
+      "enter when downside is favorable relative to durable value",
+      "require thesis and evidence alignment"
+    ],
+    "exit_conditions": [
+      "exit when thesis durability breaks or valuation becomes extreme"
+    ],
+    "risk_rules": [
+      "avoid leverage-driven fragility",
+      "treat narratives below evidence"
+    ],
+    "sizing_rules": [
+      "size from durability and downside coverage",
+      "trim if thesis concentration rises"
+    ],
+    "no_trade_conditions": [
+      "skip when evidence is thin",
+      "skip fragile balance sheets"
+    ],
+    "preferred_data_sources": [
+      "financial statements",
+      "capital allocation letters",
+      "industry context"
+    ],
+    "required_validation": [
+      "confirm thesis against filings",
+      "validate downside case"
+    ],
+    "feature_card_status": "FeatureCardReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  {
+    "card_id": "feature-card-william-oneil",
+    "candidate_id": "william-oneil",
+    "archetype_name": "OneilCanSlimMarketDirection",
+    "primary_features": [
+      "CAN SLIM factor stack",
+      "market direction filter",
+      "earnings and sales acceleration"
+    ],
+    "secondary_features": [
+      "institutional accumulation",
+      "new highs leadership"
+    ],
+    "entry_conditions": [
+      "enter only when market direction confirms",
+      "prefer leadership names with earnings strength"
+    ],
+    "exit_conditions": [
+      "sell into failed breakout or thesis deterioration"
+    ],
+    "risk_rules": [
+      "respect market direction sell rules",
+      "avoid low-volume leadership names"
+    ],
+    "sizing_rules": [
+      "scale by market confirmation quality",
+      "limit correlated growth exposure"
+    ],
+    "no_trade_conditions": [
+      "skip when market direction is negative",
+      "skip lagging industry groups"
+    ],
+    "preferred_data_sources": [
+      "price/volume history",
+      "earnings growth",
+      "industry group ranking"
+    ],
+    "required_validation": [
+      "confirm market trend signal",
+      "validate earnings strength"
+    ],
+    "feature_card_status": "FeatureCardReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  {
+    "card_id": "feature-card-willy-woo",
+    "candidate_id": "willy-woo",
+    "archetype_name": "WillyWooOnchainCycle",
+    "primary_features": [
+      "on-chain or liquidity regime awareness",
+      "cycle and risk framing",
+      "custody/governance sensitivity"
+    ],
+    "secondary_features": [
+      "treasury or protocol adoption lens",
+      "derivatives stress monitoring"
+    ],
+    "entry_conditions": [
+      "enter only when crypto-specific evidence and liquidity align",
+      "require risk-manager signoff for volatility regimes"
+    ],
+    "exit_conditions": [
+      "exit on liquidity breakdown, thesis break, or governance risk shock"
+    ],
+    "risk_rules": [
+      "respect extreme volatility and custody risk",
+      "treat leverage as suspect by default"
+    ],
+    "sizing_rules": [
+      "size below equity groups under comparable confidence",
+      "reduce into reflexive leverage regimes"
+    ],
+    "no_trade_conditions": [
+      "skip when custody, governance, or liquidity is unclear",
+      "skip narrative-only token stories"
+    ],
+    "preferred_data_sources": [
+      "on-chain metrics",
+      "exchange liquidity",
+      "protocol governance artifacts"
+    ],
+    "required_validation": [
+      "confirm crypto signal with risk and liquidity checks",
+      "validate custody/governance assumptions"
+    ],
+    "feature_card_status": "FeatureCardReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  {
+    "card_id": "feature-card-wonyotti",
+    "candidate_id": "wonyotti",
+    "archetype_name": "WonyottiBtcRisk",
+    "primary_features": [
+      "on-chain or liquidity regime awareness",
+      "cycle and risk framing",
+      "custody/governance sensitivity"
+    ],
+    "secondary_features": [
+      "treasury or protocol adoption lens",
+      "derivatives stress monitoring"
+    ],
+    "entry_conditions": [
+      "enter only when crypto-specific evidence and liquidity align",
+      "require risk-manager signoff for volatility regimes"
+    ],
+    "exit_conditions": [
+      "exit on liquidity breakdown, thesis break, or governance risk shock"
+    ],
+    "risk_rules": [
+      "respect extreme volatility and custody risk",
+      "treat leverage as suspect by default"
+    ],
+    "sizing_rules": [
+      "size below equity groups under comparable confidence",
+      "reduce into reflexive leverage regimes"
+    ],
+    "no_trade_conditions": [
+      "skip when custody, governance, or liquidity is unclear",
+      "skip narrative-only token stories"
+    ],
+    "preferred_data_sources": [
+      "on-chain metrics",
+      "exchange liquidity",
+      "protocol governance artifacts"
+    ],
+    "required_validation": [
+      "confirm crypto signal with risk and liquidity checks",
+      "validate custody/governance assumptions"
+    ],
+    "feature_card_status": "FeatureCardReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  }
+]

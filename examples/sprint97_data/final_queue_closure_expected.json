@@ -1,0 +1,15 @@
+{
+  "report_id": "sprint97-counterfactual-backfill-recover-final-queue-report",
+  "previous_queue": [
+    "CounterfactualBackfill"
+  ],
+  "current_queue": [],
+  "closed_family": "CounterfactualBackfill",
+  "queue_closed": true,
+  "workspace_acceptance_still_separate": true,
+  "report_status": "FinalBlockerQueueClosed",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

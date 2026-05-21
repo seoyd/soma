@@ -1,0 +1,13 @@
+{
+  "report_id": "sprint97-counterfactual-backfill-recover-defensive-value",
+  "defensive_attribution_reason_present": true,
+  "avoided_loss_path_preserved": true,
+  "defensive_value_requires_real_outcomes": true,
+  "missing_outcomes_stay_skipped": true,
+  "risk_denied_axis_preserved": true,
+  "defensive_value_status": "DefensiveValuePreserved",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

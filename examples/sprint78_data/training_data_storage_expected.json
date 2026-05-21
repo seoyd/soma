@@ -1,0 +1,14 @@
+{
+  "training_data_storage_expected": {
+    "selected_now": "CsvJsonManifest",
+    "selected_later": "ParquetJsonManifest",
+    "rationale": [
+      "CSV/JSON manifest matches existing deterministic text and json artifact patterns",
+      "Parquet and Arrow remain deferred until real dataset size justifies heavier dependencies"
+    ],
+    "dependency_cost_assessment": "CSV/JSON keeps dependency weight low while storage contracts are frozen",
+    "test_time_impact_assessment": "CSV/JSON keeps workspace checks predictable and avoids new columnar runtime cost",
+    "storage_budget_assessment": "manifest-first storage keeps footprint visible before any later scaleout"
+  }
+}
+

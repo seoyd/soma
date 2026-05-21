@@ -1,0 +1,15 @@
+{
+  "previous_no_run_status": "RealNoRunStillBlocked",
+  "previous_full_status": "FullWorkspaceStillBlocked",
+  "previous_remaining_blockers": [
+    "ExternalPrediction",
+    "KrxEvidence",
+    "DashboardRenderer",
+    "CommitteeCliSafety",
+    "BaselineSignal",
+    "CounterfactualBackfill"
+  ],
+  "previous_primary_next_family": "ExternalPrediction",
+  "previous_target_count_before": 6,
+  "previous_target_count_after": 6
+}

@@ -1,0 +1,1 @@
+FifthPatchDecisionGateV2 is re-evaluation only. It checks assertion migration feasibility, equivalent coverage continuity, safety sentinel preservation, no-hidden-skip continuity, and stronger diagnostic evidence. This sprint never applies the fifth patch.

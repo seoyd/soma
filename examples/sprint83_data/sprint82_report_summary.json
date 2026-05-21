@@ -1,0 +1,26 @@
+{
+  "fmt_passed": true,
+  "check_passed": true,
+  "focused_tests_passed": true,
+  "cli_smoke_passed": true,
+  "full_workspace_test_started": true,
+  "full_workspace_test_finished": false,
+  "full_workspace_test_passed": null,
+  "stopped_due_to_long_compilation": true,
+  "failure_summary": "cargo test --workspace --quiet remained in long-running compilation and was stopped without a final pass/fail result",
+  "quality_diversity_present": true,
+  "no_lookahead_audit_present": true,
+  "source_boundary_audit_present": true,
+  "confidence_rerun_present": true,
+  "decision_gate_present": true,
+  "chair_trace_ready": true,
+  "risk_trace_ready": true,
+  "focused_coverage": 12,
+  "full_coverage": 377,
+  "safety_overlap": 12,
+  "missing_from_focused": [
+    "full workspace integration breadth",
+    "long-running compile-linked binaries"
+  ]
+}
+

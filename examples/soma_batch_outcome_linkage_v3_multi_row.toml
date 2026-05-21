@@ -1,0 +1,14 @@
+batch_id = "sprint47-batch-outcomes"
+multi_row_set_config_path = "examples/soma_multi_row_official_set_multi_row.toml"
+future_window_scaleout_plan_path = "examples/soma_future_window_scaleout_multi_row.toml"
+extended_candle_pack_paths = ["examples/sprint47_data/aapl_1d_extended_multi.csv", "examples/sprint47_data/msft_1d_extended_multi.csv"]
+output_root = "target/soma_sprint47_examples/batch_outcomes"
+default_horizon_bars = 3
+take_profit_pct = 0.02
+stop_loss_pct = 0.01
+cost_bps = 5.0
+slippage_bps = 2.0
+tie_break_policy = "StopFirst"
+require_exact_symbol_match = true
+require_exact_horizon_match = true
+require_no_lookahead_safe = true

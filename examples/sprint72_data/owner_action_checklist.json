@@ -1,0 +1,117 @@
+{
+  "checklist_id": "sprint71-operator-briefing-owner-action-checklist",
+  "items": [
+    {
+      "item_id": "sprint71-operator-briefing-leaderboard-warning",
+      "item_kind": "ReviewLeaderboardWarning",
+      "target_type": "ModelVersion",
+      "target_id": "ext-model-a:1.2.0",
+      "title": "Review ext-model-a:1.2.0 leaderboard warning",
+      "why_it_matters": "rollup still marks ext-model-a:1.2.0 leaderboard_status=Unknown and no conservative leaderboard entry is available, so the warning is explained but not over-claimed as closed",
+      "safe_actions": [
+        "review the static leaderboard evidence",
+        "rerun the local operator briefing"
+      ],
+      "forbidden_actions": [
+        "live",
+        "runtime",
+        "training",
+        "broker",
+        "order",
+        "account"
+      ],
+      "recommended_action": "ReviewLeaderboardWarning",
+      "command_suggestion": "cargo run --quiet --bin soma_experiment -- leaderboard-warning-closure --config examples/soma_leaderboard_warning_closure.toml",
+      "severity": "Watch",
+      "reason_codes": [
+        "OwnerActionChecklistBuilt"
+      ]
+    },
+    {
+      "item_id": "sprint71-operator-briefing-provide-more-predictions",
+      "item_kind": "ProvideMorePredictions",
+      "target_type": "ModelVersion",
+      "target_id": "ext-model-b:1.0.0",
+      "title": "Provide more offline predictions for ext-model-b:1.0.0",
+      "why_it_matters": "current evidence remains conservative and prediction history is still too weak",
+      "safe_actions": [
+        "collect more offline predictions",
+        "rerun the static briefing after local artifacts update"
+      ],
+      "forbidden_actions": [
+        "live",
+        "runtime",
+        "training",
+        "broker",
+        "order",
+        "account"
+      ],
+      "recommended_action": "ProvideMorePredictions",
+      "command_suggestion": "cargo run --quiet --bin soma_experiment -- operator-briefing --config examples/soma_operator_briefing.toml",
+      "severity": "NeedsAction",
+      "reason_codes": [
+        "OwnerActionChecklistBuilt"
+      ]
+    },
+    {
+      "item_id": "sprint71-operator-briefing-retirement-evidence",
+      "item_kind": "ReviewRetirementEvidence",
+      "target_type": "ModelVersion",
+      "target_id": "ext-model-a:1.0.0",
+      "title": "Review ext-model-a:1.0.0 retirement evidence",
+      "why_it_matters": "keep ext-model-a:1.0.0 diagnostic-only and retired-from-current-comparison pending more evidence",
+      "safe_actions": [
+        "keep the version diagnostic-only",
+        "review local regression and owner-review evidence"
+      ],
+      "forbidden_actions": [
+        "live",
+        "runtime",
+        "training",
+        "broker",
+        "order",
+        "account"
+      ],
+      "recommended_action": "MarkDiagnosticOnly",
+      "command_suggestion": "cargo run --quiet --bin soma_experiment -- retirement-evidence-completion --config examples/soma_retirement_evidence_completion.toml",
+      "severity": "Blocked",
+      "reason_codes": [
+        "OwnerActionChecklistBuilt"
+      ]
+    },
+    {
+      "item_id": "sprint71-operator-briefing-review-model-disposition",
+      "item_kind": "ReviewModelDisposition",
+      "target_type": "ModelVersion",
+      "target_id": "ext-model-b:1.0.0",
+      "title": "Review ext-model-b:1.0.0 model disposition",
+      "why_it_matters": "coverage remains weak and needs more offline prediction history",
+      "safe_actions": [
+        "review offline prediction coverage",
+        "keep the model research-only"
+      ],
+      "forbidden_actions": [
+        "live",
+        "runtime",
+        "training",
+        "broker",
+        "order",
+        "account"
+      ],
+      "recommended_action": "ProvideMorePredictions",
+      "command_suggestion": "cargo run --quiet --bin soma_experiment -- operator-decision-queue --config examples/soma_operator_decision_queue.toml",
+      "severity": "NeedsAction",
+      "reason_codes": [
+        "OwnerActionChecklistBuilt"
+      ]
+    }
+  ],
+  "required_count": 3,
+  "recommended_count": 1,
+  "optional_count": 0,
+  "blocked_count": 1,
+  "checklist_status": "NeedsOwnerAction",
+  "reason_codes": [
+    "OwnerActionChecklistBuilt"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "report_id": "proposal-risk-field-completeness-report",
+  "proposal_count": 8,
+  "proposals_with_expected_risk": 8,
+  "proposals_with_drawdown_proxy": 8,
+  "proposals_with_invalidation_condition": 8,
+  "proposals_with_stop_condition": 8,
+  "proposals_with_risk_governor_required_check": 8,
+  "proposals_missing_risk_fields": 0,
+  "risk_field_status": "ProposalRiskFieldsComplete",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

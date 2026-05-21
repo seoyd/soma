@@ -1,0 +1,22 @@
+{
+  "report_id": "member-scorecard-calibration-report",
+  "scorecard_count": 8,
+  "calibrated_scorecards": 6,
+  "uncalibrated_scorecards": 2,
+  "members_need_more_evidence": 0,
+  "rank_stability_summary": "top_rank=8;bottom_rank=1;avg_rank=4.500",
+  "risk_alignment_summary": "avg_risk_alignment=0.615",
+  "no_trade_discipline_summary": "avg_no_trade_discipline=0.625",
+  "debate_quality_summary": "avg_debate_turn_quality=0.605",
+  "scorecard_status": "ScorecardCalibrationReadyWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

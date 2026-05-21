@@ -1,0 +1,23 @@
+{
+  "risk_panel": {
+    "risk_governor_mode": "PaperOnly",
+    "default_deny_active": true,
+    "emergency_stop_active": false,
+    "cooldown_active": true,
+    "last_risk_decision": "Deny",
+    "last_denial_reason_codes": [
+      "RiskDenied",
+      "DataQualityGateBreached"
+    ],
+    "denied_count": 2,
+    "approved_paper_count": 1,
+    "no_trade_count": 1,
+    "human_confirm_count": 1,
+    "risk_value_summary": "Default deny active; paper-only approvals remain bounded and reversible.",
+    "reason_codes": [
+      "DeterministicPath",
+      "DashboardRiskPanelBuilt",
+      "RiskDenied"
+    ]
+  }
+}

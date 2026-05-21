@@ -1,0 +1,41 @@
+readiness_id = "sprint22_mamba_crypto_only"
+output_root = "target/soma_mamba_readiness"
+reason_codes = ["DeterministicPath"]
+
+[official_consistency]
+consistency_id = "sprint22_crypto_only_consistency"
+official_benchmark_report_paths = [
+  "target/soma_official_ai_benchmark/sprint21_upbit_only/official_ai_benchmark_report.json",
+]
+campaign_report_paths = []
+require_real_official_data = true
+min_crypto_datasets = 1
+min_korean_equity_datasets = 0
+min_us_equity_datasets = 0
+min_total_outcomes = 20
+min_per_venue_outcomes = 20
+max_allowed_metric_variance = 0.10
+max_allowed_drawdown_variance = 0.10
+max_allowed_calibration_variance = 0.10
+reason_codes = ["DeterministicPath"]
+
+[sequence_dataset_config]
+window_size = 64
+stride = 1
+horizon_bars = 8
+feature_schema_hash = 0
+label_config_summary = "triple_barrier"
+include_metadata = true
+max_windows = 1024
+max_bytes = 4194304
+reason_codes = ["DeterministicPath"]
+
+[escalation_gate_config]
+require_official_consistency = true
+require_min_outcomes = 20
+require_calibration_threshold = 0.10
+require_risk_stability = true
+require_storage_budget_ok = true
+require_sequence_spec = true
+allow_mamba3_prototype_without_equity_data = true
+reason_codes = ["DeterministicPath"]

@@ -1,0 +1,7 @@
+{
+  "summary": "risk placeholder decisions",
+  "rows": [
+    {"symbol": "005930", "risk_decision": "Approve"},
+    {"symbol": "000660", "risk_decision": "Deny"}
+  ]
+}

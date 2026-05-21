@@ -1,0 +1,18 @@
+{
+  "control_tower_id": "sprint59-safety-block",
+  "provider_panel": {},
+  "kis_monitor_panel": {},
+  "evidence_panel": {},
+  "committee_panel": {},
+  "chair_panel": {},
+  "risk_panel": {},
+  "candidate_panel": {},
+  "paper_position_panel": {},
+  "operational_loop_panel": {},
+  "owner_panel": {},
+  "human_confirm_panel": {},
+  "bottleneck_panel": {},
+  "next_action_panel": {},
+  "audit_timeline": {},
+  "account_id": "123-456-7890"
+}

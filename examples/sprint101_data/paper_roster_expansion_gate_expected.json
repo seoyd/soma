@@ -1,0 +1,22 @@
+{
+  "gate_id": "paper-only-roster-expansion-gate",
+  "roster_plan_status": "RosterExpansionPlanReady",
+  "committee_topology_status": "MultiExpertTopologyReady",
+  "regime_routing_status": "RegimeRoutingReady",
+  "risk_manager_status": "CommonRiskManagerReady",
+  "safety_status": "SafetyCoveragePreserved",
+  "workspace_truth_status": "FullWorkspaceNotRun",
+  "paper_roster_expansion_allowed": true,
+  "live_roster_expansion_allowed": false,
+  "gate_status": "PaperRosterExpansionReady",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

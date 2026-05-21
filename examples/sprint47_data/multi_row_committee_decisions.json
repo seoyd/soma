@@ -1,0 +1,14 @@
+{
+  "committee_decisions": [
+    {
+      "row_id": "aapl-extended-window",
+      "committee_final_action": "Approve",
+      "chair_decision": "Approve"
+    },
+    {
+      "row_id": "msft-extended-window",
+      "committee_final_action": "Approve",
+      "chair_decision": "Approve"
+    }
+  ]
+}

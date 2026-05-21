@@ -1,0 +1,47 @@
+{
+  "machine_id": "paper-candidate-lifecycle-state-machine",
+  "allowed_transitions": [
+    "Watch->Candidate",
+    "Candidate->DebateOpen",
+    "DebateOpen->NeedMoreEvidence",
+    "DebateOpen->NoTrade",
+    "DebateOpen->RiskDenied",
+    "DebateOpen->PaperApproved",
+    "DebateOpen->PaperRejected",
+    "NeedMoreEvidence->Watch",
+    "NeedMoreEvidence->Candidate",
+    "NoTrade->Cooldown",
+    "RiskDenied->ArchivedPaperOnly",
+    "PaperApproved->Cooldown",
+    "PaperRejected->ArchivedPaperOnly",
+    "Cooldown->Watch"
+  ],
+  "forbidden_transitions": [
+    "Candidate->LiveExecution",
+    "PaperApproved->BrokerOrder",
+    "PaperApproved->LiveTrading",
+    "DebateOpen->OrderExecution",
+    "RiskDenied->PaperApproved"
+  ],
+  "risk_governor_required_transitions": [
+    "DebateOpen->PaperApproved",
+    "DebateOpen->NoTrade",
+    "DebateOpen->RiskDenied",
+    "DebateOpen->PaperRejected",
+    "PaperApproved->Cooldown",
+    "NoTrade->Cooldown"
+  ],
+  "broker_execution_allowed": false,
+  "live_execution_allowed": false,
+  "state_machine_status": "PaperLifecycleReadyWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

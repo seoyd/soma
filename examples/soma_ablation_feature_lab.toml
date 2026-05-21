@@ -1,0 +1,63 @@
+study_id = "ablation_feature_lab"
+description = "Deterministic local-only ablation study over the baseline batch matrix"
+base_matrix_config_path = "examples/soma_batch_baseline_only.toml"
+output_root = "target/soma_ablations"
+require_baseline_pass = true
+continue_on_variant_failure = true
+created_at_ms = 42
+reason_codes = ["DeterministicPath"]
+
+[[variants]]
+variant_id = "volume_features_off"
+dimension = "FeatureGroup"
+research_only = false
+enabled = true
+tags = ["feature", "volume"]
+
+[[variants.overrides]]
+target = "volume"
+value = false
+
+[[variants]]
+variant_id = "spread_features_off"
+dimension = "FeatureGroup"
+research_only = false
+enabled = true
+tags = ["feature", "spread"]
+
+[[variants.overrides]]
+target = "spread_liquidity"
+value = false
+
+[[variants]]
+variant_id = "higher_cost_spread"
+dimension = "CostModel"
+research_only = false
+enabled = true
+tags = ["cost"]
+
+[[variants.overrides]]
+target = "spread_bps"
+value = 6.0
+
+[[variants]]
+variant_id = "tighter_confidence_gate"
+dimension = "RiskGovernor"
+research_only = false
+enabled = true
+tags = ["risk"]
+
+[[variants.overrides]]
+target = "min_confidence"
+value = 0.65
+
+[[variants]]
+variant_id = "relaxed_no_trade_penalty"
+dimension = "NoTradeScoring"
+research_only = false
+enabled = true
+tags = ["no_trade"]
+
+[[variants.overrides]]
+target = "missed_gain_weight"
+value = 0.1

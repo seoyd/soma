@@ -1,0 +1,15 @@
+{
+  "report_id": "sprint92-krx-warning-close-raw-archive-redaction",
+  "archive_redaction_assertions_present": true,
+  "secret_like_values_rejected": true,
+  "auth_header_redacted": true,
+  "env_secret_value_not_rendered": true,
+  "raw_archive_path_local_only": true,
+  "redaction_test_location": "tests/krx_raw_archive_secret_safety.rs",
+  "sentinel_isolated": true,
+  "coverage_status": "RedactionCoverageReadyWithIsolatedSentinel",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

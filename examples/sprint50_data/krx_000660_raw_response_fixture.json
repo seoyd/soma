@@ -1,0 +1,10 @@
+{
+  "symbol": "000660",
+  "timeframe": "1d",
+  "rows": [
+    {"date": "2024-01-02", "open": 120000, "high": 121500, "low": 119000, "close": 120500, "volume": 800000, "trade_value": 96400000000, "bid": 120450, "ask": 120550, "spread_bps": 0.83},
+    {"date": "2024-01-03", "open": 120500, "high": 122000, "low": 120000, "close": 121800, "volume": 780000, "trade_value": 95004000000, "bid": 121750, "ask": 121850, "spread_bps": 0.82},
+    {"date": "2024-01-04", "open": 121800, "high": 123500, "low": 121500, "close": 123000, "volume": 760000, "trade_value": 93480000000, "bid": 122950, "ask": 123050, "spread_bps": 0.81},
+    {"date": "2024-01-05", "open": 123000, "high": 124000, "low": 122200, "close": 123400, "volume": 750000, "trade_value": 92550000000, "bid": 123350, "ask": 123450, "spread_bps": 0.81}
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "started": true,
+  "finished": false,
+  "blocked_families": [
+    "FutureWindow",
+    "OfficialDiversity",
+    "TrinityOperational",
+    "DatasetExport",
+    "ControlTowerV1"
+  ],
+  "blocked_test_targets": [
+    "tests/future_window_requirements.rs",
+    "tests/official_evidence_diversity_gap.rs",
+    "tests/trinity_operational_loop_runner.rs",
+    "tests/dataset_export.rs",
+    "tests/control_tower_v1.rs"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "fmt_passed": true,
+  "check_passed": true,
+  "broad_family_suites_passed": true,
+  "safety_guard_suite_passed": true,
+  "workspace_cli_safety_passed": true,
+  "workspace_determinism_passed": true,
+  "representative_smoke_passed": true,
+  "safety_smoke_passed": true,
+  "full_workspace_started": true,
+  "full_workspace_finished": false,
+  "full_workspace_blockers": [
+    "CandleExpansionOps",
+    "ExternalPrediction",
+    "KrxEvidence",
+    "DashboardRenderer",
+    "CommitteeCliSafety",
+    "BaselineSignal",
+    "CounterfactualBackfill"
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "plan_id": "eighteen-investor-committee-roster-plan",
+  "active_paper_members": [
+    "HayesLiquidityDerivatives",
+    "GrahamMarginOfSafety",
+    "MungerErrorFilter",
+    "BurniskeTokenValuation",
+    "MarksCycleRiskPremium",
+    "BogleLowCostCore",
+    "LarryWilliamsStatisticalSeasonality",
+    "RaschkeProcessManager"
+  ],
+  "watchlist_members": [
+    "MinerviniVcpBreakout",
+    "SaylorTreasury",
+    "PtjMacroAsymmetricRisk",
+    "LynchGarpConsumerGrowth"
+  ],
+  "diagnostic_members": [
+    "TurtleTrendSystem",
+    "VitalikProtocolFundamental",
+    "BuffettQualityMoat"
+  ],
+  "inactive_members": [
+    "OneilCanSlimMarketDirection",
+    "WillyWooOnchainCycle",
+    "WonyottiBtcRisk"
+  ],
+  "isolated_sentinels": [
+    "CommonRiskManager"
+  ],
+  "max_active_members": 8,
+  "activation_batch_plan": [
+    "keep initial eight paper seats active",
+    "promote watchlist members into paper review only after evidence refresh",
+    "keep diagnostic and inactive members out of live workflows"
+  ],
+  "roster_plan_status": "RosterExpansionPlanReady",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

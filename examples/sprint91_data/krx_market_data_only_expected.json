@@ -1,0 +1,10 @@
+{
+  "market_data_only_scope_preserved": true,
+  "no_order_path": true,
+  "no_account_path": true,
+  "no_balance_path": true,
+  "no_holding_path": true,
+  "no_orderable_quantity_path": true,
+  "no_correction_cancel_path": true,
+  "no_broker_execution_path": true
+}

@@ -1,0 +1,31 @@
+registry_id = "sprint48-barrier-profiles-diagnostic"
+output_root = "target/soma_sprint48_examples/barrier_profiles_diagnostic"
+allow_diagnostic_profiles = true
+allow_exploratory_profiles = true
+require_primary_profile = false
+
+[[profiles]]
+profile_id = "diagnostic-only"
+profile_kind = "Diagnostic"
+horizon_bars = 3
+take_profit_pct = 0.03
+stop_loss_pct = 0.015
+cost_bps = 5.0
+slippage_bps = 2.0
+tie_break_policy = "StopFirst"
+intended_use = "DiagnosticOnly"
+registered_before_outcome_eval = true
+reason_codes = ["DeterministicPath"]
+
+[[profiles]]
+profile_id = "exploratory-after-the-fact"
+profile_kind = "Exploratory"
+horizon_bars = 5
+take_profit_pct = 0.04
+stop_loss_pct = 0.02
+cost_bps = 5.0
+slippage_bps = 2.0
+tie_break_policy = "TimeOrder"
+intended_use = "ResearchExploration"
+registered_before_outcome_eval = false
+reason_codes = ["DeterministicPath"]

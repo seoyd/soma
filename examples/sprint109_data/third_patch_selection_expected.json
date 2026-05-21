@@ -1,0 +1,30 @@
+{
+  "report_id": "third-safe-consolidation-patch-selection",
+  "previous_patch_ids": [
+    "assertion-migration-ledger-v2",
+    "retired-narrow-target-manifest-v2",
+    "second-safe-consolidation-patch-selection"
+  ],
+  "candidate_targets": [
+    "tests/shared_render_helper_application_v1.rs",
+    "tests/shared_toml_builder_application_v1.rs"
+  ],
+  "selected_target_group": "render-helper-diagnostics",
+  "selection_reason": "selected the next smallest helper/render target while keeping previously retired targets and sentinel-heavy surfaces excluded",
+  "risk_class": "Low",
+  "target_count_to_consolidate": 1,
+  "expected_assertion_moves": 2,
+  "expected_binary_delta": -1,
+  "selected_status": "ThirdPatchCandidateSelected",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "DeterministicPath",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt",
+    "LocalFileOnly"
+  ]
+}

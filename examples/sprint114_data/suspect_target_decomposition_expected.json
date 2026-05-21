@@ -1,0 +1,50 @@
+{
+  "report_id": "suspect-target-decomposition-v1",
+  "decomposed_targets": [
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs",
+    "tests/shared_fixture_harness_application_v1.rs",
+    "tests/workspace_timeout_root_cause.rs"
+  ],
+  "per_target_pressure": {
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs": [
+      "IntegrationFanout",
+      "CliSmoke",
+      "LinkTime"
+    ],
+    "tests/shared_fixture_harness_application_v1.rs": [
+      "FixtureSetup",
+      "IntegrationFanout"
+    ],
+    "tests/workspace_timeout_root_cause.rs": [
+      "MacroExpansion",
+      "ArtifactRender",
+      "LinkTime"
+    ]
+  },
+  "target_to_family_mapping": {
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs": [
+      "IntegrationFanout",
+      "CliSmoke",
+      "LinkTime"
+    ],
+    "tests/shared_fixture_harness_application_v1.rs": [
+      "FixtureSetup",
+      "IntegrationFanout"
+    ],
+    "tests/workspace_timeout_root_cause.rs": [
+      "MacroExpansion",
+      "ArtifactRender",
+      "LinkTime"
+    ]
+  },
+  "decomposition_status": "SuspectTargetsDecomposedWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "target_files": [
+    "tests/external_prediction_family_suite.rs"
+  ],
+  "donor_files": [
+    "tests/external_prediction_import_v2.rs",
+    "tests/external_prediction_suite.rs",
+    "tests/prediction_import.rs",
+    "tests/real_evidence_prediction_import.rs",
+    "tests/sequence_core_prototype_comparison.rs"
+  ],
+  "schema_fixture_duplication": [
+    "json:shared schema fixture load",
+    "csv:shared schema matrix load",
+    "output_dir:external prediction report outputs"
+  ],
+  "model_card_fixture_duplication": [
+    "json:shared model-card fixture load",
+    "toml:model-card expectation reuse"
+  ],
+  "expected_target_delta": 1,
+  "high_risk_assertions_kept_separate": []
+}

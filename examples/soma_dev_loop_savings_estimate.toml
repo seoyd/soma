@@ -1,0 +1,5 @@
+timing_id = "dev-loop-savings-estimate-example"
+sample_timing_paths = [
+  "examples/sprint77_data/repeated_timing_sample.json",
+  "examples/sprint77_data/test_binary_cost_sample.json",
+]

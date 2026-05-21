@@ -1,0 +1,27 @@
+{
+  "report_id": "shared-fixture-harness-expansion-application-v2",
+  "previous_application_refs": [
+    "shared-fixture-harness-application-v1"
+  ],
+  "new_targets_affected": [
+    "tests/shared_fixture_harness_application_v1.rs"
+  ],
+  "json_loader_expanded": true,
+  "toml_loader_expanded": true,
+  "csv_loader_expanded": true,
+  "fixture_normalization_expanded": true,
+  "duplicated_loaders_removed": 1,
+  "deterministic_output_preserved": true,
+  "application_status": "SharedFixtureHarnessExpanded",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "DeterministicPath",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt",
+    "LocalFileOnly"
+  ]
+}

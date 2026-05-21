@@ -1,0 +1,41 @@
+{
+  "panel_id": "control-tower-workspace-acceptance-recovery-v7",
+  "no_run_status": "NoRunRecoveryPlanReady",
+  "full_workspace_status": "FullWorkspaceNotRun",
+  "compile_cost_profile_status": "CompileCostProfileReadyWithWarnings",
+  "cargo_json_capture_status": "CargoJsonCapturedWithWarnings",
+  "binary_inventory_status": "TestBinaryInventoryReadyWithWarnings",
+  "test_binary_explosion_status": "TestBinaryExplosionAttributedWithWarnings",
+  "cost_ranking_status": "CostRankingReadyWithWarnings",
+  "fixture_cost_status": "FixtureCostAttributedWithWarnings",
+  "artifact_render_cost_status": "ArtifactRenderCostAttributedWithWarnings",
+  "cli_smoke_cost_status": "CliSmokeCostAttributedWithWarnings",
+  "consolidation_plan_status": "SafeConsolidationPlanReadyWithWarnings",
+  "no_run_recovery_gate_status": "NoRunRecoveryPlanReady",
+  "full_acceptance_gate_status": "FullWorkspaceNotRun",
+  "acceptance_truth_status": "AcceptanceTruthReadyWithWarnings",
+  "safety_coverage_status": "SafetyCoveragePreservedV22",
+  "runtime_deferred_summary": "runtime/training/live/order/account/browser remain deferred or forbidden",
+  "next_actions": [
+    "apply smallest safe consolidation patch",
+    "expand shared fixture harness deterministically",
+    "rerun honest no-run gate",
+    "rerun honest full workspace gate"
+  ],
+  "warnings": [
+    "no-run recovery still open",
+    "full workspace acceptance still open",
+    "static/read-only panel"
+  ],
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "DeterministicPath",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt",
+    "LocalFileOnly"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "report_id": "paper-trace-warning-closure-report",
+  "previous_status": "PaperTraceCompleteWithWarnings",
+  "trace_complete": true,
+  "missing_context_ref": false,
+  "missing_proposal_ref": false,
+  "missing_debate_ref": false,
+  "missing_chairman_ref": false,
+  "missing_risk_handoff_ref": false,
+  "broker_execution_allowed": false,
+  "live_execution_allowed": false,
+  "remaining_trace_warnings": 0,
+  "closure_status": "PaperTraceWarningsClosed",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

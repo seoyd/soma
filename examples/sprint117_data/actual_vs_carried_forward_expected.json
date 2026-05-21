@@ -1,0 +1,31 @@
+{
+  "report_id": "actual-vs-carried-forward-evidence-v1",
+  "actual_evidence_rows": [
+    "RealCargoJson=RealCargoJsonDeferred",
+    "RealNoRun=RealNoRunDeferred",
+    "RealFullWorkspace=RealFullWorkspaceDeferred"
+  ],
+  "carried_forward_evidence_rows": [
+    "Sprint116TimeoutTrack=TimeoutTrackActive",
+    "Sprint116Backlog=BacklogReducedWithWarnings",
+    "Sprint116Acceptance=AcceptanceTruthReadyWithWarnings"
+  ],
+  "supporting_only_labels": [
+    "focused-tests",
+    "cli-smoke",
+    "cargo-build",
+    "no-run",
+    "cargo-json",
+    "timeout-cleanup"
+  ],
+  "status": "ActualVsCarriedForwardEvidenceSupportingOnly",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

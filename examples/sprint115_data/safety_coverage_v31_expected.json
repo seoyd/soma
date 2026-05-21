@@ -1,0 +1,26 @@
+{
+  "report_id": "safety-coverage-preservation-v31",
+  "no_assertion_deletion": true,
+  "no_safety_sentinel_deletion": true,
+  "no_hidden_skips": true,
+  "consolidation_stop_resume_guard_present": true,
+  "assertion_destination_proof_guard_present": true,
+  "evidence_blur_risk_guard_present": true,
+  "track_split_guard_present": true,
+  "fifth_patch_v5_no_apply_guard_present": true,
+  "no_target_retirement_guard_present": true,
+  "no_assertion_movement_guard_present": true,
+  "runtime_deferred": true,
+  "training_deferred": true,
+  "live_trading_forbidden": true,
+  "safety_status": "SafetyCoveragePreserved",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

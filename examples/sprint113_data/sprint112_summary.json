@@ -1,0 +1,99 @@
+{
+  "report_id": "sprint112-summary",
+  "focused_tests_passed": true,
+  "cli_smoke_passed": true,
+  "cargo_check_passed": true,
+  "cargo_build_passed": true,
+  "no_run_timeout_seconds": 360,
+  "no_run_exit_code": 124,
+  "full_timeout_seconds": 360,
+  "full_exit_code": 124,
+  "timeout_cleanup_verified": true,
+  "remaining_cargo_processes_after_timeout": 0,
+  "remaining_rustc_processes_after_timeout": 0,
+  "nextest_available": true,
+  "sccache_available": true,
+  "fifth_patch_still_blocked": true,
+  "previous_gate_status": "FifthPatchStillBlocked",
+  "timeout_root_cause_status": "TimeoutRootCausePartiallyIsolated",
+  "acceptance_truth_status": "AcceptanceTruthReadyWithWarnings",
+  "patch_count_carried_forward": 4,
+  "retired_targets_carried_forward": [
+    "tests/shared_fixture_harness_expansion_plan_v2.rs",
+    "tests/shared_output_dir_helper_application_v1.rs",
+    "tests/shared_render_helper_application_v1.rs",
+    "tests/shared_toml_builder_application_v1.rs"
+  ],
+  "cumulative_assertion_delta": 0,
+  "cumulative_sample_backed_delta": -4,
+  "candidate_pool": [
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs",
+    "tests/shared_fixture_harness_application_v1.rs",
+    "tests/workspace_timeout_root_cause.rs"
+  ],
+  "low_risk_candidates": [
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs",
+    "tests/shared_fixture_harness_application_v1.rs",
+    "tests/workspace_timeout_root_cause.rs"
+  ],
+  "sentinel_exclusions": [
+    "tests/committee_cli_safety.rs",
+    "tests/sprint112_cli_safety.rs",
+    "tests/sprint113_cli_safety.rs",
+    "tests/sprint113_determinism.rs"
+  ],
+  "assertion_migration_feasible": false,
+  "equivalent_coverage_feasible": true,
+  "safety_sentinels_preserved": true,
+  "no_hidden_skip_continuity": true,
+  "observed_root_cause_evidence": [
+    "workspace no-run timed out at 360 seconds with exit 124",
+    "workspace full run timed out at 360 seconds with exit 124",
+    "timeout cleanup left no remaining cargo/rustc processes"
+  ],
+  "inferred_root_cause_evidence": [
+    "ArtifactRenderFanout",
+    "CliSmokeFanout",
+    "FixtureSetupFanout",
+    "IntegrationTestBinaryFanout",
+    "LinkTimeCost",
+    "MacroExpansionCost"
+  ],
+  "stalled_targets": [
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs",
+    "tests/workspace_timeout_root_cause.rs"
+  ],
+  "last_targets": [
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs",
+    "tests/shared_fixture_harness_application_v1.rs",
+    "tests/workspace_timeout_root_cause.rs"
+  ],
+  "active_rustc_args": [
+    "--test tests/control_tower_workspace_timeout_root_cause_panel.rs",
+    "--test tests/workspace_timeout_root_cause.rs"
+  ],
+  "max_concurrent_rustc": 2,
+  "fixture_fanout": [
+    "tests/shared_fixture_harness_application_v1.rs"
+  ],
+  "render_fanout": [
+    "tests/workspace_timeout_root_cause.rs"
+  ],
+  "cli_fanout": [
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs"
+  ],
+  "link_heavy_candidates": [
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs"
+  ],
+  "macro_heavy_candidates": [
+    "tests/workspace_timeout_root_cause.rs"
+  ],
+  "high_fanout_families": [
+    "FixtureSetupFanout",
+    "CliSmokeFanout",
+    "ArtifactRenderFanout",
+    "IntegrationTestBinaryFanout",
+    "LinkTimeCost",
+    "MacroExpansionCost"
+  ]
+}

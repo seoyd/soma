@@ -1,0 +1,42 @@
+{
+  "report_id": "style-group-taxonomy-report",
+  "short_term_swing_members": [
+    "LarryWilliamsStatisticalSeasonality",
+    "RaschkeProcessManager",
+    "MinerviniVcpBreakout",
+    "PtjMacroAsymmetricRisk",
+    "TurtleTrendSystem",
+    "OneilCanSlimMarketDirection"
+  ],
+  "long_term_equity_members": [
+    "GrahamMarginOfSafety",
+    "MungerErrorFilter",
+    "MarksCycleRiskPremium",
+    "BogleLowCostCore",
+    "LynchGarpConsumerGrowth",
+    "BuffettQualityMoat"
+  ],
+  "crypto_members": [
+    "HayesLiquidityDerivatives",
+    "BurniskeTokenValuation",
+    "SaylorTreasury",
+    "VitalikProtocolFundamental",
+    "WillyWooOnchainCycle",
+    "WonyottiBtcRisk"
+  ],
+  "common_risk_members": [
+    "CommonRiskManager"
+  ],
+  "optional_supplement_members": [],
+  "taxonomy_status": "StyleTaxonomyReady",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "target_count_before": 1,
+  "target_count_after": 1,
+  "compile_duration_before_ms": null,
+  "compile_duration_after_ms": null,
+  "blocked_targets": [],
+  "measured": false,
+  "sample_backed": true
+}

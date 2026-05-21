@@ -1,0 +1,7 @@
+{
+  "expected_binary_delta": 9,
+  "tests_to_move": 15,
+  "semantic_risk": "Medium",
+  "keep_separate_candidates": ["tests/persona_readiness.rs"]
+}
+

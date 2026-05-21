@@ -1,0 +1,89 @@
+device = "Auto"
+
+[model]
+n_blocks = 6
+d_model = 1024
+ssm_order = 8
+pattern = "M3M3GDN"
+clamp_eps = 1e-5
+
+[memory]
+mode = "gbranch"
+slots = 128
+key_dim = 128
+val_dim = 256
+write = "learned"
+read  = "cosine"
+ttl_steps = 8192
+scrub_on_evict = true
+
+[mor]
+max_depth = 2
+router_hidden = 512
+drop_tol = 0.15
+kv_sparse = true
+
+[attn]
+backend = "eco"
+fp8 = false
+block = 128
+
+[cot]
+style = "hybrid"
+drafts = 4
+loops  = 2
+max_tokens = 128
+verifier = "math"
+
+[active]
+k = 8
+pairs = 32
+budget = 64
+kappa_tol = 0.6
+
+[latent]
+latent_dim = 64
+steps = 10
+schedule = "linear"
+clip = 1.0
+
+[train]
+iters = 10
+batch = 4
+seq_len = 32
+lr = 1e-3
+wd = 0.01
+
+[quant]
+enable = true
+w4 = "Any4"     # Any4 | NF4 | FP4
+a8 = "E4M3"     # E4M3 | E5M2
+kvq = "PMKVQ"   # PMKVQ | KVLinC | AnTKV | Off
+block = 16
+per_channel = true
+
+[online]
+enable = false
+batch_size = 100
+max_samples = 1000
+min_confidence = 0.8
+sources = ""
+output_dir = "data/curated"
+
+[lora]
+enable = false
+rank = 8
+alpha = 16.0
+dropout = 0.1
+target_modules = ["q_proj", "v_proj", "out_proj"]
+
+[serve]
+bind = "127.0.0.1:8080"
+rps = 2
+tps = 200
+max_stage = 4
+max_drafts = 4
+
+[replay]
+max = 200
+escalation_floor = 3

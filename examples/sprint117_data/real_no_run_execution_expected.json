@@ -1,0 +1,25 @@
+{
+  "report_id": "real-no-run-execution-v18",
+  "attempted": false,
+  "command": "cargo test --workspace --no-run --quiet",
+  "started": false,
+  "finished": false,
+  "passed": null,
+  "duration_ms": null,
+  "timeout_ms": 420000,
+  "exit_code": null,
+  "timed_out": false,
+  "cleanup_performed": false,
+  "remaining_cargo_processes": null,
+  "remaining_rustc_processes": null,
+  "execution_status": "RealNoRunDeferred",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "keep_separate": true,
+  "checks_preserved": [
+    "help_text_research_only",
+    "remote_path_rejection",
+    "no_runtime_llm",
+    "no_persona_expansion",
+    "no_broker_order_account",
+    "deterministic_help"
+  ],
+  "high_risk_reason": "retain dedicated compile-only CLI safety isolation",
+  "report_status": "CommitteeCliSafetyKeptIsolated"
+}

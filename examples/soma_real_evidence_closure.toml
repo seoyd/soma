@@ -1,0 +1,13 @@
+closure_id = "sprint16_real_evidence"
+dataset_bundle_config_path = "examples/soma_real_local_dataset_entry.toml"
+source_sprint15_report_path = "target/soma_evidence_closure/sprint15_evidence_closure/evidence_closure_report.json"
+output_root = "target/soma_real_evidence"
+evidence_store_path = "target/soma_real_evidence_store"
+min_real_local_datasets = 1
+min_real_local_outcome_records = 20
+min_real_local_comparable_variants = 2
+allow_synthetic_for_pipeline_smoke = true
+allow_synthetic_for_readiness = false
+continue_on_failure = true
+strict_data_quality = true
+reason_codes = ["DeterministicPath"]

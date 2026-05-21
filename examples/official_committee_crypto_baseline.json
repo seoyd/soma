@@ -1,0 +1,23 @@
+{
+  "baseline_references": [
+    {
+      "symbol": "BTC-KRW",
+      "timestamp_ms": 1700000000000,
+      "horizon_bars": 24,
+      "baseline_action": "Approve"
+    },
+    {
+      "symbol": "ETH-KRW",
+      "timestamp_ms": 1700000000001,
+      "horizon_bars": 24,
+      "baseline_action": "NoTrade"
+    },
+    {
+      "symbol": "XRP-KRW",
+      "timestamp_ms": 1700000000002,
+      "horizon_bars": 24,
+      "baseline_action": "ReduceSize"
+    }
+  ]
+}
+

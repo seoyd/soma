@@ -1,0 +1,18 @@
+{
+  "import_id": "sprint64-gen-a-v1",
+  "schema_version": "v2",
+  "manifest_fingerprint": "118f8e19e94a668b",
+  "model_count": 1,
+  "total_prediction_rows": 6,
+  "valid_prediction_rows": 6,
+  "invalid_prediction_rows": 0,
+  "duplicate_prediction_count": 0,
+  "known_sequence_matches": 6,
+  "import_status": "ExternalPredictionImportReady",
+  "header_errors": [],
+  "warnings": [],
+  "blockers": [],
+  "reason_codes": [
+    "ExternalPredictionImportV2ReportBuilt"
+  ]
+}

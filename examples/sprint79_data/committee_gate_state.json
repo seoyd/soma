@@ -1,0 +1,8 @@
+{
+  "committee_gate_state": {
+    "committee_gate_ready": true,
+    "evidence_depth_ready": true,
+    "risk_governor_ready": true
+  }
+}
+

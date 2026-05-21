@@ -1,0 +1,7 @@
+{
+  "training_storage_manifest": {
+    "storage_root": "target/sprint80-example/data",
+    "prediction_schema_version": "prediction_csv_v1"
+  }
+}
+

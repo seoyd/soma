@@ -1,0 +1,422 @@
+{
+  "registry_id": "sprint64-external-artifact-registry",
+  "entries": [
+    {
+      "entry_id": "sequence-export:sprint63-sequence-export-reference",
+      "model_id": "registry",
+      "model_version": "sprint63-sequence-export-reference",
+      "model_family": "SequenceExport",
+      "artifact_kind": "SequenceExportManifest",
+      "artifact_path": "examples/sprint64_data/sequence_export_manifest.json",
+      "dataset_fingerprint": "118f8e19e94a668b",
+      "feature_schema_hash": "01c25ac23c41ca00",
+      "label_manifest_hash": "8eff63ae77f20914",
+      "split_policy": "ChronologicalHoldout",
+      "prediction_schema_version": null,
+      "evaluation_status": null,
+      "promotion_status": null,
+      "calibration_status": null,
+      "risk_status": null,
+      "comparable": true,
+      "diagnostic_only": true,
+      "reason_codes": [
+        "ExternalArtifactRegistryEntryBuilt"
+      ]
+    },
+    {
+      "entry_id": "model-card:ext-model-a:1.0.0",
+      "model_id": "ext-model-a",
+      "model_version": "1.0.0",
+      "model_family": "Mamba3FinLiteExternal",
+      "artifact_kind": "ModelCard",
+      "artifact_path": "examples/sprint64_data/model_card_a_v1.json",
+      "dataset_fingerprint": "118f8e19e94a668b",
+      "feature_schema_hash": "01c25ac23c41ca00",
+      "label_manifest_hash": "8eff63ae77f20914",
+      "split_policy": "ChronologicalHoldout",
+      "prediction_schema_version": null,
+      "evaluation_status": null,
+      "promotion_status": null,
+      "calibration_status": null,
+      "risk_status": null,
+      "comparable": true,
+      "diagnostic_only": false,
+      "reason_codes": [
+        "ExternalArtifactRegistryEntryBuilt"
+      ]
+    },
+    {
+      "entry_id": "model-card:ext-model-a:1.1.0",
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "model_family": "Mamba3FinLiteExternal",
+      "artifact_kind": "ModelCard",
+      "artifact_path": "examples/sprint64_data/model_card_a_v2.json",
+      "dataset_fingerprint": "118f8e19e94a668b",
+      "feature_schema_hash": "01c25ac23c41ca00",
+      "label_manifest_hash": "8eff63ae77f20914",
+      "split_policy": "ChronologicalHoldout",
+      "prediction_schema_version": null,
+      "evaluation_status": null,
+      "promotion_status": null,
+      "calibration_status": null,
+      "risk_status": null,
+      "comparable": true,
+      "diagnostic_only": false,
+      "reason_codes": [
+        "ExternalArtifactRegistryEntryBuilt"
+      ]
+    },
+    {
+      "entry_id": "model-card:ext-model-b:1.0.0",
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "model_family": "OtherExternal",
+      "artifact_kind": "ModelCard",
+      "artifact_path": "examples/sprint64_data/model_card_b_v1.json",
+      "dataset_fingerprint": "118f8e19e94a668b",
+      "feature_schema_hash": "01c25ac23c41ca00",
+      "label_manifest_hash": "8eff63ae77f20914",
+      "split_policy": "ChronologicalHoldout",
+      "prediction_schema_version": null,
+      "evaluation_status": null,
+      "promotion_status": null,
+      "calibration_status": null,
+      "risk_status": null,
+      "comparable": true,
+      "diagnostic_only": false,
+      "reason_codes": [
+        "ExternalArtifactRegistryEntryBuilt"
+      ]
+    },
+    {
+      "entry_id": "prediction-csv:ext-model-a:1.0.0",
+      "model_id": "ext-model-a",
+      "model_version": "1.0.0",
+      "model_family": "Mamba3FinLiteExternal",
+      "artifact_kind": "PredictionCsv",
+      "artifact_path": "/Users/seo/Projects/soma/examples/sprint64_data/external_predictions_model_a_v1.csv",
+      "dataset_fingerprint": "118f8e19e94a668b",
+      "feature_schema_hash": "01c25ac23c41ca00",
+      "label_manifest_hash": "8eff63ae77f20914",
+      "split_policy": "ChronologicalHoldout",
+      "prediction_schema_version": "v2",
+      "evaluation_status": null,
+      "promotion_status": null,
+      "calibration_status": null,
+      "risk_status": null,
+      "comparable": true,
+      "diagnostic_only": false,
+      "reason_codes": [
+        "ExternalArtifactRegistryEntryBuilt"
+      ]
+    },
+    {
+      "entry_id": "prediction-csv:ext-model-a:1.1.0",
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "model_family": "Mamba3FinLiteExternal",
+      "artifact_kind": "PredictionCsv",
+      "artifact_path": "/Users/seo/Projects/soma/examples/sprint64_data/external_predictions_model_a_v2.csv",
+      "dataset_fingerprint": "118f8e19e94a668b",
+      "feature_schema_hash": "01c25ac23c41ca00",
+      "label_manifest_hash": "8eff63ae77f20914",
+      "split_policy": "ChronologicalHoldout",
+      "prediction_schema_version": "v2",
+      "evaluation_status": null,
+      "promotion_status": null,
+      "calibration_status": null,
+      "risk_status": null,
+      "comparable": true,
+      "diagnostic_only": false,
+      "reason_codes": [
+        "ExternalArtifactRegistryEntryBuilt"
+      ]
+    },
+    {
+      "entry_id": "prediction-csv:ext-model-b:1.0.0",
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "model_family": "OtherExternal",
+      "artifact_kind": "PredictionCsv",
+      "artifact_path": "/Users/seo/Projects/soma/examples/sprint64_data/external_predictions_model_b_v1.csv",
+      "dataset_fingerprint": "118f8e19e94a668b",
+      "feature_schema_hash": "01c25ac23c41ca00",
+      "label_manifest_hash": "8eff63ae77f20914",
+      "split_policy": "ChronologicalHoldout",
+      "prediction_schema_version": "v2",
+      "evaluation_status": null,
+      "promotion_status": null,
+      "calibration_status": null,
+      "risk_status": null,
+      "comparable": true,
+      "diagnostic_only": false,
+      "reason_codes": [
+        "ExternalArtifactRegistryEntryBuilt"
+      ]
+    },
+    {
+      "entry_id": "import-report:sprint64-gen-a-v1:v2",
+      "model_id": "ext-model-a",
+      "model_version": "1.0.0",
+      "model_family": "ExternalImport",
+      "artifact_kind": "ImportReport",
+      "artifact_path": "examples/sprint64_data/import_a_v1.json",
+      "dataset_fingerprint": "118f8e19e94a668b",
+      "feature_schema_hash": null,
+      "label_manifest_hash": null,
+      "split_policy": null,
+      "prediction_schema_version": "v2",
+      "evaluation_status": "ExternalPredictionImportReady",
+      "promotion_status": null,
+      "calibration_status": null,
+      "risk_status": null,
+      "comparable": true,
+      "diagnostic_only": false,
+      "reason_codes": [
+        "ExternalArtifactRegistryEntryBuilt"
+      ]
+    },
+    {
+      "entry_id": "import-report:sprint64-gen-a-v2:v2",
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "model_family": "ExternalImport",
+      "artifact_kind": "ImportReport",
+      "artifact_path": "examples/sprint64_data/import_a_v2.json",
+      "dataset_fingerprint": "118f8e19e94a668b",
+      "feature_schema_hash": null,
+      "label_manifest_hash": null,
+      "split_policy": null,
+      "prediction_schema_version": "v2",
+      "evaluation_status": "ExternalPredictionImportReady",
+      "promotion_status": null,
+      "calibration_status": null,
+      "risk_status": null,
+      "comparable": true,
+      "diagnostic_only": false,
+      "reason_codes": [
+        "ExternalArtifactRegistryEntryBuilt"
+      ]
+    },
+    {
+      "entry_id": "import-report:sprint64-gen-b-v1:v2",
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "model_family": "ExternalImport",
+      "artifact_kind": "ImportReport",
+      "artifact_path": "examples/sprint64_data/import_b_v1.json",
+      "dataset_fingerprint": "118f8e19e94a668b",
+      "feature_schema_hash": null,
+      "label_manifest_hash": null,
+      "split_policy": null,
+      "prediction_schema_version": "v2",
+      "evaluation_status": "BlockedByCoverage",
+      "promotion_status": null,
+      "calibration_status": null,
+      "risk_status": null,
+      "comparable": true,
+      "diagnostic_only": false,
+      "reason_codes": [
+        "ExternalArtifactRegistryEntryBuilt"
+      ]
+    },
+    {
+      "entry_id": "evaluation:ext-model-a:1.0.0",
+      "model_id": "ext-model-a",
+      "model_version": "1.0.0",
+      "model_family": "Evaluation",
+      "artifact_kind": "EvaluationReport",
+      "artifact_path": "examples/sprint64_data/evaluation_a_v1.json",
+      "dataset_fingerprint": "118f8e19e94a668b",
+      "feature_schema_hash": "01c25ac23c41ca00",
+      "label_manifest_hash": "8eff63ae77f20914",
+      "split_policy": "ChronologicalHoldout",
+      "prediction_schema_version": "v2",
+      "evaluation_status": "EvaluationReady",
+      "promotion_status": null,
+      "calibration_status": "Stable",
+      "risk_status": "Pass",
+      "comparable": true,
+      "diagnostic_only": false,
+      "reason_codes": [
+        "ExternalArtifactRegistryEntryBuilt"
+      ]
+    },
+    {
+      "entry_id": "evaluation:ext-model-a:1.1.0",
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "model_family": "Evaluation",
+      "artifact_kind": "EvaluationReport",
+      "artifact_path": "examples/sprint64_data/evaluation_a_v2.json",
+      "dataset_fingerprint": "118f8e19e94a668b",
+      "feature_schema_hash": "01c25ac23c41ca00",
+      "label_manifest_hash": "8eff63ae77f20914",
+      "split_policy": "ChronologicalHoldout",
+      "prediction_schema_version": "v2",
+      "evaluation_status": "EvaluationReady",
+      "promotion_status": null,
+      "calibration_status": "Stable",
+      "risk_status": "Pass",
+      "comparable": true,
+      "diagnostic_only": false,
+      "reason_codes": [
+        "ExternalArtifactRegistryEntryBuilt"
+      ]
+    },
+    {
+      "entry_id": "evaluation:ext-model-b:1.0.0",
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "model_family": "Evaluation",
+      "artifact_kind": "EvaluationReport",
+      "artifact_path": "examples/sprint64_data/evaluation_b_v1.json",
+      "dataset_fingerprint": "118f8e19e94a668b",
+      "feature_schema_hash": "01c25ac23c41ca00",
+      "label_manifest_hash": "8eff63ae77f20914",
+      "split_policy": "ChronologicalHoldout",
+      "prediction_schema_version": "v2",
+      "evaluation_status": "InsufficientCoverage",
+      "promotion_status": null,
+      "calibration_status": "DriftRisk",
+      "risk_status": "Pass",
+      "comparable": true,
+      "diagnostic_only": false,
+      "reason_codes": [
+        "ExternalArtifactRegistryEntryBuilt"
+      ]
+    },
+    {
+      "entry_id": "ablation:ext-model-a:1.0.0",
+      "model_id": "ext-model-a",
+      "model_version": "1.0.0",
+      "model_family": "Ablation",
+      "artifact_kind": "AblationReport",
+      "artifact_path": "examples/sprint64_data/ablation_a_v1.json",
+      "dataset_fingerprint": "118f8e19e94a668b",
+      "feature_schema_hash": "01c25ac23c41ca00",
+      "label_manifest_hash": "8eff63ae77f20914",
+      "split_policy": "ChronologicalHoldout",
+      "prediction_schema_version": "v2",
+      "evaluation_status": null,
+      "promotion_status": "Stable",
+      "calibration_status": null,
+      "risk_status": null,
+      "comparable": true,
+      "diagnostic_only": false,
+      "reason_codes": [
+        "ExternalArtifactRegistryEntryBuilt"
+      ]
+    },
+    {
+      "entry_id": "ablation:ext-model-a:1.1.0",
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "model_family": "Ablation",
+      "artifact_kind": "AblationReport",
+      "artifact_path": "examples/sprint64_data/ablation_a_v2.json",
+      "dataset_fingerprint": "118f8e19e94a668b",
+      "feature_schema_hash": "01c25ac23c41ca00",
+      "label_manifest_hash": "8eff63ae77f20914",
+      "split_policy": "ChronologicalHoldout",
+      "prediction_schema_version": "v2",
+      "evaluation_status": null,
+      "promotion_status": "Stable",
+      "calibration_status": null,
+      "risk_status": null,
+      "comparable": true,
+      "diagnostic_only": false,
+      "reason_codes": [
+        "ExternalArtifactRegistryEntryBuilt"
+      ]
+    },
+    {
+      "entry_id": "promotion:ext-model-a:1.0.0",
+      "model_id": "ext-model-a",
+      "model_version": "1.0.0",
+      "model_family": "PromotionGate",
+      "artifact_kind": "PromotionGateReport",
+      "artifact_path": "examples/sprint64_data/promotion_gate_a_v1.json",
+      "dataset_fingerprint": "118f8e19e94a668b",
+      "feature_schema_hash": "01c25ac23c41ca00",
+      "label_manifest_hash": "8eff63ae77f20914",
+      "split_policy": "ChronologicalHoldout",
+      "prediction_schema_version": "v2",
+      "evaluation_status": null,
+      "promotion_status": "ResearchCandidate",
+      "calibration_status": null,
+      "risk_status": null,
+      "comparable": true,
+      "diagnostic_only": false,
+      "reason_codes": [
+        "ExternalArtifactRegistryEntryBuilt"
+      ]
+    },
+    {
+      "entry_id": "promotion:ext-model-a:1.1.0",
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "model_family": "PromotionGate",
+      "artifact_kind": "PromotionGateReport",
+      "artifact_path": "examples/sprint64_data/promotion_gate_a_v2.json",
+      "dataset_fingerprint": "118f8e19e94a668b",
+      "feature_schema_hash": "01c25ac23c41ca00",
+      "label_manifest_hash": "8eff63ae77f20914",
+      "split_policy": "ChronologicalHoldout",
+      "prediction_schema_version": "v2",
+      "evaluation_status": null,
+      "promotion_status": "ResearchCandidate",
+      "calibration_status": null,
+      "risk_status": null,
+      "comparable": true,
+      "diagnostic_only": false,
+      "reason_codes": [
+        "ExternalArtifactRegistryEntryBuilt"
+      ]
+    },
+    {
+      "entry_id": "mamba-contract:mamba_contract:a",
+      "model_id": "mamba_contract",
+      "model_version": "a",
+      "model_family": "Mamba3FinLiteFamily",
+      "artifact_kind": "Mamba3FinContract",
+      "artifact_path": "examples/sprint64_data/mamba_contract_a.json",
+      "dataset_fingerprint": "118f8e19e94a668b",
+      "feature_schema_hash": "d481c363e122e275",
+      "label_manifest_hash": "7d8ab0113db22180",
+      "split_policy": "ChronologicalHoldout",
+      "prediction_schema_version": "v2",
+      "evaluation_status": null,
+      "promotion_status": "ContractReady",
+      "calibration_status": null,
+      "risk_status": null,
+      "comparable": true,
+      "diagnostic_only": true,
+      "reason_codes": [
+        "ExternalArtifactRegistryEntryBuilt"
+      ]
+    }
+  ],
+  "model_ids": [
+    "ext-model-a",
+    "ext-model-b",
+    "mamba_contract",
+    "registry"
+  ],
+  "model_versions": [
+    "1.0.0",
+    "1.0.0",
+    "1.1.0",
+    "a",
+    "sprint63-sequence-export-reference"
+  ],
+  "comparable_entries": 18,
+  "diagnostic_entries": 2,
+  "incompatible_entries": 0,
+  "unknown_entries": 0,
+  "registry_status": "RegistryReadyWithWarnings",
+  "reason_codes": [
+    "ExternalModelArtifactRegistryBuilt"
+  ]
+}

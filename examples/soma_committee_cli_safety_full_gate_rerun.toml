@@ -1,0 +1,40 @@
+reduction_id = "committee-cli-safety-full-gate-rerun"
+sprint94_bundle_paths = [
+  "target/soma_sprint94_dashboard_renderer_recovery/sprint94-dashboard-renderer-recover",
+  "examples/sprint95_data/sprint94_summary.json",
+]
+committee_cli_safety_paths = [
+  "tests/committee_cli_safety.rs",
+  "tests/sprint90_cli_safety.rs",
+  "tests/sprint91_cli_safety.rs",
+  "tests/sprint92_cli_safety.rs",
+  "tests/sprint93_cli_safety.rs",
+  "tests/sprint94_cli_safety.rs",
+]
+workspace_cli_safety_suite_paths = ["tests/workspace_cli_safety_suite.rs"]
+workspace_safety_guard_suite_paths = [
+  "tests/workspace_safety_guard_suite.rs",
+  "tests/workspace_determinism_suite.rs",
+]
+command_surface_manifest_paths = ["src/bin/soma_experiment.rs"]
+help_text_fixture_paths = [
+  "tests/committee_cli_safety.rs",
+  "tests/workspace_cli_safety_suite.rs",
+  "tests/sprint95_cli_safety.rs",
+  "tests/sprint95_determinism.rs",
+]
+output_root = "target/soma_sprint95_committee_cli_safety_recovery"
+target_family = "CommitteeCliSafety"
+run_real_no_run_after_reduction = false
+run_real_full_after_reduction = false
+preserve_assertions = true
+preserve_safety_guards = true
+preserve_remote_path_rejection = true
+preserve_help_text_checks = true
+preserve_forbidden_command_checks = true
+preserve_runtime_deferred_checks = true
+preserve_persona_expansion_guards = true
+preserve_order_account_guards = true
+preserve_browser_execution_guards = true
+preserve_determinism_checks = true
+require_isolation_decision = true

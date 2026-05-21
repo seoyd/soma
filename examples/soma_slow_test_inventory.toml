@@ -1,0 +1,6 @@
+modernization_id = "slow-test-inventory-example"
+current_toolchain_report_paths = [
+  "examples/sprint76_data/test_runtime_sample.json",
+  "examples/sprint76_data/slow_tests_sample.json",
+  "examples/sprint76_data/cli_smoke_sample.json",
+]

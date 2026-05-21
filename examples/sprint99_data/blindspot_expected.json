@@ -1,0 +1,85 @@
+{
+  "report_id": "investor-style-blindspot-report",
+  "style_count": 8,
+  "blindspots_by_style": {
+    "counterfactual-historian": [
+      "conservative bias after adverse historical samples"
+    ],
+    "liquidity-execution": [
+      "missed opportunities in illiquid rebounds"
+    ],
+    "macro-reflexive": [
+      "headline sensitivity and narrative whipsaw"
+    ],
+    "quality-compounder": [
+      "slow reaction to short-horizon inflections"
+    ],
+    "regime-cycle": [
+      "narrative overfitting to noisy macro changes"
+    ],
+    "risk-first-defensive": [
+      "underreacting to valid upside regime shifts"
+    ],
+    "trend-follower": [
+      "late entries during fast reversals",
+      "crowded breakout risk"
+    ],
+    "value-discipline": [
+      "value traps in deteriorating regimes"
+    ]
+  },
+  "mitigation_by_style": {
+    "counterfactual-historian": [
+      "counterfactual archives",
+      "debate transcripts",
+      "paper decision logs"
+    ],
+    "liquidity-execution": [
+      "spread snapshots",
+      "volume profiles",
+      "paper execution assumptions"
+    ],
+    "macro-reflexive": [
+      "macro catalysts",
+      "event calendars",
+      "external prediction prototypes"
+    ],
+    "quality-compounder": [
+      "scorecards",
+      "rule audits",
+      "long-horizon evidence"
+    ],
+    "regime-cycle": [
+      "regime features",
+      "volatility context",
+      "official market breadth proxies"
+    ],
+    "risk-first-defensive": [
+      "risk snapshots",
+      "drawdown evidence",
+      "source boundary checks"
+    ],
+    "trend-follower": [
+      "official candles",
+      "regime labels",
+      "paper liquidity notes"
+    ],
+    "value-discipline": [
+      "fundamental notes",
+      "counterfactual history",
+      "official daily data"
+    ]
+  },
+  "missing_counterbalance_styles": [],
+  "blindspot_status": "BlindspotsDocumented",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

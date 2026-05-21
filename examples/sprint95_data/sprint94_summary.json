@@ -1,0 +1,10 @@
+{
+  "dashboard_renderer": "DashboardRendererReducedWithWarnings",
+  "no_run_rerun": "NotRun",
+  "full_rerun": "NotRun",
+  "next_family": "CommitteeCliSafety",
+  "compile_impact": "CompileImpactSampleBacked",
+  "queue_status": "QueueAdvanced",
+  "current_no_run_status": "RealNoRunStillBlocked",
+  "current_full_status": "FullWorkspaceStillBlocked"
+}

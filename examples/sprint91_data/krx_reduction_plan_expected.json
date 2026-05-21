@@ -1,0 +1,37 @@
+{
+  "target_files": [
+    "tests/krx_evidence_suite.rs"
+  ],
+  "donor_files": [
+    "tests/krx_evidence_job_plan.rs",
+    "tests/krx_evidence_recovery.rs",
+    "tests/krx_auth_readiness.rs",
+    "tests/krx_operator_actions.rs",
+    "tests/official_replication_operator_actions.rs",
+    "tests/krx_collection_dry_run.rs",
+    "tests/krx_collection_batch_plan.rs",
+    "tests/krx_collection_closure_runner.rs",
+    "tests/krx_collection_closure_cli_safety.rs",
+    "tests/krx_raw_archive_secret_safety.rs",
+    "tests/krx_canonical_batch_validation.rs",
+    "tests/krx_candle_sufficiency.rs",
+    "tests/krx_outcome_link_closure.rs",
+    "tests/krx_downstream_rerun_v2.rs"
+  ],
+  "auth_fixture_duplication": [
+    "json:shared auth readiness fixture load",
+    "auth_fixture:shared missing-auth coverage fixture",
+    "output_dir:krx auth boundary report output"
+  ],
+  "endpoint_template_fixture_duplication": [
+    "json:shared endpoint-template expectation load",
+    "endpoint_template:shared missing-template fixture",
+    "toml:endpoint-template config reuse"
+  ],
+  "raw_archive_fixture_duplication": [
+    "json:shared raw-archive metadata fixture",
+    "csv:shared raw-archive market-data sample",
+    "output_dir:raw-archive report output"
+  ],
+  "expected_target_delta": 1
+}

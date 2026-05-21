@@ -1,0 +1,24 @@
+{
+  "report_id": "sprint58-kis-env-isolation",
+  "env_vars_checked": [
+    "KIS_APP_KEY",
+    "KIS_APP_SECRET",
+    "KIS_BASE_URL",
+    "KIS_WS_APPROVAL_KEY",
+    "KRX_API_KEY",
+    "KRX_ENDPOINT_TEMPLATE"
+  ],
+  "test_env_overrides": [
+    "set or clear KIS_APP_KEY in test scope",
+    "set or clear KIS_APP_SECRET in test scope",
+    "set or clear KIS_BASE_URL in test scope",
+    "set or clear KRX_API_KEY in test scope"
+  ],
+  "shell_env_ignored_in_tests": true,
+  "deterministic_env_applied": true,
+  "leaks_detected": false,
+  "reason_codes": [
+    "DeterministicPath",
+    "EnvironmentIsolationBuilt"
+  ]
+}

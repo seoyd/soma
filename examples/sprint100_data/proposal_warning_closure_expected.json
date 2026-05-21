@@ -1,0 +1,23 @@
+{
+  "report_id": "proposal-quality-warning-closure-report",
+  "previous_status": "ProposalQualityReadyWithWarnings",
+  "missing_evidence_ref_count": 0,
+  "missing_wait_condition_count": 0,
+  "missing_invalidation_condition_count": 0,
+  "missing_expected_risk_count": 0,
+  "missing_reason_code_count": 0,
+  "confidence_out_of_bounds_count": 0,
+  "closed_warning_count": 1,
+  "remaining_warning_count": 0,
+  "closure_status": "ProposalWarningsClosedWithMinorNotes",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

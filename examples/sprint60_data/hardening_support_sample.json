@@ -1,0 +1,15 @@
+{
+  "future_window_count": 2,
+  "no_lookahead_safe": true,
+  "no_trade_counterfactuals": 2,
+  "risk_denied_counterfactuals": 1,
+  "take_profit_count": 1,
+  "stop_loss_count": 1,
+  "time_expired_count": 0,
+  "missing_risk_decision_count": 0,
+  "missing_committee_decision_count": 0,
+  "avoided_loss_total": 42.5,
+  "missed_gain_total": 13.0,
+  "outcome_diversity_count": 3,
+  "symbol_diversity_count": 4
+}

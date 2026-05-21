@@ -1,0 +1,6 @@
+{
+  "feature_names": ["open", "high", "low", "close", "volume", "spread_bps"],
+  "source_features": ["open", "high", "low", "close", "volume", "spread_bps"],
+  "missing_features": [],
+  "unstable_features": []
+}

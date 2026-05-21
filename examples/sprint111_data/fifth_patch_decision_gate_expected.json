@@ -1,0 +1,22 @@
+{
+  "gate_id": "fifth-patch-decision-gate",
+  "candidate_pool_status": "CandidatePoolReadyWithWarnings",
+  "preselection_status": "FifthPatchCandidatePreselected",
+  "equivalent_coverage_feasible": true,
+  "assertion_migration_feasible": false,
+  "safety_sentinel_preserved": true,
+  "no_hidden_skip_guard": true,
+  "timeout_root_cause_status": "TimeoutRootCausePartiallyIsolated",
+  "acceptance_truth_status": "AcceptanceTruthReadyWithWarnings",
+  "fifth_patch_allowed": false,
+  "gate_status": "FifthPatchBlockedPendingEvidence",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

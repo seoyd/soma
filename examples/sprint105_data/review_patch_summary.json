@@ -1,0 +1,11 @@
+{
+  "overclaim_patch_detected": true,
+  "workspace_attempt_patch_detected": true,
+  "safety_boolean_patch_detected": true,
+  "missing_artifact_policy_patch_detected": true,
+  "paper_rejected_transition_patch_detected": true,
+  "risk_transition_patch_detected": true,
+  "no_run_long_running_observed": true,
+  "full_run_long_running_observed": true,
+  "review_status": "Sprint104ReviewPatchesApplied"
+}

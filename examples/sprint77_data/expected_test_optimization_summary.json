@@ -1,0 +1,3 @@
+{
+  "final_summary": "timing_status=SampleBacked\nfixture_setup_status=FixtureCostReady\ncli_smoke_reduction_status=SmokeCostReduced\ndev_loop_savings_status=SavingsEstimatedWithLowConfidence\nworkspace_acceptance_status=FullWorkspaceAccepted\nrecommendations=CliSmokeCostReduced | FixtureSetupBottleneckIdentified | FullWorkspaceGatePreserved | HoldMamba3RuntimeDeferred | KeepPaperOnly | KeepResearchOnly | KeepStableToolchain | RepeatedTimingMeasured"
+}

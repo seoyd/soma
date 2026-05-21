@@ -1,0 +1,36 @@
+plan_id = "sprint25_venue_coverage"
+existing_collection_report_path = "target/soma_official_collection/sprint20_official_compact/official_collection_report.json"
+max_total_symbols = 3
+max_total_rows = 1500
+max_total_requests = 10
+max_total_bytes = 16777216
+allow_crypto_only = false
+allow_missing_equity_auth = true
+reason_codes = ["DeterministicPath"]
+
+[[targets]]
+venue_group = "Crypto"
+min_ready_datasets = 1
+min_outcome_records = 20
+min_symbols = 1
+min_timeframes = 1
+required = true
+reason_codes = ["DeterministicPath"]
+
+[[targets]]
+venue_group = "KoreanEquity"
+min_ready_datasets = 1
+min_outcome_records = 20
+min_symbols = 1
+min_timeframes = 1
+required = false
+reason_codes = ["DeterministicPath"]
+
+[[targets]]
+venue_group = "USEquity"
+min_ready_datasets = 1
+min_outcome_records = 20
+min_symbols = 1
+min_timeframes = 1
+required = false
+reason_codes = ["DeterministicPath"]

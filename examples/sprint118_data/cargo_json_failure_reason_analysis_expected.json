@@ -1,0 +1,20 @@
+{
+  "report_id": "cargo-json-failure-reason-analysis-v1",
+  "reason_line_count": 98,
+  "stderr_line_count": 1,
+  "parsed_message_count": 98,
+  "compiler_artifact_count": 60,
+  "compiler_message_count": 22,
+  "test_executable_count": 12,
+  "dominant_reason_class": "LinkArtifact",
+  "analysis_status": "CargoJsonFailureReasonClassified",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

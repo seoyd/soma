@@ -1,0 +1,21 @@
+{
+  "report_id": "cross-group-conflict-closure-report",
+  "previous_status": "ConflictHandledWithWarnings",
+  "conflicts_detected": 4,
+  "conflicts_with_resolution_policy": 4,
+  "conflicts_resolved_by_no_trade": 0,
+  "conflicts_resolved_by_risk_governor": 0,
+  "conflicts_resolved_by_need_more_evidence": 3,
+  "remaining_unresolved_conflicts": 0,
+  "closure_status": "CrossGroupConflictsClosedWithNotes",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

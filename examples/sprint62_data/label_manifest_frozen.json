@@ -1,0 +1,21 @@
+{
+  "label_kinds": [
+    "TakeProfit",
+    "StopLoss",
+    "TimeExpired",
+    "NoTradeCounterfactual",
+    "RiskDeniedCounterfactual"
+  ],
+  "horizon_bars": [4, 8],
+  "barrier_profile_id": "sprint62-default-barrier",
+  "take_profit_pct": 0.03,
+  "stop_loss_pct": 0.015,
+  "cost_bps": 3.0,
+  "slippage_bps": 2.0,
+  "tie_break_policy": "deterministic-priority",
+  "label_timestamp_policy": "strictly-after-window-end",
+  "no_trade_counterfactual_policy": "bounded-paper-only-reference",
+  "risk_denied_counterfactual_policy": "risk-governor-final",
+  "version": "v1",
+  "frozen": true
+}

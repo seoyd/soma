@@ -1,0 +1,25 @@
+{
+  "gate_id": "committee-paper-readiness-gate",
+  "proposal_quality_status": "ProposalWarningsClosedWithMinorNotes",
+  "entry_timing_quality_status": "EntryTimingConditionsComplete",
+  "debate_evidence_status": "DebateEvidenceClosedWithWarnings",
+  "chairman_rulebook_status": "UnsafeRuleClosedWithPaperOnlyRestriction",
+  "scorecard_calibration_status": "ScorecardWarningsClosedWithNotes",
+  "paper_replay_status": "ReplayWarningsClosedWithNotes",
+  "risk_handoff_status": "RiskHandoffWarningsClosedWithNotes",
+  "architecture_regression_status": "NoRegression",
+  "safety_status": "SafetyCoveragePreservedWithWarnings",
+  "paper_loop_ready": true,
+  "live_loop_allowed": false,
+  "gate_status": "PaperCommitteeReadyWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

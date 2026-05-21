@@ -1,0 +1,18 @@
+{
+  "report_id": "acceptance-evidence-strength-v1",
+  "focused_evidence_strength": "SupportingOnly",
+  "cli_evidence_strength": "SupportingOnly",
+  "build_evidence_strength": "SupportingOnly",
+  "no_run_evidence_strength": "SupportingOnly",
+  "full_workspace_evidence_strength": "Insufficient",
+  "overall_acceptance_evidence_strength": "SupportingOnly",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

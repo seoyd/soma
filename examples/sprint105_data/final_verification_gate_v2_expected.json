@@ -1,0 +1,24 @@
+{
+  "gate_id": "final-verification-gate-v2",
+  "previous_gate_status": "FinalVerificationPassedWithWarnings",
+  "finding_closure_status": "VerificationFindingsClosedWithWarnings",
+  "overclaim_guard_status": "OverclaimRegressionGuardReady",
+  "safety_boolean_audit_status": "SafetyBooleanCoverageVerified",
+  "paper_rejected_transition_status": "PaperRejectedTransitionAudited",
+  "risk_transition_status": "RiskGovernorRequiredTransitionsReady",
+  "missing_artifact_policy_status": "MissingArtifactFindingPolicyReady",
+  "workspace_truth_status": "WorkspaceTruthStillOpenV5",
+  "blocking_findings_remaining": 0,
+  "full_workspace_accepted": false,
+  "gate_status": "FinalVerificationGateV2ReadyWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

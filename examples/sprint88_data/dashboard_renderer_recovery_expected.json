@@ -1,0 +1,9 @@
+{
+  "static_html_covered": true,
+  "json_txt_state_covered": true,
+  "no_post_actions_covered": true,
+  "no_secret_leakage_covered": true,
+  "no_browser_execution_covered": true,
+  "deterministic_render_covered": true,
+  "recovery_status": "DashboardRendererReduced"
+}

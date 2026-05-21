@@ -1,0 +1,27 @@
+{
+  "target_model_id": "ext-model-a",
+  "target_model_version": "1.0.0",
+  "required_evidence": [
+    "owner retirement rationale",
+    "conservative regression evidence",
+    "historical leaderboard or comparable baseline evidence",
+    "newer local successor comparison"
+  ],
+  "present_evidence": [
+    "rollup recommends RetireModelVersion",
+    "lifecycle status already marks the version retired",
+    "risk rollup supports diagnostic-only handling",
+    "a newer comparable ext-model-a version exists locally",
+    "historical conservative leaderboard evidence exists"
+  ],
+  "missing_evidence": [
+    "regression evidence for ext-model-a:1.0.0 is still missing"
+  ],
+  "supports_retirement": false,
+  "supports_diagnostic_downgrade": true,
+  "completion_status": "NeedsMoreRegressionEvidence",
+  "conservative_action": "keep ext-model-a:1.0.0 diagnostic-only and retired-from-current-comparison pending more evidence",
+  "reason_codes": [
+    "RetirementEvidenceCompletionBuilt"
+  ]
+}

@@ -1,0 +1,1 @@
+Timeout length affects diagnostic quality, but timeout is neither correctness failure nor pass. The adequacy report compares the previous 240 second window with the current diagnostic window and recommends whether to extend observation or use a narrower strategy.

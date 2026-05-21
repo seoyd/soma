@@ -1,0 +1,9 @@
+{
+  "missing_auth_covered": true,
+  "endpoint_template_covered": true,
+  "official_reference_fallback_covered": true,
+  "market_data_only_covered": true,
+  "no_order_account_path_covered": true,
+  "deterministic_status_covered": true,
+  "recovery_status": "KrxEvidenceReduced"
+}

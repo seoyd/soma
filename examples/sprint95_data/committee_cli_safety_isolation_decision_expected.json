@@ -1,0 +1,15 @@
+{
+  "decision_id": "sprint95-committee-cli-safety-recover-isolation-decision",
+  "current_isolation_status": "CommitteeCliSafety remains isolated from Sprint 94",
+  "decision_status": "KeepPermanentIsolatedSentinel",
+  "isolation_reason": "grouped suites represent broad CLI safety guarantees, but committee-smoke execution remains a permanent isolated sentinel",
+  "merged_assertion_count": 0,
+  "represented_assertion_count": 5,
+  "remaining_isolated_assertion_count": 2,
+  "high_risk_assertion_count": 2,
+  "safety_risk": "High",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

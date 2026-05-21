@@ -1,0 +1,25 @@
+whitelist_id = "sprint50_krx_compact"
+output_root = "target/soma_krx_collection_closure_examples"
+max_symbols = 5
+require_market = true
+require_provider_symbol = true
+
+[[symbols]]
+provider_symbol = "005930"
+normalized_symbol = "005930"
+market = "KoreanEquity"
+venue = "KRX"
+display_name = "Samsung Electronics"
+enabled = true
+max_rows = 120
+timeframe = "1d"
+
+[[symbols]]
+provider_symbol = "000660"
+normalized_symbol = "000660"
+market = "KoreanEquity"
+venue = "KRX"
+display_name = "SK hynix"
+enabled = true
+max_rows = 120
+timeframe = "1d"

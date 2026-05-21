@@ -1,0 +1,21 @@
+{
+  "report_id": "proposal-evidence-completeness-report",
+  "proposal_count": 8,
+  "proposals_with_official_evidence": 8,
+  "proposals_with_research_evidence": 8,
+  "proposals_with_counterfactual_evidence": 8,
+  "proposals_with_risk_evidence": 8,
+  "proposals_with_regime_evidence": 8,
+  "proposals_missing_required_evidence": 0,
+  "evidence_status": "ProposalEvidenceComplete",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "committee_decisions": [
+    {
+      "row_id": "aapl-tp",
+      "committee_final_action": "Approve",
+      "chair_decision": "Approve"
+    },
+    {
+      "row_id": "msft-sl",
+      "committee_final_action": "Approve",
+      "chair_decision": "Approve"
+    },
+    {
+      "row_id": "nvda-te",
+      "committee_final_action": "Approve",
+      "chair_decision": "Approve"
+    },
+    {
+      "row_id": "aapl-4h-tp",
+      "committee_final_action": "Approve",
+      "chair_decision": "Approve"
+    }
+  ]
+}

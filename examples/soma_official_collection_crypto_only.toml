@@ -1,0 +1,51 @@
+plan_id = "sprint20_crypto_only"
+output_root = "target/soma_official_collection"
+max_total_bytes = 4194304
+max_total_rows = 400
+max_total_requests = 6
+default_retention_policy = "DeleteRawAfterCanonicalAndManifest"
+continue_on_missing_auth = true
+continue_on_provider_failure = true
+reason_codes = ["DeterministicPath"]
+
+[default_collection_size_policy]
+max_symbols_per_run = 1
+max_rows_per_symbol = 400
+max_total_rows_per_run = 400
+max_raw_bytes_per_run = 2097152
+max_canonical_bytes_per_run = 1048576
+max_requests_per_run = 6
+max_days_per_run = 30
+default_outputsize = "Compact"
+raw_archive_policy = "CompactJson"
+retention_policy = "DeleteRawAfterCanonicalAndManifest"
+allow_full_history = false
+reason_codes = ["DeterministicPath"]
+
+[default_compression_policy]
+mode = "None"
+deterministic_header = true
+keep_uncompressed_for_preflight = true
+reason_codes = ["DeterministicPath"]
+
+[storage_budget]
+max_total_bytes = 4194304
+max_raw_bytes = 2097152
+max_canonical_bytes = 1048576
+max_manifest_bytes = 262144
+max_file_count = 24
+reason_codes = ["DeterministicPath"]
+
+[[entries]]
+entry_id = "crypto-btc"
+provider_kind = "Upbit"
+symbol = "KRW-BTC"
+venue = "Upbit"
+asset_class = "Crypto"
+timeframe = "FiveMinute"
+max_rows = 400
+max_requests = 6
+outputsize = "Compact"
+enabled = true
+tags = ["crypto", "public"]
+reason_codes = ["DeterministicPath"]

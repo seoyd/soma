@@ -1,0 +1,9 @@
+{
+  "committee_outcomes": {
+    "outcome_references": ["outcome-ref-1", "outcome-ref-2"],
+    "baseline_references": ["baseline-ref-1"],
+    "future_window_safe_count": 2,
+    "no_lookahead_safe": true
+  }
+}
+

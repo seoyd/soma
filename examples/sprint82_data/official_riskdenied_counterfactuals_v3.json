@@ -1,0 +1,10 @@
+{
+  "pack_id": "official-riskdenied-counterfactuals-v3",
+  "risk_denied_counterfactual_count": 3,
+  "defensive_value_count": 3,
+  "opportunity_cost_count": 1,
+  "overblock_count": 1,
+  "underblock_count": 1,
+  "pack_status": "RiskDeniedCounterfactualPackReady"
+}
+

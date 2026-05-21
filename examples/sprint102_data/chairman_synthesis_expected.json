@@ -1,0 +1,31 @@
+{
+  "report_id": "chairman-synthesis-dry-run-report",
+  "scenario_id": "crypto-cycle-liquidity",
+  "debate_session_id": "group-debate-session-report",
+  "member_proposal_summary": "enter_long=2 enter_short=1 wait=1 no_trade=1 risk_deny=1 request_more_evidence=1",
+  "conflict_summary": "conflicts_detected=4 resolution=NeedMoreEvidence",
+  "chairman_recommendation": "NoTrade",
+  "rulebook_version_used": "chairman-paper-rulebook-v2",
+  "style_weight_adjustments": {
+    "BurniskeTokenValuation": 0.8,
+    "CommonRiskManager": 1.0,
+    "GrahamMarginOfSafety": 0.93,
+    "HayesLiquidityDerivatives": 0.55,
+    "LarryWilliamsStatisticalSeasonality": 0.73,
+    "MarksCycleRiskPremium": 0.9,
+    "RaschkeProcessManager": 0.87,
+    "SaylorTreasury": 0.88
+  },
+  "risk_governor_review_required": true,
+  "synthesis_status": "ChairmanSynthesisReadyWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

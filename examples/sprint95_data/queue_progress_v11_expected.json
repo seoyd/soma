@@ -1,0 +1,30 @@
+{
+  "report_id": "sprint95-committee-cli-safety-recover-queue-progress-v11",
+  "previous_queue": [
+    "CommitteeCliSafety",
+    "BaselineSignal",
+    "CounterfactualBackfill"
+  ],
+  "current_queue": [
+    "BaselineSignal",
+    "CounterfactualBackfill"
+  ],
+  "completed_families": [
+    "KrxEvidence",
+    "DashboardRenderer"
+  ],
+  "reduced_families": [],
+  "isolated_families": [
+    "CommitteeCliSafety"
+  ],
+  "still_blocked_families": [
+    "BaselineSignal",
+    "CounterfactualBackfill"
+  ],
+  "primary_next_family": "BaselineSignal",
+  "queue_status": "QueueAdvanced",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

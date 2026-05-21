@@ -1,0 +1,12 @@
+[owner_input]
+owner_input_id = "owner-input-risk-tighten-example"
+timestamp_ms = 1715691006000
+owner_id = "owner-local"
+input_kind = "RiskTightenRequest"
+target_type = "System"
+requested_action = "tighten_risk"
+status = "Submitted"
+reason_codes = ["DeterministicPath"]
+
+[owner_input.structured_payload]
+max_loss_buffer = "tighter"

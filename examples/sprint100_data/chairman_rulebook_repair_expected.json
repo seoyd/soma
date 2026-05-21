@@ -1,0 +1,51 @@
+{
+  "plan_id": "chairman-rulebook-safety-repair-plan",
+  "unsafe_rule_items": [
+    {
+      "rule_text": "chair may synthesize but cannot bypass Risk Governor",
+      "repair_actions": [
+        "AddRiskGovernorReview",
+        "ForcePaperOnlyScope",
+        "RequireOwnerReview",
+        "AddAuditRequirement",
+        "LowerAuthorityToProposalOnly"
+      ]
+    },
+    {
+      "rule_text": "every member-owned core remains paper-only and runtime deferred",
+      "repair_actions": [
+        "AddRiskGovernorReview",
+        "ForcePaperOnlyScope",
+        "RequireOwnerReview",
+        "AddAuditRequirement",
+        "LowerAuthorityToProposalOnly"
+      ]
+    }
+  ],
+  "repair_actions": [
+    "AddRiskGovernorReview",
+    "ForcePaperOnlyScope",
+    "RequireOwnerReview",
+    "AddAuditRequirement",
+    "LowerAuthorityToProposalOnly"
+  ],
+  "repaired_rulebook_candidate": [
+    "chair synthesis stays subordinate to the Risk Governor final veto and may only recommend paper-only actions",
+    "entry timing proposals require debate when action is EnterLong, EnterShort, RiskDeny, or RequestMoreEvidence",
+    "member-owned cores remain paper-only, research-only, and deferred for runtime, training, and live execution",
+    "paper-only committee dry-run is the maximum activation scope; live rule mutation stays forbidden",
+    "pending proposal count=1",
+    "rule changes remain proposal-only until audit, owner review, and Risk Governor review complete"
+  ],
+  "plan_status": "RulebookRepairPlanReadyWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

@@ -1,0 +1,18 @@
+run_id = "committee_v1_crypto_only"
+scenario_load_config_path = "examples/soma_committee_load_fixture.toml"
+output_root = "target/soma_committee_v1"
+max_scenarios = 10
+max_decisions = 10
+require_core_check = false
+allow_fixture = true
+allow_yfinance_research = false
+allow_crypto_only = true
+allow_summary_derived_rows = true
+run_scenario_loading = true
+run_replay = true
+run_diagnostics = true
+run_quality_metrics = true
+run_calibration_suggestions = true
+run_readiness_gate = true
+reason_codes = []
+

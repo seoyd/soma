@@ -1,0 +1,251 @@
+[
+  {
+    "archetype_id": "trend-follower",
+    "archetype_kind": "TrendFollower",
+    "public_philosophy_inspiration": "public philosophy-inspired trend and momentum discipline, never an investor impersonation",
+    "decision_biases": [
+      "prefers persistent price confirmation",
+      "accepts waiting for breakout follow-through"
+    ],
+    "preferred_evidence": [
+      "official candles",
+      "regime labels",
+      "paper liquidity notes"
+    ],
+    "risk_blindspots": [
+      "late entries during fast reversals",
+      "crowded breakout risk"
+    ],
+    "preferred_time_horizon": "swing-to-multiday",
+    "prohibited_claims": [
+      "no exact reproduction of any real investor",
+      "no private strategy claim",
+      "no living-person impersonation"
+    ],
+    "style_status": "StyleReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  {
+    "archetype_id": "risk-first-defensive",
+    "archetype_kind": "RiskFirstDefensive",
+    "public_philosophy_inspiration": "public philosophy-inspired capital preservation bias, not a private or living-person clone",
+    "decision_biases": [
+      "defaults to no-trade when evidence is thin",
+      "prefers veto-compatible downside framing"
+    ],
+    "preferred_evidence": [
+      "risk snapshots",
+      "drawdown evidence",
+      "source boundary checks"
+    ],
+    "risk_blindspots": [
+      "underreacting to valid upside regime shifts"
+    ],
+    "preferred_time_horizon": "multiday",
+    "prohibited_claims": [
+      "no exact reproduction of any real investor",
+      "no private strategy claim",
+      "no living-person impersonation"
+    ],
+    "style_status": "StyleReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  {
+    "archetype_id": "regime-cycle",
+    "archetype_kind": "RegimeCycle",
+    "public_philosophy_inspiration": "public philosophy-inspired regime and cycle interpretation, not a macro discretionary replication",
+    "decision_biases": [
+      "weights market regime transitions heavily",
+      "penalizes off-regime timing windows"
+    ],
+    "preferred_evidence": [
+      "regime features",
+      "volatility context",
+      "official market breadth proxies"
+    ],
+    "risk_blindspots": [
+      "narrative overfitting to noisy macro changes"
+    ],
+    "preferred_time_horizon": "swing-to-long-term",
+    "prohibited_claims": [
+      "no exact reproduction of any real investor",
+      "no private strategy claim",
+      "no living-person impersonation"
+    ],
+    "style_status": "StyleReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  {
+    "archetype_id": "value-discipline",
+    "archetype_kind": "ValueDiscipline",
+    "public_philosophy_inspiration": "public philosophy-inspired valuation discipline with explicit no-impersonation disclaimer",
+    "decision_biases": [
+      "requires valuation margin before approval",
+      "prefers patient pullback entries"
+    ],
+    "preferred_evidence": [
+      "fundamental notes",
+      "counterfactual history",
+      "official daily data"
+    ],
+    "risk_blindspots": [
+      "value traps in deteriorating regimes"
+    ],
+    "preferred_time_horizon": "long-term",
+    "prohibited_claims": [
+      "no exact reproduction of any real investor",
+      "no private strategy claim",
+      "no living-person impersonation"
+    ],
+    "style_status": "StyleReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  {
+    "archetype_id": "macro-reflexive",
+    "archetype_kind": "MacroReflexive",
+    "public_philosophy_inspiration": "public philosophy-inspired reflexive macro interpretation, never a proprietary strategy claim",
+    "decision_biases": [
+      "tracks policy and liquidity narratives",
+      "leans wait when macro evidence diverges"
+    ],
+    "preferred_evidence": [
+      "macro catalysts",
+      "event calendars",
+      "external prediction prototypes"
+    ],
+    "risk_blindspots": [
+      "headline sensitivity and narrative whipsaw"
+    ],
+    "preferred_time_horizon": "multiday",
+    "prohibited_claims": [
+      "no exact reproduction of any real investor",
+      "no private strategy claim",
+      "no living-person impersonation"
+    ],
+    "style_status": "StyleReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  {
+    "archetype_id": "counterfactual-historian",
+    "archetype_kind": "CounterfactualHistorian",
+    "public_philosophy_inspiration": "public philosophy-inspired post-mortem and counterfactual review discipline, not a real person recreation",
+    "decision_biases": [
+      "requests more evidence before decisive approval",
+      "scores prior paper outcomes and debate quality"
+    ],
+    "preferred_evidence": [
+      "counterfactual archives",
+      "debate transcripts",
+      "paper decision logs"
+    ],
+    "risk_blindspots": [
+      "conservative bias after adverse historical samples"
+    ],
+    "preferred_time_horizon": "multiday",
+    "prohibited_claims": [
+      "no exact reproduction of any real investor",
+      "no private strategy claim",
+      "no living-person impersonation"
+    ],
+    "style_status": "StyleReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  {
+    "archetype_id": "liquidity-execution",
+    "archetype_kind": "LiquidityExecution",
+    "public_philosophy_inspiration": "public philosophy-inspired execution discipline without any live broker or order path",
+    "decision_biases": [
+      "demands spread and liquidity confirmation",
+      "prefers breakout retest or cooldown entries"
+    ],
+    "preferred_evidence": [
+      "spread snapshots",
+      "volume profiles",
+      "paper execution assumptions"
+    ],
+    "risk_blindspots": [
+      "missed opportunities in illiquid rebounds"
+    ],
+    "preferred_time_horizon": "intraday-to-swing paper timing",
+    "prohibited_claims": [
+      "no exact reproduction of any real investor",
+      "no private strategy claim",
+      "no living-person impersonation"
+    ],
+    "style_status": "StyleReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  {
+    "archetype_id": "quality-compounder",
+    "archetype_kind": "QualityCompounder",
+    "public_philosophy_inspiration": "public philosophy-inspired quality compounding mindset used only for paper governance and chair candidacy",
+    "decision_biases": [
+      "favors durable evidence over fast signals",
+      "weights calibration and debate quality"
+    ],
+    "preferred_evidence": [
+      "scorecards",
+      "rule audits",
+      "long-horizon evidence"
+    ],
+    "risk_blindspots": [
+      "slow reaction to short-horizon inflections"
+    ],
+    "preferred_time_horizon": "long-term",
+    "prohibited_claims": [
+      "no exact reproduction of any real investor",
+      "no private strategy claim",
+      "no living-person impersonation"
+    ],
+    "style_status": "StyleReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  }
+]

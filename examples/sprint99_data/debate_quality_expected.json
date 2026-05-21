@@ -1,0 +1,26 @@
+{
+  "report_id": "committee-debate-quality-report",
+  "debate_session_count": 1,
+  "member_turn_count": 7,
+  "participating_member_count": 7,
+  "support_entry_count": 3,
+  "oppose_entry_count": 1,
+  "wait_for_confirmation_count": 1,
+  "demand_risk_deny_count": 0,
+  "demand_no_trade_count": 0,
+  "request_more_evidence_count": 2,
+  "disagreement_present": true,
+  "groupthink_risk": false,
+  "consensus_state": "NeedMoreEvidence",
+  "debate_quality_status": "DebateNeedsMoreEvidence",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

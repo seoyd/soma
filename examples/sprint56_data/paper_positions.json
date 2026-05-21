@@ -1,0 +1,62 @@
+[
+  {
+    "paper_position_id": "paper-target-hit",
+    "candidate_id": "paper-target-hit-candidate",
+    "symbol": "AAPL",
+    "market": "USEquity",
+    "side": "Long",
+    "entry_timestamp_ms": 1715000001000,
+    "entry_price": 100.0,
+    "stop_price": 95.0,
+    "target_price": 110.0,
+    "current_price": 111.0,
+    "status": "Open",
+    "source_kind": "KISOfficialEvidence",
+    "reason_codes": ["PaperExecutionOnly"]
+  },
+  {
+    "paper_position_id": "paper-stop-hit",
+    "candidate_id": "paper-stop-hit-candidate",
+    "symbol": "MSFT",
+    "market": "USEquity",
+    "side": "Long",
+    "entry_timestamp_ms": 1715000001100,
+    "entry_price": 100.0,
+    "stop_price": 96.0,
+    "target_price": 108.0,
+    "current_price": 94.0,
+    "status": "Open",
+    "source_kind": "KISOfficialEvidence",
+    "reason_codes": ["PaperExecutionOnly"]
+  },
+  {
+    "paper_position_id": "paper-expired",
+    "candidate_id": "paper-expired-candidate",
+    "symbol": "NVDA",
+    "market": "USEquity",
+    "side": "Long",
+    "entry_timestamp_ms": 1715000001200,
+    "entry_price": 100.0,
+    "stop_price": 95.0,
+    "target_price": 108.0,
+    "current_price": 101.0,
+    "status": "Open",
+    "source_kind": "KISOfficialEvidence",
+    "reason_codes": ["TimeBarrierExpired"]
+  },
+  {
+    "paper_position_id": "paper-risk-closed",
+    "candidate_id": "paper-risk-closed-candidate",
+    "symbol": "005930",
+    "market": "KoreanEquity",
+    "side": "Long",
+    "entry_timestamp_ms": 1715000001300,
+    "entry_price": 100.0,
+    "stop_price": 95.0,
+    "target_price": 107.0,
+    "current_price": 99.0,
+    "status": "Open",
+    "source_kind": "KISOfficialEvidence",
+    "reason_codes": ["RiskDenied"]
+  }
+]

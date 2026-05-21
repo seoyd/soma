@@ -1,0 +1,9 @@
+{
+  "reduced_queue": [
+    "DashboardRenderer",
+    "CommitteeCliSafety",
+    "BaselineSignal",
+    "CounterfactualBackfill"
+  ],
+  "reduced_primary_next_family": "DashboardRenderer"
+}

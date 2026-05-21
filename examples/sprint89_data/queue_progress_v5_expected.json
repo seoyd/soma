@@ -1,0 +1,11 @@
+{
+  "reduced_queue": [
+    "ExternalPrediction",
+    "KrxEvidence",
+    "DashboardRenderer",
+    "CommitteeCliSafety",
+    "BaselineSignal",
+    "CounterfactualBackfill"
+  ],
+  "reduced_primary_next_family": "ExternalPrediction"
+}

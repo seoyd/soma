@@ -1,0 +1,9 @@
+{
+  "pack_id": "committee-counterfactual-pack",
+  "no_trade_counterfactual_count": 1,
+  "risk_denied_counterfactual_count": 1,
+  "defensive_value_count": 1,
+  "opportunity_cost_count": 1,
+  "pack_status": "CounterfactualReferencePackReady",
+  "reason_codes": ["CommitteeEvidenceExpanded", "DeterministicPath"]
+}

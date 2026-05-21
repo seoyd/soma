@@ -1,0 +1,38 @@
+{
+  "report_id": "cli-smoke-tiering-application-v1",
+  "representative_smoke_commands": [
+    "sprint107-safe-consolidation-patch",
+    "safe-consolidation-patch-selection",
+    "assertion-migration-ledger-v1",
+    "shared-fixture-harness-application-v1"
+  ],
+  "exhaustive_smoke_commands": [
+    "shared-toml-builder-application-v1",
+    "shared-output-dir-helper-application-v1",
+    "shared-render-helper-application-v1"
+  ],
+  "safety_smoke_commands": [
+    "safety-sentinel-preservation-v1",
+    "acceptance-truth-gate-v8",
+    "control-tower-safe-consolidation-patch-v1"
+  ],
+  "commands_moved_to_exhaustive": [
+    "shared-toml-builder-application-v1",
+    "shared-output-dir-helper-application-v1",
+    "shared-render-helper-application-v1"
+  ],
+  "safety_smoke_preserved": true,
+  "no_safety_smoke_removed": true,
+  "application_status": "CliSmokeTieringApplied",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "DeterministicPath",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt",
+    "LocalFileOnly"
+  ]
+}

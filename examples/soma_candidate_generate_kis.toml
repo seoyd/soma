@@ -1,0 +1,14 @@
+loop_id = "sprint56-candidate-generate-kis"
+candidate_source_paths = ["examples/sprint56_data/kis_evidence_candidates.json"]
+output_root = "target/sprint56"
+max_candidates = 10
+max_cycles = 10
+max_events = 1000
+require_core_check_pass = true
+require_official_evidence_for_official_candidates = true
+allow_research_only_candidates = true
+allow_diagnostic_candidates = true
+allow_crypto_only_candidates = true
+enable_owner_review = true
+enable_paper_confirm = true
+enable_paper_position_lifecycle = true

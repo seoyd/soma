@@ -1,0 +1,32 @@
+{
+  "report_id": "cargo-target-stall-attribution",
+  "last_seen_targets": [
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs",
+    "tests/shared_fixture_harness_application_v1.rs",
+    "tests/sprint111_cli_safety.rs",
+    "tests/workspace_timeout_root_cause.rs"
+  ],
+  "repeated_last_seen_targets": [
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs",
+    "tests/shared_fixture_harness_application_v1.rs",
+    "tests/workspace_timeout_root_cause.rs"
+  ],
+  "targets_with_no_completion_event": [
+    "tests/workspace_timeout_root_cause.rs",
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs"
+  ],
+  "suspected_stalled_targets": [
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs",
+    "tests/workspace_timeout_root_cause.rs"
+  ],
+  "attribution_status": "TargetStallAttributed",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "report_id": "shared-output-dir-helper-application-v1",
+  "output_dir_helper_applied": true,
+  "deterministic_output_root_preserved": true,
+  "cleanup_policy_preserved": true,
+  "no_silent_deletion": true,
+  "affected_targets": [
+    "tests/support/shared_fixture_harness.rs",
+    "tests/support/sprint105_support.rs",
+    "tests/support/sprint106_support.rs"
+  ],
+  "duplicated_output_dir_setup_removed": 2,
+  "application_status": "SharedOutputDirHelperApplied",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "DeterministicPath",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt",
+    "LocalFileOnly"
+  ]
+}

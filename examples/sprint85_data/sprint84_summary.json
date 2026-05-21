@@ -1,0 +1,13 @@
+{
+  "previous_gate_status": "FullWorkspaceStillBlocked",
+  "binary_consolidation_status": "TestBinariesReduced",
+  "shared_fixture_harness_status": "HarnessReady",
+  "smoke_policy_status": "SmokePolicyReady",
+  "runtime_before_after_status": "SampleBackedOnly",
+  "full_workspace_blocked_binaries": [
+    "tests/complete_row_closure_v2.rs",
+    "tests/artifact_render_cache_plan.rs",
+    "tests/persona_operational_status.rs"
+  ]
+}
+

@@ -1,0 +1,28 @@
+{
+  "report_id": "workspace-timeout-reduction-hypothesis-v1",
+  "hypotheses": [
+    "ArtifactRenderFanout",
+    "CliSmokeFanout",
+    "FixtureSetupFanout",
+    "IntegrationTestBinaryFanout",
+    "LinkTimeCost",
+    "MacroExpansionCost",
+    "TimeoutWrapperOverhead"
+  ],
+  "evidence_refs": [
+    "cargo-json-failure-reason-analysis-v1",
+    "cargo-json-target-blocker-extraction-v1",
+    "sprint117-real-observation-carry-forward"
+  ],
+  "confidence": "Moderate",
+  "hypothesis_status": "TimeoutHypothesisReady",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

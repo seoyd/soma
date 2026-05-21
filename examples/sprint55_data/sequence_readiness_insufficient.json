@@ -1,0 +1,24 @@
+{
+  "readiness_id": "fixture_sequence_insufficient",
+  "row_count": 180,
+  "official_row_count": 160,
+  "complete_row_count": 120,
+  "estimated_sequence_windows": 120,
+  "symbols": ["005930", "000660", "AAPL", "MSFT"],
+  "horizons": [4, 8],
+  "window_lengths": [32, 64],
+  "outcome_label_distribution": {
+    "Win": 60,
+    "Loss": 40,
+    "NoTrade": 20
+  },
+  "feature_schema_locked": true,
+  "no_lookahead_safe": true,
+  "storage_estimate_bytes": 524288,
+  "source_class": "official_non_crypto",
+  "summary_derived_ratio": 0.10,
+  "readiness_status": "NeedMoreRows",
+  "blockers": ["more rows and windows are required before sequence export"],
+  "warnings": [],
+  "reason_codes": ["DeterministicPath"]
+}

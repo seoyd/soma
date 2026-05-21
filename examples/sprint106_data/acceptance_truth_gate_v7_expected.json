@@ -1,0 +1,20 @@
+{
+  "gate_id": "acceptance-truth-gate-v7",
+  "no_run_status": "NotRun",
+  "full_workspace_status": "NotRun",
+  "focused_status": "FocusedPassed",
+  "verification_status": "VerificationIsNotFullAcceptanceAfterTruthRecovery",
+  "can_claim_full_acceptance": false,
+  "truth_status": "AcceptanceTruthReadyWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "DeterministicPath",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt",
+    "LocalFileOnly"
+  ]
+}

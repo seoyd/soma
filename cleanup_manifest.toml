@@ -1,0 +1,326 @@
+# Historical record of the earlier quarantine phase.
+# The quarantine archive itself has since been deleted, so destinations below
+# describe the intermediate move target that existed before permanent removal.
+
+[[files]]
+path = "ACCEPTANCE_REPORT.md"
+classification = "QUARANTINE_CANDIDATE"
+reason = "Historical acceptance report for the old fusion project; not part of Cargo/module/build reachability."
+evidence = [
+  "top-level markdown, not in cargo metadata workspace members",
+  "no Cargo.toml or build.rs reference",
+  "only report-cluster references were found",
+  "cargo test --workspace --quiet passed after quarantine"
+]
+action = "moved_to_quarantine"
+risk_level = "low"
+test_status = "passed"
+destination = "quarantine/old_experiments/reports/ACCEPTANCE_REPORT.md"
+
+[[files]]
+path = "EVAL.md"
+classification = "QUARANTINE_CANDIDATE"
+reason = "Historical evaluation note, outside the active build/runtime path."
+evidence = [
+  "top-level markdown, not in cargo metadata workspace members",
+  "no Cargo.toml or build.rs reference",
+  "cargo test --workspace --quiet passed after quarantine"
+]
+action = "moved_to_quarantine"
+risk_level = "low"
+test_status = "passed"
+destination = "quarantine/old_experiments/reports/EVAL.md"
+
+[[files]]
+path = "MEMORY_LEAK_REPORT.md"
+classification = "QUARANTINE_CANDIDATE"
+reason = "Historical performance/report artifact; not required by build or tests."
+evidence = [
+  "top-level markdown, not in cargo metadata workspace members",
+  "no Cargo.toml or build.rs reference",
+  "cargo test --workspace --quiet passed after quarantine"
+]
+action = "moved_to_quarantine"
+risk_level = "low"
+test_status = "passed"
+destination = "quarantine/old_experiments/reports/MEMORY_LEAK_REPORT.md"
+
+[[files]]
+path = "OPTIMIZATION.md"
+classification = "QUARANTINE_CANDIDATE"
+reason = "Historical optimization guide tied to the old acceptance report cluster, not the active runtime path."
+evidence = [
+  "top-level markdown, not in cargo metadata workspace members",
+  "no Cargo.toml or build.rs reference",
+  "only historical report references were found",
+  "cargo test --workspace --quiet passed after quarantine"
+]
+action = "moved_to_quarantine"
+risk_level = "low"
+test_status = "passed"
+destination = "quarantine/old_experiments/reports/OPTIMIZATION.md"
+
+[[files]]
+path = "UPGRADE_REPORT.md"
+classification = "QUARANTINE_CANDIDATE"
+reason = "Historical upgrade log outside the live Cargo/module graph."
+evidence = [
+  "top-level markdown, not in cargo metadata workspace members",
+  "no Cargo.toml or build.rs reference",
+  "cargo test --workspace --quiet passed after quarantine"
+]
+action = "moved_to_quarantine"
+risk_level = "low"
+test_status = "passed"
+destination = "quarantine/old_experiments/reports/UPGRADE_REPORT.md"
+
+[[files]]
+path = "work.md"
+classification = "UNKNOWN"
+reason = "Historical task note; not part of build reachability, but referenced by the quarantined acceptance report and not proven safe enough to remove."
+evidence = [
+  "top-level markdown outside cargo metadata",
+  "referenced by ACCEPTANCE_REPORT.md historically",
+  "no stronger proof of irrelevance collected in Sprint 02"
+]
+action = "kept_in_place"
+risk_level = "medium"
+test_status = "not_applicable"
+
+[[files]]
+path = "soma-ssm"
+classification = "QUARANTINE_CANDIDATE"
+reason = "Legacy Sparse/Mamba model crate; became zero-inbound after `soma-model` switched to an internal deterministic block path."
+evidence = [
+  "no remaining inbound workspace dependencies after soma-model refactor",
+  "non-code references limited to docs, manifest entries, and quarantined reports",
+  "cargo fmt/check/test passed after removal from workspace members and move to quarantine"
+]
+action = "moved_to_quarantine"
+risk_level = "medium"
+test_status = "passed"
+destination = "quarantine/old_experiments/soma-ssm"
+
+[[files]]
+path = "soma-gdn"
+classification = "QUARANTINE_CANDIDATE"
+reason = "Legacy GDN model crate; became zero-inbound after `soma-model` switched to an internal deterministic block path."
+evidence = [
+  "no remaining inbound workspace dependencies after soma-model refactor",
+  "non-code references limited to docs, manifest entries, and quarantined reports",
+  "cargo fmt/check/test passed after removal from workspace members and move to quarantine"
+]
+action = "moved_to_quarantine"
+risk_level = "medium"
+test_status = "passed"
+destination = "quarantine/old_experiments/soma-gdn"
+
+[[files]]
+path = "soma-attn"
+classification = "QUARANTINE_CANDIDATE"
+reason = "Legacy attention backend crate; became zero-inbound after `soma-model` switched to an internal deterministic attention helper."
+evidence = [
+  "no remaining inbound workspace dependencies after soma-model refactor",
+  "non-code references limited to docs, manifest entries, and quarantined reports",
+  "cargo fmt/check/test passed after move to quarantine"
+]
+action = "moved_to_quarantine"
+risk_level = "medium"
+test_status = "passed"
+destination = "quarantine/old_experiments/soma-attn"
+
+[[files]]
+path = "soma-mor"
+classification = "QUARANTINE_CANDIDATE"
+reason = "Legacy router crate; became zero-inbound after `soma-model` switched to an internal deterministic router helper."
+evidence = [
+  "no remaining inbound workspace dependencies after soma-model refactor",
+  "non-code references limited to docs, manifest entries, and quarantined reports",
+  "cargo fmt/check/test passed after move to quarantine"
+]
+action = "moved_to_quarantine"
+risk_level = "medium"
+test_status = "passed"
+destination = "quarantine/deprecated_router/soma-mor"
+
+[[files]]
+path = "soma-memory"
+classification = "QUARANTINE_CANDIDATE"
+reason = "Legacy memory subsystem; became zero-inbound after `soma-model` switched to an internal deterministic memory helper."
+evidence = [
+  "no remaining inbound workspace dependencies after soma-model refactor",
+  "non-code references limited to docs, manifest entries, and quarantined reports",
+  "cargo fmt/check/test passed after move to quarantine"
+]
+action = "moved_to_quarantine"
+risk_level = "medium"
+test_status = "passed"
+destination = "quarantine/old_experiments/soma-memory"
+
+[[files]]
+path = "soma-online"
+classification = "QUARANTINE_CANDIDATE"
+reason = "Legacy online-learning crate; zero inbound workspace dependencies in the first active-legacy isolation batch."
+evidence = [
+  "zero inbound workspace dependencies in reverse-dependency audit",
+  "non-code references limited to root docs, commented CI hints, self README, and quarantined orchestration/report artifacts",
+  "cargo fmt/check/test passed after removal from workspace members and move to quarantine"
+]
+action = "moved_to_quarantine"
+risk_level = "medium"
+test_status = "passed"
+destination = "quarantine/deprecated_online_learning/soma-online"
+
+[[files]]
+path = "soma-adapt"
+classification = "QUARANTINE_CANDIDATE"
+reason = "Legacy adaptation crate; zero inbound workspace dependencies in the first active-legacy isolation batch."
+evidence = [
+  "zero inbound workspace dependencies in reverse-dependency audit",
+  "non-code references limited to root docs and quarantined orchestration/report artifacts",
+  "cargo fmt/check/test passed after removal from workspace members and move to quarantine"
+]
+action = "moved_to_quarantine"
+risk_level = "medium"
+test_status = "passed"
+destination = "quarantine/deprecated_online_learning/soma-adapt"
+
+[[files]]
+path = "soma-cli"
+classification = "QUARANTINE_CANDIDATE"
+reason = "Single-entry wrapper CLI for the old multi-binary stack; zero inbound workspace dependencies and not required by Soma Zero v0."
+evidence = [
+  "zero inbound workspace dependencies in reverse-dependency audit",
+  "non-doc references limited to self references, Cargo membership, and Cargo.lock",
+  "cargo check/test passed after removal from workspace members and move to quarantine"
+]
+action = "moved_to_quarantine"
+risk_level = "medium"
+test_status = "passed"
+destination = "quarantine/unused_bins/soma-cli"
+
+[[files]]
+path = "soma-release"
+classification = "QUARANTINE_CANDIDATE"
+reason = "Legacy release-packaging utility outside the Soma Zero v0 runtime; zero inbound workspace dependencies."
+evidence = [
+  "zero inbound workspace dependencies in reverse-dependency audit",
+  "non-doc references limited to self references, Cargo membership, Cargo.lock, and one commented CI hint",
+  "cargo check/test passed after removal from workspace members and move to quarantine"
+]
+action = "moved_to_quarantine"
+risk_level = "medium"
+test_status = "passed"
+destination = "quarantine/unused_bins/soma-release"
+
+[[files]]
+path = "soma-bench"
+classification = "QUARANTINE_CANDIDATE"
+reason = "Legacy benchmark crate outside the Soma Zero v0 runtime; zero inbound workspace dependencies."
+evidence = [
+  "zero inbound workspace dependencies in reverse-dependency audit",
+  "non-doc references limited to workspace membership and legacy docs",
+  "cargo check/test passed after removal from workspace members and move to quarantine"
+]
+action = "moved_to_quarantine"
+risk_level = "medium"
+test_status = "passed"
+destination = "quarantine/old_experiments/soma-bench"
+
+[[files]]
+path = "soma-train"
+classification = "QUARANTINE_CANDIDATE"
+reason = "Legacy training CLI outside the Soma Zero v0 runtime; zero inbound workspace dependencies."
+evidence = [
+  "zero inbound workspace dependencies in reverse-dependency audit",
+  "non-doc references limited to workspace membership, README text, and commented CI lines",
+  "cargo check/test passed after removal from workspace members and move to quarantine"
+]
+action = "moved_to_quarantine"
+risk_level = "medium"
+test_status = "passed"
+destination = "quarantine/deprecated_online_learning/soma-train"
+
+[[files]]
+path = "soma-orchestrate"
+classification = "QUARANTINE_CANDIDATE"
+reason = "Legacy closed-loop orchestration crate outside the Soma Zero v0 runtime; zero inbound workspace dependencies."
+evidence = [
+  "zero inbound workspace dependencies in reverse-dependency audit",
+  "non-doc references limited to workspace membership, README text, and commented CI lines",
+  "cargo check/test passed after removal from workspace members and move to quarantine"
+]
+action = "moved_to_quarantine"
+risk_level = "medium"
+test_status = "passed"
+destination = "quarantine/deprecated_online_learning/soma-orchestrate"
+
+[[files]]
+path = "soma-canary"
+classification = "QUARANTINE_CANDIDATE"
+reason = "Legacy canary CLI outside the Soma Zero v0 runtime; zero inbound workspace dependencies."
+evidence = [
+  "zero inbound workspace dependencies in reverse-dependency audit",
+  "non-doc references limited to workspace membership and commented CI lines",
+  "cargo check/test passed after removal from workspace members and move to quarantine"
+]
+action = "moved_to_quarantine"
+risk_level = "medium"
+test_status = "passed"
+destination = "quarantine/unused_bins/soma-canary"
+
+[[files]]
+path = "soma-soak"
+classification = "QUARANTINE_CANDIDATE"
+reason = "Legacy soak CLI outside the Soma Zero v0 runtime; zero inbound workspace dependencies."
+evidence = [
+  "zero inbound workspace dependencies in reverse-dependency audit",
+  "non-doc references limited to workspace membership and commented CI lines",
+  "cargo check/test passed after removal from workspace members and move to quarantine"
+]
+action = "moved_to_quarantine"
+risk_level = "medium"
+test_status = "passed"
+destination = "quarantine/unused_bins/soma-soak"
+
+[[files]]
+path = "soma-prop"
+classification = "QUARANTINE_CANDIDATE"
+reason = "Minimal property-test utility crate outside the active Soma Zero v0 runtime; remained zero-inbound and was explicitly approved for quarantine despite work.md mentions."
+evidence = [
+  "zero inbound workspace dependencies in fresh reverse-dependency audit",
+  "non-code references limited to work.md, workspace membership, and root docs",
+  "cargo fmt/check/test passed after removal from workspace members and move to quarantine"
+]
+action = "moved_to_quarantine"
+risk_level = "medium"
+test_status = "passed"
+destination = "quarantine/old_experiments/soma-prop"
+
+[[files]]
+path = "soma-replay"
+classification = "QUARANTINE_CANDIDATE"
+reason = "Legacy replay CLI outside the active Soma Zero v0 runtime; remained zero-inbound and was explicitly approved for quarantine despite work.md mentions."
+evidence = [
+  "zero inbound workspace dependencies in fresh reverse-dependency audit",
+  "non-code references limited to work.md, workspace membership, root docs, and already-quarantined wrappers",
+  "cargo fmt/check/test passed after removal from workspace members and move to quarantine"
+]
+action = "moved_to_quarantine"
+risk_level = "medium"
+test_status = "passed"
+destination = "quarantine/unused_bins/soma-replay"
+
+[[files]]
+path = "soma-serve"
+classification = "QUARANTINE_CANDIDATE"
+reason = "Legacy serving CLI outside the active Soma Zero v0 runtime; remained zero-inbound and was explicitly approved for quarantine despite work.md mentions."
+evidence = [
+  "zero inbound workspace dependencies in fresh reverse-dependency audit",
+  "non-code references limited to work.md, workspace membership, root docs, and already-quarantined wrappers",
+  "cargo fmt/check/test passed after removal from workspace members and move to quarantine"
+]
+action = "moved_to_quarantine"
+risk_level = "medium"
+test_status = "passed"
+destination = "quarantine/unused_bins/soma-serve"

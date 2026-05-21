@@ -1,0 +1,102 @@
+{
+  "pack_id": "sprint102-paper-rotation-scenario-pack",
+  "scenarios": [
+    {
+      "scenario_id": "korean-equity-trend-breakout",
+      "market": "KoreanEquity",
+      "regime": "TrendBreakout",
+      "thesis": "Korean equity breakout with liquidity support",
+      "evidence_refs": [
+        "official-korean-equity-daily",
+        "breakout-liquidity-check"
+      ]
+    },
+    {
+      "scenario_id": "us-equity-range-bound",
+      "market": "USEquity",
+      "regime": "RangeBound",
+      "thesis": "US equity range-bound paper review with valuation cross-check",
+      "evidence_refs": [
+        "official-us-equity-daily",
+        "range-bound-regime-proof"
+      ]
+    },
+    {
+      "scenario_id": "crypto-high-volatility",
+      "market": "Crypto",
+      "regime": "HighVolatility",
+      "thesis": "Crypto leverage stress scenario",
+      "evidence_refs": [
+        "crypto-liquidity-check",
+        "funding-stress-snapshot"
+      ]
+    },
+    {
+      "scenario_id": "multi-asset-drawdown-risk",
+      "market": "MultiAsset",
+      "regime": "DrawdownRisk",
+      "thesis": "Cross-asset drawdown regime with quality review",
+      "evidence_refs": [
+        "drawdown-risk-bundle",
+        "quality-balance-sheet-review"
+      ]
+    },
+    {
+      "scenario_id": "macro-shift-cross-asset",
+      "market": "MultiAsset",
+      "regime": "MacroShift",
+      "thesis": "Macro shift regime requiring chairman synthesis",
+      "evidence_refs": [
+        "macro-shift-pack",
+        "cross-asset-confirmation"
+      ]
+    },
+    {
+      "scenario_id": "crypto-cycle-liquidity",
+      "market": "Crypto",
+      "regime": "CryptoCycle",
+      "thesis": "Crypto cycle opportunity under liquidity guard",
+      "evidence_refs": [
+        "onchain-cycle-pack",
+        "exchange-liquidity-pack"
+      ]
+    },
+    {
+      "scenario_id": "insufficient-evidence-halt",
+      "market": "USEquity",
+      "regime": "InsufficientEvidence",
+      "thesis": "Insufficient evidence halt scenario",
+      "evidence_refs": [
+        "insufficient-evidence-flag",
+        "counterfactual-review-request"
+      ]
+    }
+  ],
+  "scenario_count": 7,
+  "market_coverage": [
+    "KoreanEquity",
+    "USEquity",
+    "Crypto",
+    "MultiAsset"
+  ],
+  "regime_coverage": [
+    "TrendBreakout",
+    "RangeBound",
+    "HighVolatility",
+    "DrawdownRisk",
+    "MacroShift",
+    "CryptoCycle",
+    "InsufficientEvidence"
+  ],
+  "pack_status": "ScenarioPackReady",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

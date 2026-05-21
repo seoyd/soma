@@ -1,0 +1,8 @@
+{
+  "full_workspace_acceptance_status": "FullWorkspaceBlockedByCompilation",
+  "workspace_acceptance_recovery_gate_status": "BlockedByFullWorkspace",
+  "compilation_diagnosis_status": "DiagnosisReady",
+  "smoke_compression_status": "SmokeCompressionReady",
+  "runtime_deferred_status": "runtime deferred; no Mamba runtime, no Gated runtime, no training, no live inference"
+}
+

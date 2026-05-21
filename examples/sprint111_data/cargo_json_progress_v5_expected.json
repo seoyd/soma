@@ -1,0 +1,35 @@
+{
+  "capture_id": "cargo-json-progress-capture-v5",
+  "command": "cargo test --workspace --no-run --message-format=json",
+  "attempted": false,
+  "timeout_ms": 300000,
+  "message_count": 9,
+  "compiler_artifact_count": 4,
+  "compiler_message_count": 1,
+  "test_executable_count": 2,
+  "last_seen_targets": [
+    "tests/shared_fixture_harness_application_v1.rs",
+    "tests/workspace_timeout_root_cause.rs",
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs",
+    "tests/sprint111_cli_safety.rs"
+  ],
+  "last_seen_artifacts": [
+    "target/debug/deps/shared_fixture_harness_application_v1.synthetic",
+    "target/debug/deps/workspace_timeout_root_cause.synthetic",
+    "target/debug/deps/control_tower_workspace_timeout_root_cause_panel.synthetic"
+  ],
+  "stalled_target_candidates": [
+    "tests/workspace_timeout_root_cause.rs",
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs"
+  ],
+  "capture_status": "DiagnosticOnly",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

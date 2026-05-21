@@ -1,0 +1,1 @@
+Focused tests, CLI smoke, cargo build, no-run, and cargo progress all provide bounded evidence. Only a finished and passed cargo test --workspace --quiet can be sufficient for full workspace acceptance.

@@ -1,0 +1,91 @@
+plan_id = "sprint26_official_acquisition"
+official_collection_plan_path = "examples/soma_official_collection_compact.toml"
+fallback_crypto_only_plan = "examples/soma_official_collection_crypto_only.toml"
+output_root = "target/soma_official_acquisition"
+run_collection = true
+run_upbit_if_public_available = true
+run_krx_if_auth_ready = true
+run_alpha_if_auth_ready = true
+skip_missing_auth = true
+max_symbols = 3
+max_rows_per_symbol = 500
+max_requests = 10
+max_total_bytes = 16777216
+allow_full_history = false
+allow_all_symbols = false
+reason_codes = ["DeterministicPath"]
+
+[auth_preflight_config]
+check_id = "sprint26_official_acquisition_auth"
+providers_to_check = ["Upbit", "KrxOpenApi", "AlphaVantage", "Alpaca"]
+allow_missing_optional_auth = true
+fail_on_missing_required_auth = false
+reason_codes = ["DeterministicPath"]
+
+[[auth_preflight_config.required_env_vars]]
+provider_kind = "KrxOpenApi"
+api_key_env_var = "KRX_API_KEY"
+endpoint_template_env_var = "KRX_ENDPOINT_TEMPLATE"
+
+[[auth_preflight_config.required_env_vars]]
+provider_kind = "AlphaVantage"
+api_key_env_var = "ALPHAVANTAGE_API_KEY"
+
+[[auth_preflight_config.required_env_vars]]
+provider_kind = "Alpaca"
+api_key_env_var = "ALPACA_API_KEY"
+api_secret_env_var = "ALPACA_API_SECRET"
+
+[expansion_config]
+expansion_id = "sprint26_official_acquisition_expansion"
+run_auth_preflight = false
+run_collection = false
+run_core_benchmark = true
+run_external_eval = false
+output_root = "target/soma_official_expansion"
+require_core_check = true
+strict_schema_validation = true
+min_total_ready_datasets = 1
+min_total_outcome_records = 20
+min_comparable_model_reports = 1
+max_storage_bytes = 16777216
+continue_on_missing_auth = true
+continue_on_provider_failure = true
+reason_codes = ["DeterministicPath"]
+
+[expansion_config.venue_coverage_plan]
+plan_id = "sprint26_acquisition_coverage"
+max_total_symbols = 3
+max_total_rows = 1500
+max_total_requests = 10
+max_total_bytes = 16777216
+allow_crypto_only = true
+allow_missing_equity_auth = true
+reason_codes = ["DeterministicPath"]
+
+[[expansion_config.venue_coverage_plan.targets]]
+venue_group = "Crypto"
+min_ready_datasets = 1
+min_outcome_records = 20
+min_symbols = 1
+min_timeframes = 1
+required = true
+reason_codes = ["DeterministicPath"]
+
+[[expansion_config.venue_coverage_plan.targets]]
+venue_group = "KoreanEquity"
+min_ready_datasets = 1
+min_outcome_records = 20
+min_symbols = 1
+min_timeframes = 1
+required = false
+reason_codes = ["DeterministicPath"]
+
+[[expansion_config.venue_coverage_plan.targets]]
+venue_group = "USEquity"
+min_ready_datasets = 1
+min_outcome_records = 20
+min_symbols = 1
+min_timeframes = 1
+required = false
+reason_codes = ["DeterministicPath"]

@@ -1,0 +1,20 @@
+{
+  "report_id": "overclaim-regression-guard-report",
+  "full_acceptance_requires_finished_and_passed": true,
+  "unrun_attempt_finished": false,
+  "focused_pass_is_full_acceptance": false,
+  "verification_pass_is_full_acceptance": false,
+  "no_run_pass_is_full_acceptance": false,
+  "regression_detected": false,
+  "guard_status": "OverclaimRegressionGuardReady",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

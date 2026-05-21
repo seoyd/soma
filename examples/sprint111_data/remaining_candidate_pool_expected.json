@@ -1,0 +1,48 @@
+{
+  "report_id": "remaining-safe-candidate-pool",
+  "candidate_pool": [
+    "tests/cargo_json_progress_capture_v5.rs",
+    "tests/control_tower_fifth_patch_decision_panel.rs",
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs",
+    "tests/shared_fixture_harness_application_v1.rs",
+    "tests/workspace_no_run_progress_trace_v1.rs",
+    "tests/workspace_timeout_root_cause.rs"
+  ],
+  "low_risk_candidates": [
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs",
+    "tests/shared_fixture_harness_application_v1.rs",
+    "tests/workspace_timeout_root_cause.rs"
+  ],
+  "medium_risk_candidates": [
+    "tests/control_tower_fifth_patch_decision_panel.rs",
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs"
+  ],
+  "high_risk_candidates": [],
+  "sentinel_candidates_excluded": [
+    "tests/committee_cli_safety.rs",
+    "tests/paper_lifecycle_warning_closure.rs",
+    "tests/sprint111_cli_safety.rs",
+    "tests/workspace_cli_safety_suite.rs",
+    "tests/workspace_determinism_suite.rs"
+  ],
+  "candidates_with_equivalent_coverage_feasible": [
+    "tests/cargo_json_progress_capture_v5.rs",
+    "tests/shared_fixture_harness_application_v1.rs",
+    "tests/workspace_no_run_progress_trace_v1.rs",
+    "tests/workspace_timeout_root_cause.rs"
+  ],
+  "candidates_needing_more_evidence": [
+    "tests/control_tower_fifth_patch_decision_panel.rs",
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs"
+  ],
+  "pool_status": "CandidatePoolReadyWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

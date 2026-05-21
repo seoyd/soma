@@ -1,0 +1,34 @@
+{
+  "messages": [
+    {
+      "reason": "compiler-artifact",
+      "package_id": "soma_zero",
+      "target_name": "workspace_acceptance_recovery_v7",
+      "artifact": "workspace_acceptance_recovery_v7.dSYM"
+    },
+    {
+      "reason": "compiler-artifact",
+      "package_id": "soma_zero",
+      "target_name": "workspace_no_run_recovery_gate_v7",
+      "artifact": "workspace_no_run_recovery_gate_v7.dSYM"
+    },
+    {
+      "reason": "compiler-artifact",
+      "package_id": "soma_zero",
+      "target_name": "acceptance_truth_gate_v7",
+      "artifact": "acceptance_truth_gate_v7.dSYM"
+    },
+    {
+      "reason": "build-script-executed",
+      "package_id": "soma_zero",
+      "target_name": "serde_derive",
+      "artifact": "serde_derive-build"
+    },
+    {
+      "reason": "compiler-message",
+      "package_id": "soma_zero",
+      "target_name": "control_tower_workspace_acceptance_recovery_panel_v7",
+      "artifact": "control_tower_workspace_acceptance_recovery_panel_v7.message"
+    }
+  ]
+}

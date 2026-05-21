@@ -1,0 +1,26 @@
+{
+  "gated_deltanet_contract_expected": {
+    "input_tensor_spec": "batch x sequence_len x feature_count tensor with manifest-locked feature ordering",
+    "feature_schema_hash_required": true,
+    "label_manifest_hash_required": true,
+    "sequence_window_spec": "windowed OHLCV + derived features + no-lookahead-safe labels",
+    "supported_horizons": [5, 10, 20],
+    "state_matrix_shape": "batch x head_count x sequence_len x value_dim",
+    "key_dim": 64,
+    "value_dim": 128,
+    "head_count": 8,
+    "value_head_grouping": 2,
+    "q_projection_required": true,
+    "k_projection_required": true,
+    "v_projection_required": true,
+    "output_projection_required": true,
+    "decay_gate_required": true,
+    "update_gate_required": true,
+    "beta_or_learning_rate_required": true,
+    "delta_update_required": true,
+    "optional_local_attention_bridge": false,
+    "optional_mamba_bridge": true,
+    "optional_micro_attention_bridge": false
+  }
+}
+

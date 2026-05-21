@@ -1,0 +1,72 @@
+{
+  "plan_id": "sprint97-counterfactual-backfill-recover-plan",
+  "target_files": [
+    "tests/counterfactual_backfill_suite.rs"
+  ],
+  "donor_files": [
+    "tests/counterfactual_backfill_recovery.rs",
+    "tests/counterfactual_backfill_entry_gate.rs",
+    "tests/counterfactual_backfill_readiness_precheck.rs"
+  ],
+  "actions": [
+    "VerifyGroupedSuiteCoverage",
+    "MoveRemainingAssertions",
+    "RemoveDuplicateSetupOnly",
+    "ApplySharedFixtureHarness",
+    "ReduceNoTradeFixtureDuplication",
+    "ReduceRiskDeniedFixtureDuplication",
+    "ReduceDefensiveValueFixtureDuplication",
+    "ReduceOpportunityCostFixtureDuplication",
+    "ReduceNoFabricatedOutcomeFixtureDuplication",
+    "KeepSeparateForIsolation"
+  ],
+  "assertions_to_preserve": [
+    "NoTrade counterfactual coverage",
+    "RiskDenied counterfactual coverage",
+    "defensive value attribution",
+    "opportunity cost visibility under veto",
+    "missing outcomes remain missing",
+    "no-lookahead and source-boundary guarantees",
+    "research-only/paper-only interpretation",
+    "deterministic backfill output"
+  ],
+  "safety_guards_to_preserve": [
+    "no live trading",
+    "no broker/order/account path",
+    "no runtime llm/mamba/gated runtime",
+    "no model training",
+    "no browser execution controls",
+    "local-only deterministic outputs"
+  ],
+  "no_trade_fixture_duplication": [
+    "tests/counterfactual_backfill_suite.rs",
+    "tests/risk_counterfactual.rs"
+  ],
+  "risk_denied_fixture_duplication": [
+    "tests/counterfactual_backfill_suite.rs",
+    "tests/risk_counterfactual.rs",
+    "src/risk/governor.rs"
+  ],
+  "defensive_value_fixture_duplication": [
+    "tests/counterfactual_backfill_suite.rs",
+    "tests/risk_counterfactual.rs",
+    "src/league/counterfactual_reference_generator.rs"
+  ],
+  "opportunity_cost_fixture_duplication": [
+    "tests/counterfactual_backfill_suite.rs",
+    "tests/risk_counterfactual.rs",
+    "src/league/counterfactual_reference_generator.rs"
+  ],
+  "no_fabricated_outcome_fixture_duplication": [
+    "tests/counterfactual_backfill_suite.rs",
+    "src/league/counterfactual_completion_v2.rs",
+    "src/league/outcome_linkage_v3.rs"
+  ],
+  "expected_target_delta": 0,
+  "semantic_risk": "Medium",
+  "plan_status": "CounterfactualBackfillReductionPlanReady",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

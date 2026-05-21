@@ -1,0 +1,39 @@
+{
+  "report_id": "group-debate-session-report",
+  "scenario_id": "crypto-cycle-liquidity",
+  "participating_groups": [
+    "ShortTermSwing",
+    "LongTermEquity",
+    "Crypto",
+    "CommonRisk"
+  ],
+  "participating_members": [
+    "CommonRiskManager",
+    "BurniskeTokenValuation",
+    "HayesLiquidityDerivatives",
+    "SaylorTreasury",
+    "GrahamMarginOfSafety",
+    "MarksCycleRiskPremium",
+    "LarryWilliamsStatisticalSeasonality",
+    "RaschkeProcessManager"
+  ],
+  "debate_turn_count": 8,
+  "support_entry_count": 2,
+  "oppose_entry_count": 1,
+  "wait_count": 1,
+  "no_trade_count": 1,
+  "risk_deny_count": 1,
+  "request_more_evidence_count": 1,
+  "consensus_state": "NeedMoreEvidence",
+  "debate_status": "DebateSessionReadyWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

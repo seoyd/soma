@@ -1,0 +1,24 @@
+{
+  "import_id": "workspace-acceptance-truth-import",
+  "source_path": "examples/sprint98_data/workspace_acceptance_truth_import.json",
+  "imported_gate_id": "sprint97-workspace-truth-gate",
+  "truth_status": "FullWorkspaceNotRun",
+  "full_workspace_finished": false,
+  "full_workspace_passed": null,
+  "can_claim_full_acceptance": false,
+  "queue_closed_with_workspace_still_blocked": true,
+  "notes": [
+    "full workspace acceptance remains separate",
+    "do not overclaim from queue closure"
+  ],
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

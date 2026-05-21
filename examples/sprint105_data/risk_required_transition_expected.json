@@ -1,0 +1,21 @@
+{
+  "report_id": "risk-governor-required-transition-audit-report",
+  "paper_approved_requires_risk": true,
+  "paper_rejected_requires_risk": true,
+  "risk_denied_requires_risk": true,
+  "no_trade_requires_risk": true,
+  "cooldown_requires_risk": true,
+  "live_transition_present": false,
+  "bypass_transition_count": 0,
+  "audit_status": "RiskGovernorRequiredTransitionsReady",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

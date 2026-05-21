@@ -1,0 +1,110 @@
+{
+  "owner_inputs": [
+    {
+      "owner_input_id": "owner-input-note-001",
+      "timestamp_ms": 1715690001000,
+      "owner_id": "owner-local",
+      "input_kind": "CandidateNote",
+      "target_type": "Candidate",
+      "target_id": "cand-102",
+      "symbol": "AAPL",
+      "market": "USEquity",
+      "freeform_note": "Owner notes that recent price action looks fragile.",
+      "structured_payload": {
+        "tag": "fragile-trend",
+        "severity": "medium"
+      },
+      "requested_action": "add_note",
+      "status": "Submitted",
+      "reason_codes": ["DeterministicPath"]
+    },
+    {
+      "owner_input_id": "owner-input-hold-001",
+      "timestamp_ms": 1715690002000,
+      "owner_id": "owner-local",
+      "input_kind": "CandidateHold",
+      "target_type": "Candidate",
+      "target_id": "cand-104",
+      "symbol": "NVDA",
+      "market": "USEquity",
+      "structured_payload": {
+        "hold_reason": "await_earnings"
+      },
+      "requested_action": "hold_candidate",
+      "status": "Submitted",
+      "reason_codes": ["DeterministicPath"]
+    },
+    {
+      "owner_input_id": "owner-input-reanalysis-001",
+      "timestamp_ms": 1715690003000,
+      "owner_id": "owner-local",
+      "input_kind": "CandidateReanalysisRequest",
+      "target_type": "Candidate",
+      "target_id": "cand-104",
+      "symbol": "NVDA",
+      "market": "USEquity",
+      "structured_payload": {
+        "focus": "risk_regime_check"
+      },
+      "requested_action": "request_reanalysis",
+      "status": "Submitted",
+      "reason_codes": ["DeterministicPath"]
+    },
+    {
+      "owner_input_id": "owner-input-paper-confirm-001",
+      "timestamp_ms": 1715690004000,
+      "owner_id": "owner-local",
+      "input_kind": "PaperConfirm",
+      "target_type": "Candidate",
+      "target_id": "cand-101",
+      "symbol": "005930.KS",
+      "market": "KoreanEquity",
+      "structured_payload": {
+        "confirm_reason": "paper_only_review_complete"
+      },
+      "requested_action": "paper_confirm_candidate",
+      "status": "Submitted",
+      "reason_codes": ["DeterministicPath"]
+    },
+    {
+      "owner_input_id": "owner-input-risk-tighten-001",
+      "timestamp_ms": 1715690005000,
+      "owner_id": "owner-local",
+      "input_kind": "RiskTightenRequest",
+      "target_type": "System",
+      "structured_payload": {
+        "max_drawdown_buffer": "tighter"
+      },
+      "requested_action": "tighten_risk",
+      "status": "Submitted",
+      "reason_codes": ["DeterministicPath"]
+    },
+    {
+      "owner_input_id": "owner-input-risk-loosen-001",
+      "timestamp_ms": 1715690006000,
+      "owner_id": "owner-local",
+      "input_kind": "RiskLoosenRequestDiagnosticOnly",
+      "target_type": "RiskDecision",
+      "target_id": "cand-102",
+      "symbol": "AAPL",
+      "market": "USEquity",
+      "structured_payload": {
+        "why": "compare_alternative_thresholds"
+      },
+      "requested_action": "diagnostic_risk_compare",
+      "status": "Submitted",
+      "reason_codes": ["DeterministicPath"]
+    },
+    {
+      "owner_input_id": "owner-input-unknown-001",
+      "timestamp_ms": 1715690007000,
+      "owner_id": "owner-local",
+      "input_kind": "Unknown",
+      "target_type": "System",
+      "freeform_note": "Do something unsafe and magical.",
+      "requested_action": "unknown_freeform",
+      "status": "Draft",
+      "reason_codes": ["DeterministicPath"]
+    }
+  ]
+}

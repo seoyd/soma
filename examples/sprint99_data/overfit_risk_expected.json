@@ -1,0 +1,30 @@
+{
+  "report_id": "member-overfit-risk-report",
+  "member_count": 8,
+  "high_overfit_risk_members": 0,
+  "medium_overfit_risk_members": 5,
+  "low_overfit_risk_members": 3,
+  "overfit_indicators": [
+    "macro-interpreter:overfit_risk=0.360",
+    "value-skeptic:overfit_risk=0.420",
+    "liquidity-executor:overfit_risk=0.480",
+    "counterfactual-reviewer:overfit_risk=0.540",
+    "chair-candidate:overfit_risk=0.600"
+  ],
+  "mitigation_actions": [
+    "keep promotion multi-axis and never raw-return-only",
+    "require chair audit for scorecard-driven roster changes",
+    "preserve no-trade and risk-alignment weights"
+  ],
+  "overfit_status": "OverfitRiskControlledWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

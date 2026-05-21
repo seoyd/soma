@@ -1,0 +1,6 @@
+{
+  "veto_status": "RiskGovernorVetoPreserved",
+  "risk_denied_overrides_baseline_signal": true,
+  "emergency_stop_overrides_baseline_signal": true,
+  "cooldown_overrides_baseline_signal": true
+}

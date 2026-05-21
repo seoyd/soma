@@ -1,0 +1,14 @@
+audit_id = "full-gate-recovery-v4"
+sprint85_bundle_paths = ["examples/sprint86_data/sprint85_summary.json"]
+cargo_metadata_paths = [
+  "examples/sprint86_data/residual_binaries_before.json",
+  "examples/sprint86_data/residual_binaries_after.json",
+  "examples/sprint86_data/residual_family_classifier_expected.json",
+]
+full_workspace_attempt_paths = [
+  "examples/sprint86_data/compile_only_attempt_sample.json",
+  "examples/sprint86_data/full_workspace_attempt_v4_expected.json",
+  "examples/sprint86_data/safety_coverage_expected.json",
+]
+output_root = "target/soma_sprint86_residual_gate_recovery"
+

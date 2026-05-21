@@ -1,0 +1,9 @@
+timing_id = "repeated-workspace-timing-example"
+sample_timing_paths = [
+  "examples/sprint77_data/repeated_timing_sample.json",
+  "examples/sprint77_data/test_binary_cost_sample.json",
+  "examples/sprint77_data/fixture_setup_cost_sample.json",
+  "examples/sprint77_data/artifact_render_cost_sample.json",
+  "examples/sprint77_data/cli_smoke_cost_sample.json",
+  "examples/sprint77_data/expected_test_optimization_summary.json",
+]

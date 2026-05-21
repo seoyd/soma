@@ -1,0 +1,16 @@
+trace_id = "sprint68-model-action-trace"
+model_ops_rollup_paths = ["examples/sprint68_data/model_ops_rollup_bundle.json"]
+regression_explanation_paths = ["examples/sprint68_data/regression_explanations.json"]
+operator_qa_rollup_paths = ["examples/sprint68_data/operator_qa_rollup.json"]
+model_ops_risk_rollup_paths = ["examples/sprint68_data/model_ops_risk_rollup.json"]
+model_ops_action_priority_paths = ["examples/sprint68_data/model_ops_action_priority.json"]
+baseline_artifact_paths = ["examples/sprint68_data/baseline_snapshot.json"]
+current_artifact_paths = ["examples/sprint68_data/current_snapshot.json"]
+output_root = "target/soma_model_ops_trace"
+max_models = 16
+max_versions = 32
+max_trace_edges = 48
+max_artifacts = 32
+max_bytes = 1000000
+require_local_paths = true
+generate_html_fragments = true

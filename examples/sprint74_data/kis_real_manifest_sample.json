@@ -1,0 +1,20 @@
+{
+  "records": [
+    {
+      "local_path": "examples/sprint74_data/kis_real_canonical_sample.csv",
+      "symbol": "005930",
+      "market": "KRX",
+      "timeframe": "1d",
+      "row_count": 8,
+      "source_class": "OfficialKIS",
+      "no_lookahead_safe": true,
+      "feature_schema_match": true,
+      "label_manifest_match": true,
+      "barrier_profile_present": true,
+      "outcome_links_present": true,
+      "future_window_gap_count": 0,
+      "estimated_windows": 4,
+      "storage_within_budget": true
+    }
+  ]
+}

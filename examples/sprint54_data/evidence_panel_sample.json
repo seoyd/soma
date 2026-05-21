@@ -1,0 +1,22 @@
+{
+  "evidence_panel": {
+    "official_rows": 24,
+    "official_complete_rows": 8,
+    "outcome_links": 10,
+    "no_trade_counterfactuals": 4,
+    "risk_denied_counterfactuals": 2,
+    "candle_sufficiency_status": "MissingFutureWindows",
+    "diversity_status": "TrinityOnly",
+    "sufficiency_status": "NeedMoreKISEvidence",
+    "source_breakdown": {
+      "official_non_crypto": 24,
+      "crypto_only": 0,
+      "research_only": 1,
+      "fixture_only": 0,
+      "controlled_diagnostic": 1
+    },
+    "current_bottleneck": "NeedOutcomeLinkDepth",
+    "next_recommended_action": "Close future windows and expand outcome links before stronger claims.",
+    "reason_codes": ["DeterministicPath", "DashboardEvidencePanelBuilt"]
+  }
+}

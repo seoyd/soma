@@ -1,0 +1,6 @@
+{
+  "control_tower_v1_config_path": "examples/soma_control_tower_v1_kis.toml",
+  "kis_evidence_depth_report_path": "examples/sprint57_data/kis_depth_after.json",
+  "trinity_loop_report_path": "examples/sprint57_data/trinity_loop_refresh.json",
+  "owner_review_queue_path": "examples/sprint54_data/owner_review_queue_sample.json"
+}

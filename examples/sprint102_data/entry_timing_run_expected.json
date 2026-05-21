@@ -1,0 +1,87 @@
+{
+  "run_id": "paper-only-entry-timing-proposal-run",
+  "scenario_id": "crypto-cycle-liquidity",
+  "timing_proposals": [
+    {
+      "timing_id": "timing-burniske-immediate",
+      "member_id": "BurniskeTokenValuation",
+      "entry_window": "ImmediatePaperOnly",
+      "rationale": "paper-only immediate rotation when liquidity confirmation is present",
+      "risk_checks": [
+        "confirm CommonRisk budget"
+      ]
+    },
+    {
+      "timing_id": "timing-larry-next-candle",
+      "member_id": "LarryWilliamsStatisticalSeasonality",
+      "entry_window": "NextCandle",
+      "rationale": "wait one candle for seasonal confirmation",
+      "risk_checks": [
+        "confirm no lookahead leakage"
+      ]
+    },
+    {
+      "timing_id": "timing-buffett-next-n-candles",
+      "member_id": "BuffettQualityMoat",
+      "entry_window": "NextNCandles",
+      "rationale": "long-term review waits across several paper candles",
+      "risk_checks": [
+        "confirm balance-sheet refresh"
+      ]
+    },
+    {
+      "timing_id": "timing-raschke-pullback",
+      "member_id": "RaschkeProcessManager",
+      "entry_window": "PullbackConfirmation",
+      "rationale": "pattern process wants pullback confirmation",
+      "risk_checks": [
+        "confirm stop distance"
+      ]
+    },
+    {
+      "timing_id": "timing-saylor-breakout-retest",
+      "member_id": "SaylorTreasury",
+      "entry_window": "BreakoutRetest",
+      "rationale": "treasury framing requires retest before paper observation",
+      "risk_checks": [
+        "confirm liquidity depth"
+      ]
+    },
+    {
+      "timing_id": "timing-hayes-cooldown",
+      "member_id": "HayesLiquidityDerivatives",
+      "entry_window": "VolatilityCooldown",
+      "rationale": "derivatives stress requires cooldown",
+      "risk_checks": [
+        "confirm leverage reset"
+      ]
+    },
+    {
+      "timing_id": "timing-common-risk-no-entry",
+      "member_id": "CommonRiskManager",
+      "entry_window": "NoEntry",
+      "rationale": "risk sentinel keeps paper-only no-entry until evidence hardening closes",
+      "risk_checks": [
+        "confirm unresolved risk remains"
+      ]
+    }
+  ],
+  "immediate_paper_only_count": 1,
+  "next_candle_count": 1,
+  "next_n_candles_count": 1,
+  "pullback_confirmation_count": 1,
+  "breakout_retest_count": 1,
+  "volatility_cooldown_count": 1,
+  "no_entry_count": 1,
+  "timing_status": "EntryTimingRunReadyWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

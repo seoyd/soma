@@ -1,0 +1,78 @@
+{
+  "report_id": "workspace-timeout-evidence-matrix-v2",
+  "evidence_rows": [
+    {
+      "row_id": "NoRunObservation",
+      "evidence_type": "NoRunObservation",
+      "evidence_status": "NoRunNotRun",
+      "supports_acceptance": false,
+      "supporting_only": true
+    },
+    {
+      "row_id": "FullObservation",
+      "evidence_type": "FullObservation",
+      "evidence_status": "FullWorkspaceNotRun",
+      "supports_acceptance": false,
+      "supporting_only": true
+    },
+    {
+      "row_id": "CargoJsonObservation",
+      "evidence_type": "CargoJsonObservation",
+      "evidence_status": "CargoJsonNotRun",
+      "supports_acceptance": false,
+      "supporting_only": true
+    },
+    {
+      "row_id": "TimeoutBoundary",
+      "evidence_type": "TimeoutBoundary",
+      "evidence_status": "NoRunTimeoutBoundaryCarriedForward",
+      "supports_acceptance": false,
+      "supporting_only": true
+    },
+    {
+      "row_id": "TimeoutCleanup",
+      "evidence_type": "TimeoutCleanup",
+      "evidence_status": "TimeoutCleanupConsistent",
+      "supports_acceptance": false,
+      "supporting_only": true
+    },
+    {
+      "row_id": "ArtifactOrdering",
+      "evidence_type": "ArtifactOrdering",
+      "evidence_status": "CargoArtifactOrderingDeferred",
+      "supports_acceptance": false,
+      "supporting_only": true
+    },
+    {
+      "row_id": "FocusedTests",
+      "evidence_type": "FocusedTests",
+      "evidence_status": "FocusedSupportingOnly",
+      "supports_acceptance": false,
+      "supporting_only": true
+    },
+    {
+      "row_id": "CliSmoke",
+      "evidence_type": "CliSmoke",
+      "evidence_status": "CliSupportingOnly",
+      "supports_acceptance": false,
+      "supporting_only": true
+    },
+    {
+      "row_id": "CargoBuild",
+      "evidence_type": "CargoBuild",
+      "evidence_status": "CargoBuildSupportingOnly",
+      "supports_acceptance": false,
+      "supporting_only": true
+    }
+  ],
+  "status": "WorkspaceTimeoutEvidenceMatrixSupportingOnly",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

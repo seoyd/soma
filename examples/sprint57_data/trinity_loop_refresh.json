@@ -1,0 +1,214 @@
+{
+  "loop_id": "sprint57-trinity-loop-refresh",
+  "generated_candidate_count": 4,
+  "cycle_count": 4,
+  "paper_approved_count": 1,
+  "paper_position_open_count": 1,
+  "risk_blocked_count": 0,
+  "no_trade_count": 0,
+  "human_confirm_required_count": 0,
+  "owner_held_count": 0,
+  "owner_dismissed_count": 0,
+  "reanalysis_requested_count": 0,
+  "final_status": "PaperOnlyMonitoringReady",
+  "final_recommendation": "KeepTrinity",
+  "operational_loop_panel": {
+    "loop_status": "PaperOnlyMonitoringReady",
+    "last_loop_run_id": "sprint57-trinity-loop-refresh",
+    "active_cycle_count": 4,
+    "generated_candidates": 4,
+    "paper_approved": 1,
+    "paper_open": 1,
+    "risk_blocked": 0,
+    "no_trade": 0,
+    "owner_review_pending": 0,
+    "next_action": "KeepTrinity",
+    "reason_codes": ["DeterministicPath"]
+  },
+  "trinity_status_panel": {
+    "persona_views": [
+      {
+        "persona_id": "cycle_regime_guard",
+        "status": "Done",
+        "current_candidate_id": "candidate-005930",
+        "current_symbol": "005930",
+        "last_stance": "Approve",
+        "last_conviction": 0.97,
+        "last_voice_power": 0.70,
+        "reason_codes": ["DeterministicPath"]
+      },
+      {
+        "persona_id": "defensive_value_risk",
+        "status": "Done",
+        "current_candidate_id": "candidate-005930",
+        "current_symbol": "005930",
+        "last_stance": "Approve",
+        "last_conviction": 0.88,
+        "last_voice_power": 0.58,
+        "reason_codes": ["DeterministicPath"]
+      },
+      {
+        "persona_id": "trend_breakout_fast",
+        "status": "Done",
+        "current_candidate_id": "candidate-005930",
+        "current_symbol": "005930",
+        "last_stance": "ReduceSize",
+        "last_conviction": 0.99,
+        "last_voice_power": 0.78,
+        "reason_codes": ["DeterministicPath"]
+      }
+    ],
+    "active_count": 3,
+    "idle_count": 0,
+    "analyzing_count": 0,
+    "voting_count": 0,
+    "blocked_count": 0,
+    "reason_codes": ["DeterministicPath"]
+  },
+  "candidate_lifecycle_panel": {
+    "candidate_views": [
+      {
+        "candidate_id": "candidate-005930",
+        "symbol": "005930",
+        "market": "KoreanEquity",
+        "source_kind": "KISOfficialEvidence",
+        "evidence_class": "Official",
+        "lifecycle_status": "PaperPositionOpen",
+        "reason_codes": ["DeterministicPath"]
+      },
+      {
+        "candidate_id": "candidate-aapl",
+        "symbol": "AAPL",
+        "market": "USEquity",
+        "source_kind": "ResearchOnly",
+        "evidence_class": "ResearchOnly",
+        "lifecycle_status": "ResearchOnly",
+        "reason_codes": ["DeterministicPath", "ResearchOnlyOverride"]
+      }
+    ],
+    "status_counts": {
+      "PaperPositionOpen": 1,
+      "ResearchOnly": 1
+    },
+    "reason_codes": ["DeterministicPath"]
+  },
+  "paper_lifecycle_panel": {
+    "open_positions": 1,
+    "closed_positions": 2,
+    "target_hit_count": 1,
+    "stop_hit_count": 0,
+    "expired_count": 1,
+    "risk_closed_count": 0,
+    "average_unrealized_return": 0.0,
+    "average_realized_return": 0.0125,
+    "reason_codes": ["DeterministicPath", "PaperExecutionOnly"]
+  },
+  "paper_position_lifecycle_report": {
+    "open_positions": [
+      {
+        "paper_position_id": "paper-open-005930",
+        "candidate_id": "candidate-005930",
+        "symbol": "005930",
+        "market": "KoreanEquity",
+        "side": "Long",
+        "entry_timestamp_ms": 1715000000000,
+        "entry_price": 100.0,
+        "stop_price": 99.0,
+        "target_price": 103.0,
+        "current_price": 100.0,
+        "unrealized_return_pct": 0.0,
+        "realized_return_pct": null,
+        "status": "Open",
+        "source_kind": "KISOfficialEvidence",
+        "reason_codes": ["PaperExecutionOnly"]
+      }
+    ],
+    "closed_positions": [
+      {
+        "paper_position_id": "paper-target-005930",
+        "candidate_id": "candidate-005930",
+        "symbol": "005930",
+        "market": "KoreanEquity",
+        "side": "Long",
+        "entry_timestamp_ms": 1714900000000,
+        "entry_price": 95.0,
+        "stop_price": 94.0,
+        "target_price": 98.0,
+        "current_price": 98.0,
+        "unrealized_return_pct": null,
+        "realized_return_pct": 0.0316,
+        "status": "TargetHit",
+        "source_kind": "KISOfficialEvidence",
+        "reason_codes": ["PaperExecutionOnly", "TakeProfitHit"]
+      },
+      {
+        "paper_position_id": "paper-expired-aapl",
+        "candidate_id": "candidate-aapl",
+        "symbol": "AAPL",
+        "market": "USEquity",
+        "side": "Long",
+        "entry_timestamp_ms": 1714800000000,
+        "entry_price": 120.0,
+        "stop_price": 117.0,
+        "target_price": 126.0,
+        "current_price": 121.0,
+        "unrealized_return_pct": null,
+        "realized_return_pct": -0.0066,
+        "status": "Expired",
+        "source_kind": "ResearchOnly",
+        "reason_codes": ["PaperExecutionOnly", "TimeBarrierExpired"]
+      }
+    ],
+    "target_hit_count": 1,
+    "stop_hit_count": 0,
+    "expired_count": 1,
+    "risk_closed_count": 0,
+    "average_unrealized_return": 0.0,
+    "average_realized_return": 0.0125,
+    "reason_codes": ["DeterministicPath", "PaperExecutionOnly"],
+    "fingerprint": "s57paperlife"
+  },
+  "operational_audit_timeline": {
+    "events": [
+      {
+        "event_id": "evt-1",
+        "event_kind": "CandidateGenerated",
+        "candidate_id": "candidate-005930",
+        "persona_id": null,
+        "timestamp_ms": 1715000000000,
+        "status_before": "Detected",
+        "status_after": "EvidenceReady",
+        "summary": "generated candidate 005930",
+        "reason_codes": ["DeterministicPath"]
+      },
+      {
+        "event_id": "evt-2",
+        "event_kind": "ChairReviewed",
+        "candidate_id": "candidate-005930",
+        "persona_id": null,
+        "timestamp_ms": 1715000000010,
+        "status_before": "CommitteeVoting",
+        "status_after": "ChairReviewed",
+        "summary": "chair approved candidate",
+        "reason_codes": ["DeterministicPath", "ChairV0Built"]
+      },
+      {
+        "event_id": "evt-3",
+        "event_kind": "PaperPositionOpened",
+        "candidate_id": "candidate-005930",
+        "persona_id": null,
+        "timestamp_ms": 1715000000020,
+        "status_before": "PaperApproved",
+        "status_after": "PaperPositionOpen",
+        "summary": "paper position opened",
+        "reason_codes": ["DeterministicPath", "PaperExecutionOnly"]
+      }
+    ],
+    "event_count": 3,
+    "warning_count": 2,
+    "error_count": 0,
+    "fingerprint": "s57looptimeline"
+  },
+  "reason_codes": ["DeterministicPath", "PaperExecutionOnly"],
+  "fingerprint": "s57loopreport"
+}

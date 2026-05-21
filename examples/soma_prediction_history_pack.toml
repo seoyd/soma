@@ -1,0 +1,31 @@
+history_pack_id = "sprint66-prediction-history-pack"
+sequence_export_manifest_paths = ["examples/sprint64_data/sequence_export_manifest.json"]
+prediction_csv_paths = [
+  "examples/sprint64_data/external_predictions_model_a_v1.csv",
+  "examples/sprint64_data/external_predictions_model_a_v2.csv",
+  "examples/sprint66_data/external_predictions_model_a_v3.csv",
+  "examples/sprint64_data/external_predictions_model_b_v1.csv",
+]
+model_card_paths = [
+  "examples/sprint64_data/model_card_a_v1.json",
+  "examples/sprint64_data/model_card_a_v2.json",
+  "examples/sprint66_data/model_card_a_v3.json",
+  "examples/sprint64_data/model_card_b_v1.json",
+]
+evaluation_report_paths = [
+  "examples/sprint64_data/evaluation_a_v1.json",
+  "examples/sprint64_data/evaluation_a_v2.json",
+  "examples/sprint64_data/evaluation_b_v1.json",
+]
+import_report_paths = [
+  "examples/sprint64_data/import_a_v1.json",
+  "examples/sprint64_data/import_a_v2.json",
+  "examples/sprint64_data/import_b_v1.json",
+]
+output_root = "target/soma_prediction_history_pack"
+max_models = 8
+max_versions_per_model = 8
+max_prediction_files = 16
+require_same_sequence_export = true
+require_model_cards = true
+

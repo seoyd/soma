@@ -1,0 +1,25 @@
+{
+  "report_id": "member-selection-warning-closure-report",
+  "previous_status": "MemberSelectionReadyWithWarnings",
+  "selected_member_count": 8,
+  "selected_members_with_role_reason": 8,
+  "selected_members_with_confidence_reason": 8,
+  "selected_members_with_regime_reason": 8,
+  "selected_members_with_risk_reason": 8,
+  "watchlist_members_used": [
+    "SaylorTreasury"
+  ],
+  "watchlist_usage_justified": true,
+  "remaining_selection_warnings": 0,
+  "closure_status": "MemberSelectionWarningsClosedWithNotes",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

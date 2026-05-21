@@ -1,0 +1,38 @@
+{
+  "outcomes": [
+    {
+      "symbol": "BTC-KRW",
+      "timestamp_ms": 1700000000000,
+      "horizon_bars": 24,
+      "triple_barrier_label": "TakeProfit",
+      "net_return_pct": 0.04,
+      "cost_bps": 5.0,
+      "slippage_bps": 2.0,
+      "source_kind": "OfficialApiCollected",
+      "no_lookahead_safe": true
+    },
+    {
+      "symbol": "ETH-KRW",
+      "timestamp_ms": 1700000000001,
+      "horizon_bars": 24,
+      "triple_barrier_label": "NoTradeCounterfactual",
+      "net_return_pct": -0.01,
+      "cost_bps": 5.0,
+      "slippage_bps": 2.0,
+      "source_kind": "OfficialApiCollected",
+      "no_lookahead_safe": true
+    },
+    {
+      "symbol": "XRP-KRW",
+      "timestamp_ms": 1700000000002,
+      "horizon_bars": 24,
+      "triple_barrier_label": "RiskDeniedCounterfactual",
+      "net_return_pct": -0.02,
+      "cost_bps": 5.0,
+      "slippage_bps": 2.0,
+      "source_kind": "OfficialApiCollected",
+      "no_lookahead_safe": true
+    }
+  ]
+}
+

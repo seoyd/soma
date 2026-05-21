@@ -1,0 +1,25 @@
+{
+  "report_id": "shared-render-helper-application-v1",
+  "txt_render_helper_applied": true,
+  "json_render_helper_applied": true,
+  "html_render_helper_applied": true,
+  "stable_sorting_preserved": true,
+  "snapshot_order_preserved": true,
+  "affected_targets": [
+    "src/league/sprint106_workspace_acceptance_recovery.rs",
+    "src/league/sprint107_safe_consolidation_patch.rs"
+  ],
+  "duplicated_render_helpers_removed": 3,
+  "application_status": "SharedRenderHelperApplied",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "DeterministicPath",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt",
+    "LocalFileOnly"
+  ]
+}

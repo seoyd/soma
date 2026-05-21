@@ -1,0 +1,15 @@
+{
+  "gate_id": "acceptance-truth-gate-v19",
+  "can_claim_full_acceptance": false,
+  "full_gate_status": "FullWorkspaceStillBlocked",
+  "status": "AcceptanceTruthReadyWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

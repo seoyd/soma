@@ -1,0 +1,17 @@
+coverage_id = "sprint48-balanced-coverage-mixed"
+multi_row_set_paths = ["examples/sprint48_data/diversity_multi_row_set_mixed.json"]
+batch_outcome_linkage_paths = ["examples/sprint48_data/diversity_mixed_outcomes.json"]
+batch_counterfactual_completion_paths = ["examples/sprint48_data/diversity_mixed_counterfactuals.json"]
+barrier_profile_registry_path = "examples/soma_barrier_profiles_primary.toml"
+output_root = "target/soma_sprint48_examples/balanced_coverage"
+min_official_complete_rows = 4
+min_symbols = 3
+min_timeframes = 2
+min_horizons = 2
+min_take_profit = 1
+min_stop_loss = 1
+min_time_expired = 1
+min_no_trade_counterfactuals = 4
+min_risk_denied_counterfactuals = 4
+min_outcome_entropy = 1.0
+require_preregistered_profile = true

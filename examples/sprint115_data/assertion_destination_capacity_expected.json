@@ -1,0 +1,43 @@
+{
+  "report_id": "assertion-destination-capacity-v1",
+  "destination_targets": [
+    {
+      "target": "tests/shared_fixture_harness_application_v1.rs",
+      "current_assertion_load": 5,
+      "migrated_assertion_load": 2,
+      "warning_assertion_load": 0,
+      "remaining_capacity": 1,
+      "status": "DestinationCapacityReadyWithWarnings"
+    },
+    {
+      "target": "tests/workspace_timeout_root_cause.rs",
+      "current_assertion_load": 9,
+      "migrated_assertion_load": 0,
+      "warning_assertion_load": 2,
+      "remaining_capacity": -1,
+      "status": "DestinationCapacityInsufficient"
+    },
+    {
+      "target": "tests/control_tower_workspace_timeout_root_cause_panel.rs",
+      "current_assertion_load": 6,
+      "migrated_assertion_load": 0,
+      "warning_assertion_load": 6,
+      "remaining_capacity": -6,
+      "status": "EvidenceBlurRiskTooHigh"
+    }
+  ],
+  "current_assertion_load": 20,
+  "migrated_assertion_load": 2,
+  "warning_assertion_load": 8,
+  "remaining_capacity": -6,
+  "capacity_status": "DestinationCapacityInsufficient",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

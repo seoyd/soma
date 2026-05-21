@@ -1,0 +1,1 @@
+The nextest pilot reports availability, partitioning, and slow-target attribution only. It is diagnostic-only, must not hide skipped tests, and a nextest result never upgrades into cargo workspace acceptance.

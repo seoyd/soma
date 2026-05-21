@@ -1,0 +1,49 @@
+{
+  "evidence_panel": {
+    "official_rows": 42,
+    "official_complete_rows": 18,
+    "outcome_links": 12,
+    "no_trade_counterfactuals": 6,
+    "risk_denied_counterfactuals": 4,
+    "candle_sufficiency_status": "SufficientForPaperOnly",
+    "diversity_status": "TrinityOnly",
+    "sufficiency_status": "NeedMoreKISEvidence",
+    "source_breakdown": {
+      "official_non_crypto": 42,
+      "crypto_only": 0,
+      "research_only": 3,
+      "fixture_only": 1,
+      "controlled_diagnostic": 2
+    },
+    "current_bottleneck": "NeedMoreKISEvidence",
+    "next_recommended_action": "Run bounded local KIS market-data smoke and expand official evidence before any benchmark claim.",
+    "reason_codes": [
+      "DeterministicPath",
+      "DashboardEvidencePanelBuilt"
+    ]
+  },
+  "bottleneck_panel": {
+    "primary_bottleneck": "NeedMoreKISEvidence",
+    "secondary_bottlenecks": [
+      "NeedOutcomeLinkDepth",
+      "ImproveRiskGovernorFirst"
+    ],
+    "core_status": "CoreCheckPassed",
+    "evidence_status": "NeedMoreKISEvidence",
+    "risk_status": "Conservative",
+    "committee_status": "PaperOnlyCandidate",
+    "next_action": "NeedKISLiveMarketDataSmoke",
+    "operator_actions": [
+      "Keep Control Tower read-only.",
+      "Expand KIS market-data evidence with provenance and preflight."
+    ],
+    "reason_codes": [
+      "DeterministicPath",
+      "DashboardBottleneckPanelBuilt"
+    ]
+  },
+  "reason_codes": [
+    "CorePerformanceScorecardBuilt",
+    "DashboardEvidencePanelBuilt"
+  ]
+}

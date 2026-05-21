@@ -1,0 +1,17 @@
+{
+  "sequence_export_state": {
+    "dataset_registry_present": true,
+    "dataset_version_manifest_present": true,
+    "feature_schema_manifest_present": true,
+    "label_manifest_present": true,
+    "sequence_export_manifest_present": true,
+    "split_manifest_present": true,
+    "no_lookahead_proof_present": true,
+    "source_class_manifest_present": true,
+    "training_data_storage_manifest_present": true,
+    "feature_schema_ready": true,
+    "label_manifest_ready": true,
+    "no_lookahead_ready": true
+  }
+}
+

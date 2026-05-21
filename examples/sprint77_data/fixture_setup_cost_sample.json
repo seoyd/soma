@@ -1,0 +1,133 @@
+{
+  "fixture_setup_cost_report": {
+    "report_id": "sample-fixture-setup-cost",
+    "records": [
+      {
+        "fixture_path": "examples/sprint77_data/repeated_timing_sample.json",
+        "fixture_kind": "json",
+        "used_by_tests": [
+          "tests/repeated_workspace_timing.rs",
+          "tests/test_optimization_determinism.rs"
+        ],
+        "repeated_load_count": 2,
+        "estimated_bytes": 8192,
+        "setup_cost_kind": "RepeatedJsonLoad",
+        "dedup_candidate": true,
+        "cache_candidate": true
+      },
+      {
+        "fixture_path": "examples/soma_repeated_workspace_timing.toml",
+        "fixture_kind": "toml",
+        "used_by_tests": [
+          "tests/test_support_refactor_plan.rs"
+        ],
+        "repeated_load_count": 2,
+        "estimated_bytes": 512,
+        "setup_cost_kind": "RepeatedTomlParse",
+        "dedup_candidate": true,
+        "cache_candidate": false
+      },
+      {
+        "fixture_path": "target/sprint77-tests/*",
+        "fixture_kind": "output-dir",
+        "used_by_tests": [
+          "tests/test_optimization_determinism.rs"
+        ],
+        "repeated_load_count": 2,
+        "setup_cost_kind": "RepeatedOutputDirSetup",
+        "dedup_candidate": true,
+        "cache_candidate": false
+      },
+      {
+        "fixture_path": "synthetic-support-builder",
+        "fixture_kind": "synthetic-dataset",
+        "used_by_tests": [
+          "tests/test_binary_cost.rs"
+        ],
+        "repeated_load_count": 1,
+        "setup_cost_kind": "RepeatedSyntheticDatasetBuild",
+        "dedup_candidate": true,
+        "cache_candidate": false
+      }
+    ],
+    "dedup_candidate_count": 4,
+    "cache_candidate_count": 1,
+    "total_estimated_fixture_bytes": 8704,
+    "primary_fixture_bottleneck": "examples/sprint77_data/repeated_timing_sample.json",
+    "report_status": "FixtureCostReady"
+  },
+  "fixture_setup_dedup_plan": {
+    "plan_id": "sample-fixture-dedup-plan",
+    "actions": [
+      "ShareJsonFixture",
+      "ShareTomlFixture",
+      "PrecomputeFixtureIndex",
+      "ReuseOutputDirTemplate",
+      "DeduplicateSyntheticBuilder"
+    ],
+    "target_fixtures": [
+      "examples/sprint77_data/repeated_timing_sample.json",
+      "examples/soma_repeated_workspace_timing.toml",
+      "target/sprint77-tests/*",
+      "synthetic-support-builder"
+    ],
+    "target_tests": [
+      "tests/repeated_workspace_timing.rs",
+      "tests/test_binary_cost.rs",
+      "tests/test_optimization_determinism.rs",
+      "tests/test_support_refactor_plan.rs"
+    ],
+    "expected_benefit": "Medium",
+    "semantic_risk": "Medium",
+    "plan_status": "DedupPlanReady"
+  },
+  "shared_fixture_cache_plan": {
+    "plan_id": "sample-shared-fixture-cache-plan",
+    "cache_policy": "LocalOnDiskFingerprintCache",
+    "cache_key_fields": [
+      "fixture_path",
+      "content_hash",
+      "fixture_kind"
+    ],
+    "invalidation_rules": [
+      "invalidate on path change",
+      "invalidate on content hash change",
+      "invalidate on fixture kind change"
+    ],
+    "target_fixture_kinds": [
+      "json",
+      "toml",
+      "output-dir",
+      "synthetic-dataset"
+    ],
+    "safety_checks": [
+      "no secrets in cache",
+      "deterministic outputs preserved",
+      "cache bypass on invalidation mismatch"
+    ],
+    "expected_benefit": "Medium",
+    "plan_status": "CachePlanReady"
+  },
+  "test_support_refactor_plan": {
+    "plan_id": "sample-test-support-refactor-plan",
+    "actions": [
+      "CentralizeFixtureLoaders",
+      "CentralizeTomlConfigBuilders",
+      "CentralizeOutputDirSetup",
+      "CentralizeCliSmokeHarness",
+      "SplitHeavyIntegrationTest"
+    ],
+    "target_files": [
+      "tests/support/sprint69_support.rs",
+      "tests/test_optimization_cli_safety.rs",
+      "tests/test_optimization_determinism.rs"
+    ],
+    "expected_benefit": "Medium",
+    "semantic_risk": "Medium",
+    "required_followup_tests": [
+      "tests/test_optimization_cli_safety.rs",
+      "tests/test_optimization_determinism.rs"
+    ],
+    "plan_status": "NeedManualReview"
+  }
+}

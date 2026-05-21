@@ -1,0 +1,33 @@
+{
+  "report_id": "sprint97-counterfactual-backfill-recover-safety-v13",
+  "live_trading_guard_present": true,
+  "broker_guard_present": true,
+  "order_guard_present": true,
+  "account_guard_present": true,
+  "runtime_llm_guard_present": true,
+  "mamba_runtime_guard_present": true,
+  "gated_runtime_guard_present": true,
+  "model_training_guard_present": true,
+  "rust_neural_training_guard_present": true,
+  "python_training_dependency_guard_present": true,
+  "secret_guard_present": true,
+  "no_lookahead_guard_present": true,
+  "source_boundary_guard_present": true,
+  "browser_execution_guard_present": true,
+  "ui_order_control_guard_present": true,
+  "committee_cli_safety_isolated": true,
+  "counterfactual_no_trade_preserved": true,
+  "counterfactual_risk_denied_preserved": true,
+  "counterfactual_defensive_value_preserved": true,
+  "counterfactual_opportunity_cost_preserved": true,
+  "counterfactual_no_fabricated_outcomes_preserved": true,
+  "counterfactual_no_lookahead_preserved": true,
+  "counterfactual_source_boundary_preserved": true,
+  "counterfactual_research_only_preserved": true,
+  "queue_closure_separate_from_workspace_acceptance": true,
+  "safety_status": "SafetyCoveragePreserved",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

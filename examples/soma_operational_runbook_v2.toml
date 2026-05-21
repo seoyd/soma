@@ -1,0 +1,9 @@
+runbook_id = "sprint58-operational-runbook-v2"
+smoke_report_paths = [
+  "target/sprint58/kis_market_data_smoke/sprint58-kis-market-data-smoke/kis_market_data_smoke_report.json"
+]
+control_tower_auto_refresh_report_paths = [
+  "target/sprint58/control_tower_auto_refresh/sprint58-control-tower-auto-refresh/control_tower_auto_refresh.json"
+]
+output_root = "target/sprint58/operational_runbook_v2"
+reason_codes = ["DeterministicPath"]

@@ -1,0 +1,31 @@
+plan_id = "sprint31_realtime_research"
+output_root = "target/soma_evidence_plan"
+run_core_check = true
+run_collection = true
+run_preflight = true
+run_benchmark = true
+run_external_eval = false
+allow_yfinance_research = false
+allow_crypto_only = true
+allow_missing_auth_skips = true
+max_lanes = 5
+max_symbols = 1
+max_rows_per_lane = 250
+max_requests_per_lane = 6
+max_total_bytes = 250000
+reason_codes = []
+
+[[explicit_lanes]]
+lane_kind = "USEquityRealtimeResearch"
+provider = "alpaca"
+symbols = ["AAPL"]
+enabled = true
+reason_codes = []
+
+[[explicit_lanes]]
+lane_kind = "USEquityFullMarketRealtimeResearch"
+provider = "polygon"
+symbols = ["AAPL"]
+enabled = true
+reason_codes = []
+

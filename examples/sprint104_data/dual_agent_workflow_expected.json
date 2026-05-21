@@ -1,0 +1,42 @@
+{
+  "policy_id": "dual-agent-workflow-policy",
+  "implementation_agent": "codex-5.4",
+  "verification_agent": "gpt-5.5",
+  "implementation_allowed_actions": [
+    "implement code",
+    "add focused tests",
+    "add CLI/docs/examples",
+    "patch verification findings"
+  ],
+  "verification_allowed_actions": [
+    "audit prompt compliance",
+    "audit safety invariants",
+    "audit architecture regressions",
+    "emit explicit findings",
+    "final verify without claiming full workspace acceptance"
+  ],
+  "implementation_forbidden_actions": [
+    "claim verification is full workspace acceptance",
+    "silently upgrade lower-confidence evidence",
+    "add live trading or order/account paths"
+  ],
+  "verification_forbidden_actions": [
+    "silently rewrite architecture",
+    "bypass Risk Governor",
+    "treat focused verification as full workspace acceptance"
+  ],
+  "handoff_required": true,
+  "findings_required": true,
+  "final_verification_required": true,
+  "policy_status": "DualAgentWorkflowReady",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

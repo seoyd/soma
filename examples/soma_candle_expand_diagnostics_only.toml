@@ -1,0 +1,17 @@
+plan_id = "sprint43-diagnostics-only-expand"
+gap_map_path = "examples/sprint43_data/gap_map_diagnostics_only.json"
+output_root = "target/soma_sprint43_examples"
+run_collection_jobs = false
+run_import_jobs = false
+generate_collection_jobs = false
+generate_import_jobs = false
+allow_local_import = false
+run_reference_generation = false
+run_counterfactual_depth_close = false
+run_core_scorecard_rerun = false
+max_jobs = 10
+max_symbols_per_job = 5
+max_rows_per_job = 500
+max_requests_per_job = 10
+max_total_bytes = 5000000
+reason_codes = ["DeterministicPath"]

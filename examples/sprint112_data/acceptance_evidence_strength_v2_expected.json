@@ -1,0 +1,23 @@
+{
+  "report_id": "acceptance-evidence-strength-v2",
+  "focused_evidence_strength": "SupportingOnly",
+  "cli_evidence_strength": "SupportingOnly",
+  "cargo_check_evidence_strength": "SupportingOnly",
+  "cargo_build_evidence_strength": "SupportingOnly",
+  "nextest_evidence_strength": "Insufficient",
+  "sccache_evidence_strength": "SupportingOnly",
+  "cargo_progress_evidence_strength": "SupportingOnly",
+  "no_run_evidence_strength": "SupportingOnly",
+  "full_workspace_evidence_strength": "Insufficient",
+  "overall_evidence_strength": "SupportingOnly",
+  "status": "AcceptanceEvidenceSupportingOnly",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

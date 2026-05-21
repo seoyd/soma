@@ -1,0 +1,9 @@
+[[policies]]
+raw_symbol = "AAPL.OQ"
+raw_timeframe = "daily"
+timestamp_policy = "DailySessionClose"
+
+[[policies]]
+raw_symbol = "AAPL"
+raw_timeframe = "1d"
+timestamp_policy = "DailySessionClose"

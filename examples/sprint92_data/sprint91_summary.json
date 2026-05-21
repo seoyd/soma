@@ -1,0 +1,29 @@
+{
+  "previous_status": "KrxEvidenceReducedWithWarnings",
+  "assertions_found": 11,
+  "assertions_migrated": 10,
+  "assertions_remaining": 1,
+  "isolated_sentinel": "tests/krx_raw_archive_secret_safety.rs::archive_redaction_assertions remain separate for secret-safety isolation",
+  "previous_no_run_status": "RealNoRunStillBlocked",
+  "previous_full_status": "FullWorkspaceStillBlocked",
+  "previous_remaining_blockers": [
+    "KrxEvidence",
+    "DashboardRenderer",
+    "CommitteeCliSafety",
+    "BaselineSignal",
+    "CounterfactualBackfill"
+  ],
+  "previous_primary_next_family": "KrxEvidence",
+  "previous_target_count_before": 5,
+  "previous_target_count_after": 4,
+  "no_run_timeout_ms": 300000,
+  "full_timeout_ms": 300000,
+  "no_run_stdout_present": false,
+  "no_run_stderr_present": false,
+  "full_stdout_present": false,
+  "full_stderr_present": false,
+  "krx_targets_seen": [],
+  "non_krx_targets_seen": [],
+  "krx_tests_seen": [],
+  "non_krx_tests_seen": []
+}

@@ -1,0 +1,166 @@
+{
+  "plan_id": "sprint58-kis-collection-plan-v2",
+  "jobs": [
+    {
+      "job_id": "sprint58-kis-collection-plan-v2-005930-DomesticEodDryRun-03",
+      "job_kind": "DomesticEodDryRun",
+      "normalized_symbol": "005930",
+      "market": "KoreanEquity",
+      "timeframe": "1d",
+      "runnable": true,
+      "command_suggestion": "dry-run 005930",
+      "expected_artifact": null,
+      "reason_codes": [
+        "ProviderRequestPlanned"
+      ]
+    },
+    {
+      "job_id": "sprint58-kis-collection-plan-v2-005930-FixtureReplayDomestic-01",
+      "job_kind": "FixtureReplayDomestic",
+      "normalized_symbol": "005930",
+      "market": "KoreanEquity",
+      "timeframe": "1d",
+      "runnable": true,
+      "command_suggestion": "fixture-replay examples/sprint51_data/kis_domestic_005930_fixture.json",
+      "expected_artifact": "examples/sprint51_data/kis_domestic_005930_fixture.json",
+      "reason_codes": [
+        "LocalFileOnly",
+        "MockFixtureLoaded"
+      ]
+    },
+    {
+      "job_id": "sprint58-kis-collection-plan-v2-005930-LocalCanonicalCsvImport-02",
+      "job_kind": "LocalCanonicalCsvImport",
+      "normalized_symbol": "005930",
+      "market": "KoreanEquity",
+      "timeframe": "1d",
+      "runnable": true,
+      "command_suggestion": "local-import examples/sprint51_data/kis_kr_005930_1d_eod.csv",
+      "expected_artifact": "examples/sprint51_data/kis_kr_005930_1d_eod.csv",
+      "reason_codes": [
+        "KISLocalImportPreferred",
+        "LocalFileOnly"
+      ]
+    },
+    {
+      "job_id": "sprint58-kis-collection-plan-v2-005930-SkippedLiveCollectionDisabled-04",
+      "job_kind": "SkippedLiveCollectionDisabled",
+      "normalized_symbol": "005930",
+      "market": "KoreanEquity",
+      "timeframe": "1d",
+      "runnable": false,
+      "command_suggestion": null,
+      "expected_artifact": null,
+      "reason_codes": [
+        "KISCollectionDisabledByDefault"
+      ]
+    },
+    {
+      "job_id": "sprint58-kis-collection-plan-v2-aapl-FixtureReplayOverseas-05",
+      "job_kind": "FixtureReplayOverseas",
+      "normalized_symbol": "AAPL",
+      "market": "USEquity",
+      "timeframe": "1d",
+      "runnable": true,
+      "command_suggestion": "fixture-replay examples/sprint51_data/kis_overseas_nasd_aapl_fixture.json",
+      "expected_artifact": "examples/sprint51_data/kis_overseas_nasd_aapl_fixture.json",
+      "reason_codes": [
+        "LocalFileOnly",
+        "MockFixtureLoaded"
+      ]
+    },
+    {
+      "job_id": "sprint58-kis-collection-plan-v2-aapl-LocalCanonicalCsvImport-06",
+      "job_kind": "LocalCanonicalCsvImport",
+      "normalized_symbol": "AAPL",
+      "market": "USEquity",
+      "timeframe": "1d",
+      "runnable": true,
+      "command_suggestion": "local-import examples/sprint51_data/kis_us_nasd_AAPL_1d_delayed.csv",
+      "expected_artifact": "examples/sprint51_data/kis_us_nasd_AAPL_1d_delayed.csv",
+      "reason_codes": [
+        "KISLocalImportPreferred",
+        "LocalFileOnly"
+      ]
+    },
+    {
+      "job_id": "sprint58-kis-collection-plan-v2-aapl-OverseasEodDryRun-07",
+      "job_kind": "OverseasEodDryRun",
+      "normalized_symbol": "AAPL",
+      "market": "USEquity",
+      "timeframe": "1d",
+      "runnable": true,
+      "command_suggestion": "dry-run AAPL",
+      "expected_artifact": null,
+      "reason_codes": [
+        "ProviderRequestPlanned"
+      ]
+    },
+    {
+      "job_id": "sprint58-kis-collection-plan-v2-aapl-SkippedLiveCollectionDisabled-08",
+      "job_kind": "SkippedLiveCollectionDisabled",
+      "normalized_symbol": "AAPL",
+      "market": "USEquity",
+      "timeframe": "1d",
+      "runnable": false,
+      "command_suggestion": null,
+      "expected_artifact": null,
+      "reason_codes": [
+        "KISCollectionDisabledByDefault"
+      ]
+    }
+  ],
+  "runnable_jobs": [
+    "sprint58-kis-collection-plan-v2-005930-DomesticEodDryRun-03",
+    "sprint58-kis-collection-plan-v2-005930-FixtureReplayDomestic-01",
+    "sprint58-kis-collection-plan-v2-005930-LocalCanonicalCsvImport-02",
+    "sprint58-kis-collection-plan-v2-aapl-FixtureReplayOverseas-05",
+    "sprint58-kis-collection-plan-v2-aapl-LocalCanonicalCsvImport-06",
+    "sprint58-kis-collection-plan-v2-aapl-OverseasEodDryRun-07"
+  ],
+  "skipped_jobs": [
+    "sprint58-kis-collection-plan-v2-005930-SkippedLiveCollectionDisabled-04",
+    "sprint58-kis-collection-plan-v2-aapl-SkippedLiveCollectionDisabled-08"
+  ],
+  "fixture_jobs": [
+    "sprint58-kis-collection-plan-v2-005930-FixtureReplayDomestic-01",
+    "sprint58-kis-collection-plan-v2-aapl-FixtureReplayOverseas-05"
+  ],
+  "local_import_jobs": [
+    "sprint58-kis-collection-plan-v2-005930-LocalCanonicalCsvImport-02",
+    "sprint58-kis-collection-plan-v2-aapl-LocalCanonicalCsvImport-06"
+  ],
+  "dry_run_jobs": [
+    "sprint58-kis-collection-plan-v2-005930-DomesticEodDryRun-03",
+    "sprint58-kis-collection-plan-v2-aapl-OverseasEodDryRun-07"
+  ],
+  "operator_live_jobs": [],
+  "domestic_jobs": [
+    "sprint58-kis-collection-plan-v2-005930-DomesticEodDryRun-03",
+    "sprint58-kis-collection-plan-v2-005930-FixtureReplayDomestic-01",
+    "sprint58-kis-collection-plan-v2-005930-LocalCanonicalCsvImport-02",
+    "sprint58-kis-collection-plan-v2-005930-SkippedLiveCollectionDisabled-04"
+  ],
+  "overseas_jobs": [
+    "sprint58-kis-collection-plan-v2-aapl-FixtureReplayOverseas-05",
+    "sprint58-kis-collection-plan-v2-aapl-LocalCanonicalCsvImport-06",
+    "sprint58-kis-collection-plan-v2-aapl-OverseasEodDryRun-07",
+    "sprint58-kis-collection-plan-v2-aapl-SkippedLiveCollectionDisabled-08"
+  ],
+  "operator_actions": [
+    "operator live collection remains disabled by default"
+  ],
+  "storage_budget_summary": {
+    "estimated_total_bytes": 23040,
+    "budget_ok": true,
+    "reason_codes": [
+      "CollectionBudgetReportBuilt"
+    ]
+  },
+  "plan_status": "LiveCollectionDisabled",
+  "reason_codes": [
+    "DeterministicPath",
+    "KISCollectionDisabledByDefault",
+    "KISCollectionPlanV2Built"
+  ]
+}

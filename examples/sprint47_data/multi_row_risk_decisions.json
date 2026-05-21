@@ -1,0 +1,12 @@
+{
+  "risk_decisions": [
+    {
+      "row_id": "aapl-extended-window",
+      "risk_governor_decision": "Reject"
+    },
+    {
+      "row_id": "msft-extended-window",
+      "risk_governor_decision": "Reject"
+    }
+  ]
+}

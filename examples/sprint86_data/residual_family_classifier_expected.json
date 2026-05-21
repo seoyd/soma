@@ -1,0 +1,23 @@
+{
+  "tests/official_expansion_status_mapping.rs": "OfficialExpansion",
+  "tests/official_ready_row_inventory.rs": "OfficialExpansion",
+  "tests/committee_scenario_materializer_v2.rs": "CommitteeScenarioReplay",
+  "tests/committee_replay.rs": "CommitteeScenarioReplay",
+  "tests/control_tower_briefing_panel.rs": "ControlTowerBriefing",
+  "tests/static_briefing_renderer.rs": "ControlTowerBriefing",
+  "tests/control_tower_briefing_final_refresh.rs": "ControlTowerBriefing",
+  "tests/control_tower_briefing_refresh_v2.rs": "ControlTowerBriefing",
+  "tests/external_prediction_import_v2.rs": "ExternalPrediction",
+  "tests/external_model_evaluation.rs": "ExternalPrediction",
+  "tests/previous_external_comparison.rs": "ExternalPrediction",
+  "tests/external_model_promotion_gate.rs": "ExternalPrediction",
+  "tests/external_model_card_v2.rs": "ExternalPrediction",
+  "tests/external_prediction_schema_v2.rs": "ExternalPrediction",
+  "tests/experiment_determinism.rs": "ExperimentDeterminism",
+  "tests/operator_briefing_determinism.rs": "ExperimentDeterminism",
+  "tests/model_ops_operator_qa.rs": "ModelOpsQA",
+  "tests/external_model_review_queue.rs": "ModelOpsQA",
+  "tests/external_model_watchlist.rs": "ModelOpsQA",
+  "tests/external_model_research_ops_cli_safety.rs": "CliSafety"
+}
+

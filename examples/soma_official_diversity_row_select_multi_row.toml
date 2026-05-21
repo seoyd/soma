@@ -1,0 +1,8 @@
+selector_id = "sprint48-row-selector"
+sweep_config_path = "examples/sprint48_data/diversity_selector_sweep.toml"
+candidate_sources = ["examples/sprint48_data/diversity_multi_row_set_mixed.json"]
+max_candidates = 2
+max_per_symbol = 2
+max_per_timeframe = 2
+max_per_outcome_label_hint = 2
+require_preregistered_profile = true

@@ -1,0 +1,17 @@
+recovery_id = "sprint106-workspace-acceptance-recovery"
+sprint105_bundle_paths = ["examples/sprint106_data/sprint105_summary.json"]
+compile_cost_paths = ["examples/sprint106_data/compile_cost_profile_sample.json"]
+cargo_json_paths = ["examples/sprint106_data/cargo_json_messages_sample.json"]
+output_root = "target/soma_sprint106_workspace_acceptance_recovery"
+run_real_no_run = false
+run_real_full = false
+capture_cargo_json = true
+capture_test_binary_inventory = true
+capture_rustc_snapshots = true
+require_truth_gate = true
+require_safety_preservation = true
+require_no_assertion_deletion = true
+require_no_hidden_skips = true
+preserve_runtime_deferred = true
+preserve_dual_agent_separation = true
+

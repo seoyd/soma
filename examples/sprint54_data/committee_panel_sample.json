@@ -1,0 +1,64 @@
+{
+  "committee_panel": {
+    "active_personas": 3,
+    "member_views": [
+      {
+        "persona_id": "cycle_risk_skeptic",
+        "archetype_label": "Cycle Risk Skeptic",
+        "status": "Voting",
+        "current_symbol": "005930.KS",
+        "current_candidate_id": "cand-101",
+        "last_stance": "NoTrade",
+        "conviction": 0.61,
+        "voice_power": 0.72,
+        "selected_by_chair": false,
+        "filtered_reason": "Contrarian view preserved for disagreement control.",
+        "last_reason_codes": ["CycleSkepticVeto", "SkepticWarning"]
+      },
+      {
+        "persona_id": "momentum_trend_fast",
+        "archetype_label": "Momentum Trend Fast",
+        "status": "Voting",
+        "current_symbol": "005930.KS",
+        "current_candidate_id": "cand-101",
+        "last_stance": "Buy",
+        "conviction": 0.82,
+        "voice_power": 0.90,
+        "selected_by_chair": true,
+        "filtered_reason": null,
+        "last_reason_codes": ["TrendAlignment"]
+      },
+      {
+        "persona_id": "value_quality_filter",
+        "archetype_label": "Value Quality Filter",
+        "status": "ChairReview",
+        "current_symbol": "005930.KS",
+        "current_candidate_id": "cand-101",
+        "last_stance": "Buy",
+        "conviction": 0.74,
+        "voice_power": 0.86,
+        "selected_by_chair": true,
+        "filtered_reason": null,
+        "last_reason_codes": ["QualityFilterPass"]
+      }
+    ],
+    "disagreement_score": 0.34,
+    "groupthink_risk": 0.18,
+    "conflict_status": "ControlledDisagreement",
+    "evidence_quality_status": "OfficialNonCrypto",
+    "recommendation": "PaperOnlyCandidate",
+    "reason_codes": ["DeterministicPath", "DashboardCommitteePanelBuilt"]
+  },
+  "chair_panel": {
+    "last_decision_id": "chair-20260512-001",
+    "selected_speakers": ["momentum_trend_fast", "value_quality_filter"],
+    "filtered_speakers": ["cycle_risk_skeptic"],
+    "weighted_score": 0.62,
+    "uncertainty": 0.28,
+    "final_decision": "RequireConfirm",
+    "groupthink_warning": false,
+    "human_confirm_required": true,
+    "chair_reason_codes": ["CandidateApproved", "RequireConfirmBlockedInAuto"],
+    "reason_codes": ["DeterministicPath", "DashboardChairPanelBuilt"]
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "briefing_id": "sprint71-previous-operator-briefing",
+  "sections": [
+    {
+      "section_id": "prev-system-health",
+      "section_kind": "SystemHealth",
+      "title": "System health",
+      "severity": "Watch",
+      "headline": "static direct-watch readiness 78~82% for local paper/research monitoring only",
+      "bullet_items": [
+        "source_artifacts=4",
+        "copy-only local review"
+      ],
+      "blockers": [],
+      "warnings": [
+        "leaderboard warning still unresolved"
+      ],
+      "next_actions": [
+        "cargo run --quiet --bin soma_experiment -- operator-briefing --config examples/soma_operator_briefing.toml"
+      ],
+      "source_artifacts": [
+        "soma_unexpected_diff_triage.toml",
+        "soma_model_ops_rollup.toml"
+      ],
+      "reason_codes": [
+        "BriefingSectionBuilt"
+      ]
+    },
+    {
+      "section_id": "prev-next-actions",
+      "section_kind": "NextActions",
+      "title": "Next actions",
+      "severity": "Watch",
+      "headline": "copyable local commands only",
+      "bullet_items": [
+        "Generate the full static operator briefing"
+      ],
+      "blockers": [],
+      "warnings": [],
+      "next_actions": [
+        "cargo run --quiet --bin soma_experiment -- operator-briefing --config examples/soma_operator_briefing.toml"
+      ],
+      "source_artifacts": [],
+      "reason_codes": [
+        "BriefingSectionBuilt"
+      ]
+    }
+  ],
+  "overall_severity": "Watch",
+  "primary_headline": "operator briefing BriefingReadyWithWarnings; direct-watch readiness 78~82% for local paper/research monitoring only",
+  "primary_next_action": "cargo run --quiet --bin soma_experiment -- operator-briefing --config examples/soma_operator_briefing.toml",
+  "owner_attention_items": [
+    "Review ext-model-a:1.2.0 leaderboard warning",
+    "Resolve legacy owner backlog"
+  ],
+  "blocked_items": [],
+  "deferred_items": [
+    "runtime Mamba remains deferred"
+  ],
+  "copyable_commands": [
+    "cargo run --quiet --bin soma_experiment -- operator-briefing --config examples/soma_operator_briefing.toml"
+  ],
+  "source_artifacts": [
+    "soma_unexpected_diff_triage.toml",
+    "soma_model_ops_rollup.toml"
+  ],
+  "briefing_status": "BriefingReadyWithWarnings",
+  "reason_codes": [
+    "OperatorBriefingReportBuilt"
+  ]
+}

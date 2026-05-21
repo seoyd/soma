@@ -1,0 +1,1 @@
+Sprint 111 follows Sprint 110 by importing Sprint 110 truth as supporting evidence only. It isolates workspace timeout root causes before any further consolidation, keeps fifth patch decisions gated, and preserves the rule that only a finished and passed full workspace run can claim full acceptance.

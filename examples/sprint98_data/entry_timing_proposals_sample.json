@@ -1,0 +1,108 @@
+[
+  {
+    "timing_id": "trend-scout-entry-window",
+    "member_id": "trend-scout",
+    "symbol": "005930.KS",
+    "timeframe": "OneDay",
+    "entry_window": "NextCandle",
+    "earliest_entry_timestamp": 1730086400000,
+    "latest_entry_timestamp": 1730172800000,
+    "confirmation_conditions": [
+      "breakout holds above prior swing high on paper close"
+    ],
+    "cancellation_conditions": [
+      "risk governor denies or breakout fails immediately"
+    ],
+    "required_risk_checks": [
+      "spread-within-paper-limit",
+      "paper-size-capped"
+    ],
+    "timing_status": "EntryTimingReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  {
+    "timing_id": "macro-interpreter-wait-window",
+    "member_id": "macro-interpreter",
+    "symbol": "005930.KS",
+    "timeframe": "OneDay",
+    "entry_window": "VolatilityCooldown",
+    "earliest_entry_timestamp": 1730172800000,
+    "latest_entry_timestamp": 1730432000000,
+    "confirmation_conditions": [
+      "macro volatility regime cools below paper threshold"
+    ],
+    "cancellation_conditions": [
+      "new macro shock evidence"
+    ],
+    "required_risk_checks": [
+      "risk governor cooldown cleared"
+    ],
+    "timing_status": "EntryTimingConditional",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  {
+    "timing_id": "risk-defender-no-entry",
+    "member_id": "risk-defender",
+    "symbol": "005930.KS",
+    "timeframe": "OneDay",
+    "entry_window": "NoEntry",
+    "earliest_entry_timestamp": null,
+    "latest_entry_timestamp": null,
+    "confirmation_conditions": [
+      "none until defensive drawdown improves"
+    ],
+    "cancellation_conditions": [
+      "fresh evidence of lower downside risk"
+    ],
+    "required_risk_checks": [
+      "paper drawdown below veto threshold"
+    ],
+    "timing_status": "NoEntryRecommended",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  {
+    "timing_id": "value-skeptic-pullback",
+    "member_id": "value-skeptic",
+    "symbol": "005930.KS",
+    "timeframe": "OneDay",
+    "entry_window": "PullbackConfirmation",
+    "earliest_entry_timestamp": 1730086400000,
+    "latest_entry_timestamp": 1730604800000,
+    "confirmation_conditions": [
+      "pullback respects valuation support zone"
+    ],
+    "cancellation_conditions": [
+      "support breaks with weak evidence quality"
+    ],
+    "required_risk_checks": [
+      "source-boundary-clean",
+      "no-lookahead-proof-present"
+    ],
+    "timing_status": "EntryTimingConditional",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  }
+]

@@ -1,0 +1,31 @@
+{
+  "report_id": "retired-target-safety-audit-v3",
+  "retired_targets": [
+    "tests/shared_render_helper_application_v1.rs"
+  ],
+  "cumulative_retired_targets": [
+    "tests/shared_fixture_harness_expansion_plan_v2.rs",
+    "tests/shared_output_dir_helper_application_v1.rs",
+    "tests/shared_render_helper_application_v1.rs"
+  ],
+  "high_risk_target_retired": false,
+  "safety_sentinel_retired": false,
+  "assertion_ledger_refs": [
+    "assertion-migration-ledger-v3"
+  ],
+  "equivalent_coverage_refs": [
+    "equivalent-coverage-proof-v2"
+  ],
+  "audit_status": "RetiredTargetSafetyReady",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "DeterministicPath",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt",
+    "LocalFileOnly"
+  ]
+}

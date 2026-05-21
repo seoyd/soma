@@ -1,0 +1,17 @@
+{
+  "current_no_run_started": true,
+  "current_no_run_finished": false,
+  "current_full_started": true,
+  "current_full_finished": false,
+  "remaining_blockers": [
+    "CandleExpansionOps",
+    "ExternalPrediction",
+    "KrxEvidence",
+    "DashboardRenderer",
+    "CommitteeCliSafety",
+    "BaselineSignal",
+    "CounterfactualBackfill"
+  ],
+  "family_reduction_summary": "seven blocker families are reported, committee_cli_safety stays isolated, and per-family probes remain sample-backed unless explicitly rerun",
+  "recovery_status": "GateStillBlocked"
+}

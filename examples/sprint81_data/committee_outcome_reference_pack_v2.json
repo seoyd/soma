@@ -1,0 +1,9 @@
+{
+  "pack_id": "committee-outcome-reference-pack-v2",
+  "outcome_reference_count": 2,
+  "baseline_reference_count": 1,
+  "future_window_safe_count": 2,
+  "no_lookahead_safe": true,
+  "pack_status": "OutcomeReferencePackReady",
+  "reason_codes": ["CommitteeEvidenceExpanded", "DeterministicPath"]
+}

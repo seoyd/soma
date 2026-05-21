@@ -1,0 +1,26 @@
+{
+  "report_id": "shared-fixture-harness-application-v1",
+  "json_loader_applied": true,
+  "toml_loader_applied": true,
+  "csv_loader_applied": true,
+  "fixture_normalization_applied": true,
+  "affected_targets": [
+    "tests/support/shared_fixture_harness.rs",
+    "tests/support/sprint105_support.rs",
+    "tests/support/sprint106_support.rs"
+  ],
+  "duplicated_loaders_removed": 4,
+  "deterministic_output_preserved": true,
+  "application_status": "SharedFixtureHarnessApplied",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "DeterministicPath",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt",
+    "LocalFileOnly"
+  ]
+}

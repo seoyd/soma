@@ -1,0 +1,63 @@
+{
+  "resolution_id": "sprint69-baseline-snapshot-coverage-resolution",
+  "resolved_items": [
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.0.0",
+      "missing_kind": "NoMissingTarget",
+      "required_artifact": "none",
+      "suggested_action": "NoAction",
+      "reason_codes": [
+        "MissingComparisonTargetReportBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "missing_kind": "NoMissingTarget",
+      "required_artifact": "none",
+      "suggested_action": "NoAction",
+      "reason_codes": [
+        "MissingComparisonTargetReportBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.2.0",
+      "missing_kind": "NoMissingTarget",
+      "required_artifact": "none",
+      "suggested_action": "NoAction",
+      "reason_codes": [
+        "MissingComparisonTargetReportBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "missing_kind": "NoMissingTarget",
+      "required_artifact": "none",
+      "suggested_action": "NoAction",
+      "reason_codes": [
+        "MissingComparisonTargetReportBuilt"
+      ]
+    }
+  ],
+  "unresolved_items": [],
+  "current_only_items": [],
+  "added_baseline_refs": [
+    "snapshot-681b8b7869b378dc",
+    "snapshot-6a6f96a31921e9c8",
+    "snapshot-7f2a0b3b4211746c",
+    "snapshot-a90b6a0cc07359de"
+  ],
+  "added_current_refs": [
+    "snapshot-0c0f9342f7d72384",
+    "snapshot-78652e3bfa2f76e4",
+    "snapshot-8101513bff0c55ab",
+    "snapshot-a6286bcb862c18c2"
+  ],
+  "resolution_status": "Resolved",
+  "reason_codes": [
+    "MissingComparisonTargetResolutionBuilt"
+  ]
+}

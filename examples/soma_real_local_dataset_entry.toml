@@ -1,0 +1,23 @@
+[[entries]]
+dataset_id = "user_real_local_btcusdt_1m"
+symbol = "BTC-USDT"
+data_path = "data/local/BTCUSDT_1m.csv"
+csv_format = "GenericOhlcv"
+timeframe = "OneMinute"
+venue = "Generic"
+asset_class = "Crypto"
+enabled = true
+tags = ["real-local", "user-supplied"]
+expected_min_rows = 200
+reason_codes = ["DeterministicPath"]
+
+[entries.provenance]
+source_kind = "RealLocal"
+source_label = "user-local-btcusdt-1m"
+local_path = "data/local/BTCUSDT_1m.csv"
+user_supplied = true
+downloaded_by_soma = false
+remote_url_present = false
+license_note = "User must verify data licensing before use."
+notes = "Placeholder path. Provide your own local CSV."
+reason_codes = ["DeterministicPath"]

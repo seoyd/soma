@@ -1,0 +1,36 @@
+{
+  "human_confirm_panel": {
+    "pending_items": [
+      {
+        "confirm_id": "confirm-cand-101",
+        "candidate_id": "cand-101",
+        "reason": "Chair requested review because KIS evidence depth is still conservative.",
+        "required_by": "Chair",
+        "paper_confirm_allowed": true,
+        "paper_confirm_explanation": "PaperConfirm allowed for a paper-only path because risk permits human confirmation.",
+        "safe_actions": ["ViewOnly", "MarkReviewed", "Defer"],
+        "allowed_owner_actions": ["View", "AddNote", "Hold", "Dismiss", "RequestReanalysis", "MarkReviewed", "PaperConfirm"],
+        "forbidden_actions": ["ExecuteOrder", "PlaceTrade", "ModifyAccount"],
+        "forbidden_owner_actions": ["ExecuteOrder", "PlaceTrade", "OverrideRisk", "EnableLiveTrading", "ModifyAccount", "AccessBalance", "QueryHoldings", "LoosenHardVeto"],
+        "reason_codes": ["RequireConfirmBlockedInAuto"]
+      }
+    ],
+    "reviewed_items": [],
+    "deferred_items": [
+      {
+        "confirm_id": "confirm-cand-103",
+        "candidate_id": "cand-103",
+        "reason": "Research-only candidate kept visible without any execution path.",
+        "required_by": "ResearchOnly",
+        "paper_confirm_allowed": false,
+        "paper_confirm_explanation": "PaperConfirm forbidden because the candidate remains research-only.",
+        "safe_actions": ["ViewOnly", "Defer"],
+        "allowed_owner_actions": ["View", "AddNote", "MarkReviewed"],
+        "forbidden_actions": ["ExecuteOrder", "PlaceTrade", "ModifyAccount"],
+        "forbidden_owner_actions": ["ExecuteOrder", "PlaceTrade", "OverrideRisk", "EnableLiveTrading", "ModifyAccount", "AccessBalance", "QueryHoldings", "LoosenHardVeto"],
+        "reason_codes": ["ResearchOnlyOverride"]
+      }
+    ],
+    "reason_codes": ["DeterministicPath", "DashboardHumanConfirmPanelBuilt"]
+  }
+}

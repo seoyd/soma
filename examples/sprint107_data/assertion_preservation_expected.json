@@ -1,0 +1,22 @@
+{
+  "report_id": "assertion-preservation-verification-v1",
+  "ledger_status": "AssertionMigrationLedgerReady",
+  "assertion_count_before": 6,
+  "assertion_count_after": 6,
+  "migrated_assertion_count": 2,
+  "missing_assertion_count": 0,
+  "duplicate_assertion_count": 0,
+  "equivalent_coverage_count": 0,
+  "preservation_status": "AssertionsPreserved",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "DeterministicPath",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt",
+    "LocalFileOnly"
+  ]
+}

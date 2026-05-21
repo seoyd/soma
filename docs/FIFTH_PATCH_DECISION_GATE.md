@@ -1,0 +1,1 @@
+The fifth patch decision gate reviews the remaining candidate pool, equivalent coverage feasibility, assertion migration feasibility, sentinel preservation, and no-hidden-skip continuity. Even when fifth_patch_allowed is true, Sprint 111 still does not apply a patch automatically.

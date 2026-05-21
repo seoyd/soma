@@ -1,0 +1,4 @@
+modernization_id = "developer-speed-runbook-example"
+current_toolchain_report_paths = [
+  "examples/sprint76_data/workspace_acceptance_sample.json",
+]

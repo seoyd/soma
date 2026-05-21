@@ -1,0 +1,12 @@
+expansion_id = "sprint80-sequence-core-prototype"
+materialization_plan_paths = ["examples/sprint80_data/training_storage_manifest.json"]
+real_evidence_paths = ["examples/sprint80_data/committee_scenarios.json"]
+sequence_export_manifest_paths = ["examples/sprint80_data/sequence_export_manifest.json"]
+outcome_reference_paths = ["examples/sprint80_data/committee_outcomes.json"]
+baseline_reference_paths = ["examples/sprint80_data/committee_outcomes.json"]
+no_trade_reference_paths = ["examples/sprint80_data/committee_counterfactuals.json"]
+risk_denied_reference_paths = ["examples/sprint80_data/committee_counterfactuals.json"]
+output_root = "target/soma_sequence_core_prototype_comparison"
+max_scenarios = 16
+max_rows = 64
+max_bytes = 536870912

@@ -1,0 +1,83 @@
+plan_id = "sprint20_official_compact"
+output_root = "target/soma_official_collection"
+max_total_bytes = 10485760
+max_total_rows = 900
+max_total_requests = 12
+default_retention_policy = "DeleteRawAfterCanonicalAndManifest"
+continue_on_missing_auth = true
+continue_on_provider_failure = true
+reason_codes = ["DeterministicPath"]
+
+[default_collection_size_policy]
+max_symbols_per_run = 3
+max_rows_per_symbol = 300
+max_total_rows_per_run = 900
+max_raw_bytes_per_run = 5242880
+max_canonical_bytes_per_run = 2097152
+max_requests_per_run = 12
+max_days_per_run = 365
+default_outputsize = "Compact"
+raw_archive_policy = "CompactJson"
+retention_policy = "DeleteRawAfterCanonicalAndManifest"
+allow_full_history = false
+reason_codes = ["DeterministicPath"]
+
+[default_compression_policy]
+mode = "GzipRawOnly"
+compression_level = 6
+deterministic_header = true
+keep_uncompressed_for_preflight = true
+reason_codes = ["DeterministicPath"]
+
+[storage_budget]
+max_total_bytes = 10485760
+max_raw_bytes = 5242880
+max_canonical_bytes = 3145728
+max_manifest_bytes = 524288
+max_file_count = 64
+reason_codes = ["DeterministicPath"]
+
+[[entries]]
+entry_id = "crypto-btc"
+provider_kind = "Upbit"
+symbol = "KRW-BTC"
+venue = "Upbit"
+asset_class = "Crypto"
+timeframe = "OneMinute"
+max_rows = 300
+max_requests = 4
+outputsize = "Compact"
+enabled = true
+tags = ["crypto", "public"]
+reason_codes = ["DeterministicPath"]
+
+[[entries]]
+entry_id = "krx-samsung"
+provider_kind = "KrxOpenApi"
+symbol = "005930"
+venue = "KOSPI"
+asset_class = "Equity"
+timeframe = "OneDay"
+max_rows = 200
+max_requests = 2
+outputsize = "Compact"
+endpoint_template = "https://krx.example.local/daily?symbol={symbol}&date={date}"
+auth_config_ref = { provider_kind = "KrxOpenApi", api_key_env_var = "KRX_API_KEY", auth_header_name = "Authorization", allow_missing_for_mock = false, reason_codes = ["DeterministicPath"] }
+enabled = true
+tags = ["krx", "official"]
+reason_codes = ["DeterministicPath"]
+
+[[entries]]
+entry_id = "us-aapl"
+provider_kind = "AlphaVantage"
+symbol = "AAPL"
+venue = "NASDAQ"
+asset_class = "Equity"
+timeframe = "OneDay"
+max_rows = 100
+max_requests = 2
+outputsize = "Compact"
+auth_config_ref = { provider_kind = "AlphaVantage", api_key_env_var = "ALPHAVANTAGE_API_KEY", query_param_name = "apikey", allow_missing_for_mock = false, reason_codes = ["DeterministicPath"] }
+enabled = true
+tags = ["us", "official"]
+reason_codes = ["DeterministicPath"]

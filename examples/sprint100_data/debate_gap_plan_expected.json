@@ -1,0 +1,20 @@
+{
+  "plan_id": "debate-evidence-gap-plan",
+  "evidence_gaps": [],
+  "recommended_actions": [
+    "MaintainLocalOfficialEvidenceBundle",
+    "MaintainSourceBoundaryProof",
+    "MaintainNoLookaheadProof"
+  ],
+  "plan_status": "NoGapsDetected",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

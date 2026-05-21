@@ -1,0 +1,58 @@
+{
+  "evaluation_id": "sprint64-gen-a-v1",
+  "model_id": "ext-model-a",
+  "model_version": "1.0.0",
+  "sequence_count": 6,
+  "evaluated_count": 6,
+  "label_distribution": {
+    "NoTradeCounterfactual": 1,
+    "RiskDeniedCounterfactual": 1,
+    "StopLoss": 1,
+    "TakeProfit": 2,
+    "TimeExpired": 1
+  },
+  "classification_metrics": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "confusion_counts": {
+      "NoTradeCounterfactual->NoTradeCounterfactual": 1,
+      "RiskDeniedCounterfactual->RiskDeniedCounterfactual": 1,
+      "StopLoss->StopLoss": 1,
+      "TakeProfit->TakeProfit": 2,
+      "TimeExpired->TimeExpired": 1
+    }
+  },
+  "calibration_metrics": {
+    "brier_score": 0.07091666666666667,
+    "ece": 0.25833333333333336,
+    "confidence_bucket_summary": [
+      "bucket0:0.185->0.000",
+      "bucket1:0.280->0.000",
+      "bucket3:0.690->1.000"
+    ]
+  },
+  "ranking_metrics": {
+    "top_k_precision": 0.6666666666666666,
+    "rank_correlation": 0.9018022555442777
+  },
+  "return_proxy_metrics": {
+    "mean_expected_return": 0.004666666666666666,
+    "mean_realized_proxy": 0.007833333333333333,
+    "hit_rate_proxy": 1.0
+  },
+  "risk_metrics": {
+    "predicted_drawdown_avg": 0.006833333333333333,
+    "risk_adjusted_score": 1.146341463414634,
+    "risk_denied_alignment": 1.0
+  },
+  "cost_aware_metrics": {
+    "net_return_proxy": 0.007333333333333332,
+    "cost_stress_score": 0.006333333333333332
+  },
+  "evaluation_status": "EvaluationReady",
+  "warnings": [],
+  "blockers": [],
+  "reason_codes": [
+    "ExternalModelEvaluationReportBuilt"
+  ]
+}

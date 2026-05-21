@@ -1,0 +1,39 @@
+{
+  "model_id": "ext-model-b",
+  "model_version": "1.0.0",
+  "total_sequences": 4,
+  "feature_schema_hash": "01c25ac23c41ca00",
+  "label_manifest_hash": "8eff63ae77f20914",
+  "split_policy": "ChronologicalHoldout",
+  "prediction_schema_version": "probability-only",
+  "sequences": [
+    {
+      "sequence_id": "real-seq-ext-model-b-0001",
+      "label": 1,
+      "realized_return": 0.08,
+      "no_trade_reference": 0.0,
+      "risk_denied_reference": -0.01
+    },
+    {
+      "sequence_id": "real-seq-ext-model-b-0002",
+      "label": 0,
+      "realized_return": -0.03,
+      "no_trade_reference": 0.0,
+      "risk_denied_reference": -0.01
+    },
+    {
+      "sequence_id": "real-seq-ext-model-b-0003",
+      "label": 1,
+      "realized_return": 0.06,
+      "no_trade_reference": 0.0,
+      "risk_denied_reference": -0.01
+    },
+    {
+      "sequence_id": "real-seq-ext-model-b-0004",
+      "label": 0,
+      "realized_return": -0.02,
+      "no_trade_reference": 0.0,
+      "risk_denied_reference": -0.01
+    }
+  ]
+}

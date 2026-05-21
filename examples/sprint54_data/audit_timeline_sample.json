@@ -1,0 +1,41 @@
+{
+  "audit_timeline": {
+    "events": [
+      {
+        "event_id": "evt-101",
+        "kind": "ProviderStatus",
+        "timestamp_ms": 1715550000000,
+        "title": "KIS market-data-only monitor ready",
+        "summary": "KIS remains the Korean and US equity market-data primary; live collection stays disabled.",
+        "source_report": "examples/sprint54_data/kis_monitor_sample.json",
+        "severity": "Info",
+        "reason_codes": ["KISMarketDataActivationRan"]
+      },
+      {
+        "event_id": "evt-102",
+        "kind": "OwnerInputSubmitted",
+        "timestamp_ms": 1715550100000,
+        "title": "Owner note captured",
+        "summary": "Owner note draft was recorded locally for cand-101.",
+        "source_report": "examples/sprint54_data/owner_inputs_sample.json",
+        "severity": "Info",
+        "reason_codes": ["OwnerInputValidated"]
+      },
+      {
+        "event_id": "evt-103",
+        "kind": "RiskDecision",
+        "timestamp_ms": 1715550200000,
+        "title": "Risk denied one candidate",
+        "summary": "Risk Governor blocked a lower-quality candidate and preserved the no-trade default.",
+        "source_report": "examples/sprint52_data/risk_report_sample.json",
+        "severity": "Warning",
+        "reason_codes": ["RiskDenied"]
+      }
+    ],
+    "warnings": 1,
+    "errors": 0,
+    "critical_count": 0,
+    "fingerprint": "sprint54-audit-timeline",
+    "reason_codes": ["DeterministicPath", "DashboardAuditTimelineBuilt"]
+  }
+}

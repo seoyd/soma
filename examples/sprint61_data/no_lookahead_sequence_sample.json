@@ -1,0 +1,9 @@
+{
+  "checked_windows": 96,
+  "passed_windows": 96,
+  "failed_windows": 0,
+  "violation_examples": [],
+  "no_trade_depth": 3,
+  "risk_denied_depth": 1,
+  "no_lookahead_safe": true
+}

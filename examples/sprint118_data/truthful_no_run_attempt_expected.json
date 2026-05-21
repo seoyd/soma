@@ -1,0 +1,20 @@
+{
+  "report_id": "truthful-no-run-attempt-v19",
+  "attempted": false,
+  "finished": false,
+  "passed": null,
+  "exit_code": null,
+  "timed_out": false,
+  "timeout_ms": 420000,
+  "recovered": false,
+  "status": "TruthfulNoRunAttemptNotRun",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

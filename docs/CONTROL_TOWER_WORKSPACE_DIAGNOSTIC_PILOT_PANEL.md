@@ -1,0 +1,1 @@
+The Control Tower workspace diagnostic pilot panel is static/read-only. It shows nextest/sccache status, cargo timing/progress, the diagnostic matrix, root-cause status, and acceptance truth, and has no run controls.

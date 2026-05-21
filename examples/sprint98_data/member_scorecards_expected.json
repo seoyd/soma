@@ -1,0 +1,298 @@
+[
+  {
+    "scorecard_id": "trend-scout-scorecard",
+    "member_id": "trend-scout",
+    "axis_scores": {
+      "ReturnQuality": 0.82,
+      "Calibration": 0.82,
+      "DrawdownControl": 0.82,
+      "RiskGovernorAlignment": 0.82,
+      "NoTradeDiscipline": 0.82,
+      "RiskDeniedRespect": 0.82,
+      "EvidenceQuality": 0.82,
+      "SourceBoundaryDiscipline": 0.82,
+      "NoLookaheadDiscipline": 0.82,
+      "DebateContribution": 0.82,
+      "RegimeSpecialization": 0.82,
+      "DefensiveValue": 0.82,
+      "OpportunityCostAwareness": 0.82,
+      "OverfitRisk": 0.18
+    },
+    "recent_proposals": [
+      "trend-scout-proposal"
+    ],
+    "debate_turn_quality": 0.7799999999999999,
+    "risk_alignment_score": 0.7899999999999999,
+    "no_trade_discipline_score": 0.7999999999999999,
+    "calibration_score": 0.82,
+    "overfit_risk_score": 0.18,
+    "overall_research_rank": 8,
+    "scorecard_status": "ScorecardReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  {
+    "scorecard_id": "risk-defender-scorecard",
+    "member_id": "risk-defender",
+    "axis_scores": {
+      "ReturnQuality": 0.7599999999999999,
+      "Calibration": 0.7599999999999999,
+      "DrawdownControl": 0.7599999999999999,
+      "RiskGovernorAlignment": 0.7599999999999999,
+      "NoTradeDiscipline": 0.7599999999999999,
+      "RiskDeniedRespect": 0.7599999999999999,
+      "EvidenceQuality": 0.7599999999999999,
+      "SourceBoundaryDiscipline": 0.7599999999999999,
+      "NoLookaheadDiscipline": 0.7599999999999999,
+      "DebateContribution": 0.7599999999999999,
+      "RegimeSpecialization": 0.7599999999999999,
+      "DefensiveValue": 0.7599999999999999,
+      "OpportunityCostAwareness": 0.7599999999999999,
+      "OverfitRisk": 0.24
+    },
+    "recent_proposals": [
+      "risk-defender-proposal"
+    ],
+    "debate_turn_quality": 0.7299999999999999,
+    "risk_alignment_score": 0.7399999999999999,
+    "no_trade_discipline_score": 0.7499999999999999,
+    "calibration_score": 0.7699999999999999,
+    "overfit_risk_score": 0.24,
+    "overall_research_rank": 7,
+    "scorecard_status": "ScorecardReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  {
+    "scorecard_id": "regime-interpreter-scorecard",
+    "member_id": "regime-interpreter",
+    "axis_scores": {
+      "ReturnQuality": 0.7,
+      "Calibration": 0.7,
+      "DrawdownControl": 0.7,
+      "RiskGovernorAlignment": 0.7,
+      "NoTradeDiscipline": 0.7,
+      "RiskDeniedRespect": 0.7,
+      "EvidenceQuality": 0.7,
+      "SourceBoundaryDiscipline": 0.7,
+      "NoLookaheadDiscipline": 0.7,
+      "DebateContribution": 0.7,
+      "RegimeSpecialization": 0.7,
+      "DefensiveValue": 0.7,
+      "OpportunityCostAwareness": 0.7,
+      "OverfitRisk": 0.3
+    },
+    "recent_proposals": [
+      "regime-interpreter-proposal"
+    ],
+    "debate_turn_quality": 0.6799999999999999,
+    "risk_alignment_score": 0.69,
+    "no_trade_discipline_score": 0.7,
+    "calibration_score": 0.72,
+    "overfit_risk_score": 0.3,
+    "overall_research_rank": 6,
+    "scorecard_status": "ScorecardReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  {
+    "scorecard_id": "macro-interpreter-scorecard",
+    "member_id": "macro-interpreter",
+    "axis_scores": {
+      "ReturnQuality": 0.6399999999999999,
+      "Calibration": 0.6399999999999999,
+      "DrawdownControl": 0.6399999999999999,
+      "RiskGovernorAlignment": 0.6399999999999999,
+      "NoTradeDiscipline": 0.6399999999999999,
+      "RiskDeniedRespect": 0.6399999999999999,
+      "EvidenceQuality": 0.6399999999999999,
+      "SourceBoundaryDiscipline": 0.6399999999999999,
+      "NoLookaheadDiscipline": 0.6399999999999999,
+      "DebateContribution": 0.6399999999999999,
+      "RegimeSpecialization": 0.6399999999999999,
+      "DefensiveValue": 0.6399999999999999,
+      "OpportunityCostAwareness": 0.6399999999999999,
+      "OverfitRisk": 0.36
+    },
+    "recent_proposals": [
+      "macro-interpreter-proposal"
+    ],
+    "debate_turn_quality": 0.6299999999999999,
+    "risk_alignment_score": 0.6399999999999999,
+    "no_trade_discipline_score": 0.6499999999999999,
+    "calibration_score": 0.6699999999999999,
+    "overfit_risk_score": 0.36,
+    "overall_research_rank": 5,
+    "scorecard_status": "ScorecardReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  {
+    "scorecard_id": "value-skeptic-scorecard",
+    "member_id": "value-skeptic",
+    "axis_scores": {
+      "ReturnQuality": 0.5799999999999998,
+      "Calibration": 0.5799999999999998,
+      "DrawdownControl": 0.5799999999999998,
+      "RiskGovernorAlignment": 0.5799999999999998,
+      "NoTradeDiscipline": 0.5799999999999998,
+      "RiskDeniedRespect": 0.5799999999999998,
+      "EvidenceQuality": 0.5799999999999998,
+      "SourceBoundaryDiscipline": 0.5799999999999998,
+      "NoLookaheadDiscipline": 0.5799999999999998,
+      "DebateContribution": 0.5799999999999998,
+      "RegimeSpecialization": 0.5799999999999998,
+      "DefensiveValue": 0.5799999999999998,
+      "OpportunityCostAwareness": 0.5799999999999998,
+      "OverfitRisk": 0.42
+    },
+    "recent_proposals": [
+      "value-skeptic-proposal"
+    ],
+    "debate_turn_quality": 0.5799999999999998,
+    "risk_alignment_score": 0.5899999999999999,
+    "no_trade_discipline_score": 0.5999999999999999,
+    "calibration_score": 0.6199999999999999,
+    "overfit_risk_score": 0.42,
+    "overall_research_rank": 4,
+    "scorecard_status": "ScorecardReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  {
+    "scorecard_id": "liquidity-executor-scorecard",
+    "member_id": "liquidity-executor",
+    "axis_scores": {
+      "ReturnQuality": 0.5199999999999999,
+      "Calibration": 0.5199999999999999,
+      "DrawdownControl": 0.5199999999999999,
+      "RiskGovernorAlignment": 0.5199999999999999,
+      "NoTradeDiscipline": 0.5199999999999999,
+      "RiskDeniedRespect": 0.5199999999999999,
+      "EvidenceQuality": 0.5199999999999999,
+      "SourceBoundaryDiscipline": 0.5199999999999999,
+      "NoLookaheadDiscipline": 0.5199999999999999,
+      "DebateContribution": 0.5199999999999999,
+      "RegimeSpecialization": 0.5199999999999999,
+      "DefensiveValue": 0.5199999999999999,
+      "OpportunityCostAwareness": 0.5199999999999999,
+      "OverfitRisk": 0.48
+    },
+    "recent_proposals": [
+      "liquidity-executor-proposal"
+    ],
+    "debate_turn_quality": 0.5299999999999999,
+    "risk_alignment_score": 0.5399999999999999,
+    "no_trade_discipline_score": 0.5499999999999999,
+    "calibration_score": 0.57,
+    "overfit_risk_score": 0.48,
+    "overall_research_rank": 3,
+    "scorecard_status": "ScorecardReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  {
+    "scorecard_id": "counterfactual-reviewer-scorecard",
+    "member_id": "counterfactual-reviewer",
+    "axis_scores": {
+      "ReturnQuality": 0.4599999999999999,
+      "Calibration": 0.4599999999999999,
+      "DrawdownControl": 0.4599999999999999,
+      "RiskGovernorAlignment": 0.4599999999999999,
+      "NoTradeDiscipline": 0.4599999999999999,
+      "RiskDeniedRespect": 0.4599999999999999,
+      "EvidenceQuality": 0.4599999999999999,
+      "SourceBoundaryDiscipline": 0.4599999999999999,
+      "NoLookaheadDiscipline": 0.4599999999999999,
+      "DebateContribution": 0.4599999999999999,
+      "RegimeSpecialization": 0.4599999999999999,
+      "DefensiveValue": 0.4599999999999999,
+      "OpportunityCostAwareness": 0.4599999999999999,
+      "OverfitRisk": 0.54
+    },
+    "recent_proposals": [
+      "counterfactual-reviewer-proposal"
+    ],
+    "debate_turn_quality": 0.4799999999999999,
+    "risk_alignment_score": 0.4899999999999999,
+    "no_trade_discipline_score": 0.4999999999999999,
+    "calibration_score": 0.5199999999999999,
+    "overfit_risk_score": 0.54,
+    "overall_research_rank": 2,
+    "scorecard_status": "ScorecardReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  {
+    "scorecard_id": "chair-candidate-scorecard",
+    "member_id": "chair-candidate",
+    "axis_scores": {
+      "ReturnQuality": 0.3999999999999999,
+      "Calibration": 0.3999999999999999,
+      "DrawdownControl": 0.3999999999999999,
+      "RiskGovernorAlignment": 0.3999999999999999,
+      "NoTradeDiscipline": 0.3999999999999999,
+      "RiskDeniedRespect": 0.3999999999999999,
+      "EvidenceQuality": 0.3999999999999999,
+      "SourceBoundaryDiscipline": 0.3999999999999999,
+      "NoLookaheadDiscipline": 0.3999999999999999,
+      "DebateContribution": 0.3999999999999999,
+      "RegimeSpecialization": 0.3999999999999999,
+      "DefensiveValue": 0.3999999999999999,
+      "OpportunityCostAwareness": 0.3999999999999999,
+      "OverfitRisk": 0.6
+    },
+    "recent_proposals": [
+      "chair-candidate-proposal"
+    ],
+    "debate_turn_quality": 0.42999999999999994,
+    "risk_alignment_score": 0.43999999999999995,
+    "no_trade_discipline_score": 0.4499999999999999,
+    "calibration_score": 0.4699999999999999,
+    "overfit_risk_score": 0.6,
+    "overall_research_rank": 1,
+    "scorecard_status": "ScorecardReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  }
+]

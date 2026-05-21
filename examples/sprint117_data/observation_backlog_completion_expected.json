@@ -1,0 +1,18 @@
+{
+  "report_id": "observation-backlog-completion-v2",
+  "previous_remaining_count": 3,
+  "completed_count": 0,
+  "deferred_count": 3,
+  "blocked_count": 0,
+  "remaining_count": 3,
+  "completion_status": "BacklogStillOpen",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

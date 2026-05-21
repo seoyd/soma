@@ -1,0 +1,34 @@
+{
+  "runbook_id": "expected-speed-runbook",
+  "dev_loop_commands": [
+    "cargo check --workspace",
+    "cargo test --test rust_toolchain_modernization --quiet",
+    "cargo run --quiet --bin soma_experiment -- toolchain-version-report --config examples/soma_toolchain_version_report.toml"
+  ],
+  "sprint_loop_commands": [
+    "cargo fmt --all",
+    "cargo check --workspace",
+    "cargo test --quiet --test rust_toolchain_modernization --test toolchain_version_report --test cargo_workspace_audit --test test_tier --test test_runtime_budget --test slow_test_inventory --test heavy_fixture_inventory --test cli_smoke_tiering --test developer_speed_runbook --test workspace_acceptance_v2 --test rust_toolchain_cli_safety --test rust_toolchain_determinism -- --test-threads=1",
+    "cargo run --quiet --bin soma_experiment -- toolchain-version-report --config examples/soma_toolchain_version_report.toml && cargo run --quiet --bin soma_experiment -- cargo-workspace-audit --config examples/soma_cargo_workspace_audit.toml && cargo run --quiet --bin soma_experiment -- developer-speed-runbook --config examples/soma_developer_speed_runbook.toml"
+  ],
+  "full_acceptance_commands": [
+    "cargo fmt --all",
+    "cargo check --workspace",
+    "cargo test --workspace --quiet",
+    "cargo run --quiet --bin soma_experiment -- rust-toolchain-modernize --config examples/soma_rust_toolchain_modernize.toml && cargo run --quiet --bin soma_experiment -- toolchain-version-report --config examples/soma_toolchain_version_report.toml && cargo run --quiet --bin soma_experiment -- cargo-workspace-audit --config examples/soma_cargo_workspace_audit.toml && cargo run --quiet --bin soma_experiment -- test-tier-plan --config examples/soma_test_tier_plan.toml && cargo run --quiet --bin soma_experiment -- slow-test-inventory --config examples/soma_slow_test_inventory.toml && cargo run --quiet --bin soma_experiment -- cli-smoke-tiering --config examples/soma_cli_smoke_tiering.toml && cargo run --quiet --bin soma_experiment -- developer-speed-runbook --config examples/soma_developer_speed_runbook.toml && cargo run --quiet --bin soma_experiment -- workspace-acceptance-v2 --config examples/soma_workspace_acceptance_v2.toml"
+  ],
+  "cache_setup_commands": [
+    "RUSTC_WRAPPER=sccache",
+    "SCCACHE_DIR=target/sccache"
+  ],
+  "nextest_commands": [
+    "cargo nextest run --workspace --status-level fail"
+  ],
+  "when_to_run_full_workspace": "Run the full workspace before shipping, after cross-cutting changes, and whenever quick/sprint tiers stop matching expected behavior.",
+  "when_to_run_audit": "Run the audit tier whenever safety-sensitive CLI, determinism, or absence guarantees might have changed.",
+  "runbook_status": "RunbookReadyWithWarnings",
+  "reason_codes": [
+    "DeterministicPath",
+    "DeveloperSpeedRunbookBuilt"
+  ]
+}

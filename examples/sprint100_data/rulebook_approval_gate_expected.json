@@ -1,0 +1,20 @@
+{
+  "gate_id": "chairman-rulebook-approval-gate",
+  "draft_status": "RulebookV2DraftReadyWithWarnings",
+  "risk_audit_status": "RuleProposalSafeForPaper",
+  "owner_review_required": true,
+  "risk_governor_review_required": true,
+  "can_activate_for_paper": true,
+  "can_activate_for_live": false,
+  "approval_status": "RulebookApprovedForPaper",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

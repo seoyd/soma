@@ -1,0 +1,26 @@
+{
+  "report_id": "entry-timing-proposal-quality-report",
+  "timing_proposal_count": 4,
+  "immediate_paper_only_count": 0,
+  "next_candle_count": 1,
+  "next_n_candles_count": 0,
+  "pullback_confirmation_count": 1,
+  "breakout_retest_count": 0,
+  "volatility_cooldown_count": 1,
+  "no_entry_count": 1,
+  "proposals_with_confirmation_conditions": 4,
+  "proposals_with_cancellation_conditions": 4,
+  "proposals_with_required_risk_checks": 4,
+  "paper_only_timing_confirmed": true,
+  "timing_quality_status": "EntryTimingQualityReady",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

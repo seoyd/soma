@@ -1,0 +1,28 @@
+{
+  "version_id": "chairman-rulebook-v1",
+  "previous_version_id": "chairman-rulebook-v0",
+  "rules": [
+    "chair may synthesize but cannot bypass Risk Governor",
+    "every member-owned core remains paper-only and runtime deferred",
+    "entry timing proposals require debate when action is EnterLong, EnterShort, RiskDeny, or RequestMoreEvidence",
+    "pending proposal count=1"
+  ],
+  "changed_by": "chair-candidate",
+  "change_reason": "adapt governance without brittle hardcoding",
+  "audit_refs": [
+    "rule-audit-v1"
+  ],
+  "active_for_paper_only": true,
+  "live_use_forbidden": true,
+  "rulebook_status": "RulebookReadyWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

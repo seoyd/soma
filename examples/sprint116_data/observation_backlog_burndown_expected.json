@@ -1,0 +1,19 @@
+{
+  "report_id": "workspace-timeout-observation-backlog-burndown-v1",
+  "planned_count": 5,
+  "completed_count": 1,
+  "skipped_count": 0,
+  "blocked_count": 0,
+  "deferred_count": 4,
+  "remaining_count": 4,
+  "burn_down_status": "BacklogReducedWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

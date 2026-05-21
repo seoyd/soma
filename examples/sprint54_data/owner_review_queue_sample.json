@@ -1,0 +1,92 @@
+{
+  "owner_review_queue": {
+    "queue_id": "sprint54-owner-review",
+    "pending_items": [
+      {
+        "review_id": "review-cand-101",
+        "candidate_id": "cand-101",
+        "symbol": "005930.KS",
+        "market": "KoreanEquity",
+        "candidate_status": "HumanConfirmRequired",
+        "chair_decision": "RequireConfirm",
+        "risk_decision": "PaperOnly",
+        "evidence_status": "OfficialNonCrypto",
+        "owner_inputs": [],
+        "current_status": "PendingReview",
+        "allowed_owner_actions": ["View", "AddNote", "Hold", "Dismiss", "RequestReanalysis", "MarkReviewed", "PaperConfirm"],
+        "forbidden_owner_actions": ["ExecuteOrder", "PlaceTrade", "OverrideRisk", "EnableLiveTrading", "ModifyAccount", "AccessBalance", "QueryHoldings", "LoosenHardVeto"],
+        "reason_codes": ["OwnerReviewQueueBuilt", "OwnerPaperConfirmAllowed"]
+      },
+      {
+        "review_id": "review-cand-104",
+        "candidate_id": "cand-104",
+        "symbol": "NVDA",
+        "market": "USEquity",
+        "candidate_status": "Candidate",
+        "chair_decision": "Candidate",
+        "risk_decision": "Conservative",
+        "evidence_status": "OfficialNonCrypto",
+        "owner_inputs": [],
+        "current_status": "PendingReview",
+        "allowed_owner_actions": ["View", "AddNote", "Hold", "Dismiss", "RequestReanalysis", "MarkReviewed"],
+        "forbidden_owner_actions": ["ExecuteOrder", "PlaceTrade", "OverrideRisk", "EnableLiveTrading", "ModifyAccount", "AccessBalance", "QueryHoldings", "LoosenHardVeto"],
+        "reason_codes": ["OwnerReviewQueueBuilt"]
+      }
+    ],
+    "reviewed_items": [
+      {
+        "review_id": "review-cand-105",
+        "candidate_id": "cand-105",
+        "symbol": "TSLA",
+        "market": "USEquity",
+        "candidate_status": "Candidate",
+        "chair_decision": "Candidate",
+        "risk_decision": "Conservative",
+        "evidence_status": "OfficialNonCrypto",
+        "owner_inputs": [],
+        "current_status": "Reviewed",
+        "allowed_owner_actions": ["View", "AddNote"],
+        "forbidden_owner_actions": ["ExecuteOrder", "PlaceTrade", "OverrideRisk", "EnableLiveTrading", "ModifyAccount", "AccessBalance", "QueryHoldings", "LoosenHardVeto"],
+        "reason_codes": ["OwnerMarkedReviewed"]
+      }
+    ],
+    "deferred_items": [
+      {
+        "review_id": "review-cand-103",
+        "candidate_id": "cand-103",
+        "symbol": "MSFT",
+        "market": "USEquity",
+        "candidate_status": "NoTrade",
+        "chair_decision": "NoTrade",
+        "risk_decision": "NoTrade",
+        "evidence_status": "ResearchOnly",
+        "owner_inputs": [],
+        "current_status": "DiagnosticOnly",
+        "allowed_owner_actions": ["View", "AddNote", "MarkReviewed"],
+        "forbidden_owner_actions": ["ExecuteOrder", "PlaceTrade", "OverrideRisk", "EnableLiveTrading", "ModifyAccount", "AccessBalance", "QueryHoldings", "LoosenHardVeto"],
+        "reason_codes": ["OwnerResearchOnlyConfirmBlocked"]
+      }
+    ],
+    "dismissed_items": [],
+    "paper_confirmed_items": [],
+    "blocked_items": [
+      {
+        "review_id": "review-cand-102",
+        "candidate_id": "cand-102",
+        "symbol": "AAPL",
+        "market": "USEquity",
+        "candidate_status": "RiskBlocked",
+        "chair_decision": "RiskReview",
+        "risk_decision": "Deny",
+        "evidence_status": "OfficialNonCrypto",
+        "owner_inputs": [],
+        "current_status": "BlockedByRiskGovernor",
+        "allowed_owner_actions": ["View", "AddNote", "Dismiss", "RequestReanalysis"],
+        "forbidden_owner_actions": ["ExecuteOrder", "PlaceTrade", "OverrideRisk", "EnableLiveTrading", "ModifyAccount", "AccessBalance", "QueryHoldings", "LoosenHardVeto"],
+        "reason_codes": ["RiskDenied", "OwnerCannotBypassRiskGovernor"]
+      }
+    ],
+    "expired_items": [],
+    "reason_codes": ["OwnerReviewQueueBuilt"]
+  }
+}

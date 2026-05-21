@@ -1,0 +1,44 @@
+[
+  {
+    "finding_id": "workspace-acceptance-still-separate",
+    "severity": "Informational",
+    "category": "WorkspaceTruth",
+    "description": "Full workspace acceptance remains explicitly separate from focused Sprint 104 verification.",
+    "affected_files": [
+      "summary.txt"
+    ],
+    "required_fix": "Keep the distinction explicit in reports.",
+    "finding_status": "AcceptedAsKnownWarning",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  {
+    "finding_id": "implementation-summary-present",
+    "severity": "Minor",
+    "category": "PromptCompliance",
+    "description": "Implementation summary requirement stayed enabled.",
+    "affected_files": [
+      "src/league/sprint104_dual_agent_paper_lifecycle.rs"
+    ],
+    "required_fix": "None.",
+    "finding_status": "Fixed",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  }
+]

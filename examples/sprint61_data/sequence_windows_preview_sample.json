@@ -1,0 +1,8 @@
+{
+  "estimated_windows": 96,
+  "eligible_symbols": ["005930.KS", "AAPL"],
+  "eligible_rows": 24,
+  "complete_rows": 8,
+  "excluded_rows": 4,
+  "exclusion_reasons": ["missing_future_window"]
+}

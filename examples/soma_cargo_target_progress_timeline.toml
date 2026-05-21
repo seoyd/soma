@@ -1,0 +1,37 @@
+attribution_id = "cargo-target-progress-timeline"
+sprint92_bundle_paths = [
+  "target/soma_sprint92_krx_warning_closure/sprint92-krx-warning-close",
+  "examples/sprint93_data/sprint92_summary.json",
+]
+krx_warning_closure_paths = [
+  "target/soma_sprint92_krx_warning_closure/sprint92-krx-warning-close/krx_evidence_warning_closure.txt",
+]
+previous_no_run_attempt_paths = [
+  "target/soma_sprint92_krx_warning_closure/sprint92-krx-warning-close/real_no_run_gate_attempt_v7.txt",
+]
+previous_full_attempt_paths = [
+  "target/soma_sprint92_krx_warning_closure/sprint92-krx-warning-close/real_full_workspace_gate_attempt_v10.txt",
+]
+dashboard_renderer_precheck_paths = [
+  "target/soma_sprint92_krx_warning_closure/sprint92-krx-warning-close/dashboard_renderer_readiness_precheck.txt",
+]
+cargo_message_paths = [
+  "examples/sprint93_data/no_run_diagnostic_messages_sample.json",
+  "examples/sprint93_data/full_diagnostic_messages_sample.json",
+]
+rustc_process_snapshot_paths = [
+  "examples/sprint93_data/rustc_process_snapshots_sample.json",
+]
+target_dir_snapshot_paths = [
+  "examples/sprint93_data/target_dir_growth_sample.json",
+]
+output_root = "target/soma_sprint93_timeout_attribution"
+run_diagnostic_no_run = false
+run_diagnostic_full = false
+diagnostic_timeout_ms = 300000
+capture_cargo_json_messages = true
+capture_rustc_process_snapshots = true
+capture_target_dir_growth = true
+require_krx_non_primary_proof_for_dashboard_entry = true
+preserve_safety_guards = true
+preserve_krx_isolated_sentinel = true

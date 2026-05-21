@@ -1,0 +1,149 @@
+{
+  "batch_id": "sprint48-expected-outcomes",
+  "records": [
+    {
+      "row_id": "aapl-tp",
+      "scenario_row_id": "scenario-aapl-tp",
+      "candle_series_id": "aapl-tp-series",
+      "status": "OutcomeGenerated",
+      "outcome_reference": {
+        "outcome_id": "aapl-tp-outcome",
+        "decision_id": "scenario-aapl-tp",
+        "symbol": "AAPL",
+        "timestamp_ms": 1700000000000,
+        "horizon_bars": 3,
+        "triple_barrier_label": "TakeProfit",
+        "net_return_pct": 0.018,
+        "max_favorable_excursion_pct": 0.027999999999999997,
+        "max_adverse_excursion_pct": -0.005,
+        "cost_bps": 5.0,
+        "slippage_bps": 2.0,
+        "source_kind": "OfficialApiCollected",
+        "no_lookahead_safe": true,
+        "reason_codes": [
+          "DeterministicPath"
+        ]
+      },
+      "net_return_pct": 0.018,
+      "mfe_pct": 0.027999999999999997,
+      "mae_pct": -0.005,
+      "cost_bps": 5.0,
+      "slippage_bps": 2.0,
+      "reason_codes": [
+        "DeterministicPath"
+      ]
+    },
+    {
+      "row_id": "msft-sl",
+      "scenario_row_id": "scenario-msft-sl",
+      "candle_series_id": "msft-sl-series",
+      "status": "OutcomeGenerated",
+      "outcome_reference": {
+        "outcome_id": "msft-sl-outcome",
+        "decision_id": "scenario-msft-sl",
+        "symbol": "MSFT",
+        "timestamp_ms": 1700000001000,
+        "horizon_bars": 3,
+        "triple_barrier_label": "StopLoss",
+        "net_return_pct": -0.011,
+        "max_favorable_excursion_pct": 0.01,
+        "max_adverse_excursion_pct": -0.016,
+        "cost_bps": 5.0,
+        "slippage_bps": 2.0,
+        "source_kind": "OfficialApiCollected",
+        "no_lookahead_safe": true,
+        "reason_codes": [
+          "DeterministicPath"
+        ]
+      },
+      "net_return_pct": -0.011,
+      "mfe_pct": 0.01,
+      "mae_pct": -0.016,
+      "cost_bps": 5.0,
+      "slippage_bps": 2.0,
+      "reason_codes": [
+        "DeterministicPath"
+      ]
+    },
+    {
+      "row_id": "nvda-te",
+      "scenario_row_id": "scenario-nvda-te",
+      "candle_series_id": "nvda-te-series",
+      "status": "OutcomeGenerated",
+      "outcome_reference": {
+        "outcome_id": "nvda-te-outcome",
+        "decision_id": "scenario-nvda-te",
+        "symbol": "NVDA",
+        "timestamp_ms": 1700000002000,
+        "horizon_bars": 5,
+        "triple_barrier_label": "TimeExpired",
+        "net_return_pct": 0.004,
+        "max_favorable_excursion_pct": 0.014,
+        "max_adverse_excursion_pct": -0.005,
+        "cost_bps": 5.0,
+        "slippage_bps": 2.0,
+        "source_kind": "OfficialApiCollected",
+        "no_lookahead_safe": true,
+        "reason_codes": [
+          "DeterministicPath"
+        ]
+      },
+      "net_return_pct": 0.004,
+      "mfe_pct": 0.014,
+      "mae_pct": -0.005,
+      "cost_bps": 5.0,
+      "slippage_bps": 2.0,
+      "reason_codes": [
+        "DeterministicPath"
+      ]
+    },
+    {
+      "row_id": "aapl-4h-tp",
+      "scenario_row_id": "scenario-aapl-4h-tp",
+      "candle_series_id": "aapl-4h-tp-series",
+      "status": "OutcomeGenerated",
+      "outcome_reference": {
+        "outcome_id": "aapl-4h-tp-outcome",
+        "decision_id": "scenario-aapl-4h-tp",
+        "symbol": "AAPL",
+        "timestamp_ms": 1700000003000,
+        "horizon_bars": 5,
+        "triple_barrier_label": "TakeProfit",
+        "net_return_pct": 0.021,
+        "max_favorable_excursion_pct": 0.031,
+        "max_adverse_excursion_pct": -0.005,
+        "cost_bps": 5.0,
+        "slippage_bps": 2.0,
+        "source_kind": "OfficialApiCollected",
+        "no_lookahead_safe": true,
+        "reason_codes": [
+          "DeterministicPath"
+        ]
+      },
+      "net_return_pct": 0.021,
+      "mfe_pct": 0.031,
+      "mae_pct": -0.005,
+      "cost_bps": 5.0,
+      "slippage_bps": 2.0,
+      "reason_codes": [
+        "DeterministicPath"
+      ]
+    }
+  ],
+  "total_rows": 4,
+  "eligible_rows": 4,
+  "generated_outcome_count": 4,
+  "official_outcome_count": 4,
+  "skipped_missing_future_window_count": 0,
+  "skipped_missing_scenario_count": 0,
+  "skipped_timestamp_mismatch_count": 0,
+  "skipped_horizon_mismatch_count": 0,
+  "rejected_no_lookahead_count": 0,
+  "take_profit_count": 2,
+  "stop_loss_count": 1,
+  "time_expired_count": 1,
+  "linkage_status": "OfficialBatchOutcomeLinksImproved",
+  "reason_codes": [
+    "DeterministicPath"
+  ]
+}

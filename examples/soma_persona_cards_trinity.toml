@@ -1,0 +1,7 @@
+active_persona_ids = [
+  "trend_breakout_fast",
+  "defensive_value_risk",
+  "cycle_regime_guard",
+]
+notes = "Sprint 32 committee MVP uses exactly three active archetype-labeled personas and remains paper/research only."
+

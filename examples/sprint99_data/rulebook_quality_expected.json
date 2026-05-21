@@ -1,0 +1,23 @@
+{
+  "report_id": "chairman-rulebook-quality-report",
+  "rulebook_version_count": 1,
+  "rule_proposal_count": 1,
+  "audited_rule_count": 4,
+  "unaudited_rule_count": 0,
+  "owner_review_required_count": 1,
+  "risk_governor_review_required_count": 1,
+  "paper_only_rules_count": 4,
+  "live_use_forbidden_confirmed": true,
+  "unsafe_rule_count": 2,
+  "rulebook_quality_status": "UnsafeRuleDetected",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

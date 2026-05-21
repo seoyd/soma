@@ -1,0 +1,10 @@
+loop_id = "sprint56-operational-loop-paper-approved"
+candidate_source_paths = ["examples/sprint56_data/paper_approved_candidate.json"]
+risk_report_paths = ["examples/sprint56_data/risk_snapshot.json"]
+output_root = "target/sprint56"
+max_candidates = 10
+max_cycles = 10
+max_events = 1000
+enable_owner_review = true
+enable_paper_confirm = true
+enable_paper_position_lifecycle = false

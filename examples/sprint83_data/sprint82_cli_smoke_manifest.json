@@ -1,0 +1,43 @@
+{
+  "original_cli_commands": [
+    "official-evidence-depth-expand",
+    "committee-reference-close",
+    "official-scenario-pack-v3",
+    "official-outcome-pack-v3",
+    "official-baseline-pack-v3",
+    "official-notrade-pack-v3",
+    "official-riskdenied-pack-v3",
+    "defensive-counterfactual-depth",
+    "sequence-core-confidence-rerun",
+    "sequence-core-decision-gate-v2",
+    "control-tower-evidence-depth"
+  ],
+  "representative_cli_commands": [
+    "official-evidence-depth-expand",
+    "committee-reference-close",
+    "defensive-counterfactual-depth",
+    "sequence-core-confidence-rerun",
+    "control-tower-evidence-depth"
+  ],
+  "exhaustive_cli_commands": [
+    "official-evidence-depth-expand",
+    "committee-reference-close",
+    "official-scenario-pack-v3",
+    "official-outcome-pack-v3",
+    "official-baseline-pack-v3",
+    "official-notrade-pack-v3",
+    "official-riskdenied-pack-v3",
+    "defensive-counterfactual-depth",
+    "sequence-core-confidence-rerun",
+    "sequence-core-decision-gate-v2",
+    "control-tower-evidence-depth"
+  ],
+  "safety_cli_commands": [
+    "official-evidence-depth-expand",
+    "committee-reference-close",
+    "sequence-core-decision-gate-v2",
+    "control-tower-evidence-depth"
+  ],
+  "coverage_preserved": true
+}
+

@@ -1,0 +1,46 @@
+{
+  "gap_id": "sprint43-missing-auth-gap-map",
+  "cells": [
+    {
+      "market": "USEquity",
+      "symbol": "AAPL",
+      "normalized_symbol": "AAPL",
+      "venue": "NASDAQ",
+      "timeframe": "1d",
+      "horizon_bars": 3,
+      "source_kind": "OfficialNonCrypto",
+      "source_class": "OfficialNonCrypto",
+      "row_count_impacted": 1,
+      "comparable_rows_impacted": 1,
+      "missing_future_bars": 3,
+      "required_start_timestamp_ms": 1700000000000,
+      "required_end_timestamp_ms": 1700259200000,
+      "required_min_rows": 4,
+      "gap_kinds": [
+        "MissingOfficialCandleSeries",
+        "MissingCandleSeries"
+      ],
+      "buildable_from_existing_local_csv": false,
+      "buildable_from_provider_collection": true,
+      "requires_operator_action": true,
+      "related_artifact_paths": [],
+      "reason_codes": [
+        "DeterministicPath"
+      ]
+    }
+  ],
+  "total_gaps": 1,
+  "official_gap_count": 1,
+  "non_crypto_official_gap_count": 1,
+  "crypto_gap_count": 0,
+  "diagnostic_gap_count": 0,
+  "research_only_gap_count": 0,
+  "fixture_gap_count": 0,
+  "buildable_gap_count": 1,
+  "operator_action_gap_count": 1,
+  "gap_status": "MissingOfficialCandles",
+  "warnings": [],
+  "reason_codes": [
+    "DeterministicPath"
+  ]
+}

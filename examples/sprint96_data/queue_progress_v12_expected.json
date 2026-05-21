@@ -1,0 +1,6 @@
+{
+  "queue_status": "QueueAdvanced",
+  "previous_queue": ["BaselineSignal", "CounterfactualBackfill"],
+  "current_queue": ["CounterfactualBackfill"],
+  "primary_next_family": "CounterfactualBackfill"
+}

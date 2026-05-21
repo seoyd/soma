@@ -1,0 +1,25 @@
+{
+  "snapshot_id": "sprint66-baseline",
+  "entries": [
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "coverage_band": "strong",
+      "calibration_band": "stable",
+      "risk_band": "low",
+      "comparability_band": "full",
+      "artifact_completeness_band": "mostly_complete",
+      "leaderboard_band": "rank-1"
+    },
+    {
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "coverage_band": "medium",
+      "calibration_band": "review",
+      "risk_band": "medium",
+      "comparability_band": "partial",
+      "artifact_completeness_band": "mostly_complete",
+      "leaderboard_band": "eligible"
+    }
+  ]
+}

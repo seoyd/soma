@@ -1,0 +1,34 @@
+{
+  "panel_id": "control-tower-safe-consolidation-patch-panel-v3",
+  "patch_selection_status": "ThirdPatchCandidateSelected",
+  "verification_carry_forward_status": "Sprint108VerificationCarriedForward",
+  "assertion_ledger_status": "AssertionMigrationLedgerReady",
+  "cumulative_ledger_status": "CumulativeAssertionLedgerReady",
+  "equivalent_coverage_status": "EquivalentCoverageProven",
+  "safety_sentinel_status": "SafetySentinelsPreserved",
+  "binary_delta_status": "TestBinaryDeltaSampleBacked",
+  "cumulative_binary_delta_status": "CumulativeBinaryDeltaReady",
+  "no_run_status": "NoRunNotRun",
+  "full_status": "FullWorkspaceNotRun",
+  "cargo_json_progress_status": "CargoJsonProgressCaptureNotRun",
+  "timeout_cleanup_status": "NotApplicable",
+  "next_actions": [
+    "Run the focused Sprint 109 suite.",
+    "Rerun workspace no-run/full attempts with explicit timeouts."
+  ],
+  "warnings": [
+    "Static/read-only panel only.",
+    "No run-tests button or train/runtime/live/order/account/browser controls."
+  ],
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "DeterministicPath",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt",
+    "LocalFileOnly"
+  ]
+}

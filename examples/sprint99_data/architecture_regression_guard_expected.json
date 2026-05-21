@@ -1,0 +1,21 @@
+{
+  "guard_id": "committee-owned-architecture-regression-guard",
+  "central_core_deprecated_confirmed": true,
+  "committee_owned_core_confirmed": true,
+  "member_core_refs_present": true,
+  "central_signal_layer_control_absent": true,
+  "runtime_deferred_confirmed": true,
+  "training_deferred_confirmed": true,
+  "live_execution_absent": true,
+  "regression_status": "NoRegression",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

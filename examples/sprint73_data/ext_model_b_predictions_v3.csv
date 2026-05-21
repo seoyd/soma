@@ -1,0 +1,2 @@
+model_id,model_version,sequence_id,probability,source_class
+ext-model-b,1.0.0,seq-ext-model-b-0002,0.64,ResearchOnly

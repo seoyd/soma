@@ -1,0 +1,8 @@
+{
+  "target_count_before": 2,
+  "target_count_after": 2,
+  "baseline_signal_delta": 0,
+  "measured": false,
+  "sample_backed": true,
+  "impact_status": "CompileImpactSampleBacked"
+}

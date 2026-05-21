@@ -1,0 +1,35 @@
+{
+  "onboarding_id": "preflight-005930",
+  "input_path": "/Users/seo/Projects/soma/examples/sprint51_data/kis_kr_005930_1d_eod.csv",
+  "symbol": "005930",
+  "timeframe": "OneDay",
+  "provenance": {
+    "source_kind": "OfficialApiCollected",
+    "source_label": "kis-local-import",
+    "provider_label": "KoreaInvestmentMarketData",
+    "local_path": "/Users/seo/Projects/soma/examples/sprint51_data/kis_kr_005930_1d_eod.csv",
+    "downloaded_by_soma": true,
+    "remote_url_present": false,
+    "official_provider": true,
+    "affiliated_or_endorsed": true,
+    "intended_use": "research-only-market-data",
+    "readiness_eligible": true,
+    "benchmark_eligible": true,
+    "reason_codes": [
+      "OfficialApiCollected"
+    ]
+  },
+  "row_count": 6,
+  "usable_row_count": 6,
+  "estimated_walk_forward_folds": 1,
+  "estimated_outcome_records": 3,
+  "estimated_comparable_variants": 1,
+  "checks": [],
+  "final_status": "ReadyForRealEvidence",
+  "blockers": [],
+  "warnings": [],
+  "reason_codes": [
+    "PreflightReportBuilt",
+    "PreflightReadyForRealEvidence"
+  ]
+}

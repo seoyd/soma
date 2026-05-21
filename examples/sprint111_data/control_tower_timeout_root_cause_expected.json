@@ -1,0 +1,34 @@
+{
+  "panel_id": "control-tower-workspace-timeout-root-cause",
+  "root_cause_status": "TimeoutRootCausePartiallyIsolated",
+  "no_run_progress_trace_status": "DiagnosticOnly",
+  "full_progress_trace_status": "DiagnosticOnly",
+  "cargo_json_timeline_status": "DiagnosticOnly",
+  "target_stall_attribution_status": "TargetStallAttributed",
+  "fanout_status": "FanoutMapReady",
+  "timeout_window_adequacy_status": "TimeoutWindowAdequacyReady",
+  "acceptance_evidence_strength": "SupportingOnly",
+  "next_actions": [
+    "collect one longer real no-run observation before changing any patch scope",
+    "keep fifth patch paper-only until equivalent coverage and sentinel preservation remain explicit"
+  ],
+  "warnings": [
+    "research-only",
+    "paper-only",
+    "cargo progress is diagnostic only",
+    "no run-tests button"
+  ],
+  "static_read_only": true,
+  "no_apply_patch_button": true,
+  "no_run_tests_button": true,
+  "no_train_runtime_live_order_account_controls": true,
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

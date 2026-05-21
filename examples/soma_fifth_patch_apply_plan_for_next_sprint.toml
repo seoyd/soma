@@ -1,0 +1,8 @@
+isolation_id = "sprint114-mixed-family-isolation"
+sprint113_bundle_paths = ["examples/sprint114_data/sprint113_summary.json"]
+sprint113_truth_paths = ["examples/sprint114_data/sprint113_summary.json"]
+suspect_target_paths = ["examples/sprint114_data/suspect_target_decomposition_expected.json"]
+assertion_inventory_paths = ["examples/sprint114_data/assertion_inventory_expected.json"]
+cargo_json_progress_paths = ["examples/sprint114_data/integration_fanout_narrowing_expected.json"]
+workspace_timeout_paths = ["examples/sprint114_data/acceptance_truth_gate_v15_expected.json"]
+output_root = "target/soma_sprint114_mixed_family_isolation"

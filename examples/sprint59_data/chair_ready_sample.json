@@ -1,0 +1,37 @@
+{
+  "chair_version": "ChairV0",
+  "selected_speakers": [
+    "trend_breakout_fast",
+    "defensive_value_risk",
+    "cycle_regime_guard"
+  ],
+  "filtered_speakers": [
+    "trend_breakout_fast",
+    "defensive_value_risk",
+    "cycle_regime_guard"
+  ],
+  "all_votes": [
+    {
+      "persona_id": "trend_breakout_fast",
+      "stance": "Approve"
+    },
+    {
+      "persona_id": "defensive_value_risk",
+      "stance": "Approve"
+    },
+    {
+      "persona_id": "cycle_regime_guard",
+      "stance": "Approve"
+    }
+  ],
+  "weighted_score": 0.64,
+  "uncertainty": 0.21,
+  "disagreement_score": 0.12,
+  "groupthink_warning": false,
+  "risk_decision": "ApprovePaper",
+  "human_confirm_route_available": true,
+  "no_bypass_detected": true,
+  "paper_only": true,
+  "real_order_path": false,
+  "final_decision": "RequireHumanConfirm"
+}

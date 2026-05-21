@@ -1,0 +1,24 @@
+{
+  "report_id": "larry-williams-evidence-hardening-report",
+  "current_confidence_grade": "B",
+  "evidence_refs_added": [
+    "larry-published-seasonal-study"
+  ],
+  "published_material_refs": [
+    "published seasonal study summary",
+    "archived statistics interview"
+  ],
+  "statistical_seasonality_scope_preserved": true,
+  "exact_numeric_rule_claims_downweighted": true,
+  "report_status": "LarryWilliamsEvidenceStillWarningBacked",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

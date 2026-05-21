@@ -1,0 +1,11 @@
+closure_id = "sprint46-complete-row-close-v2-official"
+complete_row_closure_config_path = "examples/sprint46_data/comparable_official_extended_window_bundle.json"
+outcome_linkage_v3_config_path = "examples/soma_outcome_linkage_v3_official_replication.toml"
+counterfactual_completion_v2_config_path = "examples/soma_counterfactual_complete_v2_official_replication.toml"
+output_root = "target/soma_complete_row_closure_v2"
+run_future_window_requirements = true
+run_future_window_extension = true
+run_outcome_linkage_v3 = true
+run_counterfactual_completion_v2 = true
+run_complete_row_close = true
+run_core_scorecard_rerun = true

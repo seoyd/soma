@@ -1,0 +1,116 @@
+{
+  "queue_id": "sprint71-operator-briefing-operator-decision-queue",
+  "items": [
+    {
+      "decision_id": "sprint71-operator-briefing-queue-deferred-runtime",
+      "title": "Runtime, training, live, order, and account capabilities remain deferred",
+      "target_id": "system",
+      "status": "Deferred",
+      "decision_options": [
+        "DeferReview",
+        "NoAction"
+      ],
+      "forbidden_options": [
+        "PromoteLive",
+        "EnableRuntime",
+        "TrainModel",
+        "ExecuteTrade"
+      ],
+      "default_safe_option": "DeferReview",
+      "reason_codes": [
+        "OperatorDecisionQueueBuilt"
+      ]
+    },
+    {
+      "decision_id": "sprint71-operator-briefing-queue-keep-current",
+      "title": "Keep ext-model-a:1.1.0 as the current research candidate",
+      "target_id": "ext-model-a:1.1.0",
+      "status": "Closed",
+      "decision_options": [
+        "KeepResearchCandidate",
+        "NoAction"
+      ],
+      "forbidden_options": [
+        "PromoteLive",
+        "EnableRuntime",
+        "TrainModel",
+        "ExecuteTrade"
+      ],
+      "default_safe_option": "KeepResearchCandidate",
+      "reason_codes": [
+        "OperatorDecisionQueueBuilt"
+      ]
+    },
+    {
+      "decision_id": "sprint71-operator-briefing-queue-leaderboard",
+      "title": "Accept conservative leaderboard warning handling",
+      "target_id": "ext-model-a:1.2.0",
+      "status": "ReadyToReview",
+      "decision_options": [
+        "KeepResearchCandidate",
+        "DeferReview",
+        "NoAction"
+      ],
+      "forbidden_options": [
+        "PromoteLive",
+        "EnableRuntime",
+        "TrainModel",
+        "ExecuteTrade"
+      ],
+      "default_safe_option": "DeferReview",
+      "reason_codes": [
+        "OperatorDecisionQueueBuilt"
+      ]
+    },
+    {
+      "decision_id": "sprint71-operator-briefing-queue-predictions",
+      "title": "Request more offline predictions for ext-model-b:1.0.0",
+      "target_id": "ext-model-b:1.0.0",
+      "status": "Pending",
+      "decision_options": [
+        "RequestMorePredictions",
+        "RequestCalibrationReview",
+        "RequestRiskReview",
+        "DeferReview"
+      ],
+      "forbidden_options": [
+        "PromoteLive",
+        "EnableRuntime",
+        "TrainModel",
+        "ExecuteTrade"
+      ],
+      "default_safe_option": "RequestMorePredictions",
+      "reason_codes": [
+        "OperatorDecisionQueueBuilt"
+      ]
+    },
+    {
+      "decision_id": "sprint71-operator-briefing-queue-retirement",
+      "title": "Keep ext-model-a:1.0.0 diagnostic-only until retirement evidence is complete",
+      "target_id": "ext-model-a:1.0.0",
+      "status": "Blocked",
+      "decision_options": [
+        "MarkDiagnosticOnly",
+        "DeferReview",
+        "NoAction"
+      ],
+      "forbidden_options": [
+        "PromoteLive",
+        "EnableRuntime",
+        "TrainModel",
+        "ExecuteTrade"
+      ],
+      "default_safe_option": "MarkDiagnosticOnly",
+      "reason_codes": [
+        "OperatorDecisionQueueBuilt"
+      ]
+    }
+  ],
+  "pending_count": 1,
+  "ready_count": 1,
+  "blocked_count": 1,
+  "closed_count": 1,
+  "reason_codes": [
+    "OperatorDecisionQueueBuilt"
+  ]
+}

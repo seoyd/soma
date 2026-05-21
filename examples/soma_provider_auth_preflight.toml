@@ -1,0 +1,19 @@
+check_id = "sprint25_provider_auth"
+providers_to_check = ["Upbit", "KrxOpenApi", "AlphaVantage", "Alpaca"]
+allow_missing_optional_auth = true
+fail_on_missing_required_auth = false
+reason_codes = ["DeterministicPath"]
+
+[[required_env_vars]]
+provider_kind = "KrxOpenApi"
+api_key_env_var = "KRX_API_KEY"
+endpoint_template_env_var = "KRX_ENDPOINT_TEMPLATE"
+
+[[required_env_vars]]
+provider_kind = "AlphaVantage"
+api_key_env_var = "ALPHAVANTAGE_API_KEY"
+
+[[required_env_vars]]
+provider_kind = "Alpaca"
+api_key_env_var = "ALPACA_API_KEY"
+api_secret_env_var = "ALPACA_API_SECRET"

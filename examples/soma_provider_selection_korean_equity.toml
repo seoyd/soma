@@ -1,0 +1,7 @@
+report_id = "sprint29_provider_selection_korean_equity"
+output_dir = "target/soma_provider_selection_korean_equity"
+markets = ["KoreanEquity"]
+allow_research_supplemental = false
+allow_professional_paid = true
+max_providers_per_market = 4
+

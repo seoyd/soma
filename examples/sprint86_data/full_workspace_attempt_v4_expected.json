@@ -1,0 +1,22 @@
+{
+  "fmt_passed": true,
+  "check_passed": true,
+  "residual_grouped_suites_passed": true,
+  "workspace_safety_guard_passed": true,
+  "workspace_cli_safety_passed": true,
+  "workspace_determinism_passed": true,
+  "representative_smoke_passed": true,
+  "safety_smoke_passed": true,
+  "full_workspace_started": true,
+  "full_workspace_finished": false,
+  "full_workspace_blockers": [
+    "official_expansion_status_mapping",
+    "committee_scenario_materializer_v2",
+    "committee_replay",
+    "control_tower_briefing_panel",
+    "external_prediction_import_v2",
+    "experiment_determinism",
+    "model_ops_operator_qa"
+  ]
+}
+

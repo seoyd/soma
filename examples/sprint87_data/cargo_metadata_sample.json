@@ -1,0 +1,67 @@
+{
+  "total_integration_test_targets": 132,
+  "broad_family_targets": [
+    "future_window_requirements",
+    "official_evidence_diversity_gap",
+    "trinity_operational_loop_runner",
+    "dataset_export",
+    "control_tower_v1",
+    "official_candle_expansion_runner",
+    "external_prediction_ablation",
+    "krx_evidence_job_plan",
+    "dashboard_renderer",
+    "baseline_signal",
+    "counterfactual_backfill_plan"
+  ],
+  "grouped_targets_existing": [
+    "tests/workspace_safety_guard_suite.rs",
+    "tests/workspace_cli_safety_suite.rs",
+    "tests/workspace_determinism_suite.rs",
+    "tests/official_expansion_suite.rs",
+    "tests/committee_scenario_replay_suite.rs",
+    "tests/control_tower_briefing_suite.rs",
+    "tests/external_prediction_suite.rs",
+    "tests/experiment_determinism_suite.rs",
+    "tests/model_ops_qa_suite.rs",
+    "tests/workspace_legacy_regression_suite.rs"
+  ],
+  "keep_separate_targets": [
+    "committee_cli_safety",
+    "tests/workspace_cli_safety_suite.rs"
+  ],
+  "candidate_targets_for_grouping": [
+    "tests/future_window_requirements.rs",
+    "tests/future_window_extension_job.rs",
+    "tests/official_evidence_diversity_gap.rs",
+    "tests/outcome_diversity_audit.rs",
+    "tests/trinity_operational_loop_runner.rs",
+    "tests/dataset_export.rs",
+    "tests/sequence_dataset_export.rs",
+    "tests/control_tower_v1.rs",
+    "tests/official_candle_expansion_runner.rs",
+    "tests/external_prediction_ablation.rs",
+    "tests/ext_model_b_prediction_closure.rs",
+    "tests/krx_evidence_job_plan.rs",
+    "tests/dashboard_renderer.rs",
+    "tests/dashboard_v1_renderer.rs",
+    "tests/baseline_signal.rs",
+    "tests/counterfactual_backfill_plan.rs"
+  ],
+  "dev_dependencies": ["serde_json", "tempfile", "insta", "csv", "toml", "walkdir"],
+  "heavy_dev_dependency_candidates": ["serde_json", "tempfile", "insta"],
+  "repeated_compile_candidates": ["external_prediction", "dataset_export", "control_tower_v1"],
+  "feature_activated_dev_deps": {
+    "default": ["serde_json", "toml"],
+    "test-fixtures": ["tempfile", "insta"],
+    "research-only": ["csv", "walkdir"]
+  },
+  "feature_sets_detected": ["default", "research-only", "test-fixtures", "full"],
+  "repeated_feature_variants": ["default+test-fixtures", "default+research-only"],
+  "feature_unification_candidates": [
+    "reuse shared fixture harness for compile-heavy suites",
+    "collapse duplicated external prediction support surfaces"
+  ],
+  "unsafe_unification_candidates": [
+    "do not gate workspace safety suite behind optional feature"
+  ]
+}

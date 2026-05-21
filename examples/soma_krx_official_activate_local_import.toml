@@ -1,0 +1,27 @@
+activation_id = "krx_local_import"
+symbol_whitelist_path = "examples/sprint49_data/krx_whitelist_compact.toml"
+output_root = "target/soma_krx_examples"
+local_krx_canonical_csv_paths = [
+  "examples/sprint49_data/krx_005930_1d_compact.csv",
+  "examples/sprint49_data/krx_000660_1d_compact.csv"
+]
+local_krx_provenance_paths = [
+  "examples/sprint49_data/krx_005930_1d_compact_provenance.json",
+  "examples/sprint49_data/krx_000660_1d_compact_provenance.json"
+]
+local_krx_preflight_paths = [
+  "examples/sprint49_data/krx_005930_1d_compact_preflight.json",
+  "examples/sprint49_data/krx_000660_1d_compact_preflight.json"
+]
+max_symbols = 5
+max_rows_per_symbol = 120
+max_requests = 10
+max_days = 365
+max_bytes = 800000
+require_krx_api_key = true
+require_krx_endpoint_template = true
+require_provenance = true
+require_preflight = true
+run_krx_collection = false
+run_local_import = true
+run_official_replication = true

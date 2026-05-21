@@ -1,0 +1,15 @@
+coverage_id = "committee_outcome_coverage_crypto_only"
+official_benchmark_report_paths = ["examples/soma_committee_official_benchmark_crypto_only.toml"]
+scenario_pack_paths = ["examples/soma_committee_pack_crypto_official.toml"]
+candle_series_paths = ["examples/committee_candle_series_crypto.json"]
+output_root = "target/soma_committee_outcome_coverage"
+max_rows = 20
+max_symbols = 3
+max_bytes = 500000
+require_official_rows = true
+allow_crypto_only = true
+allow_yfinance_research = false
+allow_fixture = false
+allow_estimated_counterfactuals = false
+require_no_lookahead_safe = true
+reason_codes = []

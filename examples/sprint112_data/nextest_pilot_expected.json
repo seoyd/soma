@@ -1,0 +1,27 @@
+{
+  "report_id": "nextest-pilot-execution-v1",
+  "attempted": false,
+  "command": "cargo nextest run --workspace --failure-output immediate",
+  "finished": false,
+  "passed": null,
+  "duration_ms": 8400,
+  "timeout_ms": 300000,
+  "slow_tests": [
+    "tests/workspace_timeout_root_cause.rs::diagnostic_probe",
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs::diagnostic_probe"
+  ],
+  "slow_binaries": [
+    "workspace_timeout_root_cause",
+    "control_tower_workspace_timeout_root_cause_panel"
+  ],
+  "execution_status": "NextestNotRun",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

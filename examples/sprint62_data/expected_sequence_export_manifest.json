@@ -1,0 +1,25 @@
+{
+  "export_id": "sprint62-sequence-export-small",
+  "dataset_csv_path": "target/sprint62/sprint62-sequence-export-small/dataset.csv",
+  "feature_schema_manifest_path": "target/sprint62/sprint62-sequence-export-small/feature_schema.json",
+  "label_manifest_path": "target/sprint62/sprint62-sequence-export-small/label_manifest.json",
+  "split_manifest_path": "target/sprint62/sprint62-sequence-export-small/split_manifest.json",
+  "no_lookahead_proof_path": "target/sprint62/sprint62-sequence-export-small/no_lookahead_proof.json",
+  "storage_report_path": "target/sprint62/sprint62-sequence-export-small/sequence_storage_report.json",
+  "source_artifacts": [
+    "examples/sprint62_data/kis_sequence_source_rows.json"
+  ],
+  "provenance_artifacts": [
+    "examples/sprint61_data/kis_evidence_after.json"
+  ],
+  "preflight_artifacts": [
+    "examples/sprint61_data/outcome_link_depth_sample.json"
+  ],
+  "row_count": 6,
+  "sequence_count": 6,
+  "excluded_count": 1,
+  "fingerprint": "118f8e19e94a668b",
+  "reason_codes": [
+    "SequenceExportManifestBuilt"
+  ]
+}

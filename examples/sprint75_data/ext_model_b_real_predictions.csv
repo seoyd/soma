@@ -1,0 +1,5 @@
+model_id,model_version,sequence_id,probability,source_class
+ext-model-b,1.0.0,real-seq-ext-model-b-0001,0.95,OfficialKIS
+ext-model-b,1.0.0,real-seq-ext-model-b-0002,0.05,OfficialKIS
+ext-model-b,1.0.0,real-seq-ext-model-b-0003,0.93,OfficialKIS
+ext-model-b,1.0.0,real-seq-ext-model-b-0004,0.07,OfficialKIS

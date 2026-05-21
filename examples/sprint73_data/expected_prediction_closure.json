@@ -1,0 +1,15 @@
+{
+  "closure_id": "sprint73-ext-model-b-prediction-gap-closure",
+  "model_id": "ext-model-b",
+  "model_version": "1.0.0",
+  "prediction_files_before": 1,
+  "prediction_files_after": 2,
+  "coverage_before": 0.5,
+  "coverage_after": 1.0,
+  "missing_sequence_count_before": 1,
+  "missing_sequence_count_after": 0,
+  "duplicate_count": 0,
+  "invalid_count": 0,
+  "closure_status": "PredictionGapClosed",
+  "final_recommendation": "RerunEvidenceGapClosure"
+}

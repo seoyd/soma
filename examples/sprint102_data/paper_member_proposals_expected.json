@@ -1,0 +1,135 @@
+{
+  "run_id": "paper-only-member-proposal-run",
+  "scenario_id": "crypto-cycle-liquidity",
+  "selected_members": [
+    "CommonRiskManager",
+    "BurniskeTokenValuation",
+    "HayesLiquidityDerivatives",
+    "SaylorTreasury",
+    "GrahamMarginOfSafety",
+    "MarksCycleRiskPremium",
+    "LarryWilliamsStatisticalSeasonality",
+    "RaschkeProcessManager"
+  ],
+  "generated_proposals": [
+    {
+      "proposal_id": "proposal-burniske-enter-long",
+      "member_id": "BurniskeTokenValuation",
+      "proposed_action": "EnterLong",
+      "confidence_weight_applied": 0.8,
+      "expected_return_proxy": 0.62,
+      "expected_risk_proxy": 0.41,
+      "invalidation_condition": "liquidity and on-chain confirmation breaks",
+      "wait_condition": "wait if exchange liquidity decays",
+      "evidence_refs": [
+        "burniske-cycle-pack",
+        "onchain-confirmation"
+      ],
+      "entry_timing_ref": "timing-burniske-immediate"
+    },
+    {
+      "proposal_id": "proposal-hayes-risk-deny",
+      "member_id": "HayesLiquidityDerivatives",
+      "proposed_action": "RiskDeny",
+      "confidence_weight_applied": 0.74,
+      "expected_return_proxy": null,
+      "expected_risk_proxy": 0.72,
+      "invalidation_condition": "derivatives stress eases only after leverage unwind",
+      "wait_condition": "wait until leverage and basis normalize",
+      "evidence_refs": [
+        "arthur-hayes-public-essay-archive"
+      ],
+      "entry_timing_ref": null
+    },
+    {
+      "proposal_id": "proposal-buffett-wait",
+      "member_id": "BuffettQualityMoat",
+      "proposed_action": "Wait",
+      "confidence_weight_applied": 0.95,
+      "expected_return_proxy": 0.38,
+      "expected_risk_proxy": 0.24,
+      "invalidation_condition": "durability and downside case remain incomplete",
+      "wait_condition": "wait for balance-sheet and valuation alignment",
+      "evidence_refs": [
+        "buffett-durability-check"
+      ],
+      "entry_timing_ref": null
+    },
+    {
+      "proposal_id": "proposal-larry-enter-short",
+      "member_id": "LarryWilliamsStatisticalSeasonality",
+      "proposed_action": "EnterShort",
+      "confidence_weight_applied": 0.73,
+      "expected_return_proxy": 0.44,
+      "expected_risk_proxy": 0.47,
+      "invalidation_condition": "seasonality loses confirmation against trend",
+      "wait_condition": "wait for current-cycle fit confirmation",
+      "evidence_refs": [
+        "larry-published-seasonal-study"
+      ],
+      "entry_timing_ref": "timing-larry-next-candle"
+    },
+    {
+      "proposal_id": "proposal-raschke-enter-long",
+      "member_id": "RaschkeProcessManager",
+      "proposed_action": "EnterLong",
+      "confidence_weight_applied": 0.87,
+      "expected_return_proxy": 0.53,
+      "expected_risk_proxy": 0.36,
+      "invalidation_condition": "pattern thesis breaks or pullback fails",
+      "wait_condition": "wait if setup classification is unclear",
+      "evidence_refs": [
+        "raschke-pattern-checklist"
+      ],
+      "entry_timing_ref": "timing-raschke-pullback"
+    },
+    {
+      "proposal_id": "proposal-saylor-no-trade",
+      "member_id": "SaylorTreasury",
+      "proposed_action": "NoTrade",
+      "confidence_weight_applied": 0.88,
+      "expected_return_proxy": null,
+      "expected_risk_proxy": 0.51,
+      "invalidation_condition": "treasury framing alone cannot justify entry",
+      "wait_condition": "wait for protocol and liquidity confirmation",
+      "evidence_refs": [
+        "saylor-treasury-thesis"
+      ],
+      "entry_timing_ref": null
+    },
+    {
+      "proposal_id": "proposal-common-risk-request-more-evidence",
+      "member_id": "CommonRiskManager",
+      "proposed_action": "RequestMoreEvidence",
+      "confidence_weight_applied": 1.0,
+      "expected_return_proxy": null,
+      "expected_risk_proxy": 0.67,
+      "invalidation_condition": "risk aggregation remains unresolved",
+      "wait_condition": "wait for lower-confidence review closure",
+      "evidence_refs": [
+        "common-risk-aggregation-check"
+      ],
+      "entry_timing_ref": "timing-common-risk-no-entry"
+    }
+  ],
+  "enter_long_count": 2,
+  "enter_short_count": 1,
+  "wait_count": 1,
+  "no_trade_count": 1,
+  "risk_deny_count": 1,
+  "request_more_evidence_count": 1,
+  "proposals_with_entry_timing": 4,
+  "proposals_with_risk_fields": 7,
+  "proposals_with_evidence_refs": 7,
+  "run_status": "ProposalRunReadyWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

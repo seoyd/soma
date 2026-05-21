@@ -1,0 +1,10 @@
+{
+  "no_trade_counterfactual_covered": true,
+  "risk_denied_counterfactual_covered": true,
+  "defensive_value_covered": true,
+  "opportunity_cost_covered": true,
+  "no_fabricated_outcomes_covered": true,
+  "no_lookahead_preserved": true,
+  "deterministic_backfill_covered": true,
+  "recovery_status": "CounterfactualBackfillReduced"
+}

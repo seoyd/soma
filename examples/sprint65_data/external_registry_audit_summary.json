@@ -1,0 +1,13 @@
+{
+  "registry_id": "sprint64-external-registry-audit",
+  "artifacts_scanned": 18,
+  "missing_artifacts": 0,
+  "incompatible_artifacts": 0,
+  "secret_like_fields": 0,
+  "order_account_fields": 0,
+  "unsafe_intended_use_count": 0,
+  "audit_status": "Passed",
+  "reason_codes": [
+    "ExternalArtifactRegistryAuditReportBuilt"
+  ]
+}

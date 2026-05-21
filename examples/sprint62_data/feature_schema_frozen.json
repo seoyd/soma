@@ -1,0 +1,11 @@
+{
+  "feature_names": ["open", "high", "low", "close", "volume", "spread_bps"],
+  "feature_types": ["f64", "f64", "f64", "f64", "f64", "f64"],
+  "source_feature_groups": ["ohlc", "volume", "microstructure"],
+  "required_features": ["open", "high", "low", "close", "volume", "spread_bps"],
+  "optional_features": [],
+  "missing_features": [],
+  "feature_normalization_policy": "explicit-zscore",
+  "version": "v1",
+  "frozen": true
+}

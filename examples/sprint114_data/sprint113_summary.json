@@ -1,0 +1,138 @@
+{
+  "report_id": "sprint113-summary",
+  "focused_tests_passed": true,
+  "cli_smoke_passed": true,
+  "cargo_check_passed": true,
+  "cargo_build_passed": true,
+  "no_run_timeout_seconds": 420,
+  "no_run_exit_code": 124,
+  "full_timeout_seconds": 420,
+  "full_exit_code": 124,
+  "timeout_cleanup_verified": true,
+  "root_cause_status": "TimeoutRootCausePartiallyIsolated",
+  "root_cause_confidence": "Moderate",
+  "acceptance_evidence_status": "AcceptanceEvidenceSupportingOnly",
+  "acceptance_truth_status": "AcceptanceTruthReadyWithWarnings",
+  "fifth_patch_still_blocked": true,
+  "previous_gate_status": "FifthPatchStillBlocked",
+  "isolated_families": [
+    "FixtureSetupFanout",
+    "CliSmokeFanout",
+    "ArtifactRenderFanout"
+  ],
+  "still_mixed_families": [
+    "IntegrationTestBinaryFanout",
+    "LinkTimeCost",
+    "MacroExpansionCost"
+  ],
+  "suspect_targets": [
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs",
+    "tests/shared_fixture_harness_application_v1.rs",
+    "tests/workspace_timeout_root_cause.rs"
+  ],
+  "integration_observed_evidence": [
+    "cargo no-run timeout still ends near integration test binary fanout",
+    "focused matrix passed while integration binary fanout stayed mixed"
+  ],
+  "integration_inferred_evidence": [
+    "shared fixture harness likely amplifies integration binary count",
+    "control tower panel transitively depends on integration binary surfaces"
+  ],
+  "link_observed_evidence": [
+    "rustc timeline last heavy link candidate was control tower timeout panel"
+  ],
+  "link_inferred_evidence": [
+    "workspace timeout root cause target may still add linker pressure"
+  ],
+  "macro_observed_evidence": [
+    "cargo json trace stalled after workspace_timeout_root_cause artifact emission"
+  ],
+  "macro_inferred_evidence": [
+    "macro-heavy report rendering remains coupled to timeout target"
+  ],
+  "cargo_json_events": {
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs": [
+      "compiler-artifact:control_tower_workspace_timeout_root_cause_panel",
+      "build-script-executed:control_tower panel"
+    ],
+    "tests/shared_fixture_harness_application_v1.rs": [
+      "compiler-artifact:shared_fixture_harness_application_v1"
+    ],
+    "tests/workspace_timeout_root_cause.rs": [
+      "compiler-message:workspace timeout root cause",
+      "compiler-artifact:workspace_timeout_root_cause"
+    ]
+  },
+  "cargo_json_last_seen_artifact": {
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs": "target/debug/deps/control_tower_workspace_timeout_root_cause_panel",
+    "tests/shared_fixture_harness_application_v1.rs": "target/debug/deps/shared_fixture_harness_application_v1",
+    "tests/workspace_timeout_root_cause.rs": "target/debug/deps/workspace_timeout_root_cause"
+  },
+  "cargo_json_parser_errors": 0,
+  "rustc_args": [
+    "--test tests/control_tower_workspace_timeout_root_cause_panel.rs",
+    "--test tests/shared_fixture_harness_application_v1.rs",
+    "--test tests/workspace_timeout_root_cause.rs"
+  ],
+  "rustc_max_concurrency": 3,
+  "remaining_rustc_processes_after_timeout": 0,
+  "remaining_cargo_processes_after_timeout": 0,
+  "artifact_events": {
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs": [
+      "target/debug/deps/control_tower_workspace_timeout_root_cause_panel"
+    ],
+    "tests/shared_fixture_harness_application_v1.rs": [
+      "target/debug/deps/shared_fixture_harness_application_v1"
+    ],
+    "tests/workspace_timeout_root_cause.rs": [
+      "target/debug/deps/workspace_timeout_root_cause"
+    ]
+  },
+  "assertion_count_by_target": {
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs": 6,
+    "tests/shared_fixture_harness_application_v1.rs": 5,
+    "tests/workspace_timeout_root_cause.rs": 9
+  },
+  "assertion_kinds_by_target": {
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs": [
+      "cli-warning-posture",
+      "panel-render",
+      "timeout-interpretation"
+    ],
+    "tests/shared_fixture_harness_application_v1.rs": [
+      "fixture-setup",
+      "shared-harness",
+      "deterministic-output"
+    ],
+    "tests/workspace_timeout_root_cause.rs": [
+      "root-cause-split",
+      "evidence-matrix",
+      "acceptance-warning"
+    ]
+  },
+  "assertion_dependencies": {
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs": [
+      "control tower warning renderer",
+      "timeout panel bundle text"
+    ],
+    "tests/shared_fixture_harness_application_v1.rs": [
+      "shared fixture harness helpers"
+    ],
+    "tests/workspace_timeout_root_cause.rs": [
+      "root cause evidence split",
+      "acceptance truth gate wording"
+    ]
+  },
+  "migration_complexity": {
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs": "High",
+    "tests/shared_fixture_harness_application_v1.rs": "Medium",
+    "tests/workspace_timeout_root_cause.rs": "High"
+  },
+  "existing_migrated_assertion_count": 2,
+  "further_migration_capacity": 1,
+  "equivalent_coverage_feasible": true,
+  "sentinel_safety_preserved": true,
+  "no_hidden_skip_risk": true,
+  "mixed_family_evidence_narrowed_enough": false,
+  "cumulative_sample_backed_delta": -4
+}

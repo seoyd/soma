@@ -1,0 +1,25 @@
+{
+  "report_id": "risk-governor-paper-handoff-report",
+  "scenario_id": "crypto-cycle-liquidity",
+  "chairman_recommendation": "NoTrade",
+  "risk_checks": [
+    "final veto still required",
+    "paper proposal is not order execution",
+    "lower-confidence warnings remain in force"
+  ],
+  "veto_result": "NoTrade",
+  "veto_reason": "cross-group conflict and lower-confidence evidence still require a paper-only NoTrade default",
+  "broker_execution_allowed": false,
+  "live_execution_allowed": false,
+  "handoff_status": "RiskGovernorHandoffReadyWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

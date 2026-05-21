@@ -1,0 +1,22 @@
+{
+  "pack_id": "committee-scenario-pack-v2",
+  "scenarios": [
+    "KRX:005930:1d:bull:tp",
+    "KRX:000660:4h:bear:sl",
+    "NASDAQ:AAPL:1d:range:nt",
+    "KRX:035420:1h:bull:rd"
+  ],
+  "official_scenario_count": 2,
+  "research_only_count": 1,
+  "diagnostic_only_count": 1,
+  "fixture_only_count": 0,
+  "source_class_summary": {
+    "OfficialKIS": 1,
+    "OfficialKRXReference": 1,
+    "ResearchOnly": 1,
+    "ChairTrace": 1,
+    "RiskTrace": 1
+  },
+  "scenario_status": "ScenarioPackReadyWithWarnings",
+  "reason_codes": ["CommitteeEvidenceExpanded", "DeterministicPath"]
+}

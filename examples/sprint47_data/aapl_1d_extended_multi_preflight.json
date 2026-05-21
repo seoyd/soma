@@ -1,0 +1,52 @@
+{
+  "onboarding_id": "sprint47-aapl-extended-multi",
+  "input_path": "examples/sprint47_data/aapl_1d_extended_multi.csv",
+  "detected_format": null,
+  "symbol": "AAPL",
+  "timeframe": "OneDay",
+  "provenance": {
+    "source_kind": "OfficialApiCollected",
+    "source_label": "preflight-aapl-extended-multi",
+    "provider_label": "AlphaVantage",
+    "upstream_label": null,
+    "local_path": "examples/sprint47_data/aapl_1d_extended_multi.csv",
+    "generated_by": null,
+    "user_supplied": true,
+    "downloaded_by_soma": false,
+    "remote_url_present": false,
+    "official_provider": true,
+    "affiliated_or_endorsed": true,
+    "intended_use": "research-only",
+    "readiness_eligible": true,
+    "benchmark_eligible": true,
+    "license_note": null,
+    "notes": null,
+    "reason_codes": [
+      "DeterministicPath"
+    ]
+  },
+  "data_quality_report": null,
+  "data_manifest_preview": null,
+  "evidence_target_estimate": null,
+  "row_count": 7,
+  "usable_row_count": 7,
+  "estimated_walk_forward_folds": 2,
+  "estimated_outcome_records": 3,
+  "estimated_comparable_variants": 1,
+  "checks": [
+    {
+      "check": "RealLocalEligible",
+      "status": "Passed",
+      "summary": "ReadyForRealEvidence",
+      "reason_codes": [
+        "PreflightReportBuilt"
+      ]
+    }
+  ],
+  "final_status": "ReadyForRealEvidence",
+  "blockers": [],
+  "warnings": [],
+  "reason_codes": [
+    "PreflightReportBuilt"
+  ]
+}

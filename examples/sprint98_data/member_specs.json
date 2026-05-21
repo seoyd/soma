@@ -1,0 +1,370 @@
+[
+  {
+    "member_id": "trend-scout",
+    "display_name": "Trend Scout",
+    "style_archetype": "TrendFollower",
+    "member_role": "EntryScout",
+    "owned_core_refs": [
+      "trend-scout-core"
+    ],
+    "allowed_data_scopes": [
+      "official-market-data",
+      "paper-research-evidence",
+      "counterfactual-review"
+    ],
+    "allowed_analysis_modes": [
+      "offline-study",
+      "fixture-replay",
+      "paper-debate"
+    ],
+    "proposal_permissions": [
+      "EnterLong",
+      "Wait",
+      "NoTrade",
+      "RiskDeny",
+      "RequestMoreEvidence",
+      "WatchCandidate"
+    ],
+    "debate_permissions": [
+      "SupportEntry",
+      "OpposeEntry",
+      "WaitForConfirmation",
+      "DemandRiskDeny",
+      "DemandNoTrade",
+      "RequestMoreEvidence"
+    ],
+    "promotion_eligible": true,
+    "demotion_eligible": true,
+    "retirement_eligible": true,
+    "member_status": "ActivePaperMember",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  {
+    "member_id": "risk-defender",
+    "display_name": "Risk Defender",
+    "style_archetype": "RiskFirstDefensive",
+    "member_role": "RiskDefender",
+    "owned_core_refs": [
+      "risk-defender-core"
+    ],
+    "allowed_data_scopes": [
+      "official-market-data",
+      "paper-research-evidence",
+      "counterfactual-review"
+    ],
+    "allowed_analysis_modes": [
+      "offline-study",
+      "fixture-replay",
+      "paper-debate"
+    ],
+    "proposal_permissions": [
+      "EnterLong",
+      "Wait",
+      "NoTrade",
+      "RiskDeny",
+      "RequestMoreEvidence",
+      "WatchCandidate"
+    ],
+    "debate_permissions": [
+      "SupportEntry",
+      "OpposeEntry",
+      "WaitForConfirmation",
+      "DemandRiskDeny",
+      "DemandNoTrade",
+      "RequestMoreEvidence"
+    ],
+    "promotion_eligible": true,
+    "demotion_eligible": true,
+    "retirement_eligible": true,
+    "member_status": "ActivePaperMember",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  {
+    "member_id": "regime-interpreter",
+    "display_name": "Regime Interpreter",
+    "style_archetype": "RegimeCycle",
+    "member_role": "RegimeInterpreter",
+    "owned_core_refs": [
+      "regime-interpreter-core"
+    ],
+    "allowed_data_scopes": [
+      "official-market-data",
+      "paper-research-evidence",
+      "counterfactual-review"
+    ],
+    "allowed_analysis_modes": [
+      "offline-study",
+      "fixture-replay",
+      "paper-debate"
+    ],
+    "proposal_permissions": [
+      "EnterLong",
+      "Wait",
+      "NoTrade",
+      "RiskDeny",
+      "RequestMoreEvidence",
+      "WatchCandidate"
+    ],
+    "debate_permissions": [
+      "SupportEntry",
+      "OpposeEntry",
+      "WaitForConfirmation",
+      "DemandRiskDeny",
+      "DemandNoTrade",
+      "RequestMoreEvidence"
+    ],
+    "promotion_eligible": true,
+    "demotion_eligible": true,
+    "retirement_eligible": true,
+    "member_status": "ActivePaperMember",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  {
+    "member_id": "macro-interpreter",
+    "display_name": "Macro Interpreter",
+    "style_archetype": "MacroReflexive",
+    "member_role": "MacroInterpreter",
+    "owned_core_refs": [
+      "macro-interpreter-core"
+    ],
+    "allowed_data_scopes": [
+      "official-market-data",
+      "paper-research-evidence",
+      "counterfactual-review"
+    ],
+    "allowed_analysis_modes": [
+      "offline-study",
+      "fixture-replay",
+      "paper-debate"
+    ],
+    "proposal_permissions": [
+      "EnterLong",
+      "Wait",
+      "NoTrade",
+      "RiskDeny",
+      "RequestMoreEvidence",
+      "WatchCandidate"
+    ],
+    "debate_permissions": [
+      "SupportEntry",
+      "OpposeEntry",
+      "WaitForConfirmation",
+      "DemandRiskDeny",
+      "DemandNoTrade",
+      "RequestMoreEvidence"
+    ],
+    "promotion_eligible": true,
+    "demotion_eligible": true,
+    "retirement_eligible": true,
+    "member_status": "WatchOnlyMember",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  {
+    "member_id": "value-skeptic",
+    "display_name": "Value Skeptic",
+    "style_archetype": "ValueDiscipline",
+    "member_role": "ValueSkeptic",
+    "owned_core_refs": [
+      "value-skeptic-core"
+    ],
+    "allowed_data_scopes": [
+      "official-market-data",
+      "paper-research-evidence",
+      "counterfactual-review"
+    ],
+    "allowed_analysis_modes": [
+      "offline-study",
+      "fixture-replay",
+      "paper-debate"
+    ],
+    "proposal_permissions": [
+      "EnterLong",
+      "Wait",
+      "NoTrade",
+      "RiskDeny",
+      "RequestMoreEvidence",
+      "WatchCandidate"
+    ],
+    "debate_permissions": [
+      "SupportEntry",
+      "OpposeEntry",
+      "WaitForConfirmation",
+      "DemandRiskDeny",
+      "DemandNoTrade",
+      "RequestMoreEvidence"
+    ],
+    "promotion_eligible": true,
+    "demotion_eligible": true,
+    "retirement_eligible": true,
+    "member_status": "ActivePaperMember",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  {
+    "member_id": "liquidity-executor",
+    "display_name": "Liquidity Executor",
+    "style_archetype": "LiquidityExecution",
+    "member_role": "LiquidityExecutor",
+    "owned_core_refs": [
+      "liquidity-executor-core"
+    ],
+    "allowed_data_scopes": [
+      "official-market-data",
+      "paper-research-evidence",
+      "counterfactual-review"
+    ],
+    "allowed_analysis_modes": [
+      "offline-study",
+      "fixture-replay",
+      "paper-debate"
+    ],
+    "proposal_permissions": [
+      "EnterLong",
+      "Wait",
+      "NoTrade",
+      "RiskDeny",
+      "RequestMoreEvidence",
+      "WatchCandidate"
+    ],
+    "debate_permissions": [
+      "SupportEntry",
+      "OpposeEntry",
+      "WaitForConfirmation",
+      "DemandRiskDeny",
+      "DemandNoTrade",
+      "RequestMoreEvidence"
+    ],
+    "promotion_eligible": true,
+    "demotion_eligible": true,
+    "retirement_eligible": true,
+    "member_status": "DiagnosticOnlyMember",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  {
+    "member_id": "counterfactual-reviewer",
+    "display_name": "Counterfactual Reviewer",
+    "style_archetype": "CounterfactualHistorian",
+    "member_role": "CounterfactualReviewer",
+    "owned_core_refs": [
+      "counterfactual-reviewer-core"
+    ],
+    "allowed_data_scopes": [
+      "official-market-data",
+      "paper-research-evidence",
+      "counterfactual-review"
+    ],
+    "allowed_analysis_modes": [
+      "offline-study",
+      "fixture-replay",
+      "paper-debate"
+    ],
+    "proposal_permissions": [
+      "EnterLong",
+      "Wait",
+      "NoTrade",
+      "RiskDeny",
+      "RequestMoreEvidence",
+      "WatchCandidate"
+    ],
+    "debate_permissions": [
+      "SupportEntry",
+      "OpposeEntry",
+      "WaitForConfirmation",
+      "DemandRiskDeny",
+      "DemandNoTrade",
+      "RequestMoreEvidence"
+    ],
+    "promotion_eligible": true,
+    "demotion_eligible": true,
+    "retirement_eligible": true,
+    "member_status": "ActivePaperMember",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  {
+    "member_id": "chair-candidate",
+    "display_name": "Chair Candidate",
+    "style_archetype": "QualityCompounder",
+    "member_role": "ChairCandidate",
+    "owned_core_refs": [
+      "chair-candidate-core"
+    ],
+    "allowed_data_scopes": [
+      "official-market-data",
+      "paper-research-evidence",
+      "counterfactual-review"
+    ],
+    "allowed_analysis_modes": [
+      "offline-study",
+      "fixture-replay",
+      "paper-debate"
+    ],
+    "proposal_permissions": [
+      "EnterLong",
+      "Wait",
+      "NoTrade",
+      "RiskDeny",
+      "RequestMoreEvidence",
+      "WatchCandidate"
+    ],
+    "debate_permissions": [
+      "SupportEntry",
+      "OpposeEntry",
+      "WaitForConfirmation",
+      "DemandRiskDeny",
+      "DemandNoTrade",
+      "RequestMoreEvidence"
+    ],
+    "promotion_eligible": true,
+    "demotion_eligible": true,
+    "retirement_eligible": true,
+    "member_status": "ActivePaperMember",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  }
+]

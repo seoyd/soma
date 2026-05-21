@@ -1,0 +1,14 @@
+{
+  "planned_symbols": ["005930.KS", "AAPL"],
+  "planned_timeframes": ["1d"],
+  "planned_horizons": [4, 8, 16],
+  "official_rows_before": 8,
+  "complete_rows_before": 2,
+  "outcome_links_before": 2,
+  "no_trade_counterfactuals": 1,
+  "risk_denied_counterfactuals": 0,
+  "primary_gap": "NeedMoreKISEvidence",
+  "provenance_ready_rows": 6,
+  "preflight_ready_rows": 6,
+  "no_lookahead_safe": true
+}

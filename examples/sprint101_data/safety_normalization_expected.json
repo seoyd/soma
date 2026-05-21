@@ -1,0 +1,22 @@
+{
+  "report_id": "investor-archetype-safety-normalization-report",
+  "candidates_normalized": 18,
+  "impersonation_claims_removed": 36,
+  "private_strategy_claims_removed": 18,
+  "unverified_profit_claims_removed": 18,
+  "private_life_myths_removed": 18,
+  "unsupported_best_investor_claims_removed": 15,
+  "exact_rule_claims_downweighted": 18,
+  "warnings": [],
+  "safety_status": "SafetyNormalizationReady",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

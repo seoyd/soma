@@ -1,0 +1,18 @@
+queue_id = "sprint53-owner-review"
+candidate_queue_path = "examples/sprint53_data/candidate_queue_with_owner_items.json"
+owner_inputs_path = "examples/sprint53_data/owner_inputs_sample.json"
+reason_codes = ["DeterministicPath"]
+
+[protocol]
+protocol_id = "owner-human-confirm-v1"
+allow_paper_confirm = true
+allow_dismiss = true
+allow_hold = true
+allow_reanalysis_request = true
+allow_mark_reviewed = true
+allow_research_only_confirm = false
+allow_diagnostic_only_confirm = false
+require_reason_for_confirm = true
+require_reason_for_dismiss = false
+max_pending_items = 32
+reason_codes = ["DeterministicPath"]

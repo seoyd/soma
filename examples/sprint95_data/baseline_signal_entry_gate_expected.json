@@ -1,0 +1,14 @@
+{
+  "gate_id": "sprint95-committee-cli-safety-recover-baseline-signal-entry-gate",
+  "committee_cli_safety_reduction_status": "CommitteeCliSafetyKeptIsolated",
+  "committee_cli_safety_isolation_status": "KeepPermanentIsolatedSentinel",
+  "safety_status": "SafetyCoveragePreserved",
+  "no_run_status": "RealNoRunStillBlocked",
+  "full_status": "FullWorkspaceStillBlocked",
+  "baseline_signal_next_allowed": true,
+  "gate_status": "BaselineSignalEntryReady",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "report_id": "sprint92-krx-warning-close-dashboard-precheck",
+  "dashboard_renderer_family_present": true,
+  "dashboard_renderer_suite_present": true,
+  "static_html_checks_present": true,
+  "no_post_action_checks_present": true,
+  "no_secret_checks_present": true,
+  "no_browser_execution_checks_present": true,
+  "deterministic_render_checks_present": true,
+  "precheck_status": "DashboardRendererPrecheckReady",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

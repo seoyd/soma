@@ -1,0 +1,29 @@
+{
+  "draft_id": "chairman-rulebook-v2-draft",
+  "previous_version_id": "chairman-rulebook-v1",
+  "proposed_version_id": "chairman-rulebook-v2",
+  "draft_rules": [
+    "chair synthesis stays subordinate to the Risk Governor final veto and may only recommend paper-only actions",
+    "entry timing proposals require debate when action is EnterLong, EnterShort, RiskDeny, or RequestMoreEvidence",
+    "member-owned cores remain paper-only, research-only, and deferred for runtime, training, and live execution",
+    "paper-only committee dry-run is the maximum activation scope; live rule mutation stays forbidden",
+    "pending proposal count=1",
+    "rule changes remain proposal-only until audit, owner review, and Risk Governor review complete"
+  ],
+  "unsafe_rules_removed": 2,
+  "paper_only_restrictions_added": 3,
+  "risk_governor_review_added": true,
+  "owner_review_added": true,
+  "live_use_forbidden": true,
+  "draft_status": "RulebookV2DraftReadyWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

@@ -1,0 +1,16 @@
+pack_id = "committee_pack_controlled_official"
+input_artifact_paths = ["examples/official_committee_AAPL.csv"]
+allowed_source_kinds = ["OfficialApiCollected"]
+output_root = "target/soma_committee_official_pack"
+max_rows = 10
+max_symbols = 3
+max_bytes = 500000
+require_provenance = true
+require_preflight = true
+require_outcome_reference = false
+allow_crypto_only = false
+allow_yfinance_research = false
+allow_fixture = false
+allow_summary_derived_rows = false
+reason_codes = []
+

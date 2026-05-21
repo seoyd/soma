@@ -1,0 +1,110 @@
+{
+  "traces": [
+    {
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "cause_kind": "ArtifactCompletenessRegression",
+      "baseline_artifact": "trace-artifact-58a9393c66219cdd",
+      "current_artifact": "trace-artifact-dafdd29f9ed068a3",
+      "baseline_value": "0.8889",
+      "current_value": "0.6667",
+      "delta": "0.8889 -> 0.6667",
+      "explanation": "artifact completeness regressed and evidence should be rebuilt conservatively",
+      "recommended_action": "RequestMorePredictions",
+      "severity": "Warning",
+      "reason_codes": [
+        "RegressionEvidenceTraceBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "cause_kind": "CalibrationRegression",
+      "baseline_artifact": "trace-artifact-58a9393c66219cdd",
+      "current_artifact": "trace-artifact-dafdd29f9ed068a3",
+      "baseline_value": "Stable",
+      "current_value": "Review",
+      "delta": "Stable -> Review",
+      "explanation": "calibration drift needs review before further comparison",
+      "recommended_action": "RequestCalibrationReview",
+      "severity": "Warning",
+      "reason_codes": [
+        "RegressionEvidenceTraceBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "cause_kind": "ComparabilityRegression",
+      "baseline_artifact": "trace-artifact-58a9393c66219cdd",
+      "current_artifact": "trace-artifact-dafdd29f9ed068a3",
+      "baseline_value": "Comparable",
+      "current_value": "NeedsReview",
+      "delta": "Comparable -> NeedsReview",
+      "explanation": "comparability regressed and the model should stay diagnostic-only until clarified",
+      "recommended_action": "DowngradeToDiagnostic",
+      "severity": "Error",
+      "reason_codes": [
+        "RegressionEvidenceTraceBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "cause_kind": "CoverageRegression",
+      "baseline_artifact": "trace-artifact-58a9393c66219cdd",
+      "current_artifact": "trace-artifact-dafdd29f9ed068a3",
+      "baseline_value": "1.0000",
+      "current_value": "0.6667",
+      "delta": "1.0000 -> 0.6667",
+      "explanation": "prediction coverage regressed and needs more offline history",
+      "recommended_action": "RequestMorePredictions",
+      "severity": "Warning",
+      "reason_codes": [
+        "RegressionEvidenceTraceBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "cause_kind": "LeaderboardRegression",
+      "baseline_artifact": "trace-artifact-58a9393c66219cdd",
+      "current_artifact": "trace-artifact-dafdd29f9ed068a3",
+      "baseline_value": "NoChange",
+      "current_value": "NewlyBlocked",
+      "delta": "NoChange -> NewlyBlocked",
+      "explanation": "leaderboard status regressed and ranking should be treated conservatively",
+      "recommended_action": "RetireModelVersion",
+      "severity": "Error",
+      "reason_codes": [
+        "RegressionEvidenceTraceBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "cause_kind": "RiskRegression",
+      "baseline_artifact": "trace-artifact-58a9393c66219cdd",
+      "current_artifact": "trace-artifact-dafdd29f9ed068a3",
+      "baseline_value": "Low",
+      "current_value": "Critical",
+      "delta": "Low -> Critical",
+      "explanation": "risk behavior regressed and needs conservative review",
+      "recommended_action": "RequestRiskReview",
+      "severity": "Critical",
+      "reason_codes": [
+        "RegressionEvidenceTraceBuilt"
+      ]
+    }
+  ],
+  "coverage_regression_count": 1,
+  "calibration_regression_count": 1,
+  "risk_regression_count": 1,
+  "comparability_regression_count": 1,
+  "artifact_completeness_regression_count": 1,
+  "leaderboard_regression_count": 1,
+  "report_status": "RegressionTraceReady",
+  "reason_codes": [
+    "RegressionEvidenceTraceReportBuilt"
+  ]
+}

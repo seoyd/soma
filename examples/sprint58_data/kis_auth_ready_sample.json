@@ -1,0 +1,22 @@
+{
+  "closure_id": "sprint58-kis-auth-close",
+  "app_key_env_var_name": "KIS_APP_KEY",
+  "app_key_present": true,
+  "app_secret_env_var_name": "KIS_APP_SECRET",
+  "app_secret_present": true,
+  "base_url_env_var_name": "KIS_BASE_URL",
+  "base_url_present": true,
+  "ws_approval_key_env_var_name": "KIS_WS_APPROVAL_KEY",
+  "ws_approval_key_present": false,
+  "base_url_preview_redacted": "configured(redacted;base_url=***.redacted.local;https=true)",
+  "closure_status": "ReadyForDryRunOnly",
+  "safe_for_rest_market_data_dry_run": true,
+  "safe_for_rest_market_data_live": false,
+  "safe_for_realtime_market_data": true,
+  "reason_codes": [
+    "AuthConfigValidated",
+    "DeterministicPath",
+    "KISAuthClosureBuilt",
+    "KISBaseUrlPreviewRedacted"
+  ]
+}

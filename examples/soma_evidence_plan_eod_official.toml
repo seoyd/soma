@@ -1,0 +1,31 @@
+plan_id = "sprint31_eod_official"
+output_root = "target/soma_evidence_plan"
+run_core_check = true
+run_collection = true
+run_preflight = true
+run_benchmark = true
+run_external_eval = false
+allow_yfinance_research = false
+allow_crypto_only = true
+allow_missing_auth_skips = true
+max_lanes = 5
+max_symbols = 2
+max_rows_per_lane = 300
+max_requests_per_lane = 5
+max_total_bytes = 300000
+reason_codes = []
+
+[[explicit_lanes]]
+lane_kind = "KoreanEquityEodEvidence"
+provider = "krx"
+symbols = ["005930.KS"]
+enabled = true
+reason_codes = []
+
+[[explicit_lanes]]
+lane_kind = "USEquityEodEvidence"
+provider = "alphavantage"
+symbols = ["AAPL"]
+enabled = true
+reason_codes = []
+

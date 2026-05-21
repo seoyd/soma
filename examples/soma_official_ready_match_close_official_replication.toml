@@ -1,0 +1,11 @@
+closure_id = "sprint44-official-ready-match-close-official"
+join_audit_config_path = "examples/soma_candle_join_audit_symbol_mismatch.toml"
+output_root = "target/soma_official_ready_match_closure"
+run_join_audit = true
+run_safe_repairs = true
+run_backfill = true
+run_reference_generation = true
+run_counterfactual_depth_close = true
+run_core_scorecard_rerun = false
+max_repair_actions = 20
+reason_codes = ["DeterministicPath"]

@@ -1,0 +1,15 @@
+[owner_input]
+owner_input_id = "owner-input-hold-example"
+timestamp_ms = 1715691002000
+owner_id = "owner-local"
+input_kind = "CandidateHold"
+target_type = "Candidate"
+target_id = "cand-104"
+symbol = "NVDA"
+market = "USEquity"
+requested_action = "hold_candidate"
+status = "Submitted"
+reason_codes = ["DeterministicPath"]
+
+[owner_input.structured_payload]
+hold_reason = "await_more_evidence"

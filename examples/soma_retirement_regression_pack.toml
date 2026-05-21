@@ -1,0 +1,14 @@
+pack_id = "sprint72-retirement-regression-pack"
+target_model_id = "ext-model-a"
+target_model_version = "1.0.0"
+regression_evidence_paths = ["examples/sprint72_data/ext_model_a_1_0_0_regression_evidence.json"]
+calibration_drift_paths = []
+risk_profile_paths = ["examples/soma_model_ops_rollup.toml"]
+leaderboard_history_paths = ["examples/sprint67_data/conservative_leaderboard.json"]
+comparison_paths = ["examples/sprint71_data/retirement_evidence_ext_model_a_1_0_0.json"]
+owner_review_paths = ["examples/sprint66_data/owner_model_review_actions.json"]
+output_root = "target/soma_offline_evidence_attachment"
+require_regression_evidence = true
+require_calibration_evidence = false
+require_risk_evidence = true
+require_owner_reason_for_retirement = true

@@ -1,0 +1,14 @@
+{
+  "previous_no_run_status": "NoRunGateStillBlocked",
+  "previous_full_status": "CompileOnlyBlocked",
+  "previous_remaining_blockers": [
+    "CandleExpansionOps",
+    "ExternalPrediction",
+    "KrxEvidence",
+    "DashboardRenderer",
+    "CommitteeCliSafety",
+    "BaselineSignal",
+    "CounterfactualBackfill"
+  ],
+  "previous_primary_next_family": "CandleExpansionOps"
+}

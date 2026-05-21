@@ -1,0 +1,74 @@
+{
+  "batch_id": "sprint48-mixed-counterfactuals",
+  "records": [
+    {
+      "row_id": "aapl-tp",
+      "no_trade_counterfactual_built": true,
+      "risk_denied_counterfactual_built": true,
+      "avoided_loss_value": 0.0,
+      "missed_gain_value": 0.018,
+      "diagnostic_only": false,
+      "status": "Completed",
+      "reason_codes": [
+        "DeterministicPath",
+        "CounterfactualEvaluated"
+      ]
+    },
+    {
+      "row_id": "msft-sl",
+      "no_trade_counterfactual_built": true,
+      "risk_denied_counterfactual_built": true,
+      "avoided_loss_value": 0.011,
+      "missed_gain_value": 0.0,
+      "diagnostic_only": false,
+      "status": "Completed",
+      "reason_codes": [
+        "DeterministicPath",
+        "CounterfactualEvaluated"
+      ]
+    },
+    {
+      "row_id": "nvda-te",
+      "no_trade_counterfactual_built": true,
+      "risk_denied_counterfactual_built": true,
+      "avoided_loss_value": 0.0,
+      "missed_gain_value": 0.004,
+      "diagnostic_only": false,
+      "status": "Completed",
+      "reason_codes": [
+        "DeterministicPath",
+        "CounterfactualEvaluated"
+      ]
+    },
+    {
+      "row_id": "aapl-4h-tp",
+      "no_trade_counterfactual_built": true,
+      "risk_denied_counterfactual_built": true,
+      "avoided_loss_value": 0.0,
+      "missed_gain_value": 0.021,
+      "diagnostic_only": false,
+      "status": "Completed",
+      "reason_codes": [
+        "DeterministicPath",
+        "CounterfactualEvaluated"
+      ]
+    }
+  ],
+  "total_rows": 4,
+  "eligible_rows": 4,
+  "completed_count": 4,
+  "no_trade_built_count": 4,
+  "risk_denied_built_count": 4,
+  "official_counterfactual_count": 4,
+  "diagnostic_counterfactual_count": 0,
+  "skipped_missing_outcome_count": 0,
+  "skipped_missing_risk_decision_count": 0,
+  "skipped_missing_committee_decision_count": 0,
+  "avoided_loss_total": 0.011,
+  "missed_gain_total": 0.043,
+  "completion_status": "OfficialBatchCounterfactualsImproved",
+  "reason_codes": [
+    "DeterministicPath",
+    "CounterfactualEvaluated"
+  ]
+}

@@ -1,0 +1,14 @@
+ingestion_id = "investor-archetype-ingestion"
+sprint100_bundle_paths = ["examples/sprint101_data/sprint100_summary.json"]
+investor_material_paths = ["examples/sprint101_data/investor_material_sample.md"]
+output_root = "target/soma_sprint101_investor_archetype_ingestion"
+require_no_impersonation = true
+require_source_confidence = true
+require_do_not_learn_guards = true
+require_style_grouping = true
+require_feature_vectors = true
+require_regime_routing = true
+require_paper_only = true
+preserve_committee_owned_architecture = true
+preserve_runtime_deferred = true
+preserve_safety_guards = true

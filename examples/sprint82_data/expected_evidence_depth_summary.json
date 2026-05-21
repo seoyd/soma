@@ -1,0 +1,7 @@
+{
+  "official_evidence_depth": "OfficialEvidenceDepthExpanded",
+  "committee_reference_closure": "CommitteeReferencesImproved",
+  "defensive_counterfactual_depth": "DefensiveDepthReady",
+  "sequence_core_confidence_rerun": "ConfidenceImproved",
+  "decision_gate_v2": "KeepBothAsResearchCandidates"
+}

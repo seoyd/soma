@@ -1,0 +1,7 @@
+report_id = "sprint29_provider_readiness"
+output_dir = "target/soma_provider_readiness"
+markets = ["Crypto", "KoreanEquity", "USEquity"]
+allow_research_supplemental = true
+allow_professional_paid = true
+max_providers_per_market = 4
+

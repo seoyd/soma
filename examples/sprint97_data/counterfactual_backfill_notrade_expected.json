@@ -1,0 +1,13 @@
+{
+  "report_id": "sprint97-counterfactual-backfill-recover-notrade",
+  "grouped_suite_detects_no_trade_gaps": true,
+  "no_trade_counterfactual_gap_detected": true,
+  "no_trade_best_outcome_can_still_win": true,
+  "missed_gain_penalty_remains_explicit": true,
+  "no_trade_not_weakened": true,
+  "no_trade_status": "NoTradePreserved",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

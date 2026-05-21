@@ -1,0 +1,28 @@
+{
+  "report_id": "prototype-risk",
+  "family_records": [
+    {
+      "family": "Mamba3Fin",
+      "no_trade_alignment": "visible",
+      "risk_denied_alignment": "visible",
+      "over_risk_count": 1,
+      "under_risk_count": 0,
+      "defensive_value": "0.0200"
+    },
+    {
+      "family": "GatedDeltaNet",
+      "no_trade_alignment": "visible",
+      "risk_denied_alignment": "visible",
+      "over_risk_count": 0,
+      "under_risk_count": 1,
+      "defensive_value": "0.0180"
+    }
+  ],
+  "risk_denied_alignment": "visible",
+  "no_trade_alignment": "visible",
+  "over_risk_count": 1,
+  "under_risk_count": 1,
+  "defensive_value_summary": "risk denied and no-trade remain visible",
+  "risk_status": "RiskInteractionReadyWithWarnings",
+  "reason_codes": ["DeterministicPath"]
+}

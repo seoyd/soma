@@ -1,0 +1,16 @@
+pack_id = "committee_pack_crypto_official"
+input_artifact_paths = ["examples/committee_evidence_lane_btc_krw.json"]
+allowed_source_kinds = ["OfficialCryptoPublic"]
+output_root = "target/soma_committee_official_pack"
+max_rows = 10
+max_symbols = 3
+max_bytes = 500000
+require_provenance = true
+require_preflight = true
+require_outcome_reference = false
+allow_crypto_only = true
+allow_yfinance_research = false
+allow_fixture = false
+allow_summary_derived_rows = false
+reason_codes = []
+

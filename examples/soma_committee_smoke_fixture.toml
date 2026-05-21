@@ -1,0 +1,10 @@
+test_id = "committee_smoke_fixture"
+use_fixture_data = true
+use_upbit_crypto_lane = true
+use_yfinance_research_lane = false
+output_root = "target/soma_committee_smoke"
+max_decisions = 12
+require_core_check = true
+force_core_block = false
+reason_codes = []
+

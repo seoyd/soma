@@ -1,0 +1,266 @@
+{
+  "records": [
+    {
+      "decision_id": "closure:ext-model-a:1.0.0:CalibrationDriftReview",
+      "model_id": "ext-model-a",
+      "model_version": "1.0.0",
+      "decision_kind": "RetireModelVersion",
+      "source": "PolicyRule",
+      "before_status": "Pending",
+      "after_status": "RetireModelVersion",
+      "reason_codes": [
+        "ModelOpsDecisionLogBuilt"
+      ]
+    },
+    {
+      "decision_id": "closure:ext-model-a:1.0.0:MambaFamilyReview",
+      "model_id": "ext-model-a",
+      "model_version": "1.0.0",
+      "decision_kind": "RetireModelVersion",
+      "source": "PolicyRule",
+      "before_status": "Pending",
+      "after_status": "RetireModelVersion",
+      "reason_codes": [
+        "ModelOpsDecisionLogBuilt"
+      ]
+    },
+    {
+      "decision_id": "closure:ext-model-a:1.0.0:NewModelVersion",
+      "model_id": "ext-model-a",
+      "model_version": "1.0.0",
+      "decision_kind": "RetireModelVersion",
+      "source": "PolicyRule",
+      "before_status": "Pending",
+      "after_status": "RetireModelVersion",
+      "reason_codes": [
+        "ModelOpsDecisionLogBuilt"
+      ]
+    },
+    {
+      "decision_id": "owner:retire-ext-model-a-v1_0_0",
+      "model_id": "ext-model-a",
+      "model_version": "1.0.0",
+      "decision_kind": "RetireModelVersion",
+      "source": "OwnerAction",
+      "before_status": null,
+      "after_status": "RetireModelVersion",
+      "reason_codes": [
+        "ModelOpsDecisionLogBuilt"
+      ]
+    },
+    {
+      "decision_id": "risk:ext-model-a:1.0.0",
+      "model_id": "ext-model-a",
+      "model_version": "1.0.0",
+      "decision_kind": "KeepResearchCandidate",
+      "source": "RiskProfile",
+      "before_status": "DiagnosticOnly",
+      "after_status": "KeepResearchCandidate",
+      "reason_codes": [
+        "ModelOpsDecisionLogBuilt"
+      ]
+    },
+    {
+      "decision_id": "closure:ext-model-a:1.1.0:LeaderboardChangeReview",
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "decision_kind": "KeepResearchCandidate",
+      "source": "PolicyRule",
+      "before_status": "Pending",
+      "after_status": "KeepResearchCandidate",
+      "reason_codes": [
+        "ModelOpsDecisionLogBuilt"
+      ]
+    },
+    {
+      "decision_id": "closure:ext-model-a:1.1.0:MambaFamilyReview",
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "decision_kind": "KeepResearchCandidate",
+      "source": "PolicyRule",
+      "before_status": "Pending",
+      "after_status": "KeepResearchCandidate",
+      "reason_codes": [
+        "ModelOpsDecisionLogBuilt"
+      ]
+    },
+    {
+      "decision_id": "closure:ext-model-a:1.1.0:NewModelVersion",
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "decision_kind": "KeepResearchCandidate",
+      "source": "PolicyRule",
+      "before_status": "Pending",
+      "after_status": "KeepResearchCandidate",
+      "reason_codes": [
+        "ModelOpsDecisionLogBuilt"
+      ]
+    },
+    {
+      "decision_id": "closure:ext-model-a:1.1.0:OwnerRequestedReview",
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "decision_kind": "KeepResearchCandidate",
+      "source": "PolicyRule",
+      "before_status": "Pending",
+      "after_status": "KeepResearchCandidate",
+      "reason_codes": [
+        "ModelOpsDecisionLogBuilt"
+      ]
+    },
+    {
+      "decision_id": "leaderboard:ext-model-a:1.1.0",
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "decision_kind": "KeepResearchCandidate",
+      "source": "LeaderboardChange",
+      "before_status": "2",
+      "after_status": "1",
+      "reason_codes": [
+        "ModelOpsDecisionLogBuilt"
+      ]
+    },
+    {
+      "decision_id": "owner:keep-ext-model-a-v1_1_0",
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "decision_kind": "KeepResearchCandidate",
+      "source": "OwnerAction",
+      "before_status": null,
+      "after_status": "KeepResearchCandidate",
+      "reason_codes": [
+        "ModelOpsDecisionLogBuilt"
+      ]
+    },
+    {
+      "decision_id": "owner:watch-ext-model-a-v1_1_0",
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "decision_kind": "WatchModel",
+      "source": "OwnerAction",
+      "before_status": null,
+      "after_status": "WatchModel",
+      "reason_codes": [
+        "ModelOpsDecisionLogBuilt"
+      ]
+    },
+    {
+      "decision_id": "risk:ext-model-a:1.1.0",
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "decision_kind": "KeepResearchCandidate",
+      "source": "RiskProfile",
+      "before_status": "Low",
+      "after_status": "KeepResearchCandidate",
+      "reason_codes": [
+        "ModelOpsDecisionLogBuilt"
+      ]
+    },
+    {
+      "decision_id": "closure:ext-model-b:1.0.0:CalibrationDriftReview",
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "decision_kind": "RequestMorePredictions",
+      "source": "PolicyRule",
+      "before_status": "Pending",
+      "after_status": "RequestMorePredictions",
+      "reason_codes": [
+        "ModelOpsDecisionLogBuilt"
+      ]
+    },
+    {
+      "decision_id": "closure:ext-model-b:1.0.0:CoverageWeakReview",
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "decision_kind": "RequestMorePredictions",
+      "source": "PolicyRule",
+      "before_status": "Pending",
+      "after_status": "RequestMorePredictions",
+      "reason_codes": [
+        "ModelOpsDecisionLogBuilt"
+      ]
+    },
+    {
+      "decision_id": "closure:ext-model-b:1.0.0:LeaderboardChangeReview",
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "decision_kind": "RequestMorePredictions",
+      "source": "PolicyRule",
+      "before_status": "Pending",
+      "after_status": "RequestMorePredictions",
+      "reason_codes": [
+        "ModelOpsDecisionLogBuilt"
+      ]
+    },
+    {
+      "decision_id": "closure:ext-model-b:1.0.0:NewModelVersion",
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "decision_kind": "RequestMorePredictions",
+      "source": "PolicyRule",
+      "before_status": "Pending",
+      "after_status": "RequestMorePredictions",
+      "reason_codes": [
+        "ModelOpsDecisionLogBuilt"
+      ]
+    },
+    {
+      "decision_id": "closure:ext-model-b:1.0.0:OwnerRequestedReview",
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "decision_kind": "RequestMorePredictions",
+      "source": "PolicyRule",
+      "before_status": "Pending",
+      "after_status": "RequestMorePredictions",
+      "reason_codes": [
+        "ModelOpsDecisionLogBuilt"
+      ]
+    },
+    {
+      "decision_id": "leaderboard:ext-model-b:1.0.0",
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "decision_kind": "RequestMorePredictions",
+      "source": "LeaderboardChange",
+      "before_status": null,
+      "after_status": null,
+      "reason_codes": [
+        "ModelOpsDecisionLogBuilt"
+      ]
+    },
+    {
+      "decision_id": "owner:request-more-predictions-ext-model-b-v1_0_0",
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "decision_kind": "RequestMorePredictions",
+      "source": "OwnerAction",
+      "before_status": null,
+      "after_status": "RequestMorePredictions",
+      "reason_codes": [
+        "ModelOpsDecisionLogBuilt"
+      ]
+    },
+    {
+      "decision_id": "risk:ext-model-b:1.0.0",
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "decision_kind": "RequestMorePredictions",
+      "source": "CoverageGap",
+      "before_status": "Critical",
+      "after_status": "RequestMorePredictions",
+      "reason_codes": [
+        "ModelOpsDecisionLogBuilt"
+      ]
+    }
+  ],
+  "decision_count": 21,
+  "by_kind_counts": {
+    "KeepResearchCandidate": 8,
+    "RequestMorePredictions": 8,
+    "RetireModelVersion": 4,
+    "WatchModel": 1
+  },
+  "reason_codes": [
+    "ModelOpsDecisionLogBuilt"
+  ]
+}

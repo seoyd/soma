@@ -1,0 +1,40 @@
+{
+  "entries": [
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.0.0",
+      "watch_reason": "retire superseded version from active research comparison",
+      "watched_by_owner": true,
+      "watch_status": "Retired",
+      "reason_codes": [
+        "ExternalModelWatchlistBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "watch_reason": "track latest research candidate conservatively",
+      "watched_by_owner": true,
+      "watch_status": "Active",
+      "reason_codes": [
+        "ExternalModelWatchlistBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "watch_reason": "remove temporary watch once coverage request is logged",
+      "watched_by_owner": true,
+      "watch_status": "Removed",
+      "reason_codes": [
+        "ExternalModelWatchlistBuilt"
+      ]
+    }
+  ],
+  "active_count": 1,
+  "retired_count": 1,
+  "diagnostic_count": 0,
+  "reason_codes": [
+    "ExternalModelWatchlistBuilt"
+  ]
+}

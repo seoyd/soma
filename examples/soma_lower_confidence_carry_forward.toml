@@ -1,0 +1,16 @@
+workflow_id = "lower-confidence-carry-forward"
+sprint103_bundle_paths = ["examples/sprint104_data/sprint103_summary.json"]
+output_root = "target/soma_sprint104_dual_agent_paper_lifecycle"
+implementation_agent_name = "codex-5.4"
+verification_agent_name = "gpt-5.5"
+require_implementation_summary = true
+require_verification_summary = true
+require_safety_verification = true
+require_architecture_verification = true
+require_test_verification = true
+require_cli_doc_example_verification = true
+require_workspace_truth_verification = true
+preserve_runtime_deferred = true
+preserve_safety_guards = true
+run_workspace_acceptance_attempt = false
+workspace_acceptance_timeout_ms = 120000

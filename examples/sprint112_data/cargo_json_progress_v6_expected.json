@@ -1,0 +1,27 @@
+{
+  "report_id": "cargo-json-progress-capture-v6",
+  "command": "cargo test --workspace --no-run --message-format=json",
+  "attempted": false,
+  "messages": 5,
+  "artifacts": 3,
+  "compiler_messages": 1,
+  "last_targets": [
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs",
+    "tests/shared_fixture_harness_application_v1.rs",
+    "tests/workspace_timeout_root_cause.rs"
+  ],
+  "stalled_candidates": [
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs",
+    "tests/workspace_timeout_root_cause.rs"
+  ],
+  "status": "DiagnosticOnly",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "human_confirm_panel": {
+    "pending_items": [
+      {
+        "confirm_id": "confirm-cand-101",
+        "candidate_id": "cand-101",
+        "reason": "Chair and Risk Governor require owner paper-only confirmation.",
+        "required_by": "Chair",
+        "paper_confirm_allowed": true,
+        "paper_confirm_explanation": "PaperConfirm allowed because risk permits a paper-only human confirmation path.",
+        "safe_actions": ["ViewOnly", "MarkReviewed", "Defer", "DismissCandidate"],
+        "allowed_owner_actions": ["View", "AddNote", "Hold", "Dismiss", "RequestReanalysis", "MarkReviewed", "PaperConfirm"],
+        "forbidden_actions": ["ExecuteOrder", "PlaceTrade", "ModifyAccount"],
+        "forbidden_owner_actions": ["ExecuteOrder", "PlaceTrade", "OverrideRisk", "EnableLiveTrading", "ModifyAccount", "AccessBalance", "QueryHoldings", "LoosenHardVeto"],
+        "reason_codes": ["OwnerPaperConfirmAllowed", "OwnerPaperConfirmPaperOnly"]
+      }
+    ],
+    "reviewed_items": [],
+    "deferred_items": [
+      {
+        "confirm_id": "confirm-cand-103",
+        "candidate_id": "cand-103",
+        "reason": "Research-only candidate remains visible without paper confirmation.",
+        "required_by": "ResearchOnly",
+        "paper_confirm_allowed": false,
+        "paper_confirm_explanation": "PaperConfirm forbidden because the candidate remains research-only.",
+        "safe_actions": ["ViewOnly", "Defer"],
+        "allowed_owner_actions": ["View", "AddNote", "Dismiss", "MarkReviewed"],
+        "forbidden_actions": ["ExecuteOrder", "PlaceTrade", "ModifyAccount"],
+        "forbidden_owner_actions": ["ExecuteOrder", "PlaceTrade", "OverrideRisk", "EnableLiveTrading", "ModifyAccount", "AccessBalance", "QueryHoldings", "LoosenHardVeto"],
+        "reason_codes": ["OwnerResearchOnlyConfirmBlocked"]
+      }
+    ],
+    "reason_codes": ["DeterministicPath", "DashboardHumanConfirmPanelBuilt"]
+  }
+}

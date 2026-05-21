@@ -1,0 +1,20 @@
+{
+  "report_id": "rotation-plan-warning-closure-report",
+  "previous_status": "RotationPlanReadyWithWarnings",
+  "cross_group_debate_assignments": 3,
+  "assignments_with_route_reason": 3,
+  "assignments_with_conflict_reason": 3,
+  "assignments_with_risk_reason": 3,
+  "assignments_missing_reason": 0,
+  "closure_status": "RotationPlanWarningsClosed",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "pack_id": "official-baselines-v3",
+  "baseline_reference_count": 4,
+  "baseline_kinds": [
+    "BaselineSignal",
+    "TrinityCommittee",
+    "NoTrade",
+    "RiskDenied"
+  ],
+  "pack_status": "BaselineReferencePackReady"
+}
+

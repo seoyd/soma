@@ -1,0 +1,44 @@
+{
+  "records": [
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "previous_model_version": "1.0.0",
+      "brier_score_current": 0.07091666666666667,
+      "brier_score_previous": 0.07091666666666667,
+      "brier_delta": 0.0,
+      "ece_current": 0.25833333333333336,
+      "ece_previous": 0.25833333333333336,
+      "ece_delta": 0.0,
+      "confidence_shift": 0.0,
+      "calibration_status": "Stable",
+      "reason_codes": [
+        "CalibrationDriftReportBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "previous_model_version": null,
+      "brier_score_current": 0.13670000000000002,
+      "brier_score_previous": null,
+      "brier_delta": null,
+      "ece_current": 0.365,
+      "ece_previous": null,
+      "ece_delta": null,
+      "confidence_shift": null,
+      "calibration_status": "InsufficientHistory",
+      "reason_codes": [
+        "CalibrationDriftReportBuilt"
+      ]
+    }
+  ],
+  "stable_count": 1,
+  "mild_drift_count": 0,
+  "severe_drift_count": 0,
+  "insufficient_history_count": 1,
+  "drift_status": "Stable",
+  "reason_codes": [
+    "CalibrationDriftReportBuilt"
+  ]
+}

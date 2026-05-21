@@ -1,0 +1,17 @@
+check_id = "sprint23_core_check_strict"
+runtime_mode = "Research"
+output_root = "target/soma_core_check"
+official_evidence_ready = true
+external_model_bridge_ready = true
+sequence_dataset_ready = true
+reason_codes = ["DeterministicPath"]
+
+[performance_budget]
+max_dataset_rows = 10000
+max_feature_rows = 10000
+max_prediction_rows = 10000
+max_report_bytes = 1048576
+max_artifact_bytes = 4194304
+max_collection_requests = 250
+max_collection_rows = 100000
+reason_codes = ["DeterministicPath"]

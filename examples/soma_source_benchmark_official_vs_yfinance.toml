@@ -1,0 +1,28 @@
+benchmark_id = "source_benchmark_official_vs_yfinance"
+output_root = "target/soma_source_benchmark"
+official_benchmark_report_paths = ["target/soma_official_ai_benchmark/official_ai_benchmark_report.json"]
+official_collection_report_paths = ["target/soma_official_collection/sprint20_official_compact/official_collection_report.json"]
+yahoo_research_report_paths = ["target/soma_yahoo_research/aapl_msft_yfinance_research/yahoo_research_evidence_report.json"]
+run_yfinance_imports = false
+run_official_benchmarks = false
+run_yfinance_benchmarks = false
+run_external_eval = false
+strict_schema_validation = true
+min_official_ready_datasets = 1
+min_yfinance_research_datasets = 1
+min_overlap_symbols = 1
+min_overlap_timeframes = 1
+min_outcome_records = 20
+max_allowed_source_price_drift_bps = 50.0
+max_allowed_calibration_delta = 0.05
+max_allowed_risk_delta = 0.10
+max_storage_bytes = 10485760
+allow_yfinance_only_research = false
+
+[core_check_config]
+check_id = "source-benchmark-core-check"
+runtime_mode = "Research"
+output_root = "target/soma_core_check"
+official_evidence_ready = true
+external_model_bridge_ready = true
+sequence_dataset_ready = true

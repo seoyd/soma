@@ -1,0 +1,38 @@
+{
+  "plan_id": "mixed-family-isolation-plan-v1",
+  "integration_fanout_steps": [
+    "separate integration binary fanout evidence into observed and inferred buckets",
+    "map each suspect target to integration fanout pressure before any assertion move"
+  ],
+  "link_time_steps": [
+    "trace late-link candidates from cargo json and rustc timelines",
+    "keep link-time cost diagnostic-only unless narrowed per target"
+  ],
+  "macro_expansion_steps": [
+    "inventory macro-heavy timeout assertions by target",
+    "keep macro expansion mixed until target-level evidence is separated"
+  ],
+  "assertion_inventory_steps": [
+    "count assertions by suspect target",
+    "classify migration complexity before any fifth-patch readiness upgrade"
+  ],
+  "equivalent_coverage_steps": [
+    "prove destination coverage before any target retirement recommendation",
+    "preserve sentinel and no-hidden-skip continuity"
+  ],
+  "stop_conditions": [
+    "AssertionMigrationStillBlocked",
+    "SentinelRiskTooHigh",
+    "NeedMoreObservation"
+  ],
+  "plan_status": "MixedFamilyIsolationPlanReadyWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

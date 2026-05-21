@@ -1,0 +1,25 @@
+{
+  "report_id": "wonyotti-evidence-hardening-report",
+  "current_confidence_grade": "BMinus",
+  "evidence_refs_added": [
+    "wonyotti-public-thesis-archive",
+    "wonyotti-protocol-and-treasury-reference"
+  ],
+  "community_anecdote_items_downweighted": [
+    "community chat recap"
+  ],
+  "crypto_cycle_scope_preserved": true,
+  "leverage_claims_guarded": true,
+  "exact_return_claims_blocked": true,
+  "report_status": "WonyottiEvidenceStillWarningBacked",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

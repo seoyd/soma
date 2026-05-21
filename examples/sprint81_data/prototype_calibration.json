@@ -1,0 +1,28 @@
+{
+  "report_id": "prototype-calibration",
+  "records": [
+    {
+      "family": "Mamba3Fin",
+      "model_id": "mamba3fin-prototype",
+      "model_version": "v0.1",
+      "average_confidence": "0.6300",
+      "empirical_hit_rate": "0.5900",
+      "calibration_gap": "0.0400",
+      "stable": true
+    },
+    {
+      "family": "GatedDeltaNet",
+      "model_id": "gated-deltanet-prototype",
+      "model_version": "v0.1",
+      "average_confidence": "0.6100",
+      "empirical_hit_rate": "0.5700",
+      "calibration_gap": "0.0400",
+      "stable": true
+    }
+  ],
+  "stable_count": 2,
+  "poor_count": 0,
+  "missing_probability_count": 0,
+  "calibration_status": "CalibrationReady",
+  "reason_codes": ["DeterministicPath"]
+}

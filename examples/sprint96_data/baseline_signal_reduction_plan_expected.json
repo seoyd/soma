@@ -1,0 +1,10 @@
+{
+  "plan_status": "BaselineReductionPlanReady",
+  "target_files": ["tests/baseline_signal_suite.rs"],
+  "donor_files": [
+    "tests/baseline_signal_recovery.rs",
+    "tests/baseline_signal_entry_gate.rs",
+    "tests/baseline_signal_readiness_precheck.rs"
+  ],
+  "semantic_risk": "Medium"
+}

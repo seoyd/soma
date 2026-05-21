@@ -1,0 +1,24 @@
+{
+  "report_id": "multi-scenario-paper-replay-report",
+  "replay_count": 7,
+  "watch_candidate_count": 2,
+  "paper_conditional_count": 1,
+  "no_trade_count": 2,
+  "risk_denied_count": 0,
+  "need_more_evidence_count": 2,
+  "stable_decision_count": 7,
+  "unstable_decision_count": 0,
+  "broker_execution_allowed_count": 0,
+  "live_execution_allowed_count": 0,
+  "replay_status": "MultiScenarioReplayReady",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

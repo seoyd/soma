@@ -1,0 +1,14 @@
+{
+  "score_id": "sprint72-offline-evidence-attachment-direct-watch-score",
+  "current_score_min": 82,
+  "current_score_max": 86,
+  "target_score_min": 86,
+  "target_score_max": 90,
+  "briefing_ready": false,
+  "owner_checklist_ready": true,
+  "evidence_gap_reduced": true,
+  "model_attention_clear": false,
+  "next_actions_clear": true,
+  "forbidden_controls_absent": true,
+  "readiness_status": "NeedsEvidence"
+}

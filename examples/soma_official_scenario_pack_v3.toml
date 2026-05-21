@@ -1,0 +1,17 @@
+expansion_id = "sprint82-official-scenario-pack-v3"
+sprint81_interpretation_paths = ["examples/sprint82_data/sprint81_interpretation_summary.json"]
+real_evidence_paths = [
+  "examples/sprint82_data/official_evidence_depth_before.json",
+  "examples/sprint82_data/official_evidence_depth_after.json",
+  "examples/sprint82_data/sequence_core_confidence_before.json",
+  "examples/sprint82_data/sequence_core_confidence_after.json",
+]
+committee_reference_paths = [
+  "examples/sprint82_data/official_scenarios_v3.json",
+  "examples/sprint82_data/official_outcomes_v3.json",
+  "examples/sprint82_data/official_baselines_v3.json",
+  "examples/sprint82_data/official_notrade_counterfactuals_v3.json",
+  "examples/sprint82_data/official_riskdenied_counterfactuals_v3.json",
+]
+output_root = "target/soma_official_evidence_depth"
+

@@ -1,0 +1,99 @@
+{
+  "diffs": [
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.0.0",
+      "compared_to": "baseline",
+      "changed_fields": [],
+      "unchanged_fields": [
+        "artifact_completeness_ratio",
+        "calibration_status",
+        "coverage_ratio",
+        "recommended_action"
+      ],
+      "added_artifacts": [],
+      "removed_artifacts": [],
+      "changed_metrics": [],
+      "changed_risk_status": null,
+      "changed_leaderboard_status": null,
+      "diff_status": "NoDiff",
+      "reason_codes": [
+        "ModelVersionDiffTraceBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "compared_to": "baseline",
+      "changed_fields": [],
+      "unchanged_fields": [
+        "artifact_completeness_ratio",
+        "calibration_status",
+        "coverage_ratio",
+        "recommended_action"
+      ],
+      "added_artifacts": [
+        "prediction_csv"
+      ],
+      "removed_artifacts": [],
+      "changed_metrics": [],
+      "changed_risk_status": null,
+      "changed_leaderboard_status": "NoChange -> RankUp",
+      "diff_status": "UnexpectedDiff",
+      "reason_codes": [
+        "ModelVersionDiffTraceBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.2.0",
+      "compared_to": null,
+      "changed_fields": [],
+      "unchanged_fields": [],
+      "added_artifacts": [],
+      "removed_artifacts": [],
+      "changed_metrics": [],
+      "changed_risk_status": null,
+      "changed_leaderboard_status": null,
+      "diff_status": "MissingComparisonTarget",
+      "reason_codes": [
+        "ModelVersionDiffTraceBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "compared_to": "baseline",
+      "changed_fields": [
+        "artifact_completeness_ratio:0.8889->0.6667",
+        "calibration_status:Stable->Review",
+        "coverage_ratio:1.0000->0.6667",
+        "recommended_action:KeepResearchCandidate->RequestMorePredictions"
+      ],
+      "unchanged_fields": [],
+      "added_artifacts": [
+        "regression_guard"
+      ],
+      "removed_artifacts": [
+        "leaderboard",
+        "prediction_csv"
+      ],
+      "changed_metrics": [
+        "artifact_completeness_ratio:0.8889->0.6667",
+        "coverage_ratio:1.0000->0.6667"
+      ],
+      "changed_risk_status": "Low -> Critical",
+      "changed_leaderboard_status": "NoChange -> NewlyBlocked",
+      "diff_status": "UnexpectedDiff",
+      "reason_codes": [
+        "ModelVersionDiffTraceBuilt"
+      ]
+    }
+  ],
+  "diff_count": 3,
+  "unexpected_diff_count": 2,
+  "report_status": "MissingComparisonTarget",
+  "reason_codes": [
+    "ModelVersionDiffTraceReportBuilt"
+  ]
+}

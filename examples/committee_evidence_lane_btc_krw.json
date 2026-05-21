@@ -1,0 +1,29 @@
+{
+  "provenance": "official-crypto-public",
+  "lane_reports": [
+    {
+      "symbol": "BTC-KRW",
+      "market": "Crypto",
+      "data_quality_score": 0.91,
+      "expected_edge_after_cost": 0.012,
+      "expected_drawdown": 0.026,
+      "prediction": "ExternalLongBias"
+    },
+    {
+      "symbol": "ETH-KRW",
+      "market": "Crypto",
+      "data_quality_score": 0.89,
+      "expected_edge_after_cost": 0.010,
+      "expected_drawdown": 0.024,
+      "prediction": "ExternalReduceSize"
+    },
+    {
+      "symbol": "XRP-KRW",
+      "market": "Crypto",
+      "data_quality_score": 0.88,
+      "expected_edge_after_cost": 0.009,
+      "expected_drawdown": 0.027,
+      "prediction": "ExternalNoTrade"
+    }
+  ]
+}

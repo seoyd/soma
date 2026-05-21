@@ -1,0 +1,27 @@
+{
+  "report_id": "sprint107-verification-reconciliation",
+  "independent_verification_observed": true,
+  "verification_fixes": [
+    "child_process_cleanup_on_timeout",
+    "full_acceptance_requires_safety_sentinel",
+    "focused_full_bridge_uses_full_gate",
+    "safety_coverage_all_guard_gate"
+  ],
+  "child_process_cleanup_fix_confirmed": true,
+  "full_acceptance_requires_sentinel_fix_confirmed": true,
+  "focused_full_bridge_fix_confirmed": true,
+  "safety_coverage_all_guard_fix_confirmed": true,
+  "regression_test_added": true,
+  "verification_reconciliation_status": "VerificationReconciled",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "DeterministicPath",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt",
+    "LocalFileOnly"
+  ]
+}

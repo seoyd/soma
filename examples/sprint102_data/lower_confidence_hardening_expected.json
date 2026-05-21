@@ -1,0 +1,38 @@
+{
+  "report_id": "lower-confidence-evidence-hardening-report",
+  "candidate_count": 3,
+  "improved_candidates": [
+    "wonyotti",
+    "larry-williams",
+    "arthur-hayes"
+  ],
+  "still_warning_candidates": [
+    "wonyotti",
+    "larry-williams",
+    "arthur-hayes"
+  ],
+  "unchanged_candidates": [],
+  "added_evidence_refs": [
+    "wonyotti-public-thesis-archive",
+    "wonyotti-protocol-and-treasury-reference",
+    "larry-published-seasonal-study",
+    "arthur-hayes-public-essay-archive",
+    "arthur-hayes-derivatives-liquidity-interview"
+  ],
+  "downweighted_items": [
+    "community chat recap",
+    "larry-williams: old anecdotal forum summaries",
+    "arthur-hayes: high-narrative macro commentary requires down-weighting"
+  ],
+  "report_status": "LowerConfidenceEvidenceImprovedWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

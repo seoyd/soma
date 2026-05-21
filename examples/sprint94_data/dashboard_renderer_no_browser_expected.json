@@ -1,0 +1,14 @@
+{
+  "report_id": "sprint94-dashboard-renderer-recover-no-browser",
+  "no_dashboard_serve": true,
+  "no_browser_execution_controls": true,
+  "no_js_execution_dependency": true,
+  "no_remote_assets": true,
+  "no_post_forms": true,
+  "no_event_handlers_for_execution": true,
+  "browser_status": "NoBrowserExecutionPreserved",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

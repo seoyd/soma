@@ -1,0 +1,17 @@
+replication_id = "sprint39_artifact_inventory"
+output_root = "target/soma_official_replication"
+provider_readiness_report_paths = ["target/soma_provider_readiness/provider_readiness_report.json"]
+provider_reality_report_paths = ["target/soma_provider_reality/provider_reality_report.json"]
+official_canonical_csv_paths = ["examples/official_committee_AAPL_sprint39.csv"]
+require_non_crypto_official = true
+require_provenance = true
+require_preflight = true
+require_local_candles = true
+run_pack_generation = false
+run_reference_generation = false
+run_sufficiency_closure = false
+run_official_committee_benchmark = false
+max_rows = 1
+max_symbols = 1
+max_bytes = 500000
+reason_codes = []

@@ -1,0 +1,8 @@
+{
+  "expected_prototype_comparison": {
+    "latency_budget_estimate": "offline-only",
+    "storage_budget_estimate": "within-materialized-budget",
+    "test_budget_estimate": "focused-fixture-scale"
+  }
+}
+

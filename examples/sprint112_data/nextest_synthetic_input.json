@@ -1,0 +1,21 @@
+{
+  "nextest_available": true,
+  "nextest_version": "cargo-nextest 0.9.0-synthetic",
+  "partition_strategy": "SafetyFirst",
+  "slow_tests": [
+    "tests/workspace_timeout_root_cause.rs::diagnostic_probe",
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs::diagnostic_probe"
+  ],
+  "slow_binaries": [
+    "workspace_timeout_root_cause",
+    "control_tower_workspace_timeout_root_cause_panel"
+  ],
+  "slow_families": [
+    "FixtureSetupFanout",
+    "CliSmokeFanout"
+  ],
+  "duration_ms": 8400,
+  "finished": false,
+  "passed": null,
+  "timeout_ms": 300000
+}

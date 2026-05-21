@@ -1,0 +1,39 @@
+{
+  "panel_id": "control-tower-workspace-diagnostic-pilot",
+  "nextest_availability_status": "NextestAvailable",
+  "sccache_availability_status": "SccacheAvailable",
+  "cargo_timing_statuses": {
+    "cargo_build": "CargoTimingCapturePassed",
+    "cargo_check": "CargoTimingCapturePassed",
+    "cargo_full": "CargoTimingCaptureTimedOut",
+    "cargo_no_run": "CargoTimingCaptureTimedOut"
+  },
+  "cargo_progress_status": "DiagnosticOnly",
+  "diagnostic_matrix_status": "DiagnosticEvidenceMatrixReadyWithWarnings",
+  "root_cause_status": "TimeoutRootCausePartiallyIsolated",
+  "acceptance_truth_status": "AcceptanceTruthReadyWithWarnings",
+  "warnings": [
+    "research-only",
+    "paper-only",
+    "diagnostic-only",
+    "nextest-is-not-acceptance",
+    "sccache-is-not-speedup-proof",
+    "fifth-patch-not-applied",
+    "no-run-is-not-full",
+    "cargo-progress-is-not-acceptance",
+    "timeout-cleanup-is-not-pass",
+    "no run button"
+  ],
+  "static_read_only": true,
+  "no_run_button": true,
+  "no_train_runtime_live_order_account_controls": true,
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

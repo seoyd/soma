@@ -1,0 +1,66 @@
+{
+  "simplification_id": "sprint52_kis_primary",
+  "korean_equity_primary": {
+    "provider_label": "KIS",
+    "priority_mode": "KISPrimary"
+  },
+  "us_equity_primary": {
+    "provider_label": "KIS",
+    "priority_mode": "KISPrimary"
+  },
+  "fallback_providers": ["AlphaVantage", "KRX"],
+  "research_only_providers": ["yfinance"],
+  "disabled_providers": ["broker/order/account endpoints"],
+  "changed_priorities": [
+    {
+      "market": "crypto",
+      "provider_label": "Upbit",
+      "priority_mode": "UpbitCryptoOnly",
+      "note": "Optional crypto-only lane retained outside equity evidence."
+    },
+    {
+      "market": "korean_equity",
+      "provider_label": "KIS",
+      "priority_mode": "KISPrimary",
+      "note": "Operational primary for Korean equity market data."
+    },
+    {
+      "market": "korean_equity",
+      "provider_label": "KRX",
+      "priority_mode": "KRXReference",
+      "note": "Reference and fallback lane retained."
+    },
+    {
+      "market": "research",
+      "provider_label": "yfinance",
+      "priority_mode": "YFinanceResearchOnly",
+      "note": "Research-only comparison lane retained."
+    },
+    {
+      "market": "us_equity",
+      "provider_label": "AlphaVantage",
+      "priority_mode": "AlphaVantageFallback",
+      "note": "Fallback lane retained for bounded research-only use."
+    },
+    {
+      "market": "us_equity",
+      "provider_label": "KIS",
+      "priority_mode": "KISPrimary",
+      "note": "Operational primary for US equity market data."
+    }
+  ],
+  "operator_actions": [
+    "Keep KIS limited to market-data-only endpoints.",
+    "Keep KRX as the Korean equity reference/fallback lane for validation and continuity.",
+    "Use yfinance only for research, diagnostics, and non-official comparison."
+  ],
+  "warnings": [
+    "KIS priority is operational, not performance proof."
+  ],
+  "final_status": "KISPrimaryWithKRXReference",
+  "reason_codes": [
+    "DeterministicPath",
+    "ProviderSimplificationBuilt"
+  ],
+  "fingerprint": "sample-provider-simplification"
+}

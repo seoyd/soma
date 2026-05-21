@@ -1,0 +1,12 @@
+simplification_id = "sprint52_kis_primary"
+provider_readiness_report_paths = []
+kis_activation_report_paths = ["examples/sprint52_data/kis_activation_sample.json"]
+krx_activation_report_paths = []
+output_root = "target/sprint52/provider_simplification"
+make_kis_primary_for_korean_equity = true
+make_kis_primary_for_us_equity = true
+retain_krx_as_reference = true
+retain_alpha_vantage_as_fallback = true
+retain_yfinance_as_research_only = true
+retain_upbit_crypto_optional = true
+reason_codes = ["DeterministicPath"]

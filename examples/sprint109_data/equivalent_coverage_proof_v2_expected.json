@@ -1,0 +1,34 @@
+{
+  "report_id": "equivalent-coverage-proof-v2",
+  "previous_equivalent_coverage_refs": [
+    "equivalent-coverage-proof-v1"
+  ],
+  "retired_targets": [
+    "tests/shared_render_helper_application_v1.rs"
+  ],
+  "destination_targets": [
+    "tests/shared_fixture_harness_application_v1.rs"
+  ],
+  "moved_assertions": [
+    "shared_render_helper_matches_expected_json",
+    "shared_render_helper_preserves_snapshot_order"
+  ],
+  "equivalent_coverage_assertions": [
+    "shared_fixture_harness_keeps_render_helper_assertions",
+    "shared_fixture_harness_keeps_snapshot_order_assertions"
+  ],
+  "coverage_gap_count": 0,
+  "cumulative_coverage_gap_count": 0,
+  "proof_status": "EquivalentCoverageProven",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "DeterministicPath",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt",
+    "LocalFileOnly"
+  ]
+}

@@ -1,0 +1,15 @@
+comparison_id = "sprint80-sequence-core-prototype"
+sequence_core_registry_paths = ["examples/sprint80_data/sequence_core_registry.json"]
+training_storage_manifest_paths = ["examples/sprint80_data/training_storage_manifest.json"]
+dataset_registry_paths = ["examples/sprint80_data/dataset_registry.json", "examples/sprint80_data/dataset_version_manifest.json"]
+sequence_export_manifest_paths = ["examples/sprint80_data/sequence_export_manifest.json"]
+feature_schema_manifest_paths = ["examples/sprint80_data/feature_schema.json"]
+label_manifest_paths = ["examples/sprint80_data/label_manifest.json"]
+split_manifest_paths = ["examples/sprint80_data/split_manifest.json"]
+no_lookahead_proof_paths = ["examples/sprint80_data/no_lookahead_proof.json"]
+mamba3fin_prediction_csv_paths = ["examples/sprint80_data/mamba3fin_predictions.csv"]
+gated_deltanet_prediction_csv_paths = ["examples/sprint80_data/gated_deltanet_predictions.csv"]
+mamba3fin_model_card_paths = ["examples/sprint80_data/mamba3fin_model_card.json"]
+gated_deltanet_model_card_paths = ["examples/sprint80_data/gated_deltanet_model_card.json"]
+committee_evidence_paths = ["examples/sprint80_data/committee_scenarios.json"]
+output_root = "target/soma_sequence_core_prototype_comparison"

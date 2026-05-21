@@ -1,0 +1,42 @@
+report_id = "sprint30_provider_reality"
+output_dir = "target/soma_provider_reality"
+include_yfinance_reality = true
+
+[[strategy_checks]]
+provider = "alphavantage"
+use_case = "EodSwing"
+
+[[strategy_checks]]
+provider = "yfinance"
+use_case = "SourceComparison"
+
+[[recommendation_requests]]
+market = "KoreanEquity"
+desired_use_case = "EodSwing"
+budget_preference = "FreeOnly"
+need_realtime = false
+need_official_readiness = true
+max_data_size_preference = "compact"
+reason_codes = []
+
+[[recommendation_requests]]
+market = "USEquity"
+desired_use_case = "RealtimeScalping"
+budget_preference = "FreeOnly"
+need_realtime = true
+need_official_readiness = false
+max_data_size_preference = "compact"
+reason_codes = []
+
+[entitlement_preflight]
+check_id = "sprint30_entitlement"
+required_use_case = "EodResearch"
+providers_to_check = [
+  { Provider = "KrxOpenApi" },
+  { Provider = "AlphaVantage" },
+  { Provider = "Alpaca" },
+  { Provider = "Upbit" }
+]
+allow_missing_premium = true
+allow_research_fallback = true
+reason_codes = []

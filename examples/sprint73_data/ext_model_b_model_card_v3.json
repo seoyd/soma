@@ -1,0 +1,20 @@
+{
+  "model_id": "ext-model-b",
+  "model_version": "1.0.0",
+  "model_family": "OtherExternal",
+  "training_data_description": "Additional local prediction closure fixture for ext-model-b coverage finalization only.",
+  "feature_schema_hash": "01c25ac23c41ca00",
+  "label_manifest_hash": "8eff63ae77f20914",
+  "split_policy": "ChronologicalHoldout",
+  "intended_use": "Offline prediction-gap closure, coverage finalization, and static control-tower refresh only.",
+  "forbidden_use": "Live trading, broker execution, account actions, runtime inference, and training are forbidden.",
+  "limitations": "Research-only fixture; closure does not imply usefulness, profitability, or deployability.",
+  "created_by": "diagnostic-fixture",
+  "created_at": "2026-05-15T00:00:00Z",
+  "source": "DiagnosticFixture",
+  "risk_integration_required": true,
+  "live_use_forbidden": true,
+  "reason_codes": [
+    "ExternalModelCardV2Built"
+  ]
+}

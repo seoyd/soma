@@ -1,0 +1,59 @@
+closure_id = "sprint15_evidence_closure"
+source_sprint14_report_path = "target/soma_sprint14/sprint14_report.json"
+source_ablation_report_path = "target/soma_ablations/ablation_feature_lab/ablation_report.json"
+output_root = "target/soma_evidence_closure"
+evidence_store_path = "target/soma_evidence_closure_store"
+min_additional_usable_datasets = 1
+min_additional_outcome_records = 20
+min_additional_comparable_variants = 2
+allow_synthetic_dataset = true
+synthetic_dataset_must_be_tagged = true
+continue_on_failure = true
+strict_data_quality = true
+reason_codes = ["DeterministicPath"]
+
+[embedded_campaign_config]
+campaign_id = "sprint15_closure_campaign"
+description = "Sprint 15 evidence closure campaign"
+matrix_config_paths = ["examples/soma_evidence_closure_matrix.toml"]
+output_root = "target/embedded-placeholder"
+evidence_store_path = "target/embedded-placeholder-store"
+run_id = "sprint15-closure-seed"
+continue_on_failure = true
+require_all_matrices_pass = false
+min_usable_datasets = 2
+min_total_outcome_records = 20
+min_regime_coverage_count = 1
+min_passed_runs = 1
+min_data_quality_score = 0.80
+max_allowed_drawdown_regression_pct = 0.02
+max_allowed_calibration_regression = 0.02
+max_allowed_risk_governor_instability = 0.15
+allow_persona_expansion_recommendation = false
+created_at_ms = 42
+allow_evidence_overwrite = true
+reason_codes = ["DeterministicPath"]
+
+[[ablation_variants]]
+variant_id = "volume_off"
+dimension = "FeatureGroup"
+research_only = false
+enabled = true
+tags = ["closure"]
+reason_codes = ["DeterministicPath"]
+
+[[ablation_variants.overrides]]
+target = "volume"
+value = false
+
+[[ablation_variants]]
+variant_id = "higher_cost"
+dimension = "CostModel"
+research_only = false
+enabled = true
+tags = ["closure"]
+reason_codes = ["DeterministicPath"]
+
+[[ablation_variants.overrides]]
+target = "spread_bps"
+value = 4.0

@@ -1,0 +1,90 @@
+{
+  "leaderboard_id": "sprint64-conservative-external-leaderboard",
+  "entries": [
+    {
+      "rank": 1,
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "model_family": "Mamba3FinLiteExternal",
+      "dataset_fingerprint": "118f8e19e94a668b",
+      "feature_schema_hash": "01c25ac23c41ca00",
+      "label_manifest_hash": "8eff63ae77f20914",
+      "coverage_ratio": 1.0,
+      "brier_score": 0.07091666666666667,
+      "ece": 0.25833333333333336,
+      "risk_adjusted_score": 1.3428571428571427,
+      "net_return_proxy": 0.007333333333333332,
+      "top_k_precision": 0.6666666666666666,
+      "rank_correlation": 0.8985549506410053,
+      "ablation_status": "Stable",
+      "promotion_status": "ResearchCandidate",
+      "conservative_score": -0.2238503295586085,
+      "penalty_summary": [],
+      "entry_status": "Eligible",
+      "reason_codes": [
+        "ConservativeExternalLeaderboardBuilt"
+      ]
+    },
+    {
+      "rank": 2,
+      "model_id": "ext-model-a",
+      "model_version": "1.0.0",
+      "model_family": "Mamba3FinLiteExternal",
+      "dataset_fingerprint": "118f8e19e94a668b",
+      "feature_schema_hash": "01c25ac23c41ca00",
+      "label_manifest_hash": "8eff63ae77f20914",
+      "coverage_ratio": 1.0,
+      "brier_score": 0.07091666666666667,
+      "ece": 0.25833333333333336,
+      "risk_adjusted_score": 1.146341463414634,
+      "net_return_proxy": 0.007333333333333332,
+      "top_k_precision": 0.6666666666666666,
+      "rank_correlation": 0.9018022555442776,
+      "ablation_status": "Stable",
+      "promotion_status": "ResearchCandidate",
+      "conservative_score": -0.22575054025496816,
+      "penalty_summary": [],
+      "entry_status": "Eligible",
+      "reason_codes": [
+        "ConservativeExternalLeaderboardBuilt"
+      ]
+    },
+    {
+      "rank": null,
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "model_family": "OtherExternal",
+      "dataset_fingerprint": "118f8e19e94a668b",
+      "feature_schema_hash": "01c25ac23c41ca00",
+      "label_manifest_hash": "8eff63ae77f20914",
+      "coverage_ratio": 0.6666666666666666,
+      "brier_score": 0.13670000000000002,
+      "ece": 0.365,
+      "risk_adjusted_score": 1.1538461538461535,
+      "net_return_proxy": 0.01075,
+      "top_k_precision": 0.6666666666666666,
+      "rank_correlation": 0.9564803309179992,
+      "ablation_status": null,
+      "promotion_status": null,
+      "conservative_score": -0.4936152651765118,
+      "penalty_summary": [
+        "low coverage"
+      ],
+      "entry_status": "BlockedByCoverage",
+      "reason_codes": [
+        "ConservativeExternalLeaderboardBuilt"
+      ]
+    }
+  ],
+  "eligible_entries": 2,
+  "diagnostic_entries": 0,
+  "blocked_entries": 1,
+  "baseline_entry": "1 reference artifact(s)",
+  "trinity_entry": "1 reference artifact(s)",
+  "no_trade_entry": "1 reference artifact(s)",
+  "risk_denied_entry": "1 reference artifact(s)",
+  "leaderboard_status": "LeaderboardReady",
+  "reason_codes": [
+    "ConservativeExternalLeaderboardBuilt"
+  ]
+}

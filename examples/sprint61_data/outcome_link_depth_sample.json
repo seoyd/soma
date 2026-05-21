@@ -1,0 +1,16 @@
+{
+  "outcome_links": 5,
+  "eligible_rows": 8,
+  "take_profit_count": 2,
+  "stop_loss_count": 2,
+  "time_expired_count": 1,
+  "horizon_count": 3,
+  "missing_future_window_count": 0,
+  "no_lookahead_blocked_count": 0,
+  "outcome_label_count": 5,
+  "horizon_alignment_ok": true,
+  "timestamp_alignment_ok": true,
+  "no_lookahead_safe": true,
+  "missing_labels": 0,
+  "misaligned_labels": 0
+}

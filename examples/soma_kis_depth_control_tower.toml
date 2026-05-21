@@ -1,0 +1,43 @@
+run_id = "sprint57-kis-depth-control-tower"
+kis_activation_report_paths = [
+  "examples/sprint57_data/kis_depth_before.json",
+  "examples/sprint57_data/kis_depth_after.json",
+]
+kis_collection_closure_paths = [
+  "examples/sprint57_data/kis_depth_before.json",
+  "examples/sprint57_data/kis_depth_after.json",
+]
+official_evidence_scaleout_paths = [
+  "examples/sprint57_data/kis_depth_before.json",
+  "examples/sprint57_data/kis_depth_after.json",
+]
+official_evidence_diversity_paths = [
+  "examples/sprint57_data/kis_depth_before.json",
+  "examples/sprint57_data/kis_depth_after.json",
+]
+complete_row_closure_paths = [
+  "examples/sprint57_data/kis_depth_before.json",
+  "examples/sprint57_data/kis_depth_after.json",
+]
+core_scorecard_paths = [
+  "examples/sprint57_data/kis_depth_before.json",
+  "examples/sprint57_data/kis_depth_after.json",
+]
+trinity_loop_config_paths = ["examples/soma_trinity_operational_loop_kis.toml"]
+control_tower_config_paths = ["examples/soma_control_tower_refresh_after_kis_depth.toml"]
+output_root = "target/sprint57/kis_evidence_depth"
+max_rows = 1000
+max_symbols = 16
+max_timeframes = 8
+max_horizons = 8
+max_artifacts = 32
+max_bytes = 5000000
+run_kis_candle_sufficiency = true
+run_outcome_linkage = true
+run_counterfactual_completion = true
+run_complete_row_closure = true
+run_diversity_sweep = true
+run_core_performance = true
+run_trinity_operational_loop = true
+run_control_tower_refresh = true
+reason_codes = ["DeterministicPath"]

@@ -1,0 +1,25 @@
+{
+  "trace_id": "paper-decision-trace-v2",
+  "scenario_id": "crypto-cycle-liquidity",
+  "market_context_ref": "paper-rotation-market-context-set",
+  "proposal_run_ref": "paper-only-member-proposal-run",
+  "debate_trigger_ref": "group-debate-trigger-report",
+  "debate_session_ref": "group-debate-session-report",
+  "chairman_synthesis_ref": "chairman-synthesis-dry-run-report",
+  "risk_governor_handoff_ref": "risk-governor-paper-handoff-report",
+  "paper_decision": "NoTrade",
+  "trace_complete": true,
+  "broker_execution_allowed": false,
+  "live_execution_allowed": false,
+  "trace_status": "PaperTraceCompleteWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "report_id": "safety-sentinel-preservation-v1",
+  "committee_cli_safety_preserved": true,
+  "workspace_cli_safety_preserved": true,
+  "workspace_safety_guard_preserved": true,
+  "workspace_determinism_preserved": true,
+  "paper_lifecycle_safety_preserved": true,
+  "runtime_deferred_guard_preserved": true,
+  "no_order_account_guard_preserved": true,
+  "no_hidden_skip_guard_preserved": true,
+  "sentinel_status": "SafetySentinelsPreserved",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "DeterministicPath",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt",
+    "LocalFileOnly"
+  ]
+}

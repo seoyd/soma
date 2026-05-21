@@ -1,0 +1,166 @@
+{
+  "repeated_workspace_timing_report": {
+    "timing_id": "sample-repeated-timing",
+    "command_timings": [
+      {
+        "command": "cargo check --workspace",
+        "condition": "SampleBacked",
+        "run_index": 0,
+        "wall_time_ms": 18000,
+        "exit_success": true,
+        "stdout_summary": "sample-backed cargo check"
+      },
+      {
+        "command": "cargo check --workspace",
+        "condition": "SampleBacked",
+        "run_index": 1,
+        "wall_time_ms": 16000,
+        "exit_success": true,
+        "stdout_summary": "sample-backed cargo check"
+      },
+      {
+        "command": "cargo test --workspace --quiet",
+        "condition": "SampleBacked",
+        "run_index": 0,
+        "wall_time_ms": 420000,
+        "exit_success": true,
+        "stdout_summary": "sample-backed cargo test"
+      },
+      {
+        "command": "full acceptance loop",
+        "condition": "SampleBacked",
+        "run_index": 0,
+        "wall_time_ms": 455000,
+        "exit_success": true,
+        "stdout_summary": "sample-backed full acceptance loop"
+      },
+      {
+        "command": "representative CLI smoke",
+        "condition": "SampleBacked",
+        "run_index": 0,
+        "wall_time_ms": 15000,
+        "exit_success": true,
+        "stdout_summary": "sample-backed representative smoke"
+      },
+      {
+        "command": "focused Sprint 77 tests",
+        "condition": "SampleBacked",
+        "run_index": 0,
+        "wall_time_ms": 82000,
+        "exit_success": true,
+        "stdout_summary": "sample-backed focused sprint77 tests"
+      }
+    ],
+    "aggregate_by_command": [
+      {
+        "command": "cargo check --workspace",
+        "run_count": 2,
+        "median_ms": 18000,
+        "p95_ms": 18000,
+        "min_ms": 16000,
+        "max_ms": 18000,
+        "sample_backed": true
+      },
+      {
+        "command": "cargo test --workspace --quiet",
+        "run_count": 1,
+        "median_ms": 420000,
+        "p95_ms": 420000,
+        "min_ms": 420000,
+        "max_ms": 420000,
+        "sample_backed": true
+      },
+      {
+        "command": "full acceptance loop",
+        "run_count": 1,
+        "median_ms": 455000,
+        "p95_ms": 455000,
+        "min_ms": 455000,
+        "max_ms": 455000,
+        "sample_backed": true
+      },
+      {
+        "command": "representative CLI smoke",
+        "run_count": 1,
+        "median_ms": 15000,
+        "p95_ms": 15000,
+        "min_ms": 15000,
+        "max_ms": 15000,
+        "sample_backed": true
+      },
+      {
+        "command": "focused Sprint 77 tests",
+        "run_count": 1,
+        "median_ms": 82000,
+        "p95_ms": 82000,
+        "min_ms": 82000,
+        "max_ms": 82000,
+        "sample_backed": true
+      }
+    ],
+    "median_ms": 82000,
+    "p95_ms": 455000,
+    "min_ms": 15000,
+    "max_ms": 455000,
+    "target_dir_size_bytes": 3145728,
+    "artifact_count": 768,
+    "timing_status": "SampleBacked"
+  },
+  "tier_reports": [
+    {
+      "run_id": "sample-quick",
+      "tier": "Quick",
+      "commands_run": [
+        "cargo check --workspace",
+        "focused Sprint 77 tests"
+      ],
+      "passed_count": 2,
+      "failed_count": 0,
+      "skipped_count": 0,
+      "runtime_ms": 34000,
+      "tier_status": "TierPassed"
+    },
+    {
+      "run_id": "sample-sprint",
+      "tier": "Sprint",
+      "commands_run": [
+        "cargo fmt --all",
+        "cargo check --workspace",
+        "focused Sprint 77 tests",
+        "representative CLI smoke"
+      ],
+      "passed_count": 4,
+      "failed_count": 0,
+      "skipped_count": 0,
+      "runtime_ms": 130000,
+      "tier_status": "TierPassed"
+    },
+    {
+      "run_id": "sample-full",
+      "tier": "Full",
+      "commands_run": [
+        "cargo fmt --all",
+        "cargo check --workspace",
+        "cargo test --workspace --quiet",
+        "Sprint 77 CLI smoke"
+      ],
+      "passed_count": 4,
+      "failed_count": 0,
+      "skipped_count": 0,
+      "runtime_ms": 455000,
+      "tier_status": "TierPassed"
+    },
+    {
+      "run_id": "sample-audit",
+      "tier": "Audit",
+      "commands_run": [
+        "cargo test --quiet --test test_optimization_cli_safety --test test_optimization_determinism -- --test-threads=1"
+      ],
+      "passed_count": 1,
+      "failed_count": 0,
+      "skipped_count": 0,
+      "runtime_ms": 19000,
+      "tier_status": "TierPassed"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+benchmark_id = "committee_official_benchmark_controlled"
+scenario_pack_config_path = "examples/soma_committee_pack_controlled_official.toml"
+outcome_linker_config_path = "examples/soma_committee_link_outcomes_fixture.toml"
+output_root = "target/soma_committee_official_benchmark"
+require_core_check = true
+require_outcome_linked_rows = true
+run_materialization = true
+run_outcome_linking = true
+run_committee_benchmark = true
+run_vs_baseline = true
+run_actionability = true
+run_attribution = true
+run_readiness = true
+min_official_rows = 3
+min_outcome_linked_rows = 3
+min_baseline_linked_rows = 3
+min_no_trade_counterfactuals = 1
+min_risk_denial_counterfactuals = 1
+max_summary_derived_ratio = 0.4
+max_research_only_ratio = 0.0
+max_fixture_ratio = 0.0
+reason_codes = []
+

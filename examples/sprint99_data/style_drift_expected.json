@@ -1,0 +1,18 @@
+{
+  "report_id": "member-style-drift-report",
+  "member_count": 8,
+  "style_consistent_members": 8,
+  "style_drift_members": 0,
+  "drift_examples": [],
+  "style_drift_status": "StyleDriftControlled",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

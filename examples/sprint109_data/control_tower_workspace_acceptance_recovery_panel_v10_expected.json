@@ -1,0 +1,32 @@
+{
+  "panel_id": "control-tower-workspace-acceptance-recovery-panel-v10",
+  "previous_no_run_status": "NotRun",
+  "current_no_run_status": "NotRun",
+  "previous_full_status": "NotRun",
+  "current_full_status": "NotRun",
+  "binary_delta_status": "TestBinaryDeltaSampleBacked",
+  "consolidation_patch_status": "ThirdPatchCandidateSelected",
+  "focused_full_bridge_status": "FullGateStillOpen",
+  "acceptance_truth_status": "AcceptanceTruthReadyWithWarnings",
+  "safety_coverage_status": "SafetyCoveragePreserved",
+  "runtime_deferred_summary": "Runtime, training, live inference, live trading, broker/order/account, dashboard serve, and browser execution remain deferred.",
+  "next_actions": [
+    "Keep focused/no-run/full truth separated.",
+    "Require a real finished and passed full workspace run before acceptance."
+  ],
+  "warnings": [
+    "Static/read-only panel only.",
+    "No run-tests button or train/runtime/live/order/account/browser controls."
+  ],
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "DeterministicPath",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt",
+    "LocalFileOnly"
+  ]
+}

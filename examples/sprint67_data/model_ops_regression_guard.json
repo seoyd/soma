@@ -1,0 +1,25 @@
+{
+  "guard_id": "sprint66-model-ops-regression-guard",
+  "coverage_regressions": [
+    "ext-model-b:1.0.0"
+  ],
+  "calibration_regressions": [
+    "ext-model-b:1.0.0"
+  ],
+  "risk_regressions": [
+    "ext-model-b:1.0.0"
+  ],
+  "comparability_regressions": [
+    "ext-model-b:1.0.0"
+  ],
+  "artifact_completeness_regressions": [
+    "ext-model-b:1.0.0"
+  ],
+  "leaderboard_regressions": [
+    "ext-model-b:1.0.0"
+  ],
+  "guard_status": "RegressionDetected",
+  "reason_codes": [
+    "ModelOpsRegressionGuardBuilt"
+  ]
+}

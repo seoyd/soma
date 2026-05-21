@@ -1,0 +1,6 @@
+sequence_id,confidence,expected_return,expected_drawdown,p_stop_loss,p_take_profit,p_time_expired,rank_score
+seq-001,0.78,0.10,0.04,0.14,0.52,0.34,0.81
+seq-002,0.33,-0.03,0.04,0.38,0.18,0.44,0.32
+seq-003,0.66,0.07,0.03,0.18,0.48,0.34,0.69
+seq-004,0.41,-0.01,0.03,0.34,0.20,0.46,0.41
+

@@ -1,0 +1,19 @@
+{
+  "report_id": "paper-rejected-transition-audit-report",
+  "paper_rejected_state_present": true,
+  "paper_rejected_reachable": true,
+  "paper_rejected_can_go_live": false,
+  "paper_rejected_can_become_order": false,
+  "archive_transition_present": true,
+  "audit_status": "PaperRejectedTransitionAudited",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

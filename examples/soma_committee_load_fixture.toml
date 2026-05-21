@@ -1,0 +1,12 @@
+scenario_id = "committee_load_fixture"
+source_kind = "Fixture"
+input_paths = []
+output_root = "target/soma_committee_scenarios"
+max_scenarios = 10
+require_core_check = false
+allow_yfinance_research = false
+allow_fixture = true
+allow_synthetic_test = false
+min_data_quality = 0.7
+reason_codes = []
+

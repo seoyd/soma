@@ -1,0 +1,22 @@
+{
+  "trace_id": "workspace-no-run-progress-trace-v1",
+  "attempted": false,
+  "command": "cargo test --workspace --no-run --quiet",
+  "timeout_ms": 300000,
+  "duration_ms": 240000,
+  "last_seen_target": "tests/workspace_timeout_root_cause.rs",
+  "last_seen_artifact": "target/debug/deps/workspace_timeout_root_cause.synthetic",
+  "progress_event_count": 7,
+  "completed_artifact_count": 3,
+  "test_executable_count": 2,
+  "trace_status": "DiagnosticOnly",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

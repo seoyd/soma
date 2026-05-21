@@ -1,0 +1,33 @@
+{
+  "manifest_id": "consolidated-test-target-manifest-v1",
+  "consolidated_targets": [
+    "tests/fixture_setup_cost_attribution_v2.rs"
+  ],
+  "grouped_destination_targets": [
+    "tests/fixture_setup_cost_attribution_v2.rs"
+  ],
+  "preserved_targets": [
+    "tests/committee_cli_safety.rs",
+    "tests/workspace_cli_safety_suite.rs",
+    "tests/workspace_determinism_suite.rs",
+    "tests/paper_lifecycle_warning_closure.rs"
+  ],
+  "isolated_targets": [
+    "tests/committee_cli_safety.rs",
+    "tests/workspace_cli_safety_suite.rs",
+    "tests/workspace_determinism_suite.rs",
+    "tests/paper_lifecycle_warning_closure.rs"
+  ],
+  "manifest_status": "ConsolidatedTargetManifestReady",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "DeterministicPath",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt",
+    "LocalFileOnly"
+  ]
+}

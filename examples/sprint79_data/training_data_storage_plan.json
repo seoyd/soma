@@ -1,0 +1,33 @@
+{
+  "training_data_storage_plan": {
+    "storage_root": "target/soma_sequence_core_storage/data",
+    "required_directories": [
+      "data/raw",
+      "data/canonical",
+      "data/features",
+      "data/labels",
+      "data/sequences",
+      "data/predictions",
+      "data/model_cards",
+      "data/evaluations",
+      "data/registry"
+    ],
+    "required_manifests": [
+      "data/registry/dataset_registry.json",
+      "data/registry/dataset_version_manifest.json",
+      "data/registry/source_class_manifest.json",
+      "data/registry/training_storage_manifest.json",
+      "data/registry/storage_layout_manifest.json",
+      "data/registry/lineage_manifest.json"
+    ],
+    "no_secret_values": true,
+    "no_order_account_fields": true,
+    "feature_schema_ready": true,
+    "label_manifest_ready": true,
+    "no_lookahead_ready": true,
+    "storage_budget_ready": true,
+    "test_budget_ready": true,
+    "external_bridge_ready": true
+  }
+}
+

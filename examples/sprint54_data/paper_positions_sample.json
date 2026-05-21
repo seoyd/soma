@@ -1,0 +1,45 @@
+{
+  "paper_position_panel": {
+    "open_positions": [
+      {
+        "paper_position_id": "paper-pos-101",
+        "candidate_id": "cand-101",
+        "symbol": "005930.KS",
+        "market": "KoreanEquity",
+        "side": "Long",
+        "entry_timestamp_ms": 1715695000000,
+        "entry_price": 74200.0,
+        "stop_price": 72100.0,
+        "target_price": 78100.0,
+        "current_price": 75350.0,
+        "unrealized_return_pct": 0.0155,
+        "realized_return_pct": null,
+        "status": "Open",
+        "source_kind": "PaperOnly",
+        "reason_codes": ["PaperExecutionOnly"]
+      }
+    ],
+    "closed_positions": [
+      {
+        "paper_position_id": "paper-pos-090",
+        "candidate_id": "cand-090",
+        "symbol": "AAPL",
+        "market": "USEquity",
+        "side": "Long",
+        "entry_timestamp_ms": 1715600000000,
+        "entry_price": 184.0,
+        "stop_price": 179.0,
+        "target_price": 190.0,
+        "current_price": 190.0,
+        "unrealized_return_pct": null,
+        "realized_return_pct": 0.032,
+        "status": "TargetHit",
+        "source_kind": "PaperOnly",
+        "reason_codes": ["TakeProfitHit"]
+      }
+    ],
+    "risk_closed_positions": [],
+    "diagnostic_positions": [],
+    "reason_codes": ["DeterministicPath", "DashboardPaperPanelBuilt"]
+  }
+}

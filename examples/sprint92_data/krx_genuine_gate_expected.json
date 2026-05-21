@@ -1,0 +1,17 @@
+{
+  "gate_id": "sprint92-krx-warning-close-genuine-gate",
+  "assertion_migration_passed": true,
+  "secret_safety_isolation_passed": true,
+  "raw_archive_redaction_passed": true,
+  "auth_boundary_passed": true,
+  "endpoint_template_passed": true,
+  "source_boundary_passed": true,
+  "market_data_only_passed": true,
+  "no_order_account_passed": true,
+  "deterministic_output_passed": true,
+  "gate_status": "KrxEvidenceReducedWithIsolatedSentinel",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

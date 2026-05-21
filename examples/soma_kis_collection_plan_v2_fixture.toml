@@ -1,0 +1,26 @@
+plan_id = "sprint58-kis-collection-plan-v2"
+dry_run_report_paths = [
+  "target/sprint58/kis_market_data_dry_run/sprint58-kis-market-data-dry-run/kis_market_data_dry_run.json"
+]
+fixture_response_paths = [
+  "examples/sprint51_data/kis_domestic_005930_fixture.json",
+  "examples/sprint51_data/kis_overseas_nasd_aapl_fixture.json"
+]
+local_canonical_csv_paths = [
+  "examples/sprint51_data/kis_kr_005930_1d_eod.csv",
+  "examples/sprint51_data/kis_us_nasd_AAPL_1d_delayed.csv"
+]
+domestic_symbol_whitelist_path = "examples/soma_kis_symbol_whitelist_domestic.toml"
+overseas_symbol_whitelist_path = "examples/soma_kis_symbol_whitelist_overseas.toml"
+endpoint_policy_path = "examples/sprint51_data/kis_endpoint_policy.toml"
+output_root = "target/sprint58/kis_collection_plan_v2"
+max_jobs = 12
+max_symbols = 4
+max_rows_per_symbol = 120
+max_requests = 4
+max_days = 90
+max_bytes = 500000
+run_fixture_replay = true
+run_local_import = true
+run_operator_live_collection = false
+reason_codes = ["DeterministicPath", "KISCollectionDisabledByDefault"]

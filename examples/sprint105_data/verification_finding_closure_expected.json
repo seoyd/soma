@@ -1,0 +1,18 @@
+{
+  "report_id": "verification-finding-closure-report",
+  "blocking_findings_closed": 0,
+  "major_findings_closed": 0,
+  "known_warnings_preserved": 1,
+  "remaining_findings": 0,
+  "closure_status": "VerificationFindingsClosedWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

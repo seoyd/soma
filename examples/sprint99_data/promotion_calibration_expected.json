@@ -1,0 +1,29 @@
+{
+  "report_id": "promotion-demotion-calibration-report",
+  "axis_count": 14,
+  "return_quality_weight": 0.1,
+  "calibration_weight": 0.12,
+  "drawdown_control_weight": 0.1,
+  "risk_governor_alignment_weight": 0.12,
+  "no_trade_discipline_weight": 0.1,
+  "risk_denied_respect_weight": 0.07,
+  "evidence_quality_weight": 0.09,
+  "source_boundary_weight": 0.07,
+  "no_lookahead_weight": 0.07,
+  "debate_contribution_weight": 0.06,
+  "defensive_value_weight": 0.03,
+  "opportunity_cost_awareness_weight": 0.02,
+  "overfit_risk_weight": 0.02,
+  "raw_return_only_ranking_blocked": true,
+  "calibration_status": "PromotionCalibrationReady",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

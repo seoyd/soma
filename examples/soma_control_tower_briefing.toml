@@ -1,0 +1,16 @@
+briefing_id = "sprint71-control-tower-briefing"
+unexpected_diff_triage_paths = ["examples/soma_unexpected_diff_triage.toml"]
+trace_coverage_paths = ["examples/soma_baseline_snapshot_coverage.toml"]
+model_ops_rollup_paths = ["examples/soma_model_ops_rollup.toml"]
+model_ops_trace_paths = ["examples/soma_model_ops_trace.toml"]
+conservative_leaderboard_paths = ["examples/sprint67_data/conservative_leaderboard.json"]
+owner_review_paths = ["examples/sprint67_data/owner_model_review_actions.json"]
+previous_briefing_paths = ["examples/sprint71_data/operator_briefing_previous.json"]
+output_root = "target/soma_operator_briefing"
+max_sections = 14
+max_items_per_section = 6
+max_commands = 8
+max_bytes = 1000000
+render_html = true
+render_json = true
+render_text = true

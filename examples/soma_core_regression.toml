@@ -1,0 +1,9 @@
+previous_scorecard_path = "examples/core_performance_summary_previous.json"
+current_scorecard_path = "examples/core_performance_summary_current.json"
+max_allowed_official_row_drop = 0
+max_allowed_outcome_link_drop = 0
+max_allowed_counterfactual_drop = 0
+max_allowed_calibration_worsening = 0.02
+max_allowed_denial_rate_increase = 0.10
+max_allowed_actionability_drop = 0.10
+max_allowed_storage_growth_bytes = 131072

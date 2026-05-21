@@ -1,0 +1,18 @@
+{
+  "baseline_references": [
+    {
+      "row_id": "aapl-extended-window",
+      "symbol": "AAPL",
+      "timestamp_ms": 1700000000000,
+      "horizon_bars": 3,
+      "baseline_action": "Approve"
+    },
+    {
+      "row_id": "msft-extended-window",
+      "symbol": "MSFT",
+      "timestamp_ms": 1700000001000,
+      "horizon_bars": 3,
+      "baseline_action": "Approve"
+    }
+  ]
+}

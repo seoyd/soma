@@ -1,0 +1,62 @@
+{
+  "policy_id": "regime-routing-policy",
+  "regime_inputs": [
+    "trend persistence",
+    "volatility compression/expansion",
+    "credit and liquidity stress",
+    "crypto on-chain and funding conditions"
+  ],
+  "route_to_groups": [
+    {
+      "regime": "equity_breakout_with_liquidity_support",
+      "route_to_groups": [
+        "ShortTermSwing",
+        "CommonRisk"
+      ],
+      "rationale": "favor swing specialists when price confirmation and liquidity align"
+    },
+    {
+      "regime": "quality_drawdown_with_balance_sheet_resilience",
+      "route_to_groups": [
+        "LongTermEquity",
+        "CommonRisk"
+      ],
+      "rationale": "favor long-term quality and valuation review under controlled stress"
+    },
+    {
+      "regime": "crypto_liquidity_cycle",
+      "route_to_groups": [
+        "Crypto",
+        "CommonRisk"
+      ],
+      "rationale": "route crypto-specific evidence to the crypto group and risk sentinel"
+    },
+    {
+      "regime": "cross_signal_conflict",
+      "route_to_groups": [
+        "CounterfactualReview",
+        "CommonRisk"
+      ],
+      "rationale": "fallback to debate, counterfactual review, or NoTrade when style conflict is unresolved"
+    }
+  ],
+  "no_trade_regimes": [
+    "insufficient_evidence",
+    "cross_group_conflict_without_resolution"
+  ],
+  "risk_denied_regimes": [
+    "liquidity_breakdown",
+    "risk_governor_veto"
+  ],
+  "route_status": "RegimeRoutingReady",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

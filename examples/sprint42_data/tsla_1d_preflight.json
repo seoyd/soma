@@ -1,0 +1,52 @@
+{
+  "onboarding_id": "sprint42-tsla_1d",
+  "input_path": "examples/sprint42_data/tsla_1d.csv",
+  "detected_format": null,
+  "symbol": "TSLA",
+  "timeframe": "OneDay",
+  "provenance": {
+    "source_kind": "YFinanceResearch",
+    "source_label": "preflight-tsla_1d",
+    "provider_label": null,
+    "upstream_label": null,
+    "local_path": "examples/sprint42_data/tsla_1d.csv",
+    "generated_by": null,
+    "user_supplied": true,
+    "downloaded_by_soma": false,
+    "remote_url_present": false,
+    "official_provider": false,
+    "affiliated_or_endorsed": false,
+    "intended_use": "research-only",
+    "readiness_eligible": false,
+    "benchmark_eligible": true,
+    "license_note": null,
+    "notes": null,
+    "reason_codes": [
+      "DeterministicPath"
+    ]
+  },
+  "data_quality_report": null,
+  "data_manifest_preview": null,
+  "evidence_target_estimate": null,
+  "row_count": 8,
+  "usable_row_count": 8,
+  "estimated_walk_forward_folds": 2,
+  "estimated_outcome_records": 4,
+  "estimated_comparable_variants": 2,
+  "checks": [
+    {
+      "check": "RealLocalEligible",
+      "status": "Passed",
+      "summary": "ReadyForRealEvidence",
+      "reason_codes": [
+        "PreflightReportBuilt"
+      ]
+    }
+  ],
+  "final_status": "ReadyForRealEvidence",
+  "blockers": [],
+  "warnings": [],
+  "reason_codes": [
+    "PreflightReportBuilt"
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "report_id": "safety-coverage-preservation-v14",
+  "no_runtime_llm_live_decision_path": true,
+  "no_live_trading_path": true,
+  "no_broker_order_account_path": true,
+  "no_mamba_runtime": true,
+  "no_gated_runtime": true,
+  "no_model_training": true,
+  "no_python_training_dependency": true,
+  "no_tauri_svelte_dependency": true,
+  "no_dashboard_serve": true,
+  "no_browser_execution": true,
+  "paper_only_preserved": true,
+  "local_only_preserved": true,
+  "static_control_tower_preserved": true,
+  "chairman_cannot_bypass_risk_governor": true,
+  "risk_governor_final_veto_preserved": true,
+  "full_workspace_acceptance_separate": true,
+  "committee_cli_safety_isolated": true,
+  "warnings": [
+    "workspace acceptance truth remains separate and unresolved for Sprint 98"
+  ],
+  "safety_status": "SafetyCoveragePreservedWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

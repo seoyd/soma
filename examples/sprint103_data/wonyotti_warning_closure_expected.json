@@ -1,0 +1,24 @@
+{
+  "report_id": "wonyotti-warning-closure-report",
+  "previous_status": "WonyottiEvidenceStillWarningBacked",
+  "exact_return_claims_blocked": true,
+  "leverage_claims_guarded": true,
+  "community_anecdotes_downweighted": 1,
+  "evidence_refs_added": [
+    "wonyotti-public-thesis-archive",
+    "wonyotti-protocol-and-treasury-reference"
+  ],
+  "confidence_changed": false,
+  "remains_warning_backed": true,
+  "closure_status": "WonyottiStillWarningBacked",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

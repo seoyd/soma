@@ -1,0 +1,32 @@
+{
+  "panel_id": "control-tower-paper-lifecycle-closure-panel",
+  "lifecycle_closure_status": "PaperLifecycleStillWarningBacked",
+  "transition_coverage_status": "PaperCandidateTransitionCoverageReady",
+  "gate_completeness_status": "PaperCandidateGatesComplete",
+  "trace_closure_status": "PaperCandidateTraceClosed",
+  "stability_closure_status": "PaperCandidateStabilityClosed",
+  "risk_veto_status": "RiskGovernorBatchVetoWarningsClosed",
+  "lower_confidence_status": "LowerConfidenceCarryForwardStillExplicit",
+  "readiness_gate_status": "PaperLifecycleReadyWithWarnings",
+  "workspace_truth_status": "WorkspaceTruthStillOpenV5",
+  "warnings": [
+    "static/read-only panel only",
+    "paper candidate is not order execution",
+    "no promote-to-live button and no order/account controls"
+  ],
+  "next_actions": [
+    "close remaining paper lifecycle warnings conservatively",
+    "preserve Risk Governor final veto",
+    "keep lower-confidence carry-forward explicit"
+  ],
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

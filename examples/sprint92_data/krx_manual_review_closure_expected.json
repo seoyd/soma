@@ -1,0 +1,17 @@
+{
+  "report_id": "sprint92-krx-warning-close-manual-review",
+  "warning_items": [
+    "tests/krx_raw_archive_secret_safety.rs::archive_redaction_assertions remain separate for secret-safety isolation"
+  ],
+  "closed_warning_items": [
+    "tests/krx_raw_archive_secret_safety.rs::archive_redaction_assertions remain separate for secret-safety isolation"
+  ],
+  "remaining_warning_items": [],
+  "manual_review_required_count": 0,
+  "closure_notes": "warning-backed KrxEvidence state is explicitly closed with a documented isolated secret-safety sentinel",
+  "closure_status": "ManualReviewClosedWithIsolatedSentinel",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

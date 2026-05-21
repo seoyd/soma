@@ -1,0 +1,25 @@
+{
+  "report_id": "real-cargo-json-execution-v18",
+  "attempted": false,
+  "command": "cargo test --workspace --no-run --message-format=json",
+  "started": false,
+  "finished": false,
+  "duration_ms": null,
+  "timeout_ms": 420000,
+  "exit_code": null,
+  "timed_out": false,
+  "raw_line_count": 0,
+  "parsed_json_message_count": 0,
+  "parse_error_count": 0,
+  "malformed_line_count": 0,
+  "execution_status": "RealCargoJsonDeferred",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

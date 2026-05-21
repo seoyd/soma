@@ -1,0 +1,45 @@
+reduction_id = "sprint94-dashboard-renderer-recover"
+sprint93_bundle_paths = [
+  "target/soma_sprint93_timeout_attribution/sprint93-timeout-attribution",
+  "examples/sprint94_data/sprint93_summary.json",
+]
+dashboard_renderer_suite_paths = [
+  "tests/dashboard_renderer_suite.rs",
+  "tests/control_tower_v1_suite.rs",
+  "tests/control_tower_briefing_suite.rs",
+]
+dashboard_renderer_paths = [
+  "src/ui/dashboard_renderer.rs",
+  "src/ui/dashboard_state.rs",
+  "src/ui/dashboard_snapshot.rs",
+  "src/ui/dashboard_v1_renderer.rs",
+]
+dashboard_snapshot_paths = [
+  "src/ui/dashboard_panels.rs",
+  "tests/dashboard_renderer_suite.rs",
+]
+control_tower_panel_paths = [
+  "tests/control_tower_v1_suite.rs",
+  "tests/control_tower_briefing_suite.rs",
+  "src/ui/dashboard_serve.rs",
+  "tests/dashboard_cli_safety.rs",
+]
+dashboard_secret_redaction_paths = [
+  "src/ui/dashboard_secret_redaction.rs",
+  "tests/artifact_rendering_suite.rs",
+]
+cargo_timings_paths = [
+  "examples/sprint94_data/dashboard_renderer_compile_impact_sample.json",
+]
+output_root = "target/soma_sprint94_dashboard_renderer_recovery"
+target_family = "DashboardRenderer"
+run_real_no_run_after_reduction = false
+run_real_full_after_reduction = false
+preserve_assertions = true
+preserve_safety_guards = true
+preserve_static_read_only_checks = true
+preserve_secret_redaction_checks = true
+preserve_no_action_controls = true
+preserve_no_browser_execution = true
+preserve_determinism_checks = true
+preserve_no_external_assets = true

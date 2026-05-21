@@ -1,0 +1,7 @@
+market = "KoreanEquity"
+desired_use_case = "EodSwing"
+budget_preference = "FreeOnly"
+need_realtime = false
+need_official_readiness = true
+max_data_size_preference = "compact"
+reason_codes = []

@@ -1,0 +1,80 @@
+{
+  "items": [
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.0.0",
+      "coverage_risk": "Low",
+      "calibration_risk": "Low",
+      "drift_risk": "High",
+      "risk_behavior_risk": "Low",
+      "ablation_risk": "Low",
+      "comparability_risk": "Low",
+      "artifact_completeness_risk": "Low",
+      "final_risk_level": "High",
+      "recommended_action": "DowngradeToDiagnostic",
+      "status": "HighRiskDiagnostic",
+      "reason_codes": [
+        "ModelOpsRiskRollupReportBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "coverage_risk": "Low",
+      "calibration_risk": "Low",
+      "drift_risk": "Low",
+      "risk_behavior_risk": "Low",
+      "ablation_risk": "Low",
+      "comparability_risk": "Low",
+      "artifact_completeness_risk": "Low",
+      "final_risk_level": "Low",
+      "recommended_action": "KeepResearchCandidate",
+      "status": "LowRiskResearch",
+      "reason_codes": [
+        "ModelOpsRiskRollupReportBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.2.0",
+      "coverage_risk": "Medium",
+      "calibration_risk": "Medium",
+      "drift_risk": "Medium",
+      "risk_behavior_risk": "Medium",
+      "ablation_risk": "Medium",
+      "comparability_risk": "Low",
+      "artifact_completeness_risk": "Medium",
+      "final_risk_level": "Medium",
+      "recommended_action": "KeepResearchCandidate",
+      "status": "MediumRiskResearch",
+      "reason_codes": [
+        "ModelOpsRiskRollupReportBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "coverage_risk": "Critical",
+      "calibration_risk": "High",
+      "drift_risk": "High",
+      "risk_behavior_risk": "Low",
+      "ablation_risk": "High",
+      "comparability_risk": "High",
+      "artifact_completeness_risk": "High",
+      "final_risk_level": "Critical",
+      "recommended_action": "RequestMorePredictions",
+      "status": "CriticalRiskDiagnostic",
+      "reason_codes": [
+        "ModelOpsRiskRollupReportBuilt"
+      ]
+    }
+  ],
+  "low_count": 1,
+  "medium_count": 1,
+  "high_count": 1,
+  "critical_count": 1,
+  "blocked_count": 0,
+  "reason_codes": [
+    "ModelOpsRiskRollupReportBuilt"
+  ]
+}

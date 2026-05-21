@@ -1,0 +1,11 @@
+{
+  "proof_id": "sprint63-no-lookahead-proof",
+  "checked_windows": 6,
+  "passed_windows": 6,
+  "failed_windows": 0,
+  "violation_examples": [],
+  "proof_status": "NoLookaheadSafe",
+  "reason_codes": [
+    "NoLookaheadSequenceExportBuilt"
+  ]
+}

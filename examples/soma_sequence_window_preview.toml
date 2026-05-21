@@ -1,0 +1,21 @@
+prep_id = "sprint61-sequence-window-preview"
+kis_evidence_closure_paths = ["examples/sprint61_data/kis_evidence_after.json"]
+complete_row_paths = ["examples/sprint61_data/sequence_windows_preview_sample.json"]
+kis_canonical_csv_paths = ["examples/sprint61_data/sequence_windows_preview_sample.json"]
+feature_schema_paths = ["examples/sprint61_data/feature_schema_sample.json"]
+outcome_link_paths = [
+  "examples/sprint61_data/outcome_link_depth_sample.json",
+  "examples/sprint61_data/label_alignment_sample.json",
+]
+counterfactual_paths = ["examples/sprint61_data/no_lookahead_sequence_sample.json"]
+output_root = "target/sprint61"
+target_window_lengths = [32, 64]
+target_horizons = [4, 8, 16]
+max_windows = 512
+max_symbols = 4
+max_bytes = 5000000
+require_official_non_crypto = true
+require_complete_rows = true
+require_outcome_labels = true
+require_no_lookahead_safe = true
+

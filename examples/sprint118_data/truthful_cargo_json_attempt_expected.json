@@ -1,0 +1,18 @@
+{
+  "report_id": "truthful-cargo-json-attempt-v19",
+  "attempted": false,
+  "parsed_json_message_count": 0,
+  "reason_line_count": 0,
+  "stderr_line_count": 0,
+  "timed_out": false,
+  "status": "TruthfulCargoJsonAttemptNotRun@Some(420000)",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

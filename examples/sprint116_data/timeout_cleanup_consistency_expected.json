@@ -1,0 +1,19 @@
+{
+  "report_id": "timeout-cleanup-consistency-v1",
+  "no_run_remaining_cargo_processes": 0,
+  "no_run_remaining_rustc_processes": 0,
+  "full_remaining_cargo_processes": 0,
+  "full_remaining_rustc_processes": 0,
+  "consistent_with_baseline": true,
+  "timeout_cleanup_is_pass": false,
+  "status": "TimeoutCleanupConsistent",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

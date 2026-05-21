@@ -1,0 +1,24 @@
+{
+  "inventory_id": "remaining-after",
+  "records": [
+    { "binary_name": "tests/complete_row_closure_suite.rs", "test_file": "tests/complete_row_closure_suite.rs", "family": "CompleteRowClosure", "consolidation_candidate": false },
+    { "binary_name": "tests/artifact_rendering_suite.rs", "test_file": "tests/artifact_rendering_suite.rs", "family": "ArtifactRendering", "consolidation_candidate": false },
+    { "binary_name": "tests/persona_operational_suite.rs", "test_file": "tests/persona_operational_suite.rs", "family": "PersonaOperational", "consolidation_candidate": false },
+    { "binary_name": "tests/workspace_safety_guard_suite.rs", "test_file": "tests/workspace_safety_guard_suite.rs", "family": "SafetyGuard", "consolidation_candidate": false },
+    { "binary_name": "tests/workspace_cli_safety_suite.rs", "test_file": "tests/workspace_cli_safety_suite.rs", "family": "CliSafety", "consolidation_candidate": false },
+    { "binary_name": "tests/workspace_determinism_suite.rs", "test_file": "tests/workspace_determinism_suite.rs", "family": "Determinism", "consolidation_candidate": false },
+    { "binary_name": "tests/persona_readiness.rs", "test_file": "tests/persona_readiness.rs", "family": "PersonaOperational", "consolidation_candidate": false, "keep_separate_reason": "broader persona readiness matrix stays isolated" }
+  ],
+  "total_remaining_count": 7,
+  "high_volume_count": 0,
+  "family_distribution": {
+    "CompleteRowClosure": 1,
+    "ArtifactRendering": 1,
+    "PersonaOperational": 2,
+    "SafetyGuard": 1,
+    "CliSafety": 1,
+    "Determinism": 1
+  },
+  "inventory_status": "RemainingInventoryReadyWithWarnings"
+}
+

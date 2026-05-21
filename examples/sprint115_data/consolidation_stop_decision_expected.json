@@ -1,0 +1,21 @@
+{
+  "report_id": "consolidation-stop-decision-v1",
+  "stop_recommended": true,
+  "stop_reasons": [
+    "AssertionMigrationStillBlocked",
+    "NeedMoreProof",
+    "EvidenceBlurRiskTooHigh",
+    "DestinationCapacityInsufficient",
+    "WorkspaceTimeoutTrackDominates"
+  ],
+  "stop_status": "ConsolidationStopRecommendedWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

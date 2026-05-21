@@ -1,0 +1,17 @@
+materialization_id = "sprint45-scenario-materialize-v3-official"
+comparable_evidence_bundle_paths = ["examples/sprint45_data/official_ready_closure_fixture.json"]
+official_candle_coverage_pack_paths = ["examples/soma_candle_pack_official_controlled.toml"]
+official_scenario_pack_paths = ["examples/soma_committee_pack_controlled_official.toml"]
+output_root = "target/soma_sprint45_examples"
+max_rows = 256
+max_symbols = 3
+max_bytes = 750000
+prefer_existing_scenario_rows = true
+allow_canonical_csv_projection = false
+require_feature_summary = false
+allow_limited_feature_summary = true
+require_official_ready_match = true
+require_preflight = true
+require_provenance = true
+require_no_lookahead_safe = true
+reason_codes = ["DeterministicPath"]

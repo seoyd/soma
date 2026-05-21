@@ -1,0 +1,26 @@
+{
+  "report_id": "lower-confidence-evidence-closure-report",
+  "previous_status": "LowerConfidenceEvidenceImprovedWithWarnings",
+  "target_candidates": [
+    "wonyotti",
+    "larry-williams",
+    "arthur-hayes"
+  ],
+  "evidence_improved_count": 3,
+  "still_warning_backed_count": 3,
+  "candidates_kept_diagnostic": [],
+  "confidence_upgrades": [],
+  "confidence_downgrades": [],
+  "silent_upgrade_count": 0,
+  "closure_status": "LowerConfidenceEvidenceClosedWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

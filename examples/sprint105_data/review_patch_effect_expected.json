@@ -1,0 +1,20 @@
+{
+  "report_id": "review-patch-effect-report",
+  "overclaim_patch_detected": true,
+  "workspace_attempt_patch_detected": true,
+  "safety_boolean_patch_detected": true,
+  "missing_artifact_policy_patch_detected": true,
+  "paper_rejected_transition_patch_detected": true,
+  "risk_transition_patch_detected": true,
+  "effect_status": "ReviewPatchEffectsReady",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

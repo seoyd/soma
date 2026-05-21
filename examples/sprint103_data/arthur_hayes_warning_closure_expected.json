@@ -1,0 +1,23 @@
+{
+  "report_id": "arthur-hayes-warning-closure-report",
+  "previous_status": "ArthurHayesEvidenceStillWarningBacked",
+  "leverage_risk_guard_present": true,
+  "macro_crypto_narrative_downweighted_if_unverified": true,
+  "public_essay_refs_added": [
+    "public thesis archive",
+    "public protocol or treasury material"
+  ],
+  "confidence_changed": false,
+  "remains_warning_backed": true,
+  "closure_status": "ArthurHayesStillWarningBacked",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

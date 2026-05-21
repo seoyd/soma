@@ -1,0 +1,26 @@
+{
+  "report_id": "sprint116-deferred-backlog-carry-forward",
+  "deferred_items": [
+    "RealCargoJson",
+    "RealFullWorkspace",
+    "RealNoRun"
+  ],
+  "no_run_deferred": true,
+  "full_workspace_deferred": true,
+  "cargo_json_deferred": true,
+  "completed_items": [
+    "TimeoutBoundaryObserved",
+    "TimeoutCleanupConsistencyObserved"
+  ],
+  "remaining_count": 3,
+  "carry_forward_status": "DeferredBacklogCarriedForwardWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

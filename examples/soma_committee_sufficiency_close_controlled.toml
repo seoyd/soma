@@ -1,0 +1,10 @@
+closure_id = "committee_reference_pack_controlled_closure"
+previous_coverage_report_path = "examples/soma_committee_outcome_coverage_controlled.toml"
+previous_sufficiency_gate_path = "examples/soma_committee_outcome_coverage_controlled.toml"
+generated_reference_pack_path = "examples/soma_committee_build_references_controlled.toml"
+output_root = "target/soma_committee_reference_pack"
+rerun_outcome_coverage = true
+rerun_counterfactual_audit = true
+rerun_performance_matrix = true
+rerun_sufficiency_gate = true
+reason_codes = []

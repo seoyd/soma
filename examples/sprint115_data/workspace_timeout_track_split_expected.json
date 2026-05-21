@@ -1,0 +1,16 @@
+{
+  "report_id": "workspace-timeout-track-split-v1",
+  "consolidation_track_status": "ConsolidationPaused",
+  "timeout_track_status": "WorkspaceTimeoutDiagnosticTrackActive",
+  "separation_complete": true,
+  "status": "WorkspaceTimeoutTrackSeparated",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

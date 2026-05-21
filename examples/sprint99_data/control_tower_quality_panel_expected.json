@@ -1,0 +1,98 @@
+{
+  "panel_id": "control-tower-ai-committee-quality-panel",
+  "architecture_status": "CommitteeOwnedCoreReadyWithWarnings",
+  "proposal_quality_status": "ProposalQualityReadyWithWarnings",
+  "entry_timing_quality_status": "EntryTimingQualityReady",
+  "debate_quality_status": "DebateNeedsMoreEvidence",
+  "evidence_sufficiency_status": "EvidenceSufficientForPaperDebate",
+  "chairman_rulebook_quality_status": "UnsafeRuleDetected",
+  "promotion_calibration_status": "PromotionCalibrationReady",
+  "scorecard_calibration_status": "ScorecardCalibrationReadyWithWarnings",
+  "overfit_risk_status": "OverfitRiskControlledWithWarnings",
+  "style_drift_status": "StyleDriftControlled",
+  "roster_balance_status": "RosterBalancedWithWarnings",
+  "paper_decision_replay_status": "ReplayReadyWithWarnings",
+  "risk_governor_handoff_status": "RiskHandoffReadyWithWarnings",
+  "workspace_acceptance_truth_status": "FullWorkspaceNotRun",
+  "safety_coverage_status": "SafetyCoveragePreservedWithWarnings",
+  "runtime_deferred_summary": "runtime deferred, training deferred, live execution forbidden, paper-only quality layer",
+  "member_quality_rows": [
+    {
+      "member_id": "trend-scout",
+      "proposal_status": "ProposalReady",
+      "scorecard_status": "ScorecardReady",
+      "overfit_band": "Low",
+      "style_note": "TrendFollower"
+    },
+    {
+      "member_id": "risk-defender",
+      "proposal_status": "ProposalReady",
+      "scorecard_status": "ScorecardReady",
+      "overfit_band": "Low",
+      "style_note": "RiskFirstDefensive"
+    },
+    {
+      "member_id": "regime-interpreter",
+      "proposal_status": "ProposalReady",
+      "scorecard_status": "ScorecardReady",
+      "overfit_band": "Low",
+      "style_note": "RegimeCycle"
+    },
+    {
+      "member_id": "macro-interpreter",
+      "proposal_status": "ProposalReady",
+      "scorecard_status": "ScorecardReady",
+      "overfit_band": "Medium",
+      "style_note": "MacroReflexive"
+    },
+    {
+      "member_id": "value-skeptic",
+      "proposal_status": "ProposalReady",
+      "scorecard_status": "ScorecardReady",
+      "overfit_band": "Medium",
+      "style_note": "ValueDiscipline"
+    },
+    {
+      "member_id": "liquidity-executor",
+      "proposal_status": "ProposalReady",
+      "scorecard_status": "ScorecardReady",
+      "overfit_band": "Medium",
+      "style_note": "LiquidityExecution"
+    },
+    {
+      "member_id": "counterfactual-reviewer",
+      "proposal_status": "ProposalReady",
+      "scorecard_status": "ScorecardReadyWithWarnings",
+      "overfit_band": "Medium",
+      "style_note": "CounterfactualHistorian"
+    },
+    {
+      "member_id": "chair-candidate",
+      "proposal_status": "ProposalReady",
+      "scorecard_status": "ScorecardReadyWithWarnings",
+      "overfit_band": "Medium",
+      "style_note": "QualityCompounder"
+    }
+  ],
+  "next_actions": [
+    "keep focused quality tests separate from full workspace acceptance",
+    "keep chairman rule changes audited and paper-only",
+    "keep runtime/training/live execution deferred"
+  ],
+  "warnings": [
+    "static/read-only panel only",
+    "no train/runtime/live/order/account/browser controls",
+    "quality readiness does not imply live trading readiness"
+  ],
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

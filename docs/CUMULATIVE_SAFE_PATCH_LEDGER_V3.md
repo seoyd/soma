@@ -1,0 +1,1 @@
+Cumulative safe patch ledger v3 carries forward Sprint 107/108/109/110 retired targets, migrated assertions, and sample-backed binary deltas. It preserves the measured-delta prohibition: sample-backed evidence is never presented as measured timing.

@@ -1,0 +1,24 @@
+{
+  "readiness_id": "fixture_sequence_ready",
+  "row_count": 4096,
+  "official_row_count": 3584,
+  "complete_row_count": 2048,
+  "estimated_sequence_windows": 1024,
+  "symbols": ["005930", "000660", "AAPL", "MSFT"],
+  "horizons": [4, 8, 16],
+  "window_lengths": [32, 64],
+  "outcome_label_distribution": {
+    "Win": 420,
+    "Loss": 360,
+    "NoTrade": 244
+  },
+  "feature_schema_locked": true,
+  "no_lookahead_safe": true,
+  "storage_estimate_bytes": 8388608,
+  "source_class": "official_non_crypto",
+  "summary_derived_ratio": 0.08,
+  "readiness_status": "ReadyForSequenceDatasetExport",
+  "blockers": [],
+  "warnings": ["sequence readiness still does not imply profitability"],
+  "reason_codes": ["DeterministicPath"]
+}

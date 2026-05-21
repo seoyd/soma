@@ -1,0 +1,20 @@
+{
+  "model_id": "ext-model-a",
+  "model_version": "1.2.0",
+  "model_family": "Mamba3FinLiteExternal",
+  "training_data_description": "Later offline artifact version for conservative registry history and version comparison only.",
+  "feature_schema_hash": "01c25ac23c41ca00",
+  "label_manifest_hash": "8eff63ae77f20914",
+  "split_policy": "ChronologicalHoldout",
+  "intended_use": "Offline artifact registry, evaluation history, calibration drift, and leaderboard diagnostics only.",
+  "forbidden_use": "Live trading, broker execution, account actions, and runtime inference are forbidden.",
+  "limitations": "Research-only fixture with bounded sequence rows; rank never implies deployment or profitability.",
+  "created_by": "diagnostic-fixture",
+  "created_at": "2026-05-14T00:00:00Z",
+  "source": "DiagnosticFixture",
+  "risk_integration_required": true,
+  "live_use_forbidden": true,
+  "reason_codes": [
+    "ExternalModelCardV2Built"
+  ]
+}

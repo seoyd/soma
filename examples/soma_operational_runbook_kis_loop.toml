@@ -1,0 +1,10 @@
+runbook_id = "sprint57-operational-runbook"
+kis_evidence_depth_config_path = "examples/soma_kis_evidence_depth_run.toml"
+control_tower_refresh_config_path = "examples/soma_control_tower_refresh_after_kis_depth.toml"
+trinity_loop_config_path = "examples/soma_trinity_operational_loop_kis.toml"
+output_root = "target/sprint57/runbook"
+include_commands = true
+include_expected_artifacts = true
+include_blockers = true
+include_risk_notes = true
+reason_codes = ["DeterministicPath"]

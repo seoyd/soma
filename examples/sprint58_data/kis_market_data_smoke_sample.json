@@ -1,0 +1,31 @@
+{
+  "smoke_id": "sprint58-kis-market-data-smoke",
+  "auth_closure_status": "ReadyForDryRunOnly",
+  "dry_run_status": "Ready",
+  "collection_plan_status": "LiveCollectionDisabled",
+  "schema_drift_status": "Some(DiagnosticOnly)",
+  "canonical_validation_status": "BatchValid",
+  "preflight_status": "KISCompleteRowsImproved",
+  "candle_sufficiency_status": "HealthyKISCandles",
+  "outcome_link_closure_status": "KISCounterfactualsImproved",
+  "complete_row_closure_status": "CoreResearchReady",
+  "evidence_depth_status": "NeedMoreKISEvidence",
+  "trinity_loop_status": "PaperOnlyMonitoringReady",
+  "control_tower_refresh_status": "RefreshedWithWarnings",
+  "added_canonical_csvs": 2,
+  "added_official_rows": 12,
+  "added_preflight_ready_rows": 12,
+  "added_official_ready_candles": 12,
+  "added_outcome_links": 2,
+  "added_counterfactuals": 2,
+  "added_complete_rows": 2,
+  "final_status": "KISCompleteRowsImproved",
+  "final_recommendation": "RunControlTowerRefresh",
+  "blockers": [],
+  "warnings": [],
+  "reason_codes": [
+    "DeterministicPath",
+    "KISCollectionDisabledByDefault",
+    "KISMarketDataSmokeBuilt"
+  ]
+}

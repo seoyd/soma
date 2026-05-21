@@ -1,0 +1,11 @@
+{
+  "planned_symbols": ["005930.KS", "AAPL", "MSFT"],
+  "planned_timeframes": ["1d", "4h"],
+  "planned_horizons": [4, 8, 16],
+  "official_rows_after": 24,
+  "complete_rows_after": 8,
+  "outcome_links_after": 5,
+  "provenance_ready_rows": 8,
+  "preflight_ready_rows": 8,
+  "no_lookahead_safe": true
+}

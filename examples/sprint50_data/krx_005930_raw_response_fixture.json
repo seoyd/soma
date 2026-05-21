@@ -1,0 +1,14 @@
+{
+  "symbol": "005930",
+  "timeframe": "1d",
+  "rows": [
+    {"date": "2024-01-02", "open": 78000, "high": 78500, "low": 77500, "close": 78200, "volume": 1200000, "trade_value": 93840000000, "bid": 78150, "ask": 78250, "spread_bps": 1.28},
+    {"date": "2024-01-03", "open": 78200, "high": 78800, "low": 78000, "close": 78600, "volume": 1100000, "trade_value": 86460000000, "bid": 78550, "ask": 78650, "spread_bps": 1.27},
+    {"date": "2024-01-04", "open": 78600, "high": 79000, "low": 78400, "close": 78900, "volume": 1050000, "trade_value": 82845000000, "bid": 78850, "ask": 78950, "spread_bps": 1.27},
+    {"date": "2024-01-05", "open": 78900, "high": 79300, "low": 78700, "close": 79100, "volume": 980000, "trade_value": 77518000000, "bid": 79050, "ask": 79150, "spread_bps": 1.26},
+    {"date": "2024-01-08", "open": 79100, "high": 79600, "low": 79000, "close": 79500, "volume": 1020000, "trade_value": 81090000000, "bid": 79450, "ask": 79550, "spread_bps": 1.26},
+    {"date": "2024-01-09", "open": 79500, "high": 79900, "low": 79200, "close": 79700, "volume": 1010000, "trade_value": 80497000000, "bid": 79650, "ask": 79750, "spread_bps": 1.25},
+    {"date": "2024-01-10", "open": 79700, "high": 80100, "low": 79500, "close": 80000, "volume": 990000, "trade_value": 79200000000, "bid": 79950, "ask": 80050, "spread_bps": 1.25},
+    {"date": "2024-01-11", "open": 80000, "high": 80400, "low": 79800, "close": 80300, "volume": 970000, "trade_value": 77891000000, "bid": 80250, "ask": 80350, "spread_bps": 1.24}
+  ]
+}

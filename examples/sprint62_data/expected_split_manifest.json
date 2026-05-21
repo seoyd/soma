@@ -1,0 +1,30 @@
+{
+  "split_id": "sprint62-sequence-export-small",
+  "policy": "ChronologicalHoldout",
+  "train_sequence_ids": [
+    "70169ad73045cb5d",
+    "b276f8dfd6ffbd8e",
+    "421ec1a6000d9174"
+  ],
+  "validation_sequence_ids": [
+    "8bcba9b7061a26a9"
+  ],
+  "test_sequence_ids": [
+    "c849de5297fe2bca",
+    "00c0b0f962c9c968"
+  ],
+  "fold_manifests": [],
+  "split_counts": {
+    "train_count": 3,
+    "validation_count": 1,
+    "test_count": 2
+  },
+  "split_timestamp_boundaries": [
+    "train_end=1714953600000",
+    "validation_end=1715040000000"
+  ],
+  "random_seed_used": false,
+  "reason_codes": [
+    "SequenceSplitManifestBuilt"
+  ]
+}

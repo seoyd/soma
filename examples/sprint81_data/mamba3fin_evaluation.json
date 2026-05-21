@@ -1,0 +1,23 @@
+{
+  "evaluation_id": "mamba3fin-eval",
+  "family": "Mamba3Fin",
+  "model_id": "mamba3fin-prototype",
+  "model_version": "v0.1",
+  "sequence_count": 4,
+  "evaluated_count": 4,
+  "coverage_ratio": "0.8300",
+  "label_distribution": { "tp": 2, "sl": 1, "nt": 1 },
+  "brier_score": "0.1200",
+  "ece": "0.0900",
+  "top_k_precision": "0.7500",
+  "rank_correlation": "0.6200",
+  "expected_return_proxy": "0.0500",
+  "realized_return_proxy": "0.0400",
+  "risk_adjusted_score": "0.0300",
+  "no_trade_comparison": "-0.0100",
+  "risk_denied_defensive_value": "0.0200",
+  "evaluation_status": "EvaluationReadyWithWarnings",
+  "warnings": ["external prototype only"],
+  "blockers": [],
+  "reason_codes": ["Mamba3FinPrototypeEvaluated", "DeterministicPath"]
+}

@@ -1,0 +1,20 @@
+{
+  "report_id": "truthful-full-workspace-attempt-v19",
+  "attempted": false,
+  "finished": false,
+  "passed": null,
+  "exit_code": null,
+  "timed_out": false,
+  "timeout_ms": 420000,
+  "full_workspace_accepted": false,
+  "status": "TruthfulFullWorkspaceAttemptNotRun",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

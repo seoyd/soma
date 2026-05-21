@@ -1,0 +1,24 @@
+{
+  "report_id": "shared-toml-builder-application-v1",
+  "shared_toml_builder_applied": true,
+  "local_only_path_validation_preserved": true,
+  "remote_path_rejection_preserved": true,
+  "affected_configs": [
+    "SafeConsolidationPatchV1Config",
+    "Sprint105VerificationPatchClosureConfig",
+    "WorkspaceAcceptanceRecoveryV7Config"
+  ],
+  "duplicated_toml_builders_removed": 2,
+  "application_status": "SharedTomlBuilderApplied",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "DeterministicPath",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt",
+    "LocalFileOnly"
+  ]
+}

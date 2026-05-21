@@ -1,0 +1,33 @@
+{
+  "inventory_id": "remaining-before",
+  "records": [
+    { "binary_name": "tests/complete_row_closure_v2.rs", "test_file": "tests/complete_row_closure_v2.rs", "family": "CompleteRowClosure", "consolidation_candidate": true },
+    { "binary_name": "tests/complete_row_closure_runner.rs", "test_file": "tests/complete_row_closure_runner.rs", "family": "CompleteRowClosure", "consolidation_candidate": true },
+    { "binary_name": "tests/artifact_render_cache_plan.rs", "test_file": "tests/artifact_render_cache_plan.rs", "family": "ArtifactRendering", "consolidation_candidate": true },
+    { "binary_name": "tests/artifact_rendering_cost.rs", "test_file": "tests/artifact_rendering_cost.rs", "family": "ArtifactRendering", "consolidation_candidate": true },
+    { "binary_name": "tests/dashboard_secret_redaction.rs", "test_file": "tests/dashboard_secret_redaction.rs", "family": "ArtifactRendering", "consolidation_candidate": true },
+    { "binary_name": "tests/dashboard_determinism.rs", "test_file": "tests/dashboard_determinism.rs", "family": "ArtifactRendering", "consolidation_candidate": true },
+    { "binary_name": "tests/persona_operational_status.rs", "test_file": "tests/persona_operational_status.rs", "family": "PersonaOperational", "consolidation_candidate": true },
+    { "binary_name": "tests/six_persona_readiness.rs", "test_file": "tests/six_persona_readiness.rs", "family": "PersonaOperational", "consolidation_candidate": true },
+    { "binary_name": "tests/live_safety.rs", "test_file": "tests/live_safety.rs", "family": "SafetyGuard", "consolidation_candidate": true },
+    { "binary_name": "tests/core_runtime_state.rs", "test_file": "tests/core_runtime_state.rs", "family": "SafetyGuard", "consolidation_candidate": true },
+    { "binary_name": "tests/control_tower_ui_readiness.rs", "test_file": "tests/control_tower_ui_readiness.rs", "family": "SafetyGuard", "consolidation_candidate": true },
+    { "binary_name": "tests/dashboard_serve_safety.rs", "test_file": "tests/dashboard_serve_safety.rs", "family": "SafetyGuard", "consolidation_candidate": true },
+    { "binary_name": "tests/ui_framework_decision.rs", "test_file": "tests/ui_framework_decision.rs", "family": "SafetyGuard", "consolidation_candidate": true },
+    { "binary_name": "tests/complete_row_closure_v2_cli_safety.rs", "test_file": "tests/complete_row_closure_v2_cli_safety.rs", "family": "CliSafety", "consolidation_candidate": true },
+    { "binary_name": "tests/complete_row_closure_v2_determinism.rs", "test_file": "tests/complete_row_closure_v2_determinism.rs", "family": "Determinism", "consolidation_candidate": true },
+    { "binary_name": "tests/persona_readiness.rs", "test_file": "tests/persona_readiness.rs", "family": "PersonaOperational", "consolidation_candidate": false, "keep_separate_reason": "broader persona readiness matrix stays isolated" }
+  ],
+  "total_remaining_count": 16,
+  "high_volume_count": 15,
+  "family_distribution": {
+    "CompleteRowClosure": 2,
+    "ArtifactRendering": 4,
+    "PersonaOperational": 3,
+    "SafetyGuard": 5,
+    "CliSafety": 1,
+    "Determinism": 1
+  },
+  "inventory_status": "RemainingInventoryReadyWithWarnings"
+}
+

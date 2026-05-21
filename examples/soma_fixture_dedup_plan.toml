@@ -1,0 +1,4 @@
+timing_id = "fixture-dedup-plan-example"
+sample_timing_paths = [
+  "examples/sprint77_data/fixture_setup_cost_sample.json",
+]

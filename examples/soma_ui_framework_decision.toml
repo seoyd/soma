@@ -1,0 +1,13 @@
+report_id = "sprint60-ui-framework-decision"
+kis_smoke_report_paths = ["examples/sprint58_data/kis_market_data_smoke_sample.json"]
+control_tower_state_paths = ["examples/sprint59_data/control_tower_ready_sample.json"]
+control_tower_html_paths = ["examples/sprint59_data/control_tower_ready_sample.html"]
+owner_review_queue_paths = ["examples/sprint54_data/owner_review_queue_sample.json"]
+sequence_readiness_report_paths = ["examples/sprint55_data/sequence_readiness_insufficient.json"]
+mamba_readiness_snapshot_paths = ["examples/sprint55_data/mamba_readiness_blocked.json"]
+operational_runbook_paths = ["examples/sprint58_data/operational_runbook_v2_expected.json"]
+supporting_artifact_paths = ["examples/sprint60_data/hardening_support_sample.json"]
+output_root = "target/sprint60"
+max_artifacts = 32
+max_bytes = 5000000
+

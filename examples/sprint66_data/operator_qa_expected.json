@@ -1,0 +1,58 @@
+{
+  "qa_id": "sprint66-model-ops-operator-qa",
+  "checklist_items": [
+    "NoTrade/RiskDenied reference preserved",
+    "calibration reviewed",
+    "evaluation exists",
+    "leaderboard position reviewed",
+    "model card exists",
+    "no live/runtime/training path",
+    "no secret/order/account fields",
+    "predictions cover known sequences",
+    "risk behavior reviewed"
+  ],
+  "models_to_review": [
+    "ext-model-a:1.0.0",
+    "ext-model-a:1.0.0",
+    "ext-model-a:1.0.0",
+    "ext-model-a:1.1.0",
+    "ext-model-a:1.1.0",
+    "ext-model-a:1.1.0",
+    "ext-model-a:1.1.0",
+    "ext-model-b:1.0.0",
+    "ext-model-b:1.0.0",
+    "ext-model-b:1.0.0",
+    "ext-model-b:1.0.0",
+    "ext-model-b:1.0.0"
+  ],
+  "models_to_retire": [
+    "ext-model-a:1.0.0",
+    "ext-model-a:1.0.0",
+    "ext-model-a:1.0.0"
+  ],
+  "models_to_downgrade": [],
+  "models_to_request_predictions": [
+    "ext-model-b:1.0.0",
+    "ext-model-b:1.0.0",
+    "ext-model-b:1.0.0",
+    "ext-model-b:1.0.0",
+    "ext-model-b:1.0.0"
+  ],
+  "models_to_watch": [
+    "ext-model-a:1.1.0"
+  ],
+  "blocked_models": [],
+  "unsafe_actions_detected": [],
+  "qa_status": "NeedsMorePredictions",
+  "next_commands": [
+    "cargo run --quiet --bin soma_experiment -- control-tower-model-ops-refresh --config examples/soma_control_tower_model_ops_refresh.toml",
+    "cargo run --quiet --bin soma_experiment -- model-ops-decision-log --config examples/soma_model_ops_decision_log.toml",
+    "cargo run --quiet --bin soma_experiment -- model-ops-operator-qa --config examples/soma_model_ops_operator_qa.toml",
+    "cargo run --quiet --bin soma_experiment -- model-ops-regression-guard --config examples/soma_model_ops_regression_guard.toml",
+    "cargo run --quiet --bin soma_experiment -- model-review-close --config examples/soma_model_review_close.toml",
+    "cargo run --quiet --bin soma_experiment -- prediction-history-pack --config examples/soma_prediction_history_pack.toml"
+  ],
+  "reason_codes": [
+    "ModelOpsOperatorQaReportBuilt"
+  ]
+}

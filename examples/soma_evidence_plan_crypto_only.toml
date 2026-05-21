@@ -1,0 +1,24 @@
+plan_id = "sprint31_crypto_only"
+output_root = "target/soma_evidence_plan"
+run_core_check = true
+run_collection = true
+run_preflight = true
+run_benchmark = true
+run_external_eval = false
+allow_yfinance_research = false
+allow_crypto_only = true
+allow_missing_auth_skips = true
+max_lanes = 5
+max_symbols = 1
+max_rows_per_lane = 200
+max_requests_per_lane = 5
+max_total_bytes = 200000
+reason_codes = []
+
+[[explicit_lanes]]
+lane_kind = "CryptoIntradayEvidence"
+provider = "upbit"
+symbols = ["BTC-KRW"]
+enabled = true
+reason_codes = []
+

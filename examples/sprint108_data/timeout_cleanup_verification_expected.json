@@ -1,0 +1,19 @@
+{
+  "report_id": "timeout-cleanup-verification-v1",
+  "timeout_occurred": false,
+  "child_process_cleanup_attempted": false,
+  "remaining_cargo_processes": 0,
+  "remaining_rustc_processes": 0,
+  "cleanup_status": "NotApplicable",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "DeterministicPath",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt",
+    "LocalFileOnly"
+  ]
+}

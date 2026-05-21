@@ -1,0 +1,61 @@
+{
+  "audit_timeline": {
+    "events": [
+      {
+        "event_id": "owner-evt-001",
+        "kind": "OwnerInputSubmitted",
+        "timestamp_ms": 1715690001000,
+        "title": "Owner input submitted",
+        "summary": "CandidateNote submitted for cand-102.",
+        "source_report": "examples/sprint53_data/owner_inputs_sample.json",
+        "severity": "Info",
+        "reason_codes": ["OwnerInputValidated"]
+      },
+      {
+        "event_id": "owner-evt-002",
+        "kind": "OwnerInputApplied",
+        "timestamp_ms": 1715690002000,
+        "title": "Owner hold applied",
+        "summary": "CandidateHold deferred cand-104 for more review.",
+        "source_report": "examples/sprint53_data/owner_inputs_sample.json",
+        "severity": "Info",
+        "reason_codes": ["OwnerCandidateHeld"]
+      },
+      {
+        "event_id": "owner-evt-003",
+        "kind": "ReanalysisRequested",
+        "timestamp_ms": 1715690003000,
+        "title": "Reanalysis requested",
+        "summary": "Owner requested reanalysis for cand-104.",
+        "source_report": "examples/sprint53_data/owner_inputs_sample.json",
+        "severity": "Info",
+        "reason_codes": ["OwnerReanalysisRequested"]
+      },
+      {
+        "event_id": "owner-evt-004",
+        "kind": "PaperConfirmed",
+        "timestamp_ms": 1715690004000,
+        "title": "Paper confirmed",
+        "summary": "Owner paper-confirmed cand-101 on a paper-only path.",
+        "source_report": "examples/sprint53_data/owner_inputs_sample.json",
+        "severity": "Info",
+        "reason_codes": ["OwnerPaperConfirmAllowed", "OwnerPaperConfirmPaperOnly"]
+      },
+      {
+        "event_id": "owner-evt-005",
+        "kind": "OwnerInputBlocked",
+        "timestamp_ms": 1715690007000,
+        "title": "Unknown owner input blocked",
+        "summary": "Unknown owner input stayed audited but was not applied.",
+        "source_report": "examples/sprint53_data/owner_inputs_sample.json",
+        "severity": "Warning",
+        "reason_codes": ["OwnerInputBlocked", "OwnerInputUnknownRejected"]
+      }
+    ],
+    "warnings": 1,
+    "errors": 0,
+    "critical_count": 0,
+    "fingerprint": "owner-audit-sample",
+    "reason_codes": ["DeterministicPath", "DashboardAuditTimelineBuilt"]
+  }
+}

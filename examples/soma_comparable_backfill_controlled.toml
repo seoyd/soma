@@ -1,0 +1,11 @@
+backfill_id = "sprint42-controlled-backfill"
+comparable_evidence_bundle_paths = ["examples/sprint42_data/comparable_controlled_aapl_bundle.json"]
+official_candle_coverage_pack_paths = ["examples/soma_candle_pack_official_controlled.toml"]
+output_root = "target/soma_sprint42_examples"
+require_official_for_official_backfill = true
+backfill_outcome_reference_available = false
+backfill_no_trade_counterfactual_available = false
+backfill_risk_denied_counterfactual_available = false
+backfill_baseline_reference_available = false
+allow_diagnostic_backfill = true
+reason_codes = ["DeterministicPath"]

@@ -1,0 +1,3 @@
+thesis_notes_path = "examples/sprint53_data/owner_thesis_notes_sample.json"
+timestamp_ms = 1715695000000
+reason_codes = ["DeterministicPath"]

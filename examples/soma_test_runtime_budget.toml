@@ -1,0 +1,4 @@
+modernization_id = "test-runtime-budget-example"
+current_toolchain_report_paths = [
+  "examples/sprint76_data/workspace_acceptance_sample.json",
+]

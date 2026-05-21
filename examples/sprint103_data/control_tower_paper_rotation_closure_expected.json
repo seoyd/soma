@@ -1,0 +1,45 @@
+{
+  "panel_id": "control-tower-paper-rotation-closure-panel",
+  "rotation_warning_closure_status": "PaperRotationWarningsClosedWithNotes",
+  "member_selection_closure_status": "MemberSelectionWarningsClosedWithNotes",
+  "lower_confidence_closure_status": "LowerConfidenceEvidenceClosedWithWarnings",
+  "weak_source_review_status": "WeakSourceReviewReadyWithWarnings",
+  "wonyotti_status": "WonyottiStillWarningBacked",
+  "larry_williams_status": "LarryWilliamsStillWarningBacked",
+  "arthur_hayes_status": "ArthurHayesStillWarningBacked",
+  "proposal_closure_status": "ProposalRunWarningsClosed",
+  "entry_timing_closure_status": "EntryTimingWarningsClosedWithNotes",
+  "debate_closure_status": "DebateWarningsClosedWithNotes",
+  "conflict_closure_status": "CrossGroupConflictsClosedWithNotes",
+  "chairman_closure_status": "ChairmanSynthesisWarningsClosedWithNotes",
+  "risk_handoff_closure_status": "RiskHandoffWarningsClosedWithNotes",
+  "paper_trace_closure_status": "PaperTraceWarningsClosed",
+  "multi_scenario_replay_status": "MultiScenarioReplayReady",
+  "decision_stability_status": "DecisionStabilityReady",
+  "no_trade_justification_status": "NoTradeJustificationReady",
+  "need_more_evidence_justification_status": "NeedMoreEvidenceJustificationReadyWithWarnings",
+  "paper_rotation_readiness_status": "PaperRotationReadyWithWarnings",
+  "workspace_truth_status": "WorkspaceTruthStillOpen",
+  "runtime_deferred_summary": "runtime deferred, training deferred, live inference forbidden, live trading forbidden, no runtime LLM live decision path, static/read-only control tower",
+  "safety_summary": "safety_status=SafetyCoveragePreserved no_silent_confidence_upgrade_guard_present=true",
+  "next_actions": [
+    "keep paper-only replay calibration local-only and deterministic",
+    "continue lower-confidence review without silent upgrades",
+    "keep full workspace acceptance separate from paper rotation readiness"
+  ],
+  "warnings": [
+    "static/read-only panel only",
+    "no train button, no runtime button, no live button, no order/account controls",
+    "no browser execution, no activate-all-18-live button, no auto-apply chairman rule button"
+  ],
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

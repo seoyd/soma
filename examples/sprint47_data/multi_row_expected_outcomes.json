@@ -1,0 +1,93 @@
+{
+  "linkage_id": "sprint47-outcome-linkage-v3",
+  "records": [
+    {
+      "row_id": "aapl-extended-window",
+      "scenario_row_id": "scenario-aapl-official",
+      "candle_series_id": "aapl_1d_extended_multi",
+      "status": "OutcomeGenerated",
+      "outcome_reference": {
+        "outcome_id": "aapl-extended-window-outcome-v3",
+        "decision_id": "scenario-aapl-official",
+        "symbol": "AAPL",
+        "timestamp_ms": 1700000000000,
+        "horizon_bars": 3,
+        "triple_barrier_label": "TakeProfit",
+        "net_return_pct": 0.01930000000000002,
+        "max_favorable_excursion_pct": 0.030000000000000027,
+        "max_adverse_excursion_pct": -0.0050000000000000044,
+        "cost_bps": 5.0,
+        "slippage_bps": 2.0,
+        "source_kind": "OfficialApiCollected",
+        "no_lookahead_safe": true,
+        "reason_codes": [
+          "CommitteeOutcomeReferenceBuilt",
+          "CostApplied",
+          "DeterministicPath",
+          "TakeProfitHit"
+        ]
+      },
+      "net_return_pct": 0.01930000000000002,
+      "mfe_pct": 0.030000000000000027,
+      "mae_pct": -0.0050000000000000044,
+      "cost_bps": 5.0,
+      "slippage_bps": 2.0,
+      "reason_codes": [
+        "CommitteeOutcomeReferenceBuilt",
+        "CostApplied",
+        "DeterministicPath",
+        "LocalFileOnly",
+        "TakeProfitHit"
+      ]
+    },
+    {
+      "row_id": "msft-extended-window",
+      "scenario_row_id": "scenario-msft-official",
+      "candle_series_id": "msft_1d_extended_multi",
+      "status": "OutcomeGenerated",
+      "outcome_reference": {
+        "outcome_id": "msft-extended-window-outcome-v3",
+        "decision_id": "scenario-msft-official",
+        "symbol": "MSFT",
+        "timestamp_ms": 1700000001000,
+        "horizon_bars": 3,
+        "triple_barrier_label": "TimeExpired",
+        "net_return_pct": 0.0083,
+        "max_favorable_excursion_pct": 0.015,
+        "max_adverse_excursion_pct": -0.002,
+        "cost_bps": 5.0,
+        "slippage_bps": 2.0,
+        "source_kind": "OfficialApiCollected",
+        "no_lookahead_safe": true,
+        "reason_codes": [
+          "CommitteeOutcomeReferenceBuilt",
+          "CostApplied",
+          "DeterministicPath"
+        ]
+      },
+      "net_return_pct": 0.0083,
+      "mfe_pct": 0.015,
+      "mae_pct": -0.002,
+      "cost_bps": 5.0,
+      "slippage_bps": 2.0,
+      "reason_codes": [
+        "CommitteeOutcomeReferenceBuilt",
+        "CostApplied",
+        "DeterministicPath",
+        "LocalFileOnly"
+      ]
+    }
+  ],
+  "generated_outcome_count": 2,
+  "skipped_missing_future_bars": 0,
+  "skipped_timestamp_mismatch": 0,
+  "skipped_horizon_mismatch": 0,
+  "rejected_no_lookahead": 0,
+  "official_outcome_count": 2,
+  "diagnostic_outcome_count": 0,
+  "linkage_status": "OfficialOutcomeLinksImproved",
+  "reason_codes": [
+    "CommitteeOutcomeReferenceBuilt",
+    "DeterministicPath"
+  ]
+}

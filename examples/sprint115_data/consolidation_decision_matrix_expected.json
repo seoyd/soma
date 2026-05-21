@@ -1,0 +1,48 @@
+{
+  "matrix_id": "consolidation-decision-matrix-v1",
+  "decision_rows": [
+    {
+      "decision": "ContinueConsolidation",
+      "selected": false,
+      "blockers": [
+        "ConsolidationStopRecommendedWithWarnings",
+        "ConsolidationResumeNeedsProof",
+        "EvidenceBlurRiskTooHigh"
+      ]
+    },
+    {
+      "decision": "PauseConsolidation",
+      "selected": false,
+      "blockers": []
+    },
+    {
+      "decision": "StopConsolidation",
+      "selected": true,
+      "blockers": []
+    },
+    {
+      "decision": "SplitWorkspaceTimeoutTrack",
+      "selected": false,
+      "blockers": []
+    },
+    {
+      "decision": "ResumeOnlyWithProof",
+      "selected": false,
+      "blockers": [
+        "AssertionDestinationProofReady",
+        "EvidenceBlurRiskControlled"
+      ]
+    }
+  ],
+  "selected_decision": "StopConsolidation",
+  "matrix_status": "ConsolidationDecisionReadyWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

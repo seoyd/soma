@@ -1,0 +1,93 @@
+{
+  "explanations": [
+    {
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "cause_kind": "ArtifactCompletenessRegression",
+      "severity": "Warning",
+      "human_summary": "artifact completeness regressed and evidence should be rebuilt conservatively",
+      "technical_summary": "artifact completeness band weakened versus baseline snapshot",
+      "recommended_action": "RequestMorePredictions",
+      "reason_codes": [
+        "RegressionCauseExplanationBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "cause_kind": "CalibrationRegression",
+      "severity": "Warning",
+      "human_summary": "calibration drift needs review before further comparison",
+      "technical_summary": "calibration band weakened versus baseline snapshot",
+      "recommended_action": "RequestCalibrationReview",
+      "reason_codes": [
+        "RegressionCauseExplanationBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "cause_kind": "ComparabilityRegression",
+      "severity": "Error",
+      "human_summary": "comparability regressed and the model should stay diagnostic-only until clarified",
+      "technical_summary": "comparability band weakened versus baseline snapshot",
+      "recommended_action": "DowngradeToDiagnostic",
+      "reason_codes": [
+        "RegressionCauseExplanationBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "cause_kind": "CoverageRegression",
+      "severity": "Warning",
+      "human_summary": "prediction coverage regressed and needs more offline history",
+      "technical_summary": "coverage band weakened versus baseline snapshot",
+      "recommended_action": "RequestMorePredictions",
+      "reason_codes": [
+        "RegressionCauseExplanationBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "cause_kind": "LeaderboardRegression",
+      "severity": "Error",
+      "human_summary": "leaderboard status regressed and ranking should be treated conservatively",
+      "technical_summary": "leaderboard band weakened versus baseline snapshot",
+      "recommended_action": "RetireModelVersion",
+      "reason_codes": [
+        "RegressionCauseExplanationBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "cause_kind": "RiskRegression",
+      "severity": "Critical",
+      "human_summary": "risk behavior regressed and needs conservative review",
+      "technical_summary": "risk band weakened versus baseline snapshot",
+      "recommended_action": "RequestRiskReview",
+      "reason_codes": [
+        "RegressionCauseExplanationBuilt"
+      ]
+    }
+  ],
+  "by_model": {
+    "ext-model-b:1.0.0": [
+      "artifact completeness regressed and evidence should be rebuilt conservatively",
+      "calibration drift needs review before further comparison",
+      "comparability regressed and the model should stay diagnostic-only until clarified",
+      "prediction coverage regressed and needs more offline history",
+      "leaderboard status regressed and ranking should be treated conservatively",
+      "risk behavior regressed and needs conservative review"
+    ]
+  },
+  "critical_count": 1,
+  "warning_count": 5,
+  "no_regression_count": 0,
+  "report_status": "RegressionDetected",
+  "reason_codes": [
+    "RegressionCauseExplanationReportBuilt"
+  ]
+}

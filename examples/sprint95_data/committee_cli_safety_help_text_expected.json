@@ -1,0 +1,16 @@
+{
+  "report_id": "sprint95-committee-cli-safety-recover-help-text",
+  "research_only_help_preserved": true,
+  "paper_only_help_preserved": true,
+  "local_only_help_preserved": true,
+  "no_runtime_help_preserved": true,
+  "no_training_help_preserved": true,
+  "no_live_help_preserved": true,
+  "read_only_help_preserved": true,
+  "copy_only_help_preserved": true,
+  "help_text_status": "HelpTextPreserved",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

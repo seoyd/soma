@@ -1,0 +1,178 @@
+[
+  {
+    "contract_id": "trend-scout-core",
+    "member_id": "trend-scout",
+    "core_family": "BaselineHeuristic",
+    "input_context_schema": "MarketContextForCommittee/v1",
+    "output_proposal_schema": "AICommitteeMemberProposal/v1",
+    "feature_schema_hash": "aa26a3f774588c2d",
+    "label_manifest_hash": "a7a3c864ba27203f",
+    "runtime_allowed": false,
+    "training_allowed": false,
+    "live_inference_allowed": false,
+    "paper_only_required": true,
+    "core_status": "CoreContractReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  {
+    "contract_id": "risk-defender-core",
+    "member_id": "risk-defender",
+    "core_family": "RiskGovernorAdapter",
+    "input_context_schema": "MarketContextForCommittee/v1",
+    "output_proposal_schema": "AICommitteeMemberProposal/v1",
+    "feature_schema_hash": "42f266b2efa0b45a",
+    "label_manifest_hash": "0168749872f83d20",
+    "runtime_allowed": false,
+    "training_allowed": false,
+    "live_inference_allowed": false,
+    "paper_only_required": true,
+    "core_status": "CoreContractReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  {
+    "contract_id": "regime-interpreter-core",
+    "member_id": "regime-interpreter",
+    "core_family": "GatedDeltaNetDeferred",
+    "input_context_schema": "MarketContextForCommittee/v1",
+    "output_proposal_schema": "AICommitteeMemberProposal/v1",
+    "feature_schema_hash": "b8e7c40e65e6b08b",
+    "label_manifest_hash": "7a44f05269b3b0b5",
+    "runtime_allowed": false,
+    "training_allowed": false,
+    "live_inference_allowed": false,
+    "paper_only_required": true,
+    "core_status": "RuntimeDeferred",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "GatedDeltaNetRuntimeDeferred"
+    ]
+  },
+  {
+    "contract_id": "macro-interpreter-core",
+    "member_id": "macro-interpreter",
+    "core_family": "ExternalPredictionPrototype",
+    "input_context_schema": "MarketContextForCommittee/v1",
+    "output_proposal_schema": "AICommitteeMemberProposal/v1",
+    "feature_schema_hash": "f38e2a0088bc4eac",
+    "label_manifest_hash": "33cbe57ca17d3b7a",
+    "runtime_allowed": false,
+    "training_allowed": false,
+    "live_inference_allowed": false,
+    "paper_only_required": true,
+    "core_status": "PrototypeOnly",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  {
+    "contract_id": "value-skeptic-core",
+    "member_id": "value-skeptic",
+    "core_family": "Mamba3FinDeferred",
+    "input_context_schema": "MarketContextForCommittee/v1",
+    "output_proposal_schema": "AICommitteeMemberProposal/v1",
+    "feature_schema_hash": "742620f8246f1c22",
+    "label_manifest_hash": "ad398421572966b8",
+    "runtime_allowed": false,
+    "training_allowed": false,
+    "live_inference_allowed": false,
+    "paper_only_required": true,
+    "core_status": "RuntimeDeferred",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "MambaRuntimeDeferred"
+    ]
+  },
+  {
+    "contract_id": "liquidity-executor-core",
+    "member_id": "liquidity-executor",
+    "core_family": "RuleBasedFallback",
+    "input_context_schema": "MarketContextForCommittee/v1",
+    "output_proposal_schema": "AICommitteeMemberProposal/v1",
+    "feature_schema_hash": "8124de383597cc29",
+    "label_manifest_hash": "95fb0084be9b6aa3",
+    "runtime_allowed": false,
+    "training_allowed": false,
+    "live_inference_allowed": false,
+    "paper_only_required": true,
+    "core_status": "CoreContractReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  {
+    "contract_id": "counterfactual-reviewer-core",
+    "member_id": "counterfactual-reviewer",
+    "core_family": "CounterfactualEvaluator",
+    "input_context_schema": "MarketContextForCommittee/v1",
+    "output_proposal_schema": "AICommitteeMemberProposal/v1",
+    "feature_schema_hash": "1d5a3a52b78befc9",
+    "label_manifest_hash": "32155bea8701fe43",
+    "runtime_allowed": false,
+    "training_allowed": false,
+    "live_inference_allowed": false,
+    "paper_only_required": true,
+    "core_status": "PrototypeOnly",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  {
+    "contract_id": "chair-candidate-core",
+    "member_id": "chair-candidate",
+    "core_family": "RuleBasedFallback",
+    "input_context_schema": "MarketContextForCommittee/v1",
+    "output_proposal_schema": "AICommitteeMemberProposal/v1",
+    "feature_schema_hash": "ea906f46219c9d9a",
+    "label_manifest_hash": "76267dc2af2b1860",
+    "runtime_allowed": false,
+    "training_allowed": false,
+    "live_inference_allowed": false,
+    "paper_only_required": true,
+    "core_status": "CoreContractReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  }
+]

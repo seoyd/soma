@@ -1,0 +1,13 @@
+{
+  "report_id": "sprint97-counterfactual-backfill-recover-no-fabricated-outcome",
+  "missing_outcomes_stay_skipped": true,
+  "missing_future_bars_stay_skipped": true,
+  "summary_rows_not_promoted": true,
+  "row_level_only_preserved": true,
+  "fabricated_outcomes_absent": true,
+  "no_fabricated_outcome_status": "NoFabricatedOutcomesPreserved",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

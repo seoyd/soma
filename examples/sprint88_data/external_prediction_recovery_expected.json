@@ -1,0 +1,11 @@
+{
+  "schema_v2_covered": true,
+  "model_card_covered": true,
+  "sequence_match_covered": true,
+  "duplicate_rejection_covered": true,
+  "probability_sanity_covered": true,
+  "account_order_secret_column_rejection_covered": true,
+  "research_only_promotion_covered": true,
+  "runtime_deferred_covered": true,
+  "recovery_status": "ExternalPredictionReduced"
+}

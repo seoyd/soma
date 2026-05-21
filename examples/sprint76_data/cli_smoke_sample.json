@@ -1,0 +1,42 @@
+{
+  "cli_smoke_tiering": {
+    "cli_commands": [
+      "rust-toolchain-modernize",
+      "toolchain-version-report",
+      "cargo-workspace-audit",
+      "test-tier-plan",
+      "test-runtime-budget",
+      "slow-test-inventory",
+      "cli-smoke-tiering",
+      "developer-speed-runbook",
+      "workspace-acceptance-v2"
+    ],
+    "required_smoke": [
+      "toolchain-version-report --help",
+      "workspace-acceptance-v2 --help",
+      "toolchain-version-report --config examples/soma_toolchain_version_report.toml",
+      "cargo-workspace-audit --config examples/soma_cargo_workspace_audit.toml"
+    ],
+    "representative_smoke": [
+      "toolchain-version-report --config examples/soma_toolchain_version_report.toml",
+      "cargo-workspace-audit --config examples/soma_cargo_workspace_audit.toml",
+      "developer-speed-runbook --config examples/soma_developer_speed_runbook.toml"
+    ],
+    "exhaustive_smoke": [
+      "rust-toolchain-modernize --config examples/soma_rust_toolchain_modernize.toml",
+      "toolchain-version-report --config examples/soma_toolchain_version_report.toml",
+      "cargo-workspace-audit --config examples/soma_cargo_workspace_audit.toml",
+      "test-tier-plan --config examples/soma_test_tier_plan.toml",
+      "test-runtime-budget --config examples/soma_test_runtime_budget.toml",
+      "slow-test-inventory --config examples/soma_slow_test_inventory.toml",
+      "cli-smoke-tiering --config examples/soma_cli_smoke_tiering.toml",
+      "developer-speed-runbook --config examples/soma_developer_speed_runbook.toml",
+      "workspace-acceptance-v2 --config examples/soma_workspace_acceptance_v2.toml"
+    ],
+    "deferred_smoke": [
+      "rust-toolchain-modernize --config examples/soma_rust_toolchain_modernize.toml",
+      "workspace-acceptance-v2 --config examples/soma_workspace_acceptance_v2.toml"
+    ],
+    "tiering_status": "SmokeTieringReady"
+  }
+}

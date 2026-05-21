@@ -1,0 +1,16 @@
+{
+  "cargo_check_finished": true,
+  "cargo_check_passed": true,
+  "cargo_check_duration_ms": 11000,
+  "cargo_build_finished": true,
+  "cargo_build_passed": true,
+  "cargo_build_duration_ms": 15000,
+  "cargo_no_run_finished": false,
+  "cargo_no_run_passed": false,
+  "cargo_no_run_duration_ms": 300000,
+  "cargo_no_run_timeout_ms": 300000,
+  "cargo_full_finished": false,
+  "cargo_full_passed": false,
+  "cargo_full_duration_ms": 300000,
+  "cargo_full_timeout_ms": 300000
+}

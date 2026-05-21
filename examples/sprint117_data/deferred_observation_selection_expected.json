@@ -1,0 +1,19 @@
+{
+  "report_id": "deferred-observation-selection-v1",
+  "selected_observations": [
+    "RealNoRun",
+    "RealFullWorkspace",
+    "RealCargoJson"
+  ],
+  "not_selected_observations": [],
+  "selection_status": "DeferredObservationsSelected",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

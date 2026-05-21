@@ -1,0 +1,27 @@
+{
+  "inventory_id": "residual-after",
+  "records": [
+    { "binary_name": "tests/official_expansion_suite.rs", "test_file": "tests/official_expansion_suite.rs", "family": "OfficialExpansion", "consolidation_candidate": false },
+    { "binary_name": "tests/committee_scenario_replay_suite.rs", "test_file": "tests/committee_scenario_replay_suite.rs", "family": "CommitteeScenarioReplay", "consolidation_candidate": false },
+    { "binary_name": "tests/control_tower_briefing_suite.rs", "test_file": "tests/control_tower_briefing_suite.rs", "family": "ControlTowerBriefing", "consolidation_candidate": false },
+    { "binary_name": "tests/external_prediction_suite.rs", "test_file": "tests/external_prediction_suite.rs", "family": "ExternalPrediction", "consolidation_candidate": false },
+    { "binary_name": "tests/experiment_determinism_suite.rs", "test_file": "tests/experiment_determinism_suite.rs", "family": "ExperimentDeterminism", "consolidation_candidate": false },
+    { "binary_name": "tests/model_ops_qa_suite.rs", "test_file": "tests/model_ops_qa_suite.rs", "family": "ModelOpsQA", "consolidation_candidate": false },
+    { "binary_name": "tests/workspace_legacy_regression_suite.rs", "test_file": "tests/workspace_legacy_regression_suite.rs", "family": "Unknown", "consolidation_candidate": false },
+    { "binary_name": "tests/external_model_research_ops_cli_safety.rs", "test_file": "tests/external_model_research_ops_cli_safety.rs", "family": "CliSafety", "consolidation_candidate": false, "keep_separate_reason": "retain dedicated external research ops CLI safety isolation" }
+  ],
+  "total_remaining_count": 8,
+  "high_volume_count": 0,
+  "family_distribution": {
+    "OfficialExpansion": 1,
+    "CommitteeScenarioReplay": 1,
+    "ControlTowerBriefing": 1,
+    "ExternalPrediction": 1,
+    "ExperimentDeterminism": 1,
+    "ModelOpsQA": 1,
+    "Unknown": 1,
+    "CliSafety": 1
+  },
+  "inventory_status": "ResidualInventoryReadyWithWarnings"
+}
+

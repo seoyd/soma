@@ -1,0 +1,27 @@
+{
+  "report_id": "sprint94-dashboard-renderer-recover-assertion-migration",
+  "donor_files": [
+    "tests/dashboard_v1_renderer.rs",
+    "tests/dashboard_snapshot.rs",
+    "tests/dashboard_state.rs",
+    "tests/dashboard_panels.rs",
+    "tests/artifact_rendering_suite.rs"
+  ],
+  "target_suites": [
+    "tests/dashboard_renderer_suite.rs",
+    "tests/control_tower_v1_suite.rs",
+    "tests/control_tower_briefing_suite.rs"
+  ],
+  "assertions_found": 8,
+  "assertions_migrated": 6,
+  "assertions_remaining": 2,
+  "high_risk_assertions_kept_separate": [
+    "tests/artifact_rendering_suite.rs::secret_values_are_redacted_from_dashboard_state => kept separate for redaction fixture isolation and secret-state coverage",
+    "tests/artifact_rendering_suite.rs::redaction_report_is_deterministic => kept separate for redaction fingerprint determinism isolation"
+  ],
+  "migration_status": "AssertionsMigratedWithWarnings",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

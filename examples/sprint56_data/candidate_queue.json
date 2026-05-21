@@ -1,0 +1,21 @@
+{
+  "candidate_id": "candidate-s56-single-approved",
+  "symbol": "005930",
+  "market": "KoreanEquity",
+  "timeframe": "1d",
+  "horizon_bars": 20,
+  "source_kind": "KISOfficialEvidence",
+  "evidence_class": "Official",
+  "initial_status": "EvidenceReady",
+  "expected_edge": 0.03,
+  "expected_drawdown": 0.01,
+  "data_quality_score": 0.95,
+  "signal_summary": "single approved candidate",
+  "timestamp_ms": 1715000000000,
+  "confidence": 0.82,
+  "spread_bps": 3.0,
+  "trade_value": 900000.0,
+  "regime": "TrendUp",
+  "source_report_path": "examples/sprint56_data/candidate_queue.json",
+  "reason_codes": ["DeterministicPath"]
+}

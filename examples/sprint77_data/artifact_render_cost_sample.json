@@ -1,0 +1,65 @@
+{
+  "artifact_rendering_cost_report": {
+    "report_id": "sample-artifact-render-cost",
+    "records": [
+      {
+        "artifact_kind": "txt",
+        "output_path_pattern": "target/soma_test_optimization/*/*.txt",
+        "repeated_count": 6,
+        "estimated_bytes": 4096,
+        "cache_candidate": true,
+        "deterministic_fingerprint_available": true
+      },
+      {
+        "artifact_kind": "json",
+        "output_path_pattern": "target/soma_test_optimization/*/*.json",
+        "repeated_count": 6,
+        "estimated_bytes": 8192,
+        "cache_candidate": true,
+        "deterministic_fingerprint_available": true
+      },
+      {
+        "artifact_kind": "bundle",
+        "output_path_pattern": "target/soma_test_optimization/*",
+        "repeated_count": 2,
+        "estimated_bytes": 16384,
+        "cache_candidate": true,
+        "deterministic_fingerprint_available": true
+      },
+      {
+        "artifact_kind": "storage_report",
+        "output_path_pattern": "target/soma_test_optimization/*/storage_report.txt",
+        "repeated_count": 2,
+        "estimated_bytes": 512,
+        "cache_candidate": true,
+        "deterministic_fingerprint_available": true
+      }
+    ],
+    "cache_candidate_count": 4,
+    "repeated_render_count": 16,
+    "report_status": "ArtifactCostReady"
+  },
+  "artifact_render_cache_plan": {
+    "plan_id": "sample-artifact-render-cache-plan",
+    "cache_policy": "LocalFingerprintCache",
+    "cache_key_fields": [
+      "artifact_kind",
+      "content_fingerprint",
+      "output_path_pattern"
+    ],
+    "invalidation_rules": [
+      "invalidate on fingerprint change",
+      "invalidate on output path change",
+      "re-render on cache miss"
+    ],
+    "target_artifact_kinds": [
+      "txt",
+      "json",
+      "bundle",
+      "storage_report"
+    ],
+    "deterministic_fingerprint_required": true,
+    "expected_benefit": "Medium",
+    "plan_status": "RenderCachePlanReady"
+  }
+}

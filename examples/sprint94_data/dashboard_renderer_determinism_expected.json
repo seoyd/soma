@@ -1,0 +1,15 @@
+{
+  "report_id": "sprint94-dashboard-renderer-recover-determinism",
+  "dashboard_state_deterministic": true,
+  "html_render_deterministic": true,
+  "json_render_deterministic": true,
+  "txt_render_deterministic": true,
+  "fragment_render_deterministic": true,
+  "storage_report_deterministic": true,
+  "fingerprint_deterministic": true,
+  "determinism_status": "DeterminismPreserved",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

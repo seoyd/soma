@@ -1,0 +1,32 @@
+{
+  "manifest_version": 1,
+  "dataset_id": "aapl_1d-dataset",
+  "symbol": "AAPL",
+  "normalized_symbol": "AAPL",
+  "venue": "US",
+  "asset_class": "Equity",
+  "timeframe": "OneDay",
+  "source_kind": "OfficialApiCollected",
+  "source_path": "examples/sprint42_data/aapl_1d.csv",
+  "provenance": null,
+  "row_count": 8,
+  "first_timestamp_ms": 1700000000000,
+  "last_timestamp_ms": 1700604800000,
+  "expected_step_ms": 86400000,
+  "data_quality_score": 0.99,
+  "feature_schema_hash": null,
+  "label_config_summary": null,
+  "cost_model_summary": null,
+  "adjusted_price_policy_summary": "raw",
+  "corporate_action_adjusted": false,
+  "provider_symbol": null,
+  "collection_size_policy_summary": null,
+  "truncated": false,
+  "row_limit_applied": false,
+  "raw_archive_policy_summary": null,
+  "auth_requirement_summary": null,
+  "created_at_ms": 42,
+  "reason_codes": [
+    "DataManifestBuilt"
+  ]
+}

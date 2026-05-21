@@ -1,0 +1,8 @@
+{
+  "missing_auth_behavior_preserved": true,
+  "env_var_name_only_preserved": true,
+  "secret_value_not_rendered": true,
+  "operator_action_preserved": true,
+  "auth_dry_run_preserved": true,
+  "live_collection_disabled_by_default": true
+}

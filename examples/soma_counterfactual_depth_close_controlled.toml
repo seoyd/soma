@@ -1,0 +1,13 @@
+closure_id = "sprint41-controlled-closure"
+comparable_evidence_config_path = "examples/soma_comparable_evidence_controlled.toml"
+core_performance_config_path = "examples/soma_core_performance_controlled.toml"
+output_root = "target/soma_counterfactual_depth_closure_examples"
+run_reference_builders = false
+run_outcome_coverage = false
+run_scorecard_rerun = true
+allow_controlled_evidence = true
+allow_crypto_only = true
+allow_yfinance_research = true
+allow_fixture = true
+max_build_attempts = 4
+reason_codes = []

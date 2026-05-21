@@ -1,0 +1,7 @@
+audit_id = "sprint48-outcome-audit-all-tp"
+batch_outcome_linkage_paths = ["examples/sprint48_data/diversity_all_take_profit_outcomes.json"]
+batch_counterfactual_completion_paths = ["examples/sprint48_data/diversity_all_take_profit_counterfactuals.json"]
+multi_row_set_paths = ["examples/sprint48_data/diversity_multi_row_set_all_take_profit.json"]
+output_root = "target/soma_sprint48_examples/outcome_audit"
+min_total_outcomes = 2
+max_single_outcome_label_ratio = 0.8

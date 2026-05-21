@@ -1,0 +1,41 @@
+onboarding_id = "sprint17_data_onboarding"
+input_path = "data/local/BTCUSDT_1m.csv"
+output_root = "target/soma_data_onboarding"
+symbol = "BTC-USDT"
+venue = "Generic"
+asset_class = "Crypto"
+timeframe = "OneMinute"
+user_supplied = true
+strict = true
+allow_format_autodetect = true
+allow_sort_repair = false
+allow_duplicate_drop = false
+min_rows_for_preflight = 40
+target_min_outcomes = 20
+target_min_comparable_variants = 2
+target_min_usable_datasets = 1
+reason_codes = ["DeterministicPath"]
+
+[walk_forward_config]
+train_window_bars = 24
+validation_window_bars = 4
+test_window_bars = 10
+step_bars = 8
+embargo_bars = 0
+min_train_bars = 20
+max_folds = 4
+allow_partial_last_fold = false
+
+[triple_barrier_config]
+take_profit_pct = 0.02
+stop_loss_pct = 0.01
+horizon_bars = 2
+fee_bps = 2.0
+slippage_bps = 2.0
+side = "Long"
+use_high_low_intrabar = true
+
+[cost_model]
+fee_bps = 2.0
+slippage_bps = 2.0
+spread_bps = 2.0

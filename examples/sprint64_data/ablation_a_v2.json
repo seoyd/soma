@@ -1,0 +1,69 @@
+{
+  "ablation_id": "sprint64-gen-a-v2",
+  "model_id": "ext-model-a",
+  "model_version": "1.1.0",
+  "ablations": [
+    "DropProbabilityColumns",
+    "DropExpectedReturn",
+    "DropExpectedDrawdown",
+    "DropConfidence",
+    "CostStress",
+    "RiskThresholdStress",
+    "CoverageStress"
+  ],
+  "baseline_metrics": {
+    "coverage_ratio": 1.0,
+    "net_return_proxy": 0.007333333333333332,
+    "risk_adjusted_score": 1.3428571428571427
+  },
+  "ablated_metrics": {
+    "CostStress": {
+      "coverage_ratio": 0.97,
+      "net_return_proxy": -0.02266666666666667,
+      "risk_adjusted_score": 1.3278571428571428
+    },
+    "CoverageStress": {
+      "coverage_ratio": 0.9299999999999999,
+      "net_return_proxy": -0.06266666666666668,
+      "risk_adjusted_score": 1.3078571428571428
+    },
+    "DropConfidence": {
+      "coverage_ratio": 0.98,
+      "net_return_proxy": -0.012666666666666668,
+      "risk_adjusted_score": 1.3328571428571427
+    },
+    "DropExpectedDrawdown": {
+      "coverage_ratio": 1.0,
+      "net_return_proxy": 0.03733333333333333,
+      "risk_adjusted_score": 1.3578571428571427
+    },
+    "DropExpectedReturn": {
+      "coverage_ratio": 0.95,
+      "net_return_proxy": -0.04266666666666667,
+      "risk_adjusted_score": 1.3178571428571428
+    },
+    "DropProbabilityColumns": {
+      "coverage_ratio": 0.92,
+      "net_return_proxy": -0.07266666666666667,
+      "risk_adjusted_score": 1.3028571428571427
+    },
+    "RiskThresholdStress": {
+      "coverage_ratio": 0.96,
+      "net_return_proxy": -0.03266666666666667,
+      "risk_adjusted_score": 1.3228571428571427
+    }
+  },
+  "sensitivity_summary": [
+    "CostStress:net_return_proxy=-0.0227",
+    "CoverageStress:net_return_proxy=-0.0627",
+    "DropConfidence:net_return_proxy=-0.0127",
+    "DropExpectedDrawdown:net_return_proxy=0.0373",
+    "DropExpectedReturn:net_return_proxy=-0.0427",
+    "DropProbabilityColumns:net_return_proxy=-0.0727",
+    "RiskThresholdStress:net_return_proxy=-0.0327"
+  ],
+  "ablation_status": "Stable",
+  "reason_codes": [
+    "ExternalPredictionAblationReportBuilt"
+  ]
+}

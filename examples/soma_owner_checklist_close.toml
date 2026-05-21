@@ -1,0 +1,7 @@
+closure_id = "sprint72-owner-checklist-close"
+owner_action_checklist_paths = ["examples/sprint72_data/owner_action_checklist.json"]
+operator_decision_queue_paths = ["examples/sprint72_data/operator_decision_queue.json"]
+offline_attachment_registry_paths = ["target/soma_offline_evidence_attachment/sprint72-offline-evidence-attachment/offline_evidence_attachment_registry.txt"]
+retirement_evidence_pack_paths = ["target/soma_offline_evidence_attachment/sprint72-offline-evidence-attachment/retirement_regression_evidence_pack.txt"]
+output_root = "target/soma_offline_evidence_attachment"
+require_owner_reason = true

@@ -1,0 +1,4 @@
+triage_id = "sprint70-unexpected-diff-triage"
+coverage_config_path = "examples/soma_baseline_snapshot_coverage.toml"
+output_root = "target/soma_unexpected_diff_triage"
+render_static_fragments = true

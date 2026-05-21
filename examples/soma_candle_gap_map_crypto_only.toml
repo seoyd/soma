@@ -1,0 +1,20 @@
+gap_id = "sprint43-crypto-gap-map"
+comparable_evidence_bundle_paths = [
+  "examples/soma_comparable_evidence_crypto_only.toml",
+]
+candle_coverage_pack_paths = ["examples/soma_candle_pack_crypto_only.toml"]
+output_root = "target/soma_sprint43_examples"
+target_markets = ["Crypto"]
+target_symbols = ["BTCUSDT"]
+target_timeframes = ["1d"]
+target_horizons_bars = [3]
+max_gaps = 100
+max_symbols = 5
+max_timeframes = 5
+max_bytes = 5000000
+require_non_crypto_official = false
+allow_crypto_only = true
+allow_controlled_diagnostic = false
+allow_yfinance_research = false
+allow_fixture = false
+reason_codes = ["DeterministicPath"]

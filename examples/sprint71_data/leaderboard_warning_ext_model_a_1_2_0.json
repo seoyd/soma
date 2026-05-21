@@ -1,0 +1,21 @@
+{
+  "warning_id": "sprint71-leaderboard-warning-closure-leaderboard-warning-ext-model-a-1-2-0",
+  "target_model_id": "ext-model-a",
+  "target_model_version": "1.2.0",
+  "warning_summary": "ext-model-a:1.2.0 leaderboard warning remains conservative and never implies rank promotion",
+  "source_artifacts": [
+    "conservative_leaderboard.json",
+    "operator_briefing_previous.json",
+    "owner_model_review_actions.json",
+    "soma_baseline_snapshot_coverage.toml",
+    "soma_model_ops_rollup.toml",
+    "soma_model_ops_trace.toml",
+    "soma_unexpected_diff_triage.toml"
+  ],
+  "closure_status": "WarningExplained",
+  "closure_reason": "rollup still marks ext-model-a:1.2.0 leaderboard_status=Unknown and no conservative leaderboard entry is available, so the warning is explained but not over-claimed as closed",
+  "next_action": "review the static leaderboard evidence locally and keep the model research-only",
+  "reason_codes": [
+    "LeaderboardWarningClosureBuilt"
+  ]
+}

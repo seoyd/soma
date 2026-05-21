@@ -1,0 +1,10 @@
+{
+  "rows": [
+    { "sequence_id": "70169ad73045cb5d", "reference_label": "TakeProfit", "return_proxy_pct": 0.010, "defensive": false },
+    { "sequence_id": "b276f8dfd6ffbd8e", "reference_label": "StopLoss", "return_proxy_pct": -0.008, "defensive": false },
+    { "sequence_id": "421ec1a6000d9174", "reference_label": "TimeExpired", "return_proxy_pct": 0.001, "defensive": false },
+    { "sequence_id": "8bcba9b7061a26a9", "reference_label": "TakeProfit", "return_proxy_pct": 0.011, "defensive": false },
+    { "sequence_id": "c849de5297fe2bca", "reference_label": "NoTradeCounterfactual", "return_proxy_pct": 0.000, "defensive": true },
+    { "sequence_id": "00c0b0f962c9c968", "reference_label": "RiskDeniedCounterfactual", "return_proxy_pct": 0.001, "defensive": true }
+  ]
+}

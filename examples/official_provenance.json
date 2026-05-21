@@ -1,0 +1,8 @@
+{
+  "symbol": "AAPL",
+  "source_kind": "OfficialApiCollected",
+  "official_provider": true,
+  "downloaded_by_soma": true,
+  "provider_label": "AlphaVantage",
+  "reason_codes": ["OfficialApiCollected"]
+}

@@ -1,0 +1,1 @@
+Cargo JSON progress is diagnostic only. Artifact timelines, last-seen targets, and stalled target candidates improve timeout attribution, but they are not acceptance evidence and cannot upgrade workspace truth on their own.

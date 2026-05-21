@@ -1,0 +1,9 @@
+{
+  "dataset_registry": {
+    "dataset_version": "sprint80-dataset-v1",
+    "source_class": "official_kis_market_data",
+    "preflight_ref": "preflight:sprint80",
+    "provenance_ref": "provenance:sprint80"
+  }
+}
+

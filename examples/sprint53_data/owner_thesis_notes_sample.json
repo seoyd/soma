@@ -1,0 +1,43 @@
+{
+  "owner_thesis_notes": [
+    {
+      "thesis_id": "thesis-005930-bullish",
+      "symbol": "005930.KS",
+      "market": "KoreanEquity",
+      "timeframe": "1d",
+      "thesis_type": "Bullish",
+      "text": "Bounded accumulation thesis remains intact while volatility stays contained.",
+      "structured_tags": ["semiconductor", "bounded-risk"],
+      "evidence_links": ["examples/sprint53_data/paper_confirm_allowed_candidate_sample.json"],
+      "expires_at_timestamp_ms": 1715790001000,
+      "active": true,
+      "reason_codes": ["DeterministicPath"]
+    },
+    {
+      "thesis_id": "thesis-nvda-risk-warning",
+      "symbol": "NVDA",
+      "market": "USEquity",
+      "timeframe": "1d",
+      "thesis_type": "RiskWarning",
+      "text": "Owner wants extra caution before earnings-driven volatility.",
+      "structured_tags": ["earnings", "risk-warning"],
+      "evidence_links": ["examples/sprint53_data/candidate_queue_with_owner_items.json"],
+      "expires_at_timestamp_ms": 1715790002000,
+      "active": true,
+      "reason_codes": ["DeterministicPath"]
+    },
+    {
+      "thesis_id": "thesis-aapl-expired",
+      "symbol": "AAPL",
+      "market": "USEquity",
+      "timeframe": "1d",
+      "thesis_type": "EventNote",
+      "text": "Older event note retained for audit only.",
+      "structured_tags": ["expired"],
+      "evidence_links": ["examples/sprint53_data/risk_blocked_candidate_sample.json"],
+      "expires_at_timestamp_ms": 1715600000000,
+      "active": true,
+      "reason_codes": ["DeterministicPath"]
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "report_id": "assertion-migration-feasibility-drilldown-v1",
+  "candidate_target": "tests/control_tower_workspace_timeout_root_cause_panel.rs",
+  "assertions_to_move": [
+    "warning_posture_stays_supporting_only",
+    "timeout_cleanup_is_not_pass"
+  ],
+  "destination_candidates": [
+    "tests/shared_fixture_harness_application_v1.rs",
+    "tests/workspace_timeout_root_cause.rs"
+  ],
+  "blockers": [
+    "assertion destination capacity is still insufficient",
+    "moving control tower warning assertions would blur mixed-family evidence"
+  ],
+  "feasible": false,
+  "feasibility_status": "AssertionMigrationBlocked",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

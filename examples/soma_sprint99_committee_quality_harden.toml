@@ -1,0 +1,14 @@
+hardening_id = "sprint99-committee-quality-example"
+output_root = "target/soma_sprint99_committee_quality_hardening"
+workspace_acceptance_truth_paths = ["examples/sprint99_data/workspace_acceptance_truth_expected.json"]
+require_committee_owned_core = true
+require_no_central_core_leak = true
+require_proposal_quality = true
+require_entry_timing_quality = true
+require_debate_quality = true
+require_rulebook_quality = true
+require_scorecard_calibration = true
+require_paper_only_replay = true
+require_workspace_truth_separation = true
+preserve_runtime_deferred = true
+preserve_safety_guards = true

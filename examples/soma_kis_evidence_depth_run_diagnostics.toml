@@ -1,0 +1,17 @@
+run_id = "sprint57-kis-evidence-depth-diagnostic"
+output_root = "target/sprint57/kis_evidence_depth"
+max_rows = 100
+max_symbols = 8
+max_timeframes = 4
+max_horizons = 4
+max_artifacts = 8
+max_bytes = 1000000
+run_kis_candle_sufficiency = false
+run_outcome_linkage = false
+run_counterfactual_completion = false
+run_complete_row_closure = false
+run_diversity_sweep = false
+run_core_performance = false
+run_trinity_operational_loop = false
+run_control_tower_refresh = false
+reason_codes = ["DeterministicPath"]

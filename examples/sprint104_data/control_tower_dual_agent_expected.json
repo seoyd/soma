@@ -1,0 +1,33 @@
+{
+  "panel_id": "control-tower-dual-agent-panel",
+  "workflow_status": "DualAgentWorkflowReady",
+  "implementation_agent_status": "codex-5.4:ImplementationRoleReady",
+  "verification_agent_status": "gpt-5.5:VerificationRoleReady",
+  "prompt_compliance_status": "PromptComplianceVerifiedWithWarnings",
+  "safety_verification_status": "SafetyInvariantsVerified",
+  "architecture_verification_status": "ArchitectureVerified",
+  "test_coverage_status": "TestCoverageVerified",
+  "workspace_truth_status": "WorkspaceTruthVerifiedWithWarnings",
+  "final_verification_status": "FinalVerificationPassedWithWarnings",
+  "open_findings": 0,
+  "next_actions": [
+    "keep 5.4 implementation and 5.5 verification distinct",
+    "patch only explicit verification findings",
+    "keep full workspace acceptance separate"
+  ],
+  "warnings": [
+    "static/read-only panel only",
+    "no run-verification button",
+    "no train/runtime/live/order/account/browser controls"
+  ],
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

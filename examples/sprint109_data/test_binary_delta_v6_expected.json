@@ -1,0 +1,27 @@
+{
+  "report_id": "test-binary-delta-v6",
+  "target_count_before": 998,
+  "target_count_after": 997,
+  "integration_binary_count_before": 998,
+  "integration_binary_count_after": 997,
+  "binary_delta": -1,
+  "sprint107_delta": -1,
+  "sprint108_delta": -1,
+  "sprint109_delta": -1,
+  "measured": false,
+  "sample_backed": true,
+  "timing_available": false,
+  "cumulative_sample_backed_delta": -3,
+  "delta_status": "TestBinaryDeltaSampleBacked",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "DeterministicPath",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt",
+    "LocalFileOnly"
+  ]
+}

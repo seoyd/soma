@@ -1,0 +1,22 @@
+{
+  "report_id": "scorecard-calibration-warning-closure-report",
+  "previous_scorecard_status": "ScorecardCalibrationReadyWithWarnings",
+  "scorecard_count": 8,
+  "scorecards_with_complete_axes": 8,
+  "scorecards_with_sufficient_evidence": 8,
+  "scorecards_with_risk_alignment": 8,
+  "scorecards_with_no_trade_discipline": 8,
+  "scorecards_with_debate_quality": 8,
+  "remaining_warning_count": 0,
+  "closure_status": "ScorecardWarningsClosedWithNotes",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

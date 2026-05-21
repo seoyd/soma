@@ -1,0 +1,91 @@
+{
+  "panel_id": "control-tower-paper-candidate-lifecycle-panel",
+  "batch_replay_status": "BatchReplayReadyWithWarnings",
+  "lifecycle_status": "PaperLifecycleReadyWithWarnings",
+  "candidate_rows": [
+    {
+      "candidate_id": "paper-candidate-01",
+      "scenario_id": "korean-equity-trend-breakout",
+      "state": "Watch",
+      "decision": "Watch"
+    },
+    {
+      "candidate_id": "paper-candidate-02",
+      "scenario_id": "us-equity-range-bound",
+      "state": "Watch",
+      "decision": "Watch"
+    },
+    {
+      "candidate_id": "paper-candidate-03",
+      "scenario_id": "crypto-high-volatility",
+      "state": "PaperApproved",
+      "decision": "PaperApproved"
+    },
+    {
+      "candidate_id": "paper-candidate-04",
+      "scenario_id": "multi-asset-drawdown-risk",
+      "state": "NoTrade",
+      "decision": "NoTrade"
+    },
+    {
+      "candidate_id": "paper-candidate-05",
+      "scenario_id": "macro-shift-cross-asset",
+      "state": "NoTrade",
+      "decision": "NoTrade"
+    },
+    {
+      "candidate_id": "paper-candidate-06",
+      "scenario_id": "crypto-cycle-liquidity",
+      "state": "NeedMoreEvidence",
+      "decision": "NeedMoreEvidence"
+    },
+    {
+      "candidate_id": "paper-candidate-07",
+      "scenario_id": "insufficient-evidence-halt",
+      "state": "NeedMoreEvidence",
+      "decision": "NeedMoreEvidence"
+    }
+  ],
+  "candidate_state_summary": {
+    "ArchivedPaperOnly": 0,
+    "Candidate": 0,
+    "Cooldown": 0,
+    "DebateOpen": 0,
+    "NeedMoreEvidence": 2,
+    "NoTrade": 2,
+    "PaperApproved": 1,
+    "PaperRejected": 0,
+    "RiskDenied": 0,
+    "Watch": 2
+  },
+  "promotion_gate_status": "PaperPromotionAllowed",
+  "rejection_gate_status": "PaperRejectionReadyWithWarnings",
+  "no_trade_gate_status": "NoTradeGateReady",
+  "risk_denied_gate_status": "RiskDeniedGateReadyWithWarnings",
+  "evidence_depth_status": "EvidenceDepthReadyWithWarnings",
+  "trace_status": "CandidateTraceReady",
+  "stability_status": "CandidateStabilityReady",
+  "risk_governor_batch_status": "RiskGovernorBatchVetoReadyWithWarnings",
+  "runtime_deferred_summary": "runtime deferred, training deferred, live inference forbidden, live trading forbidden, no runtime LLM live decision path, static/read-only control tower",
+  "workspace_truth_summary": "workspace_truth_status=WorkspaceTruthVerifiedWithWarnings verification_is_not_full_acceptance=true",
+  "next_actions": [
+    "continue paper-only replay calibration",
+    "keep candidate lifecycle local-only and non-executable",
+    "preserve Risk Governor final veto"
+  ],
+  "warnings": [
+    "static/read-only panel only",
+    "no promote-to-live button",
+    "no order button, no account panel, no browser execution"
+  ],
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "schema_v2_preserved": true,
+  "sequence_id_match_preserved": true,
+  "duplicate_rejection_preserved": true,
+  "invalid_probability_rejection_preserved": true,
+  "extra_sequence_rejection_preserved": true,
+  "missing_sequence_rejection_preserved": true,
+  "forbidden_column_rejection_preserved": true
+}

@@ -1,0 +1,9 @@
+{
+  "model_id_required": true,
+  "model_version_required": true,
+  "feature_schema_hash_match_required": true,
+  "label_manifest_hash_match_required": true,
+  "runtime_forbidden_preserved": true,
+  "training_forbidden_preserved": true,
+  "live_inference_forbidden_preserved": true
+}

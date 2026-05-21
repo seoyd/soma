@@ -1,0 +1,14 @@
+{
+  "report_id": "sprint94-dashboard-renderer-recover-static-safety",
+  "static_html_preserved": true,
+  "local_only_output_preserved": true,
+  "read_only_semantics_preserved": true,
+  "copy_only_commands_preserved": true,
+  "paper_only_labels_preserved": true,
+  "no_external_remote_assets": true,
+  "static_safety_status": "StaticSafetyPreserved",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

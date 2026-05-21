@@ -1,0 +1,13 @@
+{
+  "report_id": "sprint95-committee-cli-safety-recover-remote-path",
+  "remote_config_rejection_preserved": true,
+  "remote_data_path_rejection_preserved": true,
+  "remote_output_path_rejection_preserved": true,
+  "url_like_path_rejection_preserved": true,
+  "local_only_message_preserved": true,
+  "remote_path_status": "RemotePathRejectionPreserved",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

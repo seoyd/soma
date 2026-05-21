@@ -1,0 +1,24 @@
+{
+  "summary_id": "sprint97-summary-import",
+  "sprint_name": "Sprint 97 conservative queue closure",
+  "queue_closure_status": "FinalBlockerQueueClosedWithWorkspaceStillBlocked",
+  "workspace_truth_status": "FullWorkspaceNotRun",
+  "queue_closed_with_workspace_still_blocked": true,
+  "runtime_deferred": true,
+  "safety_coverage_preserved": true,
+  "can_claim_full_acceptance": false,
+  "notes": [
+    "queue closed while full workspace acceptance remained separate",
+    "runtime stayed deferred and research-only"
+  ],
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

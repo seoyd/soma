@@ -1,0 +1,15 @@
+{
+  "report_id": "sprint95-committee-cli-safety-recover-persona-guard",
+  "exactly_three_active_personas_preserved": true,
+  "no_six_persona_activation": true,
+  "no_twelve_persona_activation": true,
+  "no_eighteen_persona_activation": true,
+  "no_runtime_llm_committee_judge": true,
+  "chair_cannot_bypass_risk": true,
+  "persona_cannot_bypass_risk": true,
+  "persona_guard_status": "PersonaExpansionGuardPreserved",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

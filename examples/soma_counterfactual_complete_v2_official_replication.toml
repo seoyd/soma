@@ -1,0 +1,8 @@
+completion_id = "sprint46-counterfactual-completion-v2"
+outcome_linkage_v3_path = "examples/soma_outcome_linkage_v3_official_replication.toml"
+complete_row_closure_path = "examples/sprint46_data/comparable_official_extended_window_bundle.json"
+output_root = "target/soma_counterfactual_completion_v2"
+build_no_trade = true
+build_risk_denied = true
+require_outcome_reference = true
+require_no_lookahead_safe = true

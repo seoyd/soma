@@ -1,0 +1,34 @@
+{
+  "inventory_id": "compile-families-after",
+  "records": [
+    { "binary_name": "tests/future_window_requirements_suite.rs", "test_file": "tests/future_window_requirements_suite.rs", "family": "FutureWindow", "consolidation_candidate": true },
+    { "binary_name": "tests/official_diversity_suite.rs", "test_file": "tests/official_diversity_suite.rs", "family": "OfficialDiversity", "consolidation_candidate": true },
+    { "binary_name": "tests/trinity_operational_loop_suite.rs", "test_file": "tests/trinity_operational_loop_suite.rs", "family": "TrinityOperational", "consolidation_candidate": true },
+    { "binary_name": "tests/dataset_export_suite.rs", "test_file": "tests/dataset_export_suite.rs", "family": "DatasetExport", "consolidation_candidate": true },
+    { "binary_name": "tests/control_tower_v1_suite.rs", "test_file": "tests/control_tower_v1_suite.rs", "family": "ControlTowerV1", "consolidation_candidate": true },
+    { "binary_name": "tests/candle_expansion_ops_suite.rs", "test_file": "tests/candle_expansion_ops_suite.rs", "family": "CandleExpansionOps", "consolidation_candidate": true },
+    { "binary_name": "tests/external_prediction_family_suite.rs", "test_file": "tests/external_prediction_family_suite.rs", "family": "ExternalPrediction", "consolidation_candidate": true },
+    { "binary_name": "tests/krx_evidence_suite.rs", "test_file": "tests/krx_evidence_suite.rs", "family": "KrxEvidence", "consolidation_candidate": true },
+    { "binary_name": "tests/dashboard_renderer_suite.rs", "test_file": "tests/dashboard_renderer_suite.rs", "family": "DashboardRenderer", "consolidation_candidate": true },
+    { "binary_name": "tests/baseline_signal_suite.rs", "test_file": "tests/baseline_signal_suite.rs", "family": "BaselineSignal", "consolidation_candidate": true },
+    { "binary_name": "tests/counterfactual_backfill_suite.rs", "test_file": "tests/counterfactual_backfill_suite.rs", "family": "CounterfactualBackfill", "consolidation_candidate": true },
+    { "binary_name": "committee_cli_safety", "crate_name": "committee_cli_safety", "family": "CommitteeCliSafety", "consolidation_candidate": false, "keep_separate_reason": "retain dedicated compile-only CLI safety isolation" }
+  ],
+  "total_target_count": 12,
+  "high_volume_count": 11,
+  "family_distribution": {
+    "FutureWindow": 1,
+    "OfficialDiversity": 1,
+    "TrinityOperational": 1,
+    "DatasetExport": 1,
+    "ControlTowerV1": 1,
+    "CandleExpansionOps": 1,
+    "ExternalPrediction": 1,
+    "KrxEvidence": 1,
+    "DashboardRenderer": 1,
+    "BaselineSignal": 1,
+    "CounterfactualBackfill": 1,
+    "CommitteeCliSafety": 1
+  },
+  "inventory_status": "CompileFamiliesGroupedReady"
+}

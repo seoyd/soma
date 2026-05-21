@@ -1,0 +1,27 @@
+{
+  "report_id": "second-safe-consolidation-patch-selection",
+  "previous_patch_id": "safe-consolidation-patch-selection",
+  "candidate_targets": [
+    "tests/shared_output_dir_helper_application_v1.rs",
+    "tests/shared_render_helper_application_v1.rs",
+    "tests/shared_toml_builder_application_v1.rs"
+  ],
+  "selected_target_group": "output-dir-helper-diagnostics",
+  "selection_reason": "selected another low-risk helper-fanout target; previous Sprint 107 retired target was not selected again; CommitteeCliSafety, workspace CLI safety, determinism, and paper lifecycle sentinels remain excluded",
+  "risk_class": "Low",
+  "target_count_to_consolidate": 1,
+  "expected_assertion_moves": 2,
+  "expected_binary_delta": -1,
+  "selected_status": "SecondPatchCandidateSelected",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "DeterministicPath",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt",
+    "LocalFileOnly"
+  ]
+}

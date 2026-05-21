@@ -1,0 +1,8 @@
+# Offline & hermetic CI configuration
+# Forces cargo to use only cached dependencies without internet access
+#
+# This allows using the local cargo cache but prevents any network requests.
+# When combined with --frozen, ensures reproducible builds without network.
+
+[net]
+offline = true

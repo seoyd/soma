@@ -1,0 +1,17 @@
+{
+  "control_tower_briefing_refresh_v2": {
+    "refresh_id": "sprint72-offline-evidence-attachment-control-tower-refresh",
+    "briefing_state_before": "NeedsMoreEvidence",
+    "briefing_state_after": "StillNeedsEvidence",
+    "direct_watch_score": "86~90 / NeedsEvidence",
+    "owner_checklist_status": "OwnerChecklistClosed",
+    "evidence_gap_status": "StillNeedsData",
+    "prediction_history_status": "StillNeedMorePredictions",
+    "retirement_evidence_status": "RetirementEvidenceReady",
+    "primary_next_action": "cargo run --quiet --bin soma_experiment -- briefing-delta --config examples/soma_briefing_delta.toml",
+    "refresh_status": "StillNeedsEvidence",
+    "reason_codes": [
+      "ControlTowerBriefingRefreshV2Built"
+    ]
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "paper_position_panel": {
+    "open_positions": [
+      {
+        "paper_position_id": "paper-001",
+        "candidate_id": "cand-004",
+        "symbol": "AAPL",
+        "market": "USEquity",
+        "side": "Long",
+        "entry_timestamp_ms": 1715560000000,
+        "entry_price": 192.50,
+        "stop_price": 188.00,
+        "target_price": 198.00,
+        "current_price": 195.10,
+        "unrealized_return_pct": 0.0135,
+        "realized_return_pct": null,
+        "status": "Open",
+        "source_kind": "OfficialNonCrypto",
+        "reason_codes": ["PaperExecutionOnly"]
+      }
+    ],
+    "closed_positions": [
+      {
+        "paper_position_id": "paper-002",
+        "candidate_id": "cand-003",
+        "symbol": "AAPL",
+        "market": "USEquity",
+        "side": "Long",
+        "entry_timestamp_ms": 1715470000000,
+        "entry_price": 189.00,
+        "stop_price": 186.00,
+        "target_price": 193.00,
+        "current_price": 193.25,
+        "unrealized_return_pct": null,
+        "realized_return_pct": 0.0224,
+        "status": "Closed",
+        "source_kind": "OfficialNonCrypto",
+        "reason_codes": ["TakeProfitHit"]
+      }
+    ],
+    "risk_closed_positions": [
+      {
+        "paper_position_id": "paper-003",
+        "candidate_id": "cand-005",
+        "symbol": "035420.KS",
+        "market": "KoreanEquity",
+        "side": "Long",
+        "entry_timestamp_ms": 1715450000000,
+        "entry_price": 185000.0,
+        "stop_price": 181000.0,
+        "target_price": 191000.0,
+        "current_price": 182000.0,
+        "unrealized_return_pct": null,
+        "realized_return_pct": -0.0162,
+        "status": "RiskClosed",
+        "source_kind": "OfficialNonCrypto",
+        "reason_codes": ["RiskDenied"]
+      }
+    ],
+    "diagnostic_positions": [],
+    "reason_codes": [
+      "DeterministicPath",
+      "DashboardPaperPanelBuilt"
+    ]
+  }
+}

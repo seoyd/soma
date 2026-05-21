@@ -1,0 +1,19 @@
+gate_id = "sprint78-committee"
+output_root = "target/soma_core_committee_mamba_readiness"
+committee_v1_paths = [
+  "examples/sprint78_data/committee_v1_state.json",
+  "examples/sprint78_data/committee_completion_expected.json",
+]
+official_benchmark_paths = [
+  "examples/sprint78_data/model_ops_state.json",
+]
+outcome_link_paths = [
+  "examples/sprint78_data/sequence_export_state.json",
+]
+chair_risk_calibration_paths = [
+  "examples/sprint78_data/committee_v1_state.json",
+]
+real_evidence_paths = [
+  "examples/sprint78_data/real_evidence_state.json",
+]
+

@@ -1,0 +1,26 @@
+{
+  "report_id": "sprint114-baseline-truth-import",
+  "mixed_family_status": "MixedFamiliesStillAmbiguous",
+  "assertion_migration_status": "AssertionMigrationBlocked",
+  "fifth_patch_status": "FifthPatchStillBlocked",
+  "stop_consolidation_status": "StopConsolidationRecommended",
+  "no_run_status": "NoRunStillBlocked",
+  "full_workspace_status": "FullWorkspaceStillBlocked",
+  "acceptance_truth_status": "AcceptanceTruthReadyWithWarnings",
+  "safety_status": "SafetyCoveragePreserved",
+  "focused_tests_passed": true,
+  "cli_smoke_passed": true,
+  "cargo_check_passed": true,
+  "cargo_build_passed": true,
+  "imported_as_full_acceptance": false,
+  "import_status": "Sprint114TruthImportedWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

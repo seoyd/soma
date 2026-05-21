@@ -1,0 +1,23 @@
+{
+  "report_id": "paper-only-decision-replay-report",
+  "replayed_decision_count": 1,
+  "watch_candidate_count": 0,
+  "paper_approved_count": 0,
+  "paper_rejected_count": 0,
+  "no_trade_count": 0,
+  "risk_denied_count": 0,
+  "need_more_evidence_count": 1,
+  "broker_execution_allowed_count": 0,
+  "live_execution_allowed_count": 0,
+  "replay_status": "ReplayReadyWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

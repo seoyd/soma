@@ -1,0 +1,61 @@
+{
+  "rows": 8,
+  "official_rows": 2,
+  "official_complete_rows": 1,
+  "symbol_count": 1,
+  "market_count": 1,
+  "timeframe_count": 1,
+  "horizon_count": 1,
+  "scenario_count": 1,
+  "outcome_count": 1,
+  "baseline_count": 1,
+  "no_trade_count": 1,
+  "risk_denied_count": 1,
+  "take_profit_count": 1,
+  "stop_loss_count": 0,
+  "time_expired_count": 0,
+  "no_trade_better_count": 1,
+  "avoided_bad_trade_count": 1,
+  "missed_gain_count": 0,
+  "defensive_value_count": 1,
+  "opportunity_cost_count": 0,
+  "overblock_count": 1,
+  "underblock_count": 0,
+  "future_window_safe_count": 8,
+  "no_lookahead_safe": true,
+  "checked_rows": 8,
+  "safe_rows": 8,
+  "unsafe_rows": 0,
+  "violation_examples": [],
+  "source_promotions_detected": 0,
+  "source_boundary_violation_count": 0,
+  "source_class_counts": {
+    "OfficialKIS": 1,
+    "OfficialKRXReference": 1,
+    "ResearchOnly": 2,
+    "DiagnosticOnly": 0,
+    "FixtureOnly": 4
+  },
+  "outcome_distribution": {
+    "take_profit": 1
+  },
+  "regime_distribution": {
+    "bull": 1
+  },
+  "chair_trace_ready": false,
+  "risk_trace_ready": false,
+  "comparable_rows_mamba": 1,
+  "comparable_rows_gated": 1,
+  "comparable_rows_no_trade": 1,
+  "comparable_rows_risk_denied": 1,
+  "prediction_artifact_count": 2,
+  "committee_artifact_count": 1,
+  "official_artifact_count": 1,
+  "weak_reference_kinds": [
+    "label_manifest",
+    "committee_trace"
+  ],
+  "provenance_ready": true,
+  "preflight_ready": true
+}
+

@@ -1,0 +1,18 @@
+registry_id = "sprint79-sequence-core"
+output_root = "target/soma_sequence_core_storage"
+mamba3fin_contract_paths = [
+  "examples/sprint79_data/mamba3fin_contract_state.json",
+  "examples/sprint79_data/sequence_core_registry_expected.json",
+]
+gated_deltanet_contract_paths = [
+  "examples/sprint79_data/gated_deltanet_contract_expected.json",
+]
+training_data_storage_paths = [
+  "examples/sprint79_data/training_data_storage_plan.json",
+  "examples/sprint79_data/training_data_registry_spec.json",
+  "examples/sprint79_data/storage_materialization_expected.json",
+]
+committee_gate_paths = [
+  "examples/sprint79_data/committee_gate_state.json",
+]
+

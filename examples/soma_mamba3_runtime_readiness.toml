@@ -1,0 +1,21 @@
+core_id = "sprint78-core"
+output_root = "target/soma_core_committee_mamba_readiness"
+core_check_paths = [
+  "examples/sprint78_data/core_current_state.json",
+  "examples/sprint78_data/training_data_storage_expected.json",
+]
+committee_v1_paths = [
+  "examples/sprint78_data/committee_v1_state.json",
+  "examples/sprint78_data/committee_completion_expected.json",
+]
+sequence_export_paths = [
+  "examples/sprint78_data/sequence_export_state.json",
+]
+real_evidence_paths = [
+  "examples/sprint78_data/real_evidence_state.json",
+]
+model_ops_paths = [
+  "examples/sprint78_data/model_ops_state.json",
+  "examples/sprint78_data/mamba3_contract_expected.json",
+]
+

@@ -1,0 +1,14 @@
+{
+  "predictions": [
+    {
+      "symbol": "AAPL",
+      "timestamp_ms": 1700000000000,
+      "horizon_bars": 24,
+      "external_action": "Approve",
+      "external_p_win": 0.61,
+      "external_confidence": 0.70,
+      "prediction_schema_valid": true
+    }
+  ]
+}
+

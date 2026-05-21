@@ -1,0 +1,10 @@
+{
+  "reduced_queue": [
+    "KrxEvidence",
+    "DashboardRenderer",
+    "CommitteeCliSafety",
+    "BaselineSignal",
+    "CounterfactualBackfill"
+  ],
+  "reduced_primary_next_family": "KrxEvidence"
+}

@@ -1,0 +1,22 @@
+{
+  "report_id": "debate-session-warning-closure-report",
+  "previous_status": "DebateSessionReadyWithWarnings",
+  "consensus_state": "NeedMoreEvidence",
+  "need_more_evidence_reason_count": 1,
+  "dissent_present": true,
+  "risk_dissent_present": true,
+  "no_trade_dissent_present": true,
+  "cross_group_conflict_count": 4,
+  "remaining_debate_warnings": 1,
+  "closure_status": "DebateWarningsClosedWithNotes",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

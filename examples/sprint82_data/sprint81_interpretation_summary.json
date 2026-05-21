@@ -1,0 +1,9 @@
+{
+  "prototype_interpretation_status": "PrototypeInterpretationReady",
+  "confidence_status": "ConfidenceReady",
+  "winner_gate_status": "MixedOrInconclusive",
+  "committee_reference_status": "CommitteeReferenceCoverageReady",
+  "no_trade_risk_denied_status": "DefensiveAxesReady",
+  "decision_status": "KeepBothAsResearchCandidates"
+}
+

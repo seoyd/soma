@@ -1,0 +1,93 @@
+{
+  "timeline_id": "sprint93-timeout-attribution-timeline",
+  "events": [
+    {
+      "timestamp_ms": 100,
+      "target_name": "krx_evidence_suite",
+      "package_name": "soma_zero",
+      "artifact_kind": "lib",
+      "family": "KrxEvidence",
+      "reason_codes": [
+        "DeterministicPath",
+        "LocalFileOnly"
+      ]
+    },
+    {
+      "timestamp_ms": 200,
+      "target_name": "dashboard_renderer_suite",
+      "package_name": "soma_zero",
+      "artifact_kind": "test",
+      "family": "DashboardRenderer",
+      "reason_codes": [
+        "DeterministicPath",
+        "LocalFileOnly"
+      ]
+    },
+    {
+      "timestamp_ms": 300,
+      "target_name": "committee_cli_safety_isolation",
+      "package_name": "soma_zero",
+      "artifact_kind": "test",
+      "family": "CommitteeCliSafety",
+      "reason_codes": [
+        "DeterministicPath",
+        "LocalFileOnly"
+      ]
+    },
+    {
+      "timestamp_ms": 350,
+      "target_name": "workspace_cli_safety_suite",
+      "package_name": "soma_zero",
+      "artifact_kind": "diagnostic",
+      "family": "Other",
+      "reason_codes": [
+        "DeterministicPath",
+        "LocalFileOnly"
+      ]
+    },
+    {
+      "timestamp_ms": 400,
+      "target_name": "krx_evidence_suite",
+      "package_name": "soma_zero",
+      "artifact_kind": "test",
+      "family": "KrxEvidence",
+      "reason_codes": [
+        "DeterministicPath",
+        "LocalFileOnly"
+      ]
+    },
+    {
+      "timestamp_ms": 500,
+      "target_name": "dashboard_renderer_recovery",
+      "package_name": "soma_zero",
+      "artifact_kind": "test",
+      "family": "DashboardRenderer",
+      "reason_codes": [
+        "DeterministicPath",
+        "LocalFileOnly"
+      ]
+    },
+    {
+      "timestamp_ms": 600,
+      "target_name": "workspace_safety_guard_suite",
+      "package_name": "soma_zero",
+      "artifact_kind": "test",
+      "family": "CommitteeCliSafety",
+      "reason_codes": [
+        "DeterministicPath",
+        "LocalFileOnly"
+      ]
+    }
+  ],
+  "first_seen_target": "krx_evidence_suite",
+  "last_seen_target": "workspace_safety_guard_suite",
+  "first_krx_target_seen": "krx_evidence_suite",
+  "last_krx_target_seen": "krx_evidence_suite",
+  "first_dashboard_target_seen": "dashboard_renderer_suite",
+  "last_dashboard_target_seen": "dashboard_renderer_recovery",
+  "timeline_status": "TimelineReady",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

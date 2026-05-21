@@ -1,0 +1,16 @@
+{
+  "bottleneck_panel": {
+    "primary_bottleneck": "NeedOutcomeLinkDepth",
+    "secondary_bottlenecks": ["NeedMoreKISEvidence", "KeepTrinity"],
+    "core_status": "CoreCheckPassed",
+    "evidence_status": "NeedMoreKISEvidence",
+    "risk_status": "Conservative",
+    "committee_status": "PaperOnlyCandidate",
+    "next_action": "NeedKISLiveMarketDataSmoke",
+    "operator_actions": [
+      "Keep Control Tower read-only.",
+      "Expand KIS market-data evidence with provenance and preflight."
+    ],
+    "reason_codes": ["DeterministicPath", "DashboardBottleneckPanelBuilt"]
+  }
+}

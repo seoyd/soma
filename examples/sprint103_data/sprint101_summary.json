@@ -1,0 +1,4445 @@
+{
+  "investor_archetype_ingestion_report": {
+    "report_id": "investor-archetype-ingestion-report",
+    "sprint_name": "gstack Sprint 101: 18-Investor Archetype Ingestion + AI Committee Roster Expansion Design + Style Feature Card Safety Normalization",
+    "paper_readiness_status": "PaperCommitteeReadyWithWarnings",
+    "paper_loop_dry_run_status": "PaperLoopDryRunPlanReadyWithWarnings",
+    "investor_material_paths": [
+      "examples/sprint101_data/investor_material_sample.md"
+    ],
+    "candidate_count": 18,
+    "normalized_archetype_count": 18,
+    "paper_only_research_only": true,
+    "exact_clone_forbidden": true,
+    "training_deferred": true,
+    "runtime_deferred": true,
+    "live_trading_forbidden": true,
+    "live_activation_forbidden": true,
+    "ingestion_status": "InvestorArchetypeCardsReady",
+    "warnings": [
+      "investor styles remain archetypes only, not impersonations",
+      "no runtime training/live path was introduced",
+      "paper roster expansion does not imply live activation"
+    ],
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "investor_archetype_source_confidence_report": {
+    "report_id": "investor-archetype-source-confidence-report",
+    "candidate_count": 18,
+    "high_confidence_count": 15,
+    "medium_confidence_count": 3,
+    "low_confidence_count": 0,
+    "blocked_count": 0,
+    "weak_source_items": [
+      "arthur-hayes: high-narrative macro commentary requires down-weighting",
+      "larry-williams: old anecdotal forum summaries",
+      "wonyotti: weakly sourced community lore"
+    ],
+    "official_source_items": [
+      "arthur-hayes: public thesis archive",
+      "arthur-hayes: public protocol or treasury material",
+      "benjamin-graham: published letters or books",
+      "benjamin-graham: public interview archive",
+      "charlie-munger: published letters or books",
+      "charlie-munger: public interview archive",
+      "chris-burniske: public thesis archive",
+      "chris-burniske: public protocol or treasury material",
+      "howard-marks: published letters or books",
+      "howard-marks: public interview archive",
+      "john-bogle: published letters or books",
+      "john-bogle: public interview archive",
+      "larry-williams: published seasonal study summary",
+      "linda-raschke: public pattern book",
+      "linda-raschke: conference interview summary",
+      "mark-minervini: published interview summary",
+      "mark-minervini: book chapter on setup discipline",
+      "michael-saylor: public thesis archive",
+      "michael-saylor: public protocol or treasury material",
+      "paul-tudor-jones: public television interview",
+      "paul-tudor-jones: public risk-management remarks",
+      "peter-lynch: published letters or books",
+      "peter-lynch: public interview archive",
+      "richard-dennis: public interview on system trading",
+      "vitalik-buterin: public thesis archive",
+      "vitalik-buterin: public protocol or treasury material",
+      "warren-buffett: published letters or books",
+      "warren-buffett: public interview archive",
+      "william-oneil: published book rules",
+      "william-oneil: archived newspaper interview",
+      "willy-woo: public thesis archive",
+      "willy-woo: public protocol or treasury material",
+      "wonyotti: public thesis archive",
+      "wonyotti: public protocol or treasury material"
+    ],
+    "community_anecdote_items": [
+      "richard-dennis: community retelling of turtle legends",
+      "wonyotti: community chat recap"
+    ],
+    "entries": [
+      {
+        "candidate_id": "arthur-hayes",
+        "public_name": "Arthur Hayes",
+        "source_category": "PublicInterview",
+        "confidence_grade": "B",
+        "source_confidence": 0.79,
+        "confidence_weight": 0.74,
+        "weak_source_items": [
+          "high-narrative macro commentary requires down-weighting"
+        ],
+        "official_source_items": [
+          "public thesis archive",
+          "public protocol or treasury material"
+        ],
+        "community_anecdote_items": []
+      },
+      {
+        "candidate_id": "benjamin-graham",
+        "public_name": "Benjamin Graham",
+        "source_category": "PublishedBook",
+        "confidence_grade": "A",
+        "source_confidence": 0.94,
+        "confidence_weight": 0.93,
+        "weak_source_items": [],
+        "official_source_items": [
+          "published letters or books",
+          "public interview archive"
+        ],
+        "community_anecdote_items": []
+      },
+      {
+        "candidate_id": "charlie-munger",
+        "public_name": "Charlie Munger",
+        "source_category": "PublicInterview",
+        "confidence_grade": "A",
+        "source_confidence": 0.93,
+        "confidence_weight": 0.92,
+        "weak_source_items": [],
+        "official_source_items": [
+          "published letters or books",
+          "public interview archive"
+        ],
+        "community_anecdote_items": []
+      },
+      {
+        "candidate_id": "chris-burniske",
+        "public_name": "Chris Burniske",
+        "source_category": "PublishedBook",
+        "confidence_grade": "BPlus",
+        "source_confidence": 0.84,
+        "confidence_weight": 0.8,
+        "weak_source_items": [],
+        "official_source_items": [
+          "public thesis archive",
+          "public protocol or treasury material"
+        ],
+        "community_anecdote_items": []
+      },
+      {
+        "candidate_id": "howard-marks",
+        "public_name": "Howard Marks",
+        "source_category": "PublishedBook",
+        "confidence_grade": "A",
+        "source_confidence": 0.92,
+        "confidence_weight": 0.9,
+        "weak_source_items": [],
+        "official_source_items": [
+          "published letters or books",
+          "public interview archive"
+        ],
+        "community_anecdote_items": []
+      },
+      {
+        "candidate_id": "john-bogle",
+        "public_name": "John Bogle",
+        "source_category": "PublishedBook",
+        "confidence_grade": "A",
+        "source_confidence": 0.94,
+        "confidence_weight": 0.91,
+        "weak_source_items": [],
+        "official_source_items": [
+          "published letters or books",
+          "public interview archive"
+        ],
+        "community_anecdote_items": []
+      },
+      {
+        "candidate_id": "larry-williams",
+        "public_name": "Larry Williams",
+        "source_category": "PublishedBook",
+        "confidence_grade": "B",
+        "source_confidence": 0.78,
+        "confidence_weight": 0.73,
+        "weak_source_items": [
+          "old anecdotal forum summaries"
+        ],
+        "official_source_items": [
+          "published seasonal study summary"
+        ],
+        "community_anecdote_items": []
+      },
+      {
+        "candidate_id": "linda-raschke",
+        "public_name": "Linda Bradford Raschke",
+        "source_category": "PublishedBook",
+        "confidence_grade": "BPlus",
+        "source_confidence": 0.88,
+        "confidence_weight": 0.87,
+        "weak_source_items": [],
+        "official_source_items": [
+          "public pattern book",
+          "conference interview summary"
+        ],
+        "community_anecdote_items": []
+      },
+      {
+        "candidate_id": "mark-minervini",
+        "public_name": "Mark Minervini",
+        "source_category": "PublishedBook",
+        "confidence_grade": "A",
+        "source_confidence": 0.9,
+        "confidence_weight": 0.9,
+        "weak_source_items": [],
+        "official_source_items": [
+          "published interview summary",
+          "book chapter on setup discipline"
+        ],
+        "community_anecdote_items": []
+      },
+      {
+        "candidate_id": "michael-saylor",
+        "public_name": "Michael Saylor / Strategy",
+        "source_category": "OfficialCompanyMaterial",
+        "confidence_grade": "A",
+        "source_confidence": 0.91,
+        "confidence_weight": 0.88,
+        "weak_source_items": [],
+        "official_source_items": [
+          "public thesis archive",
+          "public protocol or treasury material"
+        ],
+        "community_anecdote_items": []
+      },
+      {
+        "candidate_id": "paul-tudor-jones",
+        "public_name": "Paul Tudor Jones",
+        "source_category": "PublicInterview",
+        "confidence_grade": "BPlus",
+        "source_confidence": 0.86,
+        "confidence_weight": 0.85,
+        "weak_source_items": [],
+        "official_source_items": [
+          "public television interview",
+          "public risk-management remarks"
+        ],
+        "community_anecdote_items": []
+      },
+      {
+        "candidate_id": "peter-lynch",
+        "public_name": "Peter Lynch",
+        "source_category": "PublishedBook",
+        "confidence_grade": "A",
+        "source_confidence": 0.9,
+        "confidence_weight": 0.89,
+        "weak_source_items": [],
+        "official_source_items": [
+          "published letters or books",
+          "public interview archive"
+        ],
+        "community_anecdote_items": []
+      },
+      {
+        "candidate_id": "richard-dennis",
+        "public_name": "Richard Dennis / Turtle Traders",
+        "source_category": "PublicInterview",
+        "confidence_grade": "BPlus",
+        "source_confidence": 0.84,
+        "confidence_weight": 0.82,
+        "weak_source_items": [],
+        "official_source_items": [
+          "public interview on system trading"
+        ],
+        "community_anecdote_items": [
+          "community retelling of turtle legends"
+        ]
+      },
+      {
+        "candidate_id": "vitalik-buterin",
+        "public_name": "Vitalik Buterin / Ethereum",
+        "source_category": "OfficialCompanyMaterial",
+        "confidence_grade": "A",
+        "source_confidence": 0.9,
+        "confidence_weight": 0.88,
+        "weak_source_items": [],
+        "official_source_items": [
+          "public thesis archive",
+          "public protocol or treasury material"
+        ],
+        "community_anecdote_items": []
+      },
+      {
+        "candidate_id": "warren-buffett",
+        "public_name": "Warren Buffett",
+        "source_category": "PublishedBook",
+        "confidence_grade": "A",
+        "source_confidence": 0.95,
+        "confidence_weight": 0.95,
+        "weak_source_items": [],
+        "official_source_items": [
+          "published letters or books",
+          "public interview archive"
+        ],
+        "community_anecdote_items": []
+      },
+      {
+        "candidate_id": "william-oneil",
+        "public_name": "William J. O’Neil",
+        "source_category": "PublishedBook",
+        "confidence_grade": "A",
+        "source_confidence": 0.91,
+        "confidence_weight": 0.91,
+        "weak_source_items": [],
+        "official_source_items": [
+          "published book rules",
+          "archived newspaper interview"
+        ],
+        "community_anecdote_items": []
+      },
+      {
+        "candidate_id": "willy-woo",
+        "public_name": "Willy Woo",
+        "source_category": "PublicInterview",
+        "confidence_grade": "BPlus",
+        "source_confidence": 0.83,
+        "confidence_weight": 0.79,
+        "weak_source_items": [],
+        "official_source_items": [
+          "public thesis archive",
+          "public protocol or treasury material"
+        ],
+        "community_anecdote_items": []
+      },
+      {
+        "candidate_id": "wonyotti",
+        "public_name": "Wonyotti / AOA",
+        "source_category": "CommunityAnecdote",
+        "confidence_grade": "BMinus",
+        "source_confidence": 0.72,
+        "confidence_weight": 0.62,
+        "weak_source_items": [
+          "weakly sourced community lore"
+        ],
+        "official_source_items": [
+          "public thesis archive",
+          "public protocol or treasury material"
+        ],
+        "community_anecdote_items": [
+          "community chat recap"
+        ]
+      }
+    ],
+    "source_confidence_status": "SourceConfidenceReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "investor_archetype_safety_normalization_report": {
+    "report_id": "investor-archetype-safety-normalization-report",
+    "candidates_normalized": 18,
+    "impersonation_claims_removed": 36,
+    "private_strategy_claims_removed": 18,
+    "unverified_profit_claims_removed": 18,
+    "private_life_myths_removed": 18,
+    "unsupported_best_investor_claims_removed": 15,
+    "exact_rule_claims_downweighted": 18,
+    "warnings": [],
+    "safety_status": "SafetyNormalizationReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "investor_style_feature_vector_cards": [
+    {
+      "card_id": "feature-card-arthur-hayes",
+      "candidate_id": "arthur-hayes",
+      "archetype_name": "HayesLiquidityDerivatives",
+      "primary_features": [
+        "on-chain or liquidity regime awareness",
+        "cycle and risk framing",
+        "custody/governance sensitivity"
+      ],
+      "secondary_features": [
+        "treasury or protocol adoption lens",
+        "derivatives stress monitoring"
+      ],
+      "entry_conditions": [
+        "enter only when crypto-specific evidence and liquidity align",
+        "require risk-manager signoff for volatility regimes"
+      ],
+      "exit_conditions": [
+        "exit on liquidity breakdown, thesis break, or governance risk shock"
+      ],
+      "risk_rules": [
+        "respect extreme volatility and custody risk",
+        "treat leverage as suspect by default"
+      ],
+      "sizing_rules": [
+        "size below equity groups under comparable confidence",
+        "reduce into reflexive leverage regimes"
+      ],
+      "no_trade_conditions": [
+        "skip when custody, governance, or liquidity is unclear",
+        "skip narrative-only token stories"
+      ],
+      "preferred_data_sources": [
+        "on-chain metrics",
+        "exchange liquidity",
+        "protocol governance artifacts"
+      ],
+      "required_validation": [
+        "confirm crypto signal with risk and liquidity checks",
+        "validate custody/governance assumptions"
+      ],
+      "feature_card_status": "FeatureCardReadyWithWarnings",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "card_id": "feature-card-benjamin-graham",
+      "candidate_id": "benjamin-graham",
+      "archetype_name": "GrahamMarginOfSafety",
+      "primary_features": [
+        "valuation discipline",
+        "balance-sheet review",
+        "durable thesis framing"
+      ],
+      "secondary_features": [
+        "capital allocation review",
+        "portfolio patience"
+      ],
+      "entry_conditions": [
+        "enter when downside is favorable relative to durable value",
+        "require thesis and evidence alignment"
+      ],
+      "exit_conditions": [
+        "exit when thesis durability breaks or valuation becomes extreme"
+      ],
+      "risk_rules": [
+        "avoid leverage-driven fragility",
+        "treat narratives below evidence"
+      ],
+      "sizing_rules": [
+        "size from durability and downside coverage",
+        "trim if thesis concentration rises"
+      ],
+      "no_trade_conditions": [
+        "skip when evidence is thin",
+        "skip fragile balance sheets"
+      ],
+      "preferred_data_sources": [
+        "financial statements",
+        "capital allocation letters",
+        "industry context"
+      ],
+      "required_validation": [
+        "confirm thesis against filings",
+        "validate downside case"
+      ],
+      "feature_card_status": "FeatureCardReadyWithWarnings",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "card_id": "feature-card-charlie-munger",
+      "candidate_id": "charlie-munger",
+      "archetype_name": "MungerErrorFilter",
+      "primary_features": [
+        "valuation discipline",
+        "balance-sheet review",
+        "durable thesis framing"
+      ],
+      "secondary_features": [
+        "capital allocation review",
+        "portfolio patience"
+      ],
+      "entry_conditions": [
+        "enter when downside is favorable relative to durable value",
+        "require thesis and evidence alignment"
+      ],
+      "exit_conditions": [
+        "exit when thesis durability breaks or valuation becomes extreme"
+      ],
+      "risk_rules": [
+        "avoid leverage-driven fragility",
+        "treat narratives below evidence"
+      ],
+      "sizing_rules": [
+        "size from durability and downside coverage",
+        "trim if thesis concentration rises"
+      ],
+      "no_trade_conditions": [
+        "skip when evidence is thin",
+        "skip fragile balance sheets"
+      ],
+      "preferred_data_sources": [
+        "financial statements",
+        "capital allocation letters",
+        "industry context"
+      ],
+      "required_validation": [
+        "confirm thesis against filings",
+        "validate downside case"
+      ],
+      "feature_card_status": "FeatureCardReadyWithWarnings",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "card_id": "feature-card-chris-burniske",
+      "candidate_id": "chris-burniske",
+      "archetype_name": "BurniskeTokenValuation",
+      "primary_features": [
+        "on-chain or liquidity regime awareness",
+        "cycle and risk framing",
+        "custody/governance sensitivity"
+      ],
+      "secondary_features": [
+        "treasury or protocol adoption lens",
+        "derivatives stress monitoring"
+      ],
+      "entry_conditions": [
+        "enter only when crypto-specific evidence and liquidity align",
+        "require risk-manager signoff for volatility regimes"
+      ],
+      "exit_conditions": [
+        "exit on liquidity breakdown, thesis break, or governance risk shock"
+      ],
+      "risk_rules": [
+        "respect extreme volatility and custody risk",
+        "treat leverage as suspect by default"
+      ],
+      "sizing_rules": [
+        "size below equity groups under comparable confidence",
+        "reduce into reflexive leverage regimes"
+      ],
+      "no_trade_conditions": [
+        "skip when custody, governance, or liquidity is unclear",
+        "skip narrative-only token stories"
+      ],
+      "preferred_data_sources": [
+        "on-chain metrics",
+        "exchange liquidity",
+        "protocol governance artifacts"
+      ],
+      "required_validation": [
+        "confirm crypto signal with risk and liquidity checks",
+        "validate custody/governance assumptions"
+      ],
+      "feature_card_status": "FeatureCardReadyWithWarnings",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "card_id": "feature-card-howard-marks",
+      "candidate_id": "howard-marks",
+      "archetype_name": "MarksCycleRiskPremium",
+      "primary_features": [
+        "valuation discipline",
+        "balance-sheet review",
+        "durable thesis framing"
+      ],
+      "secondary_features": [
+        "capital allocation review",
+        "portfolio patience"
+      ],
+      "entry_conditions": [
+        "enter when downside is favorable relative to durable value",
+        "require thesis and evidence alignment"
+      ],
+      "exit_conditions": [
+        "exit when thesis durability breaks or valuation becomes extreme"
+      ],
+      "risk_rules": [
+        "avoid leverage-driven fragility",
+        "treat narratives below evidence"
+      ],
+      "sizing_rules": [
+        "size from durability and downside coverage",
+        "trim if thesis concentration rises"
+      ],
+      "no_trade_conditions": [
+        "skip when evidence is thin",
+        "skip fragile balance sheets"
+      ],
+      "preferred_data_sources": [
+        "financial statements",
+        "capital allocation letters",
+        "industry context"
+      ],
+      "required_validation": [
+        "confirm thesis against filings",
+        "validate downside case"
+      ],
+      "feature_card_status": "FeatureCardReadyWithWarnings",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "card_id": "feature-card-john-bogle",
+      "candidate_id": "john-bogle",
+      "archetype_name": "BogleLowCostCore",
+      "primary_features": [
+        "valuation discipline",
+        "balance-sheet review",
+        "durable thesis framing"
+      ],
+      "secondary_features": [
+        "capital allocation review",
+        "portfolio patience"
+      ],
+      "entry_conditions": [
+        "enter when downside is favorable relative to durable value",
+        "require thesis and evidence alignment"
+      ],
+      "exit_conditions": [
+        "exit when thesis durability breaks or valuation becomes extreme"
+      ],
+      "risk_rules": [
+        "avoid leverage-driven fragility",
+        "treat narratives below evidence"
+      ],
+      "sizing_rules": [
+        "size from durability and downside coverage",
+        "trim if thesis concentration rises"
+      ],
+      "no_trade_conditions": [
+        "skip when evidence is thin",
+        "skip fragile balance sheets"
+      ],
+      "preferred_data_sources": [
+        "financial statements",
+        "capital allocation letters",
+        "industry context"
+      ],
+      "required_validation": [
+        "confirm thesis against filings",
+        "validate downside case"
+      ],
+      "feature_card_status": "FeatureCardReadyWithWarnings",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "card_id": "feature-card-larry-williams",
+      "candidate_id": "larry-williams",
+      "archetype_name": "LarryWilliamsStatisticalSeasonality",
+      "primary_features": [
+        "seasonality lens",
+        "statistical tendency review",
+        "event-timing discipline"
+      ],
+      "secondary_features": [
+        "sentiment context",
+        "cycle windows"
+      ],
+      "entry_conditions": [
+        "enter only when statistical tendency matches current context",
+        "demand liquidity and timing window alignment"
+      ],
+      "exit_conditions": [
+        "exit when timing window closes or signal decays"
+      ],
+      "risk_rules": [
+        "treat seasonality as low-authority evidence",
+        "avoid blind calendar trades"
+      ],
+      "sizing_rules": [
+        "size lower for seasonal-only signals",
+        "increase only with multi-signal confirmation"
+      ],
+      "no_trade_conditions": [
+        "skip when tendency lacks current confirmation",
+        "skip stale seasonal stories"
+      ],
+      "preferred_data_sources": [
+        "seasonality studies",
+        "price history",
+        "event calendar"
+      ],
+      "required_validation": [
+        "validate current-cycle fit",
+        "confirm signal is not lookahead leakage"
+      ],
+      "feature_card_status": "FeatureCardReadyWithWarnings",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "card_id": "feature-card-linda-raschke",
+      "candidate_id": "linda-raschke",
+      "archetype_name": "RaschkeProcessManager",
+      "primary_features": [
+        "pattern process discipline",
+        "stop-first risk management",
+        "mean-reversion vs breakout separation"
+      ],
+      "secondary_features": [
+        "intraday to swing context",
+        "execution checklist"
+      ],
+      "entry_conditions": [
+        "enter only after setup classification is clear",
+        "prefer repeatable liquid patterns"
+      ],
+      "exit_conditions": [
+        "exit when pattern thesis fails or time stop hits"
+      ],
+      "risk_rules": [
+        "risk defined before entry",
+        "avoid style-mixing without evidence"
+      ],
+      "sizing_rules": [
+        "size from stop distance and liquidity",
+        "reduce size in unstable volatility"
+      ],
+      "no_trade_conditions": [
+        "skip ambiguous patterns",
+        "skip setups without exit clarity"
+      ],
+      "preferred_data_sources": [
+        "price structure",
+        "volatility bands",
+        "liquidity context"
+      ],
+      "required_validation": [
+        "confirm setup family",
+        "validate exit map before entry"
+      ],
+      "feature_card_status": "FeatureCardReadyWithWarnings",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "card_id": "feature-card-mark-minervini",
+      "candidate_id": "mark-minervini",
+      "archetype_name": "MinerviniVcpBreakout",
+      "primary_features": [
+        "volatility contraction setup",
+        "breakout confirmation",
+        "relative strength leadership"
+      ],
+      "secondary_features": [
+        "earnings acceleration check",
+        "liquidity screen"
+      ],
+      "entry_conditions": [
+        "enter on breakout with volume confirmation",
+        "require market trend support"
+      ],
+      "exit_conditions": [
+        "exit on failed breakout or trailing stop breach"
+      ],
+      "risk_rules": [
+        "hard stop below setup support",
+        "avoid weak market breadth"
+      ],
+      "sizing_rules": [
+        "size down when volatility expands",
+        "cap concentration per setup"
+      ],
+      "no_trade_conditions": [
+        "skip late-stage breakouts",
+        "skip illiquid tickers"
+      ],
+      "preferred_data_sources": [
+        "daily price/volume",
+        "earnings dates",
+        "market breadth"
+      ],
+      "required_validation": [
+        "confirm relative strength vs benchmark",
+        "validate volume expansion"
+      ],
+      "feature_card_status": "FeatureCardReadyWithWarnings",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "card_id": "feature-card-michael-saylor",
+      "candidate_id": "michael-saylor",
+      "archetype_name": "SaylorTreasury",
+      "primary_features": [
+        "on-chain or liquidity regime awareness",
+        "cycle and risk framing",
+        "custody/governance sensitivity"
+      ],
+      "secondary_features": [
+        "treasury or protocol adoption lens",
+        "derivatives stress monitoring"
+      ],
+      "entry_conditions": [
+        "enter only when crypto-specific evidence and liquidity align",
+        "require risk-manager signoff for volatility regimes"
+      ],
+      "exit_conditions": [
+        "exit on liquidity breakdown, thesis break, or governance risk shock"
+      ],
+      "risk_rules": [
+        "respect extreme volatility and custody risk",
+        "treat leverage as suspect by default"
+      ],
+      "sizing_rules": [
+        "size below equity groups under comparable confidence",
+        "reduce into reflexive leverage regimes"
+      ],
+      "no_trade_conditions": [
+        "skip when custody, governance, or liquidity is unclear",
+        "skip narrative-only token stories"
+      ],
+      "preferred_data_sources": [
+        "on-chain metrics",
+        "exchange liquidity",
+        "protocol governance artifacts"
+      ],
+      "required_validation": [
+        "confirm crypto signal with risk and liquidity checks",
+        "validate custody/governance assumptions"
+      ],
+      "feature_card_status": "FeatureCardReadyWithWarnings",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "card_id": "feature-card-paul-tudor-jones",
+      "candidate_id": "paul-tudor-jones",
+      "archetype_name": "PtjMacroAsymmetricRisk",
+      "primary_features": [
+        "asymmetric payoff framing",
+        "macro regime awareness",
+        "fast risk cutting"
+      ],
+      "secondary_features": [
+        "cross-asset confirmation",
+        "narrative stress testing"
+      ],
+      "entry_conditions": [
+        "enter when macro regime and price confirm together",
+        "favor asymmetric setups with defined invalidation"
+      ],
+      "exit_conditions": [
+        "exit quickly when macro thesis loses confirmation"
+      ],
+      "risk_rules": [
+        "cut risk early on invalidation",
+        "respect event risk and liquidity"
+      ],
+      "sizing_rules": [
+        "size to event volatility and liquidity depth",
+        "trim before binary events"
+      ],
+      "no_trade_conditions": [
+        "skip when macro narrative lacks price confirmation",
+        "skip crowded asymmetric stories"
+      ],
+      "preferred_data_sources": [
+        "rates and FX context",
+        "futures term structure",
+        "price action"
+      ],
+      "required_validation": [
+        "confirm cross-asset alignment",
+        "validate event calendar risk"
+      ],
+      "feature_card_status": "FeatureCardReadyWithWarnings",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "card_id": "feature-card-peter-lynch",
+      "candidate_id": "peter-lynch",
+      "archetype_name": "LynchGarpConsumerGrowth",
+      "primary_features": [
+        "valuation discipline",
+        "balance-sheet review",
+        "durable thesis framing"
+      ],
+      "secondary_features": [
+        "capital allocation review",
+        "portfolio patience"
+      ],
+      "entry_conditions": [
+        "enter when downside is favorable relative to durable value",
+        "require thesis and evidence alignment"
+      ],
+      "exit_conditions": [
+        "exit when thesis durability breaks or valuation becomes extreme"
+      ],
+      "risk_rules": [
+        "avoid leverage-driven fragility",
+        "treat narratives below evidence"
+      ],
+      "sizing_rules": [
+        "size from durability and downside coverage",
+        "trim if thesis concentration rises"
+      ],
+      "no_trade_conditions": [
+        "skip when evidence is thin",
+        "skip fragile balance sheets"
+      ],
+      "preferred_data_sources": [
+        "financial statements",
+        "capital allocation letters",
+        "industry context"
+      ],
+      "required_validation": [
+        "confirm thesis against filings",
+        "validate downside case"
+      ],
+      "feature_card_status": "FeatureCardReadyWithWarnings",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "card_id": "feature-card-richard-dennis",
+      "candidate_id": "richard-dennis",
+      "archetype_name": "TurtleTrendSystem",
+      "primary_features": [
+        "trend breakout system",
+        "rule-based risk units",
+        "portfolio diversification"
+      ],
+      "secondary_features": [
+        "systematic exits",
+        "volatility sizing"
+      ],
+      "entry_conditions": [
+        "enter on confirmed breakout system signals",
+        "stagger entries by risk unit"
+      ],
+      "exit_conditions": [
+        "exit on system stop or trend reversal"
+      ],
+      "risk_rules": [
+        "fixed fractional unit risk",
+        "diversify across markets"
+      ],
+      "sizing_rules": [
+        "scale positions by ATR risk unit",
+        "cap portfolio heat"
+      ],
+      "no_trade_conditions": [
+        "skip non-system discretionary overrides",
+        "skip when data quality is weak"
+      ],
+      "preferred_data_sources": [
+        "futures price history",
+        "volatility measures",
+        "cross-market correlations"
+      ],
+      "required_validation": [
+        "confirm rule trigger objectively",
+        "check portfolio heat"
+      ],
+      "feature_card_status": "FeatureCardReadyWithWarnings",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "card_id": "feature-card-vitalik-buterin",
+      "candidate_id": "vitalik-buterin",
+      "archetype_name": "VitalikProtocolFundamental",
+      "primary_features": [
+        "on-chain or liquidity regime awareness",
+        "cycle and risk framing",
+        "custody/governance sensitivity"
+      ],
+      "secondary_features": [
+        "treasury or protocol adoption lens",
+        "derivatives stress monitoring"
+      ],
+      "entry_conditions": [
+        "enter only when crypto-specific evidence and liquidity align",
+        "require risk-manager signoff for volatility regimes"
+      ],
+      "exit_conditions": [
+        "exit on liquidity breakdown, thesis break, or governance risk shock"
+      ],
+      "risk_rules": [
+        "respect extreme volatility and custody risk",
+        "treat leverage as suspect by default"
+      ],
+      "sizing_rules": [
+        "size below equity groups under comparable confidence",
+        "reduce into reflexive leverage regimes"
+      ],
+      "no_trade_conditions": [
+        "skip when custody, governance, or liquidity is unclear",
+        "skip narrative-only token stories"
+      ],
+      "preferred_data_sources": [
+        "on-chain metrics",
+        "exchange liquidity",
+        "protocol governance artifacts"
+      ],
+      "required_validation": [
+        "confirm crypto signal with risk and liquidity checks",
+        "validate custody/governance assumptions"
+      ],
+      "feature_card_status": "FeatureCardReadyWithWarnings",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "card_id": "feature-card-warren-buffett",
+      "candidate_id": "warren-buffett",
+      "archetype_name": "BuffettQualityMoat",
+      "primary_features": [
+        "valuation discipline",
+        "balance-sheet review",
+        "durable thesis framing"
+      ],
+      "secondary_features": [
+        "capital allocation review",
+        "portfolio patience"
+      ],
+      "entry_conditions": [
+        "enter when downside is favorable relative to durable value",
+        "require thesis and evidence alignment"
+      ],
+      "exit_conditions": [
+        "exit when thesis durability breaks or valuation becomes extreme"
+      ],
+      "risk_rules": [
+        "avoid leverage-driven fragility",
+        "treat narratives below evidence"
+      ],
+      "sizing_rules": [
+        "size from durability and downside coverage",
+        "trim if thesis concentration rises"
+      ],
+      "no_trade_conditions": [
+        "skip when evidence is thin",
+        "skip fragile balance sheets"
+      ],
+      "preferred_data_sources": [
+        "financial statements",
+        "capital allocation letters",
+        "industry context"
+      ],
+      "required_validation": [
+        "confirm thesis against filings",
+        "validate downside case"
+      ],
+      "feature_card_status": "FeatureCardReadyWithWarnings",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "card_id": "feature-card-william-oneil",
+      "candidate_id": "william-oneil",
+      "archetype_name": "OneilCanSlimMarketDirection",
+      "primary_features": [
+        "CAN SLIM factor stack",
+        "market direction filter",
+        "earnings and sales acceleration"
+      ],
+      "secondary_features": [
+        "institutional accumulation",
+        "new highs leadership"
+      ],
+      "entry_conditions": [
+        "enter only when market direction confirms",
+        "prefer leadership names with earnings strength"
+      ],
+      "exit_conditions": [
+        "sell into failed breakout or thesis deterioration"
+      ],
+      "risk_rules": [
+        "respect market direction sell rules",
+        "avoid low-volume leadership names"
+      ],
+      "sizing_rules": [
+        "scale by market confirmation quality",
+        "limit correlated growth exposure"
+      ],
+      "no_trade_conditions": [
+        "skip when market direction is negative",
+        "skip lagging industry groups"
+      ],
+      "preferred_data_sources": [
+        "price/volume history",
+        "earnings growth",
+        "industry group ranking"
+      ],
+      "required_validation": [
+        "confirm market trend signal",
+        "validate earnings strength"
+      ],
+      "feature_card_status": "FeatureCardReadyWithWarnings",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "card_id": "feature-card-willy-woo",
+      "candidate_id": "willy-woo",
+      "archetype_name": "WillyWooOnchainCycle",
+      "primary_features": [
+        "on-chain or liquidity regime awareness",
+        "cycle and risk framing",
+        "custody/governance sensitivity"
+      ],
+      "secondary_features": [
+        "treasury or protocol adoption lens",
+        "derivatives stress monitoring"
+      ],
+      "entry_conditions": [
+        "enter only when crypto-specific evidence and liquidity align",
+        "require risk-manager signoff for volatility regimes"
+      ],
+      "exit_conditions": [
+        "exit on liquidity breakdown, thesis break, or governance risk shock"
+      ],
+      "risk_rules": [
+        "respect extreme volatility and custody risk",
+        "treat leverage as suspect by default"
+      ],
+      "sizing_rules": [
+        "size below equity groups under comparable confidence",
+        "reduce into reflexive leverage regimes"
+      ],
+      "no_trade_conditions": [
+        "skip when custody, governance, or liquidity is unclear",
+        "skip narrative-only token stories"
+      ],
+      "preferred_data_sources": [
+        "on-chain metrics",
+        "exchange liquidity",
+        "protocol governance artifacts"
+      ],
+      "required_validation": [
+        "confirm crypto signal with risk and liquidity checks",
+        "validate custody/governance assumptions"
+      ],
+      "feature_card_status": "FeatureCardReadyWithWarnings",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "card_id": "feature-card-wonyotti",
+      "candidate_id": "wonyotti",
+      "archetype_name": "WonyottiBtcRisk",
+      "primary_features": [
+        "on-chain or liquidity regime awareness",
+        "cycle and risk framing",
+        "custody/governance sensitivity"
+      ],
+      "secondary_features": [
+        "treasury or protocol adoption lens",
+        "derivatives stress monitoring"
+      ],
+      "entry_conditions": [
+        "enter only when crypto-specific evidence and liquidity align",
+        "require risk-manager signoff for volatility regimes"
+      ],
+      "exit_conditions": [
+        "exit on liquidity breakdown, thesis break, or governance risk shock"
+      ],
+      "risk_rules": [
+        "respect extreme volatility and custody risk",
+        "treat leverage as suspect by default"
+      ],
+      "sizing_rules": [
+        "size below equity groups under comparable confidence",
+        "reduce into reflexive leverage regimes"
+      ],
+      "no_trade_conditions": [
+        "skip when custody, governance, or liquidity is unclear",
+        "skip narrative-only token stories"
+      ],
+      "preferred_data_sources": [
+        "on-chain metrics",
+        "exchange liquidity",
+        "protocol governance artifacts"
+      ],
+      "required_validation": [
+        "confirm crypto signal with risk and liquidity checks",
+        "validate custody/governance assumptions"
+      ],
+      "feature_card_status": "FeatureCardReadyWithWarnings",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    }
+  ],
+  "investor_style_do_not_learn_guards": [
+    {
+      "guard_id": "do-not-learn-arthur-hayes",
+      "candidate_id": "arthur-hayes",
+      "blocked_items": [
+        "exact wallet-profit claims",
+        "cult-like legend stories"
+      ],
+      "blocked_item_kinds": [
+        "ExactProfitClaim",
+        "LifestyleMyth"
+      ],
+      "guard_status": "DoNotLearnGuardReady",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "guard_id": "do-not-learn-benjamin-graham",
+      "candidate_id": "benjamin-graham",
+      "blocked_items": [
+        "hero worship language",
+        "exact alpha claims"
+      ],
+      "blocked_item_kinds": [
+        "UnsupportedBestInvestorClaim",
+        "ExactProfitClaim"
+      ],
+      "guard_status": "DoNotLearnGuardReady",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "guard_id": "do-not-learn-charlie-munger",
+      "candidate_id": "charlie-munger",
+      "blocked_items": [
+        "hero worship language",
+        "exact alpha claims"
+      ],
+      "blocked_item_kinds": [
+        "UnsupportedBestInvestorClaim",
+        "ExactProfitClaim"
+      ],
+      "guard_status": "DoNotLearnGuardReady",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "guard_id": "do-not-learn-chris-burniske",
+      "candidate_id": "chris-burniske",
+      "blocked_items": [
+        "exact wallet-profit claims",
+        "cult-like legend stories"
+      ],
+      "blocked_item_kinds": [
+        "ExactProfitClaim",
+        "LifestyleMyth"
+      ],
+      "guard_status": "DoNotLearnGuardReady",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "guard_id": "do-not-learn-howard-marks",
+      "candidate_id": "howard-marks",
+      "blocked_items": [
+        "hero worship language",
+        "exact alpha claims"
+      ],
+      "blocked_item_kinds": [
+        "UnsupportedBestInvestorClaim",
+        "ExactProfitClaim"
+      ],
+      "guard_status": "DoNotLearnGuardReady",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "guard_id": "do-not-learn-john-bogle",
+      "candidate_id": "john-bogle",
+      "blocked_items": [
+        "hero worship language",
+        "exact alpha claims"
+      ],
+      "blocked_item_kinds": [
+        "UnsupportedBestInvestorClaim",
+        "ExactProfitClaim"
+      ],
+      "guard_status": "DoNotLearnGuardReady",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "guard_id": "do-not-learn-larry-williams",
+      "candidate_id": "larry-williams",
+      "blocked_items": [
+        "best trader trophy claims",
+        "exact contest profit myths"
+      ],
+      "blocked_item_kinds": [
+        "UnsupportedBestInvestorClaim",
+        "ExactProfitClaim"
+      ],
+      "guard_status": "DoNotLearnGuardReady",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "guard_id": "do-not-learn-linda-raschke",
+      "candidate_id": "linda-raschke",
+      "blocked_items": [
+        "celebrity trader lore",
+        "exact seminar-result claims"
+      ],
+      "blocked_item_kinds": [
+        "LifestyleMyth",
+        "ExactProfitClaim"
+      ],
+      "guard_status": "DoNotLearnGuardReady",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "guard_id": "do-not-learn-mark-minervini",
+      "candidate_id": "mark-minervini",
+      "blocked_items": [
+        "exact profit screenshots",
+        "gym-routine legend stories",
+        "unofficial quote packs"
+      ],
+      "blocked_item_kinds": [
+        "ExactProfitClaim",
+        "LifestyleMyth",
+        "UnofficialQuote"
+      ],
+      "guard_status": "DoNotLearnGuardReady",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "guard_id": "do-not-learn-michael-saylor",
+      "candidate_id": "michael-saylor",
+      "blocked_items": [
+        "exact wallet-profit claims",
+        "cult-like legend stories"
+      ],
+      "blocked_item_kinds": [
+        "ExactProfitClaim",
+        "LifestyleMyth"
+      ],
+      "guard_status": "DoNotLearnGuardReady",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "guard_id": "do-not-learn-paul-tudor-jones",
+      "candidate_id": "paul-tudor-jones",
+      "blocked_items": [
+        "hero-trader anecdotes",
+        "exact macro PnL claims"
+      ],
+      "blocked_item_kinds": [
+        "LifestyleMyth",
+        "ExactProfitClaim"
+      ],
+      "guard_status": "DoNotLearnGuardReady",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "guard_id": "do-not-learn-peter-lynch",
+      "candidate_id": "peter-lynch",
+      "blocked_items": [
+        "hero worship language",
+        "exact alpha claims"
+      ],
+      "blocked_item_kinds": [
+        "UnsupportedBestInvestorClaim",
+        "ExactProfitClaim"
+      ],
+      "guard_status": "DoNotLearnGuardReady",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "guard_id": "do-not-learn-richard-dennis",
+      "candidate_id": "richard-dennis",
+      "blocked_items": [
+        "legendary floor-trader myths",
+        "exact turtle profit brag sheets"
+      ],
+      "blocked_item_kinds": [
+        "LifestyleMyth",
+        "ExactProfitClaim"
+      ],
+      "guard_status": "DoNotLearnGuardReady",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "guard_id": "do-not-learn-vitalik-buterin",
+      "candidate_id": "vitalik-buterin",
+      "blocked_items": [
+        "exact wallet-profit claims",
+        "cult-like legend stories"
+      ],
+      "blocked_item_kinds": [
+        "ExactProfitClaim",
+        "LifestyleMyth"
+      ],
+      "guard_status": "DoNotLearnGuardReady",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "guard_id": "do-not-learn-warren-buffett",
+      "candidate_id": "warren-buffett",
+      "blocked_items": [
+        "hero worship language",
+        "exact alpha claims"
+      ],
+      "blocked_item_kinds": [
+        "UnsupportedBestInvestorClaim",
+        "ExactProfitClaim"
+      ],
+      "guard_status": "DoNotLearnGuardReady",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "guard_id": "do-not-learn-william-oneil",
+      "candidate_id": "william-oneil",
+      "blocked_items": [
+        "private subscription tips",
+        "exact annual return claims"
+      ],
+      "blocked_item_kinds": [
+        "PrivateStrategyClaim",
+        "ExactProfitClaim"
+      ],
+      "guard_status": "DoNotLearnGuardReady",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "guard_id": "do-not-learn-willy-woo",
+      "candidate_id": "willy-woo",
+      "blocked_items": [
+        "exact wallet-profit claims",
+        "cult-like legend stories"
+      ],
+      "blocked_item_kinds": [
+        "ExactProfitClaim",
+        "LifestyleMyth"
+      ],
+      "guard_status": "DoNotLearnGuardReady",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "guard_id": "do-not-learn-wonyotti",
+      "candidate_id": "wonyotti",
+      "blocked_items": [
+        "exact wallet-profit claims",
+        "cult-like legend stories"
+      ],
+      "blocked_item_kinds": [
+        "ExactProfitClaim",
+        "LifestyleMyth"
+      ],
+      "guard_status": "DoNotLearnGuardReady",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    }
+  ],
+  "investor_impersonation_risk_report": {
+    "report_id": "investor-impersonation-risk-report",
+    "candidate_count": 18,
+    "high_impersonation_risk_candidates": [],
+    "medium_impersonation_risk_candidates": [
+      "arthur-hayes",
+      "benjamin-graham",
+      "charlie-munger",
+      "chris-burniske",
+      "howard-marks",
+      "john-bogle",
+      "larry-williams",
+      "linda-raschke",
+      "mark-minervini",
+      "michael-saylor",
+      "paul-tudor-jones",
+      "peter-lynch",
+      "richard-dennis",
+      "vitalik-buterin",
+      "warren-buffett",
+      "william-oneil",
+      "willy-woo",
+      "wonyotti"
+    ],
+    "low_impersonation_risk_candidates": [],
+    "blocked_impersonation_claims": [
+      "arthur-hayes: viral quote snippet without primary source",
+      "arthur-hayes: unsupported biography implying guaranteed cycle tops",
+      "benjamin-graham: viral quote card without primary source",
+      "benjamin-graham: unsupported biography that implies omniscience",
+      "charlie-munger: viral quote card without primary source",
+      "charlie-munger: unsupported biography that implies omniscience",
+      "chris-burniske: viral quote snippet without primary source",
+      "chris-burniske: unsupported biography implying guaranteed cycle tops",
+      "howard-marks: viral quote card without primary source",
+      "howard-marks: unsupported biography that implies omniscience",
+      "john-bogle: viral quote card without primary source",
+      "john-bogle: unsupported biography that implies omniscience",
+      "larry-williams: unsourced calendar edge quote",
+      "larry-williams: unsupported claim that statistics alone decide every trade",
+      "linda-raschke: unsourced one-line pattern rule",
+      "linda-raschke: unsupported claim that every pattern came from private instinct",
+      "mark-minervini: \"never lose on true VCP\" quote without source",
+      "mark-minervini: claimed perfect win-rate biography",
+      "michael-saylor: viral quote snippet without primary source",
+      "michael-saylor: unsupported biography implying guaranteed cycle tops",
+      "paul-tudor-jones: \"losers average losers\" meme quote without source chain",
+      "paul-tudor-jones: claim that every macro call was perfectly timed",
+      "peter-lynch: viral quote card without primary source",
+      "peter-lynch: unsupported biography that implies omniscience",
+      "richard-dennis: \"the trend is all that matters\" unsourced quote",
+      "richard-dennis: myth that every turtle copied exact trades",
+      "vitalik-buterin: viral quote snippet without primary source",
+      "vitalik-buterin: unsupported biography implying guaranteed cycle tops",
+      "warren-buffett: viral quote card without primary source",
+      "warren-buffett: unsupported biography that implies omniscience",
+      "william-oneil: \"market direction never lies\" unsourced quote",
+      "william-oneil: claimed clairvoyant tape-reading origin story",
+      "willy-woo: viral quote snippet without primary source",
+      "willy-woo: unsupported biography implying guaranteed cycle tops",
+      "wonyotti: viral quote snippet without primary source",
+      "wonyotti: unsupported biography implying guaranteed cycle tops"
+    ],
+    "archetype_disclaimer_present": true,
+    "rows": [
+      {
+        "candidate_id": "arthur-hayes",
+        "public_name": "Arthur Hayes",
+        "risk_score": 0.57,
+        "blocked_impersonation_claims": [
+          "viral quote snippet without primary source",
+          "unsupported biography implying guaranteed cycle tops"
+        ],
+        "required_disclaimer": "public-philosophy-inspired archetype only; not an exact investor clone"
+      },
+      {
+        "candidate_id": "benjamin-graham",
+        "public_name": "Benjamin Graham",
+        "risk_score": 0.57,
+        "blocked_impersonation_claims": [
+          "viral quote card without primary source",
+          "unsupported biography that implies omniscience"
+        ],
+        "required_disclaimer": "public-philosophy-inspired archetype only; not an exact investor clone"
+      },
+      {
+        "candidate_id": "charlie-munger",
+        "public_name": "Charlie Munger",
+        "risk_score": 0.57,
+        "blocked_impersonation_claims": [
+          "viral quote card without primary source",
+          "unsupported biography that implies omniscience"
+        ],
+        "required_disclaimer": "public-philosophy-inspired archetype only; not an exact investor clone"
+      },
+      {
+        "candidate_id": "chris-burniske",
+        "public_name": "Chris Burniske",
+        "risk_score": 0.57,
+        "blocked_impersonation_claims": [
+          "viral quote snippet without primary source",
+          "unsupported biography implying guaranteed cycle tops"
+        ],
+        "required_disclaimer": "public-philosophy-inspired archetype only; not an exact investor clone"
+      },
+      {
+        "candidate_id": "howard-marks",
+        "public_name": "Howard Marks",
+        "risk_score": 0.57,
+        "blocked_impersonation_claims": [
+          "viral quote card without primary source",
+          "unsupported biography that implies omniscience"
+        ],
+        "required_disclaimer": "public-philosophy-inspired archetype only; not an exact investor clone"
+      },
+      {
+        "candidate_id": "john-bogle",
+        "public_name": "John Bogle",
+        "risk_score": 0.57,
+        "blocked_impersonation_claims": [
+          "viral quote card without primary source",
+          "unsupported biography that implies omniscience"
+        ],
+        "required_disclaimer": "public-philosophy-inspired archetype only; not an exact investor clone"
+      },
+      {
+        "candidate_id": "larry-williams",
+        "public_name": "Larry Williams",
+        "risk_score": 0.57,
+        "blocked_impersonation_claims": [
+          "unsourced calendar edge quote",
+          "unsupported claim that statistics alone decide every trade"
+        ],
+        "required_disclaimer": "public-philosophy-inspired archetype only; not an exact investor clone"
+      },
+      {
+        "candidate_id": "linda-raschke",
+        "public_name": "Linda Bradford Raschke",
+        "risk_score": 0.57,
+        "blocked_impersonation_claims": [
+          "unsourced one-line pattern rule",
+          "unsupported claim that every pattern came from private instinct"
+        ],
+        "required_disclaimer": "public-philosophy-inspired archetype only; not an exact investor clone"
+      },
+      {
+        "candidate_id": "mark-minervini",
+        "public_name": "Mark Minervini",
+        "risk_score": 0.57,
+        "blocked_impersonation_claims": [
+          "\"never lose on true VCP\" quote without source",
+          "claimed perfect win-rate biography"
+        ],
+        "required_disclaimer": "public-philosophy-inspired archetype only; not an exact investor clone"
+      },
+      {
+        "candidate_id": "michael-saylor",
+        "public_name": "Michael Saylor / Strategy",
+        "risk_score": 0.57,
+        "blocked_impersonation_claims": [
+          "viral quote snippet without primary source",
+          "unsupported biography implying guaranteed cycle tops"
+        ],
+        "required_disclaimer": "public-philosophy-inspired archetype only; not an exact investor clone"
+      },
+      {
+        "candidate_id": "paul-tudor-jones",
+        "public_name": "Paul Tudor Jones",
+        "risk_score": 0.57,
+        "blocked_impersonation_claims": [
+          "\"losers average losers\" meme quote without source chain",
+          "claim that every macro call was perfectly timed"
+        ],
+        "required_disclaimer": "public-philosophy-inspired archetype only; not an exact investor clone"
+      },
+      {
+        "candidate_id": "peter-lynch",
+        "public_name": "Peter Lynch",
+        "risk_score": 0.57,
+        "blocked_impersonation_claims": [
+          "viral quote card without primary source",
+          "unsupported biography that implies omniscience"
+        ],
+        "required_disclaimer": "public-philosophy-inspired archetype only; not an exact investor clone"
+      },
+      {
+        "candidate_id": "richard-dennis",
+        "public_name": "Richard Dennis / Turtle Traders",
+        "risk_score": 0.57,
+        "blocked_impersonation_claims": [
+          "\"the trend is all that matters\" unsourced quote",
+          "myth that every turtle copied exact trades"
+        ],
+        "required_disclaimer": "public-philosophy-inspired archetype only; not an exact investor clone"
+      },
+      {
+        "candidate_id": "vitalik-buterin",
+        "public_name": "Vitalik Buterin / Ethereum",
+        "risk_score": 0.57,
+        "blocked_impersonation_claims": [
+          "viral quote snippet without primary source",
+          "unsupported biography implying guaranteed cycle tops"
+        ],
+        "required_disclaimer": "public-philosophy-inspired archetype only; not an exact investor clone"
+      },
+      {
+        "candidate_id": "warren-buffett",
+        "public_name": "Warren Buffett",
+        "risk_score": 0.57,
+        "blocked_impersonation_claims": [
+          "viral quote card without primary source",
+          "unsupported biography that implies omniscience"
+        ],
+        "required_disclaimer": "public-philosophy-inspired archetype only; not an exact investor clone"
+      },
+      {
+        "candidate_id": "william-oneil",
+        "public_name": "William J. O’Neil",
+        "risk_score": 0.57,
+        "blocked_impersonation_claims": [
+          "\"market direction never lies\" unsourced quote",
+          "claimed clairvoyant tape-reading origin story"
+        ],
+        "required_disclaimer": "public-philosophy-inspired archetype only; not an exact investor clone"
+      },
+      {
+        "candidate_id": "willy-woo",
+        "public_name": "Willy Woo",
+        "risk_score": 0.57,
+        "blocked_impersonation_claims": [
+          "viral quote snippet without primary source",
+          "unsupported biography implying guaranteed cycle tops"
+        ],
+        "required_disclaimer": "public-philosophy-inspired archetype only; not an exact investor clone"
+      },
+      {
+        "candidate_id": "wonyotti",
+        "public_name": "Wonyotti / AOA",
+        "risk_score": 0.57,
+        "blocked_impersonation_claims": [
+          "viral quote snippet without primary source",
+          "unsupported biography implying guaranteed cycle tops"
+        ],
+        "required_disclaimer": "public-philosophy-inspired archetype only; not an exact investor clone"
+      }
+    ],
+    "report_status": "ImpersonationRiskControlled",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "investor_unverified_claim_filter_report": {
+    "report_id": "investor-unverified-claim-filter-report",
+    "unverified_profit_claims": [
+      "arthur-hayes: turns every cycle into exact multiples",
+      "benjamin-graham: every investment compounds at a fixed rate",
+      "charlie-munger: every investment compounds at a fixed rate",
+      "chris-burniske: turns every cycle into exact multiples",
+      "howard-marks: every investment compounds at a fixed rate",
+      "john-bogle: every investment compounds at a fixed rate",
+      "larry-williams: seasonality guarantees annual profits",
+      "linda-raschke: guaranteed outcome on all lizard setups",
+      "mark-minervini: turns every breakout into 300%",
+      "michael-saylor: turns every cycle into exact multiples",
+      "paul-tudor-jones: never loses during crises",
+      "peter-lynch: every investment compounds at a fixed rate",
+      "richard-dennis: made every trainee rich immediately",
+      "vitalik-buterin: turns every cycle into exact multiples",
+      "warren-buffett: every investment compounds at a fixed rate",
+      "william-oneil: guaranteed double after every follow-through day",
+      "willy-woo: turns every cycle into exact multiples",
+      "wonyotti: turns every cycle into exact multiples"
+    ],
+    "unsupported_biographical_claims": [
+      "arthur-hayes: unsupported biography implying guaranteed cycle tops",
+      "benjamin-graham: unsupported biography that implies omniscience",
+      "charlie-munger: unsupported biography that implies omniscience",
+      "chris-burniske: unsupported biography implying guaranteed cycle tops",
+      "howard-marks: unsupported biography that implies omniscience",
+      "john-bogle: unsupported biography that implies omniscience",
+      "larry-williams: unsupported claim that statistics alone decide every trade",
+      "linda-raschke: unsupported claim that every pattern came from private instinct",
+      "mark-minervini: claimed perfect win-rate biography",
+      "michael-saylor: unsupported biography implying guaranteed cycle tops",
+      "paul-tudor-jones: claim that every macro call was perfectly timed",
+      "peter-lynch: unsupported biography that implies omniscience",
+      "richard-dennis: myth that every turtle copied exact trades",
+      "vitalik-buterin: unsupported biography implying guaranteed cycle tops",
+      "warren-buffett: unsupported biography that implies omniscience",
+      "william-oneil: claimed clairvoyant tape-reading origin story",
+      "willy-woo: unsupported biography implying guaranteed cycle tops",
+      "wonyotti: unsupported biography implying guaranteed cycle tops"
+    ],
+    "unofficial_quotes": [
+      "arthur-hayes: viral quote snippet without primary source",
+      "benjamin-graham: viral quote card without primary source",
+      "charlie-munger: viral quote card without primary source",
+      "chris-burniske: viral quote snippet without primary source",
+      "howard-marks: viral quote card without primary source",
+      "john-bogle: viral quote card without primary source",
+      "larry-williams: unsourced calendar edge quote",
+      "linda-raschke: unsourced one-line pattern rule",
+      "mark-minervini: \"never lose on true VCP\" quote without source",
+      "michael-saylor: viral quote snippet without primary source",
+      "paul-tudor-jones: \"losers average losers\" meme quote without source chain",
+      "peter-lynch: viral quote card without primary source",
+      "richard-dennis: \"the trend is all that matters\" unsourced quote",
+      "vitalik-buterin: viral quote snippet without primary source",
+      "warren-buffett: viral quote card without primary source",
+      "william-oneil: \"market direction never lies\" unsourced quote",
+      "willy-woo: viral quote snippet without primary source",
+      "wonyotti: viral quote snippet without primary source"
+    ],
+    "unsupported_best_claims": [
+      "arthur-hayes: best crypto investor claim",
+      "benjamin-graham: best investor ranking claim",
+      "charlie-munger: best investor ranking claim",
+      "chris-burniske: best crypto investor claim",
+      "howard-marks: best investor ranking claim",
+      "john-bogle: best investor ranking claim",
+      "larry-williams: best market timer claim",
+      "mark-minervini: \"best trader ever\" marketing claim",
+      "michael-saylor: best crypto investor claim",
+      "peter-lynch: best investor ranking claim",
+      "vitalik-buterin: best crypto investor claim",
+      "warren-buffett: best investor ranking claim",
+      "william-oneil: \"best growth investor\" ranking without evidence",
+      "willy-woo: best crypto investor claim",
+      "wonyotti: best crypto investor claim"
+    ],
+    "unverifiable_trade_rules": [
+      "arthur-hayes: always buy when social chatter spikes",
+      "benjamin-graham: always buy any dip in beloved name",
+      "charlie-munger: always buy any dip in beloved name",
+      "chris-burniske: always buy when social chatter spikes",
+      "howard-marks: always buy any dip in beloved name",
+      "john-bogle: always buy any dip in beloved name",
+      "larry-williams: buy every seasonal low regardless of trend",
+      "linda-raschke: always fade first move of the day",
+      "mark-minervini: always buy the first green bar",
+      "michael-saylor: always buy when social chatter spikes",
+      "paul-tudor-jones: always fade central banks",
+      "peter-lynch: always buy any dip in beloved name",
+      "richard-dennis: always add risk units no matter liquidity",
+      "vitalik-buterin: always buy when social chatter spikes",
+      "warren-buffett: always buy any dip in beloved name",
+      "william-oneil: buy every breakout after a magazine cover",
+      "willy-woo: always buy when social chatter spikes",
+      "wonyotti: always buy when social chatter spikes"
+    ],
+    "filtered_count": 87,
+    "remaining_review_count": 0,
+    "filter_status": "UnverifiedClaimsFiltered",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "investor_private_life_myth_filter_report": {
+    "report_id": "investor-private-life-myth-filter-report",
+    "private_life_items_detected": [
+      "arthur-hayes: private lifestyle myth as model input",
+      "benjamin-graham: home-life anecdote as alpha feature",
+      "charlie-munger: home-life anecdote as alpha feature",
+      "chris-burniske: private lifestyle myth as model input",
+      "howard-marks: home-life anecdote as alpha feature",
+      "john-bogle: home-life anecdote as alpha feature",
+      "larry-williams: lucky routine myth",
+      "linda-raschke: daily coffee myth",
+      "mark-minervini: private fitness ritual as alpha source",
+      "michael-saylor: private lifestyle myth as model input",
+      "paul-tudor-jones: office superstition story",
+      "peter-lynch: home-life anecdote as alpha feature",
+      "richard-dennis: daily cigar myth as model feature",
+      "vitalik-buterin: private lifestyle myth as model input",
+      "warren-buffett: home-life anecdote as alpha feature",
+      "william-oneil: favorite breakfast myth",
+      "willy-woo: private lifestyle myth as model input",
+      "wonyotti: private lifestyle myth as model input"
+    ],
+    "private_life_items_removed": [
+      "arthur-hayes: private lifestyle myth as model input",
+      "benjamin-graham: home-life anecdote as alpha feature",
+      "charlie-munger: home-life anecdote as alpha feature",
+      "chris-burniske: private lifestyle myth as model input",
+      "howard-marks: home-life anecdote as alpha feature",
+      "john-bogle: home-life anecdote as alpha feature",
+      "larry-williams: lucky routine myth",
+      "linda-raschke: daily coffee myth",
+      "mark-minervini: private fitness ritual as alpha source",
+      "michael-saylor: private lifestyle myth as model input",
+      "paul-tudor-jones: office superstition story",
+      "peter-lynch: home-life anecdote as alpha feature",
+      "richard-dennis: daily cigar myth as model feature",
+      "vitalik-buterin: private lifestyle myth as model input",
+      "warren-buffett: home-life anecdote as alpha feature",
+      "william-oneil: favorite breakfast myth",
+      "willy-woo: private lifestyle myth as model input",
+      "wonyotti: private lifestyle myth as model input"
+    ],
+    "useful_habit_items_preserved": [
+      "arthur-hayes: position sizing discipline",
+      "arthur-hayes: risk review routine",
+      "benjamin-graham: evidence check routine",
+      "benjamin-graham: thesis invalidation review",
+      "charlie-munger: evidence check routine",
+      "charlie-munger: thesis invalidation review",
+      "chris-burniske: position sizing discipline",
+      "chris-burniske: risk review routine",
+      "howard-marks: evidence check routine",
+      "howard-marks: thesis invalidation review",
+      "john-bogle: evidence check routine",
+      "john-bogle: thesis invalidation review",
+      "larry-williams: trading journal review",
+      "linda-raschke: thesis invalidation checklist",
+      "mark-minervini: trading journal review",
+      "mark-minervini: stop-loss discipline",
+      "michael-saylor: position sizing discipline",
+      "michael-saylor: risk review routine",
+      "paul-tudor-jones: risk review routine",
+      "peter-lynch: evidence check routine",
+      "peter-lynch: thesis invalidation review",
+      "richard-dennis: position sizing discipline",
+      "vitalik-buterin: position sizing discipline",
+      "vitalik-buterin: risk review routine",
+      "warren-buffett: evidence check routine",
+      "warren-buffett: thesis invalidation review",
+      "william-oneil: evidence check routine",
+      "willy-woo: position sizing discipline",
+      "willy-woo: risk review routine",
+      "wonyotti: position sizing discipline",
+      "wonyotti: risk review routine"
+    ],
+    "preserved_habit_kinds": [
+      "StopLossDiscipline",
+      "PositionSizing",
+      "TradingJournal",
+      "ThesisInvalidation",
+      "RiskReviewRoutine",
+      "EvidenceCheckRoutine"
+    ],
+    "filter_status": "PrivateLifeMythsFiltered",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "eighteen_investor_candidate_registry": {
+    "registry_id": "eighteen-investor-candidate-registry",
+    "candidates": [
+      {
+        "candidate_id": "arthur-hayes",
+        "public_name": "Arthur Hayes",
+        "normalized_archetype_name": "HayesLiquidityDerivatives",
+        "source_category": "PublicInterview",
+        "confidence_grade": "B",
+        "asset_scope": [
+          "Crypto",
+          "CryptoInfrastructure"
+        ],
+        "time_horizon": "Cycle",
+        "intended_committee_role": "crypto committee member",
+        "feature_vector_refs": [
+          "feature-card-arthur-hayes"
+        ],
+        "do_not_learn_refs": [
+          "do-not-learn-arthur-hayes"
+        ],
+        "candidate_status": "CandidateReadyWithWarnings",
+        "reason_codes": [
+          "CommitteeV1Built",
+          "CommitteeV1RunnerBuilt",
+          "ChairV0Built",
+          "OwnerCannotBypassRiskGovernor",
+          "NoTradeDefault",
+          "MambaRuntimeDeferred",
+          "GatedDeltaNetRuntimeDeferred",
+          "ControlTowerUiReadinessBuilt"
+        ]
+      },
+      {
+        "candidate_id": "benjamin-graham",
+        "public_name": "Benjamin Graham",
+        "normalized_archetype_name": "GrahamMarginOfSafety",
+        "source_category": "PublishedBook",
+        "confidence_grade": "A",
+        "asset_scope": [
+          "PublicEquities"
+        ],
+        "time_horizon": "LongTerm",
+        "intended_committee_role": "long-term equity committee member",
+        "feature_vector_refs": [
+          "feature-card-benjamin-graham"
+        ],
+        "do_not_learn_refs": [
+          "do-not-learn-benjamin-graham"
+        ],
+        "candidate_status": "CandidateReadyWithWarnings",
+        "reason_codes": [
+          "CommitteeV1Built",
+          "CommitteeV1RunnerBuilt",
+          "ChairV0Built",
+          "OwnerCannotBypassRiskGovernor",
+          "NoTradeDefault",
+          "MambaRuntimeDeferred",
+          "GatedDeltaNetRuntimeDeferred",
+          "ControlTowerUiReadinessBuilt"
+        ]
+      },
+      {
+        "candidate_id": "charlie-munger",
+        "public_name": "Charlie Munger",
+        "normalized_archetype_name": "MungerErrorFilter",
+        "source_category": "PublicInterview",
+        "confidence_grade": "A",
+        "asset_scope": [
+          "PublicEquities"
+        ],
+        "time_horizon": "LongTerm",
+        "intended_committee_role": "long-term equity committee member",
+        "feature_vector_refs": [
+          "feature-card-charlie-munger"
+        ],
+        "do_not_learn_refs": [
+          "do-not-learn-charlie-munger"
+        ],
+        "candidate_status": "CandidateReadyWithWarnings",
+        "reason_codes": [
+          "CommitteeV1Built",
+          "CommitteeV1RunnerBuilt",
+          "ChairV0Built",
+          "OwnerCannotBypassRiskGovernor",
+          "NoTradeDefault",
+          "MambaRuntimeDeferred",
+          "GatedDeltaNetRuntimeDeferred",
+          "ControlTowerUiReadinessBuilt"
+        ]
+      },
+      {
+        "candidate_id": "chris-burniske",
+        "public_name": "Chris Burniske",
+        "normalized_archetype_name": "BurniskeTokenValuation",
+        "source_category": "PublishedBook",
+        "confidence_grade": "BPlus",
+        "asset_scope": [
+          "Crypto",
+          "CryptoInfrastructure"
+        ],
+        "time_horizon": "Cycle",
+        "intended_committee_role": "crypto committee member",
+        "feature_vector_refs": [
+          "feature-card-chris-burniske"
+        ],
+        "do_not_learn_refs": [
+          "do-not-learn-chris-burniske"
+        ],
+        "candidate_status": "CandidateReadyWithWarnings",
+        "reason_codes": [
+          "CommitteeV1Built",
+          "CommitteeV1RunnerBuilt",
+          "ChairV0Built",
+          "OwnerCannotBypassRiskGovernor",
+          "NoTradeDefault",
+          "MambaRuntimeDeferred",
+          "GatedDeltaNetRuntimeDeferred",
+          "ControlTowerUiReadinessBuilt"
+        ]
+      },
+      {
+        "candidate_id": "howard-marks",
+        "public_name": "Howard Marks",
+        "normalized_archetype_name": "MarksCycleRiskPremium",
+        "source_category": "PublishedBook",
+        "confidence_grade": "A",
+        "asset_scope": [
+          "PublicEquities"
+        ],
+        "time_horizon": "LongTerm",
+        "intended_committee_role": "long-term equity committee member",
+        "feature_vector_refs": [
+          "feature-card-howard-marks"
+        ],
+        "do_not_learn_refs": [
+          "do-not-learn-howard-marks"
+        ],
+        "candidate_status": "CandidateReadyWithWarnings",
+        "reason_codes": [
+          "CommitteeV1Built",
+          "CommitteeV1RunnerBuilt",
+          "ChairV0Built",
+          "OwnerCannotBypassRiskGovernor",
+          "NoTradeDefault",
+          "MambaRuntimeDeferred",
+          "GatedDeltaNetRuntimeDeferred",
+          "ControlTowerUiReadinessBuilt"
+        ]
+      },
+      {
+        "candidate_id": "john-bogle",
+        "public_name": "John Bogle",
+        "normalized_archetype_name": "BogleLowCostCore",
+        "source_category": "PublishedBook",
+        "confidence_grade": "A",
+        "asset_scope": [
+          "PublicEquities"
+        ],
+        "time_horizon": "LongTerm",
+        "intended_committee_role": "long-term equity committee member",
+        "feature_vector_refs": [
+          "feature-card-john-bogle"
+        ],
+        "do_not_learn_refs": [
+          "do-not-learn-john-bogle"
+        ],
+        "candidate_status": "CandidateReadyWithWarnings",
+        "reason_codes": [
+          "CommitteeV1Built",
+          "CommitteeV1RunnerBuilt",
+          "ChairV0Built",
+          "OwnerCannotBypassRiskGovernor",
+          "NoTradeDefault",
+          "MambaRuntimeDeferred",
+          "GatedDeltaNetRuntimeDeferred",
+          "ControlTowerUiReadinessBuilt"
+        ]
+      },
+      {
+        "candidate_id": "larry-williams",
+        "public_name": "Larry Williams",
+        "normalized_archetype_name": "LarryWilliamsStatisticalSeasonality",
+        "source_category": "PublishedBook",
+        "confidence_grade": "B",
+        "asset_scope": [
+          "Futures",
+          "PublicEquities"
+        ],
+        "time_horizon": "Swing",
+        "intended_committee_role": "seasonality and statistics specialist",
+        "feature_vector_refs": [
+          "feature-card-larry-williams"
+        ],
+        "do_not_learn_refs": [
+          "do-not-learn-larry-williams"
+        ],
+        "candidate_status": "CandidateReadyWithWarnings",
+        "reason_codes": [
+          "CommitteeV1Built",
+          "CommitteeV1RunnerBuilt",
+          "ChairV0Built",
+          "OwnerCannotBypassRiskGovernor",
+          "NoTradeDefault",
+          "MambaRuntimeDeferred",
+          "GatedDeltaNetRuntimeDeferred",
+          "ControlTowerUiReadinessBuilt"
+        ]
+      },
+      {
+        "candidate_id": "linda-raschke",
+        "public_name": "Linda Bradford Raschke",
+        "normalized_archetype_name": "RaschkeProcessManager",
+        "source_category": "PublishedBook",
+        "confidence_grade": "BPlus",
+        "asset_scope": [
+          "Futures",
+          "PublicEquities"
+        ],
+        "time_horizon": "Swing",
+        "intended_committee_role": "process and pattern risk manager",
+        "feature_vector_refs": [
+          "feature-card-linda-raschke"
+        ],
+        "do_not_learn_refs": [
+          "do-not-learn-linda-raschke"
+        ],
+        "candidate_status": "CandidateReadyWithWarnings",
+        "reason_codes": [
+          "CommitteeV1Built",
+          "CommitteeV1RunnerBuilt",
+          "ChairV0Built",
+          "OwnerCannotBypassRiskGovernor",
+          "NoTradeDefault",
+          "MambaRuntimeDeferred",
+          "GatedDeltaNetRuntimeDeferred",
+          "ControlTowerUiReadinessBuilt"
+        ]
+      },
+      {
+        "candidate_id": "mark-minervini",
+        "public_name": "Mark Minervini",
+        "normalized_archetype_name": "MinerviniVcpBreakout",
+        "source_category": "PublishedBook",
+        "confidence_grade": "A",
+        "asset_scope": [
+          "PublicEquities"
+        ],
+        "time_horizon": "Swing",
+        "intended_committee_role": "short-term breakout timing specialist",
+        "feature_vector_refs": [
+          "feature-card-mark-minervini"
+        ],
+        "do_not_learn_refs": [
+          "do-not-learn-mark-minervini"
+        ],
+        "candidate_status": "CandidateReadyWithWarnings",
+        "reason_codes": [
+          "CommitteeV1Built",
+          "CommitteeV1RunnerBuilt",
+          "ChairV0Built",
+          "OwnerCannotBypassRiskGovernor",
+          "NoTradeDefault",
+          "MambaRuntimeDeferred",
+          "GatedDeltaNetRuntimeDeferred",
+          "ControlTowerUiReadinessBuilt"
+        ]
+      },
+      {
+        "candidate_id": "michael-saylor",
+        "public_name": "Michael Saylor / Strategy",
+        "normalized_archetype_name": "SaylorTreasury",
+        "source_category": "OfficialCompanyMaterial",
+        "confidence_grade": "A",
+        "asset_scope": [
+          "Crypto",
+          "CryptoInfrastructure"
+        ],
+        "time_horizon": "Cycle",
+        "intended_committee_role": "crypto committee member",
+        "feature_vector_refs": [
+          "feature-card-michael-saylor"
+        ],
+        "do_not_learn_refs": [
+          "do-not-learn-michael-saylor"
+        ],
+        "candidate_status": "CandidateReadyWithWarnings",
+        "reason_codes": [
+          "CommitteeV1Built",
+          "CommitteeV1RunnerBuilt",
+          "ChairV0Built",
+          "OwnerCannotBypassRiskGovernor",
+          "NoTradeDefault",
+          "MambaRuntimeDeferred",
+          "GatedDeltaNetRuntimeDeferred",
+          "ControlTowerUiReadinessBuilt"
+        ]
+      },
+      {
+        "candidate_id": "paul-tudor-jones",
+        "public_name": "Paul Tudor Jones",
+        "normalized_archetype_name": "PtjMacroAsymmetricRisk",
+        "source_category": "PublicInterview",
+        "confidence_grade": "BPlus",
+        "asset_scope": [
+          "Macro",
+          "Futures",
+          "MultiAsset"
+        ],
+        "time_horizon": "MediumTerm",
+        "intended_committee_role": "macro asymmetric-risk specialist",
+        "feature_vector_refs": [
+          "feature-card-paul-tudor-jones"
+        ],
+        "do_not_learn_refs": [
+          "do-not-learn-paul-tudor-jones"
+        ],
+        "candidate_status": "CandidateReadyWithWarnings",
+        "reason_codes": [
+          "CommitteeV1Built",
+          "CommitteeV1RunnerBuilt",
+          "ChairV0Built",
+          "OwnerCannotBypassRiskGovernor",
+          "NoTradeDefault",
+          "MambaRuntimeDeferred",
+          "GatedDeltaNetRuntimeDeferred",
+          "ControlTowerUiReadinessBuilt"
+        ]
+      },
+      {
+        "candidate_id": "peter-lynch",
+        "public_name": "Peter Lynch",
+        "normalized_archetype_name": "LynchGarpConsumerGrowth",
+        "source_category": "PublishedBook",
+        "confidence_grade": "A",
+        "asset_scope": [
+          "PublicEquities"
+        ],
+        "time_horizon": "LongTerm",
+        "intended_committee_role": "long-term equity committee member",
+        "feature_vector_refs": [
+          "feature-card-peter-lynch"
+        ],
+        "do_not_learn_refs": [
+          "do-not-learn-peter-lynch"
+        ],
+        "candidate_status": "CandidateReadyWithWarnings",
+        "reason_codes": [
+          "CommitteeV1Built",
+          "CommitteeV1RunnerBuilt",
+          "ChairV0Built",
+          "OwnerCannotBypassRiskGovernor",
+          "NoTradeDefault",
+          "MambaRuntimeDeferred",
+          "GatedDeltaNetRuntimeDeferred",
+          "ControlTowerUiReadinessBuilt"
+        ]
+      },
+      {
+        "candidate_id": "richard-dennis",
+        "public_name": "Richard Dennis / Turtle Traders",
+        "normalized_archetype_name": "TurtleTrendSystem",
+        "source_category": "PublicInterview",
+        "confidence_grade": "BPlus",
+        "asset_scope": [
+          "Futures",
+          "Macro"
+        ],
+        "time_horizon": "MediumTerm",
+        "intended_committee_role": "systematic trend-following specialist",
+        "feature_vector_refs": [
+          "feature-card-richard-dennis"
+        ],
+        "do_not_learn_refs": [
+          "do-not-learn-richard-dennis"
+        ],
+        "candidate_status": "CandidateReadyWithWarnings",
+        "reason_codes": [
+          "CommitteeV1Built",
+          "CommitteeV1RunnerBuilt",
+          "ChairV0Built",
+          "OwnerCannotBypassRiskGovernor",
+          "NoTradeDefault",
+          "MambaRuntimeDeferred",
+          "GatedDeltaNetRuntimeDeferred",
+          "ControlTowerUiReadinessBuilt"
+        ]
+      },
+      {
+        "candidate_id": "vitalik-buterin",
+        "public_name": "Vitalik Buterin / Ethereum",
+        "normalized_archetype_name": "VitalikProtocolFundamental",
+        "source_category": "OfficialCompanyMaterial",
+        "confidence_grade": "A",
+        "asset_scope": [
+          "Crypto",
+          "CryptoInfrastructure"
+        ],
+        "time_horizon": "Cycle",
+        "intended_committee_role": "crypto committee member",
+        "feature_vector_refs": [
+          "feature-card-vitalik-buterin"
+        ],
+        "do_not_learn_refs": [
+          "do-not-learn-vitalik-buterin"
+        ],
+        "candidate_status": "CandidateReadyWithWarnings",
+        "reason_codes": [
+          "CommitteeV1Built",
+          "CommitteeV1RunnerBuilt",
+          "ChairV0Built",
+          "OwnerCannotBypassRiskGovernor",
+          "NoTradeDefault",
+          "MambaRuntimeDeferred",
+          "GatedDeltaNetRuntimeDeferred",
+          "ControlTowerUiReadinessBuilt"
+        ]
+      },
+      {
+        "candidate_id": "warren-buffett",
+        "public_name": "Warren Buffett",
+        "normalized_archetype_name": "BuffettQualityMoat",
+        "source_category": "PublishedBook",
+        "confidence_grade": "A",
+        "asset_scope": [
+          "PublicEquities"
+        ],
+        "time_horizon": "LongTerm",
+        "intended_committee_role": "long-term equity committee member",
+        "feature_vector_refs": [
+          "feature-card-warren-buffett"
+        ],
+        "do_not_learn_refs": [
+          "do-not-learn-warren-buffett"
+        ],
+        "candidate_status": "CandidateReadyWithWarnings",
+        "reason_codes": [
+          "CommitteeV1Built",
+          "CommitteeV1RunnerBuilt",
+          "ChairV0Built",
+          "OwnerCannotBypassRiskGovernor",
+          "NoTradeDefault",
+          "MambaRuntimeDeferred",
+          "GatedDeltaNetRuntimeDeferred",
+          "ControlTowerUiReadinessBuilt"
+        ]
+      },
+      {
+        "candidate_id": "william-oneil",
+        "public_name": "William J. O’Neil",
+        "normalized_archetype_name": "OneilCanSlimMarketDirection",
+        "source_category": "PublishedBook",
+        "confidence_grade": "A",
+        "asset_scope": [
+          "PublicEquities"
+        ],
+        "time_horizon": "Swing",
+        "intended_committee_role": "growth trend and market-direction specialist",
+        "feature_vector_refs": [
+          "feature-card-william-oneil"
+        ],
+        "do_not_learn_refs": [
+          "do-not-learn-william-oneil"
+        ],
+        "candidate_status": "CandidateReadyWithWarnings",
+        "reason_codes": [
+          "CommitteeV1Built",
+          "CommitteeV1RunnerBuilt",
+          "ChairV0Built",
+          "OwnerCannotBypassRiskGovernor",
+          "NoTradeDefault",
+          "MambaRuntimeDeferred",
+          "GatedDeltaNetRuntimeDeferred",
+          "ControlTowerUiReadinessBuilt"
+        ]
+      },
+      {
+        "candidate_id": "willy-woo",
+        "public_name": "Willy Woo",
+        "normalized_archetype_name": "WillyWooOnchainCycle",
+        "source_category": "PublicInterview",
+        "confidence_grade": "BPlus",
+        "asset_scope": [
+          "Crypto",
+          "CryptoInfrastructure"
+        ],
+        "time_horizon": "Cycle",
+        "intended_committee_role": "crypto committee member",
+        "feature_vector_refs": [
+          "feature-card-willy-woo"
+        ],
+        "do_not_learn_refs": [
+          "do-not-learn-willy-woo"
+        ],
+        "candidate_status": "CandidateReadyWithWarnings",
+        "reason_codes": [
+          "CommitteeV1Built",
+          "CommitteeV1RunnerBuilt",
+          "ChairV0Built",
+          "OwnerCannotBypassRiskGovernor",
+          "NoTradeDefault",
+          "MambaRuntimeDeferred",
+          "GatedDeltaNetRuntimeDeferred",
+          "ControlTowerUiReadinessBuilt"
+        ]
+      },
+      {
+        "candidate_id": "wonyotti",
+        "public_name": "Wonyotti / AOA",
+        "normalized_archetype_name": "WonyottiBtcRisk",
+        "source_category": "CommunityAnecdote",
+        "confidence_grade": "BMinus",
+        "asset_scope": [
+          "Crypto",
+          "CryptoInfrastructure"
+        ],
+        "time_horizon": "Cycle",
+        "intended_committee_role": "crypto committee member",
+        "feature_vector_refs": [
+          "feature-card-wonyotti"
+        ],
+        "do_not_learn_refs": [
+          "do-not-learn-wonyotti"
+        ],
+        "candidate_status": "CandidateReadyWithWarnings",
+        "reason_codes": [
+          "CommitteeV1Built",
+          "CommitteeV1RunnerBuilt",
+          "ChairV0Built",
+          "OwnerCannotBypassRiskGovernor",
+          "NoTradeDefault",
+          "MambaRuntimeDeferred",
+          "GatedDeltaNetRuntimeDeferred",
+          "ControlTowerUiReadinessBuilt"
+        ]
+      }
+    ],
+    "short_term_swing_count": 6,
+    "long_term_equity_count": 6,
+    "crypto_count": 6,
+    "optional_japan_supplement_count": 0,
+    "blocked_or_low_confidence_count": 0,
+    "registry_status": "EighteenCandidateRegistryReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "style_group_taxonomy_report": {
+    "report_id": "style-group-taxonomy-report",
+    "short_term_swing_members": [
+      "LarryWilliamsStatisticalSeasonality",
+      "RaschkeProcessManager",
+      "MinerviniVcpBreakout",
+      "PtjMacroAsymmetricRisk",
+      "TurtleTrendSystem",
+      "OneilCanSlimMarketDirection"
+    ],
+    "long_term_equity_members": [
+      "GrahamMarginOfSafety",
+      "MungerErrorFilter",
+      "MarksCycleRiskPremium",
+      "BogleLowCostCore",
+      "LynchGarpConsumerGrowth",
+      "BuffettQualityMoat"
+    ],
+    "crypto_members": [
+      "HayesLiquidityDerivatives",
+      "BurniskeTokenValuation",
+      "SaylorTreasury",
+      "VitalikProtocolFundamental",
+      "WillyWooOnchainCycle",
+      "WonyottiBtcRisk"
+    ],
+    "common_risk_members": [
+      "CommonRiskManager"
+    ],
+    "optional_supplement_members": [],
+    "taxonomy_status": "StyleTaxonomyReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "short_term_swing_member_group": {
+    "group_id": "short-term-swing-member-group",
+    "members": [
+      "MinerviniVcpBreakout",
+      "OneilCanSlimMarketDirection",
+      "TurtleTrendSystem",
+      "PtjMacroAsymmetricRisk",
+      "RaschkeProcessManager",
+      "LarryWilliamsStatisticalSeasonality"
+    ],
+    "shared_features": [
+      "price-action confirmation",
+      "tight risk budgeting",
+      "explicit stop management"
+    ],
+    "conflict_rules": [
+      "do not override long-term quality mandates without regime evidence",
+      "macro narrative must still satisfy price-action validation"
+    ],
+    "risk_blindspots": [
+      "overreaction to short-lived volatility",
+      "higher whipsaw sensitivity in low-liquidity regimes"
+    ],
+    "group_status": "ShortTermSwingGroupReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "long_term_equity_member_group": {
+    "group_id": "long-term-equity-member-group",
+    "members": [
+      "BuffettQualityMoat",
+      "MungerErrorFilter",
+      "GrahamMarginOfSafety",
+      "LynchGarpConsumerGrowth",
+      "BogleLowCostCore",
+      "MarksCycleRiskPremium"
+    ],
+    "shared_features": [
+      "balance-sheet durability",
+      "valuation discipline",
+      "owner-oriented capital allocation review"
+    ],
+    "conflict_rules": [
+      "trend-only entry signals cannot bypass valuation and balance-sheet review",
+      "macro panic alone cannot overrule margin-of-safety requirements"
+    ],
+    "risk_blindspots": [
+      "slow reaction to abrupt structural breaks",
+      "under-response to short-horizon liquidity stress"
+    ],
+    "group_status": "LongTermEquityGroupReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "crypto_member_group": {
+    "group_id": "crypto-member-group",
+    "members": [
+      "WonyottiBtcRisk",
+      "SaylorTreasury",
+      "VitalikProtocolFundamental",
+      "BurniskeTokenValuation",
+      "HayesLiquidityDerivatives",
+      "WillyWooOnchainCycle"
+    ],
+    "shared_features": [
+      "on-chain and market-structure cross-checks",
+      "liquidity and leverage monitoring",
+      "custody and protocol risk review"
+    ],
+    "conflict_rules": [
+      "crypto leverage logic must not contaminate equity sizing rules",
+      "protocol narratives require observable network or liquidity evidence"
+    ],
+    "risk_blindspots": [
+      "reflexive leverage cascades",
+      "regulatory headline shocks"
+    ],
+    "group_status": "CryptoGroupReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "common_risk_manager_member_spec": {
+    "member_id": "CommonRiskManager",
+    "max_drawdown_limit": "portfolio-level drawdown budget with per-group caps",
+    "position_sizing_policy": "volatility-scaled paper sizing with hard concentration limits",
+    "liquidity_filter": "reject illiquid setups lacking exit capacity",
+    "slippage_model": "conservative paper slippage by venue and volatility regime",
+    "correlation_limit": "cap correlated exposures across equity, macro, and crypto groups",
+    "regime_detector": "committee-approved volatility, trend, and liquidity routing inputs",
+    "no_trade_mode": "default to NoTrade when routing or evidence is inconclusive",
+    "risk_governor_handoff_required": true,
+    "broker_execution_allowed": false,
+    "risk_manager_status": "CommonRiskManagerReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "style_conflict_matrix": {
+    "matrix_id": "style-conflict-matrix",
+    "conflicts": [
+      {
+        "left": "ShortTermBreakout",
+        "right": "LongTermValue",
+        "conflict": "ShortTermBreakoutVsLongTermValue",
+        "resolution": "DebateRequired"
+      },
+      {
+        "left": "CryptoLeverage",
+        "right": "EquityQuality",
+        "conflict": "CryptoLeverageVsEquityQuality",
+        "resolution": "RiskGovernorDecides"
+      },
+      {
+        "left": "MacroNarrative",
+        "right": "PriceAction",
+        "conflict": "MacroNarrativeVsPriceAction",
+        "resolution": "RegimeRouterDecides"
+      },
+      {
+        "left": "OnchainSignal",
+        "right": "LiquiditySignal",
+        "conflict": "OnchainSignalVsLiquiditySignal",
+        "resolution": "NeedMoreEvidence"
+      },
+      {
+        "left": "ValuePatience",
+        "right": "TrendStopLoss",
+        "conflict": "ValuePatienceVsTrendStopLoss",
+        "resolution": "DebateRequired"
+      },
+      {
+        "left": "OpportunityCost",
+        "right": "RiskGovernorVeto",
+        "conflict": "OpportunityCostVsRiskGovernorVeto",
+        "resolution": "NoTradeDefault"
+      }
+    ],
+    "conflict_resolution_policy": [
+      "DebateRequired",
+      "RegimeRouterDecides",
+      "RiskGovernorDecides",
+      "NeedMoreEvidence",
+      "NoTradeDefault"
+    ],
+    "matrix_status": "ConflictMatrixReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "regime_routing_policy": {
+    "policy_id": "regime-routing-policy",
+    "regime_inputs": [
+      "trend persistence",
+      "volatility compression/expansion",
+      "credit and liquidity stress",
+      "crypto on-chain and funding conditions"
+    ],
+    "route_to_groups": [
+      {
+        "regime": "equity_breakout_with_liquidity_support",
+        "route_to_groups": [
+          "ShortTermSwing",
+          "CommonRisk"
+        ],
+        "rationale": "favor swing specialists when price confirmation and liquidity align"
+      },
+      {
+        "regime": "quality_drawdown_with_balance_sheet_resilience",
+        "route_to_groups": [
+          "LongTermEquity",
+          "CommonRisk"
+        ],
+        "rationale": "favor long-term quality and valuation review under controlled stress"
+      },
+      {
+        "regime": "crypto_liquidity_cycle",
+        "route_to_groups": [
+          "Crypto",
+          "CommonRisk"
+        ],
+        "rationale": "route crypto-specific evidence to the crypto group and risk sentinel"
+      },
+      {
+        "regime": "cross_signal_conflict",
+        "route_to_groups": [
+          "CounterfactualReview",
+          "CommonRisk"
+        ],
+        "rationale": "fallback to debate, counterfactual review, or NoTrade when style conflict is unresolved"
+      }
+    ],
+    "no_trade_regimes": [
+      "insufficient_evidence",
+      "cross_group_conflict_without_resolution"
+    ],
+    "risk_denied_regimes": [
+      "liquidity_breakdown",
+      "risk_governor_veto"
+    ],
+    "route_status": "RegimeRoutingReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "multi_expert_committee_topology": {
+    "topology_id": "multi-expert-committee-topology",
+    "group_heads": {
+      "CommonRisk": "CommonRiskManager",
+      "Crypto": "VitalikProtocolFundamental",
+      "LongTermEquity": "BuffettQualityMoat",
+      "ShortTermSwing": "OneilCanSlimMarketDirection"
+    },
+    "member_groups": {
+      "Crypto": [
+        "WonyottiBtcRisk",
+        "SaylorTreasury",
+        "VitalikProtocolFundamental",
+        "BurniskeTokenValuation",
+        "HayesLiquidityDerivatives",
+        "WillyWooOnchainCycle"
+      ],
+      "LongTermEquity": [
+        "BuffettQualityMoat",
+        "MungerErrorFilter",
+        "GrahamMarginOfSafety",
+        "LynchGarpConsumerGrowth",
+        "BogleLowCostCore",
+        "MarksCycleRiskPremium"
+      ],
+      "ShortTermSwing": [
+        "MinerviniVcpBreakout",
+        "OneilCanSlimMarketDirection",
+        "TurtleTrendSystem",
+        "PtjMacroAsymmetricRisk",
+        "RaschkeProcessManager",
+        "LarryWilliamsStatisticalSeasonality"
+      ]
+    },
+    "common_risk_manager": "CommonRiskManager",
+    "chairman_governance_ref": "ChairmanStyleGovernancePolicyV2",
+    "risk_governor_ref": "RiskGovernorFinalVeto",
+    "debate_trigger_policy": [
+      "member timing proposal triggers committee debate",
+      "style conflicts require debate or NoTrade",
+      "risk governor retains final veto"
+    ],
+    "topology_status": "MultiExpertTopologyReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "member_style_confidence_weight_policy": {
+    "policy_id": "member-style-confidence-weight-policy",
+    "default_weights_by_confidence_grade": {
+      "A": 1.0,
+      "B": 0.8,
+      "BMinus": 0.7,
+      "BPlus": 0.9,
+      "Blocked": 0.0,
+      "C": 0.55
+    },
+    "candidate_weight_overrides": {
+      "BogleLowCostCore": 0.91,
+      "BuffettQualityMoat": 0.95,
+      "BurniskeTokenValuation": 0.8,
+      "GrahamMarginOfSafety": 0.93,
+      "HayesLiquidityDerivatives": 0.74,
+      "LarryWilliamsStatisticalSeasonality": 0.73,
+      "LynchGarpConsumerGrowth": 0.89,
+      "MarksCycleRiskPremium": 0.9,
+      "MinerviniVcpBreakout": 0.9,
+      "MungerErrorFilter": 0.92,
+      "OneilCanSlimMarketDirection": 0.91,
+      "PtjMacroAsymmetricRisk": 0.85,
+      "RaschkeProcessManager": 0.87,
+      "SaylorTreasury": 0.88,
+      "TurtleTrendSystem": 0.82,
+      "VitalikProtocolFundamental": 0.88,
+      "WillyWooOnchainCycle": 0.79,
+      "WonyottiBtcRisk": 0.62
+    },
+    "low_confidence_cap": 0.55,
+    "community_anecdote_cap": 0.6,
+    "official_source_bonus": 0.05,
+    "weak_source_penalty": 0.1,
+    "policy_status": "ConfidenceWeightPolicyReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "member_feature_scope_mapping_report": {
+    "report_id": "member-feature-scope-mapping-report",
+    "candidate_count": 18,
+    "features_by_candidate": {
+      "arthur-hayes": [
+        "on-chain or liquidity regime awareness",
+        "cycle and risk framing",
+        "custody/governance sensitivity",
+        "treasury or protocol adoption lens",
+        "derivatives stress monitoring"
+      ],
+      "benjamin-graham": [
+        "valuation discipline",
+        "balance-sheet review",
+        "durable thesis framing",
+        "capital allocation review",
+        "portfolio patience"
+      ],
+      "charlie-munger": [
+        "valuation discipline",
+        "balance-sheet review",
+        "durable thesis framing",
+        "capital allocation review",
+        "portfolio patience"
+      ],
+      "chris-burniske": [
+        "on-chain or liquidity regime awareness",
+        "cycle and risk framing",
+        "custody/governance sensitivity",
+        "treasury or protocol adoption lens",
+        "derivatives stress monitoring"
+      ],
+      "howard-marks": [
+        "valuation discipline",
+        "balance-sheet review",
+        "durable thesis framing",
+        "capital allocation review",
+        "portfolio patience"
+      ],
+      "john-bogle": [
+        "valuation discipline",
+        "balance-sheet review",
+        "durable thesis framing",
+        "capital allocation review",
+        "portfolio patience"
+      ],
+      "larry-williams": [
+        "seasonality lens",
+        "statistical tendency review",
+        "event-timing discipline",
+        "sentiment context",
+        "cycle windows"
+      ],
+      "linda-raschke": [
+        "pattern process discipline",
+        "stop-first risk management",
+        "mean-reversion vs breakout separation",
+        "intraday to swing context",
+        "execution checklist"
+      ],
+      "mark-minervini": [
+        "volatility contraction setup",
+        "breakout confirmation",
+        "relative strength leadership",
+        "earnings acceleration check",
+        "liquidity screen"
+      ],
+      "michael-saylor": [
+        "on-chain or liquidity regime awareness",
+        "cycle and risk framing",
+        "custody/governance sensitivity",
+        "treasury or protocol adoption lens",
+        "derivatives stress monitoring"
+      ],
+      "paul-tudor-jones": [
+        "asymmetric payoff framing",
+        "macro regime awareness",
+        "fast risk cutting",
+        "cross-asset confirmation",
+        "narrative stress testing"
+      ],
+      "peter-lynch": [
+        "valuation discipline",
+        "balance-sheet review",
+        "durable thesis framing",
+        "capital allocation review",
+        "portfolio patience"
+      ],
+      "richard-dennis": [
+        "trend breakout system",
+        "rule-based risk units",
+        "portfolio diversification",
+        "systematic exits",
+        "volatility sizing"
+      ],
+      "vitalik-buterin": [
+        "on-chain or liquidity regime awareness",
+        "cycle and risk framing",
+        "custody/governance sensitivity",
+        "treasury or protocol adoption lens",
+        "derivatives stress monitoring"
+      ],
+      "warren-buffett": [
+        "valuation discipline",
+        "balance-sheet review",
+        "durable thesis framing",
+        "capital allocation review",
+        "portfolio patience"
+      ],
+      "william-oneil": [
+        "CAN SLIM factor stack",
+        "market direction filter",
+        "earnings and sales acceleration",
+        "institutional accumulation",
+        "new highs leadership"
+      ],
+      "willy-woo": [
+        "on-chain or liquidity regime awareness",
+        "cycle and risk framing",
+        "custody/governance sensitivity",
+        "treasury or protocol adoption lens",
+        "derivatives stress monitoring"
+      ],
+      "wonyotti": [
+        "on-chain or liquidity regime awareness",
+        "cycle and risk framing",
+        "custody/governance sensitivity",
+        "treasury or protocol adoption lens",
+        "derivatives stress monitoring"
+      ]
+    },
+    "overlapping_features": [
+      "balance-sheet review",
+      "capital allocation review",
+      "custody/governance sensitivity",
+      "cycle and risk framing",
+      "derivatives stress monitoring",
+      "durable thesis framing",
+      "on-chain or liquidity regime awareness",
+      "portfolio patience",
+      "treasury or protocol adoption lens",
+      "valuation discipline"
+    ],
+    "missing_features": [],
+    "asset_scope_mismatches": [],
+    "feature_scope_status": "FeatureScopeMappingReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "member_learning_data_card_report": {
+    "report_id": "member-learning-data-card-report",
+    "data_cards": [
+      {
+        "candidate_id": "arthur-hayes",
+        "asset_scope": [
+          "Crypto",
+          "CryptoInfrastructure"
+        ],
+        "time_horizon": "Cycle",
+        "features": [
+          "on-chain or liquidity regime awareness",
+          "cycle and risk framing",
+          "custody/governance sensitivity",
+          "treasury or protocol adoption lens",
+          "derivatives stress monitoring"
+        ],
+        "entry_exit": [
+          "enter only when crypto-specific evidence and liquidity align",
+          "require risk-manager signoff for volatility regimes",
+          "exit on liquidity breakdown, thesis break, or governance risk shock"
+        ],
+        "risk_rules": [
+          "respect extreme volatility and custody risk",
+          "treat leverage as suspect by default"
+        ],
+        "do_not_learn": [
+          "exact wallet-profit claims",
+          "cult-like legend stories"
+        ],
+        "offline_study_only": true,
+        "runtime_deferred": true
+      },
+      {
+        "candidate_id": "benjamin-graham",
+        "asset_scope": [
+          "PublicEquities"
+        ],
+        "time_horizon": "LongTerm",
+        "features": [
+          "valuation discipline",
+          "balance-sheet review",
+          "durable thesis framing",
+          "capital allocation review",
+          "portfolio patience"
+        ],
+        "entry_exit": [
+          "enter when downside is favorable relative to durable value",
+          "require thesis and evidence alignment",
+          "exit when thesis durability breaks or valuation becomes extreme"
+        ],
+        "risk_rules": [
+          "avoid leverage-driven fragility",
+          "treat narratives below evidence"
+        ],
+        "do_not_learn": [
+          "hero worship language",
+          "exact alpha claims"
+        ],
+        "offline_study_only": true,
+        "runtime_deferred": true
+      },
+      {
+        "candidate_id": "charlie-munger",
+        "asset_scope": [
+          "PublicEquities"
+        ],
+        "time_horizon": "LongTerm",
+        "features": [
+          "valuation discipline",
+          "balance-sheet review",
+          "durable thesis framing",
+          "capital allocation review",
+          "portfolio patience"
+        ],
+        "entry_exit": [
+          "enter when downside is favorable relative to durable value",
+          "require thesis and evidence alignment",
+          "exit when thesis durability breaks or valuation becomes extreme"
+        ],
+        "risk_rules": [
+          "avoid leverage-driven fragility",
+          "treat narratives below evidence"
+        ],
+        "do_not_learn": [
+          "hero worship language",
+          "exact alpha claims"
+        ],
+        "offline_study_only": true,
+        "runtime_deferred": true
+      },
+      {
+        "candidate_id": "chris-burniske",
+        "asset_scope": [
+          "Crypto",
+          "CryptoInfrastructure"
+        ],
+        "time_horizon": "Cycle",
+        "features": [
+          "on-chain or liquidity regime awareness",
+          "cycle and risk framing",
+          "custody/governance sensitivity",
+          "treasury or protocol adoption lens",
+          "derivatives stress monitoring"
+        ],
+        "entry_exit": [
+          "enter only when crypto-specific evidence and liquidity align",
+          "require risk-manager signoff for volatility regimes",
+          "exit on liquidity breakdown, thesis break, or governance risk shock"
+        ],
+        "risk_rules": [
+          "respect extreme volatility and custody risk",
+          "treat leverage as suspect by default"
+        ],
+        "do_not_learn": [
+          "exact wallet-profit claims",
+          "cult-like legend stories"
+        ],
+        "offline_study_only": true,
+        "runtime_deferred": true
+      },
+      {
+        "candidate_id": "howard-marks",
+        "asset_scope": [
+          "PublicEquities"
+        ],
+        "time_horizon": "LongTerm",
+        "features": [
+          "valuation discipline",
+          "balance-sheet review",
+          "durable thesis framing",
+          "capital allocation review",
+          "portfolio patience"
+        ],
+        "entry_exit": [
+          "enter when downside is favorable relative to durable value",
+          "require thesis and evidence alignment",
+          "exit when thesis durability breaks or valuation becomes extreme"
+        ],
+        "risk_rules": [
+          "avoid leverage-driven fragility",
+          "treat narratives below evidence"
+        ],
+        "do_not_learn": [
+          "hero worship language",
+          "exact alpha claims"
+        ],
+        "offline_study_only": true,
+        "runtime_deferred": true
+      },
+      {
+        "candidate_id": "john-bogle",
+        "asset_scope": [
+          "PublicEquities"
+        ],
+        "time_horizon": "LongTerm",
+        "features": [
+          "valuation discipline",
+          "balance-sheet review",
+          "durable thesis framing",
+          "capital allocation review",
+          "portfolio patience"
+        ],
+        "entry_exit": [
+          "enter when downside is favorable relative to durable value",
+          "require thesis and evidence alignment",
+          "exit when thesis durability breaks or valuation becomes extreme"
+        ],
+        "risk_rules": [
+          "avoid leverage-driven fragility",
+          "treat narratives below evidence"
+        ],
+        "do_not_learn": [
+          "hero worship language",
+          "exact alpha claims"
+        ],
+        "offline_study_only": true,
+        "runtime_deferred": true
+      },
+      {
+        "candidate_id": "larry-williams",
+        "asset_scope": [
+          "Futures",
+          "PublicEquities"
+        ],
+        "time_horizon": "Swing",
+        "features": [
+          "seasonality lens",
+          "statistical tendency review",
+          "event-timing discipline",
+          "sentiment context",
+          "cycle windows"
+        ],
+        "entry_exit": [
+          "enter only when statistical tendency matches current context",
+          "demand liquidity and timing window alignment",
+          "exit when timing window closes or signal decays"
+        ],
+        "risk_rules": [
+          "treat seasonality as low-authority evidence",
+          "avoid blind calendar trades"
+        ],
+        "do_not_learn": [
+          "best trader trophy claims",
+          "exact contest profit myths"
+        ],
+        "offline_study_only": true,
+        "runtime_deferred": true
+      },
+      {
+        "candidate_id": "linda-raschke",
+        "asset_scope": [
+          "Futures",
+          "PublicEquities"
+        ],
+        "time_horizon": "Swing",
+        "features": [
+          "pattern process discipline",
+          "stop-first risk management",
+          "mean-reversion vs breakout separation",
+          "intraday to swing context",
+          "execution checklist"
+        ],
+        "entry_exit": [
+          "enter only after setup classification is clear",
+          "prefer repeatable liquid patterns",
+          "exit when pattern thesis fails or time stop hits"
+        ],
+        "risk_rules": [
+          "risk defined before entry",
+          "avoid style-mixing without evidence"
+        ],
+        "do_not_learn": [
+          "celebrity trader lore",
+          "exact seminar-result claims"
+        ],
+        "offline_study_only": true,
+        "runtime_deferred": true
+      },
+      {
+        "candidate_id": "mark-minervini",
+        "asset_scope": [
+          "PublicEquities"
+        ],
+        "time_horizon": "Swing",
+        "features": [
+          "volatility contraction setup",
+          "breakout confirmation",
+          "relative strength leadership",
+          "earnings acceleration check",
+          "liquidity screen"
+        ],
+        "entry_exit": [
+          "enter on breakout with volume confirmation",
+          "require market trend support",
+          "exit on failed breakout or trailing stop breach"
+        ],
+        "risk_rules": [
+          "hard stop below setup support",
+          "avoid weak market breadth"
+        ],
+        "do_not_learn": [
+          "exact profit screenshots",
+          "gym-routine legend stories",
+          "unofficial quote packs"
+        ],
+        "offline_study_only": true,
+        "runtime_deferred": true
+      },
+      {
+        "candidate_id": "michael-saylor",
+        "asset_scope": [
+          "Crypto",
+          "CryptoInfrastructure"
+        ],
+        "time_horizon": "Cycle",
+        "features": [
+          "on-chain or liquidity regime awareness",
+          "cycle and risk framing",
+          "custody/governance sensitivity",
+          "treasury or protocol adoption lens",
+          "derivatives stress monitoring"
+        ],
+        "entry_exit": [
+          "enter only when crypto-specific evidence and liquidity align",
+          "require risk-manager signoff for volatility regimes",
+          "exit on liquidity breakdown, thesis break, or governance risk shock"
+        ],
+        "risk_rules": [
+          "respect extreme volatility and custody risk",
+          "treat leverage as suspect by default"
+        ],
+        "do_not_learn": [
+          "exact wallet-profit claims",
+          "cult-like legend stories"
+        ],
+        "offline_study_only": true,
+        "runtime_deferred": true
+      },
+      {
+        "candidate_id": "paul-tudor-jones",
+        "asset_scope": [
+          "Macro",
+          "Futures",
+          "MultiAsset"
+        ],
+        "time_horizon": "MediumTerm",
+        "features": [
+          "asymmetric payoff framing",
+          "macro regime awareness",
+          "fast risk cutting",
+          "cross-asset confirmation",
+          "narrative stress testing"
+        ],
+        "entry_exit": [
+          "enter when macro regime and price confirm together",
+          "favor asymmetric setups with defined invalidation",
+          "exit quickly when macro thesis loses confirmation"
+        ],
+        "risk_rules": [
+          "cut risk early on invalidation",
+          "respect event risk and liquidity"
+        ],
+        "do_not_learn": [
+          "hero-trader anecdotes",
+          "exact macro PnL claims"
+        ],
+        "offline_study_only": true,
+        "runtime_deferred": true
+      },
+      {
+        "candidate_id": "peter-lynch",
+        "asset_scope": [
+          "PublicEquities"
+        ],
+        "time_horizon": "LongTerm",
+        "features": [
+          "valuation discipline",
+          "balance-sheet review",
+          "durable thesis framing",
+          "capital allocation review",
+          "portfolio patience"
+        ],
+        "entry_exit": [
+          "enter when downside is favorable relative to durable value",
+          "require thesis and evidence alignment",
+          "exit when thesis durability breaks or valuation becomes extreme"
+        ],
+        "risk_rules": [
+          "avoid leverage-driven fragility",
+          "treat narratives below evidence"
+        ],
+        "do_not_learn": [
+          "hero worship language",
+          "exact alpha claims"
+        ],
+        "offline_study_only": true,
+        "runtime_deferred": true
+      },
+      {
+        "candidate_id": "richard-dennis",
+        "asset_scope": [
+          "Futures",
+          "Macro"
+        ],
+        "time_horizon": "MediumTerm",
+        "features": [
+          "trend breakout system",
+          "rule-based risk units",
+          "portfolio diversification",
+          "systematic exits",
+          "volatility sizing"
+        ],
+        "entry_exit": [
+          "enter on confirmed breakout system signals",
+          "stagger entries by risk unit",
+          "exit on system stop or trend reversal"
+        ],
+        "risk_rules": [
+          "fixed fractional unit risk",
+          "diversify across markets"
+        ],
+        "do_not_learn": [
+          "legendary floor-trader myths",
+          "exact turtle profit brag sheets"
+        ],
+        "offline_study_only": true,
+        "runtime_deferred": true
+      },
+      {
+        "candidate_id": "vitalik-buterin",
+        "asset_scope": [
+          "Crypto",
+          "CryptoInfrastructure"
+        ],
+        "time_horizon": "Cycle",
+        "features": [
+          "on-chain or liquidity regime awareness",
+          "cycle and risk framing",
+          "custody/governance sensitivity",
+          "treasury or protocol adoption lens",
+          "derivatives stress monitoring"
+        ],
+        "entry_exit": [
+          "enter only when crypto-specific evidence and liquidity align",
+          "require risk-manager signoff for volatility regimes",
+          "exit on liquidity breakdown, thesis break, or governance risk shock"
+        ],
+        "risk_rules": [
+          "respect extreme volatility and custody risk",
+          "treat leverage as suspect by default"
+        ],
+        "do_not_learn": [
+          "exact wallet-profit claims",
+          "cult-like legend stories"
+        ],
+        "offline_study_only": true,
+        "runtime_deferred": true
+      },
+      {
+        "candidate_id": "warren-buffett",
+        "asset_scope": [
+          "PublicEquities"
+        ],
+        "time_horizon": "LongTerm",
+        "features": [
+          "valuation discipline",
+          "balance-sheet review",
+          "durable thesis framing",
+          "capital allocation review",
+          "portfolio patience"
+        ],
+        "entry_exit": [
+          "enter when downside is favorable relative to durable value",
+          "require thesis and evidence alignment",
+          "exit when thesis durability breaks or valuation becomes extreme"
+        ],
+        "risk_rules": [
+          "avoid leverage-driven fragility",
+          "treat narratives below evidence"
+        ],
+        "do_not_learn": [
+          "hero worship language",
+          "exact alpha claims"
+        ],
+        "offline_study_only": true,
+        "runtime_deferred": true
+      },
+      {
+        "candidate_id": "william-oneil",
+        "asset_scope": [
+          "PublicEquities"
+        ],
+        "time_horizon": "Swing",
+        "features": [
+          "CAN SLIM factor stack",
+          "market direction filter",
+          "earnings and sales acceleration",
+          "institutional accumulation",
+          "new highs leadership"
+        ],
+        "entry_exit": [
+          "enter only when market direction confirms",
+          "prefer leadership names with earnings strength",
+          "sell into failed breakout or thesis deterioration"
+        ],
+        "risk_rules": [
+          "respect market direction sell rules",
+          "avoid low-volume leadership names"
+        ],
+        "do_not_learn": [
+          "private subscription tips",
+          "exact annual return claims"
+        ],
+        "offline_study_only": true,
+        "runtime_deferred": true
+      },
+      {
+        "candidate_id": "willy-woo",
+        "asset_scope": [
+          "Crypto",
+          "CryptoInfrastructure"
+        ],
+        "time_horizon": "Cycle",
+        "features": [
+          "on-chain or liquidity regime awareness",
+          "cycle and risk framing",
+          "custody/governance sensitivity",
+          "treasury or protocol adoption lens",
+          "derivatives stress monitoring"
+        ],
+        "entry_exit": [
+          "enter only when crypto-specific evidence and liquidity align",
+          "require risk-manager signoff for volatility regimes",
+          "exit on liquidity breakdown, thesis break, or governance risk shock"
+        ],
+        "risk_rules": [
+          "respect extreme volatility and custody risk",
+          "treat leverage as suspect by default"
+        ],
+        "do_not_learn": [
+          "exact wallet-profit claims",
+          "cult-like legend stories"
+        ],
+        "offline_study_only": true,
+        "runtime_deferred": true
+      },
+      {
+        "candidate_id": "wonyotti",
+        "asset_scope": [
+          "Crypto",
+          "CryptoInfrastructure"
+        ],
+        "time_horizon": "Cycle",
+        "features": [
+          "on-chain or liquidity regime awareness",
+          "cycle and risk framing",
+          "custody/governance sensitivity",
+          "treasury or protocol adoption lens",
+          "derivatives stress monitoring"
+        ],
+        "entry_exit": [
+          "enter only when crypto-specific evidence and liquidity align",
+          "require risk-manager signoff for volatility regimes",
+          "exit on liquidity breakdown, thesis break, or governance risk shock"
+        ],
+        "risk_rules": [
+          "respect extreme volatility and custody risk",
+          "treat leverage as suspect by default"
+        ],
+        "do_not_learn": [
+          "exact wallet-profit claims",
+          "cult-like legend stories"
+        ],
+        "offline_study_only": true,
+        "runtime_deferred": true
+      }
+    ],
+    "cards_with_asset_scope": 18,
+    "cards_with_time_horizon": 18,
+    "cards_with_features": 18,
+    "cards_with_entry_exit": 18,
+    "cards_with_risk_rules": 18,
+    "cards_with_do_not_learn": 18,
+    "card_status": "LearningDataCardsReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "member_evidence_requirement_policy": {
+    "policy_id": "member-evidence-requirement-policy",
+    "required_evidence_by_style": {
+      "Crypto": [
+        "on-chain or protocol evidence",
+        "market structure/liquidity evidence",
+        "custody or governance risk review"
+      ],
+      "LongTermEquity": [
+        "financial statement evidence",
+        "valuation context",
+        "balance-sheet review"
+      ],
+      "ShortTermSwing": [
+        "price confirmation",
+        "volume/liquidity confirmation",
+        "risk stop definition"
+      ]
+    },
+    "official_evidence_required_styles": [
+      "LongTermEquity",
+      "CommonRisk"
+    ],
+    "research_evidence_allowed_styles": [
+      "ShortTermSwing",
+      "LongTermEquity",
+      "Crypto"
+    ],
+    "community_evidence_low_weight_styles": [
+      "Crypto"
+    ],
+    "minimum_evidence_before_proposal": 2,
+    "policy_status": "EvidenceRequirementPolicyReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "archetype_to_committee_member_mapping_report": {
+    "report_id": "archetype-to-committee-member-mapping-report",
+    "mapped_candidates": {
+      "arthur-hayes": "existing-paper-seat",
+      "benjamin-graham": "existing-paper-seat",
+      "charlie-munger": "existing-paper-seat",
+      "chris-burniske": "existing-paper-seat",
+      "howard-marks": "existing-paper-seat",
+      "john-bogle": "existing-paper-seat",
+      "larry-williams": "existing-paper-seat",
+      "linda-raschke": "existing-paper-seat",
+      "mark-minervini": "paper-watchlist",
+      "michael-saylor": "paper-watchlist",
+      "paul-tudor-jones": "paper-watchlist",
+      "peter-lynch": "paper-watchlist",
+      "richard-dennis": "diagnostic-paper-member",
+      "vitalik-buterin": "diagnostic-paper-member",
+      "warren-buffett": "diagnostic-paper-member",
+      "william-oneil": "inactive-paper-member",
+      "willy-woo": "inactive-paper-member",
+      "wonyotti": "inactive-paper-member"
+    },
+    "unmapped_candidates": [],
+    "mapped_to_existing_members": [
+      "HayesLiquidityDerivatives",
+      "GrahamMarginOfSafety",
+      "MungerErrorFilter",
+      "BurniskeTokenValuation",
+      "MarksCycleRiskPremium",
+      "BogleLowCostCore",
+      "LarryWilliamsStatisticalSeasonality",
+      "RaschkeProcessManager"
+    ],
+    "mapped_to_watchlist_members": [
+      "MinerviniVcpBreakout",
+      "SaylorTreasury",
+      "PtjMacroAsymmetricRisk",
+      "LynchGarpConsumerGrowth"
+    ],
+    "mapped_to_diagnostic_members": [
+      "TurtleTrendSystem",
+      "VitalikProtocolFundamental",
+      "BuffettQualityMoat"
+    ],
+    "mapped_to_inactive_paper_members": [
+      "OneilCanSlimMarketDirection",
+      "WillyWooOnchainCycle",
+      "WonyottiBtcRisk"
+    ],
+    "mapping_status": "ArchetypeMappingReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "eighteen_investor_committee_roster_plan": {
+    "plan_id": "eighteen-investor-committee-roster-plan",
+    "active_paper_members": [
+      "HayesLiquidityDerivatives",
+      "GrahamMarginOfSafety",
+      "MungerErrorFilter",
+      "BurniskeTokenValuation",
+      "MarksCycleRiskPremium",
+      "BogleLowCostCore",
+      "LarryWilliamsStatisticalSeasonality",
+      "RaschkeProcessManager"
+    ],
+    "watchlist_members": [
+      "MinerviniVcpBreakout",
+      "SaylorTreasury",
+      "PtjMacroAsymmetricRisk",
+      "LynchGarpConsumerGrowth"
+    ],
+    "diagnostic_members": [
+      "TurtleTrendSystem",
+      "VitalikProtocolFundamental",
+      "BuffettQualityMoat"
+    ],
+    "inactive_members": [
+      "OneilCanSlimMarketDirection",
+      "WillyWooOnchainCycle",
+      "WonyottiBtcRisk"
+    ],
+    "isolated_sentinels": [
+      "CommonRiskManager"
+    ],
+    "max_active_members": 8,
+    "activation_batch_plan": [
+      "keep initial eight paper seats active",
+      "promote watchlist members into paper review only after evidence refresh",
+      "keep diagnostic and inactive members out of live workflows"
+    ],
+    "roster_plan_status": "RosterExpansionPlanReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "eighteen_member_activation_gate": {
+    "gate_id": "eighteen-member-activation-gate",
+    "registry_status": "EighteenCandidateRegistryReady",
+    "safety_normalization_status": "SafetyNormalizationReady",
+    "impersonation_risk_status": "ImpersonationRiskControlled",
+    "source_confidence_status": "SourceConfidenceReadyWithWarnings",
+    "feature_card_status": "FeatureCardReadyWithWarnings",
+    "do_not_learn_status": "DoNotLearnGuardReady",
+    "paper_only_required": true,
+    "live_activation_allowed": false,
+    "gate_status": "EighteenPaperRosterGateReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "paper_only_roster_expansion_gate": {
+    "gate_id": "paper-only-roster-expansion-gate",
+    "roster_plan_status": "RosterExpansionPlanReady",
+    "committee_topology_status": "MultiExpertTopologyReady",
+    "regime_routing_status": "RegimeRoutingReady",
+    "risk_manager_status": "CommonRiskManagerReady",
+    "safety_status": "SafetyCoveragePreserved",
+    "workspace_truth_status": "FullWorkspaceNotRun",
+    "paper_roster_expansion_allowed": true,
+    "live_roster_expansion_allowed": false,
+    "gate_status": "PaperRosterExpansionReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "chairman_style_governance_policy_v2": {
+    "policy_id": "chairman-style-governance-policy-v2",
+    "can_adjust_style_weights_for_paper": true,
+    "can_adjust_style_weights_for_live": false,
+    "can_add_member_to_watchlist": true,
+    "can_activate_live_member": false,
+    "can_override_risk_governor": false,
+    "requires_audit_for_weight_change": true,
+    "requires_owner_review_for_roster_change": true,
+    "policy_status": "ChairmanStyleGovernanceReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "promotion_demotion_policy_v2_for_18_styles": {
+    "policy_id": "promotion-demotion-policy-v2-for-18-styles",
+    "axes": [
+      "evidence quality",
+      "source confidence",
+      "risk discipline",
+      "committee contribution quality"
+    ],
+    "style_specific_thresholds": {
+      "Crypto": "requires protocol/liquidity/custody evidence",
+      "LongTermEquity": "requires fundamental and valuation evidence",
+      "ShortTermSwing": "requires explicit stop and liquidity discipline"
+    },
+    "low_confidence_member_caps": {
+      "active_paper": 2,
+      "watchlist": 4
+    },
+    "watchlist_to_active_rules": [
+      "must improve evidence depth before active paper promotion",
+      "must remain below low-confidence cap"
+    ],
+    "active_to_diagnostic_rules": [
+      "demote when impersonation risk or source-boundary concerns rise",
+      "demote when risk governor alignment fails"
+    ],
+    "demotion_for_impersonation_risk": true,
+    "demotion_for_source_boundary_violation": true,
+    "demotion_for_no_lookahead_violation": true,
+    "demotion_for_risk_governor_misalignment": true,
+    "policy_status": "PromotionPolicyV2Ready",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "safety_coverage_preservation_report_v17": {
+    "report_id": "safety-coverage-preservation-report-v17",
+    "live_trading_guard_present": true,
+    "broker_guard_present": true,
+    "order_guard_present": true,
+    "account_guard_present": true,
+    "runtime_llm_guard_present": true,
+    "mamba_runtime_guard_present": true,
+    "gated_runtime_guard_present": true,
+    "model_training_guard_present": true,
+    "rust_neural_training_guard_present": true,
+    "python_training_dependency_guard_present": true,
+    "secret_guard_present": true,
+    "no_lookahead_guard_present": true,
+    "source_boundary_guard_present": true,
+    "browser_execution_guard_present": true,
+    "ui_order_control_guard_present": true,
+    "investor_impersonation_guard_present": true,
+    "unverified_claim_filter_present": true,
+    "do_not_learn_guard_present": true,
+    "eighteen_live_activation_forbidden": true,
+    "paper_roster_only_guard_present": true,
+    "chairman_risk_bypass_guard_present": true,
+    "safety_status": "SafetyCoveragePreserved",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "control_tower_investor_archetype_panel": {
+    "panel_id": "control-tower-investor-archetype-panel",
+    "registry_status": "EighteenCandidateRegistryReady",
+    "candidate_rows": [
+      {
+        "candidate_id": "arthur-hayes",
+        "archetype_name": "HayesLiquidityDerivatives",
+        "style_group": "Crypto",
+        "confidence_grade": "B",
+        "candidate_status": "CandidateReadyWithWarnings"
+      },
+      {
+        "candidate_id": "benjamin-graham",
+        "archetype_name": "GrahamMarginOfSafety",
+        "style_group": "LongTermEquity",
+        "confidence_grade": "A",
+        "candidate_status": "CandidateReadyWithWarnings"
+      },
+      {
+        "candidate_id": "charlie-munger",
+        "archetype_name": "MungerErrorFilter",
+        "style_group": "LongTermEquity",
+        "confidence_grade": "A",
+        "candidate_status": "CandidateReadyWithWarnings"
+      },
+      {
+        "candidate_id": "chris-burniske",
+        "archetype_name": "BurniskeTokenValuation",
+        "style_group": "Crypto",
+        "confidence_grade": "BPlus",
+        "candidate_status": "CandidateReadyWithWarnings"
+      },
+      {
+        "candidate_id": "howard-marks",
+        "archetype_name": "MarksCycleRiskPremium",
+        "style_group": "LongTermEquity",
+        "confidence_grade": "A",
+        "candidate_status": "CandidateReadyWithWarnings"
+      },
+      {
+        "candidate_id": "john-bogle",
+        "archetype_name": "BogleLowCostCore",
+        "style_group": "LongTermEquity",
+        "confidence_grade": "A",
+        "candidate_status": "CandidateReadyWithWarnings"
+      },
+      {
+        "candidate_id": "larry-williams",
+        "archetype_name": "LarryWilliamsStatisticalSeasonality",
+        "style_group": "ShortTermSwing",
+        "confidence_grade": "B",
+        "candidate_status": "CandidateReadyWithWarnings"
+      },
+      {
+        "candidate_id": "linda-raschke",
+        "archetype_name": "RaschkeProcessManager",
+        "style_group": "ShortTermSwing",
+        "confidence_grade": "BPlus",
+        "candidate_status": "CandidateReadyWithWarnings"
+      },
+      {
+        "candidate_id": "mark-minervini",
+        "archetype_name": "MinerviniVcpBreakout",
+        "style_group": "ShortTermSwing",
+        "confidence_grade": "A",
+        "candidate_status": "CandidateReadyWithWarnings"
+      },
+      {
+        "candidate_id": "michael-saylor",
+        "archetype_name": "SaylorTreasury",
+        "style_group": "Crypto",
+        "confidence_grade": "A",
+        "candidate_status": "CandidateReadyWithWarnings"
+      },
+      {
+        "candidate_id": "paul-tudor-jones",
+        "archetype_name": "PtjMacroAsymmetricRisk",
+        "style_group": "ShortTermSwing",
+        "confidence_grade": "BPlus",
+        "candidate_status": "CandidateReadyWithWarnings"
+      },
+      {
+        "candidate_id": "peter-lynch",
+        "archetype_name": "LynchGarpConsumerGrowth",
+        "style_group": "LongTermEquity",
+        "confidence_grade": "A",
+        "candidate_status": "CandidateReadyWithWarnings"
+      },
+      {
+        "candidate_id": "richard-dennis",
+        "archetype_name": "TurtleTrendSystem",
+        "style_group": "ShortTermSwing",
+        "confidence_grade": "BPlus",
+        "candidate_status": "CandidateReadyWithWarnings"
+      },
+      {
+        "candidate_id": "vitalik-buterin",
+        "archetype_name": "VitalikProtocolFundamental",
+        "style_group": "Crypto",
+        "confidence_grade": "A",
+        "candidate_status": "CandidateReadyWithWarnings"
+      },
+      {
+        "candidate_id": "warren-buffett",
+        "archetype_name": "BuffettQualityMoat",
+        "style_group": "LongTermEquity",
+        "confidence_grade": "A",
+        "candidate_status": "CandidateReadyWithWarnings"
+      },
+      {
+        "candidate_id": "william-oneil",
+        "archetype_name": "OneilCanSlimMarketDirection",
+        "style_group": "ShortTermSwing",
+        "confidence_grade": "A",
+        "candidate_status": "CandidateReadyWithWarnings"
+      },
+      {
+        "candidate_id": "willy-woo",
+        "archetype_name": "WillyWooOnchainCycle",
+        "style_group": "Crypto",
+        "confidence_grade": "BPlus",
+        "candidate_status": "CandidateReadyWithWarnings"
+      },
+      {
+        "candidate_id": "wonyotti",
+        "archetype_name": "WonyottiBtcRisk",
+        "style_group": "Crypto",
+        "confidence_grade": "BMinus",
+        "candidate_status": "CandidateReadyWithWarnings"
+      }
+    ],
+    "group_rows": [
+      {
+        "group_name": "ShortTermSwing",
+        "member_count": 6,
+        "summary": "short-horizon breakout, swing, and tactical risk archetypes"
+      },
+      {
+        "group_name": "LongTermEquity",
+        "member_count": 6,
+        "summary": "long-horizon quality, value, and cycle-aware equity archetypes"
+      },
+      {
+        "group_name": "Crypto",
+        "member_count": 6,
+        "summary": "crypto cycle, protocol, treasury, and liquidity archetypes"
+      },
+      {
+        "group_name": "CommonRisk",
+        "member_count": 1,
+        "summary": "shared risk governor and risk-manager constraints"
+      }
+    ],
+    "confidence_summary": "high=15 medium=3 low=0 blocked=0",
+    "safety_normalization_summary": "status=SafetyNormalizationReady removed_items=90",
+    "impersonation_risk_summary": "status=ImpersonationRiskControlled high=0 medium=18 low=0",
+    "do_not_learn_summary": "guards=18 all paper-only",
+    "feature_scope_summary": "status=FeatureScopeMappingReady overlaps=10 mismatches=0",
+    "roster_plan_summary": "active=8 watchlist=4 diagnostic=3 inactive=3",
+    "activation_gate_summary": "status=EighteenPaperRosterGateReadyWithWarnings live_activation_allowed=false",
+    "chairman_style_governance_summary": "status=ChairmanStyleGovernanceReady risk_override=false",
+    "runtime_deferred_summary": "runtime deferred, training deferred, live inference forbidden, live trading forbidden, static/read-only control tower",
+    "workspace_truth_summary": "workspace_truth=FullWorkspaceNotRun full_workspace_finished=false can_claim_full_acceptance=false",
+    "next_actions": [
+      "keep investor archetypes paper-only and research-only",
+      "use watchlist rotation before any paper roster promotion",
+      "continue evidence deepening for lower-confidence candidates"
+    ],
+    "warnings": [
+      "static/read-only panel only",
+      "no train/runtime/live/order/account/browser controls",
+      "no activate-all-18-live action"
+    ],
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "workspace_acceptance_truth_import": {
+    "import_id": "sprint101-workspace-truth-import",
+    "source_path": null,
+    "imported_gate_id": "sprint100-derived-workspace-truth",
+    "truth_status": "FullWorkspaceNotRun",
+    "full_workspace_finished": false,
+    "full_workspace_passed": null,
+    "can_claim_full_acceptance": false,
+    "queue_closed_with_workspace_still_blocked": true,
+    "notes": [
+      "derived_from_sprint100_paper_readiness=PaperCommitteeReadyWithWarnings",
+      "derived_from_sprint100_workspace_attempt=FullWorkspaceNotRun"
+    ],
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "storage_report": {
+    "report_id": "investor-archetype-ingestion-report-storage-report",
+    "output_dir": "target/soma_sprint101_investor_archetype_ingestion/sprint101-investor-archetype-ingest",
+    "file_count": 32,
+    "files": [
+      "investor_archetype_ingestion.txt",
+      "source_confidence.txt",
+      "safety_normalization.txt",
+      "feature_vector_cards.txt",
+      "do_not_learn_guards.txt",
+      "impersonation_risk.txt",
+      "unverified_claim_filter.txt",
+      "private_life_myth_filter.txt",
+      "eighteen_investor_candidate_registry.txt",
+      "style_group_taxonomy.txt",
+      "short_term_swing_member_group.txt",
+      "long_term_equity_member_group.txt",
+      "crypto_member_group.txt",
+      "common_risk_manager.txt",
+      "style_conflict_matrix.txt",
+      "regime_routing_policy.txt",
+      "multi_expert_committee_topology.txt",
+      "confidence_weight_policy.txt",
+      "feature_scope_mapping.txt",
+      "learning_data_cards.txt",
+      "evidence_requirement_policy.txt",
+      "archetype_to_member_mapping.txt",
+      "eighteen_roster_plan.txt",
+      "eighteen_activation_gate.txt",
+      "paper_roster_expansion_gate.txt",
+      "chairman_style_governance_v2.txt",
+      "promotion_demotion_policy_v2.txt",
+      "safety_coverage_v17.txt",
+      "control_tower_investor_archetype_panel.txt",
+      "workspace_acceptance_truth_import.txt",
+      "storage_report.txt",
+      "summary.txt"
+    ],
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "final_summary": "## 1. Sprint summary\n\n- Built a deterministic Sprint 101 paper-only archetype ingestion bundle for 18 candidates.\n- Reused Sprint 100 paper readiness state and preserved committee-owned architecture.\n\n## 2. Why Sprint 101 was needed\n\n- Sprint 100 closed paper-readiness warnings, while Sprint 101 safely converts the new 18-investor material into auditable archetype cards without enabling live agents, training, or runtime inference.\n\n## 3. How the 18 investor material was applied\n\n- Parsed local-only source material into candidate records.\n- Normalized public philosophy into archetype cards, filtered unsafe claims, grouped styles, and mapped them into a paper-only roster plan.\n\n## 4. Files added\n\n- Added Sprint 101 examples, fixture data, docs, focused tests, and export surfaces for investor archetype ingestion.\n\n## 5. Files changed\n\n- Extended src/league/sprint98_committee_owned_core.rs, src/league/mod.rs, src/lib.rs, src/bin/soma_experiment.rs, and tests/support for Sprint 101.\n\n## 6. Investor archetype ingestion\n\n- Ingestion status: InvestorArchetypeCardsReady.\n- Paper-only: true. Live activation forbidden: true.\n\n## 7. Source confidence\n\n- Source confidence status: SourceConfidenceReadyWithWarnings.\n- High/medium/low/blocked = 15/3/0/0.\n\n## 8. Safety normalization\n\n- Safety normalization status: SafetyNormalizationReady.\n- Removed impersonation/private-strategy/profit/private-life items = 36/18/18/18.\n\n## 9. Feature vector cards\n\n- Built 18 feature cards with entry, exit, risk, sizing, and no-trade conditions.\n\n## 10. Do-not-learn guards\n\n- Built 18 do-not-learn guards covering profit claims, lifestyle myths, unofficial quotes, private strategy claims, and unsupported rules.\n\n## 11. Impersonation risk\n\n- Impersonation status: ImpersonationRiskControlled.\n- High/medium/low risk candidates = 0/18/0.\n\n## 12. Unverified claim filtering\n\n- Filter status: UnverifiedClaimsFiltered.\n- Filtered 87 unverified items.\n\n## 13. Private-life myth filtering\n\n- Private-life filter status: PrivateLifeMythsFiltered.\n- Removed 18 private-life myths while preserving 31 useful routines.\n\n## 14. 18 investor candidate registry\n\n- Registry status: EighteenCandidateRegistryReady.\n- Short-term/long-term/crypto = 6/6/6.\n\n## 15. Style group taxonomy\n\n- Taxonomy status: StyleTaxonomyReady. Common risk members: CommonRiskManager.\n\n## 16. Short-term / swing group\n\n- Group status: ShortTermSwingGroupReady. Members: MinerviniVcpBreakout, OneilCanSlimMarketDirection, TurtleTrendSystem, PtjMacroAsymmetricRisk, RaschkeProcessManager, LarryWilliamsStatisticalSeasonality.\n\n## 17. Long-term equity group\n\n- Group status: LongTermEquityGroupReady. Members: BuffettQualityMoat, MungerErrorFilter, GrahamMarginOfSafety, LynchGarpConsumerGrowth, BogleLowCostCore, MarksCycleRiskPremium.\n\n## 18. Crypto group\n\n- Group status: CryptoGroupReadyWithWarnings. Members: WonyottiBtcRisk, SaylorTreasury, VitalikProtocolFundamental, BurniskeTokenValuation, HayesLiquidityDerivatives, WillyWooOnchainCycle.\n\n## 19. Common risk manager\n\n- Risk manager status: CommonRiskManagerReady. Risk Governor handoff required: true.\n\n## 20. Style conflict matrix\n\n- Conflict matrix status: ConflictMatrixReady. Conflicts tracked: 6.\n\n## 21. Regime routing policy\n\n- Routing status: RegimeRoutingReady. No-trade regimes: insufficient_evidence, cross_group_conflict_without_resolution.\n\n## 22. Multi-expert committee topology\n\n- Topology status: MultiExpertTopologyReady. Group heads: CommonRisk=CommonRiskManager, Crypto=VitalikProtocolFundamental, LongTermEquity=BuffettQualityMoat, ShortTermSwing=OneilCanSlimMarketDirection.\n\n## 23. Confidence weight policy\n\n- Policy status: ConfidenceWeightPolicyReady. Low-confidence cap = 0.55.\n\n## 24. Feature scope mapping\n\n- Feature scope status: FeatureScopeMappingReady. Overlapping features tracked: 10.\n\n## 25. Learning data cards\n\n- Learning card status: LearningDataCardsReady. Offline-study-only cards: 18.\n\n## 26. Evidence requirement policy\n\n- Evidence policy status: EvidenceRequirementPolicyReady. Minimum evidence before proposal = 2.\n\n## 27. Archetype-to-member mapping\n\n- Mapping status: ArchetypeMappingReady. Existing/watchlist/diagnostic/inactive = 8/4/3/3.\n\n## 28. 18-member roster plan\n\n- Roster status: RosterExpansionPlanReady. Active/watchlist/diagnostic/inactive = 8/4/3/3.\n\n## 29. Activation gate\n\n- Activation gate status: EighteenPaperRosterGateReadyWithWarnings. Live activation allowed: false.\n\n## 30. Paper-only roster expansion gate\n\n- Paper roster gate status: PaperRosterExpansionReady. Paper expansion allowed: true. Live expansion allowed: false.\n\n## 31. Chairman style governance v2\n\n- Governance status: ChairmanStyleGovernanceReady. Chairman can override Risk Governor: false.\n\n## 32. Promotion/demotion policy v2\n\n- Promotion policy status: PromotionPolicyV2Ready. Demotion triggers include impersonation risk, source-boundary violation, no-lookahead violation, and risk misalignment.\n\n## 33. Safety coverage preservation v17\n\n- Safety status: SafetyCoveragePreserved. Eighteen live activation forbidden: true.\n\n## 34. Control Tower investor archetype panel\n\n- Built a static/read-only panel with candidate rows, group rows, confidence summary, safety summary, roster summary, and explicit warnings for no train/runtime/live/order/account/browser controls.\n\n## 35. Output bundle\n\n- Wrote 32 bundle files to the Sprint 101 output bundle.\n\n## 36. CLI and examples\n\n- Added Sprint 101 ingestion/report commands plus example TOMLs for each view over the same safe config surface.\n\n## 37. Tests added\n\n- Added focused ingestion, safety, registry, routing, gate, panel, CLI safety, determinism, and config tests for Sprint 101.\n\n## 38. Test results\n\n- Focused Sprint 101 tests and CLI smoke are expected to run against deterministic local-only fixtures; full workspace acceptance remains a separate truth gate.\n\n## 39. Registry status\n\n- EighteenCandidateRegistryReady; low-confidence or blocked candidates = 0.\n\n## 40. Safety normalization status\n\n- SafetyNormalizationReady; warnings = 0.\n\n## 41. Paper roster expansion status\n\n- PaperRosterExpansionReady; roster expansion stays paper-only.\n\n## 42. Runtime deferred status\n\n- Runtime remains deferred; no model training, live inference, runtime LLM live decision path, live trading, broker, order, or account command was introduced.\n\n## 43. Workspace acceptance truth status\n\n- Workspace truth status: FullWorkspaceNotRun. Full workspace acceptance remains separate from focused Sprint 101 validation.\n\n## 44. Risk review\n\n- Chairman cannot bypass the Risk Governor. Risk Governor remains final veto. Promotion/demotion stays research roster management only.\n\n## 45. Deferred items\n\n- Runtime, training, live inference, live trading, Mamba runtime, Gated runtime, browser execution, dashboard serve, and any 18-live-agent activation remain deferred or forbidden.\n\n## 46. Next gstack sprint recommendation\n\n- Use the new archetype cards in a paper-only dry-run rotation, deepen evidence quality on lower-confidence candidates, and keep workspace acceptance truth separate.\n\n",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

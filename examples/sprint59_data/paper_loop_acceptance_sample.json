@@ -1,0 +1,17 @@
+{
+  "acceptance_id": "sprint59-paper-loop",
+  "candidate_generated": true,
+  "committee_votes_recorded": true,
+  "chair_decision_recorded": true,
+  "risk_decision_recorded": true,
+  "owner_review_route_recorded": true,
+  "paper_transition_recorded": true,
+  "paper_position_simulated": true,
+  "dashboard_refreshed": true,
+  "runbook_emitted": true,
+  "risk_block_test_passed": true,
+  "no_trade_test_passed": true,
+  "no_real_order_path_detected": true,
+  "no_broker_path_detected": true,
+  "acceptance_status": "Passed"
+}

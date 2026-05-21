@@ -1,0 +1,1 @@
+Sprint 112 follows Sprint 111 by importing Sprint 111 truth as supporting-only evidence, adding nextest/sccache diagnostic pilots, improving workspace timing/progress attribution, and keeping fifth-patch application blocked in this sprint. Full workspace acceptance still requires a real finished and passed `cargo test --workspace --quiet` run.

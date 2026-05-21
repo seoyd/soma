@@ -1,0 +1,22 @@
+[
+  {
+    "owner_input_id": "owner-hold-aapl",
+    "timestamp_ms": 1715000000900,
+    "owner_id": "owner",
+    "input_kind": "CandidateHold",
+    "target_type": "Symbol",
+    "symbol": "AAPL",
+    "status": "Submitted",
+    "reason_codes": ["DeterministicPath"]
+  },
+  {
+    "owner_input_id": "owner-paper-confirm-aapl",
+    "timestamp_ms": 1715000000910,
+    "owner_id": "owner",
+    "input_kind": "PaperConfirm",
+    "target_type": "Symbol",
+    "symbol": "AAPL",
+    "status": "Submitted",
+    "reason_codes": ["DeterministicPath"]
+  }
+]

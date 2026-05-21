@@ -1,0 +1,39 @@
+{
+  "report_id": "workspace-timeout-root-cause-v2",
+  "root_cause_categories": [
+    "ArtifactRenderFanout",
+    "CliSmokeFanout",
+    "FixtureSetupFanout",
+    "IntegrationTestBinaryFanout",
+    "LinkTimeCost",
+    "MacroExpansionCost"
+  ],
+  "observed_evidence": [
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs",
+    "timeout cleanup left no remaining cargo/rustc processes",
+    "workspace full run timed out at 300 seconds with exit 124",
+    "workspace no-run timed out at 300 seconds with exit 124"
+  ],
+  "inferred_evidence": [
+    "ArtifactRenderFanout",
+    "CliSmokeFanout",
+    "FixtureSetupFanout",
+    "IntegrationTestBinaryFanout",
+    "LinkTimeCost",
+    "MacroExpansionCost",
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs",
+    "tests/shared_fixture_harness_application_v1.rs",
+    "tests/workspace_timeout_root_cause.rs"
+  ],
+  "confidence": "Moderate",
+  "status": "TimeoutRootCausePartiallyIsolated",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

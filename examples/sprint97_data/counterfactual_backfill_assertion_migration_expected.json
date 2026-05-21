@@ -1,0 +1,21 @@
+{
+  "report_id": "sprint97-counterfactual-backfill-recover-assertion-migration",
+  "donor_files": [
+    "tests/counterfactual_backfill_recovery.rs",
+    "tests/counterfactual_backfill_entry_gate.rs",
+    "tests/counterfactual_backfill_readiness_precheck.rs"
+  ],
+  "target_suite": "tests/counterfactual_backfill_suite.rs",
+  "assertions_found": 3,
+  "assertions_migrated": 1,
+  "assertions_remaining": 2,
+  "high_risk_assertions_kept_separate": [
+    "tests/counterfactual_backfill_entry_gate.rs::counterfactual_backfill_entry_gate_is_ready_only_after_baseline_signal => kept separate as the explicit consumed-entry sentinel between Sprint 96 and Sprint 97",
+    "tests/counterfactual_backfill_readiness_precheck.rs::counterfactual_backfill_readiness_precheck_stays_ready => kept separate as the readiness-precheck sentinel for real reduction entry"
+  ],
+  "migration_status": "AssertionsMigratedWithWarnings",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "offline_evaluation_preserved": true,
+  "trinity_comparison_preserved": true,
+  "no_trade_comparison_preserved": true,
+  "risk_denied_comparison_preserved": true,
+  "calibration_report_preserved": true,
+  "risk_interaction_report_preserved": true,
+  "promotion_gate_research_only_preserved": true
+}

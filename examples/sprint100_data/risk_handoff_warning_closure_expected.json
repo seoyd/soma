@@ -1,0 +1,20 @@
+{
+  "report_id": "risk-governor-handoff-warning-closure-report",
+  "previous_handoff_status": "RiskHandoffReadyWithWarnings",
+  "sessions_with_risk_handoff": 1,
+  "sessions_missing_risk_handoff": 0,
+  "bypass_attempt_count": 0,
+  "veto_trace_complete": true,
+  "remaining_warning_count": 0,
+  "closure_status": "RiskHandoffWarningsClosedWithNotes",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

@@ -1,0 +1,15 @@
+{"id":"code1","prompt":"print hello world","expected":"print(\"hello world\")","kind":"code"}
+{"id":"code2","prompt":"define function add two numbers","expected":"def add(a, b): return a + b","kind":"code"}
+{"id":"code3","prompt":"create list of numbers 1 to 5","expected":"[1, 2, 3, 4, 5]","kind":"code"}
+{"id":"code4","prompt":"loop from 0 to 9","expected":"for i in range(10):","kind":"code"}
+{"id":"code5","prompt":"if x greater than 10","expected":"if x > 10:","kind":"code"}
+{"id":"code6","prompt":"import json module","expected":"import json","kind":"code"}
+{"id":"code7","prompt":"read file contents","expected":"with open('file.txt', 'r') as f: content = f.read()","kind":"code"}
+{"id":"code8","prompt":"dict with key value pairs","expected":"{\"key\": \"value\"}","kind":"code"}
+{"id":"code9","prompt":"lambda function multiply by 2","expected":"lambda x: x * 2","kind":"code"}
+{"id":"code10","prompt":"list comprehension squares","expected":"[x**2 for x in range(10)]","kind":"code"}
+{"id":"code11","prompt":"try except block","expected":"try: pass\nexcept Exception: pass","kind":"code"}
+{"id":"code12","prompt":"class definition","expected":"class MyClass: pass","kind":"code"}
+{"id":"code13","prompt":"return statement","expected":"return result","kind":"code"}
+{"id":"code14","prompt":"while loop condition","expected":"while condition: pass","kind":"code"}
+{"id":"code15","prompt":"string format","expected":"f\"{variable}\"","kind":"code"}

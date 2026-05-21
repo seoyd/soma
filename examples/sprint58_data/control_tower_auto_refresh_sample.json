@@ -1,0 +1,59 @@
+{
+  "refresh_id": "sprint58-control-tower-auto-refresh",
+  "source_smoke_report": {
+    "smoke_id": "sprint58-kis-market-data-smoke",
+    "auth_closure_status": "MissingAppKeyAndSecret",
+    "dry_run_status": "MissingAuth",
+    "collection_plan_status": "MissingAuth",
+    "schema_drift_status": "Some(DiagnosticOnly)",
+    "canonical_validation_status": "BatchValid",
+    "preflight_status": "KISAuthMissing",
+    "candle_sufficiency_status": "HealthyKISCandles",
+    "outcome_link_closure_status": "KISCounterfactualsImproved",
+    "complete_row_closure_status": "CoreResearchReady",
+    "evidence_depth_status": "NeedMoreKISEvidence",
+    "trinity_loop_status": "PaperOnlyMonitoringReady",
+    "control_tower_refresh_status": "RefreshedWithWarnings",
+    "added_canonical_csvs": 2,
+    "added_official_rows": 12,
+    "added_preflight_ready_rows": 12,
+    "added_official_ready_candles": 12,
+    "added_outcome_links": 2,
+    "added_counterfactuals": 2,
+    "added_complete_rows": 2,
+    "final_status": "KISAuthMissing",
+    "final_recommendation": "SetKISAppKey",
+    "blockers": [
+      "KIS_APP_KEY and KIS_APP_SECRET are missing"
+    ],
+    "warnings": [],
+    "reason_codes": [
+      "DeterministicPath",
+      "KISCollectionDisabledByDefault",
+      "KISMarketDataSmokeBuilt"
+    ]
+  },
+  "dashboard_state_path": "target/sprint58/control_tower_auto_refresh/sprint58-control-tower-auto-refresh/dashboard_state_v1.json",
+  "dashboard_html_path": "target/sprint58/control_tower_auto_refresh/sprint58-control-tower-auto-refresh/dashboard_v1.html",
+  "dashboard_text_path": "target/sprint58/control_tower_auto_refresh/sprint58-control-tower-auto-refresh/dashboard_v1.txt",
+  "next_actions_path": "target/sprint58/control_tower_auto_refresh/sprint58-control-tower-auto-refresh/dashboard_next_actions.txt",
+  "owner_drafts_dir": "target/sprint58/control_tower_auto_refresh/sprint58-control-tower-auto-refresh/owner_action_drafts",
+  "secret_redaction_report": {
+    "audit_id": "sprint58-kis-market-data-smoke-audit",
+    "artifacts_scanned": 5,
+    "secret_leaks_detected": false,
+    "token_like_values_detected": false,
+    "account_like_fields_detected": false,
+    "order_like_fields_detected": false,
+    "redaction_status": "Passed",
+    "reason_codes": [
+      "DeterministicPath",
+      "SecretRedactionAuditBuilt"
+    ]
+  },
+  "refresh_status": "AutoRefreshedWithWarnings",
+  "reason_codes": [
+    "ControlTowerAutoRefreshBuilt",
+    "DeterministicPath"
+  ]
+}

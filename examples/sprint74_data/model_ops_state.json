@@ -1,0 +1,11 @@
+{
+  "evidence_rows_added": 8,
+  "sequence_windows_added": 4,
+  "existing_prediction_coverage_affected": true,
+  "models_requiring_new_predictions": [
+    "ext-model-b:1.0.0"
+  ],
+  "models_requiring_reevaluation": [
+    "ext-model-b:1.0.0"
+  ]
+}

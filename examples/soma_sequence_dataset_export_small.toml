@@ -1,0 +1,27 @@
+export_id = "sprint62-sequence-export-small"
+sequence_readiness_hardening_paths = ["examples/sprint62_data/kis_complete_rows_sample.json"]
+kis_evidence_closure_paths = ["examples/sprint61_data/kis_evidence_after.json"]
+outcome_link_depth_closure_paths = ["examples/sprint61_data/outcome_link_depth_sample.json"]
+kis_canonical_csv_paths = ["examples/sprint62_data/kis_sequence_source_rows.json"]
+feature_schema_lock_paths = ["examples/sprint62_data/feature_schema_frozen.json"]
+label_alignment_audit_paths = ["examples/sprint62_data/label_manifest_frozen.json"]
+no_lookahead_proof_paths = ["examples/sprint62_data/no_lookahead_windows_sample.json"]
+output_root = "target/sprint62"
+target_window_lengths = [32, 64]
+target_horizons = [4, 8]
+max_windows = 64
+max_rows = 64
+max_symbols = 4
+max_timeframes = 2
+max_bytes = 5000000
+require_official_non_crypto = true
+require_complete_rows = true
+require_outcome_labels = true
+require_feature_schema_lock = true
+require_label_alignment = true
+require_no_lookahead_safe = true
+split_policy = "ChronologicalHoldout"
+train_ratio = 0.6
+validation_ratio = 0.2
+test_ratio = 0.2
+

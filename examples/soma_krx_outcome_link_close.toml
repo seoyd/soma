@@ -1,0 +1,20 @@
+closure_id = "krx_outcome_link_close"
+krx_canonical_csv_paths = [
+  "examples/sprint50_data/krx_005930_extended_1d.csv",
+  "examples/sprint50_data/krx_000660_extended_1d.csv"
+]
+official_ready_rows_paths = [
+  "examples/sprint50_data/krx_expected_mixed_outcomes.json",
+  "examples/sprint50_data/krx_expected_baseline_refs.json",
+  "examples/sprint50_data/krx_expected_committee_decisions.json",
+  "examples/sprint50_data/krx_expected_risk_decisions.json"
+]
+barrier_profile_registry_path = "examples/soma_barrier_profiles_primary.toml"
+output_root = "target/soma_krx_collection_closure_examples"
+run_future_window_requirements = true
+run_outcome_linkage_v3 = true
+run_counterfactual_completion_v2 = true
+run_complete_row_close_v2 = true
+run_official_evidence_scaleout = true
+run_official_evidence_diversity_sweep = true
+run_core_performance = false

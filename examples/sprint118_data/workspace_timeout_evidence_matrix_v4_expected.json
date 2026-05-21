@@ -1,0 +1,82 @@
+{
+  "report_id": "workspace-timeout-evidence-matrix-v4",
+  "evidence_rows": [
+    {
+      "row_id": "Sprint117NoRun",
+      "evidence_kind": "BaselineTruth",
+      "status": "NoRunStillBlocked",
+      "supports_acceptance": false
+    },
+    {
+      "row_id": "Sprint117Full",
+      "evidence_kind": "BaselineTruth",
+      "status": "FullWorkspaceStillBlocked",
+      "supports_acceptance": false
+    },
+    {
+      "row_id": "Sprint117CargoJson",
+      "evidence_kind": "BaselineTruth",
+      "status": "RealCargoJsonTimeoutExit124",
+      "supports_acceptance": false
+    },
+    {
+      "row_id": "CargoJsonReason",
+      "evidence_kind": "SupportingOnly",
+      "status": "CargoJsonFailureReasonClassified",
+      "supports_acceptance": false
+    },
+    {
+      "row_id": "TimeoutReductionHypothesis",
+      "evidence_kind": "SupportingOnly",
+      "status": "TimeoutHypothesisReady",
+      "supports_acceptance": false
+    },
+    {
+      "row_id": "TruthfulNoRunV19",
+      "evidence_kind": "SupportingOnly",
+      "status": "TruthfulNoRunAttemptNotRun",
+      "supports_acceptance": false
+    },
+    {
+      "row_id": "TruthfulFullV19",
+      "evidence_kind": "AcceptanceGate",
+      "status": "TruthfulFullWorkspaceAttemptNotRun",
+      "supports_acceptance": false
+    },
+    {
+      "row_id": "TruthfulCargoJsonV19",
+      "evidence_kind": "SupportingOnly",
+      "status": "TruthfulCargoJsonAttemptNotRun@Some(420000)",
+      "supports_acceptance": false
+    },
+    {
+      "row_id": "FocusedTests",
+      "evidence_kind": "SupportingOnly",
+      "status": "focused-tests-passed=true",
+      "supports_acceptance": false
+    },
+    {
+      "row_id": "CliSmoke",
+      "evidence_kind": "SupportingOnly",
+      "status": "cli-smoke-passed=true",
+      "supports_acceptance": false
+    },
+    {
+      "row_id": "CargoBuild",
+      "evidence_kind": "SupportingOnly",
+      "status": "cargo-build-passed=true",
+      "supports_acceptance": false
+    }
+  ],
+  "supports_acceptance": false,
+  "status": "WorkspaceTimeoutEvidenceSupportingOnly",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

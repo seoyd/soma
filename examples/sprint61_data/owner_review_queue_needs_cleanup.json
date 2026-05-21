@@ -1,0 +1,12 @@
+{
+  "pending_reviews": 4,
+  "stale_reviews": 1,
+  "missing_reason_inputs": 2,
+  "unclear_actions": 1,
+  "blocked_paper_confirms": 2,
+  "allowed_paper_confirms": 1,
+  "research_only_confirm_attempts": 0,
+  "diagnostic_only_confirm_attempts": 0,
+  "risk_blocked_confirm_attempts": 1,
+  "no_trade_confirm_attempts": 1
+}

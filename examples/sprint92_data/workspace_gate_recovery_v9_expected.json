@@ -1,0 +1,24 @@
+{
+  "report_id": "sprint92-krx-warning-close-workspace-recovery",
+  "previous_no_run_status": "RealNoRunStillBlocked",
+  "current_no_run_status": "RealNoRunStillBlocked",
+  "previous_full_status": "FullWorkspaceStillBlocked",
+  "current_full_status": "FullWorkspaceStillBlocked",
+  "krx_warning_closure_status": "KrxWarningsClosedWithIsolatedSentinel",
+  "krx_genuine_reduction_status": "KrxEvidenceReducedWithIsolatedSentinel",
+  "dashboard_entry_gate_status": "DashboardRendererEntryBlockedByUnknownGateCause",
+  "measured_delta_status": "SampleBackedOnly",
+  "safety_coverage_status": "SafetyCoveragePreserved",
+  "remaining_blockers": [
+    "KrxEvidence",
+    "DashboardRenderer",
+    "CommitteeCliSafety",
+    "BaselineSignal",
+    "CounterfactualBackfill"
+  ],
+  "recovery_status": "GateStillBlocked",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

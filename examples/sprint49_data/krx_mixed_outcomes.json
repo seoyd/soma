@@ -1,0 +1,7 @@
+{
+  "summary": "mixed placeholder outcomes",
+  "rows": [
+    {"symbol": "005930", "outcome": "NoTrade"},
+    {"symbol": "000660", "outcome": "RiskDenied"}
+  ]
+}

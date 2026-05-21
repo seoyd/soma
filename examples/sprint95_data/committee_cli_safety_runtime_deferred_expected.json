@@ -1,0 +1,15 @@
+{
+  "report_id": "sprint95-committee-cli-safety-recover-runtime-deferred",
+  "runtime_llm_absent": true,
+  "mamba_runtime_absent": true,
+  "gated_runtime_absent": true,
+  "rust_neural_training_absent": true,
+  "model_training_absent": true,
+  "python_training_dependency_absent": true,
+  "live_inference_absent": true,
+  "runtime_deferred_status": "RuntimeDeferredPreserved",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

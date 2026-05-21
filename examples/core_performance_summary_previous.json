@@ -1,0 +1,13 @@
+{
+  "scorecard_id": "sprint40-prev",
+  "official_row_count": 6,
+  "outcome_linked_rows": 6,
+  "counterfactual_rows": 4,
+  "brier_score": 0.18,
+  "ece": 0.04,
+  "denial_rate": 0.2,
+  "avoided_loss_total": 1.25,
+  "actionability_ratio": 0.66,
+  "report_bytes": 640,
+  "fingerprint": "sprint40-prev"
+}

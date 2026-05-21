@@ -1,0 +1,14 @@
+closure_id = "sprint82-committee-reference-close"
+official_evidence_depth_paths = [
+  "examples/sprint82_data/official_evidence_depth_before.json",
+  "examples/sprint82_data/official_evidence_depth_after.json",
+]
+scenario_pack_paths = ["examples/sprint82_data/official_scenarios_v3.json"]
+outcome_pack_paths = ["examples/sprint82_data/official_outcomes_v3.json"]
+baseline_pack_paths = ["examples/sprint82_data/official_baselines_v3.json"]
+no_trade_pack_paths = ["examples/sprint82_data/official_notrade_counterfactuals_v3.json"]
+risk_denied_pack_paths = ["examples/sprint82_data/official_riskdenied_counterfactuals_v3.json"]
+chair_trace_paths = ["examples/sprint82_data/official_evidence_depth_after.json"]
+risk_trace_paths = ["examples/sprint82_data/official_evidence_depth_after.json"]
+output_root = "target/soma_official_evidence_depth"
+

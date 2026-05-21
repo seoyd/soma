@@ -1,0 +1,14 @@
+ops_id = "sprint65-model-comparability-matrix"
+external_artifact_registry_paths = ["examples/sprint65_data/external_registry_summary.json"]
+conservative_leaderboard_paths = ["examples/sprint65_data/conservative_leaderboard_summary.json"]
+calibration_drift_paths = ["examples/sprint65_data/calibration_drift_summary.json"]
+evaluation_history_paths = ["examples/sprint65_data/evaluation_history_summary.json"]
+model_version_comparison_paths = ["examples/sprint65_data/model_version_comparison_summary.json"]
+external_registry_audit_paths = ["examples/sprint65_data/external_registry_audit_summary.json"]
+owner_model_review_paths = ["examples/sprint65_data/owner_model_review_actions.json"]
+output_root = "target/soma_external_model_research_ops"
+max_models = 8
+max_versions = 8
+max_review_items = 32
+max_bytes = 5000000
+

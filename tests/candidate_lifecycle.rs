@@ -1,0 +1,85 @@
+use soma_zero::{
+    CandidateLifecycleEvent, CandidateLifecycleStateMachine, CandidateLifecycleStatus,
+};
+
+#[test]
+fn candidate_lifecycle_allows_expected_path_and_blocks_live_promotion() {
+    let machine = CandidateLifecycleStateMachine::default();
+    assert!(machine.is_allowed(
+        CandidateLifecycleStatus::Detected,
+        CandidateLifecycleEvent::EvidenceReady,
+        CandidateLifecycleStatus::EvidenceReady,
+    ));
+    assert!(machine.is_allowed(
+        CandidateLifecycleStatus::EvidenceReady,
+        CandidateLifecycleEvent::StartAnalysis,
+        CandidateLifecycleStatus::UnderAnalysis,
+    ));
+    assert!(machine.is_allowed(
+        CandidateLifecycleStatus::UnderAnalysis,
+        CandidateLifecycleEvent::StartVoting,
+        CandidateLifecycleStatus::CommitteeVoting,
+    ));
+    assert!(machine.is_allowed(
+        CandidateLifecycleStatus::CommitteeVoting,
+        CandidateLifecycleEvent::ChairReviewComplete,
+        CandidateLifecycleStatus::ChairReviewed,
+    ));
+    assert!(machine.is_allowed(
+        CandidateLifecycleStatus::ChairReviewed,
+        CandidateLifecycleEvent::BeginRiskReview,
+        CandidateLifecycleStatus::RiskReview,
+    ));
+    assert!(machine.is_allowed(
+        CandidateLifecycleStatus::RiskReview,
+        CandidateLifecycleEvent::MarkRiskBlocked,
+        CandidateLifecycleStatus::RiskBlocked,
+    ));
+    assert!(machine.is_allowed(
+        CandidateLifecycleStatus::RiskReview,
+        CandidateLifecycleEvent::HumanConfirmRequired,
+        CandidateLifecycleStatus::HumanConfirmRequired,
+    ));
+    assert!(machine.is_allowed(
+        CandidateLifecycleStatus::HumanConfirmRequired,
+        CandidateLifecycleEvent::OwnerPaperConfirm,
+        CandidateLifecycleStatus::PaperApproved,
+    ));
+
+    assert!(
+        !machine
+            .transition(
+                CandidateLifecycleStatus::RiskBlocked,
+                CandidateLifecycleEvent::OfficialPaperApprove,
+            )
+            .allowed
+    );
+    assert!(
+        !machine
+            .transition(
+                CandidateLifecycleStatus::NoTrade,
+                CandidateLifecycleEvent::OfficialPaperApprove,
+            )
+            .allowed
+    );
+    assert!(
+        !machine
+            .transition(
+                CandidateLifecycleStatus::PaperApproved,
+                CandidateLifecycleEvent::RealOrder,
+            )
+            .allowed
+    );
+    assert!(
+        !machine
+            .transition(
+                CandidateLifecycleStatus::PaperPositionOpen,
+                CandidateLifecycleEvent::BrokerPosition,
+            )
+            .allowed
+    );
+    assert_eq!(
+        machine.fingerprint(),
+        CandidateLifecycleStateMachine::default().fingerprint()
+    );
+}

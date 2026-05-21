@@ -1,0 +1,41 @@
+reduction_id = "seven-blocker-queue-progress-v7"
+sprint90_bundle_paths = ["examples/sprint91_data/sprint90_summary.json"]
+krx_evidence_suite_paths = ["tests/krx_evidence_suite.rs"]
+krx_evidence_job_plan_paths = ["tests/krx_evidence_job_plan.rs"]
+krx_collection_paths = [
+  "tests/krx_evidence_recovery.rs",
+  "tests/krx_auth_readiness.rs",
+  "tests/krx_operator_actions.rs",
+  "tests/official_replication_operator_actions.rs",
+  "tests/krx_collection_dry_run.rs",
+  "tests/krx_collection_batch_plan.rs",
+  "tests/krx_collection_closure_runner.rs",
+  "tests/krx_collection_closure_cli_safety.rs",
+  "tests/krx_raw_archive_secret_safety.rs",
+  "tests/krx_canonical_batch_validation.rs",
+  "tests/krx_candle_sufficiency.rs",
+  "tests/krx_outcome_link_closure.rs",
+  "tests/krx_downstream_rerun_v2.rs",
+]
+krx_auth_fixture_paths = [
+  "examples/sprint91_data/krx_auth_boundary_expected.json",
+]
+krx_endpoint_template_fixture_paths = [
+  "examples/sprint91_data/krx_endpoint_template_expected.json",
+]
+cargo_metadata_paths = [
+  "examples/sprint91_data/krx_reduction_plan_expected.json",
+  "examples/sprint91_data/krx_assertion_migration_expected.json",
+  "examples/sprint91_data/krx_source_boundary_expected.json",
+  "examples/sprint91_data/krx_market_data_only_expected.json",
+  "examples/sprint91_data/krx_compile_impact_sample.json",
+  "examples/sprint91_data/krx_no_run_rerun_sample.json",
+  "examples/sprint91_data/krx_full_gate_rerun_sample.json",
+]
+cargo_timings_paths = [
+  "examples/sprint91_data/queue_progress_v7_expected.json",
+  "examples/sprint91_data/safety_coverage_v7_expected.json",
+]
+output_root = "target/soma_sprint91_krx_evidence_recovery"
+run_real_no_run_after_reduction = false
+run_real_full_after_reduction = false

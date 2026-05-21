@@ -1,0 +1,5 @@
+{
+  "gate_status": "CounterfactualBackfillEntryReady",
+  "counterfactual_backfill_next_allowed": true,
+  "baseline_signal_reduction_status": "BaselineSignalReducedWithWarnings"
+}

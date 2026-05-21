@@ -1,0 +1,75 @@
+{
+  "traces": [
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.0.0",
+      "checklist_item": "NoTrade/RiskDenied reference preserved | calibration reviewed | evaluation exists | leaderboard position reviewed | model card exists | no live/runtime/training path | no secret/order/account fields | predictions cover known sequences | risk behavior reviewed",
+      "status": "NeedsRiskReview",
+      "source_artifact": "trace-artifact-4657f5838eca444c",
+      "evidence_summary": "NoTrade/RiskDenied reference preserved | calibration reviewed | evaluation exists | leaderboard position reviewed | model card exists | no live/runtime/training path | no secret/order/account fields | predictions cover known sequences | risk behavior reviewed",
+      "required_action": "RetireModelVersion",
+      "safe_actions": [
+        "RetireModelVersion"
+      ],
+      "blocked_actions": [],
+      "reason_codes": [
+        "OperatorQAEvidenceTraceBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "checklist_item": "NoTrade/RiskDenied reference preserved | calibration reviewed | evaluation exists | leaderboard position reviewed | model card exists | no live/runtime/training path | no secret/order/account fields | predictions cover known sequences | risk behavior reviewed",
+      "status": "ReadyForOperatorReview",
+      "source_artifact": "trace-artifact-4ef4188393a72313",
+      "evidence_summary": "NoTrade/RiskDenied reference preserved | calibration reviewed | evaluation exists | leaderboard position reviewed | model card exists | no live/runtime/training path | no secret/order/account fields | predictions cover known sequences | risk behavior reviewed",
+      "required_action": "KeepResearchCandidate",
+      "safe_actions": [
+        "KeepResearchCandidate",
+        "WatchModel",
+        "WatchModel"
+      ],
+      "blocked_actions": [],
+      "reason_codes": [
+        "OperatorQAEvidenceTraceBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.2.0",
+      "checklist_item": "NoTrade/RiskDenied reference preserved | calibration reviewed | evaluation exists | leaderboard position reviewed | model card exists | no live/runtime/training path | no secret/order/account fields | predictions cover known sequences | risk behavior reviewed",
+      "status": "ReadyForOperatorReview",
+      "source_artifact": "trace-artifact-33e7a7838407f3e2",
+      "evidence_summary": "NoTrade/RiskDenied reference preserved | calibration reviewed | evaluation exists | leaderboard position reviewed | model card exists | no live/runtime/training path | no secret/order/account fields | predictions cover known sequences | risk behavior reviewed",
+      "required_action": null,
+      "safe_actions": [],
+      "blocked_actions": [],
+      "reason_codes": [
+        "OperatorQAEvidenceTraceBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "checklist_item": "NoTrade/RiskDenied reference preserved | calibration reviewed | evaluation exists | leaderboard position reviewed | model card exists | no live/runtime/training path | no secret/order/account fields | predictions cover known sequences | risk behavior reviewed",
+      "status": "NeedsMorePredictions",
+      "source_artifact": "trace-artifact-c04a5e3dff487421",
+      "evidence_summary": "NoTrade/RiskDenied reference preserved | calibration reviewed | evaluation exists | leaderboard position reviewed | model card exists | no live/runtime/training path | no secret/order/account fields | predictions cover known sequences | risk behavior reviewed",
+      "required_action": "RequestMorePredictions",
+      "safe_actions": [
+        "RequestMorePredictions"
+      ],
+      "blocked_actions": [],
+      "reason_codes": [
+        "OperatorQAEvidenceTraceBuilt"
+      ]
+    }
+  ],
+  "required_action_count": 3,
+  "blocked_action_count": 0,
+  "ready_count": 2,
+  "report_status": "NeedsOperatorAction",
+  "reason_codes": [
+    "OperatorQAEvidenceTraceReportBuilt"
+  ]
+}

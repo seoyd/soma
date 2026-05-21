@@ -1,0 +1,46 @@
+{
+  "plan_id": "committee-paper-loop-dry-run-plan",
+  "input_context_requirements": [
+    "local-only market context",
+    "official-paper-evidence bundle",
+    "source-boundary proof",
+    "no-lookahead proof",
+    "paper-only rulebook v2 draft"
+  ],
+  "required_member_count": 7,
+  "required_style_coverage": [
+    "CounterfactualHistorian",
+    "MacroReflexive",
+    "QualityCompounder",
+    "RegimeCycle",
+    "RiskFirstDefensive",
+    "TrendFollower",
+    "ValueDiscipline"
+  ],
+  "required_entry_proposal_count": 4,
+  "required_debate_turn_count": 7,
+  "required_risk_handoff": true,
+  "required_paper_decision_trace": true,
+  "dry_run_steps": [
+    "BuildMarketContext",
+    "RunMemberOfflineAnalysis",
+    "CollectProposals",
+    "TriggerDebate",
+    "RunDebateTurns",
+    "ChairmanSynthesis",
+    "RiskGovernorReview",
+    "WritePaperDecision",
+    "RenderControlTowerPanel"
+  ],
+  "dry_run_status": "PaperLoopDryRunPlanReadyWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

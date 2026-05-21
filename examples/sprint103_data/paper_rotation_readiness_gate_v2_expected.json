@@ -1,0 +1,28 @@
+{
+  "gate_id": "paper-rotation-readiness-gate-v2",
+  "rotation_warning_closure_status": "PaperRotationWarningsClosedWithNotes",
+  "lower_confidence_closure_status": "LowerConfidenceEvidenceClosedWithWarnings",
+  "proposal_warning_closure_status": "ProposalRunWarningsClosed",
+  "entry_timing_warning_closure_status": "EntryTimingWarningsClosedWithNotes",
+  "debate_warning_closure_status": "DebateWarningsClosedWithNotes",
+  "chairman_warning_closure_status": "ChairmanSynthesisWarningsClosedWithNotes",
+  "risk_handoff_warning_closure_status": "RiskHandoffWarningsClosedWithNotes",
+  "paper_trace_warning_closure_status": "PaperTraceWarningsClosed",
+  "multi_scenario_replay_status": "MultiScenarioReplayReady",
+  "no_trade_justification_status": "NoTradeJustificationReady",
+  "workspace_truth_status": "WorkspaceTruthStillOpen",
+  "safety_status": "SafetyCoveragePreserved",
+  "paper_rotation_ready": true,
+  "live_rotation_allowed": false,
+  "gate_status": "PaperRotationReadyWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

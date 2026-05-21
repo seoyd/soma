@@ -1,0 +1,201 @@
+{
+  "session_id": "sprint98-committee-owned-core-example-debate-session",
+  "trigger": {
+    "trigger_id": "trend-scout-proposal-trigger",
+    "triggering_member_id": "trend-scout",
+    "triggering_proposal_id": "trend-scout-proposal",
+    "trigger_reason": "EntryTimingProposed",
+    "debate_required": true,
+    "trigger_status": "DebateTriggered",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  "participating_members": [
+    "trend-scout",
+    "risk-defender",
+    "regime-interpreter",
+    "macro-interpreter",
+    "value-skeptic",
+    "counterfactual-reviewer",
+    "chair-candidate"
+  ],
+  "member_turns": [
+    {
+      "turn_id": "trend-scout-proposal-trigger-trend-scout-turn",
+      "session_id": "trend-scout-proposal-trigger",
+      "member_id": "trend-scout",
+      "stance": "SupportEntry",
+      "argument_summary": "entry scout supports a paper-only breakout timing window",
+      "evidence_refs": [
+        "official-evidence/sample-market-context",
+        "member-notes/trend-scout"
+      ],
+      "counterarguments": [
+        "accepts defensive size reduction if risk tightens"
+      ],
+      "confidence": 0.76,
+      "turn_status": "TurnReady",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault"
+      ]
+    },
+    {
+      "turn_id": "trend-scout-proposal-trigger-risk-defender-turn",
+      "session_id": "trend-scout-proposal-trigger",
+      "member_id": "risk-defender",
+      "stance": "WaitForConfirmation",
+      "argument_summary": "risk defender requires confirmation before any paper approval",
+      "evidence_refs": [
+        "official-evidence/sample-market-context",
+        "member-notes/risk-defender"
+      ],
+      "counterarguments": [
+        "timing window remains invalid if drawdown risk expands"
+      ],
+      "confidence": 0.84,
+      "turn_status": "TurnReady",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault"
+      ]
+    },
+    {
+      "turn_id": "trend-scout-proposal-trigger-regime-interpreter-turn",
+      "session_id": "trend-scout-proposal-trigger",
+      "member_id": "regime-interpreter",
+      "stance": "SupportEntry",
+      "argument_summary": "regime interpreter sees supportive but incomplete regime persistence",
+      "evidence_refs": [
+        "official-evidence/sample-market-context",
+        "member-notes/regime-interpreter"
+      ],
+      "counterarguments": [
+        "reversal risk still matters"
+      ],
+      "confidence": 0.67,
+      "turn_status": "TurnReady",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault"
+      ]
+    },
+    {
+      "turn_id": "trend-scout-proposal-trigger-macro-interpreter-turn",
+      "session_id": "trend-scout-proposal-trigger",
+      "member_id": "macro-interpreter",
+      "stance": "RequestMoreEvidence",
+      "argument_summary": "macro interpreter requests more evidence while volatility cools",
+      "evidence_refs": [
+        "official-evidence/sample-market-context",
+        "member-notes/macro-interpreter"
+      ],
+      "counterarguments": [
+        "headline shock can break the paper setup"
+      ],
+      "confidence": 0.61,
+      "turn_status": "TurnReady",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault"
+      ]
+    },
+    {
+      "turn_id": "trend-scout-proposal-trigger-value-skeptic-turn",
+      "session_id": "trend-scout-proposal-trigger",
+      "member_id": "value-skeptic",
+      "stance": "OpposeEntry",
+      "argument_summary": "value skeptic opposes immediate entry until pullback support is visible",
+      "evidence_refs": [
+        "official-evidence/sample-market-context",
+        "member-notes/value-skeptic"
+      ],
+      "counterarguments": [
+        "trend signal may be overpaying for momentum"
+      ],
+      "confidence": 0.71,
+      "turn_status": "TurnReady",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault"
+      ]
+    },
+    {
+      "turn_id": "trend-scout-proposal-trigger-counterfactual-reviewer-turn",
+      "session_id": "trend-scout-proposal-trigger",
+      "member_id": "counterfactual-reviewer",
+      "stance": "RequestMoreEvidence",
+      "argument_summary": "counterfactual reviewer wants stronger paper analogs before approval",
+      "evidence_refs": [
+        "official-evidence/sample-market-context",
+        "member-notes/counterfactual-reviewer"
+      ],
+      "counterarguments": [
+        "historical analog quality is still mixed"
+      ],
+      "confidence": 0.65,
+      "turn_status": "TurnReady",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault"
+      ]
+    },
+    {
+      "turn_id": "trend-scout-proposal-trigger-chair-candidate-turn",
+      "session_id": "trend-scout-proposal-trigger",
+      "member_id": "chair-candidate",
+      "stance": "SupportEntry",
+      "argument_summary": "chair candidate supports opening debate but not live execution",
+      "evidence_refs": [
+        "official-evidence/sample-market-context",
+        "member-notes/chair-candidate"
+      ],
+      "counterarguments": [
+        "final paper decision stays under risk governor veto"
+      ],
+      "confidence": 0.6,
+      "turn_status": "TurnReady",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault"
+      ]
+    }
+  ],
+  "consensus_state": "NeedMoreEvidence",
+  "chair_synthesis_ref": "chairman-synthesis-paper-only",
+  "risk_governor_decision_ref": "risk-governor-paper-veto-gate",
+  "debate_status": "DebateReadyWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault"
+  ]
+}

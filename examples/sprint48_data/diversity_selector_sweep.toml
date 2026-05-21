@@ -1,0 +1,17 @@
+sweep_id = "sprint48-selector-baseline"
+barrier_profile_registry_path = "examples/soma_barrier_profiles_primary.toml"
+multi_row_set_config_paths = ["examples/sprint48_data/diversity_multi_row_set_all_take_profit.json"]
+output_root = "target/soma_sprint48_examples/sweep_plan_selector"
+max_new_rows = 2
+max_symbols = 4
+max_timeframes = 3
+max_horizons = 3
+max_jobs = 8
+max_bytes = 1000000
+prefer_existing_official_rows = true
+prefer_local_canonical_csv = true
+allow_provider_job_generation = true
+run_provider_collection_jobs = false
+run_local_extension_jobs = true
+allow_diagnostic_profiles = false
+allow_exploratory_profiles = false

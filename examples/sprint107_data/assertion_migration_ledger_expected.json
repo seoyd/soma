@@ -1,0 +1,38 @@
+{
+  "ledger_id": "assertion-migration-ledger-v1",
+  "moved_assertions": [
+    "shared_fixture_harness_plan_matches_expected_json",
+    "shared_fixture_harness_plan_preserves_determinism"
+  ],
+  "preserved_assertions": [
+    "duplicate_json_loaders_detected",
+    "duplicate_toml_loaders_detected",
+    "duplicate_output_dir_setup_detected",
+    "shared_harness_opportunities_detected"
+  ],
+  "unchanged_assertions": [
+    "committee_cli_safety_isolated",
+    "workspace_cli_safety_isolated"
+  ],
+  "source_targets": [
+    "tests/shared_fixture_harness_expansion_plan_v2.rs"
+  ],
+  "destination_targets": [
+    "tests/fixture_setup_cost_attribution_v2.rs"
+  ],
+  "assertion_count_before": 6,
+  "assertion_count_after": 6,
+  "assertion_delta": 0,
+  "ledger_status": "AssertionMigrationLedgerReady",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "DeterministicPath",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt",
+    "LocalFileOnly"
+  ]
+}

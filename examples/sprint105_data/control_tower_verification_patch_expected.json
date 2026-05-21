@@ -1,0 +1,29 @@
+{
+  "panel_id": "control-tower-verification-patch-closure-panel",
+  "finding_closure_status": "VerificationFindingsClosedWithWarnings",
+  "review_patch_effect_status": "ReviewPatchEffectsReady",
+  "overclaim_guard_status": "OverclaimRegressionGuardReady",
+  "workspace_truth_status": "WorkspaceAttemptTruthHardenedWithWarnings",
+  "safety_boolean_audit_status": "SafetyBooleanCoverageVerified",
+  "final_gate_status": "FinalVerificationGateV2ReadyWithWarnings",
+  "warnings": [
+    "static/read-only panel only",
+    "verification is not full workspace acceptance",
+    "no verification execution button"
+  ],
+  "next_actions": [
+    "keep finished && passed as the only full acceptance rule",
+    "keep missing artifacts visible as findings",
+    "keep full workspace truth separate from focused passes"
+  ],
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

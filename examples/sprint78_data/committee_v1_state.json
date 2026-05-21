@@ -1,0 +1,23 @@
+{
+  "committee_v1_state": {
+    "active_personas": [
+      "trend_breakout_fast",
+      "defensive_value_risk",
+      "cycle_regime_guard"
+    ],
+    "chair_ready": true,
+    "risk_handoff_ready": true,
+    "speaker_trace_ready": true,
+    "filter_trace_ready": true,
+    "disagreement_handling_ready": true,
+    "groupthink_guard_ready": true,
+    "hard_veto_respected": true,
+    "no_trade_default_preserved": true,
+    "official_scenario_count": 12,
+    "outcome_linked_rows": 256,
+    "groupthink_warning_rate": 0.18,
+    "disagreement_rate": 0.27,
+    "quality_status": "CommitteeCoreReadyResearchOnly"
+  }
+}
+

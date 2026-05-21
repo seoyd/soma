@@ -1,0 +1,1 @@
+The evidence matrix includes CargoCheck, CargoBuild, CargoNoRun, CargoFull, CargoJson, Nextest, Sccache, RustcTimeline, TargetStall, and FanoutMap rows. Only a finished and passed full workspace run can make the matrix support acceptance.

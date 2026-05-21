@@ -1,0 +1,418 @@
+[
+  {
+    "guard_id": "do-not-learn-arthur-hayes",
+    "candidate_id": "arthur-hayes",
+    "blocked_items": [
+      "exact wallet-profit claims",
+      "cult-like legend stories"
+    ],
+    "blocked_item_kinds": [
+      "ExactProfitClaim",
+      "LifestyleMyth"
+    ],
+    "guard_status": "DoNotLearnGuardReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  {
+    "guard_id": "do-not-learn-benjamin-graham",
+    "candidate_id": "benjamin-graham",
+    "blocked_items": [
+      "hero worship language",
+      "exact alpha claims"
+    ],
+    "blocked_item_kinds": [
+      "UnsupportedBestInvestorClaim",
+      "ExactProfitClaim"
+    ],
+    "guard_status": "DoNotLearnGuardReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  {
+    "guard_id": "do-not-learn-charlie-munger",
+    "candidate_id": "charlie-munger",
+    "blocked_items": [
+      "hero worship language",
+      "exact alpha claims"
+    ],
+    "blocked_item_kinds": [
+      "UnsupportedBestInvestorClaim",
+      "ExactProfitClaim"
+    ],
+    "guard_status": "DoNotLearnGuardReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  {
+    "guard_id": "do-not-learn-chris-burniske",
+    "candidate_id": "chris-burniske",
+    "blocked_items": [
+      "exact wallet-profit claims",
+      "cult-like legend stories"
+    ],
+    "blocked_item_kinds": [
+      "ExactProfitClaim",
+      "LifestyleMyth"
+    ],
+    "guard_status": "DoNotLearnGuardReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  {
+    "guard_id": "do-not-learn-howard-marks",
+    "candidate_id": "howard-marks",
+    "blocked_items": [
+      "hero worship language",
+      "exact alpha claims"
+    ],
+    "blocked_item_kinds": [
+      "UnsupportedBestInvestorClaim",
+      "ExactProfitClaim"
+    ],
+    "guard_status": "DoNotLearnGuardReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  {
+    "guard_id": "do-not-learn-john-bogle",
+    "candidate_id": "john-bogle",
+    "blocked_items": [
+      "hero worship language",
+      "exact alpha claims"
+    ],
+    "blocked_item_kinds": [
+      "UnsupportedBestInvestorClaim",
+      "ExactProfitClaim"
+    ],
+    "guard_status": "DoNotLearnGuardReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  {
+    "guard_id": "do-not-learn-larry-williams",
+    "candidate_id": "larry-williams",
+    "blocked_items": [
+      "best trader trophy claims",
+      "exact contest profit myths"
+    ],
+    "blocked_item_kinds": [
+      "UnsupportedBestInvestorClaim",
+      "ExactProfitClaim"
+    ],
+    "guard_status": "DoNotLearnGuardReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  {
+    "guard_id": "do-not-learn-linda-raschke",
+    "candidate_id": "linda-raschke",
+    "blocked_items": [
+      "celebrity trader lore",
+      "exact seminar-result claims"
+    ],
+    "blocked_item_kinds": [
+      "LifestyleMyth",
+      "ExactProfitClaim"
+    ],
+    "guard_status": "DoNotLearnGuardReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  {
+    "guard_id": "do-not-learn-mark-minervini",
+    "candidate_id": "mark-minervini",
+    "blocked_items": [
+      "exact profit screenshots",
+      "gym-routine legend stories",
+      "unofficial quote packs"
+    ],
+    "blocked_item_kinds": [
+      "ExactProfitClaim",
+      "LifestyleMyth",
+      "UnofficialQuote"
+    ],
+    "guard_status": "DoNotLearnGuardReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  {
+    "guard_id": "do-not-learn-michael-saylor",
+    "candidate_id": "michael-saylor",
+    "blocked_items": [
+      "exact wallet-profit claims",
+      "cult-like legend stories"
+    ],
+    "blocked_item_kinds": [
+      "ExactProfitClaim",
+      "LifestyleMyth"
+    ],
+    "guard_status": "DoNotLearnGuardReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  {
+    "guard_id": "do-not-learn-paul-tudor-jones",
+    "candidate_id": "paul-tudor-jones",
+    "blocked_items": [
+      "hero-trader anecdotes",
+      "exact macro PnL claims"
+    ],
+    "blocked_item_kinds": [
+      "LifestyleMyth",
+      "ExactProfitClaim"
+    ],
+    "guard_status": "DoNotLearnGuardReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  {
+    "guard_id": "do-not-learn-peter-lynch",
+    "candidate_id": "peter-lynch",
+    "blocked_items": [
+      "hero worship language",
+      "exact alpha claims"
+    ],
+    "blocked_item_kinds": [
+      "UnsupportedBestInvestorClaim",
+      "ExactProfitClaim"
+    ],
+    "guard_status": "DoNotLearnGuardReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  {
+    "guard_id": "do-not-learn-richard-dennis",
+    "candidate_id": "richard-dennis",
+    "blocked_items": [
+      "legendary floor-trader myths",
+      "exact turtle profit brag sheets"
+    ],
+    "blocked_item_kinds": [
+      "LifestyleMyth",
+      "ExactProfitClaim"
+    ],
+    "guard_status": "DoNotLearnGuardReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  {
+    "guard_id": "do-not-learn-vitalik-buterin",
+    "candidate_id": "vitalik-buterin",
+    "blocked_items": [
+      "exact wallet-profit claims",
+      "cult-like legend stories"
+    ],
+    "blocked_item_kinds": [
+      "ExactProfitClaim",
+      "LifestyleMyth"
+    ],
+    "guard_status": "DoNotLearnGuardReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  {
+    "guard_id": "do-not-learn-warren-buffett",
+    "candidate_id": "warren-buffett",
+    "blocked_items": [
+      "hero worship language",
+      "exact alpha claims"
+    ],
+    "blocked_item_kinds": [
+      "UnsupportedBestInvestorClaim",
+      "ExactProfitClaim"
+    ],
+    "guard_status": "DoNotLearnGuardReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  {
+    "guard_id": "do-not-learn-william-oneil",
+    "candidate_id": "william-oneil",
+    "blocked_items": [
+      "private subscription tips",
+      "exact annual return claims"
+    ],
+    "blocked_item_kinds": [
+      "PrivateStrategyClaim",
+      "ExactProfitClaim"
+    ],
+    "guard_status": "DoNotLearnGuardReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  {
+    "guard_id": "do-not-learn-willy-woo",
+    "candidate_id": "willy-woo",
+    "blocked_items": [
+      "exact wallet-profit claims",
+      "cult-like legend stories"
+    ],
+    "blocked_item_kinds": [
+      "ExactProfitClaim",
+      "LifestyleMyth"
+    ],
+    "guard_status": "DoNotLearnGuardReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  {
+    "guard_id": "do-not-learn-wonyotti",
+    "candidate_id": "wonyotti",
+    "blocked_items": [
+      "exact wallet-profit claims",
+      "cult-like legend stories"
+    ],
+    "blocked_item_kinds": [
+      "ExactProfitClaim",
+      "LifestyleMyth"
+    ],
+    "guard_status": "DoNotLearnGuardReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  }
+]

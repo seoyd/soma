@@ -1,0 +1,19 @@
+{
+  "models": {
+    "ext-model-b:1.0.0": {
+      "coverage_ratio": "0.6667",
+      "calibration_status": "Review",
+      "risk_level": "Critical",
+      "artifact_completeness_ratio": "0.6667",
+      "leaderboard_status": "NewlyBlocked",
+      "recommended_action": "RequestMorePredictions",
+      "dataset_fingerprint": "118f8e19e94a668b",
+      "feature_schema_hash": "01c25ac23c41ca00",
+      "label_manifest_hash": "8eff63ae77f20914",
+      "artifacts": ["model_card", "regression_guard"],
+      "metrics": {
+        "comparability_status": "NeedsReview"
+      }
+    }
+  }
+}

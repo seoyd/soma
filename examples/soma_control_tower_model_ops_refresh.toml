@@ -1,0 +1,8 @@
+closure_id = "sprint66-control-tower-model-ops-refresh"
+external_model_research_ops_paths = ["examples/sprint66_data/external_model_research_ops_bundle.json"]
+owner_model_review_action_paths = ["examples/sprint66_data/owner_model_review_actions.json"]
+prediction_history_pack_paths = ["examples/sprint66_data/prediction_history_pack.json"]
+model_ops_baseline_paths = ["examples/sprint66_data/model_ops_baseline.json"]
+model_ops_current_paths = ["examples/sprint66_data/model_ops_current.json"]
+output_root = "target/soma_model_ops_review_closure"
+max_review_items = 32

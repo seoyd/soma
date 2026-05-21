@@ -1,0 +1,17 @@
+{
+  "report_id": "workspace-timeout-track-activation-v1",
+  "previous_track_status": "WorkspaceTimeoutTrackSeparated",
+  "diagnostic_track_active": true,
+  "consolidation_track_separated": true,
+  "observation_backlog_present": true,
+  "activation_status": "TimeoutTrackActive",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

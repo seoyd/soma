@@ -1,0 +1,8 @@
+decision_id = "sprint55_model_escalation"
+core_completion_audit_report_paths = ["target/sprint55/core_completion_audit/sprint55_core_completion_audit/core_completion_audit_report.json"]
+sequence_readiness_report_paths = ["target/sprint55/sequence_readiness/sprint55_sequence_readiness/sequence_dataset_readiness_report.json"]
+mamba_readiness_report_paths = ["target/sprint55/mamba_readiness_v2/sprint55_mamba_readiness_v2_blocked/mamba3_readiness_audit_v2.json"]
+supporting_artifact_paths = ["examples/sprint55_data/model_escalation_sample.json"]
+output_root = "target/sprint55/model_escalation_decision"
+prefer_external_prototype = false
+reason_codes = ["DeterministicPath"]

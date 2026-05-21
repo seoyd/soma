@@ -1,0 +1,8 @@
+dashboard_id = "sprint52_control_tower"
+source_config_path = "examples/soma_dashboard_source_kis_control_tower.toml"
+output_root = "target/sprint52/dashboard_render"
+render_html = true
+render_json = true
+render_text = true
+auto_refresh_seconds = 0
+reason_codes = ["DeterministicPath"]

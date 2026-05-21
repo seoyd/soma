@@ -1,0 +1,13 @@
+linkage_id = "sprint46-outcome-linkage-v3"
+official_ready_inventory_path = "examples/sprint46_data/official_ready_row_extended_window.json"
+extended_candle_pack_paths = ["examples/sprint46_data/aapl_1d_extended.csv"]
+output_root = "target/soma_outcome_linkage_v3"
+default_horizon_bars = 3
+take_profit_pct = 0.02
+stop_loss_pct = 0.01
+cost_bps = 5.0
+slippage_bps = 2.0
+tie_break_policy = "StopFirst"
+require_exact_symbol_match = true
+require_exact_horizon_match = true
+require_no_lookahead_safe = true

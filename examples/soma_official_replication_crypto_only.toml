@@ -1,0 +1,16 @@
+replication_id = "sprint39_crypto_only"
+output_root = "target/soma_official_replication"
+evidence_lane_report_paths = ["examples/committee_evidence_lane_btc_krw.json"]
+allow_crypto_only = true
+require_non_crypto_official = true
+require_provenance = false
+require_preflight = false
+require_local_candles = false
+run_pack_generation = true
+run_reference_generation = false
+run_sufficiency_closure = true
+run_official_committee_benchmark = false
+max_rows = 3
+max_symbols = 3
+max_bytes = 500000
+reason_codes = []

@@ -1,0 +1,7 @@
+{
+  "endpoint_template_required": true,
+  "missing_template_blocked": true,
+  "template_value_not_secret_leaked": true,
+  "operator_action_preserved": true,
+  "request_builder_still_market_data_only": true
+}

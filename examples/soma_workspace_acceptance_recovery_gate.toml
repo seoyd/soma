@@ -1,0 +1,7 @@
+recovery_id = "sprint83-workspace-acceptance-recovery-gate"
+sprint82_report_paths = ["examples/sprint83_data/sprint82_report_summary.json"]
+sprint82_fixture_paths = ["examples/sprint83_data/sprint82_fixture_manifest.json"]
+sprint82_cli_smoke_paths = ["examples/sprint83_data/sprint82_cli_smoke_manifest.json"]
+workspace_timing_paths = ["examples/sprint83_data/full_workspace_attempts.json"]
+output_root = "target/soma_sprint83_acceptance_recovery"
+

@@ -1,0 +1,7 @@
+{
+  "baseline_signal": "BaselineSignalReducedWithWarnings",
+  "no_run_rerun": "NotRun",
+  "full_rerun": "NotRun",
+  "next_family": "CounterfactualBackfill",
+  "compile_impact": "CompileImpactSampleBacked"
+}

@@ -1,0 +1,10 @@
+{
+  "report_id": "prototype-ablation",
+  "ablation_kinds": ["CostStress", "CoverageStress"],
+  "family_sensitivity": [
+    { "family": "Mamba3Fin", "sensitivity_score": "0.1800" },
+    { "family": "GatedDeltaNet", "sensitivity_score": "0.1600" }
+  ],
+  "ablation_status": "AblationStable",
+  "reason_codes": ["DeterministicPath"]
+}

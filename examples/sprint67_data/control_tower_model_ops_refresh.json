@@ -1,0 +1,15 @@
+{
+  "refresh_id": "sprint66-control-tower-model-ops-refresh",
+  "model_ops_status": "NeedMorePredictionHistory",
+  "review_closure_status": "NeedsMorePredictions",
+  "prediction_history_status": "PredictionHistoryPackReady",
+  "operator_qa_status": "NeedsMorePredictions",
+  "regression_guard_status": "RegressionDetected",
+  "model_ops_panel_path": "target/soma_model_ops_review_closure/sprint66-control-tower-model-ops-refresh/control_tower_model_ops_refresh_panel.txt",
+  "dashboard_state_path": null,
+  "dashboard_html_path": null,
+  "refresh_status": "ModelOpsRefreshedWithWarnings",
+  "reason_codes": [
+    "ControlTowerModelOpsRefreshBuilt"
+  ]
+}

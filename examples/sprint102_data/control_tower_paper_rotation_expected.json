@@ -1,0 +1,38 @@
+{
+  "panel_id": "control-tower-paper-rotation-panel",
+  "rotation_status": "ScenarioPackReady",
+  "scenario_summary": "scenario_count=7 regimes=7",
+  "member_selection_summary": "selected=8 watchlist_used=1 diagnostic_excluded=3",
+  "lower_confidence_evidence_summary": "status=LowerConfidenceEvidenceImprovedWithWarnings still_warning_candidates=3",
+  "proposal_run_summary": "enter_long=2 enter_short=1 wait=1 no_trade=1 risk_deny=1 request_more_evidence=1",
+  "entry_timing_summary": "immediate=1 next_candle=1 next_n=1 pullback=1 retest=1 cooldown=1 no_entry=1",
+  "debate_summary": "status=DebateSessionReadyWithWarnings consensus=NeedMoreEvidence",
+  "conflict_summary": "conflicts_detected=4 resolution=NeedMoreEvidence",
+  "chairman_synthesis_summary": "recommendation=NoTrade",
+  "risk_governor_handoff_summary": "veto_result=NoTrade live_execution_allowed=false",
+  "paper_decision_trace_summary": "status=PaperTraceCompleteWithWarnings decision=NoTrade",
+  "roster_usage_summary": "active_used=6 watchlist_used=1",
+  "runtime_deferred_summary": "runtime deferred, training deferred, live inference forbidden, live trading forbidden, no runtime LLM live decision path, static/read-only control tower",
+  "workspace_truth_summary": "workspace_truth=FullWorkspaceNotRun can_claim_full_acceptance=false",
+  "safety_summary": "safety_status=SafetyCoveragePreserved paper_rotation_not_order_execution_guard_present=true",
+  "next_actions": [
+    "keep paper-only dry-run rotation local-only and deterministic",
+    "continue lower-confidence evidence review without silent upgrades",
+    "preserve Risk Governor final veto and workspace-truth separation"
+  ],
+  "warnings": [
+    "static/read-only panel only",
+    "no train button, no runtime button, no live button, no order/account controls",
+    "no browser execution and no activate-all-18-live button"
+  ],
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

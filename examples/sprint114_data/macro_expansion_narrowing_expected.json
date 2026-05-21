@@ -1,0 +1,22 @@
+{
+  "report_id": "macro-expansion-narrowing-v1",
+  "macro_heavy_target_candidates": [
+    "tests/workspace_timeout_root_cause.rs"
+  ],
+  "observed_evidence": [
+    "cargo json trace stalled after workspace_timeout_root_cause artifact emission"
+  ],
+  "inferred_evidence": [
+    "macro-heavy report rendering remains coupled to timeout target"
+  ],
+  "status": "MacroExpansionPartiallyNarrowed",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

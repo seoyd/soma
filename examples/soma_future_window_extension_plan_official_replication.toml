@@ -1,0 +1,16 @@
+extension_id = "sprint46-future-window-extension"
+future_window_requirement_path = "examples/soma_future_window_requirements_official_replication.toml"
+official_canonical_csv_paths = ["examples/sprint46_data/aapl_1d_extended.csv"]
+provenance_paths = ["examples/sprint46_data/aapl_1d_extended_provenance.json"]
+preflight_report_paths = ["examples/sprint46_data/aapl_1d_extended_preflight.json"]
+output_root = "target/soma_official_future_window_extension"
+max_jobs = 5
+max_symbols = 1
+max_rows_per_job = 10
+max_requests_per_job = 2
+max_total_bytes = 1000000
+prefer_local_extension = true
+generate_provider_jobs = false
+run_local_extension_jobs = true
+run_provider_collection_jobs = false
+allow_controlled_diagnostic = false

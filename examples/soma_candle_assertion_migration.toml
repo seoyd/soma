@@ -1,0 +1,16 @@
+reduction_id = "candle-assertion-migration"
+sprint88_bundle_paths = ["examples/sprint89_data/sprint88_summary.json"]
+candle_expansion_suite_paths = ["tests/candle_expansion_ops_suite.rs"]
+official_candle_expansion_runner_paths = ["tests/official_candle_expansion_runner.rs"]
+cargo_metadata_paths = [
+  "examples/sprint89_data/candle_reduction_plan_expected.json",
+  "examples/sprint89_data/candle_assertion_migration_expected.json",
+  "examples/sprint89_data/candle_compile_impact_sample.json",
+]
+cargo_timings_paths = [
+  "examples/sprint89_data/candle_no_run_rerun_sample.json",
+  "examples/sprint89_data/candle_full_gate_rerun_sample.json",
+  "examples/sprint89_data/queue_progress_v5_expected.json",
+  "examples/sprint89_data/safety_coverage_v5_expected.json",
+]
+output_root = "target/soma_sprint89_candle_recovery"

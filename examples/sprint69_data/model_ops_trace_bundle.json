@@ -1,0 +1,2462 @@
+{
+  "artifact_trace_index": {
+    "trace_id": "sprint68-model-ops-trace",
+    "artifacts": [
+      {
+        "artifact_id": "trace-artifact-0c492530ed8d1012",
+        "artifact_kind": "CurrentSnapshot",
+        "local_path": "examples/sprint68_data/current_snapshot.json",
+        "model_id": "ext-model-a",
+        "model_version": "1.1.0",
+        "fingerprint": null,
+        "summary": "coverage=1.0000;risk=Low;leaderboard=RankUp",
+        "reason_codes": [
+          "TraceArtifactRefBuilt"
+        ]
+      },
+      {
+        "artifact_id": "trace-artifact-14e4c830f2691559",
+        "artifact_kind": "CurrentSnapshot",
+        "local_path": "examples/sprint68_data/current_snapshot.json",
+        "model_id": "ext-model-a",
+        "model_version": "1.0.0",
+        "fingerprint": null,
+        "summary": "coverage=1.0000;risk=DiagnosticOnly;leaderboard=NoChange",
+        "reason_codes": [
+          "TraceArtifactRefBuilt"
+        ]
+      },
+      {
+        "artifact_id": "trace-artifact-198f7c9cf7e0904d",
+        "artifact_kind": "DecisionLogRollup",
+        "local_path": "examples/sprint68_data/decision_log_rollup.json",
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "fingerprint": null,
+        "summary": "latest=Some(RequestMorePredictions)",
+        "reason_codes": [
+          "TraceArtifactRefBuilt"
+        ]
+      },
+      {
+        "artifact_id": "trace-artifact-1c19d9eeea53fc58",
+        "artifact_kind": "BaselineSnapshot",
+        "local_path": "examples/sprint68_data/baseline_snapshot.json",
+        "model_id": "ext-model-a",
+        "model_version": "1.1.0",
+        "fingerprint": null,
+        "summary": "coverage=1.0000;risk=Low;leaderboard=NoChange",
+        "reason_codes": [
+          "TraceArtifactRefBuilt"
+        ]
+      },
+      {
+        "artifact_id": "trace-artifact-1f16ea7d926723ea",
+        "artifact_kind": "RiskRollup",
+        "local_path": "examples/sprint68_data/model_ops_risk_rollup.json",
+        "model_id": "ext-model-a",
+        "model_version": "1.2.0",
+        "fingerprint": null,
+        "summary": "risk=Medium",
+        "reason_codes": [
+          "TraceArtifactRefBuilt"
+        ]
+      },
+      {
+        "artifact_id": "trace-artifact-23dc7ceeee7810df",
+        "artifact_kind": "BaselineSnapshot",
+        "local_path": "examples/sprint68_data/baseline_snapshot.json",
+        "model_id": "ext-model-a",
+        "model_version": "1.0.0",
+        "fingerprint": null,
+        "summary": "coverage=1.0000;risk=DiagnosticOnly;leaderboard=NoChange",
+        "reason_codes": [
+          "TraceArtifactRefBuilt"
+        ]
+      },
+      {
+        "artifact_id": "trace-artifact-2f67b87d9b5be774",
+        "artifact_kind": "RiskRollup",
+        "local_path": "examples/sprint68_data/model_ops_risk_rollup.json",
+        "model_id": "ext-model-a",
+        "model_version": "1.0.0",
+        "fingerprint": null,
+        "summary": "risk=High",
+        "reason_codes": [
+          "TraceArtifactRefBuilt"
+        ]
+      },
+      {
+        "artifact_id": "trace-artifact-38dcdb7da0f0b6fb",
+        "artifact_kind": "RiskRollup",
+        "local_path": "examples/sprint68_data/model_ops_risk_rollup.json",
+        "model_id": "ext-model-a",
+        "model_version": "1.1.0",
+        "fingerprint": null,
+        "summary": "risk=Low",
+        "reason_codes": [
+          "TraceArtifactRefBuilt"
+        ]
+      },
+      {
+        "artifact_id": "trace-artifact-43715a58646bcf35",
+        "artifact_kind": "ActionPriority",
+        "local_path": "examples/sprint68_data/model_ops_action_priority.json",
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "fingerprint": null,
+        "summary": "RequestMorePredictions:weak coverage or missing prediction evidence; final_risk_level=Critical",
+        "reason_codes": [
+          "TraceArtifactRefBuilt"
+        ]
+      },
+      {
+        "artifact_id": "trace-artifact-44d1e5d1c35a06e7",
+        "artifact_kind": "OperatorQARollup",
+        "local_path": "examples/sprint68_data/operator_qa_rollup.json",
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "fingerprint": null,
+        "summary": "NoTrade/RiskDenied reference preserved | calibration reviewed | evaluation exists | leaderboard position reviewed | model card exists | no live/runtime/training path | no secret/order/account fields | predictions cover known sequences | risk behavior reviewed",
+        "reason_codes": [
+          "TraceArtifactRefBuilt"
+        ]
+      },
+      {
+        "artifact_id": "trace-artifact-7b7c793063a6a379",
+        "artifact_kind": "ModelVersionSummaryCard",
+        "local_path": "examples/sprint68_data/model_version_summary_cards.json",
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "fingerprint": "118f8e19e94a668b",
+        "summary": "RequestMorePredictions card for ext-model-b:1.0.0",
+        "reason_codes": [
+          "TraceArtifactRefBuilt"
+        ]
+      },
+      {
+        "artifact_id": "trace-artifact-7eb1904ab0102484",
+        "artifact_kind": "ModelCard",
+        "local_path": "examples/sprint68_data/model_ops_rollup_bundle.json",
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "fingerprint": null,
+        "summary": "ModelCard backing ext-model-b:1.0.0",
+        "reason_codes": [
+          "TraceArtifactRefBuilt"
+        ]
+      },
+      {
+        "artifact_id": "trace-artifact-928b002fee94df9a",
+        "artifact_kind": "ModelVersionSummaryCard",
+        "local_path": "examples/sprint68_data/model_version_summary_cards.json",
+        "model_id": "ext-model-a",
+        "model_version": "1.2.0",
+        "fingerprint": null,
+        "summary": "KeepResearchCandidate card for ext-model-a:1.2.0",
+        "reason_codes": [
+          "TraceArtifactRefBuilt"
+        ]
+      },
+      {
+        "artifact_id": "trace-artifact-9d93c2d3279a3b12",
+        "artifact_kind": "ModelCard",
+        "local_path": "examples/sprint68_data/model_ops_rollup_bundle.json",
+        "model_id": "ext-model-a",
+        "model_version": "1.1.0",
+        "fingerprint": null,
+        "summary": "ModelCard backing ext-model-a:1.1.0",
+        "reason_codes": [
+          "TraceArtifactRefBuilt"
+        ]
+      },
+      {
+        "artifact_id": "trace-artifact-a2db4e2ff788c9a4",
+        "artifact_kind": "ModelVersionSummaryCard",
+        "local_path": "examples/sprint68_data/model_version_summary_cards.json",
+        "model_id": "ext-model-a",
+        "model_version": "1.0.0",
+        "fingerprint": "118f8e19e94a668b",
+        "summary": "RetireModelVersion card for ext-model-a:1.0.0",
+        "reason_codes": [
+          "TraceArtifactRefBuilt"
+        ]
+      },
+      {
+        "artifact_id": "trace-artifact-a2e7c4a81454a036",
+        "artifact_kind": "ActionPriority",
+        "local_path": "examples/sprint68_data/model_ops_action_priority.json",
+        "model_id": "ext-model-a",
+        "model_version": "1.2.0",
+        "fingerprint": null,
+        "summary": "KeepResearchCandidate:keep as offline research candidate",
+        "reason_codes": [
+          "TraceArtifactRefBuilt"
+        ]
+      },
+      {
+        "artifact_id": "trace-artifact-a62f65d32c764059",
+        "artifact_kind": "ModelCard",
+        "local_path": "examples/sprint68_data/model_ops_rollup_bundle.json",
+        "model_id": "ext-model-a",
+        "model_version": "1.0.0",
+        "fingerprint": null,
+        "summary": "ModelCard backing ext-model-a:1.0.0",
+        "reason_codes": [
+          "TraceArtifactRefBuilt"
+        ]
+      },
+      {
+        "artifact_id": "trace-artifact-ab77712ffc65a86b",
+        "artifact_kind": "ModelVersionSummaryCard",
+        "local_path": "examples/sprint68_data/model_version_summary_cards.json",
+        "model_id": "ext-model-a",
+        "model_version": "1.1.0",
+        "fingerprint": "118f8e19e94a668b",
+        "summary": "KeepResearchCandidate card for ext-model-a:1.1.0",
+        "reason_codes": [
+          "TraceArtifactRefBuilt"
+        ]
+      },
+      {
+        "artifact_id": "trace-artifact-ac6d627890069d4e",
+        "artifact_kind": "DecisionLogRollup",
+        "local_path": "examples/sprint68_data/decision_log_rollup.json",
+        "model_id": "ext-model-a",
+        "model_version": "1.2.0",
+        "fingerprint": null,
+        "summary": "latest=None",
+        "reason_codes": [
+          "TraceArtifactRefBuilt"
+        ]
+      },
+      {
+        "artifact_id": "trace-artifact-ae806db08682358f",
+        "artifact_kind": "RegressionExplanation",
+        "local_path": "examples/sprint68_data/regression_explanations.json",
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "fingerprint": null,
+        "summary": "artifact completeness regressed and evidence should be rebuilt conservatively",
+        "reason_codes": [
+          "TraceArtifactRefBuilt"
+        ]
+      },
+      {
+        "artifact_id": "trace-artifact-ae806db08682358f",
+        "artifact_kind": "RegressionExplanation",
+        "local_path": "examples/sprint68_data/regression_explanations.json",
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "fingerprint": null,
+        "summary": "calibration drift needs review before further comparison",
+        "reason_codes": [
+          "TraceArtifactRefBuilt"
+        ]
+      },
+      {
+        "artifact_id": "trace-artifact-ae806db08682358f",
+        "artifact_kind": "RegressionExplanation",
+        "local_path": "examples/sprint68_data/regression_explanations.json",
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "fingerprint": null,
+        "summary": "comparability regressed and the model should stay diagnostic-only until clarified",
+        "reason_codes": [
+          "TraceArtifactRefBuilt"
+        ]
+      },
+      {
+        "artifact_id": "trace-artifact-ae806db08682358f",
+        "artifact_kind": "RegressionExplanation",
+        "local_path": "examples/sprint68_data/regression_explanations.json",
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "fingerprint": null,
+        "summary": "prediction coverage regressed and needs more offline history",
+        "reason_codes": [
+          "TraceArtifactRefBuilt"
+        ]
+      },
+      {
+        "artifact_id": "trace-artifact-ae806db08682358f",
+        "artifact_kind": "RegressionExplanation",
+        "local_path": "examples/sprint68_data/regression_explanations.json",
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "fingerprint": null,
+        "summary": "leaderboard status regressed and ranking should be treated conservatively",
+        "reason_codes": [
+          "TraceArtifactRefBuilt"
+        ]
+      },
+      {
+        "artifact_id": "trace-artifact-ae806db08682358f",
+        "artifact_kind": "RegressionExplanation",
+        "local_path": "examples/sprint68_data/regression_explanations.json",
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "fingerprint": null,
+        "summary": "risk behavior regressed and needs conservative review",
+        "reason_codes": [
+          "TraceArtifactRefBuilt"
+        ]
+      },
+      {
+        "artifact_id": "trace-artifact-b33812a81d488a40",
+        "artifact_kind": "ActionPriority",
+        "local_path": "examples/sprint68_data/model_ops_action_priority.json",
+        "model_id": "ext-model-a",
+        "model_version": "1.0.0",
+        "fingerprint": null,
+        "summary": "RetireModelVersion:retired or critically regressed model version; final_risk_level=High",
+        "reason_codes": [
+          "TraceArtifactRefBuilt"
+        ]
+      },
+      {
+        "artifact_id": "trace-artifact-b3c661660551a3c9",
+        "artifact_kind": "RiskRollup",
+        "local_path": "examples/sprint68_data/model_ops_risk_rollup.json",
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "fingerprint": null,
+        "summary": "risk=Critical",
+        "reason_codes": [
+          "TraceArtifactRefBuilt"
+        ]
+      },
+      {
+        "artifact_id": "trace-artifact-b8a033d337396a43",
+        "artifact_kind": "ModelCard",
+        "local_path": "examples/sprint68_data/model_ops_rollup_bundle.json",
+        "model_id": "ext-model-a",
+        "model_version": "1.2.0",
+        "fingerprint": null,
+        "summary": "ModelCard backing ext-model-a:1.2.0",
+        "reason_codes": [
+          "TraceArtifactRefBuilt"
+        ]
+      },
+      {
+        "artifact_id": "trace-artifact-bc40d5a8228197c7",
+        "artifact_kind": "ActionPriority",
+        "local_path": "examples/sprint68_data/model_ops_action_priority.json",
+        "model_id": "ext-model-a",
+        "model_version": "1.1.0",
+        "fingerprint": null,
+        "summary": "WatchModel:keep as offline research candidate",
+        "reason_codes": [
+          "TraceArtifactRefBuilt"
+        ]
+      },
+      {
+        "artifact_id": "trace-artifact-be70b0789a6c1bd8",
+        "artifact_kind": "DecisionLogRollup",
+        "local_path": "examples/sprint68_data/decision_log_rollup.json",
+        "model_id": "ext-model-a",
+        "model_version": "1.0.0",
+        "fingerprint": null,
+        "summary": "latest=Some(KeepResearchCandidate)",
+        "reason_codes": [
+          "TraceArtifactRefBuilt"
+        ]
+      },
+      {
+        "artifact_id": "trace-artifact-c63353789e90305f",
+        "artifact_kind": "DecisionLogRollup",
+        "local_path": "examples/sprint68_data/decision_log_rollup.json",
+        "model_id": "ext-model-a",
+        "model_version": "1.1.0",
+        "fingerprint": null,
+        "summary": "latest=Some(KeepResearchCandidate)",
+        "reason_codes": [
+          "TraceArtifactRefBuilt"
+        ]
+      },
+      {
+        "artifact_id": "trace-artifact-c8d082ac1f7cb46e",
+        "artifact_kind": "BaselineSnapshot",
+        "local_path": "examples/sprint68_data/baseline_snapshot.json",
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "fingerprint": null,
+        "summary": "coverage=1.0000;risk=Low;leaderboard=NoChange",
+        "reason_codes": [
+          "TraceArtifactRefBuilt"
+        ]
+      },
+      {
+        "artifact_id": "trace-artifact-d399fb7f2a580a56",
+        "artifact_kind": "OperatorQARollup",
+        "local_path": "examples/sprint68_data/operator_qa_rollup.json",
+        "model_id": "ext-model-a",
+        "model_version": "1.0.0",
+        "fingerprint": null,
+        "summary": "NoTrade/RiskDenied reference preserved | calibration reviewed | evaluation exists | leaderboard position reviewed | model card exists | no live/runtime/training path | no secret/order/account fields | predictions cover known sequences | risk behavior reviewed",
+        "reason_codes": [
+          "TraceArtifactRefBuilt"
+        ]
+      },
+      {
+        "artifact_id": "trace-artifact-dc35be7f2f3445fd",
+        "artifact_kind": "OperatorQARollup",
+        "local_path": "examples/sprint68_data/operator_qa_rollup.json",
+        "model_id": "ext-model-a",
+        "model_version": "1.1.0",
+        "fingerprint": null,
+        "summary": "NoTrade/RiskDenied reference preserved | calibration reviewed | evaluation exists | leaderboard position reviewed | model card exists | no live/runtime/training path | no secret/order/account fields | predictions cover known sequences | risk behavior reviewed",
+        "reason_codes": [
+          "TraceArtifactRefBuilt"
+        ]
+      },
+      {
+        "artifact_id": "trace-artifact-e59dc97f34be6260",
+        "artifact_kind": "OperatorQARollup",
+        "local_path": "examples/sprint68_data/operator_qa_rollup.json",
+        "model_id": "ext-model-a",
+        "model_version": "1.2.0",
+        "fingerprint": null,
+        "summary": "NoTrade/RiskDenied reference preserved | calibration reviewed | evaluation exists | leaderboard position reviewed | model card exists | no live/runtime/training path | no secret/order/account fields | predictions cover known sequences | risk behavior reviewed",
+        "reason_codes": [
+          "TraceArtifactRefBuilt"
+        ]
+      },
+      {
+        "artifact_id": "trace-artifact-ed66f2a87602f984",
+        "artifact_kind": "CurrentSnapshot",
+        "local_path": "examples/sprint68_data/current_snapshot.json",
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "fingerprint": null,
+        "summary": "coverage=0.6667;risk=Critical;leaderboard=NewlyBlocked",
+        "reason_codes": [
+          "TraceArtifactRefBuilt"
+        ]
+      }
+    ],
+    "by_model_version": {
+      "ext-model-a:1.0.0": [
+        "trace-artifact-14e4c830f2691559",
+        "trace-artifact-23dc7ceeee7810df",
+        "trace-artifact-2f67b87d9b5be774",
+        "trace-artifact-a2db4e2ff788c9a4",
+        "trace-artifact-a62f65d32c764059",
+        "trace-artifact-b33812a81d488a40",
+        "trace-artifact-be70b0789a6c1bd8",
+        "trace-artifact-d399fb7f2a580a56"
+      ],
+      "ext-model-a:1.1.0": [
+        "trace-artifact-0c492530ed8d1012",
+        "trace-artifact-1c19d9eeea53fc58",
+        "trace-artifact-38dcdb7da0f0b6fb",
+        "trace-artifact-9d93c2d3279a3b12",
+        "trace-artifact-ab77712ffc65a86b",
+        "trace-artifact-bc40d5a8228197c7",
+        "trace-artifact-c63353789e90305f",
+        "trace-artifact-dc35be7f2f3445fd"
+      ],
+      "ext-model-a:1.2.0": [
+        "trace-artifact-1f16ea7d926723ea",
+        "trace-artifact-928b002fee94df9a",
+        "trace-artifact-a2e7c4a81454a036",
+        "trace-artifact-ac6d627890069d4e",
+        "trace-artifact-b8a033d337396a43",
+        "trace-artifact-e59dc97f34be6260"
+      ],
+      "ext-model-b:1.0.0": [
+        "trace-artifact-198f7c9cf7e0904d",
+        "trace-artifact-43715a58646bcf35",
+        "trace-artifact-44d1e5d1c35a06e7",
+        "trace-artifact-7b7c793063a6a379",
+        "trace-artifact-7eb1904ab0102484",
+        "trace-artifact-ae806db08682358f",
+        "trace-artifact-ae806db08682358f",
+        "trace-artifact-ae806db08682358f",
+        "trace-artifact-ae806db08682358f",
+        "trace-artifact-ae806db08682358f",
+        "trace-artifact-ae806db08682358f",
+        "trace-artifact-b3c661660551a3c9",
+        "trace-artifact-c8d082ac1f7cb46e",
+        "trace-artifact-ed66f2a87602f984"
+      ]
+    },
+    "missing_artifacts": [],
+    "unsafe_artifacts": [],
+    "index_status": "IndexReady",
+    "reason_codes": [
+      "ModelOpsArtifactTraceIndexBuilt"
+    ]
+  },
+  "model_card_trace_graphs": [
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.0.0",
+      "nodes": [
+        {
+          "node_id": "action:ext-model-a:1.0.0",
+          "node_kind": "ActionPriority",
+          "model_id": "ext-model-a",
+          "model_version": "1.0.0",
+          "title": "Action priority",
+          "summary": "RetireModelVersion;retired or critically regressed model version; final_risk_level=High",
+          "artifact_ref": "trace-artifact-b33812a81d488a40",
+          "severity": "Required",
+          "reason_codes": [
+            "ModelTraceNodeBuilt"
+          ]
+        },
+        {
+          "node_id": "artifact:ext-model-a:1.0.0:trace-artifact-14e4c830f2691559",
+          "node_kind": "Artifact",
+          "model_id": "ext-model-a",
+          "model_version": "1.0.0",
+          "title": "trace-artifact-14e4c830f2691559",
+          "summary": "local artifact backing ext-model-a:1.0.0",
+          "artifact_ref": "trace-artifact-14e4c830f2691559",
+          "severity": null,
+          "reason_codes": [
+            "TraceArtifactRefBuilt"
+          ]
+        },
+        {
+          "node_id": "artifact:ext-model-a:1.0.0:trace-artifact-23dc7ceeee7810df",
+          "node_kind": "Artifact",
+          "model_id": "ext-model-a",
+          "model_version": "1.0.0",
+          "title": "trace-artifact-23dc7ceeee7810df",
+          "summary": "local artifact backing ext-model-a:1.0.0",
+          "artifact_ref": "trace-artifact-23dc7ceeee7810df",
+          "severity": null,
+          "reason_codes": [
+            "TraceArtifactRefBuilt"
+          ]
+        },
+        {
+          "node_id": "artifact:ext-model-a:1.0.0:trace-artifact-2f67b87d9b5be774",
+          "node_kind": "Artifact",
+          "model_id": "ext-model-a",
+          "model_version": "1.0.0",
+          "title": "trace-artifact-2f67b87d9b5be774",
+          "summary": "local artifact backing ext-model-a:1.0.0",
+          "artifact_ref": "trace-artifact-2f67b87d9b5be774",
+          "severity": null,
+          "reason_codes": [
+            "TraceArtifactRefBuilt"
+          ]
+        },
+        {
+          "node_id": "artifact:ext-model-a:1.0.0:trace-artifact-a2db4e2ff788c9a4",
+          "node_kind": "Artifact",
+          "model_id": "ext-model-a",
+          "model_version": "1.0.0",
+          "title": "trace-artifact-a2db4e2ff788c9a4",
+          "summary": "local artifact backing ext-model-a:1.0.0",
+          "artifact_ref": "trace-artifact-a2db4e2ff788c9a4",
+          "severity": null,
+          "reason_codes": [
+            "TraceArtifactRefBuilt"
+          ]
+        },
+        {
+          "node_id": "artifact:ext-model-a:1.0.0:trace-artifact-a62f65d32c764059",
+          "node_kind": "Artifact",
+          "model_id": "ext-model-a",
+          "model_version": "1.0.0",
+          "title": "trace-artifact-a62f65d32c764059",
+          "summary": "local artifact backing ext-model-a:1.0.0",
+          "artifact_ref": "trace-artifact-a62f65d32c764059",
+          "severity": null,
+          "reason_codes": [
+            "TraceArtifactRefBuilt"
+          ]
+        },
+        {
+          "node_id": "artifact:ext-model-a:1.0.0:trace-artifact-b33812a81d488a40",
+          "node_kind": "Artifact",
+          "model_id": "ext-model-a",
+          "model_version": "1.0.0",
+          "title": "trace-artifact-b33812a81d488a40",
+          "summary": "local artifact backing ext-model-a:1.0.0",
+          "artifact_ref": "trace-artifact-b33812a81d488a40",
+          "severity": null,
+          "reason_codes": [
+            "TraceArtifactRefBuilt"
+          ]
+        },
+        {
+          "node_id": "artifact:ext-model-a:1.0.0:trace-artifact-be70b0789a6c1bd8",
+          "node_kind": "Artifact",
+          "model_id": "ext-model-a",
+          "model_version": "1.0.0",
+          "title": "trace-artifact-be70b0789a6c1bd8",
+          "summary": "local artifact backing ext-model-a:1.0.0",
+          "artifact_ref": "trace-artifact-be70b0789a6c1bd8",
+          "severity": null,
+          "reason_codes": [
+            "TraceArtifactRefBuilt"
+          ]
+        },
+        {
+          "node_id": "artifact:ext-model-a:1.0.0:trace-artifact-d399fb7f2a580a56",
+          "node_kind": "Artifact",
+          "model_id": "ext-model-a",
+          "model_version": "1.0.0",
+          "title": "trace-artifact-d399fb7f2a580a56",
+          "summary": "local artifact backing ext-model-a:1.0.0",
+          "artifact_ref": "trace-artifact-d399fb7f2a580a56",
+          "severity": null,
+          "reason_codes": [
+            "TraceArtifactRefBuilt"
+          ]
+        },
+        {
+          "node_id": "card:ext-model-a:1.0.0",
+          "node_kind": "ModelVersionCard",
+          "model_id": "ext-model-a",
+          "model_version": "1.0.0",
+          "title": "ext-model-a:1.0.0",
+          "summary": "status=RetireModelVersion;risk=DiagnosticOnly;coverage=1.0000;leaderboard=NoChange",
+          "artifact_ref": null,
+          "severity": "DiagnosticOnly",
+          "reason_codes": [
+            "ModelTraceNodeBuilt"
+          ]
+        },
+        {
+          "node_id": "decision:ext-model-a:1.0.0",
+          "node_kind": "Decision",
+          "model_id": "ext-model-a",
+          "model_version": "1.0.0",
+          "title": "Decision summary",
+          "summary": "latest=Some(KeepResearchCandidate);counts={\"KeepResearchCandidate\": 1, \"RetireModelVersion\": 4};conflicts=KeepResearchCandidate|RetireModelVersion",
+          "artifact_ref": "trace-artifact-be70b0789a6c1bd8",
+          "severity": null,
+          "reason_codes": [
+            "ModelTraceNodeBuilt"
+          ]
+        },
+        {
+          "node_id": "mamba:ext-model-a:1.0.0",
+          "node_kind": "MambaDeferredState",
+          "model_id": "ext-model-a",
+          "model_version": "1.0.0",
+          "title": "Mamba runtime",
+          "summary": "HoldMamba3RuntimeDeferred",
+          "artifact_ref": null,
+          "severity": null,
+          "reason_codes": [
+            "ModelTraceNodeBuilt"
+          ]
+        },
+        {
+          "node_id": "qa:ext-model-a:1.0.0",
+          "node_kind": "QAItem",
+          "model_id": "ext-model-a",
+          "model_version": "1.0.0",
+          "title": "Operator QA",
+          "summary": "NeedsRiskReview;NoTrade/RiskDenied reference preserved | calibration reviewed | evaluation exists | leaderboard position reviewed | model card exists | no live/runtime/training path | no secret/order/account fields | predictions cover known sequences | risk behavior reviewed",
+          "artifact_ref": "trace-artifact-d399fb7f2a580a56",
+          "severity": "NeedsRiskReview",
+          "reason_codes": [
+            "ModelTraceNodeBuilt"
+          ]
+        },
+        {
+          "node_id": "risk:ext-model-a:1.0.0",
+          "node_kind": "RiskBand",
+          "model_id": "ext-model-a",
+          "model_version": "1.0.0",
+          "title": "Risk band",
+          "summary": "High -> HighRiskDiagnostic",
+          "artifact_ref": "trace-artifact-2f67b87d9b5be774",
+          "severity": "High",
+          "reason_codes": [
+            "ModelTraceNodeBuilt"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "from_node": "card:ext-model-a:1.0.0",
+          "to_node": "action:ext-model-a:1.0.0",
+          "edge_kind": "Recommends",
+          "summary": "card recommendation traced to action priority",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-a:1.0.0",
+          "to_node": "artifact:ext-model-a:1.0.0:trace-artifact-14e4c830f2691559",
+          "edge_kind": "DerivedFrom",
+          "summary": "card derived from local artifact",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-a:1.0.0",
+          "to_node": "artifact:ext-model-a:1.0.0:trace-artifact-23dc7ceeee7810df",
+          "edge_kind": "DerivedFrom",
+          "summary": "card derived from local artifact",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-a:1.0.0",
+          "to_node": "artifact:ext-model-a:1.0.0:trace-artifact-2f67b87d9b5be774",
+          "edge_kind": "DerivedFrom",
+          "summary": "card derived from local artifact",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-a:1.0.0",
+          "to_node": "artifact:ext-model-a:1.0.0:trace-artifact-a2db4e2ff788c9a4",
+          "edge_kind": "DerivedFrom",
+          "summary": "card derived from local artifact",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-a:1.0.0",
+          "to_node": "artifact:ext-model-a:1.0.0:trace-artifact-a62f65d32c764059",
+          "edge_kind": "DerivedFrom",
+          "summary": "card derived from local artifact",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-a:1.0.0",
+          "to_node": "artifact:ext-model-a:1.0.0:trace-artifact-b33812a81d488a40",
+          "edge_kind": "DerivedFrom",
+          "summary": "card derived from local artifact",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-a:1.0.0",
+          "to_node": "artifact:ext-model-a:1.0.0:trace-artifact-be70b0789a6c1bd8",
+          "edge_kind": "DerivedFrom",
+          "summary": "card derived from local artifact",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-a:1.0.0",
+          "to_node": "artifact:ext-model-a:1.0.0:trace-artifact-d399fb7f2a580a56",
+          "edge_kind": "DerivedFrom",
+          "summary": "card derived from local artifact",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-a:1.0.0",
+          "to_node": "decision:ext-model-a:1.0.0",
+          "edge_kind": "CausedBy",
+          "summary": "card status traced to decision rollup",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-a:1.0.0",
+          "to_node": "mamba:ext-model-a:1.0.0",
+          "edge_kind": "DiagnosticOnly",
+          "summary": "Mamba runtime remains deferred",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-a:1.0.0",
+          "to_node": "qa:ext-model-a:1.0.0",
+          "edge_kind": "NeedsReview",
+          "summary": "card status traced to QA evidence",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-a:1.0.0",
+          "to_node": "risk:ext-model-a:1.0.0",
+          "edge_kind": "Blocks",
+          "summary": "risk band constrains the model card",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        }
+      ],
+      "graph_status": "ConflictsDetected",
+      "reason_codes": [
+        "ModelCardTraceGraphBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "nodes": [
+        {
+          "node_id": "action:ext-model-a:1.1.0",
+          "node_kind": "ActionPriority",
+          "model_id": "ext-model-a",
+          "model_version": "1.1.0",
+          "title": "Action priority",
+          "summary": "WatchModel;keep as offline research candidate",
+          "artifact_ref": "trace-artifact-bc40d5a8228197c7",
+          "severity": "Optional",
+          "reason_codes": [
+            "ModelTraceNodeBuilt"
+          ]
+        },
+        {
+          "node_id": "artifact:ext-model-a:1.1.0:trace-artifact-0c492530ed8d1012",
+          "node_kind": "Artifact",
+          "model_id": "ext-model-a",
+          "model_version": "1.1.0",
+          "title": "trace-artifact-0c492530ed8d1012",
+          "summary": "local artifact backing ext-model-a:1.1.0",
+          "artifact_ref": "trace-artifact-0c492530ed8d1012",
+          "severity": null,
+          "reason_codes": [
+            "TraceArtifactRefBuilt"
+          ]
+        },
+        {
+          "node_id": "artifact:ext-model-a:1.1.0:trace-artifact-1c19d9eeea53fc58",
+          "node_kind": "Artifact",
+          "model_id": "ext-model-a",
+          "model_version": "1.1.0",
+          "title": "trace-artifact-1c19d9eeea53fc58",
+          "summary": "local artifact backing ext-model-a:1.1.0",
+          "artifact_ref": "trace-artifact-1c19d9eeea53fc58",
+          "severity": null,
+          "reason_codes": [
+            "TraceArtifactRefBuilt"
+          ]
+        },
+        {
+          "node_id": "artifact:ext-model-a:1.1.0:trace-artifact-38dcdb7da0f0b6fb",
+          "node_kind": "Artifact",
+          "model_id": "ext-model-a",
+          "model_version": "1.1.0",
+          "title": "trace-artifact-38dcdb7da0f0b6fb",
+          "summary": "local artifact backing ext-model-a:1.1.0",
+          "artifact_ref": "trace-artifact-38dcdb7da0f0b6fb",
+          "severity": null,
+          "reason_codes": [
+            "TraceArtifactRefBuilt"
+          ]
+        },
+        {
+          "node_id": "artifact:ext-model-a:1.1.0:trace-artifact-9d93c2d3279a3b12",
+          "node_kind": "Artifact",
+          "model_id": "ext-model-a",
+          "model_version": "1.1.0",
+          "title": "trace-artifact-9d93c2d3279a3b12",
+          "summary": "local artifact backing ext-model-a:1.1.0",
+          "artifact_ref": "trace-artifact-9d93c2d3279a3b12",
+          "severity": null,
+          "reason_codes": [
+            "TraceArtifactRefBuilt"
+          ]
+        },
+        {
+          "node_id": "artifact:ext-model-a:1.1.0:trace-artifact-ab77712ffc65a86b",
+          "node_kind": "Artifact",
+          "model_id": "ext-model-a",
+          "model_version": "1.1.0",
+          "title": "trace-artifact-ab77712ffc65a86b",
+          "summary": "local artifact backing ext-model-a:1.1.0",
+          "artifact_ref": "trace-artifact-ab77712ffc65a86b",
+          "severity": null,
+          "reason_codes": [
+            "TraceArtifactRefBuilt"
+          ]
+        },
+        {
+          "node_id": "artifact:ext-model-a:1.1.0:trace-artifact-bc40d5a8228197c7",
+          "node_kind": "Artifact",
+          "model_id": "ext-model-a",
+          "model_version": "1.1.0",
+          "title": "trace-artifact-bc40d5a8228197c7",
+          "summary": "local artifact backing ext-model-a:1.1.0",
+          "artifact_ref": "trace-artifact-bc40d5a8228197c7",
+          "severity": null,
+          "reason_codes": [
+            "TraceArtifactRefBuilt"
+          ]
+        },
+        {
+          "node_id": "artifact:ext-model-a:1.1.0:trace-artifact-c63353789e90305f",
+          "node_kind": "Artifact",
+          "model_id": "ext-model-a",
+          "model_version": "1.1.0",
+          "title": "trace-artifact-c63353789e90305f",
+          "summary": "local artifact backing ext-model-a:1.1.0",
+          "artifact_ref": "trace-artifact-c63353789e90305f",
+          "severity": null,
+          "reason_codes": [
+            "TraceArtifactRefBuilt"
+          ]
+        },
+        {
+          "node_id": "artifact:ext-model-a:1.1.0:trace-artifact-dc35be7f2f3445fd",
+          "node_kind": "Artifact",
+          "model_id": "ext-model-a",
+          "model_version": "1.1.0",
+          "title": "trace-artifact-dc35be7f2f3445fd",
+          "summary": "local artifact backing ext-model-a:1.1.0",
+          "artifact_ref": "trace-artifact-dc35be7f2f3445fd",
+          "severity": null,
+          "reason_codes": [
+            "TraceArtifactRefBuilt"
+          ]
+        },
+        {
+          "node_id": "card:ext-model-a:1.1.0",
+          "node_kind": "ModelVersionCard",
+          "model_id": "ext-model-a",
+          "model_version": "1.1.0",
+          "title": "ext-model-a:1.1.0",
+          "summary": "status=KeepResearchCandidate;risk=Low;coverage=1.0000;leaderboard=RankUp",
+          "artifact_ref": null,
+          "severity": "Low",
+          "reason_codes": [
+            "ModelTraceNodeBuilt"
+          ]
+        },
+        {
+          "node_id": "decision:ext-model-a:1.1.0",
+          "node_kind": "Decision",
+          "model_id": "ext-model-a",
+          "model_version": "1.1.0",
+          "title": "Decision summary",
+          "summary": "latest=Some(KeepResearchCandidate);counts={\"KeepResearchCandidate\": 7, \"WatchModel\": 1};conflicts=KeepResearchCandidate|WatchModel",
+          "artifact_ref": "trace-artifact-c63353789e90305f",
+          "severity": null,
+          "reason_codes": [
+            "ModelTraceNodeBuilt"
+          ]
+        },
+        {
+          "node_id": "mamba:ext-model-a:1.1.0",
+          "node_kind": "MambaDeferredState",
+          "model_id": "ext-model-a",
+          "model_version": "1.1.0",
+          "title": "Mamba runtime",
+          "summary": "HoldMamba3RuntimeDeferred",
+          "artifact_ref": null,
+          "severity": null,
+          "reason_codes": [
+            "ModelTraceNodeBuilt"
+          ]
+        },
+        {
+          "node_id": "qa:ext-model-a:1.1.0",
+          "node_kind": "QAItem",
+          "model_id": "ext-model-a",
+          "model_version": "1.1.0",
+          "title": "Operator QA",
+          "summary": "ReadyForOperatorReview;NoTrade/RiskDenied reference preserved | calibration reviewed | evaluation exists | leaderboard position reviewed | model card exists | no live/runtime/training path | no secret/order/account fields | predictions cover known sequences | risk behavior reviewed",
+          "artifact_ref": "trace-artifact-dc35be7f2f3445fd",
+          "severity": "ReadyForOperatorReview",
+          "reason_codes": [
+            "ModelTraceNodeBuilt"
+          ]
+        },
+        {
+          "node_id": "risk:ext-model-a:1.1.0",
+          "node_kind": "RiskBand",
+          "model_id": "ext-model-a",
+          "model_version": "1.1.0",
+          "title": "Risk band",
+          "summary": "Low -> LowRiskResearch",
+          "artifact_ref": "trace-artifact-38dcdb7da0f0b6fb",
+          "severity": "Low",
+          "reason_codes": [
+            "ModelTraceNodeBuilt"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "from_node": "card:ext-model-a:1.1.0",
+          "to_node": "action:ext-model-a:1.1.0",
+          "edge_kind": "Recommends",
+          "summary": "card recommendation traced to action priority",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-a:1.1.0",
+          "to_node": "artifact:ext-model-a:1.1.0:trace-artifact-0c492530ed8d1012",
+          "edge_kind": "DerivedFrom",
+          "summary": "card derived from local artifact",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-a:1.1.0",
+          "to_node": "artifact:ext-model-a:1.1.0:trace-artifact-1c19d9eeea53fc58",
+          "edge_kind": "DerivedFrom",
+          "summary": "card derived from local artifact",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-a:1.1.0",
+          "to_node": "artifact:ext-model-a:1.1.0:trace-artifact-38dcdb7da0f0b6fb",
+          "edge_kind": "DerivedFrom",
+          "summary": "card derived from local artifact",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-a:1.1.0",
+          "to_node": "artifact:ext-model-a:1.1.0:trace-artifact-9d93c2d3279a3b12",
+          "edge_kind": "DerivedFrom",
+          "summary": "card derived from local artifact",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-a:1.1.0",
+          "to_node": "artifact:ext-model-a:1.1.0:trace-artifact-ab77712ffc65a86b",
+          "edge_kind": "DerivedFrom",
+          "summary": "card derived from local artifact",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-a:1.1.0",
+          "to_node": "artifact:ext-model-a:1.1.0:trace-artifact-bc40d5a8228197c7",
+          "edge_kind": "DerivedFrom",
+          "summary": "card derived from local artifact",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-a:1.1.0",
+          "to_node": "artifact:ext-model-a:1.1.0:trace-artifact-c63353789e90305f",
+          "edge_kind": "DerivedFrom",
+          "summary": "card derived from local artifact",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-a:1.1.0",
+          "to_node": "artifact:ext-model-a:1.1.0:trace-artifact-dc35be7f2f3445fd",
+          "edge_kind": "DerivedFrom",
+          "summary": "card derived from local artifact",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-a:1.1.0",
+          "to_node": "decision:ext-model-a:1.1.0",
+          "edge_kind": "CausedBy",
+          "summary": "card status traced to decision rollup",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-a:1.1.0",
+          "to_node": "mamba:ext-model-a:1.1.0",
+          "edge_kind": "DiagnosticOnly",
+          "summary": "Mamba runtime remains deferred",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-a:1.1.0",
+          "to_node": "qa:ext-model-a:1.1.0",
+          "edge_kind": "NeedsReview",
+          "summary": "card status traced to QA evidence",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-a:1.1.0",
+          "to_node": "risk:ext-model-a:1.1.0",
+          "edge_kind": "Blocks",
+          "summary": "risk band constrains the model card",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        }
+      ],
+      "graph_status": "ConflictsDetected",
+      "reason_codes": [
+        "ModelCardTraceGraphBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.2.0",
+      "nodes": [
+        {
+          "node_id": "action:ext-model-a:1.2.0",
+          "node_kind": "ActionPriority",
+          "model_id": "ext-model-a",
+          "model_version": "1.2.0",
+          "title": "Action priority",
+          "summary": "KeepResearchCandidate;keep as offline research candidate",
+          "artifact_ref": "trace-artifact-a2e7c4a81454a036",
+          "severity": "Optional",
+          "reason_codes": [
+            "ModelTraceNodeBuilt"
+          ]
+        },
+        {
+          "node_id": "artifact:ext-model-a:1.2.0:trace-artifact-1f16ea7d926723ea",
+          "node_kind": "Artifact",
+          "model_id": "ext-model-a",
+          "model_version": "1.2.0",
+          "title": "trace-artifact-1f16ea7d926723ea",
+          "summary": "local artifact backing ext-model-a:1.2.0",
+          "artifact_ref": "trace-artifact-1f16ea7d926723ea",
+          "severity": null,
+          "reason_codes": [
+            "TraceArtifactRefBuilt"
+          ]
+        },
+        {
+          "node_id": "artifact:ext-model-a:1.2.0:trace-artifact-928b002fee94df9a",
+          "node_kind": "Artifact",
+          "model_id": "ext-model-a",
+          "model_version": "1.2.0",
+          "title": "trace-artifact-928b002fee94df9a",
+          "summary": "local artifact backing ext-model-a:1.2.0",
+          "artifact_ref": "trace-artifact-928b002fee94df9a",
+          "severity": null,
+          "reason_codes": [
+            "TraceArtifactRefBuilt"
+          ]
+        },
+        {
+          "node_id": "artifact:ext-model-a:1.2.0:trace-artifact-a2e7c4a81454a036",
+          "node_kind": "Artifact",
+          "model_id": "ext-model-a",
+          "model_version": "1.2.0",
+          "title": "trace-artifact-a2e7c4a81454a036",
+          "summary": "local artifact backing ext-model-a:1.2.0",
+          "artifact_ref": "trace-artifact-a2e7c4a81454a036",
+          "severity": null,
+          "reason_codes": [
+            "TraceArtifactRefBuilt"
+          ]
+        },
+        {
+          "node_id": "artifact:ext-model-a:1.2.0:trace-artifact-ac6d627890069d4e",
+          "node_kind": "Artifact",
+          "model_id": "ext-model-a",
+          "model_version": "1.2.0",
+          "title": "trace-artifact-ac6d627890069d4e",
+          "summary": "local artifact backing ext-model-a:1.2.0",
+          "artifact_ref": "trace-artifact-ac6d627890069d4e",
+          "severity": null,
+          "reason_codes": [
+            "TraceArtifactRefBuilt"
+          ]
+        },
+        {
+          "node_id": "artifact:ext-model-a:1.2.0:trace-artifact-b8a033d337396a43",
+          "node_kind": "Artifact",
+          "model_id": "ext-model-a",
+          "model_version": "1.2.0",
+          "title": "trace-artifact-b8a033d337396a43",
+          "summary": "local artifact backing ext-model-a:1.2.0",
+          "artifact_ref": "trace-artifact-b8a033d337396a43",
+          "severity": null,
+          "reason_codes": [
+            "TraceArtifactRefBuilt"
+          ]
+        },
+        {
+          "node_id": "artifact:ext-model-a:1.2.0:trace-artifact-e59dc97f34be6260",
+          "node_kind": "Artifact",
+          "model_id": "ext-model-a",
+          "model_version": "1.2.0",
+          "title": "trace-artifact-e59dc97f34be6260",
+          "summary": "local artifact backing ext-model-a:1.2.0",
+          "artifact_ref": "trace-artifact-e59dc97f34be6260",
+          "severity": null,
+          "reason_codes": [
+            "TraceArtifactRefBuilt"
+          ]
+        },
+        {
+          "node_id": "card:ext-model-a:1.2.0",
+          "node_kind": "ModelVersionCard",
+          "model_id": "ext-model-a",
+          "model_version": "1.2.0",
+          "title": "ext-model-a:1.2.0",
+          "summary": "status=KeepResearchCandidate;risk=unknown;coverage=unknown;leaderboard=Unknown",
+          "artifact_ref": null,
+          "severity": null,
+          "reason_codes": [
+            "ModelTraceNodeBuilt"
+          ]
+        },
+        {
+          "node_id": "decision:ext-model-a:1.2.0",
+          "node_kind": "Decision",
+          "model_id": "ext-model-a",
+          "model_version": "1.2.0",
+          "title": "Decision summary",
+          "summary": "latest=None;counts={};conflicts=",
+          "artifact_ref": "trace-artifact-ac6d627890069d4e",
+          "severity": null,
+          "reason_codes": [
+            "ModelTraceNodeBuilt"
+          ]
+        },
+        {
+          "node_id": "mamba:ext-model-a:1.2.0",
+          "node_kind": "MambaDeferredState",
+          "model_id": "ext-model-a",
+          "model_version": "1.2.0",
+          "title": "Mamba runtime",
+          "summary": "HoldMamba3RuntimeDeferred",
+          "artifact_ref": null,
+          "severity": null,
+          "reason_codes": [
+            "ModelTraceNodeBuilt"
+          ]
+        },
+        {
+          "node_id": "qa:ext-model-a:1.2.0",
+          "node_kind": "QAItem",
+          "model_id": "ext-model-a",
+          "model_version": "1.2.0",
+          "title": "Operator QA",
+          "summary": "ReadyForOperatorReview;NoTrade/RiskDenied reference preserved | calibration reviewed | evaluation exists | leaderboard position reviewed | model card exists | no live/runtime/training path | no secret/order/account fields | predictions cover known sequences | risk behavior reviewed",
+          "artifact_ref": "trace-artifact-e59dc97f34be6260",
+          "severity": "ReadyForOperatorReview",
+          "reason_codes": [
+            "ModelTraceNodeBuilt"
+          ]
+        },
+        {
+          "node_id": "risk:ext-model-a:1.2.0",
+          "node_kind": "RiskBand",
+          "model_id": "ext-model-a",
+          "model_version": "1.2.0",
+          "title": "Risk band",
+          "summary": "Medium -> MediumRiskResearch",
+          "artifact_ref": "trace-artifact-1f16ea7d926723ea",
+          "severity": "Medium",
+          "reason_codes": [
+            "ModelTraceNodeBuilt"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "from_node": "card:ext-model-a:1.2.0",
+          "to_node": "action:ext-model-a:1.2.0",
+          "edge_kind": "Recommends",
+          "summary": "card recommendation traced to action priority",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-a:1.2.0",
+          "to_node": "artifact:ext-model-a:1.2.0:trace-artifact-1f16ea7d926723ea",
+          "edge_kind": "DerivedFrom",
+          "summary": "card derived from local artifact",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-a:1.2.0",
+          "to_node": "artifact:ext-model-a:1.2.0:trace-artifact-928b002fee94df9a",
+          "edge_kind": "DerivedFrom",
+          "summary": "card derived from local artifact",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-a:1.2.0",
+          "to_node": "artifact:ext-model-a:1.2.0:trace-artifact-a2e7c4a81454a036",
+          "edge_kind": "DerivedFrom",
+          "summary": "card derived from local artifact",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-a:1.2.0",
+          "to_node": "artifact:ext-model-a:1.2.0:trace-artifact-ac6d627890069d4e",
+          "edge_kind": "DerivedFrom",
+          "summary": "card derived from local artifact",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-a:1.2.0",
+          "to_node": "artifact:ext-model-a:1.2.0:trace-artifact-b8a033d337396a43",
+          "edge_kind": "DerivedFrom",
+          "summary": "card derived from local artifact",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-a:1.2.0",
+          "to_node": "artifact:ext-model-a:1.2.0:trace-artifact-e59dc97f34be6260",
+          "edge_kind": "DerivedFrom",
+          "summary": "card derived from local artifact",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-a:1.2.0",
+          "to_node": "decision:ext-model-a:1.2.0",
+          "edge_kind": "CausedBy",
+          "summary": "card status traced to decision rollup",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-a:1.2.0",
+          "to_node": "mamba:ext-model-a:1.2.0",
+          "edge_kind": "DiagnosticOnly",
+          "summary": "Mamba runtime remains deferred",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-a:1.2.0",
+          "to_node": "qa:ext-model-a:1.2.0",
+          "edge_kind": "NeedsReview",
+          "summary": "card status traced to QA evidence",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-a:1.2.0",
+          "to_node": "risk:ext-model-a:1.2.0",
+          "edge_kind": "Blocks",
+          "summary": "risk band constrains the model card",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        }
+      ],
+      "graph_status": "TraceReady",
+      "reason_codes": [
+        "ModelCardTraceGraphBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "nodes": [
+        {
+          "node_id": "action:ext-model-b:1.0.0",
+          "node_kind": "ActionPriority",
+          "model_id": "ext-model-b",
+          "model_version": "1.0.0",
+          "title": "Action priority",
+          "summary": "RequestMorePredictions;weak coverage or missing prediction evidence; final_risk_level=Critical",
+          "artifact_ref": "trace-artifact-43715a58646bcf35",
+          "severity": "Required",
+          "reason_codes": [
+            "ModelTraceNodeBuilt"
+          ]
+        },
+        {
+          "node_id": "artifact:ext-model-b:1.0.0:trace-artifact-198f7c9cf7e0904d",
+          "node_kind": "Artifact",
+          "model_id": "ext-model-b",
+          "model_version": "1.0.0",
+          "title": "trace-artifact-198f7c9cf7e0904d",
+          "summary": "local artifact backing ext-model-b:1.0.0",
+          "artifact_ref": "trace-artifact-198f7c9cf7e0904d",
+          "severity": null,
+          "reason_codes": [
+            "TraceArtifactRefBuilt"
+          ]
+        },
+        {
+          "node_id": "artifact:ext-model-b:1.0.0:trace-artifact-43715a58646bcf35",
+          "node_kind": "Artifact",
+          "model_id": "ext-model-b",
+          "model_version": "1.0.0",
+          "title": "trace-artifact-43715a58646bcf35",
+          "summary": "local artifact backing ext-model-b:1.0.0",
+          "artifact_ref": "trace-artifact-43715a58646bcf35",
+          "severity": null,
+          "reason_codes": [
+            "TraceArtifactRefBuilt"
+          ]
+        },
+        {
+          "node_id": "artifact:ext-model-b:1.0.0:trace-artifact-44d1e5d1c35a06e7",
+          "node_kind": "Artifact",
+          "model_id": "ext-model-b",
+          "model_version": "1.0.0",
+          "title": "trace-artifact-44d1e5d1c35a06e7",
+          "summary": "local artifact backing ext-model-b:1.0.0",
+          "artifact_ref": "trace-artifact-44d1e5d1c35a06e7",
+          "severity": null,
+          "reason_codes": [
+            "TraceArtifactRefBuilt"
+          ]
+        },
+        {
+          "node_id": "artifact:ext-model-b:1.0.0:trace-artifact-7b7c793063a6a379",
+          "node_kind": "Artifact",
+          "model_id": "ext-model-b",
+          "model_version": "1.0.0",
+          "title": "trace-artifact-7b7c793063a6a379",
+          "summary": "local artifact backing ext-model-b:1.0.0",
+          "artifact_ref": "trace-artifact-7b7c793063a6a379",
+          "severity": null,
+          "reason_codes": [
+            "TraceArtifactRefBuilt"
+          ]
+        },
+        {
+          "node_id": "artifact:ext-model-b:1.0.0:trace-artifact-7eb1904ab0102484",
+          "node_kind": "Artifact",
+          "model_id": "ext-model-b",
+          "model_version": "1.0.0",
+          "title": "trace-artifact-7eb1904ab0102484",
+          "summary": "local artifact backing ext-model-b:1.0.0",
+          "artifact_ref": "trace-artifact-7eb1904ab0102484",
+          "severity": null,
+          "reason_codes": [
+            "TraceArtifactRefBuilt"
+          ]
+        },
+        {
+          "node_id": "artifact:ext-model-b:1.0.0:trace-artifact-ae806db08682358f",
+          "node_kind": "Artifact",
+          "model_id": "ext-model-b",
+          "model_version": "1.0.0",
+          "title": "trace-artifact-ae806db08682358f",
+          "summary": "local artifact backing ext-model-b:1.0.0",
+          "artifact_ref": "trace-artifact-ae806db08682358f",
+          "severity": null,
+          "reason_codes": [
+            "TraceArtifactRefBuilt"
+          ]
+        },
+        {
+          "node_id": "artifact:ext-model-b:1.0.0:trace-artifact-ae806db08682358f",
+          "node_kind": "Artifact",
+          "model_id": "ext-model-b",
+          "model_version": "1.0.0",
+          "title": "trace-artifact-ae806db08682358f",
+          "summary": "local artifact backing ext-model-b:1.0.0",
+          "artifact_ref": "trace-artifact-ae806db08682358f",
+          "severity": null,
+          "reason_codes": [
+            "TraceArtifactRefBuilt"
+          ]
+        },
+        {
+          "node_id": "artifact:ext-model-b:1.0.0:trace-artifact-ae806db08682358f",
+          "node_kind": "Artifact",
+          "model_id": "ext-model-b",
+          "model_version": "1.0.0",
+          "title": "trace-artifact-ae806db08682358f",
+          "summary": "local artifact backing ext-model-b:1.0.0",
+          "artifact_ref": "trace-artifact-ae806db08682358f",
+          "severity": null,
+          "reason_codes": [
+            "TraceArtifactRefBuilt"
+          ]
+        },
+        {
+          "node_id": "artifact:ext-model-b:1.0.0:trace-artifact-ae806db08682358f",
+          "node_kind": "Artifact",
+          "model_id": "ext-model-b",
+          "model_version": "1.0.0",
+          "title": "trace-artifact-ae806db08682358f",
+          "summary": "local artifact backing ext-model-b:1.0.0",
+          "artifact_ref": "trace-artifact-ae806db08682358f",
+          "severity": null,
+          "reason_codes": [
+            "TraceArtifactRefBuilt"
+          ]
+        },
+        {
+          "node_id": "artifact:ext-model-b:1.0.0:trace-artifact-ae806db08682358f",
+          "node_kind": "Artifact",
+          "model_id": "ext-model-b",
+          "model_version": "1.0.0",
+          "title": "trace-artifact-ae806db08682358f",
+          "summary": "local artifact backing ext-model-b:1.0.0",
+          "artifact_ref": "trace-artifact-ae806db08682358f",
+          "severity": null,
+          "reason_codes": [
+            "TraceArtifactRefBuilt"
+          ]
+        },
+        {
+          "node_id": "artifact:ext-model-b:1.0.0:trace-artifact-ae806db08682358f",
+          "node_kind": "Artifact",
+          "model_id": "ext-model-b",
+          "model_version": "1.0.0",
+          "title": "trace-artifact-ae806db08682358f",
+          "summary": "local artifact backing ext-model-b:1.0.0",
+          "artifact_ref": "trace-artifact-ae806db08682358f",
+          "severity": null,
+          "reason_codes": [
+            "TraceArtifactRefBuilt"
+          ]
+        },
+        {
+          "node_id": "artifact:ext-model-b:1.0.0:trace-artifact-b3c661660551a3c9",
+          "node_kind": "Artifact",
+          "model_id": "ext-model-b",
+          "model_version": "1.0.0",
+          "title": "trace-artifact-b3c661660551a3c9",
+          "summary": "local artifact backing ext-model-b:1.0.0",
+          "artifact_ref": "trace-artifact-b3c661660551a3c9",
+          "severity": null,
+          "reason_codes": [
+            "TraceArtifactRefBuilt"
+          ]
+        },
+        {
+          "node_id": "artifact:ext-model-b:1.0.0:trace-artifact-c8d082ac1f7cb46e",
+          "node_kind": "Artifact",
+          "model_id": "ext-model-b",
+          "model_version": "1.0.0",
+          "title": "trace-artifact-c8d082ac1f7cb46e",
+          "summary": "local artifact backing ext-model-b:1.0.0",
+          "artifact_ref": "trace-artifact-c8d082ac1f7cb46e",
+          "severity": null,
+          "reason_codes": [
+            "TraceArtifactRefBuilt"
+          ]
+        },
+        {
+          "node_id": "artifact:ext-model-b:1.0.0:trace-artifact-ed66f2a87602f984",
+          "node_kind": "Artifact",
+          "model_id": "ext-model-b",
+          "model_version": "1.0.0",
+          "title": "trace-artifact-ed66f2a87602f984",
+          "summary": "local artifact backing ext-model-b:1.0.0",
+          "artifact_ref": "trace-artifact-ed66f2a87602f984",
+          "severity": null,
+          "reason_codes": [
+            "TraceArtifactRefBuilt"
+          ]
+        },
+        {
+          "node_id": "card:ext-model-b:1.0.0",
+          "node_kind": "ModelVersionCard",
+          "model_id": "ext-model-b",
+          "model_version": "1.0.0",
+          "title": "ext-model-b:1.0.0",
+          "summary": "status=RequestMorePredictions;risk=Critical;coverage=0.6667;leaderboard=NewlyBlocked",
+          "artifact_ref": null,
+          "severity": "Critical",
+          "reason_codes": [
+            "ModelTraceNodeBuilt"
+          ]
+        },
+        {
+          "node_id": "decision:ext-model-b:1.0.0",
+          "node_kind": "Decision",
+          "model_id": "ext-model-b",
+          "model_version": "1.0.0",
+          "title": "Decision summary",
+          "summary": "latest=Some(RequestMorePredictions);counts={\"RequestMorePredictions\": 8};conflicts=",
+          "artifact_ref": "trace-artifact-198f7c9cf7e0904d",
+          "severity": null,
+          "reason_codes": [
+            "ModelTraceNodeBuilt"
+          ]
+        },
+        {
+          "node_id": "mamba:ext-model-b:1.0.0",
+          "node_kind": "MambaDeferredState",
+          "model_id": "ext-model-b",
+          "model_version": "1.0.0",
+          "title": "Mamba runtime",
+          "summary": "HoldMamba3RuntimeDeferred",
+          "artifact_ref": null,
+          "severity": null,
+          "reason_codes": [
+            "ModelTraceNodeBuilt"
+          ]
+        },
+        {
+          "node_id": "qa:ext-model-b:1.0.0",
+          "node_kind": "QAItem",
+          "model_id": "ext-model-b",
+          "model_version": "1.0.0",
+          "title": "Operator QA",
+          "summary": "NeedsMorePredictions;NoTrade/RiskDenied reference preserved | calibration reviewed | evaluation exists | leaderboard position reviewed | model card exists | no live/runtime/training path | no secret/order/account fields | predictions cover known sequences | risk behavior reviewed",
+          "artifact_ref": "trace-artifact-44d1e5d1c35a06e7",
+          "severity": "NeedsMorePredictions",
+          "reason_codes": [
+            "ModelTraceNodeBuilt"
+          ]
+        },
+        {
+          "node_id": "regression:ext-model-b:1.0.0:ArtifactCompletenessRegression",
+          "node_kind": "Regression",
+          "model_id": "ext-model-b",
+          "model_version": "1.0.0",
+          "title": "ArtifactCompletenessRegression",
+          "summary": "artifact completeness regressed and evidence should be rebuilt conservatively",
+          "artifact_ref": "trace-artifact-ae806db08682358f",
+          "severity": "Warning",
+          "reason_codes": [
+            "ModelTraceNodeBuilt"
+          ]
+        },
+        {
+          "node_id": "regression:ext-model-b:1.0.0:CalibrationRegression",
+          "node_kind": "Regression",
+          "model_id": "ext-model-b",
+          "model_version": "1.0.0",
+          "title": "CalibrationRegression",
+          "summary": "calibration drift needs review before further comparison",
+          "artifact_ref": "trace-artifact-ae806db08682358f",
+          "severity": "Warning",
+          "reason_codes": [
+            "ModelTraceNodeBuilt"
+          ]
+        },
+        {
+          "node_id": "regression:ext-model-b:1.0.0:ComparabilityRegression",
+          "node_kind": "Regression",
+          "model_id": "ext-model-b",
+          "model_version": "1.0.0",
+          "title": "ComparabilityRegression",
+          "summary": "comparability regressed and the model should stay diagnostic-only until clarified",
+          "artifact_ref": "trace-artifact-ae806db08682358f",
+          "severity": "Error",
+          "reason_codes": [
+            "ModelTraceNodeBuilt"
+          ]
+        },
+        {
+          "node_id": "regression:ext-model-b:1.0.0:CoverageRegression",
+          "node_kind": "Regression",
+          "model_id": "ext-model-b",
+          "model_version": "1.0.0",
+          "title": "CoverageRegression",
+          "summary": "prediction coverage regressed and needs more offline history",
+          "artifact_ref": "trace-artifact-ae806db08682358f",
+          "severity": "Warning",
+          "reason_codes": [
+            "ModelTraceNodeBuilt"
+          ]
+        },
+        {
+          "node_id": "regression:ext-model-b:1.0.0:LeaderboardRegression",
+          "node_kind": "Regression",
+          "model_id": "ext-model-b",
+          "model_version": "1.0.0",
+          "title": "LeaderboardRegression",
+          "summary": "leaderboard status regressed and ranking should be treated conservatively",
+          "artifact_ref": "trace-artifact-ae806db08682358f",
+          "severity": "Error",
+          "reason_codes": [
+            "ModelTraceNodeBuilt"
+          ]
+        },
+        {
+          "node_id": "regression:ext-model-b:1.0.0:RiskRegression",
+          "node_kind": "Regression",
+          "model_id": "ext-model-b",
+          "model_version": "1.0.0",
+          "title": "RiskRegression",
+          "summary": "risk behavior regressed and needs conservative review",
+          "artifact_ref": "trace-artifact-ae806db08682358f",
+          "severity": "Critical",
+          "reason_codes": [
+            "ModelTraceNodeBuilt"
+          ]
+        },
+        {
+          "node_id": "risk:ext-model-b:1.0.0",
+          "node_kind": "RiskBand",
+          "model_id": "ext-model-b",
+          "model_version": "1.0.0",
+          "title": "Risk band",
+          "summary": "Critical -> CriticalRiskDiagnostic",
+          "artifact_ref": "trace-artifact-b3c661660551a3c9",
+          "severity": "Critical",
+          "reason_codes": [
+            "ModelTraceNodeBuilt"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "from_node": "card:ext-model-b:1.0.0",
+          "to_node": "action:ext-model-b:1.0.0",
+          "edge_kind": "Recommends",
+          "summary": "card recommendation traced to action priority",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-b:1.0.0",
+          "to_node": "artifact:ext-model-b:1.0.0:trace-artifact-198f7c9cf7e0904d",
+          "edge_kind": "DerivedFrom",
+          "summary": "card derived from local artifact",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-b:1.0.0",
+          "to_node": "artifact:ext-model-b:1.0.0:trace-artifact-43715a58646bcf35",
+          "edge_kind": "DerivedFrom",
+          "summary": "card derived from local artifact",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-b:1.0.0",
+          "to_node": "artifact:ext-model-b:1.0.0:trace-artifact-44d1e5d1c35a06e7",
+          "edge_kind": "DerivedFrom",
+          "summary": "card derived from local artifact",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-b:1.0.0",
+          "to_node": "artifact:ext-model-b:1.0.0:trace-artifact-7b7c793063a6a379",
+          "edge_kind": "DerivedFrom",
+          "summary": "card derived from local artifact",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-b:1.0.0",
+          "to_node": "artifact:ext-model-b:1.0.0:trace-artifact-7eb1904ab0102484",
+          "edge_kind": "DerivedFrom",
+          "summary": "card derived from local artifact",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-b:1.0.0",
+          "to_node": "artifact:ext-model-b:1.0.0:trace-artifact-ae806db08682358f",
+          "edge_kind": "DerivedFrom",
+          "summary": "card derived from local artifact",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-b:1.0.0",
+          "to_node": "artifact:ext-model-b:1.0.0:trace-artifact-ae806db08682358f",
+          "edge_kind": "DerivedFrom",
+          "summary": "card derived from local artifact",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-b:1.0.0",
+          "to_node": "artifact:ext-model-b:1.0.0:trace-artifact-ae806db08682358f",
+          "edge_kind": "DerivedFrom",
+          "summary": "card derived from local artifact",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-b:1.0.0",
+          "to_node": "artifact:ext-model-b:1.0.0:trace-artifact-ae806db08682358f",
+          "edge_kind": "DerivedFrom",
+          "summary": "card derived from local artifact",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-b:1.0.0",
+          "to_node": "artifact:ext-model-b:1.0.0:trace-artifact-ae806db08682358f",
+          "edge_kind": "DerivedFrom",
+          "summary": "card derived from local artifact",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-b:1.0.0",
+          "to_node": "artifact:ext-model-b:1.0.0:trace-artifact-ae806db08682358f",
+          "edge_kind": "DerivedFrom",
+          "summary": "card derived from local artifact",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-b:1.0.0",
+          "to_node": "artifact:ext-model-b:1.0.0:trace-artifact-b3c661660551a3c9",
+          "edge_kind": "DerivedFrom",
+          "summary": "card derived from local artifact",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-b:1.0.0",
+          "to_node": "artifact:ext-model-b:1.0.0:trace-artifact-c8d082ac1f7cb46e",
+          "edge_kind": "DerivedFrom",
+          "summary": "card derived from local artifact",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-b:1.0.0",
+          "to_node": "artifact:ext-model-b:1.0.0:trace-artifact-ed66f2a87602f984",
+          "edge_kind": "DerivedFrom",
+          "summary": "card derived from local artifact",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-b:1.0.0",
+          "to_node": "decision:ext-model-b:1.0.0",
+          "edge_kind": "CausedBy",
+          "summary": "card status traced to decision rollup",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-b:1.0.0",
+          "to_node": "mamba:ext-model-b:1.0.0",
+          "edge_kind": "DiagnosticOnly",
+          "summary": "Mamba runtime remains deferred",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-b:1.0.0",
+          "to_node": "qa:ext-model-b:1.0.0",
+          "edge_kind": "NeedsReview",
+          "summary": "card status traced to QA evidence",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-b:1.0.0",
+          "to_node": "regression:ext-model-b:1.0.0:ArtifactCompletenessRegression",
+          "edge_kind": "CausedBy",
+          "summary": "card recommendation traced to regression evidence",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-b:1.0.0",
+          "to_node": "regression:ext-model-b:1.0.0:CalibrationRegression",
+          "edge_kind": "CausedBy",
+          "summary": "card recommendation traced to regression evidence",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-b:1.0.0",
+          "to_node": "regression:ext-model-b:1.0.0:ComparabilityRegression",
+          "edge_kind": "CausedBy",
+          "summary": "card recommendation traced to regression evidence",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-b:1.0.0",
+          "to_node": "regression:ext-model-b:1.0.0:CoverageRegression",
+          "edge_kind": "CausedBy",
+          "summary": "card recommendation traced to regression evidence",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-b:1.0.0",
+          "to_node": "regression:ext-model-b:1.0.0:LeaderboardRegression",
+          "edge_kind": "CausedBy",
+          "summary": "card recommendation traced to regression evidence",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-b:1.0.0",
+          "to_node": "regression:ext-model-b:1.0.0:RiskRegression",
+          "edge_kind": "CausedBy",
+          "summary": "card recommendation traced to regression evidence",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        },
+        {
+          "from_node": "card:ext-model-b:1.0.0",
+          "to_node": "risk:ext-model-b:1.0.0",
+          "edge_kind": "Blocks",
+          "summary": "risk band constrains the model card",
+          "reason_codes": [
+            "ModelTraceEdgeBuilt"
+          ]
+        }
+      ],
+      "graph_status": "TraceReady",
+      "reason_codes": [
+        "ModelCardTraceGraphBuilt"
+      ]
+    }
+  ],
+  "decision_conflict_trace_report": {
+    "conflicts": [
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.0.0",
+        "conflict_kind": "OwnerVsPolicy",
+        "involved_decisions": [
+          "KeepResearchCandidate:1",
+          "RetireModelVersion:4"
+        ],
+        "source_artifacts": [
+          "trace-artifact-14e4c830f2691559",
+          "trace-artifact-23dc7ceeee7810df",
+          "trace-artifact-2f67b87d9b5be774",
+          "trace-artifact-a2db4e2ff788c9a4",
+          "trace-artifact-a62f65d32c764059",
+          "trace-artifact-b33812a81d488a40",
+          "trace-artifact-be70b0789a6c1bd8",
+          "trace-artifact-d399fb7f2a580a56"
+        ],
+        "severity": "high",
+        "explanation": "owner or policy decisions disagree on whether the model version should be kept",
+        "recommended_resolution": "RequestOwnerReview",
+        "reason_codes": [
+          "DecisionConflictTraceBuilt"
+        ]
+      }
+    ],
+    "conflict_count": 1,
+    "high_severity_count": 1,
+    "no_conflict_count": 3,
+    "report_status": "ConflictsDetected",
+    "reason_codes": [
+      "DecisionConflictTraceReportBuilt"
+    ]
+  },
+  "regression_evidence_trace_report": {
+    "traces": [
+      {
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "cause_kind": "ArtifactCompletenessRegression",
+        "baseline_artifact": "trace-artifact-c8d082ac1f7cb46e",
+        "current_artifact": "trace-artifact-ed66f2a87602f984",
+        "baseline_value": "0.8889",
+        "current_value": "0.6667",
+        "delta": "0.8889 -> 0.6667",
+        "explanation": "artifact completeness regressed and evidence should be rebuilt conservatively",
+        "recommended_action": "RequestMorePredictions",
+        "severity": "Warning",
+        "reason_codes": [
+          "RegressionEvidenceTraceBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "cause_kind": "CalibrationRegression",
+        "baseline_artifact": "trace-artifact-c8d082ac1f7cb46e",
+        "current_artifact": "trace-artifact-ed66f2a87602f984",
+        "baseline_value": "Stable",
+        "current_value": "Review",
+        "delta": "Stable -> Review",
+        "explanation": "calibration drift needs review before further comparison",
+        "recommended_action": "RequestCalibrationReview",
+        "severity": "Warning",
+        "reason_codes": [
+          "RegressionEvidenceTraceBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "cause_kind": "ComparabilityRegression",
+        "baseline_artifact": "trace-artifact-c8d082ac1f7cb46e",
+        "current_artifact": "trace-artifact-ed66f2a87602f984",
+        "baseline_value": "Comparable",
+        "current_value": "NeedsReview",
+        "delta": "Comparable -> NeedsReview",
+        "explanation": "comparability regressed and the model should stay diagnostic-only until clarified",
+        "recommended_action": "DowngradeToDiagnostic",
+        "severity": "Error",
+        "reason_codes": [
+          "RegressionEvidenceTraceBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "cause_kind": "CoverageRegression",
+        "baseline_artifact": "trace-artifact-c8d082ac1f7cb46e",
+        "current_artifact": "trace-artifact-ed66f2a87602f984",
+        "baseline_value": "1.0000",
+        "current_value": "0.6667",
+        "delta": "1.0000 -> 0.6667",
+        "explanation": "prediction coverage regressed and needs more offline history",
+        "recommended_action": "RequestMorePredictions",
+        "severity": "Warning",
+        "reason_codes": [
+          "RegressionEvidenceTraceBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "cause_kind": "LeaderboardRegression",
+        "baseline_artifact": "trace-artifact-c8d082ac1f7cb46e",
+        "current_artifact": "trace-artifact-ed66f2a87602f984",
+        "baseline_value": "NoChange",
+        "current_value": "NewlyBlocked",
+        "delta": "NoChange -> NewlyBlocked",
+        "explanation": "leaderboard status regressed and ranking should be treated conservatively",
+        "recommended_action": "RetireModelVersion",
+        "severity": "Error",
+        "reason_codes": [
+          "RegressionEvidenceTraceBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "cause_kind": "RiskRegression",
+        "baseline_artifact": "trace-artifact-c8d082ac1f7cb46e",
+        "current_artifact": "trace-artifact-ed66f2a87602f984",
+        "baseline_value": "Low",
+        "current_value": "Critical",
+        "delta": "Low -> Critical",
+        "explanation": "risk behavior regressed and needs conservative review",
+        "recommended_action": "RequestRiskReview",
+        "severity": "Critical",
+        "reason_codes": [
+          "RegressionEvidenceTraceBuilt"
+        ]
+      }
+    ],
+    "coverage_regression_count": 1,
+    "calibration_regression_count": 1,
+    "risk_regression_count": 1,
+    "comparability_regression_count": 1,
+    "artifact_completeness_regression_count": 1,
+    "leaderboard_regression_count": 1,
+    "report_status": "RegressionTraceReady",
+    "reason_codes": [
+      "RegressionEvidenceTraceReportBuilt"
+    ]
+  },
+  "operator_qa_evidence_trace_report": {
+    "traces": [
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.0.0",
+        "checklist_item": "NoTrade/RiskDenied reference preserved | calibration reviewed | evaluation exists | leaderboard position reviewed | model card exists | no live/runtime/training path | no secret/order/account fields | predictions cover known sequences | risk behavior reviewed",
+        "status": "NeedsRiskReview",
+        "source_artifact": "trace-artifact-d399fb7f2a580a56",
+        "evidence_summary": "NoTrade/RiskDenied reference preserved | calibration reviewed | evaluation exists | leaderboard position reviewed | model card exists | no live/runtime/training path | no secret/order/account fields | predictions cover known sequences | risk behavior reviewed",
+        "required_action": "RetireModelVersion",
+        "safe_actions": [
+          "RetireModelVersion"
+        ],
+        "blocked_actions": [],
+        "reason_codes": [
+          "OperatorQAEvidenceTraceBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.1.0",
+        "checklist_item": "NoTrade/RiskDenied reference preserved | calibration reviewed | evaluation exists | leaderboard position reviewed | model card exists | no live/runtime/training path | no secret/order/account fields | predictions cover known sequences | risk behavior reviewed",
+        "status": "ReadyForOperatorReview",
+        "source_artifact": "trace-artifact-dc35be7f2f3445fd",
+        "evidence_summary": "NoTrade/RiskDenied reference preserved | calibration reviewed | evaluation exists | leaderboard position reviewed | model card exists | no live/runtime/training path | no secret/order/account fields | predictions cover known sequences | risk behavior reviewed",
+        "required_action": "KeepResearchCandidate",
+        "safe_actions": [
+          "KeepResearchCandidate",
+          "WatchModel",
+          "WatchModel"
+        ],
+        "blocked_actions": [],
+        "reason_codes": [
+          "OperatorQAEvidenceTraceBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.2.0",
+        "checklist_item": "NoTrade/RiskDenied reference preserved | calibration reviewed | evaluation exists | leaderboard position reviewed | model card exists | no live/runtime/training path | no secret/order/account fields | predictions cover known sequences | risk behavior reviewed",
+        "status": "ReadyForOperatorReview",
+        "source_artifact": "trace-artifact-e59dc97f34be6260",
+        "evidence_summary": "NoTrade/RiskDenied reference preserved | calibration reviewed | evaluation exists | leaderboard position reviewed | model card exists | no live/runtime/training path | no secret/order/account fields | predictions cover known sequences | risk behavior reviewed",
+        "required_action": null,
+        "safe_actions": [],
+        "blocked_actions": [],
+        "reason_codes": [
+          "OperatorQAEvidenceTraceBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "checklist_item": "NoTrade/RiskDenied reference preserved | calibration reviewed | evaluation exists | leaderboard position reviewed | model card exists | no live/runtime/training path | no secret/order/account fields | predictions cover known sequences | risk behavior reviewed",
+        "status": "NeedsMorePredictions",
+        "source_artifact": "trace-artifact-44d1e5d1c35a06e7",
+        "evidence_summary": "NoTrade/RiskDenied reference preserved | calibration reviewed | evaluation exists | leaderboard position reviewed | model card exists | no live/runtime/training path | no secret/order/account fields | predictions cover known sequences | risk behavior reviewed",
+        "required_action": "RequestMorePredictions",
+        "safe_actions": [
+          "RequestMorePredictions"
+        ],
+        "blocked_actions": [],
+        "reason_codes": [
+          "OperatorQAEvidenceTraceBuilt"
+        ]
+      }
+    ],
+    "required_action_count": 3,
+    "blocked_action_count": 0,
+    "ready_count": 2,
+    "report_status": "NeedsOperatorAction",
+    "reason_codes": [
+      "OperatorQAEvidenceTraceReportBuilt"
+    ]
+  },
+  "action_priority_trace_report": {
+    "traces": [
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.0.0",
+        "priority": "Required",
+        "action": "RetireModelVersion",
+        "source_evidence": [
+          "qa=NeedsRiskReview",
+          "retired or critically regressed model version; final_risk_level=High",
+          "risk=High"
+        ],
+        "command_suggestion": "cargo run --quiet --bin soma_experiment -- decision-log-rollup --config examples/soma_decision_log_rollup.toml",
+        "safe_to_run": true,
+        "why_this_action": "retired or critically regressed model version; final_risk_level=High",
+        "why_not_stronger_action": "stronger action is unnecessary because the current recommendation is already the most conservative required step",
+        "reason_codes": [
+          "ActionPriorityTraceBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.1.0",
+        "priority": "Optional",
+        "action": "WatchModel",
+        "source_evidence": [
+          "keep as offline research candidate",
+          "qa=ReadyForOperatorReview",
+          "risk=Low"
+        ],
+        "command_suggestion": "cargo run --quiet --bin soma_experiment -- control-tower-model-ops-rollup --config examples/soma_control_tower_model_ops_rollup.toml",
+        "safe_to_run": true,
+        "why_this_action": "keep as offline research candidate",
+        "why_not_stronger_action": "stronger action would overstate evidence and skip conservative offline review",
+        "reason_codes": [
+          "ActionPriorityTraceBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.2.0",
+        "priority": "Optional",
+        "action": "KeepResearchCandidate",
+        "source_evidence": [
+          "keep as offline research candidate",
+          "qa=ReadyForOperatorReview",
+          "risk=Medium"
+        ],
+        "command_suggestion": "cargo run --quiet --bin soma_experiment -- control-tower-model-ops-rollup --config examples/soma_control_tower_model_ops_rollup.toml",
+        "safe_to_run": true,
+        "why_this_action": "keep as offline research candidate",
+        "why_not_stronger_action": "stronger action would overstate evidence and skip conservative offline review",
+        "reason_codes": [
+          "ActionPriorityTraceBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "priority": "Required",
+        "action": "RequestMorePredictions",
+        "source_evidence": [
+          "artifact completeness regressed and evidence should be rebuilt conservatively",
+          "calibration drift needs review before further comparison",
+          "comparability regressed and the model should stay diagnostic-only until clarified",
+          "leaderboard status regressed and ranking should be treated conservatively",
+          "prediction coverage regressed and needs more offline history",
+          "qa=NeedsMorePredictions",
+          "risk behavior regressed and needs conservative review",
+          "risk=Critical",
+          "weak coverage or missing prediction evidence; final_risk_level=Critical"
+        ],
+        "command_suggestion": "cargo run --quiet --bin soma_experiment -- model-ops-rollup --config examples/soma_model_ops_rollup.toml",
+        "safe_to_run": true,
+        "why_this_action": "weak coverage or missing prediction evidence; final_risk_level=Critical",
+        "why_not_stronger_action": "stronger action is unnecessary because the current recommendation is already the most conservative required step",
+        "reason_codes": [
+          "ActionPriorityTraceBuilt"
+        ]
+      }
+    ],
+    "required_count": 2,
+    "recommended_count": 0,
+    "optional_count": 2,
+    "unsafe_count": 0,
+    "report_status": "ActionTraceReady",
+    "reason_codes": [
+      "ActionPriorityTraceReportBuilt"
+    ]
+  },
+  "model_version_diff_trace_report": {
+    "diffs": [
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.0.0",
+        "compared_to": "baseline",
+        "changed_fields": [],
+        "unchanged_fields": [
+          "artifact_completeness_ratio",
+          "calibration_status",
+          "coverage_ratio",
+          "recommended_action"
+        ],
+        "added_artifacts": [],
+        "removed_artifacts": [],
+        "changed_metrics": [],
+        "changed_risk_status": null,
+        "changed_leaderboard_status": null,
+        "diff_status": "NoDiff",
+        "reason_codes": [
+          "ModelVersionDiffTraceBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.1.0",
+        "compared_to": "baseline",
+        "changed_fields": [],
+        "unchanged_fields": [
+          "artifact_completeness_ratio",
+          "calibration_status",
+          "coverage_ratio",
+          "recommended_action"
+        ],
+        "added_artifacts": [
+          "prediction_csv"
+        ],
+        "removed_artifacts": [],
+        "changed_metrics": [],
+        "changed_risk_status": null,
+        "changed_leaderboard_status": "NoChange -> RankUp",
+        "diff_status": "UnexpectedDiff",
+        "reason_codes": [
+          "ModelVersionDiffTraceBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.2.0",
+        "compared_to": null,
+        "changed_fields": [],
+        "unchanged_fields": [],
+        "added_artifacts": [],
+        "removed_artifacts": [],
+        "changed_metrics": [],
+        "changed_risk_status": null,
+        "changed_leaderboard_status": null,
+        "diff_status": "MissingComparisonTarget",
+        "reason_codes": [
+          "ModelVersionDiffTraceBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "compared_to": "baseline",
+        "changed_fields": [
+          "artifact_completeness_ratio:0.8889->0.6667",
+          "calibration_status:Stable->Review",
+          "coverage_ratio:1.0000->0.6667",
+          "recommended_action:KeepResearchCandidate->RequestMorePredictions"
+        ],
+        "unchanged_fields": [],
+        "added_artifacts": [
+          "regression_guard"
+        ],
+        "removed_artifacts": [
+          "leaderboard",
+          "prediction_csv"
+        ],
+        "changed_metrics": [
+          "artifact_completeness_ratio:0.8889->0.6667",
+          "coverage_ratio:1.0000->0.6667"
+        ],
+        "changed_risk_status": "Low -> Critical",
+        "changed_leaderboard_status": "NoChange -> NewlyBlocked",
+        "diff_status": "UnexpectedDiff",
+        "reason_codes": [
+          "ModelVersionDiffTraceBuilt"
+        ]
+      }
+    ],
+    "diff_count": 3,
+    "unexpected_diff_count": 2,
+    "report_status": "MissingComparisonTarget",
+    "reason_codes": [
+      "ModelVersionDiffTraceReportBuilt"
+    ]
+  },
+  "control_tower_model_trace_panel": {
+    "panel_id": "sprint68-model-ops-trace",
+    "trace_index_status": "IndexReady",
+    "cards_with_trace": 4,
+    "cards_missing_trace": 0,
+    "conflict_summary": "ConflictsDetected;conflicts=1;high=1;no_conflict=3",
+    "regression_summary": "RegressionTraceReady;coverage=1;calibration=1;risk=1",
+    "qa_trace_summary": "NeedsOperatorAction;required=3;blocked=0;ready=2",
+    "action_trace_summary": "ActionTraceReady;required=2;recommended=0;optional=2;unsafe=0",
+    "per_model_trace_links": {
+      "ext-model-a:1.0.0": {
+        "action_trace_path": "fragments/model_ext_model_a_1_0_0_action.html",
+        "decision_conflict_path": "fragments/model_ext_model_a_1_0_0_decision_conflict.html",
+        "qa_trace_path": "fragments/model_ext_model_a_1_0_0_qa.html",
+        "regression_trace_path": "fragments/model_ext_model_a_1_0_0_regression.html",
+        "trace_summary_path": "fragments/model_ext_model_a_1_0_0_trace.html"
+      },
+      "ext-model-a:1.1.0": {
+        "action_trace_path": "fragments/model_ext_model_a_1_1_0_action.html",
+        "decision_conflict_path": "fragments/model_ext_model_a_1_1_0_decision_conflict.html",
+        "qa_trace_path": "fragments/model_ext_model_a_1_1_0_qa.html",
+        "regression_trace_path": "fragments/model_ext_model_a_1_1_0_regression.html",
+        "trace_summary_path": "fragments/model_ext_model_a_1_1_0_trace.html"
+      },
+      "ext-model-a:1.2.0": {
+        "action_trace_path": "fragments/model_ext_model_a_1_2_0_action.html",
+        "decision_conflict_path": "fragments/model_ext_model_a_1_2_0_decision_conflict.html",
+        "qa_trace_path": "fragments/model_ext_model_a_1_2_0_qa.html",
+        "regression_trace_path": "fragments/model_ext_model_a_1_2_0_regression.html",
+        "trace_summary_path": "fragments/model_ext_model_a_1_2_0_trace.html"
+      },
+      "ext-model-b:1.0.0": {
+        "action_trace_path": "fragments/model_ext_model_b_1_0_0_action.html",
+        "decision_conflict_path": "fragments/model_ext_model_b_1_0_0_decision_conflict.html",
+        "qa_trace_path": "fragments/model_ext_model_b_1_0_0_qa.html",
+        "regression_trace_path": "fragments/model_ext_model_b_1_0_0_regression.html",
+        "trace_summary_path": "fragments/model_ext_model_b_1_0_0_trace.html"
+      }
+    },
+    "mamba_deferred_status": "HoldMamba3RuntimeDeferred",
+    "next_actions": [
+      "KeepResearchCandidate:ext-model-a:1.2.0",
+      "RequestMorePredictions:ext-model-b:1.0.0",
+      "RetireModelVersion:ext-model-a:1.0.0",
+      "WatchModel:ext-model-a:1.1.0"
+    ],
+    "reason_codes": [
+      "ControlTowerModelTracePanelBuilt"
+    ]
+  },
+  "static_trace_fragments": {
+    "ext-model-a:1.0.0": {
+      "action_trace_path": "fragments/model_ext_model_a_1_0_0_action.html",
+      "decision_conflict_path": "fragments/model_ext_model_a_1_0_0_decision_conflict.html",
+      "qa_trace_path": "fragments/model_ext_model_a_1_0_0_qa.html",
+      "regression_trace_path": "fragments/model_ext_model_a_1_0_0_regression.html",
+      "trace_summary_path": "fragments/model_ext_model_a_1_0_0_trace.html"
+    },
+    "ext-model-a:1.1.0": {
+      "action_trace_path": "fragments/model_ext_model_a_1_1_0_action.html",
+      "decision_conflict_path": "fragments/model_ext_model_a_1_1_0_decision_conflict.html",
+      "qa_trace_path": "fragments/model_ext_model_a_1_1_0_qa.html",
+      "regression_trace_path": "fragments/model_ext_model_a_1_1_0_regression.html",
+      "trace_summary_path": "fragments/model_ext_model_a_1_1_0_trace.html"
+    },
+    "ext-model-a:1.2.0": {
+      "action_trace_path": "fragments/model_ext_model_a_1_2_0_action.html",
+      "decision_conflict_path": "fragments/model_ext_model_a_1_2_0_decision_conflict.html",
+      "qa_trace_path": "fragments/model_ext_model_a_1_2_0_qa.html",
+      "regression_trace_path": "fragments/model_ext_model_a_1_2_0_regression.html",
+      "trace_summary_path": "fragments/model_ext_model_a_1_2_0_trace.html"
+    },
+    "ext-model-b:1.0.0": {
+      "action_trace_path": "fragments/model_ext_model_b_1_0_0_action.html",
+      "decision_conflict_path": "fragments/model_ext_model_b_1_0_0_decision_conflict.html",
+      "qa_trace_path": "fragments/model_ext_model_b_1_0_0_qa.html",
+      "regression_trace_path": "fragments/model_ext_model_b_1_0_0_regression.html",
+      "trace_summary_path": "fragments/model_ext_model_b_1_0_0_trace.html"
+    }
+  },
+  "storage_report": {
+    "artifact_count": 9,
+    "storage_bytes": 62723,
+    "max_artifacts": 32,
+    "max_bytes": 1000000,
+    "within_budget": true,
+    "reason_codes": [
+      "ModelOpsTraceStorageBuilt"
+    ]
+  },
+  "final_summary": "trace_index_status=IndexReady\nconflict_trace_status=ConflictsDetected\nregression_trace_status=RegressionTraceReady\nqa_trace_status=NeedsOperatorAction\npanel_status=ControlTowerTracePanelReady\nruntime_status=HoldMamba3RuntimeDeferred",
+  "reason_codes": [
+    "ModelOpsTraceBundleBuilt",
+    "ModelOpsTraceRunnerBuilt"
+  ]
+}

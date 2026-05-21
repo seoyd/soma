@@ -1,0 +1,10 @@
+refresh_id = "sprint58-control-tower-auto-refresh"
+control_tower_refresh_config_path = "examples/soma_control_tower_refresh_after_kis_depth.toml"
+source_smoke_report_paths = [
+  "target/sprint58/kis_market_data_smoke/sprint58-kis-market-data-smoke/kis_market_data_smoke_report.json"
+]
+secret_redaction_audit_report_paths = [
+  "target/sprint58/kis_market_data_smoke/sprint58-kis-market-data-smoke-audit/secret_redaction_audit.json"
+]
+output_root = "target/sprint58/control_tower_auto_refresh"
+reason_codes = ["DeterministicPath"]

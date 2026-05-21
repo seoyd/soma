@@ -1,0 +1,12 @@
+{
+  "sequence_core_registry": {
+    "registry_ready": true,
+    "dataset_version": "sprint80-dataset-v1",
+    "feature_schema_hash": "0b33c49d8b0f9d95d26cbd194ae66f6a6fbee6d6a4f20f2a0b34d6f5c6437776",
+    "label_manifest_hash": "6bc22a91864555a5f6f87b1146dce7d74f7cfa4924ca972401fdcefd5aca3ec8",
+    "split_policy": "walk_forward_v1",
+    "gated_delta_contract_ref": "sprint79-sequence-core-gated-deltanet",
+    "state_spec_ref": "state-spec:gated-deltanet-v1"
+  }
+}
+

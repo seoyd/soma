@@ -1,0 +1,39 @@
+benchmark_id = "sprint24_upbit_only"
+official_collection_report_path = "target/soma_official_collection/sprint20_crypto_only/official_collection_report.json"
+run_collection = false
+run_dataset_export = true
+run_baseline_eval = true
+run_python_training = false
+run_external_eval = false
+output_root = "target/soma_core_checked_benchmark"
+strict_schema_validation = true
+min_ready_official_datasets = 1
+min_outcome_records = 20
+min_prediction_rows = 20
+min_calibration_count = 20
+max_allowed_brier_score = 0.30
+max_allowed_ece = 0.10
+max_allowed_drawdown_worsening_pct = 0.05
+max_allowed_storage_bytes = 16777216
+allow_crypto_only = true
+allow_missing_equity_auth = true
+reason_codes = ["DeterministicPath"]
+
+[core_check_config]
+check_id = "sprint24_upbit_only_core_check"
+runtime_mode = "Research"
+output_root = "target/soma_core_check"
+official_evidence_ready = false
+external_model_bridge_ready = true
+sequence_dataset_ready = false
+reason_codes = ["DeterministicPath"]
+
+[core_check_config.performance_budget]
+max_dataset_rows = 50000
+max_feature_rows = 50000
+max_prediction_rows = 50000
+max_report_bytes = 2097152
+max_artifact_bytes = 8388608
+max_collection_requests = 1000
+max_collection_rows = 500000
+reason_codes = ["DeterministicPath"]

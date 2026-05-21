@@ -1,0 +1,88 @@
+{
+  "matrix_id": "workspace-diagnostic-evidence-matrix-v1",
+  "evidence_rows": [
+    {
+      "row_name": "CargoCheck",
+      "evidence_strength": "SupportingOnly",
+      "status": "CargoTimingCapturePassed",
+      "supporting_only": true
+    },
+    {
+      "row_name": "CargoBuild",
+      "evidence_strength": "SupportingOnly",
+      "status": "CargoTimingCapturePassed",
+      "supporting_only": true
+    },
+    {
+      "row_name": "CargoNoRun",
+      "evidence_strength": "SupportingOnly",
+      "status": "CargoTimingCaptureTimedOut",
+      "supporting_only": true
+    },
+    {
+      "row_name": "CargoFull",
+      "evidence_strength": "Insufficient",
+      "status": "CargoTimingCaptureTimedOut",
+      "supporting_only": true
+    },
+    {
+      "row_name": "CargoJson",
+      "evidence_strength": "SupportingOnly",
+      "status": "DiagnosticOnly",
+      "supporting_only": true
+    },
+    {
+      "row_name": "Nextest",
+      "evidence_strength": "SupportingOnly",
+      "status": "NextestNotRun",
+      "supporting_only": true
+    },
+    {
+      "row_name": "Sccache",
+      "evidence_strength": "SupportingOnly",
+      "status": "SccachePilotUseful",
+      "supporting_only": true
+    },
+    {
+      "row_name": "RustcTimeline",
+      "evidence_strength": "SupportingOnly",
+      "status": "RustcTimelineReadyWithWarnings",
+      "supporting_only": true
+    },
+    {
+      "row_name": "TargetStall",
+      "evidence_strength": "SupportingOnly",
+      "status": "TargetStallAttributed",
+      "supporting_only": true
+    },
+    {
+      "row_name": "FanoutMap",
+      "evidence_strength": "SupportingOnly",
+      "status": "FanoutAttributed",
+      "supporting_only": true
+    }
+  ],
+  "evidence_strength_by_row": {
+    "CargoBuild": "SupportingOnly",
+    "CargoCheck": "SupportingOnly",
+    "CargoFull": "Insufficient",
+    "CargoJson": "SupportingOnly",
+    "CargoNoRun": "SupportingOnly",
+    "FanoutMap": "SupportingOnly",
+    "Nextest": "SupportingOnly",
+    "RustcTimeline": "SupportingOnly",
+    "Sccache": "SupportingOnly",
+    "TargetStall": "SupportingOnly"
+  },
+  "supports_acceptance": false,
+  "matrix_status": "DiagnosticEvidenceMatrixReadyWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

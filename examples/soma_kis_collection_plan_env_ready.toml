@@ -1,0 +1,49 @@
+activation_id = "kis-collection-plan-env-ready"
+domestic_symbol_whitelist_path = "examples/soma_kis_symbol_whitelist_domestic.toml"
+overseas_symbol_whitelist_path = "examples/soma_kis_symbol_whitelist_overseas.toml"
+endpoint_policy_path = "examples/sprint51_data/kis_endpoint_policy.toml"
+barrier_profile_registry_path = "examples/soma_barrier_profiles_primary.toml"
+output_root = "state/experiments/kis_examples"
+max_domestic_symbols = 5
+max_overseas_symbols = 5
+max_rows_per_symbol = 5
+max_requests = 2
+max_days = 30
+max_raw_bytes = 1048576
+max_canonical_bytes = 1048576
+max_total_bytes = 2097152
+require_kis_app_key = false
+require_kis_app_secret = false
+require_kis_base_url = false
+require_provenance = false
+require_preflight = false
+require_manifest = false
+run_auth_readiness = true
+run_endpoint_policy_check = true
+run_provider_priority_update = true
+run_collection_dry_run = true
+run_fixture_replay = true
+run_local_import = true
+run_live_market_data_collection = false
+run_preflight = false
+run_official_replication = true
+run_candle_pack = false
+run_candle_sufficiency = true
+run_outcome_link_closure = true
+run_official_evidence_scaleout = false
+run_official_evidence_diversity_sweep = false
+run_committee_official_benchmark = false
+run_core_performance = false
+reason_codes = ["DeterministicPath", "KISCollectionDisabledByDefault"]
+local_kis_canonical_csv_paths = [
+  "examples/sprint51_data/kis_kr_005930_1d_eod.csv",
+  "examples/sprint51_data/kis_us_nasd_AAPL_1d_delayed.csv"
+]
+local_kis_provenance_paths = [
+  "examples/sprint51_data/kis_kr_005930_1d_eod_provenance.json",
+  "examples/sprint51_data/kis_us_nasd_AAPL_1d_delayed_provenance.json"
+]
+local_kis_preflight_paths = [
+  "examples/sprint51_data/kis_kr_005930_1d_eod_preflight.json",
+  "examples/sprint51_data/kis_us_nasd_AAPL_1d_delayed_preflight.json"
+]

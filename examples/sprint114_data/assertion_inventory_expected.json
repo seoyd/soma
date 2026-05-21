@@ -1,0 +1,58 @@
+{
+  "report_id": "target-assertion-inventory-v1",
+  "candidate_targets": [
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs",
+    "tests/shared_fixture_harness_application_v1.rs",
+    "tests/workspace_timeout_root_cause.rs"
+  ],
+  "assertion_count_by_target": {
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs": 6,
+    "tests/shared_fixture_harness_application_v1.rs": 5,
+    "tests/workspace_timeout_root_cause.rs": 9
+  },
+  "assertion_kinds_by_target": {
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs": [
+      "cli-warning-posture",
+      "panel-render",
+      "timeout-interpretation"
+    ],
+    "tests/shared_fixture_harness_application_v1.rs": [
+      "fixture-setup",
+      "shared-harness",
+      "deterministic-output"
+    ],
+    "tests/workspace_timeout_root_cause.rs": [
+      "root-cause-split",
+      "evidence-matrix",
+      "acceptance-warning"
+    ]
+  },
+  "assertion_dependencies": {
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs": [
+      "control tower warning renderer",
+      "timeout panel bundle text"
+    ],
+    "tests/shared_fixture_harness_application_v1.rs": [
+      "shared fixture harness helpers"
+    ],
+    "tests/workspace_timeout_root_cause.rs": [
+      "root cause evidence split",
+      "acceptance truth gate wording"
+    ]
+  },
+  "migration_complexity": {
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs": "High",
+    "tests/shared_fixture_harness_application_v1.rs": "Medium",
+    "tests/workspace_timeout_root_cause.rs": "High"
+  },
+  "inventory_status": "AssertionInventoryReady",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

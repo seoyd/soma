@@ -1,0 +1,9 @@
+closure_id = "sprint58-kis-auth-close"
+kis_activation_config_paths = ["examples/soma_kis_market_data_activate_fixture_replay.toml"]
+output_root = "target/sprint58/kis_auth_closure"
+require_app_key = true
+require_app_secret = true
+require_base_url = true
+require_ws_approval_key_for_realtime = false
+redact_base_url = true
+reason_codes = ["DeterministicPath"]

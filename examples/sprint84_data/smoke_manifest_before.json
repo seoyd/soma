@@ -1,0 +1,92 @@
+{
+  "manifest_id": "sprint84-smoke-before",
+  "command_families": {
+    "sprint82": [
+      "official-evidence-depth-expand",
+      "committee-reference-close",
+      "official-scenario-pack-v3",
+      "official-outcome-pack-v3",
+      "official-baseline-pack-v3",
+      "official-notrade-pack-v3",
+      "official-riskdenied-pack-v3",
+      "defensive-counterfactual-depth",
+      "official-reference-quality",
+      "official-reference-diversity",
+      "official-reference-no-lookahead",
+      "official-reference-source-boundary",
+      "sequence-core-confidence-rerun",
+      "sequence-core-decision-gate-v2",
+      "control-tower-evidence-depth"
+    ],
+    "sprint83": [
+      "sprint83-acceptance-recovery",
+      "full-workspace-acceptance-recovery",
+      "long-compilation-diagnosis",
+      "evidence-depth-fixture-audit",
+      "evidence-depth-fixture-normalize",
+      "evidence-depth-fixture-completeness",
+      "evidence-depth-determinism-regression",
+      "sprint82-smoke-compress",
+      "fixture-boundary-audit-v2",
+      "test-runtime-recovery-plan",
+      "workspace-acceptance-recovery-gate",
+      "control-tower-sprint83-recovery"
+    ]
+  },
+  "all_commands": [
+    "official-evidence-depth-expand",
+    "committee-reference-close",
+    "official-scenario-pack-v3",
+    "official-outcome-pack-v3",
+    "official-baseline-pack-v3",
+    "official-notrade-pack-v3",
+    "official-riskdenied-pack-v3",
+    "defensive-counterfactual-depth",
+    "official-reference-quality",
+    "official-reference-diversity",
+    "official-reference-no-lookahead",
+    "official-reference-source-boundary",
+    "sequence-core-confidence-rerun",
+    "sequence-core-decision-gate-v2",
+    "control-tower-evidence-depth",
+    "sprint83-acceptance-recovery",
+    "full-workspace-acceptance-recovery",
+    "long-compilation-diagnosis",
+    "evidence-depth-fixture-audit",
+    "evidence-depth-fixture-normalize",
+    "evidence-depth-fixture-completeness",
+    "evidence-depth-determinism-regression",
+    "sprint82-smoke-compress",
+    "fixture-boundary-audit-v2",
+    "test-runtime-recovery-plan",
+    "workspace-acceptance-recovery-gate",
+    "control-tower-sprint83-recovery"
+  ],
+  "representative_commands": [
+    "official-evidence-depth-expand",
+    "committee-reference-close",
+    "sprint83-acceptance-recovery",
+    "workspace-acceptance-recovery-gate"
+  ],
+  "safety_commands": [
+    "official-evidence-depth-expand",
+    "sequence-core-decision-gate-v2",
+    "workspace-acceptance-recovery-gate",
+    "control-tower-sprint83-recovery"
+  ],
+  "help_checks": [
+    "official-evidence-depth-expand",
+    "sprint83-acceptance-recovery"
+  ],
+  "remote_path_rejection_checks": [
+    "official-evidence-depth-expand",
+    "sprint83-acceptance-recovery"
+  ],
+  "forbidden_command_checks": [
+    "train-model",
+    "live-inference",
+    "mamba-runtime",
+    "gated-deltanet-runtime"
+  ]
+}
+

@@ -1,0 +1,12 @@
+dry_run_id = "sprint58-kis-market-data-dry-run"
+kis_auth_closure_config_path = "examples/soma_kis_auth_close.toml"
+endpoint_policy_path = "examples/sprint51_data/kis_endpoint_policy.toml"
+domestic_symbol_whitelist_path = "examples/soma_kis_symbol_whitelist_domestic.toml"
+overseas_symbol_whitelist_path = "examples/soma_kis_symbol_whitelist_overseas.toml"
+output_root = "target/sprint58/kis_market_data_dry_run"
+max_symbols = 4
+max_requests = 4
+max_rows_per_symbol = 120
+max_days = 90
+max_bytes = 500000
+reason_codes = ["DeterministicPath"]

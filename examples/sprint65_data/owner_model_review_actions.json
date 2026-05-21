@@ -1,0 +1,98 @@
+[
+  {
+    "action_id": "watch-ext-model-a-v2",
+    "model_id": "ext-model-a",
+    "model_version": "1.1.0",
+    "action_kind": "WatchModel",
+    "note": "track latest research candidate conservatively",
+    "allowed": true,
+    "diagnostic_only": false,
+    "reason_codes": [
+      "OwnerModelReviewWorkflowBuilt"
+    ]
+  },
+  {
+    "action_id": "diagnostic-ext-model-a-v1",
+    "model_id": "ext-model-a",
+    "model_version": "1.0.0",
+    "action_kind": "MarkModelDiagnosticOnly",
+    "note": "keep previous version for diagnostic comparison only",
+    "allowed": true,
+    "diagnostic_only": true,
+    "reason_codes": [
+      "OwnerModelReviewWorkflowBuilt"
+    ]
+  },
+  {
+    "action_id": "retire-ext-model-a-v1",
+    "model_id": "ext-model-a",
+    "model_version": "1.0.0",
+    "action_kind": "RetireModelVersion",
+    "note": "retire superseded version from active research comparison",
+    "allowed": true,
+    "diagnostic_only": true,
+    "reason_codes": [
+      "OwnerModelReviewWorkflowBuilt"
+    ]
+  },
+  {
+    "action_id": "request-more-preds-ext-model-b-v1",
+    "model_id": "ext-model-b",
+    "model_version": "1.0.0",
+    "action_kind": "RequestMorePredictions",
+    "note": "coverage remains weak and needs more offline predictions",
+    "allowed": true,
+    "diagnostic_only": false,
+    "reason_codes": [
+      "OwnerModelReviewWorkflowBuilt"
+    ]
+  },
+  {
+    "action_id": "remove-watch-ext-model-b-v1",
+    "model_id": "ext-model-b",
+    "model_version": "1.0.0",
+    "action_kind": "UnwatchModel",
+    "note": "remove temporary watch once coverage request is logged",
+    "allowed": true,
+    "diagnostic_only": false,
+    "reason_codes": [
+      "OwnerModelReviewWorkflowBuilt"
+    ]
+  },
+  {
+    "action_id": "request-calibration-ext-model-a-v2",
+    "model_id": "ext-model-a",
+    "model_version": "1.1.0",
+    "action_kind": "RequestCalibrationReview",
+    "note": "review calibration conservatively before any deeper research use",
+    "allowed": true,
+    "diagnostic_only": false,
+    "reason_codes": [
+      "OwnerModelReviewWorkflowBuilt"
+    ]
+  },
+  {
+    "action_id": "request-risk-ext-model-a-v2",
+    "model_id": "ext-model-a",
+    "model_version": "1.1.0",
+    "action_kind": "RequestRiskReview",
+    "note": "keep risk review explicit even for offline research comparison",
+    "allowed": true,
+    "diagnostic_only": false,
+    "reason_codes": [
+      "OwnerModelReviewWorkflowBuilt"
+    ]
+  },
+  {
+    "action_id": "blocked-live-note",
+    "model_id": "ext-model-a",
+    "model_version": "1.1.0",
+    "action_kind": "AddModelNote",
+    "note": "live promotion is forbidden and runtime inference stays disabled",
+    "allowed": false,
+    "diagnostic_only": false,
+    "reason_codes": [
+      "OwnerModelReviewWorkflowBuilt"
+    ]
+  }
+]

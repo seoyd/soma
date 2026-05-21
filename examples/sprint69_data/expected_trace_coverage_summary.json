@@ -1,0 +1,68 @@
+{
+  "coverage_id": "sprint69-baseline-snapshot-coverage",
+  "items": [
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.0.0",
+      "has_baseline_snapshot": true,
+      "has_current_snapshot": true,
+      "has_previous_snapshot": false,
+      "comparison_target_available": true,
+      "current_only_diagnostic": false,
+      "missing_reason": null,
+      "reason_codes": [
+        "BaselineSnapshotCoverageReportBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "has_baseline_snapshot": true,
+      "has_current_snapshot": true,
+      "has_previous_snapshot": true,
+      "comparison_target_available": true,
+      "current_only_diagnostic": false,
+      "missing_reason": null,
+      "reason_codes": [
+        "BaselineSnapshotCoverageReportBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.2.0",
+      "has_baseline_snapshot": true,
+      "has_current_snapshot": true,
+      "has_previous_snapshot": true,
+      "comparison_target_available": true,
+      "current_only_diagnostic": false,
+      "missing_reason": null,
+      "reason_codes": [
+        "BaselineSnapshotCoverageReportBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "has_baseline_snapshot": true,
+      "has_current_snapshot": true,
+      "has_previous_snapshot": false,
+      "comparison_target_available": true,
+      "current_only_diagnostic": false,
+      "missing_reason": null,
+      "reason_codes": [
+        "BaselineSnapshotCoverageReportBuilt"
+      ]
+    }
+  ],
+  "total_model_versions": 4,
+  "baseline_covered_count": 4,
+  "current_covered_count": 4,
+  "missing_baseline_count": 0,
+  "missing_current_count": 0,
+  "missing_comparison_target_count": 0,
+  "coverage_ratio": "1.0000",
+  "coverage_status": "CoverageReady",
+  "reason_codes": [
+    "BaselineSnapshotCoverageReportBuilt"
+  ]
+}

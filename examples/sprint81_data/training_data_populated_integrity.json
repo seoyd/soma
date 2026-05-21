@@ -1,0 +1,12 @@
+{
+  "check_id": "training-data-populated-integrity",
+  "registry_json_valid": true,
+  "dataset_versions_valid": true,
+  "lineage_edges_valid": true,
+  "source_class_entries_valid": true,
+  "referenced_paths_exist": true,
+  "no_secret_values": true,
+  "no_order_account_fields": true,
+  "integrity_status": "PopulatedIntegrityReady",
+  "reason_codes": ["TrainingDataPopulatedIntegrityReportBuilt", "DeterministicPath"]
+}

@@ -1,0 +1,177 @@
+[
+  {
+    "rollup_key": {
+      "model_id": "ext-model-a",
+      "model_version": "1.0.0",
+      "model_family": "Mamba3FinLiteExternal",
+      "dataset_fingerprint": "118f8e19e94a668b",
+      "feature_schema_hash": "01c25ac23c41ca00",
+      "label_manifest_hash": "8eff63ae77f20914",
+      "split_policy": "ChronologicalHoldout",
+      "prediction_schema_version": "v2"
+    },
+    "display_name": "ext-model-a:1.0.0",
+    "lifecycle_status": "Retired",
+    "review_status": "RetireModelVersion|RetireModelVersion|RetireModelVersion",
+    "watchlist_status": "Retired",
+    "leaderboard_status": "NoChange",
+    "promotion_status": "ResearchCandidate",
+    "coverage_ratio": "1.0000",
+    "calibration_status": "Stable",
+    "drift_status": "InsufficientHistory",
+    "risk_level": "DiagnosticOnly",
+    "ablation_status": "Stable",
+    "regression_status": "NoRegression",
+    "artifact_completeness_ratio": "0.8889",
+    "decision_counts": {
+      "KeepResearchCandidate": 1,
+      "RetireModelVersion": 4
+    },
+    "regression_causes": [],
+    "owner_notes_summary": "retire superseded version after newer comparable version is available",
+    "recommended_action": "RetireModelVersion",
+    "forbidden_actions": [
+      "account",
+      "broker",
+      "live",
+      "order",
+      "runtime",
+      "train"
+    ],
+    "reason_codes": [
+      "ModelVersionSummaryCardBuilt"
+    ]
+  },
+  {
+    "rollup_key": {
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "model_family": "Mamba3FinLiteExternal",
+      "dataset_fingerprint": "118f8e19e94a668b",
+      "feature_schema_hash": "01c25ac23c41ca00",
+      "label_manifest_hash": "8eff63ae77f20914",
+      "split_policy": "ChronologicalHoldout",
+      "prediction_schema_version": "v2"
+    },
+    "display_name": "ext-model-a:1.1.0",
+    "lifecycle_status": "Watchlisted",
+    "review_status": "KeepResearchCandidate|KeepResearchCandidate|KeepResearchCandidate|KeepResearchCandidate",
+    "watchlist_status": "Active",
+    "leaderboard_status": "RankUp",
+    "promotion_status": "ResearchCandidate",
+    "coverage_ratio": "1.0000",
+    "calibration_status": "Stable",
+    "drift_status": "Stable",
+    "risk_level": "Low",
+    "ablation_status": "Stable",
+    "regression_status": "NoRegression",
+    "artifact_completeness_ratio": "0.8889",
+    "decision_counts": {
+      "KeepResearchCandidate": 7,
+      "WatchModel": 1
+    },
+    "regression_causes": [],
+    "owner_notes_summary": "retain latest comparable version for offline research candidate tracking | keep current candidate on operator watchlist",
+    "recommended_action": "KeepResearchCandidate",
+    "forbidden_actions": [
+      "account",
+      "broker",
+      "live",
+      "order",
+      "runtime",
+      "train"
+    ],
+    "reason_codes": [
+      "ModelVersionSummaryCardBuilt"
+    ]
+  },
+  {
+    "rollup_key": {
+      "model_id": "ext-model-a",
+      "model_version": "1.2.0",
+      "model_family": null,
+      "dataset_fingerprint": null,
+      "feature_schema_hash": null,
+      "label_manifest_hash": null,
+      "split_policy": null,
+      "prediction_schema_version": null
+    },
+    "display_name": "ext-model-a:1.2.0",
+    "lifecycle_status": "DiagnosticOnly",
+    "review_status": "NoClosureDecision",
+    "watchlist_status": "NotWatched",
+    "leaderboard_status": "Unknown",
+    "promotion_status": null,
+    "coverage_ratio": null,
+    "calibration_status": null,
+    "drift_status": null,
+    "risk_level": null,
+    "ablation_status": null,
+    "regression_status": "NoRegression",
+    "artifact_completeness_ratio": null,
+    "decision_counts": {},
+    "regression_causes": [],
+    "owner_notes_summary": "no owner note",
+    "recommended_action": "KeepResearchCandidate",
+    "forbidden_actions": [
+      "account",
+      "broker",
+      "live",
+      "order",
+      "runtime",
+      "train"
+    ],
+    "reason_codes": [
+      "ModelVersionSummaryCardBuilt"
+    ]
+  },
+  {
+    "rollup_key": {
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "model_family": "OtherExternal",
+      "dataset_fingerprint": "118f8e19e94a668b",
+      "feature_schema_hash": "01c25ac23c41ca00",
+      "label_manifest_hash": "8eff63ae77f20914",
+      "split_policy": "ChronologicalHoldout",
+      "prediction_schema_version": "v2"
+    },
+    "display_name": "ext-model-b:1.0.0",
+    "lifecycle_status": "NeedsMorePredictions",
+    "review_status": "RequestMorePredictions|RequestMorePredictions|RequestMorePredictions|RequestMorePredictions|RequestMorePredictions",
+    "watchlist_status": "Removed",
+    "leaderboard_status": "NewlyBlocked",
+    "promotion_status": null,
+    "coverage_ratio": "0.6667",
+    "calibration_status": "Review",
+    "drift_status": "InsufficientHistory",
+    "risk_level": "Critical",
+    "ablation_status": "Missing",
+    "regression_status": "RegressionNeedsReview",
+    "artifact_completeness_ratio": "0.6667",
+    "decision_counts": {
+      "RequestMorePredictions": 8
+    },
+    "regression_causes": [
+      "artifact completeness regressed and evidence should be rebuilt conservatively",
+      "calibration drift needs review before further comparison",
+      "comparability regressed and the model should stay diagnostic-only until clarified",
+      "prediction coverage regressed and needs more offline history",
+      "leaderboard status regressed and ranking should be treated conservatively",
+      "risk behavior regressed and needs conservative review"
+    ],
+    "owner_notes_summary": "coverage remains weak and needs more offline prediction history",
+    "recommended_action": "RequestMorePredictions",
+    "forbidden_actions": [
+      "account",
+      "broker",
+      "live",
+      "order",
+      "runtime",
+      "train"
+    ],
+    "reason_codes": [
+      "ModelVersionSummaryCardBuilt"
+    ]
+  }
+]

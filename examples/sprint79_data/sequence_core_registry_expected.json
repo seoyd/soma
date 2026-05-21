@@ -1,0 +1,19 @@
+{
+  "sequence_core_registry_expected": {
+    "common_input_tensor_spec": "batch x sequence_len x feature_count tensor with manifest-locked feature ordering",
+    "common_prediction_heads": [
+      "confidence",
+      "expected_drawdown",
+      "expected_return",
+      "p_stop_loss",
+      "p_take_profit",
+      "p_time_expired"
+    ],
+    "common_dataset_ready": true,
+    "common_feature_schema_ready": true,
+    "common_label_manifest_ready": true,
+    "common_split_ready": true,
+    "external_prototype_outputs_ready": true
+  }
+}
+

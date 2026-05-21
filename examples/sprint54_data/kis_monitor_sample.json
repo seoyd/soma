@@ -1,0 +1,24 @@
+{
+  "auth_ready": true,
+  "base_url_ready": true,
+  "websocket_ready": false,
+  "endpoint_policy_status": "MarketDataOnly",
+  "domestic_whitelist_count": 2,
+  "overseas_whitelist_count": 2,
+  "collection_plan_status": "DryRunPlanned",
+  "live_collection_enabled": false,
+  "last_collection_status": "KISCollectionReady",
+  "canonical_csv_count": 3,
+  "official_row_count": 24,
+  "candle_sufficiency_status": "MissingFutureWindows",
+  "outcome_links": 10,
+  "counterfactuals": 6,
+  "complete_rows": 8,
+  "diversity_status": "TrinityOnly",
+  "core_bottleneck": "NeedOutcomeLinkDepth",
+  "next_kis_actions": [
+    "cargo run --quiet --bin soma_experiment -- kis-candle-sufficiency --config examples/soma_kis_candle_sufficiency.toml",
+    "cargo run --quiet --bin soma_experiment -- kis-outcome-link-close --config examples/soma_kis_outcome_link_close.toml"
+  ],
+  "reason_codes": ["KISMarketDataActivationRan", "KISOutcomeLinkClosureBuilt"]
+}

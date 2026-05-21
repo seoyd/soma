@@ -1,0 +1,18 @@
+{
+  "report_id": "sccache-local-only-policy-v1",
+  "local_only_required": true,
+  "remote_cache_forbidden": true,
+  "secret_cache_forbidden": true,
+  "deterministic_key_required": true,
+  "cache_failure_must_not_hide_failure": true,
+  "policy_status": "SccacheLocalPolicyReady",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

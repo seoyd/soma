@@ -1,0 +1,22 @@
+{
+  "report_id": "entry-timing-run-warning-closure-report",
+  "previous_status": "EntryTimingRunReadyWithWarnings",
+  "timing_proposal_count": 7,
+  "proposals_with_confirmation_conditions": 5,
+  "proposals_with_cancellation_conditions": 7,
+  "proposals_with_risk_checks": 7,
+  "proposals_with_no_entry_explanation": 1,
+  "proposals_with_cooldown_reason": 1,
+  "remaining_timing_warnings": 0,
+  "closure_status": "EntryTimingWarningsClosedWithNotes",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

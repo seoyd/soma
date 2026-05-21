@@ -1,0 +1,27 @@
+reduction_id = "external-prediction-fixture-setup-reduction"
+sprint89_bundle_paths = ["examples/sprint90_data/sprint89_summary.json"]
+external_prediction_suite_paths = ["tests/external_prediction_family_suite.rs"]
+external_prediction_import_v2_paths = [
+  "tests/external_prediction_import_v2.rs",
+  "tests/external_prediction_suite.rs",
+  "tests/prediction_import.rs",
+  "tests/real_evidence_prediction_import.rs",
+]
+sequence_core_prototype_paths = ["tests/sequence_core_prototype_comparison.rs"]
+model_card_fixture_paths = [
+  "examples/sprint90_data/external_prediction_model_card_preservation_expected.json",
+]
+prediction_schema_fixture_paths = [
+  "examples/sprint90_data/external_prediction_schema_preservation_expected.json",
+]
+cargo_metadata_paths = [
+  "examples/sprint90_data/external_prediction_reduction_plan_expected.json",
+  "examples/sprint90_data/external_prediction_assertion_migration_expected.json",
+  "examples/sprint90_data/external_prediction_compile_impact_sample.json",
+  "examples/sprint90_data/external_prediction_evaluation_preservation_expected.json",
+]
+cargo_timings_paths = [
+  "examples/sprint90_data/queue_progress_v6_expected.json",
+  "examples/sprint90_data/safety_coverage_v6_expected.json",
+]
+output_root = "target/soma_sprint90_external_prediction_recovery"

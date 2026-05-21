@@ -1,0 +1,80 @@
+{
+  "items": [
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.0.0",
+      "checklist_summary": "NoTrade/RiskDenied reference preserved | calibration reviewed | evaluation exists | leaderboard position reviewed | model card exists | no live/runtime/training path | no secret/order/account fields | predictions cover known sequences | risk behavior reviewed",
+      "safe_actions": [
+        "RetireModelVersion"
+      ],
+      "blocked_actions": [],
+      "required_owner_actions": [
+        "RetireModelVersion"
+      ],
+      "next_command": "cargo run --quiet --bin soma_experiment -- model-risk-rollup --config examples/soma_model_risk_rollup.toml",
+      "status": "NeedsRiskReview",
+      "reason_codes": [
+        "OperatorQARollupReportBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "checklist_summary": "NoTrade/RiskDenied reference preserved | calibration reviewed | evaluation exists | leaderboard position reviewed | model card exists | no live/runtime/training path | no secret/order/account fields | predictions cover known sequences | risk behavior reviewed",
+      "safe_actions": [
+        "KeepResearchCandidate",
+        "WatchModel",
+        "WatchModel"
+      ],
+      "blocked_actions": [],
+      "required_owner_actions": [
+        "KeepResearchCandidate",
+        "WatchModel"
+      ],
+      "next_command": "cargo run --quiet --bin soma_experiment -- control-tower-model-ops-rollup --config examples/soma_control_tower_model_ops_rollup.toml",
+      "status": "ReadyForOperatorReview",
+      "reason_codes": [
+        "OperatorQARollupReportBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.2.0",
+      "checklist_summary": "NoTrade/RiskDenied reference preserved | calibration reviewed | evaluation exists | leaderboard position reviewed | model card exists | no live/runtime/training path | no secret/order/account fields | predictions cover known sequences | risk behavior reviewed",
+      "safe_actions": [],
+      "blocked_actions": [],
+      "required_owner_actions": [],
+      "next_command": "cargo run --quiet --bin soma_experiment -- control-tower-model-ops-rollup --config examples/soma_control_tower_model_ops_rollup.toml",
+      "status": "ReadyForOperatorReview",
+      "reason_codes": [
+        "OperatorQARollupReportBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "checklist_summary": "NoTrade/RiskDenied reference preserved | calibration reviewed | evaluation exists | leaderboard position reviewed | model card exists | no live/runtime/training path | no secret/order/account fields | predictions cover known sequences | risk behavior reviewed",
+      "safe_actions": [
+        "RequestMorePredictions"
+      ],
+      "blocked_actions": [],
+      "required_owner_actions": [
+        "RequestMorePredictions"
+      ],
+      "next_command": "cargo run --quiet --bin soma_experiment -- model-ops-rollup --config examples/soma_model_ops_rollup.toml",
+      "status": "NeedsMorePredictions",
+      "reason_codes": [
+        "OperatorQARollupReportBuilt"
+      ]
+    }
+  ],
+  "ready_count": 2,
+  "needs_prediction_count": 1,
+  "needs_calibration_count": 0,
+  "needs_risk_count": 1,
+  "blocked_count": 0,
+  "report_status": "NeedsMorePredictions",
+  "reason_codes": [
+    "OperatorQARollupReportBuilt"
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "batch_id": "sprint48-all-tp-outcomes",
+  "records": [
+    {
+      "row_id": "aapl-alltp",
+      "scenario_row_id": "scenario-aapl-alltp",
+      "candle_series_id": "aapl-alltp-series",
+      "status": "OutcomeGenerated",
+      "outcome_reference": {
+        "outcome_id": "aapl-alltp-outcome",
+        "decision_id": "scenario-aapl-alltp",
+        "symbol": "AAPL",
+        "timestamp_ms": 1700000000000,
+        "horizon_bars": 3,
+        "triple_barrier_label": "TakeProfit",
+        "net_return_pct": 0.015,
+        "max_favorable_excursion_pct": 0.025,
+        "max_adverse_excursion_pct": -0.005,
+        "cost_bps": 5.0,
+        "slippage_bps": 2.0,
+        "source_kind": "OfficialApiCollected",
+        "no_lookahead_safe": true,
+        "reason_codes": [
+          "DeterministicPath"
+        ]
+      },
+      "net_return_pct": 0.015,
+      "mfe_pct": 0.025,
+      "mae_pct": -0.005,
+      "cost_bps": 5.0,
+      "slippage_bps": 2.0,
+      "reason_codes": [
+        "DeterministicPath"
+      ]
+    },
+    {
+      "row_id": "msft-alltp",
+      "scenario_row_id": "scenario-msft-alltp",
+      "candle_series_id": "msft-alltp-series",
+      "status": "OutcomeGenerated",
+      "outcome_reference": {
+        "outcome_id": "msft-alltp-outcome",
+        "decision_id": "scenario-msft-alltp",
+        "symbol": "MSFT",
+        "timestamp_ms": 1700000001000,
+        "horizon_bars": 3,
+        "triple_barrier_label": "TakeProfit",
+        "net_return_pct": 0.013,
+        "max_favorable_excursion_pct": 0.023,
+        "max_adverse_excursion_pct": -0.005,
+        "cost_bps": 5.0,
+        "slippage_bps": 2.0,
+        "source_kind": "OfficialApiCollected",
+        "no_lookahead_safe": true,
+        "reason_codes": [
+          "DeterministicPath"
+        ]
+      },
+      "net_return_pct": 0.013,
+      "mfe_pct": 0.023,
+      "mae_pct": -0.005,
+      "cost_bps": 5.0,
+      "slippage_bps": 2.0,
+      "reason_codes": [
+        "DeterministicPath"
+      ]
+    }
+  ],
+  "total_rows": 2,
+  "eligible_rows": 2,
+  "generated_outcome_count": 2,
+  "official_outcome_count": 2,
+  "skipped_missing_future_window_count": 0,
+  "skipped_missing_scenario_count": 0,
+  "skipped_timestamp_mismatch_count": 0,
+  "skipped_horizon_mismatch_count": 0,
+  "rejected_no_lookahead_count": 0,
+  "take_profit_count": 2,
+  "stop_loss_count": 0,
+  "time_expired_count": 0,
+  "linkage_status": "OfficialBatchOutcomeLinksImproved",
+  "reason_codes": [
+    "DeterministicPath"
+  ]
+}

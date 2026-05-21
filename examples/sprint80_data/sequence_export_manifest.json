@@ -1,0 +1,7 @@
+{
+  "sequence_export_manifest": {
+    "dataset_version": "sprint80-dataset-v1",
+    "sequence_ids": ["seq-001", "seq-002", "seq-003", "seq-004"]
+  }
+}
+

@@ -1,0 +1,7 @@
+drift_id = "sprint62-sequence-drift"
+baseline_manifest_path = "examples/sprint62_data/expected_sequence_export_manifest.json"
+current_manifest_path = "examples/sprint62_data/expected_sequence_export_manifest.json"
+output_root = "target/sprint62"
+allow_schema_version_change = false
+allow_label_manifest_version_change = false
+

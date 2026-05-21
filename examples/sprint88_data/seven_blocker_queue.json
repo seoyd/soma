@@ -1,0 +1,22 @@
+{
+  "ordered_remaining_families": [
+    "CandleExpansionOps",
+    "ExternalPrediction",
+    "KrxEvidence",
+    "DashboardRenderer",
+    "CommitteeCliSafety",
+    "BaselineSignal",
+    "CounterfactualBackfill"
+  ],
+  "primary_next_family": "CandleExpansionOps",
+  "completed_families": [],
+  "blocked_families": [
+    "CandleExpansionOps",
+    "ExternalPrediction",
+    "KrxEvidence",
+    "DashboardRenderer",
+    "CommitteeCliSafety",
+    "BaselineSignal",
+    "CounterfactualBackfill"
+  ]
+}

@@ -1,0 +1,25 @@
+onboarding_id = "sprint17_custom_map_onboarding"
+input_path = "data/local/CUSTOM_1m.csv"
+output_root = "target/soma_data_onboarding_custom"
+symbol = "BTC-USDT"
+venue = "Generic"
+asset_class = "Crypto"
+timeframe = "OneMinute"
+user_supplied = true
+strict = true
+allow_format_autodetect = false
+allow_sort_repair = false
+allow_duplicate_drop = false
+min_rows_for_preflight = 40
+target_min_outcomes = 20
+target_min_comparable_variants = 2
+target_min_usable_datasets = 1
+reason_codes = ["DeterministicPath"]
+
+[custom_column_map]
+timestamp = "ts"
+open = "o"
+high = "h"
+low = "l"
+close = "c"
+volume = "v"

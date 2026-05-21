@@ -1,0 +1,13 @@
+{
+  "gate_id": "sprint97-counterfactual-backfill-recover-workspace-truth-gate",
+  "final_blocker_queue_status": "FinalBlockerQueueClosed",
+  "no_run_status": "RealNoRunStillBlocked",
+  "full_workspace_status": "FullWorkspaceStillBlocked",
+  "queue_closure_is_not_full_acceptance": true,
+  "full_workspace_acceptance_claim_allowed": false,
+  "gate_status": "QueueClosedButAcceptanceUnresolved",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

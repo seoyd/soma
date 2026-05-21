@@ -1,0 +1,45 @@
+{
+  "contract_id": "sprint64-gen-a-v2",
+  "allowed_backend": "PredictionCsvOnly",
+  "required_sequence_export_manifest": "examples/sprint64_data/dataset.csv",
+  "required_feature_schema_hash": "d481c363e122e275",
+  "required_label_manifest_hash": "7d8ab0113db22180",
+  "required_prediction_schema_version": "v2",
+  "required_model_card_fields": [
+    "model_id",
+    "model_version",
+    "feature_schema_hash",
+    "label_manifest_hash",
+    "split_policy",
+    "intended_use",
+    "forbidden_use"
+  ],
+  "forbidden_capabilities": [
+    "RustRuntimeInference",
+    "RustTraining",
+    "LiveInference",
+    "BrokerExecution",
+    "OnlineLearning",
+    "RuntimeLLMDecision"
+  ],
+  "evaluation_requirements": [
+    "deterministic local prediction import",
+    "model card validation",
+    "coverage, calibration, ranking, return proxy, and risk-aware evaluation",
+    "promotion gate remains research-only"
+  ],
+  "control_tower_visibility_requirements": [
+    "show external model panel",
+    "show runtime deferred",
+    "show copyable commands only"
+  ],
+  "risk_integration_requirements": [
+    "Risk Governor remains final",
+    "NoTrade remains valid",
+    "RiskDenied remains valid"
+  ],
+  "contract_status": "ContractReady",
+  "reason_codes": [
+    "Mamba3FinLitePrototypeContractBuilt"
+  ]
+}

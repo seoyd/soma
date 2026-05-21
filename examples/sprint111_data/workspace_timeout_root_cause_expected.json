@@ -1,0 +1,36 @@
+{
+  "report_id": "workspace-timeout-root-cause",
+  "no_run_timeout_observed": true,
+  "full_timeout_observed": true,
+  "cargo_json_progress_available": true,
+  "last_seen_targets": [
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs",
+    "tests/shared_fixture_harness_application_v1.rs",
+    "tests/sprint111_cli_safety.rs",
+    "tests/workspace_timeout_root_cause.rs"
+  ],
+  "last_seen_artifacts": [
+    "target/debug/deps/control_tower_workspace_timeout_root_cause_panel.synthetic",
+    "target/debug/deps/shared_fixture_harness_application_v1.synthetic",
+    "target/debug/deps/workspace_timeout_root_cause.synthetic"
+  ],
+  "suspected_root_causes": [
+    "ArtifactRenderFanout",
+    "CliSmokeFanout",
+    "FixtureSetupFanout",
+    "IntegrationTestBinaryFanout",
+    "LinkTimeCost",
+    "MacroExpansionCost"
+  ],
+  "evidence_strength": "Moderate",
+  "root_cause_status": "TimeoutRootCausePartiallyIsolated",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "plan_id": "workspace-acceptance-truth-recovery-plan-v6",
+  "previous_truth_status": "WorkspaceTruthStillOpenV5",
+  "current_truth_status": "WorkspaceAcceptanceStillOpenV6",
+  "compile_diagnosis_status": "WorkspaceCompileCostDiagnosisReadyV2",
+  "bridge_status": "FocusedVsFullGateBridgeReadyV2",
+  "can_claim_full_acceptance": false,
+  "recommended_actions": [
+    "keep focused validation distinct from full workspace acceptance",
+    "run cargo test --workspace --no-run --quiet honestly",
+    "run cargo test --workspace --quiet honestly",
+    "do not claim acceptance until both finish and full pass succeeds"
+  ],
+  "recovery_status": "WorkspaceAcceptanceStillOpenV6",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

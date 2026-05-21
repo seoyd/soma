@@ -1,0 +1,16 @@
+audit_id = "sprint55_core_completion_audit"
+core_check_report_paths = ["examples/sprint55_data/core_completion_sample.json"]
+core_performance_scorecard_paths = ["examples/sprint52_data/core_scorecard_sample.json"]
+control_tower_state_paths = ["examples/sprint55_data/core_completion_sample.json"]
+kis_collection_closure_paths = ["examples/sprint55_data/core_completion_sample.json"]
+output_root = "target/sprint55/core_completion_audit"
+require_core_check_pass = true
+require_risk_invariants = true
+require_live_safety_pass = true
+require_control_tower_ready = true
+require_owner_layer_ready = true
+require_kis_market_data_ready = true
+require_no_live_paths = true
+require_no_broker_paths = true
+require_no_mamba_runtime = true
+reason_codes = ["DeterministicPath"]

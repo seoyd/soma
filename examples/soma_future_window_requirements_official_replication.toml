@@ -1,0 +1,14 @@
+requirement_id = "sprint46-future-window-requirements"
+official_ready_inventory_paths = ["examples/sprint46_data/official_ready_row_short_window.json"]
+candle_coverage_pack_paths = ["examples/sprint46_data/aapl_1d_extended.csv"]
+output_root = "target/soma_future_window_requirements"
+default_horizon_bars = 3
+max_rows = 10
+max_symbols = 1
+max_bytes = 1000000
+require_official_ready_match = true
+require_no_lookahead_safe = true
+allow_controlled_diagnostic = false
+allow_crypto_only = true
+allow_yfinance_research = false
+allow_fixture = false

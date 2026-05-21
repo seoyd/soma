@@ -1,0 +1,156 @@
+{
+  "control_tower_id": "sprint59-control-tower",
+  "provider_panel": {
+    "active_primary_provider_by_market": {
+      "KoreanEquity": "KIS",
+      "USEquity": "KIS"
+    }
+  },
+  "kis_monitor_panel": {
+    "auth_ready": true,
+    "base_url_ready": true,
+    "endpoint_policy_status": "MarketDataOnly",
+    "collection_plan_status": "LiveCollectionDisabled",
+    "candle_sufficiency_status": "HealthyKISCandles",
+    "outcome_links": 2,
+    "complete_rows": 2,
+    "official_row_count": 12,
+    "canonical_csv_count": 2
+  },
+  "evidence_panel": {
+    "official_rows": 12,
+    "official_complete_rows": 2,
+    "outcome_links": 2,
+    "no_trade_counterfactuals": 1,
+    "risk_denied_counterfactuals": 1
+  },
+  "committee_panel": {
+    "active_personas": 3,
+    "member_views": [
+      {
+        "persona_id": "cycle_regime_guard",
+        "status": "Ready",
+        "selected_by_chair": true,
+        "last_stance": "Approve",
+        "conviction": 0.63,
+        "voice_power": 0.72,
+        "last_reason_codes": [
+          "PersonaVoteBuilt"
+        ]
+      },
+      {
+        "persona_id": "defensive_value_risk",
+        "status": "Ready",
+        "selected_by_chair": true,
+        "last_stance": "Approve",
+        "conviction": 0.61,
+        "voice_power": 0.7,
+        "last_reason_codes": [
+          "PersonaVoteBuilt"
+        ]
+      },
+      {
+        "persona_id": "trend_breakout_fast",
+        "status": "Ready",
+        "selected_by_chair": true,
+        "last_stance": "Approve",
+        "conviction": 0.66,
+        "voice_power": 0.75,
+        "last_reason_codes": [
+          "PersonaVoteBuilt"
+        ]
+      }
+    ],
+    "disagreement_score": 0.12,
+    "groupthink_risk": 0.24,
+    "recommendation": "KeepTrinity"
+  },
+  "chair_panel": {
+    "last_decision_id": "chair-001",
+    "selected_speakers": [
+      "trend_breakout_fast",
+      "defensive_value_risk",
+      "cycle_regime_guard"
+    ],
+    "filtered_speakers": [
+      "trend_breakout_fast",
+      "defensive_value_risk",
+      "cycle_regime_guard"
+    ],
+    "weighted_score": 0.64,
+    "uncertainty": 0.21,
+    "final_decision": "RequireHumanConfirm",
+    "groupthink_warning": false,
+    "human_confirm_required": true
+  },
+  "risk_panel": {
+    "risk_governor_mode": "AbsoluteVeto",
+    "default_deny_active": true,
+    "emergency_stop_active": false,
+    "cooldown_active": false,
+    "last_risk_decision": "ApprovePaper",
+    "approved_paper_count": 1,
+    "denied_count": 1,
+    "no_trade_count": 1,
+    "human_confirm_count": 1
+  },
+  "candidate_panel": {
+    "candidates": [
+      {
+        "candidate_id": "cand-101",
+        "symbol": "005930.KS",
+        "candidate_status": "HumanConfirmRequired"
+      }
+    ]
+  },
+  "paper_position_panel": {
+    "open_positions": [
+      {
+        "paper_position_id": "paper-101",
+        "candidate_id": "cand-101"
+      }
+    ],
+    "closed_positions": []
+  },
+  "operational_loop_panel": {
+    "loop_status": "PaperOnlyMonitoringReady",
+    "active_cycle_count": 1,
+    "generated_candidates": 1,
+    "paper_approved": 1,
+    "paper_open": 1,
+    "risk_blocked": 1,
+    "no_trade": 1,
+    "owner_review_pending": 1,
+    "next_action": "RunOperationalRunbook"
+  },
+  "owner_panel": {
+    "pending_review_items": [
+      {
+        "review_id": "review-cand-101"
+      }
+    ]
+  },
+  "human_confirm_panel": {
+    "items": [
+      {
+        "item_id": "confirm-cand-101"
+      }
+    ]
+  },
+  "bottleneck_panel": {
+    "primary_bottleneck": "NeedMoreKISEvidence"
+  },
+  "next_action_panel": {
+    "primary_next_action": {
+      "action_id": "run-operational-runbook",
+      "action_kind": "RunOperationalRunbook"
+    }
+  },
+  "audit_timeline": {
+    "events": [
+      {
+        "event_id": "evt-001"
+      }
+    ]
+  }
+}

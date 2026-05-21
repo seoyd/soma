@@ -1,0 +1,28 @@
+{
+  "report_id": "paper-notrade-justification-report",
+  "no_trade_decision_count": 3,
+  "no_trade_reason_codes": [
+    "paper_only_no_trade_default"
+  ],
+  "no_trade_member_vote_refs": [
+    "SaylorTreasury"
+  ],
+  "no_trade_risk_governor_refs": [
+    "risk-governor-paper-handoff-report"
+  ],
+  "no_trade_chairman_refs": [
+    "chairman-synthesis-dry-run-report"
+  ],
+  "no_trade_not_failure": true,
+  "justification_status": "NoTradeJustificationReady",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

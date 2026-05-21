@@ -1,0 +1,13 @@
+{
+  "gate_id": "sprint93-timeout-attribution-dashboard-entry-release-gate",
+  "dashboard_precheck_status": "DashboardRendererPrecheckReady",
+  "krx_non_primary_status": "KrxProvenNonPrimary",
+  "timeout_attribution_status": "TimeoutAttributionReady",
+  "safety_status": "SafetyCoveragePreserved",
+  "entry_released": true,
+  "gate_status": "DashboardRendererEntryReleased",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

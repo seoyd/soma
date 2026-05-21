@@ -1,0 +1,10 @@
+{
+  "mamba3fin_contract_state": {
+    "input_tensor_spec": "batch x sequence_len x feature_count tensor with manifest-locked feature ordering",
+    "feature_schema_hash_required": true,
+    "label_manifest_hash_required": true,
+    "sequence_window_spec": "windowed OHLCV + derived features + no-lookahead-safe labels",
+    "supported_horizons": [5, 10, 20]
+  }
+}
+

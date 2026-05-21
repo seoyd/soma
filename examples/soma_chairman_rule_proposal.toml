@@ -1,0 +1,9 @@
+architecture_id = "sprint98-committee-owned-core-example"
+output_root = "target/soma_sprint98_committee_owned_core"
+sprint97_summary_path = "examples/sprint98_data/sprint97_summary.json"
+workspace_acceptance_truth_path = "examples/sprint98_data/workspace_acceptance_truth_import.json"
+market = "KoreanEquity"
+symbol = "005930.KS"
+timeframe = "OneDay"
+timestamp_ms = 1730000000000
+source_kind = "OfficialApiCollected"

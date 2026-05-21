@@ -1,0 +1,38 @@
+{
+  "command_kind": "full",
+  "command": "cargo test --workspace --message-format=json",
+  "started": true,
+  "finished": false,
+  "passed": null,
+  "duration_ms": 300000,
+  "timeout_ms": 300000,
+  "messages": [
+    {
+      "timestamp_ms": 400,
+      "reason": "compiler-artifact",
+      "package_name": "soma_zero",
+      "target_name": "krx_evidence_suite",
+      "artifact_kind": "test",
+      "crate_name": "soma_zero",
+      "family": "KrxEvidence"
+    },
+    {
+      "timestamp_ms": 500,
+      "reason": "compiler-artifact",
+      "package_name": "soma_zero",
+      "target_name": "dashboard_renderer_recovery",
+      "artifact_kind": "test",
+      "crate_name": "soma_zero",
+      "family": "DashboardRenderer"
+    },
+    {
+      "timestamp_ms": 600,
+      "reason": "compiler-artifact",
+      "package_name": "soma_zero",
+      "target_name": "workspace_safety_guard_suite",
+      "artifact_kind": "test",
+      "crate_name": "soma_zero",
+      "family": "CommitteeCliSafety"
+    }
+  ]
+}

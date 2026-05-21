@@ -1,0 +1,10 @@
+{"id":"strict1","prompt":"repeat: hello","expected":"hello","kind":"strict"}
+{"id":"strict2","prompt":"say: world","expected":"world","kind":"strict"}
+{"id":"strict3","prompt":"echo: test","expected":"test","kind":"strict"}
+{"id":"strict4","prompt":"output: 42","expected":"42","kind":"strict"}
+{"id":"strict5","prompt":"return: success","expected":"success","kind":"strict"}
+{"id":"strict6","prompt":"type: example","expected":"example","kind":"strict"}
+{"id":"strict7","prompt":"print: done","expected":"done","kind":"strict"}
+{"id":"strict8","prompt":"show: result","expected":"result","kind":"strict"}
+{"id":"strict9","prompt":"display: complete","expected":"complete","kind":"strict"}
+{"id":"strict10","prompt":"write: finished","expected":"finished","kind":"strict"}

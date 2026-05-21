@@ -1,0 +1,42 @@
+{
+  "report_id": "sprint116-summary",
+  "timeout_track_status": "TimeoutTrackActive",
+  "backlog_status": "BacklogReducedWithWarnings",
+  "track_progress_status": "WorkspaceTimeoutTrackNeedsMoreObservation",
+  "no_run_status": "NoRunStillBlocked",
+  "full_workspace_status": "FullWorkspaceStillBlocked",
+  "cargo_json_status": "CargoJsonStillNotRun",
+  "acceptance_truth_status": "AcceptanceTruthReadyWithWarnings",
+  "acceptance_evidence_status": "AcceptanceEvidenceSupportingOnly",
+  "consolidation_status": "ConsolidationStillPaused",
+  "fifth_patch_status": "FifthPatchStillNotApplied",
+  "assertion_movement_status": "AssertionMovementStillForbidden",
+  "target_retirement_status": "TargetRetirementStillForbidden",
+  "safety_status": "SafetyCoveragePreserved",
+  "planned_count": 5,
+  "completed_count": 2,
+  "deferred_count": 3,
+  "remaining_count": 3,
+  "deferred_items": [
+    "RealNoRun",
+    "RealFullWorkspace",
+    "RealCargoJson"
+  ],
+  "completed_items": [
+    "TimeoutBoundaryObserved",
+    "TimeoutCleanupConsistencyObserved"
+  ],
+  "focused_tests_passed": true,
+  "cli_smoke_passed": true,
+  "cargo_check_passed": true,
+  "cargo_build_passed": true,
+  "cargo_fmt_passed": true,
+  "cargo_fmt_check_passed": true,
+  "no_run_timeout_seconds": 420,
+  "no_run_exit_code": 124,
+  "full_timeout_seconds": 420,
+  "full_exit_code": 124,
+  "timeout_cleanup_verified": true,
+  "remaining_cargo_processes_after_timeout": 0,
+  "remaining_rustc_processes_after_timeout": 0
+}

@@ -1,0 +1,20 @@
+{
+  "gate_id": "acceptance-truth-gate-v16",
+  "focused_truth_status": "FocusedTestsSupportingOnly",
+  "cli_truth_status": "CliSmokeSupportingOnly",
+  "cargo_check_truth_status": "CargoCheckSupportingOnly",
+  "cargo_build_truth_status": "CargoBuildSupportingOnly",
+  "no_run_truth_status": "NoRunStillBlocked",
+  "full_workspace_truth_status": "FullWorkspaceStillBlocked",
+  "can_claim_full_acceptance": false,
+  "truth_status": "AcceptanceTruthReadyWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

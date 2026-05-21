@@ -1,0 +1,32 @@
+{
+  "candidate_panel": {
+    "candidates": [
+      {
+        "candidate_id": "cand-risk-001",
+        "symbol": "AAPL",
+        "market": "USEquity",
+        "source_kind": "OfficialNonCrypto",
+        "provider_kind": "KIS",
+        "timeframe": "1d",
+        "horizon_bars": 8,
+        "status": "RiskBlocked",
+        "signal_summary": "Risk Governor denied the candidate.",
+        "committee_summary": "Committee liked the setup but risk blocked it.",
+        "chair_summary": "Chair forwarded the candidate to risk review.",
+        "risk_summary": "Risk Governor denied the candidate and preserved NoTrade.",
+        "expected_edge": 0.007,
+        "expected_drawdown": 0.016,
+        "data_quality_score": 0.74,
+        "created_from_report": "examples/sprint54_data/risk_blocked_candidates_sample.json",
+        "expires_at": 1715700002000,
+        "reason_codes": ["RiskDenied"]
+      }
+    ],
+    "active_candidates": 0,
+    "blocked_candidates": 1,
+    "human_confirm_candidates": 0,
+    "paper_approved_candidates": 0,
+    "expired_candidates": 0,
+    "reason_codes": ["DeterministicPath", "DashboardCandidatePanelBuilt"]
+  }
+}

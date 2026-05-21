@@ -1,0 +1,33 @@
+{
+  "report_id": "integration-fanout-narrowing-v1",
+  "suspect_integration_targets": [
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs",
+    "tests/shared_fixture_harness_application_v1.rs",
+    "tests/workspace_timeout_root_cause.rs"
+  ],
+  "fanout_cluster_count": 2,
+  "isolated_integration_fanout": [
+    "shared fixture harness fanout influence bounded"
+  ],
+  "still_mixed_integration_fanout": [
+    "IntegrationTestBinaryFanout"
+  ],
+  "observed_evidence": [
+    "cargo no-run timeout still ends near integration test binary fanout",
+    "focused matrix passed while integration binary fanout stayed mixed"
+  ],
+  "inferred_evidence": [
+    "control tower panel transitively depends on integration binary surfaces",
+    "shared fixture harness likely amplifies integration binary count"
+  ],
+  "status": "IntegrationFanoutPartiallyNarrowed",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

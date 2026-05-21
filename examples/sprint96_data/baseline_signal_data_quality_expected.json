@@ -1,0 +1,7 @@
+{
+  "denial_status": "PoorDataQualityDenialPreserved",
+  "missing_data_denied": true,
+  "invalid_data_denied": true,
+  "low_coverage_denied": true,
+  "no_lookahead_violation_denied": true
+}

@@ -1,0 +1,17 @@
+closure_id = "sprint45-complete-row-close-controlled"
+comparable_evidence_config_path = "examples/soma_comparable_evidence_controlled.toml"
+output_root = "target/soma_sprint45_examples"
+run_inventory = true
+run_scenario_materialization_v3 = true
+run_outcome_backfill = true
+run_baseline_backfill = true
+run_counterfactual_backfill = true
+run_complete_row_builder = true
+run_committee_benchmark = false
+run_outcome_coverage = false
+run_counterfactual_depth_close = false
+run_core_scorecard_rerun = false
+max_rows = 128
+max_symbols = 3
+max_bytes = 750000
+reason_codes = ["DeterministicPath"]

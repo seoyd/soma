@@ -1,0 +1,185 @@
+{
+  "panel_id": "control-tower-investor-archetype-panel",
+  "registry_status": "EighteenCandidateRegistryReady",
+  "candidate_rows": [
+    {
+      "candidate_id": "arthur-hayes",
+      "archetype_name": "HayesLiquidityDerivatives",
+      "style_group": "Crypto",
+      "confidence_grade": "B",
+      "candidate_status": "CandidateReadyWithWarnings"
+    },
+    {
+      "candidate_id": "benjamin-graham",
+      "archetype_name": "GrahamMarginOfSafety",
+      "style_group": "LongTermEquity",
+      "confidence_grade": "A",
+      "candidate_status": "CandidateReadyWithWarnings"
+    },
+    {
+      "candidate_id": "charlie-munger",
+      "archetype_name": "MungerErrorFilter",
+      "style_group": "LongTermEquity",
+      "confidence_grade": "A",
+      "candidate_status": "CandidateReadyWithWarnings"
+    },
+    {
+      "candidate_id": "chris-burniske",
+      "archetype_name": "BurniskeTokenValuation",
+      "style_group": "Crypto",
+      "confidence_grade": "BPlus",
+      "candidate_status": "CandidateReadyWithWarnings"
+    },
+    {
+      "candidate_id": "howard-marks",
+      "archetype_name": "MarksCycleRiskPremium",
+      "style_group": "LongTermEquity",
+      "confidence_grade": "A",
+      "candidate_status": "CandidateReadyWithWarnings"
+    },
+    {
+      "candidate_id": "john-bogle",
+      "archetype_name": "BogleLowCostCore",
+      "style_group": "LongTermEquity",
+      "confidence_grade": "A",
+      "candidate_status": "CandidateReadyWithWarnings"
+    },
+    {
+      "candidate_id": "larry-williams",
+      "archetype_name": "LarryWilliamsStatisticalSeasonality",
+      "style_group": "ShortTermSwing",
+      "confidence_grade": "B",
+      "candidate_status": "CandidateReadyWithWarnings"
+    },
+    {
+      "candidate_id": "linda-raschke",
+      "archetype_name": "RaschkeProcessManager",
+      "style_group": "ShortTermSwing",
+      "confidence_grade": "BPlus",
+      "candidate_status": "CandidateReadyWithWarnings"
+    },
+    {
+      "candidate_id": "mark-minervini",
+      "archetype_name": "MinerviniVcpBreakout",
+      "style_group": "ShortTermSwing",
+      "confidence_grade": "A",
+      "candidate_status": "CandidateReadyWithWarnings"
+    },
+    {
+      "candidate_id": "michael-saylor",
+      "archetype_name": "SaylorTreasury",
+      "style_group": "Crypto",
+      "confidence_grade": "A",
+      "candidate_status": "CandidateReadyWithWarnings"
+    },
+    {
+      "candidate_id": "paul-tudor-jones",
+      "archetype_name": "PtjMacroAsymmetricRisk",
+      "style_group": "ShortTermSwing",
+      "confidence_grade": "BPlus",
+      "candidate_status": "CandidateReadyWithWarnings"
+    },
+    {
+      "candidate_id": "peter-lynch",
+      "archetype_name": "LynchGarpConsumerGrowth",
+      "style_group": "LongTermEquity",
+      "confidence_grade": "A",
+      "candidate_status": "CandidateReadyWithWarnings"
+    },
+    {
+      "candidate_id": "richard-dennis",
+      "archetype_name": "TurtleTrendSystem",
+      "style_group": "ShortTermSwing",
+      "confidence_grade": "BPlus",
+      "candidate_status": "CandidateReadyWithWarnings"
+    },
+    {
+      "candidate_id": "vitalik-buterin",
+      "archetype_name": "VitalikProtocolFundamental",
+      "style_group": "Crypto",
+      "confidence_grade": "A",
+      "candidate_status": "CandidateReadyWithWarnings"
+    },
+    {
+      "candidate_id": "warren-buffett",
+      "archetype_name": "BuffettQualityMoat",
+      "style_group": "LongTermEquity",
+      "confidence_grade": "A",
+      "candidate_status": "CandidateReadyWithWarnings"
+    },
+    {
+      "candidate_id": "william-oneil",
+      "archetype_name": "OneilCanSlimMarketDirection",
+      "style_group": "ShortTermSwing",
+      "confidence_grade": "A",
+      "candidate_status": "CandidateReadyWithWarnings"
+    },
+    {
+      "candidate_id": "willy-woo",
+      "archetype_name": "WillyWooOnchainCycle",
+      "style_group": "Crypto",
+      "confidence_grade": "BPlus",
+      "candidate_status": "CandidateReadyWithWarnings"
+    },
+    {
+      "candidate_id": "wonyotti",
+      "archetype_name": "WonyottiBtcRisk",
+      "style_group": "Crypto",
+      "confidence_grade": "BMinus",
+      "candidate_status": "CandidateReadyWithWarnings"
+    }
+  ],
+  "group_rows": [
+    {
+      "group_name": "ShortTermSwing",
+      "member_count": 6,
+      "summary": "short-horizon breakout, swing, and tactical risk archetypes"
+    },
+    {
+      "group_name": "LongTermEquity",
+      "member_count": 6,
+      "summary": "long-horizon quality, value, and cycle-aware equity archetypes"
+    },
+    {
+      "group_name": "Crypto",
+      "member_count": 6,
+      "summary": "crypto cycle, protocol, treasury, and liquidity archetypes"
+    },
+    {
+      "group_name": "CommonRisk",
+      "member_count": 1,
+      "summary": "shared risk governor and risk-manager constraints"
+    }
+  ],
+  "confidence_summary": "high=15 medium=3 low=0 blocked=0",
+  "safety_normalization_summary": "status=SafetyNormalizationReady removed_items=90",
+  "impersonation_risk_summary": "status=ImpersonationRiskControlled high=0 medium=18 low=0",
+  "do_not_learn_summary": "guards=18 all paper-only",
+  "feature_scope_summary": "status=FeatureScopeMappingReady overlaps=10 mismatches=0",
+  "roster_plan_summary": "active=8 watchlist=4 diagnostic=3 inactive=3",
+  "activation_gate_summary": "status=EighteenPaperRosterGateReadyWithWarnings live_activation_allowed=false",
+  "chairman_style_governance_summary": "status=ChairmanStyleGovernanceReady risk_override=false",
+  "runtime_deferred_summary": "runtime deferred, training deferred, live inference forbidden, live trading forbidden, static/read-only control tower",
+  "workspace_truth_summary": "workspace_truth=FullWorkspaceNotRun full_workspace_finished=false can_claim_full_acceptance=false",
+  "next_actions": [
+    "keep investor archetypes paper-only and research-only",
+    "use watchlist rotation before any paper roster promotion",
+    "continue evidence deepening for lower-confidence candidates"
+  ],
+  "warnings": [
+    "static/read-only panel only",
+    "no train/runtime/live/order/account/browser controls",
+    "no activate-all-18-live action"
+  ],
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

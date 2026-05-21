@@ -1,0 +1,1 @@
+The Control Tower workspace timeout root-cause panel is a static/read-only panel that summarizes timeout status, progress traces, stall attribution, and evidence strength. It intentionally omits execution controls, run-test buttons, and any train/runtime/live/order/account controls.

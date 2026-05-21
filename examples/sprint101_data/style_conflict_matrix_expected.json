@@ -1,0 +1,59 @@
+{
+  "matrix_id": "style-conflict-matrix",
+  "conflicts": [
+    {
+      "left": "ShortTermBreakout",
+      "right": "LongTermValue",
+      "conflict": "ShortTermBreakoutVsLongTermValue",
+      "resolution": "DebateRequired"
+    },
+    {
+      "left": "CryptoLeverage",
+      "right": "EquityQuality",
+      "conflict": "CryptoLeverageVsEquityQuality",
+      "resolution": "RiskGovernorDecides"
+    },
+    {
+      "left": "MacroNarrative",
+      "right": "PriceAction",
+      "conflict": "MacroNarrativeVsPriceAction",
+      "resolution": "RegimeRouterDecides"
+    },
+    {
+      "left": "OnchainSignal",
+      "right": "LiquiditySignal",
+      "conflict": "OnchainSignalVsLiquiditySignal",
+      "resolution": "NeedMoreEvidence"
+    },
+    {
+      "left": "ValuePatience",
+      "right": "TrendStopLoss",
+      "conflict": "ValuePatienceVsTrendStopLoss",
+      "resolution": "DebateRequired"
+    },
+    {
+      "left": "OpportunityCost",
+      "right": "RiskGovernorVeto",
+      "conflict": "OpportunityCostVsRiskGovernorVeto",
+      "resolution": "NoTradeDefault"
+    }
+  ],
+  "conflict_resolution_policy": [
+    "DebateRequired",
+    "RegimeRouterDecides",
+    "RiskGovernorDecides",
+    "NeedMoreEvidence",
+    "NoTradeDefault"
+  ],
+  "matrix_status": "ConflictMatrixReady",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

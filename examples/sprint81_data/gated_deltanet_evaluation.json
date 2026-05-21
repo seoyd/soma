@@ -1,0 +1,23 @@
+{
+  "evaluation_id": "gated-deltanet-eval",
+  "family": "GatedDeltaNet",
+  "model_id": "gated-deltanet-prototype",
+  "model_version": "v0.1",
+  "sequence_count": 4,
+  "evaluated_count": 4,
+  "coverage_ratio": "0.8100",
+  "label_distribution": { "tp": 2, "sl": 1, "nt": 1 },
+  "brier_score": "0.1100",
+  "ece": "0.0800",
+  "top_k_precision": "0.7300",
+  "rank_correlation": "0.6100",
+  "expected_return_proxy": "0.0450",
+  "realized_return_proxy": "0.0380",
+  "risk_adjusted_score": "0.0280",
+  "no_trade_comparison": "-0.0080",
+  "risk_denied_defensive_value": "0.0180",
+  "evaluation_status": "EvaluationReadyWithWarnings",
+  "warnings": ["external prototype only"],
+  "blockers": [],
+  "reason_codes": ["GatedDeltaNetPrototypeEvaluated", "DeterministicPath"]
+}

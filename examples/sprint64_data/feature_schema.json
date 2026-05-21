@@ -1,0 +1,49 @@
+{
+  "schema_id": "sprint62-sequence-export-small",
+  "feature_names": [
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume",
+    "spread_bps"
+  ],
+  "feature_types": [
+    "f64",
+    "f64",
+    "f64",
+    "f64",
+    "f64",
+    "f64"
+  ],
+  "feature_order": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "feature_order_hash": "01c25ac23c41ca00",
+  "source_feature_groups": [
+    "ohlc",
+    "volume",
+    "microstructure"
+  ],
+  "required_features": [
+    "open",
+    "high",
+    "low",
+    "close",
+    "volume",
+    "spread_bps"
+  ],
+  "optional_features": [],
+  "missing_features": [],
+  "feature_normalization_policy": "explicit-zscore",
+  "version": "v1",
+  "frozen": true,
+  "reason_codes": [
+    "FeatureSchemaManifestBuilt"
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "models": {
+    "ext-model-a:1.0.0": {
+      "coverage_ratio": "1.0000",
+      "calibration_status": "Stable",
+      "risk_level": "DiagnosticOnly",
+      "artifact_completeness_ratio": "0.8889",
+      "leaderboard_status": "NoChange",
+      "recommended_action": "RetireModelVersion",
+      "artifacts": ["model_card", "prediction_csv"],
+      "metrics": {
+        "comparability_status": "Comparable"
+      }
+    },
+    "ext-model-a:1.1.0": {
+      "coverage_ratio": "1.0000",
+      "calibration_status": "Stable",
+      "risk_level": "Low",
+      "artifact_completeness_ratio": "0.8889",
+      "leaderboard_status": "NoChange",
+      "recommended_action": "KeepResearchCandidate",
+      "artifacts": ["model_card", "leaderboard"],
+      "metrics": {
+        "comparability_status": "Comparable"
+      }
+    },
+    "ext-model-b:1.0.0": {
+      "coverage_ratio": "1.0000",
+      "calibration_status": "Stable",
+      "risk_level": "Low",
+      "artifact_completeness_ratio": "0.8889",
+      "leaderboard_status": "NoChange",
+      "recommended_action": "KeepResearchCandidate",
+      "artifacts": ["model_card", "prediction_csv", "leaderboard"],
+      "metrics": {
+        "comparability_status": "Comparable"
+      }
+    }
+  }
+}

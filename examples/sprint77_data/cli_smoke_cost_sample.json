@@ -1,0 +1,34 @@
+{
+  "cli_smoke_cost_reduction_report": {
+    "reduction_id": "sample-cli-smoke-cost-reduction",
+    "required_smoke": [
+      "repeated-workspace-timing --help",
+      "workspace-acceptance-v3 --help",
+      "repeated-workspace-timing --config examples/soma_repeated_workspace_timing.toml"
+    ],
+    "representative_smoke": [
+      "repeated-workspace-timing --config examples/soma_repeated_workspace_timing.toml",
+      "test-binary-cost --config examples/soma_test_binary_cost.toml",
+      "dev-loop-savings-estimate --config examples/soma_dev_loop_savings_estimate.toml"
+    ],
+    "exhaustive_smoke": [
+      "workspace-acceptance-v3 --config examples/soma_workspace_acceptance_v3.toml",
+      "fixture-cache-plan --config examples/soma_fixture_cache_plan.toml",
+      "artifact-render-cache-plan --config examples/soma_artifact_render_cache_plan.toml"
+    ],
+    "deferred_smoke": [
+      "fixture-setup-cost --config examples/soma_fixture_setup_cost.toml",
+      "artifact-render-cost --config examples/soma_artifact_render_cost.toml"
+    ],
+    "moved_to_representative": [
+      "test-binary-cost",
+      "dev-loop-savings-estimate"
+    ],
+    "moved_to_exhaustive": [
+      "workspace-acceptance-v3",
+      "fixture-cache-plan"
+    ],
+    "estimated_savings_ms": 7500,
+    "reduction_status": "SmokeCostReduced"
+  }
+}

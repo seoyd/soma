@@ -1,0 +1,18 @@
+{
+  "target_files": [
+    "tests/candle_expansion_ops_suite.rs"
+  ],
+  "donor_files": [
+    "tests/official_candle_expansion_runner.rs"
+  ],
+  "fixture_setup_duplication": [
+    "json:shared coverage bundle load",
+    "toml:gap config reuse",
+    "output_dir:consolidated candle outputs"
+  ],
+  "golden_render_duplication": [
+    "golden:summary render reuse"
+  ],
+  "expected_target_delta": 1,
+  "high_risk_assertions_kept_separate": []
+}

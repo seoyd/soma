@@ -1,0 +1,19 @@
+{
+  "report_id": "paper-lifecycle-warning-closure-report",
+  "previous_lifecycle_status": "PaperLifecycleReadyWithWarnings",
+  "transition_warning_count": 4,
+  "gate_warning_count": 0,
+  "evidence_warning_count": 2,
+  "trace_warning_count": 0,
+  "closure_status": "PaperLifecycleStillWarningBacked",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

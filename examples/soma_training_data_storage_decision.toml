@@ -1,0 +1,24 @@
+storage_id = "sprint78-storage"
+output_root = "target/soma_core_committee_mamba_readiness"
+storage_root = "data"
+raw_root = "data/raw"
+canonical_root = "data/canonical"
+features_root = "data/features"
+labels_root = "data/labels"
+sequences_root = "data/sequences"
+predictions_root = "data/predictions"
+model_cards_root = "data/model_cards"
+evaluations_root = "data/evaluations"
+registry_root = "data/registry"
+preferred_primary_format = "CsvJsonManifest"
+allow_parquet = false
+allow_arrow = false
+require_manifest_per_artifact = true
+require_source_class = true
+require_provenance_ref = true
+require_preflight_ref = true
+require_feature_schema_hash = true
+require_label_manifest_hash = true
+require_no_lookahead_proof = true
+max_dataset_bytes = 536870912
+

@@ -1,0 +1,25 @@
+{
+  "report_id": "debate-dissent-coverage-report",
+  "member_count": 7,
+  "support_entry_count": 3,
+  "oppose_entry_count": 1,
+  "wait_count": 1,
+  "no_trade_count": 0,
+  "risk_deny_count": 0,
+  "request_more_evidence_count": 2,
+  "dissent_present": true,
+  "risk_dissent_present": false,
+  "no_trade_dissent_present": false,
+  "groupthink_risk": false,
+  "dissent_status": "DissentCoverageReadyWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

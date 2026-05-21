@@ -1,0 +1,7 @@
+{
+  "audit_status": "FixturesReadyWithWarnings",
+  "normalization_status": "NormalizationReady",
+  "completeness_status": "FixtureCompletenessReady",
+  "boundary_audit_status": "FixtureBoundaryReady"
+}
+

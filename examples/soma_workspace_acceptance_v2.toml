@@ -1,0 +1,5 @@
+modernization_id = "workspace-acceptance-v2-example"
+current_toolchain_report_paths = [
+  "examples/sprint76_data/toolchain_previous_sample.json",
+  "examples/sprint76_data/workspace_acceptance_sample.json",
+]

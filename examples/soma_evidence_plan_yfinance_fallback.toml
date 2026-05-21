@@ -1,0 +1,24 @@
+plan_id = "sprint31_yfinance_fallback"
+output_root = "target/soma_evidence_plan"
+run_core_check = false
+run_collection = false
+run_preflight = false
+run_benchmark = false
+run_external_eval = false
+allow_yfinance_research = true
+allow_crypto_only = true
+allow_missing_auth_skips = true
+max_lanes = 3
+max_symbols = 1
+max_rows_per_lane = 100
+max_requests_per_lane = 2
+max_total_bytes = 100000
+reason_codes = []
+
+[[explicit_lanes]]
+lane_kind = "YFinanceResearchFallback"
+provider = "yfinance"
+symbols = ["AAPL"]
+enabled = true
+reason_codes = []
+

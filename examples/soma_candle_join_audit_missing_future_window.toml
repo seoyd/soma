@@ -1,0 +1,17 @@
+audit_id = "sprint44-join-audit-missing-future-window"
+comparable_evidence_bundle_paths = ["examples/sprint44_data/missing_future_window_bundle.json"]
+candle_coverage_pack_paths = ["examples/soma_candle_pack_official_controlled.toml"]
+output_root = "target/soma_sprint44_examples"
+max_rows = 500
+max_symbols = 5
+max_bytes = 5000000
+allow_explicit_symbol_alias = true
+allow_explicit_timeframe_alias = true
+allow_explicit_timestamp_policy_map = true
+allow_session_daily_alignment = true
+allow_timestamp_tolerance = true
+timestamp_tolerance_ms = 60000
+require_exact_horizon_match = true
+require_no_lookahead_safe = true
+require_official_source_for_official_ready = true
+reason_codes = ["DeterministicPath"]

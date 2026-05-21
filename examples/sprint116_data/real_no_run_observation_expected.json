@@ -1,0 +1,23 @@
+{
+  "attempt_id": "real-no-run-observation-attempt-v17",
+  "command": "cargo test --workspace --no-run --quiet",
+  "attempted": false,
+  "started": false,
+  "finished": false,
+  "passed": null,
+  "duration_ms": null,
+  "timeout_ms": 420000,
+  "exit_code": null,
+  "timed_out": false,
+  "supporting_only": true,
+  "attempt_status": "NoRunNotRun",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

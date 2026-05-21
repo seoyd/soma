@@ -1,0 +1,23 @@
+{
+  "report_id": "link-time-narrowing-v1",
+  "link_heavy_target_candidates": [
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs",
+    "tests/workspace_timeout_root_cause.rs"
+  ],
+  "observed_evidence": [
+    "rustc timeline last heavy link candidate was control tower timeout panel"
+  ],
+  "inferred_evidence": [
+    "workspace timeout root cause target may still add linker pressure"
+  ],
+  "status": "LinkTimePartiallyNarrowed",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

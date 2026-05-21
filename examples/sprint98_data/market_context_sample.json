@@ -1,0 +1,31 @@
+{
+  "context_id": "sprint98-committee-owned-core-example-market-context",
+  "market": "KoreanEquity",
+  "symbol": "005930.KS",
+  "timeframe": "OneDay",
+  "timestamp": 1730000000000,
+  "source_class": "OfficialApiCollected",
+  "candle_refs": [
+    "official-candle-pack/2024-10-29"
+  ],
+  "feature_refs": [
+    "feature-pack/trend-liquidity-regime-v1"
+  ],
+  "regime_refs": [
+    "regime/risk-on-with-volatility-cooldown"
+  ],
+  "risk_refs": [
+    "risk/max-drawdown-paper-guard"
+  ],
+  "existing_paper_position": null,
+  "evidence_quality": 0.82,
+  "no_lookahead_proof_ref": "proof/no-lookahead-sequence-v1",
+  "context_status": "ContextReady",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault"
+  ]
+}

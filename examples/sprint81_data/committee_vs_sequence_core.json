@@ -1,0 +1,15 @@
+{
+  "report_id": "committee-vs-sequence-core",
+  "committee_pack_status": "ScenarioPackReadyWithWarnings",
+  "mamba3fin_eval_status": "EvaluationReadyWithWarnings",
+  "gated_deltanet_eval_status": "EvaluationReadyWithWarnings",
+  "comparable_rows": 4,
+  "committee_better_count": 1,
+  "mamba3fin_better_count": 1,
+  "gated_deltanet_better_count": 1,
+  "no_trade_better_count": 1,
+  "risk_denied_defensive_count": 1,
+  "disagreement_summary": ["chair-trace-reviewed", "risk-trace-reviewed"],
+  "comparison_status": "Mixed",
+  "reason_codes": ["CommitteeVsSequenceCoreComparisonReportBuilt", "DeterministicPath"]
+}

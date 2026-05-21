@@ -1,0 +1,27 @@
+{
+  "report_id": "sprint93-timeout-attribution-krx-non-primary-proof",
+  "krx_targets_seen_during_timeout": [
+    "krx_evidence_suite"
+  ],
+  "krx_targets_completed_before_timeout": [
+    "krx_evidence_suite"
+  ],
+  "last_seen_family": "CommitteeCliSafety",
+  "non_krx_targets_after_krx": [
+    "committee_cli_safety_isolation",
+    "dashboard_renderer_recovery",
+    "dashboard_renderer_suite",
+    "workspace_cli_safety_suite",
+    "workspace_safety_guard_suite"
+  ],
+  "dashboard_targets_after_krx": [
+    "dashboard_renderer_recovery",
+    "dashboard_renderer_suite"
+  ],
+  "evidence_strength": "High",
+  "proof_status": "KrxProvenNonPrimary",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

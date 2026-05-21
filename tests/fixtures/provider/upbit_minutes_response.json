@@ -1,0 +1,52 @@
+[
+  {
+    "market": "KRW-BTC",
+    "timestamp": 1711929840000,
+    "opening_price": 100.0,
+    "high_price": 101.0,
+    "low_price": 99.5,
+    "trade_price": 100.5,
+    "candle_acc_trade_price": 1005.0,
+    "candle_acc_trade_volume": 10.0
+  },
+  {
+    "market": "KRW-BTC",
+    "timestamp": 1711929780000,
+    "opening_price": 99.0,
+    "high_price": 100.0,
+    "low_price": 98.5,
+    "trade_price": 99.5,
+    "candle_acc_trade_price": 995.0,
+    "candle_acc_trade_volume": 10.0
+  },
+  {
+    "market": "KRW-BTC",
+    "timestamp": 1711929720000,
+    "opening_price": 98.0,
+    "high_price": 99.0,
+    "low_price": 97.5,
+    "trade_price": 98.5,
+    "candle_acc_trade_price": 985.0,
+    "candle_acc_trade_volume": 10.0
+  },
+  {
+    "market": "KRW-BTC",
+    "timestamp": 1711929660000,
+    "opening_price": 97.0,
+    "high_price": 98.0,
+    "low_price": 96.5,
+    "trade_price": 97.5,
+    "candle_acc_trade_price": 975.0,
+    "candle_acc_trade_volume": 10.0
+  },
+  {
+    "market": "KRW-BTC",
+    "timestamp": 1711929600000,
+    "opening_price": 96.0,
+    "high_price": 97.0,
+    "low_price": 95.5,
+    "trade_price": 96.5,
+    "candle_acc_trade_price": 965.0,
+    "candle_acc_trade_volume": 10.0
+  }
+]

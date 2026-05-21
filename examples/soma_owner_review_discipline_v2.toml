@@ -1,0 +1,15 @@
+discipline_id = "sprint61-owner-review-discipline-v2"
+owner_review_queue_paths = ["examples/sprint61_data/owner_review_queue_needs_cleanup.json"]
+owner_input_paths = []
+owner_impact_report_paths = []
+human_confirm_paths = []
+candidate_queue_paths = []
+output_root = "target/sprint61"
+require_reason_for_hold = true
+require_reason_for_dismiss = true
+require_reason_for_paper_confirm = true
+expire_stale_reviews = true
+stale_review_age_ms = 86400000
+allow_research_only_confirm = false
+allow_diagnostic_only_confirm = false
+

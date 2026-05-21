@@ -1,0 +1,16 @@
+{
+  "report_id": "sccache-availability-v1",
+  "sccache_probe_attempted": false,
+  "sccache_available": true,
+  "sccache_version": "sccache 0.8.1-synthetic",
+  "availability_status": "SccacheAvailable",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

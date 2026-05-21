@@ -1,0 +1,12 @@
+{
+  "sprint_name": "Sprint 98 committee-owned architecture correction",
+  "architecture_status": "CommitteeOwnedCoreReadyWithWarnings",
+  "truth_status": "FullWorkspaceNotRun",
+  "can_claim_full_acceptance": false,
+  "runtime_deferred": true,
+  "paper_only": true,
+  "notes": [
+    "committee-owned architecture corrected",
+    "workspace truth remains separate and conservative"
+  ]
+}

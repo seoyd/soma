@@ -1,0 +1,8 @@
+{
+  "donor_files": [
+    "tests/official_candle_expansion_runner.rs"
+  ],
+  "target_suite": "tests/candle_expansion_ops_suite.rs",
+  "high_risk_assertions_kept_separate": [],
+  "notes": "historical donor lineage remains explicit even though the donor file is already absent in the current tree"
+}

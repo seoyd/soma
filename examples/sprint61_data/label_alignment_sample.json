@@ -1,0 +1,8 @@
+{
+  "outcome_label_count": 5,
+  "horizon_alignment_ok": true,
+  "timestamp_alignment_ok": true,
+  "no_lookahead_safe": true,
+  "missing_labels": 0,
+  "misaligned_labels": 0
+}

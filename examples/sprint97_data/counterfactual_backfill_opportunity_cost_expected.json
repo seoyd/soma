@@ -1,0 +1,13 @@
+{
+  "report_id": "sprint97-counterfactual-backfill-recover-opportunity-cost",
+  "opportunity_cost_reason_present": true,
+  "missed_gain_penalty_recorded": true,
+  "opportunity_cost_visible_when_veto_blocks_win": true,
+  "opportunity_cost_requires_real_outcomes": true,
+  "risk_governor_not_overridden": true,
+  "opportunity_cost_status": "OpportunityCostPreserved",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

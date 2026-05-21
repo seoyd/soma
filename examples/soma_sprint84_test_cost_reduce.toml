@@ -1,0 +1,32 @@
+consolidation_id = "sprint84-test-cost-reduce"
+sprint83_recovery_paths = [
+  "examples/sprint84_data/sprint83_recovery_summary.json",
+  "examples/sprint84_data/smoke_manifest_before.json",
+  "examples/sprint84_data/smoke_manifest_after.json",
+  "examples/sprint84_data/runtime_before_after_sample.json",
+  "examples/sprint84_data/workspace_final_gate_expected.json",
+]
+test_inventory_paths = [
+  "examples/sprint84_data/test_binary_inventory_before.json",
+  "examples/sprint84_data/test_binary_inventory_after.json",
+]
+output_root = "target/soma_sprint84_test_cost_reduction"
+target_test_files = [
+  "tests/official_evidence_depth_expansion.rs",
+  "tests/committee_reference_closure.rs",
+  "tests/official_evidence_depth_cli_safety.rs",
+  "tests/official_evidence_depth_determinism.rs",
+  "tests/sprint83_acceptance_recovery.rs",
+  "tests/full_workspace_acceptance_recovery.rs",
+  "tests/long_running_compilation_diagnosis.rs",
+  "tests/evidence_depth_fixture_hardening.rs",
+  "tests/evidence_depth_determinism_regression.rs",
+  "tests/sprint82_cli_smoke_compression.rs",
+  "tests/fixture_boundary_audit_v2.rs",
+  "tests/test_runtime_recovery_plan.rs",
+  "tests/workspace_acceptance_recovery_gate.rs",
+  "tests/sprint83_recovery_panel.rs",
+  "tests/sprint83_acceptance_recovery_cli_safety.rs",
+  "tests/sprint83_acceptance_recovery_determinism.rs",
+]
+

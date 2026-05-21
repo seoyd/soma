@@ -1,0 +1,1 @@
+The sccache pilot is local-only, forbids remote/secret cache usage, requires deterministic keys, and must not hide failures. Any effect estimate is diagnostic-only and never a guaranteed speedup claim.

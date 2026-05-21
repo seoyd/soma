@@ -1,0 +1,40 @@
+# Rust
+/target/
+**/*.rs.bk
+*.pdb
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+.cargo-ci/
+
+# OS
+Thumbs.db
+
+# Build artifacts
+*.o
+*.so
+*.dylib
+*.dll
+
+# Debug
+debug/
+*.dSYM/
+
+# Logs
+*.log
+/logs/
+/reports/
+/adapters/
+/release/
+/state/
+/artifacts/
+/data/local/*.csv
+
+# Environment
+.env
+.env.local

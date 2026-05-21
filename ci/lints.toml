@@ -1,0 +1,8 @@
+[lints]
+deny = [
+    "unreachable_code",
+    "unused_must_use",
+]
+allow = [
+    "clippy::module_name_repetitions",
+]

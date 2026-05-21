@@ -1,0 +1,9 @@
+{
+  "committee_counterfactuals": {
+    "no_trade_counterfactuals": ["no-trade-1", "no-trade-2"],
+    "risk_denied_counterfactuals": ["risk-denied-1", "risk-denied-2"],
+    "defensive_value_records": ["defensive-1"],
+    "opportunity_cost_records": ["opportunity-1"]
+  }
+}
+

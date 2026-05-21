@@ -1,0 +1,15 @@
+closure_id = "paper-replay-warning-closure-example"
+sprint99_bundle_paths = ["examples/sprint100_data/sprint99_summary.json"]
+workspace_acceptance_truth_paths = ["examples/sprint99_data/workspace_acceptance_truth_expected.json"]
+output_root = "target/soma_sprint100_committee_closure"
+require_proposal_warning_closure = true
+require_debate_evidence_closure = true
+require_unsafe_rule_closure = true
+require_scorecard_warning_closure = true
+require_replay_warning_closure = true
+require_risk_handoff_warning_closure = true
+require_paper_readiness_gate = true
+require_workspace_truth_separation = true
+preserve_committee_owned_architecture = true
+preserve_runtime_deferred = true
+preserve_safety_guards = true

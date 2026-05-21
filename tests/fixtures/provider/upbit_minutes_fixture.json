@@ -1,0 +1,8 @@
+{
+  "responses": [
+    {
+      "match_substring": "market=KRW-BTC",
+      "body_path": "upbit_minutes_response.json"
+    }
+  ]
+}

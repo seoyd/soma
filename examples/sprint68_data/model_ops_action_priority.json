@@ -1,0 +1,71 @@
+{
+  "required_actions": [
+    {
+      "priority": "Required",
+      "action": "RequestMorePredictions",
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "reason": "weak coverage or missing prediction evidence; final_risk_level=Critical",
+      "command_suggestion": "cargo run --quiet --bin soma_experiment -- model-ops-rollup --config examples/soma_model_ops_rollup.toml",
+      "safe_to_run": true,
+      "reason_codes": [
+        "ModelOpsActionPriorityReportBuilt"
+      ]
+    },
+    {
+      "priority": "Required",
+      "action": "RetireModelVersion",
+      "model_id": "ext-model-a",
+      "model_version": "1.0.0",
+      "reason": "retired or critically regressed model version; final_risk_level=High",
+      "command_suggestion": "cargo run --quiet --bin soma_experiment -- decision-log-rollup --config examples/soma_decision_log_rollup.toml",
+      "safe_to_run": true,
+      "reason_codes": [
+        "ModelOpsActionPriorityReportBuilt"
+      ]
+    }
+  ],
+  "recommended_actions": [],
+  "optional_actions": [
+    {
+      "priority": "Optional",
+      "action": "KeepResearchCandidate",
+      "model_id": "ext-model-a",
+      "model_version": "1.2.0",
+      "reason": "keep as offline research candidate",
+      "command_suggestion": "cargo run --quiet --bin soma_experiment -- control-tower-model-ops-rollup --config examples/soma_control_tower_model_ops_rollup.toml",
+      "safe_to_run": true,
+      "reason_codes": [
+        "ModelOpsActionPriorityReportBuilt"
+      ]
+    },
+    {
+      "priority": "Optional",
+      "action": "WatchModel",
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "reason": "keep as offline research candidate",
+      "command_suggestion": "cargo run --quiet --bin soma_experiment -- control-tower-model-ops-rollup --config examples/soma_control_tower_model_ops_rollup.toml",
+      "safe_to_run": true,
+      "reason_codes": [
+        "ModelOpsActionPriorityReportBuilt"
+      ]
+    }
+  ],
+  "blocked_actions": [],
+  "primary_next_action": {
+    "priority": "Required",
+    "action": "RequestMorePredictions",
+    "model_id": "ext-model-b",
+    "model_version": "1.0.0",
+    "reason": "weak coverage or missing prediction evidence; final_risk_level=Critical",
+    "command_suggestion": "cargo run --quiet --bin soma_experiment -- model-ops-rollup --config examples/soma_model_ops_rollup.toml",
+    "safe_to_run": true,
+    "reason_codes": [
+      "ModelOpsActionPriorityReportBuilt"
+    ]
+  },
+  "reason_codes": [
+    "ModelOpsActionPriorityReportBuilt"
+  ]
+}

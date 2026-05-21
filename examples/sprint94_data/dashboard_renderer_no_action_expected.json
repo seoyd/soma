@@ -1,0 +1,16 @@
+{
+  "report_id": "sprint94-dashboard-renderer-recover-no-action",
+  "no_train_button": true,
+  "no_runtime_button": true,
+  "no_live_button": true,
+  "no_order_button": true,
+  "no_account_panel": true,
+  "no_trade_execution_control": true,
+  "no_modify_account_control": true,
+  "no_place_trade_control": true,
+  "action_control_status": "NoActionControlsPreserved",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

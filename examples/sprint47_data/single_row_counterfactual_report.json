@@ -1,0 +1,30 @@
+{
+  "completion_id": "sprint47-single-counterfactuals",
+  "records": [
+    {
+      "row_id": "aapl-extended-window",
+      "no_trade_counterfactual_built": true,
+      "risk_denied_counterfactual_built": true,
+      "avoided_loss_value": 0.0,
+      "missed_gain_value": 0.0193,
+      "diagnostic_only": false,
+      "status": "Completed",
+      "reason_codes": [
+        "CounterfactualEvaluated",
+        "DeterministicPath"
+      ]
+    }
+  ],
+  "completed_count": 1,
+  "no_trade_built_count": 1,
+  "risk_denied_built_count": 1,
+  "skipped_missing_outcome_count": 0,
+  "skipped_missing_risk_decision_count": 0,
+  "official_counterfactual_count": 1,
+  "diagnostic_counterfactual_count": 0,
+  "completion_status": "OfficialCounterfactualsImproved",
+  "reason_codes": [
+    "CounterfactualEvaluated",
+    "DeterministicPath"
+  ]
+}

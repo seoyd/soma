@@ -1,0 +1,13 @@
+{
+  "report_id": "sprint95-committee-cli-safety-recover-browser-guard",
+  "no_dashboard_serve": true,
+  "no_browser_execution_control": true,
+  "no_post_action_control": true,
+  "no_js_execution_dependency": true,
+  "no_remote_asset_requirement": true,
+  "browser_guard_status": "BrowserExecutionGuardPreserved",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

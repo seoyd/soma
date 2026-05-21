@@ -1,0 +1,6 @@
+tickers = ["AAPL"]
+interval = "1d"
+period = "1mo"
+fixture = "research/fixtures/yfinance_aapl_daily.csv"
+out = "target/yfinance_research_compact"
+adjusted_price_policy = "adjusted"

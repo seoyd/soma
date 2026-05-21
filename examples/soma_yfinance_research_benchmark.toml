@@ -1,0 +1,28 @@
+research_id = "aapl_msft_yfinance_research"
+output_root = "target/soma_yahoo_research"
+
+[[imports]]
+import_id = "aapl_import"
+canonical_csv_path = "target/yfinance_research_aapl_msft/canonical/aapl_1d.csv"
+output_root = "target/soma_yfinance_imports"
+symbol = "AAPL"
+venue = "NASDAQ"
+asset_class = "Equity"
+timeframe = "OneDay"
+provenance_path = "target/yfinance_research_aapl_msft/provenance/aapl_1d.provenance.json"
+manifest_path = "target/yfinance_research_aapl_msft/manifests/aapl_1d.manifest.json"
+source_label = "yfinance-aapl-1d"
+config_generation_policy = "DiagnosticOnly"
+
+[[imports]]
+import_id = "msft_import"
+canonical_csv_path = "target/yfinance_research_aapl_msft/canonical/msft_1d.csv"
+output_root = "target/soma_yfinance_imports"
+symbol = "MSFT"
+venue = "NASDAQ"
+asset_class = "Equity"
+timeframe = "OneDay"
+provenance_path = "target/yfinance_research_aapl_msft/provenance/msft_1d.provenance.json"
+manifest_path = "target/yfinance_research_aapl_msft/manifests/msft_1d.manifest.json"
+source_label = "yfinance-msft-1d"
+config_generation_policy = "DiagnosticOnly"

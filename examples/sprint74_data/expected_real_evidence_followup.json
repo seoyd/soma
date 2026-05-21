@@ -1,0 +1,10 @@
+{
+  "attachment_status": "RealEvidenceAttached",
+  "validation_status": "ValidationReady",
+  "provenance_status": "ProvenanceReady",
+  "preflight_status": "PreflightReady",
+  "outcome_status": "OutcomeReady",
+  "sequence_status": "SequenceReady",
+  "model_ops_status": "NeedNewPredictionCsv",
+  "refresh_status": "RealEvidenceRefreshReadyWithWarnings"
+}

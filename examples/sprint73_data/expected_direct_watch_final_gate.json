@@ -1,0 +1,17 @@
+{
+  "gate_id": "sprint73-ext-model-b-prediction-gap-closure-direct-watch-final-gate",
+  "previous_score_min": 82,
+  "previous_score_max": 86,
+  "current_score_min": 88,
+  "current_score_max": 90,
+  "evidence_gap_closed": true,
+  "owner_checklist_closed": true,
+  "prediction_history_sufficient": true,
+  "retirement_evidence_stable": true,
+  "forbidden_controls_absent": true,
+  "static_only": true,
+  "paper_only": true,
+  "no_secret_values": true,
+  "gate_status": "DirectWatchReadyWithWarnings",
+  "final_recommendation": "UseDirectWatchModeWithWarnings"
+}

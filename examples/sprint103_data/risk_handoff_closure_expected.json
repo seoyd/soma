@@ -1,0 +1,23 @@
+{
+  "report_id": "risk-governor-handoff-warning-closure-report-v2",
+  "previous_status": "RiskGovernorHandoffReadyWithWarnings",
+  "veto_result": "NoTrade",
+  "veto_reason_complete": true,
+  "no_trade_reason_complete": true,
+  "risk_denied_reason_complete": true,
+  "broker_execution_allowed": false,
+  "live_execution_allowed": false,
+  "bypass_attempt_count": 0,
+  "remaining_handoff_warnings": 0,
+  "closure_status": "RiskHandoffWarningsClosedWithNotes",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

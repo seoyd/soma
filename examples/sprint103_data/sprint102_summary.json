@@ -1,0 +1,1416 @@
+{
+  "paper_rotation_scenario_pack": {
+    "pack_id": "sprint102-paper-rotation-scenario-pack",
+    "scenarios": [
+      {
+        "scenario_id": "korean-equity-trend-breakout",
+        "market": "KoreanEquity",
+        "regime": "TrendBreakout",
+        "thesis": "Korean equity breakout with liquidity support",
+        "evidence_refs": [
+          "official-korean-equity-daily",
+          "breakout-liquidity-check"
+        ]
+      },
+      {
+        "scenario_id": "us-equity-range-bound",
+        "market": "USEquity",
+        "regime": "RangeBound",
+        "thesis": "US equity range-bound paper review with valuation cross-check",
+        "evidence_refs": [
+          "official-us-equity-daily",
+          "range-bound-regime-proof"
+        ]
+      },
+      {
+        "scenario_id": "crypto-high-volatility",
+        "market": "Crypto",
+        "regime": "HighVolatility",
+        "thesis": "Crypto leverage stress scenario",
+        "evidence_refs": [
+          "crypto-liquidity-check",
+          "funding-stress-snapshot"
+        ]
+      },
+      {
+        "scenario_id": "multi-asset-drawdown-risk",
+        "market": "MultiAsset",
+        "regime": "DrawdownRisk",
+        "thesis": "Cross-asset drawdown regime with quality review",
+        "evidence_refs": [
+          "drawdown-risk-bundle",
+          "quality-balance-sheet-review"
+        ]
+      },
+      {
+        "scenario_id": "macro-shift-cross-asset",
+        "market": "MultiAsset",
+        "regime": "MacroShift",
+        "thesis": "Macro shift regime requiring chairman synthesis",
+        "evidence_refs": [
+          "macro-shift-pack",
+          "cross-asset-confirmation"
+        ]
+      },
+      {
+        "scenario_id": "crypto-cycle-liquidity",
+        "market": "Crypto",
+        "regime": "CryptoCycle",
+        "thesis": "Crypto cycle opportunity under liquidity guard",
+        "evidence_refs": [
+          "onchain-cycle-pack",
+          "exchange-liquidity-pack"
+        ]
+      },
+      {
+        "scenario_id": "insufficient-evidence-halt",
+        "market": "USEquity",
+        "regime": "InsufficientEvidence",
+        "thesis": "Insufficient evidence halt scenario",
+        "evidence_refs": [
+          "insufficient-evidence-flag",
+          "counterfactual-review-request"
+        ]
+      }
+    ],
+    "scenario_count": 7,
+    "market_coverage": [
+      "KoreanEquity",
+      "USEquity",
+      "Crypto",
+      "MultiAsset"
+    ],
+    "regime_coverage": [
+      "TrendBreakout",
+      "RangeBound",
+      "HighVolatility",
+      "DrawdownRisk",
+      "MacroShift",
+      "CryptoCycle",
+      "InsufficientEvidence"
+    ],
+    "pack_status": "ScenarioPackReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "paper_rotation_market_context_set": {
+    "context_set_id": "paper-rotation-market-context-set",
+    "contexts": [
+      {
+        "scenario_id": "korean-equity-trend-breakout",
+        "source_boundary_ref": "korean-equity-trend-breakout-source-boundary-proof",
+        "no_lookahead_proof_ref": "korean-equity-trend-breakout-no-lookahead-proof",
+        "risk_refs": [
+          "korean-equity-trend-breakout-risk-ref"
+        ],
+        "regime_refs": [
+          "korean-equity-trend-breakout-regime-ref"
+        ],
+        "counterfactual_refs": [
+          "korean-equity-trend-breakout-counterfactual-ref"
+        ],
+        "paper_only": true
+      },
+      {
+        "scenario_id": "us-equity-range-bound",
+        "source_boundary_ref": "us-equity-range-bound-source-boundary-proof",
+        "no_lookahead_proof_ref": "us-equity-range-bound-no-lookahead-proof",
+        "risk_refs": [
+          "us-equity-range-bound-risk-ref"
+        ],
+        "regime_refs": [
+          "us-equity-range-bound-regime-ref"
+        ],
+        "counterfactual_refs": [
+          "us-equity-range-bound-counterfactual-ref"
+        ],
+        "paper_only": true
+      },
+      {
+        "scenario_id": "crypto-high-volatility",
+        "source_boundary_ref": "crypto-high-volatility-source-boundary-proof",
+        "no_lookahead_proof_ref": "crypto-high-volatility-no-lookahead-proof",
+        "risk_refs": [
+          "crypto-high-volatility-risk-ref"
+        ],
+        "regime_refs": [
+          "crypto-high-volatility-regime-ref"
+        ],
+        "counterfactual_refs": [
+          "crypto-high-volatility-counterfactual-ref"
+        ],
+        "paper_only": true
+      },
+      {
+        "scenario_id": "multi-asset-drawdown-risk",
+        "source_boundary_ref": "multi-asset-drawdown-risk-source-boundary-proof",
+        "no_lookahead_proof_ref": "multi-asset-drawdown-risk-no-lookahead-proof",
+        "risk_refs": [
+          "multi-asset-drawdown-risk-risk-ref"
+        ],
+        "regime_refs": [
+          "multi-asset-drawdown-risk-regime-ref"
+        ],
+        "counterfactual_refs": [
+          "multi-asset-drawdown-risk-counterfactual-ref"
+        ],
+        "paper_only": true
+      },
+      {
+        "scenario_id": "macro-shift-cross-asset",
+        "source_boundary_ref": "macro-shift-cross-asset-source-boundary-proof",
+        "no_lookahead_proof_ref": "macro-shift-cross-asset-no-lookahead-proof",
+        "risk_refs": [
+          "macro-shift-cross-asset-risk-ref"
+        ],
+        "regime_refs": [
+          "macro-shift-cross-asset-regime-ref"
+        ],
+        "counterfactual_refs": [
+          "macro-shift-cross-asset-counterfactual-ref"
+        ],
+        "paper_only": true
+      },
+      {
+        "scenario_id": "crypto-cycle-liquidity",
+        "source_boundary_ref": "crypto-cycle-liquidity-source-boundary-proof",
+        "no_lookahead_proof_ref": "crypto-cycle-liquidity-no-lookahead-proof",
+        "risk_refs": [
+          "crypto-cycle-liquidity-risk-ref"
+        ],
+        "regime_refs": [
+          "crypto-cycle-liquidity-regime-ref"
+        ],
+        "counterfactual_refs": [
+          "crypto-cycle-liquidity-counterfactual-ref"
+        ],
+        "paper_only": true
+      },
+      {
+        "scenario_id": "insufficient-evidence-halt",
+        "source_boundary_ref": "insufficient-evidence-halt-source-boundary-proof",
+        "no_lookahead_proof_ref": "insufficient-evidence-halt-no-lookahead-proof",
+        "risk_refs": [
+          "insufficient-evidence-halt-risk-ref"
+        ],
+        "regime_refs": [
+          "insufficient-evidence-halt-regime-ref"
+        ],
+        "counterfactual_refs": [
+          "insufficient-evidence-halt-counterfactual-ref"
+        ],
+        "paper_only": true
+      }
+    ],
+    "context_count": 7,
+    "contexts_with_source_boundary": 7,
+    "contexts_with_no_lookahead_proof": 7,
+    "contexts_with_risk_refs": 7,
+    "contexts_with_regime_refs": 7,
+    "contexts_with_counterfactual_refs": 7,
+    "context_status": "MarketContextSetReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "archetype_group_rotation_plan": {
+    "plan_id": "archetype-group-rotation-plan",
+    "scenario_to_group_routes": {
+      "crypto-cycle-liquidity": [
+        "Crypto",
+        "CommonRisk"
+      ],
+      "crypto-high-volatility": [
+        "Crypto",
+        "CommonRisk"
+      ],
+      "insufficient-evidence-halt": [
+        "CounterfactualReview",
+        "CommonRisk"
+      ],
+      "korean-equity-trend-breakout": [
+        "ShortTermSwing",
+        "CommonRisk"
+      ],
+      "macro-shift-cross-asset": [
+        "ShortTermSwing",
+        "LongTermEquity",
+        "CommonRisk"
+      ],
+      "multi-asset-drawdown-risk": [
+        "LongTermEquity",
+        "CommonRisk"
+      ],
+      "us-equity-range-bound": [
+        "ShortTermSwing",
+        "LongTermEquity",
+        "CommonRisk"
+      ]
+    },
+    "short_term_swing_assignments": [
+      "korean-equity-trend-breakout",
+      "us-equity-range-bound",
+      "macro-shift-cross-asset"
+    ],
+    "long_term_equity_assignments": [
+      "us-equity-range-bound",
+      "multi-asset-drawdown-risk",
+      "macro-shift-cross-asset"
+    ],
+    "crypto_assignments": [
+      "crypto-high-volatility",
+      "crypto-cycle-liquidity"
+    ],
+    "common_risk_assignments": [
+      "korean-equity-trend-breakout",
+      "us-equity-range-bound",
+      "crypto-high-volatility",
+      "multi-asset-drawdown-risk",
+      "macro-shift-cross-asset",
+      "crypto-cycle-liquidity",
+      "insufficient-evidence-halt"
+    ],
+    "cross_group_debate_assignments": [
+      "us-equity-range-bound",
+      "macro-shift-cross-asset",
+      "insufficient-evidence-halt"
+    ],
+    "rotation_order": [
+      "korean-equity-trend-breakout",
+      "us-equity-range-bound",
+      "crypto-high-volatility",
+      "multi-asset-drawdown-risk",
+      "macro-shift-cross-asset",
+      "crypto-cycle-liquidity",
+      "insufficient-evidence-halt"
+    ],
+    "plan_status": "RotationPlanReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "archetype_member_selection_report": {
+    "report_id": "archetype-member-selection-report",
+    "selected_members": [
+      "CommonRiskManager",
+      "BurniskeTokenValuation",
+      "HayesLiquidityDerivatives",
+      "SaylorTreasury",
+      "GrahamMarginOfSafety",
+      "MarksCycleRiskPremium",
+      "LarryWilliamsStatisticalSeasonality",
+      "RaschkeProcessManager"
+    ],
+    "skipped_members": [
+      "MungerErrorFilter",
+      "BogleLowCostCore",
+      "MinerviniVcpBreakout",
+      "PtjMacroAsymmetricRisk",
+      "LynchGarpConsumerGrowth",
+      "TurtleTrendSystem",
+      "VitalikProtocolFundamental",
+      "BuffettQualityMoat",
+      "OneilCanSlimMarketDirection",
+      "WillyWooOnchainCycle",
+      "WonyottiBtcRisk"
+    ],
+    "watchlist_members": [
+      "SaylorTreasury"
+    ],
+    "diagnostic_members": [
+      "TurtleTrendSystem",
+      "VitalikProtocolFundamental",
+      "BuffettQualityMoat"
+    ],
+    "inactive_members": [
+      "OneilCanSlimMarketDirection",
+      "WillyWooOnchainCycle",
+      "WonyottiBtcRisk"
+    ],
+    "selection_by_group": {
+      "CommonRisk": [
+        "CommonRiskManager"
+      ],
+      "Crypto": [
+        "BurniskeTokenValuation",
+        "HayesLiquidityDerivatives",
+        "SaylorTreasury"
+      ],
+      "LongTermEquity": [
+        "GrahamMarginOfSafety",
+        "MarksCycleRiskPremium"
+      ],
+      "ShortTermSwing": [
+        "LarryWilliamsStatisticalSeasonality",
+        "RaschkeProcessManager"
+      ]
+    },
+    "selection_by_confidence": {
+      "A": [
+        "SaylorTreasury",
+        "GrahamMarginOfSafety",
+        "MarksCycleRiskPremium"
+      ],
+      "B": [
+        "HayesLiquidityDerivatives",
+        "LarryWilliamsStatisticalSeasonality"
+      ],
+      "BPlus": [
+        "BurniskeTokenValuation",
+        "RaschkeProcessManager"
+      ],
+      "Sentinel": [
+        "CommonRiskManager"
+      ]
+    },
+    "selection_status": "MemberSelectionReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "lower_confidence_evidence_hardening_plan": {
+    "plan_id": "lower-confidence-evidence-hardening-plan",
+    "target_candidates": [
+      "arthur-hayes",
+      "larry-williams",
+      "wonyotti"
+    ],
+    "evidence_gaps": {
+      "arthur-hayes": [
+        "add public essay references",
+        "down-weight narrative-only leverage commentary"
+      ],
+      "larry-williams": [
+        "add more published seasonal study references",
+        "down-weight anecdotal calendar lore"
+      ],
+      "wonyotti": [
+        "add exchange or protocol evidence",
+        "keep leverage and exact-return claims blocked"
+      ]
+    },
+    "recommended_actions": {
+      "arthur-hayes": [
+        "AddPrimaryInterview",
+        "AddExchangeOrProtocolEvidence",
+        "DownWeightCommunityAnecdote"
+      ],
+      "larry-williams": [
+        "AddPublishedSource",
+        "DownWeightCommunityAnecdote"
+      ],
+      "wonyotti": [
+        "AddOfficialProfile",
+        "AddExchangeOrProtocolEvidence",
+        "DownWeightCommunityAnecdote"
+      ]
+    },
+    "plan_status": "LowerConfidenceHardeningPlanReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "lower_confidence_evidence_hardening_report": {
+    "report_id": "lower-confidence-evidence-hardening-report",
+    "candidate_count": 3,
+    "improved_candidates": [
+      "wonyotti",
+      "larry-williams",
+      "arthur-hayes"
+    ],
+    "still_warning_candidates": [
+      "wonyotti",
+      "larry-williams",
+      "arthur-hayes"
+    ],
+    "unchanged_candidates": [],
+    "added_evidence_refs": [
+      "wonyotti-public-thesis-archive",
+      "wonyotti-protocol-and-treasury-reference",
+      "larry-published-seasonal-study",
+      "arthur-hayes-public-essay-archive",
+      "arthur-hayes-derivatives-liquidity-interview"
+    ],
+    "downweighted_items": [
+      "community chat recap",
+      "larry-williams: old anecdotal forum summaries",
+      "arthur-hayes: high-narrative macro commentary requires down-weighting"
+    ],
+    "report_status": "LowerConfidenceEvidenceImprovedWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "weak_source_candidate_review_report": {
+    "report_id": "weak-source-candidate-review-report",
+    "candidate_reviews": [
+      {
+        "candidate_id": "arthur-hayes",
+        "weak_source_items": [
+          "high-narrative macro commentary requires down-weighting"
+        ],
+        "community_anecdote_items": [],
+        "unsupported_claim_items": [
+          "best crypto investor claim"
+        ],
+        "actions_taken": [
+          "added public essay references",
+          "kept leverage commentary lower-authority"
+        ]
+      },
+      {
+        "candidate_id": "larry-williams",
+        "weak_source_items": [
+          "old anecdotal forum summaries"
+        ],
+        "community_anecdote_items": [],
+        "unsupported_claim_items": [
+          "best market timer claim"
+        ],
+        "actions_taken": [
+          "added published seasonal study references",
+          "kept seasonal rules below multi-signal confirmation"
+        ]
+      },
+      {
+        "candidate_id": "wonyotti",
+        "weak_source_items": [
+          "weakly sourced community lore"
+        ],
+        "community_anecdote_items": [
+          "community chat recap"
+        ],
+        "unsupported_claim_items": [
+          "best crypto investor claim"
+        ],
+        "actions_taken": [
+          "added public thesis archive refs",
+          "down-weighted community chat recap"
+        ]
+      }
+    ],
+    "weak_source_warning_count": 3,
+    "community_anecdote_count": 1,
+    "unsupported_claim_count": 3,
+    "action_taken_count": 6,
+    "review_status": "WeakSourceReviewReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "wonyotti_evidence_hardening_report": {
+    "report_id": "wonyotti-evidence-hardening-report",
+    "current_confidence_grade": "BMinus",
+    "evidence_refs_added": [
+      "wonyotti-public-thesis-archive",
+      "wonyotti-protocol-and-treasury-reference"
+    ],
+    "community_anecdote_items_downweighted": [
+      "community chat recap"
+    ],
+    "crypto_cycle_scope_preserved": true,
+    "leverage_claims_guarded": true,
+    "exact_return_claims_blocked": true,
+    "report_status": "WonyottiEvidenceStillWarningBacked",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "larry_williams_evidence_hardening_report": {
+    "report_id": "larry-williams-evidence-hardening-report",
+    "current_confidence_grade": "B",
+    "evidence_refs_added": [
+      "larry-published-seasonal-study"
+    ],
+    "published_material_refs": [
+      "published seasonal study summary",
+      "archived statistics interview"
+    ],
+    "statistical_seasonality_scope_preserved": true,
+    "exact_numeric_rule_claims_downweighted": true,
+    "report_status": "LarryWilliamsEvidenceStillWarningBacked",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "arthur_hayes_evidence_hardening_report": {
+    "report_id": "arthur-hayes-evidence-hardening-report",
+    "current_confidence_grade": "B",
+    "evidence_refs_added": [
+      "arthur-hayes-public-essay-archive",
+      "arthur-hayes-derivatives-liquidity-interview"
+    ],
+    "public_essay_refs": [
+      "public thesis archive",
+      "public protocol or treasury material"
+    ],
+    "liquidity_derivatives_scope_preserved": true,
+    "macro_crypto_narrative_downweighted_if_unverified": true,
+    "leverage_risk_guard_present": true,
+    "report_status": "ArthurHayesEvidenceStillWarningBacked",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "paper_only_member_proposal_run": {
+    "run_id": "paper-only-member-proposal-run",
+    "scenario_id": "crypto-cycle-liquidity",
+    "selected_members": [
+      "CommonRiskManager",
+      "BurniskeTokenValuation",
+      "HayesLiquidityDerivatives",
+      "SaylorTreasury",
+      "GrahamMarginOfSafety",
+      "MarksCycleRiskPremium",
+      "LarryWilliamsStatisticalSeasonality",
+      "RaschkeProcessManager"
+    ],
+    "generated_proposals": [
+      {
+        "proposal_id": "proposal-burniske-enter-long",
+        "member_id": "BurniskeTokenValuation",
+        "proposed_action": "EnterLong",
+        "confidence_weight_applied": 0.8,
+        "expected_return_proxy": 0.62,
+        "expected_risk_proxy": 0.41,
+        "invalidation_condition": "liquidity and on-chain confirmation breaks",
+        "wait_condition": "wait if exchange liquidity decays",
+        "evidence_refs": [
+          "burniske-cycle-pack",
+          "onchain-confirmation"
+        ],
+        "entry_timing_ref": "timing-burniske-immediate"
+      },
+      {
+        "proposal_id": "proposal-hayes-risk-deny",
+        "member_id": "HayesLiquidityDerivatives",
+        "proposed_action": "RiskDeny",
+        "confidence_weight_applied": 0.74,
+        "expected_return_proxy": null,
+        "expected_risk_proxy": 0.72,
+        "invalidation_condition": "derivatives stress eases only after leverage unwind",
+        "wait_condition": "wait until leverage and basis normalize",
+        "evidence_refs": [
+          "arthur-hayes-public-essay-archive"
+        ],
+        "entry_timing_ref": null
+      },
+      {
+        "proposal_id": "proposal-buffett-wait",
+        "member_id": "BuffettQualityMoat",
+        "proposed_action": "Wait",
+        "confidence_weight_applied": 0.95,
+        "expected_return_proxy": 0.38,
+        "expected_risk_proxy": 0.24,
+        "invalidation_condition": "durability and downside case remain incomplete",
+        "wait_condition": "wait for balance-sheet and valuation alignment",
+        "evidence_refs": [
+          "buffett-durability-check"
+        ],
+        "entry_timing_ref": null
+      },
+      {
+        "proposal_id": "proposal-larry-enter-short",
+        "member_id": "LarryWilliamsStatisticalSeasonality",
+        "proposed_action": "EnterShort",
+        "confidence_weight_applied": 0.73,
+        "expected_return_proxy": 0.44,
+        "expected_risk_proxy": 0.47,
+        "invalidation_condition": "seasonality loses confirmation against trend",
+        "wait_condition": "wait for current-cycle fit confirmation",
+        "evidence_refs": [
+          "larry-published-seasonal-study"
+        ],
+        "entry_timing_ref": "timing-larry-next-candle"
+      },
+      {
+        "proposal_id": "proposal-raschke-enter-long",
+        "member_id": "RaschkeProcessManager",
+        "proposed_action": "EnterLong",
+        "confidence_weight_applied": 0.87,
+        "expected_return_proxy": 0.53,
+        "expected_risk_proxy": 0.36,
+        "invalidation_condition": "pattern thesis breaks or pullback fails",
+        "wait_condition": "wait if setup classification is unclear",
+        "evidence_refs": [
+          "raschke-pattern-checklist"
+        ],
+        "entry_timing_ref": "timing-raschke-pullback"
+      },
+      {
+        "proposal_id": "proposal-saylor-no-trade",
+        "member_id": "SaylorTreasury",
+        "proposed_action": "NoTrade",
+        "confidence_weight_applied": 0.88,
+        "expected_return_proxy": null,
+        "expected_risk_proxy": 0.51,
+        "invalidation_condition": "treasury framing alone cannot justify entry",
+        "wait_condition": "wait for protocol and liquidity confirmation",
+        "evidence_refs": [
+          "saylor-treasury-thesis"
+        ],
+        "entry_timing_ref": null
+      },
+      {
+        "proposal_id": "proposal-common-risk-request-more-evidence",
+        "member_id": "CommonRiskManager",
+        "proposed_action": "RequestMoreEvidence",
+        "confidence_weight_applied": 1.0,
+        "expected_return_proxy": null,
+        "expected_risk_proxy": 0.67,
+        "invalidation_condition": "risk aggregation remains unresolved",
+        "wait_condition": "wait for lower-confidence review closure",
+        "evidence_refs": [
+          "common-risk-aggregation-check"
+        ],
+        "entry_timing_ref": "timing-common-risk-no-entry"
+      }
+    ],
+    "enter_long_count": 2,
+    "enter_short_count": 1,
+    "wait_count": 1,
+    "no_trade_count": 1,
+    "risk_deny_count": 1,
+    "request_more_evidence_count": 1,
+    "proposals_with_entry_timing": 4,
+    "proposals_with_risk_fields": 7,
+    "proposals_with_evidence_refs": 7,
+    "run_status": "ProposalRunReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "paper_only_entry_timing_proposal_run": {
+    "run_id": "paper-only-entry-timing-proposal-run",
+    "scenario_id": "crypto-cycle-liquidity",
+    "timing_proposals": [
+      {
+        "timing_id": "timing-burniske-immediate",
+        "member_id": "BurniskeTokenValuation",
+        "entry_window": "ImmediatePaperOnly",
+        "rationale": "paper-only immediate rotation when liquidity confirmation is present",
+        "risk_checks": [
+          "confirm CommonRisk budget"
+        ]
+      },
+      {
+        "timing_id": "timing-larry-next-candle",
+        "member_id": "LarryWilliamsStatisticalSeasonality",
+        "entry_window": "NextCandle",
+        "rationale": "wait one candle for seasonal confirmation",
+        "risk_checks": [
+          "confirm no lookahead leakage"
+        ]
+      },
+      {
+        "timing_id": "timing-buffett-next-n-candles",
+        "member_id": "BuffettQualityMoat",
+        "entry_window": "NextNCandles",
+        "rationale": "long-term review waits across several paper candles",
+        "risk_checks": [
+          "confirm balance-sheet refresh"
+        ]
+      },
+      {
+        "timing_id": "timing-raschke-pullback",
+        "member_id": "RaschkeProcessManager",
+        "entry_window": "PullbackConfirmation",
+        "rationale": "pattern process wants pullback confirmation",
+        "risk_checks": [
+          "confirm stop distance"
+        ]
+      },
+      {
+        "timing_id": "timing-saylor-breakout-retest",
+        "member_id": "SaylorTreasury",
+        "entry_window": "BreakoutRetest",
+        "rationale": "treasury framing requires retest before paper observation",
+        "risk_checks": [
+          "confirm liquidity depth"
+        ]
+      },
+      {
+        "timing_id": "timing-hayes-cooldown",
+        "member_id": "HayesLiquidityDerivatives",
+        "entry_window": "VolatilityCooldown",
+        "rationale": "derivatives stress requires cooldown",
+        "risk_checks": [
+          "confirm leverage reset"
+        ]
+      },
+      {
+        "timing_id": "timing-common-risk-no-entry",
+        "member_id": "CommonRiskManager",
+        "entry_window": "NoEntry",
+        "rationale": "risk sentinel keeps paper-only no-entry until evidence hardening closes",
+        "risk_checks": [
+          "confirm unresolved risk remains"
+        ]
+      }
+    ],
+    "immediate_paper_only_count": 1,
+    "next_candle_count": 1,
+    "next_n_candles_count": 1,
+    "pullback_confirmation_count": 1,
+    "breakout_retest_count": 1,
+    "volatility_cooldown_count": 1,
+    "no_entry_count": 1,
+    "timing_status": "EntryTimingRunReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "group_debate_trigger_report": {
+    "report_id": "group-debate-trigger-report",
+    "scenario_id": "crypto-cycle-liquidity",
+    "triggering_member_id": "HayesLiquidityDerivatives",
+    "triggering_proposal_id": "proposal-hayes-risk-deny",
+    "trigger_kind": "CrossGroupConflict",
+    "debate_required": true,
+    "trigger_status": "DebateTriggered",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "group_debate_session_report": {
+    "report_id": "group-debate-session-report",
+    "scenario_id": "crypto-cycle-liquidity",
+    "participating_groups": [
+      "ShortTermSwing",
+      "LongTermEquity",
+      "Crypto",
+      "CommonRisk"
+    ],
+    "participating_members": [
+      "CommonRiskManager",
+      "BurniskeTokenValuation",
+      "HayesLiquidityDerivatives",
+      "SaylorTreasury",
+      "GrahamMarginOfSafety",
+      "MarksCycleRiskPremium",
+      "LarryWilliamsStatisticalSeasonality",
+      "RaschkeProcessManager"
+    ],
+    "debate_turn_count": 8,
+    "support_entry_count": 2,
+    "oppose_entry_count": 1,
+    "wait_count": 1,
+    "no_trade_count": 1,
+    "risk_deny_count": 1,
+    "request_more_evidence_count": 1,
+    "consensus_state": "NeedMoreEvidence",
+    "debate_status": "DebateSessionReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "cross_group_debate_conflict_report": {
+    "report_id": "cross-group-debate-conflict-report",
+    "scenario_id": "crypto-cycle-liquidity",
+    "conflicts_detected": 4,
+    "conflict_kinds": [
+      "CryptoVsEquity",
+      "TrendVsValue",
+      "MacroVsLiquidity",
+      "OpportunityCostVsRiskVeto"
+    ],
+    "conflict_resolution": "NeedMoreEvidence",
+    "conflict_status": "ConflictHandledWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "chairman_synthesis_dry_run_report": {
+    "report_id": "chairman-synthesis-dry-run-report",
+    "scenario_id": "crypto-cycle-liquidity",
+    "debate_session_id": "group-debate-session-report",
+    "member_proposal_summary": "enter_long=2 enter_short=1 wait=1 no_trade=1 risk_deny=1 request_more_evidence=1",
+    "conflict_summary": "conflicts_detected=4 resolution=NeedMoreEvidence",
+    "chairman_recommendation": "NoTrade",
+    "rulebook_version_used": "chairman-paper-rulebook-v2",
+    "style_weight_adjustments": {
+      "BurniskeTokenValuation": 0.8,
+      "CommonRiskManager": 1.0,
+      "GrahamMarginOfSafety": 0.93,
+      "HayesLiquidityDerivatives": 0.55,
+      "LarryWilliamsStatisticalSeasonality": 0.73,
+      "MarksCycleRiskPremium": 0.9,
+      "RaschkeProcessManager": 0.87,
+      "SaylorTreasury": 0.88
+    },
+    "risk_governor_review_required": true,
+    "synthesis_status": "ChairmanSynthesisReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "chairman_style_weight_adjustment_audit": {
+    "audit_id": "chairman-style-weight-adjustment-audit",
+    "scenario_id": "crypto-cycle-liquidity",
+    "previous_weights": {
+      "BurniskeTokenValuation": 0.8,
+      "CommonRiskManager": 1.0,
+      "GrahamMarginOfSafety": 0.93,
+      "HayesLiquidityDerivatives": 0.74,
+      "LarryWilliamsStatisticalSeasonality": 0.73,
+      "MarksCycleRiskPremium": 0.9,
+      "RaschkeProcessManager": 0.87,
+      "SaylorTreasury": 0.88
+    },
+    "adjusted_weights": {
+      "BurniskeTokenValuation": 0.8,
+      "CommonRiskManager": 1.0,
+      "GrahamMarginOfSafety": 0.93,
+      "HayesLiquidityDerivatives": 0.55,
+      "LarryWilliamsStatisticalSeasonality": 0.73,
+      "MarksCycleRiskPremium": 0.9,
+      "RaschkeProcessManager": 0.87,
+      "SaylorTreasury": 0.88
+    },
+    "adjustment_reason": "paper-only synthesis reweights lower-confidence members without upgrading them",
+    "source_confidence_constraints_applied": true,
+    "low_confidence_caps_applied": true,
+    "risk_governor_override_attempted": false,
+    "audit_status": "StyleWeightAuditPassedWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "risk_governor_paper_handoff_report": {
+    "report_id": "risk-governor-paper-handoff-report",
+    "scenario_id": "crypto-cycle-liquidity",
+    "chairman_recommendation": "NoTrade",
+    "risk_checks": [
+      "final veto still required",
+      "paper proposal is not order execution",
+      "lower-confidence warnings remain in force"
+    ],
+    "veto_result": "NoTrade",
+    "veto_reason": "cross-group conflict and lower-confidence evidence still require a paper-only NoTrade default",
+    "broker_execution_allowed": false,
+    "live_execution_allowed": false,
+    "handoff_status": "RiskGovernorHandoffReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "paper_decision_trace_v2": {
+    "trace_id": "paper-decision-trace-v2",
+    "scenario_id": "crypto-cycle-liquidity",
+    "market_context_ref": "paper-rotation-market-context-set",
+    "proposal_run_ref": "paper-only-member-proposal-run",
+    "debate_trigger_ref": "group-debate-trigger-report",
+    "debate_session_ref": "group-debate-session-report",
+    "chairman_synthesis_ref": "chairman-synthesis-dry-run-report",
+    "risk_governor_handoff_ref": "risk-governor-paper-handoff-report",
+    "paper_decision": "NoTrade",
+    "trace_complete": true,
+    "broker_execution_allowed": false,
+    "live_execution_allowed": false,
+    "trace_status": "PaperTraceCompleteWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "paper_decision_replay_v2_report": {
+    "report_id": "paper-decision-replay-v2-report",
+    "replay_count": 1,
+    "watch_candidate_count": 0,
+    "paper_conditional_count": 0,
+    "no_trade_count": 1,
+    "risk_denied_count": 0,
+    "need_more_evidence_count": 0,
+    "broker_execution_allowed_count": 0,
+    "live_execution_allowed_count": 0,
+    "replay_status": "PaperReplayReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "proposal_outcome_expectation_trace": {
+    "trace_id": "proposal-outcome-expectation-trace",
+    "scenario_id": "crypto-cycle-liquidity",
+    "proposal_id": "proposal-burniske-enter-long",
+    "expected_return_proxy": 0.62,
+    "expected_risk_proxy": 0.41,
+    "expected_drawdown_proxy": 0.33,
+    "confidence": 0.8,
+    "source_confidence_weight_applied": 0.8,
+    "expectation_not_profit_claim": true,
+    "trace_status": "ExpectationTraceReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "no_trade_risk_denied_committee_trace": {
+    "trace_id": "no-trade-risk-denied-committee-trace",
+    "scenario_id": "crypto-cycle-liquidity",
+    "no_trade_member_votes": [
+      "SaylorTreasury"
+    ],
+    "risk_deny_member_votes": [
+      "HayesLiquidityDerivatives"
+    ],
+    "risk_governor_no_trade": true,
+    "risk_governor_risk_denied": false,
+    "no_trade_reason_codes": [
+      "paper_only_no_trade_default"
+    ],
+    "risk_denied_reason_codes": [
+      "derivatives_stress_guard"
+    ],
+    "trace_status": "NoTradeRiskDeniedTraceReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "regime_routed_committee_dry_run_report": {
+    "report_id": "regime-routed-committee-dry-run-report",
+    "scenario_count": 7,
+    "routed_to_short_term_count": 3,
+    "routed_to_long_term_count": 3,
+    "routed_to_crypto_count": 2,
+    "routed_to_common_risk_count": 7,
+    "routed_to_counterfactual_count": 1,
+    "no_trade_routed_count": 1,
+    "risk_denied_routed_count": 1,
+    "routing_status": "RegimeRoutedDryRunReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "multi_expert_rotation_coverage_report": {
+    "report_id": "multi-expert-rotation-coverage-report",
+    "total_members_available": 19,
+    "total_members_selected": 8,
+    "selected_short_term_count": 2,
+    "selected_long_term_count": 2,
+    "selected_crypto_count": 3,
+    "selected_common_risk_count": 1,
+    "unselected_members": [
+      "MungerErrorFilter",
+      "BogleLowCostCore",
+      "MinerviniVcpBreakout",
+      "PtjMacroAsymmetricRisk",
+      "LynchGarpConsumerGrowth",
+      "TurtleTrendSystem",
+      "VitalikProtocolFundamental",
+      "BuffettQualityMoat",
+      "OneilCanSlimMarketDirection",
+      "WillyWooOnchainCycle",
+      "WonyottiBtcRisk"
+    ],
+    "diagnostic_members_excluded": [
+      "TurtleTrendSystem",
+      "VitalikProtocolFundamental",
+      "BuffettQualityMoat"
+    ],
+    "coverage_status": "MultiExpertRotationCoverageReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "paper_roster_expansion_usage_report": {
+    "report_id": "paper-roster-expansion-usage-report",
+    "paper_expansion_allowed": true,
+    "live_expansion_allowed": false,
+    "active_members_used": [
+      "BurniskeTokenValuation",
+      "HayesLiquidityDerivatives",
+      "GrahamMarginOfSafety",
+      "MarksCycleRiskPremium",
+      "LarryWilliamsStatisticalSeasonality",
+      "RaschkeProcessManager"
+    ],
+    "watchlist_members_used": [
+      "SaylorTreasury"
+    ],
+    "diagnostic_members_used": [],
+    "inactive_members_used": [],
+    "activation_violation_count": 0,
+    "usage_status": "PaperRosterExpansionUsedWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "eighteen_archetype_activation_safety_report": {
+    "report_id": "eighteen-archetype-activation-safety-report",
+    "eighteen_live_activation_forbidden": true,
+    "live_activation_attempt_count": 0,
+    "paper_only_activation_count": 7,
+    "diagnostic_only_activation_count": 0,
+    "watchlist_only_count": 1,
+    "safety_status": "EighteenActivationSafetyPreservedWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "workspace_acceptance_truth_closure_plan_v3": {
+    "plan_id": "workspace-acceptance-truth-closure-plan-v3",
+    "previous_truth_status": "FullWorkspaceNotRun",
+    "current_truth_status": "FullWorkspaceNotRun",
+    "can_claim_full_acceptance": false,
+    "no_run_gate_status": "NoRunGatePending",
+    "full_workspace_gate_status": "FullWorkspaceNotRun",
+    "recommended_actions": [
+      "RunRealNoRunWithLongerTimeout",
+      "RunRealFullWorkspaceWithLongerTimeout",
+      "KeepFocusedTestsSeparate",
+      "ConsiderNextestLocalDiagnostic",
+      "ConsiderSccacheLocalDiagnostic",
+      "DoNotClaimFullAcceptance"
+    ],
+    "closure_status": "WorkspaceTruthStillOpen",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "workspace_acceptance_attempt_v18": {
+    "attempt_id": "workspace-acceptance-attempt-v18",
+    "command_no_run": "cargo test --workspace --no-run --quiet",
+    "command_full": "cargo test --workspace --quiet",
+    "no_run_started": false,
+    "no_run_finished": false,
+    "no_run_passed": null,
+    "full_started": false,
+    "full_finished": false,
+    "full_passed": null,
+    "timeout_ms": null,
+    "can_claim_full_acceptance": false,
+    "attempt_status": "FullWorkspaceNotRun",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "safety_coverage_preservation_report_v18": {
+    "report_id": "safety-coverage-preservation-report-v18",
+    "live_trading_guard_present": true,
+    "broker_guard_present": true,
+    "order_guard_present": true,
+    "account_guard_present": true,
+    "runtime_llm_guard_present": true,
+    "mamba_runtime_guard_present": true,
+    "gated_runtime_guard_present": true,
+    "model_training_guard_present": true,
+    "rust_neural_training_guard_present": true,
+    "python_training_dependency_guard_present": true,
+    "secret_guard_present": true,
+    "no_lookahead_guard_present": true,
+    "source_boundary_guard_present": true,
+    "browser_execution_guard_present": true,
+    "ui_order_control_guard_present": true,
+    "investor_impersonation_guard_present": true,
+    "unverified_claim_filter_present": true,
+    "do_not_learn_guard_present": true,
+    "eighteen_live_activation_forbidden": true,
+    "paper_roster_only_guard_present": true,
+    "chairman_risk_bypass_guard_present": true,
+    "paper_rotation_not_order_execution_guard_present": true,
+    "safety_status": "SafetyCoveragePreserved",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "control_tower_paper_rotation_panel": {
+    "panel_id": "control-tower-paper-rotation-panel",
+    "rotation_status": "ScenarioPackReady",
+    "scenario_summary": "scenario_count=7 regimes=7",
+    "member_selection_summary": "selected=8 watchlist_used=1 diagnostic_excluded=3",
+    "lower_confidence_evidence_summary": "status=LowerConfidenceEvidenceImprovedWithWarnings still_warning_candidates=3",
+    "proposal_run_summary": "enter_long=2 enter_short=1 wait=1 no_trade=1 risk_deny=1 request_more_evidence=1",
+    "entry_timing_summary": "immediate=1 next_candle=1 next_n=1 pullback=1 retest=1 cooldown=1 no_entry=1",
+    "debate_summary": "status=DebateSessionReadyWithWarnings consensus=NeedMoreEvidence",
+    "conflict_summary": "conflicts_detected=4 resolution=NeedMoreEvidence",
+    "chairman_synthesis_summary": "recommendation=NoTrade",
+    "risk_governor_handoff_summary": "veto_result=NoTrade live_execution_allowed=false",
+    "paper_decision_trace_summary": "status=PaperTraceCompleteWithWarnings decision=NoTrade",
+    "roster_usage_summary": "active_used=6 watchlist_used=1",
+    "runtime_deferred_summary": "runtime deferred, training deferred, live inference forbidden, live trading forbidden, no runtime LLM live decision path, static/read-only control tower",
+    "workspace_truth_summary": "workspace_truth=FullWorkspaceNotRun can_claim_full_acceptance=false",
+    "safety_summary": "safety_status=SafetyCoveragePreserved paper_rotation_not_order_execution_guard_present=true",
+    "next_actions": [
+      "keep paper-only dry-run rotation local-only and deterministic",
+      "continue lower-confidence evidence review without silent upgrades",
+      "preserve Risk Governor final veto and workspace-truth separation"
+    ],
+    "warnings": [
+      "static/read-only panel only",
+      "no train button, no runtime button, no live button, no order/account controls",
+      "no browser execution and no activate-all-18-live button"
+    ],
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "storage_report": {
+    "report_id": "sprint102-paper-rotation-storage-report",
+    "output_dir": "target/soma_sprint102_paper_rotation/sprint102-paper-rotation",
+    "file_count": 32,
+    "files": [
+      "paper_rotation_scenario_pack.txt",
+      "paper_rotation_market_context_set.txt",
+      "archetype_group_rotation_plan.txt",
+      "archetype_member_selection.txt",
+      "lower_confidence_evidence_hardening_plan.txt",
+      "lower_confidence_evidence_hardening.txt",
+      "weak_source_candidate_review.txt",
+      "wonyotti_evidence_hardening.txt",
+      "larry_williams_evidence_hardening.txt",
+      "arthur_hayes_evidence_hardening.txt",
+      "paper_only_member_proposal_run.txt",
+      "paper_only_entry_timing_proposal_run.txt",
+      "group_debate_trigger.txt",
+      "group_debate_session.txt",
+      "cross_group_debate_conflict.txt",
+      "chairman_synthesis_dry_run.txt",
+      "chairman_style_weight_adjustment_audit.txt",
+      "risk_governor_paper_handoff.txt",
+      "paper_decision_trace_v2.txt",
+      "paper_decision_replay_v2.txt",
+      "proposal_outcome_expectation_trace.txt",
+      "no_trade_risk_denied_committee_trace.txt",
+      "regime_routed_committee_dry_run.txt",
+      "multi_expert_rotation_coverage.txt",
+      "paper_roster_expansion_usage.txt",
+      "eighteen_archetype_activation_safety.txt",
+      "workspace_acceptance_truth_closure_plan_v3.txt",
+      "workspace_acceptance_attempt_v18.txt",
+      "safety_coverage_preservation_v18.txt",
+      "control_tower_paper_rotation_panel.txt",
+      "storage_report.txt",
+      "summary.txt"
+    ],
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "final_summary": "## 1. Sprint summary\n\n- Implemented Sprint 102 paper-only dry-run rotation across 7 scenarios using the Sprint 101 archetype registry.\n- Preserved committee-owned architecture, paper-only semantics, lower-confidence warnings, and Risk Governor final veto.\n\n## 2. Why Sprint 102 was needed\n\n- Sprint 101 safely ingested 18 archetype cards and staged roster expansion. Sprint 102 exercises the first paper-only dry-run rotation without activating live agents, training models, or adding runtime inference.\n\n## 3. Files added\n\n- Added Sprint 102 example TOMLs, fixture/support data, docs, focused tests, and test support for paper rotation outputs.\n\n## 4. Files changed\n\n- Extended the league layer, exports, CLI, and test support for Sprint 102.\n\n## 5. Paper rotation scenario pack\n\n- Status: ScenarioPackReady.\n- Scenario count: 7.\n\n## 6. Market context set\n\n- Status: MarketContextSetReady.\n- Context count: 7.\n\n## 7. Archetype group rotation plan\n\n- Status: RotationPlanReadyWithWarnings.\n- Cross-group debate assignments: 3.\n\n## 8. Member selection\n\n- Status: MemberSelectionReadyWithWarnings.\n- Selected members: CommonRiskManager, BurniskeTokenValuation, HayesLiquidityDerivatives, SaylorTreasury, GrahamMarginOfSafety, MarksCycleRiskPremium, LarryWilliamsStatisticalSeasonality, RaschkeProcessManager.\n\n## 9. Lower-confidence evidence hardening\n\n- Status: LowerConfidenceEvidenceImprovedWithWarnings.\n- Improved candidates: wonyotti, larry-williams, arthur-hayes.\n\n## 10. Weak-source candidate review\n\n- Status: WeakSourceReviewReadyWithWarnings.\n- Weak source warnings reviewed: 3.\n\n## 11. Wonyotti evidence hardening\n\n- Status: WonyottiEvidenceStillWarningBacked.\n- Exact return claims blocked: true.\n\n## 12. Larry Williams evidence hardening\n\n- Status: LarryWilliamsEvidenceStillWarningBacked.\n- Exact numeric rule claims downweighted: true.\n\n## 13. Arthur Hayes evidence hardening\n\n- Status: ArthurHayesEvidenceStillWarningBacked.\n- Leverage risk guard present: true.\n\n## 14. Paper-only member proposal run\n\n- Status: ProposalRunReadyWithWarnings.\n- enter_long / enter_short / wait / no_trade / risk_deny / request_more_evidence = 2/1/1/1/1/1.\n\n## 15. Entry timing proposal run\n\n- Status: EntryTimingRunReadyWithWarnings.\n- immediate / next candle / next N / pullback / retest / cooldown / no-entry = 1/1/1/1/1/1/1.\n\n## 16. Debate trigger\n\n- Status: DebateTriggered.\n- Trigger kind: CrossGroupConflict.\n\n## 17. Debate session\n\n- Status: DebateSessionReadyWithWarnings.\n- Consensus state: NeedMoreEvidence.\n\n## 18. Cross-group conflict report\n\n- Status: ConflictHandledWithWarnings.\n- Conflicts detected: 4.\n\n## 19. Chairman synthesis dry-run\n\n- Status: ChairmanSynthesisReadyWithWarnings.\n- Recommendation: NoTrade.\n\n## 20. Chairman style weight audit\n\n- Status: StyleWeightAuditPassedWithWarnings.\n- risk_governor_override_attempted=false.\n\n## 21. Risk Governor paper handoff\n\n- Status: RiskGovernorHandoffReadyWithWarnings.\n- Veto result: NoTrade.\n\n## 22. Paper decision trace v2\n\n- Status: PaperTraceCompleteWithWarnings.\n- Paper decision: NoTrade.\n\n## 23. Paper decision replay v2\n\n- Status: PaperReplayReadyWithWarnings.\n- replay_count=1.\n\n## 24. Proposal expectation trace\n\n- Status: ExpectationTraceReadyWithWarnings.\n- expectation_not_profit_claim=true.\n\n## 25. NoTrade / RiskDenied committee trace\n\n- Status: NoTradeRiskDeniedTraceReadyWithWarnings.\n- no_trade_votes=1 risk_deny_votes=1.\n\n## 26. Regime-routed dry-run\n\n- Status: RegimeRoutedDryRunReadyWithWarnings.\n- routed_to_short_term / long_term / crypto / common_risk = 3/3/2/7.\n\n## 27. Multi-expert rotation coverage\n\n- Status: MultiExpertRotationCoverageReadyWithWarnings.\n- total_members_selected=8.\n\n## 28. Paper roster expansion usage\n\n- Status: PaperRosterExpansionUsedWithWarnings.\n- watchlist_members_used=SaylorTreasury.\n\n## 29. 18 archetype activation safety\n\n- Status: EighteenActivationSafetyPreservedWithWarnings.\n- live_activation_attempt_count=0.\n\n## 30. Workspace acceptance truth v3\n\n- Status: WorkspaceTruthStillOpen.\n- can_claim_full_acceptance=false.\n\n## 31. Workspace acceptance attempt v18\n\n- Status: FullWorkspaceNotRun.\n- full_finished=false.\n\n## 32. Safety coverage preservation v18\n\n- Status: SafetyCoveragePreserved.\n- paper_rotation_not_order_execution_guard_present=true.\n\n## 33. Control Tower paper rotation panel\n\n- Built a static/read-only panel with scenario, selection, evidence hardening, proposal, debate, chairman, risk, trace, roster, runtime, workspace, and safety summaries.\n- No train/runtime/live/order/account/browser controls or activate-all-18-live controls were added.\n\n## 34. Output bundle\n\n- Output files: 32.\n\n## 35. CLI and examples\n\n- Added sprint102-paper-rotation and focused Sprint 102 subcommands over one local-only config surface with explicit paper-only safety warnings.\n\n## 36. Tests added\n\n- Added focused Sprint 102 config, scenario, context, rotation, hardening, proposal, timing, debate, risk, trace, panel, CLI safety, and determinism tests.\n\n## 37. Test results\n\n- See validation commands run after implementation; focused tests remain separate from full workspace truth.\n\n## 38. Paper rotation status\n\n- ScenarioPackReady.\n\n## 39. Lower-confidence evidence status\n\n- LowerConfidenceEvidenceImprovedWithWarnings.\n\n## 40. Debate status\n\n- DebateSessionReadyWithWarnings.\n\n## 41. Risk Governor handoff status\n\n- RiskGovernorHandoffReadyWithWarnings.\n\n## 42. Paper decision trace status\n\n- PaperTraceCompleteWithWarnings.\n\n## 43. Runtime deferred status\n\n- RuntimeStillDeferred\n- TrainingStillDeferred\n- LiveTradingStillForbidden\n- KeepResearchOnly\n- KeepPaperOnly\n\n## 44. Workspace acceptance truth status\n\n- FullWorkspaceNotRun.\n\n## 45. Safety coverage status\n\n- SafetyCoveragePreserved.\n\n## 46. Risk review\n\n- Chairman cannot bypass Risk Governor. Risk Governor remains final veto. Paper proposals remain paper semantics only and never become orders or live execution authority.\n\n## 47. Deferred items\n\n- Runtime inference, model training, live inference, live trading, broker/order/account, Mamba runtime, Gated runtime, dashboard serve, browser execution, and 18-live-agent activation remain deferred or forbidden.\n\n## 48. Next gstack sprint recommendation\n\n- Keep paper-only dry-run rotation conservative, continue lower-confidence evidence hardening, and pursue workspace-truth closure separately from live-readiness claims.\n\n",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

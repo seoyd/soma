@@ -1,0 +1,12 @@
+{
+  "real_evidence_ready": true,
+  "model_predictions_stale_present": true,
+  "remaining_warnings": [
+    "ModelPredictionsStale",
+    "DirectWatchMonitoringOnly",
+    "RuntimeMambaDeferred",
+    "LiveTradingForbidden",
+    "BrokerForbidden"
+  ],
+  "direct_watch_status": "DirectWatchReadyWithWarnings"
+}

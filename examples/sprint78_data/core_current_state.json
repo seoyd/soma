@@ -1,0 +1,12 @@
+{
+  "core_current_state": {
+    "core_check_ready": true,
+    "training_storage_contract_ready": true,
+    "committee_gate_ready": true,
+    "mamba_contract_ready": true,
+    "risk_governor_ready": true,
+    "no_live_paths": true,
+    "no_broker_paths": true
+  }
+}
+

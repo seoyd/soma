@@ -1,0 +1,127 @@
+{
+  "context_set_id": "paper-rotation-market-context-set",
+  "contexts": [
+    {
+      "scenario_id": "korean-equity-trend-breakout",
+      "source_boundary_ref": "korean-equity-trend-breakout-source-boundary-proof",
+      "no_lookahead_proof_ref": "korean-equity-trend-breakout-no-lookahead-proof",
+      "risk_refs": [
+        "korean-equity-trend-breakout-risk-ref"
+      ],
+      "regime_refs": [
+        "korean-equity-trend-breakout-regime-ref"
+      ],
+      "counterfactual_refs": [
+        "korean-equity-trend-breakout-counterfactual-ref"
+      ],
+      "paper_only": true
+    },
+    {
+      "scenario_id": "us-equity-range-bound",
+      "source_boundary_ref": "us-equity-range-bound-source-boundary-proof",
+      "no_lookahead_proof_ref": "us-equity-range-bound-no-lookahead-proof",
+      "risk_refs": [
+        "us-equity-range-bound-risk-ref"
+      ],
+      "regime_refs": [
+        "us-equity-range-bound-regime-ref"
+      ],
+      "counterfactual_refs": [
+        "us-equity-range-bound-counterfactual-ref"
+      ],
+      "paper_only": true
+    },
+    {
+      "scenario_id": "crypto-high-volatility",
+      "source_boundary_ref": "crypto-high-volatility-source-boundary-proof",
+      "no_lookahead_proof_ref": "crypto-high-volatility-no-lookahead-proof",
+      "risk_refs": [
+        "crypto-high-volatility-risk-ref"
+      ],
+      "regime_refs": [
+        "crypto-high-volatility-regime-ref"
+      ],
+      "counterfactual_refs": [
+        "crypto-high-volatility-counterfactual-ref"
+      ],
+      "paper_only": true
+    },
+    {
+      "scenario_id": "multi-asset-drawdown-risk",
+      "source_boundary_ref": "multi-asset-drawdown-risk-source-boundary-proof",
+      "no_lookahead_proof_ref": "multi-asset-drawdown-risk-no-lookahead-proof",
+      "risk_refs": [
+        "multi-asset-drawdown-risk-risk-ref"
+      ],
+      "regime_refs": [
+        "multi-asset-drawdown-risk-regime-ref"
+      ],
+      "counterfactual_refs": [
+        "multi-asset-drawdown-risk-counterfactual-ref"
+      ],
+      "paper_only": true
+    },
+    {
+      "scenario_id": "macro-shift-cross-asset",
+      "source_boundary_ref": "macro-shift-cross-asset-source-boundary-proof",
+      "no_lookahead_proof_ref": "macro-shift-cross-asset-no-lookahead-proof",
+      "risk_refs": [
+        "macro-shift-cross-asset-risk-ref"
+      ],
+      "regime_refs": [
+        "macro-shift-cross-asset-regime-ref"
+      ],
+      "counterfactual_refs": [
+        "macro-shift-cross-asset-counterfactual-ref"
+      ],
+      "paper_only": true
+    },
+    {
+      "scenario_id": "crypto-cycle-liquidity",
+      "source_boundary_ref": "crypto-cycle-liquidity-source-boundary-proof",
+      "no_lookahead_proof_ref": "crypto-cycle-liquidity-no-lookahead-proof",
+      "risk_refs": [
+        "crypto-cycle-liquidity-risk-ref"
+      ],
+      "regime_refs": [
+        "crypto-cycle-liquidity-regime-ref"
+      ],
+      "counterfactual_refs": [
+        "crypto-cycle-liquidity-counterfactual-ref"
+      ],
+      "paper_only": true
+    },
+    {
+      "scenario_id": "insufficient-evidence-halt",
+      "source_boundary_ref": "insufficient-evidence-halt-source-boundary-proof",
+      "no_lookahead_proof_ref": "insufficient-evidence-halt-no-lookahead-proof",
+      "risk_refs": [
+        "insufficient-evidence-halt-risk-ref"
+      ],
+      "regime_refs": [
+        "insufficient-evidence-halt-regime-ref"
+      ],
+      "counterfactual_refs": [
+        "insufficient-evidence-halt-counterfactual-ref"
+      ],
+      "paper_only": true
+    }
+  ],
+  "context_count": 7,
+  "contexts_with_source_boundary": 7,
+  "contexts_with_no_lookahead_proof": 7,
+  "contexts_with_risk_refs": 7,
+  "contexts_with_regime_refs": 7,
+  "contexts_with_counterfactual_refs": 7,
+  "context_status": "MarketContextSetReady",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

@@ -1,0 +1,31 @@
+reduction_id = "sprint96-baseline-signal-recover"
+sprint95_bundle_paths = [
+  "target/soma_sprint95_committee_cli_safety_recovery/sprint95-committee-cli-safety-recover",
+]
+baseline_signal_suite_paths = ["tests/baseline_signal_suite.rs"]
+baseline_signal_paths = [
+  "tests/baseline_signal_recovery.rs",
+  "tests/baseline_signal_entry_gate.rs",
+  "tests/baseline_signal_readiness_precheck.rs",
+]
+no_trade_fixture_paths = ["tests/baseline_signal_suite.rs"]
+risk_governor_fixture_paths = ["src/risk/governor.rs"]
+feature_regime_fixture_paths = ["src/feature/types.rs"]
+data_quality_fixture_paths = [
+  "tests/baseline_signal_suite.rs",
+  "tests/counterfactual_backfill_suite.rs",
+]
+output_root = "target/soma_sprint96_baseline_signal_recovery"
+target_family = "BaselineSignal"
+run_real_no_run_after_reduction = false
+run_real_full_after_reduction = false
+preserve_assertions = true
+preserve_safety_guards = true
+preserve_no_trade_default = true
+preserve_risk_governor_veto = true
+preserve_poor_data_quality_denial = true
+preserve_feature_regime_flow = true
+preserve_source_boundary_checks = true
+preserve_no_lookahead_checks = true
+preserve_research_only_interpretation = true
+preserve_determinism_checks = true

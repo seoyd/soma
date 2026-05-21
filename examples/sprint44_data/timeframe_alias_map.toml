@@ -1,0 +1,4 @@
+[[aliases]]
+raw_timeframe = "daily"
+normalized_timeframe = "1d"
+market = "USEquity"

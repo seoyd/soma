@@ -1,0 +1,4 @@
+modernization_id = "cli-smoke-tiering-example"
+current_toolchain_report_paths = [
+  "examples/sprint76_data/cli_smoke_sample.json",
+]

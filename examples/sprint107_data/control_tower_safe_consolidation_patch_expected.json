@@ -1,0 +1,34 @@
+{
+  "panel_id": "control-tower-safe-consolidation-patch-panel-v1",
+  "patch_selection_status": "PatchCandidateSelected",
+  "assertion_ledger_status": "AssertionMigrationLedgerReady",
+  "assertion_preservation_status": "AssertionsPreserved",
+  "safety_sentinel_status": "SafetySentinelsPreserved",
+  "shared_fixture_status": "SharedFixtureHarnessApplied",
+  "shared_toml_status": "SharedTomlBuilderApplied",
+  "shared_output_dir_status": "SharedOutputDirHelperApplied",
+  "shared_render_status": "SharedRenderHelperApplied",
+  "artifact_cache_status": "ArtifactCacheNotApplied",
+  "cli_smoke_tiering_status": "CliSmokeTieringApplied",
+  "target_delta_status": "TestBinaryDeltaSampleBacked",
+  "post_patch_test_status": "FocusedTestsNotRun",
+  "next_actions": [
+    "Run the focused Sprint 107 suite.",
+    "Rerun workspace no-run/full attempts with explicit timeouts."
+  ],
+  "warnings": [
+    "Static/read-only panel only.",
+    "No run-tests button or runtime/live controls."
+  ],
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "DeterministicPath",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt",
+    "LocalFileOnly"
+  ]
+}

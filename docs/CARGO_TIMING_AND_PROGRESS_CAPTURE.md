@@ -1,0 +1,1 @@
+Sprint 112 keeps cargo check/build/no-run/full timing capture and cargo JSON progress separate from acceptance truth. Observed evidence and inferred evidence are separated so diagnostic artifacts do not overclaim a pass.

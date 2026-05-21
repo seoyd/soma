@@ -1,0 +1,29 @@
+{
+  "baseline_references": [
+    {
+      "symbol": "AAPL",
+      "timestamp_ms": 1700000000000,
+      "horizon_bars": 24,
+      "baseline_action": "Approve",
+      "baseline_confidence": 0.75,
+      "baseline_expected_edge": 0.02
+    },
+    {
+      "symbol": "AAPL",
+      "timestamp_ms": 1700000000001,
+      "horizon_bars": 24,
+      "baseline_action": "NoTrade",
+      "baseline_confidence": 0.60,
+      "baseline_expected_edge": 0.00
+    },
+    {
+      "symbol": "AAPL",
+      "timestamp_ms": 1700000000002,
+      "horizon_bars": 24,
+      "baseline_action": "ReduceSize",
+      "baseline_confidence": 0.55,
+      "baseline_expected_edge": 0.01
+    }
+  ]
+}
+

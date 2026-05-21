@@ -1,0 +1,14 @@
+consolidation_id = "sprint84-shared-fixture-harness"
+sprint83_recovery_paths = [
+  "examples/sprint84_data/sprint83_recovery_summary.json",
+  "examples/sprint84_data/smoke_manifest_before.json",
+  "examples/sprint84_data/smoke_manifest_after.json",
+  "examples/sprint84_data/runtime_before_after_sample.json",
+  "examples/sprint84_data/workspace_final_gate_expected.json",
+]
+test_inventory_paths = [
+  "examples/sprint84_data/test_binary_inventory_before.json",
+  "examples/sprint84_data/test_binary_inventory_after.json",
+]
+output_root = "target/soma_sprint84_test_cost_reduction"
+

@@ -1,0 +1,78 @@
+{
+  "model_decision_summaries": [
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.0.0",
+      "decision_counts": {
+        "KeepResearchCandidate": 1,
+        "RetireModelVersion": 4
+      },
+      "latest_decision": "KeepResearchCandidate",
+      "conflicting_decisions": [
+        "KeepResearchCandidate",
+        "RetireModelVersion"
+      ],
+      "reason_codes": [
+        "DecisionLogRollupReportBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "decision_counts": {
+        "KeepResearchCandidate": 7,
+        "WatchModel": 1
+      },
+      "latest_decision": "KeepResearchCandidate",
+      "conflicting_decisions": [
+        "KeepResearchCandidate",
+        "WatchModel"
+      ],
+      "reason_codes": [
+        "DecisionLogRollupReportBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.2.0",
+      "decision_counts": {},
+      "latest_decision": null,
+      "conflicting_decisions": [],
+      "reason_codes": [
+        "DecisionLogRollupReportBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "decision_counts": {
+        "RequestMorePredictions": 8
+      },
+      "latest_decision": "RequestMorePredictions",
+      "conflicting_decisions": [],
+      "reason_codes": [
+        "DecisionLogRollupReportBuilt"
+      ]
+    }
+  ],
+  "total_decisions": 21,
+  "by_kind_counts": {
+    "KeepResearchCandidate": 8,
+    "RequestMorePredictions": 8,
+    "RetireModelVersion": 4,
+    "WatchModel": 1
+  },
+  "by_source_counts": {
+    "CoverageGap": 1,
+    "LeaderboardChange": 2,
+    "OwnerAction": 4,
+    "PolicyRule": 12,
+    "RiskProfile": 2
+  },
+  "repeated_decision_count": 16,
+  "conflict_count": 2,
+  "report_status": "ConflictsDetected",
+  "reason_codes": [
+    "DecisionLogRollupReportBuilt"
+  ]
+}

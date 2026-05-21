@@ -1,0 +1,22 @@
+[
+  {
+    "source_kind": "KISOfficialEvidence",
+    "source_report_path": "examples/sprint56_data/risk_blocked_candidate.json#NVDA",
+    "symbol": "NVDA",
+    "market": "USEquity",
+    "timeframe": "1d",
+    "horizon_bars": 18,
+    "evidence_status": "ready",
+    "data_quality_score": 0.94,
+    "outcome_link_count": 3,
+    "counterfactual_count": 2,
+    "signal_summary": "risk blocked candidate",
+    "expected_edge": 0.03,
+    "expected_drawdown": 0.015,
+    "timestamp_ms": 1715000000600,
+    "confidence": 0.84,
+    "spread_bps": 18.0,
+    "trade_value": 100000.0,
+    "regime": "TrendUp"
+  }
+]

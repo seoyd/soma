@@ -1,0 +1,11 @@
+{
+  "fmt_passed": true,
+  "check_passed": true,
+  "focused_suite_passed": true,
+  "representative_smoke_passed": true,
+  "safety_smoke_passed": true,
+  "full_workspace_started": true,
+  "full_workspace_finished": false,
+  "full_workspace_passed": null,
+  "full_workspace_duration_ms": null
+}

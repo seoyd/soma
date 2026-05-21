@@ -1,0 +1,23 @@
+{
+  "target_dir": "target/debug/deps",
+  "snapshots": [
+    {
+      "timestamp_ms": 0,
+      "bytes": 1048576,
+      "file_count": 5
+    },
+    {
+      "timestamp_ms": 700,
+      "bytes": 1054720,
+      "file_count": 7
+    }
+  ],
+  "growth_by_artifact_kind": {
+    "lib": 1024,
+    "test": 5120
+  },
+  "last_modified_test_artifacts": [
+    "dashboard_renderer_recovery",
+    "workspace_safety_guard_suite"
+  ]
+}

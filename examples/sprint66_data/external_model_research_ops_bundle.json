@@ -1,0 +1,1226 @@
+{
+  "lifecycle_records": [
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.0.0",
+      "current_status": "Retired",
+      "previous_status": "DiagnosticOnly",
+      "status_reason": "retired from active research comparison",
+      "allowed_transitions": [],
+      "forbidden_transitions": [
+        "Live",
+        "RuntimeIntegrated",
+        "BrokerExecutable"
+      ],
+      "reason_codes": [
+        "ExternalModelLifecycleBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "current_status": "Watchlisted",
+      "previous_status": "ResearchCandidate",
+      "status_reason": "owner watch enabled",
+      "allowed_transitions": [
+        "NeedsMorePredictions",
+        "NeedsCalibrationReview",
+        "NeedsRiskReview"
+      ],
+      "forbidden_transitions": [
+        "Live",
+        "RuntimeIntegrated",
+        "BrokerExecutable"
+      ],
+      "reason_codes": [
+        "ExternalModelLifecycleBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "current_status": "NeedsMorePredictions",
+      "previous_status": "ResearchCandidate",
+      "status_reason": "coverage or evidence depth is insufficient",
+      "allowed_transitions": [
+        "DiagnosticOnly",
+        "Retired"
+      ],
+      "forbidden_transitions": [
+        "Live",
+        "RuntimeIntegrated",
+        "BrokerExecutable"
+      ],
+      "reason_codes": [
+        "ExternalModelLifecycleBuilt"
+      ]
+    }
+  ],
+  "external_model_review_queue": {
+    "queue_id": "sprint65-external-model-research-ops",
+    "pending_items": [
+      {
+        "review_id": "ext-model-a:1.0.0:CalibrationDriftReview",
+        "model_id": "ext-model-a",
+        "model_version": "1.0.0",
+        "item_kind": "CalibrationDriftReview",
+        "status": "Pending",
+        "summary": "calibration drift or insufficient history requires conservative review",
+        "recommended_actions": [
+          "AddModelNote",
+          "KeepResearchCandidate",
+          "MarkModelDiagnosticOnly",
+          "RequestCalibrationReview",
+          "RequestMorePredictions",
+          "RequestRiskReview",
+          "RetireModelVersion",
+          "WatchModel"
+        ],
+        "forbidden_actions": [
+          "BrokerIntegration",
+          "BypassRiskGovernor",
+          "EnableRuntimeInference",
+          "EnableTraining",
+          "ExecuteTrade",
+          "PromoteToLive"
+        ],
+        "reason_codes": [
+          "ExternalModelReviewQueueBuilt"
+        ]
+      },
+      {
+        "review_id": "ext-model-a:1.0.0:MambaFamilyReview",
+        "model_id": "ext-model-a",
+        "model_version": "1.0.0",
+        "item_kind": "MambaFamilyReview",
+        "status": "Pending",
+        "summary": "Mamba3Fin family remains artifact-only and runtime-deferred",
+        "recommended_actions": [
+          "AddModelNote",
+          "KeepResearchCandidate",
+          "MarkModelDiagnosticOnly",
+          "RequestCalibrationReview",
+          "RequestMorePredictions",
+          "RequestRiskReview",
+          "RetireModelVersion",
+          "WatchModel"
+        ],
+        "forbidden_actions": [
+          "BrokerIntegration",
+          "BypassRiskGovernor",
+          "EnableRuntimeInference",
+          "EnableTraining",
+          "ExecuteTrade",
+          "PromoteToLive"
+        ],
+        "reason_codes": [
+          "ExternalModelReviewQueueBuilt"
+        ]
+      },
+      {
+        "review_id": "ext-model-a:1.0.0:NewModelVersion",
+        "model_id": "ext-model-a",
+        "model_version": "1.0.0",
+        "item_kind": "NewModelVersion",
+        "status": "Pending",
+        "summary": "new or current model version requires research review",
+        "recommended_actions": [
+          "AddModelNote",
+          "KeepResearchCandidate",
+          "MarkModelDiagnosticOnly",
+          "RequestCalibrationReview",
+          "RequestMorePredictions",
+          "RequestRiskReview",
+          "RetireModelVersion",
+          "WatchModel"
+        ],
+        "forbidden_actions": [
+          "BrokerIntegration",
+          "BypassRiskGovernor",
+          "EnableRuntimeInference",
+          "EnableTraining",
+          "ExecuteTrade",
+          "PromoteToLive"
+        ],
+        "reason_codes": [
+          "ExternalModelReviewQueueBuilt"
+        ]
+      },
+      {
+        "review_id": "ext-model-a:1.1.0:LeaderboardChangeReview",
+        "model_id": "ext-model-a",
+        "model_version": "1.1.0",
+        "item_kind": "LeaderboardChangeReview",
+        "status": "Pending",
+        "summary": "leaderboard rank or score changed",
+        "recommended_actions": [
+          "AddModelNote",
+          "KeepResearchCandidate",
+          "MarkModelDiagnosticOnly",
+          "RequestCalibrationReview",
+          "RequestMorePredictions",
+          "RequestRiskReview",
+          "RetireModelVersion",
+          "WatchModel"
+        ],
+        "forbidden_actions": [
+          "BrokerIntegration",
+          "BypassRiskGovernor",
+          "EnableRuntimeInference",
+          "EnableTraining",
+          "ExecuteTrade",
+          "PromoteToLive"
+        ],
+        "reason_codes": [
+          "ExternalModelReviewQueueBuilt"
+        ]
+      },
+      {
+        "review_id": "ext-model-a:1.1.0:MambaFamilyReview",
+        "model_id": "ext-model-a",
+        "model_version": "1.1.0",
+        "item_kind": "MambaFamilyReview",
+        "status": "Pending",
+        "summary": "Mamba3Fin family remains artifact-only and runtime-deferred",
+        "recommended_actions": [
+          "AddModelNote",
+          "KeepResearchCandidate",
+          "MarkModelDiagnosticOnly",
+          "RequestCalibrationReview",
+          "RequestMorePredictions",
+          "RequestRiskReview",
+          "RetireModelVersion",
+          "WatchModel"
+        ],
+        "forbidden_actions": [
+          "BrokerIntegration",
+          "BypassRiskGovernor",
+          "EnableRuntimeInference",
+          "EnableTraining",
+          "ExecuteTrade",
+          "PromoteToLive"
+        ],
+        "reason_codes": [
+          "ExternalModelReviewQueueBuilt"
+        ]
+      },
+      {
+        "review_id": "ext-model-a:1.1.0:NewModelVersion",
+        "model_id": "ext-model-a",
+        "model_version": "1.1.0",
+        "item_kind": "NewModelVersion",
+        "status": "Pending",
+        "summary": "new or current model version requires research review",
+        "recommended_actions": [
+          "AddModelNote",
+          "KeepResearchCandidate",
+          "MarkModelDiagnosticOnly",
+          "RequestCalibrationReview",
+          "RequestMorePredictions",
+          "RequestRiskReview",
+          "RetireModelVersion",
+          "WatchModel"
+        ],
+        "forbidden_actions": [
+          "BrokerIntegration",
+          "BypassRiskGovernor",
+          "EnableRuntimeInference",
+          "EnableTraining",
+          "ExecuteTrade",
+          "PromoteToLive"
+        ],
+        "reason_codes": [
+          "ExternalModelReviewQueueBuilt"
+        ]
+      },
+      {
+        "review_id": "ext-model-a:1.1.0:OwnerRequestedReview",
+        "model_id": "ext-model-a",
+        "model_version": "1.1.0",
+        "item_kind": "OwnerRequestedReview",
+        "status": "Pending",
+        "summary": "owner requested additional conservative review",
+        "recommended_actions": [
+          "AddModelNote",
+          "KeepResearchCandidate",
+          "MarkModelDiagnosticOnly",
+          "RequestCalibrationReview",
+          "RequestMorePredictions",
+          "RequestRiskReview",
+          "RetireModelVersion",
+          "WatchModel"
+        ],
+        "forbidden_actions": [
+          "BrokerIntegration",
+          "BypassRiskGovernor",
+          "EnableRuntimeInference",
+          "EnableTraining",
+          "ExecuteTrade",
+          "PromoteToLive"
+        ],
+        "reason_codes": [
+          "ExternalModelReviewQueueBuilt"
+        ]
+      },
+      {
+        "review_id": "ext-model-b:1.0.0:CalibrationDriftReview",
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "item_kind": "CalibrationDriftReview",
+        "status": "Pending",
+        "summary": "calibration drift or insufficient history requires conservative review",
+        "recommended_actions": [
+          "AddModelNote",
+          "KeepResearchCandidate",
+          "MarkModelDiagnosticOnly",
+          "RequestCalibrationReview",
+          "RequestMorePredictions",
+          "RequestRiskReview",
+          "RetireModelVersion",
+          "WatchModel"
+        ],
+        "forbidden_actions": [
+          "BrokerIntegration",
+          "BypassRiskGovernor",
+          "EnableRuntimeInference",
+          "EnableTraining",
+          "ExecuteTrade",
+          "PromoteToLive"
+        ],
+        "reason_codes": [
+          "ExternalModelReviewQueueBuilt"
+        ]
+      },
+      {
+        "review_id": "ext-model-b:1.0.0:CoverageWeakReview",
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "item_kind": "CoverageWeakReview",
+        "status": "Pending",
+        "summary": "coverage or evidence depth is weak",
+        "recommended_actions": [
+          "AddModelNote",
+          "KeepResearchCandidate",
+          "MarkModelDiagnosticOnly",
+          "RequestCalibrationReview",
+          "RequestMorePredictions",
+          "RequestRiskReview",
+          "RetireModelVersion",
+          "WatchModel"
+        ],
+        "forbidden_actions": [
+          "BrokerIntegration",
+          "BypassRiskGovernor",
+          "EnableRuntimeInference",
+          "EnableTraining",
+          "ExecuteTrade",
+          "PromoteToLive"
+        ],
+        "reason_codes": [
+          "ExternalModelReviewQueueBuilt"
+        ]
+      },
+      {
+        "review_id": "ext-model-b:1.0.0:LeaderboardChangeReview",
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "item_kind": "LeaderboardChangeReview",
+        "status": "Pending",
+        "summary": "leaderboard rank or score changed",
+        "recommended_actions": [
+          "AddModelNote",
+          "KeepResearchCandidate",
+          "MarkModelDiagnosticOnly",
+          "RequestCalibrationReview",
+          "RequestMorePredictions",
+          "RequestRiskReview",
+          "RetireModelVersion",
+          "WatchModel"
+        ],
+        "forbidden_actions": [
+          "BrokerIntegration",
+          "BypassRiskGovernor",
+          "EnableRuntimeInference",
+          "EnableTraining",
+          "ExecuteTrade",
+          "PromoteToLive"
+        ],
+        "reason_codes": [
+          "ExternalModelReviewQueueBuilt"
+        ]
+      },
+      {
+        "review_id": "ext-model-b:1.0.0:NewModelVersion",
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "item_kind": "NewModelVersion",
+        "status": "Pending",
+        "summary": "new or current model version requires research review",
+        "recommended_actions": [
+          "AddModelNote",
+          "KeepResearchCandidate",
+          "MarkModelDiagnosticOnly",
+          "RequestCalibrationReview",
+          "RequestMorePredictions",
+          "RequestRiskReview",
+          "RetireModelVersion",
+          "WatchModel"
+        ],
+        "forbidden_actions": [
+          "BrokerIntegration",
+          "BypassRiskGovernor",
+          "EnableRuntimeInference",
+          "EnableTraining",
+          "ExecuteTrade",
+          "PromoteToLive"
+        ],
+        "reason_codes": [
+          "ExternalModelReviewQueueBuilt"
+        ]
+      },
+      {
+        "review_id": "ext-model-b:1.0.0:OwnerRequestedReview",
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "item_kind": "OwnerRequestedReview",
+        "status": "Pending",
+        "summary": "owner requested additional conservative review",
+        "recommended_actions": [
+          "AddModelNote",
+          "KeepResearchCandidate",
+          "MarkModelDiagnosticOnly",
+          "RequestCalibrationReview",
+          "RequestMorePredictions",
+          "RequestRiskReview",
+          "RetireModelVersion",
+          "WatchModel"
+        ],
+        "forbidden_actions": [
+          "BrokerIntegration",
+          "BypassRiskGovernor",
+          "EnableRuntimeInference",
+          "EnableTraining",
+          "ExecuteTrade",
+          "PromoteToLive"
+        ],
+        "reason_codes": [
+          "ExternalModelReviewQueueBuilt"
+        ]
+      }
+    ],
+    "reviewed_items": [],
+    "deferred_items": [],
+    "retired_items": [
+      {
+        "review_id": "ext-model-a:1.0.0:RetirementReview",
+        "model_id": "ext-model-a",
+        "model_version": "1.0.0",
+        "item_kind": "RetirementReview",
+        "status": "Retired",
+        "summary": "model version was retired from active research comparison",
+        "recommended_actions": [
+          "AddModelNote",
+          "KeepResearchCandidate",
+          "MarkModelDiagnosticOnly",
+          "RequestCalibrationReview",
+          "RequestMorePredictions",
+          "RequestRiskReview",
+          "RetireModelVersion",
+          "WatchModel"
+        ],
+        "forbidden_actions": [
+          "BrokerIntegration",
+          "BypassRiskGovernor",
+          "EnableRuntimeInference",
+          "EnableTraining",
+          "ExecuteTrade",
+          "PromoteToLive"
+        ],
+        "reason_codes": [
+          "ExternalModelReviewQueueBuilt"
+        ]
+      }
+    ],
+    "downgraded_items": [],
+    "blocked_items": [],
+    "reason_codes": [
+      "ExternalModelReviewQueueBuilt"
+    ]
+  },
+  "owner_model_review_impact_report": {
+    "report_id": "sprint65-external-model-research-ops",
+    "actions": [
+      {
+        "action_id": "diagnostic-ext-model-a-v1",
+        "model_id": "ext-model-a",
+        "model_version": "1.0.0",
+        "action_kind": "MarkModelDiagnosticOnly",
+        "note": "keep previous version for diagnostic comparison only",
+        "allowed": true,
+        "diagnostic_only": true,
+        "reason_codes": [
+          "OwnerModelReviewWorkflowBuilt"
+        ]
+      },
+      {
+        "action_id": "retire-ext-model-a-v1",
+        "model_id": "ext-model-a",
+        "model_version": "1.0.0",
+        "action_kind": "RetireModelVersion",
+        "note": "retire superseded version from active research comparison",
+        "allowed": true,
+        "diagnostic_only": true,
+        "reason_codes": [
+          "OwnerModelReviewWorkflowBuilt"
+        ]
+      },
+      {
+        "action_id": "blocked-live-note",
+        "model_id": "ext-model-a",
+        "model_version": "1.1.0",
+        "action_kind": "AddModelNote",
+        "note": "live promotion is forbidden and runtime inference stays disabled",
+        "allowed": false,
+        "diagnostic_only": false,
+        "reason_codes": [
+          "OwnerModelReviewWorkflowBuilt"
+        ]
+      },
+      {
+        "action_id": "request-calibration-ext-model-a-v2",
+        "model_id": "ext-model-a",
+        "model_version": "1.1.0",
+        "action_kind": "RequestCalibrationReview",
+        "note": "review calibration conservatively before any deeper research use",
+        "allowed": true,
+        "diagnostic_only": false,
+        "reason_codes": [
+          "OwnerModelReviewWorkflowBuilt"
+        ]
+      },
+      {
+        "action_id": "request-risk-ext-model-a-v2",
+        "model_id": "ext-model-a",
+        "model_version": "1.1.0",
+        "action_kind": "RequestRiskReview",
+        "note": "keep risk review explicit even for offline research comparison",
+        "allowed": true,
+        "diagnostic_only": false,
+        "reason_codes": [
+          "OwnerModelReviewWorkflowBuilt"
+        ]
+      },
+      {
+        "action_id": "watch-ext-model-a-v2",
+        "model_id": "ext-model-a",
+        "model_version": "1.1.0",
+        "action_kind": "WatchModel",
+        "note": "track latest research candidate conservatively",
+        "allowed": true,
+        "diagnostic_only": false,
+        "reason_codes": [
+          "OwnerModelReviewWorkflowBuilt"
+        ]
+      },
+      {
+        "action_id": "remove-watch-ext-model-b-v1",
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "action_kind": "UnwatchModel",
+        "note": "remove temporary watch once coverage request is logged",
+        "allowed": true,
+        "diagnostic_only": false,
+        "reason_codes": [
+          "OwnerModelReviewWorkflowBuilt"
+        ]
+      },
+      {
+        "action_id": "request-more-preds-ext-model-b-v1",
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "action_kind": "RequestMorePredictions",
+        "note": "coverage remains weak and needs more offline predictions",
+        "allowed": true,
+        "diagnostic_only": false,
+        "reason_codes": [
+          "OwnerModelReviewWorkflowBuilt"
+        ]
+      }
+    ],
+    "accepted_count": 7,
+    "blocked_count": 1,
+    "retired_count": 1,
+    "downgraded_count": 1,
+    "watchlisted_count": 1,
+    "review_requested_count": 3,
+    "reason_codes": [
+      "OwnerModelReviewWorkflowBuilt"
+    ]
+  },
+  "external_model_watchlist": {
+    "entries": [
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.0.0",
+        "watch_reason": "retire superseded version from active research comparison",
+        "watched_by_owner": true,
+        "watch_status": "Retired",
+        "reason_codes": [
+          "ExternalModelWatchlistBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.1.0",
+        "watch_reason": "track latest research candidate conservatively",
+        "watched_by_owner": true,
+        "watch_status": "Active",
+        "reason_codes": [
+          "ExternalModelWatchlistBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "watch_reason": "remove temporary watch once coverage request is logged",
+        "watched_by_owner": true,
+        "watch_status": "Removed",
+        "reason_codes": [
+          "ExternalModelWatchlistBuilt"
+        ]
+      }
+    ],
+    "active_count": 1,
+    "retired_count": 1,
+    "diagnostic_count": 0,
+    "reason_codes": [
+      "ExternalModelWatchlistBuilt"
+    ]
+  },
+  "model_comparability_matrix": {
+    "cells": [
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.0.0",
+        "dimension": "DatasetFingerprint",
+        "comparable": true,
+        "value": "118f8e19e94a668b",
+        "expected_value": "118f8e19e94a668b",
+        "reason_codes": [
+          "ModelComparabilityMatrixBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.0.0",
+        "dimension": "FeatureSchemaHash",
+        "comparable": true,
+        "value": "01c25ac23c41ca00",
+        "expected_value": "01c25ac23c41ca00",
+        "reason_codes": [
+          "ModelComparabilityMatrixBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.0.0",
+        "dimension": "LabelManifestHash",
+        "comparable": true,
+        "value": "8eff63ae77f20914",
+        "expected_value": "8eff63ae77f20914",
+        "reason_codes": [
+          "ModelComparabilityMatrixBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.0.0",
+        "dimension": "SplitPolicy",
+        "comparable": true,
+        "value": "ChronologicalHoldout",
+        "expected_value": "ChronologicalHoldout",
+        "reason_codes": [
+          "ModelComparabilityMatrixBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.0.0",
+        "dimension": "PredictionSchemaVersion",
+        "comparable": true,
+        "value": "v2",
+        "expected_value": "v2",
+        "reason_codes": [
+          "ModelComparabilityMatrixBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.0.0",
+        "dimension": "ModelCardValidity",
+        "comparable": true,
+        "value": "true",
+        "expected_value": "true",
+        "reason_codes": [
+          "ModelComparabilityMatrixBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.0.0",
+        "dimension": "EvaluationMetricAvailability",
+        "comparable": true,
+        "value": "true",
+        "expected_value": "true",
+        "reason_codes": [
+          "ModelComparabilityMatrixBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.0.0",
+        "dimension": "CoverageRatio",
+        "comparable": true,
+        "value": "1.0000",
+        "expected_value": ">=0.8000",
+        "reason_codes": [
+          "ModelComparabilityMatrixBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.0.0",
+        "dimension": "CalibrationMetricAvailability",
+        "comparable": true,
+        "value": "true",
+        "expected_value": "true",
+        "reason_codes": [
+          "ModelComparabilityMatrixBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.0.0",
+        "dimension": "RiskMetricAvailability",
+        "comparable": true,
+        "value": "true",
+        "expected_value": "true",
+        "reason_codes": [
+          "ModelComparabilityMatrixBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.0.0",
+        "dimension": "AblationAvailability",
+        "comparable": true,
+        "value": "true",
+        "expected_value": "true",
+        "reason_codes": [
+          "ModelComparabilityMatrixBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.0.0",
+        "dimension": "PromotionGateAvailability",
+        "comparable": true,
+        "value": "true",
+        "expected_value": "true",
+        "reason_codes": [
+          "ModelComparabilityMatrixBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.1.0",
+        "dimension": "DatasetFingerprint",
+        "comparable": true,
+        "value": "118f8e19e94a668b",
+        "expected_value": "118f8e19e94a668b",
+        "reason_codes": [
+          "ModelComparabilityMatrixBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.1.0",
+        "dimension": "FeatureSchemaHash",
+        "comparable": true,
+        "value": "01c25ac23c41ca00",
+        "expected_value": "01c25ac23c41ca00",
+        "reason_codes": [
+          "ModelComparabilityMatrixBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.1.0",
+        "dimension": "LabelManifestHash",
+        "comparable": true,
+        "value": "8eff63ae77f20914",
+        "expected_value": "8eff63ae77f20914",
+        "reason_codes": [
+          "ModelComparabilityMatrixBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.1.0",
+        "dimension": "SplitPolicy",
+        "comparable": true,
+        "value": "ChronologicalHoldout",
+        "expected_value": "ChronologicalHoldout",
+        "reason_codes": [
+          "ModelComparabilityMatrixBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.1.0",
+        "dimension": "PredictionSchemaVersion",
+        "comparable": true,
+        "value": "v2",
+        "expected_value": "v2",
+        "reason_codes": [
+          "ModelComparabilityMatrixBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.1.0",
+        "dimension": "ModelCardValidity",
+        "comparable": true,
+        "value": "true",
+        "expected_value": "true",
+        "reason_codes": [
+          "ModelComparabilityMatrixBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.1.0",
+        "dimension": "EvaluationMetricAvailability",
+        "comparable": true,
+        "value": "true",
+        "expected_value": "true",
+        "reason_codes": [
+          "ModelComparabilityMatrixBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.1.0",
+        "dimension": "CoverageRatio",
+        "comparable": true,
+        "value": "1.0000",
+        "expected_value": ">=0.8000",
+        "reason_codes": [
+          "ModelComparabilityMatrixBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.1.0",
+        "dimension": "CalibrationMetricAvailability",
+        "comparable": true,
+        "value": "true",
+        "expected_value": "true",
+        "reason_codes": [
+          "ModelComparabilityMatrixBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.1.0",
+        "dimension": "RiskMetricAvailability",
+        "comparable": true,
+        "value": "true",
+        "expected_value": "true",
+        "reason_codes": [
+          "ModelComparabilityMatrixBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.1.0",
+        "dimension": "AblationAvailability",
+        "comparable": true,
+        "value": "true",
+        "expected_value": "true",
+        "reason_codes": [
+          "ModelComparabilityMatrixBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.1.0",
+        "dimension": "PromotionGateAvailability",
+        "comparable": true,
+        "value": "true",
+        "expected_value": "true",
+        "reason_codes": [
+          "ModelComparabilityMatrixBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "dimension": "DatasetFingerprint",
+        "comparable": true,
+        "value": "118f8e19e94a668b",
+        "expected_value": "118f8e19e94a668b",
+        "reason_codes": [
+          "ModelComparabilityMatrixBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "dimension": "FeatureSchemaHash",
+        "comparable": true,
+        "value": "01c25ac23c41ca00",
+        "expected_value": "01c25ac23c41ca00",
+        "reason_codes": [
+          "ModelComparabilityMatrixBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "dimension": "LabelManifestHash",
+        "comparable": true,
+        "value": "8eff63ae77f20914",
+        "expected_value": "8eff63ae77f20914",
+        "reason_codes": [
+          "ModelComparabilityMatrixBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "dimension": "SplitPolicy",
+        "comparable": true,
+        "value": "ChronologicalHoldout",
+        "expected_value": "ChronologicalHoldout",
+        "reason_codes": [
+          "ModelComparabilityMatrixBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "dimension": "PredictionSchemaVersion",
+        "comparable": true,
+        "value": "v2",
+        "expected_value": "v2",
+        "reason_codes": [
+          "ModelComparabilityMatrixBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "dimension": "ModelCardValidity",
+        "comparable": true,
+        "value": "true",
+        "expected_value": "true",
+        "reason_codes": [
+          "ModelComparabilityMatrixBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "dimension": "EvaluationMetricAvailability",
+        "comparable": true,
+        "value": "true",
+        "expected_value": "true",
+        "reason_codes": [
+          "ModelComparabilityMatrixBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "dimension": "CoverageRatio",
+        "comparable": false,
+        "value": "0.6667",
+        "expected_value": ">=0.8000",
+        "reason_codes": [
+          "ModelComparabilityMatrixBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "dimension": "CalibrationMetricAvailability",
+        "comparable": true,
+        "value": "true",
+        "expected_value": "true",
+        "reason_codes": [
+          "ModelComparabilityMatrixBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "dimension": "RiskMetricAvailability",
+        "comparable": true,
+        "value": "true",
+        "expected_value": "true",
+        "reason_codes": [
+          "ModelComparabilityMatrixBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "dimension": "AblationAvailability",
+        "comparable": false,
+        "value": "false",
+        "expected_value": "true",
+        "reason_codes": [
+          "ModelComparabilityMatrixBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "dimension": "PromotionGateAvailability",
+        "comparable": false,
+        "value": "false",
+        "expected_value": "true",
+        "reason_codes": [
+          "ModelComparabilityMatrixBuilt"
+        ]
+      }
+    ],
+    "comparable_models": 2,
+    "non_comparable_models": 1,
+    "matrix_status": "PartiallyComparable",
+    "reason_codes": [
+      "ModelComparabilityMatrixBuilt"
+    ]
+  },
+  "artifact_completeness_scores": [
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.0.0",
+      "has_model_card": true,
+      "has_prediction_csv": true,
+      "has_import_report": true,
+      "has_evaluation_report": true,
+      "has_vs_trinity_report": false,
+      "has_ablation_report": true,
+      "has_promotion_gate": true,
+      "has_registry_audit": true,
+      "has_mamba_contract_if_applicable": true,
+      "completeness_ratio": 0.8888888888888888,
+      "completeness_status": "MostlyComplete",
+      "reason_codes": [
+        "ArtifactCompletenessScoreBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "has_model_card": true,
+      "has_prediction_csv": true,
+      "has_import_report": true,
+      "has_evaluation_report": true,
+      "has_vs_trinity_report": false,
+      "has_ablation_report": true,
+      "has_promotion_gate": true,
+      "has_registry_audit": true,
+      "has_mamba_contract_if_applicable": true,
+      "completeness_ratio": 0.8888888888888888,
+      "completeness_status": "MostlyComplete",
+      "reason_codes": [
+        "ArtifactCompletenessScoreBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "has_model_card": true,
+      "has_prediction_csv": true,
+      "has_import_report": true,
+      "has_evaluation_report": true,
+      "has_vs_trinity_report": false,
+      "has_ablation_report": false,
+      "has_promotion_gate": false,
+      "has_registry_audit": true,
+      "has_mamba_contract_if_applicable": true,
+      "completeness_ratio": 0.6666666666666666,
+      "completeness_status": "Incomplete",
+      "reason_codes": [
+        "ArtifactCompletenessScoreBuilt"
+      ]
+    }
+  ],
+  "model_evidence_risk_profiles": [
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "coverage_ratio": "1.0000",
+      "calibration_status": "Stable",
+      "drift_status": "Stable",
+      "risk_status": "Pass",
+      "ablation_status": "Stable",
+      "promotion_gate_status": "ResearchCandidate",
+      "leaderboard_status": "Eligible",
+      "sequence_size_warning": false,
+      "small_sample_warning": false,
+      "evidence_risk_level": "Low",
+      "recommended_action": "KeepResearchCandidate",
+      "reason_codes": [
+        "ModelEvidenceRiskProfileBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.0.0",
+      "coverage_ratio": "1.0000",
+      "calibration_status": "Stable",
+      "drift_status": "InsufficientHistory",
+      "risk_status": "Pass",
+      "ablation_status": "Stable",
+      "promotion_gate_status": "ResearchCandidate",
+      "leaderboard_status": "Eligible",
+      "sequence_size_warning": false,
+      "small_sample_warning": false,
+      "evidence_risk_level": "DiagnosticOnly",
+      "recommended_action": "KeepResearchCandidate",
+      "reason_codes": [
+        "ModelEvidenceRiskProfileBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "coverage_ratio": "0.6667",
+      "calibration_status": "Review",
+      "drift_status": "InsufficientHistory",
+      "risk_status": "Pass",
+      "ablation_status": "Missing",
+      "promotion_gate_status": "Missing",
+      "leaderboard_status": "BlockedByCoverage",
+      "sequence_size_warning": true,
+      "small_sample_warning": true,
+      "evidence_risk_level": "Critical",
+      "recommended_action": "RequestMorePredictions",
+      "reason_codes": [
+        "ModelEvidenceRiskProfileBuilt"
+      ]
+    }
+  ],
+  "model_leaderboard_changelog": {
+    "changes": [
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.1.0",
+        "previous_rank": 2,
+        "current_rank": 1,
+        "change_kind": "RankUp",
+        "score_delta": 0.1965156794425087,
+        "reason_codes": [
+          "ModelLeaderboardChangeLogBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-a",
+        "model_version": "1.0.0",
+        "previous_rank": 2,
+        "current_rank": 2,
+        "change_kind": "NoChange",
+        "score_delta": null,
+        "reason_codes": [
+          "ModelLeaderboardChangeLogBuilt"
+        ]
+      },
+      {
+        "model_id": "ext-model-b",
+        "model_version": "1.0.0",
+        "previous_rank": null,
+        "current_rank": null,
+        "change_kind": "NewlyBlocked",
+        "score_delta": null,
+        "reason_codes": [
+          "ModelLeaderboardChangeLogBuilt"
+        ]
+      }
+    ],
+    "newly_eligible_count": 0,
+    "newly_blocked_count": 1,
+    "rank_change_count": 1,
+    "no_change_count": 1,
+    "reason_codes": [
+      "ModelLeaderboardChangeLogBuilt"
+    ]
+  },
+  "external_model_research_ops_report": {
+    "ops_id": "sprint65-external-model-research-ops",
+    "lifecycle_summary": "registered=0 research_candidate=0 watchlisted=1 retired=1",
+    "review_queue_summary": "pending=12 retired=1 blocked=0",
+    "watchlist_summary": "active=1 retired=1 diagnostic=0",
+    "comparability_matrix_status": "PartiallyComparable",
+    "artifact_completeness_summary": "complete=0 mostly_complete=2 missing_critical=0",
+    "evidence_risk_profile_summary": "low=1 medium=0 high=0 critical=1",
+    "leaderboard_change_summary": "newly_eligible=0 newly_blocked=1 rank_changes=1",
+    "final_status": "NeedMorePredictionHistory",
+    "final_recommendation": "RequestMorePredictions",
+    "reason_codes": [
+      "ExternalModelResearchOpsReportBuilt"
+    ]
+  },
+  "control_tower_model_ops_panel_summary": {
+    "research_ops_status": "NeedMorePredictionHistory",
+    "review_queue_summary": "pending=12 retired=1 blocked=0",
+    "watchlist": [
+      "ext-model-a:1.0.0:Retired",
+      "ext-model-a:1.1.0:Active",
+      "ext-model-b:1.0.0:Removed"
+    ],
+    "comparability_status": "PartiallyComparable",
+    "artifact_completeness_status": "mostly_complete=2 missing_critical=0",
+    "model_risk_profiles": [
+      "ext-model-a:1.0.0:DiagnosticOnly:KeepResearchCandidate",
+      "ext-model-a:1.1.0:Low:KeepResearchCandidate",
+      "ext-model-b:1.0.0:Critical:RequestMorePredictions"
+    ],
+    "leaderboard_changes": [
+      "ext-model-a:1.0.0:NoChange",
+      "ext-model-a:1.1.0:RankUp",
+      "ext-model-b:1.0.0:NewlyBlocked"
+    ],
+    "mamba3fin_family_status": "ArtifactFamilyTracked + RuntimeDeferred",
+    "next_actions": [
+      "cargo run --quiet --bin soma_experiment -- artifact-completeness --config examples/soma_artifact_completeness.toml",
+      "cargo run --quiet --bin soma_experiment -- external-model-research-ops --config examples/soma_external_model_research_ops.toml",
+      "cargo run --quiet --bin soma_experiment -- external-model-review-queue --config examples/soma_external_model_review_queue.toml",
+      "cargo run --quiet --bin soma_experiment -- external-model-watchlist --config examples/soma_external_model_watchlist.toml",
+      "cargo run --quiet --bin soma_experiment -- model-comparability-matrix --config examples/soma_model_comparability_matrix.toml",
+      "cargo run --quiet --bin soma_experiment -- model-leaderboard-changelog --config examples/soma_model_leaderboard_changelog.toml",
+      "cargo run --quiet --bin soma_experiment -- model-risk-profile --config examples/soma_model_risk_profile.toml",
+      "pending_review_items=12"
+    ],
+    "reason_codes": [
+      "ControlTowerModelOpsPanelBuilt"
+    ]
+  },
+  "storage_report": {
+    "artifact_count": 25,
+    "storage_bytes": 26641,
+    "max_bytes": 5000000,
+    "within_budget": true,
+    "reason_codes": [
+      "ExternalModelResearchOpsStorageBuilt"
+    ]
+  },
+  "final_summary": "research_ops_status=NeedMorePredictionHistory\nrecommendation=RequestMorePredictions\npending_reviews=12\nactive_watchlist=1\nruntime_status=HoldMamba3RuntimeDeferred",
+  "reason_codes": [
+    "ExternalModelResearchOpsBundleBuilt",
+    "ExternalModelResearchOpsRunnerBuilt"
+  ]
+}

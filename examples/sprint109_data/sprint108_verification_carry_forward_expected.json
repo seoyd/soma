@@ -1,0 +1,21 @@
+{
+  "report_id": "sprint108-verification-carry-forward",
+  "sprint107_reconciliation_carried_forward": true,
+  "assertion_preservation_guard_carried_forward": true,
+  "equivalent_coverage_guard_carried_forward": true,
+  "safety_all_guard_carried_forward": true,
+  "timeout_cleanup_interpretation_carried_forward": true,
+  "acceptance_truth_guard_carried_forward": true,
+  "carry_forward_status": "Sprint108VerificationCarriedForward",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "DeterministicPath",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt",
+    "LocalFileOnly"
+  ]
+}

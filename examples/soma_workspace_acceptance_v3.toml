@@ -1,0 +1,6 @@
+timing_id = "workspace-acceptance-v3-example"
+sample_timing_paths = [
+  "examples/sprint77_data/repeated_timing_sample.json",
+  "examples/sprint77_data/fixture_setup_cost_sample.json",
+  "examples/sprint77_data/cli_smoke_cost_sample.json",
+]

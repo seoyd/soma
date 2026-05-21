@@ -1,0 +1,13 @@
+{
+  "report_id": "sprint97-counterfactual-backfill-recover-riskdenied",
+  "grouped_suite_detects_risk_denied_gaps": true,
+  "risk_denied_counterfactual_gap_detected": true,
+  "risk_denied_veto_value_visible": true,
+  "opportunity_cost_cannot_override_veto": true,
+  "risk_governor_veto_remains_authoritative": true,
+  "risk_denied_status": "RiskDeniedPreserved",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

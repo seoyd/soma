@@ -1,0 +1,39 @@
+closure_id = "sprint92-krx-warning-close"
+sprint91_bundle_paths = [
+  "target/soma_sprint91_krx_evidence_recovery/sprint91-krx-evidence-recover",
+  "examples/sprint92_data/sprint91_summary.json",
+]
+krx_evidence_reduction_paths = [
+  "tests/krx_evidence_suite.rs",
+]
+krx_assertion_migration_paths = [
+  "target/soma_sprint91_krx_evidence_recovery/sprint91-krx-evidence-recover/krx_evidence_assertion_migration.txt",
+]
+krx_secret_safety_paths = [
+  "tests/krx_raw_archive_secret_safety.rs",
+]
+krx_raw_archive_paths = [
+  "tests/krx_raw_archive_secret_safety.rs",
+]
+krx_market_data_boundary_paths = [
+  "tests/krx_evidence_suite.rs",
+]
+workspace_gate_paths = [
+  "src/ui/dashboard_renderer.rs",
+  "tests/dashboard_renderer_suite.rs",
+  "tests/dashboard_renderer_recovery.rs",
+  "tests/artifact_rendering_suite.rs",
+  "tests/workspace_safety_guard_suite.rs",
+  "tests/workspace_cli_safety_suite.rs",
+  "tests/workspace_determinism_suite.rs",
+]
+output_root = "target/soma_sprint92_krx_warning_closure"
+allow_dashboard_renderer_entry_if_closed = false
+require_secret_safety_isolation_decision = true
+require_raw_archive_redaction_coverage = true
+require_warning_free_reduction = true
+require_manual_review_closure = true
+preserve_assertions = true
+preserve_safety_guards = true
+preserve_market_data_only_checks = true
+preserve_no_order_account_checks = true

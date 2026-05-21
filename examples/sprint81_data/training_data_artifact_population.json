@@ -1,0 +1,30 @@
+{
+  "population_id": "training-data-artifact-population",
+  "artifacts_added": 13,
+  "registry_entries_added": 1,
+  "dataset_versions_added": 1,
+  "lineage_edges_added": 3,
+  "source_class_entries_added": 2,
+  "skipped_artifacts": 0,
+  "invalid_artifacts": 0,
+  "population_status": "ArtifactsPopulated",
+  "artifact_counts_by_kind": {
+    "dataset_registry": 1,
+    "dataset_version": 1,
+    "source_class": 1,
+    "feature_schema": 1,
+    "label_manifest": 1,
+    "split_manifest": 1,
+    "no_lookahead_proof": 1,
+    "prediction_csv": 2,
+    "model_card": 2,
+    "evaluation_report": 2,
+    "committee_reference_pack": 1
+  },
+  "artifact_counts_by_source_class": {
+    "OfficialKIS": 2,
+    "OfficialKRXReference": 1,
+    "ResearchOnly": 1
+  },
+  "reason_codes": ["TrainingDataArtifactsPopulated", "DeterministicPath"]
+}

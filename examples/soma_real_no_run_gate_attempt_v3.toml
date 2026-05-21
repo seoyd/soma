@@ -1,0 +1,22 @@
+recovery_id = "real-no-run-gate-attempt-v3"
+sprint87_bundle_paths = ["examples/sprint88_data/sprint87_summary.json"]
+compile_gate_report_paths = [
+  "examples/sprint88_data/workspace_gate_recovery_v5_expected.json",
+  "examples/sprint88_data/safety_coverage_v4_expected.json",
+]
+blocker_drilldown_paths = [
+  "examples/sprint88_data/seven_blocker_queue.json",
+  "examples/sprint88_data/per_family_probe_sample.json",
+]
+cargo_metadata_paths = [
+  "examples/sprint88_data/candle_expansion_recovery_expected.json",
+  "examples/sprint88_data/external_prediction_recovery_expected.json",
+  "examples/sprint88_data/krx_evidence_recovery_expected.json",
+  "examples/sprint88_data/dashboard_renderer_recovery_expected.json",
+]
+cargo_timings_paths = [
+  "examples/sprint88_data/committee_cli_safety_isolation_expected.json",
+  "examples/sprint88_data/baseline_signal_recovery_expected.json",
+  "examples/sprint88_data/counterfactual_backfill_recovery_expected.json",
+]
+output_root = "target/soma_sprint88_seven_blocker_recovery"

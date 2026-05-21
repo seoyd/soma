@@ -1,0 +1,21 @@
+closure_id = "sprint73-ext-model-b-prediction-gap-closure"
+target_model_id = "ext-model-b"
+target_model_version = "1.0.0"
+previous_prediction_history_paths = ["examples/sprint73_data/sprint72_evidence_gap_state.json"]
+new_prediction_csv_paths = ["examples/sprint73_data/ext_model_b_predictions_v3.csv"]
+model_card_paths = ["examples/sprint73_data/ext_model_b_model_card_v3.json"]
+sequence_export_manifest_paths = ["examples/sprint73_data/ext_model_b_sequence_context.json"]
+offline_evidence_attachment_paths = [
+  "examples/sprint73_data/sprint72_evidence_gap_state.json",
+  "examples/sprint73_data/sprint72_direct_watch_state.json",
+  "examples/sprint73_data/sprint72_control_tower_state.json",
+]
+output_root = "target/soma_ext_model_b_prediction_closure"
+min_coverage_ratio = 1.0
+max_prediction_files = 8
+max_prediction_rows = 16
+max_bytes = 1000000
+require_model_card = true
+require_sequence_id_match = true
+require_no_duplicates = true
+require_probability_sanity = true

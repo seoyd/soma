@@ -1,0 +1,14 @@
+{
+  "fmt_passed": true,
+  "check_passed": true,
+  "domain_suites_passed": true,
+  "safety_guard_suite_passed": true,
+  "cli_safety_suite_passed": true,
+  "determinism_suite_passed": true,
+  "representative_smoke_passed": true,
+  "safety_smoke_passed": true,
+  "full_workspace_started": true,
+  "full_workspace_finished": false,
+  "full_workspace_duration_ms": 180000
+}
+

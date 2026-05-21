@@ -1,0 +1,15 @@
+{
+  "ops_id": "sprint65-external-model-research-ops",
+  "lifecycle_summary": "registered=0 research_candidate=0 watchlisted=1 retired=1",
+  "review_queue_summary": "pending=12 retired=1 blocked=0",
+  "watchlist_summary": "active=1 retired=1 diagnostic=0",
+  "comparability_matrix_status": "PartiallyComparable",
+  "artifact_completeness_summary": "complete=0 mostly_complete=2 missing_critical=0",
+  "evidence_risk_profile_summary": "low=1 medium=0 high=0 critical=1",
+  "leaderboard_change_summary": "newly_eligible=0 newly_blocked=1 rank_changes=1",
+  "final_status": "NeedMorePredictionHistory",
+  "final_recommendation": "RequestMorePredictions",
+  "reason_codes": [
+    "ExternalModelResearchOpsReportBuilt"
+  ]
+}

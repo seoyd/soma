@@ -1,0 +1,31 @@
+{
+  "report_id": "evidence-blur-risk-v1",
+  "candidate_moves": [
+    "control_tower_warning_assertions -> tests/shared_fixture_harness_application_v1.rs",
+    "control_tower_warning_assertions -> tests/workspace_timeout_root_cause.rs",
+    "workspace_timeout_acceptance_assertions -> tests/shared_fixture_harness_application_v1.rs"
+  ],
+  "blur_risks": [
+    "MixedFamilyEvidenceBlur",
+    "ControlTowerWarningBlur",
+    "TimeoutDiagnosticBlur",
+    "CliSurfaceBlur",
+    "DeterminismBlur",
+    "SafetySignalBlur"
+  ],
+  "high_risk_moves": [
+    "control_tower_warning_assertions -> tests/shared_fixture_harness_application_v1.rs",
+    "control_tower_warning_assertions -> tests/workspace_timeout_root_cause.rs",
+    "workspace_timeout_acceptance_assertions -> tests/shared_fixture_harness_application_v1.rs"
+  ],
+  "blur_status": "EvidenceBlurRiskTooHigh",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

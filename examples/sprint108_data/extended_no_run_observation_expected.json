@@ -1,0 +1,23 @@
+{
+  "report_id": "extended-no-run-observation-v1",
+  "attempted": false,
+  "timeout_ms": 180000,
+  "observed_duration_ms": null,
+  "last_observed_target": null,
+  "cargo_stdout_present": false,
+  "cargo_stderr_present": false,
+  "rustc_processes_after_timeout": 0,
+  "cargo_processes_after_timeout": 0,
+  "observation_status": "DiagnosticOnly",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "DeterministicPath",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt",
+    "LocalFileOnly"
+  ]
+}

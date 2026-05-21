@@ -1,0 +1,20 @@
+{
+  "gate_id": "fifth-patch-resume-gate-v5",
+  "assertion_destination_proof_status": "AssertionDestinationProofStillMissing",
+  "evidence_blur_gate_status": "EvidenceBlurRiskTooHigh",
+  "stop_decision_status": "ConsolidationStopRecommendedWithWarnings",
+  "safety_status": "SafetyCoveragePreserved",
+  "acceptance_truth_status": "AcceptanceTruthReadyWithWarnings",
+  "resume_allowed_for_later_sprint": false,
+  "fifth_patch_applied_this_sprint": false,
+  "gate_status": "FifthPatchStillBlocked",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

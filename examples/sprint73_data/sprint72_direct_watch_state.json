@@ -1,0 +1,34 @@
+{
+  "direct_watch_readiness_score_v2": {
+    "score_id": "sprint72-offline-evidence-attachment-direct-watch-score",
+    "current_score_min": 82,
+    "current_score_max": 86,
+    "target_score_min": 86,
+    "target_score_max": 90,
+    "briefing_ready": false,
+    "owner_checklist_ready": true,
+    "evidence_gap_reduced": true,
+    "model_attention_clear": false,
+    "next_actions_clear": true,
+    "forbidden_controls_absent": true,
+    "readiness_status": "NeedsEvidence",
+    "reason_codes": [
+      "DirectWatchReadinessScoreV2Built"
+    ]
+  },
+  "operator_briefing_readiness_gate": {
+    "gate_id": "sprint72-offline-evidence-attachment-briefing-readiness-gate",
+    "direct_watch_score": "86~90",
+    "evidence_gap_status": "StillNeedsData",
+    "owner_checklist_status": "OwnerChecklistClosed",
+    "forbidden_controls_absent": true,
+    "static_only": true,
+    "paper_only": true,
+    "no_secret_values": true,
+    "gate_status": "BlockedByEvidenceGap",
+    "final_recommendation": "AttachMoreEvidence",
+    "reason_codes": [
+      "OperatorBriefingReadinessGateBuilt"
+    ]
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "local_import_reuse_covered": true,
+  "missing_auth_behavior_covered": true,
+  "source_class_preserved": true,
+  "no_lookahead_preserved": true,
+  "storage_budget_covered": true,
+  "deterministic_output_covered": true,
+  "recovery_status": "CandleExpansionOpsReduced"
+}

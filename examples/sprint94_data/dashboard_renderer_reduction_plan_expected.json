@@ -1,0 +1,67 @@
+{
+  "plan_id": "sprint94-dashboard-renderer-recover-plan",
+  "target_files": [
+    "tests/dashboard_renderer_suite.rs",
+    "tests/control_tower_v1_suite.rs",
+    "tests/control_tower_briefing_suite.rs"
+  ],
+  "donor_files": [
+    "tests/dashboard_v1_renderer.rs",
+    "tests/dashboard_snapshot.rs",
+    "tests/dashboard_state.rs",
+    "tests/dashboard_panels.rs",
+    "tests/artifact_rendering_suite.rs"
+  ],
+  "actions": [
+    "VerifyGroupedSuiteCoverage",
+    "MoveRemainingAssertions",
+    "RemoveDuplicateSetupOnly",
+    "ApplySharedFixtureHarness",
+    "ReduceDashboardStateFixtureDuplication",
+    "ReduceHtmlGoldenDuplication",
+    "ReduceJsonTxtGoldenDuplication",
+    "ConsolidateSecretRedactionFixture",
+    "KeepSeparateForIsolation"
+  ],
+  "assertions_to_preserve": [
+    "static local renderer outputs without action controls",
+    "dashboard snapshot artifact generation limits",
+    "dashboard config remote rejection and no broker/order/account fields",
+    "missing reports stay reason-coded instead of fatal",
+    "research-only dashboard state with deterministic fingerprint",
+    "provider/evidence/committee/chair/risk panel invariants",
+    "secret-state redaction isolation",
+    "redaction report determinism isolation"
+  ],
+  "safety_guards_to_preserve": [
+    "static read-only html",
+    "local-only output paths",
+    "paper/research-only labels",
+    "secret redaction across html/json/txt",
+    "no browser execution",
+    "no order/account/trade controls",
+    "no external remote assets",
+    "deterministic rendering"
+  ],
+  "dashboard_state_fixture_duplication": [
+    "dashboard_snapshot.rs duplicated dashboard source config setup",
+    "dashboard_panels.rs duplicated dashboard snapshot build helper"
+  ],
+  "html_golden_duplication": [
+    "dashboard_v1_renderer.rs duplicated safe static HTML checks already covered by grouped suites",
+    "dashboard_renderer_suite.rs now carries the owner_action_draft_dir assertion"
+  ],
+  "json_txt_golden_duplication": [
+    "dashboard_snapshot.rs duplicated dashboard_state.json/dashboard_state.txt artifact checks"
+  ],
+  "secret_redaction_fixture_duplication": [
+    "artifact_rendering_suite.rs secret-state fixture remains isolated instead of being duplicated"
+  ],
+  "expected_target_delta": -4,
+  "semantic_risk": "Low",
+  "plan_status": "DashboardReductionPlanReady",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

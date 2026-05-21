@@ -1,0 +1,35 @@
+{
+  "ledger_id": "cumulative-safe-patch-ledger-v3",
+  "patch_count": 4,
+  "retired_targets": [
+    "tests/shared_fixture_harness_expansion_plan_v2.rs",
+    "tests/shared_output_dir_helper_application_v1.rs",
+    "tests/shared_render_helper_application_v1.rs",
+    "tests/shared_toml_builder_application_v1.rs"
+  ],
+  "migrated_assertions": [
+    "shared_toml_builder_matches_expected_json",
+    "shared_toml_builder_preserves_local_only_validation"
+  ],
+  "preserved_assertions": [
+    "shared_fixture_harness_keeps_toml_builder_assertions",
+    "shared_fixture_harness_matches_expected_json"
+  ],
+  "cumulative_assertion_delta": 0,
+  "cumulative_equivalent_coverage_refs": [
+    "equivalent-coverage-proof-v3"
+  ],
+  "safety_sentinel_refs": [
+    "safety-sentinel-preservation-v4"
+  ],
+  "ledger_status": "CumulativeSafePatchLedgerReady",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

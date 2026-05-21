@@ -1,0 +1,18 @@
+import_id = "sprint63-external-prediction-valid"
+sequence_export_manifest_path = "examples/sprint63_data/sequence_export_manifest.json"
+prediction_csv_paths = ["examples/sprint63_data/external_predictions_valid.csv"]
+model_card_paths = ["examples/sprint63_data/external_model_card_valid.json"]
+baseline_reference_paths = ["examples/sprint63_data/baseline_reference.json"]
+trinity_reference_paths = ["examples/sprint63_data/trinity_reference.json"]
+no_trade_reference_paths = ["examples/sprint63_data/no_trade_reference.json"]
+risk_denied_reference_paths = ["examples/sprint63_data/risk_denied_reference.json"]
+output_root = "target/soma_external_prediction_eval"
+max_prediction_rows = 64
+max_models = 2
+max_bytes = 5000000
+require_model_card = true
+require_sequence_id_match = true
+require_model_version = true
+require_no_duplicate_sequence_predictions = true
+require_probability_sanity = true
+

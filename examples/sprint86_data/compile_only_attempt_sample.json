@@ -1,0 +1,9 @@
+{
+  "started": true,
+  "finished": true,
+  "passed": true,
+  "duration_ms": 240000,
+  "blocked_binaries": [],
+  "suspected_crates": ["soma_zero"]
+}
+

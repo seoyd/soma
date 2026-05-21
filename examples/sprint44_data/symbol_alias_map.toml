@@ -1,0 +1,5 @@
+[[aliases]]
+raw_symbol = "AAPL.OQ"
+normalized_symbol = "AAPL"
+provider_symbol = "AAPL"
+market = "USEquity"

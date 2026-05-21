@@ -1,0 +1,27 @@
+{
+  "report_id": "sprint111-baseline-truth-import",
+  "focused_matrix_passed": true,
+  "focused_target_count": 15,
+  "focused_test_count": 16,
+  "cli_smoke_passed": true,
+  "cli_smoke_count": 10,
+  "cargo_check_passed": true,
+  "cargo_build_passed": true,
+  "no_run_timeout_seconds": 300,
+  "no_run_exit_code": 124,
+  "full_timeout_seconds": 300,
+  "full_exit_code": 124,
+  "timeout_cleanup_verified": true,
+  "fifth_patch_blocked": true,
+  "imported_as_full_acceptance": false,
+  "import_status": "Sprint111TruthImportedWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

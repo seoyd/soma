@@ -1,0 +1,13 @@
+materialization_id = "committee_materialize_evidence_lane"
+input_artifact_paths = ["examples/committee_evidence_lane_btc_krw.json"]
+allowed_artifact_kinds = ["EvidenceLaneReport"]
+output_root = "target/soma_committee_materialization"
+max_rows = 8
+max_symbols = 8
+max_bytes = 200000
+allow_summary_derived_rows = false
+prefer_row_level_artifacts = true
+require_provenance = false
+min_data_quality = 0.7
+reason_codes = []
+

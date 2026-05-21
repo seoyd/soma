@@ -1,0 +1,18 @@
+{
+  "report_id": "cargo-json-actual-parse-v2",
+  "parsed_messages_by_kind": [],
+  "compiler_artifact_count": 0,
+  "compiler_message_count": 0,
+  "build_script_count": 0,
+  "test_executable_count": 0,
+  "status": "CargoJsonActualParseDeferred",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

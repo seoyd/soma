@@ -1,0 +1,21 @@
+{
+  "report_id": "entry-timing-condition-completeness-report",
+  "timing_proposal_count": 4,
+  "proposals_with_confirmation_conditions": 4,
+  "proposals_with_cancellation_conditions": 4,
+  "proposals_with_earliest_latest_window": 4,
+  "proposals_with_volatility_cooldown_condition": 1,
+  "proposals_with_risk_checks": 4,
+  "proposals_missing_conditions": 0,
+  "timing_condition_status": "EntryTimingConditionsComplete",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

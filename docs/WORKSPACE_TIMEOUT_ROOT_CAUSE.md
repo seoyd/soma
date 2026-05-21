@@ -1,0 +1,1 @@
+Workspace timeout root-cause reporting distinguishes no-run timeouts, full timeouts, cargo JSON progress, target stall attribution, and evidence strength. These outputs diagnose likely causes such as integration binary fanout or link-time cost, but they do not claim acceptance.

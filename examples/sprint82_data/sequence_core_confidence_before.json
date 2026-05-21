@@ -1,0 +1,9 @@
+{
+  "confidence_status": "ConfidenceReadyWithWarnings",
+  "mamba3fin_confidence": "Low",
+  "gated_deltanet_confidence": "Low",
+  "committee_confidence": "Medium",
+  "no_trade_confidence": "Medium",
+  "risk_denied_confidence": "Medium"
+}
+

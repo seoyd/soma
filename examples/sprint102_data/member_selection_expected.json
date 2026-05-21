@@ -1,0 +1,86 @@
+{
+  "report_id": "archetype-member-selection-report",
+  "selected_members": [
+    "CommonRiskManager",
+    "BurniskeTokenValuation",
+    "HayesLiquidityDerivatives",
+    "SaylorTreasury",
+    "GrahamMarginOfSafety",
+    "MarksCycleRiskPremium",
+    "LarryWilliamsStatisticalSeasonality",
+    "RaschkeProcessManager"
+  ],
+  "skipped_members": [
+    "MungerErrorFilter",
+    "BogleLowCostCore",
+    "MinerviniVcpBreakout",
+    "PtjMacroAsymmetricRisk",
+    "LynchGarpConsumerGrowth",
+    "TurtleTrendSystem",
+    "VitalikProtocolFundamental",
+    "BuffettQualityMoat",
+    "OneilCanSlimMarketDirection",
+    "WillyWooOnchainCycle",
+    "WonyottiBtcRisk"
+  ],
+  "watchlist_members": [
+    "SaylorTreasury"
+  ],
+  "diagnostic_members": [
+    "TurtleTrendSystem",
+    "VitalikProtocolFundamental",
+    "BuffettQualityMoat"
+  ],
+  "inactive_members": [
+    "OneilCanSlimMarketDirection",
+    "WillyWooOnchainCycle",
+    "WonyottiBtcRisk"
+  ],
+  "selection_by_group": {
+    "CommonRisk": [
+      "CommonRiskManager"
+    ],
+    "Crypto": [
+      "BurniskeTokenValuation",
+      "HayesLiquidityDerivatives",
+      "SaylorTreasury"
+    ],
+    "LongTermEquity": [
+      "GrahamMarginOfSafety",
+      "MarksCycleRiskPremium"
+    ],
+    "ShortTermSwing": [
+      "LarryWilliamsStatisticalSeasonality",
+      "RaschkeProcessManager"
+    ]
+  },
+  "selection_by_confidence": {
+    "A": [
+      "SaylorTreasury",
+      "GrahamMarginOfSafety",
+      "MarksCycleRiskPremium"
+    ],
+    "B": [
+      "HayesLiquidityDerivatives",
+      "LarryWilliamsStatisticalSeasonality"
+    ],
+    "BPlus": [
+      "BurniskeTokenValuation",
+      "RaschkeProcessManager"
+    ],
+    "Sentinel": [
+      "CommonRiskManager"
+    ]
+  },
+  "selection_status": "MemberSelectionReadyWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

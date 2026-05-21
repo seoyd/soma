@@ -1,0 +1,22 @@
+[
+  {
+    "source_kind": "KISOfficialEvidence",
+    "source_report_path": "examples/sprint56_data/owner_review_candidate.json#AAPL",
+    "symbol": "AAPL",
+    "market": "USEquity",
+    "timeframe": "1d",
+    "horizon_bars": 16,
+    "evidence_status": "ready",
+    "data_quality_score": 0.90,
+    "outcome_link_count": 3,
+    "counterfactual_count": 2,
+    "signal_summary": "owner review candidate",
+    "expected_edge": 0.015,
+    "expected_drawdown": 0.015,
+    "timestamp_ms": 1715000000500,
+    "confidence": 0.62,
+    "spread_bps": 5.0,
+    "trade_value": 700000.0,
+    "regime": "Range"
+  }
+]

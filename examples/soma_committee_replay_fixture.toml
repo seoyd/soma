@@ -1,0 +1,7 @@
+replay_id = "committee_replay_fixture"
+committee_smoke_config_path = "examples/soma_committee_smoke_fixture.toml"
+output_root = "target/soma_committee_replay"
+max_decisions = 10
+require_core_check = false
+reason_codes = []
+

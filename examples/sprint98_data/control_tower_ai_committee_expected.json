@@ -1,0 +1,130 @@
+{
+  "panel_id": "control-tower-ai-committee-panel-v1",
+  "architecture_status": "CommitteeOwnedCoreReadyWithWarnings",
+  "member_count": 8,
+  "member_rows": [
+    {
+      "member_id": "trend-scout",
+      "current_status": "ActivePaperMember",
+      "style": "TrendFollower",
+      "model_core": "BaselineHeuristic",
+      "current_analysis_task": "review offline evidence for 005930.KS | keep proposal generation paper-only and local-only",
+      "proposal": "EnterLong",
+      "debate_stance": "SupportEntry",
+      "promotion_demotion_status": "Keep",
+      "wait_risk_no_trade_reason": "wait until next paper candle confirms breakout"
+    },
+    {
+      "member_id": "risk-defender",
+      "current_status": "ActivePaperMember",
+      "style": "RiskFirstDefensive",
+      "model_core": "RiskGovernorAdapter",
+      "current_analysis_task": "review offline evidence for 005930.KS | keep proposal generation paper-only and local-only",
+      "proposal": "RiskDeny",
+      "debate_stance": "WaitForConfirmation",
+      "promotion_demotion_status": "Keep",
+      "wait_risk_no_trade_reason": "wait until downside risk compresses"
+    },
+    {
+      "member_id": "regime-interpreter",
+      "current_status": "ActivePaperMember",
+      "style": "RegimeCycle",
+      "model_core": "GatedDeltaNetDeferred",
+      "current_analysis_task": "review offline evidence for 005930.KS | keep proposal generation paper-only and local-only",
+      "proposal": "WatchCandidate",
+      "debate_stance": "SupportEntry",
+      "promotion_demotion_status": "Keep",
+      "wait_risk_no_trade_reason": "wait for regime persistence across two paper closes"
+    },
+    {
+      "member_id": "macro-interpreter",
+      "current_status": "WatchOnlyMember",
+      "style": "MacroReflexive",
+      "model_core": "ExternalPredictionPrototype",
+      "current_analysis_task": "review offline evidence for 005930.KS | keep proposal generation paper-only and local-only",
+      "proposal": "Wait",
+      "debate_stance": "RequestMoreEvidence",
+      "promotion_demotion_status": "Keep",
+      "wait_risk_no_trade_reason": "wait until macro volatility cools"
+    },
+    {
+      "member_id": "value-skeptic",
+      "current_status": "ActivePaperMember",
+      "style": "ValueDiscipline",
+      "model_core": "Mamba3FinDeferred",
+      "current_analysis_task": "review offline evidence for 005930.KS | keep proposal generation paper-only and local-only",
+      "proposal": "RequestMoreEvidence",
+      "debate_stance": "OpposeEntry",
+      "promotion_demotion_status": "Keep",
+      "wait_risk_no_trade_reason": "wait for pullback support and valuation evidence"
+    },
+    {
+      "member_id": "liquidity-executor",
+      "current_status": "DiagnosticOnlyMember",
+      "style": "LiquidityExecution",
+      "model_core": "RuleBasedFallback",
+      "current_analysis_task": "review offline evidence for 005930.KS | keep proposal generation paper-only and local-only",
+      "proposal": "NoTrade",
+      "debate_stance": "NotParticipating",
+      "promotion_demotion_status": "Watchlist",
+      "wait_risk_no_trade_reason": "wait until spread compresses materially"
+    },
+    {
+      "member_id": "counterfactual-reviewer",
+      "current_status": "ActivePaperMember",
+      "style": "CounterfactualHistorian",
+      "model_core": "CounterfactualEvaluator",
+      "current_analysis_task": "review offline evidence for 005930.KS | keep proposal generation paper-only and local-only",
+      "proposal": "RequestMoreEvidence",
+      "debate_stance": "RequestMoreEvidence",
+      "promotion_demotion_status": "Watchlist",
+      "wait_risk_no_trade_reason": "wait for stronger analog cases"
+    },
+    {
+      "member_id": "chair-candidate",
+      "current_status": "ActivePaperMember",
+      "style": "QualityCompounder",
+      "model_core": "RuleBasedFallback",
+      "current_analysis_task": "review offline evidence for 005930.KS | keep proposal generation paper-only and local-only",
+      "proposal": "WatchCandidate",
+      "debate_stance": "SupportEntry",
+      "promotion_demotion_status": "Demote",
+      "wait_risk_no_trade_reason": "wait until debate and rulebook checks close"
+    }
+  ],
+  "active_debate_sessions": [
+    "sprint98-committee-owned-core-example-debate-session"
+  ],
+  "recent_entry_timing_proposals": [
+    "trend-scout-entry-window",
+    "risk-defender-no-entry",
+    "macro-interpreter-wait-window",
+    "value-skeptic-pullback"
+  ],
+  "chairman_rulebook_status": "RulebookReadyWithWarnings",
+  "promotion_demotion_summary": "promotions=0;demotions=1",
+  "risk_governor_summary": "final veto remains absolute; chairman cannot bypass risk governor",
+  "paper_decision_summary": "NeedMoreEvidence",
+  "runtime_deferred_summary": "member cores remain runtime-deferred, training-deferred, and local paper-only",
+  "warnings": [
+    "static/read-only control tower only",
+    "no train/runtime/live/order/account/browser controls",
+    "workspace acceptance still separate from Sprint 98 architecture readiness"
+  ],
+  "next_actions": [
+    "keep runtime and training deferred",
+    "collect more paper evidence before any non-watch paper approval",
+    "run workspace acceptance separately from Sprint 98 bundle readiness"
+  ],
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

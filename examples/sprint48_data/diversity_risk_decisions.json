@@ -1,0 +1,20 @@
+{
+  "risk_decisions": [
+    {
+      "row_id": "aapl-tp",
+      "risk_governor_decision": "Reject"
+    },
+    {
+      "row_id": "msft-sl",
+      "risk_governor_decision": "Reject"
+    },
+    {
+      "row_id": "nvda-te",
+      "risk_governor_decision": "Reject"
+    },
+    {
+      "row_id": "aapl-4h-tp",
+      "risk_governor_decision": "Reject"
+    }
+  ]
+}

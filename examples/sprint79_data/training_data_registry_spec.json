@@ -1,0 +1,11 @@
+{
+  "training_data_registry_spec": {
+    "dataset_registry_present": true,
+    "dataset_version_manifest_present": true,
+    "source_class_manifest_present": true,
+    "training_storage_manifest_present": true,
+    "storage_layout_manifest_present": true,
+    "lineage_manifest_present": true
+  }
+}
+

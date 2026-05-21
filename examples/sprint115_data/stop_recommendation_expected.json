@@ -1,0 +1,22 @@
+{
+  "report_id": "sprint114-stop-recommendation-carry-forward",
+  "stop_recommendation_present": true,
+  "stop_reason": "Sprint 114 left AssertionMigrationBlocked and FifthPatchStillBlocked, so StopConsolidationRecommended carries forward until proof and evidence blur gates pass.",
+  "fifth_patch_blocked": true,
+  "assertion_migration_blocked": true,
+  "risk_review_refs": [
+    "AssertionDestinationProofGateV1",
+    "EvidenceBlurRiskGateV1",
+    "WorkspaceTimeoutTrackSplitReportV1"
+  ],
+  "carry_forward_status": "StopRecommendationCarriedForwardWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

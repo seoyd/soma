@@ -1,0 +1,32 @@
+{
+  "snapshots": [
+    {
+      "timestamp_ms": 150,
+      "active_processes": [
+        {
+          "package_name": "soma_zero",
+          "target_name": "krx_evidence_suite",
+          "command_line": "rustc --crate-name krx_evidence_suite tests/krx_evidence_suite.rs",
+          "family": "KrxEvidence"
+        }
+      ]
+    },
+    {
+      "timestamp_ms": 520,
+      "active_processes": [
+        {
+          "package_name": "soma_zero",
+          "target_name": "dashboard_renderer_recovery",
+          "command_line": "rustc --crate-name dashboard_renderer_recovery tests/dashboard_renderer_recovery.rs",
+          "family": "DashboardRenderer"
+        },
+        {
+          "package_name": "soma_zero",
+          "target_name": "workspace_safety_guard_suite",
+          "command_line": "rustc --crate-name workspace_safety_guard_suite tests/workspace_safety_guard_suite.rs",
+          "family": "CommitteeCliSafety"
+        }
+      ]
+    }
+  ]
+}

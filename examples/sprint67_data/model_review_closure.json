@@ -1,0 +1,162 @@
+{
+  "closure_id": "sprint66-model-review-close",
+  "actions": [
+    {
+      "review_id": "ext-model-a:1.0.0:CalibrationDriftReview",
+      "model_id": "ext-model-a",
+      "model_version": "1.0.0",
+      "action": "RetireModelVersion",
+      "allowed": true,
+      "applied": true,
+      "note": "retire superseded version after newer comparable version is available",
+      "reason_codes": [
+        "ModelReviewClosureReportBuilt"
+      ]
+    },
+    {
+      "review_id": "ext-model-a:1.0.0:MambaFamilyReview",
+      "model_id": "ext-model-a",
+      "model_version": "1.0.0",
+      "action": "RetireModelVersion",
+      "allowed": true,
+      "applied": true,
+      "note": "retire superseded version after newer comparable version is available",
+      "reason_codes": [
+        "ModelReviewClosureReportBuilt"
+      ]
+    },
+    {
+      "review_id": "ext-model-a:1.0.0:NewModelVersion",
+      "model_id": "ext-model-a",
+      "model_version": "1.0.0",
+      "action": "RetireModelVersion",
+      "allowed": true,
+      "applied": true,
+      "note": "retire superseded version after newer comparable version is available",
+      "reason_codes": [
+        "ModelReviewClosureReportBuilt"
+      ]
+    },
+    {
+      "review_id": "ext-model-a:1.1.0:LeaderboardChangeReview",
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "action": "KeepResearchCandidate",
+      "allowed": true,
+      "applied": true,
+      "note": "keep current candidate on operator watchlist",
+      "reason_codes": [
+        "ModelReviewClosureReportBuilt"
+      ]
+    },
+    {
+      "review_id": "ext-model-a:1.1.0:MambaFamilyReview",
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "action": "KeepResearchCandidate",
+      "allowed": true,
+      "applied": true,
+      "note": "keep current candidate on operator watchlist",
+      "reason_codes": [
+        "ModelReviewClosureReportBuilt"
+      ]
+    },
+    {
+      "review_id": "ext-model-a:1.1.0:NewModelVersion",
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "action": "KeepResearchCandidate",
+      "allowed": true,
+      "applied": true,
+      "note": "keep current candidate on operator watchlist",
+      "reason_codes": [
+        "ModelReviewClosureReportBuilt"
+      ]
+    },
+    {
+      "review_id": "ext-model-a:1.1.0:OwnerRequestedReview",
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "action": "KeepResearchCandidate",
+      "allowed": true,
+      "applied": true,
+      "note": "keep current candidate on operator watchlist",
+      "reason_codes": [
+        "ModelReviewClosureReportBuilt"
+      ]
+    },
+    {
+      "review_id": "ext-model-b:1.0.0:CalibrationDriftReview",
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "action": "RequestMorePredictions",
+      "allowed": true,
+      "applied": true,
+      "note": "coverage remains weak and needs more offline prediction history",
+      "reason_codes": [
+        "ModelReviewClosureReportBuilt"
+      ]
+    },
+    {
+      "review_id": "ext-model-b:1.0.0:CoverageWeakReview",
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "action": "RequestMorePredictions",
+      "allowed": true,
+      "applied": true,
+      "note": "coverage remains weak and needs more offline prediction history",
+      "reason_codes": [
+        "ModelReviewClosureReportBuilt"
+      ]
+    },
+    {
+      "review_id": "ext-model-b:1.0.0:LeaderboardChangeReview",
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "action": "RequestMorePredictions",
+      "allowed": true,
+      "applied": true,
+      "note": "coverage remains weak and needs more offline prediction history",
+      "reason_codes": [
+        "ModelReviewClosureReportBuilt"
+      ]
+    },
+    {
+      "review_id": "ext-model-b:1.0.0:NewModelVersion",
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "action": "RequestMorePredictions",
+      "allowed": true,
+      "applied": true,
+      "note": "coverage remains weak and needs more offline prediction history",
+      "reason_codes": [
+        "ModelReviewClosureReportBuilt"
+      ]
+    },
+    {
+      "review_id": "ext-model-b:1.0.0:OwnerRequestedReview",
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "action": "RequestMorePredictions",
+      "allowed": true,
+      "applied": true,
+      "note": "coverage remains weak and needs more offline prediction history",
+      "reason_codes": [
+        "ModelReviewClosureReportBuilt"
+      ]
+    }
+  ],
+  "input_pending_count": 12,
+  "closed_count": 12,
+  "deferred_count": 0,
+  "retired_count": 3,
+  "downgraded_count": 0,
+  "request_more_predictions_count": 5,
+  "calibration_review_count": 0,
+  "risk_review_count": 0,
+  "output_pending_count": 0,
+  "closure_status": "NeedsMorePredictions",
+  "reason_codes": [
+    "ModelReviewClosureReportBuilt"
+  ]
+}

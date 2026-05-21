@@ -1,0 +1,14 @@
+{
+  "evidence_depth_sufficient": false,
+  "counterfactual_depth_sufficient": false,
+  "calibration_baseline_ready": true,
+  "external_bridge_present": true,
+  "inference_budget_ok": true,
+  "risk_governor_integrated": true,
+  "control_tower_visible": true,
+  "mamba3_runtime_present": false,
+  "rust_native_training_present": false,
+  "signal_model_weak": false,
+  "warnings": ["KIS outcome-link depth remains thin"],
+  "reason_codes": ["DeterministicPath"]
+}

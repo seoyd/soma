@@ -1,0 +1,6 @@
+{
+  "kis_outcome_depth_bottleneck": true,
+  "signal_model_weak": false,
+  "keep_committee_only": true,
+  "reason_codes": ["DeterministicPath"]
+}

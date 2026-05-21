@@ -1,0 +1,19 @@
+closure_id = "sprint61-kis-evidence-closure"
+expansion_plan_config_path = "examples/soma_kis_evidence_expansion_plan_v2.toml"
+evidence_hardening_config_path = "examples/soma_evidence_hardening.toml"
+outcome_link_coverage_paths = [
+  "examples/sprint61_data/outcome_link_depth_sample.json",
+  "examples/sprint61_data/label_alignment_sample.json",
+]
+counterfactual_coverage_paths = ["examples/sprint61_data/no_lookahead_sequence_sample.json"]
+control_tower_refresh_config_path = "examples/soma_control_tower_refresh_after_kis_depth.toml"
+output_root = "target/sprint61"
+run_expansion_plan = true
+run_local_import_validation = true
+run_candle_sufficiency = true
+run_outcome_link_closure = true
+run_counterfactual_completion = true
+run_complete_row_closure = true
+run_evidence_hardening = true
+run_control_tower_refresh = true
+

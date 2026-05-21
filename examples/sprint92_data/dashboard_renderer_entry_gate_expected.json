@@ -1,0 +1,13 @@
+{
+  "gate_id": "sprint92-krx-warning-close-dashboard-entry",
+  "krx_warning_closure_status": "KrxWarningsClosedWithIsolatedSentinel",
+  "krx_secret_safety_status": "KeepIsolatedSentinel",
+  "krx_genuine_reduction_status": "KrxEvidenceReducedWithIsolatedSentinel",
+  "krx_gate_cause_status": "NeedMoreObservation",
+  "dashboard_renderer_next_allowed": false,
+  "gate_status": "DashboardRendererEntryBlockedByUnknownGateCause",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

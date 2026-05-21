@@ -1,0 +1,18 @@
+{
+  "report_id": "consolidation-paused-carry-forward",
+  "consolidation_paused": true,
+  "consolidation_stopped": true,
+  "fifth_patch_blocked": true,
+  "no_assertion_movement": true,
+  "no_target_retirement": true,
+  "carry_forward_status": "ConsolidationPausedCarriedForward",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

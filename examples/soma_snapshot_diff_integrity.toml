@@ -1,0 +1,21 @@
+coverage_id = "sprint69-snapshot-diff-integrity"
+model_ops_trace_bundle_paths = ["examples/sprint69_data/model_ops_trace_bundle.json"]
+model_version_diff_trace_paths = ["examples/sprint69_data/model_version_diff_trace.json"]
+baseline_snapshot_paths = [
+  "examples/sprint68_data/baseline_snapshot.json",
+  "examples/sprint69_data/baseline_snapshot_ext_model_a_1_0_0.json",
+  "examples/sprint69_data/baseline_snapshot_ext_model_a_1_1_0.json",
+  "examples/sprint69_data/baseline_snapshot_ext_model_a_1_2_0.json",
+]
+current_snapshot_paths = [
+  "examples/sprint68_data/current_snapshot.json",
+  "examples/sprint69_data/current_snapshot_ext_model_a_1_2_0.json",
+  "examples/sprint69_data/current_snapshot_ext_model_b_1_0_0.json",
+]
+model_version_summary_card_paths = ["examples/sprint68_data/model_version_summary_cards.json"]
+regression_evidence_trace_paths = ["examples/sprint69_data/regression_evidence_trace.json"]
+prediction_history_pack_paths = ["examples/sprint67_data/prediction_history_pack.json"]
+external_model_research_ops_paths = ["examples/sprint67_data/external_model_research_ops.json"]
+conservative_leaderboard_paths = ["examples/sprint67_data/conservative_leaderboard.json"]
+output_root = "target/soma_baseline_trace_coverage"
+

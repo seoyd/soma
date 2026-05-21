@@ -1,0 +1,64 @@
+{
+  "plan_id": "cli-smoke-tiering-plan-v2",
+  "representative_commands": [
+    "sprint106-workspace-acceptance-recover",
+    "workspace-compile-cost-profile-v3",
+    "test-binary-inventory-v3",
+    "test-binary-explosion-attribution",
+    "safe-test-binary-consolidation-plan-v2",
+    "workspace-no-run-recovery-gate-v7",
+    "acceptance-truth-gate-v7",
+    "control-tower-workspace-acceptance-recovery-v7"
+  ],
+  "exhaustive_commands": [
+    "real-no-run-completion-v22",
+    "real-full-workspace-attempt-v22",
+    "cargo-json-no-run-capture-v2",
+    "integration-target-cost-ranking",
+    "long-running-rustc-snapshot-v2",
+    "fixture-setup-cost-attribution-v2",
+    "artifact-render-cost-attribution-v2",
+    "cli-smoke-cost-attribution-v2",
+    "high-cost-test-family-clusters",
+    "shared-fixture-harness-expansion-plan-v2",
+    "cli-smoke-tiering-plan-v2",
+    "workspace-full-acceptance-gate-v7",
+    "focused-vs-full-bridge-v3",
+    "acceptance-recovery-patch-plan",
+    "acceptance-recovery-verification",
+    "safety-coverage-preservation-v22"
+  ],
+  "safety_commands": [
+    "acceptance-truth-gate-v7",
+    "safety-coverage-preservation-v22",
+    "control-tower-workspace-acceptance-recovery-v7"
+  ],
+  "commands_moved_to_exhaustive": [
+    "real-no-run-completion-v22",
+    "real-full-workspace-attempt-v22",
+    "cargo-json-no-run-capture-v2"
+  ],
+  "commands_kept_representative": [
+    "sprint106-workspace-acceptance-recover",
+    "workspace-compile-cost-profile-v3",
+    "test-binary-inventory-v3",
+    "test-binary-explosion-attribution",
+    "safe-test-binary-consolidation-plan-v2",
+    "workspace-no-run-recovery-gate-v7",
+    "acceptance-truth-gate-v7",
+    "control-tower-workspace-acceptance-recovery-v7"
+  ],
+  "safety_commands_preserved": true,
+  "tiering_status": "CliSmokeTieringReadyWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "DeterministicPath",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt",
+    "LocalFileOnly"
+  ]
+}

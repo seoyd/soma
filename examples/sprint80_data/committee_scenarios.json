@@ -1,0 +1,10 @@
+{
+  "committee_scenarios": {
+    "scenarios": [
+      {"scenario_id": "committee-official-1", "source_class": "official_kis_market_data", "official": true, "research_only": false, "diagnostic_only": false, "fixture_only": false},
+      {"scenario_id": "committee-research-1", "source_class": "research_counterfactual", "official": false, "research_only": true, "diagnostic_only": false, "fixture_only": false},
+      {"scenario_id": "committee-diagnostic-1", "source_class": "diagnostic_fixture", "official": false, "research_only": false, "diagnostic_only": true, "fixture_only": true}
+    ]
+  }
+}
+

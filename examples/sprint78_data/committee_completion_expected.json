@@ -1,0 +1,10 @@
+{
+  "committee_completion_expected": {
+    "target_official_scenario_count": 12,
+    "target_outcome_linked_count": 256,
+    "groupthink_warning_rate": 0.18,
+    "disagreement_rate": 0.27,
+    "quality_status": "CommitteeCoreReadyResearchOnly"
+  }
+}
+

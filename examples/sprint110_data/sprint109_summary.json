@@ -1,0 +1,1148 @@
+{
+  "sprint108_verification_carry_forward_report": {
+    "report_id": "sprint108-verification-carry-forward",
+    "sprint107_reconciliation_carried_forward": true,
+    "assertion_preservation_guard_carried_forward": true,
+    "equivalent_coverage_guard_carried_forward": true,
+    "safety_all_guard_carried_forward": true,
+    "timeout_cleanup_interpretation_carried_forward": true,
+    "acceptance_truth_guard_carried_forward": true,
+    "carry_forward_status": "Sprint108VerificationCarriedForward",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "previous_patch_ledger_carry_forward_report": {
+    "report_id": "previous-patch-ledger-carry-forward",
+    "previous_ledgers_loaded": 2,
+    "previous_retired_targets_loaded": 2,
+    "previous_assertion_delta_total": 0,
+    "previous_sample_backed_binary_delta": -2,
+    "missing_previous_ledger_count": 0,
+    "carry_forward_status": "PreviousPatchLedgerCarriedForward",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "third_safe_consolidation_patch_selection_report": {
+    "report_id": "third-safe-consolidation-patch-selection",
+    "previous_patch_ids": [
+      "assertion-migration-ledger-v2",
+      "retired-narrow-target-manifest-v2",
+      "second-safe-consolidation-patch-selection"
+    ],
+    "candidate_targets": [
+      "tests/shared_render_helper_application_v1.rs",
+      "tests/shared_toml_builder_application_v1.rs"
+    ],
+    "selected_target_group": "render-helper-diagnostics",
+    "selection_reason": "selected the next smallest helper/render target while keeping previously retired targets and sentinel-heavy surfaces excluded",
+    "risk_class": "Low",
+    "target_count_to_consolidate": 1,
+    "expected_assertion_moves": 2,
+    "expected_binary_delta": -1,
+    "selected_status": "ThirdPatchCandidateSelected",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "third_consolidation_candidate_risk_review_report": {
+    "report_id": "third-consolidation-candidate-risk-review",
+    "selected_target_group": "render-helper-diagnostics",
+    "semantic_risk": "Low",
+    "safety_risk": "Low",
+    "determinism_risk": "Low",
+    "cli_surface_risk": "Low",
+    "fixture_risk": "Low",
+    "reason_risk": "Low",
+    "cumulative_patch_interaction_risk": "Low",
+    "risk_review_status": "ThirdCandidateRiskAccepted",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "assertion_migration_ledger_v3": {
+    "ledger_id": "assertion-migration-ledger-v3",
+    "previous_ledger_refs": [
+      "assertion-migration-ledger-v2"
+    ],
+    "moved_assertions": [
+      "shared_render_helper_matches_expected_json",
+      "shared_render_helper_preserves_snapshot_order"
+    ],
+    "preserved_assertions": [
+      "shared_fixture_harness_matches_expected_json",
+      "shared_fixture_harness_preserves_render_order"
+    ],
+    "unchanged_assertions": [
+      "committee_cli_safety_isolated",
+      "workspace_cli_safety_isolated"
+    ],
+    "source_targets": [
+      "tests/shared_render_helper_application_v1.rs"
+    ],
+    "destination_targets": [
+      "tests/shared_fixture_harness_application_v1.rs"
+    ],
+    "assertion_count_before": 4,
+    "assertion_count_after": 4,
+    "assertion_delta": 0,
+    "duplicate_equivalent_collapses": 0,
+    "ledger_status": "AssertionMigrationLedgerReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "cumulative_assertion_migration_ledger_report": {
+    "report_id": "cumulative-assertion-migration-ledger",
+    "ledger_count": 3,
+    "cumulative_moved_assertions": 6,
+    "cumulative_preserved_assertions": 8,
+    "cumulative_assertion_delta": 0,
+    "retired_target_count": 3,
+    "coverage_gap_count": 0,
+    "cumulative_status": "CumulativeAssertionLedgerReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "assertion_preservation_verification_report_v3": {
+    "report_id": "assertion-preservation-verification-v3",
+    "ledger_status": "AssertionMigrationLedgerReady",
+    "assertion_count_before": 4,
+    "assertion_count_after": 4,
+    "migrated_assertion_count": 2,
+    "missing_assertion_count": 0,
+    "duplicate_assertion_count": 0,
+    "equivalent_coverage_count": 2,
+    "preservation_status": "AssertionsPreserved",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "equivalent_coverage_proof_report_v2": {
+    "report_id": "equivalent-coverage-proof-v2",
+    "previous_equivalent_coverage_refs": [
+      "equivalent-coverage-proof-v1"
+    ],
+    "retired_targets": [
+      "tests/shared_render_helper_application_v1.rs"
+    ],
+    "destination_targets": [
+      "tests/shared_fixture_harness_application_v1.rs"
+    ],
+    "moved_assertions": [
+      "shared_render_helper_matches_expected_json",
+      "shared_render_helper_preserves_snapshot_order"
+    ],
+    "equivalent_coverage_assertions": [
+      "shared_fixture_harness_keeps_render_helper_assertions",
+      "shared_fixture_harness_keeps_snapshot_order_assertions"
+    ],
+    "coverage_gap_count": 0,
+    "cumulative_coverage_gap_count": 0,
+    "proof_status": "EquivalentCoverageProven",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "retired_target_safety_audit_report_v3": {
+    "report_id": "retired-target-safety-audit-v3",
+    "retired_targets": [
+      "tests/shared_render_helper_application_v1.rs"
+    ],
+    "cumulative_retired_targets": [
+      "tests/shared_fixture_harness_expansion_plan_v2.rs",
+      "tests/shared_output_dir_helper_application_v1.rs",
+      "tests/shared_render_helper_application_v1.rs"
+    ],
+    "high_risk_target_retired": false,
+    "safety_sentinel_retired": false,
+    "assertion_ledger_refs": [
+      "assertion-migration-ledger-v3"
+    ],
+    "equivalent_coverage_refs": [
+      "equivalent-coverage-proof-v2"
+    ],
+    "audit_status": "RetiredTargetSafetyReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "safety_sentinel_preservation_report_v3": {
+    "report_id": "safety-sentinel-preservation-v3",
+    "committee_cli_safety_preserved": true,
+    "workspace_cli_safety_preserved": true,
+    "workspace_safety_guard_preserved": true,
+    "workspace_determinism_preserved": true,
+    "paper_lifecycle_safety_preserved": true,
+    "runtime_deferred_guard_preserved": true,
+    "no_order_account_guard_preserved": true,
+    "no_hidden_skip_guard_preserved": true,
+    "sentinel_status": "SafetySentinelsPreserved",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "shared_fixture_harness_expansion_application_report_v3": {
+    "report_id": "shared-fixture-harness-expansion-application-v3",
+    "previous_application_refs": [
+      "shared-fixture-harness-expansion-application-v2"
+    ],
+    "new_targets_affected": [
+      "tests/shared_fixture_harness_application_v1.rs"
+    ],
+    "json_loader_expanded": true,
+    "toml_loader_expanded": true,
+    "csv_loader_expanded": true,
+    "fixture_normalization_expanded": true,
+    "duplicated_loaders_removed": 1,
+    "deterministic_output_preserved": true,
+    "application_status": "SharedFixtureHarnessExpanded",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "shared_render_helper_expansion_report_v3": {
+    "report_id": "shared-render-helper-expansion-v3",
+    "new_targets_affected": [
+      "tests/shared_fixture_harness_application_v1.rs"
+    ],
+    "txt_render_helper_expanded": true,
+    "json_render_helper_expanded": true,
+    "html_render_helper_expanded": true,
+    "stable_sorting_preserved": true,
+    "snapshot_order_preserved": true,
+    "duplicated_render_helpers_removed": 1,
+    "application_status": "SharedRenderHelperExpanded",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "shared_output_dir_helper_expansion_report_v3": {
+    "report_id": "shared-output-dir-helper-expansion-v3",
+    "new_targets_affected": [
+      "tests/shared_fixture_harness_application_v1.rs"
+    ],
+    "deterministic_output_roots_preserved": true,
+    "cleanup_policy_preserved": true,
+    "no_silent_deletion": true,
+    "duplicated_setup_removed": 0,
+    "application_status": "SharedOutputDirHelperExpanded",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "shared_toml_builder_expansion_report_v3": {
+    "report_id": "shared-toml-builder-expansion-v3",
+    "new_targets_affected": [
+      "tests/shared_fixture_harness_application_v1.rs"
+    ],
+    "local_only_path_validation_preserved": true,
+    "remote_path_rejection_preserved": true,
+    "duplicated_toml_builders_removed": 0,
+    "application_status": "SharedTomlBuilderExpanded",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "cli_smoke_tiering_application_report_v3": {
+    "report_id": "cli-smoke-tiering-application-v3",
+    "previous_representative_smoke_commands": [
+      "sprint107-safe-consolidation-patch",
+      "safe-consolidation-patch-selection",
+      "assertion-migration-ledger-v1",
+      "shared-fixture-harness-application-v1"
+    ],
+    "previous_exhaustive_smoke_commands": [
+      "shared-output-dir-helper-application-v1",
+      "shared-render-helper-application-v1",
+      "shared-toml-builder-application-v1",
+      "timeout-cleanup-verification-v1"
+    ],
+    "previous_safety_smoke_commands": [
+      "safety-sentinel-preservation-v1",
+      "acceptance-truth-gate-v8",
+      "control-tower-safe-consolidation-patch-v1"
+    ],
+    "representative_smoke_commands": [
+      "sprint107-safe-consolidation-patch",
+      "safe-consolidation-patch-selection",
+      "assertion-migration-ledger-v1",
+      "shared-fixture-harness-application-v1"
+    ],
+    "exhaustive_smoke_commands": [
+      "shared-output-dir-helper-application-v1",
+      "shared-render-helper-application-v1",
+      "shared-toml-builder-application-v1",
+      "timeout-cleanup-verification-v1",
+      "workspace-cargo-json-progress-capture-v3"
+    ],
+    "safety_smoke_commands": [
+      "safety-sentinel-preservation-v1",
+      "acceptance-truth-gate-v8",
+      "control-tower-safe-consolidation-patch-v1"
+    ],
+    "commands_moved_to_exhaustive": [
+      "workspace-cargo-json-progress-capture-v3"
+    ],
+    "safety_commands_preserved": true,
+    "no_safety_smoke_removed": true,
+    "application_status": "CliSmokeTieringApplied",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "artifact_render_cache_decision_report_v3": {
+    "report_id": "artifact-render-cache-decision-v3",
+    "cache_enabled": false,
+    "why_enabled_or_disabled": "disabled by default for the third safe patch",
+    "local_only_cache": true,
+    "deterministic_keys": true,
+    "secret_free_cache": true,
+    "decision_status": "ArtifactCacheDecisionReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "consolidated_test_target_manifest_v3": {
+    "manifest_id": "consolidated-test-target-manifest-v3",
+    "consolidated_targets": [
+      "tests/shared_fixture_harness_application_v1.rs"
+    ],
+    "grouped_destination_targets": [
+      "tests/shared_fixture_harness_application_v1.rs"
+    ],
+    "preserved_targets": [
+      "tests/committee_cli_safety.rs",
+      "tests/workspace_cli_safety_suite.rs",
+      "tests/workspace_determinism_suite.rs",
+      "tests/paper_lifecycle_warning_closure.rs"
+    ],
+    "isolated_targets": [
+      "tests/committee_cli_safety.rs",
+      "tests/workspace_cli_safety_suite.rs",
+      "tests/workspace_determinism_suite.rs",
+      "tests/paper_lifecycle_warning_closure.rs"
+    ],
+    "manifest_status": "ConsolidatedTargetManifestReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "retired_narrow_target_manifest_v3": {
+    "manifest_id": "retired-narrow-target-manifest-v3",
+    "retired_targets": [
+      "tests/shared_render_helper_application_v1.rs"
+    ],
+    "retirement_reason": "retired after moving shared render helper assertions into shared_fixture_harness_application_v1",
+    "assertion_migration_refs": [
+      "shared_render_helper_matches_expected_json",
+      "shared_render_helper_preserves_snapshot_order"
+    ],
+    "equivalent_coverage_refs": [
+      "shared_fixture_harness_keeps_render_helper_assertions",
+      "shared_fixture_harness_keeps_snapshot_order_assertions"
+    ],
+    "retired_status": "NarrowTargetsRetiredAfterMigration",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "test_binary_delta_report_v6": {
+    "report_id": "test-binary-delta-v6",
+    "target_count_before": 998,
+    "target_count_after": 997,
+    "integration_binary_count_before": 998,
+    "integration_binary_count_after": 997,
+    "binary_delta": -1,
+    "sprint107_delta": -1,
+    "sprint108_delta": -1,
+    "sprint109_delta": -1,
+    "measured": false,
+    "sample_backed": true,
+    "timing_available": false,
+    "cumulative_sample_backed_delta": -3,
+    "delta_status": "TestBinaryDeltaSampleBacked",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "cumulative_binary_delta_report_v1": {
+    "report_id": "cumulative-binary-delta-v1",
+    "patch_count": 3,
+    "sample_backed_deltas": [
+      -1,
+      -1,
+      -1
+    ],
+    "cumulative_sample_backed_delta": -3,
+    "measured_deltas": [],
+    "cumulative_measured_delta": null,
+    "measured_claim_allowed": false,
+    "cumulative_status": "CumulativeBinaryDeltaReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "measured_or_sample_backed_delta_gate_v3": {
+    "gate_id": "measured-or-sample-backed-delta-gate-v3",
+    "delta_report_status": "TestBinaryDeltaSampleBacked",
+    "measured": false,
+    "sample_backed": true,
+    "timing_available": false,
+    "can_claim_measured_reduction": false,
+    "gate_status": "SampleBackedOnly",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "post_patch_focused_test_run_report_v3": {
+    "report_id": "post-patch-focused-test-run-v3",
+    "command_group": [
+      "cargo test --test safe_consolidation_patch_v3 --quiet",
+      "cargo test --test assertion_migration_ledger_v3 --quiet",
+      "cargo test --test equivalent_coverage_proof_v2 --quiet"
+    ],
+    "tests_run": 0,
+    "tests_passed": 0,
+    "tests_failed": 0,
+    "focused_passed": false,
+    "run_status": "FocusedTestsNotRun",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "post_patch_cli_smoke_run_report_v3": {
+    "report_id": "post-patch-cli-smoke-run-v3",
+    "representative_smoke_run": false,
+    "safety_smoke_run": false,
+    "exhaustive_smoke_run": false,
+    "representative_passed": false,
+    "safety_passed": false,
+    "smoke_status": "CliSmokeNotRun",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "post_patch_safety_run_report_v3": {
+    "report_id": "post-patch-safety-run-v3",
+    "safety_targets_run": 0,
+    "safety_targets_passed": 0,
+    "committee_cli_safety_passed": false,
+    "workspace_cli_safety_passed": false,
+    "workspace_safety_guard_passed": false,
+    "paper_lifecycle_safety_passed": false,
+    "safety_status": "SafetyRunNotRun",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "post_patch_determinism_run_report_v3": {
+    "report_id": "post-patch-determinism-run-v3",
+    "determinism_targets_run": 0,
+    "determinism_targets_passed": 0,
+    "deterministic_output_verified": false,
+    "nondeterminism_detected": false,
+    "determinism_status": "DeterminismRunNotRun",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "post_patch_workspace_no_run_attempt_v25": {
+    "attempt_id": "post-patch-workspace-no-run-v25",
+    "command": "cargo test --workspace --no-run --quiet",
+    "started": false,
+    "finished": false,
+    "passed": null,
+    "duration_ms": null,
+    "timeout_ms": 180000,
+    "stopped_due_to_timeout": false,
+    "last_observed_target": null,
+    "extended_observation_enabled": false,
+    "cargo_json_progress_capture_ref": null,
+    "child_process_cleanup_verified": false,
+    "no_run_status": "NotRun",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "post_patch_workspace_full_attempt_v25": {
+    "attempt_id": "post-patch-workspace-full-v25",
+    "command": "cargo test --workspace --quiet",
+    "started": false,
+    "finished": false,
+    "passed": null,
+    "duration_ms": null,
+    "timeout_ms": 180000,
+    "stopped_due_to_timeout": false,
+    "last_observed_test": null,
+    "full_status": "NotRun",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "extended_no_run_observation_report_v2": {
+    "report_id": "extended-no-run-observation-v2",
+    "attempted": false,
+    "timeout_ms": 180000,
+    "observed_duration_ms": null,
+    "observation_window_ms": 180000,
+    "last_observed_target": null,
+    "observed_target_count": 0,
+    "last_cargo_json_artifact": null,
+    "cargo_stdout_present": false,
+    "cargo_stderr_present": false,
+    "rustc_processes_after_timeout": 0,
+    "cargo_processes_after_timeout": 0,
+    "observation_status": "DiagnosticOnly",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "workspace_cargo_json_progress_capture_v3": {
+    "capture_id": "workspace-cargo-json-progress-capture-v3",
+    "command": "cargo test --workspace --no-run --message-format=json",
+    "attempted": false,
+    "message_count": 0,
+    "compiler_artifact_count": 0,
+    "compiler_message_count": 0,
+    "test_executable_count": 0,
+    "last_seen_targets": [],
+    "last_seen_artifacts": [],
+    "capture_status": "CargoJsonProgressCaptureNotRun",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "timeout_cleanup_verification_report_v2": {
+    "report_id": "timeout-cleanup-verification-v2",
+    "timeout_occurred": false,
+    "child_process_cleanup_attempted": false,
+    "remaining_cargo_processes": 0,
+    "remaining_rustc_processes": 0,
+    "cleanup_status": "NotApplicable",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "workspace_no_run_recovery_gate_v10": {
+    "gate_id": "workspace-no-run-recovery-gate-v10",
+    "previous_no_run_status": "NotRun",
+    "current_no_run_status": "NotRun",
+    "binary_delta_status": "TestBinaryDeltaSampleBacked",
+    "consolidation_patch_status": "ThirdPatchCandidateSelected",
+    "safety_status": "SafetySentinelsPreserved",
+    "no_run_recovered": false,
+    "gate_status": "NoRunNotRun",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "workspace_full_acceptance_gate_v10": {
+    "gate_id": "workspace-full-acceptance-gate-v10",
+    "previous_full_status": "NotRun",
+    "current_full_status": "NotRun",
+    "no_run_gate_status": "NoRunNotRun",
+    "safety_status": "SafetySentinelsPreserved",
+    "full_workspace_finished": false,
+    "full_workspace_passed": null,
+    "full_workspace_accepted": false,
+    "gate_status": "FullWorkspaceNotRun",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "focused_vs_full_bridge_v6": {
+    "bridge_id": "focused-vs-full-bridge-v6",
+    "focused_tests_passed": false,
+    "cli_smoke_passed": false,
+    "safety_tests_passed": false,
+    "determinism_tests_passed": false,
+    "no_run_finished": false,
+    "full_workspace_finished": false,
+    "full_workspace_passed": null,
+    "can_claim_full_acceptance": false,
+    "bridge_status": "FullGateStillOpen",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "acceptance_truth_gate_v10": {
+    "gate_id": "acceptance-truth-gate-v10",
+    "no_run_status": "NotRun",
+    "full_workspace_status": "NotRun",
+    "focused_status": "FocusedTestsNotRun",
+    "cli_smoke_status": "CliSmokeNotRun",
+    "safety_status": "SafetyRunNotRun",
+    "verification_status": "AcceptanceRecoveryVerified",
+    "can_claim_full_acceptance": false,
+    "truth_status": "AcceptanceTruthReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "acceptance_recovery_patch_impact_report_v4": {
+    "report_id": "acceptance-recovery-patch-impact-v4",
+    "patch_applied": true,
+    "target_delta_status": "CumulativeBinaryDeltaReady",
+    "expected_binary_delta": -1,
+    "measured_binary_delta": null,
+    "expected_duration_delta_ms": null,
+    "measured_duration_delta_ms": null,
+    "cumulative_sample_backed_delta": -3,
+    "cumulative_measured_delta": null,
+    "impact_status": "PatchImpactSampleBacked",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "acceptance_recovery_verification_report_v4": {
+    "report_id": "acceptance-recovery-verification-v4",
+    "assertions_preserved": true,
+    "safety_tests_preserved": true,
+    "cli_safety_preserved": true,
+    "determinism_preserved": true,
+    "no_hidden_skips": true,
+    "no_overclaim": true,
+    "no_order_path_added": true,
+    "no_runtime_path_added": true,
+    "verification_status": "AcceptanceRecoveryVerified",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "regression_surface_audit_report_v3": {
+    "report_id": "regression-surface-audit-v3",
+    "changed_files": [
+      "src/bin/soma_experiment.rs",
+      "src/league/sprint109_safe_consolidation_patch_v3.rs",
+      "tests/shared_fixture_harness_application_v1.rs",
+      "tests/shared_render_helper_application_v1.rs"
+    ],
+    "changed_tests": [
+      "tests/shared_fixture_harness_application_v1.rs",
+      "tests/shared_render_helper_application_v1.rs"
+    ],
+    "changed_cli": [
+      "src/bin/soma_experiment.rs"
+    ],
+    "changed_docs": [
+      "docs/SPRINT109_SAFE_CONSOLIDATION_PATCH_V3.md",
+      "docs/SPRINT109_REPORT.md"
+    ],
+    "changed_examples": [
+      "examples/soma_sprint109_safe_consolidation_patch_v3.toml",
+      "examples/soma_acceptance_truth_gate_v10.toml"
+    ],
+    "changed_fixtures": [
+      "examples/sprint109_data/sprint108_summary.json"
+    ],
+    "high_risk_changes": [],
+    "regression_status": "RegressionSurfaceClean",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "dual_agent_patch_verification_report_v3": {
+    "report_id": "dual-agent-patch-verification-v3",
+    "implementation_agent": "GPT-5.4 (gpt-5.4)",
+    "verification_agent": "GPT-5.5 verification role",
+    "independent_verification_performed": true,
+    "verification_reconciliation_status": "Sprint108VerificationCarriedForward",
+    "blocking_findings_remaining": false,
+    "safety_verified": true,
+    "architecture_verified": true,
+    "acceptance_truth_verified": true,
+    "verification_status": "DualAgentPatchVerifiedWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "safety_coverage_preservation_report_v25": {
+    "report_id": "safety-coverage-preservation-v25",
+    "live_trading_guard_present": true,
+    "broker_guard_present": true,
+    "order_guard_present": true,
+    "account_guard_present": true,
+    "runtime_llm_guard_present": true,
+    "mamba_runtime_guard_present": true,
+    "gated_runtime_guard_present": true,
+    "model_training_guard_present": true,
+    "rust_neural_training_guard_present": true,
+    "python_training_dependency_guard_present": true,
+    "secret_guard_present": true,
+    "no_lookahead_guard_present": true,
+    "source_boundary_guard_present": true,
+    "browser_execution_guard_present": true,
+    "ui_order_control_guard_present": true,
+    "committee_owned_core_guard_present": true,
+    "investor_impersonation_guard_present": true,
+    "paper_candidate_not_order_guard_present": true,
+    "no_silent_confidence_upgrade_guard_present": true,
+    "focused_not_full_acceptance_guard_present": true,
+    "no_hidden_skip_guard_present": true,
+    "assertion_preservation_guard_present": true,
+    "safety_sentinel_preservation_guard_present": true,
+    "cumulative_assertion_ledger_guard_present": true,
+    "equivalent_coverage_v2_guard_present": true,
+    "timeout_cleanup_v2_guard_present": true,
+    "cargo_json_progress_truth_guard_present": true,
+    "third_patch_no_broad_consolidation_guard_present": true,
+    "safety_status": "SafetyCoveragePreserved",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "control_tower_safe_consolidation_patch_panel_v3": {
+    "panel_id": "control-tower-safe-consolidation-patch-panel-v3",
+    "patch_selection_status": "ThirdPatchCandidateSelected",
+    "verification_carry_forward_status": "Sprint108VerificationCarriedForward",
+    "assertion_ledger_status": "AssertionMigrationLedgerReady",
+    "cumulative_ledger_status": "CumulativeAssertionLedgerReady",
+    "equivalent_coverage_status": "EquivalentCoverageProven",
+    "safety_sentinel_status": "SafetySentinelsPreserved",
+    "binary_delta_status": "TestBinaryDeltaSampleBacked",
+    "cumulative_binary_delta_status": "CumulativeBinaryDeltaReady",
+    "no_run_status": "NoRunNotRun",
+    "full_status": "FullWorkspaceNotRun",
+    "cargo_json_progress_status": "CargoJsonProgressCaptureNotRun",
+    "timeout_cleanup_status": "NotApplicable",
+    "next_actions": [
+      "Run the focused Sprint 109 suite.",
+      "Rerun workspace no-run/full attempts with explicit timeouts."
+    ],
+    "warnings": [
+      "Static/read-only panel only.",
+      "No run-tests button or train/runtime/live/order/account/browser controls."
+    ],
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "control_tower_workspace_acceptance_recovery_panel_v10": {
+    "panel_id": "control-tower-workspace-acceptance-recovery-panel-v10",
+    "previous_no_run_status": "NotRun",
+    "current_no_run_status": "NotRun",
+    "previous_full_status": "NotRun",
+    "current_full_status": "NotRun",
+    "binary_delta_status": "TestBinaryDeltaSampleBacked",
+    "consolidation_patch_status": "ThirdPatchCandidateSelected",
+    "focused_full_bridge_status": "FullGateStillOpen",
+    "acceptance_truth_status": "AcceptanceTruthReadyWithWarnings",
+    "safety_coverage_status": "SafetyCoveragePreserved",
+    "runtime_deferred_summary": "Runtime, training, live inference, live trading, broker/order/account, dashboard serve, and browser execution remain deferred.",
+    "next_actions": [
+      "Keep focused/no-run/full truth separated.",
+      "Require a real finished and passed full workspace run before acceptance."
+    ],
+    "warnings": [
+      "Static/read-only panel only.",
+      "No run-tests button or train/runtime/live/order/account/browser controls."
+    ],
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "storage_report": {
+    "report_id": "safe-consolidation-patch-v3-storage-report",
+    "output_dir": "target/soma_sprint109_safe_consolidation_patch_v3/sprint109-safe-consolidation-patch-v3",
+    "file_count": 43,
+    "files": [
+      "sprint108_verification_carry_forward.txt",
+      "previous_patch_ledger_carry_forward.txt",
+      "third_safe_consolidation_patch_selection.txt",
+      "third_consolidation_candidate_risk_review.txt",
+      "assertion_migration_ledger_v3.txt",
+      "cumulative_assertion_migration_ledger.txt",
+      "assertion_preservation_verification_v3.txt",
+      "equivalent_coverage_proof_v2.txt",
+      "retired_target_safety_audit_v3.txt",
+      "safety_sentinel_preservation_v3.txt",
+      "shared_fixture_harness_expansion_application_v3.txt",
+      "shared_render_helper_expansion_v3.txt",
+      "shared_output_dir_helper_expansion_v3.txt",
+      "shared_toml_builder_expansion_v3.txt",
+      "cli_smoke_tiering_application_v3.txt",
+      "artifact_render_cache_decision_v3.txt",
+      "consolidated_test_target_manifest_v3.txt",
+      "retired_narrow_target_manifest_v3.txt",
+      "test_binary_delta_v6.txt",
+      "cumulative_binary_delta_v1.txt",
+      "measured_or_sample_backed_delta_gate_v3.txt",
+      "post_patch_focused_test_run_v3.txt",
+      "post_patch_cli_smoke_run_v3.txt",
+      "post_patch_safety_run_v3.txt",
+      "post_patch_determinism_run_v3.txt",
+      "post_patch_workspace_no_run_attempt_v25.txt",
+      "post_patch_workspace_full_attempt_v25.txt",
+      "extended_no_run_observation_v2.txt",
+      "workspace_cargo_json_progress_capture_v3.txt",
+      "timeout_cleanup_verification_v2.txt",
+      "workspace_no_run_recovery_gate_v10.txt",
+      "workspace_full_acceptance_gate_v10.txt",
+      "focused_vs_full_bridge_v6.txt",
+      "acceptance_truth_gate_v10.txt",
+      "acceptance_recovery_patch_impact_v4.txt",
+      "acceptance_recovery_verification_v4.txt",
+      "regression_surface_audit_v3.txt",
+      "dual_agent_patch_verification_v3.txt",
+      "safety_coverage_preservation_v25.txt",
+      "control_tower_safe_consolidation_patch_panel_v3.txt",
+      "control_tower_workspace_acceptance_recovery_panel_v10.txt",
+      "storage_report.txt",
+      "summary.txt"
+    ],
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "DeterministicPath",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt",
+      "LocalFileOnly"
+    ]
+  },
+  "final_summary": "## 1. Sprint summary\n\n- selected_target=render-helper-diagnostics selected_status=ThirdPatchCandidateSelected cumulative_sample_backed_delta=-3.\n\n## 2. Why Sprint 109 was needed\n\n- Third smallest safe consolidation patch after Sprint 107/108; full workspace acceptance remains FullWorkspaceNotRun.\n\n## 3. Files added\n\n- None.\n\n## 4. Files changed\n\n- src/league/sprint109_safe_consolidation_patch_v3.rs; src/bin/soma_experiment.rs; tests/shared_fixture_harness_application_v1.rs; docs and fixtures.\n\n## 5. Sprint 108 verification carry-forward\n\n- status=Sprint108VerificationCarriedForward.\n\n## 6. Previous patch ledger carry-forward\n\n- status=PreviousPatchLedgerCarriedForward loaded_ledgers=2 loaded_retired_targets=2.\n\n## 7. Third safe consolidation patch selection\n\n- status=ThirdPatchCandidateSelected target_group=render-helper-diagnostics.\n\n## 8. Third candidate risk review\n\n- status=ThirdCandidateRiskAccepted semantic_risk=Low safety_risk=Low.\n\n## 9. Assertion migration ledger v3\n\n- status=AssertionMigrationLedgerReady assertion_delta=0.\n\n## 10. Cumulative assertion migration ledger\n\n- status=CumulativeAssertionLedgerReady moved=6 preserved=8 cumulative_delta=0.\n\n## 11. Assertion preservation verification v3\n\n- status=AssertionsPreserved missing_assertions=0.\n\n## 12. Equivalent coverage proof v2\n\n- status=EquivalentCoverageProven coverage_gap_count=0.\n\n## 13. Retired target safety audit v3\n\n- status=RetiredTargetSafetyReady retired_targets=1.\n\n## 14. Safety sentinel preservation v3\n\n- status=SafetySentinelsPreserved.\n\n## 15. Shared fixture/render/output/TOML helper expansion v3\n\n- fixture=SharedFixtureHarnessExpanded render=SharedRenderHelperExpanded output=SharedOutputDirHelperExpanded toml=SharedTomlBuilderExpanded.\n\n## 16. Artifact render cache decision v3\n\n- status=ArtifactCacheDecisionReady cache_enabled=false.\n\n## 17. CLI smoke tiering v3\n\n- status=CliSmokeTieringApplied safety_commands_preserved=true.\n\n## 18. Consolidated / retired target manifests v3\n\n- consolidated=ConsolidatedTargetManifestReady retired=NarrowTargetsRetiredAfterMigration.\n\n## 19. Test binary delta v6\n\n- status=TestBinaryDeltaSampleBacked sprint109_delta=Some(-1).\n\n## 20. Cumulative binary delta v1\n\n- status=CumulativeBinaryDeltaReady cumulative_sample_backed_delta=-3.\n\n## 21. Measured vs sample-backed delta gate v3\n\n- status=SampleBackedOnly can_claim_measured_reduction=false.\n\n## 22. Post-patch focused / CLI / safety / determinism runs\n\n- focused=FocusedTestsNotRun cli=CliSmokeNotRun safety=SafetyRunNotRun determinism=DeterminismRunNotRun.\n\n## 23. Post-patch workspace no-run attempt v25\n\n- status=NotRun finished=false passed=None.\n\n## 24. Post-patch workspace full attempt v25\n\n- status=NotRun finished=false passed=None.\n\n## 25. Extended no-run observation v2\n\n- status=DiagnosticOnly attempted=false.\n\n## 26. Workspace cargo JSON progress capture v3\n\n- status=CargoJsonProgressCaptureNotRun attempted=false.\n\n## 27. Timeout cleanup verification v2\n\n- status=NotApplicable timeout_occurred=false.\n\n## 28. Workspace no-run recovery gate v10\n\n- status=NoRunNotRun recovered=false.\n\n## 29. Workspace full acceptance gate v10\n\n- status=FullWorkspaceNotRun accepted=false.\n\n## 30. Focused-vs-full bridge v6\n\n- status=FullGateStillOpen can_claim_full_acceptance=false.\n\n## 31. Acceptance truth gate v10\n\n- status=AcceptanceTruthReadyWithWarnings can_claim_full_acceptance=false.\n\n## 32. Patch impact v4\n\n- status=PatchImpactSampleBacked measured_binary_delta=None.\n\n## 33. Acceptance recovery verification v4\n\n- status=AcceptanceRecoveryVerified.\n\n## 34. Regression surface audit v3\n\n- status=RegressionSurfaceClean high_risk_changes=0.\n\n## 35. Dual-agent patch verification v3\n\n- status=DualAgentPatchVerifiedWithWarnings implementation_agent=GPT-5.4 (gpt-5.4) verification_agent=GPT-5.5 verification role.\n\n## 36. Safety coverage preservation v25\n\n- status=SafetyCoveragePreserved.\n\n## 37. Control Tower safe consolidation patch panel v3\n\n- patch_selection_status=ThirdPatchCandidateSelected full_status=FullWorkspaceNotRun.\n\n## 38. Control Tower workspace acceptance recovery panel v10\n\n- acceptance_truth_status=AcceptanceTruthReadyWithWarnings safety_coverage_status=SafetyCoveragePreserved.\n\n## 39. Output bundle\n\n- file_count=43.\n\n## 40. CLI and examples\n\n- Sprint 109 CLI/report commands remain local-only and research-only.\n\n## 41. Tests added\n\n- Sprint 109 focused, CLI safety, determinism, assertion, equivalent coverage, and panel tests.\n\n## 42. Test results\n\n- Bundle records diagnostic status only; external cargo results must be reported separately.\n\n## 43. Patch application status\n\n- status=ThirdPatchCandidateSelected.\n\n## 44. Assertion / cumulative ledger status\n\n- assertion=AssertionMigrationLedgerReady cumulative=CumulativeAssertionLedgerReady.\n\n## 45. Equivalent coverage status\n\n- status=EquivalentCoverageProven.\n\n## 46. Safety sentinel status\n\n- status=SafetySentinelsPreserved.\n\n## 47. No-run recovery status\n\n- status=NoRunNotRun.\n\n## 48. Full workspace acceptance status\n\n- status=FullWorkspaceNotRun.\n\n## 49. Binary delta status\n\n- sample_backed=true measured=false cumulative=-3.\n\n## 50. Runtime deferred status\n\n- Runtime, training, live inference, live trading, broker/order/account, Mamba/Gated runtime, dashboard serve, browser execution remain deferred/forbidden.\n\n## 51. Workspace acceptance truth status\n\n- status=AcceptanceTruthReadyWithWarnings full_acceptance_claim=false.\n\n## 52. Safety coverage status\n\n- status=SafetyCoveragePreserved.\n\n## 53. Risk review\n\n- status=ThirdCandidateRiskAccepted blocking_findings_remaining=false.\n\n## 54. Deferred items\n\n- Full workspace acceptance remains open unless cargo test --workspace --quiet finishes and passes.\n\n## 55. Next gstack sprint recommendation\n\n- Continue one low-risk helper/fixture target at a time; keep full acceptance separate from focused verification.\n\n## 56. Final verification stance\n\n- stance=DualAgentPatchVerifiedWithWarnings truth=AcceptanceTruthReadyWithWarnings full=FullWorkspaceNotRun.",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "DeterministicPath",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt",
+    "LocalFileOnly"
+  ]
+}

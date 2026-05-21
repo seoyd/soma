@@ -1,0 +1,38 @@
+{
+  "inventory_id": "residual-before",
+  "records": [
+    { "binary_name": "tests/official_expansion_status_mapping.rs", "test_file": "tests/official_expansion_status_mapping.rs", "family": "OfficialExpansion", "consolidation_candidate": true },
+    { "binary_name": "tests/official_ready_row_inventory.rs", "test_file": "tests/official_ready_row_inventory.rs", "family": "OfficialExpansion", "consolidation_candidate": true },
+    { "binary_name": "tests/committee_scenario_materializer_v2.rs", "test_file": "tests/committee_scenario_materializer_v2.rs", "family": "CommitteeScenarioReplay", "consolidation_candidate": true },
+    { "binary_name": "tests/committee_replay.rs", "test_file": "tests/committee_replay.rs", "family": "CommitteeScenarioReplay", "consolidation_candidate": true },
+    { "binary_name": "tests/control_tower_briefing_panel.rs", "test_file": "tests/control_tower_briefing_panel.rs", "family": "ControlTowerBriefing", "consolidation_candidate": true },
+    { "binary_name": "tests/static_briefing_renderer.rs", "test_file": "tests/static_briefing_renderer.rs", "family": "ControlTowerBriefing", "consolidation_candidate": true },
+    { "binary_name": "tests/control_tower_briefing_final_refresh.rs", "test_file": "tests/control_tower_briefing_final_refresh.rs", "family": "ControlTowerBriefing", "consolidation_candidate": true },
+    { "binary_name": "tests/control_tower_briefing_refresh_v2.rs", "test_file": "tests/control_tower_briefing_refresh_v2.rs", "family": "ControlTowerBriefing", "consolidation_candidate": true },
+    { "binary_name": "tests/external_prediction_import_v2.rs", "test_file": "tests/external_prediction_import_v2.rs", "family": "ExternalPrediction", "consolidation_candidate": true },
+    { "binary_name": "tests/external_model_evaluation.rs", "test_file": "tests/external_model_evaluation.rs", "family": "ExternalPrediction", "consolidation_candidate": true },
+    { "binary_name": "tests/previous_external_comparison.rs", "test_file": "tests/previous_external_comparison.rs", "family": "ExternalPrediction", "consolidation_candidate": true },
+    { "binary_name": "tests/external_model_promotion_gate.rs", "test_file": "tests/external_model_promotion_gate.rs", "family": "ExternalPrediction", "consolidation_candidate": true },
+    { "binary_name": "tests/external_model_card_v2.rs", "test_file": "tests/external_model_card_v2.rs", "family": "ExternalPrediction", "consolidation_candidate": true },
+    { "binary_name": "tests/external_prediction_schema_v2.rs", "test_file": "tests/external_prediction_schema_v2.rs", "family": "ExternalPrediction", "consolidation_candidate": true },
+    { "binary_name": "tests/experiment_determinism.rs", "test_file": "tests/experiment_determinism.rs", "family": "ExperimentDeterminism", "consolidation_candidate": true },
+    { "binary_name": "tests/operator_briefing_determinism.rs", "test_file": "tests/operator_briefing_determinism.rs", "family": "ExperimentDeterminism", "consolidation_candidate": true },
+    { "binary_name": "tests/model_ops_operator_qa.rs", "test_file": "tests/model_ops_operator_qa.rs", "family": "ModelOpsQA", "consolidation_candidate": true },
+    { "binary_name": "tests/external_model_review_queue.rs", "test_file": "tests/external_model_review_queue.rs", "family": "ModelOpsQA", "consolidation_candidate": true },
+    { "binary_name": "tests/external_model_watchlist.rs", "test_file": "tests/external_model_watchlist.rs", "family": "ModelOpsQA", "consolidation_candidate": true },
+    { "binary_name": "tests/external_model_research_ops_cli_safety.rs", "test_file": "tests/external_model_research_ops_cli_safety.rs", "family": "CliSafety", "consolidation_candidate": false, "keep_separate_reason": "retain dedicated external research ops CLI safety isolation" }
+  ],
+  "total_remaining_count": 20,
+  "high_volume_count": 19,
+  "family_distribution": {
+    "OfficialExpansion": 2,
+    "CommitteeScenarioReplay": 2,
+    "ControlTowerBriefing": 4,
+    "ExternalPrediction": 6,
+    "ExperimentDeterminism": 2,
+    "ModelOpsQA": 3,
+    "CliSafety": 1
+  },
+  "inventory_status": "ResidualInventoryReadyWithWarnings"
+}
+

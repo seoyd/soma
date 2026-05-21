@@ -1,0 +1,12 @@
+audit_id = "committee_counterfactual_audit_fixture"
+scenario_pack_paths = ["examples/soma_committee_pack_controlled_official.toml"]
+candle_series_paths = ["examples/committee_candle_series_aapl.json"]
+output_root = "target/soma_committee_counterfactual_audit"
+default_horizon_bars = 24
+default_take_profit_pct = 0.02
+default_stop_loss_pct = 0.01
+max_rows = 20
+build_no_trade_counterfactuals = true
+build_risk_denied_counterfactuals = true
+allow_estimated_when_missing_candles = false
+reason_codes = []

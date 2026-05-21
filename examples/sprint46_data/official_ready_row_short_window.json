@@ -1,0 +1,61 @@
+{
+  "inventory_id": "sprint46-short-window",
+  "items": [
+    {
+      "scenario_row_id": "scenario-aapl-official",
+      "comparable_row_id": "row-aapl-official",
+      "candle_series_id": "aapl_1d_extended",
+      "symbol": "AAPL",
+      "market": "USEquity",
+      "venue": "NASDAQ",
+      "timeframe": "1d",
+      "horizon_bars": 3,
+      "source_kind": "OfficialApiCollected",
+      "source_class": "OfficialNonCrypto",
+      "official_ready_match": true,
+      "benchmark_ready_match": true,
+      "row_level": true,
+      "summary_derived": false,
+      "no_lookahead_safe": true,
+      "has_scenario_row": true,
+      "has_committee_decision": true,
+      "has_chair_decision": true,
+      "has_risk_decision": true,
+      "has_outcome_reference": false,
+      "has_baseline_reference": false,
+      "has_no_trade_counterfactual": false,
+      "has_risk_denied_counterfactual": false,
+      "has_external_reference": false,
+      "completeness_statuses": [
+        "MissingOutcomeReference",
+        "MissingBaselineReference",
+        "MissingNoTradeCounterfactual",
+        "MissingRiskDeniedCounterfactual"
+      ],
+      "buildable_from_available_artifacts": false,
+      "reason_codes": [
+        "DeterministicPath",
+        "LocalFileOnly"
+      ],
+      "row_id": "aapl-short-window",
+      "timestamp_ms": 1700345600000
+    }
+  ],
+  "total_items": 1,
+  "official_ready_match_count": 1,
+  "benchmark_ready_match_count": 1,
+  "complete_comparable_row_count": 0,
+  "incomplete_row_count": 1,
+  "missing_outcome_count": 1,
+  "missing_baseline_count": 1,
+  "missing_no_trade_count": 1,
+  "missing_risk_denied_count": 1,
+  "missing_scenario_count": 0,
+  "summary_derived_only_count": 0,
+  "source_ineligible_count": 0,
+  "inventory_status": "NeedOutcomeReferences",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

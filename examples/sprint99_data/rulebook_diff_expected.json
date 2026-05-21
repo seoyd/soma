@@ -1,0 +1,23 @@
+{
+  "report_id": "rulebook-version-diff-report",
+  "previous_version_id": "chairman-rulebook-v0",
+  "current_version_id": "chairman-rulebook-v1",
+  "added_rules": 4,
+  "removed_rules": 0,
+  "changed_rules": 1,
+  "risk_weight_changes": 0,
+  "evidence_weight_changes": 0,
+  "no_trade_bias_changes": 0,
+  "quorum_changes": 1,
+  "diff_status": "RulebookDiffReadyWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

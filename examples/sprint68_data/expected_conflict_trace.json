@@ -1,0 +1,34 @@
+{
+  "conflicts": [
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.0.0",
+      "conflict_kind": "OwnerVsPolicy",
+      "involved_decisions": [
+        "KeepResearchCandidate:1",
+        "RetireModelVersion:4"
+      ],
+      "source_artifacts": [
+        "trace-artifact-09a8e40dee6d6bc4",
+        "trace-artifact-10be64ad0b75f8c0",
+        "trace-artifact-70d8647da9328c1b",
+        "trace-artifact-7c98eb27d92f8365",
+        "trace-artifact-cff3131bc8b045d8",
+        "trace-artifact-fa4a409ca4271935"
+      ],
+      "severity": "high",
+      "explanation": "owner or policy decisions disagree on whether the model version should be kept",
+      "recommended_resolution": "RequestOwnerReview",
+      "reason_codes": [
+        "DecisionConflictTraceBuilt"
+      ]
+    }
+  ],
+  "conflict_count": 1,
+  "high_severity_count": 1,
+  "no_conflict_count": 3,
+  "report_status": "ConflictsDetected",
+  "reason_codes": [
+    "DecisionConflictTraceReportBuilt"
+  ]
+}

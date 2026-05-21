@@ -1,0 +1,12 @@
+{
+  "report_id": "sprint97-counterfactual-backfill-recover-no-lookahead",
+  "future_outcome_not_used_as_feature": true,
+  "future_bar_not_used_before_timestamp": true,
+  "label_not_used_for_signal": true,
+  "sequence_horizon_safe": true,
+  "no_lookahead_status": "NoLookaheadPreserved",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "model_ops_state": {
+    "external_bridge_ready": true,
+    "committee_comparison_ready": true,
+    "storage_budget_ready": true,
+    "test_budget_ready": true,
+    "control_tower_visibility_ready": true
+  }
+}
+

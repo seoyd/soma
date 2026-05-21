@@ -1,0 +1,20 @@
+{
+  "report_id": "sprint110-baseline-truth-import",
+  "focused_suite_passed": true,
+  "cli_smoke_passed": true,
+  "cargo_build_passed": true,
+  "no_run_timed_out": true,
+  "full_workspace_timed_out": true,
+  "timeout_cleanup_observed": true,
+  "imported_as_full_acceptance": false,
+  "import_status": "Sprint110TruthImportedWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

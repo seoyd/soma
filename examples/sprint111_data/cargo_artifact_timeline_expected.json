@@ -1,0 +1,41 @@
+{
+  "timeline_id": "cargo-artifact-progress-timeline",
+  "artifact_events": [
+    {
+      "target": "tests/shared_fixture_harness_application_v1.rs",
+      "artifact": "target/debug/deps/shared_fixture_harness_application_v1.synthetic",
+      "event_time_ms": 25000,
+      "completed": true
+    },
+    {
+      "target": "tests/workspace_timeout_root_cause.rs",
+      "artifact": "target/debug/deps/workspace_timeout_root_cause.synthetic",
+      "event_time_ms": 180000,
+      "completed": false
+    },
+    {
+      "target": "tests/control_tower_workspace_timeout_root_cause_panel.rs",
+      "artifact": "target/debug/deps/control_tower_workspace_timeout_root_cause_panel.synthetic",
+      "event_time_ms": 235000,
+      "completed": false
+    }
+  ],
+  "first_event_time_ms": 25000,
+  "last_event_time_ms": 235000,
+  "event_count": 3,
+  "last_artifact_by_target": {
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs": "target/debug/deps/control_tower_workspace_timeout_root_cause_panel.synthetic",
+    "tests/shared_fixture_harness_application_v1.rs": "target/debug/deps/shared_fixture_harness_application_v1.synthetic",
+    "tests/workspace_timeout_root_cause.rs": "target/debug/deps/workspace_timeout_root_cause.synthetic"
+  },
+  "timeline_status": "ArtifactTimelineReady",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

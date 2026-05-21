@@ -1,0 +1,11 @@
+{
+  "records": [
+    {
+      "local_path": "examples/sprint74_data/kis_real_canonical_sample.csv",
+      "provider_label": "KIS official local import",
+      "source_class": "OfficialKIS",
+      "downloaded_by_soma": false,
+      "remote_url": null
+    }
+  ]
+}

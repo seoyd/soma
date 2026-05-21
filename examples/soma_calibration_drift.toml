@@ -1,0 +1,34 @@
+registry_id = "sprint64-calibration-drift"
+sequence_export_manifest_paths = ["examples/sprint64_data/sequence_export_manifest.json"]
+feature_schema_manifest_paths = ["examples/sprint64_data/feature_schema.json"]
+label_manifest_paths = ["examples/sprint64_data/label_manifest.json"]
+external_prediction_import_report_paths = [
+  "examples/sprint64_data/import_a_v1.json",
+  "examples/sprint64_data/import_a_v2.json",
+  "examples/sprint64_data/import_b_v1.json",
+]
+external_model_card_paths = [
+  "examples/sprint64_data/model_card_a_v1.json",
+  "examples/sprint64_data/model_card_a_v2.json",
+  "examples/sprint64_data/model_card_b_v1.json",
+]
+external_model_evaluation_report_paths = [
+  "examples/sprint64_data/evaluation_a_v1.json",
+  "examples/sprint64_data/evaluation_a_v2.json",
+  "examples/sprint64_data/evaluation_b_v1.json",
+]
+external_prediction_ablation_report_paths = [
+  "examples/sprint64_data/ablation_a_v1.json",
+  "examples/sprint64_data/ablation_a_v2.json",
+]
+external_model_promotion_gate_paths = [
+  "examples/sprint64_data/promotion_gate_a_v1.json",
+  "examples/sprint64_data/promotion_gate_a_v2.json",
+]
+mamba3fin_contract_paths = ["examples/sprint64_data/mamba_contract_a.json"]
+baseline_reference_paths = ["examples/sprint64_data/baseline_reference.json"]
+trinity_reference_paths = ["examples/sprint64_data/trinity_reference.json"]
+no_trade_reference_paths = ["examples/sprint64_data/no_trade_reference.json"]
+risk_denied_reference_paths = ["examples/sprint64_data/risk_denied_reference.json"]
+output_root = "target/soma_external_artifact_registry"
+

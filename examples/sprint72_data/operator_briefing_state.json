@@ -1,0 +1,946 @@
+{
+  "control_tower_briefing_panel": {
+    "briefing_status": "NeedsMoreEvidence",
+    "deferred_summary": "KIS evidence remains deferred until local artifacts are attached | broker, order, and account controls remain deferred | committee/trinity loop review remains deferred until local loop artifacts are attached | live trading remains deferred | runtime LLM remains deferred | runtime Mamba remains deferred | sequence dataset review remains deferred until local rows are attached",
+    "evidence_attention_summary": "gaps=6 closeable_now=1 requires_data=3",
+    "fragment_links": {
+      "deferred_items": "fragments/deferred_items.html",
+      "model_attention": "fragments/model_attention.html",
+      "next_actions": "fragments/next_actions.html",
+      "owner_review_briefing": "fragments/owner_review_briefing.html"
+    },
+    "model_attention_summary": "ready=1 blocked=1 closed=1",
+    "next_command_blocks": [
+      {
+        "command_id": "sprint71-operator-briefing-briefing-delta",
+        "command_text": "cargo run --quiet --bin soma_experiment -- briefing-delta --config examples/soma_briefing_delta.toml",
+        "expected_output": "briefing delta JSON report",
+        "forbidden_reason": null,
+        "reason_codes": [
+          "RunbookCommandBlockBuilt"
+        ],
+        "safe_to_copy": true,
+        "safe_to_run": true,
+        "title": "Render the current briefing delta"
+      },
+      {
+        "command_id": "sprint71-operator-briefing-control-tower-briefing",
+        "command_text": "cargo run --quiet --bin soma_experiment -- control-tower-briefing --config examples/soma_control_tower_briefing.toml",
+        "expected_output": "control tower briefing panel JSON report",
+        "forbidden_reason": null,
+        "reason_codes": [
+          "RunbookCommandBlockBuilt"
+        ],
+        "safe_to_copy": true,
+        "safe_to_run": true,
+        "title": "Render the one-screen Control Tower briefing panel"
+      },
+      {
+        "command_id": "sprint71-operator-briefing-leaderboard-warning-closure",
+        "command_text": "cargo run --quiet --bin soma_experiment -- leaderboard-warning-closure --config examples/soma_leaderboard_warning_closure.toml",
+        "expected_output": "leaderboard warning closure JSON report",
+        "forbidden_reason": null,
+        "reason_codes": [
+          "RunbookCommandBlockBuilt"
+        ],
+        "safe_to_copy": true,
+        "safe_to_run": true,
+        "title": "Render the leaderboard warning closure report"
+      },
+      {
+        "command_id": "sprint71-operator-briefing-operator-briefing",
+        "command_text": "cargo run --quiet --bin soma_experiment -- operator-briefing --config examples/soma_operator_briefing.toml",
+        "expected_output": "operator briefing JSON report",
+        "forbidden_reason": null,
+        "reason_codes": [
+          "RunbookCommandBlockBuilt"
+        ],
+        "safe_to_copy": true,
+        "safe_to_run": true,
+        "title": "Generate the full static operator briefing"
+      },
+      {
+        "command_id": "sprint71-operator-briefing-operator-decision-queue",
+        "command_text": "cargo run --quiet --bin soma_experiment -- operator-decision-queue --config examples/soma_operator_decision_queue.toml",
+        "expected_output": "operator decision queue JSON report",
+        "forbidden_reason": null,
+        "reason_codes": [
+          "RunbookCommandBlockBuilt"
+        ],
+        "safe_to_copy": true,
+        "safe_to_run": true,
+        "title": "Render the operator decision queue"
+      },
+      {
+        "command_id": "sprint71-operator-briefing-owner-action-checklist",
+        "command_text": "cargo run --quiet --bin soma_experiment -- owner-action-checklist --config examples/soma_owner_action_checklist.toml",
+        "expected_output": "owner action checklist JSON report",
+        "forbidden_reason": null,
+        "reason_codes": [
+          "RunbookCommandBlockBuilt"
+        ],
+        "safe_to_copy": true,
+        "safe_to_run": true,
+        "title": "Render the owner action checklist"
+      },
+      {
+        "command_id": "sprint71-operator-briefing-retirement-evidence-completion",
+        "command_text": "cargo run --quiet --bin soma_experiment -- retirement-evidence-completion --config examples/soma_retirement_evidence_completion.toml",
+        "expected_output": "retirement evidence completion JSON report",
+        "forbidden_reason": null,
+        "reason_codes": [
+          "RunbookCommandBlockBuilt"
+        ],
+        "safe_to_copy": true,
+        "safe_to_run": true,
+        "title": "Render the retirement evidence completion report"
+      }
+    ],
+    "overall_severity": "NeedsAction",
+    "owner_attention_summary": "required=3 recommended=1 blocked=1",
+    "panel_id": "sprint71-operator-briefing",
+    "primary_headline": "operator briefing NeedsMoreEvidence; direct-watch readiness 82~86% for local paper/research monitoring only",
+    "reason_codes": [
+      "ControlTowerBriefingPanelBuilt"
+    ],
+    "section_summaries": [
+      "Chair: Watch - chair-facing decisions ready=1 blocked=1 closed=1",
+      "Committee: Deferred - committee/trinity loop artifacts are not attached and stay deferred",
+      "Deferred items: Deferred - runtime, training, broker, order, account, and cloud UI remain deferred",
+      "Diff trace: Watch - triage_status=UnexpectedDiffExplained unexpected_diff_count=2 remaining_trace_warnings=1",
+      "Evidence: NeedsAction - evidence gaps=6 closeable_now=1 requires_data=3 trace_status=TraceCompleteWithWarnings",
+      "External models: Watch - 4 external model card(s) summarized",
+      "KIS data: Deferred - KIS evidence is not attached to this briefing and remains deferred",
+      "Leaderboard: Watch - leaderboard warning status=WarningExplained for ext-model-a:1.2.0",
+      "Next actions: NeedsAction - copyable local commands only; no browser execution",
+      "Owner review: NeedsAction - owner checklist status=NeedsOwnerAction required=3 recommended=1 blocked=1",
+      "Paper ops: Good - operator briefing mode stays local, static, copy-only, and paper-only",
+      "Risk: NeedsAction - critical_risk_models=1 risk_inputs=0",
+      "Sequence dataset: Deferred - sequence dataset artifacts are not attached and stay deferred",
+      "System health: Watch - static direct-watch readiness 82~86% for local paper/research monitoring only; never live-ready"
+    ]
+  },
+  "daily_briefing_snapshot": {
+    "briefing_id": "sprint71-operator-briefing",
+    "deferred_count": 7,
+    "generated_from": [
+      "conservative_leaderboard.json",
+      "operator_briefing_previous.json",
+      "owner_model_review_actions.json",
+      "soma_baseline_snapshot_coverage.toml",
+      "soma_model_ops_rollup.toml",
+      "soma_model_ops_trace.toml",
+      "soma_unexpected_diff_triage.toml"
+    ],
+    "owner_attention_count": 4,
+    "primary_next_action": "cargo run --quiet --bin soma_experiment -- briefing-delta --config examples/soma_briefing_delta.toml",
+    "primary_status": "NeedsMoreEvidence",
+    "reason_codes": [
+      "DailyBriefingSnapshotBuilt"
+    ],
+    "sections_hash": "4744002f8b3d426f",
+    "snapshot_id": "sprint71-operator-briefing-4744002f8b3d",
+    "source_artifact_hash": "7bc39411541d908b"
+  },
+  "evidence_gap_closure_checklist": {
+    "checklist_id": "sprint71-operator-briefing-evidence-gap-closure",
+    "closeable_now_count": 1,
+    "gap_count": 6,
+    "gaps": [
+      {
+        "closeable_now": true,
+        "gap_id": "sprint71-operator-briefing-gap-leaderboard-ext-model-a-1-2-0",
+        "gap_kind": "MissingLeaderboardEvidence",
+        "reason_codes": [
+          "EvidenceGapClosureChecklistBuilt"
+        ],
+        "requires_owner_review": false,
+        "summary": "rollup still marks ext-model-a:1.2.0 leaderboard_status=Unknown and no conservative leaderboard entry is available, so the warning is explained but not over-claimed as closed",
+        "target_id": "ext-model-a:1.2.0"
+      },
+      {
+        "closeable_now": false,
+        "gap_id": "sprint71-operator-briefing-gap-owner-reason-ext-model-a-1-2-0",
+        "gap_kind": "MissingOwnerReason",
+        "reason_codes": [
+          "EvidenceGapClosureChecklistBuilt"
+        ],
+        "requires_owner_review": true,
+        "summary": "ext-model-a:1.2.0 has no explicit owner note in the rollup summary and should stay conservative",
+        "target_id": "ext-model-a:1.2.0"
+      },
+      {
+        "closeable_now": false,
+        "gap_id": "sprint71-operator-briefing-gap-retirement-ext-model-a-1-0-0",
+        "gap_kind": "MissingRetirementEvidence",
+        "reason_codes": [
+          "EvidenceGapClosureChecklistBuilt"
+        ],
+        "requires_owner_review": true,
+        "summary": "keep ext-model-a:1.0.0 diagnostic-only and retired-from-current-comparison pending more evidence",
+        "target_id": "ext-model-a:1.0.0"
+      },
+      {
+        "closeable_now": false,
+        "gap_id": "sprint71-operator-briefing-gap-regression-ext-model-a-1-0-0",
+        "gap_kind": "MissingRegressionEvidence",
+        "reason_codes": [
+          "EvidenceGapClosureChecklistBuilt"
+        ],
+        "requires_owner_review": false,
+        "summary": "retirement still lacks explicit conservative regression evidence",
+        "target_id": "ext-model-a:1.0.0"
+      },
+      {
+        "closeable_now": false,
+        "gap_id": "sprint71-operator-briefing-gap-predictions-ext-model-b-1-0-0",
+        "gap_kind": "MissingPredictionHistory",
+        "reason_codes": [
+          "EvidenceGapClosureChecklistBuilt"
+        ],
+        "requires_owner_review": false,
+        "summary": "ext-model-b:1.0.0 still needs more offline prediction history",
+        "target_id": "ext-model-b:1.0.0"
+      },
+      {
+        "closeable_now": false,
+        "gap_id": "sprint71-operator-briefing-gap-sequence",
+        "gap_kind": "MissingSequenceRows",
+        "reason_codes": [
+          "EvidenceGapClosureChecklistBuilt"
+        ],
+        "requires_owner_review": false,
+        "summary": "sequence dataset rows are not attached to the operator briefing and stay deferred",
+        "target_id": "sequence-dataset"
+      }
+    ],
+    "reason_codes": [
+      "EvidenceGapClosureChecklistBuilt"
+    ],
+    "requires_data_count": 3,
+    "requires_owner_review_count": 2
+  },
+  "leaderboard_warning_closure_report": {
+    "closure_reason": "rollup still marks ext-model-a:1.2.0 leaderboard_status=Unknown and no conservative leaderboard entry is available, so the warning is explained but not over-claimed as closed",
+    "closure_status": "WarningExplained",
+    "next_action": "review the static leaderboard evidence locally and keep the model research-only",
+    "reason_codes": [
+      "LeaderboardWarningClosureBuilt"
+    ],
+    "source_artifacts": [
+      "conservative_leaderboard.json",
+      "operator_briefing_previous.json",
+      "owner_model_review_actions.json",
+      "soma_baseline_snapshot_coverage.toml",
+      "soma_model_ops_rollup.toml",
+      "soma_model_ops_trace.toml",
+      "soma_unexpected_diff_triage.toml"
+    ],
+    "target_model_id": "ext-model-a",
+    "target_model_version": "1.2.0",
+    "warning_id": "sprint71-operator-briefing-leaderboard-warning-ext-model-a-1-2-0",
+    "warning_summary": "ext-model-a:1.2.0 leaderboard warning remains conservative and never implies rank promotion"
+  },
+  "operator_briefing_report": {
+    "blocked_items": [
+      "regression evidence for ext-model-a:1.0.0 is still missing",
+      "Keep ext-model-a:1.0.0 diagnostic-only until retirement evidence is complete",
+      "Review ext-model-a:1.0.0 retirement evidence",
+      "ext-model-a:1.2.0 Leaderboard",
+      "Runtime, training, and execution commands remain unavailable"
+    ],
+    "briefing_id": "sprint71-operator-briefing",
+    "briefing_status": "NeedsMoreEvidence",
+    "copyable_commands": [
+      "cargo run --quiet --bin soma_experiment -- briefing-delta --config examples/soma_briefing_delta.toml",
+      "cargo run --quiet --bin soma_experiment -- control-tower-briefing --config examples/soma_control_tower_briefing.toml",
+      "cargo run --quiet --bin soma_experiment -- leaderboard-warning-closure --config examples/soma_leaderboard_warning_closure.toml",
+      "cargo run --quiet --bin soma_experiment -- operator-briefing --config examples/soma_operator_briefing.toml",
+      "cargo run --quiet --bin soma_experiment -- operator-decision-queue --config examples/soma_operator_decision_queue.toml",
+      "cargo run --quiet --bin soma_experiment -- owner-action-checklist --config examples/soma_owner_action_checklist.toml",
+      "cargo run --quiet --bin soma_experiment -- retirement-evidence-completion --config examples/soma_retirement_evidence_completion.toml"
+    ],
+    "deferred_items": [
+      "KIS evidence remains deferred until local artifacts are attached",
+      "broker, order, and account controls remain deferred",
+      "committee/trinity loop review remains deferred until local loop artifacts are attached",
+      "live trading remains deferred",
+      "runtime LLM remains deferred",
+      "runtime Mamba remains deferred",
+      "sequence dataset review remains deferred until local rows are attached"
+    ],
+    "overall_severity": "NeedsAction",
+    "owner_attention_items": [
+      "Review ext-model-a:1.2.0 leaderboard warning",
+      "Provide more offline predictions for ext-model-b:1.0.0",
+      "Review ext-model-a:1.0.0 retirement evidence",
+      "Review ext-model-b:1.0.0 model disposition"
+    ],
+    "primary_headline": "operator briefing NeedsMoreEvidence; direct-watch readiness 82~86% for local paper/research monitoring only",
+    "primary_next_action": "cargo run --quiet --bin soma_experiment -- briefing-delta --config examples/soma_briefing_delta.toml",
+    "reason_codes": [
+      "OperatorBriefingReportBuilt"
+    ],
+    "sections": [
+      {
+        "blockers": [],
+        "bullet_items": [
+          "source_artifacts=7",
+          "input_storage_bytes=10310",
+          "control plane remains static/read-only with no execution buttons"
+        ],
+        "headline": "static direct-watch readiness 82~86% for local paper/research monitoring only; never live-ready",
+        "next_actions": [
+          "cargo run --quiet --bin soma_experiment -- briefing-delta --config examples/soma_briefing_delta.toml",
+          "cargo run --quiet --bin soma_experiment -- control-tower-briefing --config examples/soma_control_tower_briefing.toml"
+        ],
+        "reason_codes": [
+          "BriefingSectionBuilt"
+        ],
+        "section_id": "sprint71-operator-briefing-system-health",
+        "section_kind": "SystemHealth",
+        "severity": "Watch",
+        "source_artifacts": [
+          "conservative_leaderboard.json",
+          "operator_briefing_previous.json",
+          "owner_model_review_actions.json",
+          "soma_baseline_snapshot_coverage.toml",
+          "soma_model_ops_rollup.toml",
+          "soma_model_ops_trace.toml",
+          "soma_unexpected_diff_triage.toml"
+        ],
+        "title": "System health",
+        "warnings": [
+          "live trading, runtime inference, and model training remain out of scope"
+        ]
+      },
+      {
+        "blockers": [],
+        "bullet_items": [],
+        "headline": "KIS evidence is not attached to this briefing and remains deferred",
+        "next_actions": [],
+        "reason_codes": [
+          "BriefingSectionBuilt"
+        ],
+        "section_id": "sprint71-operator-briefing-kis-data",
+        "section_kind": "KISData",
+        "severity": "Deferred",
+        "source_artifacts": [
+          "conservative_leaderboard.json",
+          "operator_briefing_previous.json",
+          "owner_model_review_actions.json",
+          "soma_baseline_snapshot_coverage.toml",
+          "soma_model_ops_rollup.toml",
+          "soma_model_ops_trace.toml",
+          "soma_unexpected_diff_triage.toml"
+        ],
+        "title": "KIS data",
+        "warnings": [
+          "no KIS runtime or account path is available from operator briefing mode"
+        ]
+      },
+      {
+        "blockers": [
+          "regression evidence for ext-model-a:1.0.0 is still missing"
+        ],
+        "bullet_items": [
+          "rollup still marks ext-model-a:1.2.0 leaderboard_status=Unknown and no conservative leaderboard entry is available, so the warning is explained but not over-claimed as closed",
+          "ext-model-a:1.2.0 has no explicit owner note in the rollup summary and should stay conservative",
+          "keep ext-model-a:1.0.0 diagnostic-only and retired-from-current-comparison pending more evidence",
+          "retirement still lacks explicit conservative regression evidence",
+          "ext-model-b:1.0.0 still needs more offline prediction history",
+          "sequence dataset rows are not attached to the operator briefing and stay deferred"
+        ],
+        "headline": "evidence gaps=6 closeable_now=1 requires_data=3 trace_status=TraceCompleteWithWarnings",
+        "next_actions": [
+          "cargo run --quiet --bin soma_experiment -- briefing-delta --config examples/soma_briefing_delta.toml",
+          "cargo run --quiet --bin soma_experiment -- control-tower-briefing --config examples/soma_control_tower_briefing.toml"
+        ],
+        "reason_codes": [
+          "BriefingSectionBuilt"
+        ],
+        "section_id": "sprint71-operator-briefing-evidence",
+        "section_kind": "Evidence",
+        "severity": "NeedsAction",
+        "source_artifacts": [
+          "conservative_leaderboard.json",
+          "operator_briefing_previous.json",
+          "owner_model_review_actions.json",
+          "soma_baseline_snapshot_coverage.toml",
+          "soma_model_ops_rollup.toml",
+          "soma_model_ops_trace.toml",
+          "soma_unexpected_diff_triage.toml"
+        ],
+        "title": "Evidence",
+        "warnings": [
+          "ext-model-a:1.2.0 leaderboard warning remains conservative and never implies rank promotion"
+        ]
+      },
+      {
+        "blockers": [],
+        "bullet_items": [],
+        "headline": "committee/trinity loop artifacts are not attached and stay deferred",
+        "next_actions": [],
+        "reason_codes": [
+          "BriefingSectionBuilt"
+        ],
+        "section_id": "sprint71-operator-briefing-committee",
+        "section_kind": "Committee",
+        "severity": "Deferred",
+        "source_artifacts": [],
+        "title": "Committee",
+        "warnings": [
+          "committee status still does not imply live execution readiness"
+        ]
+      },
+      {
+        "blockers": [
+          "Keep ext-model-a:1.0.0 diagnostic-only until retirement evidence is complete"
+        ],
+        "bullet_items": [
+          "Runtime, training, live, order, and account capabilities remain deferred",
+          "Keep ext-model-a:1.1.0 as the current research candidate",
+          "Accept conservative leaderboard warning handling",
+          "Request more offline predictions for ext-model-b:1.0.0",
+          "Keep ext-model-a:1.0.0 diagnostic-only until retirement evidence is complete"
+        ],
+        "headline": "chair-facing decisions ready=1 blocked=1 closed=1",
+        "next_actions": [
+          "cargo run --quiet --bin soma_experiment -- briefing-delta --config examples/soma_briefing_delta.toml"
+        ],
+        "reason_codes": [
+          "BriefingSectionBuilt"
+        ],
+        "section_id": "sprint71-operator-briefing-chair",
+        "section_kind": "Chair",
+        "severity": "Watch",
+        "source_artifacts": [],
+        "title": "Chair",
+        "warnings": []
+      },
+      {
+        "blockers": [],
+        "bullet_items": [
+          "ext-model-a:1.0.0=DiagnosticOnly",
+          "ext-model-a:1.1.0=Low",
+          "ext-model-b:1.0.0=Critical"
+        ],
+        "headline": "critical_risk_models=1 risk_inputs=0",
+        "next_actions": [
+          "cargo run --quiet --bin soma_experiment -- briefing-delta --config examples/soma_briefing_delta.toml"
+        ],
+        "reason_codes": [
+          "BriefingSectionBuilt"
+        ],
+        "section_id": "sprint71-operator-briefing-risk",
+        "section_kind": "Risk",
+        "severity": "NeedsAction",
+        "source_artifacts": [
+          "conservative_leaderboard.json",
+          "operator_briefing_previous.json",
+          "owner_model_review_actions.json",
+          "soma_baseline_snapshot_coverage.toml",
+          "soma_model_ops_rollup.toml",
+          "soma_model_ops_trace.toml",
+          "soma_unexpected_diff_triage.toml"
+        ],
+        "title": "Risk",
+        "warnings": [
+          "risk review stays paper-only and does not create live trading permission"
+        ]
+      },
+      {
+        "blockers": [
+          "Review ext-model-a:1.0.0 retirement evidence"
+        ],
+        "bullet_items": [
+          "Review ext-model-a:1.2.0 leaderboard warning",
+          "Provide more offline predictions for ext-model-b:1.0.0",
+          "Review ext-model-a:1.0.0 retirement evidence",
+          "Review ext-model-b:1.0.0 model disposition"
+        ],
+        "headline": "owner checklist status=NeedsOwnerAction required=3 recommended=1 blocked=1",
+        "next_actions": [
+          "cargo run --quiet --bin soma_experiment -- briefing-delta --config examples/soma_briefing_delta.toml",
+          "cargo run --quiet --bin soma_experiment -- control-tower-briefing --config examples/soma_control_tower_briefing.toml"
+        ],
+        "reason_codes": [
+          "BriefingSectionBuilt"
+        ],
+        "section_id": "sprint71-operator-briefing-owner-review",
+        "section_kind": "OwnerReview",
+        "severity": "NeedsAction",
+        "source_artifacts": [
+          "conservative_leaderboard.json",
+          "operator_briefing_previous.json",
+          "owner_model_review_actions.json",
+          "soma_baseline_snapshot_coverage.toml",
+          "soma_model_ops_rollup.toml",
+          "soma_model_ops_trace.toml",
+          "soma_unexpected_diff_triage.toml"
+        ],
+        "title": "Owner review",
+        "warnings": [
+          "Review ext-model-a:1.2.0 leaderboard warning"
+        ]
+      },
+      {
+        "blockers": [],
+        "bullet_items": [
+          "no browser POST or execution control exists",
+          "copyable commands remain local-only and deterministic"
+        ],
+        "headline": "operator briefing mode stays local, static, copy-only, and paper-only",
+        "next_actions": [
+          "cargo run --quiet --bin soma_experiment -- briefing-delta --config examples/soma_briefing_delta.toml",
+          "cargo run --quiet --bin soma_experiment -- control-tower-briefing --config examples/soma_control_tower_briefing.toml"
+        ],
+        "reason_codes": [
+          "BriefingSectionBuilt"
+        ],
+        "section_id": "sprint71-operator-briefing-paper-ops",
+        "section_kind": "PaperOps",
+        "severity": "Good",
+        "source_artifacts": [],
+        "title": "Paper ops",
+        "warnings": [
+          "paper-only does not mean broker or account execution exists"
+        ]
+      },
+      {
+        "blockers": [],
+        "bullet_items": [],
+        "headline": "sequence dataset artifacts are not attached and stay deferred",
+        "next_actions": [],
+        "reason_codes": [
+          "BriefingSectionBuilt"
+        ],
+        "section_id": "sprint71-operator-briefing-sequence-dataset",
+        "section_kind": "SequenceDataset",
+        "severity": "Deferred",
+        "source_artifacts": [],
+        "title": "Sequence dataset",
+        "warnings": [
+          "no sequence export implies training or model runtime"
+        ]
+      },
+      {
+        "blockers": [],
+        "bullet_items": [
+          "ext-model-a:1.0.0 -> RetireModelVersion",
+          "ext-model-a:1.1.0 -> KeepResearchCandidate",
+          "ext-model-a:1.2.0 -> KeepResearchCandidate",
+          "ext-model-b:1.0.0 -> RequestMorePredictions"
+        ],
+        "headline": "4 external model card(s) summarized",
+        "next_actions": [
+          "cargo run --quiet --bin soma_experiment -- briefing-delta --config examples/soma_briefing_delta.toml",
+          "cargo run --quiet --bin soma_experiment -- control-tower-briefing --config examples/soma_control_tower_briefing.toml"
+        ],
+        "reason_codes": [
+          "BriefingSectionBuilt"
+        ],
+        "section_id": "sprint71-operator-briefing-external-models",
+        "section_kind": "ExternalModels",
+        "severity": "Watch",
+        "source_artifacts": [
+          "conservative_leaderboard.json",
+          "operator_briefing_previous.json",
+          "owner_model_review_actions.json",
+          "soma_baseline_snapshot_coverage.toml",
+          "soma_model_ops_rollup.toml",
+          "soma_model_ops_trace.toml",
+          "soma_unexpected_diff_triage.toml"
+        ],
+        "title": "External models",
+        "warnings": [
+          "research candidate status never implies deployment"
+        ]
+      },
+      {
+        "blockers": [],
+        "bullet_items": [
+          "rollup still marks ext-model-a:1.2.0 leaderboard_status=Unknown and no conservative leaderboard entry is available, so the warning is explained but not over-claimed as closed"
+        ],
+        "headline": "leaderboard warning status=WarningExplained for ext-model-a:1.2.0",
+        "next_actions": [
+          "review the static leaderboard evidence locally and keep the model research-only"
+        ],
+        "reason_codes": [
+          "BriefingSectionBuilt"
+        ],
+        "section_id": "sprint71-operator-briefing-leaderboard",
+        "section_kind": "Leaderboard",
+        "severity": "Watch",
+        "source_artifacts": [
+          "conservative_leaderboard.json",
+          "operator_briefing_previous.json",
+          "owner_model_review_actions.json",
+          "soma_baseline_snapshot_coverage.toml",
+          "soma_model_ops_rollup.toml",
+          "soma_model_ops_trace.toml",
+          "soma_unexpected_diff_triage.toml"
+        ],
+        "title": "Leaderboard",
+        "warnings": [
+          "leaderboard closure never implies usefulness or promotion"
+        ]
+      },
+      {
+        "blockers": [
+          "ext-model-a:1.2.0 Leaderboard"
+        ],
+        "bullet_items": [
+          "ext-model-a:1.1.0 -> LeaderboardStatusChange",
+          "ext-model-b:1.0.0 -> RiskMetricChange"
+        ],
+        "headline": "triage_status=UnexpectedDiffExplained unexpected_diff_count=2 remaining_trace_warnings=1",
+        "next_actions": [
+          "cargo run --quiet --bin soma_experiment -- briefing-delta --config examples/soma_briefing_delta.toml",
+          "cargo run --quiet --bin soma_experiment -- control-tower-briefing --config examples/soma_control_tower_briefing.toml"
+        ],
+        "reason_codes": [
+          "BriefingSectionBuilt"
+        ],
+        "section_id": "sprint71-operator-briefing-diff-trace",
+        "section_kind": "DiffTrace",
+        "severity": "Watch",
+        "source_artifacts": [
+          "conservative_leaderboard.json",
+          "operator_briefing_previous.json",
+          "owner_model_review_actions.json",
+          "soma_baseline_snapshot_coverage.toml",
+          "soma_model_ops_rollup.toml",
+          "soma_model_ops_trace.toml",
+          "soma_unexpected_diff_triage.toml"
+        ],
+        "title": "Diff trace",
+        "warnings": []
+      },
+      {
+        "blockers": [],
+        "bullet_items": [
+          "KIS evidence remains deferred until local artifacts are attached",
+          "broker, order, and account controls remain deferred",
+          "committee/trinity loop review remains deferred until local loop artifacts are attached",
+          "live trading remains deferred",
+          "runtime LLM remains deferred",
+          "runtime Mamba remains deferred"
+        ],
+        "headline": "runtime, training, broker, order, account, and cloud UI remain deferred",
+        "next_actions": [],
+        "reason_codes": [
+          "BriefingSectionBuilt"
+        ],
+        "section_id": "sprint71-operator-briefing-deferred-items",
+        "section_kind": "DeferredItems",
+        "severity": "Deferred",
+        "source_artifacts": [],
+        "title": "Deferred items",
+        "warnings": []
+      },
+      {
+        "blockers": [
+          "Runtime, training, and execution commands remain unavailable"
+        ],
+        "bullet_items": [
+          "Render the current briefing delta",
+          "Render the one-screen Control Tower briefing panel",
+          "Render the leaderboard warning closure report",
+          "Generate the full static operator briefing",
+          "Render the operator decision queue",
+          "Render the owner action checklist"
+        ],
+        "headline": "copyable local commands only; no browser execution",
+        "next_actions": [
+          "cargo run --quiet --bin soma_experiment -- briefing-delta --config examples/soma_briefing_delta.toml",
+          "cargo run --quiet --bin soma_experiment -- control-tower-briefing --config examples/soma_control_tower_briefing.toml",
+          "cargo run --quiet --bin soma_experiment -- leaderboard-warning-closure --config examples/soma_leaderboard_warning_closure.toml",
+          "cargo run --quiet --bin soma_experiment -- operator-briefing --config examples/soma_operator_briefing.toml",
+          "cargo run --quiet --bin soma_experiment -- operator-decision-queue --config examples/soma_operator_decision_queue.toml",
+          "cargo run --quiet --bin soma_experiment -- owner-action-checklist --config examples/soma_owner_action_checklist.toml"
+        ],
+        "reason_codes": [
+          "BriefingSectionBuilt"
+        ],
+        "section_id": "sprint71-operator-briefing-next-actions",
+        "section_kind": "NextActions",
+        "severity": "NeedsAction",
+        "source_artifacts": [],
+        "title": "Next actions",
+        "warnings": [
+          "unsafe runtime and live commands are intentionally absent"
+        ]
+      }
+    ],
+    "source_artifacts": [
+      "conservative_leaderboard.json",
+      "operator_briefing_previous.json",
+      "owner_model_review_actions.json",
+      "soma_baseline_snapshot_coverage.toml",
+      "soma_model_ops_rollup.toml",
+      "soma_model_ops_trace.toml",
+      "soma_unexpected_diff_triage.toml"
+    ]
+  },
+  "operator_decision_queue": {
+    "blocked_count": 1,
+    "closed_count": 1,
+    "items": [
+      {
+        "decision_id": "sprint71-operator-briefing-queue-deferred-runtime",
+        "decision_options": [
+          "DeferReview",
+          "NoAction"
+        ],
+        "default_safe_option": "DeferReview",
+        "forbidden_options": [
+          "PromoteLive",
+          "EnableRuntime",
+          "TrainModel",
+          "ExecuteTrade"
+        ],
+        "reason_codes": [
+          "OperatorDecisionQueueBuilt"
+        ],
+        "status": "Deferred",
+        "target_id": "system",
+        "title": "Runtime, training, live, order, and account capabilities remain deferred"
+      },
+      {
+        "decision_id": "sprint71-operator-briefing-queue-keep-current",
+        "decision_options": [
+          "KeepResearchCandidate",
+          "NoAction"
+        ],
+        "default_safe_option": "KeepResearchCandidate",
+        "forbidden_options": [
+          "PromoteLive",
+          "EnableRuntime",
+          "TrainModel",
+          "ExecuteTrade"
+        ],
+        "reason_codes": [
+          "OperatorDecisionQueueBuilt"
+        ],
+        "status": "Closed",
+        "target_id": "ext-model-a:1.1.0",
+        "title": "Keep ext-model-a:1.1.0 as the current research candidate"
+      },
+      {
+        "decision_id": "sprint71-operator-briefing-queue-leaderboard",
+        "decision_options": [
+          "KeepResearchCandidate",
+          "DeferReview",
+          "NoAction"
+        ],
+        "default_safe_option": "DeferReview",
+        "forbidden_options": [
+          "PromoteLive",
+          "EnableRuntime",
+          "TrainModel",
+          "ExecuteTrade"
+        ],
+        "reason_codes": [
+          "OperatorDecisionQueueBuilt"
+        ],
+        "status": "ReadyToReview",
+        "target_id": "ext-model-a:1.2.0",
+        "title": "Accept conservative leaderboard warning handling"
+      },
+      {
+        "decision_id": "sprint71-operator-briefing-queue-predictions",
+        "decision_options": [
+          "RequestMorePredictions",
+          "RequestCalibrationReview",
+          "RequestRiskReview",
+          "DeferReview"
+        ],
+        "default_safe_option": "RequestMorePredictions",
+        "forbidden_options": [
+          "PromoteLive",
+          "EnableRuntime",
+          "TrainModel",
+          "ExecuteTrade"
+        ],
+        "reason_codes": [
+          "OperatorDecisionQueueBuilt"
+        ],
+        "status": "Pending",
+        "target_id": "ext-model-b:1.0.0",
+        "title": "Request more offline predictions for ext-model-b:1.0.0"
+      },
+      {
+        "decision_id": "sprint71-operator-briefing-queue-retirement",
+        "decision_options": [
+          "MarkDiagnosticOnly",
+          "DeferReview",
+          "NoAction"
+        ],
+        "default_safe_option": "MarkDiagnosticOnly",
+        "forbidden_options": [
+          "PromoteLive",
+          "EnableRuntime",
+          "TrainModel",
+          "ExecuteTrade"
+        ],
+        "reason_codes": [
+          "OperatorDecisionQueueBuilt"
+        ],
+        "status": "Blocked",
+        "target_id": "ext-model-a:1.0.0",
+        "title": "Keep ext-model-a:1.0.0 diagnostic-only until retirement evidence is complete"
+      }
+    ],
+    "pending_count": 1,
+    "queue_id": "sprint71-operator-briefing-operator-decision-queue",
+    "ready_count": 1,
+    "reason_codes": [
+      "OperatorDecisionQueueBuilt"
+    ]
+  },
+  "owner_action_checklist": {
+    "blocked_count": 1,
+    "checklist_id": "sprint71-operator-briefing-owner-action-checklist",
+    "checklist_status": "NeedsOwnerAction",
+    "items": [
+      {
+        "command_suggestion": "cargo run --quiet --bin soma_experiment -- leaderboard-warning-closure --config examples/soma_leaderboard_warning_closure.toml",
+        "forbidden_actions": [
+          "live",
+          "runtime",
+          "training",
+          "broker",
+          "order",
+          "account"
+        ],
+        "item_id": "sprint71-operator-briefing-leaderboard-warning",
+        "item_kind": "ReviewLeaderboardWarning",
+        "reason_codes": [
+          "OwnerActionChecklistBuilt"
+        ],
+        "recommended_action": "ReviewLeaderboardWarning",
+        "safe_actions": [
+          "review the static leaderboard evidence",
+          "rerun the local operator briefing"
+        ],
+        "severity": "Watch",
+        "target_id": "ext-model-a:1.2.0",
+        "target_type": "ModelVersion",
+        "title": "Review ext-model-a:1.2.0 leaderboard warning",
+        "why_it_matters": "rollup still marks ext-model-a:1.2.0 leaderboard_status=Unknown and no conservative leaderboard entry is available, so the warning is explained but not over-claimed as closed"
+      },
+      {
+        "command_suggestion": "cargo run --quiet --bin soma_experiment -- operator-briefing --config examples/soma_operator_briefing.toml",
+        "forbidden_actions": [
+          "live",
+          "runtime",
+          "training",
+          "broker",
+          "order",
+          "account"
+        ],
+        "item_id": "sprint71-operator-briefing-provide-more-predictions",
+        "item_kind": "ProvideMorePredictions",
+        "reason_codes": [
+          "OwnerActionChecklistBuilt"
+        ],
+        "recommended_action": "ProvideMorePredictions",
+        "safe_actions": [
+          "collect more offline predictions",
+          "rerun the static briefing after local artifacts update"
+        ],
+        "severity": "NeedsAction",
+        "target_id": "ext-model-b:1.0.0",
+        "target_type": "ModelVersion",
+        "title": "Provide more offline predictions for ext-model-b:1.0.0",
+        "why_it_matters": "current evidence remains conservative and prediction history is still too weak"
+      },
+      {
+        "command_suggestion": "cargo run --quiet --bin soma_experiment -- retirement-evidence-completion --config examples/soma_retirement_evidence_completion.toml",
+        "forbidden_actions": [
+          "live",
+          "runtime",
+          "training",
+          "broker",
+          "order",
+          "account"
+        ],
+        "item_id": "sprint71-operator-briefing-retirement-evidence",
+        "item_kind": "ReviewRetirementEvidence",
+        "reason_codes": [
+          "OwnerActionChecklistBuilt"
+        ],
+        "recommended_action": "MarkDiagnosticOnly",
+        "safe_actions": [
+          "keep the version diagnostic-only",
+          "review local regression and owner-review evidence"
+        ],
+        "severity": "Blocked",
+        "target_id": "ext-model-a:1.0.0",
+        "target_type": "ModelVersion",
+        "title": "Review ext-model-a:1.0.0 retirement evidence",
+        "why_it_matters": "keep ext-model-a:1.0.0 diagnostic-only and retired-from-current-comparison pending more evidence"
+      },
+      {
+        "command_suggestion": "cargo run --quiet --bin soma_experiment -- operator-decision-queue --config examples/soma_operator_decision_queue.toml",
+        "forbidden_actions": [
+          "live",
+          "runtime",
+          "training",
+          "broker",
+          "order",
+          "account"
+        ],
+        "item_id": "sprint71-operator-briefing-review-model-disposition",
+        "item_kind": "ReviewModelDisposition",
+        "reason_codes": [
+          "OwnerActionChecklistBuilt"
+        ],
+        "recommended_action": "ProvideMorePredictions",
+        "safe_actions": [
+          "review offline prediction coverage",
+          "keep the model research-only"
+        ],
+        "severity": "NeedsAction",
+        "target_id": "ext-model-b:1.0.0",
+        "target_type": "ModelVersion",
+        "title": "Review ext-model-b:1.0.0 model disposition",
+        "why_it_matters": "coverage remains weak and needs more offline prediction history"
+      }
+    ],
+    "optional_count": 0,
+    "reason_codes": [
+      "OwnerActionChecklistBuilt"
+    ],
+    "recommended_count": 1,
+    "required_count": 3
+  },
+  "retirement_evidence_completion_report": {
+    "completion_status": "NeedsMoreRegressionEvidence",
+    "conservative_action": "keep ext-model-a:1.0.0 diagnostic-only and retired-from-current-comparison pending more evidence",
+    "missing_evidence": [
+      "regression evidence for ext-model-a:1.0.0 is still missing"
+    ],
+    "present_evidence": [
+      "rollup recommends RetireModelVersion",
+      "lifecycle status already marks the version retired",
+      "risk rollup supports diagnostic-only handling",
+      "a newer comparable ext-model-a version exists locally",
+      "historical conservative leaderboard evidence exists"
+    ],
+    "reason_codes": [
+      "RetirementEvidenceCompletionBuilt"
+    ],
+    "required_evidence": [
+      "owner retirement rationale",
+      "conservative regression evidence",
+      "historical leaderboard or comparable baseline evidence",
+      "newer local successor comparison"
+    ],
+    "supports_diagnostic_downgrade": true,
+    "supports_retirement": false,
+    "target_model_id": "ext-model-a",
+    "target_model_version": "1.0.0"
+  }
+}

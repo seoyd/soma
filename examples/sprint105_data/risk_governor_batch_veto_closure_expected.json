@@ -1,0 +1,17 @@
+{
+  "report_id": "risk-governor-batch-veto-warning-closure-report",
+  "previous_status": "RiskGovernorBatchVetoReadyWithWarnings",
+  "warning_count_remaining": 0,
+  "bypass_attempt_count": 0,
+  "closure_status": "RiskGovernorBatchVetoWarningsClosed",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

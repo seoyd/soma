@@ -1,0 +1,20 @@
+materialization_id = "sprint79-storage"
+output_root = "target/soma_sequence_core_storage"
+storage_root = "target/soma_sequence_core_storage/data"
+training_data_storage_config_paths = [
+  "examples/sprint79_data/training_data_storage_plan.json",
+]
+training_data_layout_plan_paths = [
+  "examples/sprint79_data/training_data_storage_plan.json",
+]
+training_data_registry_spec_paths = [
+  "examples/sprint79_data/training_data_registry_spec.json",
+  "examples/sprint79_data/storage_materialization_expected.json",
+]
+create_directories = true
+write_placeholder_manifests = true
+require_source_class_manifest = true
+require_lineage_manifest = true
+require_storage_layout_manifest = true
+max_bytes = 536870912
+

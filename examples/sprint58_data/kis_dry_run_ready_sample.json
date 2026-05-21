@@ -1,0 +1,18 @@
+{
+  "dry_run_id": "sprint58-kis-market-data-dry-run",
+  "auth_status": "ReadyForDryRunOnly",
+  "endpoint_policy_status": "MarketDataOnly",
+  "planned_domestic_symbols": 1,
+  "planned_overseas_symbols": 1,
+  "planned_requests": 2,
+  "planned_rows": 240,
+  "planned_days": 90,
+  "planned_bytes": 23040,
+  "dry_run_status": "Ready",
+  "safe_to_run_operator_live_collection": false,
+  "blocked_reasons": [],
+  "reason_codes": [
+    "DeterministicPath",
+    "KISMarketDataDryRunBuilt"
+  ]
+}

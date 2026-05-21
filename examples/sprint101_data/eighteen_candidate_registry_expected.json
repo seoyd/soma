@@ -1,0 +1,554 @@
+{
+  "registry_id": "eighteen-investor-candidate-registry",
+  "candidates": [
+    {
+      "candidate_id": "arthur-hayes",
+      "public_name": "Arthur Hayes",
+      "normalized_archetype_name": "HayesLiquidityDerivatives",
+      "source_category": "PublicInterview",
+      "confidence_grade": "B",
+      "asset_scope": [
+        "Crypto",
+        "CryptoInfrastructure"
+      ],
+      "time_horizon": "Cycle",
+      "intended_committee_role": "crypto committee member",
+      "feature_vector_refs": [
+        "feature-card-arthur-hayes"
+      ],
+      "do_not_learn_refs": [
+        "do-not-learn-arthur-hayes"
+      ],
+      "candidate_status": "CandidateReadyWithWarnings",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "candidate_id": "benjamin-graham",
+      "public_name": "Benjamin Graham",
+      "normalized_archetype_name": "GrahamMarginOfSafety",
+      "source_category": "PublishedBook",
+      "confidence_grade": "A",
+      "asset_scope": [
+        "PublicEquities"
+      ],
+      "time_horizon": "LongTerm",
+      "intended_committee_role": "long-term equity committee member",
+      "feature_vector_refs": [
+        "feature-card-benjamin-graham"
+      ],
+      "do_not_learn_refs": [
+        "do-not-learn-benjamin-graham"
+      ],
+      "candidate_status": "CandidateReadyWithWarnings",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "candidate_id": "charlie-munger",
+      "public_name": "Charlie Munger",
+      "normalized_archetype_name": "MungerErrorFilter",
+      "source_category": "PublicInterview",
+      "confidence_grade": "A",
+      "asset_scope": [
+        "PublicEquities"
+      ],
+      "time_horizon": "LongTerm",
+      "intended_committee_role": "long-term equity committee member",
+      "feature_vector_refs": [
+        "feature-card-charlie-munger"
+      ],
+      "do_not_learn_refs": [
+        "do-not-learn-charlie-munger"
+      ],
+      "candidate_status": "CandidateReadyWithWarnings",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "candidate_id": "chris-burniske",
+      "public_name": "Chris Burniske",
+      "normalized_archetype_name": "BurniskeTokenValuation",
+      "source_category": "PublishedBook",
+      "confidence_grade": "BPlus",
+      "asset_scope": [
+        "Crypto",
+        "CryptoInfrastructure"
+      ],
+      "time_horizon": "Cycle",
+      "intended_committee_role": "crypto committee member",
+      "feature_vector_refs": [
+        "feature-card-chris-burniske"
+      ],
+      "do_not_learn_refs": [
+        "do-not-learn-chris-burniske"
+      ],
+      "candidate_status": "CandidateReadyWithWarnings",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "candidate_id": "howard-marks",
+      "public_name": "Howard Marks",
+      "normalized_archetype_name": "MarksCycleRiskPremium",
+      "source_category": "PublishedBook",
+      "confidence_grade": "A",
+      "asset_scope": [
+        "PublicEquities"
+      ],
+      "time_horizon": "LongTerm",
+      "intended_committee_role": "long-term equity committee member",
+      "feature_vector_refs": [
+        "feature-card-howard-marks"
+      ],
+      "do_not_learn_refs": [
+        "do-not-learn-howard-marks"
+      ],
+      "candidate_status": "CandidateReadyWithWarnings",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "candidate_id": "john-bogle",
+      "public_name": "John Bogle",
+      "normalized_archetype_name": "BogleLowCostCore",
+      "source_category": "PublishedBook",
+      "confidence_grade": "A",
+      "asset_scope": [
+        "PublicEquities"
+      ],
+      "time_horizon": "LongTerm",
+      "intended_committee_role": "long-term equity committee member",
+      "feature_vector_refs": [
+        "feature-card-john-bogle"
+      ],
+      "do_not_learn_refs": [
+        "do-not-learn-john-bogle"
+      ],
+      "candidate_status": "CandidateReadyWithWarnings",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "candidate_id": "larry-williams",
+      "public_name": "Larry Williams",
+      "normalized_archetype_name": "LarryWilliamsStatisticalSeasonality",
+      "source_category": "PublishedBook",
+      "confidence_grade": "B",
+      "asset_scope": [
+        "Futures",
+        "PublicEquities"
+      ],
+      "time_horizon": "Swing",
+      "intended_committee_role": "seasonality and statistics specialist",
+      "feature_vector_refs": [
+        "feature-card-larry-williams"
+      ],
+      "do_not_learn_refs": [
+        "do-not-learn-larry-williams"
+      ],
+      "candidate_status": "CandidateReadyWithWarnings",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "candidate_id": "linda-raschke",
+      "public_name": "Linda Bradford Raschke",
+      "normalized_archetype_name": "RaschkeProcessManager",
+      "source_category": "PublishedBook",
+      "confidence_grade": "BPlus",
+      "asset_scope": [
+        "Futures",
+        "PublicEquities"
+      ],
+      "time_horizon": "Swing",
+      "intended_committee_role": "process and pattern risk manager",
+      "feature_vector_refs": [
+        "feature-card-linda-raschke"
+      ],
+      "do_not_learn_refs": [
+        "do-not-learn-linda-raschke"
+      ],
+      "candidate_status": "CandidateReadyWithWarnings",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "candidate_id": "mark-minervini",
+      "public_name": "Mark Minervini",
+      "normalized_archetype_name": "MinerviniVcpBreakout",
+      "source_category": "PublishedBook",
+      "confidence_grade": "A",
+      "asset_scope": [
+        "PublicEquities"
+      ],
+      "time_horizon": "Swing",
+      "intended_committee_role": "short-term breakout timing specialist",
+      "feature_vector_refs": [
+        "feature-card-mark-minervini"
+      ],
+      "do_not_learn_refs": [
+        "do-not-learn-mark-minervini"
+      ],
+      "candidate_status": "CandidateReadyWithWarnings",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "candidate_id": "michael-saylor",
+      "public_name": "Michael Saylor / Strategy",
+      "normalized_archetype_name": "SaylorTreasury",
+      "source_category": "OfficialCompanyMaterial",
+      "confidence_grade": "A",
+      "asset_scope": [
+        "Crypto",
+        "CryptoInfrastructure"
+      ],
+      "time_horizon": "Cycle",
+      "intended_committee_role": "crypto committee member",
+      "feature_vector_refs": [
+        "feature-card-michael-saylor"
+      ],
+      "do_not_learn_refs": [
+        "do-not-learn-michael-saylor"
+      ],
+      "candidate_status": "CandidateReadyWithWarnings",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "candidate_id": "paul-tudor-jones",
+      "public_name": "Paul Tudor Jones",
+      "normalized_archetype_name": "PtjMacroAsymmetricRisk",
+      "source_category": "PublicInterview",
+      "confidence_grade": "BPlus",
+      "asset_scope": [
+        "Macro",
+        "Futures",
+        "MultiAsset"
+      ],
+      "time_horizon": "MediumTerm",
+      "intended_committee_role": "macro asymmetric-risk specialist",
+      "feature_vector_refs": [
+        "feature-card-paul-tudor-jones"
+      ],
+      "do_not_learn_refs": [
+        "do-not-learn-paul-tudor-jones"
+      ],
+      "candidate_status": "CandidateReadyWithWarnings",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "candidate_id": "peter-lynch",
+      "public_name": "Peter Lynch",
+      "normalized_archetype_name": "LynchGarpConsumerGrowth",
+      "source_category": "PublishedBook",
+      "confidence_grade": "A",
+      "asset_scope": [
+        "PublicEquities"
+      ],
+      "time_horizon": "LongTerm",
+      "intended_committee_role": "long-term equity committee member",
+      "feature_vector_refs": [
+        "feature-card-peter-lynch"
+      ],
+      "do_not_learn_refs": [
+        "do-not-learn-peter-lynch"
+      ],
+      "candidate_status": "CandidateReadyWithWarnings",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "candidate_id": "richard-dennis",
+      "public_name": "Richard Dennis / Turtle Traders",
+      "normalized_archetype_name": "TurtleTrendSystem",
+      "source_category": "PublicInterview",
+      "confidence_grade": "BPlus",
+      "asset_scope": [
+        "Futures",
+        "Macro"
+      ],
+      "time_horizon": "MediumTerm",
+      "intended_committee_role": "systematic trend-following specialist",
+      "feature_vector_refs": [
+        "feature-card-richard-dennis"
+      ],
+      "do_not_learn_refs": [
+        "do-not-learn-richard-dennis"
+      ],
+      "candidate_status": "CandidateReadyWithWarnings",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "candidate_id": "vitalik-buterin",
+      "public_name": "Vitalik Buterin / Ethereum",
+      "normalized_archetype_name": "VitalikProtocolFundamental",
+      "source_category": "OfficialCompanyMaterial",
+      "confidence_grade": "A",
+      "asset_scope": [
+        "Crypto",
+        "CryptoInfrastructure"
+      ],
+      "time_horizon": "Cycle",
+      "intended_committee_role": "crypto committee member",
+      "feature_vector_refs": [
+        "feature-card-vitalik-buterin"
+      ],
+      "do_not_learn_refs": [
+        "do-not-learn-vitalik-buterin"
+      ],
+      "candidate_status": "CandidateReadyWithWarnings",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "candidate_id": "warren-buffett",
+      "public_name": "Warren Buffett",
+      "normalized_archetype_name": "BuffettQualityMoat",
+      "source_category": "PublishedBook",
+      "confidence_grade": "A",
+      "asset_scope": [
+        "PublicEquities"
+      ],
+      "time_horizon": "LongTerm",
+      "intended_committee_role": "long-term equity committee member",
+      "feature_vector_refs": [
+        "feature-card-warren-buffett"
+      ],
+      "do_not_learn_refs": [
+        "do-not-learn-warren-buffett"
+      ],
+      "candidate_status": "CandidateReadyWithWarnings",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "candidate_id": "william-oneil",
+      "public_name": "William J. O’Neil",
+      "normalized_archetype_name": "OneilCanSlimMarketDirection",
+      "source_category": "PublishedBook",
+      "confidence_grade": "A",
+      "asset_scope": [
+        "PublicEquities"
+      ],
+      "time_horizon": "Swing",
+      "intended_committee_role": "growth trend and market-direction specialist",
+      "feature_vector_refs": [
+        "feature-card-william-oneil"
+      ],
+      "do_not_learn_refs": [
+        "do-not-learn-william-oneil"
+      ],
+      "candidate_status": "CandidateReadyWithWarnings",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "candidate_id": "willy-woo",
+      "public_name": "Willy Woo",
+      "normalized_archetype_name": "WillyWooOnchainCycle",
+      "source_category": "PublicInterview",
+      "confidence_grade": "BPlus",
+      "asset_scope": [
+        "Crypto",
+        "CryptoInfrastructure"
+      ],
+      "time_horizon": "Cycle",
+      "intended_committee_role": "crypto committee member",
+      "feature_vector_refs": [
+        "feature-card-willy-woo"
+      ],
+      "do_not_learn_refs": [
+        "do-not-learn-willy-woo"
+      ],
+      "candidate_status": "CandidateReadyWithWarnings",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "candidate_id": "wonyotti",
+      "public_name": "Wonyotti / AOA",
+      "normalized_archetype_name": "WonyottiBtcRisk",
+      "source_category": "CommunityAnecdote",
+      "confidence_grade": "BMinus",
+      "asset_scope": [
+        "Crypto",
+        "CryptoInfrastructure"
+      ],
+      "time_horizon": "Cycle",
+      "intended_committee_role": "crypto committee member",
+      "feature_vector_refs": [
+        "feature-card-wonyotti"
+      ],
+      "do_not_learn_refs": [
+        "do-not-learn-wonyotti"
+      ],
+      "candidate_status": "CandidateReadyWithWarnings",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    }
+  ],
+  "short_term_swing_count": 6,
+  "long_term_equity_count": 6,
+  "crypto_count": 6,
+  "optional_japan_supplement_count": 0,
+  "blocked_or_low_confidence_count": 0,
+  "registry_status": "EighteenCandidateRegistryReady",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

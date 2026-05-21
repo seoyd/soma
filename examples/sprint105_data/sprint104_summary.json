@@ -1,0 +1,1232 @@
+{
+  "dual_agent_workflow_policy": {
+    "policy_id": "dual-agent-workflow-policy",
+    "implementation_agent": "codex-5.4",
+    "verification_agent": "gpt-5.5",
+    "implementation_allowed_actions": [
+      "implement code",
+      "add focused tests",
+      "add CLI/docs/examples",
+      "patch verification findings"
+    ],
+    "verification_allowed_actions": [
+      "audit prompt compliance",
+      "audit safety invariants",
+      "audit architecture regressions",
+      "emit explicit findings",
+      "final verify without claiming full workspace acceptance"
+    ],
+    "implementation_forbidden_actions": [
+      "claim verification is full workspace acceptance",
+      "silently upgrade lower-confidence evidence",
+      "add live trading or order/account paths"
+    ],
+    "verification_forbidden_actions": [
+      "silently rewrite architecture",
+      "bypass Risk Governor",
+      "treat focused verification as full workspace acceptance"
+    ],
+    "handoff_required": true,
+    "findings_required": true,
+    "final_verification_required": true,
+    "policy_status": "DualAgentWorkflowReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "implementation_agent_role_report": {
+    "report_id": "implementation-agent-role-report",
+    "agent_name": "codex-5.4",
+    "files_added": [
+      "src/league/sprint104_dual_agent_paper_lifecycle.rs",
+      "tests/support/sprint104_support.rs",
+      "tests/dual_agent_workflow_policy.rs",
+      "tests/verification_findings.rs",
+      "tests/prompt_compliance_verification.rs",
+      "tests/safety_invariant_verification.rs",
+      "tests/architecture_regression_verification.rs",
+      "tests/final_verification_gate.rs",
+      "tests/paper_batch_replay.rs",
+      "tests/paper_candidate_lifecycle.rs",
+      "tests/paper_candidate_gates.rs",
+      "tests/risk_governor_batch_veto.rs",
+      "tests/lower_confidence_carry_forward.rs",
+      "tests/control_tower_dual_agent_panel.rs",
+      "tests/control_tower_paper_candidate_lifecycle.rs",
+      "tests/sprint104_cli_safety.rs",
+      "tests/sprint104_determinism.rs",
+      "docs/SPRINT104_DUAL_AGENT_PAPER_LIFECYCLE.md",
+      "docs/DUAL_AGENT_IMPLEMENTATION_VERIFICATION_PROTOCOL.md",
+      "docs/FIVE_FOUR_IMPLEMENTATION_FIVE_FIVE_VERIFICATION.md",
+      "docs/VERIFICATION_FINDINGS_AND_PATCH_LOOP.md",
+      "docs/PAPER_CANDIDATE_LIFECYCLE.md",
+      "docs/PAPER_BATCH_REPLAY.md",
+      "docs/LOWER_CONFIDENCE_CARRY_FORWARD_POLICY.md",
+      "docs/CONTROL_TOWER_DUAL_AGENT_PANEL.md",
+      "docs/CONTROL_TOWER_PAPER_CANDIDATE_LIFECYCLE.md",
+      "docs/SPRINT104_REPORT.md",
+      "examples/soma_sprint104_dual_agent_paper_lifecycle.toml",
+      "examples/soma_dual_agent_workflow_policy.toml",
+      "examples/soma_implementation_agent_role.toml",
+      "examples/soma_verification_agent_role.toml",
+      "examples/soma_prompt_compliance_verification.toml",
+      "examples/soma_safety_invariant_verification.toml",
+      "examples/soma_architecture_regression_verification.toml",
+      "examples/soma_final_verification_gate.toml",
+      "examples/soma_paper_batch_replay.toml",
+      "examples/soma_paper_candidate_lifecycle.toml",
+      "examples/soma_paper_candidate_notrade_gate.toml",
+      "examples/soma_risk_governor_batch_veto.toml",
+      "examples/soma_lower_confidence_carry_forward.toml",
+      "examples/soma_control_tower_dual_agent.toml",
+      "examples/soma_control_tower_paper_candidate_lifecycle.toml",
+      "examples/sprint104_data/sprint103_summary.json",
+      "examples/sprint104_data/dual_agent_workflow_expected.json",
+      "examples/sprint104_data/verification_findings_expected.json",
+      "examples/sprint104_data/final_verification_gate_expected.json",
+      "examples/sprint104_data/paper_batch_replay_expected.json",
+      "examples/sprint104_data/paper_candidate_lifecycle_expected.json",
+      "examples/sprint104_data/risk_governor_batch_veto_expected.json",
+      "examples/sprint104_data/control_tower_dual_agent_expected.json",
+      "examples/sprint104_data/control_tower_paper_lifecycle_expected.json",
+      "examples/sprint104_data/safety_coverage_v20_expected.json"
+    ],
+    "files_changed": [
+      "src/league/mod.rs",
+      "src/lib.rs",
+      "src/bin/soma_experiment.rs",
+      "tests/support/mod.rs"
+    ],
+    "tests_added": [
+      "tests/dual_agent_workflow_policy.rs",
+      "tests/verification_findings.rs",
+      "tests/prompt_compliance_verification.rs",
+      "tests/safety_invariant_verification.rs",
+      "tests/architecture_regression_verification.rs",
+      "tests/final_verification_gate.rs",
+      "tests/paper_batch_replay.rs",
+      "tests/paper_candidate_lifecycle.rs",
+      "tests/paper_candidate_gates.rs",
+      "tests/risk_governor_batch_veto.rs",
+      "tests/lower_confidence_carry_forward.rs",
+      "tests/control_tower_dual_agent_panel.rs",
+      "tests/control_tower_paper_candidate_lifecycle.rs",
+      "tests/sprint104_cli_safety.rs",
+      "tests/sprint104_determinism.rs"
+    ],
+    "docs_added": [
+      "docs/SPRINT104_DUAL_AGENT_PAPER_LIFECYCLE.md",
+      "docs/DUAL_AGENT_IMPLEMENTATION_VERIFICATION_PROTOCOL.md",
+      "docs/FIVE_FOUR_IMPLEMENTATION_FIVE_FIVE_VERIFICATION.md",
+      "docs/VERIFICATION_FINDINGS_AND_PATCH_LOOP.md",
+      "docs/PAPER_CANDIDATE_LIFECYCLE.md",
+      "docs/PAPER_BATCH_REPLAY.md",
+      "docs/LOWER_CONFIDENCE_CARRY_FORWARD_POLICY.md",
+      "docs/CONTROL_TOWER_DUAL_AGENT_PANEL.md",
+      "docs/CONTROL_TOWER_PAPER_CANDIDATE_LIFECYCLE.md",
+      "docs/SPRINT104_REPORT.md"
+    ],
+    "examples_added": [
+      "examples/soma_sprint104_dual_agent_paper_lifecycle.toml",
+      "examples/soma_dual_agent_workflow_policy.toml",
+      "examples/soma_implementation_agent_role.toml",
+      "examples/soma_verification_agent_role.toml",
+      "examples/soma_prompt_compliance_verification.toml",
+      "examples/soma_safety_invariant_verification.toml",
+      "examples/soma_architecture_regression_verification.toml",
+      "examples/soma_final_verification_gate.toml",
+      "examples/soma_paper_batch_replay.toml",
+      "examples/soma_paper_candidate_lifecycle.toml",
+      "examples/soma_paper_candidate_notrade_gate.toml",
+      "examples/soma_risk_governor_batch_veto.toml",
+      "examples/soma_lower_confidence_carry_forward.toml",
+      "examples/soma_control_tower_dual_agent.toml",
+      "examples/soma_control_tower_paper_candidate_lifecycle.toml",
+      "examples/sprint104_data/sprint103_summary.json",
+      "examples/sprint104_data/dual_agent_workflow_expected.json",
+      "examples/sprint104_data/verification_findings_expected.json",
+      "examples/sprint104_data/final_verification_gate_expected.json",
+      "examples/sprint104_data/paper_batch_replay_expected.json",
+      "examples/sprint104_data/paper_candidate_lifecycle_expected.json",
+      "examples/sprint104_data/risk_governor_batch_veto_expected.json",
+      "examples/sprint104_data/control_tower_dual_agent_expected.json",
+      "examples/sprint104_data/control_tower_paper_lifecycle_expected.json",
+      "examples/sprint104_data/safety_coverage_v20_expected.json"
+    ],
+    "cli_added": [
+      "sprint104-dual-agent-paper-lifecycle",
+      "dual-agent-workflow-policy",
+      "implementation-agent-role",
+      "verification-agent-role",
+      "prompt-compliance-verification",
+      "safety-invariant-verification",
+      "architecture-regression-verification",
+      "test-coverage-verification",
+      "final-verification-gate",
+      "paper-batch-replay",
+      "paper-candidate-lifecycle",
+      "paper-candidate-promotion-gate",
+      "paper-candidate-notrade-gate",
+      "paper-candidate-riskdenied-gate",
+      "risk-governor-batch-veto",
+      "lower-confidence-carry-forward",
+      "control-tower-dual-agent",
+      "control-tower-paper-candidate-lifecycle"
+    ],
+    "focused_checks_run": [
+      "cargo fmt --all",
+      "cargo check --workspace",
+      "focused sprint104 tests",
+      "representative sprint104 cli smoke"
+    ],
+    "implementation_summary_present": true,
+    "implementation_status": "ImplementationRoleReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "verification_agent_role_report": {
+    "report_id": "verification-agent-role-report",
+    "agent_name": "gpt-5.5",
+    "prompt_requirements_checked": 7,
+    "changed_files_checked": 56,
+    "tests_checked": 15,
+    "docs_checked": 10,
+    "cli_checked": 18,
+    "safety_checked": true,
+    "architecture_checked": true,
+    "workspace_truth_checked": true,
+    "verification_status": "VerificationRoleReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "verification_findings": [
+    {
+      "finding_id": "workspace-acceptance-still-separate",
+      "severity": "Informational",
+      "category": "WorkspaceTruth",
+      "description": "Full workspace acceptance remains explicitly separate from focused Sprint 104 verification.",
+      "affected_files": [
+        "summary.txt"
+      ],
+      "required_fix": "Keep the distinction explicit in reports.",
+      "finding_status": "AcceptedAsKnownWarning",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    },
+    {
+      "finding_id": "implementation-summary-present",
+      "severity": "Minor",
+      "category": "PromptCompliance",
+      "description": "Implementation summary requirement stayed enabled.",
+      "affected_files": [
+        "src/league/sprint104_dual_agent_paper_lifecycle.rs"
+      ],
+      "required_fix": "None.",
+      "finding_status": "Fixed",
+      "reason_codes": [
+        "CommitteeV1Built",
+        "CommitteeV1RunnerBuilt",
+        "ChairV0Built",
+        "OwnerCannotBypassRiskGovernor",
+        "NoTradeDefault",
+        "MambaRuntimeDeferred",
+        "GatedDeltaNetRuntimeDeferred",
+        "ControlTowerUiReadinessBuilt"
+      ]
+    }
+  ],
+  "prompt_compliance_verification_report": {
+    "report_id": "prompt-compliance-verification-report",
+    "requirements_total": 12,
+    "requirements_satisfied": 12,
+    "requirements_missing": [],
+    "blocking_findings": 0,
+    "nonblocking_findings": 2,
+    "compliance_status": "PromptComplianceVerifiedWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "safety_invariant_verification_report": {
+    "report_id": "safety-invariant-verification-report",
+    "no_live_trading": true,
+    "no_broker_order_account": true,
+    "no_runtime_llm_live_decision": true,
+    "no_mamba_runtime": true,
+    "no_gated_runtime": true,
+    "no_model_training": true,
+    "no_python_training_dependency": true,
+    "no_dashboard_serve": true,
+    "no_browser_execution": true,
+    "no_order_buttons": true,
+    "no_secret_leakage": true,
+    "no_investor_impersonation": true,
+    "no_18_live_activation": true,
+    "safety_status": "SafetyInvariantsVerified",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "architecture_regression_verification_report": {
+    "report_id": "architecture-regression-verification-report",
+    "committee_owned_core_preserved": true,
+    "central_core_not_reintroduced": true,
+    "member_owned_core_refs_preserved": true,
+    "investor_archetype_cards_preserved": true,
+    "paper_rotation_semantics_preserved": true,
+    "risk_governor_final_veto_preserved": true,
+    "architecture_status": "ArchitectureVerified",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "test_coverage_verification_report": {
+    "report_id": "test-coverage-verification-report",
+    "focused_tests_present": true,
+    "cli_safety_tests_present": true,
+    "determinism_tests_present": true,
+    "safety_tests_present": true,
+    "workspace_attempt_reported": true,
+    "hidden_skips_detected": false,
+    "assertion_deletion_detected": false,
+    "test_status": "TestCoverageVerified",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "cli_surface_verification_report": {
+    "report_id": "cli-surface-verification-report",
+    "cli_commands_added": [
+      "sprint104-dual-agent-paper-lifecycle",
+      "dual-agent-workflow-policy",
+      "implementation-agent-role",
+      "verification-agent-role",
+      "prompt-compliance-verification",
+      "safety-invariant-verification",
+      "architecture-regression-verification",
+      "test-coverage-verification",
+      "final-verification-gate",
+      "paper-batch-replay",
+      "paper-candidate-lifecycle",
+      "paper-candidate-promotion-gate",
+      "paper-candidate-notrade-gate",
+      "paper-candidate-riskdenied-gate",
+      "risk-governor-batch-veto",
+      "lower-confidence-carry-forward",
+      "control-tower-dual-agent",
+      "control-tower-paper-candidate-lifecycle"
+    ],
+    "cli_help_research_only": true,
+    "cli_help_paper_only": true,
+    "cli_help_no_live": true,
+    "cli_help_no_order_account": true,
+    "remote_path_rejection_present": true,
+    "forbidden_cli_detected": false,
+    "cli_status": "CliSurfaceVerified",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "docs_examples_verification_report": {
+    "report_id": "docs-examples-verification-report",
+    "docs_present": true,
+    "examples_present": true,
+    "fixture_data_present": true,
+    "docs_warn_no_live": true,
+    "docs_warn_no_order": true,
+    "docs_warn_no_training": true,
+    "docs_warn_workspace_truth": true,
+    "docs_status": "DocsExamplesVerified",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "determinism_verification_report": {
+    "report_id": "determinism-verification-report",
+    "deterministic_outputs_checked": true,
+    "fixture_order_stable": true,
+    "report_order_stable": true,
+    "fingerprint_stable": true,
+    "nondeterminism_detected": false,
+    "determinism_status": "DeterminismVerified",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "workspace_truth_verification_report": {
+    "report_id": "workspace-truth-verification-report",
+    "focused_pass_distinguished_from_full": true,
+    "no_run_status_reported": true,
+    "full_workspace_status_reported": true,
+    "can_claim_full_acceptance": false,
+    "overclaim_detected": false,
+    "truth_status": "WorkspaceTruthVerifiedWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "patch_correction_plan": {
+    "plan_id": "patch-correction-plan",
+    "open_findings": [],
+    "blocking_findings": [],
+    "required_patches": [],
+    "optional_patches": [
+      "Full workspace acceptance remains explicitly separate from focused Sprint 104 verification."
+    ],
+    "patch_status": "PatchPlanReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "dual_agent_review_loop_report": {
+    "report_id": "dual-agent-review-loop-report",
+    "implementation_passes": 1,
+    "verification_passes": 1,
+    "findings_open_before": 2,
+    "findings_fixed": 1,
+    "findings_remaining": 0,
+    "final_verification_status": "FinalVerificationPassedWithWarnings",
+    "review_loop_status": "ReviewLoopCompleteWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "final_verification_gate": {
+    "gate_id": "final-verification-gate",
+    "prompt_compliance_status": "PromptComplianceVerifiedWithWarnings",
+    "safety_invariant_status": "SafetyInvariantsVerified",
+    "architecture_status": "ArchitectureVerified",
+    "test_coverage_status": "TestCoverageVerified",
+    "cli_status": "CliSurfaceVerified",
+    "docs_status": "DocsExamplesVerified",
+    "determinism_status": "DeterminismVerified",
+    "workspace_truth_status": "WorkspaceTruthVerifiedWithWarnings",
+    "blocking_findings_remaining": 0,
+    "final_verification_passed": true,
+    "gate_status": "FinalVerificationPassedWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "paper_rotation_batch_replay_plan": {
+    "plan_id": "paper-rotation-batch-replay-plan",
+    "batch_scenarios": [
+      "korean-equity-trend-breakout",
+      "us-equity-range-bound",
+      "crypto-high-volatility",
+      "multi-asset-drawdown-risk",
+      "macro-shift-cross-asset",
+      "crypto-cycle-liquidity",
+      "insufficient-evidence-halt"
+    ],
+    "replay_schedule": [
+      "batch-01:korean-equity-trend-breakout",
+      "batch-02:us-equity-range-bound",
+      "batch-03:crypto-high-volatility",
+      "batch-04:multi-asset-drawdown-risk",
+      "batch-05:macro-shift-cross-asset",
+      "batch-06:crypto-cycle-liquidity",
+      "batch-07:insufficient-evidence-halt"
+    ],
+    "selected_member_groups": [
+      "CommonRisk",
+      "Crypto",
+      "LongTermEquity",
+      "ShortTermSwing"
+    ],
+    "expected_trace_outputs": [
+      "korean-equity-trend-breakout-paper-trace",
+      "us-equity-range-bound-paper-trace",
+      "crypto-high-volatility-paper-trace",
+      "multi-asset-drawdown-risk-paper-trace",
+      "macro-shift-cross-asset-paper-trace",
+      "crypto-cycle-liquidity-paper-trace",
+      "insufficient-evidence-halt-paper-trace"
+    ],
+    "plan_status": "BatchReplayPlanReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "paper_rotation_batch_replay_report": {
+    "report_id": "paper-rotation-batch-replay-report",
+    "replay_count": 7,
+    "watch_candidate_count": 2,
+    "paper_conditional_count": 1,
+    "no_trade_count": 2,
+    "risk_denied_count": 0,
+    "need_more_evidence_count": 2,
+    "unstable_decision_count": 0,
+    "broker_execution_allowed_count": 0,
+    "live_execution_allowed_count": 0,
+    "replay_status": "BatchReplayReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "paper_candidate_lifecycle_state_machine": {
+    "machine_id": "paper-candidate-lifecycle-state-machine",
+    "allowed_transitions": [
+      "Watch->Candidate",
+      "Candidate->DebateOpen",
+      "DebateOpen->NeedMoreEvidence",
+      "DebateOpen->NoTrade",
+      "DebateOpen->RiskDenied",
+      "DebateOpen->PaperApproved",
+      "DebateOpen->PaperRejected",
+      "NeedMoreEvidence->Watch",
+      "NeedMoreEvidence->Candidate",
+      "NoTrade->Cooldown",
+      "RiskDenied->ArchivedPaperOnly",
+      "PaperApproved->Cooldown",
+      "PaperRejected->ArchivedPaperOnly",
+      "Cooldown->Watch"
+    ],
+    "forbidden_transitions": [
+      "Candidate->LiveExecution",
+      "PaperApproved->BrokerOrder",
+      "PaperApproved->LiveTrading",
+      "DebateOpen->OrderExecution",
+      "RiskDenied->PaperApproved"
+    ],
+    "risk_governor_required_transitions": [
+      "DebateOpen->PaperApproved",
+      "DebateOpen->NoTrade",
+      "DebateOpen->RiskDenied",
+      "DebateOpen->PaperRejected",
+      "PaperApproved->Cooldown",
+      "NoTrade->Cooldown"
+    ],
+    "broker_execution_allowed": false,
+    "live_execution_allowed": false,
+    "state_machine_status": "PaperLifecycleReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "paper_candidate_promotion_gate": {
+    "gate_id": "paper-candidate-promotion-gate",
+    "from_state": "Candidate",
+    "to_state": "PaperApproved",
+    "required_evidence": [
+      "official evidence",
+      "counterfactual evidence",
+      "risk governor review"
+    ],
+    "required_debate_status": "DebateClosedForPaperOnly",
+    "required_risk_status": "RiskGovernorPaperOnlyApproved",
+    "promotion_allowed": true,
+    "live_execution_allowed": false,
+    "gate_status": "PaperPromotionAllowed",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "paper_candidate_rejection_gate": {
+    "gate_id": "paper-candidate-rejection-gate",
+    "rejection_reason": "NoTrade",
+    "gate_status": "PaperRejectionReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "paper_candidate_watchlist_gate": {
+    "gate_id": "paper-candidate-watchlist-gate",
+    "watch_reason": "watch candidates require more rotation evidence: paper-candidate-01, paper-candidate-02",
+    "review_after_condition": "next paper-only replay batch",
+    "required_followup_evidence": [
+      "additional official evidence",
+      "replay stability confirmation"
+    ],
+    "watchlist_status": "WatchlistReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "paper_candidate_no_trade_gate": {
+    "gate_id": "paper-candidate-notrade-gate",
+    "no_trade_reason_codes": [
+      "preserve capital under insufficient edge",
+      "paper proposal is not an order"
+    ],
+    "defensive_value_refs": [
+      "paper-notrade-justification"
+    ],
+    "opportunity_cost_refs": [
+      "committee-batch-consensus"
+    ],
+    "risk_governor_ref": "risk-governor-paper-only-veto",
+    "gate_status": "NoTradeGateReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "paper_candidate_risk_denied_gate": {
+    "gate_id": "paper-candidate-riskdenied-gate",
+    "risk_denied_reason_codes": [
+      "drawdown risk exceeded paper threshold",
+      "Risk Governor final veto preserved"
+    ],
+    "drawdown_risk_refs": [
+      "drawdown-risk-paper-review"
+    ],
+    "volatility_risk_refs": [
+      "volatility-risk-paper-review"
+    ],
+    "liquidity_risk_refs": [
+      "liquidity-risk-paper-review"
+    ],
+    "risk_governor_ref": "risk-governor-paper-only-veto",
+    "gate_status": "RiskDeniedGateReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "paper_candidate_evidence_depth_report": {
+    "report_id": "paper-candidate-evidence-depth-report",
+    "candidate_count": 7,
+    "candidates_with_official_evidence": 5,
+    "candidates_with_counterfactual_evidence": 7,
+    "candidates_with_regime_evidence": 7,
+    "candidates_with_risk_evidence": 5,
+    "candidates_with_no_lookahead_proof": 5,
+    "candidates_needing_more_evidence": 2,
+    "evidence_depth_status": "EvidenceDepthReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "paper_candidate_decision_trace_report": {
+    "report_id": "paper-candidate-decision-trace-report",
+    "candidate_count": 7,
+    "traces_complete": 7,
+    "traces_missing_proposal": 0,
+    "traces_missing_debate": 0,
+    "traces_missing_chairman": 0,
+    "traces_missing_risk_governor": 0,
+    "broker_execution_allowed_count": 0,
+    "live_execution_allowed_count": 0,
+    "trace_status": "CandidateTraceReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "paper_candidate_stability_report": {
+    "report_id": "paper-candidate-stability-report",
+    "candidate_count": 7,
+    "stable_candidates": 7,
+    "unstable_candidates": 0,
+    "instability_reasons": [],
+    "stability_status": "CandidateStabilityReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "committee_batch_consensus_report": {
+    "report_id": "committee-batch-consensus-report",
+    "batch_count": 7,
+    "consensus_watch_count": 2,
+    "consensus_no_trade_count": 2,
+    "consensus_risk_denied_count": 0,
+    "consensus_need_more_evidence_count": 2,
+    "split_decision_count": 1,
+    "consensus_status": "BatchConsensusReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "chairman_batch_synthesis_report": {
+    "report_id": "chairman-batch-synthesis-report",
+    "batch_count": 7,
+    "synthesis_count": 7,
+    "synthesis_with_rulebook_ref": 7,
+    "synthesis_with_weight_audit": 7,
+    "synthesis_with_risk_review_required": 7,
+    "synthesis_status": "ChairmanBatchSynthesisReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "risk_governor_batch_veto_report": {
+    "report_id": "risk-governor-batch-veto-report",
+    "batch_count": 7,
+    "approved_paper_only_count": 1,
+    "no_trade_count": 2,
+    "risk_denied_count": 0,
+    "cooldown_count": 0,
+    "need_more_evidence_count": 2,
+    "bypass_attempt_count": 0,
+    "broker_execution_allowed_count": 0,
+    "live_execution_allowed_count": 0,
+    "veto_status": "RiskGovernorBatchVetoReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "lower_confidence_carry_forward_policy": {
+    "policy_id": "lower-confidence-carry-forward-policy",
+    "warning_backed_candidates": [
+      "Wonyotti",
+      "LarryWilliams",
+      "ArthurHayes"
+    ],
+    "carry_forward_allowed_for_paper": true,
+    "carry_forward_allowed_for_live": false,
+    "max_weight_for_warning_backed": 0.35,
+    "requires_review_each_rotation": true,
+    "policy_status": "LowerConfidenceCarryForwardReadyWithWarnings",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "wonyotti_carry_forward_review": {
+    "review_id": "wonyotti-carry-forward-review",
+    "remains_warning_backed": true,
+    "exact_return_claims_blocked": true,
+    "carry_forward_allowed_for_paper": true,
+    "live_activation_allowed": false,
+    "review_status": "WonyottiStillWarningBacked",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "larry_williams_carry_forward_review": {
+    "review_id": "larry-williams-carry-forward-review",
+    "remains_warning_backed": true,
+    "exact_numeric_rule_claims_downweighted": true,
+    "carry_forward_allowed_for_paper": true,
+    "live_activation_allowed": false,
+    "review_status": "LarryWilliamsStillWarningBacked",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "arthur_hayes_carry_forward_review": {
+    "review_id": "arthur-hayes-carry-forward-review",
+    "remains_warning_backed": true,
+    "leverage_risk_guard_present": true,
+    "carry_forward_allowed_for_paper": true,
+    "live_activation_allowed": false,
+    "review_status": "ArthurHayesStillWarningBacked",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "control_tower_dual_agent_panel": {
+    "panel_id": "control-tower-dual-agent-panel",
+    "workflow_status": "DualAgentWorkflowReady",
+    "implementation_agent_status": "codex-5.4:ImplementationRoleReady",
+    "verification_agent_status": "gpt-5.5:VerificationRoleReady",
+    "prompt_compliance_status": "PromptComplianceVerifiedWithWarnings",
+    "safety_verification_status": "SafetyInvariantsVerified",
+    "architecture_verification_status": "ArchitectureVerified",
+    "test_coverage_status": "TestCoverageVerified",
+    "workspace_truth_status": "WorkspaceTruthVerifiedWithWarnings",
+    "final_verification_status": "FinalVerificationPassedWithWarnings",
+    "open_findings": 0,
+    "next_actions": [
+      "keep 5.4 implementation and 5.5 verification distinct",
+      "patch only explicit verification findings",
+      "keep full workspace acceptance separate"
+    ],
+    "warnings": [
+      "static/read-only panel only",
+      "no run-verification button",
+      "no train/runtime/live/order/account/browser controls"
+    ],
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "control_tower_paper_candidate_lifecycle_panel": {
+    "panel_id": "control-tower-paper-candidate-lifecycle-panel",
+    "batch_replay_status": "BatchReplayReadyWithWarnings",
+    "lifecycle_status": "PaperLifecycleReadyWithWarnings",
+    "candidate_rows": [
+      {
+        "candidate_id": "paper-candidate-01",
+        "scenario_id": "korean-equity-trend-breakout",
+        "state": "Watch",
+        "decision": "Watch"
+      },
+      {
+        "candidate_id": "paper-candidate-02",
+        "scenario_id": "us-equity-range-bound",
+        "state": "Watch",
+        "decision": "Watch"
+      },
+      {
+        "candidate_id": "paper-candidate-03",
+        "scenario_id": "crypto-high-volatility",
+        "state": "PaperApproved",
+        "decision": "PaperApproved"
+      },
+      {
+        "candidate_id": "paper-candidate-04",
+        "scenario_id": "multi-asset-drawdown-risk",
+        "state": "NoTrade",
+        "decision": "NoTrade"
+      },
+      {
+        "candidate_id": "paper-candidate-05",
+        "scenario_id": "macro-shift-cross-asset",
+        "state": "NoTrade",
+        "decision": "NoTrade"
+      },
+      {
+        "candidate_id": "paper-candidate-06",
+        "scenario_id": "crypto-cycle-liquidity",
+        "state": "NeedMoreEvidence",
+        "decision": "NeedMoreEvidence"
+      },
+      {
+        "candidate_id": "paper-candidate-07",
+        "scenario_id": "insufficient-evidence-halt",
+        "state": "NeedMoreEvidence",
+        "decision": "NeedMoreEvidence"
+      }
+    ],
+    "candidate_state_summary": {
+      "ArchivedPaperOnly": 0,
+      "Candidate": 0,
+      "Cooldown": 0,
+      "DebateOpen": 0,
+      "NeedMoreEvidence": 2,
+      "NoTrade": 2,
+      "PaperApproved": 1,
+      "PaperRejected": 0,
+      "RiskDenied": 0,
+      "Watch": 2
+    },
+    "promotion_gate_status": "PaperPromotionAllowed",
+    "rejection_gate_status": "PaperRejectionReadyWithWarnings",
+    "no_trade_gate_status": "NoTradeGateReady",
+    "risk_denied_gate_status": "RiskDeniedGateReadyWithWarnings",
+    "evidence_depth_status": "EvidenceDepthReadyWithWarnings",
+    "trace_status": "CandidateTraceReady",
+    "stability_status": "CandidateStabilityReady",
+    "risk_governor_batch_status": "RiskGovernorBatchVetoReadyWithWarnings",
+    "runtime_deferred_summary": "runtime deferred, training deferred, live inference forbidden, live trading forbidden, no runtime LLM live decision path, static/read-only control tower",
+    "workspace_truth_summary": "workspace_truth_status=WorkspaceTruthVerifiedWithWarnings verification_is_not_full_acceptance=true",
+    "next_actions": [
+      "continue paper-only replay calibration",
+      "keep candidate lifecycle local-only and non-executable",
+      "preserve Risk Governor final veto"
+    ],
+    "warnings": [
+      "static/read-only panel only",
+      "no promote-to-live button",
+      "no order button, no account panel, no browser execution"
+    ],
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "workspace_acceptance_truth_closure_plan_v5": {
+    "plan_id": "workspace-acceptance-truth-closure-plan-v5",
+    "previous_truth_status": "FullWorkspaceNotRun",
+    "current_truth_status": "WorkspaceTruthStillOpenV5",
+    "can_claim_full_acceptance": false,
+    "no_run_gate_status": "NoRunStatusReportedV5",
+    "full_workspace_gate_status": "FullWorkspaceStatusReportedV5",
+    "recommended_actions": [
+      "run cargo test --workspace --no-run --quiet honestly",
+      "run cargo test --workspace --quiet honestly",
+      "do not overclaim before both finish and pass"
+    ],
+    "closure_status": "WorkspaceTruthStillOpenV5",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "workspace_acceptance_attempt_v20": {
+    "attempt_id": "workspace-acceptance-attempt-v20",
+    "command_no_run": "cargo test --workspace --no-run --quiet",
+    "command_full": "cargo test --workspace --quiet",
+    "no_run_started": false,
+    "no_run_finished": false,
+    "no_run_passed": null,
+    "full_started": false,
+    "full_finished": false,
+    "full_passed": null,
+    "timeout_ms": 120000,
+    "can_claim_full_acceptance": false,
+    "attempt_status": "WorkspaceAcceptanceDeferredV20",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "safety_coverage_preservation_report_v20": {
+    "report_id": "safety-coverage-preservation-report-v20",
+    "live_trading_guard_present": true,
+    "broker_guard_present": true,
+    "order_guard_present": true,
+    "account_guard_present": true,
+    "runtime_llm_guard_present": true,
+    "mamba_runtime_guard_present": true,
+    "gated_runtime_guard_present": true,
+    "model_training_guard_present": true,
+    "rust_neural_training_guard_present": true,
+    "python_training_dependency_guard_present": true,
+    "secret_guard_present": true,
+    "no_lookahead_guard_present": true,
+    "source_boundary_guard_present": true,
+    "browser_execution_guard_present": true,
+    "dashboard_serve_guard_present": true,
+    "tauri_svelte_dependency_guard_present": true,
+    "ui_order_control_guard_present": true,
+    "investor_impersonation_guard_present": true,
+    "unverified_claim_filter_present": true,
+    "do_not_learn_guard_present": true,
+    "eighteen_live_activation_forbidden": true,
+    "paper_roster_only_guard_present": true,
+    "chairman_risk_bypass_guard_present": true,
+    "paper_rotation_not_order_execution_guard_present": true,
+    "no_silent_confidence_upgrade_guard_present": true,
+    "dual_agent_workflow_guard_present": true,
+    "verification_not_acceptance_guard_present": true,
+    "paper_candidate_not_order_guard_present": true,
+    "paper_candidate_lifecycle_no_live_guard_present": true,
+    "safety_status": "SafetyCoveragePreservedV20",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "storage_report": {
+    "report_id": "sprint104-dual-agent-paper-lifecycle-storage-report",
+    "output_dir": "target/soma_sprint104_dual_agent_paper_lifecycle/sprint104-dual-agent-paper-lifecycle",
+    "file_count": 40,
+    "files": [
+      "dual_agent_workflow_policy.txt",
+      "implementation_agent_role.txt",
+      "verification_agent_role.txt",
+      "verification_findings.txt",
+      "prompt_compliance_verification.txt",
+      "safety_invariant_verification.txt",
+      "architecture_regression_verification.txt",
+      "test_coverage_verification.txt",
+      "cli_surface_verification.txt",
+      "docs_examples_verification.txt",
+      "determinism_verification.txt",
+      "workspace_truth_verification.txt",
+      "patch_correction_plan.txt",
+      "dual_agent_review_loop.txt",
+      "final_verification_gate.txt",
+      "paper_rotation_batch_replay_plan.txt",
+      "paper_rotation_batch_replay.txt",
+      "paper_candidate_lifecycle_state_machine.txt",
+      "paper_candidate_promotion_gate.txt",
+      "paper_candidate_rejection_gate.txt",
+      "paper_candidate_watchlist_gate.txt",
+      "paper_candidate_notrade_gate.txt",
+      "paper_candidate_riskdenied_gate.txt",
+      "paper_candidate_evidence_depth.txt",
+      "paper_candidate_decision_trace.txt",
+      "paper_candidate_stability.txt",
+      "committee_batch_consensus.txt",
+      "chairman_batch_synthesis.txt",
+      "risk_governor_batch_veto.txt",
+      "lower_confidence_carry_forward_policy.txt",
+      "wonyotti_carry_forward_review.txt",
+      "larry_williams_carry_forward_review.txt",
+      "arthur_hayes_carry_forward_review.txt",
+      "control_tower_dual_agent_panel.txt",
+      "control_tower_paper_candidate_lifecycle_panel.txt",
+      "workspace_acceptance_truth_closure_plan_v5.txt",
+      "workspace_acceptance_attempt_v20.txt",
+      "safety_coverage_preservation_v20.txt",
+      "storage_report.txt",
+      "summary.txt"
+    ],
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault",
+      "MambaRuntimeDeferred",
+      "GatedDeltaNetRuntimeDeferred",
+      "ControlTowerUiReadinessBuilt"
+    ]
+  },
+  "final_summary": "## 1. Sprint summary\n\n- Implemented Sprint 104 dual-agent workflow formalization, paper batch replay, and paper-candidate lifecycle readiness.\n- workflow_status=DualAgentWorkflowReady final_verification_status=FinalVerificationPassedWithWarnings.\n\n## 2. Model workflow decision: 5.4 implement + 5.5 verify\n\n- implementation_agent=codex-5.4\n- verification_agent=gpt-5.5\n- handoff_required=true.\n\n## 3. Why Sprint 104 was needed\n\n- Sprint 103 closed the first paper rotation warning layer, but Sprint 104 had to separate 5.4 implementation from 5.5 verification, preserve deterministic local-only evidence, and keep full workspace acceptance distinct from focused verification.\n\n## 4. Files added\n\n- added_file_count=52.\n\n## 5. Files changed\n\n- changed_file_count=4.\n\n## 6. Dual-agent workflow policy\n\n- Status: DualAgentWorkflowReady.\n- findings_required=true final_verification_required=true.\n\n## 7. Implementation agent role report\n\n- Status: ImplementationRoleReady.\n- focused_checks_run=4.\n\n## 8. Verification agent role report\n\n- Status: VerificationRoleReady.\n- changed_files_checked=56 tests_checked=15.\n\n## 9. Verification findings\n\n- total_findings=2 open_findings=0.\n\n## 10. Prompt compliance verification\n\n- Status: PromptComplianceVerifiedWithWarnings.\n- requirements_satisfied=12/12.\n\n## 11. Safety invariant verification\n\n- Status: SafetyInvariantsVerified.\n- no_live_trading=true no_broker_order_account=true.\n\n## 12. Architecture regression verification\n\n- Status: ArchitectureVerified.\n- committee_owned_core_preserved=true central_core_not_reintroduced=true.\n\n## 13. Test / CLI / docs / determinism verification\n\n- test_status=TestCoverageVerified cli_status=CliSurfaceVerified docs_status=DocsExamplesVerified determinism_status=DeterminismVerified.\n\n## 14. Workspace truth verification\n\n- Status: WorkspaceTruthVerifiedWithWarnings.\n- can_claim_full_acceptance=false overclaim_detected=false.\n\n## 15. Patch correction plan\n\n- Status: PatchPlanReadyWithWarnings.\n- required_patches=0 optional_patches=1.\n\n## 16. Dual-agent review loop\n\n- Status: ReviewLoopCompleteWithWarnings.\n- findings_fixed=1 findings_remaining=0.\n\n## 17. Final verification gate\n\n- Status: FinalVerificationPassedWithWarnings.\n- final_verification_passed=true blocking_findings_remaining=0.\n\n## 18. Paper batch replay\n\n- Status: BatchReplayReadyWithWarnings.\n- replay_count=7 no_trade_count=2 need_more_evidence_count=2.\n\n## 19. Paper candidate lifecycle state machine\n\n- Status: PaperLifecycleReadyWithWarnings.\n- allowed_transitions=14 forbidden_transitions=5.\n\n## 20. Paper candidate gates\n\n- promotion=PaperPromotionAllowed rejection=PaperRejectionReadyWithWarnings watchlist=WatchlistReady no_trade=NoTradeGateReady risk_denied=RiskDeniedGateReadyWithWarnings.\n\n## 21. Candidate evidence / trace / stability\n\n- evidence_status=EvidenceDepthReadyWithWarnings trace_status=CandidateTraceReady stability_status=CandidateStabilityReady.\n\n## 22. Committee batch consensus\n\n- Status: BatchConsensusReadyWithWarnings.\n- split_decision_count=1.\n\n## 23. Chairman batch synthesis\n\n- Status: ChairmanBatchSynthesisReadyWithWarnings.\n- synthesis_with_rulebook_ref=7 synthesis_with_weight_audit=7.\n\n## 24. Risk Governor batch veto\n\n- Status: RiskGovernorBatchVetoReadyWithWarnings.\n- no_trade_count=2 risk_denied_count=0 bypass_attempt_count=0.\n\n## 25. Lower-confidence carry-forward\n\n- Status: LowerConfidenceCarryForwardReadyWithWarnings.\n- warning_backed_candidates=Wonyotti, LarryWilliams, ArthurHayes.\n\n## 26. Wonyotti / Larry / Arthur carry-forward reviews\n\n- wonyotti_status=WonyottiStillWarningBacked larry_status=LarryWilliamsStillWarningBacked arthur_status=ArthurHayesStillWarningBacked.\n\n## 27. Control Tower dual-agent panel\n\n- Static/read-only dual-agent panel only; no run-verification button, no train/runtime/live/order/account/browser controls.\n\n## 28. Control Tower paper candidate lifecycle panel\n\n- Static/read-only lifecycle panel only; no promote-to-live button, no order button, no account panel, and no browser execution.\n\n## 29. Workspace acceptance truth v5\n\n- Status: WorkspaceTruthStillOpenV5.\n- can_claim_full_acceptance=false.\n\n## 30. Safety coverage preservation v20\n\n- Status: SafetyCoveragePreservedV20.\n- dual_agent_workflow_guard_present=true verification_not_acceptance_guard_present=true.\n\n## 31. Output bundle\n\n- Output files: 0.\n\n## 32. CLI and examples\n\n- sprint104_cli_commands=18 example_configs=25.\n\n## 33. Tests added\n\n- focused_tests_added=15.\n\n## 34. Test results\n\n- Focused Sprint 104 verification remains explicit and separate from full workspace acceptance. Honest workspace attempts remain recorded separately.\n\n## 35. Dual-agent workflow status\n\n- DualAgentWorkflowReady.\n\n## 36. Verification status\n\n- FinalVerificationPassedWithWarnings.\n\n## 37. Paper lifecycle status\n\n- PaperLifecycleReadyWithWarnings.\n\n## 38. Runtime deferred status\n\n- RuntimeStillDeferred\n- TrainingStillDeferred\n- LiveInferenceForbidden\n- LiveTradingForbidden\n- NoRuntimeLlmLiveDecisionPath\n- KeepResearchOnly\n- KeepPaperOnly\n\n## 39. Workspace acceptance truth status\n\n- WorkspaceAcceptanceDeferredV20.\n\n## 40. Safety coverage status\n\n- SafetyCoveragePreservedV20.\n\n## 41. Risk review\n\n- Chairman and owner still cannot bypass Risk Governor. Paper candidate lifecycle remains research-only. Paper proposals and entry timing remain non-order, non-execution artifacts.\n\n## 42. Deferred items\n\n- Runtime implementation, model training, live inference, live trading, broker/order/account, runtime LLM live decision path, Mamba runtime, Gated runtime, dashboard serve, browser execution, and 18-live-agent activation remain deferred or forbidden.\n\n## 43. Next gstack sprint recommendation\n\n- Keep 5.4 implementation plus 5.5 verification, preserve warning-backed carry-forward explicitly, and keep full workspace acceptance separate from focused paper lifecycle verification.\n\n",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "decision_id": "sprint98-committee-owned-core-example-paper-decision",
+  "debate_session_id": "sprint98-committee-owned-core-example-debate-session",
+  "chair_synthesis_id": "chairman-synthesis-paper-only",
+  "risk_governor_decision_id": "risk-governor-paper-veto-gate",
+  "final_decision": "NeedMoreEvidence",
+  "proposed_entry_timing": {
+    "timing_id": "trend-scout-entry-window",
+    "member_id": "trend-scout",
+    "symbol": "005930.KS",
+    "timeframe": "OneDay",
+    "entry_window": "NextCandle",
+    "earliest_entry_timestamp": 1730086400000,
+    "latest_entry_timestamp": 1730172800000,
+    "confirmation_conditions": [
+      "breakout holds above prior swing high on paper close"
+    ],
+    "cancellation_conditions": [
+      "risk governor denies or breakout fails immediately"
+    ],
+    "required_risk_checks": [
+      "spread-within-paper-limit",
+      "paper-size-capped"
+    ],
+    "timing_status": "EntryTimingReady",
+    "reason_codes": [
+      "CommitteeV1Built",
+      "CommitteeV1RunnerBuilt",
+      "ChairV0Built",
+      "OwnerCannotBypassRiskGovernor",
+      "NoTradeDefault"
+    ]
+  },
+  "paper_only": true,
+  "broker_execution_allowed": false,
+  "live_execution_allowed": false,
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

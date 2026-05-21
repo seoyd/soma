@@ -1,0 +1,54 @@
+{
+  "audit_timeline": {
+    "events": [
+      {
+        "event_id": "evt-001",
+        "kind": "ProviderStatus",
+        "timestamp_ms": 1715550000000,
+        "title": "KIS primary selected",
+        "summary": "KIS is the Korean and US equity market-data primary; KRX remains reference fallback.",
+        "source_report": "examples/sprint52_data/provider_simplification_sample.json",
+        "severity": "Info",
+        "reason_codes": ["ProviderSimplificationBuilt"]
+      },
+      {
+        "event_id": "evt-002",
+        "kind": "EvidenceUpdate",
+        "timestamp_ms": 1715550100000,
+        "title": "Evidence bottleneck unchanged",
+        "summary": "Official non-crypto rows exist, but KIS evidence remains too small for strong claims.",
+        "source_report": "examples/sprint52_data/core_scorecard_sample.json",
+        "severity": "Warning",
+        "reason_codes": ["DashboardEvidencePanelBuilt"]
+      },
+      {
+        "event_id": "evt-003",
+        "kind": "ChairDecision",
+        "timestamp_ms": 1715550200000,
+        "title": "Chair requested confirm",
+        "summary": "Chair kept the flow paper-only and asked for human review before any new paper promotion.",
+        "source_report": "examples/sprint52_data/committee_benchmark_sample.json",
+        "severity": "Info",
+        "reason_codes": ["RequireConfirmBlockedInAuto"]
+      },
+      {
+        "event_id": "evt-004",
+        "kind": "RiskDecision",
+        "timestamp_ms": 1715550300000,
+        "title": "Risk denied one candidate",
+        "summary": "Risk Governor blocked a lower-quality candidate and preserved the no-trade default.",
+        "source_report": "examples/sprint52_data/risk_report_sample.json",
+        "severity": "Info",
+        "reason_codes": ["RiskDenied"]
+      }
+    ],
+    "warnings": 1,
+    "errors": 0,
+    "critical_count": 0,
+    "fingerprint": "sample-audit-timeline",
+    "reason_codes": [
+      "DeterministicPath",
+      "DashboardAuditTimelineBuilt"
+    ]
+  }
+}

@@ -1,0 +1,9 @@
+audit_id = "sprint55_mamba_readiness_v2_sequence_ready"
+sequence_readiness_report_paths = ["examples/sprint55_data/sequence_readiness_ready.json"]
+core_completion_audit_report_paths = ["target/sprint55/core_completion_audit/sprint55_core_completion_audit/core_completion_audit_report.json"]
+supporting_artifact_paths = ["examples/sprint55_data/mamba_readiness_blocked.json"]
+output_root = "target/sprint55/mamba_readiness_v2"
+allow_external_prototype_only = true
+require_control_tower_visibility = true
+require_risk_governor_integration = true
+reason_codes = ["DeterministicPath"]

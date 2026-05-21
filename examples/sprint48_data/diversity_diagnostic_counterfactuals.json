@@ -1,0 +1,35 @@
+{
+  "batch_id": "sprint48-diagnostic-counterfactuals",
+  "records": [
+    {
+      "row_id": "fixture-diagnostic",
+      "no_trade_counterfactual_built": false,
+      "risk_denied_counterfactual_built": false,
+      "avoided_loss_value": null,
+      "missed_gain_value": null,
+      "diagnostic_only": true,
+      "status": "DiagnosticOnly",
+      "reason_codes": [
+        "DeterministicPath",
+        "CounterfactualEvaluated"
+      ]
+    }
+  ],
+  "total_rows": 1,
+  "eligible_rows": 1,
+  "completed_count": 1,
+  "no_trade_built_count": 0,
+  "risk_denied_built_count": 0,
+  "official_counterfactual_count": 0,
+  "diagnostic_counterfactual_count": 1,
+  "skipped_missing_outcome_count": 0,
+  "skipped_missing_risk_decision_count": 0,
+  "skipped_missing_committee_decision_count": 0,
+  "avoided_loss_total": 0.0,
+  "missed_gain_total": 0.0,
+  "completion_status": "DiagnosticOnly",
+  "reason_codes": [
+    "DeterministicPath",
+    "CounterfactualEvaluated"
+  ]
+}

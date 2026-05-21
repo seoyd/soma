@@ -1,0 +1,13 @@
+{
+  "attachment_id": "sequence-rows-attachment",
+  "source_class": "ResearchOnly",
+  "target_symbol": "005930",
+  "row_count": 64,
+  "rows": [
+    {
+      "sequence_id": "seq-0001",
+      "symbol": "005930",
+      "source_class": "ResearchOnly"
+    }
+  ]
+}

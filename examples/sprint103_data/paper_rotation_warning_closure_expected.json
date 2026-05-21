@@ -1,0 +1,24 @@
+{
+  "report_id": "paper-rotation-warning-closure-report",
+  "previous_rotation_status": "RotationPlanReadyWithWarnings",
+  "previous_member_selection_status": "MemberSelectionReadyWithWarnings",
+  "previous_proposal_status": "ProposalRunReadyWithWarnings",
+  "previous_entry_timing_status": "EntryTimingRunReadyWithWarnings",
+  "previous_debate_status": "DebateSessionReadyWithWarnings",
+  "previous_chairman_status": "ChairmanSynthesisReadyWithWarnings",
+  "previous_risk_handoff_status": "RiskGovernorHandoffReadyWithWarnings",
+  "previous_trace_status": "PaperTraceCompleteWithWarnings",
+  "closed_warning_count": 8,
+  "remaining_warning_count": 3,
+  "closure_status": "PaperRotationWarningsClosedWithNotes",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

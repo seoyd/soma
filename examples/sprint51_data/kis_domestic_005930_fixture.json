@@ -1,0 +1,18 @@
+{
+  "rt_cd": "0",
+  "msg_cd": "M000",
+  "msg1": "ok",
+  "output1": [
+    {
+      "stck_bsop_date": "20240102",
+      "stck_oprc": "70000",
+      "stck_hgpr": "71000",
+      "stck_lwpr": "69500",
+      "stck_clpr": "70500",
+      "acml_vol": "1000",
+      "acml_tr_pbmn": "70500000",
+      "bidp1": "70450",
+      "askp1": "70550"
+    }
+  ]
+}

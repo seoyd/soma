@@ -1,0 +1,5 @@
+plan_id = "sprint55_mamba_prototype_plan_deferred"
+mamba_readiness_report_paths = ["target/sprint55/mamba_readiness_v2/sprint55_mamba_readiness_v2_blocked/mamba3_readiness_audit_v2.json"]
+model_escalation_decision_paths = ["target/sprint55/model_escalation_decision/sprint55_model_escalation/model_escalation_decision_v2.json"]
+output_root = "target/sprint55/mamba_prototype_plan"
+reason_codes = ["DeterministicPath"]

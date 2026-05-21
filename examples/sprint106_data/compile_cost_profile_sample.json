@@ -1,0 +1,13 @@
+{
+  "target_count": 17,
+  "integration_test_target_count": 17,
+  "unit_test_target_count": 0,
+  "doc_test_target_count": 0,
+  "build_script_count": 0,
+  "suspected_cost_centers": [
+    "workspace gate families",
+    "control tower panels",
+    "cli safety fanout",
+    "fixture setup duplication"
+  ]
+}

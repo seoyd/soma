@@ -1,0 +1,29 @@
+plan_id = "sprint61-kis-evidence-expansion-plan-v2"
+kis_evidence_depth_report_paths = ["examples/sprint61_data/kis_evidence_before.json"]
+kis_smoke_report_paths = ["examples/sprint61_data/kis_evidence_after.json"]
+kis_activation_report_paths = ["examples/sprint61_data/feature_schema_sample.json"]
+kis_collection_plan_paths = []
+kis_canonical_csv_paths = ["examples/sprint61_data/sequence_windows_preview_sample.json"]
+kis_provenance_paths = ["examples/sprint61_data/kis_evidence_after.json"]
+kis_preflight_paths = ["examples/sprint61_data/kis_evidence_after.json"]
+outcome_link_closure_paths = [
+  "examples/sprint61_data/outcome_link_depth_sample.json",
+  "examples/sprint61_data/label_alignment_sample.json",
+]
+counterfactual_completion_paths = ["examples/sprint61_data/no_lookahead_sequence_sample.json"]
+output_root = "target/sprint61"
+max_symbols = 4
+max_rows_per_symbol = 200
+max_total_rows = 1200
+max_timeframes = 2
+max_horizons = 3
+max_requests = 8
+max_days = 10
+max_bytes = 5000000
+prefer_local_import = true
+allow_fixture_replay = true
+allow_operator_live_market_data = false
+require_provenance = true
+require_preflight = true
+require_no_lookahead_safe = true
+

@@ -1,0 +1,26 @@
+{
+  "report_id": "arthur-hayes-evidence-hardening-report",
+  "current_confidence_grade": "B",
+  "evidence_refs_added": [
+    "arthur-hayes-public-essay-archive",
+    "arthur-hayes-derivatives-liquidity-interview"
+  ],
+  "public_essay_refs": [
+    "public thesis archive",
+    "public protocol or treasury material"
+  ],
+  "liquidity_derivatives_scope_preserved": true,
+  "macro_crypto_narrative_downweighted_if_unverified": true,
+  "leverage_risk_guard_present": true,
+  "report_status": "ArthurHayesEvidenceStillWarningBacked",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "ChairV0Built",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt"
+  ]
+}

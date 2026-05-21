@@ -1,0 +1,21 @@
+{
+  "gate_id": "workspace-no-run-recovery-gate-v7",
+  "no_run_attempt_status": "NotRun",
+  "cargo_json_capture_status": "CargoJsonCapturedWithWarnings",
+  "compile_cost_profile_status": "CompileCostProfileReadyWithWarnings",
+  "binary_inventory_status": "TestBinaryInventoryReadyWithWarnings",
+  "safe_consolidation_plan_status": "SafeConsolidationPlanReadyWithWarnings",
+  "no_run_recovered": false,
+  "gate_status": "NoRunRecoveryPlanReady",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "CommitteeV1RunnerBuilt",
+    "OwnerCannotBypassRiskGovernor",
+    "NoTradeDefault",
+    "DeterministicPath",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "ControlTowerUiReadinessBuilt",
+    "LocalFileOnly"
+  ]
+}

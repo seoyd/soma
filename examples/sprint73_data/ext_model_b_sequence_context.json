@@ -1,0 +1,12 @@
+{
+  "model_id": "ext-model-b",
+  "model_version": "1.0.0",
+  "total_sequences": 2,
+  "sequence_ids": [
+    "seq-ext-model-b-0001",
+    "seq-ext-model-b-0002"
+  ],
+  "reason_codes": [
+    "ExtModelBPredictionClosureConfigBuilt"
+  ]
+}

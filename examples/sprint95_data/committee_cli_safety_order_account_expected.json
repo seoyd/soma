@@ -1,0 +1,17 @@
+{
+  "report_id": "sprint95-committee-cli-safety-recover-order-account",
+  "no_broker_path": true,
+  "no_order_path": true,
+  "no_account_path": true,
+  "no_balance_path": true,
+  "no_holdings_path": true,
+  "no_buying_power_path": true,
+  "no_orderable_quantity_path": true,
+  "no_correction_cancel_path": true,
+  "no_trade_execution_control": true,
+  "order_account_status": "OrderAccountGuardPreserved",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

@@ -1,0 +1,7 @@
+cycle_id = "sprint56-committee-cycle-single-candidate"
+candidate_path = "examples/sprint56_data/candidate_queue.json"
+risk_snapshot_paths = ["examples/sprint56_data/risk_snapshot.json"]
+output_root = "target/sprint56"
+enable_owner_review = true
+enable_paper_confirm = true
+enable_paper_position_lifecycle = true

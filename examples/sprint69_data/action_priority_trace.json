@@ -1,0 +1,90 @@
+{
+  "traces": [
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.0.0",
+      "priority": "Required",
+      "action": "RetireModelVersion",
+      "source_evidence": [
+        "qa=NeedsRiskReview",
+        "retired or critically regressed model version; final_risk_level=High",
+        "risk=High"
+      ],
+      "command_suggestion": "cargo run --quiet --bin soma_experiment -- decision-log-rollup --config examples/soma_decision_log_rollup.toml",
+      "safe_to_run": true,
+      "why_this_action": "retired or critically regressed model version; final_risk_level=High",
+      "why_not_stronger_action": "stronger action is unnecessary because the current recommendation is already the most conservative required step",
+      "reason_codes": [
+        "ActionPriorityTraceBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.1.0",
+      "priority": "Optional",
+      "action": "WatchModel",
+      "source_evidence": [
+        "keep as offline research candidate",
+        "qa=ReadyForOperatorReview",
+        "risk=Low"
+      ],
+      "command_suggestion": "cargo run --quiet --bin soma_experiment -- control-tower-model-ops-rollup --config examples/soma_control_tower_model_ops_rollup.toml",
+      "safe_to_run": true,
+      "why_this_action": "keep as offline research candidate",
+      "why_not_stronger_action": "stronger action would overstate evidence and skip conservative offline review",
+      "reason_codes": [
+        "ActionPriorityTraceBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-a",
+      "model_version": "1.2.0",
+      "priority": "Optional",
+      "action": "KeepResearchCandidate",
+      "source_evidence": [
+        "keep as offline research candidate",
+        "qa=ReadyForOperatorReview",
+        "risk=Medium"
+      ],
+      "command_suggestion": "cargo run --quiet --bin soma_experiment -- control-tower-model-ops-rollup --config examples/soma_control_tower_model_ops_rollup.toml",
+      "safe_to_run": true,
+      "why_this_action": "keep as offline research candidate",
+      "why_not_stronger_action": "stronger action would overstate evidence and skip conservative offline review",
+      "reason_codes": [
+        "ActionPriorityTraceBuilt"
+      ]
+    },
+    {
+      "model_id": "ext-model-b",
+      "model_version": "1.0.0",
+      "priority": "Required",
+      "action": "RequestMorePredictions",
+      "source_evidence": [
+        "artifact completeness regressed and evidence should be rebuilt conservatively",
+        "calibration drift needs review before further comparison",
+        "comparability regressed and the model should stay diagnostic-only until clarified",
+        "leaderboard status regressed and ranking should be treated conservatively",
+        "prediction coverage regressed and needs more offline history",
+        "qa=NeedsMorePredictions",
+        "risk behavior regressed and needs conservative review",
+        "risk=Critical",
+        "weak coverage or missing prediction evidence; final_risk_level=Critical"
+      ],
+      "command_suggestion": "cargo run --quiet --bin soma_experiment -- model-ops-rollup --config examples/soma_model_ops_rollup.toml",
+      "safe_to_run": true,
+      "why_this_action": "weak coverage or missing prediction evidence; final_risk_level=Critical",
+      "why_not_stronger_action": "stronger action is unnecessary because the current recommendation is already the most conservative required step",
+      "reason_codes": [
+        "ActionPriorityTraceBuilt"
+      ]
+    }
+  ],
+  "required_count": 2,
+  "recommended_count": 0,
+  "optional_count": 2,
+  "unsafe_count": 0,
+  "report_status": "ActionTraceReady",
+  "reason_codes": [
+    "ActionPriorityTraceReportBuilt"
+  ]
+}

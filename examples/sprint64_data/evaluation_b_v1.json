@@ -1,0 +1,56 @@
+{
+  "evaluation_id": "sprint64-gen-b-v1",
+  "model_id": "ext-model-b",
+  "model_version": "1.0.0",
+  "sequence_count": 6,
+  "evaluated_count": 4,
+  "label_distribution": {
+    "StopLoss": 1,
+    "TakeProfit": 2,
+    "TimeExpired": 1
+  },
+  "classification_metrics": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "confusion_counts": {
+      "StopLoss->StopLoss": 1,
+      "TakeProfit->TakeProfit": 2,
+      "TimeExpired->TimeExpired": 1
+    }
+  },
+  "calibration_metrics": {
+    "brier_score": 0.13670000000000002,
+    "ece": 0.365,
+    "confidence_bucket_summary": [
+      "bucket1:0.330->0.000",
+      "bucket2:0.570->1.000",
+      "bucket3:0.630->1.000"
+    ]
+  },
+  "ranking_metrics": {
+    "top_k_precision": 0.6666666666666666,
+    "rank_correlation": 0.9564803309179993
+  },
+  "return_proxy_metrics": {
+    "mean_expected_return": 0.0034999999999999996,
+    "mean_realized_proxy": 0.01125,
+    "hit_rate_proxy": 1.0
+  },
+  "risk_metrics": {
+    "predicted_drawdown_avg": 0.00975,
+    "risk_adjusted_score": 1.1538461538461537,
+    "risk_denied_alignment": 1.0
+  },
+  "cost_aware_metrics": {
+    "net_return_proxy": 0.01075,
+    "cost_stress_score": 0.009749999999999998
+  },
+  "evaluation_status": "InsufficientCoverage",
+  "warnings": [
+    "prediction coverage is below conservative threshold"
+  ],
+  "blockers": [],
+  "reason_codes": [
+    "ExternalModelEvaluationReportBuilt"
+  ]
+}

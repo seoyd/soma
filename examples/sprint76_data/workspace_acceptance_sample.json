@@ -1,0 +1,73 @@
+{
+  "tier_reports": [
+    {
+      "run_id": "sample-quick",
+      "tier": "Quick",
+      "commands_run": [
+        "cargo check --workspace",
+        "cargo test --quiet --test rust_toolchain_modernization --test toolchain_version_report --test cargo_workspace_audit -- --test-threads=1"
+      ],
+      "passed_count": 2,
+      "failed_count": 0,
+      "skipped_count": 0,
+      "runtime_ms": 22000,
+      "tier_status": "TierPassed"
+    },
+    {
+      "run_id": "sample-sprint",
+      "tier": "Sprint",
+      "commands_run": [
+        "cargo fmt --all",
+        "cargo check --workspace",
+        "cargo test focused sprint 76",
+        "representative CLI smoke"
+      ],
+      "passed_count": 4,
+      "failed_count": 0,
+      "skipped_count": 0,
+      "runtime_ms": 90000,
+      "tier_status": "TierPassed"
+    },
+    {
+      "run_id": "sample-full",
+      "tier": "Full",
+      "commands_run": [
+        "cargo fmt --all",
+        "cargo check --workspace",
+        "cargo test --workspace --quiet",
+        "current sprint CLI smoke"
+      ],
+      "passed_count": 4,
+      "failed_count": 0,
+      "skipped_count": 0,
+      "runtime_ms": 420000,
+      "tier_status": "TierPassed"
+    },
+    {
+      "run_id": "sample-smoke",
+      "tier": "Smoke",
+      "commands_run": [
+        "toolchain-version-report",
+        "cargo-workspace-audit",
+        "developer-speed-runbook"
+      ],
+      "passed_count": 3,
+      "failed_count": 0,
+      "skipped_count": 0,
+      "runtime_ms": 14000,
+      "tier_status": "TierPassed"
+    },
+    {
+      "run_id": "sample-audit",
+      "tier": "Audit",
+      "commands_run": [
+        "cargo test --quiet --test rust_toolchain_cli_safety --test rust_toolchain_determinism -- --test-threads=1"
+      ],
+      "passed_count": 1,
+      "failed_count": 0,
+      "skipped_count": 0,
+      "runtime_ms": 19000,
+      "tier_status": "TierPassed"
+    }
+  ]
+}

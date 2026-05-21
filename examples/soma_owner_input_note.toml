@@ -1,0 +1,17 @@
+[owner_input]
+owner_input_id = "owner-input-note-example"
+timestamp_ms = 1715691001000
+owner_id = "owner-local"
+input_kind = "CandidateNote"
+target_type = "Candidate"
+target_id = "cand-102"
+symbol = "AAPL"
+market = "USEquity"
+freeform_note = "Owner can express an opinion as an audited note."
+requested_action = "add_note"
+status = "Submitted"
+reason_codes = ["DeterministicPath"]
+
+[owner_input.structured_payload]
+tag = "opinion"
+channel = "structured"

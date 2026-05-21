@@ -1,0 +1,12 @@
+linker_id = "committee_link_outcomes_fixture"
+scenario_pack_path = "target/soma_committee_official_pack/committee_pack_controlled_official/official_scenario_pack.json"
+outcome_artifact_paths = ["examples/official_committee_outcomes.json"]
+baseline_artifact_paths = ["examples/official_committee_baseline.json"]
+external_prediction_paths = ["examples/official_committee_external.json"]
+output_root = "target/soma_committee_outcome_linker"
+strict_timestamp_match = true
+max_timestamp_tolerance_ms = 0
+require_same_symbol = true
+require_same_horizon = true
+reason_codes = []
+

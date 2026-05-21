@@ -1,0 +1,9 @@
+{
+  "pack_id": "official-notrade-counterfactuals-v3",
+  "no_trade_counterfactual_count": 3,
+  "no_trade_better_count": 2,
+  "avoided_bad_trade_count": 2,
+  "missed_gain_count": 1,
+  "pack_status": "NoTradeCounterfactualPackReady"
+}
+

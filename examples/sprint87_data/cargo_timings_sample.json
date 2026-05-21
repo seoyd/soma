@@ -1,0 +1,48 @@
+{
+  "compile_only_blocker_families": [
+    "FutureWindow",
+    "OfficialDiversity",
+    "TrinityOperational",
+    "DatasetExport",
+    "ControlTowerV1"
+  ],
+  "full_workspace_blocker_families": [
+    "CandleExpansionOps",
+    "ExternalPrediction",
+    "KrxEvidence",
+    "DashboardRenderer",
+    "CommitteeCliSafety",
+    "BaselineSignal",
+    "CounterfactualBackfill"
+  ],
+  "blocked_test_targets": [
+    "tests/future_window_requirements.rs",
+    "tests/official_evidence_diversity_gap.rs",
+    "tests/trinity_operational_loop_runner.rs",
+    "tests/dataset_export.rs",
+    "tests/control_tower_v1.rs",
+    "tests/official_candle_expansion_runner.rs",
+    "tests/external_prediction_ablation.rs",
+    "tests/krx_evidence_job_plan.rs",
+    "tests/dashboard_renderer.rs",
+    "committee_cli_safety",
+    "tests/baseline_signal.rs",
+    "tests/counterfactual_backfill_plan.rs"
+  ],
+  "suspected_crates": [
+    "future_window_requirements",
+    "official_diversity_report",
+    "trinity_operational_loop",
+    "dataset_export",
+    "control_tower_v1",
+    "candle_expansion_ops",
+    "external_prediction_ablation",
+    "krx_evidence_job_plan",
+    "dashboard_renderer",
+    "committee_cli_safety",
+    "baseline_signal",
+    "counterfactual_backfill"
+  ],
+  "suspected_dev_dependencies": ["serde_json", "tempfile", "insta"],
+  "suspected_feature_variants": ["default+research-only", "default+test-fixtures"]
+}

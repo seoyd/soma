@@ -1,0 +1,5 @@
+closure_id = "sprint46-complete-row-close-v2-diagnostics-only"
+complete_row_closure_config_path = "examples/sprint42_data/comparable_controlled_aapl_bundle.json"
+output_root = "target/soma_complete_row_closure_v2"
+run_future_window_extension = false
+run_core_scorecard_rerun = false

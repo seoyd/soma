@@ -1,0 +1,17 @@
+whitelist_id = "kis-symbol-whitelist-overseas"
+output_root = "state/experiments/kis_examples"
+max_symbols = 5
+require_market = true
+require_provider_symbol = true
+require_exchange_code_for_overseas = true
+reason_codes = ["DeterministicPath"]
+
+[[symbols]]
+provider_symbol = "AAPL"
+market = "USEquity"
+venue = "NASDAQ"
+exchange_code = "NASD"
+display_name = "Apple Inc."
+max_rows = 5
+timeframe = "1d"
+data_freshness = "Delayed"

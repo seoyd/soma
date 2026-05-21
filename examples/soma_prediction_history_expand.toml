@@ -1,0 +1,12 @@
+expansion_id = "sprint72-prediction-history-expand"
+current_prediction_history_paths = ["examples/sprint67_data/prediction_history_pack.json"]
+prediction_csv_paths = ["examples/sprint72_data/ext_model_b_predictions_v2.csv"]
+model_card_paths = ["examples/sprint72_data/ext_model_b_model_card_v2.json"]
+sequence_export_manifest_paths = ["examples/sprint63_data/sequence_export_manifest.json"]
+target_models = ["ext-model-b:1.0.0"]
+output_root = "target/soma_offline_evidence_attachment"
+min_versions_per_model = 1
+min_prediction_files_per_model = 2
+min_coverage_ratio = 1.0
+max_prediction_files = 16
+max_bytes = 1000000

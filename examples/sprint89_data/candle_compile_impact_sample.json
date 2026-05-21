@@ -1,0 +1,16 @@
+{
+  "target_count_before": 2,
+  "target_count_after": 1,
+  "compile_duration_before_ms": null,
+  "compile_duration_after_ms": null,
+  "measured": false,
+  "sample_backed": true,
+  "blocked_targets": [
+    "ExternalPrediction",
+    "KrxEvidence",
+    "DashboardRenderer",
+    "CommitteeCliSafety",
+    "BaselineSignal",
+    "CounterfactualBackfill"
+  ]
+}

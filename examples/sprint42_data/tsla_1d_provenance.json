@@ -1,0 +1,21 @@
+{
+  "source_kind": "YFinanceResearch",
+  "source_label": "yfinance-tsla",
+  "provider_label": "YFinance",
+  "local_path": "examples/sprint42_data/tsla_1d.csv",
+  "official_provider": false,
+  "affiliated_or_endorsed": false,
+  "readiness_eligible": false,
+  "benchmark_eligible": true,
+  "upstream_label": null,
+  "generated_by": null,
+  "user_supplied": true,
+  "downloaded_by_soma": false,
+  "remote_url_present": false,
+  "intended_use": "research-only",
+  "license_note": null,
+  "notes": null,
+  "reason_codes": [
+    "DeterministicPath"
+  ]
+}

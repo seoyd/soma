@@ -1,0 +1,6 @@
+diff_id = "sprint59-artifact-diff"
+baseline_artifact_paths = ["examples/sprint59_data/artifact_diff_baseline.json"]
+current_artifact_paths = ["examples/sprint59_data/artifact_diff_current.json"]
+ignore_fields = ["timestamp_ms"]
+output_root = "target/sprint59"
+max_bytes = 5000000

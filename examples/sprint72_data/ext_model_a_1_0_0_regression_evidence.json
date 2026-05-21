@@ -1,0 +1,9 @@
+{
+  "target_model_id": "ext-model-a",
+  "target_model_version": "1.0.0",
+  "source_class": "DiagnosticOnly",
+  "summary": "offline regression evidence pack for ext-model-a:1.0.0 remains diagnostic-only and conservative",
+  "regression_windows_reviewed": 4,
+  "supports_retirement": false,
+  "supports_diagnostic_only": true
+}

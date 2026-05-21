@@ -1,0 +1,44 @@
+registry_id = "sprint48-barrier-profiles-primary"
+output_root = "target/soma_sprint48_examples/barrier_profiles_primary"
+allow_diagnostic_profiles = true
+allow_exploratory_profiles = true
+require_primary_profile = true
+
+[[profiles]]
+profile_id = "primary-preregistered"
+profile_kind = "PrimaryPreregistered"
+horizon_bars = 3
+take_profit_pct = 0.02
+stop_loss_pct = 0.01
+cost_bps = 5.0
+slippage_bps = 2.0
+tie_break_policy = "StopFirst"
+intended_use = "OfficialSufficiency"
+registered_before_outcome_eval = true
+reason_codes = ["DeterministicPath"]
+
+[[profiles]]
+profile_id = "secondary-preregistered"
+profile_kind = "SecondaryPreregistered"
+horizon_bars = 5
+take_profit_pct = 0.025
+stop_loss_pct = 0.012
+cost_bps = 5.0
+slippage_bps = 2.0
+tie_break_policy = "TimeOrder"
+intended_use = "OfficialSufficiency"
+registered_before_outcome_eval = true
+reason_codes = ["DeterministicPath"]
+
+[[profiles]]
+profile_id = "diagnostic-grid"
+profile_kind = "Diagnostic"
+horizon_bars = 3
+take_profit_pct = 0.03
+stop_loss_pct = 0.015
+cost_bps = 5.0
+slippage_bps = 2.0
+tie_break_policy = "TakeProfitFirst"
+intended_use = "DiagnosticOnly"
+registered_before_outcome_eval = true
+reason_codes = ["DeterministicPath"]

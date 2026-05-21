@@ -1,0 +1,21 @@
+{
+  "source_kind": "OfficialApiCollected",
+  "source_label": "official-msft-extended-multi",
+  "provider_label": "AlphaVantage",
+  "upstream_label": null,
+  "local_path": "examples/sprint47_data/msft_1d_extended_multi.csv",
+  "generated_by": null,
+  "user_supplied": true,
+  "downloaded_by_soma": false,
+  "remote_url_present": false,
+  "official_provider": true,
+  "affiliated_or_endorsed": true,
+  "intended_use": "research-only",
+  "readiness_eligible": true,
+  "benchmark_eligible": true,
+  "license_note": null,
+  "notes": "Sprint 47 multi-row official fixture.",
+  "reason_codes": [
+    "DeterministicPath"
+  ]
+}

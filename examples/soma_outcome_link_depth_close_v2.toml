@@ -1,0 +1,13 @@
+closure_id = "sprint61-outcome-link-depth-close-v2"
+outcome_link_coverage_paths = ["examples/sprint61_data/outcome_link_depth_sample.json"]
+kis_canonical_csv_paths = ["examples/sprint61_data/sequence_windows_preview_sample.json"]
+barrier_profile_registry_paths = ["examples/sprint61_data/label_alignment_sample.json"]
+complete_row_paths = ["examples/sprint61_data/kis_evidence_after.json"]
+output_root = "target/sprint61"
+min_outcome_links = 4
+min_take_profit = 1
+min_stop_loss = 1
+min_time_expired = 1
+min_horizons = 2
+require_no_lookahead_safe = true
+

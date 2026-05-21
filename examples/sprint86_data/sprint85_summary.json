@@ -1,0 +1,8 @@
+{
+  "previous_gate_status": "GateImprovedButBlocked",
+  "binary_consolidation_status": "DomainSuitesReadyWithWarnings",
+  "shared_fixture_harness_status": "HarnessAdoptionReadyWithWarnings",
+  "smoke_policy_status": "WorkspaceSmokePolicyReady",
+  "full_workspace_status": "FullWorkspaceStillBlocked"
+}
+

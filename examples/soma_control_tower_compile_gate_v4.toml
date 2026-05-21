@@ -1,0 +1,14 @@
+audit_id = "control-tower-compile-gate-v4"
+sprint86_bundle_paths = ["examples/sprint87_data/sprint86_summary.json"]
+cargo_metadata_paths = [
+  "examples/sprint87_data/compile_families_before.json",
+  "examples/sprint87_data/compile_families_after.json",
+  "examples/sprint87_data/cargo_metadata_sample.json",
+]
+cargo_timings_paths = ["examples/sprint87_data/cargo_timings_sample.json"]
+compile_only_attempt_paths = ["examples/sprint87_data/no_run_attempt_sample.json"]
+full_workspace_attempt_paths = [
+  "examples/sprint87_data/full_workspace_attempt_v5_expected.json",
+  "examples/sprint87_data/safety_coverage_v3_expected.json",
+]
+output_root = "target/soma_sprint87_compile_gate_recovery"

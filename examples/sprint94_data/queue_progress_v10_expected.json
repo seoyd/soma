@@ -1,0 +1,32 @@
+{
+  "report_id": "sprint94-dashboard-renderer-recover-queue-progress-v10",
+  "previous_queue": [
+    "DashboardRenderer",
+    "CommitteeCliSafety",
+    "BaselineSignal",
+    "CounterfactualBackfill"
+  ],
+  "current_queue": [
+    "CommitteeCliSafety",
+    "BaselineSignal",
+    "CounterfactualBackfill"
+  ],
+  "completed_families": [
+    "KrxEvidence",
+    "DashboardRenderer"
+  ],
+  "reduced_families": [
+    "DashboardRenderer"
+  ],
+  "still_blocked_families": [
+    "CommitteeCliSafety",
+    "BaselineSignal",
+    "CounterfactualBackfill"
+  ],
+  "primary_next_family": "CommitteeCliSafety",
+  "queue_status": "QueueAdvanced",
+  "reason_codes": [
+    "DeterministicPath",
+    "LocalFileOnly"
+  ]
+}

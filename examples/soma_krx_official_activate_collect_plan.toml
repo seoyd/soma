@@ -1,0 +1,15 @@
+activation_id = "krx_collect_plan"
+symbol_whitelist_path = "examples/sprint49_data/krx_whitelist_compact.toml"
+output_root = "target/soma_krx_examples"
+max_symbols = 5
+max_rows_per_symbol = 120
+max_requests = 10
+max_days = 365
+max_bytes = 500000
+require_krx_api_key = true
+require_krx_endpoint_template = true
+require_provenance = true
+require_preflight = true
+run_krx_collection = true
+run_local_import = false
+run_official_replication = false

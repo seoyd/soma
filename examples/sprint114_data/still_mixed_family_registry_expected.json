@@ -1,0 +1,28 @@
+{
+  "registry_id": "still-mixed-family-registry-v1",
+  "mixed_families": [
+    "IntegrationTestBinaryFanout",
+    "LinkTimeCost",
+    "MacroExpansionCost"
+  ],
+  "already_isolated_families": [
+    "FixtureSetupFanout",
+    "CliSmokeFanout",
+    "ArtifactRenderFanout"
+  ],
+  "suspect_targets": [
+    "tests/control_tower_workspace_timeout_root_cause_panel.rs",
+    "tests/shared_fixture_harness_application_v1.rs",
+    "tests/workspace_timeout_root_cause.rs"
+  ],
+  "status": "MixedFamilyRegistryReadyWithWarnings",
+  "reason_codes": [
+    "CommitteeV1Built",
+    "DeterministicPath",
+    "LocalFileOnly",
+    "ResearchOnlyOverride",
+    "MambaRuntimeDeferred",
+    "GatedDeltaNetRuntimeDeferred",
+    "NoTradeDefault"
+  ]
+}

@@ -1,0 +1,15 @@
+[owner_input]
+owner_input_id = "owner-input-paper-confirm-example"
+timestamp_ms = 1715691005000
+owner_id = "owner-local"
+input_kind = "PaperConfirm"
+target_type = "Candidate"
+target_id = "cand-101"
+symbol = "005930.KS"
+market = "KoreanEquity"
+requested_action = "paper_confirm_candidate"
+status = "Submitted"
+reason_codes = ["DeterministicPath"]
+
+[owner_input.structured_payload]
+confirm_reason = "paper_review_complete"
