@@ -1,6 +1,7 @@
 input_path = "examples/minimal_ai_committee_multi_market_sample.json"
 offline_member_output_batch_path = "examples/minimal_offline_member_output_batch.sample.json"
 batch_mode = true
+emit_owner_summary = true
 pilot_roster = "three_member"
 paper_outcome = "Positive"
 archetype_style_cards_path = "examples/investor_archetype_style_cards.sample.json"

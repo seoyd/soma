@@ -2137,10 +2137,84 @@ pub struct BatchCommitteeCycleResult {
     pub risk_veto_count: usize,
     pub score_updates: Vec<MemberScoreUpdate>,
     pub score_update_count: usize,
+    pub memory_updates: Vec<MemberMemoryState>,
     pub learning_journal_entries: Vec<MemberLearningJournalEntry>,
     pub learning_journal_entry_count: usize,
     pub learning_journals: Vec<MemberLearningJournal>,
     pub safety_summary: MinimalCommitteeSafetySummary,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct MemberStateSnapshot {
+    pub member_id: String,
+    pub score: f64,
+    pub voice_weight: f64,
+    pub status: AICommitteeMemberStatus,
+    pub memory_state: MemberMemoryState,
+    pub learning_journal_summary: MemberLearningJournalSummary,
+    pub last_updated_at: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct MemberStateStore {
+    pub store_id: String,
+    pub members: Vec<MemberStateSnapshot>,
+    pub source_label: String,
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct BatchCycleStateUpdate {
+    pub cycle_id: String,
+    pub score_updates: Vec<MemberScoreUpdate>,
+    pub memory_updates: Vec<MemberMemoryState>,
+    pub learning_journal_entries: Vec<MemberLearningJournalEntry>,
+    pub updated_member_states: Vec<MemberStateSnapshot>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct MemberVoiceChange {
+    pub member_id: String,
+    pub previous_voice_weight: f64,
+    pub new_voice_weight: f64,
+    pub direction: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerCommitteeSummary {
+    pub cycle_id: String,
+    pub symbols_reviewed: Vec<String>,
+    pub event_count: usize,
+    pub risk_veto_count: usize,
+    pub paper_buy_count: usize,
+    pub paper_hold_count: usize,
+    pub no_trade_count: usize,
+    pub need_more_evidence_count: usize,
+    pub top_supporting_members: Vec<String>,
+    pub top_dissenting_members: Vec<String>,
+    pub member_voice_changes: Vec<MemberVoiceChange>,
+    pub chairman_actions: Vec<ChairmanFinalAction>,
+    pub risk_warnings: Vec<String>,
+    pub owner_readable_summary: String,
+    pub paper_only_warning: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct BatchCommitteeCycleWithStateInput {
+    pub batch_input: BatchCommitteeCycleInput,
+    #[serde(default)]
+    pub member_state_store: Option<MemberStateStore>,
+    #[serde(default)]
+    pub member_state_output_path: Option<String>,
+    #[serde(default)]
+    pub emit_owner_summary: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct BatchCommitteeCycleWithStateResult {
+    pub batch_result: BatchCommitteeCycleResult,
+    pub state_update: BatchCycleStateUpdate,
+    pub owner_summary: Option<OwnerCommitteeSummary>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -2153,6 +2227,12 @@ pub struct MinimalAiCommitteeCycleConfig {
     pub offline_member_output_batch_path: Option<String>,
     #[serde(default)]
     pub batch_mode: bool,
+    #[serde(default)]
+    pub member_state_input_path: Option<String>,
+    #[serde(default)]
+    pub member_state_output_path: Option<String>,
+    #[serde(default)]
+    pub emit_owner_summary: bool,
     #[serde(default)]
     pub inline_offline_member_opinions: Vec<OfflineMemberOpinionFixture>,
     #[serde(default)]
@@ -2194,6 +2274,20 @@ impl MinimalAiCommitteeCycleConfig {
                 return Err(
                     "minimal AI committee offline_member_output_batch_path must be local"
                         .to_string(),
+                );
+            }
+        }
+        if let Some(path) = &self.member_state_input_path {
+            if !local_only(path) {
+                return Err(
+                    "minimal AI committee member_state_input_path must be local".to_string()
+                );
+            }
+        }
+        if let Some(path) = &self.member_state_output_path {
+            if !local_only(path) {
+                return Err(
+                    "minimal AI committee member_state_output_path must be local".to_string(),
                 );
             }
         }
@@ -2345,6 +2439,167 @@ impl MinimalAiCommitteeCycleConfig {
         input.paper_outcome = input.paper_outcome.or(self.paper_outcome);
         Ok(input)
     }
+
+    pub fn load_batch_state_input(&self) -> Result<BatchCommitteeCycleWithStateInput, String> {
+        let batch_input = self.load_batch_input()?;
+        let member_state_store = if let Some(path) = &self.member_state_input_path {
+            Some(MemberStateStore::load_from_local_json(Path::new(path))?)
+        } else {
+            None
+        };
+        Ok(BatchCommitteeCycleWithStateInput {
+            batch_input,
+            member_state_store,
+            member_state_output_path: self.member_state_output_path.clone(),
+            emit_owner_summary: self.emit_owner_summary,
+        })
+    }
+}
+
+impl MemberStateStore {
+    pub fn from_members(store_id: &str, members: &[AICommitteeMember], source_label: &str) -> Self {
+        Self {
+            store_id: store_id.to_string(),
+            members: members
+                .iter()
+                .map(|member| MemberStateSnapshot {
+                    member_id: member.member_id.clone(),
+                    score: member.score,
+                    voice_weight: member.voice_weight,
+                    status: member.status,
+                    memory_state: member
+                        .memory_state
+                        .clone()
+                        .unwrap_or_else(|| MemberMemoryState::new(&member.member_id)),
+                    learning_journal_summary: empty_learning_journal_summary(),
+                    last_updated_at: None,
+                })
+                .collect(),
+            source_label: source_label.to_string(),
+            paper_only: true,
+        }
+    }
+
+    pub fn load_from_local_json(path: &Path) -> Result<Self, String> {
+        if !local_only(&path.to_string_lossy()) {
+            return Err("member state store path must be local".to_string());
+        }
+        let text = fs::read_to_string(path).map_err(|err| err.to_string())?;
+        reject_unsafe_offline_batch_text(&text)?;
+        let store: MemberStateStore = serde_json::from_str(&text).map_err(|err| err.to_string())?;
+        store.validate()?;
+        Ok(store)
+    }
+
+    pub fn save_to_local_json(&self, path: &Path) -> Result<(), String> {
+        if !local_only(&path.to_string_lossy()) {
+            return Err("member state store path must be local".to_string());
+        }
+        self.validate()?;
+        let text = serde_json::to_string_pretty(self).map_err(|err| err.to_string())?;
+        fs::write(path, text).map_err(|err| err.to_string())
+    }
+
+    pub fn apply_score_updates(&mut self, score_updates: &[MemberScoreUpdate]) {
+        for update in score_updates {
+            if let Some(state) = self
+                .members
+                .iter_mut()
+                .find(|state| state.member_id == update.member_id)
+            {
+                state.score = update.new_score;
+                state.voice_weight = update.new_voice_weight;
+                if update.demoted {
+                    state.status = AICommitteeMemberStatus::Demoted;
+                } else if update.promoted {
+                    state.status = AICommitteeMemberStatus::Active;
+                }
+                state.last_updated_at = Some("offline-batch-cycle".to_string());
+            }
+        }
+    }
+
+    pub fn apply_memory_updates(&mut self, memory_updates: &[MemberMemoryState]) {
+        for update in memory_updates {
+            if let Some(state) = self
+                .members
+                .iter_mut()
+                .find(|state| state.member_id == update.member_id)
+            {
+                merge_memory_state(&mut state.memory_state, update);
+                state.last_updated_at = Some("offline-batch-cycle".to_string());
+            }
+        }
+    }
+
+    pub fn append_learning_journal_entries(&mut self, entries: &[MemberLearningJournalEntry]) {
+        for entry in entries {
+            if let Some(state) = self
+                .members
+                .iter_mut()
+                .find(|state| state.member_id == entry.member_id)
+            {
+                match entry.learning_signal {
+                    MemberLearningSignal::Reinforce => {
+                        state.learning_journal_summary.reinforce_count += 1;
+                    }
+                    MemberLearningSignal::Penalize => {
+                        state.learning_journal_summary.penalize_count += 1;
+                    }
+                    MemberLearningSignal::Watch => {
+                        state.learning_journal_summary.watch_count += 1;
+                    }
+                    MemberLearningSignal::Ignore => {
+                        state.learning_journal_summary.ignore_count += 1;
+                    }
+                }
+                state.last_updated_at = Some("offline-batch-cycle".to_string());
+            }
+        }
+    }
+
+    pub fn get_member_state(&self, member_id: &str) -> Option<&MemberStateSnapshot> {
+        self.members
+            .iter()
+            .find(|state| state.member_id == member_id)
+    }
+
+    fn validate(&self) -> Result<(), String> {
+        if !self.paper_only {
+            return Err("member state store must be paper-only".to_string());
+        }
+        if self.store_id.trim().is_empty() {
+            return Err("member state store requires store_id".to_string());
+        }
+        Ok(())
+    }
+}
+
+fn empty_learning_journal_summary() -> MemberLearningJournalSummary {
+    MemberLearningJournalSummary {
+        reinforce_count: 0,
+        penalize_count: 0,
+        watch_count: 0,
+        ignore_count: 0,
+    }
+}
+
+fn merge_memory_state(current: &mut MemberMemoryState, update: &MemberMemoryState) {
+    for symbol in &update.recent_symbols {
+        if !current.recent_symbols.contains(symbol) {
+            current.recent_symbols.push(symbol.clone());
+        }
+    }
+    current.recent_opinion_count += update.recent_opinion_count;
+    current.recent_event_count += update.recent_event_count;
+    current.recent_good_call_count += update.recent_good_call_count;
+    current.recent_bad_call_count += update.recent_bad_call_count;
+    current.recent_risk_veto_count += update.recent_risk_veto_count;
+    for note in &update.notes {
+        if !current.notes.contains(note) {
+            current.notes.push(note.clone());
+        }
+    }
 }
 
 pub fn run_minimal_committee_cycle_from_config_path(
@@ -2362,6 +2617,18 @@ pub fn run_batch_committee_cycle_from_config_path(
         return Err("minimal AI committee batch_mode must be true for batch cycle".to_string());
     }
     run_batch_committee_cycle(config.load_batch_input()?)
+}
+
+pub fn run_batch_committee_cycle_with_state_from_config_path(
+    path: &Path,
+) -> Result<BatchCommitteeCycleWithStateResult, String> {
+    let config = MinimalAiCommitteeCycleConfig::from_toml_path(path)?;
+    if !config.batch_mode {
+        return Err(
+            "minimal AI committee batch_mode must be true for stateful batch cycle".to_string(),
+        );
+    }
+    run_batch_committee_cycle_with_state(config.load_batch_state_input()?)
 }
 
 pub fn run_minimal_committee_cycle(
@@ -2620,6 +2887,7 @@ pub fn run_batch_committee_cycle(
     let mut committee_sessions = Vec::new();
     let mut chairman_decisions = Vec::new();
     let mut score_updates = Vec::new();
+    let mut memory_updates = Vec::new();
     let mut learning_journal_entries = Vec::new();
     let mut risk_veto_count = 0;
 
@@ -2673,6 +2941,7 @@ pub fn run_batch_committee_cycle(
         committee_sessions.push(session);
         chairman_decisions.push(decision);
         score_updates.extend(feedback_result.score_updates);
+        memory_updates.extend(feedback_result.updated_memory_states);
         learning_journal_entries.extend(feedback_result.learning_journal_entries);
     }
 
@@ -2697,11 +2966,194 @@ pub fn run_batch_committee_cycle(
         risk_veto_count,
         score_update_count: score_updates.len(),
         score_updates,
+        memory_updates,
         learning_journal_entry_count: learning_journal_entries.len(),
         learning_journal_entries,
         learning_journals,
         safety_summary: safety_summary(),
     })
+}
+
+pub fn run_batch_committee_cycle_with_state(
+    input: BatchCommitteeCycleWithStateInput,
+) -> Result<BatchCommitteeCycleWithStateResult, String> {
+    if let Some(path) = &input.member_state_output_path {
+        if !local_only(path) {
+            return Err("member state output path must be local".to_string());
+        }
+    }
+    let mut store = input.member_state_store.clone().unwrap_or_else(|| {
+        MemberStateStore::from_members(
+            "minimal-ai-member-state-store",
+            &input.batch_input.members,
+            "initialized-from-batch-input",
+        )
+    });
+    let batch_result = run_batch_committee_cycle(input.batch_input)?;
+    store.apply_score_updates(&batch_result.score_updates);
+    store.apply_memory_updates(&batch_result.memory_updates);
+    store.append_learning_journal_entries(&batch_result.learning_journal_entries);
+    if let Some(path) = &input.member_state_output_path {
+        store.save_to_local_json(Path::new(path))?;
+    }
+    let state_update = BatchCycleStateUpdate {
+        cycle_id: batch_result.batch_id.clone(),
+        score_updates: batch_result.score_updates.clone(),
+        memory_updates: batch_result.memory_updates.clone(),
+        learning_journal_entries: batch_result.learning_journal_entries.clone(),
+        updated_member_states: store.members.clone(),
+    };
+    let owner_summary = input
+        .emit_owner_summary
+        .then(|| build_owner_committee_summary(&batch_result));
+    Ok(BatchCommitteeCycleWithStateResult {
+        batch_result,
+        state_update,
+        owner_summary,
+    })
+}
+
+fn build_owner_committee_summary(result: &BatchCommitteeCycleResult) -> OwnerCommitteeSummary {
+    let mut symbols_reviewed: Vec<String> = result
+        .member_opinions
+        .iter()
+        .map(|opinion| opinion.symbol.clone())
+        .collect();
+    symbols_reviewed.sort();
+    symbols_reviewed.dedup();
+    let mut top_supporting_members: Vec<String> = result
+        .chairman_decisions
+        .iter()
+        .flat_map(|decision| decision.winning_arguments.clone())
+        .collect();
+    top_supporting_members.sort();
+    top_supporting_members.dedup();
+    let mut top_dissenting_members: Vec<String> = result
+        .chairman_decisions
+        .iter()
+        .flat_map(|decision| decision.dissenting_arguments.clone())
+        .collect();
+    top_dissenting_members.sort();
+    top_dissenting_members.dedup();
+    let mut risk_warnings: Vec<String> = result
+        .committee_sessions
+        .iter()
+        .flat_map(|session| {
+            session
+                .risk_flags
+                .iter()
+                .map(|flag| format!("{}:{}", session.event.symbol, flag))
+        })
+        .collect();
+    risk_warnings.sort();
+    risk_warnings.dedup();
+    let member_voice_changes: Vec<MemberVoiceChange> = result
+        .score_updates
+        .iter()
+        .filter(|update| {
+            (update.new_voice_weight - update.previous_voice_weight).abs() > f64::EPSILON
+        })
+        .map(|update| MemberVoiceChange {
+            member_id: update.member_id.clone(),
+            previous_voice_weight: update.previous_voice_weight,
+            new_voice_weight: update.new_voice_weight,
+            direction: if update.new_voice_weight > update.previous_voice_weight {
+                "up".to_string()
+            } else {
+                "down".to_string()
+            },
+        })
+        .collect();
+    let chairman_actions: Vec<ChairmanFinalAction> = result
+        .chairman_decisions
+        .iter()
+        .map(|decision| decision.final_action)
+        .collect();
+    let paper_buy_count = chairman_actions
+        .iter()
+        .filter(|action| matches!(action, ChairmanFinalAction::PaperBuy))
+        .count();
+    let paper_hold_count = chairman_actions
+        .iter()
+        .filter(|action| matches!(action, ChairmanFinalAction::PaperHold))
+        .count();
+    let no_trade_count = chairman_actions
+        .iter()
+        .filter(|action| {
+            matches!(
+                action,
+                ChairmanFinalAction::PaperNoTrade | ChairmanFinalAction::RiskVetoed
+            )
+        })
+        .count();
+    let need_more_evidence_count = chairman_actions
+        .iter()
+        .filter(|action| matches!(action, ChairmanFinalAction::NeedMoreEvidence))
+        .count();
+    let mut event_triggers: Vec<String> = result
+        .event_queue
+        .events
+        .iter()
+        .map(|event| {
+            format!(
+                "{}:{:?}:{}",
+                event.symbol, event.event_type, event.proposed_by_member_id
+            )
+        })
+        .collect();
+    event_triggers.sort();
+    let mut voice_up_members: Vec<String> = member_voice_changes
+        .iter()
+        .filter(|change| change.direction == "up")
+        .map(|change| change.member_id.clone())
+        .collect();
+    voice_up_members.sort();
+    voice_up_members.dedup();
+    let mut voice_down_members: Vec<String> = member_voice_changes
+        .iter()
+        .filter(|change| change.direction == "down")
+        .map(|change| change.member_id.clone())
+        .collect();
+    voice_down_members.sort();
+    voice_down_members.dedup();
+    let action_summary: Vec<String> = chairman_actions
+        .iter()
+        .map(|action| format!("{:?}", action))
+        .collect();
+    let next_watch = if risk_warnings.is_empty() {
+        format!("need_more_evidence_count={need_more_evidence_count}")
+    } else {
+        format!("risk_warnings={}", risk_warnings.join(","))
+    };
+    OwnerCommitteeSummary {
+        cycle_id: result.batch_id.clone(),
+        symbols_reviewed: symbols_reviewed.clone(),
+        event_count: result.event_queue.event_count,
+        risk_veto_count: result.risk_veto_count,
+        paper_buy_count,
+        paper_hold_count,
+        no_trade_count,
+        need_more_evidence_count,
+        top_supporting_members,
+        top_dissenting_members,
+        member_voice_changes,
+        chairman_actions,
+        risk_warnings,
+        owner_readable_summary: format!(
+            "검토 종목: {}. 이벤트 {}개: {}. 의장 결정: {}. Risk Governor veto {}개. 발언권 상승: {}. 발언권 하락: {}. 다음 확인: {}. AI member opinions only; paper-only summary.",
+            symbols_reviewed.join(","),
+            result.event_queue.event_count,
+            event_triggers.join(","),
+            action_summary.join(","),
+            result.risk_veto_count,
+            voice_up_members.join(","),
+            voice_down_members.join(","),
+            next_watch
+        ),
+        paper_only_warning:
+            "paper-only explanation; not an order, not investment advice, no broker/account path"
+                .to_string(),
+    }
 }
 
 fn no_committee_result(

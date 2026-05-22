@@ -3,16 +3,18 @@ use std::process::Command;
 use soma_zero::league::minimal_ai_committee_core::{
     AICommitteeMember, AICommitteeMemberStatus, AIRuntimeMode, AiMemberBrain, AiMemberCoreRegistry,
     ArchetypeRiskBias, ArchetypeStyleCardRegistry, ArchetypeStyleTag, BatchCommitteeCycleInput,
-    ChairmanFinalAction, CoreAwareMemberBrainAdapter, CoreRuntimeStatus, DataRouterInput,
-    DeterministicMockBrain, EvidencePreference, IndependentMemberRole, InvestmentEventQueue,
-    InvestorArchetypeStyleCard, Mamba3GatedDeltaNetCoreSpec, MarketScope, MemberActivationPolicy,
-    MemberCoreFamily, MemberInputPacket, MemberLearningSignal, MemberScoreUpdateReason,
-    MemberSelectionSkipReason, MemberStance, MemberStyleStatus, MemoryCoreKind,
+    BatchCommitteeCycleWithStateInput, ChairmanFinalAction, CoreAwareMemberBrainAdapter,
+    CoreRuntimeStatus, DataRouterInput, DeterministicMockBrain, EvidencePreference,
+    IndependentMemberRole, InvestmentEventQueue, InvestorArchetypeStyleCard,
+    Mamba3GatedDeltaNetCoreSpec, MarketScope, MemberActivationPolicy, MemberCoreFamily,
+    MemberInputPacket, MemberLearningSignal, MemberScoreUpdateReason, MemberSelectionSkipReason,
+    MemberStance, MemberStateStore, MemberStyleStatus, MemoryCoreKind,
     MinimalAiCommitteeCycleConfig, OfflineMemberBrainAdapter, OfflineMemberOpinionFixture,
     OfflineMemberOutputBatch, PreferredMarketBias, PreferredTimeHorizon, RealArchetypeIntakePolicy,
     RiskGovernorStatus, SequenceCoreKind, SourceConfidence, StyleCardStatus, StyleMappingMode,
     create_three_member_pilot_roster, map_style_cards_to_three_member_pilot,
     market_committee_layouts, route_data_to_ai_members, run_batch_committee_cycle_from_config_path,
+    run_batch_committee_cycle_with_state, run_batch_committee_cycle_with_state_from_config_path,
     run_minimal_committee_cycle,
 };
 
@@ -24,6 +26,9 @@ fn single_cycle_config() -> MinimalAiCommitteeCycleConfig {
         ),
         offline_member_output_batch_path: None,
         batch_mode: false,
+        member_state_input_path: None,
+        member_state_output_path: None,
+        emit_owner_summary: false,
         inline_offline_member_opinions: Vec::new(),
         inline_input: None,
         pilot_roster: Some("three_member".to_string()),
@@ -266,6 +271,9 @@ fn minimal_ai_committee_cycle_is_deterministic_and_cli_is_safe() {
     assert!(stdout.contains("\"events_by_symbol\""));
     assert!(stdout.contains("\"risk_veto_count\""));
     assert!(stdout.contains("\"score_update_count\""));
+    assert!(stdout.contains("\"owner_summary\""));
+    assert!(stdout.contains("\"member_voice_changes\""));
+    assert!(stdout.contains("paper-only explanation"));
     assert!(stdout.contains("offline batch opinion"));
     assert!(stdout.contains("\"no_broker_order_account\": true"));
     assert!(stdout.contains("\"final_action\": \"RiskVetoed\""));
@@ -364,6 +372,9 @@ fn offline_fixture_path_is_local_only() {
         offline_member_opinion_path: Some("https://example.invalid/offline.json".to_string()),
         offline_member_output_batch_path: None,
         batch_mode: false,
+        member_state_input_path: None,
+        member_state_output_path: None,
+        emit_owner_summary: false,
         inline_offline_member_opinions: Vec::new(),
         inline_input: None,
         pilot_roster: None,
@@ -575,6 +586,146 @@ fn batch_committee_cycle_routes_multi_symbol_events_and_preserves_safety() {
     ))
     .expect("second batch cycle");
     assert_eq!(result, second);
+}
+
+#[test]
+fn member_state_store_accumulates_batch_memory_and_persists_locally() {
+    let roster = create_three_member_pilot_roster(MarketScope::KoreaShortTerm);
+    let mut store = MemberStateStore::from_members("test-member-state-store", &roster, "unit-test");
+    assert!(store.paper_only);
+    assert_eq!(store.members.len(), 3);
+    assert!(store.get_member_state("trend-kr-short").is_some());
+
+    let err = MemberStateStore::load_from_local_json(std::path::Path::new(
+        "https://example.invalid/member-state.json",
+    ))
+    .expect_err("remote state input path must fail");
+    assert!(err.contains("must be local"));
+
+    let batch_input = MinimalAiCommitteeCycleConfig::from_toml_path(std::path::Path::new(
+        "examples/soma_minimal_ai_committee_core.toml",
+    ))
+    .expect("config")
+    .load_batch_input()
+    .expect("batch input");
+    let result = run_batch_committee_cycle_with_state(BatchCommitteeCycleWithStateInput {
+        batch_input,
+        member_state_store: Some(store.clone()),
+        member_state_output_path: None,
+        emit_owner_summary: true,
+    })
+    .expect("stateful batch cycle");
+
+    store.apply_score_updates(&result.batch_result.score_updates);
+    store.apply_memory_updates(&result.batch_result.memory_updates);
+    store.append_learning_journal_entries(&result.batch_result.learning_journal_entries);
+    let risk_state = store
+        .get_member_state("risk-kr-short")
+        .expect("risk member state");
+    assert!(
+        result
+            .batch_result
+            .score_updates
+            .iter()
+            .any(|update| update.new_voice_weight != update.previous_voice_weight)
+    );
+    for state in &store.members {
+        if let Some(update) = result
+            .batch_result
+            .score_updates
+            .iter()
+            .rev()
+            .find(|update| update.member_id == state.member_id)
+        {
+            assert_eq!(state.score, update.new_score);
+            assert_eq!(state.voice_weight, update.new_voice_weight);
+        }
+    }
+    assert!(risk_state.memory_state.recent_opinion_count > 0);
+    assert!(risk_state.memory_state.recent_event_count > 0);
+    assert!(
+        risk_state.learning_journal_summary.reinforce_count
+            + risk_state.learning_journal_summary.penalize_count
+            + risk_state.learning_journal_summary.watch_count
+            + risk_state.learning_journal_summary.ignore_count
+            > 0
+    );
+
+    let path = std::path::Path::new("target/sprint132_member_state_store_test.json");
+    let _ = std::fs::remove_file(path);
+    store
+        .save_to_local_json(path)
+        .expect("save local member state");
+    let loaded = MemberStateStore::load_from_local_json(path).expect("reload local member state");
+    assert_eq!(loaded, store);
+    let _ = std::fs::remove_file(path);
+
+    let unsafe_path = std::path::Path::new("target/sprint132_unsafe_member_state_store_test.json");
+    let unsafe_state = serde_json::json!({
+        "store_id": "unsafe-member-state-store",
+        "members": [],
+        "source_label": "unit-test",
+        "paper_only": true,
+        "broker_account": "not allowed"
+    })
+    .to_string();
+    std::fs::write(unsafe_path, unsafe_state).expect("write unsafe state fixture");
+    let err = MemberStateStore::load_from_local_json(unsafe_path)
+        .expect_err("unsafe broker/account state field must fail");
+    assert!(err.contains("unsafe field"));
+    let _ = std::fs::remove_file(unsafe_path);
+
+    let err = store
+        .save_to_local_json(std::path::Path::new(
+            "https://example.invalid/member-state.json",
+        ))
+        .expect_err("remote state output path must fail");
+    assert!(err.contains("must be local"));
+}
+
+#[test]
+fn batch_cycle_with_state_produces_owner_summary_and_is_deterministic() {
+    let first = run_batch_committee_cycle_with_state_from_config_path(std::path::Path::new(
+        "examples/soma_minimal_ai_committee_core.toml",
+    ))
+    .expect("first stateful batch cycle");
+    let second = run_batch_committee_cycle_with_state_from_config_path(std::path::Path::new(
+        "examples/soma_minimal_ai_committee_core.toml",
+    ))
+    .expect("second stateful batch cycle");
+    assert_eq!(first, second);
+
+    assert_eq!(
+        first.state_update.cycle_id,
+        "offline-batch-sprint130-sample"
+    );
+    assert_eq!(
+        first.state_update.score_updates.len(),
+        first.batch_result.score_update_count
+    );
+    assert!(!first.state_update.memory_updates.is_empty());
+    assert_eq!(first.state_update.updated_member_states.len(), 3);
+    let summary = first.owner_summary.as_ref().expect("owner summary");
+    assert!(summary.symbols_reviewed.contains(&"005930.KS".to_string()));
+    assert!(summary.symbols_reviewed.contains(&"BTCUSDT".to_string()));
+    assert_eq!(
+        summary.event_count,
+        first.batch_result.event_queue.event_count
+    );
+    assert_eq!(summary.risk_veto_count, first.batch_result.risk_veto_count);
+    assert!(!summary.member_voice_changes.is_empty());
+    assert!(!summary.chairman_actions.is_empty());
+    assert!(
+        summary
+            .risk_warnings
+            .iter()
+            .any(|warning| warning.contains("high_volatility"))
+    );
+    assert!(summary.owner_readable_summary.contains("검토 종목"));
+    assert!(summary.paper_only_warning.contains("not an order"));
+    assert!(first.batch_result.safety_summary.no_broker_order_account);
+    assert!(first.batch_result.safety_summary.no_model_training);
+    assert!(first.batch_result.safety_summary.no_live_inference);
 }
 
 #[test]

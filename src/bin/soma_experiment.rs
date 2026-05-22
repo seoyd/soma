@@ -174,6 +174,7 @@ use soma_zero::{
 };
 use soma_zero::{
     MinimalAiCommitteeCycleConfig, run_batch_committee_cycle_from_config_path,
+    run_batch_committee_cycle_with_state_from_config_path,
     run_minimal_committee_cycle_from_config_path,
 };
 use soma_zero::{
@@ -976,10 +977,20 @@ fn run_minimal_ai_committee_cycle(
         let parsed = MinimalAiCommitteeCycleConfig::from_toml_path(std::path::Path::new(config))?;
         parsed.validate()?;
         if parsed.batch_mode {
-            serde_json::to_value(run_batch_committee_cycle_from_config_path(
-                std::path::Path::new(config),
-            )?)
-            .map_err(|err| err.to_string())
+            if parsed.emit_owner_summary
+                || parsed.member_state_input_path.is_some()
+                || parsed.member_state_output_path.is_some()
+            {
+                serde_json::to_value(run_batch_committee_cycle_with_state_from_config_path(
+                    std::path::Path::new(config),
+                )?)
+                .map_err(|err| err.to_string())
+            } else {
+                serde_json::to_value(run_batch_committee_cycle_from_config_path(
+                    std::path::Path::new(config),
+                )?)
+                .map_err(|err| err.to_string())
+            }
         } else {
             serde_json::to_value(run_minimal_committee_cycle_from_config_path(
                 std::path::Path::new(config),
