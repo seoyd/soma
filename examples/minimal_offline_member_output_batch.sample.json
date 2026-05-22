@@ -1,0 +1,87 @@
+{
+  "batch_id": "offline-batch-sprint130-sample",
+  "created_at": "2026-05-22T17:43:38+09:00",
+  "source_label": "local-sample",
+  "opinions": [
+    {
+      "member_id": "risk-kr-short",
+      "symbol": "005930.KS",
+      "market_scope": "KoreaShortTerm",
+      "stance": "NoTrade",
+      "confidence": 0.86,
+      "expected_return_hint": 0.0,
+      "risk_hint": 0.31,
+      "evidence_notes": [
+        "offline batch opinion",
+        "risk member flags elevated volatility",
+        "paper-only risk review"
+      ],
+      "event_triggered": true,
+      "event_reason": "offline batch volatility warning"
+    },
+    {
+      "member_id": "trend-kr-short",
+      "symbol": "005930.KS",
+      "market_scope": "KoreaShortTerm",
+      "stance": "BuyProposal",
+      "confidence": 0.8,
+      "expected_return_hint": 0.034,
+      "risk_hint": 0.08,
+      "evidence_notes": [
+        "offline batch opinion",
+        "trend member sees positive momentum",
+        "paper-only entry review"
+      ],
+      "event_triggered": true,
+      "event_reason": "offline batch positive momentum"
+    },
+    {
+      "member_id": "evidence-kr-short",
+      "symbol": "AAPL",
+      "market_scope": "UsShortTerm",
+      "stance": "NeedMoreEvidence",
+      "confidence": 0.72,
+      "expected_return_hint": 0.0,
+      "risk_hint": 0.12,
+      "evidence_notes": [
+        "offline batch opinion",
+        "evidence member requests more corroboration",
+        "paper-only evidence review"
+      ],
+      "event_triggered": true,
+      "event_reason": "offline batch evidence gap"
+    },
+    {
+      "member_id": "trend-kr-short",
+      "symbol": "BTCUSDT",
+      "market_scope": "CryptoShortTerm",
+      "stance": "BuyProposal",
+      "confidence": 0.74,
+      "expected_return_hint": 0.03,
+      "risk_hint": 0.14,
+      "evidence_notes": [
+        "offline batch opinion",
+        "trend member sees crypto momentum",
+        "paper-only entry review"
+      ],
+      "event_triggered": true,
+      "event_reason": "offline batch crypto momentum"
+    },
+    {
+      "member_id": "risk-kr-short",
+      "symbol": "BTCUSDT",
+      "market_scope": "CryptoShortTerm",
+      "stance": "NoTrade",
+      "confidence": 0.88,
+      "expected_return_hint": 0.0,
+      "risk_hint": 0.34,
+      "evidence_notes": [
+        "offline batch opinion",
+        "risk member flags crypto volatility",
+        "paper-only risk review"
+      ],
+      "event_triggered": true,
+      "event_reason": "offline batch crypto risk warning"
+    }
+  ]
+}

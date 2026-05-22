@@ -31,7 +31,7 @@ fn clamp_unit(value: f64) -> f64 {
     value.clamp(0.0, 1.0)
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum MarketScope {
     KoreaShortTerm,
     KoreaLongTerm,
@@ -791,6 +791,25 @@ pub fn create_three_member_pilot_roster(scope: MarketScope) -> Vec<AICommitteeMe
     create_three_member_pilot_roster_with_runtime(scope, CoreRuntimeStatus::MockLocal)
 }
 
+fn create_three_member_pilot_roster_for_scopes(
+    mut scopes: Vec<MarketScope>,
+    runtime_status: CoreRuntimeStatus,
+) -> Vec<AICommitteeMember> {
+    scopes.sort();
+    scopes.dedup();
+    let first_scope = scopes
+        .first()
+        .copied()
+        .unwrap_or(MarketScope::KoreaShortTerm);
+    create_three_member_pilot_roster_with_runtime(first_scope, runtime_status)
+        .into_iter()
+        .map(|mut member| {
+            member.market_scopes = scopes.clone();
+            member
+        })
+        .collect()
+}
+
 impl ArchetypeStyleCardRegistry {
     pub fn from_cards(cards: Vec<InvestorArchetypeStyleCard>) -> Self {
         let active_count = cards
@@ -1452,6 +1471,163 @@ pub struct OfflineMemberBrainAdapter {
     pub fixtures: Vec<OfflineMemberOpinionFixture>,
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OfflineMemberOutputBatch {
+    pub batch_id: String,
+    pub created_at: String,
+    pub source_label: String,
+    pub opinions: Vec<OfflineMemberOpinionFixture>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OfflineMemberOutputBatchLoadResult {
+    pub batch_id: String,
+    pub loaded_count: usize,
+    pub invalid_count: usize,
+    pub duplicate_count: usize,
+    pub unmatched_count: usize,
+    pub opinions: Vec<OfflineMemberOpinionFixture>,
+    pub safety_notes: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+struct OfflineOpinionKey {
+    member_id: String,
+    symbol: String,
+    market_scope: MarketScope,
+}
+
+impl OfflineOpinionKey {
+    fn from_fixture(fixture: &OfflineMemberOpinionFixture) -> Self {
+        Self {
+            member_id: fixture.member_id.clone(),
+            symbol: fixture.symbol.clone(),
+            market_scope: fixture.market_scope,
+        }
+    }
+
+    fn from_packet(packet: &MemberInputPacket) -> Self {
+        Self {
+            member_id: packet.member_id.clone(),
+            symbol: packet.market_data.symbol.clone(),
+            market_scope: packet.market_data.market_scope,
+        }
+    }
+}
+
+impl OfflineMemberOutputBatch {
+    pub fn from_json_path(path: &Path) -> Result<OfflineMemberOutputBatchLoadResult, String> {
+        if !local_only(&path.to_string_lossy()) {
+            return Err("offline member output batch path must be local".to_string());
+        }
+        let text = fs::read_to_string(path).map_err(|err| err.to_string())?;
+        Self::from_json_str(&text)
+    }
+
+    pub fn from_json_str(text: &str) -> Result<OfflineMemberOutputBatchLoadResult, String> {
+        reject_unsafe_offline_batch_text(text)?;
+        let batch: OfflineMemberOutputBatch =
+            serde_json::from_str(text).map_err(|err| err.to_string())?;
+        let mut seen = std::collections::BTreeSet::new();
+        let mut opinions = Vec::new();
+        let mut invalid_count = 0;
+        let mut duplicate_count = 0;
+        for opinion in batch.opinions {
+            if opinion.member_id.trim().is_empty()
+                || opinion.symbol.trim().is_empty()
+                || opinion
+                    .evidence_notes
+                    .iter()
+                    .any(|note| note.trim().is_empty())
+            {
+                invalid_count += 1;
+                continue;
+            }
+            if !seen.insert(OfflineOpinionKey::from_fixture(&opinion)) {
+                duplicate_count += 1;
+                continue;
+            }
+            opinions.push(opinion);
+        }
+        Ok(OfflineMemberOutputBatchLoadResult {
+            batch_id: batch.batch_id,
+            loaded_count: opinions.len(),
+            invalid_count,
+            duplicate_count,
+            unmatched_count: 0,
+            opinions,
+            safety_notes: vec![
+                "local offline member output batch only".to_string(),
+                "no network, no live inference, no model training".to_string(),
+                "no broker/order/account or live execution fields accepted".to_string(),
+            ],
+        })
+    }
+}
+
+fn reject_unsafe_offline_batch_text(text: &str) -> Result<(), String> {
+    let value: serde_json::Value = serde_json::from_str(text).map_err(|err| err.to_string())?;
+    reject_unsafe_offline_batch_value(&value)
+}
+
+fn reject_unsafe_offline_batch_value(value: &serde_json::Value) -> Result<(), String> {
+    match value {
+        serde_json::Value::Object(map) => {
+            for (key, value) in map {
+                let lower = key.to_ascii_lowercase();
+                if ["broker", "order", "account"]
+                    .iter()
+                    .any(|fragment| lower.contains(fragment))
+                {
+                    return Err(format!(
+                        "offline member output batch rejected unsafe field: {key}"
+                    ));
+                }
+                reject_unsafe_offline_batch_value(value)?;
+            }
+        }
+        serde_json::Value::Array(items) => {
+            for item in items {
+                reject_unsafe_offline_batch_value(item)?;
+            }
+        }
+        serde_json::Value::String(text) => {
+            let lower = text.to_ascii_lowercase();
+            for prohibited in [
+                "place order",
+                "execute order",
+                "submit order",
+                "broker account",
+                "guaranteed return",
+                "guaranteed returns",
+                "guaranteed profit",
+                "guaranteed profits",
+                "impersonate",
+                "warren buffett ai",
+                "exact copy",
+                "trades like",
+                "private strategy",
+                "private-strategy",
+                "private data",
+                "nonpublic",
+                "inside information",
+                "live execution",
+                "live trading",
+                "live inference",
+                "model training",
+            ] {
+                if lower.contains(prohibited) {
+                    return Err(format!(
+                        "offline member output batch rejected unsafe claim: {prohibited}"
+                    ));
+                }
+            }
+        }
+        _ => {}
+    }
+    Ok(())
+}
+
 impl OfflineMemberBrainAdapter {
     pub fn from_json_path(path: &Path) -> Result<Self, String> {
         if !local_only(&path.to_string_lossy()) {
@@ -1622,6 +1798,133 @@ pub struct InvestmentEvent {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct InvestmentEventQueue {
+    pub queue_id: String,
+    pub events: Vec<InvestmentEvent>,
+    pub event_count: usize,
+    pub symbols: Vec<String>,
+    pub market_scopes: Vec<MarketScope>,
+}
+
+impl InvestmentEventQueue {
+    pub fn from_member_opinions(opinions: &[MemberOpinion]) -> Self {
+        let mut events: Vec<InvestmentEvent> = opinions
+            .iter()
+            .filter(|opinion| opinion.event_triggered)
+            .map(event_from_opinion)
+            .collect();
+        events = Self {
+            queue_id: "offline-batch-event-queue".to_string(),
+            events,
+            event_count: 0,
+            symbols: Vec::new(),
+            market_scopes: Vec::new(),
+        }
+        .risk_first_ordering();
+        Self::from_events(events)
+    }
+
+    pub fn group_by_symbol(&self) -> std::collections::BTreeMap<String, Vec<InvestmentEvent>> {
+        let mut grouped: std::collections::BTreeMap<String, Vec<InvestmentEvent>> =
+            std::collections::BTreeMap::new();
+        for event in &self.events {
+            grouped
+                .entry(event.symbol.clone())
+                .or_default()
+                .push(event.clone());
+        }
+        grouped
+    }
+
+    pub fn group_by_market_scope(
+        &self,
+    ) -> std::collections::BTreeMap<MarketScope, Vec<InvestmentEvent>> {
+        let mut grouped: std::collections::BTreeMap<MarketScope, Vec<InvestmentEvent>> =
+            std::collections::BTreeMap::new();
+        for event in &self.events {
+            grouped
+                .entry(event.market_scope)
+                .or_default()
+                .push(event.clone());
+        }
+        grouped
+    }
+
+    pub fn highest_confidence_event(&self) -> Option<&InvestmentEvent> {
+        self.events.iter().max_by(|left, right| {
+            left.triggering_opinion
+                .confidence
+                .partial_cmp(&right.triggering_opinion.confidence)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
+    }
+
+    pub fn risk_first_ordering(mut self) -> Vec<InvestmentEvent> {
+        self.events.sort_by(|left, right| {
+            event_priority(left)
+                .cmp(&event_priority(right))
+                .then_with(|| {
+                    right
+                        .triggering_opinion
+                        .confidence
+                        .partial_cmp(&left.triggering_opinion.confidence)
+                        .unwrap_or(std::cmp::Ordering::Equal)
+                })
+                .then_with(|| left.event_id.cmp(&right.event_id))
+        });
+        self.events
+    }
+
+    fn from_events(events: Vec<InvestmentEvent>) -> Self {
+        let mut symbols: Vec<String> = events.iter().map(|event| event.symbol.clone()).collect();
+        symbols.sort();
+        symbols.dedup();
+        let mut market_scopes: Vec<MarketScope> =
+            events.iter().map(|event| event.market_scope).collect();
+        market_scopes.sort();
+        market_scopes.dedup();
+        Self {
+            queue_id: "offline-batch-event-queue".to_string(),
+            event_count: events.len(),
+            events,
+            symbols,
+            market_scopes,
+        }
+    }
+}
+
+fn event_from_opinion(opinion: &MemberOpinion) -> InvestmentEvent {
+    let event_type = match opinion.stance {
+        MemberStance::BuyProposal => InvestmentEventType::EntryProposal,
+        MemberStance::SellProposal => InvestmentEventType::ExitProposal,
+        MemberStance::NoTrade => InvestmentEventType::RiskWarning,
+        MemberStance::NeedMoreEvidence | MemberStance::Hold => {
+            InvestmentEventType::NeedMoreEvidence
+        }
+    };
+    InvestmentEvent {
+        event_id: format!(
+            "event-{}-{:?}-{}",
+            opinion.symbol, opinion.market_scope, opinion.member_id
+        ),
+        proposed_by_member_id: opinion.member_id.clone(),
+        symbol: opinion.symbol.clone(),
+        market_scope: opinion.market_scope,
+        event_type,
+        triggering_opinion: opinion.clone(),
+        created_at: "offline-batch".to_string(),
+    }
+}
+
+fn event_priority(event: &InvestmentEvent) -> u8 {
+    match event.event_type {
+        InvestmentEventType::RiskWarning => 0,
+        InvestmentEventType::EntryProposal | InvestmentEventType::ExitProposal => 1,
+        InvestmentEventType::NeedMoreEvidence => 2,
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct CommitteeSession {
     pub session_id: String,
     pub event: InvestmentEvent,
@@ -1773,6 +2076,19 @@ pub struct MinimalCommitteeCycleInput {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct BatchCommitteeCycleInput {
+    pub market_data: Vec<MarketDataSnapshot>,
+    pub news: Vec<NewsSnapshot>,
+    pub members: Vec<AICommitteeMember>,
+    #[serde(default)]
+    pub offline_output_batch: Option<OfflineMemberOutputBatch>,
+    #[serde(default)]
+    pub owner_context: Option<String>,
+    #[serde(default)]
+    pub paper_outcome: Option<SimulatedPaperOutcome>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct MinimalCommitteeSafetySummary {
     pub paper_only: bool,
     pub no_real_order_path: bool,
@@ -1809,11 +2125,34 @@ pub struct MinimalCommitteeCycleResult {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct BatchCommitteeCycleResult {
+    pub batch_id: String,
+    pub routed_packet_count: usize,
+    pub member_opinion_count: usize,
+    pub member_opinions: Vec<MemberOpinion>,
+    pub event_queue: InvestmentEventQueue,
+    pub events_by_symbol: std::collections::BTreeMap<String, usize>,
+    pub committee_sessions: Vec<CommitteeSession>,
+    pub chairman_decisions: Vec<ChairmanDecision>,
+    pub risk_veto_count: usize,
+    pub score_updates: Vec<MemberScoreUpdate>,
+    pub score_update_count: usize,
+    pub learning_journal_entries: Vec<MemberLearningJournalEntry>,
+    pub learning_journal_entry_count: usize,
+    pub learning_journals: Vec<MemberLearningJournal>,
+    pub safety_summary: MinimalCommitteeSafetySummary,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct MinimalAiCommitteeCycleConfig {
     #[serde(default = "default_input_path")]
     pub input_path: Option<String>,
     #[serde(default)]
     pub offline_member_opinion_path: Option<String>,
+    #[serde(default)]
+    pub offline_member_output_batch_path: Option<String>,
+    #[serde(default)]
+    pub batch_mode: bool,
     #[serde(default)]
     pub inline_offline_member_opinions: Vec<OfflineMemberOpinionFixture>,
     #[serde(default)]
@@ -1847,6 +2186,14 @@ impl MinimalAiCommitteeCycleConfig {
             if !local_only(path) {
                 return Err(
                     "minimal AI committee offline_member_opinion_path must be local".to_string(),
+                );
+            }
+        }
+        if let Some(path) = &self.offline_member_output_batch_path {
+            if !local_only(path) {
+                return Err(
+                    "minimal AI committee offline_member_output_batch_path must be local"
+                        .to_string(),
                 );
             }
         }
@@ -1925,6 +2272,79 @@ impl MinimalAiCommitteeCycleConfig {
         }
         Ok(input)
     }
+
+    pub fn load_batch_input(&self) -> Result<BatchCommitteeCycleInput, String> {
+        self.validate()?;
+        let path = self
+            .input_path
+            .as_deref()
+            .ok_or_else(|| "minimal AI committee batch input_path missing".to_string())?;
+        let text = fs::read_to_string(path).map_err(|err| err.to_string())?;
+        let mut input: BatchCommitteeCycleInput =
+            serde_json::from_str(&text).map_err(|err| err.to_string())?;
+        if input.market_data.is_empty() {
+            return Err("minimal AI committee batch requires market_data".to_string());
+        }
+        if self.pilot_roster.as_deref() == Some("three_member") {
+            let runtime_status = if self.offline_member_output_batch_path.is_some()
+                || !self.inline_offline_member_opinions.is_empty()
+                || self.offline_member_opinion_path.is_some()
+            {
+                CoreRuntimeStatus::OfflineFixture
+            } else {
+                CoreRuntimeStatus::MockLocal
+            };
+            input.members = create_three_member_pilot_roster_for_scopes(
+                input
+                    .market_data
+                    .iter()
+                    .map(|market| market.market_scope)
+                    .collect(),
+                runtime_status,
+            );
+        }
+
+        let mut batch = if let Some(path) = &self.offline_member_output_batch_path {
+            let load = OfflineMemberOutputBatch::from_json_path(Path::new(path))?;
+            Some(OfflineMemberOutputBatch {
+                batch_id: load.batch_id,
+                created_at: "loaded-from-local-file".to_string(),
+                source_label: path.clone(),
+                opinions: load.opinions,
+            })
+        } else {
+            input.offline_output_batch.take()
+        };
+
+        if !self.inline_offline_member_opinions.is_empty()
+            || self.offline_member_opinion_path.is_some()
+        {
+            let mut opinions = batch
+                .as_ref()
+                .map(|batch| batch.opinions.clone())
+                .unwrap_or_default();
+            opinions.extend(self.inline_offline_member_opinions.clone());
+            if let Some(path) = &self.offline_member_opinion_path {
+                opinions
+                    .extend(OfflineMemberBrainAdapter::from_json_path(Path::new(path))?.fixtures);
+            }
+            batch = Some(OfflineMemberOutputBatch {
+                batch_id: batch
+                    .as_ref()
+                    .map(|batch| batch.batch_id.clone())
+                    .unwrap_or_else(|| "inline-offline-member-output-batch".to_string()),
+                created_at: batch
+                    .as_ref()
+                    .map(|batch| batch.created_at.clone())
+                    .unwrap_or_else(|| "inline".to_string()),
+                source_label: "minimal-ai-committee-cycle-config".to_string(),
+                opinions,
+            });
+        }
+        input.offline_output_batch = batch;
+        input.paper_outcome = input.paper_outcome.or(self.paper_outcome);
+        Ok(input)
+    }
 }
 
 pub fn run_minimal_committee_cycle_from_config_path(
@@ -1932,6 +2352,16 @@ pub fn run_minimal_committee_cycle_from_config_path(
 ) -> Result<MinimalCommitteeCycleResult, String> {
     let config = MinimalAiCommitteeCycleConfig::from_toml_path(path)?;
     run_minimal_committee_cycle(config.load_input()?)
+}
+
+pub fn run_batch_committee_cycle_from_config_path(
+    path: &Path,
+) -> Result<BatchCommitteeCycleResult, String> {
+    let config = MinimalAiCommitteeCycleConfig::from_toml_path(path)?;
+    if !config.batch_mode {
+        return Err("minimal AI committee batch_mode must be true for batch cycle".to_string());
+    }
+    run_batch_committee_cycle(config.load_batch_input()?)
 }
 
 pub fn run_minimal_committee_cycle(
@@ -2119,6 +2549,157 @@ pub fn run_minimal_committee_cycle(
         style_card_registry,
         three_member_style_mapping,
         style_influenced_profiles,
+        safety_summary: safety_summary(),
+    })
+}
+
+pub fn run_batch_committee_cycle(
+    input: BatchCommitteeCycleInput,
+) -> Result<BatchCommitteeCycleResult, String> {
+    if input.members.is_empty() {
+        return Err("minimal AI committee batch requires at least one member".to_string());
+    }
+    if input.market_data.is_empty() {
+        return Err("minimal AI committee batch requires market_data".to_string());
+    }
+    if input
+        .market_data
+        .iter()
+        .any(|market| market.symbol.trim().is_empty())
+    {
+        return Err("minimal AI committee batch requires symbols".to_string());
+    }
+
+    let router_output = route_data_to_ai_members(DataRouterInput {
+        market_data: input.market_data.clone(),
+        news: input.news.clone(),
+        members: input.members.clone(),
+        owner_context: input.owner_context.clone(),
+    });
+    let offline_adapter = OfflineMemberBrainAdapter {
+        fixtures: input
+            .offline_output_batch
+            .as_ref()
+            .map(|batch| batch.opinions.clone())
+            .unwrap_or_default(),
+    };
+    let offline_keys: std::collections::BTreeSet<OfflineOpinionKey> = offline_adapter
+        .fixtures
+        .iter()
+        .map(OfflineOpinionKey::from_fixture)
+        .collect();
+    let registry = AiMemberCoreRegistry::from_members_with_offline_hint(
+        &input.members,
+        !offline_adapter.fixtures.is_empty(),
+    );
+    let member_opinions: Vec<MemberOpinion> = router_output
+        .packets
+        .iter()
+        .filter_map(|packet| {
+            let member = input
+                .members
+                .iter()
+                .find(|member| member.member_id == packet.member_id)?;
+            let prefer_offline_fixture =
+                offline_keys.contains(&OfflineOpinionKey::from_packet(packet));
+            let core_spec = registry
+                .get_core_spec(&member.member_id)
+                .cloned()
+                .unwrap_or_else(|| resolved_core_spec_for_member(member, prefer_offline_fixture));
+            Some(
+                CoreAwareMemberBrainAdapter {
+                    member: member.clone(),
+                    core_spec,
+                    offline_adapter: offline_adapter.clone(),
+                }
+                .produce_opinion(packet),
+            )
+        })
+        .collect();
+    let event_queue = InvestmentEventQueue::from_member_opinions(&member_opinions);
+    let mut committee_sessions = Vec::new();
+    let mut chairman_decisions = Vec::new();
+    let mut score_updates = Vec::new();
+    let mut learning_journal_entries = Vec::new();
+    let mut risk_veto_count = 0;
+
+    for event in &event_queue.events {
+        let Some(market) = input.market_data.iter().find(|market| {
+            market.symbol == event.symbol && market.market_scope == event.market_scope
+        }) else {
+            continue;
+        };
+        let scoped_members: Vec<AICommitteeMember> = input
+            .members
+            .iter()
+            .filter(|member| {
+                member.market_scopes.contains(&event.market_scope)
+                    && !matches!(member.status, AICommitteeMemberStatus::Disabled)
+            })
+            .cloned()
+            .collect();
+        let scoped_opinions: Vec<MemberOpinion> = member_opinions
+            .iter()
+            .filter(|opinion| {
+                opinion.symbol == event.symbol && opinion.market_scope == event.market_scope
+            })
+            .cloned()
+            .collect();
+        let session =
+            build_committee_session(market, event.clone(), &scoped_members, &scoped_opinions);
+        let decision =
+            synthesize_chairman_decision(&session, default_risk_veto_volatility_threshold());
+        if decision.risk_governor_status == RiskGovernorStatus::Vetoed {
+            risk_veto_count += 1;
+        }
+        let feedback = PaperOutcomeFeedback {
+            symbol: event.symbol.clone(),
+            market_scope: event.market_scope,
+            decision_id: decision.decision_id.clone(),
+            simulated_result: input
+                .paper_outcome
+                .unwrap_or(SimulatedPaperOutcome::Unknown),
+            notes: vec![
+                "offline batch paper outcome feedback only".to_string(),
+                "learning journal does not train model weights".to_string(),
+            ],
+        };
+        let feedback_result = apply_paper_outcome_feedback(
+            &scoped_members,
+            &scoped_opinions,
+            Some(&decision),
+            &feedback,
+        );
+        committee_sessions.push(session);
+        chairman_decisions.push(decision);
+        score_updates.extend(feedback_result.score_updates);
+        learning_journal_entries.extend(feedback_result.learning_journal_entries);
+    }
+
+    let mut events_by_symbol = std::collections::BTreeMap::new();
+    for (symbol, events) in event_queue.group_by_symbol() {
+        events_by_symbol.insert(symbol, events.len());
+    }
+    let learning_journals = build_learning_journals(&learning_journal_entries);
+    Ok(BatchCommitteeCycleResult {
+        batch_id: input
+            .offline_output_batch
+            .as_ref()
+            .map(|batch| batch.batch_id.clone())
+            .unwrap_or_else(|| "mock-local-batch".to_string()),
+        routed_packet_count: router_output.routed_member_count,
+        member_opinion_count: member_opinions.len(),
+        member_opinions,
+        event_queue,
+        events_by_symbol,
+        committee_sessions,
+        chairman_decisions,
+        risk_veto_count,
+        score_update_count: score_updates.len(),
+        score_updates,
+        learning_journal_entry_count: learning_journal_entries.len(),
+        learning_journal_entries,
+        learning_journals,
         safety_summary: safety_summary(),
     })
 }

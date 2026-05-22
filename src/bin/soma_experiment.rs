@@ -173,7 +173,7 @@ use soma_zero::{
     Sprint101InvestorArchetypeIngestionRunner,
 };
 use soma_zero::{
-    MinimalAiCommitteeCycleConfig, MinimalCommitteeCycleResult,
+    MinimalAiCommitteeCycleConfig, run_batch_committee_cycle_from_config_path,
     run_minimal_committee_cycle_from_config_path,
 };
 use soma_zero::{
@@ -969,13 +969,23 @@ fn print_sprint118_report<T: serde::Serialize>(
 fn run_minimal_ai_committee_cycle(
     config: &str,
     command_name: &str,
-) -> Result<MinimalCommitteeCycleResult, String> {
+) -> Result<serde_json::Value, String> {
     if config.contains("://") {
         Err(format!("{command_name} config path must be local"))
     } else {
         let parsed = MinimalAiCommitteeCycleConfig::from_toml_path(std::path::Path::new(config))?;
         parsed.validate()?;
-        run_minimal_committee_cycle_from_config_path(std::path::Path::new(config))
+        if parsed.batch_mode {
+            serde_json::to_value(run_batch_committee_cycle_from_config_path(
+                std::path::Path::new(config),
+            )?)
+            .map_err(|err| err.to_string())
+        } else {
+            serde_json::to_value(run_minimal_committee_cycle_from_config_path(
+                std::path::Path::new(config),
+            )?)
+            .map_err(|err| err.to_string())
+        }
     }
 }
 
