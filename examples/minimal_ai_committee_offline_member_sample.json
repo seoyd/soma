@@ -1,0 +1,50 @@
+[
+  {
+    "member_id": "trend-kr-short",
+    "symbol": "005930.KS",
+    "market_scope": "KoreaShortTerm",
+    "stance": "BuyProposal",
+    "confidence": 0.8,
+    "expected_return_hint": 0.036,
+    "risk_hint": 0.09,
+    "evidence_notes": [
+      "offline fixture opinion",
+      "trend member sees positive momentum",
+      "paper-only; no order intent"
+    ],
+    "event_triggered": true,
+    "event_reason": "offline fixture positive momentum"
+  },
+  {
+    "member_id": "risk-kr-short",
+    "symbol": "005930.KS",
+    "market_scope": "KoreaShortTerm",
+    "stance": "NoTrade",
+    "confidence": 0.84,
+    "expected_return_hint": 0.0,
+    "risk_hint": 0.3,
+    "evidence_notes": [
+      "offline fixture opinion",
+      "risk member flags high volatility",
+      "paper-only risk veto candidate"
+    ],
+    "event_triggered": true,
+    "event_reason": "offline fixture high volatility"
+  },
+  {
+    "member_id": "evidence-kr-short",
+    "symbol": "005930.KS",
+    "market_scope": "KoreaShortTerm",
+    "stance": "Hold",
+    "confidence": 0.55,
+    "expected_return_hint": 0.0,
+    "risk_hint": 0.09,
+    "evidence_notes": [
+      "offline fixture opinion",
+      "evidence member remains neutral",
+      "paper-only hold"
+    ],
+    "event_triggered": false,
+    "event_reason": null
+  }
+]

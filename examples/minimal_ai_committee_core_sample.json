@@ -1,0 +1,67 @@
+{
+  "market_data": {
+    "symbol": "005930.KS",
+    "market_scope": "KoreaShortTerm",
+    "timestamp": "2026-05-21T09:00:00+09:00",
+    "price": 78000.0,
+    "change_pct": 4.2,
+    "volume": 18500000.0,
+    "volatility_hint": 0.09,
+    "source_label": "local-sample"
+  },
+  "news": [
+    {
+      "symbol": "005930.KS",
+      "headline": "Local sample positive earnings surprise",
+      "summary": "Deterministic fixture for paper-only committee orchestration.",
+      "sentiment_hint": "positive",
+      "source_label": "local-sample",
+      "timestamp": "2026-05-21T08:55:00+09:00"
+    }
+  ],
+  "members": [
+    {
+      "member_id": "trend-kr-short",
+      "display_name": "Korea short-term trend mock member",
+      "market_scopes": ["KoreaShortTerm"],
+      "style_profile": "trend",
+      "voice_weight": 0.55,
+      "score": 0.62,
+      "status": "Active",
+      "runtime_mode": "MockLocal"
+    },
+    {
+      "member_id": "risk-kr-short",
+      "display_name": "Korea short-term risk mock member",
+      "market_scopes": ["KoreaShortTerm"],
+      "style_profile": "risk",
+      "voice_weight": 0.5,
+      "score": 0.64,
+      "status": "Active",
+      "runtime_mode": "MockLocal"
+    },
+    {
+      "member_id": "evidence-kr-short",
+      "display_name": "Korea short-term evidence mock member",
+      "market_scopes": ["KoreaShortTerm"],
+      "style_profile": "evidence",
+      "voice_weight": 0.45,
+      "score": 0.58,
+      "status": "Watchlist",
+      "runtime_mode": "MockLocal"
+    },
+    {
+      "member_id": "crypto-liquidity",
+      "display_name": "Crypto liquidity mock member",
+      "market_scopes": ["CryptoShortTerm"],
+      "style_profile": "liquidity",
+      "voice_weight": 0.5,
+      "score": 0.6,
+      "status": "Active",
+      "runtime_mode": "MockLocal"
+    }
+  ],
+  "owner_context": "paper-only local sample; no real orders",
+  "simulated_outcome_return": 0.012,
+  "risk_veto_volatility_threshold": 0.08
+}

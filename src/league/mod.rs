@@ -81,6 +81,7 @@ pub mod future_window_scaleout;
 pub mod gap_expansion_consistency;
 pub mod join_repair_plan;
 pub mod match_key_normalization;
+pub mod minimal_ai_committee_core;
 pub mod momentum_trend_fast;
 pub mod multi_row_official_evidence;
 pub mod official_candle_coverage;
@@ -477,6 +478,7 @@ pub use match_key_normalization::{
     load_symbol_alias_map, load_timeframe_alias_map, load_timestamp_policy_map,
     normalize_row_match_key, normalized_symbols, reports_by_row_id,
 };
+pub use minimal_ai_committee_core::*;
 pub use momentum_trend_fast::MomentumTrendFast;
 pub use multi_row_official_evidence::{
     MultiRowOfficialEvidenceItem, MultiRowOfficialEvidenceSet, MultiRowOfficialEvidenceSetBuilder,

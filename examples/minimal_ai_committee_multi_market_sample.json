@@ -1,0 +1,187 @@
+{
+  "market_data": [
+    {
+      "symbol": "005930.KS",
+      "market_scope": "KoreaShortTerm",
+      "timestamp": "2026-05-21T09:00:00+09:00",
+      "price": 78000.0,
+      "change_pct": 4.2,
+      "volume": 18500000.0,
+      "volatility_hint": 0.05,
+      "source_label": "local-sample"
+    },
+    {
+      "symbol": "000660.KS",
+      "market_scope": "KoreaLongTerm",
+      "timestamp": "2026-05-21T09:00:00+09:00",
+      "price": 182000.0,
+      "change_pct": 1.1,
+      "volume": 5200000.0,
+      "volatility_hint": 0.03,
+      "source_label": "local-sample"
+    },
+    {
+      "symbol": "AAPL",
+      "market_scope": "UsShortTerm",
+      "timestamp": "2026-05-21T09:30:00-04:00",
+      "price": 205.0,
+      "change_pct": 3.4,
+      "volume": 38000000.0,
+      "volatility_hint": 0.04,
+      "source_label": "local-sample"
+    },
+    {
+      "symbol": "MSFT",
+      "market_scope": "UsLongTerm",
+      "timestamp": "2026-05-21T09:30:00-04:00",
+      "price": 520.0,
+      "change_pct": 0.7,
+      "volume": 22000000.0,
+      "volatility_hint": 0.025,
+      "source_label": "local-sample"
+    },
+    {
+      "symbol": "BTCUSDT",
+      "market_scope": "CryptoShortTerm",
+      "timestamp": "2026-05-21T00:00:00Z",
+      "price": 108000.0,
+      "change_pct": 4.8,
+      "volume": 4100000000.0,
+      "volatility_hint": 0.09,
+      "source_label": "local-sample"
+    },
+    {
+      "symbol": "ETHUSDT",
+      "market_scope": "CryptoLongTerm",
+      "timestamp": "2026-05-21T00:00:00Z",
+      "price": 5200.0,
+      "change_pct": 1.5,
+      "volume": 1500000000.0,
+      "volatility_hint": 0.06,
+      "source_label": "local-sample"
+    }
+  ],
+  "news": [
+    {
+      "symbol": "005930.KS",
+      "headline": "Positive Korea short-term sample",
+      "summary": "Local fixture only.",
+      "sentiment_hint": "positive",
+      "source_label": "local-sample",
+      "timestamp": "2026-05-21T08:55:00+09:00"
+    },
+    {
+      "symbol": "000660.KS",
+      "headline": "Stable long-term Korea sample",
+      "summary": "Local fixture only.",
+      "sentiment_hint": "positive",
+      "source_label": "local-sample",
+      "timestamp": "2026-05-21T08:55:00+09:00"
+    },
+    {
+      "symbol": "AAPL",
+      "headline": "Positive US short-term sample",
+      "summary": "Local fixture only.",
+      "sentiment_hint": "positive",
+      "source_label": "local-sample",
+      "timestamp": "2026-05-21T09:25:00-04:00"
+    },
+    {
+      "symbol": "MSFT",
+      "headline": "Stable US long-term sample",
+      "summary": "Local fixture only.",
+      "sentiment_hint": "positive",
+      "source_label": "local-sample",
+      "timestamp": "2026-05-21T09:25:00-04:00"
+    },
+    {
+      "symbol": "BTCUSDT",
+      "headline": "Crypto volatility sample",
+      "summary": "Local fixture only.",
+      "sentiment_hint": "positive",
+      "source_label": "local-sample",
+      "timestamp": "2026-05-21T00:00:00Z"
+    },
+    {
+      "symbol": "ETHUSDT",
+      "headline": "Crypto long-term sample",
+      "summary": "Local fixture only.",
+      "sentiment_hint": "unknown",
+      "source_label": "local-sample",
+      "timestamp": "2026-05-21T00:00:00Z"
+    }
+  ],
+  "members": [
+    {
+      "member_id": "kr-short-trend",
+      "display_name": "Korea short trend",
+      "market_scopes": ["KoreaShortTerm"],
+      "style_profile": "trend",
+      "voice_weight": 0.5,
+      "score": 0.6,
+      "status": "Active",
+      "runtime_mode": "MockLocal"
+    },
+    {
+      "member_id": "kr-long-value",
+      "display_name": "Korea long value",
+      "market_scopes": ["KoreaLongTerm"],
+      "style_profile": "value",
+      "voice_weight": 0.5,
+      "score": 0.6,
+      "status": "Active",
+      "runtime_mode": "MockLocal"
+    },
+    {
+      "member_id": "us-short-trend",
+      "display_name": "US short trend",
+      "market_scopes": ["UsShortTerm"],
+      "style_profile": "trend",
+      "voice_weight": 0.5,
+      "score": 0.6,
+      "status": "Active",
+      "runtime_mode": "MockLocal"
+    },
+    {
+      "member_id": "us-long-value",
+      "display_name": "US long value",
+      "market_scopes": ["UsLongTerm"],
+      "style_profile": "value",
+      "voice_weight": 0.5,
+      "score": 0.6,
+      "status": "Active",
+      "runtime_mode": "MockLocal"
+    },
+    {
+      "member_id": "crypto-short-liquidity",
+      "display_name": "Crypto short liquidity",
+      "market_scopes": ["CryptoShortTerm"],
+      "style_profile": "liquidity",
+      "voice_weight": 0.5,
+      "score": 0.6,
+      "status": "Active",
+      "runtime_mode": "MockLocal"
+    },
+    {
+      "member_id": "crypto-long-evidence",
+      "display_name": "Crypto long evidence",
+      "market_scopes": ["CryptoLongTerm"],
+      "style_profile": "evidence",
+      "voice_weight": 0.5,
+      "score": 0.6,
+      "status": "Active",
+      "runtime_mode": "MockLocal"
+    },
+    {
+      "member_id": "disabled-all-market",
+      "display_name": "Disabled all-market member",
+      "market_scopes": ["KoreaShortTerm", "KoreaLongTerm", "UsShortTerm", "UsLongTerm", "CryptoShortTerm", "CryptoLongTerm"],
+      "style_profile": "trend",
+      "voice_weight": 0.5,
+      "score": 0.6,
+      "status": "Disabled",
+      "runtime_mode": "MockLocal"
+    }
+  ],
+  "owner_context": "paper-only multi-market routing sample"
+}

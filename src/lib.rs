@@ -315,6 +315,7 @@ pub use feature::{
     realized_volatility, rolling_max, rolling_mean, rolling_min, rolling_std, rolling_sum,
     rolling_zscore, safe_div, true_range,
 };
+pub use league::minimal_ai_committee_core::*;
 pub use league::sprint104_dual_agent_paper_lifecycle::*;
 pub use league::sprint105_verification_patch_closure::*;
 pub use league::sprint106_workspace_acceptance_recovery::*;

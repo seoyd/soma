@@ -173,6 +173,10 @@ use soma_zero::{
     Sprint101InvestorArchetypeIngestionRunner,
 };
 use soma_zero::{
+    MinimalAiCommitteeCycleConfig, MinimalCommitteeCycleResult,
+    run_minimal_committee_cycle_from_config_path,
+};
+use soma_zero::{
     MixedFamilyIsolationV1Bundle, MixedFamilyIsolationV1Config, MixedFamilyIsolationV1Runner,
 };
 use soma_zero::{
@@ -960,6 +964,19 @@ fn print_sprint118_report<T: serde::Serialize>(
         let value = select(report);
         print_json_report(warning, &value)
     })
+}
+
+fn run_minimal_ai_committee_cycle(
+    config: &str,
+    command_name: &str,
+) -> Result<MinimalCommitteeCycleResult, String> {
+    if config.contains("://") {
+        Err(format!("{command_name} config path must be local"))
+    } else {
+        let parsed = MinimalAiCommitteeCycleConfig::from_toml_path(std::path::Path::new(config))?;
+        parsed.validate()?;
+        run_minimal_committee_cycle_from_config_path(std::path::Path::new(config))
+    }
 }
 
 #[derive(Debug, Subcommand)]
@@ -5877,6 +5894,11 @@ enum Commands {
     },
     /// Read-only Control Tower acceptance truth panel v19; static/read-only with no action button and no train/runtime/live/order/account controls.
     ControlTowerAcceptanceTruthV19 {
+        #[arg(long)]
+        config: String,
+    },
+    /// Minimal paper-only AI committee member opinion/event cycle; deterministic mock local logic, no broker/order/account, no training, no live inference.
+    MinimalAiCommitteeCycle {
         #[arg(long)]
         config: String,
     },
@@ -17733,6 +17755,16 @@ fn main() {
             "read_only_warning=control tower acceptance truth panel is static/read-only output with no action button and no train/runtime/live/order/account controls",
             |report| report.control_tower_acceptance_truth_panel_v19,
         ),
+        Commands::MinimalAiCommitteeCycle { config } => run_minimal_ai_committee_cycle(
+            &config,
+            "minimal-ai-committee-cycle",
+        )
+        .and_then(|report| {
+            print_json_report(
+                "minimal_ai_committee_warning=paper-only local mock/offline fixture member logic; program orchestrates and AI members analyze; no broker/order/account, no model training, no live inference, no real trading",
+                &report,
+            )
+        }),
         Commands::ProposalWarningClosure { config } => {
             run_sprint100_bundle(&config, "proposal-warning-closure").and_then(|report| {
                 print_json_report(
