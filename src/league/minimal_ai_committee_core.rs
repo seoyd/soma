@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::Path;
+use std::path::{Component, Path, PathBuf};
 
 fn default_positive_outcome() -> Option<f64> {
     Some(0.012)
@@ -783,6 +783,7 @@ pub fn mac_mini_local_policy() -> MacMiniLocalPolicy {
             "Mac mini policy: do not run 18 AI cores concurrently".to_string(),
             "lazy activation selects only relevant market-scope/event/risk members".to_string(),
             "Mamba3 + Gated DeltaNet runtime is contract-only and deferred".to_string(),
+            "Rust-only owner console viewer is read-only UI data, not AI runtime".to_string(),
         ],
     }
 }
@@ -2652,6 +2653,485 @@ pub struct OwnerDailyBrief {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerDailyBriefStore {
+    pub store_id: String,
+    pub briefs: Vec<OwnerDailyBrief>,
+    pub latest_brief_id: Option<String>,
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct MemberStateExportRow {
+    pub member_id: String,
+    pub display_name: String,
+    pub role: Option<IndependentMemberRole>,
+    pub status: AICommitteeMemberStatus,
+    pub runtime_status: String,
+    pub score: f64,
+    pub voice_weight: f64,
+    pub memory_summary: String,
+    pub learning_summary: String,
+    pub style_summary_short: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct WatchlistExportRow {
+    pub candidate_id: String,
+    pub symbol: String,
+    pub market_scope: MarketScope,
+    pub status: WatchlistCandidateStatus,
+    pub reason: String,
+    pub source_attention_item_id: Option<String>,
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct AttentionInboxExportRow {
+    pub item_id: String,
+    pub symbol: Option<String>,
+    pub market_scope: Option<MarketScope>,
+    pub attention_type: OwnerAttentionType,
+    pub priority: OwnerAttentionPriority,
+    pub status: OwnerAttentionInboxStatus,
+    pub reason: String,
+    pub requires_owner_input: bool,
+    pub related_member_ids: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct RecentEventExportRow {
+    pub event_id: String,
+    pub symbol: String,
+    pub market_scope: MarketScope,
+    pub event_type: InvestmentEventType,
+    pub proposed_by_member_id: String,
+    pub confidence: f64,
+    pub reason: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct RecentDecisionExportRow {
+    pub decision_id: String,
+    pub symbol: String,
+    pub final_action: ChairmanFinalAction,
+    pub risk_governor_status: RiskGovernorStatus,
+    pub rationale_short: String,
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum NextOwnerActionType {
+    ReviewRiskVeto,
+    ReviewEvidenceGap,
+    ReviewWatchlistCandidate,
+    OptionalComment,
+    NoActionRequired,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct NextOwnerActionExportRow {
+    pub action_type: NextOwnerActionType,
+    pub symbol: Option<String>,
+    pub priority: OwnerAttentionPriority,
+    pub note: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct CommitteeStateSnapshot {
+    pub snapshot_id: String,
+    pub generated_at: Option<String>,
+    pub run_id: Option<String>,
+    pub latest_cycle_id: Option<String>,
+    pub members: Vec<MemberStateExportRow>,
+    pub watchlist_candidates: Vec<WatchlistExportRow>,
+    pub attention_items: Vec<AttentionInboxExportRow>,
+    pub recent_events: Vec<RecentEventExportRow>,
+    pub recent_committee_sessions: Vec<CommitteeRow>,
+    pub recent_chairman_decisions: Vec<RecentDecisionExportRow>,
+    pub recent_risk_vetoes: Vec<RecentDecisionExportRow>,
+    pub latest_owner_summary: Option<OwnerCommitteeSummary>,
+    pub latest_owner_console_view: Option<OwnerCommitteeConsoleView>,
+    pub latest_owner_daily_brief: Option<OwnerDailyBrief>,
+    pub next_owner_actions: Vec<NextOwnerActionExportRow>,
+    pub safety_summary: MinimalCommitteeSafetySummary,
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct CommitteeStateExportInput {
+    pub autonomous_run_result: Option<AutonomousPaperRunResult>,
+    pub watchlist_recheck_result: Option<WatchlistRecheckResult>,
+    pub attention_inbox: Option<OwnerAttentionInbox>,
+    pub watchlist_store: Option<WatchlistCandidateStore>,
+    pub member_state_store: Option<MemberStateStore>,
+    pub owner_daily_brief_store: Option<OwnerDailyBriefStore>,
+    pub owner_summary: Option<OwnerCommitteeSummary>,
+    pub owner_console_view: Option<OwnerCommitteeConsoleView>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct DailyBriefStorageUpdateInput {
+    pub owner_daily_brief: Option<OwnerDailyBrief>,
+    pub owner_daily_brief_store_input_path: Option<String>,
+    pub owner_daily_brief_store_output_path: Option<String>,
+    pub committee_state_snapshot_output_path: Option<String>,
+    pub emit_committee_state_snapshot: bool,
+    pub export_input: CommitteeStateExportInput,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct DailyBriefStorageUpdateResult {
+    pub updated_brief_store: OwnerDailyBriefStore,
+    pub committee_state_snapshot: Option<CommitteeStateSnapshot>,
+    pub safety_summary: MinimalCommitteeSafetySummary,
+    pub paper_only_warning: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct CommitteeStateExportConfig {
+    pub export_id: String,
+    pub export_root_path: String,
+    pub write_latest_snapshot: bool,
+    pub write_history_snapshot: bool,
+    pub write_snapshot_index: bool,
+    pub write_owner_console_read_model: bool,
+    pub schema_version: String,
+    pub max_history_entries: Option<usize>,
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SnapshotFileNamingPolicy {
+    pub latest_filename: String,
+    pub snapshot_index_filename: String,
+    pub history_dirname: String,
+    pub owner_console_read_model_filename: String,
+    pub history_filename_pattern: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CommitteeStateSnapshotSource {
+    MinimalAiCommitteeCycle,
+    AutonomousPaperLoop,
+    WatchlistRecheck,
+    ManualExport,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct CommitteeStateSnapshotEnvelopeSafety {
+    pub paper_only: bool,
+    pub no_broker_order_account: bool,
+    pub no_live_trading: bool,
+    pub no_training: bool,
+    pub no_live_inference: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct CommitteeStateSnapshotEnvelope {
+    pub schema_version: String,
+    pub snapshot_id: String,
+    pub generated_at: Option<String>,
+    pub source: CommitteeStateSnapshotSource,
+    pub snapshot: CommitteeStateSnapshot,
+    pub safety: CommitteeStateSnapshotEnvelopeSafety,
+    pub warnings: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SnapshotIndexEntry {
+    pub snapshot_id: String,
+    pub generated_at: Option<String>,
+    pub path: String,
+    pub reviewed_symbols: Vec<String>,
+    pub event_count: usize,
+    pub risk_veto_count: usize,
+    pub attention_count: usize,
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct CommitteeStateSnapshotIndex {
+    pub schema_version: String,
+    pub latest_snapshot_id: Option<String>,
+    pub entries: Vec<SnapshotIndexEntry>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerConsoleHeader {
+    pub run_id: Option<String>,
+    pub latest_cycle_id: Option<String>,
+    pub reviewed_symbol_count: usize,
+    pub event_count: usize,
+    pub risk_veto_count: usize,
+    pub attention_open_count: usize,
+    pub paper_only_warning: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerMemberCard {
+    pub member_id: String,
+    pub display_name: String,
+    pub role: Option<IndependentMemberRole>,
+    pub score: f64,
+    pub voice_weight: f64,
+    pub status: AICommitteeMemberStatus,
+    pub runtime_status: String,
+    pub style_summary_short: String,
+    pub memory_summary: String,
+    pub latest_opinion: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerWatchlistCard {
+    pub candidate_id: String,
+    pub symbol: String,
+    pub market_scope: MarketScope,
+    pub status: WatchlistCandidateStatus,
+    pub reason: String,
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerAttentionCard {
+    pub item_id: String,
+    pub symbol: Option<String>,
+    pub priority: OwnerAttentionPriority,
+    pub status: OwnerAttentionInboxStatus,
+    pub attention_type: OwnerAttentionType,
+    pub reason: String,
+    pub requires_owner_input: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerDecisionCard {
+    pub decision_id: String,
+    pub symbol: String,
+    pub final_action: ChairmanFinalAction,
+    pub risk_governor_status: RiskGovernorStatus,
+    pub rationale_short: String,
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerNextActionCard {
+    pub action_type: NextOwnerActionType,
+    pub symbol: Option<String>,
+    pub priority: OwnerAttentionPriority,
+    pub note: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerConsoleReadModel {
+    pub schema_version: String,
+    pub snapshot_id: String,
+    pub header: OwnerConsoleHeader,
+    pub member_cards: Vec<OwnerMemberCard>,
+    pub watchlist_cards: Vec<OwnerWatchlistCard>,
+    pub attention_cards: Vec<OwnerAttentionCard>,
+    pub decision_cards: Vec<OwnerDecisionCard>,
+    pub next_action_cards: Vec<OwnerNextActionCard>,
+    pub daily_brief_text: Option<String>,
+    pub safety_badges: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerConsoleViewSource {
+    pub source_path: String,
+    pub loaded_at: Option<String>,
+    pub schema_version: String,
+    pub snapshot_id: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerConsoleTerminalView {
+    pub title: String,
+    pub header_lines: Vec<String>,
+    pub member_sections: Vec<String>,
+    pub watchlist_sections: Vec<String>,
+    pub attention_sections: Vec<String>,
+    pub decision_sections: Vec<String>,
+    pub next_action_sections: Vec<String>,
+    pub safety_lines: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct OwnerConsoleTerminalOptions {
+    pub max_width: Option<usize>,
+    pub show_members: bool,
+    pub show_watchlist: bool,
+    pub show_attention: bool,
+    pub show_decisions: bool,
+    pub show_next_actions: bool,
+    pub show_safety: bool,
+    pub compact: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerConsoleViewerResult {
+    pub source: OwnerConsoleViewSource,
+    pub terminal_view: OwnerConsoleTerminalView,
+    pub rendered_text: String,
+    pub safety_status: String,
+    pub error: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerActionComposerConfig {
+    pub read_model_path: String,
+    pub output_actions_path: String,
+    pub target_item_id: Option<String>,
+    pub action_type: OwnerAttentionActionType,
+    pub comment: Option<String>,
+    pub dry_run: bool,
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerActionDraft {
+    pub action_id: String,
+    pub target_item_id: String,
+    pub action_type: OwnerAttentionActionType,
+    pub comment: Option<String>,
+    pub source_snapshot_id: Option<String>,
+    pub source_read_model_path: String,
+    pub paper_only: bool,
+    pub created_at: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerActionFile {
+    pub schema_version: String,
+    pub source_snapshot_id: Option<String>,
+    pub actions: Vec<OwnerAttentionAction>,
+    pub paper_only: bool,
+    pub safety_notes: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerActionComposerResult {
+    pub draft: OwnerActionDraft,
+    pub target_item_found: bool,
+    pub target_item_summary: Option<String>,
+    pub wrote_output: bool,
+    pub output_path: Option<String>,
+    pub preview_text: String,
+    pub safety_status: OwnerAttentionActionSafetyStatus,
+    pub rejection_reason: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum OwnerActionApplyMode {
+    DryRun,
+    Apply,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum OwnerActionDuplicatePolicy {
+    SkipAlreadyProcessed,
+    RejectAlreadyProcessed,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum OwnerActionAfterApplyFilePolicy {
+    KeepActionFile,
+    ArchiveActionFile,
+    ClearProcessedActions,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerActionConsumptionConfig {
+    pub action_file_path: String,
+    pub processed_action_ledger_path: Option<String>,
+    pub inbox_input_path: Option<String>,
+    pub inbox_output_path: Option<String>,
+    pub watchlist_input_path: Option<String>,
+    pub watchlist_output_path: Option<String>,
+    pub member_state_input_path: Option<String>,
+    pub member_state_output_path: Option<String>,
+    pub committee_state_export_root_path: Option<String>,
+    pub owner_console_read_model_path: Option<String>,
+    pub apply_mode: OwnerActionApplyMode,
+    pub duplicate_policy: OwnerActionDuplicatePolicy,
+    pub after_apply_file_policy: OwnerActionAfterApplyFilePolicy,
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum OwnerActionProcessedStatus {
+    Applied,
+    Rejected,
+    SkippedDuplicate,
+    DryRunPreview,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerActionProcessingRecord {
+    pub action_id: String,
+    pub action_type: OwnerAttentionActionType,
+    pub item_id: Option<String>,
+    pub processed_status: OwnerActionProcessedStatus,
+    pub generated_feedback_ids: Vec<String>,
+    pub generated_watchlist_candidate_ids: Vec<String>,
+    pub generated_reconsideration_decision_ids: Vec<String>,
+    pub snapshot_id: Option<String>,
+    pub note: String,
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerActionProcessingLedger {
+    pub ledger_id: String,
+    pub processed_actions: Vec<OwnerActionProcessingRecord>,
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ReconsiderationReplayResult {
+    pub feedback_count: usize,
+    pub reconsideration_session_count: usize,
+    pub chairman_reconsideration_decision_count: usize,
+    pub risk_veto_count: usize,
+    pub journal_entry_count: usize,
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerActionConsumptionResult {
+    pub loaded_action_count: usize,
+    pub applied_action_count: usize,
+    pub rejected_action_count: usize,
+    pub skipped_duplicate_count: usize,
+    pub dry_run: bool,
+    pub action_results: Vec<OwnerAttentionActionResult>,
+    pub generated_owner_feedback: Vec<OwnerFeedback>,
+    pub generated_watchlist_candidates: Vec<WatchlistCandidate>,
+    pub reconsideration_results: Vec<ReconsiderationReplayResult>,
+    pub updated_inbox: Option<OwnerAttentionInbox>,
+    pub updated_watchlist_store: Option<WatchlistCandidateStore>,
+    pub updated_member_state_store: Option<MemberStateStore>,
+    pub updated_committee_state_snapshot: Option<CommitteeStateSnapshot>,
+    pub state_export_result: Option<StateExportWriteResult>,
+    pub processing_ledger: OwnerActionProcessingLedger,
+    pub safety_summary: MinimalCommitteeSafetySummary,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct StateExportWriteResult {
+    pub export_root_path: String,
+    pub wrote_latest_snapshot: bool,
+    pub wrote_history_snapshot: bool,
+    pub wrote_snapshot_index: bool,
+    pub wrote_owner_console_read_model: bool,
+    pub latest_snapshot_path: Option<String>,
+    pub history_snapshot_path: Option<String>,
+    pub snapshot_index_path: Option<String>,
+    pub owner_console_read_model_path: Option<String>,
+    pub safety_status: String,
+    pub errors: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct WatchlistRecheckResult {
     pub recheck_id: String,
     pub selection: WatchlistRecheckSelection,
@@ -2752,6 +3232,9 @@ pub struct AutonomousPaperRunResult {
     pub attention_queue: OwnerAttentionQueue,
     pub owner_attention_triage: Option<OwnerAttentionTriageResult>,
     pub watchlist_recheck: Option<WatchlistRecheckResult>,
+    pub owner_daily_brief_store: Option<OwnerDailyBriefStore>,
+    pub committee_state_snapshot: Option<CommitteeStateSnapshot>,
+    pub committee_state_export_result: Option<StateExportWriteResult>,
     pub paper_decision_archive: PaperDecisionArchive,
     pub safety_summary: MinimalCommitteeSafetySummary,
     pub paper_only_warning: String,
@@ -2784,6 +3267,17 @@ pub struct AutonomousPaperRunConfig {
     pub include_risk_blocked: bool,
     pub include_needs_evidence: bool,
     pub emit_owner_daily_brief: bool,
+    pub owner_daily_brief_store_input_path: Option<String>,
+    pub owner_daily_brief_store_output_path: Option<String>,
+    pub committee_state_snapshot_output_path: Option<String>,
+    pub emit_committee_state_snapshot: bool,
+    pub committee_state_export_root_path: Option<String>,
+    pub write_latest_snapshot: bool,
+    pub write_history_snapshot: bool,
+    pub write_snapshot_index: bool,
+    pub write_owner_console_read_model: bool,
+    pub committee_state_schema_version: Option<String>,
+    pub max_snapshot_history_entries: Option<usize>,
     pub emit_owner_console_view: bool,
     pub paper_only: bool,
     pub batch_input: BatchCommitteeCycleInput,
@@ -2901,6 +3395,28 @@ pub struct MinimalAiCommitteeCycleConfig {
     pub include_needs_evidence: bool,
     #[serde(default)]
     pub emit_owner_daily_brief: bool,
+    #[serde(default)]
+    pub owner_daily_brief_store_input_path: Option<String>,
+    #[serde(default)]
+    pub owner_daily_brief_store_output_path: Option<String>,
+    #[serde(default)]
+    pub committee_state_snapshot_output_path: Option<String>,
+    #[serde(default)]
+    pub emit_committee_state_snapshot: bool,
+    #[serde(default)]
+    pub committee_state_export_root_path: Option<String>,
+    #[serde(default)]
+    pub write_latest_snapshot: bool,
+    #[serde(default)]
+    pub write_history_snapshot: bool,
+    #[serde(default)]
+    pub write_snapshot_index: bool,
+    #[serde(default)]
+    pub write_owner_console_read_model: bool,
+    #[serde(default)]
+    pub committee_state_schema_version: Option<String>,
+    #[serde(default)]
+    pub max_snapshot_history_entries: Option<usize>,
     #[serde(default)]
     pub inline_offline_member_opinions: Vec<OfflineMemberOpinionFixture>,
     #[serde(default)]
@@ -3025,6 +3541,35 @@ impl MinimalAiCommitteeCycleConfig {
             if !local_only(path) {
                 return Err("minimal AI committee watchlist_output_path must be local".to_string());
             }
+        }
+        if let Some(path) = &self.owner_daily_brief_store_input_path {
+            if !local_only(path) {
+                return Err(
+                    "minimal AI committee owner_daily_brief_store_input_path must be local"
+                        .to_string(),
+                );
+            }
+        }
+        if let Some(path) = &self.owner_daily_brief_store_output_path {
+            if !local_only(path) {
+                return Err(
+                    "minimal AI committee owner_daily_brief_store_output_path must be local"
+                        .to_string(),
+                );
+            }
+        }
+        if let Some(path) = &self.committee_state_snapshot_output_path {
+            if !local_only(path) {
+                return Err(
+                    "minimal AI committee committee_state_snapshot_output_path must be local"
+                        .to_string(),
+                );
+            }
+        }
+        if let Some(path) = &self.committee_state_export_root_path {
+            validate_export_root_path(path).map_err(|err| {
+                format!("minimal AI committee committee_state_export_root_path {err}")
+            })?;
         }
         if self.max_candidates_per_cycle == 0 {
             return Err(
@@ -3290,6 +3835,17 @@ impl MinimalAiCommitteeCycleConfig {
             include_risk_blocked: self.include_risk_blocked,
             include_needs_evidence: self.include_needs_evidence,
             emit_owner_daily_brief: self.emit_owner_daily_brief,
+            owner_daily_brief_store_input_path: self.owner_daily_brief_store_input_path.clone(),
+            owner_daily_brief_store_output_path: self.owner_daily_brief_store_output_path.clone(),
+            committee_state_snapshot_output_path: self.committee_state_snapshot_output_path.clone(),
+            emit_committee_state_snapshot: self.emit_committee_state_snapshot,
+            committee_state_export_root_path: self.committee_state_export_root_path.clone(),
+            write_latest_snapshot: self.write_latest_snapshot,
+            write_history_snapshot: self.write_history_snapshot,
+            write_snapshot_index: self.write_snapshot_index,
+            write_owner_console_read_model: self.write_owner_console_read_model,
+            committee_state_schema_version: self.committee_state_schema_version.clone(),
+            max_snapshot_history_entries: self.max_snapshot_history_entries,
             emit_owner_console_view: self.emit_owner_console_view,
             paper_only: self.paper_only,
             batch_input,
@@ -4167,6 +4723,9 @@ pub fn run_autonomous_paper_committee_loop(
         attention_queue,
         owner_attention_triage: None,
         watchlist_recheck: None,
+        owner_daily_brief_store: None,
+        committee_state_snapshot: None,
+        committee_state_export_result: None,
         paper_decision_archive: archive,
         safety_summary: safety_summary(),
         paper_only_warning:
@@ -4233,6 +4792,98 @@ pub fn run_autonomous_paper_committee_loop(
         }
         run_result.watchlist_recheck = Some(recheck);
     }
+    if config.emit_committee_state_snapshot
+        || config.owner_daily_brief_store_input_path.is_some()
+        || config.owner_daily_brief_store_output_path.is_some()
+        || config.committee_state_snapshot_output_path.is_some()
+        || config.committee_state_export_root_path.is_some()
+    {
+        let owner_daily_brief = run_result
+            .watchlist_recheck
+            .as_ref()
+            .and_then(|recheck| recheck.owner_daily_brief.clone());
+        let mut export_run = run_result.clone();
+        export_run.owner_daily_brief_store = None;
+        export_run.committee_state_snapshot = None;
+        let storage = run_daily_brief_storage_update(DailyBriefStorageUpdateInput {
+            owner_daily_brief,
+            owner_daily_brief_store_input_path: config.owner_daily_brief_store_input_path.clone(),
+            owner_daily_brief_store_output_path: config.owner_daily_brief_store_output_path.clone(),
+            committee_state_snapshot_output_path: config
+                .committee_state_snapshot_output_path
+                .clone(),
+            emit_committee_state_snapshot: config.emit_committee_state_snapshot,
+            export_input: CommitteeStateExportInput {
+                autonomous_run_result: Some(export_run),
+                watchlist_recheck_result: run_result.watchlist_recheck.clone(),
+                attention_inbox: run_result
+                    .owner_attention_triage
+                    .as_ref()
+                    .map(|triage| triage.inbox.clone()),
+                watchlist_store: run_result
+                    .watchlist_recheck
+                    .as_ref()
+                    .map(|recheck| recheck.updated_watchlist_store.clone())
+                    .or_else(|| {
+                        run_result
+                            .owner_attention_triage
+                            .as_ref()
+                            .map(|triage| triage.watchlist_store.clone())
+                    }),
+                member_state_store: Some(MemberStateStore {
+                    store_id: format!("{}-final-member-state-export", config.run_id),
+                    members: run_result.final_member_states.clone(),
+                    source_label: "autonomous-paper-run-final-state".to_string(),
+                    paper_only: true,
+                }),
+                owner_daily_brief_store: None,
+                owner_summary: run_result
+                    .watchlist_recheck
+                    .as_ref()
+                    .map(|recheck| recheck.owner_summary.clone())
+                    .or_else(|| {
+                        run_result
+                            .cycles
+                            .last()
+                            .map(|cycle| cycle.owner_summary.clone())
+                    }),
+                owner_console_view: run_result
+                    .watchlist_recheck
+                    .as_ref()
+                    .and_then(|recheck| recheck.owner_console_view.clone())
+                    .or_else(|| {
+                        run_result
+                            .cycles
+                            .last()
+                            .and_then(|cycle| cycle.owner_console_view.clone())
+                    }),
+            },
+        })?;
+        run_result.owner_daily_brief_store = Some(storage.updated_brief_store);
+        run_result.committee_state_snapshot = storage.committee_state_snapshot;
+        if let Some(export_root_path) = &config.committee_state_export_root_path {
+            if let Some(snapshot) = &run_result.committee_state_snapshot {
+                run_result.committee_state_export_result = Some(write_committee_state_export(
+                    CommitteeStateExportConfig {
+                        export_id: format!("{}-committee-state-export", config.run_id),
+                        export_root_path: export_root_path.clone(),
+                        write_latest_snapshot: config.write_latest_snapshot,
+                        write_history_snapshot: config.write_history_snapshot,
+                        write_snapshot_index: config.write_snapshot_index,
+                        write_owner_console_read_model: config.write_owner_console_read_model,
+                        schema_version: config
+                            .committee_state_schema_version
+                            .clone()
+                            .unwrap_or_else(default_committee_state_schema_version),
+                        max_history_entries: config.max_snapshot_history_entries,
+                        paper_only: true,
+                    },
+                    snapshot,
+                    CommitteeStateSnapshotSource::AutonomousPaperLoop,
+                )?);
+            }
+        }
+    }
     Ok(run_result)
 }
 
@@ -4257,6 +4908,9 @@ fn validate_autonomous_paper_run_config(config: &AutonomousPaperRunConfig) -> Re
         config.watchlist_candidate_output_path.as_ref(),
         config.watchlist_input_path.as_ref(),
         config.watchlist_output_path.as_ref(),
+        config.owner_daily_brief_store_input_path.as_ref(),
+        config.owner_daily_brief_store_output_path.as_ref(),
+        config.committee_state_snapshot_output_path.as_ref(),
     ]
     .into_iter()
     .flatten()
@@ -4264,6 +4918,11 @@ fn validate_autonomous_paper_run_config(config: &AutonomousPaperRunConfig) -> Re
         if !local_only(path) {
             return Err("autonomous paper run paths must be local".to_string());
         }
+    }
+    if let Some(path) = &config.committee_state_export_root_path {
+        validate_export_root_path(path).map_err(|err| {
+            format!("autonomous paper run committee_state_export_root_path {err}")
+        })?;
     }
     if config.batch_input.market_data.is_empty() {
         return Err("autonomous paper run requires market_data".to_string());
@@ -4709,6 +5368,2421 @@ fn build_owner_daily_brief(
     }
 }
 
+impl OwnerDailyBriefStore {
+    pub fn new(store_id: &str) -> Self {
+        Self {
+            store_id: store_id.to_string(),
+            briefs: Vec::new(),
+            latest_brief_id: None,
+            paper_only: true,
+        }
+    }
+
+    pub fn append_brief(&mut self, brief: OwnerDailyBrief) {
+        self.latest_brief_id = Some(brief.brief_id.clone());
+        self.briefs.push(brief);
+        self.briefs
+            .sort_by(|left, right| left.brief_id.cmp(&right.brief_id));
+    }
+
+    pub fn latest(&self) -> Option<&OwnerDailyBrief> {
+        self.latest_brief_id
+            .as_ref()
+            .and_then(|brief_id| self.briefs.iter().find(|brief| &brief.brief_id == brief_id))
+            .or_else(|| self.briefs.last())
+    }
+
+    pub fn briefs_by_symbol(&self, symbol: &str) -> Vec<OwnerDailyBrief> {
+        self.briefs
+            .iter()
+            .filter(|brief| {
+                brief.reviewed_symbols.iter().any(|item| item == symbol)
+                    || brief
+                        .watchlist_updates
+                        .iter()
+                        .any(|item| item.contains(symbol))
+                    || brief.risk_vetoes.iter().any(|item| item == symbol)
+                    || brief
+                        .need_more_evidence_items
+                        .iter()
+                        .any(|item| item == symbol)
+                    || brief.paper_candidates.iter().any(|item| item == symbol)
+            })
+            .cloned()
+            .collect()
+    }
+
+    pub fn risk_veto_count(&self) -> usize {
+        self.briefs
+            .iter()
+            .map(|brief| brief.risk_vetoes.len())
+            .sum()
+    }
+
+    pub fn need_more_evidence_count(&self) -> usize {
+        self.briefs
+            .iter()
+            .map(|brief| brief.need_more_evidence_items.len())
+            .sum()
+    }
+
+    pub fn save_to_local_json(&self, path: &Path) -> Result<(), String> {
+        if !local_only(&path.to_string_lossy()) {
+            return Err("owner daily brief store path must be local".to_string());
+        }
+        validate_owner_daily_brief_store(self)?;
+        let text = serde_json::to_string_pretty(self).map_err(|err| err.to_string())?;
+        fs::write(path, text).map_err(|err| err.to_string())
+    }
+
+    pub fn load_from_local_json(path: &Path) -> Result<Self, String> {
+        if !local_only(&path.to_string_lossy()) {
+            return Err("owner daily brief store path must be local".to_string());
+        }
+        let text = fs::read_to_string(path).map_err(|err| err.to_string())?;
+        reject_unsafe_export_text(&text)?;
+        let mut store: Self = serde_json::from_str(&text).map_err(|err| err.to_string())?;
+        validate_owner_daily_brief_store(&store)?;
+        if store.latest_brief_id.is_none() {
+            store.latest_brief_id = store.briefs.last().map(|brief| brief.brief_id.clone());
+        }
+        Ok(store)
+    }
+}
+
+pub fn run_daily_brief_storage_update(
+    input: DailyBriefStorageUpdateInput,
+) -> Result<DailyBriefStorageUpdateResult, String> {
+    for path in [
+        input.owner_daily_brief_store_input_path.as_ref(),
+        input.owner_daily_brief_store_output_path.as_ref(),
+        input.committee_state_snapshot_output_path.as_ref(),
+    ]
+    .into_iter()
+    .flatten()
+    {
+        if !local_only(path) {
+            return Err("daily brief storage paths must be local".to_string());
+        }
+    }
+
+    let mut store = if let Some(path) = &input.owner_daily_brief_store_input_path {
+        OwnerDailyBriefStore::load_from_local_json(Path::new(path))?
+    } else {
+        input
+            .export_input
+            .owner_daily_brief_store
+            .clone()
+            .unwrap_or_else(|| OwnerDailyBriefStore::new("owner-daily-brief-store"))
+    };
+
+    if let Some(brief) = input.owner_daily_brief.clone() {
+        store.append_brief(brief);
+    }
+    validate_owner_daily_brief_store(&store)?;
+
+    if let Some(path) = &input.owner_daily_brief_store_output_path {
+        store.save_to_local_json(Path::new(path))?;
+    }
+
+    let snapshot = if input.emit_committee_state_snapshot
+        || input.committee_state_snapshot_output_path.is_some()
+    {
+        let mut snapshot_input = input.export_input.clone();
+        snapshot_input.owner_daily_brief_store = Some(store.clone());
+        let snapshot = build_committee_state_snapshot(snapshot_input)?;
+        if let Some(path) = &input.committee_state_snapshot_output_path {
+            save_committee_state_snapshot(Path::new(path), &snapshot)?;
+        }
+        Some(snapshot)
+    } else {
+        None
+    };
+
+    Ok(DailyBriefStorageUpdateResult {
+        updated_brief_store: store,
+        committee_state_snapshot: snapshot,
+        safety_summary: safety_summary(),
+        paper_only_warning:
+            "daily brief storage update is read-only paper-only export; it cannot execute trades"
+                .to_string(),
+    })
+}
+
+pub fn build_committee_state_snapshot(
+    input: CommitteeStateExportInput,
+) -> Result<CommitteeStateSnapshot, String> {
+    let run = input.autonomous_run_result.as_ref();
+    let recheck = input
+        .watchlist_recheck_result
+        .as_ref()
+        .or_else(|| run.and_then(|run| run.watchlist_recheck.as_ref()));
+    let latest_cycle = run.and_then(|run| run.cycles.last());
+    let run_id = run.map(|run| run.run_id.clone());
+    let latest_cycle_id = latest_cycle.map(|cycle| cycle.cycle_id.clone());
+    let member_states = input
+        .member_state_store
+        .as_ref()
+        .map(|store| store.members.clone())
+        .or_else(|| run.map(|run| run.final_member_states.clone()))
+        .or_else(|| latest_cycle.map(|cycle| cycle.state_update.updated_member_states.clone()))
+        .unwrap_or_default();
+    let owner_summary = input
+        .owner_summary
+        .clone()
+        .or_else(|| recheck.map(|recheck| recheck.owner_summary.clone()))
+        .or_else(|| latest_cycle.map(|cycle| cycle.owner_summary.clone()));
+    let owner_console_view = input
+        .owner_console_view
+        .clone()
+        .or_else(|| recheck.and_then(|recheck| recheck.owner_console_view.clone()))
+        .or_else(|| latest_cycle.and_then(|cycle| cycle.owner_console_view.clone()));
+    let latest_owner_daily_brief = input
+        .owner_daily_brief_store
+        .as_ref()
+        .and_then(|store| store.latest().cloned())
+        .or_else(|| recheck.and_then(|recheck| recheck.owner_daily_brief.clone()));
+
+    let mut members: Vec<MemberStateExportRow> =
+        member_states.iter().map(member_state_export_row).collect();
+    members.sort_by(|left, right| left.member_id.cmp(&right.member_id));
+
+    let mut watchlist_candidates = input
+        .watchlist_store
+        .as_ref()
+        .map(|store| store.candidates.clone())
+        .or_else(|| recheck.map(|recheck| recheck.updated_watchlist_store.candidates.clone()))
+        .or_else(|| {
+            run.and_then(|run| {
+                run.owner_attention_triage
+                    .as_ref()
+                    .map(|triage| triage.watchlist_store.candidates.clone())
+            })
+        })
+        .unwrap_or_default()
+        .iter()
+        .map(watchlist_export_row)
+        .collect::<Vec<_>>();
+    watchlist_candidates.sort_by(|left, right| left.candidate_id.cmp(&right.candidate_id));
+
+    let inbox = input.attention_inbox.clone().or_else(|| {
+        run.and_then(|run| {
+            run.owner_attention_triage
+                .as_ref()
+                .map(|triage| triage.inbox.clone())
+                .or_else(|| {
+                    Some(OwnerAttentionInbox::from_attention_queue(
+                        &run.attention_queue,
+                    ))
+                })
+        })
+    });
+    let mut attention_items = inbox
+        .as_ref()
+        .map(|inbox| {
+            inbox
+                .items
+                .iter()
+                .map(attention_inbox_export_row)
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    attention_items.sort_by(|left, right| left.item_id.cmp(&right.item_id));
+
+    let mut recent_events = Vec::new();
+    let mut recent_committee_sessions = Vec::new();
+    let mut recent_chairman_decisions = Vec::new();
+    if let Some(run) = run {
+        for cycle in &run.cycles {
+            append_batch_export_rows(
+                &cycle.batch_result,
+                &mut recent_events,
+                &mut recent_committee_sessions,
+                &mut recent_chairman_decisions,
+            );
+        }
+    }
+    if let Some(recheck) = recheck {
+        append_batch_export_rows(
+            &recheck.batch_result,
+            &mut recent_events,
+            &mut recent_committee_sessions,
+            &mut recent_chairman_decisions,
+        );
+    }
+    recent_events.sort_by(|left, right| left.event_id.cmp(&right.event_id));
+    recent_events.dedup_by(|left, right| left.event_id == right.event_id);
+    recent_committee_sessions.sort_by(|left, right| left.session_id.cmp(&right.session_id));
+    recent_committee_sessions.dedup_by(|left, right| left.session_id == right.session_id);
+    recent_chairman_decisions.sort_by(|left, right| left.decision_id.cmp(&right.decision_id));
+    recent_chairman_decisions.dedup_by(|left, right| left.decision_id == right.decision_id);
+    let recent_risk_vetoes = recent_chairman_decisions
+        .iter()
+        .filter(|decision| decision.risk_governor_status == RiskGovernorStatus::Vetoed)
+        .cloned()
+        .collect();
+
+    let next_owner_actions = build_next_owner_action_export_rows(
+        owner_console_view.as_ref(),
+        &attention_items,
+        latest_owner_daily_brief.as_ref(),
+    );
+    let snapshot_id = run_id
+        .as_ref()
+        .map(|run_id| format!("committee-state-snapshot-{run_id}"))
+        .or_else(|| {
+            latest_cycle_id
+                .as_ref()
+                .map(|cycle| format!("committee-state-snapshot-{cycle}"))
+        })
+        .unwrap_or_else(|| "committee-state-snapshot-local".to_string());
+    let snapshot = CommitteeStateSnapshot {
+        snapshot_id,
+        generated_at: Some("offline-committee-state-export".to_string()),
+        run_id,
+        latest_cycle_id,
+        members,
+        watchlist_candidates,
+        attention_items,
+        recent_events,
+        recent_committee_sessions,
+        recent_chairman_decisions,
+        recent_risk_vetoes,
+        latest_owner_summary: owner_summary,
+        latest_owner_console_view: owner_console_view,
+        latest_owner_daily_brief,
+        next_owner_actions,
+        safety_summary: safety_summary(),
+        paper_only: true,
+    };
+    validate_committee_state_snapshot(&snapshot)?;
+    Ok(snapshot)
+}
+
+pub fn save_committee_state_snapshot(
+    path: &Path,
+    snapshot: &CommitteeStateSnapshot,
+) -> Result<(), String> {
+    if !local_only(&path.to_string_lossy()) {
+        return Err("committee state snapshot path must be local".to_string());
+    }
+    validate_committee_state_snapshot(snapshot)?;
+    let text = serde_json::to_string_pretty(snapshot).map_err(|err| err.to_string())?;
+    reject_unsafe_export_text(&text)?;
+    fs::write(path, text).map_err(|err| err.to_string())
+}
+
+fn validate_owner_daily_brief_store(store: &OwnerDailyBriefStore) -> Result<(), String> {
+    if !store.paper_only {
+        return Err("owner daily brief store must be paper-only".to_string());
+    }
+    if store.store_id.trim().is_empty() {
+        return Err("owner daily brief store requires store_id".to_string());
+    }
+    for brief in &store.briefs {
+        validate_owner_daily_brief(brief)?;
+    }
+    if let Some(latest_id) = &store.latest_brief_id {
+        if !store
+            .briefs
+            .iter()
+            .any(|brief| &brief.brief_id == latest_id)
+        {
+            return Err("owner daily brief store latest_brief_id missing".to_string());
+        }
+    }
+    Ok(())
+}
+
+fn validate_owner_daily_brief(brief: &OwnerDailyBrief) -> Result<(), String> {
+    if brief.brief_id.trim().is_empty() {
+        return Err("owner daily brief requires brief_id".to_string());
+    }
+    for text in brief
+        .reviewed_symbols
+        .iter()
+        .chain(brief.watchlist_updates.iter())
+        .chain(brief.risk_vetoes.iter())
+        .chain(brief.need_more_evidence_items.iter())
+        .chain(brief.paper_candidates.iter())
+        .chain(brief.archived_candidates.iter())
+        .chain(brief.top_member_voice_changes.iter())
+        .chain(brief.key_ai_opinions.iter())
+        .chain(brief.next_owner_attention.iter())
+    {
+        reject_unsafe_export_string(text)?;
+    }
+    reject_unsafe_export_string(&brief.brief_text)?;
+    reject_unsafe_export_string(&brief.paper_only_warning)
+}
+
+fn validate_committee_state_snapshot(snapshot: &CommitteeStateSnapshot) -> Result<(), String> {
+    if !snapshot.paper_only {
+        return Err("committee state snapshot must be paper-only".to_string());
+    }
+    for row in &snapshot.watchlist_candidates {
+        if !row.paper_only {
+            return Err("committee state watchlist row must be paper-only".to_string());
+        }
+        reject_unsafe_export_string(&row.reason)?;
+    }
+    for row in &snapshot.recent_chairman_decisions {
+        if !row.paper_only {
+            return Err("committee state decision row must be paper-only".to_string());
+        }
+        reject_unsafe_export_string(&row.rationale_short)?;
+    }
+    for row in &snapshot.recent_risk_vetoes {
+        if !row.paper_only {
+            return Err("committee state risk row must be paper-only".to_string());
+        }
+    }
+    let value = serde_json::to_value(snapshot).map_err(|err| err.to_string())?;
+    reject_unsafe_export_value(&value)
+}
+
+fn member_state_export_row(state: &MemberStateSnapshot) -> MemberStateExportRow {
+    MemberStateExportRow {
+        member_id: state.member_id.clone(),
+        display_name: display_name_for_member_id(&state.member_id).to_string(),
+        role: role_for_member_id(&state.member_id),
+        status: state.status,
+        runtime_status: "OfflineFixture".to_string(),
+        score: state.score,
+        voice_weight: state.voice_weight,
+        memory_summary: format!(
+            "opinions={}, events={}, good={}, bad={}, risk_vetoes={}",
+            state.memory_state.recent_opinion_count,
+            state.memory_state.recent_event_count,
+            state.memory_state.recent_good_call_count,
+            state.memory_state.recent_bad_call_count,
+            state.memory_state.recent_risk_veto_count
+        ),
+        learning_summary: format!(
+            "reinforce={}, penalize={}, watch={}, ignore={}",
+            state.learning_journal_summary.reinforce_count,
+            state.learning_journal_summary.penalize_count,
+            state.learning_journal_summary.watch_count,
+            state.learning_journal_summary.ignore_count
+        ),
+        style_summary_short: style_summary_for_member_id(&state.member_id).to_string(),
+    }
+}
+
+fn watchlist_export_row(candidate: &WatchlistCandidate) -> WatchlistExportRow {
+    WatchlistExportRow {
+        candidate_id: candidate.candidate_id.clone(),
+        symbol: candidate.symbol.clone(),
+        market_scope: candidate.market_scope,
+        status: candidate.status,
+        reason: candidate.reason.clone(),
+        source_attention_item_id: Some(candidate.source_attention_item_id.clone()),
+        paper_only: true,
+    }
+}
+
+fn attention_inbox_export_row(item: &OwnerAttentionInboxItem) -> AttentionInboxExportRow {
+    AttentionInboxExportRow {
+        item_id: item.item_id.clone(),
+        symbol: item.symbol.clone(),
+        market_scope: item.market_scope,
+        attention_type: item.attention_type,
+        priority: item.priority,
+        status: item.status,
+        reason: item.reason.clone(),
+        requires_owner_input: item.requires_owner_input,
+        related_member_ids: item.related_member_ids.clone(),
+    }
+}
+
+fn append_batch_export_rows(
+    batch: &BatchCommitteeCycleResult,
+    events: &mut Vec<RecentEventExportRow>,
+    sessions: &mut Vec<CommitteeRow>,
+    decisions: &mut Vec<RecentDecisionExportRow>,
+) {
+    events.extend(batch.event_queue.events.iter().map(|event| {
+        RecentEventExportRow {
+            event_id: event.event_id.clone(),
+            symbol: event.symbol.clone(),
+            market_scope: event.market_scope,
+            event_type: event.event_type,
+            proposed_by_member_id: event.proposed_by_member_id.clone(),
+            confidence: event.triggering_opinion.confidence,
+            reason: event
+                .triggering_opinion
+                .event_reason
+                .clone()
+                .unwrap_or_else(|| "member triggered event".to_string()),
+        }
+    }));
+    sessions.extend(batch.committee_sessions.iter().map(|session| CommitteeRow {
+        session_id: session.session_id.clone(),
+        symbol: session.event.symbol.clone(),
+        market_scope: session.event.market_scope,
+        invited_members: session.invited_members.clone(),
+        disagreement_level: session.disagreement_level,
+        risk_flags: session.risk_flags.clone(),
+    }));
+    decisions.extend(batch.chairman_decisions.iter().map(|decision| {
+        let symbol = batch
+            .committee_sessions
+            .iter()
+            .find(|session| session.session_id == decision.session_id)
+            .map(|session| session.event.symbol.clone())
+            .unwrap_or_else(|| "unknown".to_string());
+        RecentDecisionExportRow {
+            decision_id: decision.decision_id.clone(),
+            symbol,
+            final_action: decision.final_action,
+            risk_governor_status: decision.risk_governor_status,
+            rationale_short: decision.rationale.clone(),
+            paper_only: true,
+        }
+    }));
+}
+
+fn build_next_owner_action_export_rows(
+    console: Option<&OwnerCommitteeConsoleView>,
+    attention_items: &[AttentionInboxExportRow],
+    brief: Option<&OwnerDailyBrief>,
+) -> Vec<NextOwnerActionExportRow> {
+    let mut rows = Vec::new();
+    if let Some(console) = console {
+        rows.extend(console.next_action_rows.iter().map(|row| {
+            let action_type = match row.action_type {
+                NextActionType::RiskBlocked => NextOwnerActionType::ReviewRiskVeto,
+                NextActionType::NeedMoreEvidence => NextOwnerActionType::ReviewEvidenceGap,
+                NextActionType::Watch | NextActionType::PaperReview => {
+                    NextOwnerActionType::ReviewWatchlistCandidate
+                }
+                NextActionType::NoTrade => NextOwnerActionType::OptionalComment,
+            };
+            NextOwnerActionExportRow {
+                action_type,
+                symbol: row.symbol.clone(),
+                priority: if row.action_type == NextActionType::RiskBlocked {
+                    OwnerAttentionPriority::High
+                } else {
+                    OwnerAttentionPriority::Normal
+                },
+                note: row.note.clone(),
+            }
+        }));
+    }
+    rows.extend(
+        attention_items
+            .iter()
+            .filter(|item| item.requires_owner_input)
+            .map(|item| NextOwnerActionExportRow {
+                action_type: match item.attention_type {
+                    OwnerAttentionType::RiskVeto => NextOwnerActionType::ReviewRiskVeto,
+                    OwnerAttentionType::NeedMoreEvidence => NextOwnerActionType::ReviewEvidenceGap,
+                    OwnerAttentionType::WatchlistCandidate => {
+                        NextOwnerActionType::ReviewWatchlistCandidate
+                    }
+                    _ => NextOwnerActionType::OptionalComment,
+                },
+                symbol: item.symbol.clone(),
+                priority: item.priority,
+                note: item.reason.clone(),
+            }),
+    );
+    if let Some(brief) = brief {
+        rows.extend(
+            brief
+                .next_owner_attention
+                .iter()
+                .map(|note| NextOwnerActionExportRow {
+                    action_type: NextOwnerActionType::OptionalComment,
+                    symbol: None,
+                    priority: OwnerAttentionPriority::Normal,
+                    note: note.clone(),
+                }),
+        );
+    }
+    if rows.is_empty() {
+        rows.push(NextOwnerActionExportRow {
+            action_type: NextOwnerActionType::NoActionRequired,
+            symbol: None,
+            priority: OwnerAttentionPriority::Low,
+            note: "no owner action required; continue paper-only monitoring".to_string(),
+        });
+    }
+    rows.sort_by(|left, right| {
+        owner_attention_priority_rank(right.priority)
+            .cmp(&owner_attention_priority_rank(left.priority))
+            .then_with(|| {
+                format!("{:?}", left.action_type).cmp(&format!("{:?}", right.action_type))
+            })
+            .then_with(|| left.symbol.cmp(&right.symbol))
+            .then_with(|| left.note.cmp(&right.note))
+    });
+    rows.dedup_by(|left, right| {
+        left.action_type == right.action_type
+            && left.symbol == right.symbol
+            && left.note == right.note
+    });
+    rows
+}
+
+fn reject_unsafe_export_text(text: &str) -> Result<(), String> {
+    if let Ok(value) = serde_json::from_str::<serde_json::Value>(text) {
+        reject_unsafe_export_value(&value)
+    } else {
+        reject_unsafe_export_string(text)
+    }
+}
+
+fn reject_unsafe_export_value(value: &serde_json::Value) -> Result<(), String> {
+    match value {
+        serde_json::Value::Object(map) => {
+            for (key, value) in map {
+                reject_unsafe_export_key(key)?;
+                reject_unsafe_export_value(value)?;
+            }
+        }
+        serde_json::Value::Array(items) => {
+            for item in items {
+                reject_unsafe_export_value(item)?;
+            }
+        }
+        serde_json::Value::String(text) => reject_unsafe_export_string(text)?,
+        _ => {}
+    }
+    Ok(())
+}
+
+fn reject_unsafe_export_key(key: &str) -> Result<(), String> {
+    let lower = key.to_ascii_lowercase();
+    for prohibited in [
+        "broker",
+        "account",
+        "order",
+        "execution",
+        "execute",
+        "trade_command",
+        "position_size",
+    ] {
+        if lower == prohibited {
+            return Err(format!(
+                "committee state export rejected unsafe field: {prohibited}"
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn reject_unsafe_export_string(text: &str) -> Result<(), String> {
+    let lower = text.to_ascii_lowercase();
+    let safety_negated = lower.contains("no live trading")
+        || lower.contains("not live trading")
+        || lower.contains("cannot execute")
+        || lower.contains("not an order")
+        || lower.contains("no broker")
+        || lower.contains("no account");
+    for prohibited in [
+        "execute order",
+        "place order",
+        "submit order",
+        "broker account",
+        "trading account",
+        "real money",
+        "use my account",
+        "buy with real money",
+        "sell with real money",
+    ] {
+        if lower.contains(prohibited) && !safety_negated {
+            return Err(format!(
+                "committee state export rejected unsafe instruction: {prohibited}"
+            ));
+        }
+    }
+    if lower.contains("live trading") && !safety_negated {
+        return Err("committee state export rejected unsafe instruction: live trading".to_string());
+    }
+    Ok(())
+}
+
+fn default_committee_state_schema_version() -> String {
+    "committee-state.v1".to_string()
+}
+
+impl SnapshotFileNamingPolicy {
+    pub fn state_folder_contract() -> Self {
+        Self {
+            latest_filename: "latest.json".to_string(),
+            snapshot_index_filename: "snapshot_index.json".to_string(),
+            history_dirname: "history".to_string(),
+            owner_console_read_model_filename: "owner_console_read_model.json".to_string(),
+            history_filename_pattern: "{snapshot_id}.json".to_string(),
+        }
+    }
+
+    pub fn latest_path(&self, root: &Path) -> PathBuf {
+        root.join(&self.latest_filename)
+    }
+
+    pub fn snapshot_index_path(&self, root: &Path) -> PathBuf {
+        root.join(&self.snapshot_index_filename)
+    }
+
+    pub fn index_path(&self, root: &Path) -> PathBuf {
+        self.snapshot_index_path(root)
+    }
+
+    pub fn history_dir_path(&self, root: &Path) -> PathBuf {
+        root.join(&self.history_dirname)
+    }
+
+    pub fn owner_console_read_model_path(&self, root: &Path) -> PathBuf {
+        root.join(&self.owner_console_read_model_filename)
+    }
+
+    pub fn read_model_path(&self, root: &Path) -> PathBuf {
+        self.owner_console_read_model_path(root)
+    }
+
+    pub fn history_path(&self, root: &Path, snapshot_id: &str) -> Result<PathBuf, String> {
+        validate_snapshot_id(snapshot_id)?;
+        Ok(self
+            .history_dir_path(root)
+            .join(format!("{snapshot_id}.json")))
+    }
+
+    pub fn history_entry_path(&self, snapshot_id: &str) -> Result<String, String> {
+        validate_snapshot_id(snapshot_id)?;
+        Ok(format!("{}/{snapshot_id}.json", self.history_dirname))
+    }
+}
+
+impl CommitteeStateSnapshotIndex {
+    pub fn add_entry(&mut self, entry: SnapshotIndexEntry) {
+        self.entries
+            .retain(|existing| existing.snapshot_id != entry.snapshot_id);
+        self.latest_snapshot_id = Some(entry.snapshot_id.clone());
+        self.entries.push(entry);
+        self.sort_deterministically();
+    }
+
+    pub fn cap_history(&mut self, max_history_entries: usize) {
+        self.sort_deterministically();
+        if max_history_entries == 0 {
+            self.entries.clear();
+            self.latest_snapshot_id = None;
+            return;
+        }
+        if self.entries.len() <= max_history_entries {
+            return;
+        }
+        if let Some(latest_id) = self.latest_snapshot_id.clone() {
+            if let Some(latest_position) = self
+                .entries
+                .iter()
+                .position(|entry| entry.snapshot_id == latest_id)
+            {
+                if latest_position >= max_history_entries {
+                    let latest_entry = self.entries.remove(latest_position);
+                    self.entries.truncate(max_history_entries - 1);
+                    self.entries.push(latest_entry);
+                    return;
+                }
+            }
+        }
+        self.entries.truncate(max_history_entries);
+        if let Some(latest_id) = self.latest_snapshot_id.clone() {
+            if !self
+                .entries
+                .iter()
+                .any(|entry| entry.snapshot_id == latest_id)
+            {
+                self.latest_snapshot_id =
+                    self.entries.first().map(|entry| entry.snapshot_id.clone());
+            }
+        }
+    }
+
+    pub fn latest(&self) -> Option<&SnapshotIndexEntry> {
+        self.latest_snapshot_id
+            .as_ref()
+            .and_then(|latest_id| {
+                self.entries
+                    .iter()
+                    .find(|entry| &entry.snapshot_id == latest_id)
+            })
+            .or_else(|| self.entries.first())
+    }
+
+    pub fn sort_deterministically(&mut self) {
+        self.entries.sort_by(|left, right| {
+            right
+                .generated_at
+                .cmp(&left.generated_at)
+                .then_with(|| right.snapshot_id.cmp(&left.snapshot_id))
+        });
+    }
+}
+
+impl Default for OwnerConsoleTerminalOptions {
+    fn default() -> Self {
+        Self {
+            max_width: Some(120),
+            show_members: true,
+            show_watchlist: true,
+            show_attention: true,
+            show_decisions: true,
+            show_next_actions: true,
+            show_safety: true,
+            compact: false,
+        }
+    }
+}
+
+pub fn build_owner_console_read_model(
+    schema_version: impl Into<String>,
+    snapshot: &CommitteeStateSnapshot,
+) -> OwnerConsoleReadModel {
+    let mut member_cards = snapshot
+        .members
+        .iter()
+        .map(|member| OwnerMemberCard {
+            member_id: member.member_id.clone(),
+            display_name: member.display_name.clone(),
+            role: member.role,
+            score: member.score,
+            voice_weight: member.voice_weight,
+            status: member.status,
+            runtime_status: member.runtime_status.clone(),
+            style_summary_short: member.style_summary_short.clone(),
+            memory_summary: member.memory_summary.clone(),
+            latest_opinion: member.learning_summary.clone(),
+        })
+        .collect::<Vec<_>>();
+    member_cards.sort_by(|left, right| {
+        right
+            .voice_weight
+            .total_cmp(&left.voice_weight)
+            .then_with(|| right.score.total_cmp(&left.score))
+            .then_with(|| left.member_id.cmp(&right.member_id))
+    });
+    let mut watchlist_cards = snapshot
+        .watchlist_candidates
+        .iter()
+        .map(|candidate| OwnerWatchlistCard {
+            candidate_id: candidate.candidate_id.clone(),
+            symbol: candidate.symbol.clone(),
+            market_scope: candidate.market_scope,
+            status: candidate.status,
+            reason: candidate.reason.clone(),
+            paper_only: candidate.paper_only,
+        })
+        .collect::<Vec<_>>();
+    watchlist_cards.sort_by(|left, right| {
+        left.symbol
+            .cmp(&right.symbol)
+            .then_with(|| left.candidate_id.cmp(&right.candidate_id))
+    });
+    let mut attention_cards = snapshot
+        .attention_items
+        .iter()
+        .map(|item| OwnerAttentionCard {
+            item_id: item.item_id.clone(),
+            symbol: item.symbol.clone(),
+            priority: item.priority,
+            status: item.status,
+            attention_type: item.attention_type,
+            reason: item.reason.clone(),
+            requires_owner_input: item.requires_owner_input,
+        })
+        .collect::<Vec<_>>();
+    attention_cards.sort_by(|left, right| {
+        owner_attention_priority_rank(right.priority)
+            .cmp(&owner_attention_priority_rank(left.priority))
+            .then_with(|| left.item_id.cmp(&right.item_id))
+    });
+    let mut decision_cards = snapshot
+        .recent_chairman_decisions
+        .iter()
+        .map(|decision| OwnerDecisionCard {
+            decision_id: decision.decision_id.clone(),
+            symbol: decision.symbol.clone(),
+            final_action: decision.final_action,
+            risk_governor_status: decision.risk_governor_status,
+            rationale_short: decision.rationale_short.clone(),
+            paper_only: decision.paper_only,
+        })
+        .collect::<Vec<_>>();
+    decision_cards.sort_by(|left, right| {
+        left.symbol
+            .cmp(&right.symbol)
+            .then_with(|| left.decision_id.cmp(&right.decision_id))
+    });
+    let mut next_action_cards = snapshot
+        .next_owner_actions
+        .iter()
+        .map(|action| OwnerNextActionCard {
+            action_type: action.action_type,
+            symbol: action.symbol.clone(),
+            priority: action.priority,
+            note: action.note.clone(),
+        })
+        .collect::<Vec<_>>();
+    next_action_cards.sort_by(|left, right| {
+        owner_attention_priority_rank(right.priority)
+            .cmp(&owner_attention_priority_rank(left.priority))
+            .then_with(|| {
+                format!("{:?}", left.action_type).cmp(&format!("{:?}", right.action_type))
+            })
+            .then_with(|| left.symbol.cmp(&right.symbol))
+    });
+    let mut symbols = snapshot
+        .recent_events
+        .iter()
+        .map(|event| event.symbol.clone())
+        .chain(
+            snapshot
+                .recent_chairman_decisions
+                .iter()
+                .map(|decision| decision.symbol.clone()),
+        )
+        .chain(
+            snapshot
+                .watchlist_candidates
+                .iter()
+                .map(|candidate| candidate.symbol.clone()),
+        )
+        .collect::<Vec<_>>();
+    symbols.sort();
+    symbols.dedup();
+    OwnerConsoleReadModel {
+        schema_version: schema_version.into(),
+        snapshot_id: snapshot.snapshot_id.clone(),
+        header: OwnerConsoleHeader {
+            run_id: snapshot.run_id.clone(),
+            latest_cycle_id: snapshot.latest_cycle_id.clone(),
+            reviewed_symbol_count: symbols.len(),
+            event_count: snapshot.recent_events.len(),
+            risk_veto_count: snapshot.recent_risk_vetoes.len(),
+            attention_open_count: snapshot
+                .attention_items
+                .iter()
+                .filter(|item| {
+                    matches!(
+                        item.status,
+                        OwnerAttentionInboxStatus::Open
+                            | OwnerAttentionInboxStatus::Acknowledged
+                            | OwnerAttentionInboxStatus::Deferred
+                            | OwnerAttentionInboxStatus::ReconsiderationRequested
+                    )
+                })
+                .count(),
+            paper_only_warning:
+                "paper-only owner console read model; no broker, no account, no live trading"
+                    .to_string(),
+        },
+        member_cards,
+        watchlist_cards,
+        attention_cards,
+        decision_cards,
+        next_action_cards,
+        daily_brief_text: snapshot
+            .latest_owner_daily_brief
+            .as_ref()
+            .map(|brief| brief.brief_text.clone()),
+        safety_badges: vec![
+            "paper-only".to_string(),
+            "read-only".to_string(),
+            "no broker/order/account".to_string(),
+            "no live trading".to_string(),
+            "no training".to_string(),
+            "no live inference".to_string(),
+        ],
+    }
+}
+
+pub fn write_committee_state_export(
+    config: CommitteeStateExportConfig,
+    snapshot: &CommitteeStateSnapshot,
+    source: CommitteeStateSnapshotSource,
+) -> Result<StateExportWriteResult, String> {
+    validate_committee_state_export_config(&config)?;
+    let policy = SnapshotFileNamingPolicy::state_folder_contract();
+    let root = Path::new(&config.export_root_path);
+    fs::create_dir_all(root).map_err(|err| err.to_string())?;
+    let envelope = CommitteeStateSnapshotEnvelope {
+        schema_version: config.schema_version.clone(),
+        snapshot_id: snapshot.snapshot_id.clone(),
+        generated_at: snapshot.generated_at.clone(),
+        source,
+        snapshot: snapshot.clone(),
+        safety: CommitteeStateSnapshotEnvelopeSafety {
+            paper_only: config.paper_only && snapshot.paper_only,
+            no_broker_order_account: true,
+            no_live_trading: true,
+            no_training: true,
+            no_live_inference: true,
+        },
+        warnings: vec![
+            "local read-only state export; no broker, no account, no live trading".to_string(),
+            "UI-ready data contract only; no model training or live inference".to_string(),
+        ],
+    };
+    let owner_console_read_model =
+        build_owner_console_read_model(config.schema_version.clone(), snapshot);
+    let mut result = StateExportWriteResult {
+        export_root_path: config.export_root_path.clone(),
+        wrote_latest_snapshot: false,
+        wrote_history_snapshot: false,
+        wrote_snapshot_index: false,
+        wrote_owner_console_read_model: false,
+        latest_snapshot_path: None,
+        history_snapshot_path: None,
+        snapshot_index_path: None,
+        owner_console_read_model_path: None,
+        safety_status:
+            "paper-only read-only export; no broker/order/account, no live trading, no training"
+                .to_string(),
+        errors: Vec::new(),
+    };
+    if config.write_latest_snapshot {
+        let path = policy.latest_path(root);
+        write_safe_json(&path, &envelope)?;
+        result.wrote_latest_snapshot = true;
+        result.latest_snapshot_path = Some(path.display().to_string());
+    }
+    if config.write_history_snapshot {
+        fs::create_dir_all(policy.history_dir_path(root)).map_err(|err| err.to_string())?;
+        let path = policy.history_path(root, &snapshot.snapshot_id)?;
+        write_safe_json(&path, &envelope)?;
+        result.wrote_history_snapshot = true;
+        result.history_snapshot_path = Some(path.display().to_string());
+    }
+    if config.write_snapshot_index {
+        let path = policy.snapshot_index_path(root);
+        let mut index = if path.exists() {
+            load_committee_state_snapshot_index(&path)?
+        } else {
+            CommitteeStateSnapshotIndex {
+                schema_version: config.schema_version.clone(),
+                latest_snapshot_id: None,
+                entries: Vec::new(),
+            }
+        };
+        upsert_snapshot_index_entry(
+            &mut index,
+            snapshot,
+            policy.history_entry_path(&snapshot.snapshot_id)?,
+            config.max_history_entries,
+        );
+        index.schema_version = config.schema_version.clone();
+        write_safe_json(&path, &index)?;
+        result.wrote_snapshot_index = true;
+        result.snapshot_index_path = Some(path.display().to_string());
+    }
+    if config.write_owner_console_read_model {
+        let path = policy.owner_console_read_model_path(root);
+        write_safe_json(&path, &owner_console_read_model)?;
+        result.wrote_owner_console_read_model = true;
+        result.owner_console_read_model_path = Some(path.display().to_string());
+    }
+    reject_unsafe_export_text(&serde_json::to_string(&result).map_err(|err| err.to_string())?)?;
+    Ok(result)
+}
+
+pub fn load_owner_console_read_model_from_local_file(
+    path: &Path,
+) -> Result<(OwnerConsoleViewSource, OwnerConsoleReadModel), String> {
+    validate_owner_console_read_model_path(path)?;
+    let text = fs::read_to_string(path).map_err(|err| err.to_string())?;
+    reject_unsafe_export_text(&text)?;
+    let read_model: OwnerConsoleReadModel = serde_json::from_str(&text)
+        .map_err(|err| format!("invalid owner console read model JSON: {err}"))?;
+    let source = OwnerConsoleViewSource {
+        source_path: path.display().to_string(),
+        loaded_at: None,
+        schema_version: read_model.schema_version.clone(),
+        snapshot_id: Some(read_model.snapshot_id.clone()),
+    };
+    Ok((source, read_model))
+}
+
+pub fn render_owner_console_terminal_view(
+    read_model: &OwnerConsoleReadModel,
+    options: &OwnerConsoleTerminalOptions,
+) -> OwnerConsoleTerminalView {
+    let width = options.max_width.unwrap_or(120).max(40);
+    let mut view = OwnerConsoleTerminalView {
+        title: truncate_line(
+            format!("Soma Owner Console - {}", read_model.snapshot_id),
+            width,
+        ),
+        header_lines: vec![
+            truncate_line(
+                format!(
+                    "schema={} run={} cycle={}",
+                    read_model.schema_version,
+                    read_model.header.run_id.as_deref().unwrap_or("unknown-run"),
+                    read_model
+                        .header
+                        .latest_cycle_id
+                        .as_deref()
+                        .unwrap_or("unknown-cycle")
+                ),
+                width,
+            ),
+            truncate_line(
+                format!(
+                    "reviewed_symbols={} events={} risk_vetoes={} open_attention={}",
+                    read_model.header.reviewed_symbol_count,
+                    read_model.header.event_count,
+                    read_model.header.risk_veto_count,
+                    read_model.header.attention_open_count
+                ),
+                width,
+            ),
+            truncate_line(read_model.header.paper_only_warning.clone(), width),
+        ],
+        member_sections: Vec::new(),
+        watchlist_sections: Vec::new(),
+        attention_sections: Vec::new(),
+        decision_sections: Vec::new(),
+        next_action_sections: Vec::new(),
+        safety_lines: Vec::new(),
+    };
+    if options.show_members {
+        view.member_sections = read_model
+            .member_cards
+            .iter()
+            .map(|card| {
+                let details = if options.compact {
+                    format!(
+                        "- {} score={:.3} voice={:.3} runtime={}",
+                        card.display_name, card.score, card.voice_weight, card.runtime_status
+                    )
+                } else {
+                    format!(
+                        "- {} ({}) role={:?} status={:?} score={:.3} voice={:.3} runtime={} style={} memory={} latest={}",
+                        card.display_name,
+                        card.member_id,
+                        card.role,
+                        card.status,
+                        card.score,
+                        card.voice_weight,
+                        card.runtime_status,
+                        card.style_summary_short,
+                        card.memory_summary,
+                        card.latest_opinion
+                    )
+                };
+                truncate_line(details, width)
+            })
+            .collect();
+    }
+    if options.show_watchlist {
+        view.watchlist_sections = read_model
+            .watchlist_cards
+            .iter()
+            .map(|card| {
+                truncate_line(
+                    format!(
+                        "- {} {:?} status={:?} reason={} paper_only={}",
+                        card.symbol, card.market_scope, card.status, card.reason, card.paper_only
+                    ),
+                    width,
+                )
+            })
+            .collect();
+    }
+    if options.show_attention {
+        view.attention_sections = read_model
+            .attention_cards
+            .iter()
+            .map(|card| {
+                truncate_line(
+                    format!(
+                        "- {} symbol={} priority={:?} status={:?} type={:?} owner_input={} reason={}",
+                        card.item_id,
+                        card.symbol.as_deref().unwrap_or("-"),
+                        card.priority,
+                        card.status,
+                        card.attention_type,
+                        card.requires_owner_input,
+                        card.reason
+                    ),
+                    width,
+                )
+            })
+            .collect();
+    }
+    if options.show_decisions {
+        view.decision_sections = read_model
+            .decision_cards
+            .iter()
+            .map(|card| {
+                truncate_line(
+                    format!(
+                        "- {} {} action={:?} risk={:?} paper_only={} rationale={}",
+                        card.decision_id,
+                        card.symbol,
+                        card.final_action,
+                        card.risk_governor_status,
+                        card.paper_only,
+                        card.rationale_short
+                    ),
+                    width,
+                )
+            })
+            .collect();
+    }
+    if options.show_next_actions {
+        view.next_action_sections = read_model
+            .next_action_cards
+            .iter()
+            .map(|card| {
+                truncate_line(
+                    format!(
+                        "- {:?} symbol={} priority={:?} note={}",
+                        card.action_type,
+                        card.symbol.as_deref().unwrap_or("-"),
+                        card.priority,
+                        card.note
+                    ),
+                    width,
+                )
+            })
+            .collect();
+    }
+    if options.show_safety {
+        view.safety_lines = read_model
+            .safety_badges
+            .iter()
+            .map(|badge| truncate_line(format!("- {badge}"), width))
+            .chain([
+                truncate_line(
+                    "Viewer is Rust-only, read-only, and paper-only.".to_string(),
+                    width,
+                ),
+                truncate_line(
+                    "No broker/order/account controls; no training or live inference.".to_string(),
+                    width,
+                ),
+            ])
+            .collect();
+    }
+    view
+}
+
+pub fn owner_console_terminal_view_to_text(view: &OwnerConsoleTerminalView) -> String {
+    let mut lines = vec![view.title.clone(), String::new(), "Header".to_string()];
+    lines.extend(view.header_lines.clone());
+    push_terminal_section(&mut lines, "Members", &view.member_sections);
+    push_terminal_section(&mut lines, "Watchlist", &view.watchlist_sections);
+    push_terminal_section(&mut lines, "Attention", &view.attention_sections);
+    push_terminal_section(&mut lines, "Decisions", &view.decision_sections);
+    push_terminal_section(&mut lines, "Next Actions", &view.next_action_sections);
+    push_terminal_section(&mut lines, "Safety", &view.safety_lines);
+    lines.join("\n")
+}
+
+pub fn run_owner_console_viewer(
+    path: &Path,
+    options: OwnerConsoleTerminalOptions,
+) -> Result<OwnerConsoleViewerResult, String> {
+    let (source, read_model) = load_owner_console_read_model_from_local_file(path)?;
+    let terminal_view = render_owner_console_terminal_view(&read_model, &options);
+    let rendered_text = owner_console_terminal_view_to_text(&terminal_view);
+    reject_unsafe_export_text(
+        &serde_json::to_string(&terminal_view).map_err(|err| err.to_string())?,
+    )?;
+    Ok(OwnerConsoleViewerResult {
+        source,
+        terminal_view,
+        rendered_text,
+        safety_status:
+            "rust-only read-only paper-only viewer; no broker/order/account, no training, no live inference"
+                .to_string(),
+        error: None,
+    })
+}
+
+pub fn parse_owner_attention_action_type(text: &str) -> Result<OwnerAttentionActionType, String> {
+    match text.trim() {
+        "Acknowledge" | "acknowledge" => Ok(OwnerAttentionActionType::Acknowledge),
+        "Defer" | "defer" => Ok(OwnerAttentionActionType::Defer),
+        "Dismiss" | "dismiss" => Ok(OwnerAttentionActionType::Dismiss),
+        "ConvertToWatchlist" | "convert-to-watchlist" | "convert_to_watchlist" => {
+            Ok(OwnerAttentionActionType::ConvertToWatchlist)
+        }
+        "RequestMoreEvidence" | "request-more-evidence" | "request_more_evidence" => {
+            Ok(OwnerAttentionActionType::RequestMoreEvidence)
+        }
+        "RequestReconsideration" | "request-reconsideration" | "request_reconsideration" => {
+            Ok(OwnerAttentionActionType::RequestReconsideration)
+        }
+        "AddComment" | "add-comment" | "add_comment" => Ok(OwnerAttentionActionType::AddComment),
+        other => Err(format!("unsupported owner action type: {other}")),
+    }
+}
+
+pub fn compose_owner_action_from_read_model(
+    config: OwnerActionComposerConfig,
+) -> Result<OwnerActionComposerResult, String> {
+    validate_owner_action_composer_config(&config)?;
+    let read_model_path = Path::new(&config.read_model_path);
+    let (_source, read_model) = load_owner_console_read_model_from_local_file(read_model_path)?;
+    let target = find_owner_action_target(&read_model, config.target_item_id.as_deref());
+    if target.is_none()
+        && !(config.action_type == OwnerAttentionActionType::AddComment
+            && config.target_item_id.is_none())
+    {
+        return Err(format!(
+            "owner action target item not found: {}",
+            config.target_item_id.as_deref().unwrap_or("<none>")
+        ));
+    }
+    let target_item_id = target
+        .as_ref()
+        .map(|target| target.item_id.clone())
+        .or_else(|| config.target_item_id.clone())
+        .unwrap_or_else(|| "owner-general-comment".to_string());
+    let action_id = deterministic_owner_action_id(
+        &read_model.snapshot_id,
+        &target_item_id,
+        config.action_type,
+        config.comment.as_deref(),
+    );
+    let draft = OwnerActionDraft {
+        action_id: action_id.clone(),
+        target_item_id: target_item_id.clone(),
+        action_type: config.action_type,
+        comment: config.comment.clone(),
+        source_snapshot_id: Some(read_model.snapshot_id.clone()),
+        source_read_model_path: config.read_model_path.clone(),
+        paper_only: true,
+        created_at: None,
+    };
+    let owner_action = OwnerAttentionAction {
+        action_id,
+        item_id: target_item_id,
+        action_type: config.action_type,
+        comment: config.comment.clone(),
+        created_at: None,
+        paper_only: true,
+    };
+    validate_owner_attention_action(&owner_action)?;
+    let target_summary = target.as_ref().map(|target| target.summary.clone());
+    let preview_text =
+        build_owner_action_preview(&draft, target_summary.as_deref(), config.dry_run);
+    let mut result = OwnerActionComposerResult {
+        draft,
+        target_item_found: target.is_some(),
+        target_item_summary: target_summary,
+        wrote_output: false,
+        output_path: None,
+        preview_text,
+        safety_status: OwnerAttentionActionSafetyStatus::Passed,
+        rejection_reason: None,
+    };
+    if !config.dry_run {
+        let action_file = OwnerActionFile {
+            schema_version: "owner-action-file.v1".to_string(),
+            source_snapshot_id: Some(read_model.snapshot_id),
+            actions: vec![owner_action],
+            paper_only: true,
+            safety_notes: vec![
+                "paper-only local triage input".to_string(),
+                "AI members still judge".to_string(),
+                "Risk Governor remains final".to_string(),
+            ],
+        };
+        save_owner_action_file_to_local_json(Path::new(&config.output_actions_path), &action_file)?;
+        result.wrote_output = true;
+        result.output_path = Some(config.output_actions_path);
+    }
+    Ok(result)
+}
+
+pub fn save_owner_action_file_to_local_json(
+    path: &Path,
+    action_file: &OwnerActionFile,
+) -> Result<(), String> {
+    validate_owner_action_output_path(path)?;
+    validate_owner_action_file(action_file)?;
+    let text = serde_json::to_string_pretty(action_file).map_err(|err| err.to_string())?;
+    reject_unsafe_owner_attention_text(&text)?;
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|err| err.to_string())?;
+    }
+    fs::write(path, text).map_err(|err| err.to_string())
+}
+
+pub fn consume_owner_action_file(
+    config: OwnerActionConsumptionConfig,
+) -> Result<OwnerActionConsumptionResult, String> {
+    consume_owner_action_file_with_previous_run(config, None)
+}
+
+pub fn consume_owner_action_file_with_previous_run(
+    config: OwnerActionConsumptionConfig,
+    previous_run: Option<AutonomousPaperRunResult>,
+) -> Result<OwnerActionConsumptionResult, String> {
+    validate_owner_action_consumption_config(&config)?;
+    let actions =
+        load_owner_attention_actions_from_local_json(Path::new(&config.action_file_path))?;
+    let mut ledger = load_owner_action_processing_ledger_for_config(&config)?;
+    let dry_run = config.apply_mode == OwnerActionApplyMode::DryRun;
+    let source_read_model = load_consumption_read_model(&config)?;
+    let source_snapshot_id = source_read_model
+        .as_ref()
+        .map(|read_model| read_model.snapshot_id.clone())
+        .or_else(|| previous_run.as_ref().map(|run| run.run_id.clone()));
+    let mut candidate_actions = Vec::new();
+    let mut action_results = Vec::new();
+    let mut skipped_duplicate_count = 0;
+    let mut rejected_action_count = 0;
+    for action in &actions {
+        if let Err(reason) = validate_owner_attention_action(action) {
+            rejected_action_count += 1;
+            action_results.push(rejected_owner_attention_action_result(
+                action,
+                OwnerAttentionInboxStatus::Open,
+                reason,
+            ));
+            ledger.add_record(owner_action_processing_record(
+                action,
+                OwnerActionProcessedStatus::Rejected,
+                Vec::new(),
+                Vec::new(),
+                Vec::new(),
+                source_snapshot_id.clone(),
+                "unsafe or invalid owner action rejected",
+            ));
+            continue;
+        }
+        if ledger.contains_action(&action.action_id) {
+            match config.duplicate_policy {
+                OwnerActionDuplicatePolicy::SkipAlreadyProcessed => {
+                    skipped_duplicate_count += 1;
+                    ledger.add_record(owner_action_processing_record(
+                        action,
+                        OwnerActionProcessedStatus::SkippedDuplicate,
+                        Vec::new(),
+                        Vec::new(),
+                        Vec::new(),
+                        source_snapshot_id.clone(),
+                        "duplicate owner action skipped",
+                    ));
+                    continue;
+                }
+                OwnerActionDuplicatePolicy::RejectAlreadyProcessed => {
+                    return Err(format!(
+                        "owner action already processed: {}",
+                        action.action_id
+                    ));
+                }
+            }
+        }
+        if dry_run {
+            ledger.add_record(owner_action_processing_record(
+                action,
+                OwnerActionProcessedStatus::DryRunPreview,
+                Vec::new(),
+                Vec::new(),
+                Vec::new(),
+                source_snapshot_id.clone(),
+                "dry-run preview only; no local state written",
+            ));
+        }
+        candidate_actions.push(action.clone());
+    }
+
+    let mut inbox = load_consumption_inbox(&config, source_read_model.as_ref(), &previous_run)?;
+    let mut watchlist_store = load_consumption_watchlist_store(&config, &previous_run)?;
+    let mut member_state_store = load_consumption_member_state_store(&config, &previous_run)?;
+    let mut generated_owner_feedback = Vec::new();
+    let mut generated_watchlist_candidates = Vec::new();
+    let mut reconsideration_results = Vec::new();
+    let mut updated_committee_state_snapshot = None;
+    let mut state_export_result = None;
+    let applied_action_count;
+
+    if dry_run {
+        applied_action_count = 0;
+    } else {
+        let (general_comment_actions, inbox_actions): (Vec<_>, Vec<_>) =
+            candidate_actions.iter().cloned().partition(|action| {
+                action.action_type == OwnerAttentionActionType::AddComment
+                    && action.item_id == "owner-general-comment"
+            });
+        for action in &general_comment_actions {
+            let feedback = OwnerFeedback {
+                feedback_id: format!("feedback-{}", action.action_id),
+                symbol: None,
+                market_scope: None,
+                target_member_id: None,
+                feedback_type: OwnerFeedbackType::Comment,
+                text: action
+                    .comment
+                    .clone()
+                    .unwrap_or_else(|| "paper-only owner comment".to_string()),
+                priority: OwnerFeedbackPriority::Normal,
+                created_at: action.created_at.clone(),
+                paper_only: true,
+            };
+            action_results.push(OwnerAttentionActionResult {
+                action_id: action.action_id.clone(),
+                item_id: action.item_id.clone(),
+                previous_status: OwnerAttentionInboxStatus::Open,
+                new_status: OwnerAttentionInboxStatus::ConvertedToFeedback,
+                generated_owner_feedback: Some(feedback.clone()),
+                generated_watchlist_candidate: None,
+                safety_status: OwnerAttentionActionSafetyStatus::Passed,
+                rejection_reason: None,
+            });
+            generated_owner_feedback.push(feedback);
+        }
+        let (results, feedback, candidates) =
+            inbox.apply_owner_actions(&inbox_actions, &mut watchlist_store);
+        rejected_action_count += results
+            .iter()
+            .filter(|result| result.safety_status == OwnerAttentionActionSafetyStatus::Rejected)
+            .count();
+        applied_action_count = general_comment_actions.len()
+            + results
+                .iter()
+                .filter(|result| result.safety_status == OwnerAttentionActionSafetyStatus::Passed)
+                .count();
+        generated_owner_feedback.extend(feedback);
+        generated_watchlist_candidates = candidates;
+        let reconsideration_decision_ids = run_consumption_reconsideration(
+            &generated_owner_feedback,
+            &previous_run,
+            &member_state_store,
+        )?;
+        if !generated_owner_feedback.is_empty() {
+            reconsideration_results.push(ReconsiderationReplayResult {
+                feedback_count: generated_owner_feedback.len(),
+                reconsideration_session_count: reconsideration_decision_ids.len(),
+                chairman_reconsideration_decision_count: reconsideration_decision_ids.len(),
+                risk_veto_count: 0,
+                journal_entry_count: generated_owner_feedback.len(),
+                paper_only: true,
+            });
+            apply_owner_feedback_journal_to_member_state(
+                &mut member_state_store,
+                &generated_owner_feedback,
+            );
+        }
+        for action in &general_comment_actions {
+            ledger.add_record(owner_action_processing_record(
+                action,
+                OwnerActionProcessedStatus::Applied,
+                vec![format!("feedback-{}", action.action_id)],
+                Vec::new(),
+                reconsideration_decision_ids.clone(),
+                source_snapshot_id.clone(),
+                "targetless owner comment logged as paper-only feedback",
+            ));
+        }
+        for result in &results {
+            if result.safety_status == OwnerAttentionActionSafetyStatus::Passed {
+                if let Some(action) = inbox_actions
+                    .iter()
+                    .find(|action| action.action_id == result.action_id)
+                {
+                    ledger.add_record(owner_action_processing_record(
+                        action,
+                        OwnerActionProcessedStatus::Applied,
+                        result
+                            .generated_owner_feedback
+                            .as_ref()
+                            .map(|feedback| vec![feedback.feedback_id.clone()])
+                            .unwrap_or_default(),
+                        result
+                            .generated_watchlist_candidate
+                            .as_ref()
+                            .map(|candidate| vec![candidate.candidate_id.clone()])
+                            .unwrap_or_default(),
+                        reconsideration_decision_ids.clone(),
+                        source_snapshot_id.clone(),
+                        "owner action applied through paper-only inbox triage",
+                    ));
+                }
+            } else if let Some(action) = inbox_actions
+                .iter()
+                .find(|action| action.action_id == result.action_id)
+            {
+                ledger.add_record(owner_action_processing_record(
+                    action,
+                    OwnerActionProcessedStatus::Rejected,
+                    Vec::new(),
+                    Vec::new(),
+                    Vec::new(),
+                    source_snapshot_id.clone(),
+                    result
+                        .rejection_reason
+                        .as_deref()
+                        .unwrap_or("owner action rejected"),
+                ));
+            }
+        }
+        action_results.extend(results);
+        write_consumption_outputs(
+            &config,
+            &inbox,
+            &watchlist_store,
+            &member_state_store,
+            &ledger,
+            source_read_model.as_ref(),
+        )?;
+        let refresh = refresh_owner_console_state_after_consumption(
+            &config,
+            previous_run.as_ref(),
+            &inbox,
+            &watchlist_store,
+            &member_state_store,
+            source_read_model,
+        )?;
+        updated_committee_state_snapshot = refresh.0;
+        state_export_result = refresh.1;
+    }
+
+    Ok(OwnerActionConsumptionResult {
+        loaded_action_count: actions.len(),
+        applied_action_count,
+        rejected_action_count,
+        skipped_duplicate_count,
+        dry_run,
+        action_results,
+        generated_owner_feedback,
+        generated_watchlist_candidates,
+        reconsideration_results,
+        updated_inbox: Some(inbox),
+        updated_watchlist_store: Some(watchlist_store),
+        updated_member_state_store: Some(member_state_store),
+        updated_committee_state_snapshot,
+        state_export_result,
+        processing_ledger: ledger,
+        safety_summary: safety_summary(),
+    })
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct OwnerActionTarget {
+    item_id: String,
+    summary: String,
+    is_attention_item: bool,
+}
+
+fn validate_owner_action_composer_config(config: &OwnerActionComposerConfig) -> Result<(), String> {
+    if !config.paper_only {
+        return Err("owner action composer must be paper-only".to_string());
+    }
+    validate_owner_console_read_model_path(Path::new(&config.read_model_path))?;
+    validate_owner_action_output_path(Path::new(&config.output_actions_path))?;
+    if let Some(target_item_id) = &config.target_item_id {
+        reject_unsafe_owner_action_composer_text(target_item_id)?;
+    }
+    if let Some(comment) = &config.comment {
+        reject_unsafe_owner_action_composer_text(comment)?;
+    }
+    if config.action_type == OwnerAttentionActionType::AddComment
+        && config.comment.as_deref().unwrap_or("").trim().is_empty()
+    {
+        return Err("AddComment requires a comment".to_string());
+    }
+    Ok(())
+}
+
+fn validate_owner_action_output_path(path: &Path) -> Result<(), String> {
+    let path_text = path
+        .to_str()
+        .ok_or_else(|| "owner action output path must be valid UTF-8".to_string())?;
+    if !local_only(path_text) {
+        return Err("owner action output path must be local".to_string());
+    }
+    if path_has_parent_component(path) {
+        return Err(
+            "owner action output path must not contain parent-directory traversal".to_string(),
+        );
+    }
+    if path.extension().and_then(|value| value.to_str()) != Some("json") {
+        return Err("owner action output path must point to JSON".to_string());
+    }
+    Ok(())
+}
+
+fn validate_owner_action_file(action_file: &OwnerActionFile) -> Result<(), String> {
+    if !action_file.paper_only {
+        return Err("owner action file must be paper-only".to_string());
+    }
+    if action_file.schema_version.trim().is_empty() {
+        return Err("owner action file schema_version is required".to_string());
+    }
+    for action in &action_file.actions {
+        validate_owner_attention_action(action)?;
+    }
+    for note in &action_file.safety_notes {
+        reject_unsafe_owner_action_composer_text(note)?;
+    }
+    Ok(())
+}
+
+fn find_owner_action_target(
+    read_model: &OwnerConsoleReadModel,
+    target_item_id: Option<&str>,
+) -> Option<OwnerActionTarget> {
+    let target_item_id = target_item_id?;
+    if let Some(card) = read_model
+        .attention_cards
+        .iter()
+        .find(|card| card.item_id == target_item_id)
+    {
+        return Some(OwnerActionTarget {
+            item_id: card.item_id.clone(),
+            summary: format!(
+                "attention {} symbol={} priority={:?} type={:?}",
+                card.item_id,
+                card.symbol.as_deref().unwrap_or("-"),
+                card.priority,
+                card.attention_type
+            ),
+            is_attention_item: true,
+        });
+    }
+    if let Some(card) = read_model
+        .watchlist_cards
+        .iter()
+        .find(|card| card.candidate_id == target_item_id)
+    {
+        return Some(OwnerActionTarget {
+            item_id: card.candidate_id.clone(),
+            summary: format!(
+                "watchlist {} symbol={} status={:?}",
+                card.candidate_id, card.symbol, card.status
+            ),
+            is_attention_item: false,
+        });
+    }
+    read_model
+        .next_action_cards
+        .iter()
+        .enumerate()
+        .find_map(|(index, card)| {
+            let generated_id = format!("next-action-{}", index + 1);
+            if generated_id == target_item_id || card.note == target_item_id {
+                Some(OwnerActionTarget {
+                    item_id: generated_id,
+                    summary: format!(
+                        "next_action {:?} symbol={} priority={:?}",
+                        card.action_type,
+                        card.symbol.as_deref().unwrap_or("-"),
+                        card.priority
+                    ),
+                    is_attention_item: false,
+                })
+            } else {
+                None
+            }
+        })
+}
+
+fn deterministic_owner_action_id(
+    snapshot_id: &str,
+    target_item_id: &str,
+    action_type: OwnerAttentionActionType,
+    comment: Option<&str>,
+) -> String {
+    let seed = format!(
+        "{}|{}|{:?}|{}",
+        snapshot_id,
+        target_item_id,
+        action_type,
+        comment.unwrap_or("")
+    );
+    format!("owner-action-{:016x}", stable_fnv1a64(&seed))
+}
+
+fn stable_fnv1a64(text: &str) -> u64 {
+    let mut hash = 0xcbf29ce484222325u64;
+    for byte in text.as_bytes() {
+        hash ^= u64::from(*byte);
+        hash = hash.wrapping_mul(0x100000001b3);
+    }
+    hash
+}
+
+fn build_owner_action_preview(
+    draft: &OwnerActionDraft,
+    target_summary: Option<&str>,
+    dry_run: bool,
+) -> String {
+    format!(
+        "owner action draft action_id={} type={:?} target={} dry_run={} summary={} paper_only=true",
+        draft.action_id,
+        draft.action_type,
+        draft.target_item_id,
+        dry_run,
+        target_summary.unwrap_or("general owner comment")
+    )
+}
+
+fn reject_unsafe_owner_action_composer_text(text: &str) -> Result<(), String> {
+    reject_unsafe_owner_attention_text(text)?;
+    let lower = text.to_ascii_lowercase();
+    for prohibited in [
+        "real trade",
+        "buy now with real money",
+        "sell now with real money",
+        "guaranteed return",
+        "private info",
+        "illegal info",
+        "바로 매수",
+        "바로 매도",
+        "매수해",
+        "매도해",
+        "레버리지",
+        "수익 보장",
+    ] {
+        if lower.contains(prohibited) {
+            return Err(format!(
+                "owner action composer rejected unsafe instruction: {prohibited}"
+            ));
+        }
+    }
+    Ok(())
+}
+
+impl OwnerActionProcessingLedger {
+    pub fn new(ledger_id: impl Into<String>) -> Self {
+        Self {
+            ledger_id: ledger_id.into(),
+            processed_actions: Vec::new(),
+            paper_only: true,
+        }
+    }
+
+    pub fn load_from_local_json(path: &Path) -> Result<Self, String> {
+        validate_local_json_path(path, "owner action processing ledger path")?;
+        let text = fs::read_to_string(path).map_err(|err| err.to_string())?;
+        reject_unsafe_owner_attention_text(&text)?;
+        let ledger: Self = serde_json::from_str(&text).map_err(|err| err.to_string())?;
+        ledger.validate()?;
+        Ok(ledger)
+    }
+
+    pub fn save_to_local_json(&self, path: &Path) -> Result<(), String> {
+        validate_local_json_path(path, "owner action processing ledger path")?;
+        self.validate()?;
+        let text = serde_json::to_string_pretty(self).map_err(|err| err.to_string())?;
+        reject_unsafe_owner_attention_text(&text)?;
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).map_err(|err| err.to_string())?;
+        }
+        fs::write(path, text).map_err(|err| err.to_string())
+    }
+
+    pub fn contains_action(&self, action_id: &str) -> bool {
+        self.processed_actions.iter().any(|record| {
+            record.action_id == action_id
+                && record.processed_status == OwnerActionProcessedStatus::Applied
+        })
+    }
+
+    pub fn add_record(&mut self, record: OwnerActionProcessingRecord) {
+        self.processed_actions.push(record);
+        self.processed_actions.sort_by(|left, right| {
+            left.action_id.cmp(&right.action_id).then_with(|| {
+                format!("{:?}", left.processed_status).cmp(&format!("{:?}", right.processed_status))
+            })
+        });
+    }
+
+    pub fn processed_count(&self) -> usize {
+        self.processed_actions
+            .iter()
+            .filter(|record| record.processed_status == OwnerActionProcessedStatus::Applied)
+            .count()
+    }
+
+    fn validate(&self) -> Result<(), String> {
+        if !self.paper_only {
+            return Err("owner action processing ledger must be paper-only".to_string());
+        }
+        if self.ledger_id.trim().is_empty() {
+            return Err("owner action processing ledger requires ledger_id".to_string());
+        }
+        for record in &self.processed_actions {
+            if !record.paper_only {
+                return Err("owner action processing record must be paper-only".to_string());
+            }
+            reject_unsafe_owner_action_composer_text(&record.action_id)?;
+            reject_unsafe_owner_action_composer_text(&record.note)?;
+        }
+        Ok(())
+    }
+}
+
+fn validate_owner_action_consumption_config(
+    config: &OwnerActionConsumptionConfig,
+) -> Result<(), String> {
+    if !config.paper_only {
+        return Err("owner action consumption must be paper-only".to_string());
+    }
+    validate_local_json_path(
+        Path::new(&config.action_file_path),
+        "owner action file path",
+    )?;
+    for (path, label) in [
+        (
+            config.processed_action_ledger_path.as_ref(),
+            "owner action processing ledger path",
+        ),
+        (config.inbox_input_path.as_ref(), "owner inbox input path"),
+        (config.inbox_output_path.as_ref(), "owner inbox output path"),
+        (config.watchlist_input_path.as_ref(), "watchlist input path"),
+        (
+            config.watchlist_output_path.as_ref(),
+            "watchlist output path",
+        ),
+        (
+            config.member_state_input_path.as_ref(),
+            "member state input path",
+        ),
+        (
+            config.member_state_output_path.as_ref(),
+            "member state output path",
+        ),
+        (
+            config.owner_console_read_model_path.as_ref(),
+            "owner console read model path",
+        ),
+    ] {
+        if let Some(path) = path {
+            validate_local_json_path(Path::new(path), label)?;
+        }
+    }
+    if let Some(path) = &config.committee_state_export_root_path {
+        validate_export_root_path(path)?;
+    }
+    Ok(())
+}
+
+fn validate_local_json_path(path: &Path, label: &str) -> Result<(), String> {
+    let path_text = path
+        .to_str()
+        .ok_or_else(|| format!("{label} must be valid UTF-8"))?;
+    if !local_only(path_text) {
+        return Err(format!("{label} must be local"));
+    }
+    if path_has_parent_component(path) {
+        return Err(format!(
+            "{label} must not contain parent-directory traversal"
+        ));
+    }
+    if path.extension().and_then(|value| value.to_str()) != Some("json") {
+        return Err(format!("{label} must point to JSON"));
+    }
+    Ok(())
+}
+
+fn load_owner_action_processing_ledger_for_config(
+    config: &OwnerActionConsumptionConfig,
+) -> Result<OwnerActionProcessingLedger, String> {
+    if let Some(path) = &config.processed_action_ledger_path {
+        let path = Path::new(path);
+        if path.exists() {
+            OwnerActionProcessingLedger::load_from_local_json(path)
+        } else {
+            Ok(OwnerActionProcessingLedger::new(
+                "owner-action-processing-ledger",
+            ))
+        }
+    } else {
+        Ok(OwnerActionProcessingLedger::new(
+            "owner-action-processing-ledger",
+        ))
+    }
+}
+
+fn load_consumption_read_model(
+    config: &OwnerActionConsumptionConfig,
+) -> Result<Option<OwnerConsoleReadModel>, String> {
+    if let Some(path) = &config.owner_console_read_model_path {
+        load_owner_console_read_model_from_local_file(Path::new(path)).map(|(_, model)| Some(model))
+    } else {
+        Ok(None)
+    }
+}
+
+fn load_consumption_inbox(
+    config: &OwnerActionConsumptionConfig,
+    read_model: Option<&OwnerConsoleReadModel>,
+    previous_run: &Option<AutonomousPaperRunResult>,
+) -> Result<OwnerAttentionInbox, String> {
+    if let Some(path) = &config.inbox_input_path {
+        OwnerAttentionInbox::load_from_local_json(Path::new(path))
+    } else if let Some(read_model) = read_model {
+        Ok(owner_attention_inbox_from_read_model(read_model))
+    } else if let Some(previous_run) = previous_run {
+        Ok(OwnerAttentionInbox::from_attention_queue(
+            &previous_run.attention_queue,
+        ))
+    } else {
+        Ok(OwnerAttentionInbox::from_items(
+            "owner-action-consumption-empty-inbox",
+            Vec::new(),
+        ))
+    }
+}
+
+fn owner_attention_inbox_from_read_model(
+    read_model: &OwnerConsoleReadModel,
+) -> OwnerAttentionInbox {
+    let items = read_model
+        .attention_cards
+        .iter()
+        .map(|card| OwnerAttentionInboxItem {
+            item_id: card.item_id.clone(),
+            symbol: card.symbol.clone(),
+            market_scope: None,
+            attention_type: card.attention_type,
+            priority: card.priority,
+            status: card.status,
+            reason: card.reason.clone(),
+            related_member_ids: Vec::new(),
+            related_decision_id: None,
+            requires_owner_input: card.requires_owner_input,
+            created_at: None,
+            updated_at: None,
+            paper_only: true,
+        })
+        .collect();
+    OwnerAttentionInbox::from_items(
+        &format!("{}-action-consumption-inbox", read_model.snapshot_id),
+        items,
+    )
+}
+
+fn load_consumption_watchlist_store(
+    config: &OwnerActionConsumptionConfig,
+    previous_run: &Option<AutonomousPaperRunResult>,
+) -> Result<WatchlistCandidateStore, String> {
+    if let Some(path) = &config.watchlist_input_path {
+        WatchlistCandidateStore::load_from_local_json(Path::new(path))
+    } else if let Some(previous_run) = previous_run {
+        Ok(previous_run
+            .watchlist_recheck
+            .as_ref()
+            .map(|recheck| recheck.updated_watchlist_store.clone())
+            .or_else(|| {
+                previous_run
+                    .owner_attention_triage
+                    .as_ref()
+                    .map(|triage| triage.watchlist_store.clone())
+            })
+            .unwrap_or_else(|| WatchlistCandidateStore::new("owner-action-consumption-watchlist")))
+    } else {
+        Ok(WatchlistCandidateStore::new(
+            "owner-action-consumption-watchlist",
+        ))
+    }
+}
+
+fn load_consumption_member_state_store(
+    config: &OwnerActionConsumptionConfig,
+    previous_run: &Option<AutonomousPaperRunResult>,
+) -> Result<MemberStateStore, String> {
+    if let Some(path) = &config.member_state_input_path {
+        MemberStateStore::load_from_local_json(Path::new(path))
+    } else if let Some(previous_run) = previous_run {
+        Ok(MemberStateStore {
+            store_id: format!(
+                "{}-owner-action-consumption-member-state",
+                previous_run.run_id
+            ),
+            members: previous_run.final_member_states.clone(),
+            source_label: "owner-action-consumption".to_string(),
+            paper_only: true,
+        })
+    } else {
+        Ok(MemberStateStore {
+            store_id: "owner-action-consumption-member-state".to_string(),
+            members: Vec::new(),
+            source_label: "owner-action-consumption".to_string(),
+            paper_only: true,
+        })
+    }
+}
+
+fn run_consumption_reconsideration(
+    feedback: &[OwnerFeedback],
+    previous_run: &Option<AutonomousPaperRunResult>,
+    member_state_store: &MemberStateStore,
+) -> Result<Vec<String>, String> {
+    let Some(previous_run) = previous_run else {
+        return Ok(feedback
+            .iter()
+            .filter(|feedback| opens_reconsideration(feedback.feedback_type))
+            .map(|feedback| format!("reconsideration-deferred-{}", feedback.feedback_id))
+            .collect());
+    };
+    let Some(cycle) = previous_run.cycles.last() else {
+        return Ok(Vec::new());
+    };
+    let Some(owner_console_view) = cycle.owner_console_view.clone() else {
+        return Ok(Vec::new());
+    };
+    let result = run_owner_feedback_reconsideration_cycle(OwnerFeedbackReconsiderationInput {
+        previous_batch_result: cycle.batch_result.clone(),
+        previous_owner_console_view: owner_console_view,
+        owner_feedback: feedback.to_vec(),
+        member_state_store: member_state_store.clone(),
+        market_data: Vec::new(),
+        news: Vec::new(),
+    })?;
+    Ok(result
+        .chairman_reconsideration_decisions
+        .iter()
+        .map(|decision| decision.decision_id.clone())
+        .collect())
+}
+
+fn apply_owner_feedback_journal_to_member_state(
+    member_state_store: &mut MemberStateStore,
+    feedback: &[OwnerFeedback],
+) {
+    for item in feedback {
+        for member in &mut member_state_store.members {
+            member.memory_state.notes.push(format!(
+                "owner feedback {} routed in paper-only action consumption",
+                item.feedback_id
+            ));
+            member.last_updated_at = Some("owner-action-consumption".to_string());
+        }
+    }
+}
+
+fn write_consumption_outputs(
+    config: &OwnerActionConsumptionConfig,
+    inbox: &OwnerAttentionInbox,
+    watchlist_store: &WatchlistCandidateStore,
+    member_state_store: &MemberStateStore,
+    ledger: &OwnerActionProcessingLedger,
+    read_model: Option<&OwnerConsoleReadModel>,
+) -> Result<(), String> {
+    if let Some(path) = &config.inbox_output_path {
+        inbox.save_to_local_json(Path::new(path))?;
+    }
+    if let Some(path) = &config.watchlist_output_path {
+        watchlist_store.save_to_local_json(Path::new(path))?;
+    }
+    if let Some(path) = &config.member_state_output_path {
+        member_state_store.save_to_local_json(Path::new(path))?;
+    }
+    if let Some(path) = &config.processed_action_ledger_path {
+        ledger.save_to_local_json(Path::new(path))?;
+    }
+    if matches!(
+        config.after_apply_file_policy,
+        OwnerActionAfterApplyFilePolicy::ClearProcessedActions
+    ) {
+        save_owner_action_file_to_local_json(
+            Path::new(&config.action_file_path),
+            &OwnerActionFile {
+                schema_version: "owner-action-file.v1".to_string(),
+                source_snapshot_id: read_model.map(|model| model.snapshot_id.clone()),
+                actions: Vec::new(),
+                paper_only: true,
+                safety_notes: vec!["processed actions cleared after paper-only apply".to_string()],
+            },
+        )?;
+    }
+    Ok(())
+}
+
+fn refresh_owner_console_state_after_consumption(
+    config: &OwnerActionConsumptionConfig,
+    previous_run: Option<&AutonomousPaperRunResult>,
+    inbox: &OwnerAttentionInbox,
+    watchlist_store: &WatchlistCandidateStore,
+    member_state_store: &MemberStateStore,
+    read_model: Option<OwnerConsoleReadModel>,
+) -> Result<
+    (
+        Option<CommitteeStateSnapshot>,
+        Option<StateExportWriteResult>,
+    ),
+    String,
+> {
+    let mut snapshot = None;
+    let mut export_result = None;
+    if let Some(previous_run) = previous_run {
+        let built_snapshot = build_committee_state_snapshot(CommitteeStateExportInput {
+            autonomous_run_result: Some(previous_run.clone()),
+            watchlist_recheck_result: previous_run.watchlist_recheck.clone(),
+            attention_inbox: Some(inbox.clone()),
+            watchlist_store: Some(watchlist_store.clone()),
+            member_state_store: Some(member_state_store.clone()),
+            owner_daily_brief_store: previous_run.owner_daily_brief_store.clone(),
+            owner_summary: previous_run
+                .watchlist_recheck
+                .as_ref()
+                .map(|recheck| recheck.owner_summary.clone())
+                .or_else(|| {
+                    previous_run
+                        .cycles
+                        .last()
+                        .map(|cycle| cycle.owner_summary.clone())
+                }),
+            owner_console_view: previous_run
+                .watchlist_recheck
+                .as_ref()
+                .and_then(|recheck| recheck.owner_console_view.clone())
+                .or_else(|| {
+                    previous_run
+                        .cycles
+                        .last()
+                        .and_then(|cycle| cycle.owner_console_view.clone())
+                }),
+        })?;
+        if let Some(root) = &config.committee_state_export_root_path {
+            export_result = Some(write_committee_state_export(
+                CommitteeStateExportConfig {
+                    export_id: "owner-action-consumption-state-refresh".to_string(),
+                    export_root_path: root.clone(),
+                    write_latest_snapshot: true,
+                    write_history_snapshot: true,
+                    write_snapshot_index: true,
+                    write_owner_console_read_model: true,
+                    schema_version: default_committee_state_schema_version(),
+                    max_history_entries: Some(10),
+                    paper_only: true,
+                },
+                &built_snapshot,
+                CommitteeStateSnapshotSource::ManualExport,
+            )?);
+        }
+        if let Some(path) = &config.owner_console_read_model_path {
+            let read_model = build_owner_console_read_model(
+                default_committee_state_schema_version(),
+                &built_snapshot,
+            );
+            write_safe_json(Path::new(path), &read_model)?;
+        }
+        snapshot = Some(built_snapshot);
+    } else if let (Some(path), Some(mut model)) =
+        (&config.owner_console_read_model_path, read_model)
+    {
+        update_read_model_from_inbox(&mut model, inbox);
+        write_safe_json(Path::new(path), &model)?;
+    }
+    Ok((snapshot, export_result))
+}
+
+fn update_read_model_from_inbox(
+    read_model: &mut OwnerConsoleReadModel,
+    inbox: &OwnerAttentionInbox,
+) {
+    for card in &mut read_model.attention_cards {
+        if let Some(item) = inbox.items.iter().find(|item| item.item_id == card.item_id) {
+            card.status = item.status;
+        }
+    }
+    read_model.header.attention_open_count = read_model
+        .attention_cards
+        .iter()
+        .filter(|card| {
+            matches!(
+                card.status,
+                OwnerAttentionInboxStatus::Open
+                    | OwnerAttentionInboxStatus::Acknowledged
+                    | OwnerAttentionInboxStatus::Deferred
+                    | OwnerAttentionInboxStatus::ReconsiderationRequested
+            )
+        })
+        .count();
+}
+
+fn owner_action_processing_record(
+    action: &OwnerAttentionAction,
+    processed_status: OwnerActionProcessedStatus,
+    generated_feedback_ids: Vec<String>,
+    generated_watchlist_candidate_ids: Vec<String>,
+    generated_reconsideration_decision_ids: Vec<String>,
+    snapshot_id: Option<String>,
+    note: impl Into<String>,
+) -> OwnerActionProcessingRecord {
+    OwnerActionProcessingRecord {
+        action_id: action.action_id.clone(),
+        action_type: action.action_type,
+        item_id: Some(action.item_id.clone()),
+        processed_status,
+        generated_feedback_ids,
+        generated_watchlist_candidate_ids,
+        generated_reconsideration_decision_ids,
+        snapshot_id,
+        note: note.into(),
+        paper_only: true,
+    }
+}
+
+fn validate_committee_state_export_config(
+    config: &CommitteeStateExportConfig,
+) -> Result<(), String> {
+    if !config.paper_only {
+        return Err("must remain paper-only".to_string());
+    }
+    validate_export_root_path(&config.export_root_path)?;
+    if config.schema_version.trim().is_empty() {
+        return Err("schema_version is required".to_string());
+    }
+    if !(config.write_latest_snapshot
+        || config.write_history_snapshot
+        || config.write_snapshot_index
+        || config.write_owner_console_read_model)
+    {
+        return Err("at least one state export output must be enabled".to_string());
+    }
+    if config.max_history_entries == Some(0) {
+        return Err("max_history_entries must be greater than zero".to_string());
+    }
+    reject_unsafe_export_string(&config.export_id)?;
+    Ok(())
+}
+
+fn validate_export_root_path(path: &str) -> Result<(), String> {
+    if !local_only(path) {
+        return Err("must be a local path".to_string());
+    }
+    if path_has_parent_component(Path::new(path)) {
+        return Err("must not contain parent-directory traversal".to_string());
+    }
+    Ok(())
+}
+
+fn validate_owner_console_read_model_path(path: &Path) -> Result<(), String> {
+    let path_text = path
+        .to_str()
+        .ok_or_else(|| "owner console read model path must be valid UTF-8".to_string())?;
+    if !local_only(path_text) {
+        return Err("owner console read model path must be local".to_string());
+    }
+    if path_has_parent_component(path) {
+        return Err(
+            "owner console read model path must not contain parent-directory traversal".to_string(),
+        );
+    }
+    if path.extension().and_then(|value| value.to_str()) != Some("json") {
+        return Err("owner console read model path must point to JSON".to_string());
+    }
+    Ok(())
+}
+
+fn validate_snapshot_id(snapshot_id: &str) -> Result<(), String> {
+    if snapshot_id.trim().is_empty() {
+        return Err("snapshot_id is required".to_string());
+    }
+    let path = Path::new(snapshot_id);
+    if path.is_absolute()
+        || path_has_parent_component(path)
+        || path.components().count() != 1
+        || snapshot_id.contains(std::path::MAIN_SEPARATOR)
+        || snapshot_id.contains('/')
+        || snapshot_id.contains('\\')
+    {
+        return Err("snapshot_id must be a single safe file stem".to_string());
+    }
+    Ok(())
+}
+
+fn path_has_parent_component(path: &Path) -> bool {
+    path.components()
+        .any(|component| matches!(component, Component::ParentDir))
+}
+
+fn truncate_line(mut line: String, max_width: usize) -> String {
+    if line.chars().count() <= max_width {
+        return line;
+    }
+    let keep = max_width.saturating_sub(3).max(1);
+    line = line.chars().take(keep).collect();
+    line.push_str("...");
+    line
+}
+
+fn push_terminal_section(lines: &mut Vec<String>, title: &str, section_lines: &[String]) {
+    if section_lines.is_empty() {
+        return;
+    }
+    lines.push(String::new());
+    lines.push(title.to_string());
+    lines.extend(section_lines.iter().cloned());
+}
+
+fn write_safe_json<T: Serialize>(path: &Path, value: &T) -> Result<(), String> {
+    let text = serde_json::to_string_pretty(value).map_err(|err| err.to_string())?;
+    reject_unsafe_export_text(&text)?;
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|err| err.to_string())?;
+    }
+    let unique = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|duration| duration.as_nanos())
+        .unwrap_or(0);
+    let file_name = path
+        .file_name()
+        .and_then(|value| value.to_str())
+        .unwrap_or("state.json");
+    let tmp_path = path.with_file_name(format!(
+        ".{file_name}.{}.{}.tmp",
+        std::process::id(),
+        unique
+    ));
+    fs::write(&tmp_path, text).map_err(|err| err.to_string())?;
+    fs::rename(&tmp_path, path).map_err(|err| err.to_string())
+}
+
+fn load_committee_state_snapshot_index(path: &Path) -> Result<CommitteeStateSnapshotIndex, String> {
+    let text = fs::read_to_string(path).map_err(|err| err.to_string())?;
+    reject_unsafe_export_text(&text)?;
+    serde_json::from_str(&text).map_err(|err| err.to_string())
+}
+
+fn upsert_snapshot_index_entry(
+    index: &mut CommitteeStateSnapshotIndex,
+    snapshot: &CommitteeStateSnapshot,
+    path: String,
+    max_history_entries: Option<usize>,
+) {
+    let mut symbols = snapshot
+        .recent_events
+        .iter()
+        .map(|event| event.symbol.clone())
+        .chain(
+            snapshot
+                .recent_chairman_decisions
+                .iter()
+                .map(|decision| decision.symbol.clone()),
+        )
+        .collect::<Vec<_>>();
+    symbols.sort();
+    symbols.dedup();
+    index.add_entry(SnapshotIndexEntry {
+        snapshot_id: snapshot.snapshot_id.clone(),
+        generated_at: snapshot.generated_at.clone(),
+        path,
+        reviewed_symbols: symbols,
+        event_count: snapshot.recent_events.len(),
+        risk_veto_count: snapshot.recent_risk_vetoes.len(),
+        attention_count: snapshot.attention_items.len(),
+        paper_only: snapshot.paper_only,
+    });
+    if let Some(max_entries) = max_history_entries {
+        index.cap_history(max_entries);
+    }
+}
+
 pub fn run_owner_attention_triage(
     input: OwnerAttentionTriageInput,
 ) -> Result<OwnerAttentionTriageResult, String> {
@@ -4822,6 +7896,25 @@ impl OwnerAttentionInbox {
                 continue;
             }
             let Some(index) = item_index else {
+                if action.action_type == OwnerAttentionActionType::AddComment
+                    && action.item_id == "owner-general-comment"
+                {
+                    let item = owner_general_comment_inbox_item(action);
+                    let item_feedback =
+                        owner_feedback_from_action(action, &item, OwnerFeedbackType::Comment);
+                    feedback.push(item_feedback.clone());
+                    results.push(OwnerAttentionActionResult {
+                        action_id: action.action_id.clone(),
+                        item_id: action.item_id.clone(),
+                        previous_status,
+                        new_status: OwnerAttentionInboxStatus::ConvertedToFeedback,
+                        generated_owner_feedback: Some(item_feedback),
+                        generated_watchlist_candidate: None,
+                        safety_status: OwnerAttentionActionSafetyStatus::Passed,
+                        rejection_reason: None,
+                    });
+                    continue;
+                }
                 results.push(rejected_owner_attention_action_result(
                     action,
                     previous_status,
@@ -4910,6 +8003,7 @@ impl OwnerAttentionInbox {
             return Err("owner attention inbox path must be local".to_string());
         }
         let text = fs::read_to_string(path).map_err(|err| err.to_string())?;
+        reject_unsafe_owner_action_file_text(&text)?;
         reject_unsafe_owner_attention_text(&text)?;
         let mut inbox: Self = serde_json::from_str(&text).map_err(|err| err.to_string())?;
         validate_owner_attention_inbox(&inbox)?;
@@ -5043,7 +8137,14 @@ pub fn load_owner_attention_actions_from_local_json(
     let text = fs::read_to_string(path).map_err(|err| err.to_string())?;
     reject_unsafe_owner_attention_text(&text)?;
     let actions: Vec<OwnerAttentionAction> =
-        serde_json::from_str(&text).map_err(|err| err.to_string())?;
+        if let Ok(actions) = serde_json::from_str::<Vec<OwnerAttentionAction>>(&text) {
+            actions
+        } else {
+            let action_file: OwnerActionFile =
+                serde_json::from_str(&text).map_err(|err| err.to_string())?;
+            validate_owner_action_file(&action_file)?;
+            action_file.actions
+        };
     for action in &actions {
         validate_owner_attention_action(action)?;
     }
@@ -5116,6 +8217,47 @@ fn reject_unsafe_owner_attention_text(text: &str) -> Result<(), String> {
     } else {
         reject_unsafe_owner_attention_string(text)
     }
+}
+
+fn reject_unsafe_owner_action_file_text(text: &str) -> Result<(), String> {
+    let value: serde_json::Value = serde_json::from_str(text).map_err(|err| err.to_string())?;
+    reject_unsafe_owner_action_file_value(&value)
+}
+
+fn reject_unsafe_owner_action_file_value(value: &serde_json::Value) -> Result<(), String> {
+    match value {
+        serde_json::Value::Object(map) => {
+            for (key, value) in map {
+                let lower = key.to_ascii_lowercase();
+                for prohibited in [
+                    "order_id",
+                    "account_id",
+                    "broker",
+                    "execution",
+                    "position_size",
+                    "quantity",
+                    "leverage",
+                    "buying_power",
+                    "holdings",
+                    "live_trade",
+                ] {
+                    if lower == prohibited {
+                        return Err(format!(
+                            "owner action file rejected unsafe field: {prohibited}"
+                        ));
+                    }
+                }
+                reject_unsafe_owner_action_file_value(value)?;
+            }
+        }
+        serde_json::Value::Array(items) => {
+            for item in items {
+                reject_unsafe_owner_action_file_value(item)?;
+            }
+        }
+        _ => {}
+    }
+    Ok(())
 }
 
 fn reject_unsafe_owner_attention_value(value: &serde_json::Value) -> Result<(), String> {
@@ -5205,6 +8347,27 @@ fn owner_feedback_from_action(
             OwnerAttentionPriority::Low => OwnerFeedbackPriority::Low,
         },
         created_at: action.created_at.clone(),
+        paper_only: true,
+    }
+}
+
+fn owner_general_comment_inbox_item(action: &OwnerAttentionAction) -> OwnerAttentionInboxItem {
+    OwnerAttentionInboxItem {
+        item_id: action.item_id.clone(),
+        symbol: None,
+        market_scope: None,
+        attention_type: OwnerAttentionType::OwnerFeedbackAvailable,
+        priority: OwnerAttentionPriority::Normal,
+        status: OwnerAttentionInboxStatus::Open,
+        reason: action
+            .comment
+            .clone()
+            .unwrap_or_else(|| "general owner comment".to_string()),
+        related_member_ids: Vec::new(),
+        related_decision_id: None,
+        requires_owner_input: false,
+        created_at: action.created_at.clone(),
+        updated_at: None,
         paper_only: true,
     }
 }

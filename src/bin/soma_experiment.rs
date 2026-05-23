@@ -173,10 +173,13 @@ use soma_zero::{
     Sprint101InvestorArchetypeIngestionRunner,
 };
 use soma_zero::{
-    MinimalAiCommitteeCycleConfig, run_autonomous_paper_committee_loop_from_config_path,
+    MinimalAiCommitteeCycleConfig, OwnerActionAfterApplyFilePolicy, OwnerActionApplyMode,
+    OwnerActionComposerConfig, OwnerActionConsumptionConfig, OwnerActionDuplicatePolicy,
+    OwnerConsoleTerminalOptions, compose_owner_action_from_read_model, consume_owner_action_file,
+    parse_owner_attention_action_type, run_autonomous_paper_committee_loop_from_config_path,
     run_batch_committee_cycle_from_config_path,
     run_batch_committee_cycle_with_state_from_config_path,
-    run_minimal_committee_cycle_from_config_path,
+    run_minimal_committee_cycle_from_config_path, run_owner_console_viewer,
 };
 use soma_zero::{
     MixedFamilyIsolationV1Bundle, MixedFamilyIsolationV1Config, MixedFamilyIsolationV1Runner,
@@ -5931,6 +5934,39 @@ enum Commands {
     MinimalAiCommitteeCycle {
         #[arg(long)]
         config: String,
+    },
+    /// Rust-only read-only owner console viewer; reads local JSON and never runs AI, training, broker, order, or account paths.
+    OwnerConsoleView {
+        #[arg(long)]
+        state: String,
+        #[arg(long)]
+        compact: bool,
+        #[arg(long)]
+        max_width: Option<usize>,
+    },
+    /// Rust-only paper owner action composer; writes local OwnerAttentionAction JSON and never creates orders.
+    OwnerConsoleAction {
+        #[arg(long)]
+        state: String,
+        #[arg(long)]
+        item: Option<String>,
+        #[arg(long)]
+        action: String,
+        #[arg(long)]
+        comment: Option<String>,
+        #[arg(long)]
+        out: String,
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Rust-only paper owner action consumer; applies local action JSON to local inbox/watchlist/read-model state.
+    OwnerConsoleApplyActions {
+        #[arg(long)]
+        actions: String,
+        #[arg(long = "state-root")]
+        state_root: String,
+        #[arg(long, default_value = "Apply")]
+        mode: String,
     },
     /// Research-only proposal warning closure; proposal remains paper-only research output and not order execution.
     ProposalWarningClosure {
@@ -17795,6 +17831,109 @@ fn main() {
                 &report,
             )
         }),
+        Commands::OwnerConsoleView {
+            state,
+            compact,
+            max_width,
+        } => run_owner_console_viewer(
+            std::path::Path::new(&state),
+            OwnerConsoleTerminalOptions {
+                max_width,
+                compact,
+                ..OwnerConsoleTerminalOptions::default()
+            },
+        )
+        .map(|result| {
+            println!(
+                "owner_console_view_warning=Rust-only read-only paper-only viewer; no broker/order/account controls; no training or live inference"
+            );
+            println!("{}", result.rendered_text);
+        }),
+        Commands::OwnerConsoleAction {
+            state,
+            item,
+            action,
+            comment,
+            out,
+            dry_run,
+        } => parse_owner_attention_action_type(&action).and_then(|action_type| {
+            compose_owner_action_from_read_model(OwnerActionComposerConfig {
+                read_model_path: state,
+                output_actions_path: out,
+                target_item_id: item,
+                action_type,
+                comment,
+                dry_run,
+                paper_only: true,
+            })
+        })
+            .map(|result| {
+                println!(
+                    "owner_console_action_warning=Rust-only paper-only local action composer; no live trading, no training, no inference"
+                );
+                println!("{}", result.preview_text);
+                if let Some(path) = result.output_path {
+                    println!("wrote_output={}", path);
+                } else {
+                    println!("wrote_output=false");
+                }
+            }),
+        Commands::OwnerConsoleApplyActions {
+            actions,
+            state_root,
+            mode,
+        } => {
+            let apply_mode = match mode.as_str() {
+                "DryRun" | "dry-run" | "dry_run" => Ok(OwnerActionApplyMode::DryRun),
+                "Apply" | "apply" => Ok(OwnerActionApplyMode::Apply),
+                other => Err(format!("unsupported owner action apply mode: {other}")),
+            };
+            apply_mode
+                .and_then(|apply_mode| {
+                    let state_root = std::path::Path::new(&state_root);
+                    let read_model_path = state_root.join("owner_console_read_model.json");
+                    let ledger_path = state_root.join("owner_action_processing_ledger.json");
+                    let inbox_path = state_root.join("owner_attention_inbox.json");
+                    let watchlist_path = state_root.join("owner_watchlist_store.json");
+                    consume_owner_action_file(OwnerActionConsumptionConfig {
+                        action_file_path: actions,
+                        processed_action_ledger_path: Some(ledger_path.display().to_string()),
+                        inbox_input_path: if inbox_path.exists() {
+                            Some(inbox_path.display().to_string())
+                        } else {
+                            None
+                        },
+                        inbox_output_path: Some(inbox_path.display().to_string()),
+                        watchlist_input_path: if watchlist_path.exists() {
+                            Some(watchlist_path.display().to_string())
+                        } else {
+                            None
+                        },
+                        watchlist_output_path: Some(watchlist_path.display().to_string()),
+                        member_state_input_path: None,
+                        member_state_output_path: None,
+                        committee_state_export_root_path: None,
+                        owner_console_read_model_path: Some(read_model_path.display().to_string()),
+                        apply_mode,
+                        duplicate_policy: OwnerActionDuplicatePolicy::SkipAlreadyProcessed,
+                        after_apply_file_policy: OwnerActionAfterApplyFilePolicy::KeepActionFile,
+                        paper_only: true,
+                    })
+                })
+                .map(|result| {
+                    println!(
+                        "owner_console_apply_actions_warning=Rust-only paper-only local apply; no broker/order/account, no live trading, no training, no inference"
+                    );
+                    println!(
+                        "loaded_action_count={};applied_action_count={};rejected_action_count={};skipped_duplicate_count={};dry_run={}",
+                        result.loaded_action_count,
+                        result.applied_action_count,
+                        result.rejected_action_count,
+                        result.skipped_duplicate_count,
+                        result.dry_run
+                    );
+                })
+        }
         Commands::ProposalWarningClosure { config } => {
             run_sprint100_bundle(&config, "proposal-warning-closure").and_then(|report| {
                 print_json_report(

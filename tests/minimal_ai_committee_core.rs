@@ -4,26 +4,35 @@ use soma_zero::league::minimal_ai_committee_core::{
     AICommitteeMember, AICommitteeMemberStatus, AIRuntimeMode, AiMemberBrain, AiMemberCoreRegistry,
     ArchetypeRiskBias, ArchetypeStyleCardRegistry, ArchetypeStyleTag, AutonomousPaperCycleMode,
     BatchCommitteeCycleInput, BatchCommitteeCycleWithStateInput, ChairmanFinalAction,
-    CoreAwareMemberBrainAdapter, CoreRuntimeStatus, DataRouterInput, DeterministicMockBrain,
-    EvidencePreference, IndependentMemberRole, InvestmentEventQueue, InvestorArchetypeStyleCard,
-    Mamba3GatedDeltaNetCoreSpec, MarketScope, MemberActivationPolicy, MemberCoreFamily,
-    MemberInputPacket, MemberLearningSignal, MemberScoreUpdateReason, MemberSelectionSkipReason,
-    MemberStance, MemberStateStore, MemberStyleStatus, MemoryCoreKind,
-    MinimalAiCommitteeCycleConfig, NextActionType, OfflineMemberBrainAdapter,
-    OfflineMemberOpinionFixture, OfflineMemberOutputBatch, OwnerAttentionAction,
+    CommitteeStateExportConfig, CommitteeStateExportInput, CommitteeStateSnapshotSource,
+    CoreAwareMemberBrainAdapter, CoreRuntimeStatus, DailyBriefStorageUpdateInput, DataRouterInput,
+    DeterministicMockBrain, EvidencePreference, IndependentMemberRole, InvestmentEventQueue,
+    InvestorArchetypeStyleCard, Mamba3GatedDeltaNetCoreSpec, MarketScope, MemberActivationPolicy,
+    MemberCoreFamily, MemberInputPacket, MemberLearningSignal, MemberScoreUpdateReason,
+    MemberSelectionSkipReason, MemberStance, MemberStateStore, MemberStyleStatus, MemoryCoreKind,
+    MinimalAiCommitteeCycleConfig, NextActionType, NextOwnerActionType, OfflineMemberBrainAdapter,
+    OfflineMemberOpinionFixture, OfflineMemberOutputBatch, OwnerActionAfterApplyFilePolicy,
+    OwnerActionApplyMode, OwnerActionComposerConfig, OwnerActionConsumptionConfig,
+    OwnerActionDuplicatePolicy, OwnerActionFile, OwnerActionProcessedStatus, OwnerAttentionAction,
     OwnerAttentionActionSafetyStatus, OwnerAttentionActionType, OwnerAttentionInbox,
     OwnerAttentionInboxStatus, OwnerAttentionPriority, OwnerAttentionQueue,
-    OwnerAttentionTriageInput, OwnerAttentionType, OwnerConfirmationPolicy, OwnerFeedbackOutcome,
-    OwnerFeedbackType, PreferredMarketBias, PreferredTimeHorizon, RealArchetypeIntakePolicy,
-    RiskGovernorStatus, SequenceCoreKind, SourceConfidence, StyleCardStatus, StyleMappingMode,
-    WatchlistCandidate, WatchlistCandidateStatus, WatchlistCandidateStore, WatchlistRecheckConfig,
-    WatchlistRecheckSkipReason, create_three_member_pilot_roster,
-    load_owner_attention_actions_from_local_json, load_owner_feedback_from_local_json,
-    map_style_cards_to_three_member_pilot, market_committee_layouts, route_data_to_ai_members,
+    OwnerAttentionTriageInput, OwnerAttentionType, OwnerConfirmationPolicy,
+    OwnerConsoleTerminalOptions, OwnerDailyBriefStore, OwnerFeedbackOutcome, OwnerFeedbackType,
+    PreferredMarketBias, PreferredTimeHorizon, RealArchetypeIntakePolicy, RiskGovernorStatus,
+    SequenceCoreKind, SnapshotFileNamingPolicy, SourceConfidence, StyleCardStatus,
+    StyleMappingMode, WatchlistCandidate, WatchlistCandidateStatus, WatchlistCandidateStore,
+    WatchlistRecheckConfig, WatchlistRecheckSkipReason, build_committee_state_snapshot,
+    build_owner_console_read_model, compose_owner_action_from_read_model,
+    consume_owner_action_file, consume_owner_action_file_with_previous_run,
+    create_three_member_pilot_roster, load_owner_attention_actions_from_local_json,
+    load_owner_console_read_model_from_local_file, load_owner_feedback_from_local_json,
+    mac_mini_local_policy, map_style_cards_to_three_member_pilot, market_committee_layouts,
+    render_owner_console_terminal_view, route_data_to_ai_members,
     run_autonomous_paper_committee_loop_from_config_path,
     run_batch_committee_cycle_from_config_path, run_batch_committee_cycle_with_state,
-    run_batch_committee_cycle_with_state_from_config_path, run_minimal_committee_cycle,
-    run_owner_attention_triage, run_watchlist_recheck_cycle,
+    run_batch_committee_cycle_with_state_from_config_path, run_daily_brief_storage_update,
+    run_minimal_committee_cycle, run_owner_attention_triage, run_owner_console_viewer,
+    run_watchlist_recheck_cycle, save_committee_state_snapshot, write_committee_state_export,
 };
 
 fn single_cycle_config() -> MinimalAiCommitteeCycleConfig {
@@ -63,6 +72,17 @@ fn single_cycle_config() -> MinimalAiCommitteeCycleConfig {
         include_risk_blocked: false,
         include_needs_evidence: true,
         emit_owner_daily_brief: false,
+        owner_daily_brief_store_input_path: None,
+        owner_daily_brief_store_output_path: None,
+        committee_state_snapshot_output_path: None,
+        emit_committee_state_snapshot: false,
+        committee_state_export_root_path: None,
+        write_latest_snapshot: false,
+        write_history_snapshot: false,
+        write_snapshot_index: false,
+        write_owner_console_read_model: false,
+        committee_state_schema_version: None,
+        max_snapshot_history_entries: None,
         inline_offline_member_opinions: Vec::new(),
         inline_input: None,
         pilot_roster: Some("three_member".to_string()),
@@ -448,6 +468,17 @@ fn offline_fixture_path_is_local_only() {
         include_risk_blocked: false,
         include_needs_evidence: true,
         emit_owner_daily_brief: false,
+        owner_daily_brief_store_input_path: None,
+        owner_daily_brief_store_output_path: None,
+        committee_state_snapshot_output_path: None,
+        emit_committee_state_snapshot: false,
+        committee_state_export_root_path: None,
+        write_latest_snapshot: false,
+        write_history_snapshot: false,
+        write_snapshot_index: false,
+        write_owner_console_read_model: false,
+        committee_state_schema_version: None,
+        max_snapshot_history_entries: None,
         inline_offline_member_opinions: Vec::new(),
         inline_input: None,
         pilot_roster: None,
@@ -1660,6 +1691,1277 @@ fn owner_attention_inbox_triages_actions_and_watchlist_safely() {
 }
 
 #[test]
+fn owner_daily_brief_store_appends_loads_and_rejects_remote_paths() {
+    let run = run_autonomous_paper_committee_loop_from_config_path(std::path::Path::new(
+        "examples/soma_minimal_ai_committee_core.toml",
+    ))
+    .expect("autonomous run with daily brief");
+    let brief = run
+        .watchlist_recheck
+        .as_ref()
+        .and_then(|recheck| recheck.owner_daily_brief.clone())
+        .expect("owner daily brief");
+    let mut store = OwnerDailyBriefStore::new("owner-daily-brief-store-test");
+    store.append_brief(brief.clone());
+    assert_eq!(
+        store.latest().map(|item| &item.brief_id),
+        Some(&brief.brief_id)
+    );
+    let mut earlier_sorting_brief = brief.clone();
+    earlier_sorting_brief.brief_id = "brief-0000-appended-last".to_string();
+    store.append_brief(earlier_sorting_brief.clone());
+    assert_eq!(
+        store.latest().map(|item| &item.brief_id),
+        Some(&earlier_sorting_brief.brief_id)
+    );
+    assert!(
+        !store
+            .briefs_by_symbol(&brief.reviewed_symbols[0])
+            .is_empty()
+    );
+    assert_eq!(
+        store.risk_veto_count(),
+        brief.risk_vetoes.len() + earlier_sorting_brief.risk_vetoes.len()
+    );
+    assert_eq!(
+        store.need_more_evidence_count(),
+        brief.need_more_evidence_items.len() + earlier_sorting_brief.need_more_evidence_items.len()
+    );
+
+    let path = std::path::Path::new("target/sprint141_owner_daily_brief_store.json");
+    let _ = std::fs::remove_file(path);
+    store.save_to_local_json(path).expect("save brief store");
+    let loaded = OwnerDailyBriefStore::load_from_local_json(path).expect("load brief store");
+    assert_eq!(loaded, store);
+    let _ = std::fs::remove_file(path);
+
+    let err = OwnerDailyBriefStore::load_from_local_json(std::path::Path::new(
+        "https://example.invalid/brief-store.json",
+    ))
+    .expect_err("remote brief store path must fail");
+    assert!(err.contains("must be local"));
+
+    let mut unsafe_store = OwnerDailyBriefStore::new("unsafe-owner-daily-brief-store-test");
+    let mut unsafe_brief = brief;
+    unsafe_brief
+        .next_owner_attention
+        .push("execute order through broker account".to_string());
+    unsafe_store.append_brief(unsafe_brief);
+    let err = unsafe_store
+        .save_to_local_json(path)
+        .expect_err("unsafe brief store must fail");
+    assert!(err.contains("unsafe instruction"));
+}
+
+#[test]
+fn committee_state_snapshot_exports_ui_shape_safely_and_deterministically() {
+    let run = run_autonomous_paper_committee_loop_from_config_path(std::path::Path::new(
+        "examples/soma_minimal_ai_committee_core.toml",
+    ))
+    .expect("autonomous run with snapshot");
+    let triage = run
+        .owner_attention_triage
+        .as_ref()
+        .expect("owner attention triage");
+    let recheck = run.watchlist_recheck.as_ref().expect("watchlist recheck");
+    let brief = recheck
+        .owner_daily_brief
+        .clone()
+        .expect("owner daily brief");
+    let mut brief_store = OwnerDailyBriefStore::new("snapshot-brief-store");
+    brief_store.append_brief(brief);
+    let input = CommitteeStateExportInput {
+        autonomous_run_result: Some(run.clone()),
+        watchlist_recheck_result: run.watchlist_recheck.clone(),
+        attention_inbox: Some(triage.inbox.clone()),
+        watchlist_store: Some(recheck.updated_watchlist_store.clone()),
+        member_state_store: Some(MemberStateStore {
+            store_id: "snapshot-member-state-store".to_string(),
+            members: run.final_member_states.clone(),
+            source_label: "unit-test".to_string(),
+            paper_only: true,
+        }),
+        owner_daily_brief_store: Some(brief_store),
+        owner_summary: Some(recheck.owner_summary.clone()),
+        owner_console_view: recheck.owner_console_view.clone(),
+    };
+    let first = build_committee_state_snapshot(input.clone()).expect("first snapshot");
+    let second = build_committee_state_snapshot(input).expect("second snapshot");
+    assert_eq!(
+        serde_json::to_string_pretty(&first).expect("first json"),
+        serde_json::to_string_pretty(&second).expect("second json")
+    );
+    assert!(first.paper_only);
+    assert!(first.safety_summary.no_broker_order_account);
+    assert!(first.safety_summary.no_model_training);
+    assert!(first.safety_summary.no_live_inference);
+    assert_eq!(first.members.len(), 3);
+    assert!(!first.watchlist_candidates.is_empty());
+    assert!(!first.attention_items.is_empty());
+    assert!(!first.recent_chairman_decisions.is_empty());
+    assert!(!first.recent_risk_vetoes.is_empty());
+    assert!(!first.next_owner_actions.is_empty());
+    assert!(
+        first
+            .next_owner_actions
+            .iter()
+            .any(|row| row.action_type == NextOwnerActionType::ReviewRiskVeto)
+    );
+    assert!(first.latest_owner_daily_brief.is_some());
+    let json = serde_json::to_string(&first).expect("snapshot json");
+    for forbidden_field in ["\"broker\"", "\"order\"", "\"account\""] {
+        assert!(!json.contains(forbidden_field));
+    }
+
+    let path = std::path::Path::new("target/sprint141_committee_state_snapshot.json");
+    let _ = std::fs::remove_file(path);
+    save_committee_state_snapshot(path, &first).expect("save snapshot");
+    assert!(path.exists());
+    let _ = std::fs::remove_file(path);
+    let err = save_committee_state_snapshot(
+        std::path::Path::new("https://example.invalid/snapshot.json"),
+        &first,
+    )
+    .expect_err("remote snapshot path must fail");
+    assert!(err.contains("must be local"));
+}
+
+#[test]
+fn committee_state_export_writes_state_contract_and_owner_read_model() {
+    let run = run_autonomous_paper_committee_loop_from_config_path(std::path::Path::new(
+        "examples/soma_minimal_ai_committee_core.toml",
+    ))
+    .expect("autonomous run with snapshot");
+    let snapshot = run
+        .committee_state_snapshot
+        .clone()
+        .expect("committee state snapshot");
+    let root = std::path::Path::new("target/sprint142_state_export_contract");
+    let _ = std::fs::remove_dir_all(root);
+    let result = write_committee_state_export(
+        CommitteeStateExportConfig {
+            export_id: "sprint142-state-export".to_string(),
+            export_root_path: root.display().to_string(),
+            write_latest_snapshot: true,
+            write_history_snapshot: true,
+            write_snapshot_index: true,
+            write_owner_console_read_model: true,
+            schema_version: "committee-state.v1".to_string(),
+            max_history_entries: Some(1),
+            paper_only: true,
+        },
+        &snapshot,
+        CommitteeStateSnapshotSource::ManualExport,
+    )
+    .expect("state export writes");
+    assert!(result.wrote_latest_snapshot);
+    assert!(result.wrote_history_snapshot);
+    assert!(result.wrote_snapshot_index);
+    assert!(result.wrote_owner_console_read_model);
+    assert!(root.join("latest.json").exists());
+    assert!(root.join("snapshot_index.json").exists());
+    assert!(root.join("owner_console_read_model.json").exists());
+    assert!(
+        root.join("history")
+            .join(format!("{}.json", snapshot.snapshot_id))
+            .exists()
+    );
+    let policy = SnapshotFileNamingPolicy::state_folder_contract();
+    assert_eq!(policy.latest_path(root), root.join("latest.json"));
+    assert_eq!(
+        policy.snapshot_index_path(root),
+        root.join("snapshot_index.json")
+    );
+    assert_eq!(
+        policy
+            .history_path(root, &snapshot.snapshot_id)
+            .expect("history path"),
+        root.join("history")
+            .join(format!("{}.json", snapshot.snapshot_id))
+    );
+    assert_eq!(
+        policy.owner_console_read_model_path(root),
+        root.join("owner_console_read_model.json")
+    );
+
+    let deterministic_latest = std::fs::read_to_string(root.join("latest.json")).expect("latest");
+    write_committee_state_export(
+        CommitteeStateExportConfig {
+            export_id: "sprint142-state-export-repeat".to_string(),
+            export_root_path: root.display().to_string(),
+            write_latest_snapshot: true,
+            write_history_snapshot: true,
+            write_snapshot_index: true,
+            write_owner_console_read_model: true,
+            schema_version: "committee-state.v1".to_string(),
+            max_history_entries: Some(1),
+            paper_only: true,
+        },
+        &snapshot,
+        CommitteeStateSnapshotSource::ManualExport,
+    )
+    .expect("repeated state export writes");
+    assert_eq!(
+        deterministic_latest,
+        std::fs::read_to_string(root.join("latest.json")).expect("repeated latest")
+    );
+
+    let latest: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(root.join("latest.json")).expect("latest json"),
+    )
+    .expect("latest envelope");
+    assert_eq!(latest["schema_version"], "committee-state.v1");
+    assert_eq!(latest["snapshot_id"], snapshot.snapshot_id);
+    assert_eq!(latest["source"], "manual_export");
+    assert_eq!(latest["safety"]["paper_only"], true);
+    assert_eq!(latest["safety"]["no_live_trading"], true);
+
+    let read_model = build_owner_console_read_model("committee-state.v1", &snapshot);
+    assert_eq!(read_model.snapshot_id, snapshot.snapshot_id);
+    assert!(!read_model.member_cards.is_empty());
+    assert!(!read_model.watchlist_cards.is_empty());
+    assert!(!read_model.attention_cards.is_empty());
+    assert!(!read_model.decision_cards.is_empty());
+    assert!(!read_model.next_action_cards.is_empty());
+    assert!(
+        read_model
+            .safety_badges
+            .iter()
+            .any(|badge| badge == "read-only")
+    );
+    let read_model_json: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(root.join("owner_console_read_model.json"))
+            .expect("read model json"),
+    )
+    .expect("owner console read model");
+    assert_eq!(read_model_json["schema_version"], "committee-state.v1");
+    assert!(
+        read_model_json["header"]["reviewed_symbol_count"]
+            .as_u64()
+            .expect("reviewed symbol count")
+            > 0
+    );
+
+    let mut next_snapshot = snapshot.clone();
+    next_snapshot.snapshot_id = format!("{}-next", snapshot.snapshot_id);
+    next_snapshot.generated_at = Some("zzzz-next-snapshot".to_string());
+    write_committee_state_export(
+        CommitteeStateExportConfig {
+            export_id: "sprint142-state-export-second".to_string(),
+            export_root_path: root.display().to_string(),
+            write_latest_snapshot: false,
+            write_history_snapshot: true,
+            write_snapshot_index: true,
+            write_owner_console_read_model: false,
+            schema_version: "committee-state.v1".to_string(),
+            max_history_entries: Some(1),
+            paper_only: true,
+        },
+        &next_snapshot,
+        CommitteeStateSnapshotSource::ManualExport,
+    )
+    .expect("second state export writes");
+    let index: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(root.join("snapshot_index.json")).expect("index json"),
+    )
+    .expect("snapshot index");
+    assert_eq!(index["latest_snapshot_id"], next_snapshot.snapshot_id);
+    assert_eq!(index["entries"].as_array().expect("entries").len(), 1);
+    assert_eq!(
+        index["entries"][0]["path"],
+        format!("history/{}.json", next_snapshot.snapshot_id)
+    );
+    let mut older_latest_snapshot = snapshot.clone();
+    older_latest_snapshot.snapshot_id = format!("{}-older-latest", snapshot.snapshot_id);
+    older_latest_snapshot.generated_at = Some("0000-older-latest".to_string());
+    write_committee_state_export(
+        CommitteeStateExportConfig {
+            export_id: "sprint142-state-export-older-latest".to_string(),
+            export_root_path: root.display().to_string(),
+            write_latest_snapshot: false,
+            write_history_snapshot: true,
+            write_snapshot_index: true,
+            write_owner_console_read_model: false,
+            schema_version: "committee-state.v1".to_string(),
+            max_history_entries: Some(1),
+            paper_only: true,
+        },
+        &older_latest_snapshot,
+        CommitteeStateSnapshotSource::ManualExport,
+    )
+    .expect("older latest state export writes");
+    let capped_index: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(root.join("snapshot_index.json")).expect("capped index json"),
+    )
+    .expect("capped snapshot index");
+    assert_eq!(
+        capped_index["latest_snapshot_id"],
+        older_latest_snapshot.snapshot_id
+    );
+    assert_eq!(
+        capped_index["entries"]
+            .as_array()
+            .expect("capped entries")
+            .len(),
+        1
+    );
+    assert_eq!(
+        capped_index["entries"][0]["snapshot_id"],
+        older_latest_snapshot.snapshot_id
+    );
+    let export_text =
+        std::fs::read_to_string(root.join("latest.json")).expect("safe latest export text");
+    for forbidden_field in ["\"broker\"", "\"order\"", "\"account\""] {
+        assert!(!export_text.contains(forbidden_field));
+    }
+
+    let remote_err = write_committee_state_export(
+        CommitteeStateExportConfig {
+            export_id: "sprint142-state-export-remote".to_string(),
+            export_root_path: "https://example.invalid/state".to_string(),
+            write_latest_snapshot: true,
+            write_history_snapshot: false,
+            write_snapshot_index: false,
+            write_owner_console_read_model: false,
+            schema_version: "committee-state.v1".to_string(),
+            max_history_entries: None,
+            paper_only: true,
+        },
+        &snapshot,
+        CommitteeStateSnapshotSource::ManualExport,
+    )
+    .expect_err("remote export path must fail");
+    assert!(remote_err.contains("local path"));
+    let traversal_err = write_committee_state_export(
+        CommitteeStateExportConfig {
+            export_id: "sprint142-state-export-traversal".to_string(),
+            export_root_path: "target/../sprint142_bad".to_string(),
+            write_latest_snapshot: true,
+            write_history_snapshot: false,
+            write_snapshot_index: false,
+            write_owner_console_read_model: false,
+            schema_version: "committee-state.v1".to_string(),
+            max_history_entries: None,
+            paper_only: true,
+        },
+        &snapshot,
+        CommitteeStateSnapshotSource::ManualExport,
+    )
+    .expect_err("parent traversal must fail");
+    assert!(traversal_err.contains("parent-directory traversal"));
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn owner_console_viewer_loads_and_renders_read_only_terminal_view() {
+    let run = run_autonomous_paper_committee_loop_from_config_path(std::path::Path::new(
+        "examples/soma_minimal_ai_committee_core.toml",
+    ))
+    .expect("autonomous run with owner read model");
+    let snapshot = run
+        .committee_state_snapshot
+        .clone()
+        .expect("committee state snapshot");
+    let root = std::path::Path::new("target/sprint143_owner_console_viewer_state");
+    let _ = std::fs::remove_dir_all(root);
+    write_committee_state_export(
+        CommitteeStateExportConfig {
+            export_id: "sprint143-owner-console-viewer".to_string(),
+            export_root_path: root.display().to_string(),
+            write_latest_snapshot: false,
+            write_history_snapshot: false,
+            write_snapshot_index: false,
+            write_owner_console_read_model: true,
+            schema_version: "committee-state.v1".to_string(),
+            max_history_entries: None,
+            paper_only: true,
+        },
+        &snapshot,
+        CommitteeStateSnapshotSource::ManualExport,
+    )
+    .expect("write read model");
+    let read_model_path = root.join("owner_console_read_model.json");
+    let before = std::fs::read_to_string(&read_model_path).expect("read model before viewer");
+    let (source, read_model) = load_owner_console_read_model_from_local_file(&read_model_path)
+        .expect("load local read model");
+    assert_eq!(source.schema_version, "committee-state.v1");
+    assert_eq!(
+        source.snapshot_id.as_deref(),
+        Some(snapshot.snapshot_id.as_str())
+    );
+
+    let options = OwnerConsoleTerminalOptions {
+        max_width: Some(160),
+        ..OwnerConsoleTerminalOptions::default()
+    };
+    let terminal_view = render_owner_console_terminal_view(&read_model, &options);
+    assert!(terminal_view.title.contains("Soma Owner Console"));
+    assert!(
+        terminal_view
+            .header_lines
+            .iter()
+            .any(|line| line.contains("reviewed_symbols="))
+    );
+    assert_eq!(terminal_view.member_sections.len(), 3);
+    assert!(!terminal_view.watchlist_sections.is_empty());
+    assert!(!terminal_view.attention_sections.is_empty());
+    assert!(!terminal_view.decision_sections.is_empty());
+    assert!(!terminal_view.next_action_sections.is_empty());
+    assert!(
+        terminal_view
+            .safety_lines
+            .iter()
+            .any(|line| line.contains("paper-only"))
+    );
+
+    let first = run_owner_console_viewer(&read_model_path, options.clone()).expect("viewer result");
+    let second = run_owner_console_viewer(&read_model_path, options).expect("repeat viewer result");
+    assert_eq!(first.rendered_text, second.rendered_text);
+    assert!(first.rendered_text.contains("Header"));
+    assert!(first.rendered_text.contains("Members"));
+    assert!(first.rendered_text.contains("Watchlist"));
+    assert!(first.rendered_text.contains("Attention"));
+    assert!(first.rendered_text.contains("Decisions"));
+    assert!(first.rendered_text.contains("Next Actions"));
+    assert!(first.rendered_text.contains("Safety"));
+    assert!(first.safety_status.contains("read-only"));
+    let rendered_json = serde_json::to_string(&first.terminal_view).expect("terminal view json");
+    for forbidden_field in ["\"broker\"", "\"order\"", "\"account\""] {
+        assert!(!rendered_json.contains(forbidden_field));
+    }
+    let after = std::fs::read_to_string(&read_model_path).expect("read model after viewer");
+    assert_eq!(before, after);
+
+    let remote_err = load_owner_console_read_model_from_local_file(std::path::Path::new(
+        "https://example.invalid/owner_console_read_model.json",
+    ))
+    .expect_err("remote read model path must fail");
+    assert!(remote_err.contains("local"));
+    let traversal_err = load_owner_console_read_model_from_local_file(std::path::Path::new(
+        "target/../owner_console_read_model.json",
+    ))
+    .expect_err("path traversal must fail");
+    assert!(traversal_err.contains("parent-directory traversal"));
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn owner_action_composer_writes_safe_deterministic_action_file() {
+    let run = run_autonomous_paper_committee_loop_from_config_path(std::path::Path::new(
+        "examples/soma_minimal_ai_committee_core.toml",
+    ))
+    .expect("autonomous run with owner read model");
+    let snapshot = run
+        .committee_state_snapshot
+        .clone()
+        .expect("committee state snapshot");
+    let root = std::path::Path::new("target/sprint144_owner_action_composer");
+    let _ = std::fs::remove_dir_all(root);
+    write_committee_state_export(
+        CommitteeStateExportConfig {
+            export_id: "sprint144-owner-action-composer".to_string(),
+            export_root_path: root.display().to_string(),
+            write_latest_snapshot: false,
+            write_history_snapshot: false,
+            write_snapshot_index: false,
+            write_owner_console_read_model: true,
+            schema_version: "committee-state.v1".to_string(),
+            max_history_entries: None,
+            paper_only: true,
+        },
+        &snapshot,
+        CommitteeStateSnapshotSource::ManualExport,
+    )
+    .expect("write read model");
+    let read_model_path = root.join("owner_console_read_model.json");
+    let output_path = root.join("owner_attention_actions.json");
+    let (_source, read_model) =
+        load_owner_console_read_model_from_local_file(&read_model_path).expect("load read model");
+    let target_item_id = read_model
+        .attention_cards
+        .first()
+        .map(|card| card.item_id.clone())
+        .expect("attention card target");
+    let before = std::fs::read_to_string(&read_model_path).expect("state before compose");
+    let dry_run = compose_owner_action_from_read_model(OwnerActionComposerConfig {
+        read_model_path: read_model_path.display().to_string(),
+        output_actions_path: output_path.display().to_string(),
+        target_item_id: Some(target_item_id.clone()),
+        action_type: OwnerAttentionActionType::RequestMoreEvidence,
+        comment: Some("근거가 부족하니 다시 검토".to_string()),
+        dry_run: true,
+        paper_only: true,
+    })
+    .expect("dry-run compose");
+    assert!(dry_run.target_item_found);
+    assert!(!dry_run.wrote_output);
+    assert!(!output_path.exists());
+    assert!(dry_run.preview_text.contains("RequestMoreEvidence"));
+
+    let write_result = compose_owner_action_from_read_model(OwnerActionComposerConfig {
+        read_model_path: read_model_path.display().to_string(),
+        output_actions_path: output_path.display().to_string(),
+        target_item_id: Some(target_item_id.clone()),
+        action_type: OwnerAttentionActionType::RequestMoreEvidence,
+        comment: Some("근거가 부족하니 다시 검토".to_string()),
+        dry_run: false,
+        paper_only: true,
+    })
+    .expect("write compose");
+    assert!(write_result.wrote_output);
+    assert!(output_path.exists());
+    let first_text = std::fs::read_to_string(&output_path).expect("action file");
+    let action_file: OwnerActionFile = serde_json::from_str(&first_text).expect("action file json");
+    assert!(action_file.paper_only);
+    assert_eq!(action_file.actions.len(), 1);
+    assert_eq!(action_file.actions[0].item_id, target_item_id);
+    assert_eq!(
+        action_file.actions[0].action_type,
+        OwnerAttentionActionType::RequestMoreEvidence
+    );
+    let loaded_actions =
+        load_owner_attention_actions_from_local_json(&output_path).expect("load action file");
+    assert_eq!(loaded_actions, action_file.actions);
+    for forbidden_field in ["\"broker\"", "\"order\"", "\"account\""] {
+        assert!(!first_text.contains(forbidden_field));
+    }
+
+    compose_owner_action_from_read_model(OwnerActionComposerConfig {
+        read_model_path: read_model_path.display().to_string(),
+        output_actions_path: output_path.display().to_string(),
+        target_item_id: Some(target_item_id.clone()),
+        action_type: OwnerAttentionActionType::RequestMoreEvidence,
+        comment: Some("근거가 부족하니 다시 검토".to_string()),
+        dry_run: false,
+        paper_only: true,
+    })
+    .expect("repeat compose");
+    assert_eq!(
+        first_text,
+        std::fs::read_to_string(&output_path).expect("repeat action file")
+    );
+    assert_eq!(
+        before,
+        std::fs::read_to_string(&read_model_path).expect("state after compose")
+    );
+
+    let general_comment_path = root.join("owner_general_comment_actions.json");
+    let general_comment = compose_owner_action_from_read_model(OwnerActionComposerConfig {
+        read_model_path: read_model_path.display().to_string(),
+        output_actions_path: general_comment_path.display().to_string(),
+        target_item_id: None,
+        action_type: OwnerAttentionActionType::AddComment,
+        comment: Some("확인함".to_string()),
+        dry_run: false,
+        paper_only: true,
+    })
+    .expect("targetless add-comment compose");
+    assert!(!general_comment.target_item_found);
+    assert!(general_comment.wrote_output);
+    let general_actions = load_owner_attention_actions_from_local_json(&general_comment_path)
+        .expect("load targetless add-comment action");
+    assert_eq!(general_actions.len(), 1);
+    assert_eq!(general_actions[0].item_id, "owner-general-comment");
+    assert_eq!(
+        general_actions[0].action_type,
+        OwnerAttentionActionType::AddComment
+    );
+
+    let unknown_err = compose_owner_action_from_read_model(OwnerActionComposerConfig {
+        read_model_path: read_model_path.display().to_string(),
+        output_actions_path: output_path.display().to_string(),
+        target_item_id: Some("missing-attention-item".to_string()),
+        action_type: OwnerAttentionActionType::RequestMoreEvidence,
+        comment: Some("근거가 부족하니 다시 검토".to_string()),
+        dry_run: true,
+        paper_only: true,
+    })
+    .expect_err("unknown target rejected");
+    assert!(unknown_err.contains("not found"));
+    let remote_state_err = compose_owner_action_from_read_model(OwnerActionComposerConfig {
+        read_model_path: "https://example.invalid/owner_console_read_model.json".to_string(),
+        output_actions_path: output_path.display().to_string(),
+        target_item_id: Some(target_item_id.clone()),
+        action_type: OwnerAttentionActionType::RequestMoreEvidence,
+        comment: Some("근거가 부족하니 다시 검토".to_string()),
+        dry_run: true,
+        paper_only: true,
+    })
+    .expect_err("remote state rejected");
+    assert!(remote_state_err.contains("local"));
+    let remote_output_err = compose_owner_action_from_read_model(OwnerActionComposerConfig {
+        read_model_path: read_model_path.display().to_string(),
+        output_actions_path: "https://example.invalid/actions.json".to_string(),
+        target_item_id: Some(target_item_id.clone()),
+        action_type: OwnerAttentionActionType::RequestMoreEvidence,
+        comment: Some("근거가 부족하니 다시 검토".to_string()),
+        dry_run: true,
+        paper_only: true,
+    })
+    .expect_err("remote output rejected");
+    assert!(remote_output_err.contains("local"));
+    let traversal_err = compose_owner_action_from_read_model(OwnerActionComposerConfig {
+        read_model_path: read_model_path.display().to_string(),
+        output_actions_path: "target/../owner_attention_actions.json".to_string(),
+        target_item_id: Some(target_item_id),
+        action_type: OwnerAttentionActionType::RequestMoreEvidence,
+        comment: Some("근거가 부족하니 다시 검토".to_string()),
+        dry_run: true,
+        paper_only: true,
+    })
+    .expect_err("path traversal rejected");
+    assert!(traversal_err.contains("parent-directory traversal"));
+    let unsafe_order_err = compose_owner_action_from_read_model(OwnerActionComposerConfig {
+        read_model_path: read_model_path.display().to_string(),
+        output_actions_path: output_path.display().to_string(),
+        target_item_id: read_model
+            .attention_cards
+            .first()
+            .map(|card| card.item_id.clone()),
+        action_type: OwnerAttentionActionType::RequestMoreEvidence,
+        comment: Some("계좌에서 주문 넣어".to_string()),
+        dry_run: true,
+        paper_only: true,
+    })
+    .expect_err("unsafe order text rejected");
+    assert!(unsafe_order_err.contains("unsafe instruction"));
+    let unsafe_leverage_err = compose_owner_action_from_read_model(OwnerActionComposerConfig {
+        read_model_path: read_model_path.display().to_string(),
+        output_actions_path: output_path.display().to_string(),
+        target_item_id: read_model
+            .attention_cards
+            .first()
+            .map(|card| card.item_id.clone()),
+        action_type: OwnerAttentionActionType::RequestMoreEvidence,
+        comment: Some("레버리지 최대로".to_string()),
+        dry_run: true,
+        paper_only: true,
+    })
+    .expect_err("unsafe leverage text rejected");
+    assert!(unsafe_leverage_err.contains("unsafe instruction"));
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn owner_action_composer_outputs_feed_existing_triage_actions() {
+    let run = run_autonomous_paper_committee_loop_from_config_path(std::path::Path::new(
+        "examples/soma_minimal_ai_committee_core.toml",
+    ))
+    .expect("autonomous run with owner attention");
+    let snapshot = run
+        .committee_state_snapshot
+        .clone()
+        .expect("committee state snapshot");
+    let root = std::path::Path::new("target/sprint144_owner_action_triage_bridge");
+    let _ = std::fs::remove_dir_all(root);
+    write_committee_state_export(
+        CommitteeStateExportConfig {
+            export_id: "sprint144-owner-action-triage".to_string(),
+            export_root_path: root.display().to_string(),
+            write_latest_snapshot: false,
+            write_history_snapshot: false,
+            write_snapshot_index: false,
+            write_owner_console_read_model: true,
+            schema_version: "committee-state.v1".to_string(),
+            max_history_entries: None,
+            paper_only: true,
+        },
+        &snapshot,
+        CommitteeStateSnapshotSource::ManualExport,
+    )
+    .expect("write read model");
+    let read_model_path = root.join("owner_console_read_model.json");
+    let (_source, read_model) =
+        load_owner_console_read_model_from_local_file(&read_model_path).expect("load read model");
+    let attention_ids = read_model
+        .attention_cards
+        .iter()
+        .map(|card| card.item_id.clone())
+        .collect::<Vec<_>>();
+    assert!(attention_ids.len() >= 4);
+    let watch_target_id = run
+        .attention_queue
+        .items
+        .iter()
+        .find(|item| {
+            item.symbol.is_some()
+                && item.market_scope.is_some()
+                && attention_ids.iter().any(|id| id == &item.item_id)
+        })
+        .map(|item| item.item_id.clone())
+        .expect("watchlist-convertible attention item");
+    let action_specs = [
+        (
+            OwnerAttentionActionType::RequestMoreEvidence,
+            Some(attention_ids[0].clone()),
+            "근거가 부족하니 다시 검토",
+        ),
+        (
+            OwnerAttentionActionType::RequestReconsideration,
+            Some(attention_ids[1].clone()),
+            "리스크 위원 의견을 다시 반영",
+        ),
+        (
+            OwnerAttentionActionType::ConvertToWatchlist,
+            Some(watch_target_id),
+            "관심종목으로 보류",
+        ),
+        (
+            OwnerAttentionActionType::AddComment,
+            Some(attention_ids[3].clone()),
+            "확인함",
+        ),
+        (OwnerAttentionActionType::AddComment, None, "확인함"),
+    ];
+    let mut owner_actions = Vec::new();
+    for (index, (action_type, item_id, comment)) in action_specs.iter().enumerate() {
+        let path = root.join(format!("owner_attention_actions_{index}.json"));
+        compose_owner_action_from_read_model(OwnerActionComposerConfig {
+            read_model_path: read_model_path.display().to_string(),
+            output_actions_path: path.display().to_string(),
+            target_item_id: item_id.clone(),
+            action_type: *action_type,
+            comment: Some((*comment).to_string()),
+            dry_run: false,
+            paper_only: true,
+        })
+        .expect("compose triage action");
+        owner_actions.extend(
+            load_owner_attention_actions_from_local_json(&path).expect("load composed action"),
+        );
+    }
+    let triage = run_owner_attention_triage(OwnerAttentionTriageInput {
+        previous_run: run,
+        previous_inbox: None,
+        owner_actions,
+        watchlist_store: None,
+    })
+    .expect("triage consumes composed actions");
+    assert!(
+        triage
+            .action_results
+            .iter()
+            .all(|result| result.safety_status == OwnerAttentionActionSafetyStatus::Passed)
+    );
+    assert!(triage.generated_owner_feedback_count >= 4);
+    assert!(!triage.generated_watchlist_candidates.is_empty());
+    assert!(
+        triage
+            .generated_owner_feedback
+            .iter()
+            .any(|feedback| feedback.feedback_type == OwnerFeedbackType::EvidenceRequest)
+    );
+    assert!(
+        triage
+            .generated_owner_feedback
+            .iter()
+            .any(|feedback| feedback.feedback_type == OwnerFeedbackType::ReconsiderationRequest)
+    );
+    assert!(
+        triage
+            .generated_owner_feedback
+            .iter()
+            .any(|feedback| feedback.feedback_type == OwnerFeedbackType::Comment)
+    );
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn owner_action_consumption_applies_ledgers_duplicates_and_refreshes_state() {
+    let run = run_autonomous_paper_committee_loop_from_config_path(std::path::Path::new(
+        "examples/soma_minimal_ai_committee_core.toml",
+    ))
+    .expect("autonomous run for owner action consumption");
+    let snapshot = run
+        .committee_state_snapshot
+        .clone()
+        .expect("committee state snapshot");
+    let root = std::path::Path::new("target/sprint145_owner_action_consumption");
+    let _ = std::fs::remove_dir_all(root);
+    write_committee_state_export(
+        CommitteeStateExportConfig {
+            export_id: "sprint145-owner-action-consumption".to_string(),
+            export_root_path: root.display().to_string(),
+            write_latest_snapshot: true,
+            write_history_snapshot: true,
+            write_snapshot_index: true,
+            write_owner_console_read_model: true,
+            schema_version: "committee-state.v1".to_string(),
+            max_history_entries: Some(3),
+            paper_only: true,
+        },
+        &snapshot,
+        CommitteeStateSnapshotSource::ManualExport,
+    )
+    .expect("write read model");
+    let read_model_path = root.join("owner_console_read_model.json");
+    let action_path = root.join("owner_attention_actions.json");
+    let ledger_path = root.join("owner_action_processing_ledger.json");
+    let inbox_path = root.join("owner_attention_inbox.json");
+    let watchlist_path = root.join("owner_watchlist_store.json");
+    let member_state_path = root.join("member_state_store.json");
+    let (_source, read_model) =
+        load_owner_console_read_model_from_local_file(&read_model_path).expect("load read model");
+    let target_item_id = read_model
+        .attention_cards
+        .first()
+        .map(|card| card.item_id.clone())
+        .expect("attention target");
+    compose_owner_action_from_read_model(OwnerActionComposerConfig {
+        read_model_path: read_model_path.display().to_string(),
+        output_actions_path: action_path.display().to_string(),
+        target_item_id: Some(target_item_id),
+        action_type: OwnerAttentionActionType::RequestMoreEvidence,
+        comment: Some("근거가 부족하니 다시 검토".to_string()),
+        dry_run: false,
+        paper_only: true,
+    })
+    .expect("compose owner action");
+
+    let dry_run = consume_owner_action_file_with_previous_run(
+        OwnerActionConsumptionConfig {
+            action_file_path: action_path.display().to_string(),
+            processed_action_ledger_path: Some(ledger_path.display().to_string()),
+            inbox_input_path: None,
+            inbox_output_path: Some(inbox_path.display().to_string()),
+            watchlist_input_path: None,
+            watchlist_output_path: Some(watchlist_path.display().to_string()),
+            member_state_input_path: None,
+            member_state_output_path: Some(member_state_path.display().to_string()),
+            committee_state_export_root_path: Some(root.display().to_string()),
+            owner_console_read_model_path: Some(read_model_path.display().to_string()),
+            apply_mode: OwnerActionApplyMode::DryRun,
+            duplicate_policy: OwnerActionDuplicatePolicy::SkipAlreadyProcessed,
+            after_apply_file_policy: OwnerActionAfterApplyFilePolicy::KeepActionFile,
+            paper_only: true,
+        },
+        Some(run.clone()),
+    )
+    .expect("dry-run consumption");
+    assert!(dry_run.dry_run);
+    assert_eq!(dry_run.applied_action_count, 0);
+    assert!(!ledger_path.exists());
+    assert!(!inbox_path.exists());
+
+    let apply_config = OwnerActionConsumptionConfig {
+        action_file_path: action_path.display().to_string(),
+        processed_action_ledger_path: Some(ledger_path.display().to_string()),
+        inbox_input_path: None,
+        inbox_output_path: Some(inbox_path.display().to_string()),
+        watchlist_input_path: None,
+        watchlist_output_path: Some(watchlist_path.display().to_string()),
+        member_state_input_path: None,
+        member_state_output_path: Some(member_state_path.display().to_string()),
+        committee_state_export_root_path: Some(root.display().to_string()),
+        owner_console_read_model_path: Some(read_model_path.display().to_string()),
+        apply_mode: OwnerActionApplyMode::Apply,
+        duplicate_policy: OwnerActionDuplicatePolicy::SkipAlreadyProcessed,
+        after_apply_file_policy: OwnerActionAfterApplyFilePolicy::KeepActionFile,
+        paper_only: true,
+    };
+    let applied =
+        consume_owner_action_file_with_previous_run(apply_config.clone(), Some(run.clone()))
+            .expect("apply consumption");
+    assert_eq!(applied.loaded_action_count, 1);
+    assert_eq!(applied.applied_action_count, 1);
+    assert_eq!(applied.rejected_action_count, 0);
+    assert!(ledger_path.exists());
+    assert!(inbox_path.exists());
+    assert!(member_state_path.exists());
+    assert!(
+        applied
+            .generated_owner_feedback
+            .iter()
+            .any(|feedback| feedback.feedback_type == OwnerFeedbackType::EvidenceRequest)
+    );
+    assert!(
+        applied
+            .reconsideration_results
+            .iter()
+            .any(|result| result.reconsideration_session_count > 0)
+    );
+    assert!(applied.updated_committee_state_snapshot.is_some());
+    assert!(applied.state_export_result.is_some());
+    assert!(
+        applied
+            .processing_ledger
+            .processed_actions
+            .iter()
+            .any(|record| record.processed_status == OwnerActionProcessedStatus::Applied)
+    );
+
+    let skipped = consume_owner_action_file_with_previous_run(apply_config.clone(), Some(run))
+        .expect("duplicate skip");
+    assert_eq!(skipped.applied_action_count, 0);
+    assert_eq!(skipped.skipped_duplicate_count, 1);
+    let duplicate_reject = consume_owner_action_file(OwnerActionConsumptionConfig {
+        duplicate_policy: OwnerActionDuplicatePolicy::RejectAlreadyProcessed,
+        ..apply_config
+    })
+    .expect_err("duplicate reject");
+    assert!(duplicate_reject.contains("already processed"));
+    let refreshed_read_model =
+        std::fs::read_to_string(&read_model_path).expect("refreshed read model exists");
+    assert!(refreshed_read_model.contains("committee-state.v1"));
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn owner_action_consumption_updates_inbox_watchlist_and_general_comment() {
+    let run = run_autonomous_paper_committee_loop_from_config_path(std::path::Path::new(
+        "examples/soma_minimal_ai_committee_core.toml",
+    ))
+    .expect("autonomous run for action behavior");
+    let root = std::path::Path::new("target/sprint145_owner_action_behavior");
+    let _ = std::fs::remove_dir_all(root);
+    std::fs::create_dir_all(root).expect("create behavior root");
+    let inbox_items = OwnerAttentionInbox::from_attention_queue(&run.attention_queue).items;
+    let watch_item = inbox_items
+        .iter()
+        .find(|item| item.symbol.is_some() && item.market_scope.is_some())
+        .expect("watchlist convertible item");
+    let distinct_item_ids = inbox_items
+        .iter()
+        .map(|item| item.item_id.clone())
+        .filter(|item_id| item_id != &watch_item.item_id)
+        .fold(Vec::<String>::new(), |mut ids, item_id| {
+            if !ids.contains(&item_id) {
+                ids.push(item_id);
+            }
+            ids
+        });
+    assert!(distinct_item_ids.len() >= 4);
+    let actions = vec![
+        OwnerAttentionAction {
+            action_id: "sprint145-ack".to_string(),
+            item_id: distinct_item_ids[0].clone(),
+            action_type: OwnerAttentionActionType::Acknowledge,
+            comment: Some("확인함".to_string()),
+            created_at: None,
+            paper_only: true,
+        },
+        OwnerAttentionAction {
+            action_id: "sprint145-defer".to_string(),
+            item_id: distinct_item_ids[1].clone(),
+            action_type: OwnerAttentionActionType::Defer,
+            comment: Some("관심종목으로 보류".to_string()),
+            created_at: None,
+            paper_only: true,
+        },
+        OwnerAttentionAction {
+            action_id: "sprint145-dismiss".to_string(),
+            item_id: distinct_item_ids[2].clone(),
+            action_type: OwnerAttentionActionType::Dismiss,
+            comment: Some("이 항목은 dismiss".to_string()),
+            created_at: None,
+            paper_only: true,
+        },
+        OwnerAttentionAction {
+            action_id: "sprint145-watch".to_string(),
+            item_id: watch_item.item_id.clone(),
+            action_type: OwnerAttentionActionType::ConvertToWatchlist,
+            comment: Some("관심종목으로 보류".to_string()),
+            created_at: None,
+            paper_only: true,
+        },
+        OwnerAttentionAction {
+            action_id: "sprint145-reconsider".to_string(),
+            item_id: distinct_item_ids[3].clone(),
+            action_type: OwnerAttentionActionType::RequestReconsideration,
+            comment: Some("리스크 위원 의견을 다시 반영".to_string()),
+            created_at: None,
+            paper_only: true,
+        },
+        OwnerAttentionAction {
+            action_id: "sprint145-general-comment".to_string(),
+            item_id: "owner-general-comment".to_string(),
+            action_type: OwnerAttentionActionType::AddComment,
+            comment: Some("확인함".to_string()),
+            created_at: None,
+            paper_only: true,
+        },
+    ];
+    let action_path = root.join("actions.json");
+    std::fs::write(
+        &action_path,
+        serde_json::to_string_pretty(&OwnerActionFile {
+            schema_version: "owner-action-file.v1".to_string(),
+            source_snapshot_id: Some("sprint145-behavior".to_string()),
+            actions,
+            paper_only: true,
+            safety_notes: vec!["paper-only local triage input".to_string()],
+        })
+        .expect("action file json"),
+    )
+    .expect("write action file");
+    let result = consume_owner_action_file_with_previous_run(
+        OwnerActionConsumptionConfig {
+            action_file_path: action_path.display().to_string(),
+            processed_action_ledger_path: Some(root.join("ledger.json").display().to_string()),
+            inbox_input_path: None,
+            inbox_output_path: Some(root.join("inbox.json").display().to_string()),
+            watchlist_input_path: None,
+            watchlist_output_path: Some(root.join("watchlist.json").display().to_string()),
+            member_state_input_path: None,
+            member_state_output_path: None,
+            committee_state_export_root_path: None,
+            owner_console_read_model_path: None,
+            apply_mode: OwnerActionApplyMode::Apply,
+            duplicate_policy: OwnerActionDuplicatePolicy::SkipAlreadyProcessed,
+            after_apply_file_policy: OwnerActionAfterApplyFilePolicy::KeepActionFile,
+            paper_only: true,
+        },
+        Some(run),
+    )
+    .expect("consume behavior actions");
+    assert!(result.action_results.iter().any(|result| {
+        result.action_id == "sprint145-ack"
+            && result.new_status == OwnerAttentionInboxStatus::Acknowledged
+    }));
+    assert!(result.action_results.iter().any(|result| {
+        result.action_id == "sprint145-defer"
+            && result.new_status == OwnerAttentionInboxStatus::Deferred
+    }));
+    assert!(result.action_results.iter().any(|result| {
+        result.action_id == "sprint145-dismiss"
+            && result.new_status == OwnerAttentionInboxStatus::Dismissed
+    }));
+    assert!(result.action_results.iter().any(|result| {
+        result.action_id == "sprint145-watch"
+            && result.new_status == OwnerAttentionInboxStatus::ConvertedToWatchlist
+    }));
+    assert!(!result.generated_watchlist_candidates.is_empty());
+    assert!(
+        result
+            .generated_watchlist_candidates
+            .iter()
+            .all(|candidate| candidate.paper_only)
+    );
+    assert!(
+        result.generated_owner_feedback.iter().any(|feedback| {
+            feedback.feedback_type == OwnerFeedbackType::ReconsiderationRequest
+        })
+    );
+    assert!(
+        result
+            .generated_owner_feedback
+            .iter()
+            .any(|feedback| feedback.feedback_type == OwnerFeedbackType::Comment)
+    );
+    assert!(
+        result
+            .reconsideration_results
+            .iter()
+            .any(|item| item.chairman_reconsideration_decision_count > 0)
+    );
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn owner_action_consumption_rejects_paths_and_unsafe_files() {
+    let remote_err = consume_owner_action_file(OwnerActionConsumptionConfig {
+        action_file_path: "https://example.invalid/actions.json".to_string(),
+        processed_action_ledger_path: None,
+        inbox_input_path: None,
+        inbox_output_path: None,
+        watchlist_input_path: None,
+        watchlist_output_path: None,
+        member_state_input_path: None,
+        member_state_output_path: None,
+        committee_state_export_root_path: None,
+        owner_console_read_model_path: None,
+        apply_mode: OwnerActionApplyMode::DryRun,
+        duplicate_policy: OwnerActionDuplicatePolicy::SkipAlreadyProcessed,
+        after_apply_file_policy: OwnerActionAfterApplyFilePolicy::KeepActionFile,
+        paper_only: true,
+    })
+    .expect_err("remote action path rejected");
+    assert!(remote_err.contains("local"));
+    let traversal_err = consume_owner_action_file(OwnerActionConsumptionConfig {
+        action_file_path: "target/../actions.json".to_string(),
+        processed_action_ledger_path: None,
+        inbox_input_path: None,
+        inbox_output_path: None,
+        watchlist_input_path: None,
+        watchlist_output_path: None,
+        member_state_input_path: None,
+        member_state_output_path: None,
+        committee_state_export_root_path: None,
+        owner_console_read_model_path: None,
+        apply_mode: OwnerActionApplyMode::DryRun,
+        duplicate_policy: OwnerActionDuplicatePolicy::SkipAlreadyProcessed,
+        after_apply_file_policy: OwnerActionAfterApplyFilePolicy::KeepActionFile,
+        paper_only: true,
+    })
+    .expect_err("traversal action path rejected");
+    assert!(traversal_err.contains("parent-directory traversal"));
+
+    let root = std::path::Path::new("target/sprint145_unsafe_action_file");
+    let _ = std::fs::remove_dir_all(root);
+    std::fs::create_dir_all(root).expect("create unsafe root");
+    let unsafe_path = root.join("actions.json");
+    std::fs::write(
+        &unsafe_path,
+        r#"{"schema_version":"owner-action-file.v1","paper_only":true,"order_id":"bad","actions":[]}"#,
+    )
+    .expect("write unsafe action file");
+    let unsafe_err = consume_owner_action_file(OwnerActionConsumptionConfig {
+        action_file_path: unsafe_path.display().to_string(),
+        processed_action_ledger_path: None,
+        inbox_input_path: None,
+        inbox_output_path: None,
+        watchlist_input_path: None,
+        watchlist_output_path: None,
+        member_state_input_path: None,
+        member_state_output_path: None,
+        committee_state_export_root_path: None,
+        owner_console_read_model_path: None,
+        apply_mode: OwnerActionApplyMode::DryRun,
+        duplicate_policy: OwnerActionDuplicatePolicy::SkipAlreadyProcessed,
+        after_apply_file_policy: OwnerActionAfterApplyFilePolicy::KeepActionFile,
+        paper_only: true,
+    })
+    .expect_err("unsafe action file rejected");
+    assert!(unsafe_err.contains("unsafe field"));
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn member_core_contract_remains_deferred_and_viewer_adds_no_web_dependency() {
+    let spec = Mamba3GatedDeltaNetCoreSpec::runtime_deferred_for("contract-lock-member");
+    assert_eq!(spec.core_family, MemberCoreFamily::Mamba3GatedDeltaNet);
+    assert_eq!(spec.sequence_core, SequenceCoreKind::Mamba3Deferred);
+    assert_eq!(spec.memory_core, MemoryCoreKind::GatedDeltaNetDeferred);
+    assert_eq!(spec.runtime_status, CoreRuntimeStatus::RuntimeDeferred);
+    assert!(
+        spec.notes
+            .iter()
+            .any(|note| note.contains("runtime/training/live inference deferred"))
+    );
+    let policy = mac_mini_local_policy();
+    assert!(policy.do_not_run_all_18_cores_concurrently);
+    assert!(policy.lazy_activation);
+    assert!(
+        policy
+            .notes
+            .iter()
+            .any(|note| note.contains("owner console viewer is read-only UI data"))
+    );
+
+    let manifest = std::fs::read_to_string("Cargo.toml").expect("Cargo manifest");
+    for forbidden in ["tauri", "svelte", "react", "javascript", "typescript"] {
+        assert!(!manifest.to_ascii_lowercase().contains(forbidden));
+    }
+    let mut forbidden_web_ui_files = Vec::new();
+    collect_forbidden_web_ui_files(std::path::Path::new("."), &mut forbidden_web_ui_files)
+        .expect("scan web UI files");
+    assert!(
+        forbidden_web_ui_files.is_empty(),
+        "web UI files must not be added: {:?}",
+        forbidden_web_ui_files
+    );
+}
+
+fn collect_forbidden_web_ui_files(
+    root: &std::path::Path,
+    matches: &mut Vec<std::path::PathBuf>,
+) -> Result<(), String> {
+    for entry in std::fs::read_dir(root).map_err(|err| err.to_string())? {
+        let entry = entry.map_err(|err| err.to_string())?;
+        let path = entry.path();
+        let name = entry.file_name();
+        let name = name.to_string_lossy();
+        if path.is_dir() {
+            if matches!(
+                name.as_ref(),
+                ".git" | "target" | "node_modules" | ".svelte-kit" | "dist"
+            ) {
+                continue;
+            }
+            collect_forbidden_web_ui_files(&path, matches)?;
+            continue;
+        }
+        let lower_name = name.to_ascii_lowercase();
+        let lower_ext = path
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .unwrap_or_default()
+            .to_ascii_lowercase();
+        if matches!(
+            lower_name.as_str(),
+            "package.json"
+                | "package-lock.json"
+                | "pnpm-lock.yaml"
+                | "yarn.lock"
+                | "vite.config.js"
+                | "vite.config.ts"
+                | "svelte.config.js"
+                | "tauri.conf.json"
+        ) || matches!(lower_ext.as_str(), "js" | "jsx" | "ts" | "tsx" | "svelte")
+        {
+            matches.push(path);
+        }
+    }
+    Ok(())
+}
+
+#[test]
+fn daily_brief_storage_update_saves_snapshot_without_running_new_analysis() {
+    let run = run_autonomous_paper_committee_loop_from_config_path(std::path::Path::new(
+        "examples/soma_minimal_ai_committee_core.toml",
+    ))
+    .expect("autonomous run for storage update");
+    let recheck = run.watchlist_recheck.clone().expect("watchlist recheck");
+    let brief = recheck
+        .owner_daily_brief
+        .clone()
+        .expect("owner daily brief");
+    let store_path = "target/sprint141_storage_update_briefs.json";
+    let snapshot_path = "target/sprint141_storage_update_snapshot.json";
+    let _ = std::fs::remove_file(store_path);
+    let _ = std::fs::remove_file(snapshot_path);
+    let result = run_daily_brief_storage_update(DailyBriefStorageUpdateInput {
+        owner_daily_brief: Some(brief.clone()),
+        owner_daily_brief_store_input_path: None,
+        owner_daily_brief_store_output_path: Some(store_path.to_string()),
+        committee_state_snapshot_output_path: Some(snapshot_path.to_string()),
+        emit_committee_state_snapshot: true,
+        export_input: CommitteeStateExportInput {
+            autonomous_run_result: Some(run.clone()),
+            watchlist_recheck_result: Some(recheck.clone()),
+            attention_inbox: run
+                .owner_attention_triage
+                .as_ref()
+                .map(|triage| triage.inbox.clone()),
+            watchlist_store: Some(recheck.updated_watchlist_store.clone()),
+            member_state_store: Some(MemberStateStore {
+                store_id: "storage-update-member-state-store".to_string(),
+                members: run.final_member_states.clone(),
+                source_label: "unit-test".to_string(),
+                paper_only: true,
+            }),
+            owner_daily_brief_store: None,
+            owner_summary: Some(recheck.owner_summary.clone()),
+            owner_console_view: recheck.owner_console_view.clone(),
+        },
+    })
+    .expect("storage update");
+    assert_eq!(
+        result
+            .updated_brief_store
+            .latest()
+            .map(|item| &item.brief_id),
+        Some(&brief.brief_id)
+    );
+    assert!(result.committee_state_snapshot.is_some());
+    assert!(result.safety_summary.no_broker_order_account);
+    assert!(std::path::Path::new(store_path).exists());
+    assert!(std::path::Path::new(snapshot_path).exists());
+    let _ = std::fs::remove_file(store_path);
+    let _ = std::fs::remove_file(snapshot_path);
+}
+
+#[test]
 fn autonomous_paper_config_rejects_remote_and_unsafe_fields() {
     let config = MinimalAiCommitteeCycleConfig {
         input_path: Some("examples/minimal_ai_committee_core_sample.json".to_string()),
@@ -1695,6 +2997,17 @@ fn autonomous_paper_config_rejects_remote_and_unsafe_fields() {
         include_risk_blocked: false,
         include_needs_evidence: true,
         emit_owner_daily_brief: false,
+        owner_daily_brief_store_input_path: None,
+        owner_daily_brief_store_output_path: None,
+        committee_state_snapshot_output_path: None,
+        emit_committee_state_snapshot: false,
+        committee_state_export_root_path: None,
+        write_latest_snapshot: false,
+        write_history_snapshot: false,
+        write_snapshot_index: false,
+        write_owner_console_read_model: false,
+        committee_state_schema_version: None,
+        max_snapshot_history_entries: None,
         inline_offline_member_opinions: Vec::new(),
         inline_input: None,
         pilot_roster: None,
