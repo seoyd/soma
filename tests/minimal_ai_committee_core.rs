@@ -2,20 +2,28 @@ use std::process::Command;
 
 use soma_zero::league::minimal_ai_committee_core::{
     AICommitteeMember, AICommitteeMemberStatus, AIRuntimeMode, AiMemberBrain, AiMemberCoreRegistry,
-    ArchetypeRiskBias, ArchetypeStyleCardRegistry, ArchetypeStyleTag, BatchCommitteeCycleInput,
-    BatchCommitteeCycleWithStateInput, ChairmanFinalAction, CoreAwareMemberBrainAdapter,
-    CoreRuntimeStatus, DataRouterInput, DeterministicMockBrain, EvidencePreference,
-    IndependentMemberRole, InvestmentEventQueue, InvestorArchetypeStyleCard,
+    ArchetypeRiskBias, ArchetypeStyleCardRegistry, ArchetypeStyleTag, AutonomousPaperCycleMode,
+    BatchCommitteeCycleInput, BatchCommitteeCycleWithStateInput, ChairmanFinalAction,
+    CoreAwareMemberBrainAdapter, CoreRuntimeStatus, DataRouterInput, DeterministicMockBrain,
+    EvidencePreference, IndependentMemberRole, InvestmentEventQueue, InvestorArchetypeStyleCard,
     Mamba3GatedDeltaNetCoreSpec, MarketScope, MemberActivationPolicy, MemberCoreFamily,
     MemberInputPacket, MemberLearningSignal, MemberScoreUpdateReason, MemberSelectionSkipReason,
     MemberStance, MemberStateStore, MemberStyleStatus, MemoryCoreKind,
-    MinimalAiCommitteeCycleConfig, OfflineMemberBrainAdapter, OfflineMemberOpinionFixture,
-    OfflineMemberOutputBatch, PreferredMarketBias, PreferredTimeHorizon, RealArchetypeIntakePolicy,
+    MinimalAiCommitteeCycleConfig, NextActionType, OfflineMemberBrainAdapter,
+    OfflineMemberOpinionFixture, OfflineMemberOutputBatch, OwnerAttentionAction,
+    OwnerAttentionActionSafetyStatus, OwnerAttentionActionType, OwnerAttentionInbox,
+    OwnerAttentionInboxStatus, OwnerAttentionPriority, OwnerAttentionQueue,
+    OwnerAttentionTriageInput, OwnerAttentionType, OwnerConfirmationPolicy, OwnerFeedbackOutcome,
+    OwnerFeedbackType, PreferredMarketBias, PreferredTimeHorizon, RealArchetypeIntakePolicy,
     RiskGovernorStatus, SequenceCoreKind, SourceConfidence, StyleCardStatus, StyleMappingMode,
-    create_three_member_pilot_roster, map_style_cards_to_three_member_pilot,
-    market_committee_layouts, route_data_to_ai_members, run_batch_committee_cycle_from_config_path,
-    run_batch_committee_cycle_with_state, run_batch_committee_cycle_with_state_from_config_path,
-    run_minimal_committee_cycle,
+    WatchlistCandidate, WatchlistCandidateStatus, WatchlistCandidateStore, WatchlistRecheckConfig,
+    WatchlistRecheckSkipReason, create_three_member_pilot_roster,
+    load_owner_attention_actions_from_local_json, load_owner_feedback_from_local_json,
+    map_style_cards_to_three_member_pilot, market_committee_layouts, route_data_to_ai_members,
+    run_autonomous_paper_committee_loop_from_config_path,
+    run_batch_committee_cycle_from_config_path, run_batch_committee_cycle_with_state,
+    run_batch_committee_cycle_with_state_from_config_path, run_minimal_committee_cycle,
+    run_owner_attention_triage, run_watchlist_recheck_cycle,
 };
 
 fn single_cycle_config() -> MinimalAiCommitteeCycleConfig {
@@ -29,6 +37,32 @@ fn single_cycle_config() -> MinimalAiCommitteeCycleConfig {
         member_state_input_path: None,
         member_state_output_path: None,
         emit_owner_summary: false,
+        emit_owner_console_view: false,
+        owner_feedback_path: None,
+        emit_reconsideration_view: false,
+        autonomous_paper_run: false,
+        run_id: None,
+        market_scopes: Vec::new(),
+        symbols: Vec::new(),
+        max_cycles: 1,
+        cycle_mode: AutonomousPaperCycleMode::SingleShot,
+        require_owner_confirmation: OwnerConfirmationPolicy::Never,
+        local_market_data_path: None,
+        local_news_path: None,
+        paper_only: true,
+        owner_attention_inbox_input_path: None,
+        owner_attention_inbox_output_path: None,
+        owner_attention_actions_path: None,
+        watchlist_candidate_input_path: None,
+        watchlist_candidate_output_path: None,
+        emit_owner_attention_inbox: false,
+        enable_watchlist_recheck: false,
+        watchlist_input_path: None,
+        watchlist_output_path: None,
+        max_candidates_per_cycle: 3,
+        include_risk_blocked: false,
+        include_needs_evidence: true,
+        emit_owner_daily_brief: false,
         inline_offline_member_opinions: Vec::new(),
         inline_input: None,
         pilot_roster: Some("three_member".to_string()),
@@ -272,6 +306,19 @@ fn minimal_ai_committee_cycle_is_deterministic_and_cli_is_safe() {
     assert!(stdout.contains("\"risk_veto_count\""));
     assert!(stdout.contains("\"score_update_count\""));
     assert!(stdout.contains("\"owner_summary\""));
+    assert!(stdout.contains("\"owner_console_view\""));
+    assert!(stdout.contains("\"owner_feedback_reconsideration\""));
+    assert!(stdout.contains("\"attention_queue\""));
+    assert!(stdout.contains("\"owner_attention_triage\""));
+    assert!(stdout.contains("\"generated_owner_feedback_count\""));
+    assert!(stdout.contains("\"generated_watchlist_candidate_count\""));
+    assert!(stdout.contains("\"generated_watchlist_candidates\""));
+    assert!(stdout.contains("\"watchlist_recheck\""));
+    assert!(stdout.contains("\"owner_daily_brief\""));
+    assert!(stdout.contains("\"lifecycle_events\""));
+    assert!(stdout.contains("\"paper_decision_archive\""));
+    assert!(stdout.contains("\"member_status_rows\""));
+    assert!(stdout.contains("\"next_action_rows\""));
     assert!(stdout.contains("\"member_voice_changes\""));
     assert!(stdout.contains("paper-only explanation"));
     assert!(stdout.contains("offline batch opinion"));
@@ -375,6 +422,32 @@ fn offline_fixture_path_is_local_only() {
         member_state_input_path: None,
         member_state_output_path: None,
         emit_owner_summary: false,
+        emit_owner_console_view: false,
+        owner_feedback_path: None,
+        emit_reconsideration_view: false,
+        autonomous_paper_run: false,
+        run_id: None,
+        market_scopes: Vec::new(),
+        symbols: Vec::new(),
+        max_cycles: 1,
+        cycle_mode: AutonomousPaperCycleMode::SingleShot,
+        require_owner_confirmation: OwnerConfirmationPolicy::Never,
+        local_market_data_path: None,
+        local_news_path: None,
+        paper_only: true,
+        owner_attention_inbox_input_path: None,
+        owner_attention_inbox_output_path: None,
+        owner_attention_actions_path: None,
+        watchlist_candidate_input_path: None,
+        watchlist_candidate_output_path: None,
+        emit_owner_attention_inbox: false,
+        enable_watchlist_recheck: false,
+        watchlist_input_path: None,
+        watchlist_output_path: None,
+        max_candidates_per_cycle: 3,
+        include_risk_blocked: false,
+        include_needs_evidence: true,
+        emit_owner_daily_brief: false,
         inline_offline_member_opinions: Vec::new(),
         inline_input: None,
         pilot_roster: None,
@@ -592,6 +665,7 @@ fn batch_committee_cycle_routes_multi_symbol_events_and_preserves_safety() {
 fn member_state_store_accumulates_batch_memory_and_persists_locally() {
     let roster = create_three_member_pilot_roster(MarketScope::KoreaShortTerm);
     let mut store = MemberStateStore::from_members("test-member-state-store", &roster, "unit-test");
+    let initial_store = store.clone();
     assert!(store.paper_only);
     assert_eq!(store.members.len(), 3);
     assert!(store.get_member_state("trend-kr-short").is_some());
@@ -613,6 +687,9 @@ fn member_state_store_accumulates_batch_memory_and_persists_locally() {
         member_state_store: Some(store.clone()),
         member_state_output_path: None,
         emit_owner_summary: true,
+        emit_owner_console_view: true,
+        owner_feedback: Vec::new(),
+        emit_reconsideration_view: false,
     })
     .expect("stateful batch cycle");
 
@@ -630,19 +707,37 @@ fn member_state_store_accumulates_batch_memory_and_persists_locally() {
             .any(|update| update.new_voice_weight != update.previous_voice_weight)
     );
     for state in &store.members {
-        if let Some(update) = result
+        let initial_state = initial_store
+            .get_member_state(&state.member_id)
+            .expect("initial member state");
+        let (expected_score, expected_voice_weight) = result
             .batch_result
             .score_updates
             .iter()
-            .rev()
-            .find(|update| update.member_id == state.member_id)
-        {
-            assert_eq!(state.score, update.new_score);
-            assert_eq!(state.voice_weight, update.new_voice_weight);
-        }
+            .filter(|update| update.member_id == state.member_id)
+            .fold(
+                (initial_state.score, initial_state.voice_weight),
+                |(score, voice_weight), update| {
+                    (
+                        (score + update.new_score - update.previous_score).clamp(0.0, 1.0),
+                        (voice_weight + update.new_voice_weight - update.previous_voice_weight)
+                            .clamp(0.0, 1.0),
+                    )
+                },
+            );
+        assert!((state.score - expected_score).abs() < 1e-12);
+        assert!((state.voice_weight - expected_voice_weight).abs() < 1e-12);
     }
+    assert_eq!(result.state_update.updated_member_states, store.members);
     assert!(risk_state.memory_state.recent_opinion_count > 0);
     assert!(risk_state.memory_state.recent_event_count > 0);
+    assert!(
+        risk_state.score
+            > initial_store
+                .get_member_state("risk-kr-short")
+                .expect("initial risk state")
+                .score
+    );
     assert!(
         risk_state.learning_journal_summary.reinforce_count
             + risk_state.learning_journal_summary.penalize_count
@@ -723,9 +818,912 @@ fn batch_cycle_with_state_produces_owner_summary_and_is_deterministic() {
     );
     assert!(summary.owner_readable_summary.contains("검토 종목"));
     assert!(summary.paper_only_warning.contains("not an order"));
+    let console = first
+        .owner_console_view
+        .as_ref()
+        .expect("owner console view");
+    assert_eq!(console.cycle_id, first.batch_result.batch_id);
+    assert_eq!(console.member_status_rows.len(), 3);
+    assert_eq!(console.active_members.len(), 3);
+    assert!(!console.event_rows.is_empty());
+    assert_eq!(
+        console.event_rows.len(),
+        first.batch_result.event_queue.event_count
+    );
+    assert_eq!(
+        console.committee_rows.len(),
+        first.batch_result.committee_sessions.len()
+    );
+    assert_eq!(
+        console.chairman_decision_rows.len(),
+        first.batch_result.chairman_decisions.len()
+    );
+    assert!(!console.risk_veto_rows.is_empty());
+    assert!(!console.voice_change_rows.is_empty());
+    assert!(
+        console
+            .next_action_rows
+            .iter()
+            .any(|row| row.action_type == NextActionType::RiskBlocked)
+    );
+    assert!(
+        console
+            .next_action_rows
+            .iter()
+            .any(|row| row.action_type == NextActionType::NeedMoreEvidence)
+    );
+    assert!(
+        console
+            .next_action_rows
+            .iter()
+            .any(|row| row.action_type == NextActionType::Watch)
+    );
+    assert!(console.paper_only_warning.contains("paper-only"));
+    let console_json = serde_json::to_string(console).expect("console json");
+    for forbidden_field in ["\"broker\"", "\"order\"", "\"account\""] {
+        assert!(!console_json.contains(forbidden_field));
+    }
     assert!(first.batch_result.safety_summary.no_broker_order_account);
     assert!(first.batch_result.safety_summary.no_model_training);
     assert!(first.batch_result.safety_summary.no_live_inference);
+}
+
+#[test]
+fn owner_feedback_routes_reconsideration_and_preserves_paper_only_safety() {
+    let loaded_feedback = load_owner_feedback_from_local_json(std::path::Path::new(
+        "examples/minimal_owner_feedback.sample.json",
+    ))
+    .expect("load owner feedback sample");
+    assert_eq!(loaded_feedback.len(), 7);
+    assert!(loaded_feedback.iter().all(|feedback| feedback.paper_only));
+
+    let err = load_owner_feedback_from_local_json(std::path::Path::new(
+        "https://example.invalid/owner-feedback.json",
+    ))
+    .expect_err("remote owner feedback must fail");
+    assert!(err.contains("must be local"));
+
+    for (case, text) in [
+        ("trade", "execute trade with real money"),
+        ("broker", "send this to broker account"),
+        ("claim", "use private data for guaranteed return"),
+    ] {
+        let unsafe_path = std::path::PathBuf::from(format!(
+            "target/sprint134_unsafe_owner_feedback_{case}.json"
+        ));
+        let unsafe_feedback = serde_json::json!([
+            {
+                "feedback_id": format!("unsafe-owner-feedback-{case}"),
+                "symbol": "BTCUSDT",
+                "market_scope": "CryptoShortTerm",
+                "target_member_id": null,
+                "feedback_type": "RiskConcern",
+                "text": text,
+                "priority": "High",
+                "created_at": "2026-05-22T18:04:00Z",
+                "paper_only": true
+            }
+        ])
+        .to_string();
+        std::fs::write(&unsafe_path, unsafe_feedback).expect("write unsafe owner feedback");
+        let err = load_owner_feedback_from_local_json(&unsafe_path)
+            .expect_err("unsafe owner feedback text must fail");
+        assert!(err.contains("unsafe"));
+        let _ = std::fs::remove_file(&unsafe_path);
+    }
+
+    let first = run_batch_committee_cycle_with_state_from_config_path(std::path::Path::new(
+        "examples/soma_minimal_ai_committee_core.toml",
+    ))
+    .expect("first feedback reconsideration run");
+    let second = run_batch_committee_cycle_with_state_from_config_path(std::path::Path::new(
+        "examples/soma_minimal_ai_committee_core.toml",
+    ))
+    .expect("second feedback reconsideration run");
+    assert_eq!(first, second);
+
+    let reconsideration = first
+        .owner_feedback_reconsideration
+        .as_ref()
+        .expect("owner feedback reconsideration");
+    assert_eq!(reconsideration.owner_feedback_count, loaded_feedback.len());
+    assert!(
+        reconsideration
+            .paper_only_warning
+            .contains("no broker/order/account")
+    );
+    assert!(
+        reconsideration
+            .owner_feedback_journal_entries
+            .iter()
+            .any(|entry| {
+                entry.feedback_id == "owner-feedback-comment-samsung"
+                    && !entry.reconsideration_opened
+                    && entry.outcome == OwnerFeedbackOutcome::LoggedOnly
+            })
+    );
+    assert!(
+        reconsideration
+            .owner_feedback_journal_entries
+            .iter()
+            .any(|entry| {
+                entry.feedback_id == "owner-feedback-outcome-samsung"
+                    && !entry.reconsideration_opened
+                    && entry.outcome == OwnerFeedbackOutcome::LoggedOnly
+                    && entry.note.contains("paper outcome label")
+            })
+    );
+    assert!(
+        reconsideration
+            .owner_feedback_journal_entries
+            .iter()
+            .any(|entry| {
+                entry.feedback_id == "owner-feedback-disagree-samsung-trend"
+                    && entry.routed_to_members == vec!["trend-kr-short".to_string()]
+                    && entry.reconsideration_opened
+            })
+    );
+    assert!(
+        reconsideration
+            .reconsideration_sessions
+            .iter()
+            .any(|session| {
+                session.owner_feedback.feedback_type == OwnerFeedbackType::RiskConcern
+                    && session
+                        .risk_flags
+                        .contains(&"owner_risk_concern".to_string())
+            })
+    );
+    assert!(
+        reconsideration
+            .reconsideration_sessions
+            .iter()
+            .any(|session| {
+                session.owner_feedback.feedback_type == OwnerFeedbackType::ReconsiderationRequest
+                    && !session.invited_members.is_empty()
+            })
+    );
+    assert!(
+        reconsideration
+            .routed_feedback_packets
+            .iter()
+            .any(|packet| {
+                packet.feedback.feedback_type == OwnerFeedbackType::EvidenceRequest
+                    && packet
+                        .related_previous_opinions
+                        .iter()
+                        .any(|opinion| opinion.member_id.contains("evidence"))
+            })
+    );
+    assert!(
+        reconsideration
+            .revised_member_opinions
+            .iter()
+            .any(|opinion| {
+                opinion.member_id == "trend-kr-short"
+                    && opinion.previous_stance == MemberStance::BuyProposal
+                    && opinion.revised_stance == MemberStance::Hold
+                    && opinion.changed
+            })
+    );
+    assert!(
+        reconsideration
+            .revised_member_opinions
+            .iter()
+            .any(|opinion| {
+                opinion.member_id.contains("evidence")
+                    && opinion.revised_stance == MemberStance::NeedMoreEvidence
+                    && !opinion.evidence_needed.is_empty()
+            })
+    );
+    assert!(
+        reconsideration
+            .revised_member_opinions
+            .iter()
+            .any(|opinion| {
+                opinion.member_id.contains("risk")
+                    && opinion.revised_stance == MemberStance::NoTrade
+                    && !opinion.risk_notes.is_empty()
+            })
+    );
+    assert!(
+        reconsideration
+            .chairman_reconsideration_decisions
+            .iter()
+            .any(|decision| decision.risk_governor_status == RiskGovernorStatus::Vetoed)
+    );
+    assert!(
+        reconsideration
+            .chairman_reconsideration_decisions
+            .iter()
+            .any(|decision| {
+                decision.final_action
+                    == soma_zero::league::minimal_ai_committee_core::ChairmanReconsiderationFinalAction::NeedMoreEvidence
+            })
+    );
+    assert!(
+        reconsideration
+            .chairman_reconsideration_decisions
+            .iter()
+            .any(|decision| {
+                decision.final_action
+                    == soma_zero::league::minimal_ai_committee_core::ChairmanReconsiderationFinalAction::PaperHold
+            })
+    );
+    assert!(
+        reconsideration
+            .updated_owner_console_view
+            .next_action_rows
+            .iter()
+            .any(|row| row.action_type == NextActionType::RiskBlocked)
+    );
+
+    let json = serde_json::to_string(reconsideration).expect("reconsideration json");
+    for forbidden_field in ["\"broker\"", "\"account\""] {
+        assert!(!json.contains(forbidden_field));
+    }
+    assert!(first.batch_result.safety_summary.no_broker_order_account);
+    assert!(first.batch_result.safety_summary.no_model_training);
+    assert!(first.batch_result.safety_summary.no_live_inference);
+}
+
+#[test]
+fn autonomous_paper_loop_runs_cycles_attention_queue_and_archive_safely() {
+    let sample_watchlist = WatchlistCandidateStore::load_from_local_json(std::path::Path::new(
+        "examples/minimal_watchlist_candidates.sample.json",
+    ))
+    .expect("load watchlist sample");
+    assert!(sample_watchlist.active_count >= 1);
+    assert!(
+        sample_watchlist
+            .candidates
+            .iter()
+            .all(|candidate| candidate.paper_only)
+    );
+
+    let first = run_autonomous_paper_committee_loop_from_config_path(std::path::Path::new(
+        "examples/soma_minimal_ai_committee_core.toml",
+    ))
+    .expect("first autonomous run");
+    let second = run_autonomous_paper_committee_loop_from_config_path(std::path::Path::new(
+        "examples/soma_minimal_ai_committee_core.toml",
+    ))
+    .expect("second autonomous run");
+    assert_eq!(first, second);
+
+    assert_eq!(first.run_id, "soma-autonomous-paper-sprint135");
+    assert_eq!(first.cycle_count, 1);
+    assert_eq!(first.cycles.len(), 1);
+    assert!(!first.final_member_states.is_empty());
+    assert!(!first.cycles[0].owner_summary.symbols_reviewed.is_empty());
+    assert!(first.cycles[0].owner_console_view.is_some());
+    assert!(
+        first
+            .attention_queue
+            .items
+            .iter()
+            .any(|item| item.attention_type == OwnerAttentionType::RiskVeto)
+    );
+    assert!(
+        first
+            .attention_queue
+            .items
+            .iter()
+            .any(|item| item.attention_type == OwnerAttentionType::NeedMoreEvidence)
+    );
+    let mut paper_hold_result = first.cycles[0].batch_result.clone();
+    let paper_hold_decision = paper_hold_result
+        .chairman_decisions
+        .first_mut()
+        .expect("paper hold fixture decision");
+    paper_hold_decision.final_action = ChairmanFinalAction::PaperHold;
+    paper_hold_decision.risk_governor_status = RiskGovernorStatus::Passed;
+    let paper_hold_queue = OwnerAttentionQueue::from_batch_cycle_result(
+        "paper-hold-watchlist-test",
+        0,
+        &paper_hold_result,
+        None,
+        OwnerConfirmationPolicy::Never,
+    );
+    assert!(
+        paper_hold_queue
+            .items
+            .iter()
+            .any(|item| item.attention_type == OwnerAttentionType::WatchlistCandidate)
+    );
+    assert_eq!(
+        first
+            .attention_queue
+            .items
+            .first()
+            .map(|item| item.priority),
+        Some(OwnerAttentionPriority::High)
+    );
+    assert_eq!(first.attention_queue.requires_owner_input_count, 0);
+    assert!(first.attention_queue.unresolved_items().is_empty());
+    assert!(!first.paper_decision_archive.entries.is_empty());
+    assert!(first.paper_decision_archive.risk_veto_count() >= 1);
+    assert!(
+        first
+            .paper_decision_archive
+            .entries
+            .iter()
+            .all(|entry| entry.paper_only)
+    );
+    assert!(
+        !first
+            .paper_decision_archive
+            .decisions_by_symbol("BTCUSDT")
+            .is_empty()
+    );
+    assert!(first.safety_summary.no_broker_order_account);
+    assert!(first.safety_summary.no_model_training);
+    assert!(first.safety_summary.no_live_inference);
+    let triage = first
+        .owner_attention_triage
+        .as_ref()
+        .expect("owner attention triage");
+    assert!(triage.inbox.open_count <= triage.inbox.items.len());
+    assert!(!triage.action_results.is_empty());
+    assert!(!triage.generated_owner_feedback.is_empty());
+    assert!(!triage.generated_watchlist_candidates.is_empty());
+    let recheck = first.watchlist_recheck.as_ref().expect("watchlist recheck");
+    assert_eq!(
+        recheck.recheck_id,
+        "soma-autonomous-paper-sprint135-watchlist-recheck"
+    );
+    assert_eq!(recheck.selection.selected_count, 3);
+    assert!(
+        recheck
+            .selection
+            .skip_reasons
+            .contains(&WatchlistRecheckSkipReason::Archived)
+    );
+    assert!(
+        recheck
+            .selection
+            .skip_reasons
+            .contains(&WatchlistRecheckSkipReason::OverCandidateLimit)
+    );
+    assert!(
+        recheck
+            .selection
+            .skip_reasons
+            .contains(&WatchlistRecheckSkipReason::RiskBlockedExcluded)
+    );
+    assert!(recheck.batch_result.member_opinions.iter().all(|opinion| {
+        recheck.selected_candidates.iter().any(|candidate| {
+            candidate.symbol == opinion.symbol && candidate.market_scope == opinion.market_scope
+        })
+    }));
+    assert!(
+        recheck
+            .lifecycle_events
+            .iter()
+            .any(|event| event.new_status == WatchlistCandidateStatus::RiskBlocked)
+    );
+    assert!(
+        recheck
+            .lifecycle_events
+            .iter()
+            .any(|event| event.new_status == WatchlistCandidateStatus::NeedsEvidence)
+    );
+    assert!(
+        recheck
+            .lifecycle_events
+            .iter()
+            .all(|event| event.paper_only)
+    );
+    assert!(!recheck.generated_attention_items.is_empty());
+    let brief = recheck
+        .owner_daily_brief
+        .as_ref()
+        .expect("owner daily brief");
+    assert!(!brief.reviewed_symbols.is_empty());
+    assert!(!brief.risk_vetoes.is_empty());
+    assert!(!brief.need_more_evidence_items.is_empty());
+    assert!(!brief.next_owner_attention.is_empty());
+    assert!(brief.brief_text.contains("paper-only"));
+    assert!(recheck.safety_summary.no_broker_order_account);
+    assert!(recheck.safety_summary.no_model_training);
+    assert!(recheck.safety_summary.no_live_inference);
+
+    let fixed_config_path = std::path::Path::new("target/sprint135_autonomous_fixed.toml");
+    std::fs::write(
+        fixed_config_path,
+        r#"
+input_path = "examples/minimal_ai_committee_multi_market_sample.json"
+offline_member_output_batch_path = "examples/minimal_offline_member_output_batch.sample.json"
+batch_mode = true
+autonomous_paper_run = true
+run_id = "sprint135-fixed-test"
+max_cycles = 2
+cycle_mode = "FixedCount"
+require_owner_confirmation = "Never"
+emit_owner_console_view = true
+pilot_roster = "three_member"
+paper_outcome = "Positive"
+archetype_style_cards_path = "examples/investor_archetype_style_cards.sample.json"
+style_mapping_mode = "LocalFixture"
+"#,
+    )
+    .expect("write fixed autonomous config");
+    let fixed = run_autonomous_paper_committee_loop_from_config_path(fixed_config_path)
+        .expect("fixed autonomous run");
+    assert_eq!(fixed.cycle_count, 2);
+    assert!(
+        fixed
+            .attention_queue
+            .items
+            .iter()
+            .all(|item| item.attention_type != OwnerAttentionType::OwnerFeedbackAvailable)
+    );
+    let first_risk_state = fixed.cycles[0]
+        .state_update
+        .updated_member_states
+        .iter()
+        .find(|state| state.member_id == "risk-kr-short")
+        .expect("first risk state");
+    let second_risk_state = fixed.cycles[1]
+        .state_update
+        .updated_member_states
+        .iter()
+        .find(|state| state.member_id == "risk-kr-short")
+        .expect("second risk state");
+    assert!(
+        second_risk_state.memory_state.recent_opinion_count
+            >= first_risk_state.memory_state.recent_opinion_count
+    );
+    assert_eq!(fixed.attention_queue.requires_owner_input_count, 0);
+    let _ = std::fs::remove_file(fixed_config_path);
+}
+
+#[test]
+fn watchlist_recheck_direct_cycle_loads_local_paths() {
+    let config = MinimalAiCommitteeCycleConfig::from_toml_path(std::path::Path::new(
+        "examples/soma_minimal_ai_committee_core.toml",
+    ))
+    .expect("config");
+    let loaded_batch = config.load_batch_input().expect("batch input");
+    std::fs::create_dir_all("target").expect("target dir");
+    let market_data_path = std::path::Path::new("target/sprint137_watchlist_market_data.json");
+    let news_path = std::path::Path::new("target/sprint137_watchlist_news.json");
+    std::fs::write(
+        market_data_path,
+        serde_json::to_string_pretty(&loaded_batch.market_data).expect("market data json"),
+    )
+    .expect("write market data");
+    std::fs::write(
+        news_path,
+        serde_json::to_string_pretty(&loaded_batch.news).expect("news json"),
+    )
+    .expect("write news");
+
+    let mut seed_batch = loaded_batch;
+    seed_batch.market_data.clear();
+    seed_batch.news.clear();
+    seed_batch.offline_output_batch = None;
+
+    let result = run_watchlist_recheck_cycle(WatchlistRecheckConfig {
+        recheck_id: "direct-path-watchlist-recheck".to_string(),
+        watchlist_input_path: Some("examples/minimal_watchlist_candidates.sample.json".to_string()),
+        watchlist_output_path: None,
+        member_state_input_path: None,
+        member_state_output_path: None,
+        market_data_path: Some(market_data_path.to_string_lossy().to_string()),
+        news_path: Some(news_path.to_string_lossy().to_string()),
+        offline_member_output_batch_path: Some(
+            "examples/minimal_offline_member_output_batch.sample.json".to_string(),
+        ),
+        max_candidates_per_cycle: 3,
+        include_risk_blocked: false,
+        include_needs_evidence: true,
+        emit_owner_daily_brief: true,
+        paper_only: true,
+        watchlist_store: WatchlistCandidateStore::new("ignored-direct-path-store"),
+        batch_input: seed_batch,
+        member_state_store: None,
+    })
+    .expect("direct path watchlist recheck");
+
+    assert_eq!(result.selection.selected_count, 3);
+    assert!(
+        result
+            .selection
+            .skip_reasons
+            .contains(&WatchlistRecheckSkipReason::Archived)
+    );
+    assert!(result.batch_result.member_opinions.iter().any(|opinion| {
+        opinion
+            .evidence_notes
+            .iter()
+            .any(|note| note == "offline batch opinion")
+    }));
+    assert!(result.lifecycle_events.iter().any(|event| {
+        event.new_status == WatchlistCandidateStatus::RiskBlocked
+            || event.new_status == WatchlistCandidateStatus::NeedsEvidence
+    }));
+    let brief = result.owner_daily_brief.expect("owner daily brief");
+    assert!(brief.reviewed_symbols.contains(&"BTCUSDT".to_string()));
+    assert!(brief.brief_text.contains("paper-only"));
+
+    let _ = std::fs::remove_file(market_data_path);
+    let _ = std::fs::remove_file(news_path);
+}
+
+#[test]
+fn watchlist_recheck_updates_paper_candidate_without_order_path() {
+    let store = WatchlistCandidateStore {
+        store_id: "paper-candidate-recheck-store".to_string(),
+        candidates: vec![WatchlistCandidate {
+            candidate_id: "watchlist-paper-samsung".to_string(),
+            symbol: "005930.KS".to_string(),
+            market_scope: MarketScope::KoreaShortTerm,
+            source_attention_item_id: "attention-paper-candidate".to_string(),
+            reason: "Paper-only candidate path test".to_string(),
+            status: WatchlistCandidateStatus::Watching,
+            created_at: Some("2026-05-23T09:40:00Z".to_string()),
+            paper_only: true,
+        }],
+        active_count: 1,
+        risk_blocked_count: 0,
+        needs_evidence_count: 0,
+        paper_only: true,
+    };
+    let mut batch_input = MinimalAiCommitteeCycleConfig::from_toml_path(std::path::Path::new(
+        "examples/soma_minimal_ai_committee_core.toml",
+    ))
+    .expect("config")
+    .load_batch_input()
+    .expect("batch input");
+    batch_input
+        .market_data
+        .retain(|market| market.symbol == "005930.KS");
+    batch_input.news.retain(|news| news.symbol == "005930.KS");
+    batch_input.offline_output_batch = Some(OfflineMemberOutputBatch {
+        batch_id: "paper-candidate-offline-batch".to_string(),
+        created_at: "2026-05-23T09:41:00Z".to_string(),
+        source_label: "unit-test".to_string(),
+        opinions: vec![
+            OfflineMemberOpinionFixture {
+                member_id: "trend-kr-short".to_string(),
+                symbol: "005930.KS".to_string(),
+                market_scope: MarketScope::KoreaShortTerm,
+                stance: MemberStance::BuyProposal,
+                confidence: 0.91,
+                expected_return_hint: 0.03,
+                risk_hint: 0.02,
+                evidence_notes: vec!["paper-only buy candidate".to_string()],
+                event_triggered: true,
+                event_reason: Some("paper-only candidate".to_string()),
+            },
+            OfflineMemberOpinionFixture {
+                member_id: "risk-kr-short".to_string(),
+                symbol: "005930.KS".to_string(),
+                market_scope: MarketScope::KoreaShortTerm,
+                stance: MemberStance::Hold,
+                confidence: 0.2,
+                expected_return_hint: 0.0,
+                risk_hint: 0.01,
+                evidence_notes: vec!["paper-only risk passed".to_string()],
+                event_triggered: false,
+                event_reason: None,
+            },
+            OfflineMemberOpinionFixture {
+                member_id: "evidence-kr-short".to_string(),
+                symbol: "005930.KS".to_string(),
+                market_scope: MarketScope::KoreaShortTerm,
+                stance: MemberStance::Hold,
+                confidence: 0.2,
+                expected_return_hint: 0.0,
+                risk_hint: 0.01,
+                evidence_notes: vec!["paper-only evidence enough".to_string()],
+                event_triggered: false,
+                event_reason: None,
+            },
+        ],
+    });
+    let result = run_watchlist_recheck_cycle(WatchlistRecheckConfig {
+        recheck_id: "paper-candidate-recheck".to_string(),
+        watchlist_input_path: None,
+        watchlist_output_path: None,
+        member_state_input_path: None,
+        member_state_output_path: None,
+        market_data_path: None,
+        news_path: None,
+        offline_member_output_batch_path: None,
+        max_candidates_per_cycle: 1,
+        include_risk_blocked: false,
+        include_needs_evidence: true,
+        emit_owner_daily_brief: true,
+        paper_only: true,
+        watchlist_store: store,
+        batch_input,
+        member_state_store: None,
+    })
+    .expect("paper candidate recheck");
+    assert!(
+        result
+            .lifecycle_events
+            .iter()
+            .any(|event| event.new_status == WatchlistCandidateStatus::PaperCandidate)
+    );
+    assert!(
+        result
+            .updated_watchlist_store
+            .candidates
+            .iter()
+            .all(|candidate| candidate.paper_only)
+    );
+    let json = serde_json::to_string(&result).expect("watchlist recheck json");
+    for forbidden_field in ["\"broker\"", "\"order\"", "\"account\""] {
+        assert!(!json.contains(forbidden_field));
+    }
+}
+
+#[test]
+fn owner_attention_inbox_triages_actions_and_watchlist_safely() {
+    let run = run_autonomous_paper_committee_loop_from_config_path(std::path::Path::new(
+        "examples/soma_minimal_ai_committee_core.toml",
+    ))
+    .expect("autonomous run with attention inbox");
+    let mut inbox = OwnerAttentionInbox::from_attention_queue(&run.attention_queue);
+    let original_count = inbox.items.len();
+    inbox.merge_new_items(&run.attention_queue);
+    assert_eq!(inbox.items.len(), original_count);
+    assert_eq!(
+        inbox
+            .high_priority_items()
+            .first()
+            .map(|item| item.priority),
+        Some(OwnerAttentionPriority::High)
+    );
+    assert!(!inbox.open_items().is_empty());
+    assert_eq!(inbox.requires_owner_input_count, 0);
+    assert!(inbox.items_requiring_owner_input().is_empty());
+
+    let watch_item = inbox
+        .items
+        .iter()
+        .find(|item| item.symbol.is_some() && item.market_scope.is_some())
+        .expect("symbol scoped attention item")
+        .clone();
+    let actions = vec![
+        OwnerAttentionAction {
+            action_id: "triage-ack".to_string(),
+            item_id: watch_item.item_id.clone(),
+            action_type: OwnerAttentionActionType::Acknowledge,
+            comment: Some("Paper-only acknowledge".to_string()),
+            created_at: Some("2026-05-23T04:30:00Z".to_string()),
+            paper_only: true,
+        },
+        OwnerAttentionAction {
+            action_id: "triage-defer".to_string(),
+            item_id: watch_item.item_id.clone(),
+            action_type: OwnerAttentionActionType::Defer,
+            comment: Some("Paper-only defer".to_string()),
+            created_at: Some("2026-05-23T04:31:00Z".to_string()),
+            paper_only: true,
+        },
+        OwnerAttentionAction {
+            action_id: "triage-dismiss".to_string(),
+            item_id: watch_item.item_id.clone(),
+            action_type: OwnerAttentionActionType::Dismiss,
+            comment: Some("Paper-only dismiss".to_string()),
+            created_at: Some("2026-05-23T04:32:00Z".to_string()),
+            paper_only: true,
+        },
+        OwnerAttentionAction {
+            action_id: "triage-watch".to_string(),
+            item_id: watch_item.item_id.clone(),
+            action_type: OwnerAttentionActionType::ConvertToWatchlist,
+            comment: Some("Paper-only watchlist candidate".to_string()),
+            created_at: Some("2026-05-23T04:33:00Z".to_string()),
+            paper_only: true,
+        },
+        OwnerAttentionAction {
+            action_id: "triage-evidence".to_string(),
+            item_id: watch_item.item_id.clone(),
+            action_type: OwnerAttentionActionType::RequestMoreEvidence,
+            comment: Some("Paper-only request more evidence".to_string()),
+            created_at: Some("2026-05-23T04:34:00Z".to_string()),
+            paper_only: true,
+        },
+        OwnerAttentionAction {
+            action_id: "triage-reconsider".to_string(),
+            item_id: watch_item.item_id.clone(),
+            action_type: OwnerAttentionActionType::RequestReconsideration,
+            comment: Some("Paper-only committee reconsideration".to_string()),
+            created_at: Some("2026-05-23T04:35:00Z".to_string()),
+            paper_only: true,
+        },
+        OwnerAttentionAction {
+            action_id: "triage-comment".to_string(),
+            item_id: watch_item.item_id.clone(),
+            action_type: OwnerAttentionActionType::AddComment,
+            comment: Some("Paper-only owner comment".to_string()),
+            created_at: Some("2026-05-23T04:36:00Z".to_string()),
+            paper_only: true,
+        },
+        OwnerAttentionAction {
+            action_id: "triage-unsafe".to_string(),
+            item_id: watch_item.item_id.clone(),
+            action_type: OwnerAttentionActionType::AddComment,
+            comment: Some("execute order with broker account".to_string()),
+            created_at: Some("2026-05-23T04:37:00Z".to_string()),
+            paper_only: true,
+        },
+    ];
+    let first = run_owner_attention_triage(OwnerAttentionTriageInput {
+        previous_run: run.clone(),
+        previous_inbox: Some(inbox.clone()),
+        owner_actions: actions.clone(),
+        watchlist_store: Some(WatchlistCandidateStore::new("triage-test-watchlist")),
+    })
+    .expect("first triage");
+    let second = run_owner_attention_triage(OwnerAttentionTriageInput {
+        previous_run: run,
+        previous_inbox: Some(inbox),
+        owner_actions: actions,
+        watchlist_store: Some(WatchlistCandidateStore::new("triage-test-watchlist")),
+    })
+    .expect("second triage");
+    assert_eq!(first, second);
+
+    assert!(first.action_results.iter().any(|result| {
+        result.action_id == "triage-ack"
+            && result.new_status == OwnerAttentionInboxStatus::Acknowledged
+            && result.safety_status == OwnerAttentionActionSafetyStatus::Passed
+    }));
+    assert!(first.action_results.iter().any(|result| {
+        result.action_id == "triage-defer"
+            && result.new_status == OwnerAttentionInboxStatus::Deferred
+    }));
+    assert!(first.action_results.iter().any(|result| {
+        result.action_id == "triage-dismiss"
+            && result.new_status == OwnerAttentionInboxStatus::Dismissed
+    }));
+    assert!(first.action_results.iter().any(|result| {
+        result.action_id == "triage-unsafe"
+            && result.safety_status == OwnerAttentionActionSafetyStatus::Rejected
+    }));
+    assert!(
+        first
+            .generated_watchlist_candidates
+            .iter()
+            .all(|candidate| {
+                candidate.paper_only
+                    && matches!(
+                        candidate.status,
+                        WatchlistCandidateStatus::Watching
+                            | WatchlistCandidateStatus::NeedsEvidence
+                            | WatchlistCandidateStatus::RiskBlocked
+                            | WatchlistCandidateStatus::PaperCandidate
+                    )
+            })
+    );
+    assert!(first.generated_owner_feedback.iter().any(|feedback| {
+        feedback.feedback_type == OwnerFeedbackType::EvidenceRequest && feedback.paper_only
+    }));
+    assert!(first.generated_owner_feedback.iter().any(|feedback| {
+        feedback.feedback_type == OwnerFeedbackType::ReconsiderationRequest && feedback.paper_only
+    }));
+    assert!(first.generated_owner_feedback.iter().any(|feedback| {
+        feedback.feedback_type == OwnerFeedbackType::Comment && feedback.paper_only
+    }));
+    assert!(first.watchlist_store.active_count >= 1);
+    assert!(
+        !first
+            .watchlist_store
+            .candidates_by_symbol(&watch_item.symbol.expect("watch symbol"))
+            .is_empty()
+    );
+    assert!(first.safety_summary.no_broker_order_account);
+    assert!(first.safety_summary.no_model_training);
+    assert!(first.safety_summary.no_live_inference);
+
+    let inbox_path = std::path::Path::new("target/sprint136_owner_attention_inbox.json");
+    let watchlist_path = std::path::Path::new("target/sprint136_watchlist_store.json");
+    let _ = std::fs::remove_file(inbox_path);
+    let _ = std::fs::remove_file(watchlist_path);
+    first
+        .inbox
+        .save_to_local_json(inbox_path)
+        .expect("save inbox");
+    let loaded_inbox = OwnerAttentionInbox::load_from_local_json(inbox_path).expect("load inbox");
+    assert_eq!(loaded_inbox, first.inbox);
+    first
+        .watchlist_store
+        .save_to_local_json(watchlist_path)
+        .expect("save watchlist");
+    let loaded_watchlist =
+        WatchlistCandidateStore::load_from_local_json(watchlist_path).expect("load watchlist");
+    assert_eq!(loaded_watchlist, first.watchlist_store);
+    let _ = std::fs::remove_file(inbox_path);
+    let _ = std::fs::remove_file(watchlist_path);
+
+    let err = OwnerAttentionInbox::load_from_local_json(std::path::Path::new(
+        "https://example.invalid/inbox.json",
+    ))
+    .expect_err("remote inbox path must fail");
+    assert!(err.contains("must be local"));
+    let err = WatchlistCandidateStore::load_from_local_json(std::path::Path::new(
+        "https://example.invalid/watchlist.json",
+    ))
+    .expect_err("remote watchlist path must fail");
+    assert!(err.contains("must be local"));
+    let sample_actions = load_owner_attention_actions_from_local_json(std::path::Path::new(
+        "examples/minimal_owner_attention_actions.sample.json",
+    ))
+    .expect("load owner attention action sample");
+    assert!(!sample_actions.is_empty());
+}
+
+#[test]
+fn autonomous_paper_config_rejects_remote_and_unsafe_fields() {
+    let config = MinimalAiCommitteeCycleConfig {
+        input_path: Some("examples/minimal_ai_committee_core_sample.json".to_string()),
+        offline_member_opinion_path: None,
+        offline_member_output_batch_path: None,
+        batch_mode: true,
+        member_state_input_path: None,
+        member_state_output_path: None,
+        emit_owner_summary: true,
+        emit_owner_console_view: true,
+        owner_feedback_path: None,
+        emit_reconsideration_view: false,
+        autonomous_paper_run: true,
+        run_id: Some("remote-reject".to_string()),
+        market_scopes: Vec::new(),
+        symbols: Vec::new(),
+        max_cycles: 1,
+        cycle_mode: AutonomousPaperCycleMode::SingleShot,
+        require_owner_confirmation: OwnerConfirmationPolicy::Never,
+        local_market_data_path: Some("https://example.invalid/market.json".to_string()),
+        local_news_path: None,
+        paper_only: true,
+        owner_attention_inbox_input_path: None,
+        owner_attention_inbox_output_path: None,
+        owner_attention_actions_path: None,
+        watchlist_candidate_input_path: None,
+        watchlist_candidate_output_path: None,
+        emit_owner_attention_inbox: false,
+        enable_watchlist_recheck: false,
+        watchlist_input_path: None,
+        watchlist_output_path: None,
+        max_candidates_per_cycle: 3,
+        include_risk_blocked: false,
+        include_needs_evidence: true,
+        emit_owner_daily_brief: false,
+        inline_offline_member_opinions: Vec::new(),
+        inline_input: None,
+        pilot_roster: None,
+        paper_outcome: None,
+        archetype_style_cards_path: None,
+        style_mapping_mode: StyleMappingMode::None,
+    };
+    let err = config
+        .validate()
+        .expect_err("remote autonomous market path must fail");
+    assert!(err.contains("local_market_data_path must be local"));
+
+    let unsafe_config_path = std::path::Path::new("target/sprint135_unsafe_autonomous.toml");
+    std::fs::write(
+        unsafe_config_path,
+        r#"
+input_path = "examples/minimal_ai_committee_multi_market_sample.json"
+batch_mode = true
+autonomous_paper_run = true
+run_id = "unsafe-autonomous-test"
+max_cycles = 1
+broker = "not allowed"
+"#,
+    )
+    .expect("write unsafe autonomous config");
+    let err = MinimalAiCommitteeCycleConfig::from_toml_path(unsafe_config_path)
+        .expect_err("unsafe autonomous config must fail");
+    assert!(err.contains("unsafe field or instruction"));
+    let _ = std::fs::remove_file(unsafe_config_path);
 }
 
 #[test]

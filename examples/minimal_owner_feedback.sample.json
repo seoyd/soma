@@ -1,0 +1,79 @@
+[
+  {
+    "feedback_id": "owner-feedback-risk-btc",
+    "symbol": "BTCUSDT",
+    "market_scope": "CryptoShortTerm",
+    "target_member_id": null,
+    "feedback_type": "RiskConcern",
+    "text": "Paper-only concern: BTC volatility looks high; ask RiskGuardAI to reconsider.",
+    "priority": "High",
+    "created_at": "2026-05-22T18:00:00Z",
+    "paper_only": true
+  },
+  {
+    "feedback_id": "owner-feedback-evidence-aapl",
+    "symbol": "AAPL",
+    "market_scope": "UsShortTerm",
+    "target_member_id": null,
+    "feedback_type": "EvidenceRequest",
+    "text": "Paper-only request: ask EvidenceRegimeAI what extra evidence is needed before review.",
+    "priority": "Normal",
+    "created_at": "2026-05-22T18:01:00Z",
+    "paper_only": true
+  },
+  {
+    "feedback_id": "owner-feedback-comment-samsung",
+    "symbol": "005930.KS",
+    "market_scope": "KoreaShortTerm",
+    "target_member_id": null,
+    "feedback_type": "Comment",
+    "text": "Paper-only note for journal; do not reopen the committee.",
+    "priority": "Low",
+    "created_at": "2026-05-22T18:02:00Z",
+    "paper_only": true
+  },
+  {
+    "feedback_id": "owner-feedback-watch-msft",
+    "symbol": "MSFT",
+    "market_scope": "UsLongTerm",
+    "target_member_id": null,
+    "feedback_type": "WatchlistRequest",
+    "text": "Paper-only watchlist request; keep as observation only.",
+    "priority": "Normal",
+    "created_at": "2026-05-22T18:03:00Z",
+    "paper_only": true
+  },
+  {
+    "feedback_id": "owner-feedback-disagree-samsung-trend",
+    "symbol": "005930.KS",
+    "market_scope": "KoreaShortTerm",
+    "target_member_id": "trend-kr-short",
+    "feedback_type": "Disagree",
+    "text": "Paper-only disagreement: ask TrendEntryAI to explain whether the entry stance should soften.",
+    "priority": "Normal",
+    "created_at": "2026-05-22T18:04:00Z",
+    "paper_only": true
+  },
+  {
+    "feedback_id": "owner-feedback-outcome-samsung",
+    "symbol": "005930.KS",
+    "market_scope": "KoreaShortTerm",
+    "target_member_id": null,
+    "feedback_type": "PaperOutcomeLabel",
+    "text": "Paper-only outcome label: record this as positive in the journal only.",
+    "priority": "Low",
+    "created_at": "2026-05-22T18:05:00Z",
+    "paper_only": true
+  },
+  {
+    "feedback_id": "owner-feedback-reconsider-samsung",
+    "symbol": "005930.KS",
+    "market_scope": "KoreaShortTerm",
+    "target_member_id": null,
+    "feedback_type": "ReconsiderationRequest",
+    "text": "Paper-only request: reopen committee discussion without changing Risk Governor authority.",
+    "priority": "High",
+    "created_at": "2026-05-22T18:06:00Z",
+    "paper_only": true
+  }
+]

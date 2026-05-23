@@ -6,6 +6,7 @@ rust-version = "1.85"  # 2024 에디션 최소 버전 (MSRV)
 license = "MIT OR Apache-2.0"
 authors = ["Soma Project Contributors"]
 publish = false
+autotests = false
 
 [workspace]
 resolver = "3"
@@ -20,6 +21,14 @@ encoding_rs = "0.8"
 [[bin]]
 name = "soma-zero"
 path = "src/main.rs"
+
+[[test]]
+name = "minimal_ai_committee_core"
+path = "tests/minimal_ai_committee_core.rs"
+
+[[test]]
+name = "workspace_timeout_reduction_queue"
+path = "tests/workspace_timeout_reduction_queue.rs"
 
 [profile.dev]
 incremental = true

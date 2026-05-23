@@ -173,7 +173,8 @@ use soma_zero::{
     Sprint101InvestorArchetypeIngestionRunner,
 };
 use soma_zero::{
-    MinimalAiCommitteeCycleConfig, run_batch_committee_cycle_from_config_path,
+    MinimalAiCommitteeCycleConfig, run_autonomous_paper_committee_loop_from_config_path,
+    run_batch_committee_cycle_from_config_path,
     run_batch_committee_cycle_with_state_from_config_path,
     run_minimal_committee_cycle_from_config_path,
 };
@@ -976,8 +977,16 @@ fn run_minimal_ai_committee_cycle(
     } else {
         let parsed = MinimalAiCommitteeCycleConfig::from_toml_path(std::path::Path::new(config))?;
         parsed.validate()?;
-        if parsed.batch_mode {
+        if parsed.autonomous_paper_run {
+            serde_json::to_value(run_autonomous_paper_committee_loop_from_config_path(
+                std::path::Path::new(config),
+            )?)
+            .map_err(|err| err.to_string())
+        } else if parsed.batch_mode {
             if parsed.emit_owner_summary
+                || parsed.emit_owner_console_view
+                || parsed.emit_reconsideration_view
+                || parsed.owner_feedback_path.is_some()
                 || parsed.member_state_input_path.is_some()
                 || parsed.member_state_output_path.is_some()
             {

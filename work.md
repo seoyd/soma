@@ -1,339 +1,350 @@
-You are operating as a gstack-style engineering team for the project “Soma Zero”.
+You are operating as a gstack-style engineering team for Soma Zero.
 
 Current state:
-Sprint 02~118 are complete.
+Sprint 138 is complete.
 
-Critical current problem:
-The project is stuck in report/test expansion.
-Sprint 118 added more reports, tests, CLI, docs, examples, and panels, but workspace acceptance is still blocked.
+Sprint 138 result:
+- Cargo.toml now uses autotests = false.
+- Active workspace integration test targets are explicitly listed.
+- Active test targets:
+  - minimal_ai_committee_core
+  - workspace_timeout_reduction_queue
+- Integration test files reduced:
+  - around 1193/1149 previous top-level files
+  - around 907 remaining top-level files
+- 242 legacy sprint/report/diagnostic/gate/panel/timeout tests deleted.
+- cargo test --workspace --no-run --quiet now exits 0.
+- NoRunRecovered can be claimed for the explicit manifest target set.
+- cargo test --workspace --quiet has not yet been run as the final full acceptance check.
+- Full workspace acceptance is not yet claimable until cargo test --workspace --quiet finishes and passes.
 
-Current truth:
-- cargo fmt --all --check passed.
-- cargo check --workspace --quiet passed.
-- cargo build --bin soma_experiment --quiet passed.
-- focused Sprint 118 tests passed.
-- representative CLI smoke passed.
-- cargo test --workspace --no-run --quiet timed out.
-- cargo test --workspace --quiet timed out.
-- NoRunStillBlocked.
-- FullWorkspaceStillBlocked.
-- AcceptanceTruthReadyWithWarnings.
-- can_claim_full_acceptance=false.
-- ConsolidationStillPaused.
-- FifthPatchStillNotApplied.
-- Runtime/training/live/broker/order/account remain deferred.
+Important interpretation:
+No-run recovery was achieved by reducing active Cargo test targets.
+This is acceptable only if:
+- essential product assertions are preserved.
+- safety sentinels are preserved.
+- old legacy tests are either duplicated, obsolete, or intentionally no longer active.
+- explicit test manifest is treated as the new workspace test contract.
 
-Strategic decision:
-Stop adding new report layers.
-Stop adding new Sprint-specific integration tests.
-Stop adding new CLI surfaces.
-Stop adding new docs/examples/fixtures unless absolutely required to remove or consolidate existing surfaces.
-The next sprint must reduce the test surface and recover workspace no-run.
+Sprint 139 objective:
+Lock the explicit test manifest strategy, verify Sprint 138 deletion safety one final time, run full workspace test against the new explicit test target set, and prepare a clean commit for the no-run recovery changes.
 
-Sprint 119 objective:
-Freeze report growth, freeze CLI/docs/example growth, reduce integration-test binary count, consolidate duplicate Sprint timeout/acceptance/report tests, preserve assertions, preserve safety sentinels, and make cargo test --workspace --no-run --quiet finish if possible.
-
-This sprint is not about adding features.
-This sprint is not about adding reports.
-This sprint is not about adding diagnostic panels.
-This sprint is not about adding more acceptance gates.
-This sprint is about reducing what already exists.
+This sprint must not add new product features.
+This sprint must not add report bloat.
+This sprint must not create new diagnostic gates.
+This sprint must not re-enable broad test auto-discovery.
+This sprint must not touch AI core unless fixing a compile/test regression.
 
 ────────────────────────────────────────
 0. SPRINT NAME
 ────────────────────────────────────────
 
-gstack Sprint 119:
-Report Freeze + Test Surface Reduction + Workspace No-Run Pass
+gstack Sprint 139:
+Explicit Test Manifest Lock + Full Workspace Pass + No-Run Recovery Commit
 
 ────────────────────────────────────────
 1. HARD RULES
 
-1. Do not add new report structs.
-2. Do not add new report files.
-3. Do not add new Control Tower panels.
-4. Do not add new CLI commands.
-5. Do not add new example TOMLs.
-6. Do not add new fixture directories.
-7. Do not add new docs except one short Sprint119 summary if needed.
-8. Do not create a new giant Sprint bundle.
-9. Do not create another timeout evidence matrix.
-10. Do not create another acceptance gate version.
-11. Do not create another V20/V21/V22 report family.
-12. Do not add another focused Sprint test family unless it replaces multiple existing tests.
-13. Do not increase the number of integration test binaries.
-14. Do not delete assertions silently.
-15. Do not delete safety tests.
-16. Do not introduce hidden skips.
-17. Do not weaken CLI safety.
-18. Do not weaken determinism checks.
-19. Do not weaken acceptance truth.
-20. Do not claim full workspace acceptance unless cargo test --workspace --quiet finishes and passes.
+Do not add:
+- new product feature
+- new AI member logic
+- new report family
+- new diagnostic matrix
+- new Control Tower panel
+- new CLI family
+- new broad test suite
+- new fixture family
+- real Mamba3 runtime
+- real Gated DeltaNet runtime
+- model training
+- live inference
+- runtime LLM debate
+- broker/order/account
+- live trading
+- dashboard/browser/Tauri/Svelte
 
-Allowed work:
-- Merge duplicate integration test targets.
-- Move assertions into shared consolidated test targets.
-- Delete retired duplicate test files only after assertion migration.
-- Remove redundant Sprint-only smoke tests if equivalent CLI/help/safety coverage remains.
-- Replace many narrow report tests with one consolidated workspace acceptance/reduction test.
-- Delete duplicated fixtures if surviving fixtures cover the same assertions.
-- Remove or stop wiring redundant example configs if no longer needed.
-- Keep one minimal summary of what was removed/migrated.
-- Run cargo test --workspace --no-run --quiet with a real timeout.
-- Run cargo test --workspace --quiet only after no-run is recovered or if explicitly configured.
+Do not:
+- re-enable autotests automatically
+- add back hundreds of integration tests
+- hide safety failures
+- delete safety assertions
+- delete determinism assertions
+- delete no-order/no-account/no-training assertions
+- delete full-acceptance truth assertions
+- claim legacy-autodiscovery-wide acceptance
+- claim full workspace acceptance before cargo test --workspace --quiet finishes and passes
+- treat no-run as full test pass
 
-────────────────────────────────────────
-2. ROLE STACK
+Allowed:
+- verify Cargo.toml explicit test manifest
+- verify deleted legacy tests are safe to remain deleted
+- restore any uncertain safety-critical test
+- run full workspace test
+- create one short docs/SPRINT139_EXPLICIT_TEST_MANIFEST.md if needed
+- commit Sprint 138 no-run recovery changes after validation
 
-Role 1: Product Chair
-- Enforces report freeze.
-- Blocks new feature/report/test expansion.
-
-Role 2: Test Surface Reduction Architect
-- Finds high-volume integration test targets.
-- Merges duplicate tests.
-- Reduces binary count.
-
-Role 3: Assertion Preservation Architect
-- Moves assertions before deleting test files.
-- Produces a simple migration list, not a new report system.
-
-Role 4: Safety Sentinel Architect
-- Keeps safety tests, CLI safety, determinism, no-live/no-order/no-training guards.
-
-Role 5: Workspace Acceptance Architect
-- Focuses on cargo test --workspace --no-run --quiet completion.
-- Keeps no-run distinct from full acceptance.
-
-Role 6: Rust Cleanup Engineer
-- Removes duplicate test files, duplicated fixtures, duplicated examples, and redundant CLI smoke surfaces.
-- Does not add feature code.
-
-Role 7: Verification Engineer
-- Runs fmt/check/build/no-run.
-- Confirms no hidden skips or assertion deletion.
+Main rule:
+Do not expand.
+Lock and verify.
 
 ────────────────────────────────────────
-3. WORK PLAN
+2. TEST CONTRACT
 
-STEP 1 — Inventory
+The new workspace test contract is:
 
-Create a short internal inventory:
-- current integration test target count.
-- largest duplicated Sprint timeout/acceptance test groups.
-- duplicated Control Tower panel tests.
-- duplicated acceptance truth gate tests.
-- duplicated cargo JSON/timeout tests.
-- duplicated fixture/example support files.
-- safety sentinel tests that must not be touched.
+Cargo.toml:
+- autotests = false
+- explicit [[test]] targets only
 
-Do not create a new report module for this.
-Use a simple markdown or text note if needed:
-docs/SPRINT119_TEST_SURFACE_REDUCTION.md
+Required explicit targets:
+1. minimal_ai_committee_core
+   Protects:
+   - AI committee core
+   - DataRouter
+   - AiMemberBrain
+   - OfflineMemberBrainAdapter
+   - CoreAwareMemberBrainAdapter
+   - Mamba3/Gated deferred contract
+   - 3-member pilot
+   - style cards
+   - offline batch
+   - owner summary
+   - owner console
+   - owner feedback
+   - autonomous paper loop
+   - attention inbox
+   - watchlist recheck
+   - no broker/order/account
+   - no training/live inference
+   - deterministic core behavior
 
-STEP 2 — Select reduction targets
+2. workspace_timeout_reduction_queue
+   Protects:
+   - no-run/full-acceptance truth
+   - timeout safety
+   - cargo JSON diagnostic safety
+   - CLI warning/forbidden command safety
+   - read-only/control-tower legacy safety assertions if migrated
+   - no false full-acceptance claim
+   - determinism assertions migrated from old sprint tests
 
-Select only low-risk duplicate families:
-- Sprint 111~118 timeout/acceptance tests.
-- repeated acceptance truth gate tests.
-- repeated cargo JSON diagnostic tests.
-- repeated Control Tower read-only panel tests.
-- repeated CLI smoke tests where help text coverage overlaps.
-- repeated fixture/support modules.
+Do not add many explicit targets.
+Only add a third explicit target if a safety assertion is clearly not covered by the two survivors.
 
-Do not select:
-- workspace CLI safety sentinel.
-- workspace determinism sentinel.
-- safety guard tests.
-- Risk Governor veto tests.
-- no-live/no-order/no-account tests.
-- no-hidden-skip tests.
+────────────────────────────────────────
+3. PHASE 1 — INSPECT CURRENT STATE
 
-STEP 3 — Consolidate tests
+Run:
 
-For each selected duplicate group:
-- choose one surviving consolidated test target.
-- move assertions into it.
-- delete the now-redundant narrow test file.
-- keep assertion names/comments traceable.
-- do not skip assertions.
-- do not remove safety semantics.
-- update mod/support wiring.
+git status --short
+git diff --name-status
+git diff --stat
+git diff -- Cargo.toml
+find tests -maxdepth 1 -name "*.rs" | wc -l
+cargo test --list --workspace
 
-Target outcome:
-- reduce integration test binary count by at least 10 if safe.
-- if 10 is not safe, reduce by the maximum safe count and explain why.
+Confirm:
+- autotests = false is present.
+- only intended explicit integration test targets are active.
+- 242 deleted files are visible in diff.
+- no current AI core file was accidentally damaged.
+- work.md is ignored as scratchpad.
 
-STEP 4 — Reduce CLI smoke duplication
+Do not stage or commit yet.
 
-Do not add CLI commands.
-Do not add new smoke files.
+────────────────────────────────────────
+4. PHASE 2 — VERIFY DELETED TEST SAFETY
 
-Reduce repeated CLI smoke by:
-- keeping one representative CLI safety test.
-- keeping one deterministic CLI help test.
-- removing duplicated Sprint-specific help tests where identical safety text is already covered.
-- preserving remote path rejection coverage.
+Review deleted test categories.
 
-STEP 5 — Reduce fixture/example duplication
+For every deleted group, classify briefly:
 
-Remove or consolidate duplicate:
-- sprint timeout fixtures.
-- acceptance truth fixtures.
-- cargo JSON sample fixtures.
-- repeated example TOMLs used only by retired tests.
+- SafeDeleteDuplicate
+- SafeDeleteObsoleteReportOnly
+- SafeDeleteObsoleteDiagnosticOnly
+- RestoreSafetyCritical
+- RestoreUncertain
 
-Keep only fixtures needed by surviving tests.
+Deletion can stay only if:
+- assertion is covered by minimal_ai_committee_core, or
+- assertion is covered by workspace_timeout_reduction_queue, or
+- file only tested obsolete report formatting / old diagnostic bundle shape, or
+- file was not part of product direction and not safety-critical.
 
-STEP 6 — Verify no safety loss
+Must restore if deleted test contained unique:
+- broker/order/account guard
+- live trading guard
+- model training guard
+- live inference guard
+- Risk Governor veto assertion
+- acceptance truth assertion
+- determinism assertion
+- hidden skip guard
+- local-only/remote path rejection guard
 
-Run targeted checks:
-- cargo fmt --all
-- cargo check --workspace
-- cargo build --bin soma_experiment
-- surviving consolidated test target
-- CLI safety test
-- determinism test
-- no-hidden-skip/safety sentinel tests if present
+No vague phrase “covered elsewhere.”
+Name the survivor:
+- tests/minimal_ai_committee_core.rs
+- tests/workspace_timeout_reduction_queue.rs
 
-STEP 7 — Workspace no-run attempt
+────────────────────────────────────────
+5. PHASE 3 — VERIFY EXPLICIT TEST TARGETS
+
+Run:
+
+cargo fmt --all
+cargo fmt --all --check
+cargo check --workspace
+cargo build --bin soma_experiment
+cargo test --test minimal_ai_committee_core --quiet
+cargo test --test workspace_timeout_reduction_queue --quiet
+
+Required:
+- both explicit tests pass.
+- no ignored/hidden skip is introduced.
+- no safety warning disappears.
+- CLI smoke still works.
+
+Run CLI smoke:
+
+cargo run --quiet --bin soma_experiment -- minimal-ai-committee-cycle --config examples/soma_minimal_ai_committee_core.toml
+
+────────────────────────────────────────
+6. PHASE 4 — VERIFY NO-RUN RECOVERY
 
 Run:
 
 cargo test --workspace --no-run --quiet
 
-Rules:
-- If it finishes and passes, mark NoRunRecovered.
-- If it times out, report honest timeout.
-- If it fails, fix real compile/test-build failures.
-- Do not claim full workspace acceptance from no-run.
+Expected:
+- should finish and pass now.
 
-STEP 8 — Full workspace attempt
+If pass:
+- mark NoRunRecovered.
+- record that recovery applies to explicit manifest target set.
 
-Only run:
+If fail:
+- fix compile/no-run failure.
+- do not reintroduce broad auto tests.
+- rerun.
+
+If timeout:
+- report timeout honestly.
+- do not claim recovery.
+- inspect active target list again.
+
+────────────────────────────────────────
+7. PHASE 5 — FULL WORKSPACE TEST
+
+Now that no-run has recovered, run:
 
 cargo test --workspace --quiet
 
-after no-run completes, or if explicitly configured.
-
 Rules:
-- FullWorkspaceAccepted only if finished and passed.
-- Timeout is not pass.
-- Focused tests are not full pass.
-- CLI smoke is not full pass.
-- cargo build is not full pass.
+- FullWorkspaceAccepted only if this finishes and passes.
+- If it times out, report timeout honestly.
+- If it fails, fix real failure.
+- Do not claim full acceptance from focused tests.
+- Do not claim full acceptance from no-run.
+
+Expected:
+Because active test targets are now capped, this should be much more likely to finish.
 
 ────────────────────────────────────────
-4. WHAT TO REMOVE / MERGE FIRST
+8. PHASE 6 — SHORT MANIFEST NOTE
 
-Prioritize likely duplicate families:
+Create or update one short doc only if useful:
 
-1. Sprint 111~118 timeout root-cause tests.
-2. Sprint 111~118 acceptance truth gate tests.
-3. Sprint 111~118 Control Tower timeout/acceptance panel tests.
-4. Sprint 111~118 cargo JSON diagnostic tests.
-5. Sprint 111~118 CLI safety duplicates.
-6. Sprint 111~118 determinism duplicates.
-7. Repeated `tests/support/sprintXXX_support.rs` files with near-identical helpers.
-8. Repeated example TOMLs that only feed retired test targets.
-9. Repeated fixture JSONs with same status combinations.
+docs/SPRINT139_EXPLICIT_TEST_MANIFEST.md
 
-The goal is not to preserve every Sprint-specific test file.
-The goal is to preserve the assertions.
+Contents:
+- why autotests=false was introduced
+- which explicit tests are active
+- what each survivor protects
+- deleted legacy tests are old report/diagnostic surface
+- full old auto-discovery is no longer the test contract
+- safety assertions are preserved in survivor targets
+- future tests must be added deliberately to Cargo.toml
 
-────────────────────────────────────────
-5. STRICT DEFER LIST
-
-Do not implement:
-- new AI core work,
-- Mamba3Fin runtime,
-- Gated DeltaNet runtime,
-- model training,
-- runtime LLM,
-- live inference,
-- live trading,
-- broker/order/account APIs,
-- Tauri/Svelte,
-- dashboard serve,
-- browser execution,
-- new Control Tower feature panels,
-- fifth patch,
-- assertion movement for consolidation beyond test reduction,
-- test target retirement without migrated assertions,
-- new report families,
-- new diagnostics,
-- new examples unless replacing old ones.
+Do not write a giant report.
 
 ────────────────────────────────────────
-6. ACCEPTANCE CRITERIA
+9. PHASE 7 — COMMIT PREP
 
-Sprint 119 is successful if:
+Inspect:
 
-- no new report family is added.
+git status --short
+git diff --name-status
+git diff --check
+
+Commit candidate should include:
+- Cargo.toml
+- deleted legacy test files
+- possibly docs/SPRINT139_EXPLICIT_TEST_MANIFEST.md
+- any small survivor test adjustment required for safety preservation
+
+Commit candidate should not include:
+- new product features
+- work.md
+- unrelated docs
+- unrelated examples
+- Group B leftovers unrelated to no-run recovery
+- accidental core changes
+
+Suggested commit message:
+
+test: cap integration targets and recover workspace no-run
+
+Do not push unless explicitly instructed.
+
+────────────────────────────────────────
+10. ACCEPTANCE CRITERIA
+
+Sprint 139 succeeds if:
+
+- autotests=false strategy is verified.
+- explicit test targets are intentional.
+- deleted legacy tests are classified.
+- uncertain safety-critical deletions are restored.
+- minimal_ai_committee_core passes.
+- workspace_timeout_reduction_queue passes.
+- CLI smoke passes.
+- cargo check passes.
+- cargo build passes.
+- cargo test --workspace --no-run --quiet passes.
+- cargo test --workspace --quiet is attempted.
+- FullWorkspaceAccepted is claimed only if full workspace test finishes and passes.
+- no report bloat is added.
 - no new CLI family is added.
-- no new diagnostic bundle family is added.
-- integration test target count decreases.
-- retired test files have migrated assertions.
-- no safety test is deleted.
-- no hidden skip is introduced.
-- cargo fmt --all passes.
-- cargo check --workspace passes.
-- cargo build --bin soma_experiment passes.
-- consolidated focused tests pass.
-- CLI safety still passes.
-- determinism still passes.
-- cargo test --workspace --no-run --quiet is attempted honestly.
-- if no-run finishes, report NoRunRecovered.
-- if no-run times out, report timeout honestly and show reduced target count.
-- full workspace acceptance is claimed only if cargo test --workspace --quiet finishes and passes.
+- no product feature is added.
+- no broker/order/account path is added.
+- no training/live inference path is added.
+- no real Mamba/Gated runtime is added.
 
 ────────────────────────────────────────
-7. FINAL RESPONSE FORMAT
+11. FINAL RESPONSE FORMAT
 
-When done, respond with:
+Keep final response short:
 
-## 1. Sprint summary
+## 1. What changed
 
-## 2. Files removed
+## 2. Explicit test manifest
 
-## 3. Files merged
+## 3. Deleted legacy test classification
 
-## 4. Files changed
+## 4. Restored files, if any
 
-## 5. Assertions migrated
+## 5. Tests run
 
-## 6. Test targets retired
+## 6. Workspace no-run result
 
-## 7. Surviving consolidated test targets
+## 7. Full workspace test result
 
-## 8. Fixture/example reductions
+## 8. Commit readiness
 
-## 9. CLI smoke reduction
+## 9. Remaining risk
 
-## 10. Safety sentinels preserved
+## 10. Next step
 
-## 11. Determinism preserved
-
-## 12. Target-count before/after
-
-## 13. cargo fmt/check/build results
-
-## 14. Focused consolidated test results
-
-## 15. cargo test --workspace --no-run result
-
-## 16. cargo test --workspace result, only if run
-
-## 17. No-run recovery status
-
-## 18. Full workspace acceptance status
-
-## 19. Remaining blockers
-
-## 20. Next recommendation
-
-Do not add a 60-section report.
-Do not create another report bundle.
-Do not create another diagnostic queue.
-Do not over-explain.
-Be direct.
+No giant report.
+No 60-section output.
