@@ -3021,6 +3021,377 @@ pub struct OwnerActionComposerResult {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerNaturalInput {
+    #[serde(default = "default_owner_natural_input_id")]
+    pub input_id: String,
+    pub text: String,
+    #[serde(default)]
+    pub symbol: Option<String>,
+    #[serde(default)]
+    pub market_scope: Option<MarketScope>,
+    #[serde(default)]
+    pub target_member_id: Option<String>,
+    #[serde(default)]
+    pub target_item_id: Option<String>,
+    #[serde(default)]
+    pub source_label: Option<String>,
+    #[serde(default)]
+    pub created_at: Option<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum OwnerNaturalInputIntent {
+    Comment,
+    Disagreement,
+    RiskConcern,
+    EvidenceRequest,
+    WatchlistRequest,
+    ReconsiderationRequest,
+    PaperOutcomeLabel,
+    Unknown,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerNaturalInputParseResult {
+    pub input_id: String,
+    pub normalized_text: String,
+    pub detected_intent: OwnerNaturalInputIntent,
+    pub intent: OwnerNaturalInputIntent,
+    pub confidence_hint: f64,
+    pub generated_feedback: Option<OwnerFeedback>,
+    pub generated_attention_action: Option<OwnerAttentionAction>,
+    pub feedback: OwnerFeedback,
+    pub internal_action_file: OwnerActionFile,
+    pub safety_status: OwnerAttentionActionSafetyStatus,
+    pub rejection_reason: Option<String>,
+    pub safety_notes: Vec<String>,
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerNaturalInputActionResult {
+    pub parse_result: OwnerNaturalInputParseResult,
+    pub wrote_output: bool,
+    pub output_path: Option<String>,
+    pub preview_text: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum OwnerIntentPolicyLanguage {
+    Ko,
+    En,
+    Mixed,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerIntentRule {
+    pub rule_id: String,
+    pub intent: OwnerNaturalInputIntent,
+    pub include_terms: Vec<String>,
+    #[serde(default)]
+    pub exclude_terms: Vec<String>,
+    pub priority: i32,
+    pub confidence_hint: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum OwnerSafetyBlockedCategory {
+    OrderExecution,
+    BrokerAccount,
+    LiveTrading,
+    Leverage,
+    GuaranteedReturn,
+    PrivateIllegalInfo,
+    SecretCredential,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum OwnerSafetyRuleSeverity {
+    Reject,
+    Warn,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerSafetyRule {
+    pub rule_id: String,
+    pub blocked_category: OwnerSafetyBlockedCategory,
+    pub blocked_terms: Vec<String>,
+    pub severity: OwnerSafetyRuleSeverity,
+    pub rejection_message: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerIntentPolicy {
+    pub policy_id: String,
+    pub language: OwnerIntentPolicyLanguage,
+    pub intent_rules: Vec<OwnerIntentRule>,
+    pub safety_rules: Vec<OwnerSafetyRule>,
+    pub default_intent: OwnerNaturalInputIntent,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerIntentPolicyLoadResult {
+    pub loaded: bool,
+    pub rule_count: usize,
+    pub safety_rule_count: usize,
+    pub warnings: Vec<String>,
+    pub policy: OwnerIntentPolicy,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum NewsProviderKind {
+    LocalFixture,
+    RssFeed,
+    HttpHeadline,
+    Disabled,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum NewsCollectionSourceMode {
+    LocalFixture,
+    RssFeed,
+    HttpHeadline,
+}
+
+fn default_news_collection_source_mode() -> NewsCollectionSourceMode {
+    NewsCollectionSourceMode::LocalFixture
+}
+
+fn default_max_news_items_per_symbol() -> usize {
+    5
+}
+
+fn default_news_provider_timeout_ms() -> u64 {
+    1_000
+}
+
+fn default_owner_natural_input_id() -> String {
+    "owner-natural-input".to_string()
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct NewsSourceDescriptor {
+    pub source_id: String,
+    #[serde(default)]
+    pub label: Option<String>,
+    #[serde(default = "default_news_collection_source_mode")]
+    pub mode: NewsCollectionSourceMode,
+    #[serde(default)]
+    pub path: Option<String>,
+    #[serde(default)]
+    pub url: Option<String>,
+    #[serde(default)]
+    pub allowed_domain: Option<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct CollectedNewsItem {
+    pub symbol: String,
+    #[serde(default)]
+    pub market_scope: Option<MarketScope>,
+    pub headline: String,
+    pub summary: String,
+    #[serde(default)]
+    pub sentiment_hint: Option<String>,
+    pub source_label: String,
+    pub timestamp: String,
+    #[serde(default)]
+    pub url: Option<String>,
+    #[serde(default)]
+    pub license_note: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct NewsCollectionConfig {
+    #[serde(default = "default_news_collection_source_mode")]
+    pub source_mode: NewsCollectionSourceMode,
+    #[serde(default)]
+    pub local_fixture_path: Option<String>,
+    #[serde(default)]
+    pub sources: Vec<NewsSourceDescriptor>,
+    #[serde(default)]
+    pub inline_items: Vec<CollectedNewsItem>,
+    #[serde(default)]
+    pub allow_network: bool,
+    #[serde(default)]
+    pub allowed_domains: Vec<String>,
+    #[serde(default = "default_max_news_items_per_symbol")]
+    pub max_items_per_symbol: usize,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct NewsCollectionResult {
+    pub source_count: usize,
+    pub collected_item_count: usize,
+    pub snapshot_count: usize,
+    pub rejected_source_count: usize,
+    pub collected_items: Vec<CollectedNewsItem>,
+    pub news_snapshots: Vec<NewsSnapshot>,
+    pub safety_notes: Vec<String>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum NewsProviderTrustLevel {
+    High,
+    Medium,
+    Low,
+    ReviewRequired,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct NewsProviderConfig {
+    pub provider_id: String,
+    pub kind: NewsProviderKind,
+    pub enabled: bool,
+    #[serde(default)]
+    pub source_path_or_url: Option<String>,
+    pub source_label: String,
+    #[serde(default)]
+    pub allowed_domains: Vec<String>,
+    #[serde(default)]
+    pub symbols: Vec<String>,
+    #[serde(default)]
+    pub market_scopes: Vec<MarketScope>,
+    #[serde(default = "default_max_news_items_per_symbol")]
+    pub max_items: usize,
+    #[serde(default = "default_news_provider_timeout_ms")]
+    pub timeout_ms: u64,
+    pub trust_level: NewsProviderTrustLevel,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum NewsProviderRunStatus {
+    Collected,
+    Disabled,
+    ProviderDeferred,
+    Rejected,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct NewsProviderRunResult {
+    pub provider_id: String,
+    pub kind: NewsProviderKind,
+    pub status: NewsProviderRunStatus,
+    pub collected_count: usize,
+    pub rejected_count: usize,
+    pub message: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct NewsCollectionRun {
+    pub run_id: String,
+    pub provider_results: Vec<NewsProviderRunResult>,
+    pub collected_news: Vec<CollectedNewsItem>,
+    pub rejected_news: Vec<CollectedNewsItem>,
+    pub news_snapshots: Vec<NewsSnapshot>,
+    pub safety_summary: MinimalCommitteeSafetySummary,
+}
+
+pub trait NewsProvider {
+    fn collect(&self, config: &NewsProviderConfig) -> Result<NewsCollectionResult, String>;
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct LocalFixtureNewsProvider;
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct RssFeedNewsProviderStub;
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct HttpHeadlineNewsProviderStub;
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct AIResearchPacket {
+    pub packet_id: String,
+    pub member_id: String,
+    pub symbol: String,
+    pub market_scope: MarketScope,
+    pub market_data: MarketDataSnapshot,
+    pub news: Vec<NewsSnapshot>,
+    pub owner_context: Option<String>,
+    pub previous_member_score: Option<f64>,
+    pub routing_notes: Vec<String>,
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct AIResearchPacketBatch {
+    pub packet_count: usize,
+    pub routed_member_count: usize,
+    pub unrouted_symbol_count: usize,
+    pub packets: Vec<AIResearchPacket>,
+    pub safety_notes: Vec<String>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ResearchRunMode {
+    SingleShot,
+    ManualStep,
+    FixedCount,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ResearchRunConfig {
+    pub research_run_id: String,
+    #[serde(default)]
+    pub market_scopes: Vec<MarketScope>,
+    #[serde(default)]
+    pub symbols: Vec<String>,
+    #[serde(default)]
+    pub market_data_path: Option<String>,
+    #[serde(default)]
+    pub news_provider_config_path: Option<String>,
+    #[serde(default)]
+    pub owner_intent_policy_path: Option<String>,
+    #[serde(default)]
+    pub owner_comment_text: Option<String>,
+    #[serde(default)]
+    pub owner_comment_path: Option<String>,
+    #[serde(default)]
+    pub member_state_input_path: Option<String>,
+    #[serde(default)]
+    pub offline_member_output_batch_path: Option<String>,
+    pub run_mode: ResearchRunMode,
+    #[serde(default = "default_autonomous_max_cycles")]
+    pub max_cycles: usize,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ResearchPacketSummary {
+    pub symbols_covered: Vec<String>,
+    pub news_items_attached: usize,
+    pub owner_context_attached: bool,
+    pub members_routed: usize,
+    pub packets_generated: usize,
+    pub events_generated: usize,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ResearchRunResult {
+    pub research_run_id: String,
+    pub news_collection_run: NewsCollectionRun,
+    pub research_packet_batch: AIResearchPacketBatch,
+    pub member_opinion_count: usize,
+    pub event_count: usize,
+    pub committee_session_count: usize,
+    pub owner_feedback_generated_count: usize,
+    pub research_packet_summary: ResearchPacketSummary,
+    pub safety_summary: MinimalCommitteeSafetySummary,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum OwnerActionApplyMode {
     DryRun,
     Apply,
@@ -3348,6 +3719,12 @@ pub struct MinimalAiCommitteeCycleConfig {
     #[serde(default)]
     pub owner_feedback_path: Option<String>,
     #[serde(default)]
+    pub owner_comment_text: Option<String>,
+    #[serde(default)]
+    pub owner_comment_path: Option<String>,
+    #[serde(default)]
+    pub owner_intent_policy_path: Option<String>,
+    #[serde(default)]
     pub emit_reconsideration_view: bool,
     #[serde(default)]
     pub autonomous_paper_run: bool,
@@ -3367,6 +3744,18 @@ pub struct MinimalAiCommitteeCycleConfig {
     pub local_market_data_path: Option<String>,
     #[serde(default)]
     pub local_news_path: Option<String>,
+    #[serde(default)]
+    pub news_collection_enabled: bool,
+    #[serde(default)]
+    pub news_collection_config_path: Option<String>,
+    #[serde(default)]
+    pub news_provider_config_path: Option<String>,
+    #[serde(default)]
+    pub research_run_enabled: bool,
+    #[serde(default)]
+    pub emit_research_run_summary: bool,
+    #[serde(default)]
+    pub emit_research_packet_summary: bool,
     #[serde(default = "default_paper_only_true")]
     pub paper_only: bool,
     #[serde(default)]
@@ -3484,6 +3873,30 @@ impl MinimalAiCommitteeCycleConfig {
                 return Err("minimal AI committee owner_feedback_path must be local".to_string());
             }
         }
+        if let Some(path) = &self.owner_comment_path {
+            if !local_only(path) {
+                return Err("minimal AI committee owner_comment_path must be local".to_string());
+            }
+            if path_has_parent_component(Path::new(path)) {
+                return Err(
+                    "minimal AI committee owner_comment_path must not contain parent-directory traversal"
+                        .to_string(),
+                );
+            }
+        }
+        if let Some(path) = &self.owner_intent_policy_path {
+            if !local_only(path) {
+                return Err(
+                    "minimal AI committee owner_intent_policy_path must be local".to_string(),
+                );
+            }
+            if path_has_parent_component(Path::new(path)) {
+                return Err(
+                    "minimal AI committee owner_intent_policy_path must not contain parent-directory traversal"
+                        .to_string(),
+                );
+            }
+        }
         if let Some(path) = &self.local_market_data_path {
             if !local_only(path) {
                 return Err("minimal AI committee local_market_data_path must be local".to_string());
@@ -3492,6 +3905,38 @@ impl MinimalAiCommitteeCycleConfig {
         if let Some(path) = &self.local_news_path {
             if !local_only(path) {
                 return Err("minimal AI committee local_news_path must be local".to_string());
+            }
+            if path_has_parent_component(Path::new(path)) {
+                return Err(
+                    "minimal AI committee local_news_path must not contain parent-directory traversal"
+                        .to_string(),
+                );
+            }
+        }
+        if let Some(path) = &self.news_collection_config_path {
+            if !local_only(path) {
+                return Err(
+                    "minimal AI committee news_collection_config_path must be local".to_string(),
+                );
+            }
+            if path_has_parent_component(Path::new(path)) {
+                return Err(
+                    "minimal AI committee news_collection_config_path must not contain parent-directory traversal"
+                        .to_string(),
+                );
+            }
+        }
+        if let Some(path) = &self.news_provider_config_path {
+            if !local_only(path) {
+                return Err(
+                    "minimal AI committee news_provider_config_path must be local".to_string(),
+                );
+            }
+            if path_has_parent_component(Path::new(path)) {
+                return Err(
+                    "minimal AI committee news_provider_config_path must not contain parent-directory traversal"
+                        .to_string(),
+                );
             }
         }
         if let Some(path) = &self.owner_attention_inbox_input_path {
@@ -3731,8 +4176,28 @@ impl MinimalAiCommitteeCycleConfig {
         if let Some(path) = &self.local_market_data_path {
             input.market_data = load_market_data_from_local_json(Path::new(path))?;
         }
-        if let Some(path) = &self.local_news_path {
+        if self.research_run_enabled || self.news_provider_config_path.is_some() {
+            input.news =
+                collect_news_from_providers(&self.load_news_provider_configs()?)?.news_snapshots;
+        } else if self.news_collection_enabled {
+            let collection_config = self.load_news_collection_config()?;
+            input.news = collect_news_snapshots(&collection_config)?.news_snapshots;
+        } else if let Some(path) = &self.local_news_path {
             input.news = load_news_from_local_json(Path::new(path))?;
+        }
+        if self.owner_comment_text.is_some() || self.owner_comment_path.is_some() {
+            let owner_input = self.load_owner_natural_input()?;
+            let policy = self.load_owner_intent_policy()?.policy;
+            let parsed = parse_owner_natural_input_with_policy(owner_input, &policy)?;
+            input.owner_context = Some(match input.owner_context {
+                Some(existing) if !existing.trim().is_empty() => {
+                    format!(
+                        "{existing}\nowner-natural-input: {}",
+                        parsed.normalized_text
+                    )
+                }
+                _ => format!("owner-natural-input: {}", parsed.normalized_text),
+            });
         }
         filter_batch_input_for_autonomous_scope(&mut input, &self.symbols, &self.market_scopes);
         if input.market_data.is_empty() {
@@ -3762,6 +4227,73 @@ impl MinimalAiCommitteeCycleConfig {
             owner_feedback,
             emit_reconsideration_view: self.emit_reconsideration_view,
         })
+    }
+
+    fn load_owner_natural_input(&self) -> Result<OwnerNaturalInput, String> {
+        let text = match (&self.owner_comment_text, &self.owner_comment_path) {
+            (Some(text), _) => text.clone(),
+            (None, Some(path)) => fs::read_to_string(path).map_err(|err| err.to_string())?,
+            (None, None) => {
+                return Err("minimal AI committee owner natural input requires text".to_string());
+            }
+        };
+        Ok(OwnerNaturalInput {
+            input_id: "minimal-ai-committee-cycle-owner-comment".to_string(),
+            text,
+            symbol: self.symbols.first().cloned(),
+            market_scope: self.market_scopes.first().copied(),
+            target_member_id: None,
+            target_item_id: None,
+            source_label: Some("minimal-ai-committee-cycle-config".to_string()),
+            created_at: None,
+            paper_only: true,
+        })
+    }
+
+    fn load_news_collection_config(&self) -> Result<NewsCollectionConfig, String> {
+        if let Some(path) = &self.news_collection_config_path {
+            return NewsCollectionConfig::from_local_file(Path::new(path));
+        }
+        Ok(NewsCollectionConfig {
+            source_mode: NewsCollectionSourceMode::LocalFixture,
+            local_fixture_path: self.local_news_path.clone(),
+            sources: Vec::new(),
+            inline_items: Vec::new(),
+            allow_network: false,
+            allowed_domains: Vec::new(),
+            max_items_per_symbol: default_max_news_items_per_symbol(),
+            paper_only: true,
+        })
+    }
+
+    fn load_owner_intent_policy(&self) -> Result<OwnerIntentPolicyLoadResult, String> {
+        match &self.owner_intent_policy_path {
+            Some(path) => load_owner_intent_policy_from_local_file(Path::new(path)),
+            None => Ok(default_owner_intent_policy_load_result()),
+        }
+    }
+
+    fn load_news_provider_configs(&self) -> Result<Vec<NewsProviderConfig>, String> {
+        if let Some(path) = &self.news_provider_config_path {
+            return load_news_provider_configs_from_local_file(Path::new(path));
+        }
+        if let Some(path) = &self.local_news_path {
+            return Ok(vec![NewsProviderConfig {
+                provider_id: "minimal-config-local-news".to_string(),
+                kind: NewsProviderKind::LocalFixture,
+                enabled: true,
+                source_path_or_url: Some(path.clone()),
+                source_label: "minimal-ai-committee-cycle-local-news".to_string(),
+                allowed_domains: Vec::new(),
+                symbols: self.symbols.clone(),
+                market_scopes: self.market_scopes.clone(),
+                max_items: default_max_news_items_per_symbol(),
+                timeout_ms: default_news_provider_timeout_ms(),
+                trust_level: NewsProviderTrustLevel::ReviewRequired,
+                paper_only: true,
+            }]);
+        }
+        Ok(Vec::new())
     }
 
     pub fn load_autonomous_paper_run_config(&self) -> Result<AutonomousPaperRunConfig, String> {
@@ -3916,12 +4448,1295 @@ fn load_market_data_from_local_json(path: &Path) -> Result<Vec<MarketDataSnapsho
 }
 
 fn load_news_from_local_json(path: &Path) -> Result<Vec<NewsSnapshot>, String> {
-    if !local_only(&path.to_string_lossy()) {
-        return Err("local news path must be local".to_string());
-    }
+    validate_local_json_path(path, "local news path")?;
     let text = fs::read_to_string(path).map_err(|err| err.to_string())?;
     reject_unsafe_offline_batch_text(&text)?;
     serde_json::from_str(&text).map_err(|err| err.to_string())
+}
+
+impl NewsCollectionConfig {
+    pub fn from_local_file(path: &Path) -> Result<Self, String> {
+        if !local_only(&path.to_string_lossy()) {
+            return Err("news collection config path must be local".to_string());
+        }
+        if path_has_parent_component(path) {
+            return Err(
+                "news collection config path must not contain parent-directory traversal"
+                    .to_string(),
+            );
+        }
+        let text = fs::read_to_string(path).map_err(|err| err.to_string())?;
+        reject_unsafe_news_collection_text(&text)?;
+        if path.extension().and_then(|ext| ext.to_str()) == Some("toml") {
+            toml::from_str(&text).map_err(|err| err.to_string())
+        } else {
+            serde_json::from_str(&text).map_err(|err| err.to_string())
+        }
+    }
+}
+
+pub fn built_in_owner_intent_policy() -> OwnerIntentPolicy {
+    OwnerIntentPolicy {
+        policy_id: "built-in-owner-intent-policy-ko-v1".to_string(),
+        language: OwnerIntentPolicyLanguage::Ko,
+        intent_rules: vec![
+            owner_intent_rule(
+                "evidence-ko",
+                OwnerNaturalInputIntent::EvidenceRequest,
+                &["근거", "증거", "뉴스 부족", "다시 확인"],
+                60,
+                0.82,
+            ),
+            owner_intent_rule(
+                "risk-ko",
+                OwnerNaturalInputIntent::RiskConcern,
+                &["리스크", "위험", "변동성"],
+                35,
+                0.8,
+            ),
+            owner_intent_rule(
+                "watchlist-ko",
+                OwnerNaturalInputIntent::WatchlistRequest,
+                &["관심종목", "지켜봐", "watch"],
+                30,
+                0.76,
+            ),
+            owner_intent_rule(
+                "reconsideration-ko",
+                OwnerNaturalInputIntent::ReconsiderationRequest,
+                &["다시 봐", "재검토", "위원회 다시"],
+                45,
+                0.84,
+            ),
+            owner_intent_rule(
+                "paper-outcome-ko",
+                OwnerNaturalInputIntent::PaperOutcomeLabel,
+                &["paper positive", "결과 좋음", "성과 좋음"],
+                50,
+                0.86,
+            ),
+            owner_intent_rule(
+                "comment-ko",
+                OwnerNaturalInputIntent::Comment,
+                &["확인", "메모"],
+                10,
+                0.6,
+            ),
+        ],
+        safety_rules: vec![
+            owner_safety_rule(
+                "order-execution-ko",
+                OwnerSafetyBlockedCategory::OrderExecution,
+                &["주문", "최대 매수"],
+                "owner policy rejected order/execution text",
+            ),
+            owner_safety_rule(
+                "broker-account-ko",
+                OwnerSafetyBlockedCategory::BrokerAccount,
+                &["계좌", "브로커"],
+                "owner policy rejected broker/account text",
+            ),
+            owner_safety_rule(
+                "live-trading-ko",
+                OwnerSafetyBlockedCategory::LiveTrading,
+                &["실거래"],
+                "owner policy rejected live trading text",
+            ),
+            owner_safety_rule(
+                "leverage-ko",
+                OwnerSafetyBlockedCategory::Leverage,
+                &["레버리지"],
+                "owner policy rejected leverage text",
+            ),
+            owner_safety_rule(
+                "guaranteed-return-ko",
+                OwnerSafetyBlockedCategory::GuaranteedReturn,
+                &["수익 보장"],
+                "owner policy rejected guaranteed return text",
+            ),
+            owner_safety_rule(
+                "credential-en",
+                OwnerSafetyBlockedCategory::SecretCredential,
+                &["api key", "secret", "credential", "token"],
+                "owner policy rejected credential text",
+            ),
+            owner_safety_rule(
+                "private-illegal-en",
+                OwnerSafetyBlockedCategory::PrivateIllegalInfo,
+                &[
+                    "private info",
+                    "private data",
+                    "illegal info",
+                    "illegal data",
+                    "inside information",
+                    "nonpublic",
+                ],
+                "owner policy rejected private/illegal text",
+            ),
+            owner_safety_rule(
+                "private-illegal-ko",
+                OwnerSafetyBlockedCategory::PrivateIllegalInfo,
+                &["미공개 정보", "불법 정보", "내부자 정보"],
+                "owner policy rejected private/illegal text",
+            ),
+        ],
+        default_intent: OwnerNaturalInputIntent::Unknown,
+        paper_only: true,
+    }
+}
+
+pub fn default_owner_intent_policy_load_result() -> OwnerIntentPolicyLoadResult {
+    let policy = built_in_owner_intent_policy();
+    OwnerIntentPolicyLoadResult {
+        loaded: false,
+        rule_count: policy.intent_rules.len(),
+        safety_rule_count: policy.safety_rules.len(),
+        warnings: vec!["using built-in owner intent policy".to_string()],
+        policy,
+    }
+}
+
+pub fn load_owner_intent_policy_from_local_file(
+    path: &Path,
+) -> Result<OwnerIntentPolicyLoadResult, String> {
+    validate_local_json_or_toml_path(path, "owner intent policy path")?;
+    if path_has_parent_component(path) {
+        return Err(
+            "owner intent policy path must not contain parent-directory traversal".to_string(),
+        );
+    }
+    let text = fs::read_to_string(path).map_err(|err| err.to_string())?;
+    reject_unsafe_owner_policy_text(&text)?;
+    let mut policy: OwnerIntentPolicy =
+        if path.extension().and_then(|ext| ext.to_str()) == Some("toml") {
+            toml::from_str(&text).map_err(|err| err.to_string())?
+        } else {
+            serde_json::from_str(&text).map_err(|err| err.to_string())?
+        };
+    validate_owner_intent_policy(&policy)?;
+    normalize_owner_intent_policy_order(&mut policy);
+    Ok(OwnerIntentPolicyLoadResult {
+        loaded: true,
+        rule_count: policy.intent_rules.len(),
+        safety_rule_count: policy.safety_rules.len(),
+        warnings: Vec::new(),
+        policy,
+    })
+}
+
+fn owner_intent_rule(
+    rule_id: &str,
+    intent: OwnerNaturalInputIntent,
+    include_terms: &[&str],
+    priority: i32,
+    confidence_hint: f64,
+) -> OwnerIntentRule {
+    OwnerIntentRule {
+        rule_id: rule_id.to_string(),
+        intent,
+        include_terms: include_terms.iter().map(|term| term.to_string()).collect(),
+        exclude_terms: Vec::new(),
+        priority,
+        confidence_hint,
+    }
+}
+
+fn owner_safety_rule(
+    rule_id: &str,
+    blocked_category: OwnerSafetyBlockedCategory,
+    blocked_terms: &[&str],
+    rejection_message: &str,
+) -> OwnerSafetyRule {
+    OwnerSafetyRule {
+        rule_id: rule_id.to_string(),
+        blocked_category,
+        blocked_terms: blocked_terms.iter().map(|term| term.to_string()).collect(),
+        severity: OwnerSafetyRuleSeverity::Reject,
+        rejection_message: rejection_message.to_string(),
+    }
+}
+
+fn validate_owner_intent_policy(policy: &OwnerIntentPolicy) -> Result<(), String> {
+    if !policy.paper_only {
+        return Err("owner intent policy must be paper-only".to_string());
+    }
+    if policy.policy_id.trim().is_empty() {
+        return Err("owner intent policy requires policy_id".to_string());
+    }
+    for rule in &policy.intent_rules {
+        if rule.rule_id.trim().is_empty() || rule.include_terms.is_empty() {
+            return Err("owner intent rule requires rule_id and include_terms".to_string());
+        }
+        if !(0.0..=1.0).contains(&rule.confidence_hint) {
+            return Err("owner intent rule confidence_hint must be 0..1".to_string());
+        }
+    }
+    for rule in &policy.safety_rules {
+        if rule.rule_id.trim().is_empty() || rule.blocked_terms.is_empty() {
+            return Err("owner safety rule requires rule_id and blocked_terms".to_string());
+        }
+        if rule.rejection_message.trim().is_empty() {
+            return Err("owner safety rule requires rejection_message".to_string());
+        }
+    }
+    Ok(())
+}
+
+fn normalize_owner_intent_policy_order(policy: &mut OwnerIntentPolicy) {
+    policy.intent_rules.sort_by(|left, right| {
+        right
+            .priority
+            .cmp(&left.priority)
+            .then_with(|| left.rule_id.cmp(&right.rule_id))
+    });
+    policy
+        .safety_rules
+        .sort_by(|left, right| left.rule_id.cmp(&right.rule_id));
+}
+
+fn evaluate_owner_safety_policy(
+    normalized_text: &str,
+    policy: &OwnerIntentPolicy,
+) -> Result<Vec<String>, String> {
+    let lower = normalized_text.to_ascii_lowercase();
+    let mut warnings = Vec::new();
+    let mut rules = policy.safety_rules.clone();
+    rules.sort_by(|left, right| left.rule_id.cmp(&right.rule_id));
+    for rule in rules {
+        let matched_term = rule
+            .blocked_terms
+            .iter()
+            .find(|term| lower.contains(&term.to_ascii_lowercase()));
+        if let Some(term) = matched_term {
+            match rule.severity {
+                OwnerSafetyRuleSeverity::Reject => {
+                    return Err(format!("{}: {term}", rule.rejection_message));
+                }
+                OwnerSafetyRuleSeverity::Warn => {
+                    warnings.push(format!(
+                        "owner safety policy warning {:?}: {}",
+                        rule.blocked_category, rule.rule_id
+                    ));
+                }
+            }
+        }
+    }
+    Ok(warnings)
+}
+
+fn classify_owner_natural_input_intent_with_policy(
+    normalized_text: &str,
+    policy: &OwnerIntentPolicy,
+) -> (OwnerNaturalInputIntent, f64) {
+    let lower = normalized_text.to_ascii_lowercase();
+    let mut rules = policy.intent_rules.clone();
+    rules.sort_by(|left, right| {
+        right
+            .priority
+            .cmp(&left.priority)
+            .then_with(|| left.rule_id.cmp(&right.rule_id))
+    });
+    for rule in rules {
+        let include_match = rule
+            .include_terms
+            .iter()
+            .any(|term| lower.contains(&term.to_ascii_lowercase()));
+        let exclude_match = rule
+            .exclude_terms
+            .iter()
+            .any(|term| lower.contains(&term.to_ascii_lowercase()));
+        if include_match && !exclude_match {
+            return (rule.intent, rule.confidence_hint);
+        }
+    }
+    (
+        match policy.default_intent {
+            OwnerNaturalInputIntent::Unknown => OwnerNaturalInputIntent::Unknown,
+            _ => policy.default_intent,
+        },
+        0.5,
+    )
+}
+
+fn reject_unsafe_owner_policy_text(text: &str) -> Result<(), String> {
+    let lower = text.to_ascii_lowercase();
+    for prohibited in ["broker_secret", "account_secret", "private key"] {
+        if lower.contains(prohibited) {
+            return Err(format!(
+                "owner intent policy rejected unsafe embedded secret field: {prohibited}"
+            ));
+        }
+    }
+    Ok(())
+}
+
+pub fn parse_owner_natural_input(
+    input: OwnerNaturalInput,
+) -> Result<OwnerNaturalInputParseResult, String> {
+    parse_owner_natural_input_with_policy(input, &built_in_owner_intent_policy())
+}
+
+pub fn parse_owner_natural_input_with_policy(
+    input: OwnerNaturalInput,
+    policy: &OwnerIntentPolicy,
+) -> Result<OwnerNaturalInputParseResult, String> {
+    if !input.paper_only {
+        return Err("owner natural input must be paper-only".to_string());
+    }
+    validate_owner_intent_policy(policy)?;
+    let normalized_text = normalize_owner_natural_text(&input.text)?;
+    let safety_warnings = evaluate_owner_safety_policy(&normalized_text, policy)?;
+    let (intent, confidence_hint) =
+        classify_owner_natural_input_intent_with_policy(&normalized_text, policy);
+    let feedback_type = owner_feedback_type_for_natural_intent(intent);
+    let action_type = owner_action_type_for_natural_intent(intent);
+    let seed = format!(
+        "{}|{}|{:?}|{}|{}|{}",
+        policy.policy_id,
+        normalized_text,
+        intent,
+        input.symbol.clone().unwrap_or_default(),
+        input
+            .market_scope
+            .map(|scope| format!("{scope:?}"))
+            .unwrap_or_default(),
+        input.target_member_id.clone().unwrap_or_default()
+    );
+    let id_suffix = format!("{:016x}", stable_fnv1a64(&seed));
+    let feedback = OwnerFeedback {
+        feedback_id: format!("owner-natural-feedback-{id_suffix}"),
+        symbol: input.symbol.clone(),
+        market_scope: input.market_scope,
+        target_member_id: input.target_member_id.clone(),
+        feedback_type,
+        text: normalized_text.clone(),
+        priority: owner_feedback_priority_for_natural_intent(intent),
+        created_at: input.created_at.clone(),
+        paper_only: true,
+    };
+    validate_owner_feedback(&feedback)?;
+    let action = OwnerAttentionAction {
+        action_id: format!("owner-natural-action-{id_suffix}"),
+        item_id: input
+            .target_item_id
+            .clone()
+            .unwrap_or_else(|| "owner-general-comment".to_string()),
+        action_type,
+        comment: Some(normalized_text.clone()),
+        created_at: input.created_at.clone(),
+        paper_only: true,
+    };
+    validate_owner_attention_action(&action)?;
+    let internal_action_file = OwnerActionFile {
+        schema_version: "owner-action-file.v1".to_string(),
+        source_snapshot_id: Some(input.input_id.clone()),
+        actions: vec![action.clone()],
+        paper_only: true,
+        safety_notes: vec![
+            "generated from natural owner input; owner did not write JSON".to_string(),
+            "internal paper bridge only; trading connections disabled".to_string(),
+            "Risk Governor remains final".to_string(),
+        ],
+    };
+    validate_owner_action_file(&internal_action_file)?;
+    let mut safety_notes = vec![
+        format!(
+            "natural input parsed locally by owner intent policy: {}",
+            policy.policy_id
+        ),
+        "no LLM, browser, web scraping, training, or live inference used".to_string(),
+        "output action JSON is internal system format only".to_string(),
+    ];
+    safety_notes.extend(safety_warnings);
+    Ok(OwnerNaturalInputParseResult {
+        input_id: input.input_id,
+        normalized_text,
+        detected_intent: intent,
+        intent,
+        confidence_hint,
+        generated_feedback: Some(feedback.clone()),
+        generated_attention_action: Some(action),
+        feedback,
+        internal_action_file,
+        safety_status: OwnerAttentionActionSafetyStatus::Passed,
+        rejection_reason: None,
+        safety_notes,
+        paper_only: true,
+    })
+}
+
+pub fn write_owner_natural_input_action_file(
+    input: OwnerNaturalInput,
+    output_path: &Path,
+    dry_run: bool,
+) -> Result<OwnerNaturalInputActionResult, String> {
+    let parse_result = parse_owner_natural_input(input)?;
+    let preview_text = format!(
+        "intent={:?}\nfeedback_type={:?}\naction_count={}\npaper_only=true",
+        parse_result.intent,
+        parse_result.feedback.feedback_type,
+        parse_result.internal_action_file.actions.len()
+    );
+    let mut result = OwnerNaturalInputActionResult {
+        parse_result,
+        wrote_output: false,
+        output_path: None,
+        preview_text,
+    };
+    if !dry_run {
+        save_owner_action_file_to_local_json(
+            output_path,
+            &result.parse_result.internal_action_file,
+        )?;
+        result.wrote_output = true;
+        result.output_path = Some(output_path.display().to_string());
+    }
+    Ok(result)
+}
+
+pub fn write_owner_natural_input_action_file_with_policy(
+    input: OwnerNaturalInput,
+    policy: &OwnerIntentPolicy,
+    output_path: &Path,
+    dry_run: bool,
+) -> Result<OwnerNaturalInputActionResult, String> {
+    let parse_result = parse_owner_natural_input_with_policy(input, policy)?;
+    let preview_text = format!(
+        "intent={:?}\nfeedback_type={:?}\naction_count={}\npaper_only=true",
+        parse_result.intent,
+        parse_result.feedback.feedback_type,
+        parse_result.internal_action_file.actions.len()
+    );
+    let mut result = OwnerNaturalInputActionResult {
+        parse_result,
+        wrote_output: false,
+        output_path: None,
+        preview_text,
+    };
+    if !dry_run {
+        save_owner_action_file_to_local_json(
+            output_path,
+            &result.parse_result.internal_action_file,
+        )?;
+        result.wrote_output = true;
+        result.output_path = Some(output_path.display().to_string());
+    }
+    Ok(result)
+}
+
+pub fn collect_news_snapshots(
+    config: &NewsCollectionConfig,
+) -> Result<NewsCollectionResult, String> {
+    validate_news_collection_config(config)?;
+    let mut collected_items = config.inline_items.clone();
+    let mut rejected_source_count = 0;
+    let mut source_count = 0;
+    if let Some(path) = &config.local_fixture_path {
+        source_count += 1;
+        collected_items.extend(load_collected_news_items_from_local_json(Path::new(path))?);
+    }
+    for source in &config.sources {
+        source_count += 1;
+        match source.mode {
+            NewsCollectionSourceMode::LocalFixture => {
+                let Some(path) = &source.path else {
+                    rejected_source_count += 1;
+                    continue;
+                };
+                collected_items.extend(load_collected_news_items_from_local_json(Path::new(path))?);
+            }
+            NewsCollectionSourceMode::RssFeed | NewsCollectionSourceMode::HttpHeadline => {
+                rejected_source_count += 1;
+                if !config.allow_network {
+                    continue;
+                }
+                return Err("network news collection is deferred; use LocalFixture".to_string());
+            }
+        }
+    }
+    if source_count == 0 && collected_items.is_empty() {
+        source_count = 1;
+    }
+    let news_snapshots =
+        convert_collected_news_to_snapshots(&collected_items, config.max_items_per_symbol);
+    Ok(NewsCollectionResult {
+        source_count,
+        collected_item_count: collected_items.len(),
+        snapshot_count: news_snapshots.len(),
+        rejected_source_count,
+        collected_items,
+        news_snapshots,
+        safety_notes: vec![
+            "automated news intake uses local fixtures by default".to_string(),
+            "tests and default path perform no network access".to_string(),
+            "headlines and summaries only; no full article copying".to_string(),
+        ],
+    })
+}
+
+pub fn load_news_provider_configs_from_local_file(
+    path: &Path,
+) -> Result<Vec<NewsProviderConfig>, String> {
+    validate_local_json_or_toml_path(path, "news provider config path")?;
+    if path_has_parent_component(path) {
+        return Err(
+            "news provider config path must not contain parent-directory traversal".to_string(),
+        );
+    }
+    let text = fs::read_to_string(path).map_err(|err| err.to_string())?;
+    reject_unsafe_news_collection_text(&text)?;
+    if let Ok(mut configs) = serde_json::from_str::<Vec<NewsProviderConfig>>(&text) {
+        normalize_news_provider_config_order(&mut configs);
+        validate_news_provider_configs(&configs)?;
+        return Ok(configs);
+    }
+    #[derive(Deserialize)]
+    struct NewsProviderConfigFile {
+        providers: Vec<NewsProviderConfig>,
+    }
+    let file: NewsProviderConfigFile =
+        if path.extension().and_then(|ext| ext.to_str()) == Some("toml") {
+            toml::from_str(&text).map_err(|err| err.to_string())?
+        } else {
+            serde_json::from_str(&text).map_err(|err| err.to_string())?
+        };
+    let mut providers = file.providers;
+    normalize_news_provider_config_order(&mut providers);
+    validate_news_provider_configs(&providers)?;
+    Ok(providers)
+}
+
+pub fn collect_news_from_providers(
+    configs: &[NewsProviderConfig],
+) -> Result<NewsCollectionRun, String> {
+    let mut configs = configs.to_vec();
+    normalize_news_provider_config_order(&mut configs);
+    validate_news_provider_configs(&configs)?;
+    let mut provider_results = Vec::new();
+    let mut collected_news = Vec::new();
+    let rejected_news = Vec::new();
+    for config in &configs {
+        if !config.enabled || matches!(config.kind, NewsProviderKind::Disabled) {
+            provider_results.push(NewsProviderRunResult {
+                provider_id: config.provider_id.clone(),
+                kind: config.kind,
+                status: NewsProviderRunStatus::Disabled,
+                collected_count: 0,
+                rejected_count: 0,
+                message: "provider disabled by config".to_string(),
+            });
+            continue;
+        }
+        let result = match config.kind {
+            NewsProviderKind::LocalFixture => LocalFixtureNewsProvider.collect(config)?,
+            NewsProviderKind::RssFeed => RssFeedNewsProviderStub.collect(config)?,
+            NewsProviderKind::HttpHeadline => HttpHeadlineNewsProviderStub.collect(config)?,
+            NewsProviderKind::Disabled => unreachable!("disabled handled before collect"),
+        };
+        let status = match config.kind {
+            NewsProviderKind::LocalFixture => NewsProviderRunStatus::Collected,
+            NewsProviderKind::RssFeed | NewsProviderKind::HttpHeadline => {
+                NewsProviderRunStatus::ProviderDeferred
+            }
+            NewsProviderKind::Disabled => NewsProviderRunStatus::Disabled,
+        };
+        provider_results.push(NewsProviderRunResult {
+            provider_id: config.provider_id.clone(),
+            kind: config.kind,
+            status,
+            collected_count: result.collected_item_count,
+            rejected_count: result.rejected_source_count,
+            message: result.safety_notes.join("; "),
+        });
+        collected_news.extend(result.collected_items);
+    }
+    let max_items = configs
+        .iter()
+        .filter(|config| config.enabled)
+        .map(|config| config.max_items)
+        .max()
+        .unwrap_or_else(default_max_news_items_per_symbol);
+    let news_snapshots = convert_collected_news_to_snapshots(&collected_news, max_items);
+    let run_seed = configs
+        .iter()
+        .map(|config| config.provider_id.as_str())
+        .collect::<Vec<_>>()
+        .join("|");
+    Ok(NewsCollectionRun {
+        run_id: format!("news-collection-run-{:016x}", stable_fnv1a64(&run_seed)),
+        provider_results,
+        collected_news,
+        rejected_news,
+        news_snapshots,
+        safety_summary: safety_summary(),
+    })
+}
+
+impl NewsProvider for LocalFixtureNewsProvider {
+    fn collect(&self, config: &NewsProviderConfig) -> Result<NewsCollectionResult, String> {
+        validate_news_provider_config(config)?;
+        let Some(path) = &config.source_path_or_url else {
+            return Err("local fixture news provider requires source_path_or_url".to_string());
+        };
+        let items = filter_collected_news_items_for_provider(
+            load_collected_news_items_from_local_json(Path::new(path))?,
+            config,
+        );
+        Ok(news_collection_result_from_items(
+            items,
+            config.max_items,
+            vec![
+                format!("LocalFixtureNewsProvider collected {}", config.provider_id),
+                "headline/summary/source/timestamp only".to_string(),
+            ],
+        ))
+    }
+}
+
+impl NewsProvider for RssFeedNewsProviderStub {
+    fn collect(&self, config: &NewsProviderConfig) -> Result<NewsCollectionResult, String> {
+        validate_news_provider_config(config)?;
+        Ok(news_collection_result_from_items(
+            Vec::new(),
+            config.max_items,
+            vec![
+                format!("RssFeed provider deferred safely: {}", config.provider_id),
+                "no network call performed in Sprint 147".to_string(),
+            ],
+        ))
+    }
+}
+
+impl NewsProvider for HttpHeadlineNewsProviderStub {
+    fn collect(&self, config: &NewsProviderConfig) -> Result<NewsCollectionResult, String> {
+        validate_news_provider_config(config)?;
+        Ok(news_collection_result_from_items(
+            Vec::new(),
+            config.max_items,
+            vec![
+                format!(
+                    "HttpHeadline provider deferred safely: {}",
+                    config.provider_id
+                ),
+                "no browser, JS, or full article fetch performed".to_string(),
+            ],
+        ))
+    }
+}
+
+fn news_collection_result_from_items(
+    items: Vec<CollectedNewsItem>,
+    max_items_per_symbol: usize,
+    safety_notes: Vec<String>,
+) -> NewsCollectionResult {
+    let news_snapshots = convert_collected_news_to_snapshots(&items, max_items_per_symbol);
+    NewsCollectionResult {
+        source_count: 1,
+        collected_item_count: items.len(),
+        snapshot_count: news_snapshots.len(),
+        rejected_source_count: 0,
+        collected_items: items,
+        news_snapshots,
+        safety_notes,
+    }
+}
+
+pub fn convert_collected_news_to_snapshots(
+    items: &[CollectedNewsItem],
+    max_items_per_symbol: usize,
+) -> Vec<NewsSnapshot> {
+    let mut per_symbol = std::collections::BTreeMap::<String, usize>::new();
+    let mut snapshots = Vec::new();
+    let limit = max_items_per_symbol.max(1);
+    for item in items {
+        let symbol = item.symbol.trim();
+        let headline = item.headline.trim();
+        let summary = item.summary.trim();
+        if symbol.is_empty() || headline.is_empty() || summary.is_empty() {
+            continue;
+        }
+        let count = per_symbol.entry(symbol.to_string()).or_insert(0);
+        if *count >= limit {
+            continue;
+        }
+        *count += 1;
+        snapshots.push(NewsSnapshot {
+            symbol: symbol.to_string(),
+            headline: headline.to_string(),
+            summary: summary.to_string(),
+            sentiment_hint: item
+                .sentiment_hint
+                .clone()
+                .unwrap_or_else(|| infer_news_sentiment_hint(headline, summary).to_string()),
+            source_label: item.source_label.trim().to_string(),
+            timestamp: item.timestamp.trim().to_string(),
+        });
+    }
+    snapshots
+}
+
+pub fn build_ai_research_packets(
+    market_data: Vec<MarketDataSnapshot>,
+    news: Vec<NewsSnapshot>,
+    members: Vec<AICommitteeMember>,
+    owner_context: Option<String>,
+) -> AIResearchPacketBatch {
+    let router_output = route_data_to_ai_members(DataRouterInput {
+        market_data,
+        news,
+        members,
+        owner_context,
+    });
+    let packets: Vec<AIResearchPacket> = router_output
+        .packets
+        .into_iter()
+        .map(|packet| {
+            let seed = format!(
+                "{}|{}|{:?}",
+                packet.member_id, packet.market_data.symbol, packet.market_data.market_scope
+            );
+            AIResearchPacket {
+                packet_id: format!("ai-research-packet-{:016x}", stable_fnv1a64(&seed)),
+                member_id: packet.member_id,
+                symbol: packet.market_data.symbol.clone(),
+                market_scope: packet.market_data.market_scope,
+                market_data: packet.market_data,
+                news: packet.news,
+                owner_context: packet.owner_context,
+                previous_member_score: packet.previous_member_score,
+                routing_notes: vec![
+                    "research packet only; AI member still judges at member boundary".to_string(),
+                    "packet does not contain orders, broker credentials, or account data"
+                        .to_string(),
+                ],
+                paper_only: true,
+            }
+        })
+        .collect();
+    AIResearchPacketBatch {
+        packet_count: packets.len(),
+        routed_member_count: router_output.routed_member_count,
+        unrouted_symbol_count: router_output.unrouted_symbol_count,
+        packets,
+        safety_notes: router_output
+            .safety_notes
+            .into_iter()
+            .chain([
+                "research packet router does not produce opinions".to_string(),
+                "Risk Governor remains final after member/chairman stages".to_string(),
+            ])
+            .collect(),
+    }
+}
+
+pub fn run_research_packet_pipeline(
+    config: ResearchRunConfig,
+) -> Result<ResearchRunResult, String> {
+    validate_research_run_config(&config)?;
+    let (market_data, members) = load_research_market_data_and_members(&config)?;
+    let policy = match &config.owner_intent_policy_path {
+        Some(path) => load_owner_intent_policy_from_local_file(Path::new(path))?.policy,
+        None => built_in_owner_intent_policy(),
+    };
+    let (owner_context, owner_feedback_generated_count) =
+        load_research_owner_context(&config, &policy)?;
+    let provider_configs = match &config.news_provider_config_path {
+        Some(path) => load_news_provider_configs_from_local_file(Path::new(path))?,
+        None => Vec::new(),
+    };
+    let news_collection_run = collect_news_from_providers(&provider_configs)?;
+    let research_packet_batch = build_ai_research_packets(
+        market_data.clone(),
+        news_collection_run.news_snapshots.clone(),
+        members.clone(),
+        owner_context.clone(),
+    );
+    let mut member_opinion_count = 0;
+    let mut event_count = 0;
+    let mut committee_session_count = 0;
+    let cycle_count = match config.run_mode {
+        ResearchRunMode::SingleShot | ResearchRunMode::ManualStep => 1,
+        ResearchRunMode::FixedCount => config.max_cycles.max(1),
+    };
+    for _ in 0..cycle_count {
+        let batch_result = run_batch_committee_cycle(BatchCommitteeCycleInput {
+            market_data: market_data.clone(),
+            news: news_collection_run.news_snapshots.clone(),
+            members: members.clone(),
+            offline_output_batch: load_research_offline_output_batch(&config)?,
+            owner_context: owner_context.clone(),
+            paper_outcome: None,
+        })?;
+        member_opinion_count += batch_result.member_opinion_count;
+        event_count += batch_result.event_queue.events.len();
+        committee_session_count += batch_result.committee_sessions.len();
+    }
+    let research_packet_summary = summarize_research_packets(&research_packet_batch, event_count);
+    Ok(ResearchRunResult {
+        research_run_id: config.research_run_id,
+        news_collection_run,
+        research_packet_batch,
+        member_opinion_count,
+        event_count,
+        committee_session_count,
+        owner_feedback_generated_count,
+        research_packet_summary,
+        safety_summary: safety_summary(),
+    })
+}
+
+fn validate_research_run_config(config: &ResearchRunConfig) -> Result<(), String> {
+    if !config.paper_only {
+        return Err("research run config must be paper-only".to_string());
+    }
+    if config.research_run_id.trim().is_empty() {
+        return Err("research run config requires research_run_id".to_string());
+    }
+    if config.max_cycles == 0 {
+        return Err("research run max_cycles must be greater than zero".to_string());
+    }
+    for path in [
+        config.market_data_path.as_ref(),
+        config.news_provider_config_path.as_ref(),
+        config.owner_intent_policy_path.as_ref(),
+        config.owner_comment_path.as_ref(),
+        config.member_state_input_path.as_ref(),
+        config.offline_member_output_batch_path.as_ref(),
+    ]
+    .into_iter()
+    .flatten()
+    {
+        if !local_only(path) {
+            return Err("research run paths must be local".to_string());
+        }
+        if path_has_parent_component(Path::new(path)) {
+            return Err(
+                "research run paths must not contain parent-directory traversal".to_string(),
+            );
+        }
+    }
+    Ok(())
+}
+
+fn load_research_market_data_and_members(
+    config: &ResearchRunConfig,
+) -> Result<(Vec<MarketDataSnapshot>, Vec<AICommitteeMember>), String> {
+    let path = config
+        .market_data_path
+        .as_ref()
+        .ok_or_else(|| "research run requires market_data_path".to_string())?;
+    validate_local_json_path(Path::new(path), "research run market_data_path")?;
+    let text = fs::read_to_string(path).map_err(|err| err.to_string())?;
+    reject_unsafe_offline_batch_text(&text)?;
+    let (mut market_data, mut members) =
+        if let Ok(input) = serde_json::from_str::<DataRouterInput>(&text) {
+            (input.market_data, input.members)
+        } else {
+            let market_data: Vec<MarketDataSnapshot> =
+                serde_json::from_str(&text).map_err(|err| err.to_string())?;
+            let scopes = market_data
+                .iter()
+                .map(|market| market.market_scope)
+                .collect();
+            (
+                market_data,
+                create_three_member_pilot_roster_for_scopes(scopes, CoreRuntimeStatus::MockLocal),
+            )
+        };
+    if !config.symbols.is_empty() {
+        market_data.retain(|market| config.symbols.contains(&market.symbol));
+    }
+    if !config.market_scopes.is_empty() {
+        market_data.retain(|market| config.market_scopes.contains(&market.market_scope));
+        for member in &mut members {
+            member
+                .market_scopes
+                .retain(|scope| config.market_scopes.contains(scope));
+        }
+    }
+    members.retain(|member| !member.market_scopes.is_empty());
+    if market_data.is_empty() {
+        return Err("research run requires filtered market data".to_string());
+    }
+    if members.is_empty() {
+        let scopes = market_data
+            .iter()
+            .map(|market| market.market_scope)
+            .collect();
+        members = create_three_member_pilot_roster_for_scopes(scopes, CoreRuntimeStatus::MockLocal);
+    }
+    Ok((market_data, members))
+}
+
+fn load_research_owner_context(
+    config: &ResearchRunConfig,
+    policy: &OwnerIntentPolicy,
+) -> Result<(Option<String>, usize), String> {
+    let text = match (&config.owner_comment_text, &config.owner_comment_path) {
+        (Some(text), _) => Some(text.clone()),
+        (None, Some(path)) => Some(fs::read_to_string(path).map_err(|err| err.to_string())?),
+        (None, None) => None,
+    };
+    let Some(text) = text else {
+        return Ok((None, 0));
+    };
+    let parsed = parse_owner_natural_input_with_policy(
+        OwnerNaturalInput {
+            input_id: format!("{}-owner-comment", config.research_run_id),
+            text,
+            symbol: config.symbols.first().cloned(),
+            market_scope: config.market_scopes.first().copied(),
+            target_member_id: None,
+            target_item_id: None,
+            source_label: Some("research-run-config".to_string()),
+            created_at: None,
+            paper_only: true,
+        },
+        policy,
+    )?;
+    Ok((
+        Some(format!(
+            "owner-natural-input:{:?}: {}",
+            parsed.detected_intent, parsed.normalized_text
+        )),
+        usize::from(parsed.generated_feedback.is_some()),
+    ))
+}
+
+fn load_research_offline_output_batch(
+    config: &ResearchRunConfig,
+) -> Result<Option<OfflineMemberOutputBatch>, String> {
+    let Some(path) = &config.offline_member_output_batch_path else {
+        return Ok(None);
+    };
+    let load = OfflineMemberOutputBatch::from_json_path(Path::new(path))?;
+    Ok(Some(OfflineMemberOutputBatch {
+        batch_id: load.batch_id,
+        created_at: "loaded-from-research-run-config".to_string(),
+        source_label: path.clone(),
+        opinions: load.opinions,
+    }))
+}
+
+fn summarize_research_packets(
+    batch: &AIResearchPacketBatch,
+    event_count: usize,
+) -> ResearchPacketSummary {
+    let mut symbols_covered: Vec<String> = batch
+        .packets
+        .iter()
+        .map(|packet| packet.symbol.clone())
+        .collect();
+    symbols_covered.sort();
+    symbols_covered.dedup();
+    ResearchPacketSummary {
+        symbols_covered,
+        news_items_attached: batch.packets.iter().map(|packet| packet.news.len()).sum(),
+        owner_context_attached: batch
+            .packets
+            .iter()
+            .any(|packet| packet.owner_context.is_some()),
+        members_routed: batch.routed_member_count,
+        packets_generated: batch.packet_count,
+        events_generated: event_count,
+    }
+}
+
+fn normalize_owner_natural_text(text: &str) -> Result<String, String> {
+    let normalized = text.split_whitespace().collect::<Vec<_>>().join(" ");
+    if normalized.is_empty() {
+        return Err("owner natural input text is empty".to_string());
+    }
+    if normalized.chars().count() > 600 {
+        return Err("owner natural input text is too long".to_string());
+    }
+    Ok(normalized)
+}
+
+fn owner_feedback_type_for_natural_intent(intent: OwnerNaturalInputIntent) -> OwnerFeedbackType {
+    match intent {
+        OwnerNaturalInputIntent::Comment => OwnerFeedbackType::Comment,
+        OwnerNaturalInputIntent::Disagreement => OwnerFeedbackType::Disagree,
+        OwnerNaturalInputIntent::RiskConcern => OwnerFeedbackType::RiskConcern,
+        OwnerNaturalInputIntent::EvidenceRequest => OwnerFeedbackType::EvidenceRequest,
+        OwnerNaturalInputIntent::WatchlistRequest => OwnerFeedbackType::WatchlistRequest,
+        OwnerNaturalInputIntent::PaperOutcomeLabel => OwnerFeedbackType::PaperOutcomeLabel,
+        OwnerNaturalInputIntent::ReconsiderationRequest => {
+            OwnerFeedbackType::ReconsiderationRequest
+        }
+        OwnerNaturalInputIntent::Unknown => OwnerFeedbackType::Comment,
+    }
+}
+
+fn owner_action_type_for_natural_intent(
+    intent: OwnerNaturalInputIntent,
+) -> OwnerAttentionActionType {
+    match intent {
+        OwnerNaturalInputIntent::EvidenceRequest => OwnerAttentionActionType::RequestMoreEvidence,
+        OwnerNaturalInputIntent::WatchlistRequest => OwnerAttentionActionType::ConvertToWatchlist,
+        OwnerNaturalInputIntent::ReconsiderationRequest => {
+            OwnerAttentionActionType::RequestReconsideration
+        }
+        OwnerNaturalInputIntent::PaperOutcomeLabel | OwnerNaturalInputIntent::Unknown => {
+            OwnerAttentionActionType::AddComment
+        }
+        OwnerNaturalInputIntent::Comment
+        | OwnerNaturalInputIntent::Disagreement
+        | OwnerNaturalInputIntent::RiskConcern => OwnerAttentionActionType::AddComment,
+    }
+}
+
+fn owner_general_feedback_type(action_type: OwnerAttentionActionType) -> Option<OwnerFeedbackType> {
+    match action_type {
+        OwnerAttentionActionType::AddComment => Some(OwnerFeedbackType::Comment),
+        OwnerAttentionActionType::RequestMoreEvidence => Some(OwnerFeedbackType::EvidenceRequest),
+        OwnerAttentionActionType::RequestReconsideration => {
+            Some(OwnerFeedbackType::ReconsiderationRequest)
+        }
+        OwnerAttentionActionType::ConvertToWatchlist => Some(OwnerFeedbackType::WatchlistRequest),
+        OwnerAttentionActionType::Acknowledge
+        | OwnerAttentionActionType::Defer
+        | OwnerAttentionActionType::Dismiss => None,
+    }
+}
+
+fn owner_feedback_priority_for_natural_intent(
+    intent: OwnerNaturalInputIntent,
+) -> OwnerFeedbackPriority {
+    match intent {
+        OwnerNaturalInputIntent::RiskConcern
+        | OwnerNaturalInputIntent::EvidenceRequest
+        | OwnerNaturalInputIntent::ReconsiderationRequest => OwnerFeedbackPriority::High,
+        OwnerNaturalInputIntent::Disagreement | OwnerNaturalInputIntent::WatchlistRequest => {
+            OwnerFeedbackPriority::Normal
+        }
+        OwnerNaturalInputIntent::PaperOutcomeLabel => OwnerFeedbackPriority::Normal,
+        OwnerNaturalInputIntent::Comment | OwnerNaturalInputIntent::Unknown => {
+            OwnerFeedbackPriority::Low
+        }
+    }
+}
+
+fn validate_news_collection_config(config: &NewsCollectionConfig) -> Result<(), String> {
+    if !config.paper_only {
+        return Err("news collection config must be paper-only".to_string());
+    }
+    if config.max_items_per_symbol == 0 {
+        return Err("news collection max_items_per_symbol must be greater than zero".to_string());
+    }
+    if matches!(
+        config.source_mode,
+        NewsCollectionSourceMode::RssFeed | NewsCollectionSourceMode::HttpHeadline
+    ) && !config.allow_network
+    {
+        return Err("remote news collection requires explicit allow_network".to_string());
+    }
+    if let Some(path) = &config.local_fixture_path {
+        validate_local_json_path(Path::new(path), "news collection local_fixture_path")?;
+    }
+    for source in &config.sources {
+        if !source.paper_only {
+            return Err("news source descriptor must be paper-only".to_string());
+        }
+        if let Some(path) = &source.path {
+            validate_local_json_path(Path::new(path), "news source local path")?;
+        }
+        if matches!(
+            source.mode,
+            NewsCollectionSourceMode::RssFeed | NewsCollectionSourceMode::HttpHeadline
+        ) && !config.allow_network
+        {
+            return Err("remote news source requires explicit allow_network".to_string());
+        }
+        if config.allow_network {
+            let Some(url) = &source.url else {
+                return Err("network news source requires url".to_string());
+            };
+            let allowed = source
+                .allowed_domain
+                .as_ref()
+                .map(|domain| url_matches_allowed_domain(url, domain))
+                .unwrap_or(false)
+                || config
+                    .allowed_domains
+                    .iter()
+                    .any(|domain| url_matches_allowed_domain(url, domain));
+            if !allowed {
+                return Err("network news source requires explicit allowed domain".to_string());
+            }
+        }
+    }
+    Ok(())
+}
+
+fn validate_news_provider_configs(configs: &[NewsProviderConfig]) -> Result<(), String> {
+    let mut ids = std::collections::BTreeSet::new();
+    for config in configs {
+        validate_news_provider_config(config)?;
+        if !ids.insert(config.provider_id.clone()) {
+            return Err(format!(
+                "duplicate news provider_id: {}",
+                config.provider_id
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn validate_news_provider_config(config: &NewsProviderConfig) -> Result<(), String> {
+    if !config.paper_only {
+        return Err("news provider config must be paper-only".to_string());
+    }
+    if config.provider_id.trim().is_empty() {
+        return Err("news provider config requires provider_id".to_string());
+    }
+    if config.max_items == 0 {
+        return Err("news provider max_items must be greater than zero".to_string());
+    }
+    match config.kind {
+        NewsProviderKind::Disabled => Ok(()),
+        NewsProviderKind::LocalFixture => {
+            let Some(path) = &config.source_path_or_url else {
+                return Err("local fixture news provider requires source_path_or_url".to_string());
+            };
+            validate_local_json_path(Path::new(path), "local fixture news provider path")
+        }
+        NewsProviderKind::RssFeed | NewsProviderKind::HttpHeadline => {
+            if !config.enabled {
+                return Ok(());
+            }
+            let Some(url) = &config.source_path_or_url else {
+                return Err("remote news provider requires source_path_or_url".to_string());
+            };
+            if !url.starts_with("https://") {
+                return Err("remote news provider requires https URL".to_string());
+            }
+            if config.allowed_domains.is_empty() {
+                return Err("remote news provider requires allowed_domains".to_string());
+            }
+            if !config
+                .allowed_domains
+                .iter()
+                .any(|domain| url_matches_allowed_domain(url, domain))
+            {
+                return Err("remote news provider URL host is not in allowed_domains".to_string());
+            }
+            Ok(())
+        }
+    }
+}
+
+fn url_matches_allowed_domain(url: &str, domain: &str) -> bool {
+    let host_port_path = url.split_once("://").map(|(_, rest)| rest).unwrap_or(url);
+    let host = host_port_path
+        .split(['/', ':', '?', '#'])
+        .next()
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+    let domain = domain.trim().trim_start_matches('.').to_ascii_lowercase();
+    !domain.is_empty() && host == domain
+}
+
+fn normalize_news_provider_config_order(configs: &mut [NewsProviderConfig]) {
+    configs.sort_by(|left, right| left.provider_id.cmp(&right.provider_id));
+}
+
+fn filter_collected_news_items_for_provider(
+    items: Vec<CollectedNewsItem>,
+    config: &NewsProviderConfig,
+) -> Vec<CollectedNewsItem> {
+    items
+        .into_iter()
+        .filter(|item| {
+            config.symbols.is_empty() || config.symbols.iter().any(|symbol| symbol == &item.symbol)
+        })
+        .filter(|item| {
+            config.market_scopes.is_empty()
+                || item
+                    .market_scope
+                    .map(|scope| config.market_scopes.contains(&scope))
+                    .unwrap_or(true)
+        })
+        .take(config.max_items)
+        .collect()
+}
+
+fn load_collected_news_items_from_local_json(
+    path: &Path,
+) -> Result<Vec<CollectedNewsItem>, String> {
+    validate_local_json_path(path, "collected news fixture path")?;
+    let text = fs::read_to_string(path).map_err(|err| err.to_string())?;
+    reject_unsafe_news_collection_text(&text)?;
+    if let Ok(items) = serde_json::from_str::<Vec<CollectedNewsItem>>(&text) {
+        return Ok(items);
+    }
+    if let Ok(snapshots) = serde_json::from_str::<Vec<NewsSnapshot>>(&text) {
+        return Ok(snapshots
+            .into_iter()
+            .map(|snapshot| CollectedNewsItem {
+                symbol: snapshot.symbol,
+                market_scope: None,
+                headline: snapshot.headline,
+                summary: snapshot.summary,
+                sentiment_hint: Some(snapshot.sentiment_hint),
+                source_label: snapshot.source_label,
+                timestamp: snapshot.timestamp,
+                url: None,
+                license_note: Some("existing local NewsSnapshot fixture".to_string()),
+            })
+            .collect());
+    }
+    #[derive(Deserialize)]
+    struct LocalNewsItemsFile {
+        items: Vec<CollectedNewsItem>,
+    }
+    serde_json::from_str::<LocalNewsItemsFile>(&text)
+        .map(|file| file.items)
+        .map_err(|err| err.to_string())
+}
+
+fn reject_unsafe_news_collection_text(text: &str) -> Result<(), String> {
+    let lower = text.to_ascii_lowercase();
+    for prohibited in [
+        "broker",
+        "account_id",
+        "order_id",
+        "execution",
+        "position_size",
+        "live_trade",
+        "full_article",
+        "article_body",
+        "content_html",
+        "copyright_full_text",
+    ] {
+        if lower.contains(prohibited) {
+            return Err(format!(
+                "news collection rejected unsafe field: {prohibited}"
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn infer_news_sentiment_hint(headline: &str, summary: &str) -> &'static str {
+    let lower = format!("{headline} {summary}").to_ascii_lowercase();
+    if lower.contains("beat")
+        || lower.contains("growth")
+        || lower.contains("upgrade")
+        || lower.contains("상승")
+        || lower.contains("호조")
+    {
+        "positive"
+    } else if lower.contains("miss")
+        || lower.contains("risk")
+        || lower.contains("downgrade")
+        || lower.contains("하락")
+        || lower.contains("부진")
+    {
+        "negative"
+    } else {
+        "neutral"
+    }
 }
 
 fn filter_batch_input_for_autonomous_scope(
@@ -6809,18 +8624,19 @@ pub fn consume_owner_action_file_with_previous_run(
     if dry_run {
         applied_action_count = 0;
     } else {
-        let (general_comment_actions, inbox_actions): (Vec<_>, Vec<_>) =
+        let (general_owner_actions, inbox_actions): (Vec<_>, Vec<_>) =
             candidate_actions.iter().cloned().partition(|action| {
-                action.action_type == OwnerAttentionActionType::AddComment
+                owner_general_feedback_type(action.action_type).is_some()
                     && action.item_id == "owner-general-comment"
             });
-        for action in &general_comment_actions {
+        for action in &general_owner_actions {
             let feedback = OwnerFeedback {
                 feedback_id: format!("feedback-{}", action.action_id),
                 symbol: None,
                 market_scope: None,
                 target_member_id: None,
-                feedback_type: OwnerFeedbackType::Comment,
+                feedback_type: owner_general_feedback_type(action.action_type)
+                    .unwrap_or(OwnerFeedbackType::Comment),
                 text: action
                     .comment
                     .clone()
@@ -6847,33 +8663,27 @@ pub fn consume_owner_action_file_with_previous_run(
             .iter()
             .filter(|result| result.safety_status == OwnerAttentionActionSafetyStatus::Rejected)
             .count();
-        applied_action_count = general_comment_actions.len()
+        applied_action_count = general_owner_actions.len()
             + results
                 .iter()
                 .filter(|result| result.safety_status == OwnerAttentionActionSafetyStatus::Passed)
                 .count();
         generated_owner_feedback.extend(feedback);
         generated_watchlist_candidates = candidates;
-        let reconsideration_decision_ids = run_consumption_reconsideration(
+        let reconsideration_replay = run_consumption_reconsideration(
             &generated_owner_feedback,
             &previous_run,
             &member_state_store,
         )?;
+        let reconsideration_decision_ids = reconsideration_replay.decision_ids.clone();
         if !generated_owner_feedback.is_empty() {
-            reconsideration_results.push(ReconsiderationReplayResult {
-                feedback_count: generated_owner_feedback.len(),
-                reconsideration_session_count: reconsideration_decision_ids.len(),
-                chairman_reconsideration_decision_count: reconsideration_decision_ids.len(),
-                risk_veto_count: 0,
-                journal_entry_count: generated_owner_feedback.len(),
-                paper_only: true,
-            });
+            reconsideration_results.push(reconsideration_replay.result);
             apply_owner_feedback_journal_to_member_state(
                 &mut member_state_store,
                 &generated_owner_feedback,
             );
         }
-        for action in &general_comment_actions {
+        for action in &general_owner_actions {
             ledger.add_record(owner_action_processing_record(
                 action,
                 OwnerActionProcessedStatus::Applied,
@@ -6881,7 +8691,7 @@ pub fn consume_owner_action_file_with_previous_run(
                 Vec::new(),
                 reconsideration_decision_ids.clone(),
                 source_snapshot_id.clone(),
-                "targetless owner comment logged as paper-only feedback",
+                "targetless owner natural input logged as paper-only feedback",
             ));
         }
         for result in &results {
@@ -7286,6 +9096,24 @@ fn validate_local_json_path(path: &Path, label: &str) -> Result<(), String> {
     Ok(())
 }
 
+fn validate_local_json_or_toml_path(path: &Path, label: &str) -> Result<(), String> {
+    let path_text = path
+        .to_str()
+        .ok_or_else(|| format!("{label} must be valid UTF-8"))?;
+    if !local_only(path_text) {
+        return Err(format!("{label} must be local"));
+    }
+    if path_has_parent_component(path) {
+        return Err(format!(
+            "{label} must not contain parent-directory traversal"
+        ));
+    }
+    match path.extension().and_then(|value| value.to_str()) {
+        Some("json") | Some("toml") => Ok(()),
+        _ => Err(format!("{label} must point to JSON or TOML")),
+    }
+}
+
 fn load_owner_action_processing_ledger_for_config(
     config: &OwnerActionConsumptionConfig,
 ) -> Result<OwnerActionProcessingLedger, String> {
@@ -7415,23 +9243,60 @@ fn load_consumption_member_state_store(
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
+struct ConsumptionReconsiderationReplay {
+    decision_ids: Vec<String>,
+    result: ReconsiderationReplayResult,
+}
+
 fn run_consumption_reconsideration(
     feedback: &[OwnerFeedback],
     previous_run: &Option<AutonomousPaperRunResult>,
     member_state_store: &MemberStateStore,
-) -> Result<Vec<String>, String> {
+) -> Result<ConsumptionReconsiderationReplay, String> {
     let Some(previous_run) = previous_run else {
-        return Ok(feedback
+        let decision_ids = feedback
             .iter()
             .filter(|feedback| opens_reconsideration(feedback.feedback_type))
             .map(|feedback| format!("reconsideration-deferred-{}", feedback.feedback_id))
-            .collect());
+            .collect::<Vec<_>>();
+        return Ok(ConsumptionReconsiderationReplay {
+            result: ReconsiderationReplayResult {
+                feedback_count: feedback.len(),
+                reconsideration_session_count: decision_ids.len(),
+                chairman_reconsideration_decision_count: decision_ids.len(),
+                risk_veto_count: 0,
+                journal_entry_count: feedback.len(),
+                paper_only: true,
+            },
+            decision_ids,
+        });
     };
     let Some(cycle) = previous_run.cycles.last() else {
-        return Ok(Vec::new());
+        return Ok(ConsumptionReconsiderationReplay {
+            decision_ids: Vec::new(),
+            result: ReconsiderationReplayResult {
+                feedback_count: feedback.len(),
+                reconsideration_session_count: 0,
+                chairman_reconsideration_decision_count: 0,
+                risk_veto_count: 0,
+                journal_entry_count: 0,
+                paper_only: true,
+            },
+        });
     };
     let Some(owner_console_view) = cycle.owner_console_view.clone() else {
-        return Ok(Vec::new());
+        return Ok(ConsumptionReconsiderationReplay {
+            decision_ids: Vec::new(),
+            result: ReconsiderationReplayResult {
+                feedback_count: feedback.len(),
+                reconsideration_session_count: 0,
+                chairman_reconsideration_decision_count: 0,
+                risk_veto_count: 0,
+                journal_entry_count: 0,
+                paper_only: true,
+            },
+        });
     };
     let result = run_owner_feedback_reconsideration_cycle(OwnerFeedbackReconsiderationInput {
         previous_batch_result: cycle.batch_result.clone(),
@@ -7441,11 +9306,32 @@ fn run_consumption_reconsideration(
         market_data: Vec::new(),
         news: Vec::new(),
     })?;
-    Ok(result
+    let decision_ids = result
         .chairman_reconsideration_decisions
         .iter()
         .map(|decision| decision.decision_id.clone())
-        .collect())
+        .collect::<Vec<_>>();
+    let risk_veto_count = result
+        .chairman_reconsideration_decisions
+        .iter()
+        .filter(|decision| {
+            decision.final_action == ChairmanReconsiderationFinalAction::RiskVetoed
+                || decision.risk_governor_status == RiskGovernorStatus::Vetoed
+        })
+        .count();
+    Ok(ConsumptionReconsiderationReplay {
+        decision_ids,
+        result: ReconsiderationReplayResult {
+            feedback_count: result.owner_feedback_count,
+            reconsideration_session_count: result.reconsideration_sessions.len(),
+            chairman_reconsideration_decision_count: result
+                .chairman_reconsideration_decisions
+                .len(),
+            risk_veto_count,
+            journal_entry_count: result.owner_feedback_journal_entries.len(),
+            paper_only: true,
+        },
+    })
 }
 
 fn apply_owner_feedback_journal_to_member_state(
@@ -7483,22 +9369,43 @@ fn write_consumption_outputs(
     if let Some(path) = &config.processed_action_ledger_path {
         ledger.save_to_local_json(Path::new(path))?;
     }
-    if matches!(
-        config.after_apply_file_policy,
-        OwnerActionAfterApplyFilePolicy::ClearProcessedActions
-    ) {
-        save_owner_action_file_to_local_json(
-            Path::new(&config.action_file_path),
-            &OwnerActionFile {
-                schema_version: "owner-action-file.v1".to_string(),
-                source_snapshot_id: read_model.map(|model| model.snapshot_id.clone()),
-                actions: Vec::new(),
-                paper_only: true,
-                safety_notes: vec!["processed actions cleared after paper-only apply".to_string()],
-            },
-        )?;
+    match config.after_apply_file_policy {
+        OwnerActionAfterApplyFilePolicy::KeepActionFile => {}
+        OwnerActionAfterApplyFilePolicy::ArchiveActionFile => {
+            archive_owner_action_file(Path::new(&config.action_file_path))?;
+        }
+        OwnerActionAfterApplyFilePolicy::ClearProcessedActions => {
+            save_owner_action_file_to_local_json(
+                Path::new(&config.action_file_path),
+                &OwnerActionFile {
+                    schema_version: "owner-action-file.v1".to_string(),
+                    source_snapshot_id: read_model.map(|model| model.snapshot_id.clone()),
+                    actions: Vec::new(),
+                    paper_only: true,
+                    safety_notes: vec![
+                        "processed actions cleared after paper-only apply".to_string(),
+                    ],
+                },
+            )?;
+        }
     }
     Ok(())
+}
+
+fn archive_owner_action_file(path: &Path) -> Result<(), String> {
+    validate_local_json_path(path, "owner action file path")?;
+    let parent = path
+        .parent()
+        .ok_or_else(|| "owner action file path requires parent directory".to_string())?;
+    let stem = path
+        .file_stem()
+        .and_then(|value| value.to_str())
+        .ok_or_else(|| "owner action file path requires UTF-8 file name".to_string())?;
+    let archive_path = parent.join(format!("{stem}.processed.json"));
+    if archive_path.exists() {
+        fs::remove_file(&archive_path).map_err(|err| err.to_string())?;
+    }
+    fs::rename(path, archive_path).map_err(|err| err.to_string())
 }
 
 fn refresh_owner_console_state_after_consumption(
@@ -7896,12 +9803,12 @@ impl OwnerAttentionInbox {
                 continue;
             }
             let Some(index) = item_index else {
-                if action.action_type == OwnerAttentionActionType::AddComment
-                    && action.item_id == "owner-general-comment"
-                {
+                if let (Some(feedback_type), true) = (
+                    owner_general_feedback_type(action.action_type),
+                    action.item_id == "owner-general-comment",
+                ) {
                     let item = owner_general_comment_inbox_item(action);
-                    let item_feedback =
-                        owner_feedback_from_action(action, &item, OwnerFeedbackType::Comment);
+                    let item_feedback = owner_feedback_from_action(action, &item, feedback_type);
                     feedback.push(item_feedback.clone());
                     results.push(OwnerAttentionActionResult {
                         action_id: action.action_id.clone(),
@@ -8135,6 +10042,7 @@ pub fn load_owner_attention_actions_from_local_json(
         return Err("owner attention actions path must be local".to_string());
     }
     let text = fs::read_to_string(path).map_err(|err| err.to_string())?;
+    reject_unsafe_owner_action_file_text(&text)?;
     reject_unsafe_owner_attention_text(&text)?;
     let actions: Vec<OwnerAttentionAction> =
         if let Ok(actions) = serde_json::from_str::<Vec<OwnerAttentionAction>>(&text) {

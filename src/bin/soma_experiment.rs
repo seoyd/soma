@@ -173,13 +173,16 @@ use soma_zero::{
     Sprint101InvestorArchetypeIngestionRunner,
 };
 use soma_zero::{
-    MinimalAiCommitteeCycleConfig, OwnerActionAfterApplyFilePolicy, OwnerActionApplyMode,
-    OwnerActionComposerConfig, OwnerActionConsumptionConfig, OwnerActionDuplicatePolicy,
-    OwnerConsoleTerminalOptions, compose_owner_action_from_read_model, consume_owner_action_file,
-    parse_owner_attention_action_type, run_autonomous_paper_committee_loop_from_config_path,
+    MarketScope, MinimalAiCommitteeCycleConfig, OwnerActionAfterApplyFilePolicy,
+    OwnerActionApplyMode, OwnerActionComposerConfig, OwnerActionConsumptionConfig,
+    OwnerActionDuplicatePolicy, OwnerConsoleTerminalOptions, OwnerNaturalInput,
+    compose_owner_action_from_read_model, consume_owner_action_file,
+    load_owner_intent_policy_from_local_file, parse_owner_attention_action_type,
+    run_autonomous_paper_committee_loop_from_config_path,
     run_batch_committee_cycle_from_config_path,
     run_batch_committee_cycle_with_state_from_config_path,
     run_minimal_committee_cycle_from_config_path, run_owner_console_viewer,
+    write_owner_natural_input_action_file, write_owner_natural_input_action_file_with_policy,
 };
 use soma_zero::{
     MixedFamilyIsolationV1Bundle, MixedFamilyIsolationV1Config, MixedFamilyIsolationV1Runner,
@@ -5954,6 +5957,25 @@ enum Commands {
         action: String,
         #[arg(long)]
         comment: Option<String>,
+        #[arg(long)]
+        out: String,
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Rust-only natural owner input; writes internal paper action JSON so the owner never edits JSON by hand.
+    OwnerSay {
+        #[arg(long)]
+        text: String,
+        #[arg(long)]
+        symbol: Option<String>,
+        #[arg(long)]
+        scope: Option<String>,
+        #[arg(long = "member")]
+        target_member_id: Option<String>,
+        #[arg(long = "item")]
+        target_item_id: Option<String>,
+        #[arg(long)]
+        policy: Option<String>,
         #[arg(long)]
         out: String,
         #[arg(long)]
@@ -17878,6 +17900,53 @@ fn main() {
                     println!("wrote_output=false");
                 }
             }),
+        Commands::OwnerSay {
+            text,
+            symbol,
+            scope,
+            target_member_id,
+            target_item_id,
+            policy,
+            out,
+            dry_run,
+        } => parse_owner_say_market_scope(scope.as_deref()).and_then(|market_scope| {
+            let input = OwnerNaturalInput {
+                input_id: "owner-say-cli-input".to_string(),
+                text,
+                symbol,
+                market_scope,
+                target_member_id,
+                target_item_id,
+                source_label: Some("owner-say-cli".to_string()),
+                created_at: None,
+                paper_only: true,
+            };
+            if let Some(policy) = policy {
+                let policy = load_owner_intent_policy_from_local_file(std::path::Path::new(
+                    &policy,
+                ))?
+                .policy;
+                write_owner_natural_input_action_file_with_policy(
+                    input,
+                    &policy,
+                    std::path::Path::new(&out),
+                    dry_run,
+                )
+            } else {
+                write_owner_natural_input_action_file(input, std::path::Path::new(&out), dry_run)
+            }
+        })
+            .map(|result| {
+                println!(
+                    "owner_say_warning=Rust-only natural owner input; writes internal paper-only action JSON, no broker/order/account, no training, no live inference"
+                );
+                println!("{}", result.preview_text);
+                if let Some(path) = result.output_path {
+                    println!("wrote_output={path}");
+                } else {
+                    println!("wrote_output=false");
+                }
+            }),
         Commands::OwnerConsoleApplyActions {
             actions,
             state_root,
@@ -19609,6 +19678,21 @@ fn parse_timeframe(value: &str) -> Timeframe {
         "1h" | "OneHour" => Timeframe::OneHour,
         "1d" | "OneDay" => Timeframe::OneDay,
         _ => Timeframe::OneMinute,
+    }
+}
+
+fn parse_owner_say_market_scope(value: Option<&str>) -> Result<Option<MarketScope>, String> {
+    let Some(value) = value else {
+        return Ok(None);
+    };
+    match value {
+        "KoreaShortTerm" | "korea-short" | "kr-short" => Ok(Some(MarketScope::KoreaShortTerm)),
+        "KoreaLongTerm" | "korea-long" | "kr-long" => Ok(Some(MarketScope::KoreaLongTerm)),
+        "UsShortTerm" | "us-short" => Ok(Some(MarketScope::UsShortTerm)),
+        "UsLongTerm" | "us-long" => Ok(Some(MarketScope::UsLongTerm)),
+        "CryptoShortTerm" | "crypto-short" => Ok(Some(MarketScope::CryptoShortTerm)),
+        "CryptoLongTerm" | "crypto-long" => Ok(Some(MarketScope::CryptoLongTerm)),
+        other => Err(format!("unsupported owner-say scope: {other}")),
     }
 }
 

@@ -1,0 +1,68 @@
+[
+  {
+    "symbol": "005930.KS",
+    "market_scope": "KoreaShortTerm",
+    "headline": "Samsung memory demand improves in local fixture",
+    "summary": "Short fixture summary only for paper research routing; no full article text.",
+    "sentiment_hint": "positive",
+    "source_label": "local-news-fixture",
+    "timestamp": "2026-05-23T09:00:00+09:00",
+    "url": null,
+    "license_note": "headline and short summary fixture"
+  },
+  {
+    "symbol": "000660.KS",
+    "market_scope": "KoreaLongTerm",
+    "headline": "SK Hynix paper fixture highlights memory cycle risk",
+    "summary": "Short fixture summary only for local research routing.",
+    "sentiment_hint": "neutral",
+    "source_label": "local-news-fixture",
+    "timestamp": "2026-05-23T09:03:00+09:00",
+    "url": null,
+    "license_note": "headline and short summary fixture"
+  },
+  {
+    "symbol": "AAPL",
+    "market_scope": "UsShortTerm",
+    "headline": "Apple services growth watched by paper committee",
+    "summary": "Short fixture summary only for AI member research packets.",
+    "sentiment_hint": "neutral",
+    "source_label": "local-news-fixture",
+    "timestamp": "2026-05-23T09:05:00+09:00",
+    "url": null,
+    "license_note": "headline and short summary fixture"
+  },
+  {
+    "symbol": "MSFT",
+    "market_scope": "UsLongTerm",
+    "headline": "Microsoft cloud demand remains under paper review",
+    "summary": "Short fixture summary only for local AI member packets.",
+    "sentiment_hint": "neutral",
+    "source_label": "local-news-fixture",
+    "timestamp": "2026-05-23T09:07:00+09:00",
+    "url": null,
+    "license_note": "headline and short summary fixture"
+  },
+  {
+    "symbol": "BTCUSDT",
+    "market_scope": "CryptoShortTerm",
+    "headline": "Bitcoin volatility risk remains elevated in local fixture",
+    "summary": "Short fixture summary only; Risk Governor still reviews paper-only crypto proposals.",
+    "sentiment_hint": "negative",
+    "source_label": "local-news-fixture",
+    "timestamp": "2026-05-23T09:10:00+09:00",
+    "url": null,
+    "license_note": "headline and short summary fixture"
+  },
+  {
+    "symbol": "ETHUSDT",
+    "market_scope": "CryptoLongTerm",
+    "headline": "Ethereum paper fixture notes network activity uncertainty",
+    "summary": "Short fixture summary only; no trading instruction is included.",
+    "sentiment_hint": "neutral",
+    "source_label": "local-news-fixture",
+    "timestamp": "2026-05-23T09:12:00+09:00",
+    "url": null,
+    "license_note": "headline and short summary fixture"
+  }
+]

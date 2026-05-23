@@ -4,35 +4,45 @@ use soma_zero::league::minimal_ai_committee_core::{
     AICommitteeMember, AICommitteeMemberStatus, AIRuntimeMode, AiMemberBrain, AiMemberCoreRegistry,
     ArchetypeRiskBias, ArchetypeStyleCardRegistry, ArchetypeStyleTag, AutonomousPaperCycleMode,
     BatchCommitteeCycleInput, BatchCommitteeCycleWithStateInput, ChairmanFinalAction,
-    CommitteeStateExportConfig, CommitteeStateExportInput, CommitteeStateSnapshotSource,
-    CoreAwareMemberBrainAdapter, CoreRuntimeStatus, DailyBriefStorageUpdateInput, DataRouterInput,
-    DeterministicMockBrain, EvidencePreference, IndependentMemberRole, InvestmentEventQueue,
-    InvestorArchetypeStyleCard, Mamba3GatedDeltaNetCoreSpec, MarketScope, MemberActivationPolicy,
-    MemberCoreFamily, MemberInputPacket, MemberLearningSignal, MemberScoreUpdateReason,
-    MemberSelectionSkipReason, MemberStance, MemberStateStore, MemberStyleStatus, MemoryCoreKind,
-    MinimalAiCommitteeCycleConfig, NextActionType, NextOwnerActionType, OfflineMemberBrainAdapter,
-    OfflineMemberOpinionFixture, OfflineMemberOutputBatch, OwnerActionAfterApplyFilePolicy,
-    OwnerActionApplyMode, OwnerActionComposerConfig, OwnerActionConsumptionConfig,
-    OwnerActionDuplicatePolicy, OwnerActionFile, OwnerActionProcessedStatus, OwnerAttentionAction,
+    CollectedNewsItem, CommitteeStateExportConfig, CommitteeStateExportInput,
+    CommitteeStateSnapshotSource, CoreAwareMemberBrainAdapter, CoreRuntimeStatus,
+    DailyBriefStorageUpdateInput, DataRouterInput, DeterministicMockBrain, EvidencePreference,
+    IndependentMemberRole, InvestmentEventQueue, InvestorArchetypeStyleCard,
+    Mamba3GatedDeltaNetCoreSpec, MarketScope, MemberActivationPolicy, MemberCoreFamily,
+    MemberInputPacket, MemberLearningSignal, MemberScoreUpdateReason, MemberSelectionSkipReason,
+    MemberStance, MemberStateStore, MemberStyleStatus, MemoryCoreKind,
+    MinimalAiCommitteeCycleConfig, NewsCollectionConfig, NewsCollectionSourceMode,
+    NewsProviderConfig, NewsProviderKind, NewsProviderRunStatus, NewsProviderTrustLevel,
+    NextActionType, NextOwnerActionType, OfflineMemberBrainAdapter, OfflineMemberOpinionFixture,
+    OfflineMemberOutputBatch, OwnerActionAfterApplyFilePolicy, OwnerActionApplyMode,
+    OwnerActionComposerConfig, OwnerActionConsumptionConfig, OwnerActionDuplicatePolicy,
+    OwnerActionFile, OwnerActionProcessedStatus, OwnerAttentionAction,
     OwnerAttentionActionSafetyStatus, OwnerAttentionActionType, OwnerAttentionInbox,
     OwnerAttentionInboxStatus, OwnerAttentionPriority, OwnerAttentionQueue,
     OwnerAttentionTriageInput, OwnerAttentionType, OwnerConfirmationPolicy,
     OwnerConsoleTerminalOptions, OwnerDailyBriefStore, OwnerFeedbackOutcome, OwnerFeedbackType,
-    PreferredMarketBias, PreferredTimeHorizon, RealArchetypeIntakePolicy, RiskGovernorStatus,
-    SequenceCoreKind, SnapshotFileNamingPolicy, SourceConfidence, StyleCardStatus,
-    StyleMappingMode, WatchlistCandidate, WatchlistCandidateStatus, WatchlistCandidateStore,
-    WatchlistRecheckConfig, WatchlistRecheckSkipReason, build_committee_state_snapshot,
-    build_owner_console_read_model, compose_owner_action_from_read_model,
-    consume_owner_action_file, consume_owner_action_file_with_previous_run,
-    create_three_member_pilot_roster, load_owner_attention_actions_from_local_json,
-    load_owner_console_read_model_from_local_file, load_owner_feedback_from_local_json,
+    OwnerIntentPolicy, OwnerIntentPolicyLanguage, OwnerIntentRule, OwnerNaturalInput,
+    OwnerNaturalInputIntent, OwnerSafetyBlockedCategory, OwnerSafetyRule, OwnerSafetyRuleSeverity,
+    PreferredMarketBias, PreferredTimeHorizon, RealArchetypeIntakePolicy, ResearchRunConfig,
+    ResearchRunMode, RiskGovernorStatus, SequenceCoreKind, SnapshotFileNamingPolicy,
+    SourceConfidence, StyleCardStatus, StyleMappingMode, WatchlistCandidate,
+    WatchlistCandidateStatus, WatchlistCandidateStore, WatchlistRecheckConfig,
+    WatchlistRecheckSkipReason, build_ai_research_packets, build_committee_state_snapshot,
+    build_owner_console_read_model, built_in_owner_intent_policy, collect_news_from_providers,
+    collect_news_snapshots, compose_owner_action_from_read_model, consume_owner_action_file,
+    consume_owner_action_file_with_previous_run, convert_collected_news_to_snapshots,
+    create_three_member_pilot_roster, default_owner_intent_policy_load_result,
+    load_owner_attention_actions_from_local_json, load_owner_console_read_model_from_local_file,
+    load_owner_feedback_from_local_json, load_owner_intent_policy_from_local_file,
     mac_mini_local_policy, map_style_cards_to_three_member_pilot, market_committee_layouts,
+    parse_owner_natural_input, parse_owner_natural_input_with_policy,
     render_owner_console_terminal_view, route_data_to_ai_members,
     run_autonomous_paper_committee_loop_from_config_path,
     run_batch_committee_cycle_from_config_path, run_batch_committee_cycle_with_state,
     run_batch_committee_cycle_with_state_from_config_path, run_daily_brief_storage_update,
     run_minimal_committee_cycle, run_owner_attention_triage, run_owner_console_viewer,
-    run_watchlist_recheck_cycle, save_committee_state_snapshot, write_committee_state_export,
+    run_research_packet_pipeline, run_watchlist_recheck_cycle, save_committee_state_snapshot,
+    write_committee_state_export, write_owner_natural_input_action_file,
 };
 
 fn single_cycle_config() -> MinimalAiCommitteeCycleConfig {
@@ -48,6 +58,9 @@ fn single_cycle_config() -> MinimalAiCommitteeCycleConfig {
         emit_owner_summary: false,
         emit_owner_console_view: false,
         owner_feedback_path: None,
+        owner_comment_text: None,
+        owner_comment_path: None,
+        owner_intent_policy_path: None,
         emit_reconsideration_view: false,
         autonomous_paper_run: false,
         run_id: None,
@@ -58,6 +71,12 @@ fn single_cycle_config() -> MinimalAiCommitteeCycleConfig {
         require_owner_confirmation: OwnerConfirmationPolicy::Never,
         local_market_data_path: None,
         local_news_path: None,
+        news_collection_enabled: false,
+        news_collection_config_path: None,
+        news_provider_config_path: None,
+        research_run_enabled: false,
+        emit_research_run_summary: false,
+        emit_research_packet_summary: false,
         paper_only: true,
         owner_attention_inbox_input_path: None,
         owner_attention_inbox_output_path: None,
@@ -444,6 +463,9 @@ fn offline_fixture_path_is_local_only() {
         emit_owner_summary: false,
         emit_owner_console_view: false,
         owner_feedback_path: None,
+        owner_comment_text: None,
+        owner_comment_path: None,
+        owner_intent_policy_path: None,
         emit_reconsideration_view: false,
         autonomous_paper_run: false,
         run_id: None,
@@ -454,6 +476,12 @@ fn offline_fixture_path_is_local_only() {
         require_owner_confirmation: OwnerConfirmationPolicy::Never,
         local_market_data_path: None,
         local_news_path: None,
+        news_collection_enabled: false,
+        news_collection_config_path: None,
+        news_provider_config_path: None,
+        research_run_enabled: false,
+        emit_research_run_summary: false,
+        emit_research_packet_summary: false,
         paper_only: true,
         owner_attention_inbox_input_path: None,
         owner_attention_inbox_output_path: None,
@@ -2590,6 +2618,36 @@ fn owner_action_consumption_applies_ledgers_duplicates_and_refreshes_state() {
             .any(|record| record.processed_status == OwnerActionProcessedStatus::Applied)
     );
 
+    let archive_action_path = root.join("owner_attention_actions_archive.json");
+    compose_owner_action_from_read_model(OwnerActionComposerConfig {
+        read_model_path: read_model_path.display().to_string(),
+        output_actions_path: archive_action_path.display().to_string(),
+        target_item_id: None,
+        action_type: OwnerAttentionActionType::AddComment,
+        comment: Some("확인함".to_string()),
+        dry_run: false,
+        paper_only: true,
+    })
+    .expect("compose archive policy action");
+    let archived = consume_owner_action_file_with_previous_run(
+        OwnerActionConsumptionConfig {
+            action_file_path: archive_action_path.display().to_string(),
+            inbox_input_path: Some(inbox_path.display().to_string()),
+            watchlist_input_path: Some(watchlist_path.display().to_string()),
+            member_state_input_path: Some(member_state_path.display().to_string()),
+            after_apply_file_policy: OwnerActionAfterApplyFilePolicy::ArchiveActionFile,
+            ..apply_config.clone()
+        },
+        Some(run.clone()),
+    )
+    .expect("archive action file after apply");
+    assert_eq!(archived.applied_action_count, 1);
+    assert!(!archive_action_path.exists());
+    assert!(
+        root.join("owner_attention_actions_archive.processed.json")
+            .exists()
+    );
+
     let skipped = consume_owner_action_file_with_previous_run(apply_config.clone(), Some(run))
         .expect("duplicate skip");
     assert_eq!(skipped.applied_action_count, 0);
@@ -2823,6 +2881,30 @@ fn owner_action_consumption_rejects_paths_and_unsafe_files() {
     })
     .expect_err("unsafe action file rejected");
     assert!(unsafe_err.contains("unsafe field"));
+    let unsafe_quantity_path = root.join("quantity_actions.json");
+    std::fs::write(
+        &unsafe_quantity_path,
+        r#"{"schema_version":"owner-action-file.v1","paper_only":true,"quantity":10,"actions":[]}"#,
+    )
+    .expect("write unsafe quantity action file");
+    let unsafe_quantity_err = consume_owner_action_file(OwnerActionConsumptionConfig {
+        action_file_path: unsafe_quantity_path.display().to_string(),
+        processed_action_ledger_path: None,
+        inbox_input_path: None,
+        inbox_output_path: None,
+        watchlist_input_path: None,
+        watchlist_output_path: None,
+        member_state_input_path: None,
+        member_state_output_path: None,
+        committee_state_export_root_path: None,
+        owner_console_read_model_path: None,
+        apply_mode: OwnerActionApplyMode::DryRun,
+        duplicate_policy: OwnerActionDuplicatePolicy::SkipAlreadyProcessed,
+        after_apply_file_policy: OwnerActionAfterApplyFilePolicy::KeepActionFile,
+        paper_only: true,
+    })
+    .expect_err("unsafe quantity action file rejected");
+    assert!(unsafe_quantity_err.contains("unsafe field"));
     let _ = std::fs::remove_dir_all(root);
 }
 
@@ -2973,6 +3055,9 @@ fn autonomous_paper_config_rejects_remote_and_unsafe_fields() {
         emit_owner_summary: true,
         emit_owner_console_view: true,
         owner_feedback_path: None,
+        owner_comment_text: None,
+        owner_comment_path: None,
+        owner_intent_policy_path: None,
         emit_reconsideration_view: false,
         autonomous_paper_run: true,
         run_id: Some("remote-reject".to_string()),
@@ -2983,6 +3068,12 @@ fn autonomous_paper_config_rejects_remote_and_unsafe_fields() {
         require_owner_confirmation: OwnerConfirmationPolicy::Never,
         local_market_data_path: Some("https://example.invalid/market.json".to_string()),
         local_news_path: None,
+        news_collection_enabled: false,
+        news_collection_config_path: None,
+        news_provider_config_path: None,
+        research_run_enabled: false,
+        emit_research_run_summary: false,
+        emit_research_packet_summary: false,
         paper_only: true,
         owner_attention_inbox_input_path: None,
         owner_attention_inbox_output_path: None,
@@ -3713,4 +3804,813 @@ fn data_router_routes_all_market_scopes_without_creating_opinions() {
     assert_eq!(opinion.member_id, "kr-short-trend");
     assert_eq!(opinion.stance, MemberStance::BuyProposal);
     assert!(opinion.event_triggered);
+}
+
+#[test]
+fn owner_natural_input_parses_to_internal_feedback_and_action_json() {
+    let parsed = parse_owner_natural_input(OwnerNaturalInput {
+        input_id: "test-owner-natural-evidence".to_string(),
+        text: "005930.KS 근거가 부족해 보여. 다시 봐줘".to_string(),
+        symbol: Some("005930.KS".to_string()),
+        market_scope: Some(MarketScope::KoreaShortTerm),
+        target_member_id: Some("value-member".to_string()),
+        target_item_id: None,
+        source_label: Some("owner-cli".to_string()),
+        created_at: Some("2026-05-23T09:00:00+09:00".to_string()),
+        paper_only: true,
+    })
+    .expect("parse natural owner input");
+
+    assert_eq!(parsed.input_id, "test-owner-natural-evidence");
+    assert_eq!(
+        parsed.detected_intent,
+        OwnerNaturalInputIntent::EvidenceRequest
+    );
+    assert_eq!(parsed.intent, OwnerNaturalInputIntent::EvidenceRequest);
+    assert_eq!(
+        parsed.safety_status,
+        OwnerAttentionActionSafetyStatus::Passed
+    );
+    assert!(parsed.rejection_reason.is_none());
+    assert!(parsed.paper_only);
+    assert!(parsed.generated_feedback.is_some());
+    assert!(parsed.generated_attention_action.is_some());
+    assert_eq!(
+        parsed.feedback.feedback_type,
+        OwnerFeedbackType::EvidenceRequest
+    );
+    assert_eq!(parsed.feedback.symbol.as_deref(), Some("005930.KS"));
+    assert_eq!(
+        parsed.internal_action_file.actions[0].action_type,
+        OwnerAttentionActionType::RequestMoreEvidence
+    );
+    assert_eq!(
+        parsed.internal_action_file.actions[0].item_id,
+        "owner-general-comment"
+    );
+    assert!(parsed.internal_action_file.paper_only);
+    assert!(
+        parsed
+            .safety_notes
+            .iter()
+            .any(|note| note.contains("no LLM"))
+    );
+    let parse_case = |text: &str, intent: OwnerNaturalInputIntent| {
+        let parsed = parse_owner_natural_input(OwnerNaturalInput {
+            input_id: format!("case-{intent:?}"),
+            text: text.to_string(),
+            symbol: Some("005930.KS".to_string()),
+            market_scope: Some(MarketScope::KoreaShortTerm),
+            target_member_id: None,
+            target_item_id: None,
+            source_label: Some("unit-test".to_string()),
+            created_at: None,
+            paper_only: true,
+        })
+        .expect("parse owner natural input case");
+        assert_eq!(parsed.detected_intent, intent);
+    };
+    parse_case(
+        "리스크와 변동성이 걱정돼",
+        OwnerNaturalInputIntent::RiskConcern,
+    );
+    parse_case(
+        "관심종목으로 지켜봐",
+        OwnerNaturalInputIntent::WatchlistRequest,
+    );
+    parse_case(
+        "위원회 다시 재검토해줘",
+        OwnerNaturalInputIntent::ReconsiderationRequest,
+    );
+    parse_case(
+        "paper positive 결과 좋음",
+        OwnerNaturalInputIntent::PaperOutcomeLabel,
+    );
+    parse_case("확인 메모", OwnerNaturalInputIntent::Comment);
+    parse_case(
+        "분류하기 어려운 일반 문장",
+        OwnerNaturalInputIntent::Unknown,
+    );
+    for unsafe_text in ["계좌에서 주문해", "레버리지 최대로", "수익 보장"] {
+        let err = parse_owner_natural_input(OwnerNaturalInput {
+            input_id: "unsafe-owner-natural-input".to_string(),
+            text: unsafe_text.to_string(),
+            symbol: Some("005930.KS".to_string()),
+            market_scope: Some(MarketScope::KoreaShortTerm),
+            target_member_id: None,
+            target_item_id: None,
+            source_label: Some("unit-test".to_string()),
+            created_at: None,
+            paper_only: true,
+        })
+        .expect_err("unsafe natural owner input rejected");
+        assert!(err.contains("owner policy rejected"));
+    }
+
+    let output_path = std::path::Path::new("target/sprint146_owner_say_action.json");
+    let result = write_owner_natural_input_action_file(
+        OwnerNaturalInput {
+            input_id: "test-owner-natural-write".to_string(),
+            text: "리스크 근거를 더 모아줘".to_string(),
+            symbol: Some("005930.KS".to_string()),
+            market_scope: Some(MarketScope::KoreaShortTerm),
+            target_member_id: None,
+            target_item_id: None,
+            source_label: Some("owner-cli".to_string()),
+            created_at: None,
+            paper_only: true,
+        },
+        output_path,
+        false,
+    )
+    .expect("write internal action file");
+    assert!(result.wrote_output);
+    let saved: OwnerActionFile = serde_json::from_str(
+        &std::fs::read_to_string(output_path).expect("read owner natural action file"),
+    )
+    .expect("saved action file JSON");
+    assert_eq!(saved.actions.len(), 1);
+    assert!(
+        saved
+            .safety_notes
+            .iter()
+            .any(|note| note.contains("owner did not write JSON"))
+    );
+    assert!(
+        saved
+            .safety_notes
+            .iter()
+            .any(|note| note.contains("internal"))
+    );
+    let _ = std::fs::remove_file(output_path);
+}
+
+#[test]
+fn owner_intent_policy_table_loads_prioritizes_and_rejects_safely() {
+    let default_load = default_owner_intent_policy_load_result();
+    assert!(!default_load.loaded);
+    assert!(default_load.rule_count > 0);
+    assert!(default_load.safety_rule_count > 0);
+    assert!(default_load.policy.paper_only);
+
+    let built_in = built_in_owner_intent_policy();
+    for (text, intent) in [
+        (
+            "삼성전자 뉴스 근거가 부족해 보여. 다시 확인해줘",
+            OwnerNaturalInputIntent::EvidenceRequest,
+        ),
+        (
+            "리스크와 변동성이 걱정돼",
+            OwnerNaturalInputIntent::RiskConcern,
+        ),
+        (
+            "관심종목으로 지켜봐",
+            OwnerNaturalInputIntent::WatchlistRequest,
+        ),
+        (
+            "위원회 다시 재검토해줘",
+            OwnerNaturalInputIntent::ReconsiderationRequest,
+        ),
+    ] {
+        let parsed = parse_owner_natural_input_with_policy(
+            OwnerNaturalInput {
+                input_id: format!("policy-case-{intent:?}"),
+                text: text.to_string(),
+                symbol: Some("005930.KS".to_string()),
+                market_scope: Some(MarketScope::KoreaShortTerm),
+                target_member_id: None,
+                target_item_id: None,
+                source_label: Some("unit-test".to_string()),
+                created_at: None,
+                paper_only: true,
+            },
+            &built_in,
+        )
+        .expect("built-in policy parses");
+        assert_eq!(parsed.detected_intent, intent);
+        assert!(
+            parsed
+                .safety_notes
+                .iter()
+                .any(|note| note.contains("owner intent policy"))
+        );
+    }
+
+    for unsafe_text in [
+        "계좌에서 주문해",
+        "레버리지 최대로",
+        "수익 보장",
+        "API key secret",
+        "미공개 정보로 판단해줘",
+    ] {
+        let err = parse_owner_natural_input_with_policy(
+            OwnerNaturalInput {
+                input_id: "policy-unsafe".to_string(),
+                text: unsafe_text.to_string(),
+                symbol: Some("005930.KS".to_string()),
+                market_scope: Some(MarketScope::KoreaShortTerm),
+                target_member_id: None,
+                target_item_id: None,
+                source_label: Some("unit-test".to_string()),
+                created_at: None,
+                paper_only: true,
+            },
+            &built_in,
+        )
+        .expect_err("unsafe text rejected by policy");
+        assert!(err.contains("owner policy rejected"));
+    }
+
+    let policy_path = std::path::Path::new("target/sprint147_owner_intent_policy.json");
+    let custom_policy = OwnerIntentPolicy {
+        policy_id: "custom-priority-policy".to_string(),
+        language: OwnerIntentPolicyLanguage::Mixed,
+        intent_rules: vec![
+            OwnerIntentRule {
+                rule_id: "low-risk".to_string(),
+                intent: OwnerNaturalInputIntent::RiskConcern,
+                include_terms: vec!["다시".to_string()],
+                exclude_terms: Vec::new(),
+                priority: 1,
+                confidence_hint: 0.51,
+            },
+            OwnerIntentRule {
+                rule_id: "high-evidence".to_string(),
+                intent: OwnerNaturalInputIntent::EvidenceRequest,
+                include_terms: vec!["다시".to_string()],
+                exclude_terms: Vec::new(),
+                priority: 10,
+                confidence_hint: 0.91,
+            },
+        ],
+        safety_rules: vec![OwnerSafetyRule {
+            rule_id: "block-secret".to_string(),
+            blocked_category: OwnerSafetyBlockedCategory::SecretCredential,
+            blocked_terms: vec!["secret".to_string()],
+            severity: OwnerSafetyRuleSeverity::Reject,
+            rejection_message: "custom policy rejected secret".to_string(),
+        }],
+        default_intent: OwnerNaturalInputIntent::Comment,
+        paper_only: true,
+    };
+    std::fs::write(
+        policy_path,
+        serde_json::to_string_pretty(&custom_policy).expect("serialize custom policy"),
+    )
+    .expect("write custom owner policy");
+    let loaded = load_owner_intent_policy_from_local_file(policy_path).expect("load policy");
+    assert!(loaded.loaded);
+    assert_eq!(loaded.rule_count, 2);
+    let parsed = parse_owner_natural_input_with_policy(
+        OwnerNaturalInput {
+            input_id: "policy-priority".to_string(),
+            text: "다시".to_string(),
+            symbol: None,
+            market_scope: None,
+            target_member_id: None,
+            target_item_id: None,
+            source_label: Some("unit-test".to_string()),
+            created_at: None,
+            paper_only: true,
+        },
+        &loaded.policy,
+    )
+    .expect("priority policy parses");
+    assert_eq!(
+        parsed.detected_intent,
+        OwnerNaturalInputIntent::EvidenceRequest
+    );
+    let toml_policy_path = std::path::Path::new("target/sprint147_owner_intent_policy.toml");
+    std::fs::write(
+        toml_policy_path,
+        r#"
+policy_id = "custom-toml-policy"
+language = "Mixed"
+default_intent = "Comment"
+paper_only = true
+
+[[intent_rules]]
+rule_id = "toml-evidence"
+intent = "EvidenceRequest"
+include_terms = ["증빙"]
+exclude_terms = []
+priority = 90
+confidence_hint = 0.93
+
+[[safety_rules]]
+rule_id = "toml-secret"
+blocked_category = "SecretCredential"
+blocked_terms = ["token"]
+severity = "Reject"
+rejection_message = "custom toml policy rejected token"
+"#,
+    )
+    .expect("write toml owner policy");
+    let toml_loaded =
+        load_owner_intent_policy_from_local_file(toml_policy_path).expect("load toml policy");
+    assert!(toml_loaded.loaded);
+    let toml_parsed = parse_owner_natural_input_with_policy(
+        OwnerNaturalInput {
+            input_id: "policy-toml".to_string(),
+            text: "증빙을 다시 확인".to_string(),
+            symbol: None,
+            market_scope: None,
+            target_member_id: None,
+            target_item_id: None,
+            source_label: Some("unit-test".to_string()),
+            created_at: None,
+            paper_only: true,
+        },
+        &toml_loaded.policy,
+    )
+    .expect("toml policy parses");
+    assert_eq!(
+        toml_parsed.detected_intent,
+        OwnerNaturalInputIntent::EvidenceRequest
+    );
+    let remote_err = load_owner_intent_policy_from_local_file(std::path::Path::new(
+        "https://example.invalid/policy.json",
+    ))
+    .expect_err("remote owner policy path rejected");
+    assert!(remote_err.contains("must be local"));
+    let traversal_err =
+        load_owner_intent_policy_from_local_file(std::path::Path::new("../policy.json"))
+            .expect_err("traversal owner policy path rejected");
+    assert!(traversal_err.contains("parent-directory traversal"));
+    let _ = std::fs::remove_file(policy_path);
+    let _ = std::fs::remove_file(toml_policy_path);
+}
+
+#[test]
+fn automated_news_intake_normalizes_local_fixture_without_network() {
+    let fixture_path = std::path::Path::new("target/sprint146_news_fixture.json");
+    let items = vec![
+        CollectedNewsItem {
+            symbol: "005930.KS".to_string(),
+            market_scope: Some(MarketScope::KoreaShortTerm),
+            headline: "Samsung earnings growth beat".to_string(),
+            summary: "Short local summary only; no copied article body.".to_string(),
+            sentiment_hint: None,
+            source_label: "local-fixture".to_string(),
+            timestamp: "2026-05-23T09:01:00+09:00".to_string(),
+            url: None,
+            license_note: Some("headline and short summary fixture".to_string()),
+        },
+        CollectedNewsItem {
+            symbol: "005930.KS".to_string(),
+            market_scope: Some(MarketScope::KoreaShortTerm),
+            headline: "Second item should be capped".to_string(),
+            summary: "Capped by max_items_per_symbol.".to_string(),
+            sentiment_hint: Some("neutral".to_string()),
+            source_label: "local-fixture".to_string(),
+            timestamp: "2026-05-23T09:02:00+09:00".to_string(),
+            url: None,
+            license_note: Some("headline and short summary fixture".to_string()),
+        },
+    ];
+    std::fs::write(
+        fixture_path,
+        serde_json::to_string_pretty(&items).expect("serialize news fixture"),
+    )
+    .expect("write news fixture");
+
+    let result = collect_news_snapshots(&NewsCollectionConfig {
+        source_mode: NewsCollectionSourceMode::LocalFixture,
+        local_fixture_path: Some(fixture_path.display().to_string()),
+        sources: Vec::new(),
+        inline_items: Vec::new(),
+        allow_network: false,
+        allowed_domains: Vec::new(),
+        max_items_per_symbol: 1,
+        paper_only: true,
+    })
+    .expect("collect news snapshots");
+    assert_eq!(result.collected_item_count, 2);
+    assert_eq!(result.snapshot_count, 1);
+    assert_eq!(result.news_snapshots[0].symbol, "005930.KS");
+    assert_eq!(result.news_snapshots[0].sentiment_hint, "positive");
+    assert!(
+        result
+            .safety_notes
+            .iter()
+            .any(|note| note.contains("no network access"))
+    );
+
+    let converted = convert_collected_news_to_snapshots(&items, 2);
+    assert_eq!(converted.len(), 2);
+    let remote_err = collect_news_snapshots(&NewsCollectionConfig {
+        source_mode: NewsCollectionSourceMode::RssFeed,
+        local_fixture_path: None,
+        sources: vec![
+            soma_zero::league::minimal_ai_committee_core::NewsSourceDescriptor {
+                source_id: "remote-unallowed".to_string(),
+                label: Some("remote".to_string()),
+                mode: NewsCollectionSourceMode::RssFeed,
+                path: None,
+                url: Some("https://unapproved.example/feed.xml".to_string()),
+                allowed_domain: None,
+                paper_only: true,
+            },
+        ],
+        inline_items: Vec::new(),
+        allow_network: true,
+        allowed_domains: vec!["approved.example".to_string()],
+        max_items_per_symbol: 1,
+        paper_only: true,
+    })
+    .expect_err("remote news source outside allowlist rejected");
+    assert!(remote_err.contains("allowed domain"));
+    let traversal_err = collect_news_snapshots(&NewsCollectionConfig {
+        source_mode: NewsCollectionSourceMode::LocalFixture,
+        local_fixture_path: Some("target/../bad_news.json".to_string()),
+        sources: Vec::new(),
+        inline_items: Vec::new(),
+        allow_network: false,
+        allowed_domains: Vec::new(),
+        max_items_per_symbol: 1,
+        paper_only: true,
+    })
+    .expect_err("news fixture traversal rejected");
+    assert!(traversal_err.contains("parent-directory traversal"));
+    let _ = std::fs::remove_file(fixture_path);
+}
+
+#[test]
+fn news_provider_layer_collects_local_and_defers_remote_safely() {
+    let fixture_path = std::path::Path::new("target/sprint147_provider_news_fixture.json");
+    let items = vec![CollectedNewsItem {
+        symbol: "005930.KS".to_string(),
+        market_scope: Some(MarketScope::KoreaShortTerm),
+        headline: "Samsung local headline".to_string(),
+        summary: "Short provider summary only.".to_string(),
+        sentiment_hint: Some("neutral".to_string()),
+        source_label: "provider-fixture".to_string(),
+        timestamp: "2026-05-23T09:03:00+09:00".to_string(),
+        url: None,
+        license_note: Some("headline and summary only".to_string()),
+    }];
+    std::fs::write(
+        fixture_path,
+        serde_json::to_string_pretty(&items).expect("serialize provider fixture"),
+    )
+    .expect("write provider fixture");
+
+    let local = NewsProviderConfig {
+        provider_id: "local-provider".to_string(),
+        kind: NewsProviderKind::LocalFixture,
+        enabled: true,
+        source_path_or_url: Some(fixture_path.display().to_string()),
+        source_label: "provider-fixture".to_string(),
+        allowed_domains: Vec::new(),
+        symbols: vec!["005930.KS".to_string()],
+        market_scopes: vec![MarketScope::KoreaShortTerm],
+        max_items: 3,
+        timeout_ms: 100,
+        trust_level: NewsProviderTrustLevel::ReviewRequired,
+        paper_only: true,
+    };
+    let disabled_rss = NewsProviderConfig {
+        provider_id: "rss-disabled".to_string(),
+        kind: NewsProviderKind::RssFeed,
+        enabled: false,
+        source_path_or_url: Some("https://news.example/feed.xml".to_string()),
+        source_label: "rss-disabled".to_string(),
+        allowed_domains: vec!["news.example".to_string()],
+        symbols: Vec::new(),
+        market_scopes: Vec::new(),
+        max_items: 3,
+        timeout_ms: 100,
+        trust_level: NewsProviderTrustLevel::Low,
+        paper_only: true,
+    };
+    let run =
+        collect_news_from_providers(&[local.clone(), disabled_rss]).expect("collect provider news");
+    assert_eq!(run.collected_news.len(), 1);
+    assert_eq!(run.news_snapshots.len(), 1);
+    assert!(run.provider_results.iter().any(|result| {
+        result.provider_id == "rss-disabled" && result.status == NewsProviderRunStatus::Disabled
+    }));
+
+    let allowed_remote = NewsProviderConfig {
+        provider_id: "rss-allowed-deferred".to_string(),
+        kind: NewsProviderKind::RssFeed,
+        enabled: true,
+        source_path_or_url: Some("https://news.example/feed.xml".to_string()),
+        source_label: "rss-allowed".to_string(),
+        allowed_domains: vec!["news.example".to_string()],
+        symbols: Vec::new(),
+        market_scopes: Vec::new(),
+        max_items: 3,
+        timeout_ms: 100,
+        trust_level: NewsProviderTrustLevel::Low,
+        paper_only: true,
+    };
+    let remote_run = collect_news_from_providers(&[allowed_remote])
+        .expect("allowed remote provider safely deferred");
+    assert!(remote_run.provider_results.iter().any(|result| {
+        result.status == NewsProviderRunStatus::ProviderDeferred
+            && result.message.contains("deferred")
+    }));
+
+    let allowed_http = NewsProviderConfig {
+        provider_id: "http-allowed-deferred".to_string(),
+        kind: NewsProviderKind::HttpHeadline,
+        enabled: true,
+        source_path_or_url: Some("https://headlines.example/top".to_string()),
+        source_label: "http-allowed".to_string(),
+        allowed_domains: vec!["headlines.example".to_string()],
+        symbols: Vec::new(),
+        market_scopes: Vec::new(),
+        max_items: 3,
+        timeout_ms: 100,
+        trust_level: NewsProviderTrustLevel::Low,
+        paper_only: true,
+    };
+    let http_run = collect_news_from_providers(&[allowed_http.clone()])
+        .expect("allowed HTTP headline provider safely deferred");
+    assert!(http_run.provider_results.iter().any(|result| {
+        result.status == NewsProviderRunStatus::ProviderDeferred
+            && result.message.contains("no browser")
+    }));
+
+    let no_allowlist_remote = NewsProviderConfig {
+        provider_id: "rss-no-allowlist".to_string(),
+        kind: NewsProviderKind::RssFeed,
+        enabled: true,
+        source_path_or_url: Some("https://news.example/feed.xml".to_string()),
+        source_label: "rss-no-allowlist".to_string(),
+        allowed_domains: Vec::new(),
+        symbols: Vec::new(),
+        market_scopes: Vec::new(),
+        max_items: 3,
+        timeout_ms: 100,
+        trust_level: NewsProviderTrustLevel::Low,
+        paper_only: true,
+    };
+    let err = collect_news_from_providers(&[no_allowlist_remote])
+        .expect_err("enabled remote provider without allowlist rejected");
+    assert!(err.contains("allowed_domains"));
+
+    let disallowed_remote = NewsProviderConfig {
+        provider_id: "rss-disallowed".to_string(),
+        kind: NewsProviderKind::RssFeed,
+        enabled: true,
+        source_path_or_url: Some("https://badapproved.example/feed.xml".to_string()),
+        source_label: "rss-disallowed".to_string(),
+        allowed_domains: vec!["approved.example".to_string()],
+        symbols: Vec::new(),
+        market_scopes: Vec::new(),
+        max_items: 3,
+        timeout_ms: 100,
+        trust_level: NewsProviderTrustLevel::Low,
+        paper_only: true,
+    };
+    let err = collect_news_from_providers(&[disallowed_remote])
+        .expect_err("disallowed remote host rejected by host");
+    assert!(err.contains("allowed_domains"));
+
+    let subdomain_remote = NewsProviderConfig {
+        provider_id: "rss-subdomain-disallowed".to_string(),
+        kind: NewsProviderKind::RssFeed,
+        enabled: true,
+        source_path_or_url: Some("https://feed.news.example/feed.xml".to_string()),
+        source_label: "rss-subdomain-disallowed".to_string(),
+        allowed_domains: vec!["news.example".to_string()],
+        symbols: Vec::new(),
+        market_scopes: Vec::new(),
+        max_items: 3,
+        timeout_ms: 100,
+        trust_level: NewsProviderTrustLevel::Low,
+        paper_only: true,
+    };
+    let err = collect_news_from_providers(&[subdomain_remote])
+        .expect_err("allowlist host must be exact, not subdomain or substring");
+    assert!(err.contains("allowed_domains"));
+
+    let deterministic_first = collect_news_from_providers(&[allowed_http.clone(), local.clone()])
+        .expect("deterministic first");
+    let deterministic_second =
+        collect_news_from_providers(&[local.clone(), allowed_http]).expect("deterministic second");
+    assert_eq!(deterministic_first, deterministic_second);
+
+    let unsafe_fixture_path = std::path::Path::new("target/sprint147_full_article_news.json");
+    std::fs::write(
+        unsafe_fixture_path,
+        r#"[{"symbol":"005930.KS","headline":"h","summary":"s","source_label":"x","timestamp":"t","article_body":"full copy"}]"#,
+    )
+    .expect("write unsafe news fixture");
+    let unsafe_local = NewsProviderConfig {
+        source_path_or_url: Some(unsafe_fixture_path.display().to_string()),
+        ..local
+    };
+    let err =
+        collect_news_from_providers(&[unsafe_local]).expect_err("full article body field rejected");
+    assert!(err.contains("article_body"));
+    let _ = std::fs::remove_file(fixture_path);
+    let _ = std::fs::remove_file(unsafe_fixture_path);
+}
+
+#[test]
+fn research_packet_router_combines_market_news_and_owner_context_without_opinions() {
+    let text = std::fs::read_to_string("examples/minimal_ai_committee_multi_market_sample.json")
+        .expect("multi-market sample");
+    let input: DataRouterInput = serde_json::from_str(&text).expect("data router input");
+    let batch = build_ai_research_packets(
+        input.market_data,
+        input.news,
+        input.members,
+        Some("owner-natural-input: 근거를 더 확인".to_string()),
+    );
+
+    assert_eq!(batch.packet_count, 6);
+    assert_eq!(batch.routed_member_count, 6);
+    assert_eq!(batch.unrouted_symbol_count, 0);
+    assert!(batch.packets.iter().all(|packet| packet.paper_only));
+    assert!(batch.packets.iter().all(|packet| {
+        packet
+            .owner_context
+            .as_deref()
+            .unwrap_or("")
+            .contains("owner-natural")
+    }));
+    assert!(batch.safety_notes.iter().any(|note| {
+        note.contains("does not produce opinions") || note.contains("does not create opinions")
+    }));
+}
+
+#[test]
+fn research_run_pipeline_is_deterministic_and_keeps_members_as_judges() {
+    let fixture_path = std::path::Path::new("target/sprint147_research_news_fixture.json");
+    let provider_path = std::path::Path::new("target/sprint147_news_providers.json");
+    let items = vec![CollectedNewsItem {
+        symbol: "005930.KS".to_string(),
+        market_scope: Some(MarketScope::KoreaShortTerm),
+        headline: "Samsung research headline".to_string(),
+        summary: "Short local research summary.".to_string(),
+        sentiment_hint: Some("positive".to_string()),
+        source_label: "research-fixture".to_string(),
+        timestamp: "2026-05-23T09:04:00+09:00".to_string(),
+        url: None,
+        license_note: Some("headline and short summary only".to_string()),
+    }];
+    std::fs::write(
+        fixture_path,
+        serde_json::to_string_pretty(&items).expect("serialize research news fixture"),
+    )
+    .expect("write research news fixture");
+    let providers = vec![NewsProviderConfig {
+        provider_id: "research-local-provider".to_string(),
+        kind: NewsProviderKind::LocalFixture,
+        enabled: true,
+        source_path_or_url: Some(fixture_path.display().to_string()),
+        source_label: "research-fixture".to_string(),
+        allowed_domains: Vec::new(),
+        symbols: vec!["005930.KS".to_string()],
+        market_scopes: vec![MarketScope::KoreaShortTerm],
+        max_items: 5,
+        timeout_ms: 100,
+        trust_level: NewsProviderTrustLevel::ReviewRequired,
+        paper_only: true,
+    }];
+    std::fs::write(
+        provider_path,
+        serde_json::to_string_pretty(&providers).expect("serialize providers"),
+    )
+    .expect("write providers");
+
+    let config = ResearchRunConfig {
+        research_run_id: "sprint147-research-run".to_string(),
+        market_scopes: vec![MarketScope::KoreaShortTerm],
+        symbols: vec!["005930.KS".to_string()],
+        market_data_path: Some(
+            "examples/minimal_ai_committee_multi_market_sample.json".to_string(),
+        ),
+        news_provider_config_path: Some(provider_path.display().to_string()),
+        owner_intent_policy_path: None,
+        owner_comment_text: Some("뉴스 근거가 부족해 보여. 다시 확인해줘".to_string()),
+        owner_comment_path: None,
+        member_state_input_path: None,
+        offline_member_output_batch_path: None,
+        run_mode: ResearchRunMode::SingleShot,
+        max_cycles: 1,
+        paper_only: true,
+    };
+    let first = run_research_packet_pipeline(config.clone()).expect("first research run");
+    let second = run_research_packet_pipeline(config).expect("second research run");
+    assert_eq!(first, second);
+    assert_eq!(first.news_collection_run.collected_news.len(), 1);
+    assert!(first.research_packet_batch.packet_count > 0);
+    assert!(
+        first
+            .research_packet_batch
+            .packets
+            .iter()
+            .all(|packet| packet.owner_context.is_some() && packet.paper_only)
+    );
+    assert!(first.member_opinion_count > 0);
+    assert!(first.event_count > 0);
+    assert!(first.committee_session_count > 0);
+    assert_eq!(
+        first.research_packet_summary.packets_generated,
+        first.research_packet_batch.packet_count
+    );
+    assert!(first.safety_summary.no_broker_order_account);
+    assert!(first.safety_summary.no_model_training);
+    assert!(first.safety_summary.no_live_inference);
+    assert!(first.research_packet_batch.safety_notes.iter().any(|note| {
+        note.contains("does not produce opinions") || note.contains("AI members judge")
+    }));
+    assert!(
+        first
+            .research_packet_batch
+            .safety_notes
+            .iter()
+            .any(|note| note.contains("Risk Governor remains final"))
+    );
+    let _ = std::fs::remove_file(fixture_path);
+    let _ = std::fs::remove_file(provider_path);
+}
+
+#[test]
+fn owner_say_cli_writes_internal_action_json() {
+    let binary = env!("CARGO_BIN_EXE_soma_experiment");
+    let output_path = "target/sprint146_owner_say_cli_action.json";
+    let output = Command::new(binary)
+        .args([
+            "owner-say",
+            "--text",
+            "005930.KS 근거를 더 확인해줘",
+            "--symbol",
+            "005930.KS",
+            "--scope",
+            "KoreaShortTerm",
+            "--out",
+            output_path,
+        ])
+        .output()
+        .expect("run owner-say CLI");
+    assert!(output.status.success());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("owner_say_warning"));
+    assert!(stdout.contains("wrote_output="));
+    let saved: OwnerActionFile =
+        serde_json::from_str(&std::fs::read_to_string(output_path).expect("read owner-say action"))
+            .expect("owner-say JSON");
+    assert_eq!(
+        saved.actions[0].action_type,
+        OwnerAttentionActionType::RequestMoreEvidence
+    );
+    assert!(saved.paper_only);
+
+    let custom_policy_path = "target/sprint147_owner_say_policy.json";
+    let custom_output_path = "target/sprint147_owner_say_cli_policy_action.json";
+    let custom_policy = OwnerIntentPolicy {
+        policy_id: "owner-say-cli-custom-policy".to_string(),
+        language: OwnerIntentPolicyLanguage::Mixed,
+        intent_rules: vec![OwnerIntentRule {
+            rule_id: "custom-watch-term".to_string(),
+            intent: OwnerNaturalInputIntent::WatchlistRequest,
+            include_terms: vec!["보관".to_string()],
+            exclude_terms: Vec::new(),
+            priority: 100,
+            confidence_hint: 0.95,
+        }],
+        safety_rules: Vec::new(),
+        default_intent: OwnerNaturalInputIntent::Comment,
+        paper_only: true,
+    };
+    std::fs::write(
+        custom_policy_path,
+        serde_json::to_string_pretty(&custom_policy).expect("custom owner-say policy"),
+    )
+    .expect("write custom owner-say policy");
+    let output = Command::new(binary)
+        .args([
+            "owner-say",
+            "--text",
+            "이 종목은 보관",
+            "--symbol",
+            "005930.KS",
+            "--scope",
+            "KoreaShortTerm",
+            "--policy",
+            custom_policy_path,
+            "--out",
+            custom_output_path,
+        ])
+        .output()
+        .expect("run owner-say CLI with policy");
+    assert!(output.status.success());
+    let custom_saved: OwnerActionFile = serde_json::from_str(
+        &std::fs::read_to_string(custom_output_path).expect("read policy owner-say action"),
+    )
+    .expect("policy owner-say JSON");
+    assert_eq!(
+        custom_saved.actions[0].action_type,
+        OwnerAttentionActionType::ConvertToWatchlist
+    );
+    assert!(custom_saved.paper_only);
+    let _ = std::fs::remove_file(output_path);
+    let _ = std::fs::remove_file(custom_policy_path);
+    let _ = std::fs::remove_file(custom_output_path);
 }
