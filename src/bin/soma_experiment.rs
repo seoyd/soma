@@ -1096,6 +1096,72 @@ fn run_minimal_ai_committee_cycle(
                     .is_some()
                 || parsed.smartcore_calibrated_debug_output_path.is_some()
                 || parsed.smartcore_recalibration_result_output_path.is_some()
+                || parsed.smartcore_shadow_opinion_enabled
+                || parsed.smartcore_shadow_opinion_output_path.is_some()
+                || parsed.smartcore_shadow_stability_enabled
+                || parsed.smartcore_shadow_stability_output_path.is_some()
+                || parsed.smartcore_shadow_expand_agreement_targets
+                || parsed
+                    .smartcore_shadow_target_collection_queue_output_path
+                    .is_some()
+                || parsed.smartcore_shadow_scenario_sweep_enabled
+                || parsed.smartcore_shadow_scenario_set_path.is_some()
+                || parsed.smartcore_shadow_scenario_output_path.is_some()
+                || parsed.smartcore_observer_readiness_gate_enabled
+                || parsed.smartcore_observer_lane_enabled
+                || parsed.smartcore_observer_output_path.is_some()
+                || parsed.smartcore_observer_compare_member_opinion
+                || parsed.smartcore_observer_compare_chairman
+                || parsed.smartcore_observer_compare_risk_governor
+                || parsed.smartcore_observer_target_coverage_closure_enabled
+                || parsed.smartcore_observer_emit_owner_section
+                || parsed.observer_target_closure_enabled
+                || parsed.observer_target_closure_dry_run
+                || parsed.observer_target_closure_output_path.is_some()
+                || parsed.observer_target_set_output_path.is_some()
+                || parsed.observer_comparison_ledger_path.is_some()
+                || parsed.observer_readiness_hardening_enabled
+                || parsed.observer_coverage_closure_emit_owner_summary
+                || parsed.observer_target_apply_trend_enabled
+                || parsed.observer_target_apply_dry_run
+                || parsed.observer_target_apply_targets
+                || parsed.observer_target_store_input_path.is_some()
+                || parsed.observer_target_store_output_path.is_some()
+                || parsed.observer_ledger_trend_enabled
+                || parsed.observer_readiness_v2_enabled
+                || parsed.observer_trend_summary_enabled
+                || parsed.observer_apply_trend_output_path.is_some()
+                || parsed.observer_seed_apply_trend_enabled
+                || parsed.observer_seed_apply_dry_run
+                || parsed.observer_seed_apply_targets
+                || parsed.observer_seed_target_store_output_path.is_some()
+                || parsed.observer_seed_apply_output_path.is_some()
+                || parsed.observer_seed_require_approved_target
+                || parsed.observer_seed_rerun_comparison
+                || parsed.observer_seed_compute_ledger_trend
+                || parsed.observer_seed_recheck_readiness
+                || parsed.observer_seed_emit_owner_summary
+                || parsed.observer_approved_apply_governance_enabled
+                || parsed.observer_approved_apply_dry_run
+                || parsed.observer_approved_target_store_input_path.is_some()
+                || parsed.observer_approved_target_store_output_path.is_some()
+                || parsed.observer_approved_apply_output_path.is_some()
+                || parsed.observer_approved_apply_recheck_readiness
+                || parsed.chairman_governance_contract_prepare_enabled
+                || parsed.chairman_governance_readiness_check_enabled
+                || parsed.observer_approved_apply_emit_owner_summary
+                || parsed.observer_apply_verify_chairman_shadow_enabled
+                || parsed.observer_apply_verify_mode
+                    == soma_zero::ObserverExplicitApplyMode::ApplyApprovedTargets
+                || !parsed.observer_apply_verify_dry_run
+                || parsed.observer_apply_verify_config_path.is_some()
+                || (parsed.observer_apply_verify_chairman_shadow_enabled
+                    && (parsed
+                        .observer_apply_verify_target_store_output_path
+                        .is_some()
+                        || parsed.observer_apply_verify_output_path.is_some()
+                        || parsed.observer_apply_verify_emit_owner_summary
+                        || parsed.chairman_shadow_governance_enabled))
             {
                 serde_json::to_value(run_batch_committee_cycle_with_state_from_config_path(
                     std::path::Path::new(config),

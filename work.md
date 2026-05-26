@@ -1,110 +1,114 @@
 You are operating as a gstack-style engineering team for Soma Zero.
 
 Current state:
-Sprint 178 is complete.
+Sprint 187 is complete.
 
 Important owner instruction:
 Do not include commit / push / GitHub steps.
 The owner handles commits manually.
 Focus only on implementation.
 
+Verification priority:
+Verification feedback has higher priority than implementation self-report.
+
 Current verified state:
-- Rust-native SmartCoreMicroKernelV0 exists.
-- Mamba3-style temporal cell v0 exists.
-- Gated DeltaNet-style memory cell v0 exists.
-- SmartCore toy head projection v0 exists.
-- SmartCore debug outputs exist for 3 pilot members:
-  - TrendEntryAI
-  - RiskGuardAI
-  - EvidenceRegimeAI.
-- Shadow alignment exists.
-- SmartCore debug output is compared against:
-  - MemberOpinion
-  - replay target labels
-  - RiskGovernorStatus.
-- Mismatch records exist.
-- Mismatch records generate research tasks.
-- Research tasks execute through safe local source registry.
-- Calibration target candidates exist.
-- CoreCalibrationDataset exists.
-- CoreCalibrationQualitySummary exists.
-- NoDecisionBridgeGuard exists.
-- SmartCore output is not MemberOpinion.
-- SmartCore output is not CommitteeDecision.
-- SmartCore output is not RiskGovernor input.
-- SmartCore output is not trade signal.
-- SmartCore output is not order.
-- No training exists.
+- ObserverExplicitApplyMode exists.
+- ObserverExplicitApplyPolicy exists.
+- ObserverApprovedTargetApplyV2 exists.
+- ObserverTargetStoreAcceptanceCheck exists.
+- ObserverComparisonRerunV3 exists.
+- SmartCoreObserverReadinessV3Gate exists.
+- ObserverComparisonLedgerTrendV2 exists.
+- ChairmanRewardPenaltyContract exists.
+- ChairmanGovernanceReadinessCheck exists.
+- OwnerObserverApplyReadinessSummary exists.
+- ObserverApprovedApplyDecisionIsolationGuardV3 exists.
+- ObserverApprovedApplyAndGovernancePrepRun exists.
+- ChairmanRewardPenaltyContract remains ContractOnly.
+- Chairman contract cannot mutate score.
+- Chairman contract cannot mutate voice weight.
+- Chairman contract cannot promote/demote members.
+- Chairman contract cannot override Risk Governor.
+- Observer remains non-voting / read-only / eval-only / paper-only.
+- Committee decision is not changed.
+- Member score is not changed.
+- Voice weight is not changed.
+- Risk Governor is not overridden.
+- No model training exists.
 - No optimizer/backprop/gradient exists.
 - No weight update exists.
 - No checkpoint exists.
 - No live inference exists.
 - No broker/order/account/live trading path exists.
-- cargo test --workspace --no-run --quiet passes.
-- cargo test --workspace --quiet passes.
-- Acceptance is based on explicit manifest target set.
+- Focused tests and explicit workspace tests passed.
 
-Sprint 178 result:
-- mismatch data need records = 15.
-- generated research tasks = 12.
-- research tasks executed = 12.
-- generated evidence = 88.
-- calibration target candidates = 88.
-- approved targets = 12.
-- calibration dataset examples = 36 -> 40.
-- target_count = 9 -> 40.
-- mismatch_count = 15 -> 15.
-- alignment recheck status = NoChange.
-- calibration quality status = NeedsMoreTargets.
-- no_decision_recheck_status = Preserved.
-- no training / no live inference / no broker-order-account path.
+Sprint 187 verification result:
+- Build errors and safety gaps were fixed.
+- Missing field references were corrected against actual structs.
+- If ApplyApprovedTargets + dry_run=false is requested but target_store_output_path is missing:
+  - wrote_target_store=false
+  - apply_status=Blocked
+  - readiness=NeedsApply
+- Invalid/unsafe target stores are blocked before save.
+- In dry-run, approved target store file is not created.
+- target id leakage into committee/session/event paths is detected.
+- score/voice/promotion/demotion mutation is tested and fixed.
+- CLI smoke still did not create target/minimal_observer_approved_target_store.json.
+- Real non-dry paper-only apply remains not enabled in the default example.
+- Next verified action:
+  - create a separate local verification config
+  - explicitly enable ApplyApprovedTargets + dry_run=false
+  - write target store
+  - recheck readiness to NonVotingObserverReadyWithWarnings or better
 
-Interpretation:
-The self-growing evidence loop is working.
-The calibration target count increased.
-But the toy SmartCore head output did not improve because no calibration adjustment has been applied yet.
-The next step is not real training.
-The next step is a debug-only calibration overlay derived from the calibration dataset.
+Owner product direction:
+The end goal is not a simple auto-trader.
+The end goal is a self-learning AI committee:
+- independent AI members
+- Chairman AI final decision
+- voice power / promotion / demotion / reward / penalty
+- risk-first behavior
+- owner opinion as reference, not command
+- explanation when owner opinion is not followed
+- 3-member pilot now, 18-member expansion later
+- US/Korea/Crypto, short/long horizon later
+- Rust-native controllable AI core
 
-Owner direction:
-The AI core must improve over time.
-But the system must not jump into real training too early.
-The core can first learn through a safe calibration overlay:
-- no model weight mutation.
-- no optimizer.
-- no backprop.
-- no checkpoint.
-- no live inference.
-- no decision integration.
-- debug-only recalibration.
-
-Sprint 179 objective:
-Build a SmartCore calibration overlay v0 that uses CoreCalibrationDataset to adjust debug head buckets in shadow mode, then re-run shadow alignment and measure whether mismatch improves.
+Sprint 188 objective:
+Create a controlled local non-dry observer target apply verification profile, close observer readiness V3 if safe, and prepare Chairman shadow governance evaluation without mutating score/voice.
 
 This sprint must:
-1. Build per-member/per-head calibration statistics from CoreCalibrationDataset.
-2. Detect dominant mismatch patterns.
-3. Build debug-only calibration rules.
-4. Apply calibration overlay to SmartCoreDebugOutputV0.
-5. Produce CalibratedSmartCoreDebugOutputV0.
-6. Re-run shadow alignment on calibrated outputs.
-7. Compare pre/post mismatch count.
-8. Ensure calibrated output is still not MemberOpinion.
-9. Ensure calibrated output is still not CommitteeDecision.
-10. Ensure calibrated output is still not trade signal.
-11. Ensure no model weights are mutated.
-12. Keep Mamba3/Gated runtime and real training deferred.
+1. Add a dedicated local verification config for non-dry paper-only apply.
+2. Keep the main example dry-run by default.
+3. Run ApplyApprovedTargets + dry_run=false only in the dedicated verification config/test.
+4. Require target_store_output_path.
+5. Persist approved observer target store locally.
+6. Re-run target store acceptance.
+7. Re-run observer comparison V3.
+8. Re-run observer ledger trend V2.
+9. Re-run readiness V3.
+10. Confirm readiness moves from NeedsApply to NonVotingObserverReadyWithWarnings or NonVotingObserverReady.
+11. Prepare Chairman shadow reward/penalty evaluation input records.
+12. Keep ChairmanRewardPenaltyContract as ContractOnly.
+13. Do not mutate score.
+14. Do not mutate voice weight.
+15. Do not promote/demote members.
+16. Do not override Risk Governor.
+17. Do not change committee decisions.
+18. Do not train.
+19. Do not trade.
 
-This sprint is not real model training.
-This sprint is not production inference.
-This sprint is debug-only calibration overlay.
+This sprint is not decision integration.
+This sprint is not Chairman mutation.
+This sprint is not model training.
+This sprint is controlled observer target apply verification and shadow governance preparation.
 
 ────────────────────────────────────────
 0. SPRINT NAME
 ────────────────────────────────────────
 
-gstack Sprint 179:
-SmartCore Calibration Overlay v0 + Shadow Recalibration Pass + No-Decision Calibration Guard
+gstack Sprint 188:
+Observer Non-Dry Apply Verification Profile + Readiness V3 Closure + Chairman Shadow Governance Prep
 
 ────────────────────────────────────────
 1. HARD RULES
@@ -142,483 +146,528 @@ Do not add:
 - commit / push / GitHub steps
 
 Do not:
-- mutate SmartCore weights.
-- create persistent model parameters.
-- call calibration overlay “training.”
-- claim model is trained.
+- enable non-dry apply in main example by default.
+- write target store without explicit ApplyApprovedTargets.
+- write target store with dry_run=true.
+- apply targets without output path.
+- persist NeedsReview targets.
+- persist Rejected targets.
+- persist low-trust targets.
+- persist news-only targets.
+- let observer target become SmartCore input feature.
+- let observer target become MemberOpinion.
+- let observer target affect CommitteeSession.
+- let observer target affect ChairmanDecision.
+- let observer target affect RiskGovernor.
+- let observer target affect score.
+- let observer target affect voice weight.
+- let observer target become trade signal.
+- let observer target become order.
+- activate Chairman score mutation.
+- activate Chairman voice mutation.
+- activate promotion/demotion.
+- activate Risk Governor override.
+- claim readiness for live decision integration.
 - claim profitability.
-- claim live readiness.
-- use calibrated debug output as MemberOpinion.
-- use calibrated debug output as CommitteeSession input.
-- use calibrated debug output as ChairmanDecision input.
-- use calibrated debug output as RiskGovernor input.
-- use calibrated debug output as trade signal.
-- use calibrated debug output as order.
-- mutate member score from calibration.
-- mutate replay input features.
-- leak labels into microkernel input.
-- store broker/order/account fields.
+- claim model is trained.
 
 Allowed:
-- calibration statistics.
-- calibration rule table.
-- debug-only overlay.
-- calibrated debug output.
-- shadow recalibration comparison.
-- pre/post mismatch delta.
-- owner debug summary.
-- local JSON output.
+- dedicated local verification config.
+- explicit non-dry apply focused test.
+- local target store persistence.
+- target store acceptance verification.
+- observer comparison rerun.
+- observer ledger trend rerun.
+- observer readiness V3 closure.
+- Chairman shadow governance input records.
+- Chairman reward/penalty candidate records as shadow-only.
+- owner summary.
 - deterministic focused tests.
 - paper-only output.
 
 Main rule:
-Calibrate debug output.
-Do not train.
-Do not decide.
-Do not trade.
+Close observer apply readiness safely.
+Prepare Chairman governance only as shadow/contract.
+Do not mutate decisions or scores.
 
 ────────────────────────────────────────
-2. FEATURE A — CORE CALIBRATION STATISTICS
+2. FEATURE A — DEDICATED NON-DRY APPLY VERIFICATION CONFIG
+
+Add example:
+
+examples/soma_minimal_ai_committee_observer_apply_verify.toml
+
+Purpose:
+- dedicated local verification profile
+- not the main default example
+- explicitly sets:
+  - observer_approved_apply_governance_enabled = true
+  - observer_approved_apply_mode = "ApplyApprovedTargets"
+  - observer_approved_apply_dry_run = false
+  - observer_approved_target_store_output_path = "target/minimal_observer_approved_target_store.verify.json"
+  - observer_approved_apply_output_path = "target/minimal_observer_approved_apply_governance.verify.json"
+  - observer_approved_apply_recheck_readiness = true
+  - chairman_governance_contract_prepare_enabled = true
+  - chairman_governance_readiness_check_enabled = true
+  - observer_approved_apply_emit_owner_summary = true
+
+Rules:
+- main examples/soma_minimal_ai_committee_core.toml remains dry-run or safe default.
+- verification config may use non-dry apply.
+- only local target output paths.
+- no broker/order/account.
+- no score/voice mutation.
+- no chairman mutation.
+
+────────────────────────────────────────
+3. FEATURE B — APPLY VERIFICATION PROFILE VALIDATION
 
 Add:
 
-SmartCoreHeadCalibrationStatsV0
+ObserverApplyVerificationProfile
 
 Fields:
-- stats_id
-- member_id
-- head:
-  - Stance
-  - Risk
-  - EvidenceNeed
-  - ConfidenceCalibration
-  - Uncertainty
-  - ExpectedReturnHint
-- example_count
-- match_count
-- mismatch_count
-- unknown_count
-- deferred_count
-- mismatch_rate
-- dominant_debug_bucket optional
-- dominant_target_bucket optional
-- dominant_mismatch_type optional
+- profile_id
+- config_path optional
+- apply_mode
+- dry_run
+- target_store_output_path
+- apply_output_path
+- main_example_safe_default: bool
+- verification_profile: bool
 - paper_only: true
 
-SmartCoreCalibrationStatsSummaryV0
+ObserverApplyVerificationProfileValidationResult
 
 Fields:
-- summary_id
-- dataset_id
-- member_count
-- head_count
-- total_examples
-- per_head_stats
-- per_member_mismatch_rate
-- overall_mismatch_rate
-- stats_status:
-  - Sufficient
-  - ThinData
-  - NeedsMoreTargets
-  - Unsafe
+- profile_id
+- valid
+- apply_mode_valid
+- dry_run_valid
+- output_path_valid
+- main_example_safe_default
+- validation_status:
+  - Valid
+  - ValidWithWarnings
+  - Invalid
+- blockers
+- warnings
 - paper_only: true
 
 Function:
-- compute_smartcore_calibration_stats_v0(calibration_dataset)
+- validate_observer_apply_verification_profile(profile)
 
 Rules:
-- statistics only.
-- no weight update.
-- no training.
-- deterministic ordering.
-- weak/review-required calibration examples should not create strong rules.
-- if data count too small, stats_status=NeedsMoreTargets or ThinData.
+- ApplyApprovedTargets requires dry_run=false.
+- ApplyApprovedTargets requires target_store_output_path.
+- output path must be local.
+- profile must be explicit verification profile.
+- main example must not be forced to non-dry apply.
+- no remote paths.
+- no path traversal.
 
 ────────────────────────────────────────
-3. FEATURE B — CALIBRATION RULE TABLE
+4. FEATURE C — TARGET STORE WRITE PROOF
 
 Add:
 
-SmartCoreCalibrationRuleActionV0
-
-Enum:
-- Keep
-- MapBucket
-- LowerConfidence
-- RaiseEvidenceNeed
-- RaiseRiskBucket
-- LowerRiskBucket
-- MarkUnknown
-- KeepObserving
-
-SmartCoreCalibrationRuleV0
+ObserverTargetStoreWriteProof
 
 Fields:
-- rule_id
-- member_id
-- head
-- from_bucket
-- to_bucket optional
-- action
-- support_count
-- mismatch_reduction_estimate
+- proof_id
+- expected_output_path
+- wrote_target_store
+- target_store_exists_after_write
+- target_count
+- approved_count
+- eval_only_count
+- not_input_feature_count
+- unsafe_target_count
+- proof_status:
+  - Proven
+  - ProvenWithWarnings
+  - Failed
+- paper_only: true
+
+Function:
+- prove_observer_target_store_write(apply_result, target_store_path)
+
+Rules:
+- only run after apply mode.
+- if apply_status=Applied but file missing => Failed.
+- if target store contains unsafe target => Failed.
+- if target store contains non-approved target => Failed.
+- local path only.
+
+────────────────────────────────────────
+5. FEATURE D — READINESS V3 CLOSURE CHECK
+
+Add:
+
+ObserverReadinessV3ClosureCheck
+
+Fields:
+- check_id
+- previous_status
+- new_status
+- needs_apply_resolved: bool
+- target_store_written: bool
+- target_store_accepted: bool
+- comparison_rerun_done: bool
+- ledger_trend_done: bool
+- decision_isolation_preserved: bool
+- closure_status:
+  - Closed
+  - ClosedWithWarnings
+  - NotClosed
+  - Blocked
+- remaining_warnings
+- blockers
+- paper_only: true
+
+Function:
+- check_observer_readiness_v3_closure(readiness_v3, apply_result, store_proof, isolation_guard)
+
+Rules:
+- NeedsApply is resolved only if target store written and accepted.
+- NonVotingObserverReadyWithWarnings is acceptable if remaining warning is non-blocking.
+- NonVotingObserverReady is best.
+- Any decision leak blocks.
+- This does not mean decision integration readiness.
+
+────────────────────────────────────────
+6. FEATURE E — CHAIRMAN SHADOW GOVERNANCE INPUT RECORDS
+
+Add:
+
+ChairmanShadowGovernanceSignalKind
+
+Enum:
+- ObserverAgreement
+- ObserverDisagreement
+- RiskVetoAlignment
+- HelpfulDissentCandidate
+- OverconfidentCallCandidate
+- NeedMoreEvidenceCandidate
+- OwnerOpinionIgnoredWithReasonCandidate
+- Neutral
+
+ChairmanShadowGovernanceInputRecord
+
+Fields:
+- record_id
+- source_run_id optional
+- source_member_id optional
+- observer_id optional
+- signal_kind
+- symbol optional
+- market_scope optional
+- evidence_summary
+- suggested_governance_consideration:
+  - RewardCandidate
+  - PenaltyCandidate
+  - VoiceIncreaseCandidate
+  - VoiceDecreaseCandidate
+  - KeepNeutral
+  - NeedsMoreEvidence
 - confidence:
   - High
   - Medium
   - Low
   - ReviewRequired
-- rule_status:
-  - Active
-  - ObserveOnly
-  - Disabled
-- reason
+- shadow_only: true
+- no_score_mutation: true
+- no_voice_mutation: true
+- no_promotion_demotion: true
 - paper_only: true
 
-SmartCoreCalibrationRuleTableV0
+ChairmanShadowGovernanceInputSet
 
 Fields:
-- table_id
-- source_dataset_id
-- rules
-- active_rule_count
-- observe_only_rule_count
-- disabled_rule_count
-- paper_only: true
-
-Function:
-- build_smartcore_calibration_rule_table_v0(stats_summary, policy)
-
-Rules:
-- only create Active rule if enough support.
-- low support => ObserveOnly.
-- contradictory evidence => Disabled or ObserveOnly.
-- no rule can create order/trade signal.
-- no rule can claim real prediction.
-- rule table is not model weights.
-- rule table is not checkpoint.
-- rule table is debug overlay only.
-
-────────────────────────────────────────
-4. FEATURE C — CALIBRATION OVERLAY POLICY
-
-Add:
-
-SmartCoreCalibrationOverlayPolicyV0
-
-Fields:
-- min_support_for_active_rule
-- max_rules_per_member_head
-- allow_stance_bucket_mapping: true
-- allow_risk_bucket_mapping: true
-- allow_evidence_bucket_mapping: true
-- allow_confidence_adjustment: true
-- allow_expected_return_mapping: false
-- allow_trade_signal_output: false
-- allow_member_opinion_output: false
-- allow_committee_decision_output: false
-- debug_only: true
-- paper_only: true
-
-Default:
-- expected return mapping disabled.
-- trade/member/committee output disabled.
-- debug_only=true.
-
-Rules:
-- overlay may adjust debug buckets only.
-- overlay may not create MemberOpinion.
-- overlay may not alter committee decision.
-- overlay may not alter RiskGovernor result.
-- overlay may not mutate weights.
-
-────────────────────────────────────────
-5. FEATURE D — CALIBRATED DEBUG OUTPUT
-
-Add:
-
-CalibratedSmartCoreHeadOutputV0
-
-Fields:
-- member_id
-- head
-- original_bucket
-- calibrated_bucket
-- calibration_action
-- applied_rule_id optional
-- rule_confidence
-- changed: bool
-- debug_only: true
-- not_investment_signal: true
-- not_committee_opinion: true
-- paper_only: true
-
-CalibratedSmartCoreDebugOutputV0
-
-Fields:
-- calibrated_output_id
-- source_debug_output_id
-- member_id
-- calibrated_heads
-- applied_rule_count
-- changed_head_count
-- calibration_summary
-- debug_only: true
-- not_investment_signal: true
-- not_committee_opinion: true
-- not_order: true
-- no_training: true
-- no_weight_update: true
-- no_checkpoint: true
-- paper_only: true
-
-CalibratedSmartCoreDebugOutputBatchV0
-
-Fields:
-- batch_id
-- source_debug_batch_id optional
-- member_outputs
-- output_count
-- changed_output_count
-- debug_only: true
+- set_id
+- records
+- record_count
+- reward_candidate_count
+- penalty_candidate_count
+- voice_increase_candidate_count
+- voice_decrease_candidate_count
 - paper_only: true
 
 Function:
-- apply_smartcore_calibration_overlay_v0(debug_output_batch, rule_table, policy)
+- build_chairman_shadow_governance_inputs(observer_comparison_result, ledger_trend, member_experience_store optional)
 
 Rules:
-- apply only Active rules.
-- ObserveOnly rules do not change output.
-- preserve original output.
-- no weights mutated.
-- no checkpoint.
-- no training.
-- no decision use.
+- shadow-only.
+- no score mutation.
+- no voice mutation.
+- no promotion/demotion.
+- no Risk Governor override.
+- no real PnL.
+- no broker/order/account.
 
 ────────────────────────────────────────
-6. FEATURE E — CALIBRATION OVERLAY SAFETY GUARD
+7. FEATURE F — CHAIRMAN SHADOW GOVERNANCE EVALUATION
 
 Add:
 
-SmartCoreCalibrationOverlaySafetyGuardV0
+ChairmanShadowGovernanceEvaluationPolicy
 
 Fields:
-- debug_only: bool
-- no_training: bool
-- no_weight_update: bool
-- no_checkpoint: bool
-- no_live_inference: bool
-- not_member_opinion: bool
-- not_committee_decision: bool
-- not_trade_signal: bool
-- not_order: bool
-- no_broker_order_account: bool
-- labels_not_in_input: bool
-- safety_status:
+- allow_reward_candidate_generation: true
+- allow_penalty_candidate_generation: true
+- allow_voice_candidate_generation: true
+- allow_actual_score_mutation: false
+- allow_actual_voice_mutation: false
+- allow_promotion_demotion: false
+- allow_risk_governor_override: false
+- require_paper_only: true
+- paper_only: true
+
+ChairmanShadowGovernanceEvaluationResult
+
+Fields:
+- evaluation_id
+- input_set
+- evaluated_record_count
+- reward_candidate_count
+- penalty_candidate_count
+- voice_increase_candidate_count
+- voice_decrease_candidate_count
+- neutral_count
+- evaluation_status:
+  - Evaluated
+  - EvaluatedWithWarnings
+  - Blocked
+- no_score_mutation: true
+- no_voice_mutation: true
+- no_promotion_demotion: true
+- no_risk_governor_override: true
+- paper_only: true
+
+Function:
+- evaluate_chairman_shadow_governance(input_set, policy)
+
+Rules:
+- may classify candidate governance signals.
+- must not mutate score.
+- must not mutate voice.
+- must not promote/demote.
+- must not override Risk Governor.
+- must not alter current decisions.
+
+────────────────────────────────────────
+8. FEATURE G — CHAIRMAN GOVERNANCE SHADOW SAFETY GUARD
+
+Add:
+
+ChairmanShadowGovernanceSafetyGuard
+
+Fields:
+- score_mutation_detected: bool
+- voice_mutation_detected: bool
+- promotion_detected: bool
+- demotion_detected: bool
+- risk_governor_override_detected: bool
+- chairman_decision_mutation_detected: bool
+- committee_decision_mutation_detected: bool
+- trade_signal_detected: bool
+- order_detected: bool
+- broker_order_account_detected: bool
+- guard_status:
   - Preserved
   - Violated
 - violations
 - paper_only: true
 
 Function:
-- evaluate_smartcore_calibration_overlay_safety_v0(calibrated_batch, rule_table)
+- evaluate_chairman_shadow_governance_safety(evaluation_result, batch_result_before, batch_result_after optional)
 
 Rules:
-- if calibrated output claims MemberOpinion => violation.
-- if calibrated output claims trade signal => violation.
-- if calibrated output changes committee decision => violation.
-- if rule table looks like persistent learned weight checkpoint => violation.
-- if labels injected into input features => violation.
+- any mutation => violation.
+- shadow governance is advisory only.
+- no real score/voice update.
 
 ────────────────────────────────────────
-7. FEATURE F — SHADOW RECALIBRATION PASS
+9. FEATURE H — OWNER APPLY + GOVERNANCE SUMMARY V2
 
 Add:
 
-SmartCoreShadowRecalibrationRunConfig
-
-Fields:
-- run_id
-- enabled: bool
-- calibration_dataset_path optional
-- rule_table_output_path optional
-- calibrated_debug_output_path optional
-- recalibration_result_output_path optional
-- dry_run: bool
-- paper_only: true
-
-SmartCoreShadowRecalibrationRunResult
-
-Fields:
-- run_id
-- stats_summary
-- rule_table
-- calibrated_debug_output_batch
-- recalibrated_alignment_result
-- pre_mismatch_count
-- post_mismatch_count
-- mismatch_delta
-- pre_alignment_status
-- post_alignment_status
-- overlay_safety_guard
-- no_decision_recheck
-- run_status:
-  - Passed
-  - PassedWithWarnings
-  - Failed
-- warnings
-- paper_only: true
-
-Function:
-- run_smartcore_shadow_recalibration_pass(debug_output_batch, calibration_dataset, previous_alignment_result, batch_result, config)
-
-Flow:
-1. Compute calibration stats.
-2. Build calibration rule table.
-3. Apply calibration overlay to debug output.
-4. Re-run shadow alignment using calibrated output.
-5. Compare pre/post mismatch counts.
-6. Evaluate overlay safety.
-7. Recheck no-decision boundary.
-8. If dry_run=true, write no output except CLI result.
-9. If dry_run=false, write local JSON outputs.
-10. Do not train.
-11. Do not mutate weights.
-12. Do not change committee decision.
-
-────────────────────────────────────────
-8. FEATURE G — RECALIBRATION INTERPRETATION
-
-Add:
-
-SmartCoreRecalibrationInterpretationV0
-
-Fields:
-- interpretation_id
-- mismatch_delta
-- improved: bool
-- worsened: bool
-- no_change: bool
-- data_sufficiency:
-  - SufficientForOverlay
-  - NeedsMoreTargets
-  - TooSparse
-- next_recommended_step:
-  - KeepCollectingCalibrationTargets
-  - TuneCalibrationPolicy
-  - ProceedToShadowOpinionCandidate
-  - KeepDebugOnly
-- human_readable_summary
-- debug_only: true
-- paper_only: true
-
-Function:
-- interpret_smartcore_recalibration_result_v0(result)
-
-Rules:
-- If mismatch improves and safety preserved:
-  - next may be ShadowOpinionCandidate, still not decision.
-- If no change:
-  - continue collecting calibration targets or tune policy.
-- If worsens:
-  - disable active rules or keep observe-only.
-- No live inference.
-- No trading.
-
-────────────────────────────────────────
-9. FEATURE H — OWNER CONSOLE RECALIBRATION SUMMARY
-
-Add:
-
-OwnerCoreRecalibrationDebugSummary
+OwnerObserverApplyAndGovernanceSummaryV2
 
 Fields:
 - summary_id
-- pre_mismatch_count
-- post_mismatch_count
-- mismatch_delta
-- active_rule_count
-- changed_output_count
-- interpretation
+- apply_status
+- target_store_written
+- target_store_count
+- observer_readiness_status
+- chairman_shadow_governance_status
+- reward_candidate_count
+- penalty_candidate_count
+- voice_candidate_count
 - message
-- debug_only: true
+- non_voting: true
+- read_only: true
+- eval_only: true
+- chairman_contract_only: true
+- no_score_mutation: true
+- no_voice_mutation: true
 - not_investment_signal: true
 - not_committee_opinion: true
 - paper_only: true
 
 Function:
-- build_owner_core_recalibration_debug_summary(result)
+- build_owner_observer_apply_and_governance_summary_v2(closure_check, chairman_eval, chairman_guard)
 
-Message should say:
-- “Calibration overlay is debug-only.”
-- “It does not train or update weights.”
-- “It is not used for committee decisions.”
-- “It is not a trading signal.”
+Message:
+- “Approved observer targets were applied only to local evaluation store.”
+- “Observer remains non-voting and read-only.”
+- “Chairman governance signals are shadow-only candidates.”
+- “No score, voice, promotion, demotion, trade, or order changed.”
 
 ────────────────────────────────────────
-10. CLI CONFIG
+10. FEATURE I — SPRINT 188 RUN
+
+Add:
+
+ObserverApplyVerifyAndChairmanShadowRunConfig
+
+Fields:
+- run_id
+- enabled: bool
+- apply_verification_config_path optional
+- apply_mode:
+  - DryRun
+  - ApplyApprovedTargets
+- dry_run: bool
+- target_store_output_path optional
+- output_path optional
+- run_chairman_shadow_governance: bool
+- emit_owner_summary: bool
+- paper_only: true
+
+ObserverApplyVerifyAndChairmanShadowRunResult
+
+Fields:
+- run_id
+- apply_profile_validation
+- apply_result
+- target_store_write_proof
+- target_store_acceptance_check
+- comparison_rerun_v3
+- ledger_trend_v2
+- observer_readiness_v3
+- readiness_closure_check
+- chairman_shadow_governance_inputs optional
+- chairman_shadow_governance_evaluation optional
+- chairman_shadow_governance_safety optional
+- owner_summary optional
+- run_status:
+  - Passed
+  - PassedWithWarnings
+  - Failed
+- paper_only: true
+
+Function:
+- run_observer_apply_verify_and_chairman_shadow(batch_result, converted_targets, previous_observer_result, config)
+
+Flow:
+1. Validate apply verification profile.
+2. Apply approved targets only if ApplyApprovedTargets + dry_run=false + local output path.
+3. Prove target store write.
+4. Check target store acceptance.
+5. Rerun observer comparison V3.
+6. Compute ledger trend V2.
+7. Evaluate observer readiness V3.
+8. Check readiness closure.
+9. Build Chairman shadow governance inputs.
+10. Evaluate Chairman shadow governance.
+11. Run Chairman shadow governance safety guard.
+12. Build owner summary.
+13. Do not mutate committee decision.
+14. Do not mutate member score.
+15. Do not mutate voice.
+16. Do not train.
+17. Do not trade.
+
+────────────────────────────────────────
+11. CLI CONFIG
 
 Reuse existing command:
 
 soma-experiment minimal-ai-committee-cycle --config examples/soma_minimal_ai_committee_core.toml
 
 Add optional config:
-- smartcore_recalibration_enabled: bool
-- smartcore_recalibration_dry_run: bool
-- smartcore_recalibration_rule_table_output_path optional
-- smartcore_calibrated_debug_output_path optional
-- smartcore_recalibration_result_output_path optional
-- smartcore_recalibration_min_support
-- smartcore_recalibration_max_rules_per_member_head
-- smartcore_recalibration_emit_owner_summary: bool
+- observer_apply_verify_chairman_shadow_enabled: bool
+- observer_apply_verify_mode:
+  - DryRun
+  - ApplyApprovedTargets
+- observer_apply_verify_dry_run: bool
+- observer_apply_verify_target_store_output_path optional
+- observer_apply_verify_output_path optional
+- observer_apply_verify_emit_owner_summary: bool
+- chairman_shadow_governance_enabled: bool
+
+Main example:
+- remains safe default, preferably dry-run.
+
+Dedicated verification example:
+examples/soma_minimal_ai_committee_observer_apply_verify.toml
+- enables ApplyApprovedTargets + dry_run=false.
 
 CLI output should include:
-- calibration_stats_status.
-- active_rule_count.
-- observe_only_rule_count.
-- changed_output_count.
-- pre_mismatch_count.
-- post_mismatch_count.
-- mismatch_delta.
-- overlay_safety_status.
-- no_decision_recheck_status.
-- interpretation next step.
-- debug-only/no-training/no-decision warning.
+- apply_profile_valid.
+- apply_status.
+- wrote_target_store.
+- target_store_write_proof_status.
+- observer_readiness_v3_status.
+- readiness_closure_status.
+- chairman_shadow_governance_status.
+- chairman_shadow_safety_status.
+- no-score/no-voice/no-decision/no-trade warning.
 
 No new CLI family.
 
 ────────────────────────────────────────
-11. EXAMPLES
-
-Update:
-examples/soma_minimal_ai_committee_core.toml
+12. EXAMPLES
 
 Add:
-- smartcore_recalibration_enabled = true or false depending safety.
-- smartcore_recalibration_dry_run = true by default.
-- smartcore_recalibration_min_support = 2.
-- smartcore_recalibration_max_rules_per_member_head = 2.
-- smartcore_recalibration_emit_owner_summary = true.
-- smartcore_recalibration_rule_table_output_path = "target/minimal_smartcore_calibration_rule_table.json"
-- smartcore_calibrated_debug_output_path = "target/minimal_smartcore_calibrated_debug_output.json"
-- smartcore_recalibration_result_output_path = "target/minimal_smartcore_recalibration_result.json"
+
+examples/soma_minimal_ai_committee_observer_apply_verify.toml
+
+Required:
+- observer_apply_verify_chairman_shadow_enabled = true
+- observer_apply_verify_mode = "ApplyApprovedTargets"
+- observer_apply_verify_dry_run = false
+- observer_apply_verify_target_store_output_path = "target/minimal_observer_approved_target_store.verify.json"
+- observer_apply_verify_output_path = "target/minimal_observer_apply_verify_chairman_shadow.json"
+- observer_apply_verify_emit_owner_summary = true
+- chairman_shadow_governance_enabled = true
+
+Main:
+examples/soma_minimal_ai_committee_core.toml
+- keep dry-run/safe defaults.
 
 Do not add:
-- training config.
-- optimizer.
-- checkpoint.
-- model weight path.
-- inference endpoint.
+- score mutation flag.
+- voice mutation flag.
+- promotion/demotion flag.
+- risk override flag.
 - order path.
+- inference endpoint.
+- model weight path.
+- checkpoint path.
+- optimizer config.
 
 ────────────────────────────────────────
-12. FILE SCOPE
+13. FILE SCOPE
 
 Prefer changing only:
 - src/league/minimal_ai_committee_core.rs
 - src/bin/soma_experiment.rs
 - tests/minimal_ai_committee_core.rs
 - examples/soma_minimal_ai_committee_core.toml
-- optional docs/SPRINT179_SMARTCORE_CALIBRATION_OVERLAY.md
+- examples/soma_minimal_ai_committee_observer_apply_verify.toml
+- optional docs/SPRINT188_OBSERVER_APPLY_VERIFY_CHAIRMAN_SHADOW.md
 
 Do not create many files.
 Do not add JS/TS/Tauri/Svelte.
@@ -626,71 +675,71 @@ Do not add web assets.
 Do not add Python.
 
 ────────────────────────────────────────
-13. TESTS
+14. TESTS
 
 Add focused tests inside tests/minimal_ai_committee_core.rs.
 
 Required tests:
-1. calibration stats counts mismatches.
-2. calibration stats groups by member/head.
-3. low-support mismatch creates ObserveOnly rule.
-4. sufficient support mismatch creates Active rule.
-5. expected return mapping disabled by default.
-6. overlay policy forbids trade signal output.
-7. calibration overlay changes only debug buckets.
-8. calibration overlay does not mutate original output.
-9. calibrated output remains not_investment_signal.
-10. calibrated output remains not_committee_opinion.
-11. calibrated output remains not_order.
-12. safety guard detects MemberOpinion misuse.
-13. safety guard detects trade signal misuse.
-14. recalibration pass recomputes alignment.
-15. recalibration pass reports mismatch_delta.
-16. no-decision recheck remains Preserved.
-17. owner recalibration summary is debug-only.
-18. recalibration dry-run writes no files.
-19. no training is executed.
-20. no weight update occurs.
-21. no checkpoint is written.
-22. no live inference path exists.
-23. no broker/order/account path exists.
-24. deterministic repeated recalibration pass.
+1. apply verification profile requires ApplyApprovedTargets + dry_run=false.
+2. apply verification profile rejects missing target_store_output_path.
+3. main example remains dry-run/safe default.
+4. dedicated verification config is non-dry apply.
+5. non-dry apply writes target store.
+6. target store write proof fails if file missing.
+7. target store write proof passes for valid approved store.
+8. readiness closure resolves NeedsApply after store write.
+9. readiness closure blocks decision isolation violation.
+10. chairman reward/penalty contract remains ContractOnly.
+11. chairman shadow governance inputs build from observer comparison.
+12. chairman shadow governance evaluation produces reward/penalty/voice candidates only.
+13. chairman shadow governance does not mutate score.
+14. chairman shadow governance does not mutate voice.
+15. chairman shadow governance does not promote/demote.
+16. chairman shadow governance does not override Risk Governor.
+17. chairman shadow governance safety guard fails if score mutation injected.
+18. owner summary states no score/voice mutation.
+19. run does not mutate committee decision.
+20. run does not mutate member score.
+21. run does not mutate voice weight.
+22. no training is executed.
+23. no weight update occurs.
+24. no checkpoint is written.
+25. no live inference path exists.
+26. no broker/order/account path exists.
+27. deterministic repeated run.
 
 Do not add broad test files.
 
 ────────────────────────────────────────
-14. ACCEPTANCE CRITERIA
+15. ACCEPTANCE CRITERIA
 
-Sprint 179 succeeds if:
+Sprint 188 succeeds if:
 
-- SmartCoreHeadCalibrationStatsV0 exists.
-- SmartCoreCalibrationStatsSummaryV0 exists.
-- SmartCoreCalibrationRuleTableV0 exists.
-- SmartCoreCalibrationOverlayPolicyV0 exists.
-- CalibratedSmartCoreDebugOutputV0 exists.
-- SmartCoreCalibrationOverlaySafetyGuardV0 exists.
-- SmartCoreShadowRecalibrationRun exists.
-- SmartCoreRecalibrationInterpretationV0 exists.
-- OwnerCoreRecalibrationDebugSummary exists.
-- calibration rules are built from calibration dataset.
-- overlay applies only debug bucket changes.
-- original debug output is preserved.
-- shadow alignment can be re-run after overlay.
-- mismatch delta is reported.
-- no decision bridge remains preserved.
-- calibrated output is not MemberOpinion.
-- calibrated output is not CommitteeDecision.
-- calibrated output is not TradeSignal.
+- dedicated observer apply verification config exists.
+- main example remains safe dry-run default.
+- apply profile validation exists.
+- explicit non-dry apply can write approved target store locally.
+- target store write proof exists.
+- readiness closure check exists.
+- readiness moves beyond NeedsApply after verified apply.
+- Chairman shadow governance input records exist.
+- Chairman shadow governance evaluation exists.
+- Chairman shadow governance safety guard exists.
+- owner apply/governance summary V2 exists.
+- Chairman contract remains ContractOnly.
+- no score mutation occurs.
+- no voice mutation occurs.
+- no promotion/demotion occurs.
+- no Risk Governor override occurs.
+- no committee decision is changed.
 - no training is executed.
-- no weight mutation occurs.
-- no checkpoint is written.
 - no live inference is added.
 - no broker/order/account path exists.
 - focused tests pass.
 - explicit manifest workspace tests pass.
 
 ────────────────────────────────────────
-15. RUN COMMANDS
+16. RUN COMMANDS
 
 Run:
 cargo fmt --all
@@ -699,29 +748,32 @@ cargo build --bin soma_experiment
 cargo test --test minimal_ai_committee_core --quiet
 cargo test --test workspace_timeout_reduction_queue --quiet
 
-Cycle smoke:
+Main safe smoke:
 cargo run --quiet --bin soma_experiment -- minimal-ai-committee-cycle --config examples/soma_minimal_ai_committee_core.toml
+
+Dedicated apply verification smoke:
+cargo run --quiet --bin soma_experiment -- minimal-ai-committee-cycle --config examples/soma_minimal_ai_committee_observer_apply_verify.toml
 
 Workspace:
 cargo test --workspace --no-run --quiet
 cargo test --workspace --quiet
 
 ────────────────────────────────────────
-16. FINAL RESPONSE FORMAT
+17. FINAL RESPONSE FORMAT
 
 Keep short:
 
 ## 1. What changed
 
-## 2. Calibration stats
+## 2. Apply verification profile
 
-## 3. Calibration rule table
+## 3. Target store write proof
 
-## 4. Calibrated debug output
+## 4. Readiness closure
 
-## 5. Shadow recalibration pass
+## 5. Chairman shadow governance
 
-## 6. Recalibration interpretation
+## 6. Owner summary
 
 ## 7. Safety preserved
 

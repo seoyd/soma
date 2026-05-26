@@ -2,6 +2,7 @@ use std::{
     fs,
     path::PathBuf,
     process::Command,
+    sync::atomic::{AtomicU64, Ordering},
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -42,10 +43,10 @@ use soma_zero::league::minimal_ai_committee_core::{
     MemberExperienceOpinionSnapshot, MemberExperienceOutcome, MemberExperienceRecord,
     MemberExperienceStore, MemberInputPacket, MemberLearningDataContractSummaryStatus,
     MemberLearningDataContractValidationStatus, MemberLearningLabel, MemberLearningSignal,
-    MemberMemoryState, MemberResearchTaskType, MemberScoreUpdateReason, MemberSelectionSkipReason,
-    MemberStance, MemberStateStore, MemberStyleStatus, MemoryCoreKind, MemoryCountBucket,
-    MicroKernelBucketDimStatus, MicroKernelLabModePolicy, MicroKernelNumericScale,
-    MicroKernelRuntimeSafetyStatus, MicroKernelSequenceAssemblyStatus,
+    MemberMemoryState, MemberOpinion, MemberResearchTaskType, MemberScoreUpdateReason,
+    MemberSelectionSkipReason, MemberStance, MemberStateStore, MemberStyleStatus, MemoryCoreKind,
+    MemoryCountBucket, MicroKernelBucketDimStatus, MicroKernelLabModePolicy,
+    MicroKernelNumericScale, MicroKernelRuntimeSafetyStatus, MicroKernelSequenceAssemblyStatus,
     MicroKernelSequencePadPolicy, MicroKernelSequenceTruncatePolicy, MicroKernelWarningKind,
     MicroKernelWarningNormalizationStatus, MinimalAiCommitteeCycleConfig, MockSafeHttpTransport,
     NewsCacheStore, NewsCollectionConfig, NewsCollectionSourceMode, NewsProviderConfig,
@@ -405,6 +406,76 @@ fn single_cycle_config() -> MinimalAiCommitteeCycleConfig {
         smartcore_recalibration_min_support: 2,
         smartcore_recalibration_max_rules_per_member_head: 2,
         smartcore_recalibration_emit_owner_summary: true,
+        smartcore_shadow_opinion_enabled: false,
+        smartcore_shadow_opinion_output_path: None,
+        smartcore_shadow_compare_member_opinion: false,
+        smartcore_shadow_target_eval: false,
+        smartcore_shadow_emit_owner_debug: true,
+        smartcore_shadow_stability_enabled: false,
+        smartcore_shadow_stability_repeats: 3,
+        smartcore_shadow_stability_output_path: None,
+        smartcore_shadow_expand_agreement_targets: false,
+        smartcore_shadow_target_collection_queue_output_path: None,
+        smartcore_shadow_stability_emit_owner_summary: true,
+        smartcore_shadow_scenario_sweep_enabled: false,
+        smartcore_shadow_scenario_set_path: None,
+        smartcore_shadow_scenario_repeats: 3,
+        smartcore_shadow_scenario_max_count: 5,
+        smartcore_shadow_scenario_output_path: None,
+        smartcore_observer_readiness_gate_enabled: false,
+        smartcore_observer_min_scenarios_required: 3,
+        smartcore_shadow_scenario_emit_owner_summary: true,
+        smartcore_observer_lane_enabled: false,
+        smartcore_observer_output_path: None,
+        smartcore_observer_compare_member_opinion: true,
+        smartcore_observer_compare_chairman: true,
+        smartcore_observer_compare_risk_governor: true,
+        smartcore_observer_target_coverage_closure_enabled: true,
+        smartcore_observer_emit_owner_section: true,
+        observer_target_closure_enabled: false,
+        observer_target_closure_dry_run: true,
+        observer_target_closure_output_path: None,
+        observer_target_set_output_path: None,
+        observer_comparison_ledger_path: None,
+        observer_readiness_hardening_enabled: false,
+        observer_coverage_closure_emit_owner_summary: true,
+        observer_target_apply_trend_enabled: false,
+        observer_target_apply_dry_run: true,
+        observer_target_apply_targets: false,
+        observer_target_store_input_path: None,
+        observer_target_store_output_path: None,
+        observer_ledger_trend_enabled: true,
+        observer_readiness_v2_enabled: false,
+        observer_trend_summary_enabled: false,
+        observer_apply_trend_output_path: None,
+        observer_seed_apply_trend_enabled: false,
+        observer_seed_apply_dry_run: true,
+        observer_seed_apply_targets: false,
+        observer_seed_target_store_output_path: None,
+        observer_seed_apply_output_path: None,
+        observer_seed_require_approved_target: true,
+        observer_seed_rerun_comparison: true,
+        observer_seed_compute_ledger_trend: true,
+        observer_seed_recheck_readiness: true,
+        observer_seed_emit_owner_summary: true,
+        observer_approved_apply_governance_enabled: false,
+        observer_approved_apply_mode: core::ObserverExplicitApplyMode::DryRun,
+        observer_approved_apply_dry_run: true,
+        observer_approved_target_store_input_path: None,
+        observer_approved_target_store_output_path: None,
+        observer_approved_apply_output_path: None,
+        observer_approved_apply_recheck_readiness: true,
+        chairman_governance_contract_prepare_enabled: true,
+        chairman_governance_readiness_check_enabled: true,
+        observer_approved_apply_emit_owner_summary: true,
+        observer_apply_verify_chairman_shadow_enabled: false,
+        observer_apply_verify_mode: core::ObserverExplicitApplyMode::DryRun,
+        observer_apply_verify_dry_run: true,
+        observer_apply_verify_target_store_output_path: None,
+        observer_apply_verify_output_path: None,
+        observer_apply_verify_config_path: None,
+        observer_apply_verify_emit_owner_summary: true,
+        chairman_shadow_governance_enabled: true,
         training_candidate_min_examples: None,
         self_growing_replay_enabled: false,
         research_source_registry_path: None,
@@ -1045,6 +1116,76 @@ fn offline_fixture_path_is_local_only() {
         smartcore_recalibration_min_support: 2,
         smartcore_recalibration_max_rules_per_member_head: 2,
         smartcore_recalibration_emit_owner_summary: true,
+        smartcore_shadow_opinion_enabled: false,
+        smartcore_shadow_opinion_output_path: None,
+        smartcore_shadow_compare_member_opinion: false,
+        smartcore_shadow_target_eval: false,
+        smartcore_shadow_emit_owner_debug: true,
+        smartcore_shadow_stability_enabled: false,
+        smartcore_shadow_stability_repeats: 3,
+        smartcore_shadow_stability_output_path: None,
+        smartcore_shadow_expand_agreement_targets: false,
+        smartcore_shadow_target_collection_queue_output_path: None,
+        smartcore_shadow_stability_emit_owner_summary: true,
+        smartcore_shadow_scenario_sweep_enabled: false,
+        smartcore_shadow_scenario_set_path: None,
+        smartcore_shadow_scenario_repeats: 3,
+        smartcore_shadow_scenario_max_count: 5,
+        smartcore_shadow_scenario_output_path: None,
+        smartcore_observer_readiness_gate_enabled: false,
+        smartcore_observer_min_scenarios_required: 3,
+        smartcore_shadow_scenario_emit_owner_summary: true,
+        smartcore_observer_lane_enabled: false,
+        smartcore_observer_output_path: None,
+        smartcore_observer_compare_member_opinion: true,
+        smartcore_observer_compare_chairman: true,
+        smartcore_observer_compare_risk_governor: true,
+        smartcore_observer_target_coverage_closure_enabled: true,
+        smartcore_observer_emit_owner_section: true,
+        observer_target_closure_enabled: false,
+        observer_target_closure_dry_run: true,
+        observer_target_closure_output_path: None,
+        observer_target_set_output_path: None,
+        observer_comparison_ledger_path: None,
+        observer_readiness_hardening_enabled: false,
+        observer_coverage_closure_emit_owner_summary: true,
+        observer_target_apply_trend_enabled: false,
+        observer_target_apply_dry_run: true,
+        observer_target_apply_targets: false,
+        observer_target_store_input_path: None,
+        observer_target_store_output_path: None,
+        observer_ledger_trend_enabled: true,
+        observer_readiness_v2_enabled: false,
+        observer_trend_summary_enabled: false,
+        observer_apply_trend_output_path: None,
+        observer_seed_apply_trend_enabled: false,
+        observer_seed_apply_dry_run: true,
+        observer_seed_apply_targets: false,
+        observer_seed_target_store_output_path: None,
+        observer_seed_apply_output_path: None,
+        observer_seed_require_approved_target: true,
+        observer_seed_rerun_comparison: true,
+        observer_seed_compute_ledger_trend: true,
+        observer_seed_recheck_readiness: true,
+        observer_seed_emit_owner_summary: true,
+        observer_approved_apply_governance_enabled: false,
+        observer_approved_apply_mode: core::ObserverExplicitApplyMode::DryRun,
+        observer_approved_apply_dry_run: true,
+        observer_approved_target_store_input_path: None,
+        observer_approved_target_store_output_path: None,
+        observer_approved_apply_output_path: None,
+        observer_approved_apply_recheck_readiness: true,
+        chairman_governance_contract_prepare_enabled: true,
+        chairman_governance_readiness_check_enabled: true,
+        observer_approved_apply_emit_owner_summary: true,
+        observer_apply_verify_chairman_shadow_enabled: false,
+        observer_apply_verify_mode: core::ObserverExplicitApplyMode::DryRun,
+        observer_apply_verify_dry_run: true,
+        observer_apply_verify_target_store_output_path: None,
+        observer_apply_verify_output_path: None,
+        observer_apply_verify_config_path: None,
+        observer_apply_verify_emit_owner_summary: true,
+        chairman_shadow_governance_enabled: true,
         training_candidate_min_examples: None,
         self_growing_replay_enabled: false,
         research_source_registry_path: None,
@@ -6991,11 +7132,13 @@ fn sprint170_contract_inputs() -> (
 }
 
 fn sprint171_temp_json_path(stem: &str) -> PathBuf {
+    static TEMP_COUNTER: AtomicU64 = AtomicU64::new(0);
     let unique = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .expect("system time")
         .as_nanos();
-    std::env::temp_dir().join(format!("soma-{stem}-{unique}.json"))
+    let counter = TEMP_COUNTER.fetch_add(1, Ordering::Relaxed);
+    std::env::temp_dir().join(format!("soma-{stem}-{unique}-{counter}.json"))
 }
 
 fn sprint175_microkernel_dry_run_fixture() -> (
@@ -7499,6 +7642,578 @@ fn sprint179_recalibration_fixture(
         shadow_alignment,
         dataset,
         recalibration_result,
+    )
+}
+
+fn sprint180_shadow_opinion_fixture() -> (
+    BatchCommitteeCycleResult,
+    core::SmartCoreShadowRecalibrationRunResult,
+    core::SmartCoreShadowOpinionRunResult,
+) {
+    let (batch_result, _debug_output_batch, _shadow_alignment, _dataset, recalibration_result) =
+        sprint179_recalibration_fixture(false);
+    let run_result = core::run_smartcore_shadow_opinion_lane(
+        &recalibration_result.calibrated_debug_output_batch,
+        &batch_result,
+        Some(&batch_result.replay_dataset),
+        &core::SmartCoreShadowOpinionRunConfig {
+            run_id: "sprint180-shadow-opinion".to_string(),
+            enabled: true,
+            output_path: None,
+            include_member_opinion_comparison: true,
+            include_target_eval: true,
+            emit_owner_debug_summary: true,
+            paper_only: true,
+        },
+    )
+    .expect("sprint180 shadow opinion");
+    (batch_result, recalibration_result, run_result)
+}
+
+fn sprint181_shadow_stability_fixture(
+    expand_targets: bool,
+) -> (
+    BatchCommitteeCycleResult,
+    core::CoreCalibrationDataset,
+    core::SmartCoreShadowOpinionRunResult,
+    core::SmartCoreShadowStabilityRunResult,
+) {
+    let (batch_result, _debug_output_batch, _shadow_alignment, dataset, recalibration_result) =
+        sprint179_recalibration_fixture(false);
+    let shadow_opinion_run = core::run_smartcore_shadow_opinion_lane(
+        &recalibration_result.calibrated_debug_output_batch,
+        &batch_result,
+        Some(&batch_result.replay_dataset),
+        &core::SmartCoreShadowOpinionRunConfig {
+            run_id: "sprint181-shadow-opinion".to_string(),
+            enabled: true,
+            output_path: None,
+            include_member_opinion_comparison: true,
+            include_target_eval: true,
+            emit_owner_debug_summary: true,
+            paper_only: true,
+        },
+    )
+    .expect("sprint181 shadow opinion");
+    let stability_run = core::run_smartcore_shadow_stability_eval(
+        &shadow_opinion_run,
+        &batch_result,
+        Some(&batch_result.replay_dataset),
+        expand_targets.then_some(&dataset),
+        None,
+        &core::SmartCoreShadowStabilityRunConfig {
+            run_id: "sprint181-shadow-stability".to_string(),
+            enabled: true,
+            repeated_run_count: 3,
+            include_same_input_repeat: true,
+            include_calibrated_output_repeat: true,
+            include_shadow_candidate_repeat: true,
+            include_target_eval_repeat: true,
+            max_allowed_action_flip_rate: 0.0,
+            max_allowed_head_flip_rate: 0.0,
+            output_path: None,
+            paper_only: true,
+        },
+    )
+    .expect("sprint181 shadow stability");
+    (batch_result, dataset, shadow_opinion_run, stability_run)
+}
+
+fn sprint182_shadow_scenario_context() -> (
+    BatchCommitteeCycleResult,
+    core::CoreCalibrationDataset,
+    core::CalibratedSmartCoreDebugOutputBatchV0,
+) {
+    let (batch_result, _debug_output_batch, _shadow_alignment, dataset, recalibration_result) =
+        sprint179_recalibration_fixture(false);
+    (
+        batch_result,
+        dataset,
+        recalibration_result.calibrated_debug_output_batch,
+    )
+}
+
+fn sprint182_shadow_scenario_sweep_fixture() -> (
+    BatchCommitteeCycleResult,
+    core::SmartCoreShadowScenarioSweepResult,
+) {
+    let (batch_result, dataset, calibrated_debug_batch) = sprint182_shadow_scenario_context();
+    let mut sweep = core::run_smartcore_shadow_scenario_sweep(
+        &calibrated_debug_batch,
+        &batch_result,
+        &batch_result.replay_dataset,
+        Some(&dataset),
+        None,
+        &core::SmartCoreShadowScenarioSweepConfig {
+            run_id: "sprint182-shadow-scenario-sweep".to_string(),
+            scenario_set_path: None,
+            repeated_run_count: 3,
+            max_scenarios: 5,
+            include_same_input_determinism: true,
+            include_cross_scenario_sensitivity: true,
+            expand_targets_per_scenario: true,
+            output_path: None,
+            paper_only: true,
+        },
+    )
+    .expect("sprint182 scenario sweep");
+    sweep.observer_readiness_gate = Some(core::evaluate_smartcore_observer_readiness(
+        &sweep,
+        &core::SmartCoreObserverReadinessPolicy {
+            min_scenarios_required: 3,
+            require_zero_same_input_flip_rate: true,
+            allow_reasonable_cross_scenario_variation: true,
+            require_decision_isolation: true,
+            require_no_training: true,
+            require_no_live_inference: true,
+            paper_only: true,
+        },
+    ));
+    sweep.owner_debug_summary = Some(core::build_owner_shadow_scenario_sweep_debug_summary(
+        &sweep,
+        sweep
+            .observer_readiness_gate
+            .as_ref()
+            .expect("observer gate"),
+    ));
+    (batch_result, sweep)
+}
+
+fn sprint182_scenario_result(
+    scenario_id: &str,
+    scenario_kind: core::SmartCoreShadowScenarioKind,
+    action: core::SmartCoreShadowOpinionAction,
+    head_signature: &str,
+    target_quality_status: core::SmartCoreAgreementTargetQualityStatus,
+) -> core::SmartCoreShadowScenarioStabilityResult {
+    core::SmartCoreShadowScenarioStabilityResult {
+        scenario_id: scenario_id.to_string(),
+        scenario_kind,
+        repeated_run_count: 3,
+        sample_count: 9,
+        action_flip_rate: 0.0,
+        head_bucket_flip_rate: 0.0,
+        deterministic_status: core::SmartCoreShadowStabilityDeterministicStatus::Deterministic,
+        target_count_before: 3,
+        target_count_after: 6,
+        target_quality_status,
+        mismatch_count_before: Some(0),
+        mismatch_count_after: Some(0),
+        decision_isolation_status:
+            core::SmartCoreShadowStabilityDecisionIsolationRegressionStatus::Preserved,
+        action_signature: [
+            ("evidence-kr-short".to_string(), action),
+            ("risk-kr-short".to_string(), action),
+            ("trend-kr-short".to_string(), action),
+        ]
+        .into_iter()
+        .collect(),
+        head_signature: [
+            ("evidence-kr-short".to_string(), head_signature.to_string()),
+            ("risk-kr-short".to_string(), head_signature.to_string()),
+            ("trend-kr-short".to_string(), head_signature.to_string()),
+        ]
+        .into_iter()
+        .collect(),
+        target_collection_tasks: match target_quality_status {
+            core::SmartCoreAgreementTargetQualityStatus::ThinHeadCoverage => vec![
+                core::SmartCoreAgreementTargetCollectionTask {
+                    task_id: format!("{scenario_id}-risk"),
+                    member_id: None,
+                    head: Some(core::SmartCoreShadowHeadKind::Risk),
+                    target_need: core::SmartCoreAgreementTargetNeed::RiskTarget,
+                    priority: core::SmartCoreAgreementTargetTaskPriority::High,
+                    reason: "Need more risk targets.".to_string(),
+                    paper_only: true,
+                },
+                core::SmartCoreAgreementTargetCollectionTask {
+                    task_id: format!("{scenario_id}-evidence"),
+                    member_id: None,
+                    head: Some(core::SmartCoreShadowHeadKind::EvidenceNeed),
+                    target_need: core::SmartCoreAgreementTargetNeed::EvidenceTarget,
+                    priority: core::SmartCoreAgreementTargetTaskPriority::High,
+                    reason: "Need more evidence targets.".to_string(),
+                    paper_only: true,
+                },
+            ],
+            _ => Vec::new(),
+        },
+        decision_isolation_violations: Vec::new(),
+        paper_only: true,
+    }
+}
+
+fn sprint183_observer_lane_fixture() -> (
+    BatchCommitteeCycleResult,
+    core::SmartCoreObserverLaneRunResult,
+) {
+    let (batch_result, _recalibration_result, shadow_opinion_run) =
+        sprint180_shadow_opinion_fixture();
+    let (_scenario_batch_result, sweep) = sprint182_shadow_scenario_sweep_fixture();
+    let run_result = core::run_smartcore_observer_lane(
+        &shadow_opinion_run.candidate_batch,
+        &batch_result,
+        Some(&sweep.target_coverage_stress),
+        &core::SmartCoreObserverLaneRunConfig {
+            run_id: "sprint183-observer-lane".to_string(),
+            enabled: true,
+            output_path: None,
+            compare_member_opinion: true,
+            compare_chairman_decision: true,
+            compare_risk_governor: true,
+            build_target_coverage_closure_queue: true,
+            emit_owner_observer_section: true,
+            paper_only: true,
+        },
+    )
+    .expect("observer lane");
+    (batch_result, run_result)
+}
+
+fn sprint184_closure_fixture() -> (
+    BatchCommitteeCycleResult,
+    core::SmartCoreObserverLaneRunResult,
+    core::ObserverTargetCoverageClosureRunResult,
+    core::ObserverAgreementTargetSet,
+    core::ObserverComparisonRerunResult,
+    core::ObserverTargetClosureDecisionIsolationGuard,
+    core::SmartCoreObserverReadinessHardeningGate,
+) {
+    let (mut batch_result, observer_run_result) = sprint183_observer_lane_fixture();
+    let queue = observer_run_result
+        .target_coverage_closure_result
+        .as_ref()
+        .expect("closure queue")
+        .closure_queue
+        .clone();
+    let closure_result = core::run_observer_target_coverage_closure(
+        Some(&queue),
+        &batch_result,
+        None,
+        None,
+        None,
+        &core::ObserverTargetCoverageClosureRunConfig {
+            run_id: "sprint184-closure".to_string(),
+            enabled: true,
+            closure_queue_input_path: None,
+            observer_targets_output_path: None,
+            replay_dataset_path: None,
+            calibration_dataset_path: None,
+            paper_evidence_path: None,
+            dry_run: false,
+            max_items: 16,
+            paper_only: true,
+        },
+    )
+    .expect("closure run");
+    let target_set =
+        core::refresh_observer_agreement_target_set(&[], &closure_result.target_records)
+            .refreshed_target_set;
+    let rerun_result =
+        core::rerun_observer_comparison_with_refreshed_targets(&observer_run_result, &target_set);
+    let decision_isolation_guard = core::evaluate_observer_target_closure_decision_isolation(
+        &closure_result,
+        &batch_result,
+        Some(&batch_result),
+    );
+    let hardening_gate = core::harden_smartcore_observer_readiness(
+        &observer_run_result,
+        &closure_result,
+        &rerun_result,
+        &decision_isolation_guard,
+    );
+    batch_result.smartcore_observer_lane_run_result = Some(observer_run_result.clone());
+    batch_result.observer_target_coverage_closure_run_result = Some(closure_result.clone());
+    batch_result.observer_agreement_target_set = Some(target_set.clone());
+    batch_result.observer_comparison_rerun_result = Some(rerun_result.clone());
+    batch_result.observer_target_closure_decision_isolation_guard =
+        Some(decision_isolation_guard.clone());
+    batch_result.observer_readiness_hardening_gate = Some(hardening_gate.clone());
+    (
+        batch_result,
+        observer_run_result,
+        closure_result,
+        target_set,
+        rerun_result,
+        decision_isolation_guard,
+        hardening_gate,
+    )
+}
+
+fn sprint185_target(
+    target_id: &str,
+    approval_status: core::ObserverAgreementTargetApprovalStatus,
+    source_type: core::ObserverAgreementTargetSource,
+    source_confidence: core::SourceConfidence,
+    reason: &str,
+) -> core::ObserverAgreementTargetRecord {
+    core::ObserverAgreementTargetRecord {
+        target_id: target_id.to_string(),
+        source_closure_item_id: Some(format!("{target_id}-item")),
+        source_record_id: Some("batch".to_string()),
+        member_id: Some("trend-kr-short".to_string()),
+        canonical_member_id: Some("trend-kr-short".to_string()),
+        symbol: Some("AAPL".to_string()),
+        market_scope: Some(MarketScope::UsShortTerm),
+        head: core::ObserverAgreementTargetHead::Stance,
+        target_bucket: core::SmartCoreHeadBucketNormalizedValue::PositiveLike,
+        source_type,
+        source_confidence,
+        approval_status,
+        reason: reason.to_string(),
+        eval_only: true,
+        not_input_feature: true,
+        paper_only: true,
+    }
+}
+
+fn sprint185_closure_result_with_targets(
+    run_id: &str,
+    targets: Vec<core::ObserverAgreementTargetRecord>,
+) -> core::ObserverTargetCoverageClosureRunResult {
+    core::ObserverTargetCoverageClosureRunResult {
+        run_id: run_id.to_string(),
+        input_item_count: targets.len(),
+        executed_item_count: targets.len(),
+        closed_count: targets
+            .iter()
+            .filter(|target| {
+                target.approval_status == core::ObserverAgreementTargetApprovalStatus::Approved
+            })
+            .count(),
+        needs_review_count: targets
+            .iter()
+            .filter(|target| {
+                target.approval_status == core::ObserverAgreementTargetApprovalStatus::NeedsReview
+            })
+            .count(),
+        rejected_count: targets
+            .iter()
+            .filter(|target| {
+                target.approval_status == core::ObserverAgreementTargetApprovalStatus::Rejected
+            })
+            .count(),
+        generated_target_count: targets.len(),
+        approved_target_count: targets
+            .iter()
+            .filter(|target| {
+                target.approval_status == core::ObserverAgreementTargetApprovalStatus::Approved
+            })
+            .count(),
+        target_records: targets,
+        execution_results: Vec::new(),
+        dry_run: false,
+        run_status: core::ObserverTargetCoverageClosureRunStatus::Passed,
+        paper_only: true,
+    }
+}
+
+fn sprint185_apply_trend_fixture(
+    apply_targets: bool,
+    dry_run: bool,
+) -> (
+    BatchCommitteeCycleResult,
+    core::SmartCoreObserverLaneRunResult,
+    core::ObserverTargetCoverageClosureRunResult,
+    core::ObserverTargetApplyAndTrendRunResult,
+    PathBuf,
+    PathBuf,
+) {
+    let (batch_result, observer_run_result, closure_result, ..) = sprint184_closure_fixture();
+    let store_path = sprint171_temp_json_path("observer-target-store");
+    let ledger_path = sprint171_temp_json_path("observer-ledger-v2");
+    let _ = fs::remove_file(&store_path);
+    let _ = fs::remove_file(&ledger_path);
+    let run_result = core::run_observer_target_apply_and_trend(
+        &observer_run_result,
+        &closure_result,
+        &batch_result,
+        &core::ObserverTargetApplyAndTrendRunConfig {
+            run_id: "sprint185-apply-trend".to_string(),
+            enabled: true,
+            closure_result_path: None,
+            target_store_input_path: None,
+            target_store_output_path: Some(store_path.to_string_lossy().to_string()),
+            observer_ledger_path: Some(ledger_path.to_string_lossy().to_string()),
+            dry_run,
+            apply_targets,
+            compute_trend: true,
+            recheck_readiness: true,
+            emit_owner_summary: true,
+            paper_only: true,
+        },
+    )
+    .expect("apply trend run");
+    (
+        batch_result,
+        observer_run_result,
+        closure_result,
+        run_result,
+        store_path,
+        ledger_path,
+    )
+}
+
+fn sprint186_seed_apply_fixture(
+    apply_targets: bool,
+    dry_run: bool,
+) -> (
+    BatchCommitteeCycleResult,
+    core::SmartCoreObserverLaneRunResult,
+    core::ObserverSeedApplyTrendRunResult,
+    PathBuf,
+    PathBuf,
+    PathBuf,
+) {
+    let (mut batch_result, observer_run_result, _closure_result, apply_trend, ..) =
+        sprint185_apply_trend_fixture(true, false);
+    batch_result.observer_readiness_v2_gate = Some(apply_trend.readiness_v2);
+    let target_store_path = sprint171_temp_json_path("observer-seed-target-store");
+    let ledger_path = sprint171_temp_json_path("observer-seed-ledger");
+    let output_path = sprint171_temp_json_path("observer-seed-apply-output");
+    let _ = fs::remove_file(&target_store_path);
+    let _ = fs::remove_file(&ledger_path);
+    let _ = fs::remove_file(&output_path);
+    let run_result = core::run_observer_seed_apply_trend(
+        &batch_result,
+        None,
+        None,
+        None,
+        &observer_run_result,
+        &core::ObserverSeedApplyTrendRunConfig {
+            run_id: "sprint186-seed-apply-trend".to_string(),
+            enabled: true,
+            dry_run,
+            apply_targets,
+            target_store_input_path: None,
+            target_store_output_path: Some(target_store_path.to_string_lossy().to_string()),
+            observer_ledger_path: Some(ledger_path.to_string_lossy().to_string()),
+            output_path: Some(output_path.to_string_lossy().to_string()),
+            require_approved_target: true,
+            rerun_comparison: true,
+            compute_ledger_trend: true,
+            recheck_readiness: true,
+            emit_owner_summary: true,
+            paper_only: true,
+        },
+    )
+    .expect("seed apply trend run");
+    (
+        batch_result,
+        observer_run_result,
+        run_result,
+        target_store_path,
+        ledger_path,
+        output_path,
+    )
+}
+
+fn sprint187_apply_governance_fixture(
+    apply_mode: core::ObserverExplicitApplyMode,
+    dry_run: bool,
+) -> (
+    BatchCommitteeCycleResult,
+    core::SmartCoreObserverLaneRunResult,
+    core::ObserverApprovedApplyAndGovernancePrepRunResult,
+    PathBuf,
+    PathBuf,
+    PathBuf,
+) {
+    let (mut batch_result, observer_run_result, seed_run, ..) =
+        sprint186_seed_apply_fixture(true, false);
+    batch_result.observer_seed_apply_trend_run_result = Some(seed_run.clone());
+    batch_result.observer_agreement_target_store = seed_run
+        .controlled_apply_smoke_result
+        .target_store_after
+        .clone();
+    let store_path = sprint171_temp_json_path("observer-approved-apply-store");
+    let ledger_path = sprint171_temp_json_path("observer-approved-apply-ledger");
+    let output_path = sprint171_temp_json_path("observer-approved-apply-output");
+    let _ = fs::remove_file(&store_path);
+    let _ = fs::remove_file(&ledger_path);
+    let _ = fs::remove_file(&output_path);
+    let run_result = core::run_observer_approved_apply_and_governance_prep(
+        &batch_result,
+        &seed_run
+            .controlled_apply_smoke_result
+            .seed_conversion_result
+            .target_records,
+        &observer_run_result,
+        &core::ObserverApprovedApplyAndGovernancePrepRunConfig {
+            run_id: "sprint187-approved-apply-governance".to_string(),
+            enabled: true,
+            apply_mode,
+            dry_run,
+            target_store_input_path: None,
+            target_store_output_path: Some(store_path.to_string_lossy().to_string()),
+            observer_ledger_path: Some(ledger_path.to_string_lossy().to_string()),
+            output_path: Some(output_path.to_string_lossy().to_string()),
+            recheck_observer_readiness: true,
+            prepare_chairman_governance_contract: true,
+            emit_owner_summary: true,
+            paper_only: true,
+        },
+    )
+    .expect("approved apply governance run");
+    (
+        batch_result,
+        observer_run_result,
+        run_result,
+        store_path,
+        ledger_path,
+        output_path,
+    )
+}
+
+fn sprint188_apply_verify_shadow_fixture(
+    apply_mode: core::ObserverExplicitApplyMode,
+    dry_run: bool,
+    run_chairman_shadow_governance: bool,
+) -> (
+    BatchCommitteeCycleResult,
+    core::SmartCoreObserverLaneRunResult,
+    core::ObserverApplyVerifyAndChairmanShadowRunResult,
+    PathBuf,
+    PathBuf,
+) {
+    let (mut batch_result, observer_run_result, seed_run, ..) =
+        sprint186_seed_apply_fixture(true, false);
+    batch_result.observer_seed_apply_trend_run_result = Some(seed_run.clone());
+    batch_result.observer_agreement_target_store = seed_run
+        .controlled_apply_smoke_result
+        .target_store_after
+        .clone();
+    let store_path = sprint171_temp_json_path("observer-apply-verify-store");
+    let output_path = sprint171_temp_json_path("observer-apply-verify-output");
+    let _ = fs::remove_file(&store_path);
+    let _ = fs::remove_file(&output_path);
+    let run_result = core::run_observer_apply_verify_and_chairman_shadow(
+        &batch_result,
+        &seed_run
+            .controlled_apply_smoke_result
+            .seed_conversion_result
+            .target_records,
+        &observer_run_result,
+        &core::ObserverApplyVerifyAndChairmanShadowRunConfig {
+            run_id: "sprint188-apply-verify-shadow".to_string(),
+            enabled: true,
+            apply_verification_config_path: None,
+            apply_mode,
+            dry_run,
+            target_store_output_path: Some(store_path.to_string_lossy().to_string()),
+            output_path: Some(output_path.to_string_lossy().to_string()),
+            run_chairman_shadow_governance,
+            emit_owner_summary: true,
+            paper_only: true,
+        },
+    )
+    .expect("apply verify and shadow run");
+    (
+        batch_result,
+        observer_run_result,
+        run_result,
+        store_path,
+        output_path,
     )
 }
 
@@ -10874,6 +11589,3731 @@ fn sprint179_recalibration_is_deterministic_and_autonomous_config_carries_flags(
 }
 
 #[test]
+fn sprint180_shadow_candidates_build_from_calibrated_output_and_stay_shadow_only() {
+    let (_batch_result, _recalibration_result, run_result) = sprint180_shadow_opinion_fixture();
+
+    assert_eq!(run_result.candidate_batch.candidate_count, 3);
+    assert_eq!(run_result.candidate_batch.member_count, 3);
+    assert!(run_result.candidate_batch.shadow_only);
+    assert!(run_result.candidate_batch.debug_only);
+    assert!(
+        run_result
+            .candidate_batch
+            .candidates
+            .iter()
+            .all(|candidate| candidate.shadow_only
+                && candidate.debug_only
+                && candidate.not_member_opinion
+                && candidate.not_committee_input
+                && candidate.not_trade_signal
+                && candidate.not_order)
+    );
+}
+
+#[test]
+fn sprint180_shadow_candidate_compare_handles_matching_and_mismatching_member_opinions() {
+    let (_batch_result, _recalibration_result, run_result) = sprint180_shadow_opinion_fixture();
+    let candidate = run_result
+        .candidate_batch
+        .candidates
+        .iter()
+        .find(|candidate| {
+            !matches!(
+                candidate.shadow_action,
+                core::SmartCoreShadowOpinionAction::ShadowRiskWarning
+                    | core::SmartCoreShadowOpinionAction::ShadowUnknown
+            ) && candidate.shadow_confidence != core::SmartCoreShadowOpinionConfidence::Unknown
+                && candidate.shadow_risk != core::SmartCoreShadowOpinionRisk::Unknown
+        })
+        .expect("comparable candidate");
+    let matching = MemberOpinion {
+        member_id: candidate.member_id.clone(),
+        symbol: candidate
+            .symbol
+            .clone()
+            .unwrap_or_else(|| "005930.KS".to_string()),
+        market_scope: candidate
+            .market_scope
+            .unwrap_or(MarketScope::KoreaShortTerm),
+        stance: match candidate.shadow_action {
+            core::SmartCoreShadowOpinionAction::ShadowBuyLike => MemberStance::BuyProposal,
+            core::SmartCoreShadowOpinionAction::ShadowHoldLike => MemberStance::Hold,
+            core::SmartCoreShadowOpinionAction::ShadowNoTradeLike => MemberStance::NoTrade,
+            core::SmartCoreShadowOpinionAction::ShadowNeedMoreEvidence => {
+                MemberStance::NeedMoreEvidence
+            }
+            core::SmartCoreShadowOpinionAction::ShadowRiskWarning
+            | core::SmartCoreShadowOpinionAction::ShadowUnknown => MemberStance::Hold,
+        },
+        confidence: match candidate.shadow_confidence {
+            core::SmartCoreShadowOpinionConfidence::Low => 0.2,
+            core::SmartCoreShadowOpinionConfidence::Medium => 0.6,
+            core::SmartCoreShadowOpinionConfidence::High => 0.9,
+            core::SmartCoreShadowOpinionConfidence::Unknown => 0.5,
+        },
+        expected_return_hint: 0.01,
+        risk_hint: match candidate.shadow_risk {
+            core::SmartCoreShadowOpinionRisk::Low => 0.1,
+            core::SmartCoreShadowOpinionRisk::Medium => 0.35,
+            core::SmartCoreShadowOpinionRisk::High => 0.8,
+            core::SmartCoreShadowOpinionRisk::Unknown => 0.3,
+        },
+        evidence_notes: if candidate.shadow_evidence
+            == core::SmartCoreShadowOpinionEvidence::NeedMoreEvidence
+        {
+            vec!["need more evidence".to_string()]
+        } else {
+            vec!["evidence sufficient".to_string()]
+        },
+        event_triggered: false,
+        event_reason: None,
+    };
+    let disagreeing = MemberOpinion {
+        stance: MemberStance::NoTrade,
+        confidence: 0.1,
+        risk_hint: 0.85,
+        evidence_notes: vec!["mismatch".to_string()],
+        ..matching.clone()
+    };
+    let agree_record = core::compare_shadow_candidate_to_member_opinion(candidate, Some(&matching));
+    let disagree_record =
+        core::compare_shadow_candidate_to_member_opinion(candidate, Some(&disagreeing));
+    let summary =
+        core::summarize_shadow_vs_member_opinion(&[agree_record.clone(), disagree_record.clone()]);
+
+    assert_eq!(
+        agree_record.agreement,
+        core::ShadowVsMemberOpinionAgreement::Agree
+    );
+    assert_eq!(
+        disagree_record.agreement,
+        core::ShadowVsMemberOpinionAgreement::Disagree
+    );
+    assert_eq!(summary.comparison_count, 2);
+    assert_eq!(summary.disagree_count, 1);
+}
+
+#[test]
+fn sprint180_target_eval_compares_risk_and_evidence_targets() {
+    let (_batch_result, _recalibration_result, run_result) = sprint180_shadow_opinion_fixture();
+    let candidate = run_result
+        .candidate_batch
+        .candidates
+        .iter()
+        .find(|candidate| {
+            candidate.shadow_risk != core::SmartCoreShadowOpinionRisk::Unknown
+                && candidate.shadow_evidence != core::SmartCoreShadowOpinionEvidence::Unknown
+        })
+        .expect("candidate with risk/evidence");
+    let matching_target = core::SmartCoreShadowAlignmentTarget {
+        target_id: "shadow-target-match".to_string(),
+        member_id: candidate.member_id.clone(),
+        symbol: candidate.symbol.clone(),
+        market_scope: candidate.market_scope,
+        source_type: core::SmartCoreShadowAlignmentTargetSourceType::RiskGovernorStatus,
+        stance_target: None,
+        risk_target: Some(match candidate.shadow_risk {
+            core::SmartCoreShadowOpinionRisk::Low => {
+                core::SmartCoreHeadBucketNormalizedValue::RiskLow
+            }
+            core::SmartCoreShadowOpinionRisk::Medium => {
+                core::SmartCoreHeadBucketNormalizedValue::RiskMedium
+            }
+            core::SmartCoreShadowOpinionRisk::High => {
+                core::SmartCoreHeadBucketNormalizedValue::RiskHigh
+            }
+            core::SmartCoreShadowOpinionRisk::Unknown => {
+                core::SmartCoreHeadBucketNormalizedValue::Unknown
+            }
+        }),
+        evidence_target: Some(match candidate.shadow_evidence {
+            core::SmartCoreShadowOpinionEvidence::EvidenceSufficient => {
+                core::SmartCoreHeadBucketNormalizedValue::EvidenceSufficient
+            }
+            core::SmartCoreShadowOpinionEvidence::NeedMoreEvidence => {
+                core::SmartCoreHeadBucketNormalizedValue::NeedMoreEvidence
+            }
+            core::SmartCoreShadowOpinionEvidence::Unknown => {
+                core::SmartCoreHeadBucketNormalizedValue::Unknown
+            }
+        }),
+        confidence_target: None,
+        outcome_target: None,
+        paper_only: true,
+    };
+    let mismatching_target = core::SmartCoreShadowAlignmentTarget {
+        target_id: "shadow-target-mismatch".to_string(),
+        risk_target: Some(match candidate.shadow_risk {
+            core::SmartCoreShadowOpinionRisk::Low => {
+                core::SmartCoreHeadBucketNormalizedValue::RiskHigh
+            }
+            core::SmartCoreShadowOpinionRisk::Medium => {
+                core::SmartCoreHeadBucketNormalizedValue::RiskLow
+            }
+            core::SmartCoreShadowOpinionRisk::High => {
+                core::SmartCoreHeadBucketNormalizedValue::RiskLow
+            }
+            core::SmartCoreShadowOpinionRisk::Unknown => {
+                core::SmartCoreHeadBucketNormalizedValue::RiskMedium
+            }
+        }),
+        evidence_target: Some(
+            if candidate.shadow_evidence == core::SmartCoreShadowOpinionEvidence::NeedMoreEvidence {
+                core::SmartCoreHeadBucketNormalizedValue::EvidenceSufficient
+            } else {
+                core::SmartCoreHeadBucketNormalizedValue::NeedMoreEvidence
+            },
+        ),
+        ..matching_target.clone()
+    };
+    let evals = core::evaluate_shadow_candidate_against_targets(
+        candidate,
+        &[matching_target, mismatching_target],
+    );
+    let summary = core::summarize_shadow_candidate_target_eval(&evals);
+
+    assert_eq!(evals.len(), 2);
+    assert_eq!(
+        evals[0].risk_alignment,
+        core::SmartCoreShadowAlignmentStatus::Match
+    );
+    assert_eq!(
+        evals[0].evidence_alignment,
+        core::SmartCoreShadowAlignmentStatus::Match
+    );
+    assert_eq!(
+        evals[1].risk_alignment,
+        core::SmartCoreShadowAlignmentStatus::Mismatch
+    );
+    assert_eq!(
+        evals[1].evidence_alignment,
+        core::SmartCoreShadowAlignmentStatus::Mismatch
+    );
+    assert!(summary.mismatch_count >= 1);
+}
+
+#[test]
+fn sprint180_decision_isolation_guard_detects_member_and_trade_leaks() {
+    let (batch_result, _recalibration_result, run_result) = sprint180_shadow_opinion_fixture();
+    let marker = run_result.candidate_batch.candidates[0]
+        .candidate_id
+        .clone();
+    let mut leaked_member = batch_result.clone();
+    leaked_member.member_opinions[0].event_reason = Some(marker.clone());
+    let member_violation = core::evaluate_shadow_opinion_decision_isolation(
+        &run_result.candidate_batch,
+        &leaked_member,
+        Some(&leaked_member),
+    );
+    let mut leaked_source = batch_result.clone();
+    leaked_source.member_opinions[0].event_reason = Some(
+        run_result.candidate_batch.candidates[0]
+            .source_calibrated_output_id
+            .clone(),
+    );
+    let source_violation = core::evaluate_shadow_opinion_decision_isolation(
+        &run_result.candidate_batch,
+        &leaked_source,
+        Some(&leaked_source),
+    );
+    let mut leaked_trade = batch_result.clone();
+    leaked_trade.event_queue.queue_id = marker;
+    let trade_violation = core::evaluate_shadow_opinion_decision_isolation(
+        &run_result.candidate_batch,
+        &leaked_trade,
+        Some(&leaked_trade),
+    );
+
+    assert_eq!(
+        run_result.decision_isolation_guard.guard_status,
+        core::SmartCoreShadowOpinionDecisionIsolationGuardStatus::Preserved
+    );
+    assert_eq!(
+        member_violation.guard_status,
+        core::SmartCoreShadowOpinionDecisionIsolationGuardStatus::Violated
+    );
+    assert!(member_violation.shadow_candidate_used_as_member_opinion);
+    assert_eq!(
+        source_violation.guard_status,
+        core::SmartCoreShadowOpinionDecisionIsolationGuardStatus::Violated
+    );
+    assert!(source_violation.shadow_candidate_used_as_member_opinion);
+    assert_eq!(
+        trade_violation.guard_status,
+        core::SmartCoreShadowOpinionDecisionIsolationGuardStatus::Violated
+    );
+    assert!(trade_violation.shadow_candidate_used_as_trade_signal);
+}
+
+#[test]
+fn sprint180_shadow_opinion_run_preserves_decisions_scores_and_owner_debug_safety() {
+    let (batch_result, _debug_output_batch, _shadow_alignment, _dataset, recalibration_result) =
+        sprint179_recalibration_fixture(false);
+    let before = batch_result.clone();
+    let run_result = core::run_smartcore_shadow_opinion_lane(
+        &recalibration_result.calibrated_debug_output_batch,
+        &batch_result,
+        Some(&batch_result.replay_dataset),
+        &core::SmartCoreShadowOpinionRunConfig {
+            run_id: "sprint180-shadow-opinion-safety".to_string(),
+            enabled: true,
+            output_path: None,
+            include_member_opinion_comparison: true,
+            include_target_eval: true,
+            emit_owner_debug_summary: true,
+            paper_only: true,
+        },
+    )
+    .expect("shadow opinion safety run");
+    let owner_debug = run_result
+        .owner_debug_section
+        .as_ref()
+        .expect("owner debug section");
+
+    assert_eq!(batch_result, before);
+    assert!(run_result.safety_summary.no_model_training);
+    assert!(run_result.safety_summary.no_weight_update);
+    assert!(run_result.safety_summary.no_checkpoint);
+    assert!(run_result.safety_summary.no_live_inference);
+    assert!(run_result.safety_summary.no_broker_order_account);
+    assert!(
+        owner_debug
+            .cards
+            .iter()
+            .all(|card| card.not_investment_signal
+                && card.not_committee_opinion
+                && card.shadow_only)
+    );
+}
+
+#[test]
+fn sprint180_feedback_plan_is_safe_and_config_carries_flags() {
+    let (_batch_result, _recalibration_result, first) = sprint180_shadow_opinion_fixture();
+    let (_batch_result_again, _recalibration_result_again, second) =
+        sprint180_shadow_opinion_fixture();
+    let config = MinimalAiCommitteeCycleConfig::from_toml_path(std::path::Path::new(
+        "examples/soma_minimal_ai_committee_core.toml",
+    ))
+    .expect("config");
+    let run_config = config
+        .load_autonomous_paper_run_config()
+        .expect("autonomous config");
+
+    assert_eq!(first, second);
+    assert!(
+        first
+            .feedback_plan
+            .feedback_needs
+            .contains(&core::ShadowOpinionFeedbackNeed::DoNotUseForDecisionYet)
+    );
+    assert!(run_config.smartcore_shadow_opinion_enabled);
+    assert!(run_config.smartcore_shadow_compare_member_opinion);
+    assert!(run_config.smartcore_shadow_target_eval);
+    assert!(run_config.smartcore_shadow_emit_owner_debug);
+    assert_eq!(
+        run_config.smartcore_shadow_opinion_output_path.as_deref(),
+        Some("target/minimal_smartcore_shadow_opinion.json")
+    );
+}
+
+#[test]
+fn sprint181_stability_samples_collect_all_members_and_identical_runs_stay_stable() {
+    let (_batch_result, _dataset, _shadow_opinion_run, stability_run) =
+        sprint181_shadow_stability_fixture(true);
+
+    assert_eq!(stability_run.repeated_run_count, 3);
+    assert_eq!(stability_run.samples.len(), 9);
+    assert_eq!(
+        stability_run
+            .samples
+            .iter()
+            .map(|sample| sample.member_id.clone())
+            .collect::<std::collections::BTreeSet<_>>()
+            .len(),
+        3
+    );
+    assert_eq!(stability_run.stability_metrics.action_flip_rate, 0.0);
+    assert_eq!(stability_run.stability_metrics.head_bucket_flip_rate, 0.0);
+}
+
+#[test]
+fn sprint181_injected_action_flip_is_detected() {
+    let (_batch_result, _dataset, _shadow_opinion_run, stability_run) =
+        sprint181_shadow_stability_fixture(true);
+    let mut samples = stability_run.samples.clone();
+    let flipped_member = samples[0].member_id.clone();
+    let sample_to_flip = samples
+        .iter_mut()
+        .find(|sample| sample.member_id == flipped_member && sample.repeat_index == 1)
+        .expect("repeat sample");
+    sample_to_flip.shadow_action = core::SmartCoreShadowOpinionAction::ShadowNoTradeLike;
+    let metrics = core::compute_shadow_stability_metrics(&samples);
+    let mismatches = core::build_shadow_stability_mismatch_records(&samples, &metrics);
+
+    assert!(metrics.action_flip_rate > 0.0);
+    assert!(mismatches.iter().any(|record| {
+        record.mismatch_kind == core::SmartCoreShadowStabilityMismatchKind::ActionFlip
+    }));
+}
+
+#[test]
+fn sprint181_injected_head_bucket_flip_is_detected() {
+    let (_batch_result, _dataset, _shadow_opinion_run, stability_run) =
+        sprint181_shadow_stability_fixture(true);
+    let mut samples = stability_run.samples.clone();
+    let flipped_member = samples[0].member_id.clone();
+    let sample_to_flip = samples
+        .iter_mut()
+        .find(|sample| sample.member_id == flipped_member && sample.repeat_index == 1)
+        .expect("repeat sample");
+    sample_to_flip.risk_bucket = Some("RiskHigh".to_string());
+    let metrics = core::compute_shadow_stability_metrics(&samples);
+    let mismatches = core::build_shadow_stability_mismatch_records(&samples, &metrics);
+
+    assert!(metrics.head_bucket_flip_rate > 0.0);
+    assert!(mismatches.iter().any(|record| {
+        record.mismatch_kind == core::SmartCoreShadowStabilityMismatchKind::RiskBucketFlip
+    }));
+}
+
+#[test]
+fn sprint181_agreement_target_expansion_grows_target_count_with_calibration_targets() {
+    let (_batch_result, _dataset, _shadow_opinion_run, stability_run) =
+        sprint181_shadow_stability_fixture(true);
+
+    assert!(stability_run.target_expansion_result.new_target_count > 0);
+    assert!(
+        stability_run.target_expansion_result.new_target_count
+            >= stability_run.target_expansion_result.previous_target_count
+    );
+    assert!(stability_run.target_expansion_result.added_target_count > 0);
+}
+
+#[test]
+fn sprint181_target_quality_detects_thin_head_coverage_and_builds_collection_tasks() {
+    let thin_targets = vec![
+        core::SmartCoreShadowAlignmentTarget {
+            target_id: "thin-stance-target-1".to_string(),
+            member_id: "trend-kr-short".to_string(),
+            symbol: Some("005930.KS".to_string()),
+            market_scope: Some(MarketScope::KoreaShortTerm),
+            source_type: core::SmartCoreShadowAlignmentTargetSourceType::ReplayTargetLabel,
+            stance_target: Some(core::SmartCoreHeadBucketNormalizedValue::PositiveLike),
+            risk_target: None,
+            evidence_target: None,
+            confidence_target: None,
+            outcome_target: None,
+            paper_only: true,
+        },
+        core::SmartCoreShadowAlignmentTarget {
+            target_id: "thin-stance-target-2".to_string(),
+            member_id: "risk-kr-short".to_string(),
+            symbol: Some("005930.KS".to_string()),
+            market_scope: Some(MarketScope::KoreaShortTerm),
+            source_type: core::SmartCoreShadowAlignmentTargetSourceType::ReplayTargetLabel,
+            stance_target: Some(core::SmartCoreHeadBucketNormalizedValue::NeutralLike),
+            risk_target: None,
+            evidence_target: None,
+            confidence_target: None,
+            outcome_target: None,
+            paper_only: true,
+        },
+        core::SmartCoreShadowAlignmentTarget {
+            target_id: "thin-stance-target-3".to_string(),
+            member_id: "evidence-kr-short".to_string(),
+            symbol: Some("005930.KS".to_string()),
+            market_scope: Some(MarketScope::KoreaShortTerm),
+            source_type: core::SmartCoreShadowAlignmentTargetSourceType::ReplayTargetLabel,
+            stance_target: Some(core::SmartCoreHeadBucketNormalizedValue::NegativeLike),
+            risk_target: None,
+            evidence_target: None,
+            confidence_target: None,
+            outcome_target: None,
+            paper_only: true,
+        },
+    ];
+    let quality = core::summarize_smartcore_agreement_target_quality(&thin_targets);
+    let queue = core::build_agreement_target_collection_queue(&quality);
+
+    assert_eq!(
+        quality.target_quality_status,
+        core::SmartCoreAgreementTargetQualityStatus::ThinHeadCoverage
+    );
+    assert!(
+        queue
+            .tasks
+            .iter()
+            .any(|task| { task.target_need == core::SmartCoreAgreementTargetNeed::RiskTarget })
+    );
+    assert!(
+        queue
+            .tasks
+            .iter()
+            .any(|task| { task.target_need == core::SmartCoreAgreementTargetNeed::EvidenceTarget })
+    );
+}
+
+#[test]
+fn sprint181_owner_stability_summary_is_safe_and_regression_passes() {
+    let (_batch_result, _dataset, _shadow_opinion_run, stability_run) =
+        sprint181_shadow_stability_fixture(true);
+    let owner_summary = core::build_owner_shadow_stability_debug_summary(&stability_run);
+
+    assert_eq!(
+        stability_run.decision_isolation_guard.regression_status,
+        core::SmartCoreShadowStabilityDecisionIsolationRegressionStatus::Preserved
+    );
+    assert!(owner_summary.not_investment_signal);
+    assert!(owner_summary.not_committee_opinion);
+    assert!(owner_summary.debug_only);
+}
+
+#[test]
+fn sprint181_regression_fails_if_agreement_target_enters_input_features() {
+    let (batch_result, _dataset, _shadow_opinion_run, stability_run) =
+        sprint181_shadow_stability_fixture(true);
+    let mut leaked = batch_result.clone();
+    let leaked_target_id = stability_run.target_expansion_result.targets[0]
+        .target_id
+        .clone();
+    leaked.replay_dataset.examples[0]
+        .input_features
+        .market_data_summary = format!(
+        "{} {leaked_target_id}",
+        leaked.replay_dataset.examples[0]
+            .input_features
+            .market_data_summary
+    );
+    let regression = core::evaluate_shadow_stability_decision_isolation_regression(
+        &stability_run,
+        &batch_result,
+        Some(&leaked),
+    );
+
+    assert_eq!(
+        regression.regression_status,
+        core::SmartCoreShadowStabilityDecisionIsolationRegressionStatus::Violated
+    );
+    assert!(regression.agreement_target_used_as_input_feature);
+}
+
+#[test]
+fn sprint181_stability_run_preserves_decisions_scores_and_is_deterministic_with_config_flags() {
+    let (batch_result, dataset, shadow_opinion_run, first) =
+        sprint181_shadow_stability_fixture(true);
+    let before = batch_result.clone();
+    let second = core::run_smartcore_shadow_stability_eval(
+        &shadow_opinion_run,
+        &batch_result,
+        Some(&batch_result.replay_dataset),
+        Some(&dataset),
+        None,
+        &core::SmartCoreShadowStabilityRunConfig {
+            run_id: "sprint181-shadow-stability".to_string(),
+            enabled: true,
+            repeated_run_count: 3,
+            include_same_input_repeat: true,
+            include_calibrated_output_repeat: true,
+            include_shadow_candidate_repeat: true,
+            include_target_eval_repeat: true,
+            max_allowed_action_flip_rate: 0.0,
+            max_allowed_head_flip_rate: 0.0,
+            output_path: None,
+            paper_only: true,
+        },
+    )
+    .expect("second stability run");
+    let config = MinimalAiCommitteeCycleConfig::from_toml_path(std::path::Path::new(
+        "examples/soma_minimal_ai_committee_core.toml",
+    ))
+    .expect("config");
+    let run_config = config
+        .load_autonomous_paper_run_config()
+        .expect("autonomous config");
+
+    assert_eq!(batch_result, before);
+    assert_eq!(first, second);
+    assert!(first.safety_summary.no_model_training);
+    assert!(first.safety_summary.no_weight_update);
+    assert!(first.safety_summary.no_checkpoint);
+    assert!(first.safety_summary.no_live_inference);
+    assert!(first.safety_summary.no_broker_order_account);
+    assert!(run_config.smartcore_shadow_stability_enabled);
+    assert_eq!(run_config.smartcore_shadow_stability_repeats, 3);
+    assert!(run_config.smartcore_shadow_expand_agreement_targets);
+    assert!(run_config.smartcore_shadow_stability_emit_owner_summary);
+    assert_eq!(
+        run_config.smartcore_shadow_stability_output_path.as_deref(),
+        Some("target/minimal_smartcore_shadow_stability.json")
+    );
+    assert_eq!(
+        run_config
+            .smartcore_shadow_target_collection_queue_output_path
+            .as_deref(),
+        Some("target/minimal_smartcore_target_collection_queue.json")
+    );
+}
+
+#[test]
+fn sprint182_scenario_set_loads_local_json_and_rejects_remote_path() {
+    let path = sprint171_temp_json_path("sprint182-shadow-scenarios");
+    let scenario_set = core::build_default_shadow_scenario_set();
+    std::fs::write(
+        &path,
+        serde_json::to_string_pretty(&scenario_set).expect("scenario json"),
+    )
+    .expect("write scenario set");
+
+    let loaded = core::load_shadow_scenario_set_from_local_json(&path).expect("load scenario set");
+    assert_eq!(loaded.scenario_count, 5);
+    assert_eq!(loaded.scenarios[0].scenario_id, "baseline");
+
+    let remote = core::load_shadow_scenario_set_from_local_json(std::path::Path::new(
+        "https://example.com/shadow-scenarios.json",
+    ));
+    assert!(remote.is_err());
+}
+
+#[test]
+fn sprint182_scenario_validation_rejects_broker_order_account_fields() {
+    let path = sprint171_temp_json_path("sprint182-shadow-scenarios-unsafe");
+    std::fs::write(
+        &path,
+        r#"{"scenario_set_id":"unsafe","scenario_count":1,"scenarios":[{"scenario_id":"unsafe-order","scenario_kind":"Baseline","order_id":"forbidden","paper_only":true}],"paper_only":true}"#,
+    )
+    .expect("write unsafe scenario set");
+
+    let error = core::load_shadow_scenario_set_from_local_json(&path).expect_err("unsafe scenario");
+    assert!(error.contains("unsafe"));
+}
+
+#[test]
+fn sprint182_same_scenario_repeated_has_zero_action_and_head_flip_rate() {
+    let (batch_result, dataset, calibrated_debug_batch) = sprint182_shadow_scenario_context();
+    let scenario = core::build_default_shadow_scenario_set().scenarios[0].clone();
+    let result = core::run_shadow_stability_for_scenario(
+        &scenario,
+        &calibrated_debug_batch,
+        &batch_result,
+        &batch_result.replay_dataset,
+        Some(&dataset),
+        None,
+        &core::SmartCoreShadowScenarioSweepConfig {
+            run_id: "sprint182-single-scenario".to_string(),
+            scenario_set_path: None,
+            repeated_run_count: 3,
+            max_scenarios: 5,
+            include_same_input_determinism: true,
+            include_cross_scenario_sensitivity: true,
+            expand_targets_per_scenario: true,
+            output_path: None,
+            paper_only: true,
+        },
+    )
+    .expect("scenario stability");
+
+    assert_eq!(result.action_flip_rate, 0.0);
+    assert_eq!(result.head_bucket_flip_rate, 0.0);
+}
+
+#[test]
+fn sprint182_injected_same_input_action_flip_fails_determinism() {
+    let (_batch_result, _dataset, _shadow_opinion_run, stability_run) =
+        sprint181_shadow_stability_fixture(true);
+    let mut samples = stability_run.samples.clone();
+    let member_id = samples[0].member_id.clone();
+    let sample = samples
+        .iter_mut()
+        .find(|sample| sample.member_id == member_id && sample.repeat_index == 1)
+        .expect("flip sample");
+    sample.shadow_action = core::SmartCoreShadowOpinionAction::ShadowRiskWarning;
+
+    let metrics = core::compute_shadow_stability_metrics(&samples);
+    assert_ne!(
+        metrics.deterministic_status,
+        core::SmartCoreShadowStabilityDeterministicStatus::Deterministic
+    );
+}
+
+#[test]
+fn sprint182_cross_scenario_sensitivity_detects_too_static_and_too_unstable() {
+    let too_static = core::compute_cross_scenario_sensitivity(&[
+        sprint182_scenario_result(
+            "baseline",
+            core::SmartCoreShadowScenarioKind::Baseline,
+            core::SmartCoreShadowOpinionAction::ShadowHoldLike,
+            "NeutralLike|RiskLow|EvidenceSufficient|ConfidenceMedium|ConfidenceMedium",
+            core::SmartCoreAgreementTargetQualityStatus::Sufficient,
+        ),
+        sprint182_scenario_result(
+            "neutral",
+            core::SmartCoreShadowScenarioKind::NeutralWatchlist,
+            core::SmartCoreShadowOpinionAction::ShadowHoldLike,
+            "NeutralLike|RiskLow|EvidenceSufficient|ConfidenceMedium|ConfidenceMedium",
+            core::SmartCoreAgreementTargetQualityStatus::Sufficient,
+        ),
+    ]);
+    assert_eq!(
+        too_static.sensitivity_status,
+        core::SmartCoreCrossScenarioSensitivityStatus::TooStatic
+    );
+
+    let too_unstable = core::compute_cross_scenario_sensitivity(&[
+        sprint182_scenario_result(
+            "trend-a",
+            core::SmartCoreShadowScenarioKind::PositiveTrend,
+            core::SmartCoreShadowOpinionAction::ShadowBuyLike,
+            "PositiveLike|RiskLow|EvidenceSufficient|ConfidenceHigh|ConfidenceLow",
+            core::SmartCoreAgreementTargetQualityStatus::Sufficient,
+        ),
+        sprint182_scenario_result(
+            "trend-b",
+            core::SmartCoreShadowScenarioKind::NegativeTrend,
+            core::SmartCoreShadowOpinionAction::ShadowNoTradeLike,
+            "NegativeLike|RiskMedium|EvidenceSufficient|ConfidenceMedium|ConfidenceMedium",
+            core::SmartCoreAgreementTargetQualityStatus::Sufficient,
+        ),
+    ]);
+    assert_eq!(
+        too_unstable.sensitivity_status,
+        core::SmartCoreCrossScenarioSensitivityStatus::TooUnstable
+    );
+}
+
+#[test]
+fn sprint182_target_coverage_stress_detects_thin_and_sufficient_coverage() {
+    let thin = core::run_smartcore_target_coverage_stress_test(&[sprint182_scenario_result(
+        "thin",
+        core::SmartCoreShadowScenarioKind::EvidenceGap,
+        core::SmartCoreShadowOpinionAction::ShadowNeedMoreEvidence,
+        "NeutralLike|RiskMedium|NeedMoreEvidence|ConfidenceLow|ConfidenceHigh",
+        core::SmartCoreAgreementTargetQualityStatus::ThinHeadCoverage,
+    )]);
+    assert_eq!(
+        thin.target_coverage_status,
+        core::SmartCoreTargetCoverageStatus::ThinCoverage
+    );
+    assert!(thin.head_coverage_failures > 0);
+
+    let sufficient = core::run_smartcore_target_coverage_stress_test(&[
+        sprint182_scenario_result(
+            "baseline",
+            core::SmartCoreShadowScenarioKind::Baseline,
+            core::SmartCoreShadowOpinionAction::ShadowHoldLike,
+            "NeutralLike|RiskLow|EvidenceSufficient|ConfidenceMedium|ConfidenceMedium",
+            core::SmartCoreAgreementTargetQualityStatus::Sufficient,
+        ),
+        sprint182_scenario_result(
+            "positive",
+            core::SmartCoreShadowScenarioKind::PositiveTrend,
+            core::SmartCoreShadowOpinionAction::ShadowBuyLike,
+            "PositiveLike|RiskLow|EvidenceSufficient|ConfidenceHigh|ConfidenceLow",
+            core::SmartCoreAgreementTargetQualityStatus::Sufficient,
+        ),
+    ]);
+    assert_eq!(
+        sufficient.target_coverage_status,
+        core::SmartCoreTargetCoverageStatus::Sufficient
+    );
+}
+
+#[test]
+fn sprint182_observer_readiness_allows_blocks_leak_and_blocks_instability() {
+    let mut sweep = core::SmartCoreShadowScenarioSweepResult {
+        run_id: "sprint182-observer".to_string(),
+        scenario_results: vec![
+            sprint182_scenario_result(
+                "baseline",
+                core::SmartCoreShadowScenarioKind::Baseline,
+                core::SmartCoreShadowOpinionAction::ShadowHoldLike,
+                "NeutralLike|RiskLow|EvidenceSufficient|ConfidenceMedium|ConfidenceMedium",
+                core::SmartCoreAgreementTargetQualityStatus::Sufficient,
+            ),
+            sprint182_scenario_result(
+                "positive",
+                core::SmartCoreShadowScenarioKind::PositiveTrend,
+                core::SmartCoreShadowOpinionAction::ShadowBuyLike,
+                "PositiveLike|RiskLow|EvidenceSufficient|ConfidenceHigh|ConfidenceLow",
+                core::SmartCoreAgreementTargetQualityStatus::Sufficient,
+            ),
+            sprint182_scenario_result(
+                "high-risk",
+                core::SmartCoreShadowScenarioKind::HighRisk,
+                core::SmartCoreShadowOpinionAction::ShadowRiskWarning,
+                "NeutralLike|RiskHigh|EvidenceSufficient|ConfidenceMedium|ConfidenceMedium",
+                core::SmartCoreAgreementTargetQualityStatus::Sufficient,
+            ),
+        ],
+        cross_scenario_sensitivity: core::SmartCoreCrossScenarioSensitivityMetrics {
+            scenario_count: 3,
+            member_count: 3,
+            action_variation_count: 2,
+            head_variation_count: 2,
+            expected_variation_count: 2,
+            suspicious_variation_count: 0,
+            per_member_variation: std::collections::BTreeMap::new(),
+            per_head_variation: std::collections::BTreeMap::new(),
+            sensitivity_status:
+                core::SmartCoreCrossScenarioSensitivityStatus::ReasonableSensitivity,
+            paper_only: true,
+        },
+        target_coverage_stress: core::SmartCoreTargetCoverageStressResult {
+            scenario_count: 3,
+            scenarios_with_sufficient_targets: 3,
+            scenarios_with_thin_targets: 0,
+            member_coverage_failures: 0,
+            head_coverage_failures: 0,
+            source_coverage_failures: 0,
+            target_quality_by_scenario: std::collections::BTreeMap::new(),
+            target_coverage_status: core::SmartCoreTargetCoverageStatus::Sufficient,
+            recommended_target_collection_tasks: Vec::new(),
+            paper_only: true,
+        },
+        aggregate_action_flip_rate: 0.0,
+        aggregate_head_flip_rate: 0.0,
+        deterministic_scenario_count: 3,
+        unstable_scenario_count: 0,
+        decision_isolation_failures: 0,
+        sweep_status: core::SmartCoreShadowScenarioSweepStatus::Passed,
+        warnings: Vec::new(),
+        observer_readiness_gate: None,
+        decision_isolation_regression: core::SmartCoreMultiScenarioDecisionIsolationRegression {
+            scenario_count: 3,
+            scenario_decision_mutation_detected: false,
+            scenario_member_score_mutation_detected: false,
+            target_leakage_detected: false,
+            shadow_output_used_as_order: false,
+            regression_status:
+                core::SmartCoreMultiScenarioDecisionIsolationRegressionStatus::Preserved,
+            violations: Vec::new(),
+            paper_only: true,
+        },
+        owner_debug_summary: None,
+        paper_only: true,
+    };
+    let policy = core::SmartCoreObserverReadinessPolicy {
+        min_scenarios_required: 3,
+        require_zero_same_input_flip_rate: true,
+        allow_reasonable_cross_scenario_variation: true,
+        require_decision_isolation: true,
+        require_no_training: true,
+        require_no_live_inference: true,
+        paper_only: true,
+    };
+    let allowed = core::evaluate_smartcore_observer_readiness(&sweep, &policy);
+    assert!(allowed.observer_lane_allowed);
+
+    sweep.decision_isolation_regression.regression_status =
+        core::SmartCoreMultiScenarioDecisionIsolationRegressionStatus::Violated;
+    sweep.decision_isolation_regression.violations =
+        vec!["baseline: shadow stability changed member score".to_string()];
+    let blocked_by_leak = core::evaluate_smartcore_observer_readiness(&sweep, &policy);
+    assert_eq!(
+        blocked_by_leak.observer_status,
+        core::SmartCoreObserverStatus::BlockedByDecisionLeak
+    );
+
+    sweep.decision_isolation_regression.regression_status =
+        core::SmartCoreMultiScenarioDecisionIsolationRegressionStatus::Preserved;
+    sweep.decision_isolation_regression.violations.clear();
+    sweep.cross_scenario_sensitivity.sensitivity_status =
+        core::SmartCoreCrossScenarioSensitivityStatus::TooUnstable;
+    let blocked_by_instability = core::evaluate_smartcore_observer_readiness(&sweep, &policy);
+    assert_eq!(
+        blocked_by_instability.observer_status,
+        core::SmartCoreObserverStatus::BlockedByInstability
+    );
+}
+
+#[test]
+fn sprint182_owner_summary_and_multi_scenario_regression_are_safe() {
+    let (_batch_result, sweep) = sprint182_shadow_scenario_sweep_fixture();
+    let owner_summary = core::build_owner_shadow_scenario_sweep_debug_summary(
+        &sweep,
+        sweep
+            .observer_readiness_gate
+            .as_ref()
+            .expect("observer gate in fixture"),
+    );
+    let regression = core::evaluate_multi_scenario_decision_isolation_regression(&sweep);
+
+    assert!(owner_summary.not_investment_signal);
+    assert!(owner_summary.not_committee_opinion);
+    assert_eq!(
+        regression.regression_status,
+        core::SmartCoreMultiScenarioDecisionIsolationRegressionStatus::Preserved
+    );
+}
+
+#[test]
+fn sprint182_multi_scenario_regression_detects_score_mutation() {
+    let mut sweep = core::SmartCoreShadowScenarioSweepResult {
+        run_id: "sprint182-regression".to_string(),
+        scenario_results: vec![{
+            let mut result = sprint182_scenario_result(
+                "baseline",
+                core::SmartCoreShadowScenarioKind::Baseline,
+                core::SmartCoreShadowOpinionAction::ShadowHoldLike,
+                "NeutralLike|RiskLow|EvidenceSufficient|ConfidenceMedium|ConfidenceMedium",
+                core::SmartCoreAgreementTargetQualityStatus::Sufficient,
+            );
+            result.decision_isolation_violations =
+                vec!["shadow stability changed member score".to_string()];
+            result.decision_isolation_status =
+                core::SmartCoreShadowStabilityDecisionIsolationRegressionStatus::Violated;
+            result
+        }],
+        cross_scenario_sensitivity: core::SmartCoreCrossScenarioSensitivityMetrics {
+            scenario_count: 1,
+            member_count: 3,
+            action_variation_count: 0,
+            head_variation_count: 0,
+            expected_variation_count: 0,
+            suspicious_variation_count: 0,
+            per_member_variation: std::collections::BTreeMap::new(),
+            per_head_variation: std::collections::BTreeMap::new(),
+            sensitivity_status:
+                core::SmartCoreCrossScenarioSensitivityStatus::InsufficientScenarios,
+            paper_only: true,
+        },
+        target_coverage_stress: core::SmartCoreTargetCoverageStressResult {
+            scenario_count: 1,
+            scenarios_with_sufficient_targets: 1,
+            scenarios_with_thin_targets: 0,
+            member_coverage_failures: 0,
+            head_coverage_failures: 0,
+            source_coverage_failures: 0,
+            target_quality_by_scenario: std::collections::BTreeMap::new(),
+            target_coverage_status: core::SmartCoreTargetCoverageStatus::Sufficient,
+            recommended_target_collection_tasks: Vec::new(),
+            paper_only: true,
+        },
+        aggregate_action_flip_rate: 0.0,
+        aggregate_head_flip_rate: 0.0,
+        deterministic_scenario_count: 1,
+        unstable_scenario_count: 0,
+        decision_isolation_failures: 1,
+        sweep_status: core::SmartCoreShadowScenarioSweepStatus::Failed,
+        warnings: Vec::new(),
+        observer_readiness_gate: None,
+        decision_isolation_regression: core::SmartCoreMultiScenarioDecisionIsolationRegression {
+            scenario_count: 1,
+            scenario_decision_mutation_detected: false,
+            scenario_member_score_mutation_detected: false,
+            target_leakage_detected: false,
+            shadow_output_used_as_order: false,
+            regression_status:
+                core::SmartCoreMultiScenarioDecisionIsolationRegressionStatus::Preserved,
+            violations: Vec::new(),
+            paper_only: true,
+        },
+        owner_debug_summary: None,
+        paper_only: true,
+    };
+    let regression = core::evaluate_multi_scenario_decision_isolation_regression(&sweep);
+
+    assert_eq!(
+        regression.regression_status,
+        core::SmartCoreMultiScenarioDecisionIsolationRegressionStatus::Violated
+    );
+    assert!(regression.scenario_member_score_mutation_detected);
+    sweep.decision_isolation_regression = regression;
+}
+
+#[test]
+fn sprint182_sweep_preserves_decisions_scores_safety_and_is_deterministic() {
+    let (batch_result, first) = sprint182_shadow_scenario_sweep_fixture();
+    let before = batch_result.clone();
+    let (_second_batch_result, second) = sprint182_shadow_scenario_sweep_fixture();
+    let config = MinimalAiCommitteeCycleConfig::from_toml_path(std::path::Path::new(
+        "examples/soma_minimal_ai_committee_core.toml",
+    ))
+    .expect("config");
+    let run_config = config
+        .load_autonomous_paper_run_config()
+        .expect("autonomous config");
+
+    assert_eq!(batch_result, before);
+    assert_eq!(first.scenario_results, second.scenario_results);
+    assert_eq!(
+        first.aggregate_action_flip_rate,
+        second.aggregate_action_flip_rate
+    );
+    assert_eq!(
+        first.aggregate_head_flip_rate,
+        second.aggregate_head_flip_rate
+    );
+    assert!(batch_result.safety_summary.no_model_training);
+    assert!(batch_result.safety_summary.no_weight_update);
+    assert!(batch_result.safety_summary.no_checkpoint);
+    assert!(batch_result.safety_summary.no_live_inference);
+    assert!(batch_result.safety_summary.no_broker_order_account);
+    assert!(run_config.smartcore_shadow_scenario_sweep_enabled);
+    assert_eq!(
+        run_config.smartcore_shadow_scenario_set_path.as_deref(),
+        Some("examples/smartcore_shadow_scenarios.sample.json")
+    );
+    assert_eq!(run_config.smartcore_shadow_scenario_repeats, 3);
+    assert_eq!(run_config.smartcore_shadow_scenario_max_count, 5);
+    assert!(run_config.smartcore_observer_readiness_gate_enabled);
+    assert_eq!(run_config.smartcore_observer_min_scenarios_required, 3);
+    assert!(run_config.smartcore_shadow_scenario_emit_owner_summary);
+    assert_eq!(
+        run_config.smartcore_shadow_scenario_output_path.as_deref(),
+        Some("target/minimal_smartcore_shadow_scenario_sweep.json")
+    );
+}
+
+#[test]
+fn sprint183_observer_lane_policy_rejects_voting_and_observer_members_are_non_voting() {
+    let mut policy = core::default_smartcore_observer_lane_policy();
+    policy.allow_vote = true;
+    let error = core::validate_smartcore_observer_lane_policy(&policy).expect_err("policy");
+    assert!(error.contains("must not allow"));
+
+    let (_batch_result, _recalibration_result, shadow_opinion_run) =
+        sprint180_shadow_opinion_fixture();
+    let observers = core::build_smartcore_observer_members(
+        &shadow_opinion_run.candidate_batch,
+        &core::default_three_member_canonical_id_map(),
+    )
+    .expect("observer members");
+
+    assert!(
+        observers
+            .iter()
+            .all(|observer| observer.voting_power == 0.0)
+    );
+    assert!(observers.iter().all(|observer| !observer.can_open_event));
+    assert!(
+        observers
+            .iter()
+            .all(|observer| !observer.can_join_committee_vote)
+    );
+    assert!(
+        observers
+            .iter()
+            .all(|observer| !observer.can_change_chairman_decision)
+    );
+    assert!(
+        observers
+            .iter()
+            .all(|observer| !observer.can_trigger_risk_governor)
+    );
+}
+
+#[test]
+fn sprint183_observed_snapshot_is_read_only_and_observer_lane_is_deterministic() {
+    let (batch_result, first) = sprint183_observer_lane_fixture();
+    let before = batch_result.clone();
+    let (_second_batch_result, second) = sprint183_observer_lane_fixture();
+
+    assert_eq!(batch_result, before);
+    assert!(first.observed_snapshot.paper_only);
+    assert_eq!(first.observer_members, second.observer_members);
+    assert_eq!(first.comparison_records, second.comparison_records);
+    assert_eq!(first.disagreement_records, second.disagreement_records);
+}
+
+#[test]
+fn sprint183_observer_comparison_records_agreements_and_shadow_buy_vs_risk_veto() {
+    let (_batch_result, run_result) = sprint183_observer_lane_fixture();
+    assert!(run_result.comparison_records.iter().any(|record| matches!(
+        record.agreement_with_member,
+        core::ObserverCommitteeAgreement::Agree
+            | core::ObserverCommitteeAgreement::PartiallyAgree
+            | core::ObserverCommitteeAgreement::Disagree
+    )));
+    assert!(
+        run_result
+            .comparison_records
+            .iter()
+            .any(|record| record.agreement_with_chairman
+                != core::ObserverCommitteeAgreement::Unknown)
+    );
+    assert!(
+        run_result
+            .comparison_records
+            .iter()
+            .any(|record| record.agreement_with_risk_governor
+                != core::ObserverCommitteeAgreement::Unknown)
+    );
+
+    let (batch_result, _recalibration_result, shadow_opinion_run) =
+        sprint180_shadow_opinion_fixture();
+    let observers = core::build_smartcore_observer_members(
+        &shadow_opinion_run.candidate_batch,
+        &core::default_three_member_canonical_id_map(),
+    )
+    .expect("observer members");
+    let mut candidate = shadow_opinion_run.candidate_batch.candidates[0].clone();
+    candidate.shadow_action = core::SmartCoreShadowOpinionAction::ShadowBuyLike;
+    let mut vetoed = batch_result.clone();
+    for decision in &mut vetoed.chairman_decisions {
+        decision.risk_governor_status = RiskGovernorStatus::Vetoed;
+    }
+    let snapshot = core::build_observed_committee_cycle_snapshot(&vetoed);
+    let record = core::compare_observer_to_committee(
+        &observers[0],
+        &candidate,
+        &snapshot,
+        &vetoed,
+        true,
+        true,
+        true,
+    );
+    let disagreements = core::build_observer_disagreement_records(&[record.clone()]);
+
+    assert_eq!(
+        record.disagreement_type,
+        core::ObserverDisagreementType::ShadowBuyVsRiskVeto
+    );
+    assert_eq!(disagreements[0].disagreement_type, record.disagreement_type);
+}
+
+#[test]
+fn sprint183_observer_member_comparison_matches_canonical_aliases() {
+    let (batch_result, _recalibration_result, shadow_opinion_run) =
+        sprint180_shadow_opinion_fixture();
+    let mut alias_batch = shadow_opinion_run.candidate_batch.clone();
+    alias_batch
+        .candidates
+        .retain(|candidate| candidate.member_id == "trend-kr-short");
+    alias_batch.candidates[0].member_id = "TrendEntryAI".to_string();
+    alias_batch.candidate_count = alias_batch.candidates.len();
+    alias_batch.member_count = 1;
+    let observers = core::build_smartcore_observer_members(
+        &alias_batch,
+        &core::default_three_member_canonical_id_map(),
+    )
+    .expect("observer members");
+    let snapshot = core::build_observed_committee_cycle_snapshot(&batch_result);
+    let record = core::compare_observer_to_committee(
+        &observers[0],
+        &alias_batch.candidates[0],
+        &snapshot,
+        &batch_result,
+        true,
+        false,
+        false,
+    );
+
+    assert_eq!(observers[0].canonical_member_id, "trend-kr-short");
+    assert!(record.member_action.is_some());
+    assert_ne!(
+        record.agreement_with_member,
+        core::ObserverCommitteeAgreement::Unknown
+    );
+    assert_ne!(
+        record.agreement_with_member,
+        core::ObserverCommitteeAgreement::NotComparable
+    );
+}
+
+#[test]
+fn sprint183_target_coverage_closure_queue_builds_risk_and_evidence_items() {
+    let stress = core::run_smartcore_target_coverage_stress_test(&[sprint182_scenario_result(
+        "thin",
+        core::SmartCoreShadowScenarioKind::EvidenceGap,
+        core::SmartCoreShadowOpinionAction::ShadowNeedMoreEvidence,
+        "NeutralLike|RiskMedium|NeedMoreEvidence|ConfidenceLow|ConfidenceHigh",
+        core::SmartCoreAgreementTargetQualityStatus::ThinHeadCoverage,
+    )]);
+    let disagreements = vec![
+        core::SmartCoreObserverDisagreementRecord {
+            disagreement_id: "risk-gap".to_string(),
+            observer_id: "observer-risk".to_string(),
+            source_member_id: "risk-kr-short".to_string(),
+            symbol: Some("AAPL".to_string()),
+            market_scope: Some(MarketScope::UsShortTerm),
+            disagreement_type: core::ObserverDisagreementType::ShadowBuyVsRiskVeto,
+            shadow_action: core::SmartCoreShadowOpinionAction::ShadowBuyLike,
+            committee_reference: "risk_governor".to_string(),
+            severity: core::ObserverComparisonSeverity::High,
+            suggested_follow_up: core::SmartCoreObserverSuggestedFollowUp::CollectMoreRiskTargets,
+            paper_only: true,
+        },
+        core::SmartCoreObserverDisagreementRecord {
+            disagreement_id: "evidence-gap".to_string(),
+            observer_id: "observer-evidence".to_string(),
+            source_member_id: "evidence-kr-short".to_string(),
+            symbol: Some("AAPL".to_string()),
+            market_scope: Some(MarketScope::UsShortTerm),
+            disagreement_type: core::ObserverDisagreementType::ShadowNeedEvidenceVsMemberBuy,
+            shadow_action: core::SmartCoreShadowOpinionAction::ShadowNeedMoreEvidence,
+            committee_reference: "member_opinion".to_string(),
+            severity: core::ObserverComparisonSeverity::Medium,
+            suggested_follow_up:
+                core::SmartCoreObserverSuggestedFollowUp::CollectMoreEvidenceTargets,
+            paper_only: true,
+        },
+    ];
+    let queue = core::build_observer_target_coverage_closure_queue(&stress, &disagreements);
+
+    assert!(queue.items.iter().any(|item| {
+        item.target_need == core::ObserverTargetCoverageClosureNeed::MoreRiskTargets
+    }));
+    assert!(queue.items.iter().any(|item| {
+        item.target_need == core::ObserverTargetCoverageClosureNeed::MoreEvidenceTargets
+    }));
+}
+
+#[test]
+fn sprint183_observer_safety_guard_passes_and_fails_on_score_or_order() {
+    let (batch_result, run_result) = sprint183_observer_lane_fixture();
+    assert_eq!(
+        run_result.observer_safety_guard.guard_status,
+        core::SmartCoreObserverLaneSafetyGuardStatus::Preserved
+    );
+
+    let mut score_changed = batch_result.clone();
+    score_changed.score_updates[0].new_score += 0.1;
+    let score_guard = core::evaluate_smartcore_observer_lane_safety(
+        &run_result.observer_members,
+        &batch_result,
+        Some(&score_changed),
+    );
+    assert_eq!(
+        score_guard.guard_status,
+        core::SmartCoreObserverLaneSafetyGuardStatus::Violated
+    );
+    assert!(score_guard.observer_changed_member_score);
+
+    let mut order_changed = batch_result.clone();
+    order_changed.event_queue.events[0].event_id = format!(
+        "{}-{}",
+        order_changed.event_queue.events[0].event_id, run_result.observer_members[0].observer_id
+    );
+    let order_guard = core::evaluate_smartcore_observer_lane_safety(
+        &run_result.observer_members,
+        &batch_result,
+        Some(&order_changed),
+    );
+    assert!(order_guard.observer_created_order);
+}
+
+#[test]
+fn sprint183_owner_section_and_readiness_recheck_are_non_voting_read_only() {
+    let (_batch_result, run_result) = sprint183_observer_lane_fixture();
+    let owner_section = run_result
+        .owner_observer_section
+        .as_ref()
+        .expect("owner observer section");
+    let readiness = run_result
+        .readiness_recheck
+        .as_ref()
+        .expect("readiness recheck");
+
+    assert!(
+        owner_section
+            .cards
+            .iter()
+            .all(|card| card.voting_power == 0.0)
+    );
+    assert!(owner_section.cards.iter().all(|card| card.non_voting));
+    assert!(owner_section.cards.iter().all(|card| card.read_only));
+    assert_eq!(
+        readiness.readiness_status,
+        core::SmartCoreObserverLaneReadinessStatus::NonVotingObserverReadyWithWarnings
+    );
+}
+
+#[test]
+fn sprint183_observer_lane_preserves_safety_and_config_flags() {
+    let (batch_result, run_result) = sprint183_observer_lane_fixture();
+    let config = MinimalAiCommitteeCycleConfig::from_toml_path(std::path::Path::new(
+        "examples/soma_minimal_ai_committee_core.toml",
+    ))
+    .expect("config");
+    let run_config = config
+        .load_autonomous_paper_run_config()
+        .expect("autonomous config");
+
+    assert!(batch_result.safety_summary.no_model_training);
+    assert!(batch_result.safety_summary.no_weight_update);
+    assert!(batch_result.safety_summary.no_checkpoint);
+    assert!(batch_result.safety_summary.no_live_inference);
+    assert!(batch_result.safety_summary.no_broker_order_account);
+    assert!(run_result.paper_only);
+    assert!(
+        !run_result
+            .observer_safety_guard
+            .observer_changed_member_opinion
+    );
+    assert!(
+        !run_result
+            .observer_safety_guard
+            .observer_changed_member_score
+    );
+    assert!(
+        !run_result
+            .observer_safety_guard
+            .observer_changed_voice_weight
+    );
+    assert!(
+        !run_result
+            .observer_safety_guard
+            .observer_created_trade_signal
+    );
+    assert!(!run_result.observer_safety_guard.observer_created_order);
+    assert!(
+        !run_result
+            .observer_safety_guard
+            .observer_touched_broker_order_account
+    );
+    assert!(run_config.smartcore_observer_lane_enabled);
+    assert_eq!(
+        run_config.smartcore_observer_output_path.as_deref(),
+        Some("target/minimal_smartcore_observer_lane.json")
+    );
+    assert!(run_config.smartcore_observer_compare_member_opinion);
+    assert!(run_config.smartcore_observer_compare_chairman);
+    assert!(run_config.smartcore_observer_compare_risk_governor);
+    assert!(run_config.smartcore_observer_target_coverage_closure_enabled);
+    assert!(run_config.smartcore_observer_emit_owner_section);
+}
+
+#[test]
+fn sprint184_closure_policy_rejects_news_only_and_low_trust_targets() {
+    let policy = core::default_observer_target_closure_execution_policy();
+    let news_only = core::ObserverAgreementTargetRecord {
+        target_id: "news-only".to_string(),
+        source_closure_item_id: None,
+        source_record_id: None,
+        member_id: Some("evidence-kr-short".to_string()),
+        canonical_member_id: Some("evidence-kr-short".to_string()),
+        symbol: Some("AAPL".to_string()),
+        market_scope: Some(MarketScope::UsShortTerm),
+        head: core::ObserverAgreementTargetHead::EvidenceNeed,
+        target_bucket: core::SmartCoreHeadBucketNormalizedValue::NeedMoreEvidence,
+        source_type: core::ObserverAgreementTargetSource::ResearchEvidence,
+        source_confidence: core::SourceConfidence::High,
+        approval_status: core::ObserverAgreementTargetApprovalStatus::Candidate,
+        reason: "news only evidence".to_string(),
+        eval_only: true,
+        not_input_feature: true,
+        paper_only: true,
+    };
+    let low_trust = core::ObserverAgreementTargetRecord {
+        target_id: "low-trust".to_string(),
+        source_type: core::ObserverAgreementTargetSource::MemberOpinion,
+        source_confidence: core::SourceConfidence::Low,
+        head: core::ObserverAgreementTargetHead::Stance,
+        target_bucket: core::SmartCoreHeadBucketNormalizedValue::PositiveLike,
+        member_id: Some("trend-kr-short".to_string()),
+        canonical_member_id: Some("trend-kr-short".to_string()),
+        symbol: Some("AAPL".to_string()),
+        market_scope: Some(MarketScope::UsShortTerm),
+        source_closure_item_id: None,
+        source_record_id: None,
+        approval_status: core::ObserverAgreementTargetApprovalStatus::Candidate,
+        reason: "low trust observer target".to_string(),
+        eval_only: true,
+        not_input_feature: true,
+        paper_only: true,
+    };
+
+    let news_validation = core::validate_observer_agreement_target(&news_only, &policy);
+    let low_trust_validation = core::validate_observer_agreement_target(&low_trust, &policy);
+
+    assert_eq!(
+        news_validation.approval_status,
+        core::ObserverAgreementTargetApprovalStatus::Rejected
+    );
+    assert_eq!(
+        low_trust_validation.approval_status,
+        core::ObserverAgreementTargetApprovalStatus::NeedsReview
+    );
+}
+
+#[test]
+fn sprint184_target_validation_approves_risk_and_stance_and_rejects_broker_terms() {
+    let policy = core::default_observer_target_closure_execution_policy();
+    let risk_target = core::ObserverAgreementTargetRecord {
+        target_id: "risk-target".to_string(),
+        source_closure_item_id: Some("risk-item".to_string()),
+        source_record_id: Some("batch".to_string()),
+        member_id: Some("risk-kr-short".to_string()),
+        canonical_member_id: Some("risk-kr-short".to_string()),
+        symbol: Some("AAPL".to_string()),
+        market_scope: Some(MarketScope::UsShortTerm),
+        head: core::ObserverAgreementTargetHead::Risk,
+        target_bucket: core::SmartCoreHeadBucketNormalizedValue::RiskHigh,
+        source_type: core::ObserverAgreementTargetSource::RiskGovernorStatus,
+        source_confidence: core::SourceConfidence::High,
+        approval_status: core::ObserverAgreementTargetApprovalStatus::Candidate,
+        reason: "risk target".to_string(),
+        eval_only: true,
+        not_input_feature: true,
+        paper_only: true,
+    };
+    let stance_target = core::ObserverAgreementTargetRecord {
+        target_id: "stance-target".to_string(),
+        source_closure_item_id: Some("stance-item".to_string()),
+        source_record_id: Some("batch".to_string()),
+        member_id: Some("trend-kr-short".to_string()),
+        canonical_member_id: Some("trend-kr-short".to_string()),
+        symbol: Some("AAPL".to_string()),
+        market_scope: Some(MarketScope::UsShortTerm),
+        head: core::ObserverAgreementTargetHead::Stance,
+        target_bucket: core::SmartCoreHeadBucketNormalizedValue::PositiveLike,
+        source_type: core::ObserverAgreementTargetSource::MemberOpinion,
+        source_confidence: core::SourceConfidence::High,
+        approval_status: core::ObserverAgreementTargetApprovalStatus::Candidate,
+        reason: "member stance target".to_string(),
+        eval_only: true,
+        not_input_feature: true,
+        paper_only: true,
+    };
+    let unsafe_target = core::ObserverAgreementTargetRecord {
+        target_id: "unsafe-target".to_string(),
+        reason: "broker order account path".to_string(),
+        ..stance_target.clone()
+    };
+
+    assert_eq!(
+        core::validate_observer_agreement_target(&risk_target, &policy).approval_status,
+        core::ObserverAgreementTargetApprovalStatus::Approved
+    );
+    assert_eq!(
+        core::validate_observer_agreement_target(&stance_target, &policy).approval_status,
+        core::ObserverAgreementTargetApprovalStatus::Approved
+    );
+    assert_eq!(
+        core::validate_observer_agreement_target(&unsafe_target, &policy).approval_status,
+        core::ObserverAgreementTargetApprovalStatus::Rejected
+    );
+}
+
+#[test]
+fn sprint184_closure_executor_closes_risk_and_evidence_and_reviews_confidence_gap() {
+    let (batch_result, _observer_run_result) = sprint183_observer_lane_fixture();
+    let policy = core::default_observer_target_closure_execution_policy();
+    let risk_item = core::ObserverTargetCoverageClosureItem {
+        item_id: "risk-item".to_string(),
+        scenario_id: None,
+        member_id: Some("risk-kr-short".to_string()),
+        symbol: Some("AAPL".to_string()),
+        market_scope: Some(MarketScope::UsShortTerm),
+        head: Some(core::SmartCoreShadowHeadKind::Risk),
+        target_need: core::ObserverTargetCoverageClosureNeed::MoreRiskTargets,
+        priority: core::ObserverTargetCoverageClosurePriority::High,
+        reason: "need more risk targets".to_string(),
+        paper_only: true,
+    };
+    let evidence_item = core::ObserverTargetCoverageClosureItem {
+        item_id: "evidence-item".to_string(),
+        scenario_id: None,
+        member_id: Some("evidence-kr-short".to_string()),
+        symbol: Some("AAPL".to_string()),
+        market_scope: Some(MarketScope::UsShortTerm),
+        head: Some(core::SmartCoreShadowHeadKind::EvidenceNeed),
+        target_need: core::ObserverTargetCoverageClosureNeed::MoreEvidenceTargets,
+        priority: core::ObserverTargetCoverageClosurePriority::High,
+        reason: "need more evidence targets".to_string(),
+        paper_only: true,
+    };
+    let confidence_gap_item = core::ObserverTargetCoverageClosureItem {
+        item_id: "confidence-gap-item".to_string(),
+        scenario_id: None,
+        member_id: Some("missing-member".to_string()),
+        symbol: Some("AAPL".to_string()),
+        market_scope: Some(MarketScope::UsShortTerm),
+        head: Some(core::SmartCoreShadowHeadKind::ConfidenceCalibration),
+        target_need: core::ObserverTargetCoverageClosureNeed::MoreConfidenceTargets,
+        priority: core::ObserverTargetCoverageClosurePriority::Normal,
+        reason: "need more confidence targets".to_string(),
+        paper_only: true,
+    };
+
+    let risk_result = core::execute_observer_target_coverage_closure_item(
+        &risk_item,
+        &batch_result,
+        None,
+        None,
+        None,
+        &policy,
+    );
+    let evidence_result = core::execute_observer_target_coverage_closure_item(
+        &evidence_item,
+        &batch_result,
+        None,
+        None,
+        None,
+        &policy,
+    );
+    let confidence_result = core::execute_observer_target_coverage_closure_item(
+        &confidence_gap_item,
+        &batch_result,
+        None,
+        None,
+        None,
+        &policy,
+    );
+
+    assert_eq!(
+        risk_result.execution_status,
+        core::ObserverTargetClosureExecutionStatus::Closed
+    );
+    assert_eq!(
+        evidence_result.execution_status,
+        core::ObserverTargetClosureExecutionStatus::Closed
+    );
+    assert_eq!(
+        confidence_result.execution_status,
+        core::ObserverTargetClosureExecutionStatus::NeedsReview
+    );
+}
+
+#[test]
+fn sprint184_closure_run_creates_targets_and_dry_run_writes_no_target_output() {
+    let (batch_result, observer_run_result) = sprint183_observer_lane_fixture();
+    let queue = observer_run_result
+        .target_coverage_closure_result
+        .as_ref()
+        .expect("closure queue")
+        .closure_queue
+        .clone();
+    let target_path = sprint171_temp_json_path("observer-target-dry-run");
+    let _ = fs::remove_file(&target_path);
+
+    let result = core::run_observer_target_coverage_closure(
+        Some(&queue),
+        &batch_result,
+        None,
+        None,
+        None,
+        &core::ObserverTargetCoverageClosureRunConfig {
+            run_id: "closure-run".to_string(),
+            enabled: true,
+            closure_queue_input_path: None,
+            observer_targets_output_path: None,
+            replay_dataset_path: None,
+            calibration_dataset_path: None,
+            paper_evidence_path: None,
+            dry_run: false,
+            max_items: 16,
+            paper_only: true,
+        },
+    )
+    .expect("closure run");
+    let dry_run = core::run_observer_target_coverage_closure(
+        Some(&queue),
+        &batch_result,
+        None,
+        None,
+        None,
+        &core::ObserverTargetCoverageClosureRunConfig {
+            run_id: "closure-dry-run".to_string(),
+            enabled: true,
+            closure_queue_input_path: None,
+            observer_targets_output_path: Some(target_path.to_string_lossy().to_string()),
+            replay_dataset_path: None,
+            calibration_dataset_path: None,
+            paper_evidence_path: None,
+            dry_run: true,
+            max_items: 16,
+            paper_only: true,
+        },
+    )
+    .expect("dry run");
+
+    assert!(result.approved_target_count > 0);
+    assert!(!result.target_records.is_empty());
+    assert_eq!(dry_run.approved_target_count, 0);
+    assert!(dry_run.target_records.is_empty());
+    assert!(!target_path.exists());
+}
+
+#[test]
+fn sprint184_target_set_refresh_dedupes_and_rerun_uses_refreshed_targets() {
+    let (_batch_result, observer_run_result, closure_result, _target_set, _rerun_result, _, _) =
+        sprint184_closure_fixture();
+    let duplicate = closure_result
+        .target_records
+        .iter()
+        .find(|target| {
+            target.approval_status == core::ObserverAgreementTargetApprovalStatus::Approved
+        })
+        .expect("approved target")
+        .clone();
+    let refresh = core::refresh_observer_agreement_target_set(
+        &[duplicate.clone()],
+        &[duplicate.clone(), duplicate],
+    );
+    let rerun = core::rerun_observer_comparison_with_refreshed_targets(
+        &observer_run_result,
+        &refresh.refreshed_target_set,
+    );
+
+    assert_eq!(refresh.duplicate_target_count, 2);
+    assert_eq!(
+        refresh.refresh_status,
+        core::ObserverAgreementTargetSetRefreshStatus::NoChange
+    );
+    assert!(matches!(
+        rerun.rerun_status,
+        core::ObserverComparisonRerunStatus::Improved
+            | core::ObserverComparisonRerunStatus::NoChange
+    ));
+}
+
+#[test]
+fn sprint184_readiness_hardening_reduces_warnings_without_decision_integration() {
+    let (
+        batch_result,
+        _observer_run_result,
+        _closure_result,
+        _target_set,
+        _rerun_result,
+        guard,
+        gate,
+    ) = sprint184_closure_fixture();
+
+    assert_eq!(
+        guard.guard_status,
+        core::ObserverTargetClosureDecisionIsolationGuardStatus::Preserved
+    );
+    assert!(batch_result.safety_summary.no_model_training);
+    assert!(batch_result.safety_summary.no_weight_update);
+    assert!(batch_result.safety_summary.no_checkpoint);
+    assert!(batch_result.safety_summary.no_live_inference);
+    assert!(batch_result.safety_summary.no_broker_order_account);
+    assert!(matches!(
+        gate.new_readiness_status,
+        core::SmartCoreObserverLaneReadinessStatus::NonVotingObserverReady
+            | core::SmartCoreObserverLaneReadinessStatus::NonVotingObserverReadyWithWarnings
+    ));
+    assert_ne!(
+        gate.new_readiness_status,
+        core::SmartCoreObserverLaneReadinessStatus::BlockedByDecisionLeak
+    );
+}
+
+#[test]
+fn sprint184_observer_comparison_ledger_appends_and_rejects_remote_path() {
+    let (_batch_result, observer_run_result, _closure_result, _target_set, rerun_result, _, gate) =
+        sprint184_closure_fixture();
+    let mut ledger = core::ObserverComparisonLedger {
+        ledger_id: "ledger".to_string(),
+        entries: Vec::new(),
+        entry_count: 0,
+        latest_entry_id: None,
+        paper_only: true,
+    };
+    core::append_observer_comparison_ledger_entry(
+        &mut ledger,
+        core::ObserverComparisonLedgerEntry {
+            entry_id: "entry-1".to_string(),
+            run_id: "run-1".to_string(),
+            timestamp: None,
+            observer_member_count: observer_run_result.observer_members.len(),
+            comparison_count: observer_run_result.comparison_summary.comparison_count,
+            disagreement_count: rerun_result.new_disagreement_count,
+            comparison_summary_status: rerun_result.new_comparison_summary_status,
+            readiness_status: gate.new_readiness_status,
+            target_coverage_status: rerun_result.new_target_coverage_status,
+            safety_status: observer_run_result.observer_safety_guard.guard_status,
+            target_count: 2,
+            paper_only: true,
+        },
+    );
+    let repeated_entry = ledger.entries[0].clone();
+    core::append_observer_comparison_ledger_entry(&mut ledger, repeated_entry);
+    ledger.entries.push(ledger.entries[0].clone());
+    ledger.entry_count = ledger.entries.len();
+    let path = sprint171_temp_json_path("observer-ledger");
+    core::save_observer_comparison_ledger_to_local_json(&path, &ledger).expect("save ledger");
+    let loaded = core::load_observer_comparison_ledger_from_local_json(&path).expect("load ledger");
+
+    assert_eq!(loaded.entry_count, 1);
+    assert_eq!(
+        core::latest_observer_comparison_entry(&loaded)
+            .expect("latest")
+            .entry_id,
+        "entry-1"
+    );
+    assert!(
+        core::save_observer_comparison_ledger_to_local_json(
+            std::path::Path::new("https://example.com/observer-ledger.json"),
+            &ledger
+        )
+        .is_err()
+    );
+}
+
+#[test]
+fn sprint184_owner_summary_and_decision_isolation_cover_pass_and_input_feature_violation() {
+    let (
+        batch_result,
+        _observer_run_result,
+        closure_result,
+        _target_set,
+        rerun_result,
+        guard,
+        gate,
+    ) = sprint184_closure_fixture();
+    let summary =
+        core::build_owner_observer_coverage_closure_summary(&gate, &closure_result, &rerun_result);
+    let mut violating_closure = closure_result.clone();
+    violating_closure.target_records[0].not_input_feature = false;
+    violating_closure.target_records[0].reason = "input feature leak".to_string();
+    let violated = core::evaluate_observer_target_closure_decision_isolation(
+        &violating_closure,
+        &batch_result,
+        Some(&batch_result),
+    );
+
+    assert_eq!(
+        guard.guard_status,
+        core::ObserverTargetClosureDecisionIsolationGuardStatus::Preserved
+    );
+    assert!(summary.non_voting);
+    assert!(summary.read_only);
+    assert!(summary.not_investment_signal);
+    assert!(summary.not_committee_opinion);
+    assert_eq!(
+        violated.guard_status,
+        core::ObserverTargetClosureDecisionIsolationGuardStatus::Violated
+    );
+}
+
+#[test]
+fn sprint184_config_loads_new_flags() {
+    let config = MinimalAiCommitteeCycleConfig::from_toml_path(std::path::Path::new(
+        "examples/soma_minimal_ai_committee_core.toml",
+    ))
+    .expect("config");
+    let run_config = config
+        .load_autonomous_paper_run_config()
+        .expect("autonomous config");
+
+    assert!(run_config.observer_target_closure_enabled);
+    assert!(run_config.observer_target_closure_dry_run);
+    assert_eq!(
+        run_config.observer_target_closure_output_path.as_deref(),
+        Some("target/minimal_observer_target_closure.json")
+    );
+    assert_eq!(
+        run_config.observer_target_set_output_path.as_deref(),
+        Some("target/minimal_observer_agreement_targets.json")
+    );
+    assert_eq!(
+        run_config.observer_comparison_ledger_path.as_deref(),
+        Some("target/minimal_observer_comparison_ledger.json")
+    );
+    assert!(run_config.observer_readiness_hardening_enabled);
+    assert!(run_config.observer_coverage_closure_emit_owner_summary);
+}
+
+#[test]
+fn sprint185_apply_policy_requires_explicit_apply_and_rejects_non_approved_targets() {
+    let mut invalid_policy = core::default_observer_target_closure_apply_policy();
+    invalid_policy.require_explicit_apply = false;
+    assert!(core::validate_observer_target_closure_apply_policy(&invalid_policy).is_err());
+    let mut invalid_policy = core::default_observer_target_closure_apply_policy();
+    invalid_policy.require_read_only_observer = false;
+    assert!(core::validate_observer_target_closure_apply_policy(&invalid_policy).is_err());
+    let mut invalid_policy = core::default_observer_target_closure_apply_policy();
+    invalid_policy.allow_needs_review_targets = true;
+    assert!(core::validate_observer_target_closure_apply_policy(&invalid_policy).is_err());
+    let mut invalid_policy = core::default_observer_target_closure_apply_policy();
+    invalid_policy.reject_input_feature_targets = false;
+    assert!(core::validate_observer_target_closure_apply_policy(&invalid_policy).is_err());
+
+    let policy = core::ObserverTargetClosureApplyPolicy {
+        allow_apply_approved_targets: true,
+        ..core::default_observer_target_closure_apply_policy()
+    };
+    let closure_result = sprint185_closure_result_with_targets(
+        "apply-policy",
+        vec![
+            sprint185_target(
+                "approved",
+                core::ObserverAgreementTargetApprovalStatus::Approved,
+                core::ObserverAgreementTargetSource::MemberOpinion,
+                core::SourceConfidence::High,
+                "safe target",
+            ),
+            sprint185_target(
+                "needs-review",
+                core::ObserverAgreementTargetApprovalStatus::NeedsReview,
+                core::ObserverAgreementTargetSource::MemberOpinion,
+                core::SourceConfidence::ReviewRequired,
+                "needs review",
+            ),
+            sprint185_target(
+                "rejected",
+                core::ObserverAgreementTargetApprovalStatus::Rejected,
+                core::ObserverAgreementTargetSource::MemberOpinion,
+                core::SourceConfidence::High,
+                "rejected",
+            ),
+            sprint185_target(
+                "news-only",
+                core::ObserverAgreementTargetApprovalStatus::Approved,
+                core::ObserverAgreementTargetSource::ResearchEvidence,
+                core::SourceConfidence::High,
+                "news only",
+            ),
+            sprint185_target(
+                "broker-order",
+                core::ObserverAgreementTargetApprovalStatus::Approved,
+                core::ObserverAgreementTargetSource::MemberOpinion,
+                core::SourceConfidence::High,
+                "broker order account",
+            ),
+        ],
+    );
+    let apply_result = core::apply_observer_target_closure_records(
+        &closure_result,
+        None,
+        &core::ObserverTargetClosureApplyConfig {
+            run_id: "apply-policy".to_string(),
+            closure_result_input_path: None,
+            target_set_input_path: None,
+            target_set_output_path: None,
+            apply_enabled: true,
+            dry_run: false,
+            paper_only: true,
+        },
+        &policy,
+    )
+    .expect("apply");
+
+    assert_eq!(apply_result.applied_count, 1);
+    assert_eq!(apply_result.skipped_needs_review_count, 1);
+    assert_eq!(apply_result.skipped_rejected_count, 1);
+    assert_eq!(apply_result.unsafe_rejected_count, 2);
+
+    let err = core::apply_observer_target_closure_records(
+        &closure_result,
+        None,
+        &core::ObserverTargetClosureApplyConfig {
+            run_id: "apply-policy-not-paper".to_string(),
+            closure_result_input_path: None,
+            target_set_input_path: None,
+            target_set_output_path: None,
+            apply_enabled: true,
+            dry_run: false,
+            paper_only: false,
+        },
+        &policy,
+    )
+    .expect_err("non-paper apply config must fail");
+    assert!(err.contains("paper_only"));
+}
+
+#[test]
+fn sprint185_dry_run_apply_writes_nothing() {
+    let store_path = sprint171_temp_json_path("observer-apply-dry-run");
+    let _ = fs::remove_file(&store_path);
+    let policy = core::ObserverTargetClosureApplyPolicy {
+        allow_apply_approved_targets: true,
+        ..core::default_observer_target_closure_apply_policy()
+    };
+    let closure_result = sprint185_closure_result_with_targets(
+        "dry-run",
+        vec![sprint185_target(
+            "approved",
+            core::ObserverAgreementTargetApprovalStatus::Approved,
+            core::ObserverAgreementTargetSource::MemberOpinion,
+            core::SourceConfidence::High,
+            "safe target",
+        )],
+    );
+    let apply_result = core::apply_observer_target_closure_records(
+        &closure_result,
+        None,
+        &core::ObserverTargetClosureApplyConfig {
+            run_id: "dry-run".to_string(),
+            closure_result_input_path: None,
+            target_set_input_path: None,
+            target_set_output_path: Some(store_path.to_string_lossy().to_string()),
+            apply_enabled: true,
+            dry_run: true,
+            paper_only: true,
+        },
+        &policy,
+    )
+    .expect("apply");
+
+    assert_eq!(
+        apply_result.apply_status,
+        core::ObserverTargetClosureApplyStatus::DryRunPreview
+    );
+    assert!(!apply_result.wrote_target_set);
+    assert!(!store_path.exists());
+}
+
+#[test]
+fn sprint185_apply_mode_writes_store_and_target_store_dedupes() {
+    let (
+        _batch_result,
+        _observer_run_result,
+        _closure_result,
+        run_result,
+        store_path,
+        _ledger_path,
+    ) = sprint185_apply_trend_fixture(true, false);
+    let store =
+        core::load_observer_agreement_target_store_from_local_json(&store_path).expect("store");
+    let query_target = sprint185_target(
+        "query-target",
+        core::ObserverAgreementTargetApprovalStatus::Approved,
+        core::ObserverAgreementTargetSource::MemberOpinion,
+        core::SourceConfidence::High,
+        "safe target",
+    );
+    let merged = core::merge_approved_observer_targets(
+        &store,
+        &[query_target.clone(), query_target.clone()],
+    );
+    let deduped = core::dedupe_observer_targets(&merged);
+
+    assert!(run_result.apply_result.wrote_target_set);
+    assert!(store.approved_count > 0);
+    assert_eq!(merged.target_count, deduped.target_count);
+    let scoped_target = deduped
+        .target_set
+        .targets
+        .iter()
+        .find_map(|target| Some((target.symbol.as_deref()?, target.market_scope?)))
+        .expect("persisted target symbol scope");
+    assert!(!deduped.targets_by_member("trend-kr-short").is_empty());
+    assert!(
+        !deduped
+            .targets_by_head(core::ObserverAgreementTargetHead::Stance)
+            .is_empty()
+    );
+    assert!(
+        !deduped
+            .targets_by_symbol_scope(scoped_target.0, scoped_target.1)
+            .is_empty()
+    );
+    let mut invalid_store = store.clone();
+    invalid_store.target_set.targets.push(sprint185_target(
+        "needs-review-store",
+        core::ObserverAgreementTargetApprovalStatus::NeedsReview,
+        core::ObserverAgreementTargetSource::MemberOpinion,
+        core::SourceConfidence::ReviewRequired,
+        "needs review",
+    ));
+    invalid_store.target_count = invalid_store.target_set.targets.len();
+    let invalid_store_path = sprint171_temp_json_path("observer-target-store-invalid");
+    let err = core::save_observer_agreement_target_store_to_local_json(
+        &invalid_store_path,
+        &invalid_store,
+    )
+    .expect_err("persisted target store must reject NeedsReview targets");
+    assert!(err.contains("approved targets only"));
+}
+
+#[test]
+fn sprint185_comparison_rerun_v2_uses_persisted_target_store() {
+    let (
+        _batch_result,
+        _observer_run_result,
+        _closure_result,
+        run_result,
+        _store_path,
+        _ledger_path,
+    ) = sprint185_apply_trend_fixture(true, false);
+
+    assert!(run_result.comparison_rerun_result.new_target_count > 0);
+    assert!(matches!(
+        run_result.comparison_rerun_result.rerun_status,
+        core::ObserverComparisonRerunV2Status::Improved
+            | core::ObserverComparisonRerunV2Status::NoChange
+    ));
+}
+
+#[test]
+fn sprint185_ledger_normalization_and_trend_cover_history_cases() {
+    let one_entry = core::ObserverComparisonLedger {
+        ledger_id: "ledger".to_string(),
+        entries: vec![core::ObserverComparisonLedgerEntry {
+            entry_id: "entry".to_string(),
+            run_id: "run-1".to_string(),
+            timestamp: None,
+            observer_member_count: 3,
+            comparison_count: 3,
+            disagreement_count: 1,
+            comparison_summary_status: core::ObserverVsCommitteeComparisonSummaryStatus::Mixed,
+            readiness_status:
+                core::SmartCoreObserverLaneReadinessStatus::NonVotingObserverReadyWithWarnings,
+            target_coverage_status: core::ObserverTargetCoverageClosureStatus::ClosurePlanned,
+            safety_status: core::SmartCoreObserverLaneSafetyGuardStatus::Preserved,
+            target_count: 1,
+            paper_only: true,
+        }],
+        entry_count: 1,
+        latest_entry_id: Some("entry".to_string()),
+        paper_only: true,
+    };
+    let duplicate_ledger = core::ObserverComparisonLedger {
+        entries: vec![
+            one_entry.entries[0].clone(),
+            one_entry.entries[0].clone(),
+            core::ObserverComparisonLedgerEntry {
+                entry_id: "entry-3".to_string(),
+                run_id: "run-3".to_string(),
+                timestamp: None,
+                observer_member_count: 3,
+                comparison_count: 3,
+                disagreement_count: 0,
+                comparison_summary_status:
+                    core::ObserverVsCommitteeComparisonSummaryStatus::MostlyAgree,
+                readiness_status:
+                    core::SmartCoreObserverLaneReadinessStatus::NonVotingObserverReady,
+                target_coverage_status: core::ObserverTargetCoverageClosureStatus::NoClosureNeeded,
+                safety_status: core::SmartCoreObserverLaneSafetyGuardStatus::Preserved,
+                target_count: 2,
+                paper_only: true,
+            },
+        ],
+        entry_count: 3,
+        latest_entry_id: Some("entry-3".to_string()),
+        ..one_entry.clone()
+    };
+    let (normalized, normalization) =
+        core::normalize_observer_comparison_ledger_entries(&duplicate_ledger);
+    let insufficient = core::compute_observer_comparison_ledger_trend(
+        &one_entry,
+        core::ObserverComparisonLedgerTrendWindow::All,
+    );
+    let improving = core::compute_observer_comparison_ledger_trend(
+        &normalized,
+        core::ObserverComparisonLedgerTrendWindow::All,
+    );
+    let stable_ledger = core::ObserverComparisonLedger {
+        entries: vec![
+            core::ObserverComparisonLedgerEntry {
+                disagreement_count: 1,
+                ..normalized.entries[0].clone()
+            },
+            core::ObserverComparisonLedgerEntry {
+                entry_id: "stable-2".to_string(),
+                disagreement_count: 1,
+                ..normalized.entries[0].clone()
+            },
+        ],
+        entry_count: 2,
+        latest_entry_id: Some("stable-2".to_string()),
+        ..normalized.clone()
+    };
+    let worsening_ledger = core::ObserverComparisonLedger {
+        entries: vec![
+            core::ObserverComparisonLedgerEntry {
+                disagreement_count: 0,
+                ..normalized.entries[0].clone()
+            },
+            core::ObserverComparisonLedgerEntry {
+                entry_id: "worse-2".to_string(),
+                disagreement_count: 2,
+                ..normalized.entries[0].clone()
+            },
+        ],
+        entry_count: 2,
+        latest_entry_id: Some("worse-2".to_string()),
+        ..normalized.clone()
+    };
+
+    assert_eq!(normalization.duplicate_entry_count, 1);
+    assert_eq!(normalization.normalized_entry_count, 2);
+    assert_eq!(normalized.entry_count, 2);
+    assert_eq!(
+        normalized
+            .entries
+            .iter()
+            .map(|entry| entry.entry_id.as_str())
+            .collect::<std::collections::BTreeSet<_>>()
+            .len(),
+        normalized.entries.len()
+    );
+    assert_eq!(
+        insufficient.trend_status,
+        core::ObserverComparisonLedgerTrendStatus::InsufficientHistory
+    );
+    assert_eq!(
+        improving.disagreement_trend,
+        core::ObserverTrendDirection::Improving
+    );
+    assert_eq!(
+        core::compute_observer_comparison_ledger_trend(
+            &stable_ledger,
+            core::ObserverComparisonLedgerTrendWindow::All
+        )
+        .disagreement_trend,
+        core::ObserverTrendDirection::Stable
+    );
+    assert_eq!(
+        core::compute_observer_comparison_ledger_trend(
+            &worsening_ledger,
+            core::ObserverComparisonLedgerTrendWindow::All
+        )
+        .disagreement_trend,
+        core::ObserverTrendDirection::Worsening
+    );
+}
+
+#[test]
+fn sprint185_warning_reducer_and_readiness_v2_handle_remaining_review_and_clear_case() {
+    let (
+        _batch_result,
+        observer_run_result,
+        _closure_result,
+        _target_set,
+        _rerun_result,
+        _guard,
+        previous_gate,
+    ) = sprint184_closure_fixture();
+    let clear_apply = core::ObserverTargetClosureApplyResult {
+        run_id: "clear".to_string(),
+        approved_input_count: 2,
+        needs_review_input_count: 0,
+        rejected_input_count: 0,
+        applied_count: 2,
+        skipped_needs_review_count: 0,
+        skipped_rejected_count: 0,
+        skipped_duplicate_count: 0,
+        unsafe_rejected_count: 0,
+        previous_target_count: 0,
+        new_target_count: 2,
+        wrote_target_set: true,
+        output_path: None,
+        applied_targets: vec![sprint185_target(
+            "approved",
+            core::ObserverAgreementTargetApprovalStatus::Approved,
+            core::ObserverAgreementTargetSource::MemberOpinion,
+            core::SourceConfidence::High,
+            "safe target",
+        )],
+        apply_status: core::ObserverTargetClosureApplyStatus::Applied,
+        warnings: Vec::new(),
+        paper_only: true,
+    };
+    let clear_rerun = core::ObserverComparisonRerunV2Result {
+        previous_comparison_summary_status: core::ObserverVsCommitteeComparisonSummaryStatus::Mixed,
+        new_comparison_summary_status:
+            core::ObserverVsCommitteeComparisonSummaryStatus::MostlyAgree,
+        previous_disagreement_count: 1,
+        new_disagreement_count: 0,
+        disagreement_delta: -1,
+        previous_target_count: 0,
+        new_target_count: 2,
+        target_delta: 2,
+        target_coverage_improved: true,
+        rerun_status: core::ObserverComparisonRerunV2Status::Improved,
+        paper_only: true,
+    };
+    let clear_trend = core::ObserverComparisonLedgerTrend {
+        trend_id: "trend".to_string(),
+        ledger_id: "ledger".to_string(),
+        window: core::ObserverComparisonLedgerTrendWindow::All,
+        entry_count: 2,
+        disagreement_series: vec![1, 0],
+        comparison_count_series: vec![3, 3],
+        readiness_status_series: vec![
+            core::SmartCoreObserverLaneReadinessStatus::NonVotingObserverReadyWithWarnings,
+            core::SmartCoreObserverLaneReadinessStatus::NonVotingObserverReady,
+        ],
+        target_coverage_status_series: vec![
+            core::ObserverTargetCoverageClosureStatus::ClosurePlanned,
+            core::ObserverTargetCoverageClosureStatus::NoClosureNeeded,
+        ],
+        safety_status_series: vec![
+            core::SmartCoreObserverLaneSafetyGuardStatus::Preserved,
+            core::SmartCoreObserverLaneSafetyGuardStatus::Preserved,
+        ],
+        disagreement_trend: core::ObserverTrendDirection::Improving,
+        readiness_trend: core::ObserverTrendDirection::Improving,
+        target_coverage_trend: core::ObserverTrendDirection::Improving,
+        trend_status: core::ObserverComparisonLedgerTrendStatus::Useful,
+        paper_only: true,
+    };
+    let clear_reducer = core::reduce_observer_readiness_warnings(
+        &previous_gate,
+        &clear_apply,
+        &clear_rerun,
+        &clear_trend,
+    );
+    let clear_v2 = core::evaluate_smartcore_observer_readiness_v2(
+        &previous_gate,
+        &clear_apply,
+        &clear_rerun,
+        &clear_trend,
+        &clear_reducer,
+        &observer_run_result.observer_safety_guard,
+    );
+
+    let review_apply = core::ObserverTargetClosureApplyResult {
+        run_id: "review".to_string(),
+        skipped_needs_review_count: 1,
+        needs_review_input_count: 1,
+        apply_status: core::ObserverTargetClosureApplyStatus::AppliedWithWarnings,
+        ..clear_apply.clone()
+    };
+    let review_trend = core::ObserverComparisonLedgerTrend {
+        entry_count: 1,
+        trend_status: core::ObserverComparisonLedgerTrendStatus::InsufficientHistory,
+        disagreement_trend: core::ObserverTrendDirection::InsufficientHistory,
+        readiness_trend: core::ObserverTrendDirection::InsufficientHistory,
+        target_coverage_trend: core::ObserverTrendDirection::InsufficientHistory,
+        ..clear_trend.clone()
+    };
+    let review_reducer = core::reduce_observer_readiness_warnings(
+        &previous_gate,
+        &review_apply,
+        &clear_rerun,
+        &review_trend,
+    );
+    let review_v2 = core::evaluate_smartcore_observer_readiness_v2(
+        &previous_gate,
+        &review_apply,
+        &clear_rerun,
+        &review_trend,
+        &review_reducer,
+        &observer_run_result.observer_safety_guard,
+    );
+
+    assert!(matches!(
+        clear_reducer.reduction_status,
+        core::ObserverReadinessWarningReductionStatus::Cleared
+            | core::ObserverReadinessWarningReductionStatus::Reduced
+    ));
+    assert!(matches!(
+        clear_v2.readiness_status,
+        core::SmartCoreObserverReadinessV2Status::NonVotingObserverReady
+            | core::SmartCoreObserverReadinessV2Status::NonVotingObserverReadyWithWarnings
+    ));
+    assert!(
+        review_reducer
+            .remaining_warnings
+            .contains(&core::ObserverReadinessWarningKind::NeedsReviewTargetRemaining)
+    );
+    assert!(matches!(
+        review_v2.readiness_status,
+        core::SmartCoreObserverReadinessV2Status::NeedsMoreTargets
+            | core::SmartCoreObserverReadinessV2Status::NonVotingObserverReadyWithWarnings
+            | core::SmartCoreObserverReadinessV2Status::NeedsMoreHistory
+    ));
+}
+
+#[test]
+fn sprint185_owner_trend_summary_and_apply_decision_isolation_cover_pass_and_fail() {
+    let (
+        batch_result,
+        _observer_run_result,
+        _closure_result,
+        run_result,
+        _store_path,
+        _ledger_path,
+    ) = sprint185_apply_trend_fixture(true, false);
+    let summary = run_result
+        .owner_trend_summary
+        .as_ref()
+        .expect("owner trend summary");
+    let mut violating_apply = run_result.apply_result.clone();
+    violating_apply.applied_targets[0].not_input_feature = false;
+    let violated = core::evaluate_observer_apply_decision_isolation(
+        &violating_apply,
+        &batch_result,
+        Some(&batch_result),
+    );
+
+    assert!(summary.non_voting);
+    assert!(summary.read_only);
+    assert!(summary.not_investment_signal);
+    assert!(summary.not_committee_opinion);
+    assert_eq!(
+        run_result.decision_isolation_guard.guard_status,
+        core::ObserverApplyDecisionIsolationGuardStatus::Preserved
+    );
+    assert_eq!(
+        violated.guard_status,
+        core::ObserverApplyDecisionIsolationGuardStatus::Violated
+    );
+}
+
+#[test]
+fn sprint185_apply_trend_run_preserves_safety_and_is_deterministic() {
+    let (batch_result, _observer_run_result, _closure_result, first, _store_path, _ledger_path) =
+        sprint185_apply_trend_fixture(true, false);
+    let (
+        _batch_result2,
+        _observer_run_result2,
+        _closure_result2,
+        second,
+        _store_path2,
+        _ledger_path2,
+    ) = sprint185_apply_trend_fixture(true, false);
+
+    assert!(batch_result.safety_summary.no_model_training);
+    assert!(batch_result.safety_summary.no_weight_update);
+    assert!(batch_result.safety_summary.no_checkpoint);
+    assert!(batch_result.safety_summary.no_live_inference);
+    assert!(batch_result.safety_summary.no_broker_order_account);
+    assert_eq!(
+        first.apply_result.applied_count,
+        second.apply_result.applied_count
+    );
+    assert_eq!(
+        first.comparison_rerun_result.rerun_status,
+        second.comparison_rerun_result.rerun_status
+    );
+    assert_eq!(
+        first.readiness_v2.readiness_status,
+        second.readiness_v2.readiness_status
+    );
+}
+
+#[test]
+fn sprint185_config_loads_new_flags() {
+    let config = MinimalAiCommitteeCycleConfig::from_toml_path(std::path::Path::new(
+        "examples/soma_minimal_ai_committee_core.toml",
+    ))
+    .expect("config");
+    let run_config = config
+        .load_autonomous_paper_run_config()
+        .expect("autonomous config");
+
+    assert!(run_config.observer_target_apply_trend_enabled);
+    assert!(run_config.observer_target_apply_dry_run);
+    assert!(!run_config.observer_target_apply_targets);
+    assert_eq!(
+        run_config.observer_target_store_output_path.as_deref(),
+        Some("target/minimal_observer_target_store.json")
+    );
+    assert!(run_config.observer_ledger_trend_enabled);
+    assert!(run_config.observer_readiness_v2_enabled);
+    assert!(run_config.observer_trend_summary_enabled);
+    assert_eq!(
+        run_config.observer_apply_trend_output_path.as_deref(),
+        Some("target/minimal_observer_apply_trend.json")
+    );
+    assert!(run_config.observer_seed_apply_trend_enabled);
+    assert!(run_config.observer_seed_apply_dry_run);
+    assert!(!run_config.observer_seed_apply_targets);
+    assert_eq!(
+        run_config.observer_seed_target_store_output_path.as_deref(),
+        Some("target/minimal_observer_seed_target_store.json")
+    );
+    assert_eq!(
+        run_config.observer_seed_apply_output_path.as_deref(),
+        Some("target/minimal_observer_seed_apply_trend.json")
+    );
+    assert!(run_config.observer_seed_require_approved_target);
+    assert!(run_config.observer_seed_rerun_comparison);
+    assert!(run_config.observer_seed_compute_ledger_trend);
+    assert!(run_config.observer_seed_recheck_readiness);
+    assert!(run_config.observer_seed_emit_owner_summary);
+    assert!(run_config.observer_approved_apply_governance_enabled);
+    assert_eq!(
+        run_config.observer_approved_apply_mode,
+        core::ObserverExplicitApplyMode::DryRun
+    );
+    assert!(run_config.observer_approved_apply_dry_run);
+    assert_eq!(
+        run_config
+            .observer_approved_target_store_output_path
+            .as_deref(),
+        Some("target/minimal_observer_approved_target_store.json")
+    );
+    assert_eq!(
+        run_config.observer_approved_apply_output_path.as_deref(),
+        Some("target/minimal_observer_approved_apply_governance.json")
+    );
+    assert!(run_config.observer_approved_apply_recheck_readiness);
+    assert!(run_config.chairman_governance_contract_prepare_enabled);
+    assert!(run_config.chairman_governance_readiness_check_enabled);
+    assert!(run_config.observer_approved_apply_emit_owner_summary);
+    assert!(!run_config.observer_apply_verify_chairman_shadow_enabled);
+    assert_eq!(
+        run_config.observer_apply_verify_mode,
+        core::ObserverExplicitApplyMode::DryRun
+    );
+    assert!(run_config.observer_apply_verify_dry_run);
+    assert_eq!(
+        run_config
+            .observer_apply_verify_target_store_output_path
+            .as_deref(),
+        Some("target/minimal_observer_apply_verify_target_store.json")
+    );
+    assert_eq!(
+        run_config.observer_apply_verify_output_path.as_deref(),
+        Some("target/minimal_observer_apply_verify_and_shadow.json")
+    );
+    assert!(run_config.observer_apply_verify_emit_owner_summary);
+    assert!(run_config.chairman_shadow_governance_enabled);
+}
+
+#[test]
+fn sprint188_dedicated_apply_verify_config_uses_non_dry_profile() {
+    let config = MinimalAiCommitteeCycleConfig::from_toml_path(std::path::Path::new(
+        "examples/soma_minimal_ai_committee_observer_apply_verify.toml",
+    ))
+    .expect("config");
+    let run_config = config
+        .load_autonomous_paper_run_config()
+        .expect("autonomous config");
+
+    assert!(run_config.observer_apply_verify_chairman_shadow_enabled);
+    assert_eq!(
+        run_config.observer_apply_verify_mode,
+        core::ObserverExplicitApplyMode::ApplyApprovedTargets
+    );
+    assert!(!run_config.observer_apply_verify_dry_run);
+    assert_eq!(
+        run_config
+            .observer_apply_verify_target_store_output_path
+            .as_deref(),
+        Some("target/minimal_observer_apply_verify_target_store.verify.json")
+    );
+    assert_eq!(
+        run_config.observer_apply_verify_output_path.as_deref(),
+        Some("target/minimal_observer_apply_verify_and_shadow.verify.json")
+    );
+    assert!(run_config.chairman_shadow_governance_enabled);
+}
+
+#[test]
+fn sprint185_apply_trend_dry_run_does_not_persist_target_store() {
+    let (_batch_result, _observer_run_result, _closure_result, apply, store_path, ledger_path) =
+        sprint185_apply_trend_fixture(true, true);
+
+    assert_eq!(
+        apply.apply_result.apply_status,
+        core::ObserverTargetClosureApplyStatus::DryRunPreview
+    );
+    assert!(!apply.apply_result.wrote_target_set);
+    assert!(!store_path.exists());
+    assert!(ledger_path.exists());
+}
+
+#[test]
+fn sprint186_seed_builder_creates_member_and_risk_seeds() {
+    let (batch_result, _) = sprint183_observer_lane_fixture();
+    let build = core::build_observer_approved_target_seeds(
+        &batch_result,
+        None,
+        None,
+        None,
+        &core::ObserverApprovedTargetSeedBuildConfig {
+            run_id: "sprint186-seed-build".to_string(),
+            include_member_opinion: true,
+            include_risk_governor_status: true,
+            include_chairman_decision: true,
+            include_validated_replay_labels: true,
+            include_core_calibration_targets: true,
+            include_validated_paper_outcomes: true,
+            max_seeds_per_member: 3,
+            max_total_seeds: 16,
+            paper_only: true,
+        },
+    );
+    assert!(build.seeds.iter().any(|seed| {
+        seed.source_type == core::ObserverApprovedTargetSeedSource::MemberOpinion
+            && seed.head == core::ObserverAgreementTargetHead::Stance
+    }));
+    assert!(build.seeds.iter().any(|seed| {
+        seed.source_type == core::ObserverApprovedTargetSeedSource::RiskGovernorStatus
+            && seed.head == core::ObserverAgreementTargetHead::Risk
+    }));
+}
+
+#[test]
+fn sprint186_seed_builder_uses_validated_replay_and_calibration_sources_only() {
+    let (batch_result, _) = sprint183_observer_lane_fixture();
+    let mut validated_replay = sprint156_replay_example(
+        "sprint186-validated-replay",
+        "AAPL",
+        MarketScope::UsShortTerm,
+    );
+    if let Some(labels) = validated_replay.target_labels.as_mut() {
+        labels.label_source = ReplayLabelSource::ValidatedPaperLabel;
+        labels.label_confidence = ReplayLabelConfidence::High;
+    }
+    let mut review_replay =
+        sprint156_replay_example("sprint186-review-replay", "AAPL", MarketScope::UsShortTerm);
+    if let Some(labels) = review_replay.target_labels.as_mut() {
+        labels.label_source = ReplayLabelSource::ReviewRequired;
+        labels.label_confidence = ReplayLabelConfidence::ReviewRequired;
+    }
+    let replay_dataset = sprint156_replay_dataset(vec![validated_replay, review_replay]);
+    let calibration_dataset = core::CoreCalibrationDataset {
+        dataset_id: "sprint186-calibration-dataset".to_string(),
+        examples: vec![
+            core::CoreCalibrationExample {
+                calibration_example_id: "sprint186-calibration-approved".to_string(),
+                member_id: "trend-kr-short".to_string(),
+                debug_output_id: "debug-approved".to_string(),
+                target_id: None,
+                symbol: Some("AAPL".to_string()),
+                market_scope: Some(MarketScope::UsShortTerm),
+                head: core::SmartCoreShadowHeadKind::Risk,
+                debug_bucket: "RiskLow".to_string(),
+                target_bucket: "RiskLow".to_string(),
+                alignment: core::SmartCoreShadowAlignmentStatus::Match,
+                mismatch_type: None,
+                suggested_data_need: core::SmartCoreMismatchDataNeed::KeepObserving,
+                label_source: core::CoreCalibrationLabelSource::RiskGovernorStatus,
+                label_confidence: ReplayLabelConfidence::High,
+                paper_only: true,
+            },
+            core::CoreCalibrationExample {
+                calibration_example_id: "sprint186-calibration-low".to_string(),
+                member_id: "trend-kr-short".to_string(),
+                debug_output_id: "debug-low".to_string(),
+                target_id: None,
+                symbol: Some("AAPL".to_string()),
+                market_scope: Some(MarketScope::UsShortTerm),
+                head: core::SmartCoreShadowHeadKind::Risk,
+                debug_bucket: "RiskHigh".to_string(),
+                target_bucket: "RiskHigh".to_string(),
+                alignment: core::SmartCoreShadowAlignmentStatus::Mismatch,
+                mismatch_type: None,
+                suggested_data_need: core::SmartCoreMismatchDataNeed::MoreRiskLabels,
+                label_source: core::CoreCalibrationLabelSource::ReplayLabel,
+                label_confidence: ReplayLabelConfidence::Low,
+                paper_only: true,
+            },
+        ],
+        example_count: 2,
+        member_count: 1,
+        head_distribution: std::collections::BTreeMap::new(),
+        alignment_distribution: std::collections::BTreeMap::new(),
+        mismatch_type_distribution: std::collections::BTreeMap::new(),
+        paper_only: true,
+    };
+    let build = core::build_observer_approved_target_seeds(
+        &batch_result,
+        Some(&replay_dataset),
+        Some(&calibration_dataset),
+        None,
+        &core::ObserverApprovedTargetSeedBuildConfig {
+            run_id: "sprint186-seed-build-datasets".to_string(),
+            include_member_opinion: false,
+            include_risk_governor_status: false,
+            include_chairman_decision: false,
+            include_validated_replay_labels: true,
+            include_core_calibration_targets: true,
+            include_validated_paper_outcomes: false,
+            max_seeds_per_member: 3,
+            max_total_seeds: 16,
+            paper_only: true,
+        },
+    );
+
+    assert!(build.seeds.iter().any(|seed| {
+        seed.source_type == core::ObserverApprovedTargetSeedSource::ValidatedReplayLabel
+            && seed.source_record_id.as_deref() == Some("sprint186-validated-replay")
+    }));
+    assert!(build.seeds.iter().any(|seed| {
+        seed.source_type == core::ObserverApprovedTargetSeedSource::CoreCalibrationDataset
+            && seed.source_record_id.as_deref() == Some("sprint186-calibration-approved")
+    }));
+    assert!(!build.seeds.iter().any(|seed| {
+        seed.source_record_id.as_deref() == Some("sprint186-review-replay")
+            || seed.source_record_id.as_deref() == Some("sprint186-calibration-low")
+    }));
+}
+
+#[test]
+fn sprint186_seed_validation_rejects_missing_member_id() {
+    let validation = core::validate_observer_approved_target_seed(
+        &core::ObserverApprovedTargetSeed {
+            seed_id: "seed-missing-member".to_string(),
+            source_type: core::ObserverApprovedTargetSeedSource::MemberOpinion,
+            source_record_id: Some("record".to_string()),
+            member_id: None,
+            canonical_member_id: None,
+            symbol: Some("AAPL".to_string()),
+            market_scope: Some(MarketScope::UsShortTerm),
+            head: core::ObserverAgreementTargetHead::Stance,
+            target_bucket: core::SmartCoreHeadBucketNormalizedValue::PositiveLike,
+            source_confidence: core::SourceConfidence::High,
+            seed_status: core::ObserverApprovedTargetSeedStatus::ApprovedSeed,
+            eval_only: true,
+            not_input_feature: true,
+            paper_only: true,
+        },
+        &core::default_observer_target_closure_apply_policy(),
+    );
+    assert!(!validation.valid);
+    assert_eq!(
+        validation.approval_status,
+        core::ObserverAgreementTargetApprovalStatus::Rejected
+    );
+}
+
+#[test]
+fn sprint186_seed_validation_rejects_unknown_target_when_forbidden() {
+    let validation = core::validate_observer_approved_target_seed(
+        &core::ObserverApprovedTargetSeed {
+            seed_id: "seed-unknown".to_string(),
+            source_type: core::ObserverApprovedTargetSeedSource::ChairmanDecision,
+            source_record_id: Some("record".to_string()),
+            member_id: Some("trend-kr-short".to_string()),
+            canonical_member_id: Some("trend-kr-short".to_string()),
+            symbol: Some("AAPL".to_string()),
+            market_scope: Some(MarketScope::UsShortTerm),
+            head: core::ObserverAgreementTargetHead::Stance,
+            target_bucket: core::SmartCoreHeadBucketNormalizedValue::Unknown,
+            source_confidence: core::SourceConfidence::High,
+            seed_status: core::ObserverApprovedTargetSeedStatus::ApprovedSeed,
+            eval_only: true,
+            not_input_feature: true,
+            paper_only: true,
+        },
+        &core::default_observer_target_closure_apply_policy(),
+    );
+    assert!(!validation.valid);
+    assert_eq!(
+        validation.approval_status,
+        core::ObserverAgreementTargetApprovalStatus::Rejected
+    );
+}
+
+#[test]
+fn sprint186_seed_conversion_creates_approved_observer_target() {
+    let conversion = core::convert_approved_target_seeds_to_observer_targets(
+        &[
+            core::ObserverApprovedTargetSeed {
+                seed_id: "seed-approved".to_string(),
+                source_type: core::ObserverApprovedTargetSeedSource::MemberOpinion,
+                source_record_id: Some("record".to_string()),
+                member_id: Some("trend-kr-short".to_string()),
+                canonical_member_id: Some("trend-kr-short".to_string()),
+                symbol: Some("AAPL".to_string()),
+                market_scope: Some(MarketScope::UsShortTerm),
+                head: core::ObserverAgreementTargetHead::Stance,
+                target_bucket: core::SmartCoreHeadBucketNormalizedValue::PositiveLike,
+                source_confidence: core::SourceConfidence::High,
+                seed_status: core::ObserverApprovedTargetSeedStatus::ApprovedSeed,
+                eval_only: true,
+                not_input_feature: true,
+                paper_only: true,
+            },
+            core::ObserverApprovedTargetSeed {
+                seed_id: "seed-needs-review".to_string(),
+                source_type: core::ObserverApprovedTargetSeedSource::MemberOpinion,
+                source_record_id: Some("record-review".to_string()),
+                member_id: Some("trend-kr-short".to_string()),
+                canonical_member_id: Some("trend-kr-short".to_string()),
+                symbol: Some("AAPL".to_string()),
+                market_scope: Some(MarketScope::UsShortTerm),
+                head: core::ObserverAgreementTargetHead::Stance,
+                target_bucket: core::SmartCoreHeadBucketNormalizedValue::PositiveLike,
+                source_confidence: core::SourceConfidence::High,
+                seed_status: core::ObserverApprovedTargetSeedStatus::NeedsReview,
+                eval_only: true,
+                not_input_feature: true,
+                paper_only: true,
+            },
+            core::ObserverApprovedTargetSeed {
+                seed_id: "seed-rejected".to_string(),
+                source_type: core::ObserverApprovedTargetSeedSource::MemberOpinion,
+                source_record_id: Some("record-rejected".to_string()),
+                member_id: Some("trend-kr-short".to_string()),
+                canonical_member_id: Some("trend-kr-short".to_string()),
+                symbol: Some("AAPL".to_string()),
+                market_scope: Some(MarketScope::UsShortTerm),
+                head: core::ObserverAgreementTargetHead::Stance,
+                target_bucket: core::SmartCoreHeadBucketNormalizedValue::PositiveLike,
+                source_confidence: core::SourceConfidence::High,
+                seed_status: core::ObserverApprovedTargetSeedStatus::Rejected,
+                eval_only: true,
+                not_input_feature: true,
+                paper_only: true,
+            },
+        ],
+        &core::default_observer_target_closure_apply_policy(),
+    );
+    assert_eq!(conversion.converted_target_count, 1);
+    assert_eq!(conversion.needs_review_count, 1);
+    assert_eq!(conversion.rejected_count, 1);
+    assert_eq!(
+        conversion.target_records[0].approval_status,
+        core::ObserverAgreementTargetApprovalStatus::Approved
+    );
+}
+
+#[test]
+fn sprint186_controlled_apply_smoke_requires_approved_target() {
+    let (mut batch_result, _) = sprint183_observer_lane_fixture();
+    batch_result.member_opinions.clear();
+    batch_result.chairman_decisions.clear();
+    let smoke = core::run_observer_controlled_apply_smoke(
+        &batch_result,
+        None,
+        None,
+        None,
+        &core::ObserverControlledApplySmokeConfig {
+            run_id: "sprint186-smoke-require-approved".to_string(),
+            enabled: true,
+            apply_targets: true,
+            dry_run: false,
+            target_store_output_path: None,
+            observer_apply_smoke_output_path: None,
+            require_at_least_one_approved_target: true,
+            paper_only: true,
+        },
+    )
+    .expect("smoke");
+    assert_eq!(
+        smoke.smoke_status,
+        core::ObserverControlledApplySmokeStatus::Failed
+    );
+    assert_eq!(
+        smoke.apply_result.apply_status,
+        core::ObserverTargetClosureApplyStatus::NoApprovedTargets
+    );
+}
+
+#[test]
+fn sprint186_controlled_apply_smoke_dry_run_writes_no_store_and_readiness_needs_apply() {
+    let (_batch_result, _observer_run_result, run_result, store_path, ledger_path, output_path) =
+        sprint186_seed_apply_fixture(true, true);
+    assert_eq!(
+        run_result
+            .controlled_apply_smoke_result
+            .apply_result
+            .apply_status,
+        core::ObserverTargetClosureApplyStatus::DryRunPreview
+    );
+    assert!(!run_result.controlled_apply_smoke_result.wrote_target_store);
+    assert!(!store_path.exists());
+    assert!(ledger_path.exists());
+    assert!(output_path.exists());
+    assert_eq!(
+        run_result.readiness_recheck.readiness_status,
+        core::ObserverSeededTargetReadinessStatus::NeedsApply
+    );
+    assert_eq!(
+        run_result.decision_isolation_guard.guard_status,
+        core::ObserverSeededTargetDecisionIsolationGuardStatus::Preserved
+    );
+}
+
+#[test]
+fn sprint186_controlled_apply_smoke_non_dry_run_persists_approved_targets_only() {
+    let (_batch_result, _observer_run_result, run_result, store_path, _ledger_path, _output_path) =
+        sprint186_seed_apply_fixture(true, false);
+    assert!(store_path.exists());
+    assert!(run_result.controlled_apply_smoke_result.wrote_target_store);
+    let store = run_result
+        .controlled_apply_smoke_result
+        .target_store_after
+        .as_ref()
+        .expect("target store");
+    assert!(store.target_count > 0);
+    assert_eq!(store.target_count, store.approved_count);
+    assert_eq!(store.needs_review_count, 0);
+    assert_eq!(store.rejected_count, 0);
+    assert_eq!(
+        run_result.readiness_recheck.readiness_status,
+        core::ObserverSeededTargetReadinessStatus::NonVotingObserverReadyWithWarnings
+    );
+}
+
+#[test]
+fn sprint186_owner_seeded_summary_stays_non_voting_read_only_eval_only() {
+    let (_batch_result, _observer_run_result, run_result, ..) =
+        sprint186_seed_apply_fixture(true, false);
+    let summary = run_result.owner_summary.expect("owner summary");
+    assert!(summary.non_voting);
+    assert!(summary.read_only);
+    assert!(summary.eval_only);
+    assert!(summary.not_investment_signal);
+    assert!(summary.not_committee_opinion);
+}
+
+#[test]
+fn sprint186_seeded_decision_isolation_detects_pass_and_fail() {
+    let (batch_result, _observer_run_result, run_result, ..) =
+        sprint186_seed_apply_fixture(true, false);
+    let preserved = core::evaluate_observer_seeded_target_decision_isolation(
+        &run_result.controlled_apply_smoke_result,
+        &batch_result,
+        Some(&batch_result),
+    );
+    assert_eq!(
+        preserved.guard_status,
+        core::ObserverSeededTargetDecisionIsolationGuardStatus::Preserved
+    );
+
+    let mut mutated_batch = batch_result.clone();
+    mutated_batch.member_opinions.push(MemberOpinion {
+        member_id: "trend-us-medium".to_string(),
+        symbol: "AAPL".to_string(),
+        market_scope: MarketScope::UsShortTerm,
+        stance: MemberStance::BuyProposal,
+        confidence: 0.95,
+        expected_return_hint: 0.05,
+        risk_hint: 0.2,
+        evidence_notes: vec!["seed leak".to_string()],
+        event_triggered: false,
+        event_reason: None,
+    });
+    let violated = core::evaluate_observer_seeded_target_decision_isolation(
+        &run_result.controlled_apply_smoke_result,
+        &batch_result,
+        Some(&mutated_batch),
+    );
+    assert_eq!(
+        violated.guard_status,
+        core::ObserverSeededTargetDecisionIsolationGuardStatus::Violated
+    );
+    assert!(violated.seeded_targets_used_as_member_opinion);
+}
+
+#[test]
+fn sprint186_seed_apply_trend_is_deterministic() {
+    let (_batch_result, _observer_run_result, first, _store_a, _ledger_a, _output_a) =
+        sprint186_seed_apply_fixture(true, true);
+    let (_batch_result, _observer_run_result, second, _store_b, _ledger_b, _output_b) =
+        sprint186_seed_apply_fixture(true, true);
+    assert_eq!(
+        first
+            .controlled_apply_smoke_result
+            .seed_build_result
+            .approved_seed_count,
+        second
+            .controlled_apply_smoke_result
+            .seed_build_result
+            .approved_seed_count
+    );
+    assert_eq!(
+        first
+            .controlled_apply_smoke_result
+            .seed_conversion_result
+            .converted_target_count,
+        second
+            .controlled_apply_smoke_result
+            .seed_conversion_result
+            .converted_target_count
+    );
+    assert_eq!(
+        first.readiness_recheck.readiness_status,
+        second.readiness_recheck.readiness_status
+    );
+    assert_eq!(first.run_status, second.run_status);
+}
+
+#[test]
+fn sprint187_explicit_apply_mode_rejects_dry_run_true() {
+    let (_batch_result, _observer_run_result, run_result, store_path, _ledger_path, _output_path) =
+        sprint187_apply_governance_fixture(
+            core::ObserverExplicitApplyMode::ApplyApprovedTargets,
+            true,
+        );
+    assert_eq!(
+        run_result.apply_result.apply_status,
+        core::ObserverApprovedTargetApplyV2Status::Blocked
+    );
+    assert!(!run_result.apply_result.wrote_target_store);
+    assert!(!store_path.exists());
+}
+
+#[test]
+fn sprint187_dry_run_apply_writes_no_store() {
+    let (_batch_result, _observer_run_result, run_result, store_path, _ledger_path, output_path) =
+        sprint187_apply_governance_fixture(core::ObserverExplicitApplyMode::DryRun, true);
+    assert_eq!(
+        run_result.apply_result.apply_status,
+        core::ObserverApprovedTargetApplyV2Status::DryRunPreview
+    );
+    assert!(!run_result.apply_result.wrote_target_store);
+    assert!(!store_path.exists());
+    assert!(!_ledger_path.exists());
+    assert!(output_path.exists());
+}
+
+#[test]
+fn sprint187_apply_mode_writes_approved_target_store_to_temp_path() {
+    let (_batch_result, _observer_run_result, run_result, store_path, ledger_path, _output_path) =
+        sprint187_apply_governance_fixture(
+            core::ObserverExplicitApplyMode::ApplyApprovedTargets,
+            false,
+        );
+    assert!(store_path.exists());
+    assert!(ledger_path.exists());
+    assert!(matches!(
+        run_result.apply_result.apply_status,
+        core::ObserverApprovedTargetApplyV2Status::Applied
+            | core::ObserverApprovedTargetApplyV2Status::AppliedWithWarnings
+    ));
+    assert!(run_result.apply_result.wrote_target_store);
+    assert!(run_result.apply_result.applied_count > 0);
+}
+
+#[test]
+fn sprint187_apply_mode_requires_output_path_before_claiming_persisted_store() {
+    let (mut batch_result, observer_run_result, seed_run, ..) =
+        sprint186_seed_apply_fixture(true, false);
+    batch_result.observer_seed_apply_trend_run_result = Some(seed_run.clone());
+    batch_result.observer_agreement_target_store = seed_run
+        .controlled_apply_smoke_result
+        .target_store_after
+        .clone();
+    let output_path = sprint171_temp_json_path("observer-approved-apply-no-store-output");
+    let _ = fs::remove_file(&output_path);
+    let run_result = core::run_observer_approved_apply_and_governance_prep(
+        &batch_result,
+        &seed_run
+            .controlled_apply_smoke_result
+            .seed_conversion_result
+            .target_records,
+        &observer_run_result,
+        &core::ObserverApprovedApplyAndGovernancePrepRunConfig {
+            run_id: "sprint187-approved-apply-no-store-output".to_string(),
+            enabled: true,
+            apply_mode: core::ObserverExplicitApplyMode::ApplyApprovedTargets,
+            dry_run: false,
+            target_store_input_path: None,
+            target_store_output_path: None,
+            observer_ledger_path: None,
+            output_path: Some(output_path.to_string_lossy().to_string()),
+            recheck_observer_readiness: true,
+            prepare_chairman_governance_contract: true,
+            emit_owner_summary: true,
+            paper_only: true,
+        },
+    )
+    .expect("approved apply governance run");
+
+    assert_eq!(
+        run_result.apply_result.apply_status,
+        core::ObserverApprovedTargetApplyV2Status::Blocked
+    );
+    assert_eq!(
+        run_result.run_status,
+        core::ObserverApprovedApplyAndGovernancePrepRunStatus::Failed
+    );
+    assert!(!run_result.apply_result.wrote_target_store);
+    assert_eq!(run_result.apply_result.applied_count, 0);
+    assert!(run_result.apply_result.target_store_path.is_none());
+    assert!(
+        run_result
+            .apply_result
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("target store output path required"))
+    );
+    assert_eq!(
+        run_result.observer_readiness_v3.readiness_status,
+        core::SmartCoreObserverReadinessV3Status::NeedsApply
+    );
+    assert!(output_path.exists());
+}
+
+#[test]
+fn sprint187_apply_mode_blocks_invalid_store_before_persisting() {
+    let store_path = sprint171_temp_json_path("observer-approved-apply-invalid-store");
+    let _ = fs::remove_file(&store_path);
+    let mut invalid_target = sprint185_target(
+        "invalid-existing",
+        core::ObserverAgreementTargetApprovalStatus::Approved,
+        core::ObserverAgreementTargetSource::MemberOpinion,
+        core::SourceConfidence::High,
+        "validated paper evidence",
+    );
+    invalid_target.source_record_id = Some("invalid-existing".to_string());
+    invalid_target.target_bucket = core::SmartCoreHeadBucketNormalizedValue::Unknown;
+    let invalid_store = core::ObserverAgreementTargetStore {
+        store_id: "invalid-existing-store".to_string(),
+        target_set: core::ObserverAgreementTargetSet {
+            target_set_id: "invalid-existing-target-set".to_string(),
+            target_count: 1,
+            approved_count: 1,
+            needs_review_count: 0,
+            rejected_count: 0,
+            targets: vec![invalid_target],
+            paper_only: true,
+        },
+        latest_updated_at: None,
+        target_count: 1,
+        approved_count: 1,
+        needs_review_count: 0,
+        rejected_count: 0,
+        paper_only: true,
+    };
+    let mut safe_target = sprint185_target(
+        "safe-new",
+        core::ObserverAgreementTargetApprovalStatus::Approved,
+        core::ObserverAgreementTargetSource::MemberOpinion,
+        core::SourceConfidence::High,
+        "validated paper evidence",
+    );
+    safe_target.source_record_id = Some("safe-new".to_string());
+    let apply_result = core::apply_observer_approved_targets_v2(
+        &[safe_target],
+        Some(&invalid_store),
+        &core::ObserverApprovedTargetApplyV2Config {
+            run_id: "sprint187-invalid-store-before-persist".to_string(),
+            converted_targets_input_path: None,
+            target_store_input_path: None,
+            target_store_output_path: Some(store_path.to_string_lossy().to_string()),
+            apply_mode: core::ObserverExplicitApplyMode::ApplyApprovedTargets,
+            dry_run: false,
+            require_at_least_one_approved_target: true,
+            paper_only: true,
+        },
+        &core::default_observer_explicit_apply_policy(),
+    )
+    .expect("apply result");
+
+    assert_eq!(
+        apply_result.apply_status,
+        core::ObserverApprovedTargetApplyV2Status::Blocked
+    );
+    assert!(!apply_result.wrote_target_store);
+    assert!(!store_path.exists());
+    let accepted_store = apply_result
+        .accepted_target_store
+        .as_ref()
+        .expect("preview store");
+    let acceptance = core::check_observer_target_store_acceptance(accepted_store);
+    assert_eq!(
+        acceptance.acceptance_status,
+        core::ObserverTargetStoreAcceptanceStatus::Rejected
+    );
+}
+
+#[test]
+fn sprint187_target_store_acceptance_requires_approved_only_targets() {
+    let store = core::ObserverAgreementTargetStore {
+        store_id: "accepted-store".to_string(),
+        target_set: core::ObserverAgreementTargetSet {
+            target_set_id: "accepted-target-set".to_string(),
+            target_count: 1,
+            approved_count: 1,
+            needs_review_count: 0,
+            rejected_count: 0,
+            targets: vec![sprint185_target(
+                "approved",
+                core::ObserverAgreementTargetApprovalStatus::Approved,
+                core::ObserverAgreementTargetSource::MemberOpinion,
+                core::SourceConfidence::High,
+                "validated paper evidence",
+            )],
+            paper_only: true,
+        },
+        latest_updated_at: None,
+        target_count: 1,
+        approved_count: 1,
+        needs_review_count: 0,
+        rejected_count: 0,
+        paper_only: true,
+    };
+    let check = core::check_observer_target_store_acceptance(&store);
+    assert_eq!(
+        check.acceptance_status,
+        core::ObserverTargetStoreAcceptanceStatus::Accepted
+    );
+    assert_eq!(check.invalid_count, 0);
+}
+
+#[test]
+fn sprint187_target_store_acceptance_rejects_input_feature_target() {
+    let mut invalid = sprint185_target(
+        "invalid-input-feature",
+        core::ObserverAgreementTargetApprovalStatus::Approved,
+        core::ObserverAgreementTargetSource::MemberOpinion,
+        core::SourceConfidence::High,
+        "validated paper evidence",
+    );
+    invalid.not_input_feature = false;
+    let store = core::ObserverAgreementTargetStore {
+        store_id: "rejected-store".to_string(),
+        target_set: core::ObserverAgreementTargetSet {
+            target_set_id: "rejected-target-set".to_string(),
+            target_count: 1,
+            approved_count: 1,
+            needs_review_count: 0,
+            rejected_count: 0,
+            targets: vec![invalid],
+            paper_only: true,
+        },
+        latest_updated_at: None,
+        target_count: 1,
+        approved_count: 1,
+        needs_review_count: 0,
+        rejected_count: 0,
+        paper_only: true,
+    };
+    let check = core::check_observer_target_store_acceptance(&store);
+    assert_eq!(
+        check.acceptance_status,
+        core::ObserverTargetStoreAcceptanceStatus::Rejected
+    );
+    assert!(check.invalid_count > 0);
+}
+
+#[test]
+fn sprint187_comparison_rerun_v3_uses_accepted_target_store() {
+    let (_batch_result, observer_run_result, run_result, ..) = sprint187_apply_governance_fixture(
+        core::ObserverExplicitApplyMode::ApplyApprovedTargets,
+        false,
+    );
+    let accepted_store = run_result
+        .apply_result
+        .accepted_target_store
+        .as_ref()
+        .expect("accepted store")
+        .clone();
+    let rerun = core::rerun_observer_comparison_with_accepted_store_v3(
+        &observer_run_result,
+        &accepted_store,
+        &core::ObserverComparisonRerunV3Config {
+            run_id: "sprint187-rerun-v3".to_string(),
+            use_persisted_target_store: true,
+            require_target_store_accepted: true,
+            compare_member_opinion: true,
+            compare_chairman_decision: true,
+            compare_risk_governor: true,
+            paper_only: true,
+        },
+    );
+    assert!(rerun.target_store_accepted);
+    assert!(rerun.new_target_count >= rerun.previous_target_count);
+}
+
+#[test]
+fn sprint187_readiness_v3_moves_needs_apply_after_apply_and_blocks_invalid_store() {
+    let (_batch_result, _observer_run_result, dry_run_result, ..) =
+        sprint187_apply_governance_fixture(core::ObserverExplicitApplyMode::DryRun, true);
+    assert_eq!(
+        dry_run_result.observer_readiness_v3.readiness_status,
+        core::SmartCoreObserverReadinessV3Status::NeedsApply
+    );
+
+    let (_batch_result, _observer_run_result, apply_result, ..) =
+        sprint187_apply_governance_fixture(
+            core::ObserverExplicitApplyMode::ApplyApprovedTargets,
+            false,
+        );
+    assert!(matches!(
+        apply_result.observer_readiness_v3.readiness_status,
+        core::SmartCoreObserverReadinessV3Status::NonVotingObserverReady
+            | core::SmartCoreObserverReadinessV3Status::NonVotingObserverReadyWithWarnings
+    ));
+
+    let blocked = core::evaluate_smartcore_observer_readiness_v3(
+        apply_result.observer_readiness_v3.previous_readiness_status,
+        &apply_result.apply_result,
+        &core::ObserverTargetStoreAcceptanceCheck {
+            acceptance_status: core::ObserverTargetStoreAcceptanceStatus::Rejected,
+            blockers: vec!["invalid store".to_string()],
+            ..apply_result.target_store_acceptance_check.clone()
+        },
+        &apply_result.comparison_rerun_v3,
+        &apply_result.ledger_trend_v2,
+        apply_result.observer_readiness_v3.observer_safety_status,
+        &apply_result.decision_isolation_guard_v3,
+    );
+    assert_eq!(
+        blocked.readiness_status,
+        core::SmartCoreObserverReadinessV3Status::BlockedByTargetStore
+    );
+}
+
+#[test]
+fn sprint187_ledger_trend_v2_updates_after_appended_entry() {
+    let ledger = core::ObserverComparisonLedger {
+        ledger_id: "trend-v2-ledger".to_string(),
+        entries: vec![
+            core::ObserverComparisonLedgerEntry {
+                entry_id: "entry-1".to_string(),
+                run_id: "run-1".to_string(),
+                timestamp: None,
+                observer_member_count: 3,
+                comparison_count: 3,
+                disagreement_count: 2,
+                comparison_summary_status: core::ObserverVsCommitteeComparisonSummaryStatus::Mixed,
+                readiness_status: core::SmartCoreObserverLaneReadinessStatus::NeedsMoreTargets,
+                target_coverage_status: core::ObserverTargetCoverageClosureStatus::ClosurePlanned,
+                safety_status: core::SmartCoreObserverLaneSafetyGuardStatus::Preserved,
+                target_count: 1,
+                paper_only: true,
+            },
+            core::ObserverComparisonLedgerEntry {
+                entry_id: "entry-2".to_string(),
+                run_id: "run-2".to_string(),
+                timestamp: None,
+                observer_member_count: 3,
+                comparison_count: 3,
+                disagreement_count: 1,
+                comparison_summary_status:
+                    core::ObserverVsCommitteeComparisonSummaryStatus::MostlyAgree,
+                readiness_status:
+                    core::SmartCoreObserverLaneReadinessStatus::NonVotingObserverReadyWithWarnings,
+                target_coverage_status: core::ObserverTargetCoverageClosureStatus::NoClosureNeeded,
+                safety_status: core::SmartCoreObserverLaneSafetyGuardStatus::Preserved,
+                target_count: 3,
+                paper_only: true,
+            },
+        ],
+        entry_count: 2,
+        latest_entry_id: Some("entry-2".to_string()),
+        paper_only: true,
+    };
+    let trend = core::compute_observer_comparison_ledger_trend_v2(&ledger);
+    assert_eq!(trend.entry_count, 2);
+    assert_eq!(
+        trend.target_count_trend,
+        core::ObserverTargetCountTrendDirection::Increasing
+    );
+}
+
+#[test]
+fn sprint187_chairman_reward_penalty_contract_is_contract_only_and_no_mutation() {
+    let contract = core::default_chairman_reward_penalty_contract();
+    assert_eq!(
+        contract.status,
+        core::ChairmanGovernanceContractStatus::ContractOnly
+    );
+    assert!(!contract.can_mutate_score);
+    assert!(!contract.can_mutate_voice_weight);
+    assert!(!contract.can_promote_member);
+    assert!(!contract.can_demote_member);
+    assert!(!contract.can_override_risk_governor);
+
+    let mut unsafe_contract = contract.clone();
+    unsafe_contract.can_override_risk_governor = true;
+    let readiness = core::evaluate_chairman_governance_readiness(
+        &unsafe_contract,
+        None,
+        None,
+        None,
+        true,
+        true,
+        core::SmartCoreObserverLaneSafetyGuardStatus::Preserved,
+    );
+    assert_eq!(
+        readiness.readiness_status,
+        core::ChairmanGovernanceReadinessStatus::BlockedBySafety
+    );
+    assert!(!readiness.can_start_shadow_reward_evaluation);
+}
+
+#[test]
+fn sprint187_chairman_governance_readiness_is_shadow_only_and_owner_summary_mentions_inactive() {
+    let (batch_result, _observer_run_result, run_result, ..) = sprint187_apply_governance_fixture(
+        core::ObserverExplicitApplyMode::ApplyApprovedTargets,
+        false,
+    );
+    assert!(matches!(
+        run_result
+            .chairman_governance_readiness_check
+            .readiness_status,
+        core::ChairmanGovernanceReadinessStatus::ShadowGovernanceReady
+            | core::ChairmanGovernanceReadinessStatus::ShadowGovernanceReadyWithWarnings
+            | core::ChairmanGovernanceReadinessStatus::NeedsMoreObserverHistory
+            | core::ChairmanGovernanceReadinessStatus::NeedsMorePaperEvidence
+    ));
+    let summary = run_result.owner_summary.expect("owner summary");
+    assert!(
+        summary
+            .message
+            .contains("Chairman reward/penalty contract is prepared but not active")
+    );
+    assert_eq!(
+        summary.approved_seed_count,
+        batch_result
+            .observer_seed_apply_trend_run_result
+            .as_ref()
+            .map(|seed| seed
+                .controlled_apply_smoke_result
+                .seed_build_result
+                .approved_seed_count)
+            .unwrap_or(summary.approved_seed_count)
+    );
+}
+
+#[test]
+fn sprint187_decision_isolation_v3_passes_and_fails_on_score_or_member_opinion_mutation() {
+    let (batch_result, _observer_run_result, run_result, ..) = sprint187_apply_governance_fixture(
+        core::ObserverExplicitApplyMode::ApplyApprovedTargets,
+        false,
+    );
+    assert_eq!(
+        run_result.decision_isolation_guard_v3.guard_status,
+        core::ObserverApprovedApplyDecisionIsolationGuardV3Status::Preserved
+    );
+
+    let mut mutating_contract = run_result.chairman_reward_penalty_contract.clone();
+    mutating_contract.can_mutate_score = true;
+    let violated_score = core::evaluate_observer_approved_apply_decision_isolation_v3(
+        &run_result.apply_result,
+        &mutating_contract,
+        &batch_result,
+        Some(&batch_result),
+    );
+    assert_eq!(
+        violated_score.guard_status,
+        core::ObserverApprovedApplyDecisionIsolationGuardV3Status::Violated
+    );
+    assert!(violated_score.chairman_contract_mutated_score);
+
+    let mut mutating_voice_contract = run_result.chairman_reward_penalty_contract.clone();
+    mutating_voice_contract.can_mutate_voice_weight = true;
+    let violated_voice = core::evaluate_observer_approved_apply_decision_isolation_v3(
+        &run_result.apply_result,
+        &mutating_voice_contract,
+        &batch_result,
+        Some(&batch_result),
+    );
+    assert_eq!(
+        violated_voice.guard_status,
+        core::ObserverApprovedApplyDecisionIsolationGuardV3Status::Violated
+    );
+    assert!(violated_voice.chairman_contract_mutated_voice);
+
+    let mut promoting_contract = run_result.chairman_reward_penalty_contract.clone();
+    promoting_contract.can_promote_member = true;
+    let violated_promotion = core::evaluate_observer_approved_apply_decision_isolation_v3(
+        &run_result.apply_result,
+        &promoting_contract,
+        &batch_result,
+        Some(&batch_result),
+    );
+    assert_eq!(
+        violated_promotion.guard_status,
+        core::ObserverApprovedApplyDecisionIsolationGuardV3Status::Violated
+    );
+    assert!(violated_promotion.chairman_contract_promoted_or_demoted_member);
+
+    let mut mutated_batch = batch_result.clone();
+    mutated_batch.member_opinions.push(MemberOpinion {
+        member_id: "trend-us-medium".to_string(),
+        symbol: "AAPL".to_string(),
+        market_scope: MarketScope::UsShortTerm,
+        stance: MemberStance::BuyProposal,
+        confidence: 0.9,
+        expected_return_hint: 0.04,
+        risk_hint: 0.2,
+        evidence_notes: vec!["leak".to_string()],
+        event_triggered: false,
+        event_reason: None,
+    });
+    let violated_opinion = core::evaluate_observer_approved_apply_decision_isolation_v3(
+        &run_result.apply_result,
+        &run_result.chairman_reward_penalty_contract,
+        &batch_result,
+        Some(&mutated_batch),
+    );
+    assert_eq!(
+        violated_opinion.guard_status,
+        core::ObserverApprovedApplyDecisionIsolationGuardV3Status::Violated
+    );
+    assert!(violated_opinion.applied_targets_used_as_member_opinion);
+}
+
+#[test]
+fn sprint187_run_keeps_committee_score_voice_unchanged_and_is_deterministic() {
+    let (batch_a, _observer_a, first, ..) =
+        sprint187_apply_governance_fixture(core::ObserverExplicitApplyMode::DryRun, true);
+    let (_batch_b, _observer_b, second, ..) =
+        sprint187_apply_governance_fixture(core::ObserverExplicitApplyMode::DryRun, true);
+    assert!(
+        !first
+            .decision_isolation_guard_v3
+            .applied_targets_changed_committee_decision
+    );
+    assert!(
+        !first
+            .decision_isolation_guard_v3
+            .applied_targets_changed_member_score
+    );
+    assert!(
+        !first
+            .decision_isolation_guard_v3
+            .applied_targets_changed_voice_weight
+    );
+    assert!(
+        !first
+            .decision_isolation_guard_v3
+            .applied_targets_used_as_trade_signal
+    );
+    assert!(
+        !first
+            .decision_isolation_guard_v3
+            .applied_targets_used_as_order
+    );
+    assert_eq!(
+        first.chairman_reward_penalty_contract.status,
+        core::ChairmanGovernanceContractStatus::ContractOnly
+    );
+    assert!(!first.chairman_reward_penalty_contract.can_mutate_score);
+    assert!(
+        !first
+            .chairman_reward_penalty_contract
+            .can_mutate_voice_weight
+    );
+    assert!(batch_a.safety_summary.paper_only);
+    assert!(batch_a.safety_summary.no_model_training);
+    assert!(batch_a.safety_summary.no_weight_update);
+    assert!(batch_a.safety_summary.no_checkpoint);
+    assert!(batch_a.safety_summary.no_live_inference);
+    assert!(batch_a.safety_summary.no_broker_order_account);
+    assert!(batch_a.safety_summary.no_real_order_path);
+    assert_eq!(
+        first.apply_result.approved_input_count,
+        second.apply_result.approved_input_count
+    );
+    assert_eq!(
+        first.apply_result.apply_status,
+        second.apply_result.apply_status
+    );
+    assert_eq!(
+        first.observer_readiness_v3.readiness_status,
+        second.observer_readiness_v3.readiness_status
+    );
+}
+
+#[test]
+fn sprint188_apply_verification_profile_validation_checks_mode_and_dry_run() {
+    let valid = core::validate_observer_apply_verification_profile(
+        &core::ObserverApplyVerificationProfile {
+            profile_id: "sprint188-valid".to_string(),
+            config_path: None,
+            apply_mode: core::ObserverExplicitApplyMode::ApplyApprovedTargets,
+            dry_run: false,
+            target_store_output_path: Some("target/sprint188_valid_store.json".to_string()),
+            apply_output_path: Some("target/sprint188_valid_output.json".to_string()),
+            main_example_safe_default: false,
+            verification_profile: true,
+            paper_only: true,
+        },
+    );
+    assert!(valid.valid);
+    assert_eq!(
+        valid.validation_status,
+        core::ObserverApplyVerificationProfileValidationStatus::Valid
+    );
+
+    let invalid = core::validate_observer_apply_verification_profile(
+        &core::ObserverApplyVerificationProfile {
+            profile_id: "sprint188-invalid-main".to_string(),
+            config_path: None,
+            apply_mode: core::ObserverExplicitApplyMode::ApplyApprovedTargets,
+            dry_run: false,
+            target_store_output_path: Some("target/sprint188_invalid_store.json".to_string()),
+            apply_output_path: None,
+            main_example_safe_default: true,
+            verification_profile: true,
+            paper_only: true,
+        },
+    );
+    assert!(!invalid.valid);
+    assert_eq!(
+        invalid.validation_status,
+        core::ObserverApplyVerificationProfileValidationStatus::Invalid
+    );
+
+    let missing_path = core::validate_observer_apply_verification_profile(
+        &core::ObserverApplyVerificationProfile {
+            profile_id: "sprint188-missing-path".to_string(),
+            config_path: None,
+            apply_mode: core::ObserverExplicitApplyMode::ApplyApprovedTargets,
+            dry_run: false,
+            target_store_output_path: None,
+            apply_output_path: Some("target/sprint188_missing_path_output.json".to_string()),
+            main_example_safe_default: false,
+            verification_profile: true,
+            paper_only: true,
+        },
+    );
+    assert!(!missing_path.valid);
+    assert!(!missing_path.output_path_valid);
+
+    let implicit_profile = core::validate_observer_apply_verification_profile(
+        &core::ObserverApplyVerificationProfile {
+            profile_id: "sprint188-implicit".to_string(),
+            config_path: None,
+            apply_mode: core::ObserverExplicitApplyMode::ApplyApprovedTargets,
+            dry_run: false,
+            target_store_output_path: Some("target/sprint188_implicit_store.json".to_string()),
+            apply_output_path: None,
+            main_example_safe_default: false,
+            verification_profile: false,
+            paper_only: true,
+        },
+    );
+    assert!(!implicit_profile.valid);
+    assert!(
+        implicit_profile
+            .blockers
+            .iter()
+            .any(|blocker| blocker.contains("verification profile flag"))
+    );
+}
+
+#[test]
+fn sprint188_target_store_write_proof_and_readiness_closure_complete_after_non_dry_apply() {
+    let (_batch_result, _observer_run_result, run_result, store_path, output_path) =
+        sprint188_apply_verify_shadow_fixture(
+            core::ObserverExplicitApplyMode::ApplyApprovedTargets,
+            false,
+            true,
+        );
+    assert!(store_path.exists());
+    assert!(output_path.exists());
+    assert!(matches!(
+        run_result.target_store_write_proof.proof_status,
+        core::ObserverTargetStoreWriteProofStatus::Proven
+            | core::ObserverTargetStoreWriteProofStatus::ProvenWithWarnings
+    ));
+    assert!(matches!(
+        run_result.readiness_closure_check.closure_status,
+        core::ObserverReadinessV3ClosureStatus::Closed
+            | core::ObserverReadinessV3ClosureStatus::ClosedWithWarnings
+    ));
+    assert!(matches!(
+        run_result.run_status,
+        core::ObserverApplyVerifyAndChairmanShadowRunStatus::Passed
+            | core::ObserverApplyVerifyAndChairmanShadowRunStatus::PassedWithWarnings
+    ));
+
+    let mut missing_file_apply = run_result.apply_result.clone();
+    let missing_store_path = sprint171_temp_json_path("observer-apply-verify-missing-proof");
+    let _ = fs::remove_file(&missing_store_path);
+    missing_file_apply.target_store_path = Some(missing_store_path.to_string_lossy().to_string());
+    missing_file_apply.wrote_target_store = true;
+    let missing_proof = core::prove_observer_target_store_write(
+        "sprint188-missing-proof".to_string(),
+        &missing_file_apply,
+        None,
+    );
+    assert_eq!(
+        missing_proof.proof_status,
+        core::ObserverTargetStoreWriteProofStatus::Failed
+    );
+
+    let violated_isolation_guard = core::ObserverApprovedApplyDecisionIsolationGuardV3 {
+        applied_targets_used_as_input_feature: false,
+        applied_targets_used_as_member_opinion: false,
+        applied_targets_used_in_committee_session: false,
+        applied_targets_used_in_chairman_decision: false,
+        applied_targets_used_in_risk_governor: false,
+        applied_targets_used_as_trade_signal: false,
+        applied_targets_used_as_order: false,
+        applied_targets_changed_member_score: true,
+        applied_targets_changed_voice_weight: false,
+        applied_targets_changed_committee_decision: false,
+        chairman_contract_mutated_score: false,
+        chairman_contract_mutated_voice: false,
+        chairman_contract_promoted_or_demoted_member: false,
+        guard_status: core::ObserverApprovedApplyDecisionIsolationGuardV3Status::Violated,
+        violations: vec!["injected score mutation".to_string()],
+        paper_only: true,
+    };
+    let blocked_closure = core::check_observer_readiness_v3_closure(
+        "sprint188-blocked-closure".to_string(),
+        &run_result.observer_readiness_v3,
+        &run_result.target_store_write_proof,
+        &run_result.target_store_acceptance_check,
+        &run_result.comparison_rerun_v3,
+        &run_result.ledger_trend_v2,
+        &violated_isolation_guard,
+    );
+    assert_eq!(
+        blocked_closure.closure_status,
+        core::ObserverReadinessV3ClosureStatus::Blocked
+    );
+}
+
+#[test]
+fn sprint188_invalid_profile_stops_before_target_store_write() {
+    let (batch_result, observer_run_result, seed_run, ..) =
+        sprint186_seed_apply_fixture(true, false);
+    let store_path = sprint171_temp_json_path("observer-apply-verify-invalid-profile-store");
+    let output_path = sprint171_temp_json_path("observer-apply-verify-invalid-profile-output");
+    let _ = fs::remove_file(&store_path);
+    let _ = fs::remove_file(&output_path);
+    let err = core::run_observer_apply_verify_and_chairman_shadow(
+        &batch_result,
+        &seed_run
+            .controlled_apply_smoke_result
+            .seed_conversion_result
+            .target_records,
+        &observer_run_result,
+        &core::ObserverApplyVerifyAndChairmanShadowRunConfig {
+            run_id: "sprint188-invalid-profile-run".to_string(),
+            enabled: true,
+            apply_verification_config_path: Some("https://example.invalid/config.toml".to_string()),
+            apply_mode: core::ObserverExplicitApplyMode::ApplyApprovedTargets,
+            dry_run: false,
+            target_store_output_path: Some(store_path.to_string_lossy().to_string()),
+            output_path: Some(output_path.to_string_lossy().to_string()),
+            run_chairman_shadow_governance: true,
+            emit_owner_summary: true,
+            paper_only: true,
+        },
+    )
+    .expect_err("invalid verification profile must stop before apply");
+
+    assert!(err.contains("profile invalid"));
+    assert!(!store_path.exists());
+    assert!(!output_path.exists());
+}
+
+#[test]
+fn sprint188_chairman_shadow_governance_stays_eval_only_and_safety_preserved() {
+    let (_batch_result, _observer_run_result, run_result, ..) =
+        sprint188_apply_verify_shadow_fixture(
+            core::ObserverExplicitApplyMode::ApplyApprovedTargets,
+            false,
+            true,
+        );
+    let input_set = run_result
+        .chairman_shadow_governance_inputs
+        .as_ref()
+        .expect("shadow input set");
+    let evaluation = run_result
+        .chairman_shadow_governance_evaluation
+        .as_ref()
+        .expect("shadow evaluation");
+    let safety = run_result
+        .chairman_shadow_governance_safety
+        .as_ref()
+        .expect("shadow safety");
+    assert!(input_set.record_count > 0);
+    assert!(evaluation.no_score_mutation);
+    assert!(evaluation.no_voice_mutation);
+    assert!(evaluation.no_promotion_demotion);
+    assert!(evaluation.no_risk_governor_override);
+    assert_eq!(
+        safety.guard_status,
+        core::ChairmanShadowGovernanceSafetyGuardStatus::Preserved
+    );
+    assert!(safety.violations.is_empty());
+
+    let mut score_mutated = _batch_result.clone();
+    score_mutated.score_updates.push(core::MemberScoreUpdate {
+        member_id: "trend-kr-short".to_string(),
+        previous_score: 0.5,
+        new_score: 0.7,
+        previous_voice_weight: 0.5,
+        new_voice_weight: 0.6,
+        update_reason: core::MemberScoreUpdateReason::GoodCall,
+        promoted: true,
+        demoted: false,
+    });
+    let violated_score = core::evaluate_chairman_shadow_governance_safety_guard(
+        evaluation,
+        &_batch_result,
+        Some(&score_mutated),
+    );
+    assert_eq!(
+        violated_score.guard_status,
+        core::ChairmanShadowGovernanceSafetyGuardStatus::Violated
+    );
+    assert!(violated_score.score_mutation_detected);
+    assert!(violated_score.voice_mutation_detected);
+    assert!(violated_score.promotion_detected);
+
+    let mut risk_mutated = _batch_result.clone();
+    if let Some(decision) = risk_mutated.chairman_decisions.first_mut() {
+        decision.risk_governor_status =
+            if decision.risk_governor_status == core::RiskGovernorStatus::Vetoed {
+                core::RiskGovernorStatus::Passed
+            } else {
+                core::RiskGovernorStatus::Vetoed
+            };
+    }
+    let violated_risk = core::evaluate_chairman_shadow_governance_safety_guard(
+        evaluation,
+        &_batch_result,
+        Some(&risk_mutated),
+    );
+    assert_eq!(
+        violated_risk.guard_status,
+        core::ChairmanShadowGovernanceSafetyGuardStatus::Violated
+    );
+    assert!(violated_risk.risk_governor_override_detected);
+}
+
+#[test]
+fn sprint188_owner_summary_v2_emits_non_voting_message_and_counts() {
+    let (_batch_result, _observer_run_result, run_result, ..) =
+        sprint188_apply_verify_shadow_fixture(
+            core::ObserverExplicitApplyMode::ApplyApprovedTargets,
+            false,
+            true,
+        );
+    let summary = run_result.owner_summary.as_ref().expect("owner summary v2");
+    assert!(summary.non_voting);
+    assert!(summary.read_only);
+    assert!(summary.eval_only);
+    assert!(summary.chairman_contract_only);
+    assert!(summary.not_investment_signal);
+    assert!(summary.not_committee_opinion);
+    assert!(
+        summary
+            .message
+            .contains("Approved observer targets were applied only to local evaluation store")
+    );
+    assert!(
+        summary
+            .message
+            .contains("Chairman governance signals are shadow-only candidates")
+    );
+    assert_eq!(
+        summary.reward_candidate_count + summary.penalty_candidate_count,
+        run_result
+            .chairman_shadow_governance_evaluation
+            .as_ref()
+            .map(|evaluation| evaluation.reward_candidate_count + evaluation.penalty_candidate_count)
+            .unwrap_or(0)
+    );
+    assert!(summary.message.contains("No score"));
+    assert!(summary.message.contains("voice"));
+}
+
+#[test]
+fn sprint188_main_defaults_do_not_request_apply_verify_run() {
+    assert!(
+        !core::observer_apply_verify_chairman_shadow_requested_from_flags(
+            false,
+            core::ObserverExplicitApplyMode::DryRun,
+            Some(&"target/minimal_observer_apply_verify_target_store.json".to_string()),
+            Some(&"target/minimal_observer_apply_verify_and_shadow.json".to_string()),
+            None,
+            true,
+            true,
+            true,
+        )
+    );
+    assert!(
+        core::observer_apply_verify_chairman_shadow_requested_from_flags(
+            true,
+            core::ObserverExplicitApplyMode::DryRun,
+            Some(&"target/minimal_observer_apply_verify_target_store.json".to_string()),
+            Some(&"target/minimal_observer_apply_verify_and_shadow.json".to_string()),
+            None,
+            true,
+            true,
+            true,
+        )
+    );
+    assert!(
+        core::observer_apply_verify_chairman_shadow_requested_from_flags(
+            false,
+            core::ObserverExplicitApplyMode::ApplyApprovedTargets,
+            None,
+            None,
+            None,
+            false,
+            false,
+            false,
+        )
+    );
+}
+
+#[test]
 fn paper_evidence_review_required_with_price_promotes_medium_label() {
     let dataset = sprint156_replay_dataset(vec![sprint156_replay_example(
         "replay-review-valid",
@@ -12024,6 +16464,17 @@ fn owner_feedback_routes_reconsideration_and_preserves_paper_only_safety() {
 
 #[test]
 fn autonomous_paper_loop_runs_cycles_attention_queue_and_archive_safely() {
+    let handle = std::thread::Builder::new()
+        .name("autonomous-paper-loop-large-stack".to_string())
+        .stack_size(8 * 1024 * 1024)
+        .spawn(autonomous_paper_loop_runs_cycles_attention_queue_and_archive_safely_inner)
+        .expect("spawn large-stack autonomous loop test");
+    handle
+        .join()
+        .expect("large-stack autonomous loop test panicked");
+}
+
+fn autonomous_paper_loop_runs_cycles_attention_queue_and_archive_safely_inner() {
     let sample_watchlist = WatchlistCandidateStore::load_from_local_json(std::path::Path::new(
         "examples/minimal_watchlist_candidates.sample.json",
     ))
@@ -12418,6 +16869,17 @@ fn watchlist_recheck_updates_paper_candidate_without_order_path() {
 
 #[test]
 fn owner_attention_inbox_triages_actions_and_watchlist_safely() {
+    let handle = std::thread::Builder::new()
+        .name("owner-attention-inbox-large-stack".to_string())
+        .stack_size(8 * 1024 * 1024)
+        .spawn(owner_attention_inbox_triages_actions_and_watchlist_safely_inner)
+        .expect("spawn large-stack owner attention inbox test");
+    handle
+        .join()
+        .expect("large-stack owner attention inbox test panicked");
+}
+
+fn owner_attention_inbox_triages_actions_and_watchlist_safely_inner() {
     let run = run_autonomous_paper_committee_loop_from_config_path(std::path::Path::new(
         "examples/soma_minimal_ai_committee_core.toml",
     ))
@@ -12616,6 +17078,17 @@ fn owner_attention_inbox_triages_actions_and_watchlist_safely() {
 
 #[test]
 fn owner_daily_brief_store_appends_loads_and_rejects_remote_paths() {
+    let handle = std::thread::Builder::new()
+        .name("owner-daily-brief-store-large-stack".to_string())
+        .stack_size(8 * 1024 * 1024)
+        .spawn(owner_daily_brief_store_appends_loads_and_rejects_remote_paths_inner)
+        .expect("spawn large-stack owner daily brief store test");
+    if let Err(payload) = handle.join() {
+        std::panic::resume_unwind(payload);
+    }
+}
+
+fn owner_daily_brief_store_appends_loads_and_rejects_remote_paths_inner() {
     let run = run_autonomous_paper_committee_loop_from_config_path(std::path::Path::new(
         "examples/soma_minimal_ai_committee_core.toml",
     ))
@@ -12679,6 +17152,17 @@ fn owner_daily_brief_store_appends_loads_and_rejects_remote_paths() {
 
 #[test]
 fn committee_state_snapshot_exports_ui_shape_safely_and_deterministically() {
+    let handle = std::thread::Builder::new()
+        .name("committee-state-snapshot-export-test".to_string())
+        .stack_size(8 * 1024 * 1024)
+        .spawn(committee_state_snapshot_exports_ui_shape_safely_and_deterministically_inner)
+        .expect("spawn committee state snapshot test");
+    if let Err(payload) = handle.join() {
+        std::panic::resume_unwind(payload);
+    }
+}
+
+fn committee_state_snapshot_exports_ui_shape_safely_and_deterministically_inner() {
     let run = run_autonomous_paper_committee_loop_from_config_path(std::path::Path::new(
         "examples/soma_minimal_ai_committee_core.toml",
     ))
@@ -12752,6 +17236,17 @@ fn committee_state_snapshot_exports_ui_shape_safely_and_deterministically() {
 
 #[test]
 fn committee_state_export_writes_state_contract_and_owner_read_model() {
+    let handle = std::thread::Builder::new()
+        .name("committee-state-export-large-stack".to_string())
+        .stack_size(8 * 1024 * 1024)
+        .spawn(committee_state_export_writes_state_contract_and_owner_read_model_inner)
+        .expect("spawn large-stack committee state export test");
+    if let Err(payload) = handle.join() {
+        std::panic::resume_unwind(payload);
+    }
+}
+
+fn committee_state_export_writes_state_contract_and_owner_read_model_inner() {
     let run = run_autonomous_paper_committee_loop_from_config_path(std::path::Path::new(
         "examples/soma_minimal_ai_committee_core.toml",
     ))
@@ -12978,6 +17473,17 @@ fn committee_state_export_writes_state_contract_and_owner_read_model() {
 
 #[test]
 fn owner_console_viewer_loads_and_renders_read_only_terminal_view() {
+    let handle = std::thread::Builder::new()
+        .name("owner-console-viewer-large-stack".to_string())
+        .stack_size(8 * 1024 * 1024)
+        .spawn(owner_console_viewer_loads_and_renders_read_only_terminal_view_inner)
+        .expect("spawn large-stack owner console viewer test");
+    if let Err(payload) = handle.join() {
+        std::panic::resume_unwind(payload);
+    }
+}
+
+fn owner_console_viewer_loads_and_renders_read_only_terminal_view_inner() {
     let run = run_autonomous_paper_committee_loop_from_config_path(std::path::Path::new(
         "examples/soma_minimal_ai_committee_core.toml",
     ))
@@ -13071,6 +17577,17 @@ fn owner_console_viewer_loads_and_renders_read_only_terminal_view() {
 
 #[test]
 fn owner_action_composer_writes_safe_deterministic_action_file() {
+    let handle = std::thread::Builder::new()
+        .name("owner-action-composer-large-stack".to_string())
+        .stack_size(8 * 1024 * 1024)
+        .spawn(owner_action_composer_writes_safe_deterministic_action_file_inner)
+        .expect("spawn large-stack owner action composer test");
+    if let Err(payload) = handle.join() {
+        std::panic::resume_unwind(payload);
+    }
+}
+
+fn owner_action_composer_writes_safe_deterministic_action_file_inner() {
     let run = run_autonomous_paper_committee_loop_from_config_path(std::path::Path::new(
         "examples/soma_minimal_ai_committee_core.toml",
     ))
@@ -13268,6 +17785,17 @@ fn owner_action_composer_writes_safe_deterministic_action_file() {
 
 #[test]
 fn owner_action_composer_outputs_feed_existing_triage_actions() {
+    let handle = std::thread::Builder::new()
+        .name("owner-action-composer-triage-large-stack".to_string())
+        .stack_size(8 * 1024 * 1024)
+        .spawn(owner_action_composer_outputs_feed_existing_triage_actions_inner)
+        .expect("spawn large-stack owner action composer triage test");
+    if let Err(payload) = handle.join() {
+        std::panic::resume_unwind(payload);
+    }
+}
+
+fn owner_action_composer_outputs_feed_existing_triage_actions_inner() {
     let run = run_autonomous_paper_committee_loop_from_config_path(std::path::Path::new(
         "examples/soma_minimal_ai_committee_core.toml",
     ))
@@ -13392,6 +17920,17 @@ fn owner_action_composer_outputs_feed_existing_triage_actions() {
 
 #[test]
 fn owner_action_consumption_applies_ledgers_duplicates_and_refreshes_state() {
+    let handle = std::thread::Builder::new()
+        .name("owner-action-consumption-ledger-test".to_string())
+        .stack_size(8 * 1024 * 1024)
+        .spawn(owner_action_consumption_applies_ledgers_duplicates_and_refreshes_state_inner)
+        .expect("spawn owner action consumption ledger test");
+    if let Err(payload) = handle.join() {
+        std::panic::resume_unwind(payload);
+    }
+}
+
+fn owner_action_consumption_applies_ledgers_duplicates_and_refreshes_state_inner() {
     let run = run_autonomous_paper_committee_loop_from_config_path(std::path::Path::new(
         "examples/soma_minimal_ai_committee_core.toml",
     ))
@@ -13562,6 +18101,17 @@ fn owner_action_consumption_applies_ledgers_duplicates_and_refreshes_state() {
 
 #[test]
 fn owner_action_consumption_updates_inbox_watchlist_and_general_comment() {
+    let handle = std::thread::Builder::new()
+        .name("owner-action-consumption-behavior-test".to_string())
+        .stack_size(8 * 1024 * 1024)
+        .spawn(owner_action_consumption_updates_inbox_watchlist_and_general_comment_inner)
+        .expect("spawn owner action consumption behavior test");
+    if let Err(payload) = handle.join() {
+        std::panic::resume_unwind(payload);
+    }
+}
+
+fn owner_action_consumption_updates_inbox_watchlist_and_general_comment_inner() {
     let run = run_autonomous_paper_committee_loop_from_config_path(std::path::Path::new(
         "examples/soma_minimal_ai_committee_core.toml",
     ))
@@ -13885,6 +18435,17 @@ fn collect_forbidden_web_ui_files(
 
 #[test]
 fn daily_brief_storage_update_saves_snapshot_without_running_new_analysis() {
+    let handle = std::thread::Builder::new()
+        .name("daily-brief-storage-update-test".to_string())
+        .stack_size(8 * 1024 * 1024)
+        .spawn(daily_brief_storage_update_saves_snapshot_without_running_new_analysis_inner)
+        .expect("spawn storage update test");
+    if let Err(payload) = handle.join() {
+        std::panic::resume_unwind(payload);
+    }
+}
+
+fn daily_brief_storage_update_saves_snapshot_without_running_new_analysis_inner() {
     std::fs::create_dir_all("target").expect("target dir");
     let config_path = std::path::Path::new("target/sprint141_storage_update_autonomous.toml");
     let config_text = std::fs::read_to_string("examples/soma_minimal_ai_committee_core.toml")
@@ -14134,6 +18695,76 @@ fn autonomous_paper_config_rejects_remote_and_unsafe_fields() {
         smartcore_recalibration_min_support: 2,
         smartcore_recalibration_max_rules_per_member_head: 2,
         smartcore_recalibration_emit_owner_summary: true,
+        smartcore_shadow_opinion_enabled: false,
+        smartcore_shadow_opinion_output_path: None,
+        smartcore_shadow_compare_member_opinion: false,
+        smartcore_shadow_target_eval: false,
+        smartcore_shadow_emit_owner_debug: true,
+        smartcore_shadow_stability_enabled: false,
+        smartcore_shadow_stability_repeats: 3,
+        smartcore_shadow_stability_output_path: None,
+        smartcore_shadow_expand_agreement_targets: false,
+        smartcore_shadow_target_collection_queue_output_path: None,
+        smartcore_shadow_stability_emit_owner_summary: true,
+        smartcore_shadow_scenario_sweep_enabled: false,
+        smartcore_shadow_scenario_set_path: None,
+        smartcore_shadow_scenario_repeats: 3,
+        smartcore_shadow_scenario_max_count: 5,
+        smartcore_shadow_scenario_output_path: None,
+        smartcore_observer_readiness_gate_enabled: false,
+        smartcore_observer_min_scenarios_required: 3,
+        smartcore_shadow_scenario_emit_owner_summary: true,
+        smartcore_observer_lane_enabled: false,
+        smartcore_observer_output_path: None,
+        smartcore_observer_compare_member_opinion: true,
+        smartcore_observer_compare_chairman: true,
+        smartcore_observer_compare_risk_governor: true,
+        smartcore_observer_target_coverage_closure_enabled: true,
+        smartcore_observer_emit_owner_section: true,
+        observer_target_closure_enabled: false,
+        observer_target_closure_dry_run: true,
+        observer_target_closure_output_path: None,
+        observer_target_set_output_path: None,
+        observer_comparison_ledger_path: None,
+        observer_readiness_hardening_enabled: false,
+        observer_coverage_closure_emit_owner_summary: true,
+        observer_target_apply_trend_enabled: false,
+        observer_target_apply_dry_run: true,
+        observer_target_apply_targets: false,
+        observer_target_store_input_path: None,
+        observer_target_store_output_path: None,
+        observer_ledger_trend_enabled: true,
+        observer_readiness_v2_enabled: false,
+        observer_trend_summary_enabled: false,
+        observer_apply_trend_output_path: None,
+        observer_seed_apply_trend_enabled: false,
+        observer_seed_apply_dry_run: true,
+        observer_seed_apply_targets: false,
+        observer_seed_target_store_output_path: None,
+        observer_seed_apply_output_path: None,
+        observer_seed_require_approved_target: true,
+        observer_seed_rerun_comparison: true,
+        observer_seed_compute_ledger_trend: true,
+        observer_seed_recheck_readiness: true,
+        observer_seed_emit_owner_summary: true,
+        observer_approved_apply_governance_enabled: false,
+        observer_approved_apply_mode: core::ObserverExplicitApplyMode::DryRun,
+        observer_approved_apply_dry_run: true,
+        observer_approved_target_store_input_path: None,
+        observer_approved_target_store_output_path: None,
+        observer_approved_apply_output_path: None,
+        observer_approved_apply_recheck_readiness: true,
+        chairman_governance_contract_prepare_enabled: true,
+        chairman_governance_readiness_check_enabled: true,
+        observer_approved_apply_emit_owner_summary: true,
+        observer_apply_verify_chairman_shadow_enabled: false,
+        observer_apply_verify_mode: core::ObserverExplicitApplyMode::DryRun,
+        observer_apply_verify_dry_run: true,
+        observer_apply_verify_target_store_output_path: None,
+        observer_apply_verify_output_path: None,
+        observer_apply_verify_config_path: None,
+        observer_apply_verify_emit_owner_summary: true,
+        chairman_shadow_governance_enabled: true,
         training_candidate_min_examples: None,
         self_growing_replay_enabled: false,
         research_source_registry_path: None,

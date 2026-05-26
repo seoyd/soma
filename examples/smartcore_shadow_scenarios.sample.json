@@ -1,0 +1,47 @@
+{
+  "scenario_set_id": "smartcore-shadow-scenarios-sample",
+  "scenario_count": 5,
+  "scenarios": [
+    {
+      "scenario_id": "baseline",
+      "scenario_kind": "Baseline",
+      "symbol": "AAPL",
+      "market_scope": "UsShortTerm",
+      "expected_target_coverage": "High",
+      "paper_only": true
+    },
+    {
+      "scenario_id": "high-risk",
+      "scenario_kind": "HighRisk",
+      "symbol": "NVDA",
+      "market_scope": "UsShortTerm",
+      "expected_target_coverage": "Medium",
+      "paper_only": true
+    },
+    {
+      "scenario_id": "evidence-gap",
+      "scenario_kind": "EvidenceGap",
+      "symbol": "005930.KS",
+      "market_scope": "KoreaShortTerm",
+      "expected_target_coverage": "Low",
+      "paper_only": true
+    },
+    {
+      "scenario_id": "positive-trend",
+      "scenario_kind": "PositiveTrend",
+      "symbol": "MSFT",
+      "market_scope": "UsLongTerm",
+      "expected_target_coverage": "High",
+      "paper_only": true
+    },
+    {
+      "scenario_id": "neutral-watchlist",
+      "scenario_kind": "NeutralWatchlist",
+      "symbol": "SPY",
+      "market_scope": "UsLongTerm",
+      "expected_target_coverage": "Low",
+      "paper_only": true
+    }
+  ],
+  "paper_only": true
+}
