@@ -1,0 +1,45 @@
+{
+  "schema_version": "paper-label-review.v1",
+  "decision_file_id": "minimal-paper-label-review-decisions-sprint159",
+  "paper_only": true,
+  "decisions": [
+    {
+      "decision_id": "review-decision-msft-promote",
+      "review_item_id": "review-weak-replay-experience-offline-batch-sprint130-sample-MSFT-evidence-kr-short-11",
+      "replay_id": "replay-experience-offline-batch-sprint130-sample-MSFT-evidence-kr-short-11",
+      "reviewer": "PriceEvidenceRule",
+      "decision": "PromoteToValidatedPaperLabel",
+      "confidence": "Medium",
+      "evidence_notes": [
+        "sample local price evidence supports medium-confidence paper label upgrade",
+        "paper-only review metadata, not a live execution claim"
+      ],
+      "paper_only": true
+    },
+    {
+      "decision_id": "review-decision-aapl-keep",
+      "review_item_id": "review-weak-replay-experience-offline-batch-sprint130-sample-AAPL-evidence-kr-short-8",
+      "replay_id": "replay-experience-offline-batch-sprint130-sample-AAPL-evidence-kr-short-8",
+      "reviewer": "ManualPaperReview",
+      "decision": "KeepReviewRequired",
+      "confidence": "ReviewRequired",
+      "evidence_notes": [
+        "sample local paper review decision for weak-label review flow"
+      ],
+      "paper_only": true
+    },
+    {
+      "decision_id": "review-decision-contradictory-reject",
+      "review_item_id": "review-weak-replay-sample-contradictory-paper-label",
+      "replay_id": "replay-sample-contradictory-paper-label",
+      "reviewer": "ManualPaperReview",
+      "decision": "RejectLabel",
+      "confidence": "ReviewRequired",
+      "evidence_notes": [
+        "sample contradictory paper label is rejected for future review",
+        "paper-only rejection metadata, not a trade outcome"
+      ],
+      "paper_only": true
+    }
+  ]
+}

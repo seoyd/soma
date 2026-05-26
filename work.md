@@ -1,529 +1,696 @@
 You are operating as a gstack-style engineering team for Soma Zero.
 
 Current state:
-Sprint 146 is complete.
+Sprint 178 is complete.
 
-Current working core:
-- Program routes data.
-- AI members judge.
-- Risk Governor remains final.
-- Three-member pilot exists:
+Important owner instruction:
+Do not include commit / push / GitHub steps.
+The owner handles commits manually.
+Focus only on implementation.
+
+Current verified state:
+- Rust-native SmartCoreMicroKernelV0 exists.
+- Mamba3-style temporal cell v0 exists.
+- Gated DeltaNet-style memory cell v0 exists.
+- SmartCore toy head projection v0 exists.
+- SmartCore debug outputs exist for 3 pilot members:
   - TrendEntryAI
   - RiskGuardAI
   - EvidenceRegimeAI.
-- Mamba3 + Gated DeltaNet deferred member core contract exists.
-- Offline batch cycle exists.
-- Autonomous paper loop exists.
-- Owner attention inbox exists.
-- Watchlist recheck exists.
-- Owner daily brief exists.
-- Committee state snapshot export exists.
-- Rust-only owner-console-view exists.
-- Rust-only owner-console-action exists.
-- owner-console-apply-actions exists.
-- owner-say exists.
-- OwnerNaturalInput exists.
-- Local fixture news intake exists.
-- AIResearchPacketBatch exists.
-- build_ai_research_packets() exists.
-- No web UI exists.
-- No JS/TS/Tauri/Svelte exists.
+- Shadow alignment exists.
+- SmartCore debug output is compared against:
+  - MemberOpinion
+  - replay target labels
+  - RiskGovernorStatus.
+- Mismatch records exist.
+- Mismatch records generate research tasks.
+- Research tasks execute through safe local source registry.
+- Calibration target candidates exist.
+- CoreCalibrationDataset exists.
+- CoreCalibrationQualitySummary exists.
+- NoDecisionBridgeGuard exists.
+- SmartCore output is not MemberOpinion.
+- SmartCore output is not CommitteeDecision.
+- SmartCore output is not RiskGovernor input.
+- SmartCore output is not trade signal.
+- SmartCore output is not order.
+- No training exists.
+- No optimizer/backprop/gradient exists.
+- No weight update exists.
+- No checkpoint exists.
+- No live inference exists.
 - No broker/order/account/live trading path exists.
-- No training/live inference exists.
 - cargo test --workspace --no-run --quiet passes.
 - cargo test --workspace --quiet passes.
 - Acceptance is based on explicit manifest target set.
 
-Owner correction:
-Owner should not write JSON.
-Owner may occasionally write one natural-language comment.
-Most operation should be automatic.
-News should be collected by the system.
-The program should collect/normalize/route news.
-AI members should analyze and judge.
+Sprint 178 result:
+- mismatch data need records = 15.
+- generated research tasks = 12.
+- research tasks executed = 12.
+- generated evidence = 88.
+- calibration target candidates = 88.
+- approved targets = 12.
+- calibration dataset examples = 36 -> 40.
+- target_count = 9 -> 40.
+- mismatch_count = 15 -> 15.
+- alignment recheck status = NoChange.
+- calibration quality status = NeedsMoreTargets.
+- no_decision_recheck_status = Preserved.
+- no training / no live inference / no broker-order-account path.
 
-Current limitation:
-Sprint 146 uses deterministic keyword parsing and local fixture news intake.
-That is acceptable as an early bridge, but the parser/safety keywords should not keep growing as hardcoded if/else logic.
-The next step is to move intent and safety matching into a policy table / lexicon, and add a safe RSS/headline provider contract.
+Interpretation:
+The self-growing evidence loop is working.
+The calibration target count increased.
+But the toy SmartCore head output did not improve because no calibration adjustment has been applied yet.
+The next step is not real training.
+The next step is a debug-only calibration overlay derived from the calibration dataset.
 
-Sprint 147 objective:
-Refactor natural owner input parsing into an explicit policy table, add a safe Rust-only news source provider layer for local/RSS/headline sources, and add a research run scheduler that periodically builds research packets for AI members.
+Owner direction:
+The AI core must improve over time.
+But the system must not jump into real training too early.
+The core can first learn through a safe calibration overlay:
+- no model weight mutation.
+- no optimizer.
+- no backprop.
+- no checkpoint.
+- no live inference.
+- no decision integration.
+- debug-only recalibration.
+
+Sprint 179 objective:
+Build a SmartCore calibration overlay v0 that uses CoreCalibrationDataset to adjust debug head buckets in shadow mode, then re-run shadow alignment and measure whether mismatch improves.
 
 This sprint must:
-1. Keep owner UX as natural language.
-2. Keep JSON as internal format only.
-3. Move intent/safety keywords into configurable policy tables.
-4. Add news source provider abstraction.
-5. Support local fixture provider immediately.
-6. Support RSS/headline provider contract behind explicit config.
-7. Avoid browser/JS scraping.
-8. Avoid full article copying.
-9. Route collected news into AI research packets.
-10. Keep AI members as judgment source.
-11. Keep everything paper-only.
+1. Build per-member/per-head calibration statistics from CoreCalibrationDataset.
+2. Detect dominant mismatch patterns.
+3. Build debug-only calibration rules.
+4. Apply calibration overlay to SmartCoreDebugOutputV0.
+5. Produce CalibratedSmartCoreDebugOutputV0.
+6. Re-run shadow alignment on calibrated outputs.
+7. Compare pre/post mismatch count.
+8. Ensure calibrated output is still not MemberOpinion.
+9. Ensure calibrated output is still not CommitteeDecision.
+10. Ensure calibrated output is still not trade signal.
+11. Ensure no model weights are mutated.
+12. Keep Mamba3/Gated runtime and real training deferred.
+
+This sprint is not real model training.
+This sprint is not production inference.
+This sprint is debug-only calibration overlay.
 
 ────────────────────────────────────────
 0. SPRINT NAME
 ────────────────────────────────────────
 
-gstack Sprint 147:
-Owner Intent Policy Table + Safe RSS/Headline News Provider + Research Run Scheduler
+gstack Sprint 179:
+SmartCore Calibration Overlay v0 + Shadow Recalibration Pass + No-Decision Calibration Guard
 
 ────────────────────────────────────────
 1. HARD RULES
 
 Do not add:
-- web UI
-- Tauri
-- Svelte
-- React
-- JavaScript
-- TypeScript
-- browser server
-- dashboard server
-- browser scraping
-- paywall/login/private scraping
-- full article copying
+- real model training
+- optimizer
+- gradients
+- backpropagation
+- weight mutation
+- checkpoint writing
+- persistent learned weights
+- real Mamba3 runtime parity claim
+- real Gated DeltaNet runtime parity claim
+- real Sparse Attention runtime
+- live inference
+- production inference endpoint
 - broker/order/account
 - live trading
 - order execution
-- model training
-- live inference
-- runtime LLM debate
-- real Mamba3 runtime
-- real Gated DeltaNet runtime
-- central MoE committee model
-- report bloat
+- real PnL claim
+- central MoE committee brain
+- Python
+- PyTorch
+- TensorFlow
+- CUDA
+- Candle
+- Burn
+- ONNX runtime
+- web UI
+- Tauri/Svelte/React/JS
+- browser scraping
 - broad test suite
+- report bloat
+- commit / push / GitHub steps
 
 Do not:
-- require owner to write JSON
-- expose internal action JSON as primary owner UX
-- let owner text become order
-- let news text become guaranteed truth
-- let program produce buy/sell decision directly
-- bypass AI members
-- bypass Risk Governor
-- mutate model weights
-- claim real AI inference
-- rely on work.md
-- touch Group B
-- claim old broad auto-discovery acceptance
+- mutate SmartCore weights.
+- create persistent model parameters.
+- call calibration overlay “training.”
+- claim model is trained.
+- claim profitability.
+- claim live readiness.
+- use calibrated debug output as MemberOpinion.
+- use calibrated debug output as CommitteeSession input.
+- use calibrated debug output as ChairmanDecision input.
+- use calibrated debug output as RiskGovernor input.
+- use calibrated debug output as trade signal.
+- use calibrated debug output as order.
+- mutate member score from calibration.
+- mutate replay input features.
+- leak labels into microkernel input.
+- store broker/order/account fields.
 
 Allowed:
-- Rust-only policy table for owner intent parsing
-- Rust-only safety lexicon
-- local JSON/TOML policy fixture
-- news provider trait
-- local news fixture provider
-- RSS/headline provider contract behind config
-- no network calls in tests
-- optional live network disabled by default
-- research run scheduler for local/offline mode
-- existing CLI extension
-- small focused tests only
+- calibration statistics.
+- calibration rule table.
+- debug-only overlay.
+- calibrated debug output.
+- shadow recalibration comparison.
+- pre/post mismatch delta.
+- owner debug summary.
+- local JSON output.
+- deterministic focused tests.
+- paper-only output.
 
 Main rule:
-Program collects/routes/schedules.
-AI members judge.
-Risk Governor remains final.
-Everything remains paper-only.
+Calibrate debug output.
+Do not train.
+Do not decide.
+Do not trade.
 
 ────────────────────────────────────────
-2. FEATURE A — OWNER INTENT POLICY TABLE
+2. FEATURE A — CORE CALIBRATION STATISTICS
 
-Problem:
-Current tests use example hardcoded phrases like:
-- “리스크와 변동성이 걱정돼”
-- “관심종목으로 지켜봐”
-- “위원회 다시 재검토해줘”
-- “계좌에서 주문해”
-- “레버리지 최대로”
-- “수익 보장”
+Add:
 
-This is okay for tests, but parser policy should be centralized.
-
-A. OwnerIntentPolicy
+SmartCoreHeadCalibrationStatsV0
 
 Fields:
-- policy_id
-- language:
-  - Ko
-  - En
-  - Mixed
-- intent_rules: Vec<OwnerIntentRule>
-- safety_rules: Vec<OwnerSafetyRule>
-- default_intent:
-  - Unknown
-  - Comment
+- stats_id
+- member_id
+- head:
+  - Stance
+  - Risk
+  - EvidenceNeed
+  - ConfidenceCalibration
+  - Uncertainty
+  - ExpectedReturnHint
+- example_count
+- match_count
+- mismatch_count
+- unknown_count
+- deferred_count
+- mismatch_rate
+- dominant_debug_bucket optional
+- dominant_target_bucket optional
+- dominant_mismatch_type optional
 - paper_only: true
 
-B. OwnerIntentRule
+SmartCoreCalibrationStatsSummaryV0
 
 Fields:
-- rule_id
-- intent:
-  - Comment
-  - RiskConcern
-  - EvidenceRequest
-  - WatchlistRequest
-  - ReconsiderationRequest
-  - PaperOutcomeLabel
-  - Unknown
-- include_terms
-- exclude_terms
-- priority
-- confidence_hint
+- summary_id
+- dataset_id
+- member_count
+- head_count
+- total_examples
+- per_head_stats
+- per_member_mismatch_rate
+- overall_mismatch_rate
+- stats_status:
+  - Sufficient
+  - ThinData
+  - NeedsMoreTargets
+  - Unsafe
+- paper_only: true
 
-C. OwnerSafetyRule
-
-Fields:
-- rule_id
-- blocked_category:
-  - OrderExecution
-  - BrokerAccount
-  - LiveTrading
-  - Leverage
-  - GuaranteedReturn
-  - PrivateIllegalInfo
-  - SecretCredential
-- blocked_terms
-- severity:
-  - Reject
-  - Warn
-- rejection_message
-
-D. OwnerIntentPolicyLoadResult
-
-Fields:
-- loaded
-- rule_count
-- safety_rule_count
-- warnings
-- policy
-
-E. load_owner_intent_policy_from_local_file(path)
+Function:
+- compute_smartcore_calibration_stats_v0(calibration_dataset)
 
 Rules:
-- local path only
-- reject remote path
-- reject traversal
-- deterministic ordering
-- if absent, use built-in default policy
-
-F. parse_owner_natural_input_with_policy(input, policy)
-
-Rules:
-- use policy table
-- no scattered hardcoded keyword matching
-- higher priority rule wins
-- safety rules run before intent rules
-- unsafe input rejected
-- unknown input becomes Unknown or Comment based on policy
-- paper_only always true
-
-G. Built-in default Korean policy
-
-Must include at least:
-EvidenceRequest terms:
-- 근거
-- 증거
-- 뉴스 부족
-- 다시 확인
-
-RiskConcern terms:
-- 리스크
-- 위험
-- 변동성
-
-WatchlistRequest terms:
-- 관심종목
-- 지켜봐
-- watch
-
-ReconsiderationRequest terms:
-- 다시 봐
-- 재검토
-- 위원회 다시
-
-PaperOutcomeLabel terms:
-- paper positive
-- 결과 좋음
-- 성과 좋음
-
-Comment terms:
-- 확인
-- 메모
-
-Safety blocked terms:
-- 주문
-- 실거래
-- 계좌
-- 브로커
-- 레버리지
-- 최대 매수
-- 수익 보장
-- API key
-- secret
-- private info
-- illegal info
-
-Important:
-Tests can still use fixed sample phrases.
-Runtime parser should use policy table.
+- statistics only.
+- no weight update.
+- no training.
+- deterministic ordering.
+- weak/review-required calibration examples should not create strong rules.
+- if data count too small, stats_status=NeedsMoreTargets or ThinData.
 
 ────────────────────────────────────────
-3. FEATURE B — SAFE NEWS SOURCE PROVIDER
+3. FEATURE B — CALIBRATION RULE TABLE
 
-A. NewsProviderKind
+Add:
+
+SmartCoreCalibrationRuleActionV0
 
 Enum:
-- LocalFixture
-- RssFeed
-- HttpHeadline
-- Disabled
+- Keep
+- MapBucket
+- LowerConfidence
+- RaiseEvidenceNeed
+- RaiseRiskBucket
+- LowerRiskBucket
+- MarkUnknown
+- KeepObserving
 
-B. NewsProviderConfig
+SmartCoreCalibrationRuleV0
 
 Fields:
-- provider_id
-- kind
-- enabled
-- source_path_or_url
-- source_label
-- allowed_domains
-- symbols
-- market_scopes
-- max_items
-- timeout_ms
-- trust_level:
+- rule_id
+- member_id
+- head
+- from_bucket
+- to_bucket optional
+- action
+- support_count
+- mismatch_reduction_estimate
+- confidence:
   - High
   - Medium
   - Low
   - ReviewRequired
+- rule_status:
+  - Active
+  - ObserveOnly
+  - Disabled
+- reason
+- paper_only: true
+
+SmartCoreCalibrationRuleTableV0
+
+Fields:
+- table_id
+- source_dataset_id
+- rules
+- active_rule_count
+- observe_only_rule_count
+- disabled_rule_count
+- paper_only: true
+
+Function:
+- build_smartcore_calibration_rule_table_v0(stats_summary, policy)
 
 Rules:
-- LocalFixture is default.
-- RssFeed/HttpHeadline disabled by default.
-- network provider allowed only if explicitly enabled.
-- no network in tests.
-- allowed_domains checked by host, not substring.
-- no browser/JS.
-- no paywall/login/private content.
-- no full article body.
-- headline/summary/source/timestamp only.
+- only create Active rule if enough support.
+- low support => ObserveOnly.
+- contradictory evidence => Disabled or ObserveOnly.
+- no rule can create order/trade signal.
+- no rule can claim real prediction.
+- rule table is not model weights.
+- rule table is not checkpoint.
+- rule table is debug overlay only.
 
-C. NewsProvider trait
+────────────────────────────────────────
+4. FEATURE C — CALIBRATION OVERLAY POLICY
 
-trait NewsProvider {
-    fn collect(&self, config: &NewsProviderConfig) -> NewsCollectionResult;
-}
+Add:
 
-Implement:
-- LocalFixtureNewsProvider
-- RssFeedNewsProviderStub
-- HttpHeadlineNewsProviderStub
+SmartCoreCalibrationOverlayPolicyV0
 
-For Sprint 147:
-- LocalFixtureNewsProvider works.
-- RssFeed/HttpHeadline can return Disabled/Deferred unless explicitly enabled.
-- If enabled but no safe fetch implementation exists, return safe “ProviderDeferred” status.
+Fields:
+- min_support_for_active_rule
+- max_rules_per_member_head
+- allow_stance_bucket_mapping: true
+- allow_risk_bucket_mapping: true
+- allow_evidence_bucket_mapping: true
+- allow_confidence_adjustment: true
+- allow_expected_return_mapping: false
+- allow_trade_signal_output: false
+- allow_member_opinion_output: false
+- allow_committee_decision_output: false
+- debug_only: true
+- paper_only: true
 
-Do not implement heavy network fetch yet unless already available without new dependency.
+Default:
+- expected return mapping disabled.
+- trade/member/committee output disabled.
+- debug_only=true.
 
-D. NewsCollectionRun
+Rules:
+- overlay may adjust debug buckets only.
+- overlay may not create MemberOpinion.
+- overlay may not alter committee decision.
+- overlay may not alter RiskGovernor result.
+- overlay may not mutate weights.
+
+────────────────────────────────────────
+5. FEATURE D — CALIBRATED DEBUG OUTPUT
+
+Add:
+
+CalibratedSmartCoreHeadOutputV0
+
+Fields:
+- member_id
+- head
+- original_bucket
+- calibrated_bucket
+- calibration_action
+- applied_rule_id optional
+- rule_confidence
+- changed: bool
+- debug_only: true
+- not_investment_signal: true
+- not_committee_opinion: true
+- paper_only: true
+
+CalibratedSmartCoreDebugOutputV0
+
+Fields:
+- calibrated_output_id
+- source_debug_output_id
+- member_id
+- calibrated_heads
+- applied_rule_count
+- changed_head_count
+- calibration_summary
+- debug_only: true
+- not_investment_signal: true
+- not_committee_opinion: true
+- not_order: true
+- no_training: true
+- no_weight_update: true
+- no_checkpoint: true
+- paper_only: true
+
+CalibratedSmartCoreDebugOutputBatchV0
+
+Fields:
+- batch_id
+- source_debug_batch_id optional
+- member_outputs
+- output_count
+- changed_output_count
+- debug_only: true
+- paper_only: true
+
+Function:
+- apply_smartcore_calibration_overlay_v0(debug_output_batch, rule_table, policy)
+
+Rules:
+- apply only Active rules.
+- ObserveOnly rules do not change output.
+- preserve original output.
+- no weights mutated.
+- no checkpoint.
+- no training.
+- no decision use.
+
+────────────────────────────────────────
+6. FEATURE E — CALIBRATION OVERLAY SAFETY GUARD
+
+Add:
+
+SmartCoreCalibrationOverlaySafetyGuardV0
+
+Fields:
+- debug_only: bool
+- no_training: bool
+- no_weight_update: bool
+- no_checkpoint: bool
+- no_live_inference: bool
+- not_member_opinion: bool
+- not_committee_decision: bool
+- not_trade_signal: bool
+- not_order: bool
+- no_broker_order_account: bool
+- labels_not_in_input: bool
+- safety_status:
+  - Preserved
+  - Violated
+- violations
+- paper_only: true
+
+Function:
+- evaluate_smartcore_calibration_overlay_safety_v0(calibrated_batch, rule_table)
+
+Rules:
+- if calibrated output claims MemberOpinion => violation.
+- if calibrated output claims trade signal => violation.
+- if calibrated output changes committee decision => violation.
+- if rule table looks like persistent learned weight checkpoint => violation.
+- if labels injected into input features => violation.
+
+────────────────────────────────────────
+7. FEATURE F — SHADOW RECALIBRATION PASS
+
+Add:
+
+SmartCoreShadowRecalibrationRunConfig
 
 Fields:
 - run_id
-- provider_results
-- collected_news
-- rejected_news
-- safety_summary
-
-E. collect_news_from_providers(configs)
-
-Flow:
-1. Validate providers.
-2. Run enabled local providers.
-3. For RSS/HTTP, enforce allowlist and disabled-by-default.
-4. Normalize into CollectedNewsItem.
-5. Convert into NewsSnapshot.
-6. Return NewsCollectionRun.
-
-────────────────────────────────────────
-4. FEATURE C — RESEARCH RUN SCHEDULER
-
-A. ResearchRunConfig
-
-Fields:
-- research_run_id
-- market_scopes
-- symbols
-- market_data_path optional
-- news_provider_config_path optional
-- owner_intent_policy_path optional
-- owner_comment_text optional
-- owner_comment_path optional
-- member_state_input_path optional
-- offline_member_output_batch_path optional
-- run_mode:
-  - SingleShot
-  - ManualStep
-  - FixedCount
-- max_cycles
+- enabled: bool
+- calibration_dataset_path optional
+- rule_table_output_path optional
+- calibrated_debug_output_path optional
+- recalibration_result_output_path optional
+- dry_run: bool
 - paper_only: true
 
-B. ResearchRunResult
+SmartCoreShadowRecalibrationRunResult
 
 Fields:
-- research_run_id
-- news_collection_run
-- research_packet_batch
-- member_opinion_count
-- event_count
-- committee_session_count
-- owner_feedback_generated_count
-- safety_summary
+- run_id
+- stats_summary
+- rule_table
+- calibrated_debug_output_batch
+- recalibrated_alignment_result
+- pre_mismatch_count
+- post_mismatch_count
+- mismatch_delta
+- pre_alignment_status
+- post_alignment_status
+- overlay_safety_guard
+- no_decision_recheck
+- run_status:
+  - Passed
+  - PassedWithWarnings
+  - Failed
+- warnings
+- paper_only: true
 
-C. run_research_packet_pipeline(config)
+Function:
+- run_smartcore_shadow_recalibration_pass(debug_output_batch, calibration_dataset, previous_alignment_result, batch_result, config)
 
 Flow:
-1. Load market data.
-2. Load or build owner intent policy.
-3. Parse owner comment text/path if provided.
-4. Collect news via providers.
-5. Build AIResearchPacketBatch.
-6. Feed packets into existing batch committee cycle if configured.
-7. Return ResearchRunResult.
-8. Do not place orders.
-9. Do not run live inference.
-
-D. Research packet summary
-
-Expose:
-- symbols covered
-- news items attached
-- owner context attached
-- members routed
-- packets generated
-- events generated
-
-This is not a trading signal.
+1. Compute calibration stats.
+2. Build calibration rule table.
+3. Apply calibration overlay to debug output.
+4. Re-run shadow alignment using calibrated output.
+5. Compare pre/post mismatch counts.
+6. Evaluate overlay safety.
+7. Recheck no-decision boundary.
+8. If dry_run=true, write no output except CLI result.
+9. If dry_run=false, write local JSON outputs.
+10. Do not train.
+11. Do not mutate weights.
+12. Do not change committee decision.
 
 ────────────────────────────────────────
-5. CLI
+8. FEATURE G — RECALIBRATION INTERPRETATION
 
-Reuse existing commands where possible.
+Add:
 
-A. owner-say
+SmartCoreRecalibrationInterpretationV0
 
-Update:
-soma-experiment owner-say \
-  --text "삼성전자 뉴스 근거가 부족해 보여. 다시 봐." \
-  --symbol 005930.KS \
-  --scope KoreaShortTerm \
-  --policy examples/owner_intent_policy.ko.sample.json \
-  --out target/minimal_committee_state/owner_attention_actions.json
+Fields:
+- interpretation_id
+- mismatch_delta
+- improved: bool
+- worsened: bool
+- no_change: bool
+- data_sufficiency:
+  - SufficientForOverlay
+  - NeedsMoreTargets
+  - TooSparse
+- next_recommended_step:
+  - KeepCollectingCalibrationTargets
+  - TuneCalibrationPolicy
+  - ProceedToShadowOpinionCandidate
+  - KeepDebugOnly
+- human_readable_summary
+- debug_only: true
+- paper_only: true
+
+Function:
+- interpret_smartcore_recalibration_result_v0(result)
 
 Rules:
-- policy optional.
-- if absent, built-in default policy used.
-
-B. minimal-ai-committee-cycle
-
-Add optional config:
-- owner_intent_policy_path
-- news_provider_config_path
-- research_run_enabled
-- emit_research_run_summary
-
-C. Optional small command if necessary:
-soma-experiment research-run --config examples/soma_minimal_ai_committee_core.toml
-
-Prefer not adding this unless needed.
-
-Do not add a CLI family explosion.
+- If mismatch improves and safety preserved:
+  - next may be ShadowOpinionCandidate, still not decision.
+- If no change:
+  - continue collecting calibration targets or tune policy.
+- If worsens:
+  - disable active rules or keep observe-only.
+- No live inference.
+- No trading.
 
 ────────────────────────────────────────
-6. FILE SCOPE
+9. FEATURE H — OWNER CONSOLE RECALIBRATION SUMMARY
+
+Add:
+
+OwnerCoreRecalibrationDebugSummary
+
+Fields:
+- summary_id
+- pre_mismatch_count
+- post_mismatch_count
+- mismatch_delta
+- active_rule_count
+- changed_output_count
+- interpretation
+- message
+- debug_only: true
+- not_investment_signal: true
+- not_committee_opinion: true
+- paper_only: true
+
+Function:
+- build_owner_core_recalibration_debug_summary(result)
+
+Message should say:
+- “Calibration overlay is debug-only.”
+- “It does not train or update weights.”
+- “It is not used for committee decisions.”
+- “It is not a trading signal.”
+
+────────────────────────────────────────
+10. CLI CONFIG
+
+Reuse existing command:
+
+soma-experiment minimal-ai-committee-cycle --config examples/soma_minimal_ai_committee_core.toml
+
+Add optional config:
+- smartcore_recalibration_enabled: bool
+- smartcore_recalibration_dry_run: bool
+- smartcore_recalibration_rule_table_output_path optional
+- smartcore_calibrated_debug_output_path optional
+- smartcore_recalibration_result_output_path optional
+- smartcore_recalibration_min_support
+- smartcore_recalibration_max_rules_per_member_head
+- smartcore_recalibration_emit_owner_summary: bool
+
+CLI output should include:
+- calibration_stats_status.
+- active_rule_count.
+- observe_only_rule_count.
+- changed_output_count.
+- pre_mismatch_count.
+- post_mismatch_count.
+- mismatch_delta.
+- overlay_safety_status.
+- no_decision_recheck_status.
+- interpretation next step.
+- debug-only/no-training/no-decision warning.
+
+No new CLI family.
+
+────────────────────────────────────────
+11. EXAMPLES
+
+Update:
+examples/soma_minimal_ai_committee_core.toml
+
+Add:
+- smartcore_recalibration_enabled = true or false depending safety.
+- smartcore_recalibration_dry_run = true by default.
+- smartcore_recalibration_min_support = 2.
+- smartcore_recalibration_max_rules_per_member_head = 2.
+- smartcore_recalibration_emit_owner_summary = true.
+- smartcore_recalibration_rule_table_output_path = "target/minimal_smartcore_calibration_rule_table.json"
+- smartcore_calibrated_debug_output_path = "target/minimal_smartcore_calibrated_debug_output.json"
+- smartcore_recalibration_result_output_path = "target/minimal_smartcore_recalibration_result.json"
+
+Do not add:
+- training config.
+- optimizer.
+- checkpoint.
+- model weight path.
+- inference endpoint.
+- order path.
+
+────────────────────────────────────────
+12. FILE SCOPE
 
 Prefer changing only:
 - src/league/minimal_ai_committee_core.rs
 - src/bin/soma_experiment.rs
 - tests/minimal_ai_committee_core.rs
 - examples/soma_minimal_ai_committee_core.toml
-- examples/owner_intent_policy.ko.sample.json
-- examples/news_providers.sample.json
-- examples/minimal_news_items.sample.json
-- optional docs/SPRINT147_POLICY_NEWS_RESEARCH_PIPELINE.md
+- optional docs/SPRINT179_SMARTCORE_CALIBRATION_OVERLAY.md
 
 Do not create many files.
 Do not add JS/TS/Tauri/Svelte.
 Do not add web assets.
+Do not add Python.
 
 ────────────────────────────────────────
-7. TESTS
+13. TESTS
 
 Add focused tests inside tests/minimal_ai_committee_core.rs.
 
 Required tests:
-1. built-in owner intent policy parses EvidenceRequest.
-2. built-in owner intent policy parses RiskConcern.
-3. built-in owner intent policy parses WatchlistRequest.
-4. built-in owner intent policy parses ReconsiderationRequest.
-5. built-in policy rejects order/account/leverage/guaranteed-return text.
-6. local owner intent policy file loads.
-7. owner policy remote path is rejected.
-8. policy priority works.
-9. tests may use fixed sample phrases, but parser uses policy table.
-10. LocalFixtureNewsProvider loads news.
-11. RSS provider disabled by default.
-12. disallowed remote domain rejected by host.
-13. full article body is not stored.
-14. collected news converts to NewsSnapshot.
-15. research packets include news by symbol/scope.
-16. research packets include owner context.
-17. DataRouter still only routes.
-18. research run does not generate buy/sell directly.
-19. AI members remain opinion source.
-20. Risk Governor remains final.
-21. no broker/order/account path exists.
-22. no training/live inference path exists.
-23. no browser/JS/Tauri/Svelte dependency exists.
-24. deterministic repeated research run.
+1. calibration stats counts mismatches.
+2. calibration stats groups by member/head.
+3. low-support mismatch creates ObserveOnly rule.
+4. sufficient support mismatch creates Active rule.
+5. expected return mapping disabled by default.
+6. overlay policy forbids trade signal output.
+7. calibration overlay changes only debug buckets.
+8. calibration overlay does not mutate original output.
+9. calibrated output remains not_investment_signal.
+10. calibrated output remains not_committee_opinion.
+11. calibrated output remains not_order.
+12. safety guard detects MemberOpinion misuse.
+13. safety guard detects trade signal misuse.
+14. recalibration pass recomputes alignment.
+15. recalibration pass reports mismatch_delta.
+16. no-decision recheck remains Preserved.
+17. owner recalibration summary is debug-only.
+18. recalibration dry-run writes no files.
+19. no training is executed.
+20. no weight update occurs.
+21. no checkpoint is written.
+22. no live inference path exists.
+23. no broker/order/account path exists.
+24. deterministic repeated recalibration pass.
 
 Do not add broad test files.
 
 ────────────────────────────────────────
-8. ACCEPTANCE CRITERIA
+14. ACCEPTANCE CRITERIA
 
-Sprint 147 succeeds if:
+Sprint 179 succeeds if:
 
-- OwnerIntentPolicy exists.
-- hardcoded runtime keyword parsing is replaced by policy-table parsing.
-- tests still use sample phrases safely.
-- owner-say can use built-in or local policy.
-- unsafe owner text is rejected by policy.
-- NewsProvider abstraction exists.
-- LocalFixtureNewsProvider works.
-- RSS/HTTP providers are disabled/deferred safely by default.
-- news converts to NewsSnapshot.
-- AIResearchPacketBatch uses collected news.
-- research run pipeline exists.
-- program still routes only.
-- AI members still judge.
-- Risk Governor remains final.
+- SmartCoreHeadCalibrationStatsV0 exists.
+- SmartCoreCalibrationStatsSummaryV0 exists.
+- SmartCoreCalibrationRuleTableV0 exists.
+- SmartCoreCalibrationOverlayPolicyV0 exists.
+- CalibratedSmartCoreDebugOutputV0 exists.
+- SmartCoreCalibrationOverlaySafetyGuardV0 exists.
+- SmartCoreShadowRecalibrationRun exists.
+- SmartCoreRecalibrationInterpretationV0 exists.
+- OwnerCoreRecalibrationDebugSummary exists.
+- calibration rules are built from calibration dataset.
+- overlay applies only debug bucket changes.
+- original debug output is preserved.
+- shadow alignment can be re-run after overlay.
+- mismatch delta is reported.
+- no decision bridge remains preserved.
+- calibrated output is not MemberOpinion.
+- calibrated output is not CommitteeDecision.
+- calibrated output is not TradeSignal.
+- no training is executed.
+- no weight mutation occurs.
+- no checkpoint is written.
+- no live inference is added.
 - no broker/order/account path exists.
-- no live trading path exists.
-- no model training/live inference is added.
-- no real Mamba/Gated runtime is added.
-- no web/browser/JS/Tauri/Svelte is added.
 - focused tests pass.
 - explicit manifest workspace tests pass.
 
 ────────────────────────────────────────
-9. RUN COMMANDS
+15. RUN COMMANDS
 
 Run:
 cargo fmt --all
@@ -532,14 +699,7 @@ cargo build --bin soma_experiment
 cargo test --test minimal_ai_committee_core --quiet
 cargo test --test workspace_timeout_reduction_queue --quiet
 
-Owner-say smoke:
-cargo run --quiet --bin soma_experiment -- owner-say \
-  --text "삼성전자 뉴스 근거가 부족해 보여. 다시 봐." \
-  --symbol 005930.KS \
-  --scope KoreaShortTerm \
-  --out target/minimal_committee_state/owner_attention_actions.json
-
-Cycle/research smoke:
+Cycle smoke:
 cargo run --quiet --bin soma_experiment -- minimal-ai-committee-cycle --config examples/soma_minimal_ai_committee_core.toml
 
 Workspace:
@@ -547,21 +707,21 @@ cargo test --workspace --no-run --quiet
 cargo test --workspace --quiet
 
 ────────────────────────────────────────
-10. FINAL RESPONSE FORMAT
+16. FINAL RESPONSE FORMAT
 
 Keep short:
 
 ## 1. What changed
 
-## 2. Owner intent policy table
+## 2. Calibration stats
 
-## 3. Natural owner input
+## 3. Calibration rule table
 
-## 4. News provider layer
+## 4. Calibrated debug output
 
-## 5. Research packet pipeline
+## 5. Shadow recalibration pass
 
-## 6. CLI usage
+## 6. Recalibration interpretation
 
 ## 7. Safety preserved
 

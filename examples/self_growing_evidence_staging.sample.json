@@ -1,0 +1,132 @@
+{
+  "store_id": "sample-self-growing-evidence-staging",
+  "candidates": [
+    {
+      "candidate_id": "candidate-strong-price-aapl",
+      "source_research_evidence_id": "evidence-local-price-aapl",
+      "member_id": "TrendEntryAI",
+      "symbol": "AAPL",
+      "market_scope": "UsShortTerm",
+      "related_replay_id": "replay-aapl-001",
+      "related_experience_id": "exp-aapl-001",
+      "related_decision_id": "decision-aapl-001",
+      "evidence_kind": "PriceMove",
+      "source_id": "sample-local-price-series",
+      "source_trust_status": "Trusted",
+      "evidence_confidence": "High",
+      "candidate_label": "PaperPositive",
+      "label_source": "SelfGrowingPriceEvidence",
+      "reference_price": 100.0,
+      "horizon_price": 103.1,
+      "price_change_pct": 0.031,
+      "evidence_notes": [
+        "price_change_pct=0.031000",
+        "paper-only approved-price candidate"
+      ],
+      "status": "Pending",
+      "paper_only": true
+    },
+    {
+      "candidate_id": "candidate-news-only-aapl",
+      "source_research_evidence_id": "evidence-local-news-aapl",
+      "member_id": "TrendEntryAI",
+      "symbol": "AAPL",
+      "market_scope": "UsShortTerm",
+      "related_replay_id": "replay-aapl-001",
+      "related_experience_id": "aapl-001",
+      "related_decision_id": "decision-aapl-001",
+      "evidence_kind": "NewsContext",
+      "source_id": "sample-local-news",
+      "source_trust_status": "ReviewRequired",
+      "evidence_confidence": "Low",
+      "candidate_label": null,
+      "label_source": "SelfGrowingNewsContext",
+      "reference_price": null,
+      "horizon_price": null,
+      "price_change_pct": null,
+      "evidence_notes": [
+        "headline-only context; no label promotion"
+      ],
+      "status": "ReviewRequired",
+      "paper_only": true
+    },
+    {
+      "candidate_id": "candidate-low-trust-rss-aapl",
+      "source_research_evidence_id": "evidence-local-rss-aapl",
+      "member_id": "EvidenceRegimeAI",
+      "symbol": "AAPL",
+      "market_scope": "UsShortTerm",
+      "related_replay_id": "replay-aapl-001",
+      "related_experience_id": null,
+      "related_decision_id": null,
+      "evidence_kind": "SupportingEvidence",
+      "source_id": "sample-local-rss",
+      "source_trust_status": "ReviewRequired",
+      "evidence_confidence": "ReviewRequired",
+      "candidate_label": null,
+      "label_source": "ReviewRequired",
+      "reference_price": null,
+      "horizon_price": null,
+      "price_change_pct": null,
+      "evidence_notes": [
+        "review-required rss context"
+      ],
+      "status": "ReviewRequired",
+      "paper_only": true
+    },
+    {
+      "candidate_id": "candidate-ambiguous-missing-replay",
+      "source_research_evidence_id": "evidence-supporting-aapl",
+      "member_id": "RiskGuardAI",
+      "symbol": "AAPL",
+      "market_scope": "UsShortTerm",
+      "related_replay_id": null,
+      "related_experience_id": "exp-aapl-ambiguous",
+      "related_decision_id": "decision-aapl-ambiguous",
+      "evidence_kind": "SupportingEvidence",
+      "source_id": "sample-local-market",
+      "source_trust_status": "UsableWithWarnings",
+      "evidence_confidence": "Medium",
+      "candidate_label": "Unknown",
+      "label_source": "ReviewRequired",
+      "reference_price": null,
+      "horizon_price": null,
+      "price_change_pct": null,
+      "evidence_notes": [
+        "partial linkage only; requires review"
+      ],
+      "status": "Pending",
+      "paper_only": true
+    },
+    {
+      "candidate_id": "candidate-missing-replay-aapl",
+      "source_research_evidence_id": "evidence-missing-replay-aapl",
+      "member_id": "TrendEntryAI",
+      "symbol": "AAPL",
+      "market_scope": "UsShortTerm",
+      "related_replay_id": null,
+      "related_experience_id": "aapl-001",
+      "related_decision_id": "decision-aapl-001",
+      "evidence_kind": "PriceMove",
+      "source_id": "sample-local-price-series",
+      "source_trust_status": "Trusted",
+      "evidence_confidence": "Medium",
+      "candidate_label": null,
+      "label_source": "ReviewRequired",
+      "reference_price": null,
+      "horizon_price": null,
+      "price_change_pct": null,
+      "evidence_notes": [
+        "missing replay link before exact price enrichment"
+      ],
+      "status": "Pending",
+      "paper_only": true
+    }
+  ],
+  "candidate_count": 5,
+  "pending_count": 3,
+  "approved_count": 0,
+  "rejected_count": 0,
+  "review_required_count": 2,
+  "paper_only": true
+}

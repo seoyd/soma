@@ -1,0 +1,67 @@
+{
+  "schema_version": "paper-outcome-evidence.v1",
+  "evidence_file_id": "minimal-paper-outcome-evidence-sprint156",
+  "created_at": "2026-05-24T14:39:33+09:00",
+  "source_label": "local-paper-evidence-sample",
+  "paper_only": true,
+  "records": [
+    {
+      "evidence_id": "paper-evidence-valid-positive-005930",
+      "symbol": "005930.KS",
+      "market_scope": "KoreaShortTerm",
+      "replay_id": "replay-experience-offline-batch-sprint130-sample-005930.KS-evidence-kr-short-2",
+      "experience_id": "experience-offline-batch-sprint130-sample-005930.KS-evidence-kr-short-2",
+      "horizon": "ShortTerm",
+      "horizon_bars": 5,
+      "reference_price": 72000.0,
+      "horizon_price": 73584.0,
+      "price_change_pct": 0.022,
+      "candidate_label": "PaperPositive",
+      "label_source": "ManualPaperLabel",
+      "label_confidence": "High",
+      "evidence_notes": [
+        "local paper-only close-to-horizon movement supports positive label",
+        "decision trace reviewed from paper committee output"
+      ],
+      "validation_hint": "PromoteIfPolicyPasses",
+      "paper_only": true
+    },
+    {
+      "evidence_id": "paper-evidence-valid-negative-msft",
+      "symbol": "MSFT",
+      "market_scope": "UsLongTerm",
+      "replay_id": "replay-experience-offline-batch-sprint130-sample-MSFT-evidence-kr-short-11",
+      "experience_id": "experience-offline-batch-sprint130-sample-MSFT-evidence-kr-short-11",
+      "horizon": "LongTerm",
+      "horizon_bars": 20,
+      "reference_price": 420.0,
+      "horizon_price": 409.5,
+      "price_change_pct": -0.025,
+      "candidate_label": "PaperNegative",
+      "label_source": "ManualPaperLabel",
+      "label_confidence": "Medium",
+      "evidence_notes": [
+        "local paper-only horizon movement supports negative label",
+        "decision trace reviewed from paper committee output"
+      ],
+      "validation_hint": "PromoteIfPolicyPasses",
+      "paper_only": true
+    },
+    {
+      "evidence_id": "paper-evidence-needs-review-aapl",
+      "symbol": "AAPL",
+      "market_scope": "UsShortTerm",
+      "horizon": "ShortTerm",
+      "horizon_bars": 5,
+      "candidate_label": "Unknown",
+      "label_source": "ReviewRequired",
+      "label_confidence": "ReviewRequired",
+      "evidence_notes": [
+        "NeedsReview: price evidence not available yet",
+        "keep label review-required until local horizon movement is added"
+      ],
+      "validation_hint": "KeepReviewRequired",
+      "paper_only": true
+    }
+  ]
+}

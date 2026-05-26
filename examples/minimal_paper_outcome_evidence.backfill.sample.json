@@ -1,0 +1,80 @@
+{
+  "schema_version": "paper-outcome-evidence.v1",
+  "evidence_file_id": "minimal-paper-outcome-evidence-backfill-sprint157",
+  "created_at": "2026-05-24T15:57:00+09:00",
+  "source_label": "local-paper-evidence-backfill-sample",
+  "paper_only": true,
+  "records": [
+    {
+      "evidence_id": "backfill-ambiguous-missing-replay-aapl",
+      "symbol": "AAPL",
+      "market_scope": "UsShortTerm",
+      "horizon": "ShortTerm",
+      "horizon_bars": 5,
+      "reference_price": 190.0,
+      "horizon_price": 192.85,
+      "price_change_pct": 0.015,
+      "candidate_label": "PaperPositive",
+      "label_source": "ManualPaperLabel",
+      "label_confidence": "Medium",
+      "evidence_notes": [
+        "local paper-only record intentionally lacks replay_id for resolver inventory"
+      ],
+      "validation_hint": "PromoteIfPolicyPasses",
+      "paper_only": true
+    },
+    {
+      "evidence_id": "backfill-exact-replay-005930",
+      "symbol": "005930.KS",
+      "market_scope": "KoreaShortTerm",
+      "replay_id": "replay-experience-offline-batch-sprint130-sample-005930.KS-evidence-kr-short-2",
+      "experience_id": "experience-offline-batch-sprint130-sample-005930.KS-evidence-kr-short-2",
+      "horizon": "ShortTerm",
+      "horizon_bars": 5,
+      "reference_price": 72000.0,
+      "horizon_price": 73584.0,
+      "price_change_pct": 0.022,
+      "candidate_label": "PaperPositive",
+      "label_source": "ManualPaperLabel",
+      "label_confidence": "High",
+      "evidence_notes": [
+        "exact replay_id paper-only promotion candidate"
+      ],
+      "validation_hint": "PromoteIfPolicyPasses",
+      "paper_only": true
+    },
+    {
+      "evidence_id": "backfill-exact-decision-msft",
+      "symbol": "MSFT",
+      "market_scope": "UsLongTerm",
+      "decision_id": "experience-offline-batch-sprint130-sample-MSFT-evidence-kr-short-11",
+      "horizon": "LongTerm",
+      "horizon_bars": 20,
+      "reference_price": 420.0,
+      "horizon_price": 409.5,
+      "price_change_pct": -0.025,
+      "candidate_label": "PaperNegative",
+      "label_source": "ManualPaperLabel",
+      "label_confidence": "Medium",
+      "evidence_notes": [
+        "decision_id-only local paper evidence for backfill suggestion"
+      ],
+      "validation_hint": "PromoteIfPolicyPasses",
+      "paper_only": true
+    },
+    {
+      "evidence_id": "backfill-unknown-horizon-no-promote",
+      "symbol": "TSLA",
+      "market_scope": "UsShortTerm",
+      "horizon": "Unknown",
+      "candidate_label": "PaperNeutral",
+      "label_source": "ReviewRequired",
+      "label_confidence": "ReviewRequired",
+      "evidence_notes": [
+        "unknown horizon must not promote through symbol/scope fallback"
+      ],
+      "validation_hint": "KeepReviewRequired",
+      "paper_only": true
+    }
+  ]
+}

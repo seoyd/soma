@@ -1,0 +1,81 @@
+{
+  "store_id": "minimal-paper-price-series-sprint158",
+  "paper_only": true,
+  "series": [
+    {
+      "series_id": "series-005930-kr-short",
+      "symbol": "005930.KS",
+      "market_scope": "KoreaShortTerm",
+      "source_label": "local-paper-price-series",
+      "paper_only": true,
+      "bars": [
+        {"symbol": "005930.KS", "market_scope": "KoreaShortTerm", "timestamp": "2026-05-20T09:00:00+09:00", "close": 72000.0, "source_label": "local-paper-price-series", "paper_only": true},
+        {"symbol": "005930.KS", "market_scope": "KoreaShortTerm", "timestamp": "2026-05-21T09:00:00+09:00", "close": 72720.0, "source_label": "local-paper-price-series", "paper_only": true},
+        {"symbol": "005930.KS", "market_scope": "KoreaShortTerm", "timestamp": "2026-05-22T09:00:00+09:00", "close": 73440.0, "source_label": "local-paper-price-series", "paper_only": true}
+      ]
+    },
+    {
+      "series_id": "series-000660-kr-long",
+      "symbol": "000660.KS",
+      "market_scope": "KoreaLongTerm",
+      "source_label": "local-paper-price-series",
+      "paper_only": true,
+      "bars": [
+        {"symbol": "000660.KS", "market_scope": "KoreaLongTerm", "timestamp": "2026-05-20T09:00:00+09:00", "close": 182000.0, "source_label": "local-paper-price-series", "paper_only": true},
+        {"symbol": "000660.KS", "market_scope": "KoreaLongTerm", "timestamp": "2026-05-21T09:00:00+09:00", "close": 181090.0, "source_label": "local-paper-price-series", "paper_only": true},
+        {"symbol": "000660.KS", "market_scope": "KoreaLongTerm", "timestamp": "2026-05-22T09:00:00+09:00", "close": 180180.0, "source_label": "local-paper-price-series", "paper_only": true},
+        {"symbol": "000660.KS", "market_scope": "KoreaLongTerm", "timestamp": "2026-05-23T09:00:00+09:00", "close": 179270.0, "source_label": "local-paper-price-series", "paper_only": true},
+        {"symbol": "000660.KS", "market_scope": "KoreaLongTerm", "timestamp": "2026-05-24T09:00:00+09:00", "close": 176540.0, "source_label": "local-paper-price-series", "paper_only": true}
+      ]
+    },
+    {
+      "series_id": "series-aapl-us-short",
+      "symbol": "AAPL",
+      "market_scope": "UsShortTerm",
+      "source_label": "local-paper-price-series",
+      "paper_only": true,
+      "bars": [
+        {"symbol": "AAPL", "market_scope": "UsShortTerm", "timestamp": "2026-05-20T09:30:00-04:00", "close": 200.0, "source_label": "local-paper-price-series", "paper_only": true},
+        {"symbol": "AAPL", "market_scope": "UsShortTerm", "timestamp": "2026-05-21T09:30:00-04:00", "close": 202.0, "source_label": "local-paper-price-series", "paper_only": true},
+        {"symbol": "AAPL", "market_scope": "UsShortTerm", "timestamp": "2026-05-22T09:30:00-04:00", "close": 205.0, "source_label": "local-paper-price-series", "paper_only": true}
+      ]
+    },
+    {
+      "series_id": "series-msft-us-long",
+      "symbol": "MSFT",
+      "market_scope": "UsLongTerm",
+      "source_label": "local-paper-price-series",
+      "paper_only": true,
+      "bars": [
+        {"symbol": "MSFT", "market_scope": "UsLongTerm", "timestamp": "2026-05-20T09:30:00-04:00", "close": 420.0, "source_label": "local-paper-price-series", "paper_only": true},
+        {"symbol": "MSFT", "market_scope": "UsLongTerm", "timestamp": "2026-05-21T09:30:00-04:00", "close": 418.0, "source_label": "local-paper-price-series", "paper_only": true},
+        {"symbol": "MSFT", "market_scope": "UsLongTerm", "timestamp": "2026-05-22T09:30:00-04:00", "close": 415.0, "source_label": "local-paper-price-series", "paper_only": true},
+        {"symbol": "MSFT", "market_scope": "UsLongTerm", "timestamp": "2026-05-23T09:30:00-04:00", "close": 412.0, "source_label": "local-paper-price-series", "paper_only": true},
+        {"symbol": "MSFT", "market_scope": "UsLongTerm", "timestamp": "2026-05-24T09:30:00-04:00", "close": 409.0, "source_label": "local-paper-price-series", "paper_only": true}
+      ]
+    },
+    {
+      "series_id": "series-btc-crypto-short",
+      "symbol": "BTCUSDT",
+      "market_scope": "CryptoShortTerm",
+      "source_label": "local-paper-price-series",
+      "paper_only": true,
+      "bars": [
+        {"symbol": "BTCUSDT", "market_scope": "CryptoShortTerm", "timestamp": "2026-05-20T00:00:00Z", "close": 108000.0, "source_label": "local-paper-price-series", "paper_only": true},
+        {"symbol": "BTCUSDT", "market_scope": "CryptoShortTerm", "timestamp": "2026-05-21T00:00:00Z", "close": 108108.0, "source_label": "local-paper-price-series", "paper_only": true},
+        {"symbol": "BTCUSDT", "market_scope": "CryptoShortTerm", "timestamp": "2026-05-22T00:00:00Z", "close": 108054.0, "source_label": "local-paper-price-series", "paper_only": true}
+      ]
+    },
+    {
+      "series_id": "series-eth-crypto-long",
+      "symbol": "ETHUSDT",
+      "market_scope": "CryptoLongTerm",
+      "source_label": "local-paper-price-series",
+      "paper_only": true,
+      "bars": [
+        {"symbol": "ETHUSDT", "market_scope": "CryptoLongTerm", "timestamp": "2026-05-20T00:00:00Z", "close": 5200.0, "source_label": "local-paper-price-series", "paper_only": true},
+        {"symbol": "ETHUSDT", "market_scope": "CryptoLongTerm", "timestamp": "2026-05-21T00:00:00Z", "close": 5220.0, "source_label": "local-paper-price-series", "paper_only": true}
+      ]
+    }
+  ]
+}

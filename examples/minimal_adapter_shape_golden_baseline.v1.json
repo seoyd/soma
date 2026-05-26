@@ -1,0 +1,168 @@
+{
+  "schema_version": "V1",
+  "baseline_id": "minimal-adapter-shape-golden-baseline-v1",
+  "created_from_run_id": "minimal-ai-committee-cycle",
+  "snapshot_set": {
+    "snapshot_set_id": "adapter-shape-golden-baseline-snapshot-set",
+    "snapshots": [
+      {
+        "snapshot_id": "evidence-kr-short::contract-baseline",
+        "schema_version": "V1",
+        "member_id": "evidence-kr-short",
+        "batch_id": "evidence-kr-short-contract-batch",
+        "input_shape": {
+          "shape_id": "evidence-kr-short-adapter-contract-baseline-input-shape",
+          "member_id": "evidence-kr-short",
+          "batch_id": "evidence-kr-short-contract-batch",
+          "example_count": 1,
+          "sequence_len": 6,
+          "feature_dim": 6,
+          "market_feature_dim": 1,
+          "news_feature_dim": 1,
+          "owner_context_dim": 1,
+          "memory_feature_dim": 1,
+          "style_feature_dim": 1,
+          "calibration_feature_dim": 1,
+          "has_news_features": true,
+          "has_owner_context": true,
+          "has_prior_memory": true,
+          "paper_only": true
+        },
+        "output_shape": {
+          "shape_id": "evidence-kr-short-adapter-contract-baseline-output-shape",
+          "member_id": "evidence-kr-short",
+          "batch_id": "evidence-kr-short-contract-batch",
+          "example_count": 1,
+          "enabled_heads": [
+            "EvidenceNeed",
+            "ConfidenceCalibration",
+            "Risk",
+            "Stance",
+            "Uncertainty",
+            "ExpectedReturnHint"
+          ],
+          "stance_output_dim": 5,
+          "confidence_output_dim": 6,
+          "risk_output_dim": 3,
+          "evidence_output_dim": 3,
+          "uncertainty_output_dim": 1,
+          "expected_return_output_dim": 1,
+          "paper_only": true
+        },
+        "member_contract_summary": "evidence-kr-short-learning-data-contract-v1::contract-locked",
+        "paper_only": true
+      },
+      {
+        "snapshot_id": "risk-kr-short::contract-baseline",
+        "schema_version": "V1",
+        "member_id": "risk-kr-short",
+        "batch_id": "risk-kr-short-contract-batch",
+        "input_shape": {
+          "shape_id": "risk-kr-short-adapter-contract-baseline-input-shape",
+          "member_id": "risk-kr-short",
+          "batch_id": "risk-kr-short-contract-batch",
+          "example_count": 1,
+          "sequence_len": 6,
+          "feature_dim": 6,
+          "market_feature_dim": 1,
+          "news_feature_dim": 1,
+          "owner_context_dim": 1,
+          "memory_feature_dim": 1,
+          "style_feature_dim": 1,
+          "calibration_feature_dim": 1,
+          "has_news_features": true,
+          "has_owner_context": true,
+          "has_prior_memory": true,
+          "paper_only": true
+        },
+        "output_shape": {
+          "shape_id": "risk-kr-short-adapter-contract-baseline-output-shape",
+          "member_id": "risk-kr-short",
+          "batch_id": "risk-kr-short-contract-batch",
+          "example_count": 1,
+          "enabled_heads": [
+            "Risk",
+            "Uncertainty",
+            "EvidenceNeed",
+            "ConfidenceCalibration",
+            "Stance",
+            "ExpectedReturnHint"
+          ],
+          "stance_output_dim": 5,
+          "confidence_output_dim": 6,
+          "risk_output_dim": 3,
+          "evidence_output_dim": 3,
+          "uncertainty_output_dim": 1,
+          "expected_return_output_dim": 1,
+          "paper_only": true
+        },
+        "member_contract_summary": "risk-kr-short-learning-data-contract-v1::contract-locked",
+        "paper_only": true
+      },
+      {
+        "snapshot_id": "trend-kr-short::contract-baseline",
+        "schema_version": "V1",
+        "member_id": "trend-kr-short",
+        "batch_id": "trend-kr-short-contract-batch",
+        "input_shape": {
+          "shape_id": "trend-kr-short-adapter-contract-baseline-input-shape",
+          "member_id": "trend-kr-short",
+          "batch_id": "trend-kr-short-contract-batch",
+          "example_count": 1,
+          "sequence_len": 6,
+          "feature_dim": 6,
+          "market_feature_dim": 1,
+          "news_feature_dim": 1,
+          "owner_context_dim": 1,
+          "memory_feature_dim": 1,
+          "style_feature_dim": 1,
+          "calibration_feature_dim": 1,
+          "has_news_features": true,
+          "has_owner_context": true,
+          "has_prior_memory": true,
+          "paper_only": true
+        },
+        "output_shape": {
+          "shape_id": "trend-kr-short-adapter-contract-baseline-output-shape",
+          "member_id": "trend-kr-short",
+          "batch_id": "trend-kr-short-contract-batch",
+          "example_count": 1,
+          "enabled_heads": [
+            "Stance",
+            "ConfidenceCalibration",
+            "ExpectedReturnHint",
+            "EvidenceNeed",
+            "Risk",
+            "Uncertainty"
+          ],
+          "stance_output_dim": 5,
+          "confidence_output_dim": 6,
+          "risk_output_dim": 3,
+          "evidence_output_dim": 3,
+          "uncertainty_output_dim": 1,
+          "expected_return_output_dim": 1,
+          "paper_only": true
+        },
+        "member_contract_summary": "trend-kr-short-learning-data-contract-v1::contract-locked",
+        "paper_only": true
+      }
+    ],
+    "snapshot_count": 3,
+    "schema_version": "V1",
+    "paper_only": true
+  },
+  "baseline_policy": {
+    "baseline_required": true,
+    "allow_missing_baseline_bootstrap": false,
+    "allow_schema_version_bump": false,
+    "fail_on_dimension_change": true,
+    "fail_on_member_set_change": true,
+    "fail_on_batch_set_change": true,
+    "fail_on_output_head_change": true,
+    "fail_on_input_group_change": true,
+    "fail_on_unknown_member_alias": true,
+    "fail_on_unmatched_batch": true,
+    "paper_only": true
+  },
+  "paper_only": true
+}

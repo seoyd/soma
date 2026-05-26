@@ -1,0 +1,48 @@
+[
+  {
+    "provider_id": "sample-local-news",
+    "kind": "LocalFixture",
+    "enabled": true,
+    "source_path_or_url": "examples/minimal_news_items.sample.json",
+    "source_label": "local-news-fixture",
+    "allowed_domains": [],
+    "symbols": [],
+    "market_scopes": [],
+    "max_items": 5,
+    "timeout_ms": 1000,
+    "trust_level": "ReviewRequired",
+    "paper_only": true
+  },
+  {
+    "provider_id": "sample-rss-deferred",
+    "kind": "RssFeed",
+    "enabled": false,
+    "source_path_or_url": "https://news.example/feed.xml",
+    "source_label": "rss-deferred-example",
+    "allowed_domains": [
+      "news.example"
+    ],
+    "symbols": [],
+    "market_scopes": [],
+    "max_items": 5,
+    "timeout_ms": 1000,
+    "trust_level": "Low",
+    "paper_only": true
+  },
+  {
+    "provider_id": "sample-http-headline-deferred",
+    "kind": "HttpHeadline",
+    "enabled": false,
+    "source_path_or_url": "https://headlines.example/top",
+    "source_label": "http-headline-deferred-example",
+    "allowed_domains": [
+      "headlines.example"
+    ],
+    "symbols": [],
+    "market_scopes": [],
+    "max_items": 5,
+    "timeout_ms": 1000,
+    "trust_level": "Low",
+    "paper_only": true
+  }
+]

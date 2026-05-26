@@ -182,7 +182,8 @@ use soma_zero::{
     run_batch_committee_cycle_from_config_path,
     run_batch_committee_cycle_with_state_from_config_path,
     run_minimal_committee_cycle_from_config_path, run_owner_console_viewer,
-    write_owner_natural_input_action_file, write_owner_natural_input_action_file_with_policy,
+    run_research_auto_run_from_minimal_config_path, write_owner_natural_input_action_file,
+    write_owner_natural_input_action_file_with_policy,
 };
 use soma_zero::{
     MixedFamilyIsolationV1Bundle, MixedFamilyIsolationV1Config, MixedFamilyIsolationV1Runner,
@@ -983,7 +984,12 @@ fn run_minimal_ai_committee_cycle(
     } else {
         let parsed = MinimalAiCommitteeCycleConfig::from_toml_path(std::path::Path::new(config))?;
         parsed.validate()?;
-        if parsed.autonomous_paper_run {
+        if parsed.research_auto_run_enabled {
+            serde_json::to_value(run_research_auto_run_from_minimal_config_path(
+                std::path::Path::new(config),
+            )?)
+            .map_err(|err| err.to_string())
+        } else if parsed.autonomous_paper_run {
             serde_json::to_value(run_autonomous_paper_committee_loop_from_config_path(
                 std::path::Path::new(config),
             )?)
@@ -992,9 +998,104 @@ fn run_minimal_ai_committee_cycle(
             if parsed.emit_owner_summary
                 || parsed.emit_owner_console_view
                 || parsed.emit_reconsideration_view
+                || parsed.emit_learning_summary
+                || parsed.emit_replay_dataset_summary
                 || parsed.owner_feedback_path.is_some()
                 || parsed.member_state_input_path.is_some()
                 || parsed.member_state_output_path.is_some()
+                || parsed.member_experience_store_input_path.is_some()
+                || parsed.member_experience_store_output_path.is_some()
+                || parsed.replay_dataset_output_path.is_some()
+                || parsed.replay_quality_eval_enabled
+                || parsed.replay_quality_eval_output_path.is_some()
+                || parsed.replay_sanitization_enabled
+                || parsed.sanitized_replay_dataset_output_path.is_some()
+                || parsed.replay_coverage_eval_enabled
+                || parsed
+                    .replay_coverage_collection_queue_output_path
+                    .is_some()
+                || parsed.paper_scenario_collection_enabled
+                || parsed.scenario_run_output_path.is_some()
+                || parsed.label_validation_enabled
+                || parsed.validated_replay_dataset_output_path.is_some()
+                || parsed.label_quality_summary_output_path.is_some()
+                || parsed.label_validation_with_evidence_enabled
+                || parsed.paper_outcome_evidence_path.is_some()
+                || parsed.paper_outcome_evidence_quality_output_path.is_some()
+                || parsed.validated_replay_with_evidence_output_path.is_some()
+                || parsed.evidence_backfill_enabled
+                || parsed.evidence_backfill_output_path.is_some()
+                || parsed.validated_ratio_expansion_enabled
+                || parsed.validated_ratio_expansion_output_path.is_some()
+                || parsed.weak_label_review_enabled
+                || parsed.weak_label_review_decision_path.is_some()
+                || parsed.weak_label_review_output_path.is_some()
+                || parsed.replay_training_inclusion_mask_output_path.is_some()
+                || parsed.weak_label_closure_enabled
+                || parsed.training_candidate_dataset_output_path.is_some()
+                || parsed.training_split_output_path.is_some()
+                || parsed.offline_trainer_dry_run_enabled
+                || parsed.offline_trainer_dry_run_output_path.is_some()
+                || parsed.offline_trainer_v2_enabled
+                || parsed.offline_trainer_v2_output_path.is_some()
+                || parsed.offline_trainer_design_status_output_path.is_some()
+                || parsed.trainer_readiness_brief_enabled
+                || parsed.trainer_readiness_brief_output_path.is_some()
+                || parsed.tiny_training_eligibility_gate_enabled
+                || parsed.tiny_training_contract_output_path.is_some()
+                || parsed.tiny_no_weight_loss_simulation_enabled
+                || parsed.tiny_no_weight_loss_simulation_output_path.is_some()
+                || parsed.no_persistence_training_gate_enabled
+                || parsed.no_persistence_training_simulation_enabled
+                || parsed
+                    .no_persistence_training_simulation_output_path
+                    .is_some()
+                || parsed.no_persistence_training_brief_output_path.is_some()
+                || parsed.smartcore_adapter_skeleton_gate_enabled
+                || parsed.adapter_skeleton_dry_run_enabled
+                || parsed.adapter_skeleton_output_path.is_some()
+                || parsed.adapter_contract_lock_enabled
+                || parsed.adapter_contract_lock_v2_enabled
+                || parsed
+                    .adapter_contract_golden_snapshot_output_path
+                    .is_some()
+                || parsed.adapter_contract_expected_snapshot_path.is_some()
+                || parsed.adapter_expected_golden_baseline_path.is_some()
+                || parsed.adapter_bootstrap_golden_baseline_path.is_some()
+                || parsed.adapter_bootstrap_missing_baseline
+                || parsed.adapter_write_golden_baseline_if_missing
+                || parsed.adapter_run_regression_harness
+                || parsed.adapter_contract_acceptance_output_path.is_some()
+                || parsed.runtime_adapter_entry_gate_enabled
+                || parsed.runtime_entry_audit_output_path.is_some()
+                || parsed.runtime_entry_run_negative_harness
+                || parsed.smartcore_microkernel_v0_enabled
+                || parsed.smartcore_microkernel_lab_mode
+                || parsed.smartcore_microkernel_output_path.is_some()
+                || parsed.microkernel_bridge_enabled
+                || parsed.microkernel_bridge_output_path.is_some()
+                || parsed.smartcore_head_projection_v0_enabled
+                || parsed.smartcore_head_projection_output_path.is_some()
+                || parsed.smartcore_shadow_alignment_enabled
+                || parsed.smartcore_shadow_alignment_output_path.is_some()
+                || parsed.smartcore_mismatch_self_growing_enabled
+                || parsed.smartcore_calibration_dataset_output_path.is_some()
+                || parsed.smartcore_mismatch_task_output_path.is_some()
+                || parsed.smartcore_mismatch_learning_loop_enabled
+                || parsed.smartcore_execute_mismatch_research_tasks
+                || parsed.smartcore_approve_calibration_targets
+                || parsed.smartcore_refresh_calibration_dataset
+                || parsed.smartcore_recheck_alignment
+                || parsed.smartcore_calibration_dataset_input_path.is_some()
+                || parsed
+                    .smartcore_mismatch_learning_loop_output_path
+                    .is_some()
+                || parsed.smartcore_recalibration_enabled
+                || parsed
+                    .smartcore_recalibration_rule_table_output_path
+                    .is_some()
+                || parsed.smartcore_calibrated_debug_output_path.is_some()
+                || parsed.smartcore_recalibration_result_output_path.is_some()
             {
                 serde_json::to_value(run_batch_committee_cycle_with_state_from_config_path(
                     std::path::Path::new(config),

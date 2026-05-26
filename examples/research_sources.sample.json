@@ -1,0 +1,65 @@
+{
+  "registry_id": "sample-research-source-registry",
+  "sources": [
+    {
+      "source_id": "sample-local-news",
+      "kind": "LocalNewsFixture",
+      "label": "local-news-fixture",
+      "source_path_or_url": "examples/minimal_news_items.sample.json",
+      "allowed_host": null,
+      "market_scopes": [],
+      "symbols": [],
+      "trust_level": "ReviewRequired",
+      "enabled": true,
+      "max_items": 4,
+      "max_summary_chars": 180,
+      "paper_only": true
+    },
+    {
+      "source_id": "sample-local-price-series",
+      "kind": "LocalPriceSeries",
+      "label": "local-price-series",
+      "source_path_or_url": "examples/minimal_paper_price_series.sample.json",
+      "allowed_host": null,
+      "market_scopes": [],
+      "symbols": [],
+      "trust_level": "High",
+      "enabled": true,
+      "max_items": 2,
+      "max_summary_chars": 120,
+      "paper_only": true
+    },
+    {
+      "source_id": "sample-local-rss",
+      "kind": "LocalRssFixture",
+      "label": "local-rss-fixture",
+      "source_path_or_url": "examples/minimal_rss_feed.sample.xml",
+      "allowed_host": null,
+      "market_scopes": [],
+      "symbols": [],
+      "trust_level": "ReviewRequired",
+      "enabled": true,
+      "max_items": 3,
+      "max_summary_chars": 180,
+      "paper_only": true
+    },
+    {
+      "source_id": "sample-disabled-allowlisted-rss",
+      "kind": "AllowlistedRssFeed",
+      "label": "disabled-network-example",
+      "source_path_or_url": "https://example.invalid/feed.xml",
+      "allowed_host": "example.invalid",
+      "market_scopes": [],
+      "symbols": [],
+      "trust_level": "Low",
+      "enabled": false,
+      "max_items": 3,
+      "max_summary_chars": 120,
+      "paper_only": true
+    }
+  ],
+  "enabled_count": 3,
+  "network_enabled_count": 0,
+  "local_source_count": 3,
+  "paper_only": true
+}
