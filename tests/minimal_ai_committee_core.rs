@@ -476,6 +476,60 @@ fn single_cycle_config() -> MinimalAiCommitteeCycleConfig {
         observer_apply_verify_config_path: None,
         observer_apply_verify_emit_owner_summary: true,
         chairman_shadow_governance_enabled: true,
+        chairman_shadow_governance_run_enabled: false,
+        chairman_shadow_governance_dry_run: true,
+        chairman_shadow_governance_ledger_output_path: None,
+        chairman_shadow_governance_owner_feedback_path: None,
+        chairman_shadow_governance_emit_owner_explanations: true,
+        chairman_shadow_governance_emit_owner_summary: true,
+        chairman_shadow_governance_simulation_enabled: false,
+        chairman_shadow_governance_simulation_dry_run: true,
+        chairman_shadow_governance_simulation_ledger_output_path: None,
+        chairman_shadow_governance_simulation_result_output_path: None,
+        chairman_shadow_governance_emit_explanations: true,
+        chairman_shadow_governance_state_enabled: false,
+        chairman_shadow_governance_state_dry_run: true,
+        chairman_shadow_governance_apply_deltas: false,
+        chairman_shadow_governance_state_input_path: None,
+        chairman_shadow_governance_state_output_path: None,
+        chairman_shadow_governance_state_ledger_path: None,
+        chairman_shadow_governance_state_emit_owner_summary: true,
+        chairman_shadow_governance_history_enabled: false,
+        chairman_shadow_governance_history_dry_run: true,
+        chairman_shadow_governance_history_input_path: None,
+        chairman_shadow_governance_history_output_path: None,
+        chairman_shadow_governance_history_max_snapshots: 20,
+        chairman_shadow_governance_history_min_snapshots_for_trial_gate: 3,
+        chairman_shadow_governance_history_emit_owner_summary: true,
+        chairman_shadow_governance_multi_run_enabled: false,
+        chairman_shadow_governance_multi_run_count: 3,
+        chairman_shadow_governance_multi_run_dry_run: true,
+        chairman_shadow_governance_multi_run_write_history_store: false,
+        chairman_shadow_governance_multi_run_output_path: None,
+        chairman_shadow_governance_history_verify_enabled: false,
+        chairman_shadow_governance_history_verify_output_path: None,
+        chairman_shadow_governance_history_verify_emit_owner_summary: true,
+        chairman_shadow_governance_tuning_enabled: false,
+        chairman_shadow_governance_tuning_dry_run: true,
+        chairman_shadow_governance_tuning_run_count: 3,
+        chairman_shadow_governance_tuned_history_output_path: None,
+        chairman_shadow_governance_tuning_result_output_path: None,
+        chairman_shadow_governance_tuning_write_history: false,
+        chairman_shadow_governance_tuning_emit_owner_summary: true,
+        chairman_shadow_voice_tuning_v2_enabled: false,
+        chairman_shadow_voice_tuning_v2_dry_run: true,
+        chairman_shadow_voice_tuning_v2_run_count: 3,
+        chairman_shadow_voice_tuning_v2_write_history: false,
+        chairman_shadow_voice_tuning_v2_history_output_path: None,
+        chairman_shadow_voice_tuning_v2_result_output_path: None,
+        owner_governance_console_section_enabled: true,
+        paper_governance_trial_enabled: false,
+        paper_governance_trial_dry_run: true,
+        paper_governance_trial_apply_candidates: true,
+        paper_governance_trial_state_input_path: None,
+        paper_governance_trial_state_output_path: None,
+        paper_governance_trial_compare_committee_voice: true,
+        paper_governance_trial_emit_owner_summary: true,
         training_candidate_min_examples: None,
         self_growing_replay_enabled: false,
         research_source_registry_path: None,
@@ -1186,6 +1240,60 @@ fn offline_fixture_path_is_local_only() {
         observer_apply_verify_config_path: None,
         observer_apply_verify_emit_owner_summary: true,
         chairman_shadow_governance_enabled: true,
+        chairman_shadow_governance_run_enabled: false,
+        chairman_shadow_governance_dry_run: true,
+        chairman_shadow_governance_ledger_output_path: None,
+        chairman_shadow_governance_owner_feedback_path: None,
+        chairman_shadow_governance_emit_owner_explanations: true,
+        chairman_shadow_governance_emit_owner_summary: true,
+        chairman_shadow_governance_simulation_enabled: false,
+        chairman_shadow_governance_simulation_dry_run: true,
+        chairman_shadow_governance_simulation_ledger_output_path: None,
+        chairman_shadow_governance_simulation_result_output_path: None,
+        chairman_shadow_governance_emit_explanations: true,
+        chairman_shadow_governance_state_enabled: false,
+        chairman_shadow_governance_state_dry_run: true,
+        chairman_shadow_governance_apply_deltas: false,
+        chairman_shadow_governance_state_input_path: None,
+        chairman_shadow_governance_state_output_path: None,
+        chairman_shadow_governance_state_ledger_path: None,
+        chairman_shadow_governance_state_emit_owner_summary: true,
+        chairman_shadow_governance_history_enabled: false,
+        chairman_shadow_governance_history_dry_run: true,
+        chairman_shadow_governance_history_input_path: None,
+        chairman_shadow_governance_history_output_path: None,
+        chairman_shadow_governance_history_max_snapshots: 20,
+        chairman_shadow_governance_history_min_snapshots_for_trial_gate: 3,
+        chairman_shadow_governance_history_emit_owner_summary: true,
+        chairman_shadow_governance_multi_run_enabled: false,
+        chairman_shadow_governance_multi_run_count: 3,
+        chairman_shadow_governance_multi_run_dry_run: true,
+        chairman_shadow_governance_multi_run_write_history_store: false,
+        chairman_shadow_governance_multi_run_output_path: None,
+        chairman_shadow_governance_history_verify_enabled: false,
+        chairman_shadow_governance_history_verify_output_path: None,
+        chairman_shadow_governance_history_verify_emit_owner_summary: true,
+        chairman_shadow_governance_tuning_enabled: false,
+        chairman_shadow_governance_tuning_dry_run: true,
+        chairman_shadow_governance_tuning_run_count: 3,
+        chairman_shadow_governance_tuned_history_output_path: None,
+        chairman_shadow_governance_tuning_result_output_path: None,
+        chairman_shadow_governance_tuning_write_history: false,
+        chairman_shadow_governance_tuning_emit_owner_summary: true,
+        chairman_shadow_voice_tuning_v2_enabled: false,
+        chairman_shadow_voice_tuning_v2_dry_run: true,
+        chairman_shadow_voice_tuning_v2_run_count: 3,
+        chairman_shadow_voice_tuning_v2_write_history: false,
+        chairman_shadow_voice_tuning_v2_history_output_path: None,
+        chairman_shadow_voice_tuning_v2_result_output_path: None,
+        owner_governance_console_section_enabled: true,
+        paper_governance_trial_enabled: false,
+        paper_governance_trial_dry_run: true,
+        paper_governance_trial_apply_candidates: true,
+        paper_governance_trial_state_input_path: None,
+        paper_governance_trial_state_output_path: None,
+        paper_governance_trial_compare_committee_voice: true,
+        paper_governance_trial_emit_owner_summary: true,
         training_candidate_min_examples: None,
         self_growing_replay_enabled: false,
         research_source_registry_path: None,
@@ -13946,6 +14054,139 @@ fn sprint185_config_loads_new_flags() {
     );
     assert!(run_config.observer_apply_verify_emit_owner_summary);
     assert!(run_config.chairman_shadow_governance_enabled);
+    assert!(run_config.chairman_shadow_governance_run_enabled);
+    assert!(run_config.chairman_shadow_governance_dry_run);
+    assert_eq!(
+        run_config
+            .chairman_shadow_governance_ledger_output_path
+            .as_deref(),
+        Some("target/minimal_chairman_shadow_governance_ledger.json")
+    );
+    assert_eq!(
+        run_config
+            .chairman_shadow_governance_owner_feedback_path
+            .as_deref(),
+        Some("examples/minimal_owner_feedback.sample.json")
+    );
+    assert!(run_config.chairman_shadow_governance_emit_owner_explanations);
+    assert!(run_config.chairman_shadow_governance_emit_owner_summary);
+    assert!(run_config.chairman_shadow_governance_simulation_enabled);
+    assert!(run_config.chairman_shadow_governance_simulation_dry_run);
+    assert_eq!(
+        run_config
+            .chairman_shadow_governance_simulation_ledger_output_path
+            .as_deref(),
+        Some("target/minimal_chairman_shadow_governance_simulation_ledger.json")
+    );
+    assert_eq!(
+        run_config
+            .chairman_shadow_governance_simulation_result_output_path
+            .as_deref(),
+        Some("target/minimal_chairman_shadow_governance_simulation_result.json")
+    );
+    assert!(run_config.chairman_shadow_governance_emit_explanations);
+    assert!(run_config.chairman_shadow_governance_state_enabled);
+    assert!(run_config.chairman_shadow_governance_state_dry_run);
+    assert!(run_config.chairman_shadow_governance_apply_deltas);
+    assert_eq!(
+        run_config
+            .chairman_shadow_governance_state_input_path
+            .as_deref(),
+        Some("target/minimal_chairman_shadow_governance_state.json")
+    );
+    assert_eq!(
+        run_config
+            .chairman_shadow_governance_state_output_path
+            .as_deref(),
+        Some("target/minimal_chairman_shadow_governance_state.json")
+    );
+    assert_eq!(
+        run_config
+            .chairman_shadow_governance_state_ledger_path
+            .as_deref(),
+        Some("target/minimal_chairman_shadow_governance_state_ledger.json")
+    );
+    assert!(run_config.chairman_shadow_governance_state_emit_owner_summary);
+    assert!(run_config.chairman_shadow_governance_history_enabled);
+    assert!(run_config.chairman_shadow_governance_history_dry_run);
+    assert_eq!(
+        run_config
+            .chairman_shadow_governance_history_output_path
+            .as_deref(),
+        Some("target/minimal_chairman_shadow_governance_history.json")
+    );
+    assert_eq!(
+        run_config.chairman_shadow_governance_history_max_snapshots,
+        20
+    );
+    assert_eq!(
+        run_config.chairman_shadow_governance_history_min_snapshots_for_trial_gate,
+        3
+    );
+    assert!(run_config.chairman_shadow_governance_history_emit_owner_summary);
+    assert!(run_config.chairman_shadow_governance_multi_run_enabled);
+    assert_eq!(run_config.chairman_shadow_governance_multi_run_count, 3);
+    assert!(run_config.chairman_shadow_governance_multi_run_dry_run);
+    assert!(!run_config.chairman_shadow_governance_multi_run_write_history_store);
+    assert_eq!(
+        run_config
+            .chairman_shadow_governance_multi_run_output_path
+            .as_deref(),
+        Some("target/minimal_chairman_shadow_governance_multi_run.json")
+    );
+    assert!(run_config.chairman_shadow_governance_history_verify_enabled);
+    assert_eq!(
+        run_config
+            .chairman_shadow_governance_history_verify_output_path
+            .as_deref(),
+        Some("target/minimal_chairman_shadow_governance_history_verify.json")
+    );
+    assert!(run_config.chairman_shadow_governance_history_verify_emit_owner_summary);
+    assert!(run_config.chairman_shadow_governance_tuning_enabled);
+    assert!(run_config.chairman_shadow_governance_tuning_dry_run);
+    assert_eq!(run_config.chairman_shadow_governance_tuning_run_count, 3);
+    assert!(!run_config.chairman_shadow_governance_tuning_write_history);
+    assert_eq!(
+        run_config
+            .chairman_shadow_governance_tuned_history_output_path
+            .as_deref(),
+        Some("target/minimal_chairman_shadow_governance_tuned_history.json")
+    );
+    assert_eq!(
+        run_config
+            .chairman_shadow_governance_tuning_result_output_path
+            .as_deref(),
+        Some("target/minimal_chairman_shadow_governance_tuning_result.json")
+    );
+    assert!(run_config.chairman_shadow_governance_tuning_emit_owner_summary);
+    assert!(run_config.chairman_shadow_voice_tuning_v2_enabled);
+    assert!(run_config.chairman_shadow_voice_tuning_v2_dry_run);
+    assert_eq!(run_config.chairman_shadow_voice_tuning_v2_run_count, 3);
+    assert!(!run_config.chairman_shadow_voice_tuning_v2_write_history);
+    assert_eq!(
+        run_config
+            .chairman_shadow_voice_tuning_v2_history_output_path
+            .as_deref(),
+        Some("target/minimal_chairman_shadow_voice_tuning_v2_history.json")
+    );
+    assert_eq!(
+        run_config
+            .chairman_shadow_voice_tuning_v2_result_output_path
+            .as_deref(),
+        Some("target/minimal_chairman_shadow_voice_tuning_v2_result.json")
+    );
+    assert!(run_config.owner_governance_console_section_enabled);
+    assert!(run_config.paper_governance_trial_enabled);
+    assert!(run_config.paper_governance_trial_dry_run);
+    assert!(run_config.paper_governance_trial_apply_candidates);
+    assert_eq!(
+        run_config
+            .paper_governance_trial_state_output_path
+            .as_deref(),
+        Some("target/minimal_paper_governance_trial_state.json")
+    );
+    assert!(run_config.paper_governance_trial_compare_committee_voice);
+    assert!(run_config.paper_governance_trial_emit_owner_summary);
 }
 
 #[test]
@@ -13974,6 +14215,44 @@ fn sprint188_dedicated_apply_verify_config_uses_non_dry_profile() {
         run_config.observer_apply_verify_output_path.as_deref(),
         Some("target/minimal_observer_apply_verify_and_shadow.verify.json")
     );
+}
+
+#[test]
+fn sprint193_dedicated_shadow_history_verify_config_uses_non_dry_profile() {
+    let config = MinimalAiCommitteeCycleConfig::from_toml_path(std::path::Path::new(
+        "examples/soma_minimal_ai_committee_shadow_history_verify.toml",
+    ))
+    .expect("config");
+    let run_config = config
+        .load_autonomous_paper_run_config()
+        .expect("autonomous config");
+
+    assert!(run_config.chairman_shadow_governance_history_enabled);
+    assert!(!run_config.chairman_shadow_governance_history_dry_run);
+    assert_eq!(
+        run_config
+            .chairman_shadow_governance_history_output_path
+            .as_deref(),
+        Some("target/minimal_chairman_shadow_governance_history.verify.json")
+    );
+    assert!(run_config.chairman_shadow_governance_multi_run_enabled);
+    assert_eq!(run_config.chairman_shadow_governance_multi_run_count, 3);
+    assert!(!run_config.chairman_shadow_governance_multi_run_dry_run);
+    assert!(run_config.chairman_shadow_governance_multi_run_write_history_store);
+    assert_eq!(
+        run_config
+            .chairman_shadow_governance_multi_run_output_path
+            .as_deref(),
+        Some("target/minimal_chairman_shadow_governance_multi_run.verify.json")
+    );
+    assert!(run_config.chairman_shadow_governance_history_verify_enabled);
+    assert_eq!(
+        run_config
+            .chairman_shadow_governance_history_verify_output_path
+            .as_deref(),
+        Some("target/minimal_chairman_shadow_governance_history_verify.verify.json")
+    );
+    assert!(run_config.chairman_shadow_governance_history_verify_emit_owner_summary);
     assert!(run_config.chairman_shadow_governance_enabled);
 }
 
@@ -15311,6 +15590,3996 @@ fn sprint188_main_defaults_do_not_request_apply_verify_run() {
             false,
         )
     );
+}
+
+fn sprint189_test_governance_inputs() -> core::ChairmanShadowGovernanceInputSet {
+    let records = vec![
+        core::ChairmanShadowGovernanceInputRecord {
+            record_id: "sprint189-good".to_string(),
+            source_run_id: Some("sprint189".to_string()),
+            source_member_id: Some("member-good".to_string()),
+            observer_id: Some("observer-good".to_string()),
+            signal_kind: core::ChairmanShadowGovernanceSignalKind::HelpfulDissentCandidate,
+            symbol: Some("AAPL".to_string()),
+            market_scope: Some(MarketScope::UsShortTerm),
+            evidence_summary: "Helpful dissent preserved downside safety in paper-only review"
+                .to_string(),
+            suggested_governance_consideration:
+                core::ChairmanShadowGovernanceConsideration::RewardCandidate,
+            confidence: core::SourceConfidence::High,
+            shadow_only: true,
+            no_score_mutation: true,
+            no_voice_mutation: true,
+            no_promotion_demotion: true,
+            paper_only: true,
+        },
+        core::ChairmanShadowGovernanceInputRecord {
+            record_id: "sprint189-bad".to_string(),
+            source_run_id: Some("sprint189".to_string()),
+            source_member_id: Some("member-bad".to_string()),
+            observer_id: Some("observer-bad".to_string()),
+            signal_kind: core::ChairmanShadowGovernanceSignalKind::OverconfidentCallCandidate,
+            symbol: Some("TSLA".to_string()),
+            market_scope: Some(MarketScope::UsShortTerm),
+            evidence_summary:
+                "Repeated overconfident paper call created shadow-only penalty review".to_string(),
+            suggested_governance_consideration:
+                core::ChairmanShadowGovernanceConsideration::PenaltyCandidate,
+            confidence: core::SourceConfidence::High,
+            shadow_only: true,
+            no_score_mutation: true,
+            no_voice_mutation: true,
+            no_promotion_demotion: true,
+            paper_only: true,
+        },
+        core::ChairmanShadowGovernanceInputRecord {
+            record_id: "sprint189-risk".to_string(),
+            source_run_id: Some("sprint189".to_string()),
+            source_member_id: Some("member-risk".to_string()),
+            observer_id: Some("observer-risk".to_string()),
+            signal_kind: core::ChairmanShadowGovernanceSignalKind::RiskVetoAlignment,
+            symbol: Some("MSFT".to_string()),
+            market_scope: Some(MarketScope::UsShortTerm),
+            evidence_summary: "Risk veto alignment stayed shadow-only and supports voice review"
+                .to_string(),
+            suggested_governance_consideration:
+                core::ChairmanShadowGovernanceConsideration::VoiceIncreaseCandidate,
+            confidence: core::SourceConfidence::Medium,
+            shadow_only: true,
+            no_score_mutation: true,
+            no_voice_mutation: true,
+            no_promotion_demotion: true,
+            paper_only: true,
+        },
+    ];
+    core::ChairmanShadowGovernanceInputSet {
+        set_id: "sprint189-input-set".to_string(),
+        record_count: records.len(),
+        reward_candidate_count: 1,
+        penalty_candidate_count: 1,
+        voice_increase_candidate_count: 1,
+        voice_decrease_candidate_count: 0,
+        records,
+        paper_only: true,
+    }
+}
+
+fn sprint189_test_experience_record(
+    experience_id: &str,
+    member_id: &str,
+    symbol: &str,
+    outcome: MemberExperienceOutcome,
+    attribution: MemberScoreUpdateReason,
+    learning_label: MemberLearningLabel,
+) -> MemberExperienceRecord {
+    MemberExperienceRecord {
+        experience_id: experience_id.to_string(),
+        member_id: member_id.to_string(),
+        symbol: symbol.to_string(),
+        market_scope: MarketScope::UsShortTerm,
+        cycle_id: Some("sprint189-cycle".to_string()),
+        event_id: Some("sprint189-event".to_string()),
+        session_id: Some("sprint189-session".to_string()),
+        decision_id: Some(format!("{experience_id}-decision")),
+        input_context: MemberExperienceInputContext {
+            market_data_summary: format!("{symbol} market"),
+            news_summary: format!("{symbol} news"),
+            owner_context_summary: None,
+            style_blend_summary: None,
+            memory_state_summary: None,
+        },
+        member_opinion: MemberExperienceOpinionSnapshot {
+            stance: MemberStance::BuyProposal,
+            confidence: 0.8,
+            expected_return_hint: 0.03,
+            risk_hint: 0.2,
+            evidence_notes: vec!["paper-only".to_string()],
+            event_triggered: true,
+        },
+        committee_context: MemberExperienceCommitteeContext {
+            disagreement_level: 0.4,
+            other_member_stances: vec!["peer".to_string()],
+            chairman_action: Some(ChairmanFinalAction::PaperHold),
+            risk_governor_status: Some(RiskGovernorStatus::Passed),
+            risk_flags: vec!["shadow".to_string()],
+        },
+        outcome,
+        attribution,
+        learning_label,
+        created_at: Some("2026-06-01T00:00:00Z".to_string()),
+        paper_only: true,
+    }
+}
+
+fn sprint189_test_experience_records() -> Vec<MemberExperienceRecord> {
+    vec![
+        sprint189_test_experience_record(
+            "good-1",
+            "member-good",
+            "AAPL",
+            MemberExperienceOutcome::HelpfulDissent,
+            MemberScoreUpdateReason::HelpfulDissent,
+            MemberLearningLabel::Reinforce,
+        ),
+        sprint189_test_experience_record(
+            "good-2",
+            "member-good",
+            "AAPL",
+            MemberExperienceOutcome::PaperPositive,
+            MemberScoreUpdateReason::GoodCall,
+            MemberLearningLabel::Reinforce,
+        ),
+        sprint189_test_experience_record(
+            "bad-1",
+            "member-bad",
+            "TSLA",
+            MemberExperienceOutcome::BadRiskCall,
+            MemberScoreUpdateReason::BadCall,
+            MemberLearningLabel::Penalize,
+        ),
+        sprint189_test_experience_record(
+            "bad-2",
+            "member-bad",
+            "TSLA",
+            MemberExperienceOutcome::PaperNegative,
+            MemberScoreUpdateReason::BadCall,
+            MemberLearningLabel::Penalize,
+        ),
+    ]
+}
+
+#[test]
+fn sprint189_candidate_builder_creates_shadow_only_reward_penalty_and_review_candidates() {
+    let (_batch_result, _observer_run_result, sprint188_run, ..) =
+        sprint188_apply_verify_shadow_fixture(
+            core::ObserverExplicitApplyMode::ApplyApprovedTargets,
+            false,
+            true,
+        );
+    let build = core::build_chairman_governance_candidates(
+        &sprint189_test_governance_inputs(),
+        &sprint188_run.comparison_rerun_v3,
+        &sprint188_run.ledger_trend_v2,
+        Some(sprint189_test_experience_records().as_slice()),
+        None,
+        &core::default_chairman_reward_penalty_candidate_policy(),
+    )
+    .expect("build chairman governance candidates");
+
+    assert!(build.reward_candidate_count >= 1);
+    assert!(build.penalty_candidate_count >= 1);
+    assert!(build.voice_increase_candidate_count >= 1);
+    assert!(build.voice_decrease_candidate_count >= 1);
+    assert_eq!(build.promotion_candidate_count, 1);
+    assert_eq!(build.demotion_candidate_count, 1);
+    assert!(build.entries.iter().all(|entry| {
+        entry.paper_only
+            && entry.shadow_only
+            && entry.no_score_mutation
+            && entry.no_voice_mutation
+            && entry.no_promotion_demotion
+            && entry.no_risk_governor_override
+    }));
+}
+
+#[test]
+fn sprint189_owner_opinion_alignment_and_explanation_capture_risk_veto_reason() {
+    let feedback = core::OwnerFeedback {
+        feedback_id: "sprint189-owner-risk".to_string(),
+        symbol: Some("AAPL".to_string()),
+        market_scope: Some(MarketScope::UsShortTerm),
+        target_member_id: Some("member-good".to_string()),
+        feedback_type: OwnerFeedbackType::Disagree,
+        text: "Please reconsider this paper idea because risk still feels high.".to_string(),
+        priority: core::OwnerFeedbackPriority::High,
+        created_at: Some("2026-06-01T00:00:00Z".to_string()),
+        paper_only: true,
+    };
+    let chairman_decision = core::ChairmanDecision {
+        decision_id: "sprint189-chairman".to_string(),
+        session_id: "sprint189-session".to_string(),
+        final_action: ChairmanFinalAction::RiskVetoed,
+        rationale: "Risk veto preserved".to_string(),
+        winning_arguments: vec!["risk".to_string()],
+        dissenting_arguments: vec!["buy".to_string()],
+        risk_governor_status: RiskGovernorStatus::Vetoed,
+    };
+    let summary = core::OwnerCommitteeSummary {
+        cycle_id: "sprint189-cycle".to_string(),
+        symbols_reviewed: vec!["AAPL".to_string()],
+        event_count: 1,
+        risk_veto_count: 1,
+        paper_buy_count: 0,
+        paper_hold_count: 0,
+        no_trade_count: 1,
+        need_more_evidence_count: 0,
+        top_supporting_members: vec!["member-good".to_string()],
+        top_dissenting_members: vec!["member-bad".to_string()],
+        member_voice_changes: Vec::new(),
+        chairman_actions: vec![ChairmanFinalAction::RiskVetoed],
+        risk_warnings: vec!["veto".to_string()],
+        owner_readable_summary: "risk veto".to_string(),
+        paper_only_warning: "paper only".to_string(),
+    };
+
+    let alignment = core::evaluate_owner_opinion_alignment(
+        &feedback,
+        Some(&chairman_decision),
+        Some(RiskGovernorStatus::Vetoed),
+        Some(&summary),
+        Some("shadow disagreement observed"),
+    );
+    let explanation = core::build_owner_opinion_explanation(
+        &alignment,
+        &core::default_owner_opinion_explanation_contract(),
+    );
+
+    assert_eq!(
+        alignment.alignment_status,
+        core::OwnerOpinionAlignmentStatus::NotAligned
+    );
+    assert_eq!(
+        alignment.not_followed_reason,
+        Some(core::OwnerOpinionNotFollowedReason::RiskGovernorVeto)
+    );
+    assert!(alignment.explanation.contains("Risk Governor veto"));
+    assert_eq!(
+        explanation.explanation_status,
+        core::OwnerOpinionExplanationStatus::Explained
+    );
+    assert!(
+        explanation
+            .owner_readable_explanation
+            .contains("Risk Governor veto")
+    );
+}
+
+#[test]
+fn sprint189_ledger_append_normalize_and_latest_deduplicate_entries() {
+    let mut ledger = core::ChairmanShadowGovernanceLedger {
+        ledger_id: "sprint189-ledger".to_string(),
+        entries: Vec::new(),
+        entry_count: 0,
+        reward_candidate_count: 0,
+        penalty_candidate_count: 0,
+        voice_increase_candidate_count: 0,
+        voice_decrease_candidate_count: 0,
+        promotion_candidate_count: 0,
+        demotion_candidate_count: 0,
+        latest_entry_id: None,
+        paper_only: true,
+    };
+    let reward = core::ChairmanShadowGovernanceLedgerEntry {
+        entry_id: "entry-reward".to_string(),
+        run_id: Some("sprint189".to_string()),
+        member_id: Some("member-good".to_string()),
+        observer_id: Some("observer-good".to_string()),
+        symbol: Some("AAPL".to_string()),
+        market_scope: Some(MarketScope::UsShortTerm),
+        signal_kind: core::ChairmanShadowGovernanceSignalKind::HelpfulDissentCandidate,
+        governance_candidate: core::ChairmanShadowGovernanceConsideration::RewardCandidate,
+        evidence_summary: "reward review".to_string(),
+        confidence: core::SourceConfidence::High,
+        shadow_only: true,
+        no_score_mutation: true,
+        no_voice_mutation: true,
+        no_promotion_demotion: true,
+        no_risk_governor_override: true,
+        paper_only: true,
+    };
+    let demotion = core::ChairmanShadowGovernanceLedgerEntry {
+        entry_id: "entry-demotion".to_string(),
+        run_id: Some("sprint189".to_string()),
+        member_id: Some("member-bad".to_string()),
+        observer_id: Some("observer-bad".to_string()),
+        symbol: Some("TSLA".to_string()),
+        market_scope: Some(MarketScope::UsShortTerm),
+        signal_kind: core::ChairmanShadowGovernanceSignalKind::ObserverDisagreement,
+        governance_candidate: core::ChairmanShadowGovernanceConsideration::DemotionCandidate,
+        evidence_summary: "demotion review".to_string(),
+        confidence: core::SourceConfidence::Medium,
+        shadow_only: true,
+        no_score_mutation: true,
+        no_voice_mutation: true,
+        no_promotion_demotion: true,
+        no_risk_governor_override: true,
+        paper_only: true,
+    };
+
+    core::append_chairman_shadow_governance_entries(
+        &mut ledger,
+        &[demotion.clone(), reward.clone(), reward.clone()],
+    );
+
+    assert_eq!(ledger.entry_count, 2);
+    assert_eq!(ledger.reward_candidate_count, 1);
+    assert_eq!(ledger.demotion_candidate_count, 1);
+    assert_eq!(
+        core::latest_chairman_governance_entries(&ledger, 1).len(),
+        1
+    );
+}
+
+#[test]
+fn sprint189_run_respects_dry_run_and_non_dry_ledger_write() {
+    let (batch_result, _observer_run_result, sprint188_run, ..) =
+        sprint188_apply_verify_shadow_fixture(
+            core::ObserverExplicitApplyMode::ApplyApprovedTargets,
+            false,
+            true,
+        );
+    let ledger_path = sprint171_temp_json_path("sprint189-governance-ledger");
+    let _ = std::fs::remove_file(&ledger_path);
+
+    let dry_run = core::run_chairman_shadow_governance(
+        sprint188_run
+            .chairman_shadow_governance_inputs
+            .as_ref()
+            .expect("sprint188 shadow inputs"),
+        &sprint188_run.comparison_rerun_v3,
+        &sprint188_run.ledger_trend_v2,
+        Some(batch_result.member_experience_records.as_slice()),
+        Some(&[]),
+        &batch_result,
+        &core::ChairmanShadowGovernanceRunConfig {
+            run_id: "sprint189-dry-run".to_string(),
+            enabled: true,
+            ledger_input_path: None,
+            ledger_output_path: Some(ledger_path.to_string_lossy().to_string()),
+            owner_feedback_path: None,
+            emit_owner_explanations: true,
+            dry_run: true,
+            paper_only: true,
+        },
+    )
+    .expect("dry run");
+    assert!(!ledger_path.exists());
+    assert_eq!(
+        dry_run.safety_guard.guard_status,
+        core::ChairmanGovernanceShadowSafetyGuardV2Status::Preserved
+    );
+
+    let non_dry = core::run_chairman_shadow_governance(
+        sprint188_run
+            .chairman_shadow_governance_inputs
+            .as_ref()
+            .expect("sprint188 shadow inputs"),
+        &sprint188_run.comparison_rerun_v3,
+        &sprint188_run.ledger_trend_v2,
+        Some(batch_result.member_experience_records.as_slice()),
+        Some(&[]),
+        &batch_result,
+        &core::ChairmanShadowGovernanceRunConfig {
+            run_id: "sprint189-non-dry-run".to_string(),
+            enabled: true,
+            ledger_input_path: None,
+            ledger_output_path: Some(ledger_path.to_string_lossy().to_string()),
+            owner_feedback_path: None,
+            emit_owner_explanations: true,
+            dry_run: false,
+            paper_only: true,
+        },
+    )
+    .expect("non dry run");
+    assert!(ledger_path.exists());
+    assert_eq!(
+        non_dry.safety_guard.guard_status,
+        core::ChairmanGovernanceShadowSafetyGuardV2Status::Preserved
+    );
+    let _ = std::fs::remove_file(&ledger_path);
+}
+
+#[test]
+fn sprint189_safety_guard_v2_detects_score_and_risk_mutation() {
+    let (batch_result, _observer_run_result, sprint188_run, ..) =
+        sprint188_apply_verify_shadow_fixture(
+            core::ObserverExplicitApplyMode::ApplyApprovedTargets,
+            false,
+            true,
+        );
+    let governance_run = core::run_chairman_shadow_governance(
+        sprint188_run
+            .chairman_shadow_governance_inputs
+            .as_ref()
+            .expect("sprint188 shadow inputs"),
+        &sprint188_run.comparison_rerun_v3,
+        &sprint188_run.ledger_trend_v2,
+        Some(batch_result.member_experience_records.as_slice()),
+        Some(&[]),
+        &batch_result,
+        &core::ChairmanShadowGovernanceRunConfig {
+            run_id: "sprint189-safety".to_string(),
+            enabled: true,
+            ledger_input_path: None,
+            ledger_output_path: None,
+            owner_feedback_path: None,
+            emit_owner_explanations: true,
+            dry_run: true,
+            paper_only: true,
+        },
+    )
+    .expect("governance run");
+    let mut mutated = batch_result.clone();
+    mutated.score_updates[0].new_score += 1.0;
+    mutated.chairman_decisions[0].risk_governor_status = RiskGovernorStatus::NeedsReview;
+
+    let guard = core::evaluate_chairman_governance_shadow_safety_v2(
+        &governance_run,
+        &governance_run.owner_opinion_alignment_records,
+        &batch_result,
+        Some(&mutated),
+    );
+
+    assert_eq!(
+        guard.guard_status,
+        core::ChairmanGovernanceShadowSafetyGuardV2Status::Violated
+    );
+    assert!(guard.score_mutation_detected);
+    assert!(guard.risk_governor_override_detected);
+}
+
+#[test]
+fn sprint189_safety_guard_v2_detects_voice_promotion_demotion_and_owner_forced_trade() {
+    let (batch_result, _observer_run_result, sprint188_run, ..) =
+        sprint188_apply_verify_shadow_fixture(
+            core::ObserverExplicitApplyMode::ApplyApprovedTargets,
+            false,
+            true,
+        );
+    let governance_run = core::run_chairman_shadow_governance(
+        sprint188_run
+            .chairman_shadow_governance_inputs
+            .as_ref()
+            .expect("sprint188 shadow inputs"),
+        &sprint188_run.comparison_rerun_v3,
+        &sprint188_run.ledger_trend_v2,
+        Some(batch_result.member_experience_records.as_slice()),
+        Some(&[]),
+        &batch_result,
+        &core::ChairmanShadowGovernanceRunConfig {
+            run_id: "sprint189-safety-v2-detail".to_string(),
+            enabled: true,
+            ledger_input_path: None,
+            ledger_output_path: None,
+            owner_feedback_path: None,
+            emit_owner_explanations: true,
+            dry_run: true,
+            paper_only: true,
+        },
+    )
+    .expect("governance run");
+
+    let mut voice_mutated = batch_result.clone();
+    voice_mutated.score_updates[0].new_voice_weight += 0.1;
+    let voice_guard = core::evaluate_chairman_governance_shadow_safety_v2(
+        &governance_run,
+        &governance_run.owner_opinion_alignment_records,
+        &batch_result,
+        Some(&voice_mutated),
+    );
+    assert_eq!(
+        voice_guard.guard_status,
+        core::ChairmanGovernanceShadowSafetyGuardV2Status::Violated
+    );
+    assert!(voice_guard.voice_mutation_detected);
+    assert!(!voice_guard.score_mutation_detected);
+
+    let mut membership_mutated = batch_result.clone();
+    membership_mutated.score_updates[0].promoted = !membership_mutated.score_updates[0].promoted;
+    membership_mutated.score_updates[0].demoted = !membership_mutated.score_updates[0].demoted;
+    let membership_guard = core::evaluate_chairman_governance_shadow_safety_v2(
+        &governance_run,
+        &governance_run.owner_opinion_alignment_records,
+        &batch_result,
+        Some(&membership_mutated),
+    );
+    assert!(membership_guard.promotion_detected);
+    assert!(membership_guard.demotion_detected);
+
+    let unsafe_owner_feedback = core::OwnerFeedback {
+        feedback_id: "sprint189-unsafe-owner-order".to_string(),
+        symbol: Some("AAPL".to_string()),
+        market_scope: Some(MarketScope::UsShortTerm),
+        target_member_id: None,
+        feedback_type: OwnerFeedbackType::ReconsiderationRequest,
+        text: "place broker order for AAPL now".to_string(),
+        priority: core::OwnerFeedbackPriority::High,
+        created_at: Some("2026-06-01T00:00:00Z".to_string()),
+        paper_only: true,
+    };
+    let mut unsafe_alignment =
+        core::evaluate_owner_opinion_alignment(&unsafe_owner_feedback, None, None, None, None);
+    unsafe_alignment.followed_owner_opinion = true;
+    let owner_guard = core::evaluate_chairman_governance_shadow_safety_v2(
+        &governance_run,
+        &[unsafe_alignment],
+        &batch_result,
+        Some(&batch_result),
+    );
+    assert!(owner_guard.owner_opinion_forced_trade_detected);
+    assert_eq!(
+        owner_guard.guard_status,
+        core::ChairmanGovernanceShadowSafetyGuardV2Status::Violated
+    );
+}
+
+#[test]
+fn sprint189_ledger_save_rejects_unsafe_entries() {
+    let ledger_path = sprint171_temp_json_path("sprint189-unsafe-ledger");
+    let mut ledger = core::ChairmanShadowGovernanceLedger {
+        ledger_id: "sprint189-unsafe-ledger".to_string(),
+        entries: Vec::new(),
+        entry_count: 0,
+        reward_candidate_count: 0,
+        penalty_candidate_count: 0,
+        voice_increase_candidate_count: 0,
+        voice_decrease_candidate_count: 0,
+        promotion_candidate_count: 0,
+        demotion_candidate_count: 0,
+        latest_entry_id: None,
+        paper_only: true,
+    };
+    ledger
+        .entries
+        .push(core::ChairmanShadowGovernanceLedgerEntry {
+            entry_id: "unsafe-entry".to_string(),
+            run_id: Some("sprint189".to_string()),
+            member_id: Some("member-risk".to_string()),
+            observer_id: None,
+            symbol: Some("AAPL".to_string()),
+            market_scope: Some(MarketScope::UsShortTerm),
+            signal_kind: core::ChairmanShadowGovernanceSignalKind::OwnerOpinionIgnoredWithReason,
+            governance_candidate: core::ChairmanShadowGovernanceConsideration::KeepNeutral,
+            evidence_summary: "place broker order immediately".to_string(),
+            confidence: core::SourceConfidence::Medium,
+            shadow_only: true,
+            no_score_mutation: true,
+            no_voice_mutation: true,
+            no_promotion_demotion: true,
+            no_risk_governor_override: true,
+            paper_only: true,
+        });
+
+    assert!(
+        core::save_chairman_shadow_governance_ledger_to_local_json(&ledger_path, &ledger).is_err()
+    );
+    assert!(!ledger_path.exists());
+}
+
+#[test]
+fn sprint189_chairman_governance_emit_flags_alone_do_not_request_run() {
+    let ledger_path = "target/sprint189-chairman-shadow-ledger.json".to_string();
+    let owner_path = "examples/minimal_owner_feedback.sample.json".to_string();
+
+    assert!(!core::chairman_shadow_governance_requested_from_flags(
+        false, true, None, None, true, true
+    ));
+    assert!(core::chairman_shadow_governance_requested_from_flags(
+        true, true, None, None, true, true
+    ));
+    assert!(core::chairman_shadow_governance_requested_from_flags(
+        false, false, None, None, false, false
+    ));
+    assert!(core::chairman_shadow_governance_requested_from_flags(
+        false,
+        true,
+        Some(&ledger_path),
+        None,
+        false,
+        false
+    ));
+    assert!(core::chairman_shadow_governance_requested_from_flags(
+        false,
+        true,
+        None,
+        Some(&owner_path),
+        false,
+        false
+    ));
+}
+
+#[test]
+fn sprint189_repeated_dry_runs_are_deterministic() {
+    let (batch_result, _observer_run_result, sprint188_run, ..) =
+        sprint188_apply_verify_shadow_fixture(
+            core::ObserverExplicitApplyMode::ApplyApprovedTargets,
+            false,
+            true,
+        );
+    let config = core::ChairmanShadowGovernanceRunConfig {
+        run_id: "sprint189-deterministic".to_string(),
+        enabled: true,
+        ledger_input_path: None,
+        ledger_output_path: None,
+        owner_feedback_path: None,
+        emit_owner_explanations: true,
+        dry_run: true,
+        paper_only: true,
+    };
+
+    let first = core::run_chairman_shadow_governance(
+        sprint188_run
+            .chairman_shadow_governance_inputs
+            .as_ref()
+            .expect("sprint188 shadow inputs"),
+        &sprint188_run.comparison_rerun_v3,
+        &sprint188_run.ledger_trend_v2,
+        Some(batch_result.member_experience_records.as_slice()),
+        Some(&[]),
+        &batch_result,
+        &config,
+    )
+    .expect("first run");
+    let second = core::run_chairman_shadow_governance(
+        sprint188_run
+            .chairman_shadow_governance_inputs
+            .as_ref()
+            .expect("sprint188 shadow inputs"),
+        &sprint188_run.comparison_rerun_v3,
+        &sprint188_run.ledger_trend_v2,
+        Some(batch_result.member_experience_records.as_slice()),
+        Some(&[]),
+        &batch_result,
+        &config,
+    )
+    .expect("second run");
+
+    assert_eq!(first, second);
+    let owner_summary = core::build_owner_chairman_governance_summary(&first);
+    assert!(owner_summary.chairman_shadow_only);
+    assert!(owner_summary.no_score_mutation);
+    assert!(owner_summary.message.contains("shadow-only"));
+}
+
+fn sprint190_member_state(
+    member_id: &str,
+    score: f64,
+    voice_weight: f64,
+) -> core::MemberStateSnapshot {
+    core::MemberStateSnapshot {
+        member_id: member_id.to_string(),
+        score,
+        voice_weight,
+        status: AICommitteeMemberStatus::Active,
+        memory_state: MemberMemoryState::new(member_id),
+        learning_journal_summary: core::MemberLearningJournalSummary {
+            reinforce_count: 0,
+            penalize_count: 0,
+            watch_count: 0,
+            ignore_count: 0,
+        },
+        last_updated_at: Some("2026-06-02T00:00:00Z".to_string()),
+    }
+}
+
+fn sprint190_member_states() -> Vec<core::MemberStateSnapshot> {
+    vec![
+        sprint190_member_state("member-good", 0.62, 0.40),
+        sprint190_member_state("member-bad", 0.58, 0.35),
+        sprint190_member_state("member-cautious", 0.55, 0.25),
+    ]
+}
+
+fn sprint190_governance_ledger() -> core::ChairmanShadowGovernanceLedger {
+    let mut ledger = core::ChairmanShadowGovernanceLedger {
+        ledger_id: "sprint190-governance-ledger".to_string(),
+        entries: vec![
+            core::ChairmanShadowGovernanceLedgerEntry {
+                entry_id: "sprint190-reward".to_string(),
+                run_id: Some("sprint190".to_string()),
+                member_id: Some("member-good".to_string()),
+                observer_id: Some("observer-good".to_string()),
+                symbol: Some("AAPL".to_string()),
+                market_scope: Some(MarketScope::UsShortTerm),
+                signal_kind: core::ChairmanShadowGovernanceSignalKind::HelpfulDissentCandidate,
+                governance_candidate: core::ChairmanShadowGovernanceConsideration::RewardCandidate,
+                evidence_summary: "Helpful dissent preserved downside safety in paper-only review"
+                    .to_string(),
+                confidence: core::SourceConfidence::High,
+                shadow_only: true,
+                no_score_mutation: true,
+                no_voice_mutation: true,
+                no_promotion_demotion: true,
+                no_risk_governor_override: true,
+                paper_only: true,
+            },
+            core::ChairmanShadowGovernanceLedgerEntry {
+                entry_id: "sprint190-risk-voice".to_string(),
+                run_id: Some("sprint190".to_string()),
+                member_id: Some("member-good".to_string()),
+                observer_id: Some("observer-good".to_string()),
+                symbol: Some("AAPL".to_string()),
+                market_scope: Some(MarketScope::UsShortTerm),
+                signal_kind: core::ChairmanShadowGovernanceSignalKind::RiskVetoAlignment,
+                governance_candidate:
+                    core::ChairmanShadowGovernanceConsideration::VoiceIncreaseCandidate,
+                evidence_summary:
+                    "Risk veto alignment stays shadow-only and raises governance voice preview"
+                        .to_string(),
+                confidence: core::SourceConfidence::High,
+                shadow_only: true,
+                no_score_mutation: true,
+                no_voice_mutation: true,
+                no_promotion_demotion: true,
+                no_risk_governor_override: true,
+                paper_only: true,
+            },
+            core::ChairmanShadowGovernanceLedgerEntry {
+                entry_id: "sprint190-penalty".to_string(),
+                run_id: Some("sprint190".to_string()),
+                member_id: Some("member-bad".to_string()),
+                observer_id: Some("observer-bad".to_string()),
+                symbol: Some("TSLA".to_string()),
+                market_scope: Some(MarketScope::UsShortTerm),
+                signal_kind: core::ChairmanShadowGovernanceSignalKind::OverconfidentCallCandidate,
+                governance_candidate: core::ChairmanShadowGovernanceConsideration::PenaltyCandidate,
+                evidence_summary:
+                    "Overconfident bad call stays shadow-only and should be penalized".to_string(),
+                confidence: core::SourceConfidence::High,
+                shadow_only: true,
+                no_score_mutation: true,
+                no_voice_mutation: true,
+                no_promotion_demotion: true,
+                no_risk_governor_override: true,
+                paper_only: true,
+            },
+            core::ChairmanShadowGovernanceLedgerEntry {
+                entry_id: "sprint190-voice-down".to_string(),
+                run_id: Some("sprint190".to_string()),
+                member_id: Some("member-bad".to_string()),
+                observer_id: Some("observer-bad".to_string()),
+                symbol: Some("TSLA".to_string()),
+                market_scope: Some(MarketScope::UsShortTerm),
+                signal_kind: core::ChairmanShadowGovernanceSignalKind::OverconfidentCallCandidate,
+                governance_candidate:
+                    core::ChairmanShadowGovernanceConsideration::VoiceDecreaseCandidate,
+                evidence_summary: "Repeated risky overconfidence lowers voice only in simulation"
+                    .to_string(),
+                confidence: core::SourceConfidence::High,
+                shadow_only: true,
+                no_score_mutation: true,
+                no_voice_mutation: true,
+                no_promotion_demotion: true,
+                no_risk_governor_override: true,
+                paper_only: true,
+            },
+            core::ChairmanShadowGovernanceLedgerEntry {
+                entry_id: "sprint190-evidence".to_string(),
+                run_id: Some("sprint190".to_string()),
+                member_id: Some("member-cautious".to_string()),
+                observer_id: Some("observer-cautious".to_string()),
+                symbol: Some("MSFT".to_string()),
+                market_scope: Some(MarketScope::UsShortTerm),
+                signal_kind: core::ChairmanShadowGovernanceSignalKind::NeedMoreEvidenceCandidate,
+                governance_candidate:
+                    core::ChairmanShadowGovernanceConsideration::NeedsMoreEvidence,
+                evidence_summary: "Evidence is still weak and must stay shadow-only".to_string(),
+                confidence: core::SourceConfidence::ReviewRequired,
+                shadow_only: true,
+                no_score_mutation: true,
+                no_voice_mutation: true,
+                no_promotion_demotion: true,
+                no_risk_governor_override: true,
+                paper_only: true,
+            },
+        ],
+        entry_count: 0,
+        reward_candidate_count: 0,
+        penalty_candidate_count: 0,
+        voice_increase_candidate_count: 0,
+        voice_decrease_candidate_count: 0,
+        promotion_candidate_count: 0,
+        demotion_candidate_count: 0,
+        latest_entry_id: None,
+        paper_only: true,
+    };
+    core::normalize_chairman_shadow_governance_ledger(&mut ledger);
+    ledger
+}
+
+fn sprint190_owner_alignment_records() -> Vec<core::OwnerOpinionAlignmentRecord> {
+    vec![core::OwnerOpinionAlignmentRecord {
+        alignment_id: "sprint190-owner-alignment".to_string(),
+        owner_reference: core::OwnerOpinionReferenceRecord {
+            owner_input_id: Some("owner-aapl".to_string()),
+            symbol: Some("AAPL".to_string()),
+            market_scope: Some(MarketScope::UsShortTerm),
+            owner_intent: core::OwnerOpinionIntent::RiskConcern,
+            owner_summary: "Owner asked for caution and extra explanation.".to_string(),
+            paper_only: true,
+        },
+        chairman_decision_id: Some("decision-aapl".to_string()),
+        risk_governor_status: Some(RiskGovernorStatus::Vetoed),
+        observer_summary: Some("shadow disagreement observed".to_string()),
+        alignment_status: core::OwnerOpinionAlignmentStatus::NotAligned,
+        followed_owner_opinion: false,
+        not_followed_reason: Some(core::OwnerOpinionNotFollowedReason::RiskGovernorVeto),
+        explanation:
+            "Owner opinion was not followed because Risk Governor veto remained the paper-only boundary."
+                .to_string(),
+        paper_only: true,
+    }]
+}
+
+fn sprint191_shadow_state_fixture() -> (
+    Vec<core::MemberStateSnapshot>,
+    core::ChairmanShadowGovernanceSimulationResult,
+    core::ChairmanGovernanceFairnessCheck,
+    core::ChairmanRiskFirstGovernanceCheck,
+    BatchCommitteeCycleResult,
+) {
+    let member_states = sprint190_member_states();
+    let governance_ledger = sprint190_governance_ledger();
+    let simulation_result = core::simulate_chairman_shadow_governance(
+        &governance_ledger,
+        &member_states,
+        &core::default_chairman_shadow_governance_simulation_policy(),
+    )
+    .expect("simulate shadow governance state fixture");
+    let fairness_check = core::evaluate_chairman_governance_fairness(
+        &simulation_result,
+        &core::default_chairman_shadow_governance_simulation_policy(),
+    );
+    let risk_first_check =
+        core::evaluate_chairman_risk_first_governance(&simulation_result, &governance_ledger);
+    let (mut batch_result, _observer_run_result, _sprint188_run, ..) =
+        sprint188_apply_verify_shadow_fixture(
+            core::ObserverExplicitApplyMode::ApplyApprovedTargets,
+            false,
+            true,
+        );
+    batch_result.chairman_governance_fairness_check = Some(fairness_check.clone());
+    batch_result.chairman_risk_first_governance_check = Some(risk_first_check.clone());
+    batch_result.chairman_shadow_governance_simulation_result = Some(simulation_result.clone());
+    (
+        member_states,
+        simulation_result,
+        fairness_check,
+        risk_first_check,
+        batch_result,
+    )
+}
+
+fn sprint192_history_state_fixture() -> (
+    Vec<core::MemberStateSnapshot>,
+    core::ChairmanShadowGovernanceStateRunResult,
+) {
+    let (member_states, simulation_result, _fairness_check, _risk_first_check, batch_result) =
+        sprint191_shadow_state_fixture();
+    let state_result = core::run_chairman_shadow_governance_state_update(
+        &simulation_result,
+        &member_states,
+        &batch_result,
+        &core::ChairmanShadowGovernanceStateRunConfig {
+            run_id: "sprint192-current-state".to_string(),
+            enabled: true,
+            shadow_state_input_path: None,
+            shadow_state_output_path: None,
+            shadow_state_ledger_path: None,
+            dry_run: true,
+            apply_shadow_deltas: true,
+            emit_owner_summary: true,
+            paper_only: true,
+        },
+    )
+    .expect("build sprint192 current state result");
+    (member_states, state_result)
+}
+
+fn sprint192_history_snapshot(
+    state_result: &core::ChairmanShadowGovernanceStateRunResult,
+    run_id: &str,
+    member_overrides: &[(&str, f64, f64)],
+) -> core::ChairmanShadowGovernanceHistorySnapshot {
+    let mut member_states = state_result
+        .shadow_store_after
+        .as_ref()
+        .expect("shadow store after")
+        .member_states
+        .clone();
+    for (member_id, shadow_score, shadow_voice_weight) in member_overrides {
+        if let Some(state) = member_states
+            .iter_mut()
+            .find(|state| state.member_id == *member_id)
+        {
+            state.shadow_score = *shadow_score;
+            state.shadow_voice_weight = *shadow_voice_weight;
+        }
+    }
+    core::ChairmanShadowGovernanceHistorySnapshot {
+        snapshot_id: format!("{run_id}-history-snapshot"),
+        run_id: run_id.to_string(),
+        timestamp: None,
+        member_states,
+        actual_vs_shadow_summary: state_result.actual_vs_shadow_summary.clone(),
+        fairness_status: state_result.apply_result.fairness_check.fairness_status,
+        risk_first_status: state_result.apply_result.risk_first_check.risk_first_status,
+        safety_status: state_result.safety_guard.guard_status,
+        paper_governance_gate_status: state_result
+            .paper_governance_promotion_gate
+            .readiness_status,
+        paper_only: true,
+    }
+}
+
+fn sprint194_role_member_ids(
+    state_result: &core::ChairmanShadowGovernanceStateRunResult,
+) -> (String, String, String) {
+    let store = state_result
+        .shadow_store_after
+        .as_ref()
+        .expect("shadow store after");
+    let trend = store
+        .member_states
+        .iter()
+        .find(|state| state.role == core::IndependentMemberRole::TrendEntry)
+        .expect("trend entry member")
+        .member_id
+        .clone();
+    let risk = store
+        .member_states
+        .iter()
+        .find(|state| state.role == core::IndependentMemberRole::RiskGuard)
+        .expect("risk guard member")
+        .member_id
+        .clone();
+    let evidence = store
+        .member_states
+        .iter()
+        .find(|state| state.role == core::IndependentMemberRole::EvidenceRegime)
+        .expect("evidence regime member")
+        .member_id
+        .clone();
+    (trend, risk, evidence)
+}
+
+fn sprint194_history_state_fixture() -> (
+    Vec<core::MemberStateSnapshot>,
+    core::ChairmanShadowGovernanceStateRunResult,
+) {
+    let (member_states, mut state_result) = sprint192_history_state_fixture();
+    let role_order = [
+        core::IndependentMemberRole::TrendEntry,
+        core::IndependentMemberRole::RiskGuard,
+        core::IndependentMemberRole::EvidenceRegime,
+    ];
+    for store in [
+        state_result.shadow_store_before.as_mut(),
+        state_result.shadow_store_after.as_mut(),
+    ]
+    .into_iter()
+    .flatten()
+    {
+        for (state, role) in store.member_states.iter_mut().zip(role_order) {
+            state.role = role;
+        }
+    }
+    (member_states, state_result)
+}
+
+fn sprint194_unsafe_history_store(
+    state_result: &core::ChairmanShadowGovernanceStateRunResult,
+) -> core::ChairmanShadowGovernanceHistoryStore {
+    let (trend, risk, evidence) = sprint194_role_member_ids(state_result);
+    let mut store = core::ChairmanShadowGovernanceHistoryStore {
+        store_id: "sprint194-unsafe-history-store".to_string(),
+        snapshots: vec![
+            sprint192_history_snapshot(
+                state_result,
+                "sprint194-unsafe-1",
+                &[
+                    (&risk, 0.92, 0.72),
+                    (&trend, 0.38, 0.10),
+                    (&evidence, 0.44, 0.12),
+                ],
+            ),
+            sprint192_history_snapshot(
+                state_result,
+                "sprint194-unsafe-2",
+                &[
+                    (&risk, 0.95, 0.76),
+                    (&trend, 0.34, 0.08),
+                    (&evidence, 0.40, 0.10),
+                ],
+            ),
+            sprint192_history_snapshot(
+                state_result,
+                "sprint194-unsafe-3",
+                &[
+                    (&risk, 0.97, 0.79),
+                    (&trend, 0.30, 0.07),
+                    (&evidence, 0.36, 0.09),
+                ],
+            ),
+        ],
+        snapshot_count: 0,
+        latest_snapshot_id: None,
+        paper_only: true,
+    };
+    core::normalize_shadow_governance_history_store(&mut store);
+    store
+}
+
+fn run_sprint190_large_stack_test(name: &str, test_fn: fn()) {
+    let handle = std::thread::Builder::new()
+        .name(name.to_string())
+        .stack_size(16 * 1024 * 1024)
+        .spawn(test_fn)
+        .expect("spawn large-stack sprint190 test");
+    handle.join().expect("large-stack sprint190 test panicked");
+}
+
+#[test]
+fn sprint190_score_and_voice_delta_builders_respect_policy_bounds() {
+    run_sprint190_large_stack_test(
+        "sprint190-delta-builders-large-stack",
+        sprint190_score_and_voice_delta_builders_respect_policy_bounds_inner,
+    );
+}
+
+fn sprint190_score_and_voice_delta_builders_respect_policy_bounds_inner() {
+    let policy = core::ChairmanShadowGovernanceSimulationPolicy {
+        max_abs_score_delta_per_entry: 0.02,
+        max_abs_voice_delta_per_entry: 0.01,
+        ..core::default_chairman_shadow_governance_simulation_policy()
+    };
+    let ledger = sprint190_governance_ledger();
+    let reward_entry = ledger
+        .entries
+        .iter()
+        .find(|entry| entry.entry_id == "sprint190-reward")
+        .expect("reward entry");
+    let voice_entry = ledger
+        .entries
+        .iter()
+        .find(|entry| entry.entry_id == "sprint190-risk-voice")
+        .expect("voice entry");
+
+    let score_delta = core::build_chairman_shadow_score_delta(reward_entry, &policy);
+    let voice_delta = core::build_chairman_shadow_voice_delta(voice_entry, &policy);
+
+    assert_eq!(
+        score_delta.delta_kind,
+        core::ChairmanShadowScoreDeltaKind::Reward
+    );
+    assert!(score_delta.proposed_score_delta <= 0.02);
+    assert_eq!(
+        voice_delta.delta_kind,
+        core::ChairmanShadowVoiceDeltaKind::Increase
+    );
+    assert!(voice_delta.proposed_voice_delta <= 0.01);
+
+    let mut unsafe_voice_entry = voice_entry.clone();
+    unsafe_voice_entry.evidence_summary =
+        "broker order should never produce governance voice credit".to_string();
+    let unsafe_voice_delta = core::build_chairman_shadow_voice_delta(&unsafe_voice_entry, &policy);
+    assert_eq!(
+        unsafe_voice_delta.delta_kind,
+        core::ChairmanShadowVoiceDeltaKind::NeedsMoreEvidence
+    );
+    assert_eq!(unsafe_voice_delta.proposed_voice_delta, 0.0);
+}
+
+#[test]
+fn sprint190_simulation_keeps_original_member_state_and_builds_shadow_standings() {
+    run_sprint190_large_stack_test(
+        "sprint190-simulation-large-stack",
+        sprint190_simulation_keeps_original_member_state_and_builds_shadow_standings_inner,
+    );
+}
+
+fn sprint190_simulation_keeps_original_member_state_and_builds_shadow_standings_inner() {
+    let ledger = sprint190_governance_ledger();
+    let member_states = sprint190_member_states();
+    let before = member_states.clone();
+    let simulation = core::simulate_chairman_shadow_governance(
+        &ledger,
+        &member_states,
+        &core::default_chairman_shadow_governance_simulation_policy(),
+    )
+    .expect("simulate shadow governance");
+
+    assert_eq!(member_states, before);
+    assert!(simulation.no_actual_score_mutation);
+    assert!(simulation.no_actual_voice_mutation);
+    assert!(simulation.reward_delta_count >= 1);
+    assert!(simulation.penalty_delta_count >= 1);
+    assert!(simulation.voice_increase_count >= 1);
+    assert!(simulation.voice_decrease_count >= 1);
+    assert!(
+        simulation
+            .simulated_member_standings
+            .iter()
+            .any(|standing| {
+                standing.member_id == "member-good"
+                    && standing.standing_status
+                        == core::SimulatedMemberStandingStatus::ImprovedShadowStanding
+            })
+    );
+    assert!(
+        simulation
+            .simulated_member_standings
+            .iter()
+            .any(|standing| {
+                standing.member_id == "member-bad"
+                    && standing.standing_status
+                        == core::SimulatedMemberStandingStatus::ReducedShadowStanding
+            })
+    );
+}
+
+#[test]
+fn sprint190_fairness_risk_trend_and_readiness_checks_flag_expected_states() {
+    run_sprint190_large_stack_test(
+        "sprint190-readiness-large-stack",
+        sprint190_fairness_risk_trend_and_readiness_checks_flag_expected_states_inner,
+    );
+}
+
+fn sprint190_fairness_risk_trend_and_readiness_checks_flag_expected_states_inner() {
+    let ledger = sprint190_governance_ledger();
+    let simulation = core::simulate_chairman_shadow_governance(
+        &ledger,
+        &sprint190_member_states(),
+        &core::default_chairman_shadow_governance_simulation_policy(),
+    )
+    .expect("simulate shadow governance");
+    let fairness = core::evaluate_chairman_governance_fairness(
+        &simulation,
+        &core::default_chairman_shadow_governance_simulation_policy(),
+    );
+    let risk = core::evaluate_chairman_risk_first_governance(&simulation, &ledger);
+    let mut simulation_ledger = core::ChairmanShadowGovernanceSimulationLedger {
+        ledger_id: "sprint190-simulation-ledger".to_string(),
+        entries: Vec::new(),
+        entry_count: 0,
+        latest_entry_id: None,
+        paper_only: true,
+    };
+    core::append_chairman_shadow_governance_simulation_entry(
+        &mut simulation_ledger,
+        core::ChairmanShadowGovernanceSimulationLedgerEntry {
+            entry_id: "entry-1".to_string(),
+            simulation_id: "sim-1".to_string(),
+            timestamp: None,
+            reward_delta_count: 1,
+            penalty_delta_count: 1,
+            voice_increase_count: 1,
+            voice_decrease_count: 1,
+            needs_more_evidence_count: 1,
+            fairness_status: fairness.fairness_status,
+            risk_first_status: risk.risk_first_status,
+            paper_only: true,
+        },
+    );
+    core::append_chairman_shadow_governance_simulation_entry(
+        &mut simulation_ledger,
+        core::ChairmanShadowGovernanceSimulationLedgerEntry {
+            entry_id: "entry-2".to_string(),
+            simulation_id: "sim-2".to_string(),
+            timestamp: None,
+            reward_delta_count: 2,
+            penalty_delta_count: 1,
+            voice_increase_count: 2,
+            voice_decrease_count: 1,
+            needs_more_evidence_count: 0,
+            fairness_status: fairness.fairness_status,
+            risk_first_status: risk.risk_first_status,
+            paper_only: true,
+        },
+    );
+    let trend = core::compute_chairman_shadow_governance_trend(&simulation_ledger);
+    let safety = core::ChairmanGovernanceSimulationSafetyGuardV3 {
+        actual_score_mutation_detected: false,
+        actual_voice_mutation_detected: false,
+        promotion_execution_detected: false,
+        demotion_execution_detected: false,
+        risk_governor_override_detected: false,
+        committee_decision_mutation_detected: false,
+        trade_signal_detected: false,
+        order_detected: false,
+        broker_order_account_detected: false,
+        owner_opinion_forced_trade_detected: false,
+        guard_status: core::ChairmanGovernanceSimulationSafetyGuardV3Status::Preserved,
+        violations: Vec::new(),
+        paper_only: true,
+    };
+    let readiness = core::evaluate_chairman_shadow_governance_readiness(
+        &simulation,
+        &fairness,
+        &risk,
+        &trend,
+        &safety,
+    );
+
+    assert!(fairness.fairness_status != core::ChairmanGovernanceFairnessStatus::InsufficientData);
+    assert!(risk.risk_guard_rewarded_count >= 1);
+    assert_eq!(
+        trend.reward_trend,
+        core::ChairmanShadowGovernanceTrendDirection::Increasing
+    );
+    assert!(readiness.enough_history);
+    assert!(
+        matches!(
+            readiness.readiness_status,
+            core::ChairmanShadowGovernanceReadinessStatus::ShadowGovernanceObservationReady
+                | core::ChairmanShadowGovernanceReadinessStatus::ShadowGovernanceObservationReadyWithWarnings
+                | core::ChairmanShadowGovernanceReadinessStatus::NeedsMoreEvidence
+        )
+    );
+}
+
+#[test]
+fn sprint190_explanations_include_owner_reason_and_safety_guard_v3_detects_mutation() {
+    run_sprint190_large_stack_test(
+        "sprint190-explanations-safety-large-stack",
+        sprint190_explanations_include_owner_reason_and_safety_guard_v3_detects_mutation_inner,
+    );
+}
+
+fn sprint190_explanations_include_owner_reason_and_safety_guard_v3_detects_mutation_inner() {
+    let ledger = sprint190_governance_ledger();
+    let simulation = core::simulate_chairman_shadow_governance(
+        &ledger,
+        &sprint190_member_states(),
+        &core::default_chairman_shadow_governance_simulation_policy(),
+    )
+    .expect("simulate shadow governance");
+    let explanations = core::build_chairman_shadow_governance_explanations(
+        &simulation,
+        Some(sprint190_owner_alignment_records().as_slice()),
+    );
+    let (batch_result, _observer_run_result, _sprint188_run, ..) =
+        sprint188_apply_verify_shadow_fixture(
+            core::ObserverExplicitApplyMode::ApplyApprovedTargets,
+            false,
+            true,
+        );
+    let mut mutated = batch_result.clone();
+    mutated.score_updates[0].new_score += 1.0;
+    mutated.score_updates[0].new_voice_weight += 0.1;
+    mutated.chairman_decisions[0].risk_governor_status = RiskGovernorStatus::NeedsReview;
+    let safety = core::evaluate_chairman_governance_simulation_safety_v3(
+        &simulation,
+        &batch_result,
+        Some(&mutated),
+    );
+
+    assert!(explanations.iter().any(|item| {
+        item.member_id == "member-good"
+            && item
+                .owner_opinion_explanation
+                .as_deref()
+                .is_some_and(|text| text.contains("Risk Governor veto"))
+    }));
+    let mut unsafe_records = sprint190_owner_alignment_records();
+    unsafe_records[0].explanation =
+        "place order through broker account from this owner note".to_string();
+    let unsafe_explanations =
+        core::build_chairman_shadow_governance_explanations(&simulation, Some(&unsafe_records));
+    assert!(unsafe_explanations.iter().any(|item| {
+        item.member_id == "member-good"
+            && item
+                .owner_opinion_explanation
+                .as_deref()
+                .is_some_and(|text| text.contains("suppressed") && !text.contains("place order"))
+    }));
+    assert_eq!(
+        safety.guard_status,
+        core::ChairmanGovernanceSimulationSafetyGuardV3Status::Violated
+    );
+    assert!(safety.actual_score_mutation_detected);
+    assert!(safety.actual_voice_mutation_detected);
+    assert!(safety.risk_governor_override_detected);
+}
+
+#[test]
+fn sprint190_safety_guard_v3_distinguishes_score_voice_and_rank_mutations() {
+    run_sprint190_large_stack_test(
+        "sprint190-safety-guard-large-stack",
+        sprint190_safety_guard_v3_distinguishes_score_voice_and_rank_mutations_inner,
+    );
+}
+
+fn sprint190_safety_guard_v3_distinguishes_score_voice_and_rank_mutations_inner() {
+    let ledger = sprint190_governance_ledger();
+    let simulation = core::simulate_chairman_shadow_governance(
+        &ledger,
+        &sprint190_member_states(),
+        &core::default_chairman_shadow_governance_simulation_policy(),
+    )
+    .expect("simulate shadow governance");
+    let (batch_result, _observer_run_result, _sprint188_run, ..) =
+        sprint188_apply_verify_shadow_fixture(
+            core::ObserverExplicitApplyMode::ApplyApprovedTargets,
+            false,
+            true,
+        );
+
+    let mut voice_mutated = batch_result.clone();
+    voice_mutated.score_updates[0].new_voice_weight += 0.1;
+    let voice_safety = core::evaluate_chairman_governance_simulation_safety_v3(
+        &simulation,
+        &batch_result,
+        Some(&voice_mutated),
+    );
+    assert!(!voice_safety.actual_score_mutation_detected);
+    assert!(voice_safety.actual_voice_mutation_detected);
+    assert!(!voice_safety.promotion_execution_detected);
+    assert!(!voice_safety.demotion_execution_detected);
+
+    let mut promotion_mutated = batch_result.clone();
+    promotion_mutated.score_updates[0].promoted = !batch_result.score_updates[0].promoted;
+    let promotion_safety = core::evaluate_chairman_governance_simulation_safety_v3(
+        &simulation,
+        &batch_result,
+        Some(&promotion_mutated),
+    );
+    assert!(promotion_safety.promotion_execution_detected);
+    assert!(!promotion_safety.actual_score_mutation_detected);
+    assert!(!promotion_safety.actual_voice_mutation_detected);
+
+    let mut demotion_mutated = batch_result.clone();
+    demotion_mutated.score_updates[0].demoted = !batch_result.score_updates[0].demoted;
+    let demotion_safety = core::evaluate_chairman_governance_simulation_safety_v3(
+        &simulation,
+        &batch_result,
+        Some(&demotion_mutated),
+    );
+    assert!(demotion_safety.demotion_execution_detected);
+    assert!(!demotion_safety.actual_score_mutation_detected);
+    assert!(!demotion_safety.actual_voice_mutation_detected);
+}
+
+#[test]
+fn sprint190_run_respects_dry_run_and_non_dry_writes_and_is_deterministic() {
+    run_sprint190_large_stack_test(
+        "sprint190-run-large-stack",
+        sprint190_run_respects_dry_run_and_non_dry_writes_and_is_deterministic_inner,
+    );
+}
+
+fn sprint190_run_respects_dry_run_and_non_dry_writes_and_is_deterministic_inner() {
+    let (batch_result, _observer_run_result, _sprint188_run, ..) =
+        sprint188_apply_verify_shadow_fixture(
+            core::ObserverExplicitApplyMode::ApplyApprovedTargets,
+            false,
+            true,
+        );
+    let ledger = sprint190_governance_ledger();
+    let member_states = sprint190_member_states();
+    let ledger_path = sprint171_temp_json_path("sprint190-simulation-ledger");
+    let result_path = sprint171_temp_json_path("sprint190-simulation-result");
+    let unsafe_ledger_path = sprint171_temp_json_path("sprint190-unsafe-simulation-ledger");
+    let _ = std::fs::remove_file(&ledger_path);
+    let _ = std::fs::remove_file(&result_path);
+    let _ = std::fs::remove_file(&unsafe_ledger_path);
+
+    let dry_run = core::run_chairman_shadow_governance_simulation(
+        &ledger,
+        member_states.as_slice(),
+        Some(sprint190_owner_alignment_records().as_slice()),
+        &batch_result,
+        &core::ChairmanShadowGovernanceSimulationRunConfig {
+            run_id: "sprint190-dry-run".to_string(),
+            enabled: true,
+            governance_ledger_input_path: None,
+            simulation_ledger_input_path: None,
+            simulation_ledger_output_path: Some(ledger_path.to_string_lossy().to_string()),
+            simulation_result_output_path: None,
+            dry_run: true,
+            emit_owner_explanations: true,
+            paper_only: true,
+        },
+    )
+    .expect("dry run simulation");
+    assert!(!ledger_path.exists());
+
+    let bad_config = core::ChairmanShadowGovernanceSimulationRunConfig {
+        run_id: "sprint190-not-paper-only".to_string(),
+        enabled: true,
+        governance_ledger_input_path: None,
+        simulation_ledger_input_path: None,
+        simulation_ledger_output_path: None,
+        simulation_result_output_path: None,
+        dry_run: true,
+        emit_owner_explanations: true,
+        paper_only: false,
+    };
+    let bad_config_error = core::run_chairman_shadow_governance_simulation(
+        &ledger,
+        member_states.as_slice(),
+        Some(sprint190_owner_alignment_records().as_slice()),
+        &batch_result,
+        &bad_config,
+    )
+    .expect_err("non-paper-only simulation config should fail");
+    assert!(bad_config_error.contains("paper_only"));
+
+    let mut unsafe_ledger = core::ChairmanShadowGovernanceSimulationLedger {
+        ledger_id: "sprint190-unsafe-ledger".to_string(),
+        entries: Vec::new(),
+        entry_count: 0,
+        latest_entry_id: None,
+        paper_only: true,
+    };
+    core::append_chairman_shadow_governance_simulation_entry(
+        &mut unsafe_ledger,
+        core::ChairmanShadowGovernanceSimulationLedgerEntry {
+            entry_id: "unsafe-entry".to_string(),
+            simulation_id: "unsafe-simulation".to_string(),
+            timestamp: None,
+            reward_delta_count: 0,
+            penalty_delta_count: 0,
+            voice_increase_count: 0,
+            voice_decrease_count: 0,
+            needs_more_evidence_count: 0,
+            fairness_status: core::ChairmanGovernanceFairnessStatus::Fair,
+            risk_first_status: core::ChairmanRiskFirstGovernanceStatus::Preserved,
+            paper_only: false,
+        },
+    );
+    let unsafe_save_error = core::save_chairman_shadow_governance_simulation_ledger_to_local_json(
+        &unsafe_ledger_path,
+        &unsafe_ledger,
+    )
+    .expect_err("unsafe simulation ledger save should fail");
+    assert!(unsafe_save_error.contains("paper_only"));
+    assert!(!unsafe_ledger_path.exists());
+
+    let config = core::ChairmanShadowGovernanceSimulationRunConfig {
+        run_id: "sprint190-non-dry-run".to_string(),
+        enabled: true,
+        governance_ledger_input_path: None,
+        simulation_ledger_input_path: None,
+        simulation_ledger_output_path: Some(ledger_path.to_string_lossy().to_string()),
+        simulation_result_output_path: Some(result_path.to_string_lossy().to_string()),
+        dry_run: false,
+        emit_owner_explanations: true,
+        paper_only: true,
+    };
+    let first = core::run_chairman_shadow_governance_simulation(
+        &ledger,
+        member_states.as_slice(),
+        Some(sprint190_owner_alignment_records().as_slice()),
+        &batch_result,
+        &config,
+    )
+    .expect("first simulation run");
+    let second = core::run_chairman_shadow_governance_simulation(
+        &ledger,
+        member_states.as_slice(),
+        Some(sprint190_owner_alignment_records().as_slice()),
+        &batch_result,
+        &config,
+    )
+    .expect("second simulation run");
+
+    assert!(ledger_path.exists());
+    assert!(result_path.exists());
+    assert_eq!(first, second);
+    assert_eq!(
+        dry_run.simulation_result.simulated_member_standings.len(),
+        3
+    );
+    let _ = std::fs::remove_file(&ledger_path);
+    let _ = std::fs::remove_file(&result_path);
+    let _ = std::fs::remove_file(&unsafe_ledger_path);
+}
+
+#[test]
+fn sprint190_simulation_emit_flags_alone_do_not_request_run() {
+    assert!(
+        !core::chairman_shadow_governance_simulation_requested_from_flags(
+            false, true, None, None, true
+        )
+    );
+    assert!(
+        core::chairman_shadow_governance_simulation_requested_from_flags(
+            true, true, None, None, false
+        )
+    );
+    assert!(
+        core::chairman_shadow_governance_simulation_requested_from_flags(
+            false, false, None, None, false
+        )
+    );
+}
+
+fn run_sprint191_large_stack_test(name: &str, test_fn: fn()) {
+    let handle = std::thread::Builder::new()
+        .name(name.to_string())
+        .stack_size(16 * 1024 * 1024)
+        .spawn(test_fn)
+        .expect("spawn large-stack sprint191 test");
+    handle.join().expect("large-stack sprint191 test panicked");
+}
+
+#[test]
+fn sprint191_apply_updates_shadow_state_only_and_normalizes_voice_weights() {
+    run_sprint191_large_stack_test(
+        "sprint191-apply-large-stack",
+        sprint191_apply_updates_shadow_state_only_and_normalizes_voice_weights_inner,
+    );
+}
+
+fn sprint191_apply_updates_shadow_state_only_and_normalizes_voice_weights_inner() {
+    let (member_states, simulation_result, fairness_check, risk_first_check, _batch_result) =
+        sprint191_shadow_state_fixture();
+    let mut shadow_store = core::initialize_shadow_governance_state_store(&member_states);
+    let before_actual = member_states.clone();
+    let apply_result = core::apply_chairman_shadow_governance_deltas(
+        &mut shadow_store,
+        &simulation_result,
+        &fairness_check,
+        &risk_first_check,
+        &core::default_chairman_shadow_governance_apply_policy(),
+        "sprint191-apply",
+    )
+    .expect("apply shadow governance deltas");
+
+    assert_eq!(member_states, before_actual);
+    assert!(apply_result.updated_member_count >= 2);
+    assert!(apply_result.no_actual_score_mutation);
+    assert!(apply_result.no_actual_voice_mutation);
+    assert!(apply_result.no_promotion_demotion);
+    assert!(apply_result.no_risk_governor_override);
+    assert!(apply_result.before_after_standings.iter().any(|standing| {
+        standing.member_id == "member-good"
+            && standing.standing_change
+                == core::SimulatedMemberStandingStatus::ImprovedShadowStanding
+    }));
+    assert!(apply_result.before_after_standings.iter().any(|standing| {
+        standing.member_id == "member-bad"
+            && standing.standing_change
+                == core::SimulatedMemberStandingStatus::ReducedShadowStanding
+    }));
+    let total_shadow_voice = shadow_store
+        .member_states
+        .iter()
+        .map(|state| state.shadow_voice_weight)
+        .sum::<f64>();
+    assert!((total_shadow_voice - 1.0).abs() < 1e-9);
+}
+
+#[test]
+fn sprint191_comparison_trend_and_gate_capture_history_and_blocks_unfairness() {
+    run_sprint191_large_stack_test(
+        "sprint191-comparison-gate-large-stack",
+        sprint191_comparison_trend_and_gate_capture_history_and_blocks_unfairness_inner,
+    );
+}
+
+fn sprint191_comparison_trend_and_gate_capture_history_and_blocks_unfairness_inner() {
+    let (member_states, simulation_result, fairness_check, risk_first_check, _batch_result) =
+        sprint191_shadow_state_fixture();
+    let mut shadow_store = core::initialize_shadow_governance_state_store(&member_states);
+    let apply_result = core::apply_chairman_shadow_governance_deltas(
+        &mut shadow_store,
+        &simulation_result,
+        &fairness_check,
+        &risk_first_check,
+        &core::default_chairman_shadow_governance_apply_policy(),
+        "sprint191-gate",
+    )
+    .expect("apply shadow governance deltas");
+    let (_comparisons, comparison_summary) =
+        core::compare_actual_vs_shadow_governance(&member_states, &shadow_store);
+    let mut state_ledger = core::ChairmanShadowGovernanceStateLedger {
+        ledger_id: "sprint191-state-ledger".to_string(),
+        entries: Vec::new(),
+        entry_count: 0,
+        latest_entry_id: None,
+        paper_only: true,
+    };
+    core::append_chairman_shadow_governance_state_ledger_entry(
+        &mut state_ledger,
+        core::ChairmanShadowGovernanceStateLedgerEntry {
+            entry_id: "entry-1".to_string(),
+            run_id: "sprint191-gate-1".to_string(),
+            updated_member_count: apply_result.updated_member_count,
+            applied_shadow_score_delta_count: apply_result.applied_shadow_score_delta_count,
+            applied_shadow_voice_delta_count: apply_result.applied_shadow_voice_delta_count,
+            fairness_status: apply_result.fairness_check.fairness_status,
+            risk_first_status: apply_result.risk_first_check.risk_first_status,
+            actual_vs_shadow_summary_status: comparison_summary.summary_status,
+            paper_only: true,
+        },
+    );
+    let insufficient_trend = core::compute_chairman_shadow_governance_state_trend(&state_ledger);
+    let safe_guard = core::ChairmanShadowGovernanceApplySafetyGuard {
+        actual_score_mutation_detected: false,
+        actual_voice_mutation_detected: false,
+        promotion_execution_detected: false,
+        demotion_execution_detected: false,
+        risk_governor_override_detected: false,
+        committee_decision_mutation_detected: false,
+        trade_signal_detected: false,
+        order_detected: false,
+        broker_order_account_detected: false,
+        shadow_store_written_when_dry_run: false,
+        guard_status: core::ChairmanShadowGovernanceApplySafetyGuardStatus::Preserved,
+        violations: Vec::new(),
+        paper_only: true,
+    };
+    let insufficient_gate = core::evaluate_paper_governance_promotion_gate(
+        &apply_result,
+        &comparison_summary,
+        &insufficient_trend,
+        &safe_guard,
+    );
+    assert_eq!(
+        insufficient_trend.trend_status,
+        core::ChairmanShadowGovernanceTrendStatus::InsufficientHistory
+    );
+    assert_eq!(
+        insufficient_gate.readiness_status,
+        core::PaperGovernancePromotionReadinessStatus::NeedsMoreShadowHistory
+    );
+
+    core::append_chairman_shadow_governance_state_ledger_entry(
+        &mut state_ledger,
+        core::ChairmanShadowGovernanceStateLedgerEntry {
+            entry_id: "entry-2".to_string(),
+            run_id: "sprint191-gate-2".to_string(),
+            updated_member_count: apply_result.updated_member_count + 1,
+            applied_shadow_score_delta_count: apply_result.applied_shadow_score_delta_count,
+            applied_shadow_voice_delta_count: apply_result.applied_shadow_voice_delta_count,
+            fairness_status: core::ChairmanGovernanceFairnessStatus::FairWithWarnings,
+            risk_first_status: apply_result.risk_first_check.risk_first_status,
+            actual_vs_shadow_summary_status: comparison_summary.summary_status,
+            paper_only: true,
+        },
+    );
+    core::append_chairman_shadow_governance_state_ledger_entry(
+        &mut state_ledger,
+        core::ChairmanShadowGovernanceStateLedgerEntry {
+            entry_id: "entry-3".to_string(),
+            run_id: "sprint191-gate-3".to_string(),
+            updated_member_count: apply_result.updated_member_count + 2,
+            applied_shadow_score_delta_count: apply_result.applied_shadow_score_delta_count,
+            applied_shadow_voice_delta_count: apply_result.applied_shadow_voice_delta_count,
+            fairness_status: apply_result.fairness_check.fairness_status,
+            risk_first_status: apply_result.risk_first_check.risk_first_status,
+            actual_vs_shadow_summary_status: comparison_summary.summary_status,
+            paper_only: true,
+        },
+    );
+    let useful_trend = core::compute_chairman_shadow_governance_state_trend(&state_ledger);
+    let mut blocked_apply = apply_result.clone();
+    blocked_apply.fairness_check.fairness_status = core::ChairmanGovernanceFairnessStatus::Unfair;
+    let blocked_gate = core::evaluate_paper_governance_promotion_gate(
+        &blocked_apply,
+        &comparison_summary,
+        &useful_trend,
+        &safe_guard,
+    );
+    assert_eq!(useful_trend.entry_count, 3);
+    assert_eq!(
+        blocked_gate.readiness_status,
+        core::PaperGovernancePromotionReadinessStatus::BlockedByFairness
+    );
+    assert!(!blocked_gate.ready_for_paper_score_voice_trial);
+
+    let mut diverged_summary = comparison_summary.clone();
+    diverged_summary.summary_status = core::ActualVsShadowGovernanceSummaryStatus::Diverged;
+    let diverged_gate = core::evaluate_paper_governance_promotion_gate(
+        &apply_result,
+        &diverged_summary,
+        &useful_trend,
+        &safe_guard,
+    );
+    assert_eq!(
+        diverged_gate.readiness_status,
+        core::PaperGovernancePromotionReadinessStatus::NeedsMoreEvidence
+    );
+    assert!(!diverged_gate.ready_for_paper_score_voice_trial);
+}
+
+#[test]
+fn sprint191_state_store_round_trip_and_request_flags_stay_paper_only() {
+    run_sprint191_large_stack_test(
+        "sprint191-state-store-large-stack",
+        sprint191_state_store_round_trip_and_request_flags_stay_paper_only_inner,
+    );
+}
+
+fn sprint191_state_store_round_trip_and_request_flags_stay_paper_only_inner() {
+    let (member_states, _simulation_result, _fairness_check, _risk_first_check, _batch_result) =
+        sprint191_shadow_state_fixture();
+    let store_path = sprint171_temp_json_path("sprint191-shadow-state-store");
+    let ledger_path = sprint171_temp_json_path("sprint191-shadow-state-ledger-roundtrip");
+    let mut store = core::initialize_shadow_governance_state_store(&member_states);
+    store.store_id = "sprint191-state-store".to_string();
+    let _ = std::fs::remove_file(&store_path);
+    let _ = std::fs::remove_file(&ledger_path);
+
+    core::save_chairman_shadow_governance_state_store_to_local_json(&store_path, &store)
+        .expect("save state store");
+    let loaded = core::load_chairman_shadow_governance_state_store_from_local_json(&store_path)
+        .expect("load state store");
+    assert_eq!(loaded.member_count, member_states.len());
+    assert_eq!(
+        core::get_shadow_member_state(&loaded, "member-good")
+            .expect("member-good shadow state")
+            .actual_score_snapshot,
+        0.62
+    );
+
+    let mut unsafe_store = loaded.clone();
+    unsafe_store.paper_only = false;
+    let unsafe_save_error =
+        core::save_chairman_shadow_governance_state_store_to_local_json(&store_path, &unsafe_store)
+            .expect_err("unsafe paper_only=false state store save should fail");
+    assert!(unsafe_save_error.contains("paper_only"));
+    std::fs::write(
+        &store_path,
+        serde_json::to_string_pretty(&unsafe_store).expect("serialize unsafe state store"),
+    )
+    .expect("write unsafe state store");
+    let unsafe_error =
+        core::load_chairman_shadow_governance_state_store_from_local_json(&store_path)
+            .expect_err("unsafe paper_only=false state store should fail");
+    assert!(unsafe_error.contains("paper_only"));
+    assert!(
+        core::save_chairman_shadow_governance_state_store_to_local_json(
+            std::path::Path::new("https://example.invalid/shadow-state.json"),
+            &store,
+        )
+        .is_err()
+    );
+    assert!(
+        !core::chairman_shadow_governance_state_requested_from_flags(
+            false, true, false, None, None, None, true
+        )
+    );
+    assert!(core::chairman_shadow_governance_state_requested_from_flags(
+        true, true, false, None, None, None, false
+    ));
+    assert!(
+        !core::chairman_shadow_governance_state_requested_from_flags(
+            false, true, true, None, None, None, false
+        )
+    );
+    assert!(core::chairman_shadow_governance_state_requested_from_flags(
+        false, false, false, None, None, None, false
+    ));
+    assert!(core::chairman_shadow_governance_state_requested_from_flags(
+        false,
+        true,
+        false,
+        None,
+        Some(&store_path.to_string_lossy().to_string()),
+        None,
+        false
+    ));
+
+    let mut ledger = core::ChairmanShadowGovernanceStateLedger {
+        ledger_id: "sprint191-state-ledger".to_string(),
+        entries: Vec::new(),
+        entry_count: 0,
+        latest_entry_id: None,
+        paper_only: true,
+    };
+    core::append_chairman_shadow_governance_state_ledger_entry(
+        &mut ledger,
+        core::ChairmanShadowGovernanceStateLedgerEntry {
+            entry_id: "sprint191-ledger-entry".to_string(),
+            run_id: "sprint191-ledger-run".to_string(),
+            updated_member_count: 1,
+            applied_shadow_score_delta_count: 1,
+            applied_shadow_voice_delta_count: 1,
+            fairness_status: core::ChairmanGovernanceFairnessStatus::Fair,
+            risk_first_status: core::ChairmanRiskFirstGovernanceStatus::Preserved,
+            actual_vs_shadow_summary_status: core::ActualVsShadowGovernanceSummaryStatus::Stable,
+            paper_only: true,
+        },
+    );
+    core::save_chairman_shadow_governance_state_ledger_to_local_json(&ledger_path, &ledger)
+        .expect("save state ledger");
+    let loaded_ledger =
+        core::load_chairman_shadow_governance_state_ledger_from_local_json(&ledger_path)
+            .expect("load state ledger");
+    assert_eq!(loaded_ledger.entry_count, 1);
+    let mut unsafe_ledger = loaded_ledger.clone();
+    unsafe_ledger.entries[0].paper_only = false;
+    let unsafe_ledger_save_error =
+        core::save_chairman_shadow_governance_state_ledger_to_local_json(
+            &ledger_path,
+            &unsafe_ledger,
+        )
+        .expect_err("unsafe paper_only=false state ledger save should fail");
+    assert!(unsafe_ledger_save_error.contains("paper_only"));
+
+    let _ = std::fs::remove_file(&store_path);
+    let _ = std::fs::remove_file(&ledger_path);
+}
+
+#[test]
+fn sprint191_apply_safety_detects_actual_mutation_and_dry_run_write() {
+    run_sprint191_large_stack_test(
+        "sprint191-safety-large-stack",
+        sprint191_apply_safety_detects_actual_mutation_and_dry_run_write_inner,
+    );
+}
+
+fn sprint191_apply_safety_detects_actual_mutation_and_dry_run_write_inner() {
+    let (member_states, simulation_result, fairness_check, risk_first_check, batch_result) =
+        sprint191_shadow_state_fixture();
+    let mut shadow_store = core::initialize_shadow_governance_state_store(&member_states);
+    let apply_result = core::apply_chairman_shadow_governance_deltas(
+        &mut shadow_store,
+        &simulation_result,
+        &fairness_check,
+        &risk_first_check,
+        &core::default_chairman_shadow_governance_apply_policy(),
+        "sprint191-safety",
+    )
+    .expect("apply shadow governance deltas");
+    let mut mutated_states = member_states.clone();
+    mutated_states[0].score += 0.2;
+    mutated_states[0].voice_weight += 0.1;
+    let mut mutated_batch = batch_result.clone();
+    mutated_batch.score_updates[0].promoted = !mutated_batch.score_updates[0].promoted;
+    mutated_batch.chairman_decisions[0].risk_governor_status = RiskGovernorStatus::NeedsReview;
+    let safety_guard = core::evaluate_chairman_shadow_governance_apply_safety(
+        &apply_result,
+        &member_states,
+        Some(&mutated_states),
+        &batch_result,
+        Some(&mutated_batch),
+        &core::ChairmanShadowGovernanceStateRunConfig {
+            run_id: "sprint191-safety".to_string(),
+            enabled: true,
+            shadow_state_input_path: None,
+            shadow_state_output_path: None,
+            shadow_state_ledger_path: None,
+            dry_run: true,
+            apply_shadow_deltas: true,
+            emit_owner_summary: true,
+            paper_only: true,
+        },
+        true,
+    );
+
+    assert_eq!(
+        safety_guard.guard_status,
+        core::ChairmanShadowGovernanceApplySafetyGuardStatus::Violated
+    );
+    assert!(safety_guard.actual_score_mutation_detected);
+    assert!(safety_guard.actual_voice_mutation_detected);
+    assert!(safety_guard.promotion_execution_detected);
+    assert!(safety_guard.risk_governor_override_detected);
+    assert!(safety_guard.shadow_store_written_when_dry_run);
+
+    let mut voice_only_states = member_states.clone();
+    voice_only_states[0].voice_weight += 0.1;
+    let voice_only_safety = core::evaluate_chairman_shadow_governance_apply_safety(
+        &apply_result,
+        &member_states,
+        Some(&voice_only_states),
+        &batch_result,
+        Some(&batch_result),
+        &core::ChairmanShadowGovernanceStateRunConfig {
+            run_id: "sprint191-safety".to_string(),
+            enabled: true,
+            shadow_state_input_path: None,
+            shadow_state_output_path: None,
+            shadow_state_ledger_path: None,
+            dry_run: true,
+            apply_shadow_deltas: true,
+            emit_owner_summary: true,
+            paper_only: true,
+        },
+        false,
+    );
+    assert!(!voice_only_safety.actual_score_mutation_detected);
+    assert!(voice_only_safety.actual_voice_mutation_detected);
+    assert!(!voice_only_safety.promotion_execution_detected);
+
+    let mut demotion_batch = batch_result.clone();
+    demotion_batch.score_updates[0].demoted = !demotion_batch.score_updates[0].demoted;
+    let demotion_safety = core::evaluate_chairman_shadow_governance_apply_safety(
+        &apply_result,
+        &member_states,
+        Some(&member_states),
+        &batch_result,
+        Some(&demotion_batch),
+        &core::ChairmanShadowGovernanceStateRunConfig {
+            run_id: "sprint191-safety".to_string(),
+            enabled: true,
+            shadow_state_input_path: None,
+            shadow_state_output_path: None,
+            shadow_state_ledger_path: None,
+            dry_run: true,
+            apply_shadow_deltas: true,
+            emit_owner_summary: true,
+            paper_only: true,
+        },
+        false,
+    );
+    assert!(demotion_safety.demotion_execution_detected);
+    assert!(!demotion_safety.actual_score_mutation_detected);
+    assert!(!demotion_safety.actual_voice_mutation_detected);
+}
+
+#[test]
+fn sprint191_state_run_respects_dry_run_and_non_dry_writes() {
+    run_sprint191_large_stack_test(
+        "sprint191-state-run-large-stack",
+        sprint191_state_run_respects_dry_run_and_non_dry_writes_inner,
+    );
+}
+
+fn sprint191_state_run_respects_dry_run_and_non_dry_writes_inner() {
+    let (member_states, simulation_result, _fairness_check, _risk_first_check, batch_result) =
+        sprint191_shadow_state_fixture();
+    let state_path = sprint171_temp_json_path("sprint191-shadow-state");
+    let ledger_path = sprint171_temp_json_path("sprint191-shadow-state-ledger");
+    let _ = std::fs::remove_file(&state_path);
+    let _ = std::fs::remove_file(&ledger_path);
+
+    let dry_run_config = core::ChairmanShadowGovernanceStateRunConfig {
+        run_id: "sprint191-dry-run".to_string(),
+        enabled: true,
+        shadow_state_input_path: None,
+        shadow_state_output_path: Some(state_path.to_string_lossy().to_string()),
+        shadow_state_ledger_path: Some(ledger_path.to_string_lossy().to_string()),
+        dry_run: true,
+        apply_shadow_deltas: true,
+        emit_owner_summary: true,
+        paper_only: true,
+    };
+    let dry_first = core::run_chairman_shadow_governance_state_update(
+        &simulation_result,
+        &member_states,
+        &batch_result,
+        &dry_run_config,
+    )
+    .expect("dry run state update");
+    let dry_second = core::run_chairman_shadow_governance_state_update(
+        &simulation_result,
+        &member_states,
+        &batch_result,
+        &dry_run_config,
+    )
+    .expect("second dry run state update");
+
+    assert_eq!(dry_first, dry_second);
+    assert!(!state_path.exists());
+    assert!(!ledger_path.exists());
+    assert_eq!(
+        dry_first.run_status,
+        core::ChairmanShadowGovernanceStateRunStatus::PassedWithWarnings
+    );
+    assert!(dry_first.owner_summary.is_some());
+
+    let bad_config = core::ChairmanShadowGovernanceStateRunConfig {
+        run_id: "sprint191-not-paper-only".to_string(),
+        enabled: true,
+        shadow_state_input_path: None,
+        shadow_state_output_path: None,
+        shadow_state_ledger_path: None,
+        dry_run: true,
+        apply_shadow_deltas: true,
+        emit_owner_summary: true,
+        paper_only: false,
+    };
+    let bad_config_error = core::run_chairman_shadow_governance_state_update(
+        &simulation_result,
+        &member_states,
+        &batch_result,
+        &bad_config,
+    )
+    .expect_err("non-paper-only state run should fail");
+    assert!(bad_config_error.contains("paper_only"));
+
+    let non_dry_config = core::ChairmanShadowGovernanceStateRunConfig {
+        run_id: "sprint191-non-dry-run".to_string(),
+        enabled: true,
+        shadow_state_input_path: Some(state_path.to_string_lossy().to_string()),
+        shadow_state_output_path: Some(state_path.to_string_lossy().to_string()),
+        shadow_state_ledger_path: Some(ledger_path.to_string_lossy().to_string()),
+        dry_run: false,
+        apply_shadow_deltas: true,
+        emit_owner_summary: true,
+        paper_only: true,
+    };
+    let non_dry = core::run_chairman_shadow_governance_state_update(
+        &simulation_result,
+        &member_states,
+        &batch_result,
+        &non_dry_config,
+    )
+    .expect("non dry state update");
+
+    assert!(state_path.exists());
+    assert!(ledger_path.exists());
+    assert!(non_dry.shadow_store_after.is_some());
+    assert!(non_dry.apply_result.updated_member_count >= 2);
+
+    let state_before_dry_existing =
+        std::fs::read_to_string(&state_path).expect("state before dry existing");
+    let ledger_before_dry_existing =
+        std::fs::read_to_string(&ledger_path).expect("ledger before dry existing");
+    let dry_existing_config = core::ChairmanShadowGovernanceStateRunConfig {
+        run_id: "sprint191-dry-existing".to_string(),
+        enabled: true,
+        shadow_state_input_path: Some(state_path.to_string_lossy().to_string()),
+        shadow_state_output_path: Some(state_path.to_string_lossy().to_string()),
+        shadow_state_ledger_path: Some(ledger_path.to_string_lossy().to_string()),
+        dry_run: true,
+        apply_shadow_deltas: true,
+        emit_owner_summary: true,
+        paper_only: true,
+    };
+    let dry_existing = core::run_chairman_shadow_governance_state_update(
+        &simulation_result,
+        &member_states,
+        &batch_result,
+        &dry_existing_config,
+    )
+    .expect("dry run with existing state path should not be considered a write");
+    assert_eq!(
+        dry_existing.safety_guard.guard_status,
+        core::ChairmanShadowGovernanceApplySafetyGuardStatus::Preserved
+    );
+    assert!(!dry_existing.safety_guard.shadow_store_written_when_dry_run);
+    assert_eq!(
+        std::fs::read_to_string(&state_path).expect("state after dry existing"),
+        state_before_dry_existing
+    );
+    assert_eq!(
+        std::fs::read_to_string(&ledger_path).expect("ledger after dry existing"),
+        ledger_before_dry_existing
+    );
+    let _ = std::fs::remove_file(&state_path);
+    let _ = std::fs::remove_file(&ledger_path);
+}
+
+fn run_sprint192_large_stack_test(name: &str, test_fn: fn()) {
+    let handle = std::thread::Builder::new()
+        .name(name.to_string())
+        .stack_size(16 * 1024 * 1024)
+        .spawn(test_fn)
+        .expect("spawn large-stack sprint192 test");
+    handle.join().expect("large-stack sprint192 test panicked");
+}
+
+#[test]
+fn sprint192_history_store_accumulates_deduplicates_and_stays_local_only() {
+    run_sprint192_large_stack_test(
+        "sprint192-history-store-large-stack",
+        sprint192_history_store_accumulates_deduplicates_and_stays_local_only_inner,
+    );
+}
+
+fn sprint192_history_store_accumulates_deduplicates_and_stays_local_only_inner() {
+    let (_member_states, state_result) = sprint192_history_state_fixture();
+    let history_path = sprint171_temp_json_path("sprint192-history-store");
+    let mut history_store = core::ChairmanShadowGovernanceHistoryStore {
+        store_id: "sprint192-history-store".to_string(),
+        snapshots: Vec::new(),
+        snapshot_count: 0,
+        latest_snapshot_id: None,
+        paper_only: true,
+    };
+    let config = core::ChairmanShadowGovernanceHistoryAccumulationConfig {
+        run_id: "sprint192-history-accumulate".to_string(),
+        enabled: true,
+        history_store_input_path: None,
+        history_store_output_path: Some(history_path.to_string_lossy().to_string()),
+        max_snapshots: 20,
+        min_snapshots_for_trial_gate: 3,
+        dry_run: true,
+        paper_only: true,
+    };
+    let first = core::accumulate_chairman_shadow_governance_history(
+        &state_result,
+        &mut history_store,
+        &config,
+    )
+    .expect("first accumulation");
+    let duplicate = core::accumulate_chairman_shadow_governance_history(
+        &state_result,
+        &mut history_store,
+        &config,
+    )
+    .expect("duplicate accumulation");
+
+    assert_eq!(first.appended_snapshot_count, 1);
+    assert_eq!(history_store.snapshot_count, 1);
+    assert_eq!(
+        duplicate.accumulation_status,
+        core::ChairmanShadowGovernanceHistoryAccumulationStatus::NoNewSnapshot
+    );
+
+    core::save_chairman_shadow_governance_history_store_to_local_json(
+        &history_path,
+        &history_store,
+    )
+    .expect("save history store");
+    let loaded = core::load_chairman_shadow_governance_history_store_from_local_json(&history_path)
+        .expect("load history store");
+    assert_eq!(loaded.snapshot_count, 1);
+    assert_eq!(
+        core::latest_shadow_governance_history_snapshot(&loaded)
+            .expect("latest history snapshot")
+            .run_id,
+        state_result.run_id
+    );
+
+    let mut unsafe_store = loaded.clone();
+    unsafe_store.paper_only = false;
+    let unsafe_save_error = core::save_chairman_shadow_governance_history_store_to_local_json(
+        &history_path,
+        &unsafe_store,
+    )
+    .expect_err("paper_only=false history store save should fail");
+    assert!(unsafe_save_error.contains("paper_only"));
+    let mut unsafe_nested_store = loaded.clone();
+    unsafe_nested_store.snapshots[0].member_states[0].paper_only = false;
+    let unsafe_nested_save_error =
+        core::save_chairman_shadow_governance_history_store_to_local_json(
+            &history_path,
+            &unsafe_nested_store,
+        )
+        .expect_err("paper_only=false nested member state save should fail");
+    assert!(unsafe_nested_save_error.contains("paper_only"));
+
+    let mut invalid_threshold_config = config.clone();
+    invalid_threshold_config.max_snapshots = 2;
+    let mut invalid_threshold_store = history_store.clone();
+    let invalid_threshold_error = core::accumulate_chairman_shadow_governance_history(
+        &state_result,
+        &mut invalid_threshold_store,
+        &invalid_threshold_config,
+    )
+    .expect_err("max_snapshots below min trial gate should fail");
+    assert!(invalid_threshold_error.contains("max_snapshots"));
+
+    let mut non_paper_config = config.clone();
+    non_paper_config.paper_only = false;
+    let mut non_paper_store = history_store.clone();
+    let non_paper_error = core::accumulate_chairman_shadow_governance_history(
+        &state_result,
+        &mut non_paper_store,
+        &non_paper_config,
+    )
+    .expect_err("non-paper history accumulation should fail");
+    assert!(non_paper_error.contains("paper_only"));
+    assert!(
+        core::save_chairman_shadow_governance_history_store_to_local_json(
+            std::path::Path::new("https://example.invalid/history.json"),
+            &history_store,
+        )
+        .is_err()
+    );
+    assert!(
+        !core::chairman_shadow_governance_history_requested_from_flags(
+            false, true, None, None, 20, 3, true
+        )
+    );
+    assert!(
+        core::chairman_shadow_governance_history_requested_from_flags(
+            true, true, None, None, 20, 3, false
+        )
+    );
+    let _ = std::fs::remove_file(&history_path);
+}
+
+#[test]
+fn sprint192_divergence_diagnosis_detects_score_voice_and_unsafe_dominance() {
+    run_sprint192_large_stack_test(
+        "sprint192-divergence-large-stack",
+        sprint192_divergence_diagnosis_detects_score_voice_and_unsafe_dominance_inner,
+    );
+}
+
+fn sprint192_divergence_diagnosis_detects_score_voice_and_unsafe_dominance_inner() {
+    let (_member_states, state_result) = sprint192_history_state_fixture();
+    let mut shadow_store = state_result
+        .shadow_store_after
+        .clone()
+        .expect("shadow store after");
+    let risk_guard_index = shadow_store
+        .member_states
+        .iter_mut()
+        .position(|state| state.role == IndependentMemberRole::RiskGuard)
+        .unwrap_or(0);
+    let risk_guard = shadow_store
+        .member_states
+        .get_mut(risk_guard_index)
+        .expect("risk guard scenario member");
+    risk_guard.role = IndependentMemberRole::RiskGuard;
+    risk_guard.shadow_voice_weight = 0.82;
+    let risk_guard_member_id = risk_guard.member_id.clone();
+    let risk_guard_shadow_score = risk_guard.shadow_score;
+    let mut history_store = core::ChairmanShadowGovernanceHistoryStore {
+        store_id: "sprint192-diagnosis-store".to_string(),
+        snapshots: Vec::new(),
+        snapshot_count: 0,
+        latest_snapshot_id: None,
+        paper_only: true,
+    };
+    core::append_chairman_shadow_governance_history_snapshot(
+        &mut history_store,
+        sprint192_history_snapshot(&state_result, "diag-1", &[("member-good", 0.70, 0.45)]),
+    );
+    core::append_chairman_shadow_governance_history_snapshot(
+        &mut history_store,
+        sprint192_history_snapshot(
+            &state_result,
+            "diag-2",
+            &[
+                ("member-good", 0.82, 0.46),
+                (&risk_guard_member_id, risk_guard_shadow_score, 0.82),
+            ],
+        ),
+    );
+
+    let diagnosis = core::diagnose_actual_vs_shadow_divergence(
+        &state_result.actual_vs_shadow_summary,
+        &shadow_store,
+        &history_store,
+        &core::default_paper_governance_trial_criteria(),
+    );
+
+    assert!(diagnosis.divergence_records.iter().any(|record| {
+        record.divergence_type == core::ActualVsShadowDivergenceType::ScoreDrift
+    }));
+    assert!(diagnosis.divergence_records.iter().any(|record| {
+        record.divergence_type == core::ActualVsShadowDivergenceType::VoiceDrift
+    }));
+    assert!(diagnosis.divergence_records.iter().any(|record| {
+        record.divergence_type == core::ActualVsShadowDivergenceType::RiskGuardOverDominance
+    }));
+    assert_eq!(
+        diagnosis.diagnosis_status,
+        core::ActualVsShadowDivergenceDiagnosisStatus::UnsafeDivergence
+    );
+}
+
+#[test]
+fn sprint192_history_stability_and_trial_gate_v2_enforce_history_and_fairness() {
+    run_sprint192_large_stack_test(
+        "sprint192-trial-gate-large-stack",
+        sprint192_history_stability_and_trial_gate_v2_enforce_history_and_fairness_inner,
+    );
+}
+
+fn sprint192_history_stability_and_trial_gate_v2_enforce_history_and_fairness_inner() {
+    let (_member_states, state_result) = sprint192_history_state_fixture();
+    let mut insufficient_store = core::ChairmanShadowGovernanceHistoryStore {
+        store_id: "sprint192-insufficient-history".to_string(),
+        snapshots: Vec::new(),
+        snapshot_count: 0,
+        latest_snapshot_id: None,
+        paper_only: true,
+    };
+    core::append_chairman_shadow_governance_history_snapshot(
+        &mut insufficient_store,
+        sprint192_history_snapshot(&state_result, "hist-1", &[("member-good", 0.68, 0.41)]),
+    );
+    let insufficient_metrics =
+        core::compute_shadow_governance_history_stability(&insufficient_store);
+    assert_eq!(
+        insufficient_metrics.stability_status,
+        core::ShadowGovernanceHistoryStabilityStatus::InsufficientHistory
+    );
+
+    let mut history_store = insufficient_store.clone();
+    core::append_chairman_shadow_governance_history_snapshot(
+        &mut history_store,
+        sprint192_history_snapshot(&state_result, "hist-2", &[("member-good", 0.76, 0.58)]),
+    );
+    core::append_chairman_shadow_governance_history_snapshot(
+        &mut history_store,
+        sprint192_history_snapshot(&state_result, "hist-3", &[("member-good", 0.90, 0.18)]),
+    );
+    let stability_metrics = core::compute_shadow_governance_history_stability(&history_store);
+    assert!(matches!(
+        stability_metrics.stability_status,
+        core::ShadowGovernanceHistoryStabilityStatus::StableWithWarnings
+            | core::ShadowGovernanceHistoryStabilityStatus::Unstable
+    ));
+
+    let mut acceptable_diagnosis = core::diagnose_actual_vs_shadow_divergence(
+        &state_result.actual_vs_shadow_summary,
+        state_result
+            .shadow_store_after
+            .as_ref()
+            .expect("shadow store after"),
+        &history_store,
+        &core::default_paper_governance_trial_criteria(),
+    );
+    acceptable_diagnosis.diagnosis_status =
+        core::ActualVsShadowDivergenceDiagnosisStatus::AcceptableWithWarnings;
+    let criteria = core::default_paper_governance_trial_criteria();
+    let needs_history_gate = core::evaluate_paper_governance_trial_gate_v2(
+        &insufficient_store,
+        &acceptable_diagnosis,
+        &insufficient_metrics,
+        &state_result.apply_result,
+        &criteria,
+    );
+    assert_eq!(
+        needs_history_gate.gate_status,
+        core::PaperGovernanceTrialGateV2Status::NeedsMoreShadowHistory
+    );
+    assert!(!needs_history_gate.ready_for_paper_governance_trial);
+    assert_eq!(
+        needs_history_gate.trial_allowed_operations,
+        vec![core::PaperGovernanceTrialAllowedOperation::None]
+    );
+
+    let mut insufficient_stability_criteria = criteria.clone();
+    insufficient_stability_criteria.min_history_snapshots = 1;
+    let insufficient_stability_gate = core::evaluate_paper_governance_trial_gate_v2(
+        &insufficient_store,
+        &acceptable_diagnosis,
+        &insufficient_metrics,
+        &state_result.apply_result,
+        &insufficient_stability_criteria,
+    );
+    assert_eq!(
+        insufficient_stability_gate.gate_status,
+        core::PaperGovernanceTrialGateV2Status::NeedsMoreShadowHistory
+    );
+    assert!(!insufficient_stability_gate.ready_for_paper_governance_trial);
+    assert_eq!(
+        insufficient_stability_gate.trial_allowed_operations,
+        vec![core::PaperGovernanceTrialAllowedOperation::None]
+    );
+
+    let mut unfair_apply = state_result.apply_result.clone();
+    unfair_apply.fairness_check.fairness_status = core::ChairmanGovernanceFairnessStatus::Unfair;
+    let fairness_gate = core::evaluate_paper_governance_trial_gate_v2(
+        &history_store,
+        &acceptable_diagnosis,
+        &stability_metrics,
+        &unfair_apply,
+        &criteria,
+    );
+    assert_eq!(
+        fairness_gate.gate_status,
+        core::PaperGovernanceTrialGateV2Status::BlockedByFairness
+    );
+
+    let mut unsafe_diagnosis = acceptable_diagnosis.clone();
+    unsafe_diagnosis.diagnosis_status =
+        core::ActualVsShadowDivergenceDiagnosisStatus::UnsafeDivergence;
+    let divergence_gate = core::evaluate_paper_governance_trial_gate_v2(
+        &history_store,
+        &unsafe_diagnosis,
+        &stability_metrics,
+        &state_result.apply_result,
+        &criteria,
+    );
+    assert_eq!(
+        divergence_gate.gate_status,
+        core::PaperGovernanceTrialGateV2Status::BlockedByDivergence
+    );
+    assert!(!divergence_gate.ready_for_paper_governance_trial);
+    assert_eq!(
+        divergence_gate.trial_allowed_operations,
+        vec![core::PaperGovernanceTrialAllowedOperation::None]
+    );
+    assert!(
+        divergence_gate
+            .forbidden_operations
+            .contains(&core::PaperGovernanceTrialForbiddenOperation::ActualScoreMutation)
+    );
+}
+
+#[test]
+fn sprint192_history_safety_detects_dry_run_write_mutation_and_unsafe_gate_open() {
+    run_sprint192_large_stack_test(
+        "sprint192-history-safety-large-stack",
+        sprint192_history_safety_detects_dry_run_write_mutation_and_unsafe_gate_open_inner,
+    );
+}
+
+fn sprint192_history_safety_detects_dry_run_write_mutation_and_unsafe_gate_open_inner() {
+    let (member_states, state_result) = sprint192_history_state_fixture();
+    let mut history_store = core::ChairmanShadowGovernanceHistoryStore {
+        store_id: "sprint192-history-safety-store".to_string(),
+        snapshots: vec![sprint192_history_snapshot(
+            &state_result,
+            "history-safety-1",
+            &[("member-good", 0.70, 0.44)],
+        )],
+        snapshot_count: 0,
+        latest_snapshot_id: None,
+        paper_only: true,
+    };
+    core::normalize_shadow_governance_history_store(&mut history_store);
+    let mut history_run_result = core::ChairmanShadowGovernanceHistoryRunResult {
+        run_id: "sprint192-history-safety".to_string(),
+        accumulation_result: core::ChairmanShadowGovernanceHistoryAccumulationResult {
+            run_id: "sprint192-history-safety".to_string(),
+            previous_snapshot_count: 0,
+            appended_snapshot_count: 1,
+            new_snapshot_count: 1,
+            latest_snapshot_id: history_store.latest_snapshot_id.clone(),
+            wrote_history_store: true,
+            accumulation_status:
+                core::ChairmanShadowGovernanceHistoryAccumulationStatus::Accumulated,
+            warnings: Vec::new(),
+            paper_only: true,
+        },
+        history_store,
+        divergence_diagnosis: core::ActualVsShadowDivergenceDiagnosis {
+            diagnosis_id: "sprint192-history-safety".to_string(),
+            record_count: 1,
+            high_severity_count: 0,
+            unsafe_count: 0,
+            expected_count: 0,
+            divergence_records: Vec::new(),
+            diagnosis_status: core::ActualVsShadowDivergenceDiagnosisStatus::NeedsMoreHistory,
+            paper_only: true,
+        },
+        stability_metrics: core::ChairmanShadowGovernanceHistoryStabilityMetrics {
+            metrics_id: "sprint192-history-safety".to_string(),
+            snapshot_count: 1,
+            score_volatility_by_member: std::collections::BTreeMap::new(),
+            voice_volatility_by_member: std::collections::BTreeMap::new(),
+            max_score_swing: 0.0,
+            max_voice_swing: 0.0,
+            reward_penalty_balance: 0.0,
+            voice_change_balance: 0.0,
+            stability_status: core::ShadowGovernanceHistoryStabilityStatus::InsufficientHistory,
+            paper_only: true,
+        },
+        trial_criteria: core::default_paper_governance_trial_criteria(),
+        trial_gate_v2: core::PaperGovernanceTrialGateV2 {
+            gate_id: "sprint192-history-safety".to_string(),
+            history_snapshot_count: 1,
+            min_history_snapshots: 3,
+            divergence_status: core::ActualVsShadowDivergenceDiagnosisStatus::NeedsMoreHistory,
+            stability_status: core::ShadowGovernanceHistoryStabilityStatus::InsufficientHistory,
+            fairness_status: state_result.apply_result.fairness_check.fairness_status,
+            risk_first_status: state_result.apply_result.risk_first_check.risk_first_status,
+            safety_status: core::ChairmanShadowGovernanceApplySafetyGuardStatus::Preserved,
+            ready_for_paper_governance_trial: true,
+            trial_allowed_operations: vec![
+                core::PaperGovernanceTrialAllowedOperation::PaperOnlyScoreVoiceTrialDesign,
+            ],
+            forbidden_operations: vec![
+                core::PaperGovernanceTrialForbiddenOperation::ActualScoreMutation,
+            ],
+            gate_status: core::PaperGovernanceTrialGateV2Status::ReadyForPaperTrialDesign,
+            blockers: Vec::new(),
+            warnings: Vec::new(),
+            paper_only: true,
+        },
+        safety_guard: core::ChairmanShadowGovernanceHistorySafetyGuard {
+            history_write_when_dry_run_detected: false,
+            actual_score_mutation_detected: false,
+            actual_voice_mutation_detected: false,
+            promotion_demotion_detected: false,
+            risk_governor_override_detected: false,
+            committee_decision_mutation_detected: false,
+            trade_signal_detected: false,
+            order_detected: false,
+            broker_order_account_detected: false,
+            unsafe_trial_gate_open_detected: false,
+            guard_status: core::ChairmanShadowGovernanceHistorySafetyGuardStatus::Preserved,
+            violations: Vec::new(),
+            paper_only: true,
+        },
+        owner_summary: None,
+        run_status: core::ChairmanShadowGovernanceHistoryRunStatus::PassedWithWarnings,
+        paper_only: true,
+    };
+    let mut mutated_states = member_states.clone();
+    mutated_states[0].score += 0.1;
+    mutated_states[0].voice_weight += 0.1;
+    let safety = core::evaluate_chairman_shadow_governance_history_safety(
+        &history_run_result,
+        &state_result,
+        &member_states,
+        Some(&mutated_states),
+        true,
+    );
+    assert_eq!(
+        safety.guard_status,
+        core::ChairmanShadowGovernanceHistorySafetyGuardStatus::Violated
+    );
+    assert!(safety.history_write_when_dry_run_detected);
+    assert!(safety.actual_score_mutation_detected);
+    assert!(safety.actual_voice_mutation_detected);
+    assert!(safety.unsafe_trial_gate_open_detected);
+
+    history_run_result.accumulation_result.wrote_history_store = false;
+}
+
+#[test]
+fn sprint192_history_run_respects_dry_run_and_non_dry_writes_and_builds_owner_summary() {
+    run_sprint192_large_stack_test(
+        "sprint192-history-run-large-stack",
+        sprint192_history_run_respects_dry_run_and_non_dry_writes_and_builds_owner_summary_inner,
+    );
+}
+
+fn sprint192_history_run_respects_dry_run_and_non_dry_writes_and_builds_owner_summary_inner() {
+    let (member_states, state_result) = sprint192_history_state_fixture();
+    let history_path = sprint171_temp_json_path("sprint192-history-run");
+    let _ = std::fs::remove_file(&history_path);
+    let dry_run_config = core::ChairmanShadowGovernanceHistoryRunConfig {
+        run_id: "sprint192-history-dry".to_string(),
+        enabled: true,
+        history_store_input_path: None,
+        history_store_output_path: Some(history_path.to_string_lossy().to_string()),
+        max_snapshots: 20,
+        min_snapshots_for_trial_gate: 3,
+        dry_run: true,
+        emit_owner_summary: true,
+        paper_only: true,
+    };
+    let dry_first = core::run_chairman_shadow_governance_history(
+        &state_result,
+        &member_states,
+        &dry_run_config,
+    )
+    .expect("dry history run");
+    let dry_second = core::run_chairman_shadow_governance_history(
+        &state_result,
+        &member_states,
+        &dry_run_config,
+    )
+    .expect("second dry history run");
+    assert_eq!(dry_first, dry_second);
+    assert!(!history_path.exists());
+    assert!(dry_first.owner_summary.is_some());
+    assert_eq!(dry_first.history_store.snapshot_count, 1);
+
+    let non_dry_config = core::ChairmanShadowGovernanceHistoryRunConfig {
+        run_id: "sprint192-history-non-dry".to_string(),
+        enabled: true,
+        history_store_input_path: Some(history_path.to_string_lossy().to_string()),
+        history_store_output_path: Some(history_path.to_string_lossy().to_string()),
+        max_snapshots: 20,
+        min_snapshots_for_trial_gate: 3,
+        dry_run: false,
+        emit_owner_summary: true,
+        paper_only: true,
+    };
+    let non_dry = core::run_chairman_shadow_governance_history(
+        &state_result,
+        &member_states,
+        &non_dry_config,
+    )
+    .expect("non dry history run");
+    assert!(history_path.exists());
+    assert!(non_dry.accumulation_result.wrote_history_store);
+    assert!(non_dry.owner_summary.is_some());
+    assert_eq!(
+        non_dry.trial_gate_v2.gate_status,
+        core::PaperGovernanceTrialGateV2Status::NeedsMoreShadowHistory
+    );
+    let _ = std::fs::remove_file(&history_path);
+
+    let unsafe_history_path = sprint171_temp_json_path("sprint192-history-run-unsafe");
+    let _ = std::fs::remove_file(&unsafe_history_path);
+    let mut unsafe_state_result = state_result.clone();
+    unsafe_state_result
+        .safety_guard
+        .actual_score_mutation_detected = true;
+    let unsafe_non_dry_config = core::ChairmanShadowGovernanceHistoryRunConfig {
+        run_id: "sprint192-history-unsafe-non-dry".to_string(),
+        enabled: true,
+        history_store_input_path: Some(unsafe_history_path.to_string_lossy().to_string()),
+        history_store_output_path: Some(unsafe_history_path.to_string_lossy().to_string()),
+        max_snapshots: 20,
+        min_snapshots_for_trial_gate: 3,
+        dry_run: false,
+        emit_owner_summary: true,
+        paper_only: true,
+    };
+    let unsafe_non_dry = core::run_chairman_shadow_governance_history(
+        &unsafe_state_result,
+        &member_states,
+        &unsafe_non_dry_config,
+    )
+    .expect("unsafe non-dry history run still returns failed result");
+    assert_eq!(
+        unsafe_non_dry.run_status,
+        core::ChairmanShadowGovernanceHistoryRunStatus::Failed
+    );
+    assert!(unsafe_non_dry.safety_guard.actual_score_mutation_detected);
+    assert!(!unsafe_non_dry.accumulation_result.wrote_history_store);
+    assert!(!unsafe_history_path.exists());
+    let _ = std::fs::remove_file(&unsafe_history_path);
+}
+
+fn run_sprint193_large_stack_test(name: &str, test_fn: fn()) {
+    let handle = std::thread::Builder::new()
+        .name(name.to_string())
+        .stack_size(16 * 1024 * 1024)
+        .spawn(test_fn)
+        .expect("spawn large-stack sprint193 test");
+    handle.join().expect("large-stack sprint193 test panicked");
+}
+
+#[test]
+fn sprint193_multi_run_harness_accumulates_shadow_history_deterministically() {
+    run_sprint193_large_stack_test(
+        "sprint193-multi-run-large-stack",
+        sprint193_multi_run_harness_accumulates_shadow_history_deterministically_inner,
+    );
+}
+
+fn sprint193_multi_run_harness_accumulates_shadow_history_deterministically_inner() {
+    let (member_states, state_result) = sprint192_history_state_fixture();
+    let history_path = sprint171_temp_json_path("sprint193-multi-run-history");
+    let output_path = sprint171_temp_json_path("sprint193-multi-run-output");
+    let _ = std::fs::remove_file(&history_path);
+    let _ = std::fs::remove_file(&output_path);
+    let config = core::ChairmanShadowGovernanceMultiRunHarnessConfig {
+        run_id: "sprint193-multi-run".to_string(),
+        enabled: true,
+        run_count: 3,
+        min_snapshots_required: 3,
+        history_store_input_path: None,
+        history_store_output_path: Some(history_path.to_string_lossy().to_string()),
+        simulation_ledger_input_path: None,
+        simulation_ledger_output_path: None,
+        output_path: Some(output_path.to_string_lossy().to_string()),
+        dry_run: true,
+        write_history_store: false,
+        emit_owner_summary: true,
+        paper_only: true,
+    };
+
+    let first = core::run_chairman_shadow_governance_multi_run_harness(
+        &state_result,
+        &member_states,
+        &config,
+    )
+    .expect("first multi-run harness");
+    let second = core::run_chairman_shadow_governance_multi_run_harness(
+        &state_result,
+        &member_states,
+        &config,
+    )
+    .expect("second multi-run harness");
+
+    assert_eq!(first, second);
+    assert_eq!(first.completed_run_count, 3);
+    assert_eq!(first.final_snapshot_count, 3);
+    assert!(!first.wrote_history_store);
+    assert_eq!(
+        first.harness_status,
+        core::ChairmanShadowGovernanceMultiRunHarnessStatus::PassedWithWarnings
+    );
+    assert!(!history_path.exists());
+    assert!(!output_path.exists());
+}
+
+#[test]
+fn sprint193_multi_run_harness_requires_safe_local_write_paths() {
+    run_sprint193_large_stack_test(
+        "sprint193-multi-run-paths-large-stack",
+        sprint193_multi_run_harness_requires_safe_local_write_paths_inner,
+    );
+}
+
+fn sprint193_multi_run_harness_requires_safe_local_write_paths_inner() {
+    let (member_states, state_result) = sprint192_history_state_fixture();
+    let missing_path_error = core::run_chairman_shadow_governance_multi_run_harness(
+        &state_result,
+        &member_states,
+        &core::ChairmanShadowGovernanceMultiRunHarnessConfig {
+            run_id: "sprint193-missing-write-path".to_string(),
+            enabled: true,
+            run_count: 3,
+            min_snapshots_required: 3,
+            history_store_input_path: None,
+            history_store_output_path: None,
+            simulation_ledger_input_path: None,
+            simulation_ledger_output_path: None,
+            output_path: None,
+            dry_run: false,
+            write_history_store: true,
+            emit_owner_summary: true,
+            paper_only: true,
+        },
+    )
+    .expect_err("non-dry write must require history output path");
+    assert!(missing_path_error.contains("history_store_output_path"));
+
+    let remote_output_error = core::run_chairman_shadow_governance_multi_run_harness(
+        &state_result,
+        &member_states,
+        &core::ChairmanShadowGovernanceMultiRunHarnessConfig {
+            run_id: "sprint193-remote-output-path".to_string(),
+            enabled: true,
+            run_count: 3,
+            min_snapshots_required: 3,
+            history_store_input_path: None,
+            history_store_output_path: None,
+            simulation_ledger_input_path: None,
+            simulation_ledger_output_path: None,
+            output_path: Some("https://example.invalid/history.json".to_string()),
+            dry_run: false,
+            write_history_store: false,
+            emit_owner_summary: true,
+            paper_only: true,
+        },
+    )
+    .expect_err("remote multi-run output path must fail");
+    assert!(remote_output_error.contains("local"));
+}
+
+#[test]
+fn sprint193_trend_quality_and_readiness_close_design_gate() {
+    run_sprint193_large_stack_test(
+        "sprint193-readiness-large-stack",
+        sprint193_trend_quality_and_readiness_close_design_gate_inner,
+    );
+}
+
+fn sprint193_trend_quality_and_readiness_close_design_gate_inner() {
+    let (member_states, state_result) = sprint192_history_state_fixture();
+    let harness = core::run_chairman_shadow_governance_multi_run_harness(
+        &state_result,
+        &member_states,
+        &core::ChairmanShadowGovernanceMultiRunHarnessConfig {
+            run_id: "sprint193-readiness".to_string(),
+            enabled: true,
+            run_count: 3,
+            min_snapshots_required: 3,
+            history_store_input_path: None,
+            history_store_output_path: None,
+            simulation_ledger_input_path: None,
+            simulation_ledger_output_path: None,
+            output_path: None,
+            dry_run: true,
+            write_history_store: false,
+            emit_owner_summary: true,
+            paper_only: true,
+        },
+    )
+    .expect("multi-run harness");
+
+    let trend = core::summarize_actual_vs_shadow_divergence_trend(&harness.history_store);
+    let quality = core::check_shadow_governance_history_quality(&harness.history_store, 3);
+    let placeholder = core::PaperGovernanceTrialDesignReadinessV3 {
+        readiness_id: "sprint193-placeholder".to_string(),
+        history_quality_status: quality.quality_status,
+        divergence_trend_status: trend.trend_status,
+        stability_status: harness.aggregate_stability_metrics.stability_status,
+        fairness_status: state_result.apply_result.fairness_check.fairness_status,
+        risk_first_status: state_result.apply_result.risk_first_check.risk_first_status,
+        safety_status: core::ChairmanShadowGovernanceMultiRunSafetyGuardStatus::Preserved,
+        min_history_met: false,
+        divergence_reducing_or_stable: false,
+        fairness_ok: false,
+        risk_first_ok: false,
+        safety_ok: false,
+        ready_for_paper_governance_trial_design: false,
+        readiness_status: core::PaperGovernanceTrialDesignReadinessV3Status::NeedsMoreShadowHistory,
+        blockers: Vec::new(),
+        warnings: Vec::new(),
+        paper_only: true,
+    };
+    let safety = core::evaluate_chairman_shadow_governance_multi_run_safety(
+        &harness,
+        &placeholder,
+        &state_result,
+        &member_states,
+        Some(&member_states),
+        true,
+    );
+    let readiness = core::evaluate_paper_governance_trial_design_readiness_v3(
+        &quality,
+        &trend,
+        &harness.aggregate_stability_metrics,
+        &state_result.apply_result,
+        &safety,
+        3,
+    );
+
+    assert_eq!(
+        trend.trend_status,
+        core::ActualVsShadowDivergenceTrendStatus::Improving
+    );
+    assert_eq!(
+        quality.quality_status,
+        core::ShadowGovernanceHistoryQualityStatus::Valid
+    );
+    assert_eq!(
+        safety.guard_status,
+        core::ChairmanShadowGovernanceMultiRunSafetyGuardStatus::Preserved
+    );
+    assert!(readiness.ready_for_paper_governance_trial_design);
+    assert_eq!(
+        readiness.readiness_status,
+        core::PaperGovernanceTrialDesignReadinessV3Status::ReadyForPaperGovernanceTrialDesign
+    );
+}
+
+#[test]
+fn sprint193_history_quality_and_trend_reject_bad_history() {
+    run_sprint193_large_stack_test(
+        "sprint193-quality-trend-large-stack",
+        sprint193_history_quality_and_trend_reject_bad_history_inner,
+    );
+}
+
+fn sprint193_history_quality_and_trend_reject_bad_history_inner() {
+    let (_member_states, state_result) = sprint192_history_state_fixture();
+    let shadow_store = state_result
+        .shadow_store_after
+        .as_ref()
+        .expect("shadow store after");
+    let member = shadow_store.member_states.first().expect("member state");
+    let member_id = member.member_id.clone();
+    let actual_score = member.actual_score_snapshot;
+    let actual_voice = member.actual_voice_weight_snapshot;
+
+    let mut insufficient_store = core::ChairmanShadowGovernanceHistoryStore {
+        store_id: "sprint193-insufficient-trend".to_string(),
+        snapshots: Vec::new(),
+        snapshot_count: 0,
+        latest_snapshot_id: None,
+        paper_only: true,
+    };
+    core::append_chairman_shadow_governance_history_snapshot(
+        &mut insufficient_store,
+        sprint192_history_snapshot(
+            &state_result,
+            "trend-one",
+            &[(member_id.as_str(), actual_score + 0.01, actual_voice)],
+        ),
+    );
+    let insufficient_trend = core::summarize_actual_vs_shadow_divergence_trend(&insufficient_store);
+    assert_eq!(
+        insufficient_trend.trend_status,
+        core::ActualVsShadowDivergenceTrendStatus::InsufficientHistory
+    );
+
+    let mut unsafe_store = insufficient_store.clone();
+    core::append_chairman_shadow_governance_history_snapshot(
+        &mut unsafe_store,
+        sprint192_history_snapshot(
+            &state_result,
+            "trend-two",
+            &[(member_id.as_str(), actual_score + 0.31, actual_voice)],
+        ),
+    );
+    let unsafe_trend = core::summarize_actual_vs_shadow_divergence_trend(&unsafe_store);
+    assert_eq!(
+        unsafe_trend.trend_status,
+        core::ActualVsShadowDivergenceTrendStatus::Unsafe
+    );
+
+    let mut bad_store = core::ChairmanShadowGovernanceHistoryStore {
+        store_id: "sprint193-bad-quality".to_string(),
+        snapshots: vec![
+            sprint192_history_snapshot(&state_result, "quality-missing", &[]),
+            sprint192_history_snapshot(&state_result, "quality-z-broker-order", &[]),
+        ],
+        snapshot_count: 0,
+        latest_snapshot_id: None,
+        paper_only: true,
+    };
+    bad_store.snapshots[0].member_states.pop();
+    core::normalize_shadow_governance_history_store(&mut bad_store);
+    let quality = core::check_shadow_governance_history_quality(&bad_store, 2);
+    assert_eq!(
+        quality.quality_status,
+        core::ShadowGovernanceHistoryQualityStatus::Invalid
+    );
+    assert!(!quality.member_coverage_ok);
+    assert!(quality.unsafe_text_detected);
+}
+
+#[test]
+fn sprint193_verify_run_writes_history_and_proves_local_output() {
+    run_sprint193_large_stack_test(
+        "sprint193-verify-write-large-stack",
+        sprint193_verify_run_writes_history_and_proves_local_output_inner,
+    );
+}
+
+fn sprint193_verify_run_writes_history_and_proves_local_output_inner() {
+    let (member_states, state_result) = sprint192_history_state_fixture();
+    let history_path = sprint171_temp_json_path("sprint193-verify-history");
+    let verify_path = sprint171_temp_json_path("sprint193-verify-output");
+    let _ = std::fs::remove_file(&history_path);
+    let _ = std::fs::remove_file(&verify_path);
+
+    let result = core::run_chairman_shadow_governance_history_verify(
+        &state_result,
+        &member_states,
+        &core::ChairmanShadowGovernanceHistoryVerifyRunConfig {
+            run_id: "sprint193-verify".to_string(),
+            enabled: true,
+            use_multi_run_harness: true,
+            verification_profile_path: None,
+            history_output_path: Some(history_path.to_string_lossy().to_string()),
+            dry_run: false,
+            run_count: 3,
+            min_snapshots_required: 3,
+            emit_owner_summary: true,
+            output_path: Some(verify_path.to_string_lossy().to_string()),
+            paper_only: true,
+        },
+    )
+    .expect("verify run");
+
+    assert!(history_path.exists());
+    assert!(verify_path.exists());
+    assert!(result.owner_summary.is_some());
+    assert_eq!(
+        result.multi_run_safety_guard.guard_status,
+        core::ChairmanShadowGovernanceMultiRunSafetyGuardStatus::Preserved
+    );
+    let proof = result.history_write_proof.expect("history write proof");
+    assert!(matches!(
+        proof.proof_status,
+        core::ShadowGovernanceHistoryWriteProofStatus::Proven
+            | core::ShadowGovernanceHistoryWriteProofStatus::ProvenWithWarnings
+    ));
+    assert!(proof.history_store_exists_after_write);
+
+    let _ = std::fs::remove_file(&history_path);
+    let _ = std::fs::remove_file(&verify_path);
+}
+
+fn run_sprint194_large_stack_test(name: &str, test_fn: fn()) {
+    let handle = std::thread::Builder::new()
+        .name(name.to_string())
+        .stack_size(16 * 1024 * 1024)
+        .spawn(test_fn)
+        .expect("spawn large-stack sprint194 test");
+    handle.join().expect("large-stack sprint194 test panicked");
+}
+
+#[test]
+fn sprint194_root_cause_analysis_classifies_score_and_role_divergence() {
+    run_sprint194_large_stack_test(
+        "sprint194-root-cause-large-stack",
+        sprint194_root_cause_analysis_classifies_score_and_role_divergence_inner,
+    );
+}
+
+fn sprint194_root_cause_analysis_classifies_score_and_role_divergence_inner() {
+    let (_member_states, state_result) = sprint194_history_state_fixture();
+    let (trend, risk, _evidence) = sprint194_role_member_ids(&state_result);
+    let history_store = sprint194_unsafe_history_store(&state_result);
+    let diagnosis = core::ActualVsShadowDivergenceDiagnosis {
+        diagnosis_id: "sprint194-root-cause".to_string(),
+        record_count: 3,
+        high_severity_count: 3,
+        unsafe_count: 2,
+        expected_count: 0,
+        divergence_records: vec![
+            core::ActualVsShadowDivergenceRecord {
+                divergence_id: "score-drift".to_string(),
+                member_id: trend.clone(),
+                divergence_type: core::ActualVsShadowDivergenceType::ScoreDrift,
+                score_gap: -0.22,
+                voice_gap: -0.04,
+                severity: core::ActualVsShadowDivergenceSeverity::High,
+                expected: false,
+                unsafe_divergence: true,
+                reason: "trend score drift".to_string(),
+                recommended_action: core::ActualVsShadowRecommendedAction::ReduceShadowDeltaPolicy,
+                paper_only: true,
+            },
+            core::ActualVsShadowDivergenceRecord {
+                divergence_id: "risk-dominance".to_string(),
+                member_id: risk.clone(),
+                divergence_type: core::ActualVsShadowDivergenceType::RiskGuardOverDominance,
+                score_gap: 0.10,
+                voice_gap: 0.26,
+                severity: core::ActualVsShadowDivergenceSeverity::High,
+                expected: false,
+                unsafe_divergence: true,
+                reason: "risk guard dominance".to_string(),
+                recommended_action:
+                    core::ActualVsShadowRecommendedAction::IncreaseFairnessConstraint,
+                paper_only: true,
+            },
+            core::ActualVsShadowDivergenceRecord {
+                divergence_id: "trend-suppression".to_string(),
+                member_id: trend,
+                divergence_type: core::ActualVsShadowDivergenceType::TrendEntrySuppression,
+                score_gap: -0.12,
+                voice_gap: -0.18,
+                severity: core::ActualVsShadowDivergenceSeverity::High,
+                expected: false,
+                unsafe_divergence: true,
+                reason: "trend suppressed".to_string(),
+                recommended_action:
+                    core::ActualVsShadowRecommendedAction::IncreaseFairnessConstraint,
+                paper_only: true,
+            },
+        ],
+        diagnosis_status: core::ActualVsShadowDivergenceDiagnosisStatus::UnsafeDivergence,
+        paper_only: true,
+    };
+
+    let records = core::analyze_unsafe_governance_divergence_causes(
+        &diagnosis,
+        &history_store,
+        &core::default_chairman_shadow_governance_simulation_policy(),
+    );
+    let summary = core::summarize_unsafe_governance_divergence_causes(&records);
+
+    assert!(records.iter().any(|record| {
+        record.cause == core::ChairmanUnsafeDivergenceCause::ExcessiveScoreDrift
+    }));
+    assert!(records.iter().any(|record| {
+        record.cause == core::ChairmanUnsafeDivergenceCause::RiskGuardOverDominance
+    }));
+    assert!(records.iter().any(|record| {
+        record.cause == core::ChairmanUnsafeDivergenceCause::TrendEntrySuppression
+    }));
+    assert_eq!(
+        summary.summary_status,
+        core::ChairmanUnsafeDivergenceRootCauseSummaryStatus::Actionable
+    );
+}
+
+#[test]
+fn sprint194_root_cause_summary_reports_no_unsafe_divergence() {
+    run_sprint194_large_stack_test(
+        "sprint194-root-cause-summary-large-stack",
+        sprint194_root_cause_summary_reports_no_unsafe_divergence_inner,
+    );
+}
+
+fn sprint194_root_cause_summary_reports_no_unsafe_divergence_inner() {
+    let (_member_states, state_result) = sprint194_history_state_fixture();
+    let history_store = sprint194_unsafe_history_store(&state_result);
+    let diagnosis = core::ActualVsShadowDivergenceDiagnosis {
+        diagnosis_id: "sprint194-no-unsafe-root-cause".to_string(),
+        record_count: 0,
+        high_severity_count: 0,
+        unsafe_count: 0,
+        expected_count: 0,
+        divergence_records: Vec::new(),
+        diagnosis_status: core::ActualVsShadowDivergenceDiagnosisStatus::AcceptableDivergence,
+        paper_only: true,
+    };
+
+    let records = core::analyze_unsafe_governance_divergence_causes(
+        &diagnosis,
+        &history_store,
+        &core::default_chairman_shadow_governance_simulation_policy(),
+    );
+    let summary = core::summarize_unsafe_governance_divergence_causes(&records);
+
+    assert_eq!(
+        summary.summary_status,
+        core::ChairmanUnsafeDivergenceRootCauseSummaryStatus::NoUnsafeDivergence
+    );
+    assert!(
+        summary
+            .recommended_tuning_actions
+            .contains(&core::ChairmanShadowTuningAction::KeepObserving)
+    );
+}
+
+#[test]
+fn sprint194_tuning_policy_reduces_caps_and_keeps_actual_flags_false() {
+    run_sprint194_large_stack_test(
+        "sprint194-tuning-policy-large-stack",
+        sprint194_tuning_policy_reduces_caps_and_keeps_actual_flags_false_inner,
+    );
+}
+
+fn sprint194_tuning_policy_reduces_caps_and_keeps_actual_flags_false_inner() {
+    let summary = core::ChairmanUnsafeDivergenceRootCauseSummary {
+        summary_id: "sprint194-tuning-summary".to_string(),
+        record_count: 2,
+        high_severity_count: 2,
+        by_cause: std::collections::BTreeMap::from([
+            (core::ChairmanUnsafeDivergenceCause::ExcessiveScoreDrift, 1),
+            (
+                core::ChairmanUnsafeDivergenceCause::RiskGuardOverDominance,
+                1,
+            ),
+        ]),
+        by_role: std::collections::BTreeMap::from([
+            (core::ChairmanUnsafeDivergenceRole::TrendEntry, 1),
+            (core::ChairmanUnsafeDivergenceRole::RiskGuard, 1),
+        ]),
+        dominant_causes: vec![
+            core::ChairmanUnsafeDivergenceCause::ExcessiveScoreDrift,
+            core::ChairmanUnsafeDivergenceCause::RiskGuardOverDominance,
+        ],
+        recommended_tuning_actions: vec![
+            core::ChairmanShadowTuningAction::ReduceScoreDeltaCap,
+            core::ChairmanShadowTuningAction::AddRiskGuardDominanceCap,
+        ],
+        summary_status: core::ChairmanUnsafeDivergenceRootCauseSummaryStatus::Actionable,
+        paper_only: true,
+    };
+    let base_policy = core::default_chairman_shadow_governance_simulation_policy();
+    let tuning = core::build_shadow_delta_tuning_policy(&summary, &base_policy);
+    let tuned =
+        core::build_tuned_chairman_shadow_governance_simulation_policy(&base_policy, &tuning)
+            .expect("tuned policy");
+
+    assert!(tuning.tuned_score_delta_cap < tuning.base_score_delta_cap);
+    assert!(tuning.tuned_voice_delta_cap < tuning.base_voice_delta_cap);
+    assert!(!tuned.actual_score_apply_allowed);
+    assert!(!tuned.actual_voice_apply_allowed);
+    assert!(!tuned.promotion_demotion_allowed);
+    assert!(!tuned.risk_governor_override_allowed);
+    assert!(tuned.role_balance_enabled);
+    assert!(tuned.risk_guard_dominance_cap_enabled);
+    assert!(tuned.tuning_policy.preserve_risk_first_bias);
+    assert!(tuned.max_shadow_voice_weight <= tuning.risk_guard_max_voice_share);
+}
+
+#[test]
+fn sprint194_role_balance_check_detects_risk_guard_cap_and_trend_floor() {
+    run_sprint194_large_stack_test(
+        "sprint194-role-balance-large-stack",
+        sprint194_role_balance_check_detects_risk_guard_cap_and_trend_floor_inner,
+    );
+}
+
+fn sprint194_role_balance_check_detects_risk_guard_cap_and_trend_floor_inner() {
+    let (_member_states, state_result) = sprint194_history_state_fixture();
+    let history_store = sprint194_unsafe_history_store(&state_result);
+    let latest_snapshot = history_store
+        .snapshots
+        .last()
+        .expect("latest snapshot")
+        .clone();
+    let shadow_store = core::ChairmanShadowGovernanceStateStore {
+        store_id: "sprint194-role-balance".to_string(),
+        member_states: latest_snapshot.member_states,
+        member_count: 3,
+        latest_run_id: Some("sprint194-role-balance".to_string()),
+        update_count: 1,
+        paper_only: true,
+    };
+    let tuning = core::build_shadow_delta_tuning_policy(
+        &core::ChairmanUnsafeDivergenceRootCauseSummary {
+            summary_id: "sprint194-role-balance-summary".to_string(),
+            record_count: 1,
+            high_severity_count: 1,
+            by_cause: std::collections::BTreeMap::from([(
+                core::ChairmanUnsafeDivergenceCause::RiskGuardOverDominance,
+                1,
+            )]),
+            by_role: std::collections::BTreeMap::from([(
+                core::ChairmanUnsafeDivergenceRole::RiskGuard,
+                1,
+            )]),
+            dominant_causes: vec![core::ChairmanUnsafeDivergenceCause::RiskGuardOverDominance],
+            recommended_tuning_actions: vec![
+                core::ChairmanShadowTuningAction::AddRiskGuardDominanceCap,
+            ],
+            summary_status: core::ChairmanUnsafeDivergenceRootCauseSummaryStatus::Actionable,
+            paper_only: true,
+        },
+        &core::default_chairman_shadow_governance_simulation_policy(),
+    );
+    let balance = core::evaluate_chairman_role_balance(&shadow_store, &tuning);
+
+    assert_eq!(
+        balance.balance_status,
+        core::ChairmanRoleBalanceStatus::Imbalanced
+    );
+    assert!(balance.risk_guard_over_cap);
+    assert!(balance.trend_entry_below_floor);
+    assert!(balance.evidence_regime_below_floor);
+}
+
+#[test]
+fn sprint194_tuning_run_is_deterministic_and_dry_run_writes_nothing() {
+    run_sprint194_large_stack_test(
+        "sprint194-tuning-dry-large-stack",
+        sprint194_tuning_run_is_deterministic_and_dry_run_writes_nothing_inner,
+    );
+}
+
+fn sprint194_tuning_run_is_deterministic_and_dry_run_writes_nothing_inner() {
+    let (member_states, state_result) = sprint194_history_state_fixture();
+    let previous_history = sprint194_unsafe_history_store(&state_result);
+    let tuned_history_path = sprint171_temp_json_path("sprint194-tuned-history-dry");
+    let result_path = sprint171_temp_json_path("sprint194-tuning-result-dry");
+    let _ = std::fs::remove_file(&tuned_history_path);
+    let _ = std::fs::remove_file(&result_path);
+    let config = core::ChairmanShadowGovernanceTuningRunConfig {
+        run_id: "sprint194-tuning-dry".to_string(),
+        enabled: true,
+        base_history_store_path: None,
+        tuned_history_store_output_path: Some(tuned_history_path.to_string_lossy().to_string()),
+        tuning_result_output_path: Some(result_path.to_string_lossy().to_string()),
+        run_count: 3,
+        dry_run: true,
+        write_tuned_history: false,
+        emit_owner_summary: true,
+        paper_only: true,
+    };
+
+    let first = core::run_chairman_shadow_governance_tuning(
+        &state_result,
+        &member_states,
+        &previous_history,
+        &config,
+    )
+    .expect("first tuning run");
+    let second = core::run_chairman_shadow_governance_tuning(
+        &state_result,
+        &member_states,
+        &previous_history,
+        &config,
+    )
+    .expect("second tuning run");
+
+    assert_eq!(first, second);
+    assert!(first.owner_summary.is_some());
+    assert!(!tuned_history_path.exists());
+    assert!(!result_path.exists());
+}
+
+#[test]
+fn sprint194_non_dry_tuning_run_writes_tuned_history_only() {
+    run_sprint194_large_stack_test(
+        "sprint194-tuning-write-large-stack",
+        sprint194_non_dry_tuning_run_writes_tuned_history_only_inner,
+    );
+}
+
+fn sprint194_non_dry_tuning_run_writes_tuned_history_only_inner() {
+    let (member_states, state_result) = sprint194_history_state_fixture();
+    let previous_history = sprint194_unsafe_history_store(&state_result);
+    let tuned_history_path = sprint171_temp_json_path("sprint194-tuned-history-write");
+    let result_path = sprint171_temp_json_path("sprint194-tuning-result-write");
+    let _ = std::fs::remove_file(&tuned_history_path);
+    let _ = std::fs::remove_file(&result_path);
+
+    let result = core::run_chairman_shadow_governance_tuning(
+        &state_result,
+        &member_states,
+        &previous_history,
+        &core::ChairmanShadowGovernanceTuningRunConfig {
+            run_id: "sprint194-tuning-write".to_string(),
+            enabled: true,
+            base_history_store_path: None,
+            tuned_history_store_output_path: Some(tuned_history_path.to_string_lossy().to_string()),
+            tuning_result_output_path: None,
+            run_count: 3,
+            dry_run: false,
+            write_tuned_history: true,
+            emit_owner_summary: true,
+            paper_only: true,
+        },
+    )
+    .expect("non-dry tuning run");
+
+    assert!(tuned_history_path.exists());
+    assert!(!result_path.exists());
+    assert!(result.owner_summary.is_some());
+
+    let _ = std::fs::remove_file(&tuned_history_path);
+    let _ = std::fs::remove_file(&result_path);
+}
+
+#[test]
+fn sprint194_tuning_run_rejects_missing_or_unsafe_write_paths() {
+    run_sprint194_large_stack_test(
+        "sprint194-tuning-path-safety-large-stack",
+        sprint194_tuning_run_rejects_missing_or_unsafe_write_paths_inner,
+    );
+}
+
+fn sprint194_tuning_run_rejects_missing_or_unsafe_write_paths_inner() {
+    let (member_states, state_result) = sprint194_history_state_fixture();
+    let previous_history = sprint194_unsafe_history_store(&state_result);
+    let missing_path_error = core::run_chairman_shadow_governance_tuning(
+        &state_result,
+        &member_states,
+        &previous_history,
+        &core::ChairmanShadowGovernanceTuningRunConfig {
+            run_id: "sprint194-tuning-missing-write-path".to_string(),
+            enabled: true,
+            base_history_store_path: None,
+            tuned_history_store_output_path: None,
+            tuning_result_output_path: None,
+            run_count: 3,
+            dry_run: false,
+            write_tuned_history: true,
+            emit_owner_summary: true,
+            paper_only: true,
+        },
+    )
+    .expect_err("non-dry tuned history write requires an output path");
+    assert!(missing_path_error.contains("tuned_history_store_output_path"));
+
+    let unsafe_path_error = core::run_chairman_shadow_governance_tuning(
+        &state_result,
+        &member_states,
+        &previous_history,
+        &core::ChairmanShadowGovernanceTuningRunConfig {
+            run_id: "sprint194-tuning-unsafe-result-path".to_string(),
+            enabled: true,
+            base_history_store_path: None,
+            tuned_history_store_output_path: None,
+            tuning_result_output_path: Some("https://example.com/tuning.json".to_string()),
+            run_count: 3,
+            dry_run: true,
+            write_tuned_history: false,
+            emit_owner_summary: true,
+            paper_only: true,
+        },
+    )
+    .expect_err("remote tuning result path must be rejected");
+    assert!(unsafe_path_error.contains("must be local"));
+}
+
+#[test]
+fn sprint194_tuning_safety_detects_mutation_and_invalid_policy_relaxation() {
+    run_sprint194_large_stack_test(
+        "sprint194-tuning-safety-large-stack",
+        sprint194_tuning_safety_detects_mutation_and_invalid_policy_relaxation_inner,
+    );
+}
+
+fn sprint194_tuning_safety_detects_mutation_and_invalid_policy_relaxation_inner() {
+    let (member_states, state_result) = sprint194_history_state_fixture();
+    let previous_history = sprint194_unsafe_history_store(&state_result);
+    let mut result = core::run_chairman_shadow_governance_tuning(
+        &state_result,
+        &member_states,
+        &previous_history,
+        &core::ChairmanShadowGovernanceTuningRunConfig {
+            run_id: "sprint194-tuning-safety".to_string(),
+            enabled: true,
+            base_history_store_path: None,
+            tuned_history_store_output_path: None,
+            tuning_result_output_path: None,
+            run_count: 3,
+            dry_run: true,
+            write_tuned_history: false,
+            emit_owner_summary: true,
+            paper_only: true,
+        },
+    )
+    .expect("tuning run");
+    result.tuned_policy.max_abs_score_delta_per_entry =
+        result.tuning_policy.base_score_delta_cap + 0.01;
+    result.tuned_policy.role_balance_enabled = false;
+    result.tuned_policy.tuning_policy.preserve_risk_first_bias = false;
+    result.gate_recheck.ready_for_paper_trial_design = true;
+    result
+        .tuned_multi_run_result
+        .divergence_trend_summary
+        .trend_status = core::ActualVsShadowDivergenceTrendStatus::Unsafe;
+    let mut mutated_state = state_result.clone();
+    mutated_state.safety_guard.actual_score_mutation_detected = true;
+    mutated_state.safety_guard.actual_voice_mutation_detected = true;
+    let safety = core::evaluate_chairman_shadow_governance_tuning_safety(
+        &result,
+        &state_result,
+        Some(&mutated_state),
+    );
+
+    assert_eq!(
+        safety.guard_status,
+        core::ChairmanShadowGovernanceTuningSafetyGuardStatus::Violated
+    );
+    assert!(safety.actual_score_mutation_detected);
+    assert!(safety.actual_voice_mutation_detected);
+    assert!(safety.delta_cap_increased_without_justification);
+    assert!(safety.role_balance_disabled_detected);
+    assert!(safety.risk_first_disabled_detected);
+    assert!(safety.unsafe_gate_open_detected);
+}
+
+fn sprint195_v1_tuning_fixture() -> (
+    Vec<core::MemberStateSnapshot>,
+    core::ChairmanShadowGovernanceStateRunResult,
+    core::ChairmanShadowGovernanceHistoryStore,
+    core::ChairmanShadowGovernanceTuningRunResult,
+) {
+    let (member_states, state_result) = sprint194_history_state_fixture();
+    let previous_history = sprint194_unsafe_history_store(&state_result);
+    let tuning = core::run_chairman_shadow_governance_tuning(
+        &state_result,
+        &member_states,
+        &previous_history,
+        &core::ChairmanShadowGovernanceTuningRunConfig {
+            run_id: "sprint195-v1-baseline".to_string(),
+            enabled: true,
+            base_history_store_path: None,
+            tuned_history_store_output_path: None,
+            tuning_result_output_path: None,
+            run_count: 3,
+            dry_run: true,
+            write_tuned_history: false,
+            emit_owner_summary: true,
+            paper_only: true,
+        },
+    )
+    .expect("sprint195 v1 tuning fixture");
+    (member_states, state_result, previous_history, tuning)
+}
+
+fn sprint195_actionable_voice_analysis() -> core::RemainingVoiceDriftAnalysisResult {
+    core::RemainingVoiceDriftAnalysisResult {
+        analysis_id: "sprint195-actionable-voice".to_string(),
+        records: Vec::new(),
+        record_count: 3,
+        high_severity_count: 3,
+        dominant_causes: vec![
+            core::RemainingVoiceDriftCause::RiskGuardOverDominance,
+            core::RemainingVoiceDriftCause::TrendEntrySuppression,
+            core::RemainingVoiceDriftCause::EvidenceRegimeUnderweight,
+        ],
+        recommended_actions: vec![
+            core::RemainingVoiceDriftRecommendedAction::ReduceVoiceCapAgain,
+            core::RemainingVoiceDriftRecommendedAction::LowerRiskGuardCap,
+            core::RemainingVoiceDriftRecommendedAction::RaiseTrendEntryFloor,
+            core::RemainingVoiceDriftRecommendedAction::RaiseEvidenceRegimeFloor,
+        ],
+        analysis_status: core::RemainingVoiceDriftAnalysisStatus::Actionable,
+        paper_only: true,
+    }
+}
+
+fn run_sprint195_large_stack_test(name: &str, test_fn: fn()) {
+    let handle = std::thread::Builder::new()
+        .name(name.to_string())
+        .stack_size(16 * 1024 * 1024)
+        .spawn(test_fn)
+        .expect("spawn large-stack sprint195 test");
+    handle.join().expect("large-stack sprint195 test panicked");
+}
+
+#[test]
+fn sprint195_remaining_voice_drift_detects_role_causes_and_compounding() {
+    run_sprint195_large_stack_test(
+        "sprint195-voice-drift-large-stack",
+        sprint195_remaining_voice_drift_detects_role_causes_and_compounding_inner,
+    );
+}
+
+fn sprint195_remaining_voice_drift_detects_role_causes_and_compounding_inner() {
+    let (_member_states, _state_result, previous_history, mut tuning) =
+        sprint195_v1_tuning_fixture();
+    let latest = tuning
+        .tuned_multi_run_result
+        .multi_run_harness_result
+        .history_store
+        .snapshots
+        .last_mut()
+        .expect("latest tuned snapshot");
+    for state in &mut latest.member_states {
+        match state.role {
+            core::IndependentMemberRole::RiskGuard => {
+                state.shadow_voice_weight = 0.82;
+                state.shadow_voice_increase_count = 5;
+            }
+            core::IndependentMemberRole::TrendEntry => {
+                state.shadow_voice_weight = 0.06;
+            }
+            core::IndependentMemberRole::EvidenceRegime => {
+                state.shadow_voice_weight = 0.08;
+            }
+        }
+    }
+    latest.actual_vs_shadow_summary.max_voice_gap = 0.42;
+    tuning
+        .tuned_multi_run_result
+        .divergence_trend_summary
+        .trend_status = core::ActualVsShadowDivergenceTrendStatus::Unsafe;
+
+    let analysis = core::analyze_remaining_voice_drift_after_tuning(
+        &tuning.tuned_multi_run_result,
+        &previous_history,
+        &tuning.tuning_policy,
+    );
+
+    assert_eq!(
+        analysis.analysis_status,
+        core::RemainingVoiceDriftAnalysisStatus::Actionable
+    );
+    assert!(
+        analysis
+            .dominant_causes
+            .contains(&core::RemainingVoiceDriftCause::RiskGuardOverDominance)
+    );
+    assert!(
+        analysis.records.iter().any(|record| {
+            record.cause == core::RemainingVoiceDriftCause::TrendEntrySuppression
+        })
+    );
+    assert!(analysis.records.iter().any(|record| {
+        record.cause == core::RemainingVoiceDriftCause::EvidenceRegimeUnderweight
+    }));
+    assert!(analysis.records.iter().any(|record| {
+        record.cause == core::RemainingVoiceDriftCause::RepeatedVoiceDeltaCompounding
+    }));
+}
+
+#[test]
+fn sprint195_v2_policy_reduces_voice_cap_and_keeps_actual_flags_false() {
+    run_sprint195_large_stack_test(
+        "sprint195-v2-policy-large-stack",
+        sprint195_v2_policy_reduces_voice_cap_and_keeps_actual_flags_false_inner,
+    );
+}
+
+fn sprint195_v2_policy_reduces_voice_cap_and_keeps_actual_flags_false_inner() {
+    let (_member_states, _state_result, _previous_history, tuning) = sprint195_v1_tuning_fixture();
+    let policy = core::build_conservative_voice_tuning_v2_policy(
+        &sprint195_actionable_voice_analysis(),
+        &tuning.tuning_policy,
+    )
+    .expect("v2 policy");
+
+    assert!(policy.tuned_voice_delta_cap_v2 < policy.previous_voice_delta_cap);
+    assert!(!policy.actual_voice_apply_allowed);
+    assert!(!policy.actual_score_apply_allowed);
+    assert!(!policy.promotion_demotion_allowed);
+    assert!(!policy.risk_governor_override_allowed);
+    assert!(policy.preserve_risk_first);
+    assert!(policy.compounding_brake_enabled);
+    assert!(policy.dampen_low_evidence_delta);
+}
+
+#[test]
+fn sprint195_role_floor_policy_enforces_trend_evidence_and_risk_cap() {
+    run_sprint195_large_stack_test(
+        "sprint195-role-floor-large-stack",
+        sprint195_role_floor_policy_enforces_trend_evidence_and_risk_cap_inner,
+    );
+}
+
+fn sprint195_role_floor_policy_enforces_trend_evidence_and_risk_cap_inner() {
+    let (_member_states, state_result, previous_history, tuning) = sprint195_v1_tuning_fixture();
+    let latest = previous_history
+        .snapshots
+        .last()
+        .expect("unsafe latest snapshot")
+        .clone();
+    let shadow_store = core::ChairmanShadowGovernanceStateStore {
+        store_id: "sprint195-role-floor".to_string(),
+        member_states: latest.member_states,
+        member_count: 3,
+        latest_run_id: Some("sprint195-role-floor".to_string()),
+        update_count: 1,
+        paper_only: true,
+    };
+    let policy = core::build_conservative_voice_tuning_v2_policy(
+        &sprint195_actionable_voice_analysis(),
+        &tuning.tuning_policy,
+    )
+    .expect("v2 policy");
+    let floor_policy = core::ChairmanRoleVoiceFloorPolicy {
+        policy_id: "sprint195-role-floor-policy".to_string(),
+        trend_entry_min_voice_share: policy.trend_entry_min_voice_share,
+        risk_guard_min_voice_share: policy.risk_guard_min_voice_share,
+        evidence_regime_min_voice_share: policy.evidence_regime_min_voice_share,
+        risk_guard_max_voice_share: policy.risk_guard_max_voice_share,
+        total_share_target: 1.0,
+        paper_only: true,
+    };
+
+    let check = core::evaluate_role_voice_floor_policy(&shadow_store, &floor_policy);
+
+    assert_eq!(
+        check.floor_status,
+        core::ChairmanRoleVoiceFloorStatus::Violated
+    );
+    assert!(!check.trend_entry_floor_met);
+    assert!(!check.evidence_regime_floor_met);
+    assert!(!check.risk_guard_cap_met);
+    assert_eq!(
+        state_result.apply_result.no_actual_voice_mutation, true,
+        "role floor check stays diagnostic only"
+    );
+}
+
+#[test]
+fn sprint195_compounding_brake_and_evidence_dampening_are_bounded() {
+    run_sprint195_large_stack_test(
+        "sprint195-brake-dampening-large-stack",
+        sprint195_compounding_brake_and_evidence_dampening_are_bounded_inner,
+    );
+}
+
+fn sprint195_compounding_brake_and_evidence_dampening_are_bounded_inner() {
+    let (_member_states, _state_result, mut previous_history, tuning) =
+        sprint195_v1_tuning_fixture();
+    let latest = previous_history
+        .snapshots
+        .last_mut()
+        .expect("latest snapshot");
+    let member_id = latest
+        .member_states
+        .first_mut()
+        .expect("member")
+        .member_id
+        .clone();
+    latest.member_states[0].shadow_voice_increase_count = 4;
+    latest.member_states[0].shadow_voice_decrease_count = 4;
+    let policy = core::build_conservative_voice_tuning_v2_policy(
+        &sprint195_actionable_voice_analysis(),
+        &tuning.tuning_policy,
+    )
+    .expect("v2 policy");
+    let deltas = vec![
+        core::ChairmanShadowVoiceDelta {
+            delta_id: "sprint195-increase".to_string(),
+            source_ledger_entry_id: "ledger".to_string(),
+            member_id: member_id.clone(),
+            symbol: None,
+            market_scope: None,
+            delta_kind: core::ChairmanShadowVoiceDeltaKind::Increase,
+            proposed_voice_delta: 0.12,
+            reason: core::ChairmanShadowVoiceDeltaReason::ConsistentObserverAgreement,
+            confidence: core::SourceConfidence::Low,
+            shadow_only: true,
+            no_actual_voice_mutation: true,
+            paper_only: true,
+        },
+        core::ChairmanShadowVoiceDelta {
+            delta_id: "sprint195-decrease".to_string(),
+            source_ledger_entry_id: "ledger".to_string(),
+            member_id,
+            symbol: None,
+            market_scope: None,
+            delta_kind: core::ChairmanShadowVoiceDeltaKind::Decrease,
+            proposed_voice_delta: -0.12,
+            reason: core::ChairmanShadowVoiceDeltaReason::OverconfidentRisk,
+            confidence: core::SourceConfidence::ReviewRequired,
+            shadow_only: true,
+            no_actual_voice_mutation: true,
+            paper_only: true,
+        },
+    ];
+
+    let (braked, brake_results) =
+        core::apply_voice_delta_compounding_brake(&deltas, &previous_history, &policy);
+    let (_low_delta, low_result) = core::apply_evidence_based_voice_dampening(
+        &braked[0],
+        core::SourceConfidence::Low,
+        &policy,
+    );
+    let (_high_delta, high_result) = core::apply_evidence_based_voice_dampening(
+        &braked[0],
+        core::SourceConfidence::High,
+        &policy,
+    );
+
+    assert!(brake_results.iter().any(|result| result.brake_applied));
+    assert!(braked[0].proposed_voice_delta.abs() < deltas[0].proposed_voice_delta.abs());
+    assert!(braked[1].proposed_voice_delta.abs() < deltas[1].proposed_voice_delta.abs());
+    assert!(low_result.output_delta.abs() < low_result.input_delta.abs());
+    assert!(high_result.output_delta.abs() <= policy.tuned_voice_delta_cap_v2);
+}
+
+#[test]
+fn sprint195_v2_run_is_deterministic_dry_run_and_console_is_read_only() {
+    run_sprint195_large_stack_test(
+        "sprint195-v2-dry-large-stack",
+        sprint195_v2_run_is_deterministic_dry_run_and_console_is_read_only_inner,
+    );
+}
+
+fn sprint195_v2_run_is_deterministic_dry_run_and_console_is_read_only_inner() {
+    let (member_states, state_result, previous_history, tuning) = sprint195_v1_tuning_fixture();
+    let tuned_history_path = sprint171_temp_json_path("sprint195-v2-dry-history");
+    let result_path = sprint171_temp_json_path("sprint195-v2-dry-result");
+    let _ = std::fs::remove_file(&tuned_history_path);
+    let _ = std::fs::remove_file(&result_path);
+    let config = core::ConservativeVoiceTuningV2RunConfig {
+        run_id: "sprint195-v2-dry".to_string(),
+        enabled: true,
+        run_count: 3,
+        previous_history_path: None,
+        previous_tuning_result_path: None,
+        tuned_v2_history_output_path: Some(tuned_history_path.to_string_lossy().to_string()),
+        tuning_v2_result_output_path: Some(result_path.to_string_lossy().to_string()),
+        dry_run: true,
+        write_tuned_history: false,
+        emit_owner_console_section: true,
+        paper_only: true,
+    };
+
+    let first = core::run_conservative_voice_tuning_v2(
+        &state_result,
+        &member_states,
+        &previous_history,
+        Some(&tuning),
+        &config,
+    )
+    .expect("first v2 run");
+    let second = core::run_conservative_voice_tuning_v2(
+        &state_result,
+        &member_states,
+        &previous_history,
+        Some(&tuning),
+        &config,
+    )
+    .expect("second v2 run");
+    let console = first
+        .owner_console_section
+        .as_ref()
+        .expect("owner console section");
+
+    assert_eq!(first, second);
+    assert!(console.read_only);
+    assert!(console.no_actions);
+    assert!(console.no_score_mutation);
+    assert!(console.no_voice_mutation);
+    assert!(console.no_trade_signal);
+    assert!(!tuned_history_path.exists());
+    assert!(!result_path.exists());
+}
+
+#[test]
+fn sprint195_non_dry_v2_run_writes_tuned_history_only() {
+    run_sprint195_large_stack_test(
+        "sprint195-v2-write-large-stack",
+        sprint195_non_dry_v2_run_writes_tuned_history_only_inner,
+    );
+}
+
+fn sprint195_non_dry_v2_run_writes_tuned_history_only_inner() {
+    let (member_states, state_result, previous_history, tuning) = sprint195_v1_tuning_fixture();
+    let tuned_history_path = sprint171_temp_json_path("sprint195-v2-write-history");
+    let result_path = sprint171_temp_json_path("sprint195-v2-write-result");
+    let _ = std::fs::remove_file(&tuned_history_path);
+    let _ = std::fs::remove_file(&result_path);
+
+    let result = core::run_conservative_voice_tuning_v2(
+        &state_result,
+        &member_states,
+        &previous_history,
+        Some(&tuning),
+        &core::ConservativeVoiceTuningV2RunConfig {
+            run_id: "sprint195-v2-write".to_string(),
+            enabled: true,
+            run_count: 3,
+            previous_history_path: None,
+            previous_tuning_result_path: None,
+            tuned_v2_history_output_path: Some(tuned_history_path.to_string_lossy().to_string()),
+            tuning_v2_result_output_path: None,
+            dry_run: false,
+            write_tuned_history: true,
+            emit_owner_console_section: true,
+            paper_only: true,
+        },
+    )
+    .expect("non-dry v2 run");
+
+    assert!(tuned_history_path.exists());
+    assert!(!result_path.exists());
+    assert!(result.owner_console_section.is_some());
+    let _ = std::fs::remove_file(&tuned_history_path);
+    let _ = std::fs::remove_file(&result_path);
+}
+
+#[test]
+fn sprint195_v2_safety_detects_mutations_cap_increase_and_console_action() {
+    run_sprint195_large_stack_test(
+        "sprint195-v2-safety-large-stack",
+        sprint195_v2_safety_detects_mutations_cap_increase_and_console_action_inner,
+    );
+}
+
+fn sprint195_v2_safety_detects_mutations_cap_increase_and_console_action_inner() {
+    let (member_states, state_result, previous_history, tuning) = sprint195_v1_tuning_fixture();
+    let run = core::run_conservative_voice_tuning_v2(
+        &state_result,
+        &member_states,
+        &previous_history,
+        Some(&tuning),
+        &core::ConservativeVoiceTuningV2RunConfig {
+            run_id: "sprint195-v2-safety".to_string(),
+            enabled: true,
+            run_count: 3,
+            previous_history_path: None,
+            previous_tuning_result_path: None,
+            tuned_v2_history_output_path: None,
+            tuning_v2_result_output_path: None,
+            dry_run: true,
+            write_tuned_history: false,
+            emit_owner_console_section: true,
+            paper_only: true,
+        },
+    )
+    .expect("v2 safety run");
+    let mut v2_result = run.v2_result.clone();
+    v2_result.voice_tuning_v2_policy.tuned_voice_delta_cap_v2 =
+        v2_result.voice_tuning_v2_policy.previous_voice_delta_cap + 0.01;
+    v2_result.voice_tuning_v2_policy.preserve_risk_first = false;
+    v2_result.role_floor_policy.trend_entry_min_voice_share = 0.0;
+    v2_result.tuned_v2_gate_status =
+        core::PaperGovernanceTrialGateV2Status::ReadyForPaperTrialDesign;
+    v2_result.tuned_v2_divergence_status = core::ActualVsShadowDivergenceTrendStatus::Unsafe;
+    let mut console = run.owner_console_section.expect("console");
+    console.no_actions = false;
+    let mut mutated_state = state_result.clone();
+    mutated_state.safety_guard.actual_score_mutation_detected = true;
+    mutated_state.safety_guard.actual_voice_mutation_detected = true;
+
+    let safety = core::evaluate_conservative_voice_tuning_v2_safety(
+        &v2_result,
+        &console,
+        &state_result,
+        Some(&mutated_state),
+    );
+
+    assert_eq!(
+        safety.guard_status,
+        core::ConservativeVoiceTuningV2SafetyGuardStatus::Violated
+    );
+    assert!(safety.actual_score_mutation_detected);
+    assert!(safety.actual_voice_mutation_detected);
+    assert!(safety.voice_cap_increased_detected);
+    assert!(safety.risk_first_disabled_detected);
+    assert!(safety.role_floor_disabled_detected);
+    assert!(safety.owner_console_action_detected);
+    assert!(safety.unsafe_gate_open_detected);
+}
+
+#[test]
+fn sprint195_v2_run_does_not_mutate_committee_state_or_add_forbidden_deps() {
+    run_sprint195_large_stack_test(
+        "sprint195-v2-no-mutation-large-stack",
+        sprint195_v2_run_does_not_mutate_committee_state_or_add_forbidden_deps_inner,
+    );
+}
+
+fn sprint195_v2_run_does_not_mutate_committee_state_or_add_forbidden_deps_inner() {
+    let (member_states, state_result, previous_history, tuning) = sprint195_v1_tuning_fixture();
+    let before_members = member_states.clone();
+    let before_state = state_result.clone();
+
+    let run = core::run_conservative_voice_tuning_v2(
+        &state_result,
+        &member_states,
+        &previous_history,
+        Some(&tuning),
+        &core::ConservativeVoiceTuningV2RunConfig {
+            run_id: "sprint195-v2-no-mutation".to_string(),
+            enabled: true,
+            run_count: 3,
+            previous_history_path: None,
+            previous_tuning_result_path: None,
+            tuned_v2_history_output_path: None,
+            tuning_v2_result_output_path: None,
+            dry_run: true,
+            write_tuned_history: false,
+            emit_owner_console_section: true,
+            paper_only: true,
+        },
+    )
+    .expect("v2 no mutation run");
+    let cargo_toml = std::fs::read_to_string("Cargo.toml").expect("Cargo.toml");
+
+    assert_eq!(member_states, before_members);
+    assert_eq!(state_result, before_state);
+    assert_ne!(
+        run.safety_guard.guard_status,
+        core::ConservativeVoiceTuningV2SafetyGuardStatus::Violated
+    );
+    assert!(
+        run.v2_result
+            .voice_tuning_v2_policy
+            .actual_score_apply_allowed
+            == false
+    );
+    assert!(
+        run.v2_result
+            .voice_tuning_v2_policy
+            .actual_voice_apply_allowed
+            == false
+    );
+    assert!(
+        run.v2_result
+            .voice_tuning_v2_policy
+            .promotion_demotion_allowed
+            == false
+    );
+    assert!(
+        run.v2_result
+            .voice_tuning_v2_policy
+            .risk_governor_override_allowed
+            == false
+    );
+    assert!(!cargo_toml.contains("tauri"));
+    assert!(!cargo_toml.contains("svelte"));
+    assert!(!cargo_toml.contains("react"));
+    assert!(!cargo_toml.contains("tensorflow"));
+    assert!(!cargo_toml.contains("pytorch"));
+}
+
+#[test]
+fn sprint193_verify_run_blocks_unsafe_non_dry_history_write_and_missing_proof() {
+    run_sprint193_large_stack_test(
+        "sprint193-verify-blocks-large-stack",
+        sprint193_verify_run_blocks_unsafe_non_dry_history_write_and_missing_proof_inner,
+    );
+}
+
+fn sprint193_verify_run_blocks_unsafe_non_dry_history_write_and_missing_proof_inner() {
+    let (member_states, state_result) = sprint192_history_state_fixture();
+    let history_path = sprint171_temp_json_path("sprint193-unsafe-history");
+    let _ = std::fs::remove_file(&history_path);
+    let mut unsafe_state_result = state_result.clone();
+    unsafe_state_result
+        .safety_guard
+        .actual_score_mutation_detected = true;
+    let unsafe_harness = core::run_chairman_shadow_governance_multi_run_harness(
+        &unsafe_state_result,
+        &member_states,
+        &core::ChairmanShadowGovernanceMultiRunHarnessConfig {
+            run_id: "sprint193-unsafe-non-dry".to_string(),
+            enabled: true,
+            run_count: 3,
+            min_snapshots_required: 3,
+            history_store_input_path: None,
+            history_store_output_path: Some(history_path.to_string_lossy().to_string()),
+            simulation_ledger_input_path: None,
+            simulation_ledger_output_path: None,
+            output_path: None,
+            dry_run: false,
+            write_history_store: true,
+            emit_owner_summary: true,
+            paper_only: true,
+        },
+    )
+    .expect("unsafe harness returns failed result");
+    assert_eq!(
+        unsafe_harness.harness_status,
+        core::ChairmanShadowGovernanceMultiRunHarnessStatus::Failed
+    );
+    assert_eq!(
+        unsafe_harness.safety_guard.guard_status,
+        core::ChairmanShadowGovernanceHistorySafetyGuardStatus::Violated
+    );
+    assert!(!unsafe_harness.wrote_history_store);
+    assert!(!history_path.exists());
+
+    let mut missing_file_harness = unsafe_harness.clone();
+    missing_file_harness.wrote_history_store = true;
+    let missing_proof = core::prove_shadow_governance_history_write(
+        &missing_file_harness,
+        &history_path.to_string_lossy(),
+    )
+    .expect("missing file proof still returns failed proof");
+    assert_eq!(
+        missing_proof.proof_status,
+        core::ShadowGovernanceHistoryWriteProofStatus::Failed
+    );
+    assert!(!missing_proof.history_store_exists_after_write);
+    let _ = std::fs::remove_file(&history_path);
 }
 
 #[test]
@@ -18765,6 +23034,60 @@ fn autonomous_paper_config_rejects_remote_and_unsafe_fields() {
         observer_apply_verify_config_path: None,
         observer_apply_verify_emit_owner_summary: true,
         chairman_shadow_governance_enabled: true,
+        chairman_shadow_governance_run_enabled: false,
+        chairman_shadow_governance_dry_run: true,
+        chairman_shadow_governance_ledger_output_path: None,
+        chairman_shadow_governance_owner_feedback_path: None,
+        chairman_shadow_governance_emit_owner_explanations: true,
+        chairman_shadow_governance_emit_owner_summary: true,
+        chairman_shadow_governance_simulation_enabled: false,
+        chairman_shadow_governance_simulation_dry_run: true,
+        chairman_shadow_governance_simulation_ledger_output_path: None,
+        chairman_shadow_governance_simulation_result_output_path: None,
+        chairman_shadow_governance_emit_explanations: true,
+        chairman_shadow_governance_state_enabled: false,
+        chairman_shadow_governance_state_dry_run: true,
+        chairman_shadow_governance_apply_deltas: false,
+        chairman_shadow_governance_state_input_path: None,
+        chairman_shadow_governance_state_output_path: None,
+        chairman_shadow_governance_state_ledger_path: None,
+        chairman_shadow_governance_state_emit_owner_summary: true,
+        chairman_shadow_governance_history_enabled: false,
+        chairman_shadow_governance_history_dry_run: true,
+        chairman_shadow_governance_history_input_path: None,
+        chairman_shadow_governance_history_output_path: None,
+        chairman_shadow_governance_history_max_snapshots: 20,
+        chairman_shadow_governance_history_min_snapshots_for_trial_gate: 3,
+        chairman_shadow_governance_history_emit_owner_summary: true,
+        chairman_shadow_governance_multi_run_enabled: false,
+        chairman_shadow_governance_multi_run_count: 3,
+        chairman_shadow_governance_multi_run_dry_run: true,
+        chairman_shadow_governance_multi_run_write_history_store: false,
+        chairman_shadow_governance_multi_run_output_path: None,
+        chairman_shadow_governance_history_verify_enabled: false,
+        chairman_shadow_governance_history_verify_output_path: None,
+        chairman_shadow_governance_history_verify_emit_owner_summary: true,
+        chairman_shadow_governance_tuning_enabled: false,
+        chairman_shadow_governance_tuning_dry_run: true,
+        chairman_shadow_governance_tuning_run_count: 3,
+        chairman_shadow_governance_tuned_history_output_path: None,
+        chairman_shadow_governance_tuning_result_output_path: None,
+        chairman_shadow_governance_tuning_write_history: false,
+        chairman_shadow_governance_tuning_emit_owner_summary: true,
+        chairman_shadow_voice_tuning_v2_enabled: false,
+        chairman_shadow_voice_tuning_v2_dry_run: true,
+        chairman_shadow_voice_tuning_v2_run_count: 3,
+        chairman_shadow_voice_tuning_v2_write_history: false,
+        chairman_shadow_voice_tuning_v2_history_output_path: None,
+        chairman_shadow_voice_tuning_v2_result_output_path: None,
+        owner_governance_console_section_enabled: true,
+        paper_governance_trial_enabled: false,
+        paper_governance_trial_dry_run: true,
+        paper_governance_trial_apply_candidates: true,
+        paper_governance_trial_state_input_path: None,
+        paper_governance_trial_state_output_path: None,
+        paper_governance_trial_compare_committee_voice: true,
+        paper_governance_trial_emit_owner_summary: true,
         training_candidate_min_examples: None,
         self_growing_replay_enabled: false,
         research_source_registry_path: None,
@@ -23316,4 +27639,415 @@ fn sprint164_success_check_matches_manual_candidate_gate() {
         metrics.safety_delta_status,
         PromotionSafetyDeltaStatus::ImprovedSafely
     );
+}
+
+fn sprint196_trial_fixture() -> (
+    Vec<core::MemberStateSnapshot>,
+    BatchCommitteeCycleResult,
+    core::ChairmanShadowGovernanceStateStore,
+    core::ConservativeVoiceTuningV2RunResult,
+) {
+    let (member_states, state_result, previous_history, tuning) = sprint195_v1_tuning_fixture();
+    let (_, _, _, _, mut batch_result) = sprint191_shadow_state_fixture();
+    let v2_result = core::run_conservative_voice_tuning_v2(
+        &state_result,
+        &member_states,
+        &previous_history,
+        Some(&tuning),
+        &core::ConservativeVoiceTuningV2RunConfig {
+            run_id: "sprint196-v2".to_string(),
+            enabled: true,
+            run_count: 3,
+            previous_history_path: None,
+            previous_tuning_result_path: None,
+            tuned_v2_history_output_path: None,
+            tuning_v2_result_output_path: None,
+            dry_run: true,
+            write_tuned_history: false,
+            emit_owner_console_section: true,
+            paper_only: true,
+        },
+    )
+    .expect("sprint196 v2 fixture");
+    batch_result.chairman_shadow_governance_state_run_result = Some(state_result.clone());
+    batch_result.chairman_shadow_governance_history_store = Some(previous_history);
+    batch_result.chairman_shadow_governance_tuning_run_result = Some(tuning);
+    let shadow_store = state_result
+        .shadow_store_after
+        .clone()
+        .expect("shadow store after");
+    (member_states, batch_result, shadow_store, v2_result)
+}
+
+fn sprint196_explicit_trial_simulation_result(
+    member_states: &[core::MemberStateSnapshot],
+    batch_result: &BatchCommitteeCycleResult,
+) -> (
+    core::ChairmanShadowGovernanceSimulationResult,
+    String,
+    String,
+) {
+    let mut simulation_result = batch_result
+        .chairman_shadow_governance_simulation_result
+        .clone()
+        .expect("simulation result");
+    let score_member_id = member_states
+        .first()
+        .expect("score member")
+        .member_id
+        .clone();
+    let voice_member_id = member_states
+        .get(1)
+        .expect("voice member")
+        .member_id
+        .clone();
+    simulation_result.simulation_id = "sprint196-paper-trial-simulation".to_string();
+    simulation_result.score_deltas = vec![core::ChairmanShadowScoreDelta {
+        delta_id: "sprint196-score-delta".to_string(),
+        source_ledger_entry_id: "sprint196-ledger-score".to_string(),
+        member_id: score_member_id.clone(),
+        symbol: Some("AAPL".to_string()),
+        market_scope: Some(MarketScope::UsShortTerm),
+        delta_kind: core::ChairmanShadowScoreDeltaKind::Reward,
+        proposed_score_delta: 0.03,
+        reason: core::ChairmanShadowScoreDeltaReason::HelpfulDissent,
+        confidence: SourceConfidence::High,
+        shadow_only: true,
+        no_actual_score_mutation: true,
+        paper_only: true,
+    }];
+    simulation_result.voice_deltas = vec![core::ChairmanShadowVoiceDelta {
+        delta_id: "sprint196-voice-delta".to_string(),
+        source_ledger_entry_id: "sprint196-ledger-voice".to_string(),
+        member_id: voice_member_id.clone(),
+        symbol: Some("AAPL".to_string()),
+        market_scope: Some(MarketScope::UsShortTerm),
+        delta_kind: core::ChairmanShadowVoiceDeltaKind::Increase,
+        proposed_voice_delta: 0.0154,
+        reason: core::ChairmanShadowVoiceDeltaReason::ConsistentObserverAgreement,
+        confidence: SourceConfidence::High,
+        shadow_only: true,
+        no_actual_voice_mutation: true,
+        paper_only: true,
+    }];
+    simulation_result.reward_delta_count = 1;
+    simulation_result.penalty_delta_count = 0;
+    simulation_result.voice_increase_count = 1;
+    simulation_result.voice_decrease_count = 0;
+    simulation_result.needs_more_evidence_count = 0;
+    (simulation_result, score_member_id, voice_member_id)
+}
+
+#[test]
+fn sprint196_eligibility_policy_rejects_review_required_and_blocks_actual_mutation() {
+    run_sprint195_large_stack_test(
+        "sprint196-eligibility-large-stack",
+        sprint196_eligibility_policy_rejects_review_required_and_blocks_actual_mutation_inner,
+    );
+}
+
+fn sprint196_eligibility_policy_rejects_review_required_and_blocks_actual_mutation_inner() {
+    let (member_states, batch_result, _shadow_store, mut v2_result) = sprint196_trial_fixture();
+    let (mut simulation_result, score_member_id, _voice_member_id) =
+        sprint196_explicit_trial_simulation_result(&member_states, &batch_result);
+    simulation_result.score_deltas[0].confidence = SourceConfidence::ReviewRequired;
+
+    let selection = core::select_paper_governance_trial_candidates(
+        &simulation_result,
+        &v2_result,
+        &core::default_paper_governance_trial_eligibility_policy(),
+    )
+    .expect("review-required selection");
+    let rejected = selection
+        .candidates
+        .iter()
+        .find(|candidate| candidate.member_id == score_member_id)
+        .expect("review-required candidate");
+    assert_eq!(
+        rejected.candidate_kind,
+        core::PaperGovernanceTrialCandidateKind::Rejected
+    );
+    assert!(
+        rejected
+            .rejection_reason
+            .as_deref()
+            .is_some_and(|reason| reason.contains("confidence"))
+    );
+
+    v2_result
+        .v2_result
+        .voice_tuning_v2_policy
+        .actual_score_apply_allowed = true;
+    let blocked = core::select_paper_governance_trial_candidates(
+        &simulation_result,
+        &v2_result,
+        &core::default_paper_governance_trial_eligibility_policy(),
+    )
+    .expect("mutation-blocked selection");
+    assert_eq!(
+        blocked.selection_status,
+        core::PaperGovernanceTrialCandidateSelectionStatus::Blocked
+    );
+}
+
+#[test]
+fn sprint196_candidate_selection_and_state_store_apply_only_to_paper_trial() {
+    run_sprint195_large_stack_test(
+        "sprint196-state-apply-large-stack",
+        sprint196_candidate_selection_and_state_store_apply_only_to_paper_trial_inner,
+    );
+}
+
+fn sprint196_candidate_selection_and_state_store_apply_only_to_paper_trial_inner() {
+    let (member_states, batch_result, shadow_store, v2_result) = sprint196_trial_fixture();
+    let (simulation_result, score_member_id, voice_member_id) =
+        sprint196_explicit_trial_simulation_result(&member_states, &batch_result);
+    let selection = core::select_paper_governance_trial_candidates(
+        &simulation_result,
+        &v2_result,
+        &core::default_paper_governance_trial_eligibility_policy(),
+    )
+    .expect("candidate selection");
+    assert!(selection.candidates.iter().any(|candidate| {
+        candidate.member_id == score_member_id
+            && candidate.candidate_kind == core::PaperGovernanceTrialCandidateKind::ScoreDeltaTrial
+    }));
+    assert!(selection.candidates.iter().any(|candidate| {
+        candidate.member_id == voice_member_id
+            && candidate.candidate_kind == core::PaperGovernanceTrialCandidateKind::VoiceDeltaTrial
+    }));
+
+    let mut store =
+        core::initialize_paper_governance_trial_state_store(&member_states, Some(&shadow_store));
+    let apply_result = core::apply_paper_governance_trial_candidates(
+        &mut store,
+        &selection.candidates,
+        &core::default_paper_governance_trial_eligibility_policy(),
+    )
+    .expect("paper trial apply");
+    let score_state = store
+        .member_states
+        .iter()
+        .find(|state| state.member_id == score_member_id)
+        .expect("score state");
+    let voice_state = store
+        .member_states
+        .iter()
+        .find(|state| state.member_id == voice_member_id)
+        .expect("voice state");
+    let actual_score_state = member_states
+        .iter()
+        .find(|state| state.member_id == score_member_id)
+        .expect("actual score state");
+    let actual_voice_state = member_states
+        .iter()
+        .find(|state| state.member_id == voice_member_id)
+        .expect("actual voice state");
+    assert!(apply_result.applied_candidate_count >= 2);
+    assert!(score_state.paper_trial_score > score_state.actual_score_snapshot);
+    assert!((actual_score_state.score - score_state.actual_score_snapshot).abs() < 0.0001);
+    assert!(voice_state.paper_trial_voice_weight != voice_state.actual_voice_snapshot);
+    assert!((actual_voice_state.voice_weight - voice_state.actual_voice_snapshot).abs() < 0.0001);
+    assert_eq!(
+        score_state.shadow_score_snapshot,
+        shadow_store
+            .member_states
+            .iter()
+            .find(|state| state.member_id == score_member_id)
+            .map(|state| state.shadow_score)
+    );
+
+    let path = sprint171_temp_json_path("sprint196-paper-trial-state");
+    let _ = std::fs::remove_file(&path);
+    core::save_paper_governance_trial_state_store_to_local_json(&path, &store)
+        .expect("save paper trial state");
+    let loaded = core::load_paper_governance_trial_state_store_from_local_json(&path)
+        .expect("load paper trial state");
+    assert_eq!(loaded, store);
+    let remote_err = core::save_paper_governance_trial_state_store_to_local_json(
+        std::path::Path::new("https://example.invalid/paper-trial.json"),
+        &store,
+    )
+    .expect_err("remote paper trial path should fail");
+    assert!(remote_err.contains("local"));
+    let _ = std::fs::remove_file(&path);
+}
+
+#[test]
+fn sprint196_comparison_safety_and_readiness_stay_paper_only() {
+    run_sprint195_large_stack_test(
+        "sprint196-comparison-large-stack",
+        sprint196_comparison_safety_and_readiness_stay_paper_only_inner,
+    );
+}
+
+fn sprint196_comparison_safety_and_readiness_stay_paper_only_inner() {
+    let (member_states, mut batch_result, shadow_store, v2_result) = sprint196_trial_fixture();
+    let (simulation_result, _score_member_id, _voice_member_id) =
+        sprint196_explicit_trial_simulation_result(&member_states, &batch_result);
+    batch_result.chairman_shadow_governance_simulation_result = Some(simulation_result);
+    let committee_sessions_before = batch_result.committee_sessions.clone();
+    let run = core::run_paper_governance_trial_sandbox(
+        &member_states,
+        Some(&shadow_store),
+        &v2_result,
+        &batch_result,
+        &core::PaperGovernanceTrialRunConfig {
+            run_id: "sprint196-paper-trial-run".to_string(),
+            enabled: true,
+            trial_state_input_path: None,
+            trial_state_output_path: None,
+            dry_run: true,
+            apply_trial_candidates: true,
+            compare_committee_voice_distribution: true,
+            emit_owner_summary: true,
+            paper_only: true,
+        },
+    )
+    .expect("paper trial run");
+
+    assert_eq!(
+        run.actual_shadow_paper_comparison.summary_status,
+        core::ActualVsShadowGovernanceSummaryStatus::StableWithWarnings
+    );
+    assert!(matches!(
+        run.committee_voice_comparison
+            .as_ref()
+            .expect("committee comparison")
+            .comparison_status,
+        core::PaperGovernanceTrialCommitteeComparisonStatus::Compared
+            | core::PaperGovernanceTrialCommitteeComparisonStatus::NoChange
+    ));
+    assert_eq!(batch_result.committee_sessions, committee_sessions_before);
+    assert_eq!(
+        run.readiness_result.readiness_status,
+        core::PaperGovernanceTrialReadinessStatus::ReadyWithWarnings
+    );
+    let owner_summary = run.owner_summary.as_ref().expect("owner summary");
+    assert!(owner_summary.no_actual_score_mutation);
+    assert!(owner_summary.no_actual_voice_mutation);
+    assert!(owner_summary.no_committee_decision_change);
+    assert!(owner_summary.not_trade_signal);
+    assert!(
+        owner_summary
+            .message
+            .contains("Governance candidates were applied only to paper trial state.")
+    );
+
+    let mut mutated_member_states = member_states.clone();
+    mutated_member_states[0].score += 0.11;
+    mutated_member_states[1].voice_weight += 0.07;
+    let mut mutated_batch = batch_result.clone();
+    let mut mutated_decision = mutated_batch
+        .chairman_decisions
+        .first()
+        .cloned()
+        .expect("chairman decision");
+    mutated_decision.rationale = format!("{} paper-trial-live", run.run_id);
+    mutated_batch.chairman_decisions.push(mutated_decision);
+    mutated_batch.committee_sessions.push(
+        batch_result
+            .committee_sessions
+            .first()
+            .cloned()
+            .expect("committee session"),
+    );
+    let safety = core::evaluate_paper_governance_trial_safety(
+        &run,
+        &member_states,
+        Some(&mutated_member_states),
+        &batch_result,
+        Some(&mutated_batch),
+    );
+    assert_eq!(
+        safety.guard_status,
+        core::PaperGovernanceTrialSafetyGuardStatus::Violated
+    );
+    assert!(safety.actual_score_mutation_detected);
+    assert!(safety.actual_voice_mutation_detected);
+    assert!(safety.committee_decision_mutation_detected);
+    assert!(safety.paper_trial_used_as_live_decision_detected);
+}
+
+#[test]
+fn sprint196_run_is_deterministic_and_non_dry_writes_only_trial_state() {
+    run_sprint195_large_stack_test(
+        "sprint196-run-large-stack",
+        sprint196_run_is_deterministic_and_non_dry_writes_only_trial_state_inner,
+    );
+}
+
+fn sprint196_run_is_deterministic_and_non_dry_writes_only_trial_state_inner() {
+    let (member_states, mut batch_result, shadow_store, v2_result) = sprint196_trial_fixture();
+    let (simulation_result, _score_member_id, _voice_member_id) =
+        sprint196_explicit_trial_simulation_result(&member_states, &batch_result);
+    batch_result.chairman_shadow_governance_simulation_result = Some(simulation_result);
+    let dry_run_path = sprint171_temp_json_path("sprint196-paper-trial-dry");
+    let non_dry_path = sprint171_temp_json_path("sprint196-paper-trial-write");
+    let _ = std::fs::remove_file(&dry_run_path);
+    let _ = std::fs::remove_file(&non_dry_path);
+    let dry_config = core::PaperGovernanceTrialRunConfig {
+        run_id: "sprint196-paper-dry".to_string(),
+        enabled: true,
+        trial_state_input_path: None,
+        trial_state_output_path: Some(dry_run_path.to_string_lossy().to_string()),
+        dry_run: true,
+        apply_trial_candidates: true,
+        compare_committee_voice_distribution: true,
+        emit_owner_summary: true,
+        paper_only: true,
+    };
+    let first = core::run_paper_governance_trial_sandbox(
+        &member_states,
+        Some(&shadow_store),
+        &v2_result,
+        &batch_result,
+        &dry_config,
+    )
+    .expect("first dry paper trial");
+    let second = core::run_paper_governance_trial_sandbox(
+        &member_states,
+        Some(&shadow_store),
+        &v2_result,
+        &batch_result,
+        &dry_config,
+    )
+    .expect("second dry paper trial");
+    assert_eq!(first, second);
+    assert!(!dry_run_path.exists());
+    assert!(batch_result.safety_summary.no_model_training);
+    assert!(batch_result.safety_summary.no_weight_update);
+    assert!(batch_result.safety_summary.no_checkpoint);
+    assert!(batch_result.safety_summary.no_live_inference);
+    assert!(batch_result.safety_summary.no_broker_order_account);
+
+    let non_dry = core::run_paper_governance_trial_sandbox(
+        &member_states,
+        Some(&shadow_store),
+        &v2_result,
+        &batch_result,
+        &core::PaperGovernanceTrialRunConfig {
+            run_id: "sprint196-paper-write".to_string(),
+            enabled: true,
+            trial_state_input_path: None,
+            trial_state_output_path: Some(non_dry_path.to_string_lossy().to_string()),
+            dry_run: false,
+            apply_trial_candidates: true,
+            compare_committee_voice_distribution: true,
+            emit_owner_summary: true,
+            paper_only: true,
+        },
+    )
+    .expect("non-dry paper trial");
+    assert!(non_dry_path.exists());
+    assert_eq!(
+        non_dry.safety_guard.guard_status,
+        core::PaperGovernanceTrialSafetyGuardStatus::Preserved
+    );
+    assert_eq!(
+        non_dry.readiness_result.readiness_status,
+        core::PaperGovernanceTrialReadinessStatus::ReadyWithWarnings
+    );
+    let _ = std::fs::remove_file(&dry_run_path);
+    let _ = std::fs::remove_file(&non_dry_path);
 }

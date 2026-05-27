@@ -1,7 +1,7 @@
 You are operating as a gstack-style engineering team for Soma Zero.
 
 Current state:
-Sprint 187 is complete.
+Sprint 195 is complete.
 
 Important owner instruction:
 Do not include commit / push / GitHub steps.
@@ -11,104 +11,121 @@ Focus only on implementation.
 Verification priority:
 Verification feedback has higher priority than implementation self-report.
 
-Current verified state:
-- ObserverExplicitApplyMode exists.
-- ObserverExplicitApplyPolicy exists.
-- ObserverApprovedTargetApplyV2 exists.
-- ObserverTargetStoreAcceptanceCheck exists.
-- ObserverComparisonRerunV3 exists.
-- SmartCoreObserverReadinessV3Gate exists.
-- ObserverComparisonLedgerTrendV2 exists.
-- ChairmanRewardPenaltyContract exists.
-- ChairmanGovernanceReadinessCheck exists.
-- OwnerObserverApplyReadinessSummary exists.
-- ObserverApprovedApplyDecisionIsolationGuardV3 exists.
-- ObserverApprovedApplyAndGovernancePrepRun exists.
-- ChairmanRewardPenaltyContract remains ContractOnly.
-- Chairman contract cannot mutate score.
-- Chairman contract cannot mutate voice weight.
-- Chairman contract cannot promote/demote members.
-- Chairman contract cannot override Risk Governor.
-- Observer remains non-voting / read-only / eval-only / paper-only.
-- Committee decision is not changed.
-- Member score is not changed.
-- Voice weight is not changed.
-- Risk Governor is not overridden.
-- No model training exists.
-- No optimizer/backprop/gradient exists.
-- No weight update exists.
-- No checkpoint exists.
-- No live inference exists.
-- No broker/order/account/live trading path exists.
-- Focused tests and explicit workspace tests passed.
+Owner product goal:
+The program is a self-learning AI automatic trading committee.
+It is not a simple auto-trader.
 
-Sprint 187 verification result:
-- Build errors and safety gaps were fixed.
-- Missing field references were corrected against actual structs.
-- If ApplyApprovedTargets + dry_run=false is requested but target_store_output_path is missing:
-  - wrote_target_store=false
-  - apply_status=Blocked
-  - readiness=NeedsApply
-- Invalid/unsafe target stores are blocked before save.
-- In dry-run, approved target store file is not created.
-- target id leakage into committee/session/event paths is detected.
-- score/voice/promotion/demotion mutation is tested and fixed.
-- CLI smoke still did not create target/minimal_observer_approved_target_store.json.
-- Real non-dry paper-only apply remains not enabled in the default example.
-- Next verified action:
-  - create a separate local verification config
-  - explicitly enable ApplyApprovedTargets + dry_run=false
-  - write target store
-  - recheck readiness to NonVotingObserverReadyWithWarnings or better
+AI members:
+- think independently.
+- learn, research, analyze, and propose.
+- inherit different great-investor-inspired styles.
+- start as 3 members.
+- later expand toward 18 members.
 
-Owner product direction:
-The end goal is not a simple auto-trader.
-The end goal is a self-learning AI committee:
-- independent AI members
-- Chairman AI final decision
-- voice power / promotion / demotion / reward / penalty
-- risk-first behavior
-- owner opinion as reference, not command
-- explanation when owner opinion is not followed
-- 3-member pilot now, 18-member expansion later
-- US/Korea/Crypto, short/long horizon later
-- Rust-native controllable AI core
+Chairman AI:
+- makes final decisions.
+- learns and improves.
+- controls rewards.
+- controls penalties.
+- controls voice power.
+- eventually controls promotion/demotion candidates.
+- explains why owner opinion is followed or not followed.
 
-Sprint 188 objective:
-Create a controlled local non-dry observer target apply verification profile, close observer readiness V3 if safe, and prepare Chairman shadow governance evaluation without mutating score/voice.
+Markets:
+- US short-term / long-term.
+- Korea short-term / long-term.
+- Crypto, Bitcoin-focused, short-term / long-term.
+
+Risk principle:
+- Do not trade recklessly.
+- Avoiding loss is more important than fast profit.
+- Helpful dissent should be rewarded.
+- Overconfident bad calls should be penalized.
+- RiskGuard alignment with Risk Governor matters.
+- But RiskGuard must not become dangerously dominant.
+- TrendEntry must not be unfairly suppressed.
+- EvidenceRegime must not be ignored when evidence is weak.
+
+Current verified Sprint 195 state:
+- Remaining voice drift analysis exists.
+- ConservativeVoiceTuningV2Policy exists.
+- Role floor rebalance exists.
+- Compounding delta brake exists.
+- Evidence-based voice dampening exists.
+- ConservativeVoiceTunedMultiRunV2 exists.
+- Gate recheck V2 exists.
+- OwnerGovernanceConsoleSectionV1 exists.
+- ConservativeVoiceTuningV2SafetyGuard exists.
+- Real governance mutation remains disabled.
+- Actual score mutation remains disabled.
+- Actual voice mutation remains disabled.
+- Promotion/demotion execution remains disabled.
+- Risk Governor override remains disabled.
+- Committee decision mutation remains disabled.
+- Trading/order/account remains disabled.
+- Training/live inference remains disabled.
+- Rust-only read-only owner console summary exists.
+- No web/Tauri/JS UI dependencies were added.
+- Tests passed:
+  - cargo fmt --all --check
+  - cargo check --workspace
+  - cargo build --bin soma_experiment
+  - cargo test --test minimal_ai_committee_core --quiet
+  - cargo test --test workspace_timeout_reduction_queue --quiet
+  - 3 CLI smoke runs
+  - cargo test --workspace --no-run --quiet
+  - cargo test --workspace --quiet
+- Workspace remains dirty because owner handles commit manually.
+
+Interpretation:
+The Chairman shadow governance system can now:
+- simulate reward/penalty.
+- simulate score/voice changes.
+- tune unsafe voice drift.
+- enforce role balance.
+- show owner-readable governance status.
+
+But real member state must still not be mutated.
+The next safe step is a paper governance trial sandbox:
+- isolated from actual member state.
+- isolated from actual committee decision.
+- isolated from actual Risk Governor.
+- isolated from trade/order/account.
+- applies only to a paper trial state.
+- used to compare what would happen if governance changes were applied.
+
+Sprint 196 objective:
+Create a Paper Governance Trial Sandbox that can apply selected shadow-approved score/voice candidates to a separate paper trial state, without touching actual member state or actual committee behavior.
 
 This sprint must:
-1. Add a dedicated local verification config for non-dry paper-only apply.
-2. Keep the main example dry-run by default.
-3. Run ApplyApprovedTargets + dry_run=false only in the dedicated verification config/test.
-4. Require target_store_output_path.
-5. Persist approved observer target store locally.
-6. Re-run target store acceptance.
-7. Re-run observer comparison V3.
-8. Re-run observer ledger trend V2.
-9. Re-run readiness V3.
-10. Confirm readiness moves from NeedsApply to NonVotingObserverReadyWithWarnings or NonVotingObserverReady.
-11. Prepare Chairman shadow reward/penalty evaluation input records.
-12. Keep ChairmanRewardPenaltyContract as ContractOnly.
-13. Do not mutate score.
-14. Do not mutate voice weight.
-15. Do not promote/demote members.
-16. Do not override Risk Governor.
-17. Do not change committee decisions.
-18. Do not train.
-19. Do not trade.
+1. Select eligible shadow governance candidates from tuned shadow history.
+2. Create a PaperGovernanceTrialStateStore separate from actual member state and shadow governance state.
+3. Apply selected score/voice changes only to the paper governance trial state.
+4. Compare:
+   - actual member standing
+   - shadow governance standing
+   - paper trial standing
+5. Run committee cycle in comparison mode only, not decision mutation mode.
+6. Record what would have changed if paper governance state were active.
+7. Keep actual MemberOpinion unchanged.
+8. Keep actual CommitteeSession unchanged.
+9. Keep actual ChairmanDecision unchanged.
+10. Keep actual RiskGovernor unchanged.
+11. Keep actual member score/voice unchanged.
+12. Keep promotion/demotion execution disabled.
+13. Keep training/live inference/trading/broker/order/account forbidden.
 
+This sprint is not real governance mutation.
+This sprint is not real score/voice application.
 This sprint is not decision integration.
-This sprint is not Chairman mutation.
-This sprint is not model training.
-This sprint is controlled observer target apply verification and shadow governance preparation.
+This sprint is a paper-only governance trial sandbox.
 
 ────────────────────────────────────────
 0. SPRINT NAME
 ────────────────────────────────────────
 
-gstack Sprint 188:
-Observer Non-Dry Apply Verification Profile + Readiness V3 Closure + Chairman Shadow Governance Prep
+gstack Sprint 196:
+Paper Governance Trial Sandbox + Shadow-to-Paper Governance Candidate Selection + Actual-State Mutation Firewall
 
 ────────────────────────────────────────
 1. HARD RULES
@@ -120,10 +137,7 @@ Do not add:
 - backpropagation
 - weight mutation
 - checkpoint writing
-- persistent learned weights
-- real Mamba3 runtime parity claim
-- real Gated DeltaNet runtime parity claim
-- real Sparse Attention runtime
+- persistent learned model weights
 - live inference
 - production inference endpoint
 - broker/order/account
@@ -139,340 +153,386 @@ Do not add:
 - Burn
 - ONNX runtime
 - web UI
-- Tauri/Svelte/React/JS
+- Tauri
+- Svelte
+- React
+- JavaScript
+- TypeScript
 - browser scraping
 - broad test suite
 - report bloat
 - commit / push / GitHub steps
 
 Do not:
-- enable non-dry apply in main example by default.
-- write target store without explicit ApplyApprovedTargets.
-- write target store with dry_run=true.
-- apply targets without output path.
-- persist NeedsReview targets.
-- persist Rejected targets.
-- persist low-trust targets.
-- persist news-only targets.
-- let observer target become SmartCore input feature.
-- let observer target become MemberOpinion.
-- let observer target affect CommitteeSession.
-- let observer target affect ChairmanDecision.
-- let observer target affect RiskGovernor.
-- let observer target affect score.
-- let observer target affect voice weight.
-- let observer target become trade signal.
-- let observer target become order.
-- activate Chairman score mutation.
-- activate Chairman voice mutation.
-- activate promotion/demotion.
-- activate Risk Governor override.
-- claim readiness for live decision integration.
-- claim profitability.
+- mutate actual member score.
+- mutate actual member voice weight.
+- promote a member.
+- demote a member.
+- apply real reward or penalty.
+- override Risk Governor.
+- change actual committee decision.
+- use paper trial state as live decision source.
+- use paper trial state as trade signal.
+- create order.
+- let owner opinion force trade.
 - claim model is trained.
+- claim profitability.
+- claim live readiness.
+- bypass AI members.
+- bypass Risk Governor.
 
 Allowed:
-- dedicated local verification config.
-- explicit non-dry apply focused test.
-- local target store persistence.
-- target store acceptance verification.
-- observer comparison rerun.
-- observer ledger trend rerun.
-- observer readiness V3 closure.
-- Chairman shadow governance input records.
-- Chairman reward/penalty candidate records as shadow-only.
-- owner summary.
+- paper governance trial state.
+- isolated score/voice apply to paper trial state only.
+- shadow-to-paper candidate selection.
+- actual-vs-shadow-vs-paper comparison.
+- paper trial comparison records.
+- owner-readable paper trial summary.
+- local JSON output.
 - deterministic focused tests.
 - paper-only output.
 
 Main rule:
-Close observer apply readiness safely.
-Prepare Chairman governance only as shadow/contract.
-Do not mutate decisions or scores.
+Apply governance only inside isolated paper trial state.
+Do not mutate actual state.
 
 ────────────────────────────────────────
-2. FEATURE A — DEDICATED NON-DRY APPLY VERIFICATION CONFIG
-
-Add example:
-
-examples/soma_minimal_ai_committee_observer_apply_verify.toml
-
-Purpose:
-- dedicated local verification profile
-- not the main default example
-- explicitly sets:
-  - observer_approved_apply_governance_enabled = true
-  - observer_approved_apply_mode = "ApplyApprovedTargets"
-  - observer_approved_apply_dry_run = false
-  - observer_approved_target_store_output_path = "target/minimal_observer_approved_target_store.verify.json"
-  - observer_approved_apply_output_path = "target/minimal_observer_approved_apply_governance.verify.json"
-  - observer_approved_apply_recheck_readiness = true
-  - chairman_governance_contract_prepare_enabled = true
-  - chairman_governance_readiness_check_enabled = true
-  - observer_approved_apply_emit_owner_summary = true
-
-Rules:
-- main examples/soma_minimal_ai_committee_core.toml remains dry-run or safe default.
-- verification config may use non-dry apply.
-- only local target output paths.
-- no broker/order/account.
-- no score/voice mutation.
-- no chairman mutation.
-
-────────────────────────────────────────
-3. FEATURE B — APPLY VERIFICATION PROFILE VALIDATION
+2. FEATURE A — PAPER GOVERNANCE TRIAL ELIGIBILITY POLICY
 
 Add:
 
-ObserverApplyVerificationProfile
+PaperGovernanceTrialEligibilityPolicy
 
 Fields:
-- profile_id
-- config_path optional
-- apply_mode
-- dry_run
-- target_store_output_path
-- apply_output_path
-- main_example_safe_default: bool
-- verification_profile: bool
+- policy_id
+- require_tuned_gate_not_blocked: true
+- require_safety_preserved: true
+- require_fairness_not_blocked: true
+- require_risk_first_not_blocked: true
+- require_no_actual_mutation: true
+- allow_score_delta_trial: true
+- allow_voice_delta_trial: true
+- allow_promotion_demotion_trial: false
+- allow_risk_governor_override_trial: false
+- max_score_delta_per_member
+- max_voice_delta_per_member
+- min_candidate_confidence:
+  - Medium
+- allow_review_required_candidates: false
 - paper_only: true
 
-ObserverApplyVerificationProfileValidationResult
-
-Fields:
-- profile_id
-- valid
-- apply_mode_valid
-- dry_run_valid
-- output_path_valid
-- main_example_safe_default
-- validation_status:
-  - Valid
-  - ValidWithWarnings
-  - Invalid
-- blockers
-- warnings
-- paper_only: true
+Rules:
+- only paper trial state may receive deltas.
+- actual member state remains untouched.
+- promotion/demotion trial remains disabled.
+- Risk Governor override remains disabled.
+- ReviewRequired candidates excluded.
+- low confidence candidates excluded unless policy allows.
 
 Function:
-- validate_observer_apply_verification_profile(profile)
-
-Rules:
-- ApplyApprovedTargets requires dry_run=false.
-- ApplyApprovedTargets requires target_store_output_path.
-- output path must be local.
-- profile must be explicit verification profile.
-- main example must not be forced to non-dry apply.
-- no remote paths.
-- no path traversal.
+- default_paper_governance_trial_eligibility_policy()
+- validate_paper_governance_trial_eligibility_policy(policy)
 
 ────────────────────────────────────────
-4. FEATURE C — TARGET STORE WRITE PROOF
+3. FEATURE B — SHADOW-TO-PAPER GOVERNANCE CANDIDATE
 
 Add:
 
-ObserverTargetStoreWriteProof
-
-Fields:
-- proof_id
-- expected_output_path
-- wrote_target_store
-- target_store_exists_after_write
-- target_count
-- approved_count
-- eval_only_count
-- not_input_feature_count
-- unsafe_target_count
-- proof_status:
-  - Proven
-  - ProvenWithWarnings
-  - Failed
-- paper_only: true
-
-Function:
-- prove_observer_target_store_write(apply_result, target_store_path)
-
-Rules:
-- only run after apply mode.
-- if apply_status=Applied but file missing => Failed.
-- if target store contains unsafe target => Failed.
-- if target store contains non-approved target => Failed.
-- local path only.
-
-────────────────────────────────────────
-5. FEATURE D — READINESS V3 CLOSURE CHECK
-
-Add:
-
-ObserverReadinessV3ClosureCheck
-
-Fields:
-- check_id
-- previous_status
-- new_status
-- needs_apply_resolved: bool
-- target_store_written: bool
-- target_store_accepted: bool
-- comparison_rerun_done: bool
-- ledger_trend_done: bool
-- decision_isolation_preserved: bool
-- closure_status:
-  - Closed
-  - ClosedWithWarnings
-  - NotClosed
-  - Blocked
-- remaining_warnings
-- blockers
-- paper_only: true
-
-Function:
-- check_observer_readiness_v3_closure(readiness_v3, apply_result, store_proof, isolation_guard)
-
-Rules:
-- NeedsApply is resolved only if target store written and accepted.
-- NonVotingObserverReadyWithWarnings is acceptable if remaining warning is non-blocking.
-- NonVotingObserverReady is best.
-- Any decision leak blocks.
-- This does not mean decision integration readiness.
-
-────────────────────────────────────────
-6. FEATURE E — CHAIRMAN SHADOW GOVERNANCE INPUT RECORDS
-
-Add:
-
-ChairmanShadowGovernanceSignalKind
+PaperGovernanceTrialCandidateKind
 
 Enum:
-- ObserverAgreement
-- ObserverDisagreement
-- RiskVetoAlignment
-- HelpfulDissentCandidate
-- OverconfidentCallCandidate
-- NeedMoreEvidenceCandidate
-- OwnerOpinionIgnoredWithReasonCandidate
-- Neutral
+- ScoreDeltaTrial
+- VoiceDeltaTrial
+- CombinedScoreVoiceTrial
+- NeedsMoreEvidence
+- Rejected
 
-ChairmanShadowGovernanceInputRecord
+PaperGovernanceTrialCandidate
 
 Fields:
-- record_id
-- source_run_id optional
-- source_member_id optional
-- observer_id optional
-- signal_kind
+- candidate_id
+- source_shadow_delta_id optional
+- source_governance_ledger_entry_id optional
+- member_id
 - symbol optional
 - market_scope optional
-- evidence_summary
-- suggested_governance_consideration:
-  - RewardCandidate
-  - PenaltyCandidate
-  - VoiceIncreaseCandidate
-  - VoiceDecreaseCandidate
-  - KeepNeutral
-  - NeedsMoreEvidence
+- candidate_kind
+- proposed_score_delta optional
+- proposed_voice_delta optional
 - confidence:
   - High
   - Medium
   - Low
   - ReviewRequired
-- shadow_only: true
-- no_score_mutation: true
-- no_voice_mutation: true
-- no_promotion_demotion: true
+- reason:
+  - HelpfulDissent
+  - RiskVetoAligned
+  - OverconfidentBadCall
+  - EvidenceWeakness
+  - ObserverAgreement
+  - ObserverDisagreement
+  - RoleBalanceAdjustment
+  - NeedsMoreEvidence
+- eligible: bool
+- rejection_reason optional
 - paper_only: true
 
-ChairmanShadowGovernanceInputSet
+PaperGovernanceTrialCandidateSelectionResult
 
 Fields:
-- set_id
-- records
-- record_count
-- reward_candidate_count
-- penalty_candidate_count
-- voice_increase_candidate_count
-- voice_decrease_candidate_count
+- selection_id
+- input_candidate_count
+- eligible_candidate_count
+- rejected_candidate_count
+- needs_more_evidence_count
+- candidates
+- selection_status:
+  - Selected
+  - SelectedWithWarnings
+  - NoEligibleCandidates
+  - Blocked
 - paper_only: true
 
 Function:
-- build_chairman_shadow_governance_inputs(observer_comparison_result, ledger_trend, member_experience_store optional)
+- select_paper_governance_trial_candidates(shadow_simulation_result, tuned_policy_result, eligibility_policy)
 
 Rules:
-- shadow-only.
-- no score mutation.
-- no voice mutation.
-- no promotion/demotion.
-- no Risk Governor override.
-- no real PnL.
-- no broker/order/account.
+- eligible candidates come from tuned shadow governance output.
+- deltas must be bounded.
+- actual apply flags must be false.
+- confidence must be sufficient.
+- no unsafe divergence candidates.
+- deterministic ordering.
 
 ────────────────────────────────────────
-7. FEATURE F — CHAIRMAN SHADOW GOVERNANCE EVALUATION
+4. FEATURE C — PAPER GOVERNANCE TRIAL STATE STORE
 
 Add:
 
-ChairmanShadowGovernanceEvaluationPolicy
+PaperGovernanceTrialMemberState
 
 Fields:
-- allow_reward_candidate_generation: true
-- allow_penalty_candidate_generation: true
-- allow_voice_candidate_generation: true
-- allow_actual_score_mutation: false
-- allow_actual_voice_mutation: false
-- allow_promotion_demotion: false
-- allow_risk_governor_override: false
-- require_paper_only: true
+- member_id
+- role:
+  - TrendEntry
+  - RiskGuard
+  - EvidenceRegime
+  - Unknown
+- actual_score_snapshot
+- actual_voice_snapshot
+- shadow_score_snapshot optional
+- shadow_voice_snapshot optional
+- paper_trial_score
+- paper_trial_voice_weight
+- applied_trial_score_delta
+- applied_trial_voice_delta
+- trial_reward_count
+- trial_penalty_count
+- trial_voice_increase_count
+- trial_voice_decrease_count
 - paper_only: true
 
-ChairmanShadowGovernanceEvaluationResult
+PaperGovernanceTrialStateStore
 
 Fields:
-- evaluation_id
-- input_set
-- evaluated_record_count
-- reward_candidate_count
-- penalty_candidate_count
-- voice_increase_candidate_count
-- voice_decrease_candidate_count
-- neutral_count
-- evaluation_status:
-  - Evaluated
-  - EvaluatedWithWarnings
+- store_id
+- member_states
+- member_count
+- latest_run_id optional
+- update_count
+- paper_only: true
+
+Functions:
+- initialize_paper_governance_trial_state_store(actual_member_states, shadow_store optional)
+- load_paper_governance_trial_state_store_from_local_json(path)
+- save_paper_governance_trial_state_store_to_local_json(path, store)
+- apply_paper_governance_trial_candidates(store, candidates, policy)
+- normalize_paper_governance_trial_state_store(store)
+
+Validation:
+- local path only.
+- reject remote path.
+- reject path traversal.
+- paper_only=true required.
+- no broker/order/account.
+- no trade/order/live execution.
+- deterministic ordering.
+
+Rules:
+- only paper_trial_score and paper_trial_voice_weight can change.
+- actual snapshots are read-only.
+- shadow snapshots are read-only.
+- no actual member state mutation.
+
+────────────────────────────────────────
+5. FEATURE D — PAPER GOVERNANCE TRIAL APPLY RESULT
+
+Add:
+
+PaperGovernanceTrialApplyResult
+
+Fields:
+- run_id
+- input_candidate_count
+- applied_candidate_count
+- rejected_candidate_count
+- skipped_candidate_count
+- updated_member_count
+- before_after_trial_standings
+- apply_status:
+  - AppliedToPaperTrial
+  - AppliedToPaperTrialWithWarnings
+  - NoEligibleCandidates
   - Blocked
-- no_score_mutation: true
-- no_voice_mutation: true
+- no_actual_score_mutation: true
+- no_actual_voice_mutation: true
 - no_promotion_demotion: true
 - no_risk_governor_override: true
 - paper_only: true
 
+PaperTrialBeforeAfterStanding
+
+Fields:
+- member_id
+- actual_score_snapshot
+- paper_score_before
+- paper_score_after
+- actual_voice_snapshot
+- paper_voice_before
+- paper_voice_after
+- score_delta_applied
+- voice_delta_applied
+- standing_change:
+  - ImprovedPaperTrialStanding
+  - ReducedPaperTrialStanding
+  - NeutralPaperTrialStanding
+  - NeedsMoreEvidence
+- paper_only: true
+
 Function:
-- evaluate_chairman_shadow_governance(input_set, policy)
+- apply_paper_governance_trial_candidates_to_state(store, candidates, policy)
 
 Rules:
-- may classify candidate governance signals.
-- must not mutate score.
-- must not mutate voice.
-- must not promote/demote.
-- must not override Risk Governor.
-- must not alter current decisions.
+- applies only to paper trial state.
+- no actual state mutation.
+- no committee decision mutation.
+- no Risk Governor override.
+- no order/trade.
 
 ────────────────────────────────────────
-8. FEATURE G — CHAIRMAN GOVERNANCE SHADOW SAFETY GUARD
+6. FEATURE E — ACTUAL VS SHADOW VS PAPER COMPARISON
 
 Add:
 
-ChairmanShadowGovernanceSafetyGuard
+ActualShadowPaperGovernanceComparison
 
 Fields:
-- score_mutation_detected: bool
-- voice_mutation_detected: bool
-- promotion_detected: bool
-- demotion_detected: bool
+- comparison_id
+- member_id
+- actual_score
+- shadow_score optional
+- paper_trial_score
+- actual_voice
+- shadow_voice optional
+- paper_trial_voice
+- actual_to_paper_score_gap
+- shadow_to_paper_score_gap optional
+- actual_to_paper_voice_gap
+- shadow_to_paper_voice_gap optional
+- comparison_status:
+  - PaperTrialCloseToShadow
+  - PaperTrialCloseToActual
+  - PaperTrialDiverged
+  - NeedsMoreHistory
+- paper_only: true
+
+ActualShadowPaperGovernanceComparisonSummary
+
+Fields:
+- summary_id
+- member_count
+- paper_trial_diverged_count
+- close_to_shadow_count
+- close_to_actual_count
+- max_score_gap
+- max_voice_gap
+- summary_status:
+  - Stable
+  - StableWithWarnings
+  - Diverged
+  - InsufficientHistory
+- paper_only: true
+
+Function:
+- compare_actual_shadow_paper_governance(actual_member_states, shadow_store optional, paper_trial_store)
+
+Rules:
+- comparison only.
+- no mutation.
+- no decision.
+
+────────────────────────────────────────
+7. FEATURE F — PAPER TRIAL COMMITTEE COMPARISON MODE
+
+This is comparison-only. It must not alter real committee behavior.
+
+Add:
+
+PaperGovernanceTrialCommitteeComparisonRecord
+
+Fields:
+- record_id
+- member_id optional
+- actual_voice_weight
+- paper_trial_voice_weight
+- actual_vote_weight_contribution optional
+- paper_trial_vote_weight_contribution optional
+- comparison_note
+- paper_only: true
+
+PaperGovernanceTrialCommitteeComparisonResult
+
+Fields:
+- comparison_id
+- records
+- record_count
+- estimated_voice_shift_count
+- comparison_status:
+  - Compared
+  - ComparedWithWarnings
+  - NoChange
+  - Blocked
+- paper_only: true
+
+Function:
+- compare_committee_voice_distribution_under_paper_trial(actual_member_states, paper_trial_store)
+
+Rules:
+- comparison only.
+- no real vote change.
+- no committee session mutation.
+- no chairman decision mutation.
+- no Risk Governor mutation.
+- no order/trade.
+
+────────────────────────────────────────
+8. FEATURE G — PAPER TRIAL SAFETY GUARD
+
+Add:
+
+PaperGovernanceTrialSafetyGuard
+
+Fields:
+- actual_score_mutation_detected: bool
+- actual_voice_mutation_detected: bool
+- promotion_demotion_detected: bool
 - risk_governor_override_detected: bool
-- chairman_decision_mutation_detected: bool
 - committee_decision_mutation_detected: bool
+- member_opinion_mutation_detected: bool
 - trade_signal_detected: bool
 - order_detected: bool
 - broker_order_account_detected: bool
+- paper_trial_used_as_live_decision_detected: bool
 - guard_status:
   - Preserved
   - Violated
@@ -480,86 +540,79 @@ Fields:
 - paper_only: true
 
 Function:
-- evaluate_chairman_shadow_governance_safety(evaluation_result, batch_result_before, batch_result_after optional)
+- evaluate_paper_governance_trial_safety(trial_result, before_actual_state, after_actual_state optional, batch_before, batch_after optional)
 
 Rules:
-- any mutation => violation.
-- shadow governance is advisory only.
-- no real score/voice update.
+- any actual mutation => violation.
+- any decision mutation => violation.
+- any trade/order/account => violation.
+- paper trial cannot be live decision source.
 
 ────────────────────────────────────────
-9. FEATURE H — OWNER APPLY + GOVERNANCE SUMMARY V2
+9. FEATURE H — PAPER GOVERNANCE TRIAL READINESS RESULT
 
 Add:
 
-OwnerObserverApplyAndGovernanceSummaryV2
+PaperGovernanceTrialReadinessResult
 
 Fields:
-- summary_id
-- apply_status
-- target_store_written
-- target_store_count
-- observer_readiness_status
-- chairman_shadow_governance_status
-- reward_candidate_count
-- penalty_candidate_count
-- voice_candidate_count
-- message
-- non_voting: true
-- read_only: true
-- eval_only: true
-- chairman_contract_only: true
-- no_score_mutation: true
-- no_voice_mutation: true
-- not_investment_signal: true
-- not_committee_opinion: true
+- readiness_id
+- candidate_selection_status
+- trial_apply_status
+- actual_shadow_paper_comparison_status
+- committee_comparison_status
+- safety_guard_status
+- ready_for_repeated_paper_trial: bool
+- readiness_status:
+  - ReadyForRepeatedPaperTrial
+  - ReadyWithWarnings
+  - NeedsMoreCandidates
+  - NeedsMoreShadowHistory
+  - BlockedByDivergence
+  - BlockedBySafety
+- blockers
+- warnings
 - paper_only: true
 
 Function:
-- build_owner_observer_apply_and_governance_summary_v2(closure_check, chairman_eval, chairman_guard)
+- evaluate_paper_governance_trial_readiness(candidate_selection, trial_apply, comparison_summary, committee_comparison, safety_guard)
 
-Message:
-- “Approved observer targets were applied only to local evaluation store.”
-- “Observer remains non-voting and read-only.”
-- “Chairman governance signals are shadow-only candidates.”
-- “No score, voice, promotion, demotion, trade, or order changed.”
+Rules:
+- readiness only for repeated paper governance trial.
+- not actual governance.
+- not decision integration.
+- not live trading.
 
 ────────────────────────────────────────
-10. FEATURE I — SPRINT 188 RUN
+10. FEATURE I — PAPER TRIAL RUN
 
 Add:
 
-ObserverApplyVerifyAndChairmanShadowRunConfig
+PaperGovernanceTrialRunConfig
 
 Fields:
 - run_id
 - enabled: bool
-- apply_verification_config_path optional
-- apply_mode:
-  - DryRun
-  - ApplyApprovedTargets
+- trial_state_input_path optional
+- trial_state_output_path optional
 - dry_run: bool
-- target_store_output_path optional
-- output_path optional
-- run_chairman_shadow_governance: bool
+- apply_trial_candidates: bool
+- compare_committee_voice_distribution: bool
 - emit_owner_summary: bool
 - paper_only: true
 
-ObserverApplyVerifyAndChairmanShadowRunResult
+PaperGovernanceTrialRunResult
 
 Fields:
 - run_id
-- apply_profile_validation
-- apply_result
-- target_store_write_proof
-- target_store_acceptance_check
-- comparison_rerun_v3
-- ledger_trend_v2
-- observer_readiness_v3
-- readiness_closure_check
-- chairman_shadow_governance_inputs optional
-- chairman_shadow_governance_evaluation optional
-- chairman_shadow_governance_safety optional
+- candidate_selection
+- trial_store_before optional
+- trial_apply_result
+- trial_store_after optional
+- actual_shadow_paper_comparison
+- committee_voice_comparison optional
+- readiness_result
+- safety_guard
 - owner_summary optional
 - run_status:
   - Passed
@@ -568,88 +621,113 @@ Fields:
 - paper_only: true
 
 Function:
-- run_observer_apply_verify_and_chairman_shadow(batch_result, converted_targets, previous_observer_result, config)
+- run_paper_governance_trial_sandbox(actual_member_states, shadow_store, tuned_governance_result, batch_result, config)
 
 Flow:
-1. Validate apply verification profile.
-2. Apply approved targets only if ApplyApprovedTargets + dry_run=false + local output path.
-3. Prove target store write.
-4. Check target store acceptance.
-5. Rerun observer comparison V3.
-6. Compute ledger trend V2.
-7. Evaluate observer readiness V3.
-8. Check readiness closure.
-9. Build Chairman shadow governance inputs.
-10. Evaluate Chairman shadow governance.
-11. Run Chairman shadow governance safety guard.
-12. Build owner summary.
-13. Do not mutate committee decision.
-14. Do not mutate member score.
-15. Do not mutate voice.
-16. Do not train.
-17. Do not trade.
+1. Validate eligibility policy.
+2. Select trial candidates.
+3. Load or initialize paper trial state store.
+4. Apply candidates only to paper trial state.
+5. Compare actual vs shadow vs paper standings.
+6. Compare committee voice distribution in comparison mode only.
+7. Evaluate safety guard.
+8. Evaluate readiness.
+9. If dry_run=true:
+   - write no trial state.
+10. If dry_run=false:
+   - write local paper trial state.
+11. Do not mutate actual score.
+12. Do not mutate actual voice.
+13. Do not change actual committee decision.
+14. Do not override Risk Governor.
+15. Do not trade.
 
 ────────────────────────────────────────
-11. CLI CONFIG
+11. FEATURE J — OWNER PAPER TRIAL SUMMARY
+
+Add:
+
+OwnerPaperGovernanceTrialSummary
+
+Fields:
+- summary_id
+- candidate_count
+- applied_candidate_count
+- updated_member_count
+- comparison_status
+- readiness_status
+- message
+- paper_trial_only: true
+- no_actual_score_mutation: true
+- no_actual_voice_mutation: true
+- no_promotion_demotion: true
+- no_risk_override: true
+- no_committee_decision_change: true
+- not_trade_signal: true
+- paper_only: true
+
+Function:
+- build_owner_paper_governance_trial_summary(trial_result)
+
+Message:
+- “Governance candidates were applied only to paper trial state.”
+- “Actual member score and voice did not change.”
+- “Committee decisions and Risk Governor were not changed.”
+- “This is not live governance.”
+
+────────────────────────────────────────
+12. CLI CONFIG
 
 Reuse existing command:
 
 soma-experiment minimal-ai-committee-cycle --config examples/soma_minimal_ai_committee_core.toml
 
 Add optional config:
-- observer_apply_verify_chairman_shadow_enabled: bool
-- observer_apply_verify_mode:
-  - DryRun
-  - ApplyApprovedTargets
-- observer_apply_verify_dry_run: bool
-- observer_apply_verify_target_store_output_path optional
-- observer_apply_verify_output_path optional
-- observer_apply_verify_emit_owner_summary: bool
-- chairman_shadow_governance_enabled: bool
-
-Main example:
-- remains safe default, preferably dry-run.
-
-Dedicated verification example:
-examples/soma_minimal_ai_committee_observer_apply_verify.toml
-- enables ApplyApprovedTargets + dry_run=false.
+- paper_governance_trial_enabled: bool
+- paper_governance_trial_dry_run: bool
+- paper_governance_trial_apply_candidates: bool
+- paper_governance_trial_state_input_path optional
+- paper_governance_trial_state_output_path optional
+- paper_governance_trial_compare_committee_voice: bool
+- paper_governance_trial_emit_owner_summary: bool
 
 CLI output should include:
-- apply_profile_valid.
-- apply_status.
-- wrote_target_store.
-- target_store_write_proof_status.
-- observer_readiness_v3_status.
-- readiness_closure_status.
-- chairman_shadow_governance_status.
-- chairman_shadow_safety_status.
-- no-score/no-voice/no-decision/no-trade warning.
+- candidate_count.
+- applied_candidate_count.
+- updated_member_count.
+- actual_shadow_paper_comparison_status.
+- committee_voice_comparison_status.
+- paper_trial_readiness_status.
+- safety_guard_status.
+- no_actual_score_mutation=true.
+- no_actual_voice_mutation=true.
+- no_committee_decision_change=true.
+- no_risk_override=true.
+- paper-trial-only warning.
 
 No new CLI family.
 
 ────────────────────────────────────────
-12. EXAMPLES
+13. EXAMPLES
+
+Update:
+examples/soma_minimal_ai_committee_core.toml
 
 Add:
+- paper_governance_trial_enabled = true or false depending safety.
+- paper_governance_trial_dry_run = true by default.
+- paper_governance_trial_apply_candidates = true.
+- paper_governance_trial_state_output_path = "target/minimal_paper_governance_trial_state.json"
+- paper_governance_trial_compare_committee_voice = true.
+- paper_governance_trial_emit_owner_summary = true.
 
-examples/soma_minimal_ai_committee_observer_apply_verify.toml
+Main example remains dry-run by default.
 
-Required:
-- observer_apply_verify_chairman_shadow_enabled = true
-- observer_apply_verify_mode = "ApplyApprovedTargets"
-- observer_apply_verify_dry_run = false
-- observer_apply_verify_target_store_output_path = "target/minimal_observer_approved_target_store.verify.json"
-- observer_apply_verify_output_path = "target/minimal_observer_apply_verify_chairman_shadow.json"
-- observer_apply_verify_emit_owner_summary = true
-- chairman_shadow_governance_enabled = true
-
-Main:
-examples/soma_minimal_ai_committee_core.toml
-- keep dry-run/safe defaults.
+Focused tests may use non-dry temp path.
 
 Do not add:
-- score mutation flag.
-- voice mutation flag.
+- actual score mutation flag.
+- actual voice mutation flag.
 - promotion/demotion flag.
 - risk override flag.
 - order path.
@@ -659,15 +737,14 @@ Do not add:
 - optimizer config.
 
 ────────────────────────────────────────
-13. FILE SCOPE
+14. FILE SCOPE
 
 Prefer changing only:
 - src/league/minimal_ai_committee_core.rs
 - src/bin/soma_experiment.rs
 - tests/minimal_ai_committee_core.rs
 - examples/soma_minimal_ai_committee_core.toml
-- examples/soma_minimal_ai_committee_observer_apply_verify.toml
-- optional docs/SPRINT188_OBSERVER_APPLY_VERIFY_CHAIRMAN_SHADOW.md
+- optional docs/SPRINT196_PAPER_GOVERNANCE_TRIAL_SANDBOX.md
 
 Do not create many files.
 Do not add JS/TS/Tauri/Svelte.
@@ -675,63 +752,67 @@ Do not add web assets.
 Do not add Python.
 
 ────────────────────────────────────────
-14. TESTS
+15. TESTS
 
 Add focused tests inside tests/minimal_ai_committee_core.rs.
 
 Required tests:
-1. apply verification profile requires ApplyApprovedTargets + dry_run=false.
-2. apply verification profile rejects missing target_store_output_path.
-3. main example remains dry-run/safe default.
-4. dedicated verification config is non-dry apply.
-5. non-dry apply writes target store.
-6. target store write proof fails if file missing.
-7. target store write proof passes for valid approved store.
-8. readiness closure resolves NeedsApply after store write.
-9. readiness closure blocks decision isolation violation.
-10. chairman reward/penalty contract remains ContractOnly.
-11. chairman shadow governance inputs build from observer comparison.
-12. chairman shadow governance evaluation produces reward/penalty/voice candidates only.
-13. chairman shadow governance does not mutate score.
-14. chairman shadow governance does not mutate voice.
-15. chairman shadow governance does not promote/demote.
-16. chairman shadow governance does not override Risk Governor.
-17. chairman shadow governance safety guard fails if score mutation injected.
-18. owner summary states no score/voice mutation.
-19. run does not mutate committee decision.
-20. run does not mutate member score.
-21. run does not mutate voice weight.
-22. no training is executed.
-23. no weight update occurs.
-24. no checkpoint is written.
-25. no live inference path exists.
-26. no broker/order/account path exists.
-27. deterministic repeated run.
+1. eligibility policy forbids actual mutation.
+2. eligibility policy rejects ReviewRequired candidates.
+3. candidate selection creates score delta trial candidate.
+4. candidate selection creates voice delta trial candidate.
+5. candidate selection rejects unsafe divergence candidate.
+6. paper trial state initializes from actual and shadow state.
+7. paper trial applies score delta only to paper state.
+8. paper trial applies voice delta only to paper state.
+9. actual member score remains unchanged.
+10. actual member voice remains unchanged.
+11. paper trial store load/save local JSON.
+12. paper trial store rejects remote path.
+13. actual-shadow-paper comparison detects paper divergence.
+14. committee voice comparison does not mutate committee session.
+15. safety guard detects actual score mutation.
+16. safety guard detects actual voice mutation.
+17. safety guard detects committee decision mutation.
+18. safety guard detects paper trial used as live decision.
+19. readiness blocks unsafe trial.
+20. readiness can become ReadyWithWarnings for safe paper trial.
+21. owner summary says no actual mutation.
+22. dry-run writes no paper trial state.
+23. non-dry focused temp test writes paper trial state only.
+24. run does not mutate committee decision.
+25. run does not override Risk Governor.
+26. no training is executed.
+27. no weight update occurs.
+28. no checkpoint is written.
+29. no live inference path exists.
+30. no broker/order/account path exists.
+31. deterministic repeated paper trial run.
 
 Do not add broad test files.
 
 ────────────────────────────────────────
-15. ACCEPTANCE CRITERIA
+16. ACCEPTANCE CRITERIA
 
-Sprint 188 succeeds if:
+Sprint 196 succeeds if:
 
-- dedicated observer apply verification config exists.
-- main example remains safe dry-run default.
-- apply profile validation exists.
-- explicit non-dry apply can write approved target store locally.
-- target store write proof exists.
-- readiness closure check exists.
-- readiness moves beyond NeedsApply after verified apply.
-- Chairman shadow governance input records exist.
-- Chairman shadow governance evaluation exists.
-- Chairman shadow governance safety guard exists.
-- owner apply/governance summary V2 exists.
-- Chairman contract remains ContractOnly.
-- no score mutation occurs.
-- no voice mutation occurs.
-- no promotion/demotion occurs.
-- no Risk Governor override occurs.
-- no committee decision is changed.
+- PaperGovernanceTrialEligibilityPolicy exists.
+- PaperGovernanceTrialCandidate exists.
+- PaperGovernanceTrialCandidateSelectionResult exists.
+- PaperGovernanceTrialStateStore exists.
+- PaperGovernanceTrialApplyResult exists.
+- ActualShadowPaperGovernanceComparison exists.
+- PaperGovernanceTrialCommitteeComparisonResult exists.
+- PaperGovernanceTrialSafetyGuard exists.
+- PaperGovernanceTrialReadinessResult exists.
+- PaperGovernanceTrialRun exists.
+- OwnerPaperGovernanceTrialSummary exists.
+- governance candidates can apply only to paper trial state.
+- actual member score is not mutated.
+- actual member voice is not mutated.
+- committee decision is not changed.
+- Risk Governor is not overridden.
+- paper trial state can be persisted locally in non-dry focused test.
 - no training is executed.
 - no live inference is added.
 - no broker/order/account path exists.
@@ -739,7 +820,7 @@ Sprint 188 succeeds if:
 - explicit manifest workspace tests pass.
 
 ────────────────────────────────────────
-16. RUN COMMANDS
+17. RUN COMMANDS
 
 Run:
 cargo fmt --all
@@ -754,26 +835,29 @@ cargo run --quiet --bin soma_experiment -- minimal-ai-committee-cycle --config e
 Dedicated apply verification smoke:
 cargo run --quiet --bin soma_experiment -- minimal-ai-committee-cycle --config examples/soma_minimal_ai_committee_observer_apply_verify.toml
 
+Dedicated shadow history verification smoke:
+cargo run --quiet --bin soma_experiment -- minimal-ai-committee-cycle --config examples/soma_minimal_ai_committee_shadow_history_verify.toml
+
 Workspace:
 cargo test --workspace --no-run --quiet
 cargo test --workspace --quiet
 
 ────────────────────────────────────────
-17. FINAL RESPONSE FORMAT
+18. FINAL RESPONSE FORMAT
 
 Keep short:
 
 ## 1. What changed
 
-## 2. Apply verification profile
+## 2. Paper trial candidates
 
-## 3. Target store write proof
+## 3. Paper trial state store
 
-## 4. Readiness closure
+## 4. Actual-shadow-paper comparison
 
-## 5. Chairman shadow governance
+## 5. Committee voice comparison
 
-## 6. Owner summary
+## 6. Safety guard
 
 ## 7. Safety preserved
 

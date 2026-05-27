@@ -1161,7 +1161,144 @@ fn run_minimal_ai_committee_cycle(
                         .is_some()
                         || parsed.observer_apply_verify_output_path.is_some()
                         || parsed.observer_apply_verify_emit_owner_summary
-                        || parsed.chairman_shadow_governance_enabled))
+                        || parsed.chairman_shadow_governance_enabled
+                        || parsed.chairman_shadow_governance_run_enabled
+                        || parsed
+                            .chairman_shadow_governance_ledger_output_path
+                            .is_some()
+                        || parsed
+                            .chairman_shadow_governance_owner_feedback_path
+                            .is_some()
+                        || parsed.chairman_shadow_governance_emit_owner_explanations
+                        || parsed.chairman_shadow_governance_emit_owner_summary
+                        || parsed.chairman_shadow_governance_simulation_enabled
+                        || parsed
+                            .chairman_shadow_governance_simulation_ledger_output_path
+                            .is_some()
+                        || parsed
+                            .chairman_shadow_governance_simulation_result_output_path
+                            .is_some()
+                        || parsed.chairman_shadow_governance_state_enabled
+                        || parsed.chairman_shadow_governance_state_input_path.is_some()
+                        || parsed
+                            .chairman_shadow_governance_state_output_path
+                            .is_some()
+                        || parsed
+                            .chairman_shadow_governance_state_ledger_path
+                            .is_some()
+                        || parsed.chairman_shadow_governance_history_enabled
+                        || parsed
+                            .chairman_shadow_governance_history_input_path
+                            .is_some()
+                        || parsed
+                            .chairman_shadow_governance_history_output_path
+                            .is_some()
+                        || parsed.chairman_shadow_governance_multi_run_enabled
+                        || parsed
+                            .chairman_shadow_governance_multi_run_output_path
+                            .is_some()
+                        || parsed.chairman_shadow_governance_history_verify_enabled
+                        || parsed
+                            .chairman_shadow_governance_history_verify_output_path
+                            .is_some()
+                        || parsed.chairman_shadow_governance_tuning_enabled
+                        || parsed
+                            .chairman_shadow_governance_tuned_history_output_path
+                            .is_some()
+                        || parsed
+                            .chairman_shadow_governance_tuning_result_output_path
+                            .is_some()
+                        || parsed.chairman_shadow_voice_tuning_v2_enabled
+                        || parsed
+                            .chairman_shadow_voice_tuning_v2_history_output_path
+                            .is_some()
+                        || parsed
+                            .chairman_shadow_voice_tuning_v2_result_output_path
+                            .is_some()
+                        || (parsed.chairman_shadow_voice_tuning_v2_enabled
+                            && parsed.owner_governance_console_section_enabled)
+                        || parsed.paper_governance_trial_enabled
+                        || !parsed.paper_governance_trial_dry_run
+                        || parsed.paper_governance_trial_state_input_path.is_some()
+                        || parsed.paper_governance_trial_state_output_path.is_some()
+                        || (parsed.paper_governance_trial_enabled
+                            && (parsed.paper_governance_trial_apply_candidates
+                                || parsed.paper_governance_trial_compare_committee_voice
+                                || parsed.paper_governance_trial_emit_owner_summary))))
+                || parsed.chairman_shadow_governance_run_enabled
+                || !parsed.chairman_shadow_governance_dry_run
+                || parsed
+                    .chairman_shadow_governance_ledger_output_path
+                    .is_some()
+                || parsed
+                    .chairman_shadow_governance_owner_feedback_path
+                    .is_some()
+                || (parsed.chairman_shadow_governance_run_enabled
+                    && (parsed.chairman_shadow_governance_emit_owner_explanations
+                        || parsed.chairman_shadow_governance_emit_owner_summary))
+                || parsed.chairman_shadow_governance_simulation_enabled
+                || !parsed.chairman_shadow_governance_simulation_dry_run
+                || parsed
+                    .chairman_shadow_governance_simulation_ledger_output_path
+                    .is_some()
+                || parsed
+                    .chairman_shadow_governance_simulation_result_output_path
+                    .is_some()
+                || parsed.chairman_shadow_governance_state_enabled
+                || !parsed.chairman_shadow_governance_state_dry_run
+                || parsed.chairman_shadow_governance_state_input_path.is_some()
+                || parsed
+                    .chairman_shadow_governance_state_output_path
+                    .is_some()
+                || parsed
+                    .chairman_shadow_governance_state_ledger_path
+                    .is_some()
+                || parsed.chairman_shadow_governance_history_enabled
+                || !parsed.chairman_shadow_governance_history_dry_run
+                || parsed
+                    .chairman_shadow_governance_history_input_path
+                    .is_some()
+                || parsed
+                    .chairman_shadow_governance_history_output_path
+                    .is_some()
+                || parsed.chairman_shadow_governance_multi_run_enabled
+                || !parsed.chairman_shadow_governance_multi_run_dry_run
+                || parsed.chairman_shadow_governance_multi_run_write_history_store
+                || parsed
+                    .chairman_shadow_governance_multi_run_output_path
+                    .is_some()
+                || parsed.chairman_shadow_governance_history_verify_enabled
+                || parsed
+                    .chairman_shadow_governance_history_verify_output_path
+                    .is_some()
+                || parsed.chairman_shadow_governance_tuning_enabled
+                || !parsed.chairman_shadow_governance_tuning_dry_run
+                || parsed.chairman_shadow_governance_tuning_write_history
+                || parsed
+                    .chairman_shadow_governance_tuned_history_output_path
+                    .is_some()
+                || parsed
+                    .chairman_shadow_governance_tuning_result_output_path
+                    .is_some()
+                || parsed.chairman_shadow_voice_tuning_v2_enabled
+                || !parsed.chairman_shadow_voice_tuning_v2_dry_run
+                || parsed.chairman_shadow_voice_tuning_v2_write_history
+                || parsed
+                    .chairman_shadow_voice_tuning_v2_history_output_path
+                    .is_some()
+                || parsed
+                    .chairman_shadow_voice_tuning_v2_result_output_path
+                    .is_some()
+                || (parsed.chairman_shadow_voice_tuning_v2_enabled
+                    && parsed.owner_governance_console_section_enabled)
+                || parsed.paper_governance_trial_enabled
+                || !parsed.paper_governance_trial_dry_run
+                || parsed.paper_governance_trial_state_input_path.is_some()
+                || parsed.paper_governance_trial_state_output_path.is_some()
+                || (parsed.paper_governance_trial_enabled
+                    && (parsed.paper_governance_trial_apply_candidates
+                        || parsed.paper_governance_trial_compare_committee_voice
+                        || parsed.paper_governance_trial_emit_owner_summary))
             {
                 serde_json::to_value(run_batch_committee_cycle_with_state_from_config_path(
                     std::path::Path::new(config),

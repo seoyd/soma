@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 
@@ -2334,6 +2335,181 @@ pub struct BatchCommitteeCycleResult {
         Option<ChairmanShadowGovernanceEvaluationResult>,
     #[serde(default)]
     pub chairman_shadow_governance_safety_guard: Option<ChairmanShadowGovernanceSafetyGuard>,
+    #[serde(default)]
+    pub chairman_shadow_governance_ledger: Option<ChairmanShadowGovernanceLedger>,
+    #[serde(default)]
+    pub chairman_governance_candidate_build_result: Option<ChairmanGovernanceCandidateBuildResult>,
+    #[serde(default)]
+    pub owner_opinion_alignment_records: Option<Vec<OwnerOpinionAlignmentRecord>>,
+    #[serde(default)]
+    pub owner_opinion_explanation_results: Option<Vec<OwnerOpinionExplanationResult>>,
+    #[serde(default)]
+    pub chairman_voice_governance_shadow_summaries:
+        Option<Vec<ChairmanVoiceGovernanceShadowSummary>>,
+    #[serde(default)]
+    pub chairman_governance_shadow_safety_guard_v2: Option<ChairmanGovernanceShadowSafetyGuardV2>,
+    #[serde(default)]
+    pub chairman_shadow_governance_run_result: Option<ChairmanShadowGovernanceRunResult>,
+    #[serde(default)]
+    pub owner_chairman_governance_summary: Option<OwnerChairmanGovernanceSummary>,
+    #[serde(default)]
+    pub chairman_shadow_governance_simulation_result:
+        Option<ChairmanShadowGovernanceSimulationResult>,
+    #[serde(default)]
+    pub chairman_governance_fairness_check: Option<ChairmanGovernanceFairnessCheck>,
+    #[serde(default)]
+    pub chairman_risk_first_governance_check: Option<ChairmanRiskFirstGovernanceCheck>,
+    #[serde(default)]
+    pub chairman_shadow_governance_simulation_ledger:
+        Option<ChairmanShadowGovernanceSimulationLedger>,
+    #[serde(default)]
+    pub chairman_shadow_governance_trend_summary: Option<ChairmanShadowGovernanceTrendSummary>,
+    #[serde(default)]
+    pub chairman_shadow_governance_readiness_gate: Option<ChairmanShadowGovernanceReadinessGate>,
+    #[serde(default)]
+    pub chairman_shadow_governance_explanations: Option<Vec<ChairmanShadowGovernanceExplanation>>,
+    #[serde(default)]
+    pub chairman_governance_simulation_safety_guard_v3:
+        Option<ChairmanGovernanceSimulationSafetyGuardV3>,
+    #[serde(default)]
+    pub chairman_shadow_governance_simulation_run_result:
+        Option<ChairmanShadowGovernanceSimulationRunResult>,
+    #[serde(default)]
+    pub chairman_shadow_governance_state_store: Option<ChairmanShadowGovernanceStateStore>,
+    #[serde(default)]
+    pub chairman_shadow_governance_apply_result: Option<ChairmanShadowGovernanceApplyResult>,
+    #[serde(default)]
+    pub actual_vs_shadow_governance_comparisons: Option<Vec<ActualVsShadowGovernanceComparison>>,
+    #[serde(default)]
+    pub actual_vs_shadow_governance_summary: Option<ActualVsShadowGovernanceComparisonSummary>,
+    #[serde(default)]
+    pub chairman_shadow_governance_state_ledger: Option<ChairmanShadowGovernanceStateLedger>,
+    #[serde(default)]
+    pub chairman_shadow_governance_state_trend: Option<ChairmanShadowGovernanceStateTrend>,
+    #[serde(default)]
+    pub paper_governance_promotion_gate: Option<PaperGovernancePromotionGate>,
+    #[serde(default)]
+    pub chairman_shadow_governance_apply_safety_guard:
+        Option<ChairmanShadowGovernanceApplySafetyGuard>,
+    #[serde(default)]
+    pub owner_shadow_governance_state_summary: Option<OwnerShadowGovernanceStateSummary>,
+    #[serde(default)]
+    pub chairman_shadow_governance_state_run_result: Option<ChairmanShadowGovernanceStateRunResult>,
+    #[serde(default)]
+    pub chairman_shadow_governance_history_store: Option<ChairmanShadowGovernanceHistoryStore>,
+    #[serde(default)]
+    pub chairman_shadow_governance_history_accumulation_result:
+        Option<ChairmanShadowGovernanceHistoryAccumulationResult>,
+    #[serde(default)]
+    pub actual_vs_shadow_divergence_diagnosis: Option<ActualVsShadowDivergenceDiagnosis>,
+    #[serde(default)]
+    pub chairman_shadow_governance_history_stability_metrics:
+        Option<ChairmanShadowGovernanceHistoryStabilityMetrics>,
+    #[serde(default)]
+    pub paper_governance_trial_criteria: Option<PaperGovernanceTrialCriteria>,
+    #[serde(default)]
+    pub paper_governance_trial_gate_v2: Option<PaperGovernanceTrialGateV2>,
+    #[serde(default)]
+    pub chairman_shadow_governance_history_safety_guard:
+        Option<ChairmanShadowGovernanceHistorySafetyGuard>,
+    #[serde(default)]
+    pub owner_shadow_governance_history_summary: Option<OwnerShadowGovernanceHistorySummary>,
+    #[serde(default)]
+    pub chairman_shadow_governance_history_run_result:
+        Option<ChairmanShadowGovernanceHistoryRunResult>,
+    #[serde(default)]
+    pub chairman_shadow_governance_multi_run_harness_result:
+        Option<ChairmanShadowGovernanceMultiRunHarnessResult>,
+    #[serde(default)]
+    pub actual_vs_shadow_divergence_trend_summary: Option<ActualVsShadowDivergenceTrendSummary>,
+    #[serde(default)]
+    pub shadow_governance_history_quality_check: Option<ShadowGovernanceHistoryQualityCheck>,
+    #[serde(default)]
+    pub paper_governance_trial_design_readiness_v3: Option<PaperGovernanceTrialDesignReadinessV3>,
+    #[serde(default)]
+    pub shadow_governance_history_write_proof: Option<ShadowGovernanceHistoryWriteProof>,
+    #[serde(default)]
+    pub owner_shadow_governance_multi_run_summary: Option<OwnerShadowGovernanceMultiRunSummary>,
+    #[serde(default)]
+    pub chairman_shadow_governance_multi_run_safety_guard:
+        Option<ChairmanShadowGovernanceMultiRunSafetyGuard>,
+    #[serde(default)]
+    pub chairman_shadow_governance_history_verify_run_result:
+        Option<ChairmanShadowGovernanceHistoryVerifyRunResult>,
+    #[serde(default)]
+    pub chairman_unsafe_divergence_root_cause_summary:
+        Option<ChairmanUnsafeDivergenceRootCauseSummary>,
+    #[serde(default)]
+    pub chairman_shadow_delta_tuning_policy: Option<ChairmanShadowDeltaTuningPolicy>,
+    #[serde(default)]
+    pub tuned_chairman_shadow_governance_simulation_policy:
+        Option<TunedChairmanShadowGovernanceSimulationPolicy>,
+    #[serde(default)]
+    pub chairman_shadow_policy_tuning_explanation: Option<ChairmanShadowPolicyTuningExplanation>,
+    #[serde(default)]
+    pub tuned_chairman_shadow_governance_multi_run_result:
+        Option<TunedChairmanShadowGovernanceMultiRunResult>,
+    #[serde(default)]
+    pub chairman_role_balance_check: Option<ChairmanRoleBalanceCheck>,
+    #[serde(default)]
+    pub tuned_paper_governance_trial_gate_recheck: Option<TunedPaperGovernanceTrialGateRecheck>,
+    #[serde(default)]
+    pub owner_shadow_governance_tuning_summary: Option<OwnerShadowGovernanceTuningSummary>,
+    #[serde(default)]
+    pub chairman_shadow_governance_tuning_safety_guard:
+        Option<ChairmanShadowGovernanceTuningSafetyGuard>,
+    #[serde(default)]
+    pub chairman_shadow_governance_tuning_run_result:
+        Option<ChairmanShadowGovernanceTuningRunResult>,
+    #[serde(default)]
+    pub remaining_voice_drift_analysis_result: Option<RemainingVoiceDriftAnalysisResult>,
+    #[serde(default)]
+    pub conservative_voice_tuning_v2_policy: Option<ConservativeVoiceTuningV2Policy>,
+    #[serde(default)]
+    pub chairman_role_voice_floor_policy: Option<ChairmanRoleVoiceFloorPolicy>,
+    #[serde(default)]
+    pub chairman_role_voice_floor_check: Option<ChairmanRoleVoiceFloorCheck>,
+    #[serde(default)]
+    pub voice_delta_compounding_brake_results: Vec<VoiceDeltaCompoundingBrakeResult>,
+    #[serde(default)]
+    pub evidence_based_voice_dampening_results: Vec<EvidenceBasedVoiceDampeningResult>,
+    #[serde(default)]
+    pub conservative_voice_tuned_multi_run_v2_result:
+        Option<ConservativeVoiceTunedMultiRunV2Result>,
+    #[serde(default)]
+    pub conservative_voice_tuned_gate_recheck_v2: Option<ConservativeVoiceTunedGateRecheckV2>,
+    #[serde(default)]
+    pub owner_governance_console_section_v1: Option<OwnerGovernanceConsoleSectionV1>,
+    #[serde(default)]
+    pub conservative_voice_tuning_v2_safety_guard: Option<ConservativeVoiceTuningV2SafetyGuard>,
+    #[serde(default)]
+    pub conservative_voice_tuning_v2_run_result: Option<ConservativeVoiceTuningV2RunResult>,
+    #[serde(default)]
+    pub paper_governance_trial_eligibility_policy: Option<PaperGovernanceTrialEligibilityPolicy>,
+    #[serde(default)]
+    pub paper_governance_trial_candidate_selection_result:
+        Option<PaperGovernanceTrialCandidateSelectionResult>,
+    #[serde(default)]
+    pub paper_governance_trial_state_store: Option<PaperGovernanceTrialStateStore>,
+    #[serde(default)]
+    pub paper_governance_trial_apply_result: Option<PaperGovernanceTrialApplyResult>,
+    #[serde(default)]
+    pub actual_shadow_paper_governance_comparisons:
+        Option<Vec<ActualShadowPaperGovernanceComparison>>,
+    #[serde(default)]
+    pub actual_shadow_paper_governance_summary:
+        Option<ActualShadowPaperGovernanceComparisonSummary>,
+    #[serde(default)]
+    pub paper_governance_trial_committee_comparison_result:
+        Option<PaperGovernanceTrialCommitteeComparisonResult>,
+    #[serde(default)]
+    pub paper_governance_trial_safety_guard: Option<PaperGovernanceTrialSafetyGuard>,
+    #[serde(default)]
+    pub paper_governance_trial_readiness_result: Option<PaperGovernanceTrialReadinessResult>,
+    #[serde(default)]
+    pub owner_paper_governance_trial_summary: Option<OwnerPaperGovernanceTrialSummary>,
+    #[serde(default)]
+    pub paper_governance_trial_run_result: Option<PaperGovernanceTrialRunResult>,
     #[serde(default)]
     pub self_growing_replay_evidence_result: Option<SelfGrowingReplayEvidenceResult>,
     #[serde(default)]
@@ -12603,7 +12779,7 @@ pub struct ObserverReadinessV3ClosureCheck {
     pub paper_only: bool,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum ChairmanShadowGovernanceSignalKind {
     ObserverAgreement,
     ObserverDisagreement,
@@ -12611,16 +12787,20 @@ pub enum ChairmanShadowGovernanceSignalKind {
     HelpfulDissentCandidate,
     OverconfidentCallCandidate,
     NeedMoreEvidenceCandidate,
+    OwnerOpinionAligned,
+    OwnerOpinionIgnoredWithReason,
     OwnerOpinionIgnoredWithReasonCandidate,
     Neutral,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum ChairmanShadowGovernanceConsideration {
     RewardCandidate,
     PenaltyCandidate,
     VoiceIncreaseCandidate,
     VoiceDecreaseCandidate,
+    PromotionCandidate,
+    DemotionCandidate,
     KeepNeutral,
     NeedsMoreEvidence,
 }
@@ -12772,6 +12952,2778 @@ pub struct OwnerObserverApplyAndGovernanceSummaryV2 {
     pub not_investment_signal: bool,
     #[serde(default = "default_paper_only_true")]
     pub not_committee_opinion: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceLedgerEntry {
+    pub entry_id: String,
+    #[serde(default)]
+    pub run_id: Option<String>,
+    #[serde(default)]
+    pub member_id: Option<String>,
+    #[serde(default)]
+    pub observer_id: Option<String>,
+    #[serde(default)]
+    pub symbol: Option<String>,
+    #[serde(default)]
+    pub market_scope: Option<MarketScope>,
+    pub signal_kind: ChairmanShadowGovernanceSignalKind,
+    pub governance_candidate: ChairmanShadowGovernanceConsideration,
+    pub evidence_summary: String,
+    pub confidence: SourceConfidence,
+    #[serde(default = "default_paper_only_true")]
+    pub shadow_only: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_score_mutation: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_voice_mutation: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_promotion_demotion: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_risk_governor_override: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceLedger {
+    pub ledger_id: String,
+    pub entries: Vec<ChairmanShadowGovernanceLedgerEntry>,
+    pub entry_count: usize,
+    pub reward_candidate_count: usize,
+    pub penalty_candidate_count: usize,
+    pub voice_increase_candidate_count: usize,
+    pub voice_decrease_candidate_count: usize,
+    pub promotion_candidate_count: usize,
+    pub demotion_candidate_count: usize,
+    #[serde(default)]
+    pub latest_entry_id: Option<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanRewardPenaltyCandidatePolicy {
+    #[serde(default = "default_paper_only_true")]
+    pub allow_reward_candidates: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub allow_penalty_candidates: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub allow_voice_candidates: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub allow_promotion_candidates: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub allow_demotion_candidates: bool,
+    #[serde(default)]
+    pub allow_actual_score_mutation: bool,
+    #[serde(default)]
+    pub allow_actual_voice_mutation: bool,
+    #[serde(default)]
+    pub allow_actual_promotion_demotion: bool,
+    #[serde(default)]
+    pub allow_risk_governor_override: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub require_paper_only: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub require_shadow_only: bool,
+    pub min_confidence_for_promotion_candidate: SourceConfidence,
+    pub min_confidence_for_demotion_candidate: SourceConfidence,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChairmanGovernanceCandidateBuildStatus {
+    Built,
+    BuiltWithWarnings,
+    NoCandidates,
+    Failed,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanGovernanceCandidateBuildResult {
+    pub run_id: String,
+    pub input_count: usize,
+    pub generated_entry_count: usize,
+    pub reward_candidate_count: usize,
+    pub penalty_candidate_count: usize,
+    pub voice_increase_candidate_count: usize,
+    pub voice_decrease_candidate_count: usize,
+    pub promotion_candidate_count: usize,
+    pub demotion_candidate_count: usize,
+    pub needs_more_evidence_count: usize,
+    pub entries: Vec<ChairmanShadowGovernanceLedgerEntry>,
+    pub build_status: ChairmanGovernanceCandidateBuildStatus,
+    #[serde(default)]
+    pub warnings: Vec<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum OwnerOpinionAlignmentStatus {
+    Aligned,
+    PartiallyAligned,
+    NotAligned,
+    NotApplicable,
+    NeedsMoreEvidence,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum OwnerOpinionIntent {
+    RiskConcern,
+    EvidenceRequest,
+    WatchlistRequest,
+    ReconsiderationRequest,
+    PaperOutcomeLabel,
+    Comment,
+    Unknown,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerOpinionReferenceRecord {
+    #[serde(default)]
+    pub owner_input_id: Option<String>,
+    #[serde(default)]
+    pub symbol: Option<String>,
+    #[serde(default)]
+    pub market_scope: Option<MarketScope>,
+    pub owner_intent: OwnerOpinionIntent,
+    pub owner_summary: String,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum OwnerOpinionNotFollowedReason {
+    RiskGovernorVeto,
+    InsufficientEvidence,
+    CommitteeDisagreement,
+    HigherRiskThanOwnerAssumed,
+    OwnerRequestedActionUnsafe,
+    PaperOnlyBoundary,
+    NotApplicable,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerOpinionAlignmentRecord {
+    pub alignment_id: String,
+    pub owner_reference: OwnerOpinionReferenceRecord,
+    #[serde(default)]
+    pub chairman_decision_id: Option<String>,
+    #[serde(default)]
+    pub risk_governor_status: Option<RiskGovernorStatus>,
+    #[serde(default)]
+    pub observer_summary: Option<String>,
+    pub alignment_status: OwnerOpinionAlignmentStatus,
+    pub followed_owner_opinion: bool,
+    #[serde(default)]
+    pub not_followed_reason: Option<OwnerOpinionNotFollowedReason>,
+    pub explanation: String,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerOpinionExplanationContract {
+    pub contract_id: String,
+    #[serde(default = "default_paper_only_true")]
+    pub require_explanation_when_not_followed: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub require_risk_governor_reason: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub require_committee_disagreement_reason: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub require_evidence_reason: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub forbid_trade_execution_language: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum OwnerOpinionExplanationStatus {
+    Explained,
+    ExplainedWithWarnings,
+    NotApplicable,
+    Failed,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerOpinionExplanationResult {
+    pub explanation_id: String,
+    pub alignment_record: OwnerOpinionAlignmentRecord,
+    pub owner_readable_explanation: String,
+    pub explanation_status: OwnerOpinionExplanationStatus,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChairmanVoiceGovernanceShadowPressure {
+    Increase,
+    Decrease,
+    Neutral,
+    NeedsMoreEvidence,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChairmanVoiceGovernanceShadowAction {
+    ObserveOnly,
+    CandidateForVoiceIncrease,
+    CandidateForVoiceDecrease,
+    CandidateForPromotionReview,
+    CandidateForDemotionReview,
+    NeedsMoreEvidence,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanVoiceGovernanceShadowSummary {
+    pub summary_id: String,
+    pub member_id: String,
+    pub reward_candidate_count: usize,
+    pub penalty_candidate_count: usize,
+    pub voice_increase_candidate_count: usize,
+    pub voice_decrease_candidate_count: usize,
+    pub promotion_candidate_count: usize,
+    pub demotion_candidate_count: usize,
+    pub net_shadow_voice_pressure: ChairmanVoiceGovernanceShadowPressure,
+    pub suggested_shadow_action: ChairmanVoiceGovernanceShadowAction,
+    #[serde(default = "default_paper_only_true")]
+    pub no_actual_voice_change: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChairmanGovernanceShadowSafetyGuardV2Status {
+    Preserved,
+    Violated,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanGovernanceShadowSafetyGuardV2 {
+    pub score_mutation_detected: bool,
+    pub voice_mutation_detected: bool,
+    pub promotion_detected: bool,
+    pub demotion_detected: bool,
+    pub risk_governor_override_detected: bool,
+    pub chairman_decision_mutation_detected: bool,
+    pub committee_decision_mutation_detected: bool,
+    pub trade_signal_detected: bool,
+    pub order_detected: bool,
+    pub broker_order_account_detected: bool,
+    pub owner_opinion_forced_trade_detected: bool,
+    pub guard_status: ChairmanGovernanceShadowSafetyGuardV2Status,
+    #[serde(default)]
+    pub violations: Vec<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceRunConfig {
+    pub run_id: String,
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default)]
+    pub ledger_input_path: Option<String>,
+    #[serde(default)]
+    pub ledger_output_path: Option<String>,
+    #[serde(default)]
+    pub owner_feedback_path: Option<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub emit_owner_explanations: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub dry_run: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChairmanShadowGovernanceRunStatus {
+    Passed,
+    PassedWithWarnings,
+    Failed,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceRunResult {
+    pub run_id: String,
+    pub candidate_build_result: ChairmanGovernanceCandidateBuildResult,
+    pub ledger: ChairmanShadowGovernanceLedger,
+    pub owner_opinion_alignment_records: Vec<OwnerOpinionAlignmentRecord>,
+    pub owner_explanation_results: Vec<OwnerOpinionExplanationResult>,
+    pub voice_governance_summaries: Vec<ChairmanVoiceGovernanceShadowSummary>,
+    pub safety_guard: ChairmanGovernanceShadowSafetyGuardV2,
+    pub run_status: ChairmanShadowGovernanceRunStatus,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerChairmanGovernanceSummary {
+    pub summary_id: String,
+    pub reward_candidate_count: usize,
+    pub penalty_candidate_count: usize,
+    pub voice_increase_candidate_count: usize,
+    pub voice_decrease_candidate_count: usize,
+    pub promotion_candidate_count: usize,
+    pub demotion_candidate_count: usize,
+    pub owner_opinion_explanation_count: usize,
+    pub message: String,
+    #[serde(default = "default_paper_only_true")]
+    pub chairman_shadow_only: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_score_mutation: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_voice_mutation: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_promotion_demotion: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_risk_override: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub not_trade_signal: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChairmanShadowScoreDeltaKind {
+    Reward,
+    Penalty,
+    Neutral,
+    NeedsMoreEvidence,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChairmanShadowScoreDeltaReason {
+    HelpfulDissent,
+    RiskVetoAligned,
+    OverconfidentBadCall,
+    EvidenceWeakness,
+    ObserverAgreement,
+    ObserverDisagreement,
+    OwnerOpinionAligned,
+    OwnerOpinionNotFollowedSafely,
+    NeedsMoreEvidence,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowScoreDelta {
+    pub delta_id: String,
+    pub source_ledger_entry_id: String,
+    pub member_id: String,
+    #[serde(default)]
+    pub symbol: Option<String>,
+    #[serde(default)]
+    pub market_scope: Option<MarketScope>,
+    pub delta_kind: ChairmanShadowScoreDeltaKind,
+    pub proposed_score_delta: f64,
+    pub reason: ChairmanShadowScoreDeltaReason,
+    pub confidence: SourceConfidence,
+    #[serde(default = "default_paper_only_true")]
+    pub shadow_only: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_actual_score_mutation: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChairmanShadowVoiceDeltaKind {
+    Increase,
+    Decrease,
+    Neutral,
+    NeedsMoreEvidence,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChairmanShadowVoiceDeltaReason {
+    HelpfulDissent,
+    RiskSavedLoss,
+    OverconfidentRisk,
+    RepeatedEvidenceWeakness,
+    ConsistentObserverAgreement,
+    SevereObserverDisagreement,
+    NeedsMoreEvidence,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowVoiceDelta {
+    pub delta_id: String,
+    pub source_ledger_entry_id: String,
+    pub member_id: String,
+    #[serde(default)]
+    pub symbol: Option<String>,
+    #[serde(default)]
+    pub market_scope: Option<MarketScope>,
+    pub delta_kind: ChairmanShadowVoiceDeltaKind,
+    pub proposed_voice_delta: f64,
+    pub reason: ChairmanShadowVoiceDeltaReason,
+    pub confidence: SourceConfidence,
+    #[serde(default = "default_paper_only_true")]
+    pub shadow_only: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_actual_voice_mutation: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceSimulationPolicy {
+    pub policy_id: String,
+    pub max_abs_score_delta_per_entry: f64,
+    pub max_abs_voice_delta_per_entry: f64,
+    pub max_total_voice_delta_per_member: f64,
+    pub min_confidence_for_positive_delta: SourceConfidence,
+    pub min_confidence_for_negative_delta: SourceConfidence,
+    #[serde(default)]
+    pub allow_review_required_delta: bool,
+    #[serde(default)]
+    pub allow_actual_score_mutation: bool,
+    #[serde(default)]
+    pub allow_actual_voice_mutation: bool,
+    #[serde(default)]
+    pub allow_promotion_demotion: bool,
+    #[serde(default)]
+    pub allow_risk_governor_override: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub risk_first_bias: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SimulatedMemberStandingStatus {
+    ImprovedShadowStanding,
+    ReducedShadowStanding,
+    NeutralShadowStanding,
+    NeedsMoreEvidence,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SimulatedMemberStanding {
+    pub member_id: String,
+    pub original_score: f64,
+    pub simulated_score: f64,
+    pub original_voice_weight: f64,
+    pub simulated_voice_weight: f64,
+    pub score_delta_total: f64,
+    pub voice_delta_total: f64,
+    pub standing_status: SimulatedMemberStandingStatus,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChairmanShadowGovernanceSimulationStatus {
+    Simulated,
+    SimulatedWithWarnings,
+    NoDeltas,
+    Blocked,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceSimulationResult {
+    pub simulation_id: String,
+    pub source_ledger_id: String,
+    pub score_deltas: Vec<ChairmanShadowScoreDelta>,
+    pub voice_deltas: Vec<ChairmanShadowVoiceDelta>,
+    pub simulated_member_standings: Vec<SimulatedMemberStanding>,
+    pub reward_delta_count: usize,
+    pub penalty_delta_count: usize,
+    pub voice_increase_count: usize,
+    pub voice_decrease_count: usize,
+    pub needs_more_evidence_count: usize,
+    pub simulation_status: ChairmanShadowGovernanceSimulationStatus,
+    #[serde(default = "default_paper_only_true")]
+    pub no_actual_score_mutation: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_actual_voice_mutation: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_promotion_demotion: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_risk_governor_override: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum ChairmanGovernanceFairnessStatus {
+    Fair,
+    FairWithWarnings,
+    Unfair,
+    InsufficientData,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanGovernanceFairnessCheck {
+    pub check_id: String,
+    pub member_count: usize,
+    pub max_voice_concentration: f64,
+    pub min_voice_weight: f64,
+    pub excessive_penalty_count: usize,
+    pub excessive_reward_count: usize,
+    pub single_member_dominance_detected: bool,
+    pub unfair_penalty_detected: bool,
+    pub fairness_status: ChairmanGovernanceFairnessStatus,
+    #[serde(default)]
+    pub warnings: Vec<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum ChairmanRiskFirstGovernanceStatus {
+    Preserved,
+    PreservedWithWarnings,
+    Violated,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanRiskFirstGovernanceCheck {
+    pub check_id: String,
+    pub risk_guard_rewarded_count: usize,
+    pub risky_overconfidence_penalized_count: usize,
+    pub risk_veto_alignment_count: usize,
+    pub risk_override_attempt_detected: bool,
+    pub reckless_reward_detected: bool,
+    pub risk_first_status: ChairmanRiskFirstGovernanceStatus,
+    #[serde(default)]
+    pub warnings: Vec<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceSimulationLedgerEntry {
+    pub entry_id: String,
+    pub simulation_id: String,
+    #[serde(default)]
+    pub timestamp: Option<String>,
+    pub reward_delta_count: usize,
+    pub penalty_delta_count: usize,
+    pub voice_increase_count: usize,
+    pub voice_decrease_count: usize,
+    pub needs_more_evidence_count: usize,
+    pub fairness_status: ChairmanGovernanceFairnessStatus,
+    pub risk_first_status: ChairmanRiskFirstGovernanceStatus,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceSimulationLedger {
+    pub ledger_id: String,
+    pub entries: Vec<ChairmanShadowGovernanceSimulationLedgerEntry>,
+    pub entry_count: usize,
+    #[serde(default)]
+    pub latest_entry_id: Option<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChairmanShadowGovernanceTrendDirection {
+    Increasing,
+    Stable,
+    Decreasing,
+    InsufficientHistory,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChairmanShadowGovernanceTrendStatus {
+    Useful,
+    UsefulWithWarnings,
+    InsufficientHistory,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceTrendSummary {
+    pub ledger_id: String,
+    pub entry_count: usize,
+    pub reward_trend: ChairmanShadowGovernanceTrendDirection,
+    pub penalty_trend: ChairmanShadowGovernanceTrendDirection,
+    pub voice_change_trend: ChairmanShadowGovernanceTrendDirection,
+    pub trend_status: ChairmanShadowGovernanceTrendStatus,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChairmanShadowGovernanceReadinessStatus {
+    ShadowGovernanceObservationReady,
+    ShadowGovernanceObservationReadyWithWarnings,
+    NeedsMoreHistory,
+    NeedsMoreEvidence,
+    BlockedByFairness,
+    BlockedByRiskViolation,
+    BlockedBySafety,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceReadinessGate {
+    pub gate_id: String,
+    pub simulation_status: ChairmanShadowGovernanceSimulationStatus,
+    pub fairness_status: ChairmanGovernanceFairnessStatus,
+    pub risk_first_status: ChairmanRiskFirstGovernanceStatus,
+    pub trend_status: ChairmanShadowGovernanceTrendStatus,
+    pub safety_status: ChairmanGovernanceSimulationSafetyGuardV3Status,
+    pub enough_history: bool,
+    pub ready_for_shadow_governance_observation: bool,
+    pub readiness_status: ChairmanShadowGovernanceReadinessStatus,
+    #[serde(default)]
+    pub blockers: Vec<String>,
+    #[serde(default)]
+    pub warnings: Vec<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceExplanation {
+    pub explanation_id: String,
+    pub member_id: String,
+    pub score_delta_explanation: String,
+    pub voice_delta_explanation: String,
+    pub risk_first_explanation: String,
+    pub evidence_explanation: String,
+    #[serde(default)]
+    pub owner_opinion_explanation: Option<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChairmanGovernanceSimulationSafetyGuardV3Status {
+    Preserved,
+    Violated,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanGovernanceSimulationSafetyGuardV3 {
+    pub actual_score_mutation_detected: bool,
+    pub actual_voice_mutation_detected: bool,
+    pub promotion_execution_detected: bool,
+    pub demotion_execution_detected: bool,
+    pub risk_governor_override_detected: bool,
+    pub committee_decision_mutation_detected: bool,
+    pub trade_signal_detected: bool,
+    pub order_detected: bool,
+    pub broker_order_account_detected: bool,
+    pub owner_opinion_forced_trade_detected: bool,
+    pub guard_status: ChairmanGovernanceSimulationSafetyGuardV3Status,
+    #[serde(default)]
+    pub violations: Vec<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceSimulationRunConfig {
+    pub run_id: String,
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default)]
+    pub governance_ledger_input_path: Option<String>,
+    #[serde(default)]
+    pub simulation_ledger_input_path: Option<String>,
+    #[serde(default)]
+    pub simulation_ledger_output_path: Option<String>,
+    #[serde(default)]
+    pub simulation_result_output_path: Option<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub dry_run: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub emit_owner_explanations: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChairmanShadowGovernanceSimulationRunStatus {
+    Passed,
+    PassedWithWarnings,
+    Failed,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceSimulationRunResult {
+    pub run_id: String,
+    pub simulation_result: ChairmanShadowGovernanceSimulationResult,
+    pub fairness_check: ChairmanGovernanceFairnessCheck,
+    pub risk_first_check: ChairmanRiskFirstGovernanceCheck,
+    pub simulation_ledger: ChairmanShadowGovernanceSimulationLedger,
+    pub trend_summary: ChairmanShadowGovernanceTrendSummary,
+    pub readiness_gate: ChairmanShadowGovernanceReadinessGate,
+    pub explanations: Vec<ChairmanShadowGovernanceExplanation>,
+    pub safety_guard: ChairmanGovernanceSimulationSafetyGuardV3,
+    pub run_status: ChairmanShadowGovernanceSimulationRunStatus,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowMemberGovernanceState {
+    pub member_id: String,
+    #[serde(default)]
+    pub canonical_member_id: Option<String>,
+    pub role: IndependentMemberRole,
+    pub actual_score_snapshot: f64,
+    pub actual_voice_weight_snapshot: f64,
+    pub shadow_score: f64,
+    pub shadow_voice_weight: f64,
+    pub shadow_reward_count: usize,
+    pub shadow_penalty_count: usize,
+    pub shadow_voice_increase_count: usize,
+    pub shadow_voice_decrease_count: usize,
+    pub shadow_promotion_candidate_count: usize,
+    pub shadow_demotion_candidate_count: usize,
+    #[serde(default)]
+    pub last_update_run_id: Option<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceStateStore {
+    pub store_id: String,
+    pub member_states: Vec<ChairmanShadowMemberGovernanceState>,
+    pub member_count: usize,
+    #[serde(default)]
+    pub latest_run_id: Option<String>,
+    pub update_count: usize,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceApplyPolicy {
+    pub policy_id: String,
+    #[serde(default = "default_paper_only_true")]
+    pub allow_shadow_score_apply: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub allow_shadow_voice_apply: bool,
+    #[serde(default)]
+    pub allow_actual_score_apply: bool,
+    #[serde(default)]
+    pub allow_actual_voice_apply: bool,
+    #[serde(default)]
+    pub allow_promotion_demotion_apply: bool,
+    #[serde(default)]
+    pub allow_risk_governor_override: bool,
+    pub max_shadow_score_delta_per_run: f64,
+    pub max_shadow_voice_delta_per_run: f64,
+    pub min_shadow_voice_weight: f64,
+    pub max_shadow_voice_weight: f64,
+    #[serde(default = "default_paper_only_true")]
+    pub normalize_shadow_voice_weights: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub risk_first_bias: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub require_fairness_check: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub require_risk_first_check: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChairmanShadowGovernanceApplyStatus {
+    AppliedToShadow,
+    AppliedToShadowWithWarnings,
+    NoDeltas,
+    Blocked,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct BeforeAfterShadowStanding {
+    pub member_id: String,
+    pub actual_score_snapshot: f64,
+    pub actual_voice_weight_snapshot: f64,
+    pub shadow_score_before: f64,
+    pub shadow_score_after: f64,
+    pub shadow_voice_before: f64,
+    pub shadow_voice_after: f64,
+    pub score_delta_applied: f64,
+    pub voice_delta_applied: f64,
+    pub standing_change: SimulatedMemberStandingStatus,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceApplyResult {
+    pub run_id: String,
+    pub input_score_delta_count: usize,
+    pub input_voice_delta_count: usize,
+    pub applied_shadow_score_delta_count: usize,
+    pub applied_shadow_voice_delta_count: usize,
+    pub skipped_delta_count: usize,
+    pub updated_member_count: usize,
+    pub before_after_standings: Vec<BeforeAfterShadowStanding>,
+    pub fairness_check: ChairmanGovernanceFairnessCheck,
+    pub risk_first_check: ChairmanRiskFirstGovernanceCheck,
+    pub apply_status: ChairmanShadowGovernanceApplyStatus,
+    #[serde(default = "default_paper_only_true")]
+    pub no_actual_score_mutation: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_actual_voice_mutation: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_promotion_demotion: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_risk_governor_override: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ActualVsShadowGovernanceComparisonStatus {
+    InSync,
+    ShadowAhead,
+    ShadowBehind,
+    Diverged,
+    NeedsMoreHistory,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ActualVsShadowGovernanceComparison {
+    pub comparison_id: String,
+    pub member_id: String,
+    pub actual_score: f64,
+    pub shadow_score: f64,
+    pub score_gap: f64,
+    pub actual_voice_weight: f64,
+    pub shadow_voice_weight: f64,
+    pub voice_gap: f64,
+    pub comparison_status: ActualVsShadowGovernanceComparisonStatus,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum ActualVsShadowGovernanceSummaryStatus {
+    Stable,
+    StableWithWarnings,
+    Diverged,
+    InsufficientHistory,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ActualVsShadowGovernanceComparisonSummary {
+    pub summary_id: String,
+    pub member_count: usize,
+    pub diverged_count: usize,
+    pub shadow_ahead_count: usize,
+    pub shadow_behind_count: usize,
+    pub max_score_gap: f64,
+    pub max_voice_gap: f64,
+    pub summary_status: ActualVsShadowGovernanceSummaryStatus,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceStateLedgerEntry {
+    pub entry_id: String,
+    pub run_id: String,
+    pub updated_member_count: usize,
+    pub applied_shadow_score_delta_count: usize,
+    pub applied_shadow_voice_delta_count: usize,
+    pub fairness_status: ChairmanGovernanceFairnessStatus,
+    pub risk_first_status: ChairmanRiskFirstGovernanceStatus,
+    pub actual_vs_shadow_summary_status: ActualVsShadowGovernanceSummaryStatus,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceStateLedger {
+    pub ledger_id: String,
+    pub entries: Vec<ChairmanShadowGovernanceStateLedgerEntry>,
+    pub entry_count: usize,
+    #[serde(default)]
+    pub latest_entry_id: Option<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceStateTrend {
+    pub ledger_id: String,
+    pub entry_count: usize,
+    pub shadow_update_trend: ChairmanShadowGovernanceTrendDirection,
+    pub fairness_trend: ObserverTrendDirection,
+    pub risk_first_trend: ObserverTrendDirection,
+    pub trend_status: ChairmanShadowGovernanceTrendStatus,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PaperGovernancePromotionReadinessStatus {
+    ReadyForPaperGovernanceTrial,
+    ReadyForPaperGovernanceTrialWithWarnings,
+    NeedsMoreShadowHistory,
+    NeedsMoreEvidence,
+    BlockedByFairness,
+    BlockedByRiskViolation,
+    BlockedBySafety,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PaperGovernancePromotionGate {
+    pub gate_id: String,
+    pub shadow_apply_status: ChairmanShadowGovernanceApplyStatus,
+    pub fairness_status: ChairmanGovernanceFairnessStatus,
+    pub risk_first_status: ChairmanRiskFirstGovernanceStatus,
+    pub actual_vs_shadow_status: ActualVsShadowGovernanceSummaryStatus,
+    pub state_trend_status: ChairmanShadowGovernanceTrendStatus,
+    pub min_shadow_history_required: usize,
+    #[serde(default)]
+    pub actual_shadow_mutation_allowed: bool,
+    pub ready_for_paper_score_voice_trial: bool,
+    pub readiness_status: PaperGovernancePromotionReadinessStatus,
+    #[serde(default)]
+    pub blockers: Vec<String>,
+    #[serde(default)]
+    pub warnings: Vec<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChairmanShadowGovernanceApplySafetyGuardStatus {
+    Preserved,
+    Violated,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceApplySafetyGuard {
+    pub actual_score_mutation_detected: bool,
+    pub actual_voice_mutation_detected: bool,
+    pub promotion_execution_detected: bool,
+    pub demotion_execution_detected: bool,
+    pub risk_governor_override_detected: bool,
+    pub committee_decision_mutation_detected: bool,
+    pub trade_signal_detected: bool,
+    pub order_detected: bool,
+    pub broker_order_account_detected: bool,
+    pub shadow_store_written_when_dry_run: bool,
+    pub guard_status: ChairmanShadowGovernanceApplySafetyGuardStatus,
+    #[serde(default)]
+    pub violations: Vec<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerShadowGovernanceStateSummary {
+    pub summary_id: String,
+    pub updated_member_count: usize,
+    pub applied_shadow_score_delta_count: usize,
+    pub applied_shadow_voice_delta_count: usize,
+    pub fairness_status: ChairmanGovernanceFairnessStatus,
+    pub risk_first_status: ChairmanRiskFirstGovernanceStatus,
+    pub actual_vs_shadow_status: ActualVsShadowGovernanceSummaryStatus,
+    pub promotion_gate_status: PaperGovernancePromotionReadinessStatus,
+    pub message: String,
+    #[serde(default = "default_paper_only_true")]
+    pub shadow_only: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_actual_score_mutation: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_actual_voice_mutation: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_promotion_demotion: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_risk_override: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub not_trade_signal: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceStateRunConfig {
+    pub run_id: String,
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default)]
+    pub shadow_state_input_path: Option<String>,
+    #[serde(default)]
+    pub shadow_state_output_path: Option<String>,
+    #[serde(default)]
+    pub shadow_state_ledger_path: Option<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub dry_run: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub apply_shadow_deltas: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub emit_owner_summary: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChairmanShadowGovernanceStateRunStatus {
+    Passed,
+    PassedWithWarnings,
+    Failed,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceStateRunResult {
+    pub run_id: String,
+    #[serde(default)]
+    pub shadow_store_before: Option<ChairmanShadowGovernanceStateStore>,
+    pub apply_result: ChairmanShadowGovernanceApplyResult,
+    #[serde(default)]
+    pub shadow_store_after: Option<ChairmanShadowGovernanceStateStore>,
+    pub actual_vs_shadow_summary: ActualVsShadowGovernanceComparisonSummary,
+    pub state_ledger: ChairmanShadowGovernanceStateLedger,
+    pub state_trend: ChairmanShadowGovernanceStateTrend,
+    pub paper_governance_promotion_gate: PaperGovernancePromotionGate,
+    pub safety_guard: ChairmanShadowGovernanceApplySafetyGuard,
+    #[serde(default)]
+    pub owner_summary: Option<OwnerShadowGovernanceStateSummary>,
+    pub run_status: ChairmanShadowGovernanceStateRunStatus,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceHistorySnapshot {
+    pub snapshot_id: String,
+    pub run_id: String,
+    #[serde(default)]
+    pub timestamp: Option<String>,
+    pub member_states: Vec<ChairmanShadowMemberGovernanceState>,
+    pub actual_vs_shadow_summary: ActualVsShadowGovernanceComparisonSummary,
+    pub fairness_status: ChairmanGovernanceFairnessStatus,
+    pub risk_first_status: ChairmanRiskFirstGovernanceStatus,
+    pub safety_status: ChairmanShadowGovernanceApplySafetyGuardStatus,
+    pub paper_governance_gate_status: PaperGovernancePromotionReadinessStatus,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceHistoryStore {
+    pub store_id: String,
+    pub snapshots: Vec<ChairmanShadowGovernanceHistorySnapshot>,
+    pub snapshot_count: usize,
+    #[serde(default)]
+    pub latest_snapshot_id: Option<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceHistoryAccumulationConfig {
+    pub run_id: String,
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default)]
+    pub history_store_input_path: Option<String>,
+    #[serde(default)]
+    pub history_store_output_path: Option<String>,
+    #[serde(default = "default_chairman_shadow_governance_history_max_snapshots")]
+    pub max_snapshots: usize,
+    #[serde(default = "default_chairman_shadow_governance_history_min_snapshots_for_trial_gate")]
+    pub min_snapshots_for_trial_gate: usize,
+    #[serde(default = "default_paper_only_true")]
+    pub dry_run: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChairmanShadowGovernanceHistoryAccumulationStatus {
+    Accumulated,
+    AccumulatedWithWarnings,
+    NoNewSnapshot,
+    Blocked,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceHistoryAccumulationResult {
+    pub run_id: String,
+    pub previous_snapshot_count: usize,
+    pub appended_snapshot_count: usize,
+    pub new_snapshot_count: usize,
+    #[serde(default)]
+    pub latest_snapshot_id: Option<String>,
+    pub wrote_history_store: bool,
+    pub accumulation_status: ChairmanShadowGovernanceHistoryAccumulationStatus,
+    #[serde(default)]
+    pub warnings: Vec<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ActualVsShadowDivergenceType {
+    ScoreDrift,
+    VoiceDrift,
+    ShadowOverReward,
+    ShadowOverPenalty,
+    RiskGuardOverDominance,
+    TrendEntrySuppression,
+    EvidenceRegimeUnderweight,
+    ExpectedShadowLearning,
+    UnsafeDivergence,
+    InsufficientHistory,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum ActualVsShadowDivergenceSeverity {
+    Low,
+    Medium,
+    High,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ActualVsShadowRecommendedAction {
+    KeepAccumulatingHistory,
+    ReduceShadowDeltaPolicy,
+    IncreaseFairnessConstraint,
+    ReviewRiskFirstPolicy,
+    RequireMoreEvidence,
+    BlockPaperGovernanceTrial,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ActualVsShadowDivergenceRecord {
+    pub divergence_id: String,
+    pub member_id: String,
+    pub divergence_type: ActualVsShadowDivergenceType,
+    pub score_gap: f64,
+    pub voice_gap: f64,
+    pub severity: ActualVsShadowDivergenceSeverity,
+    pub expected: bool,
+    pub unsafe_divergence: bool,
+    pub reason: String,
+    pub recommended_action: ActualVsShadowRecommendedAction,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ActualVsShadowDivergenceDiagnosisStatus {
+    AcceptableDivergence,
+    AcceptableWithWarnings,
+    NeedsMoreHistory,
+    UnsafeDivergence,
+    Blocked,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ActualVsShadowDivergenceDiagnosis {
+    pub diagnosis_id: String,
+    pub record_count: usize,
+    pub high_severity_count: usize,
+    pub unsafe_count: usize,
+    pub expected_count: usize,
+    pub divergence_records: Vec<ActualVsShadowDivergenceRecord>,
+    pub diagnosis_status: ActualVsShadowDivergenceDiagnosisStatus,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ShadowGovernanceHistoryStabilityStatus {
+    Stable,
+    StableWithWarnings,
+    Unstable,
+    InsufficientHistory,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceHistoryStabilityMetrics {
+    pub metrics_id: String,
+    pub snapshot_count: usize,
+    pub score_volatility_by_member: BTreeMap<String, f64>,
+    pub voice_volatility_by_member: BTreeMap<String, f64>,
+    pub max_score_swing: f64,
+    pub max_voice_swing: f64,
+    pub reward_penalty_balance: f64,
+    pub voice_change_balance: f64,
+    pub stability_status: ShadowGovernanceHistoryStabilityStatus,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PaperGovernanceTrialAllowedOperation {
+    None,
+    PaperOnlyScoreVoiceTrialDesign,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PaperGovernanceTrialForbiddenOperation {
+    ActualScoreMutation,
+    ActualVoiceMutation,
+    PromotionDemotionExecution,
+    RiskGovernorOverride,
+    CommitteeDecisionMutation,
+    TradingOrderAccount,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PaperGovernanceTrialCriteria {
+    pub criteria_id: String,
+    pub min_history_snapshots: usize,
+    pub require_fairness_status: ChairmanGovernanceFairnessStatus,
+    pub require_risk_first_status: ChairmanRiskFirstGovernanceStatus,
+    pub require_safety_status: ChairmanShadowGovernanceApplySafetyGuardStatus,
+    pub max_allowed_high_severity_divergence: usize,
+    pub max_allowed_voice_concentration: f64,
+    pub max_allowed_voice_volatility: f64,
+    #[serde(default = "default_paper_only_true")]
+    pub require_no_risk_governor_override: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub require_no_actual_score_mutation: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub require_no_actual_voice_mutation: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub require_no_committee_decision_mutation: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PaperGovernanceTrialGateV2Status {
+    ReadyForPaperTrialDesign,
+    ReadyWithWarnings,
+    NeedsMoreShadowHistory,
+    NeedsMoreEvidence,
+    BlockedByDivergence,
+    BlockedByFairness,
+    BlockedByRiskViolation,
+    BlockedBySafety,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PaperGovernanceTrialGateV2 {
+    pub gate_id: String,
+    pub history_snapshot_count: usize,
+    pub min_history_snapshots: usize,
+    pub divergence_status: ActualVsShadowDivergenceDiagnosisStatus,
+    pub stability_status: ShadowGovernanceHistoryStabilityStatus,
+    pub fairness_status: ChairmanGovernanceFairnessStatus,
+    pub risk_first_status: ChairmanRiskFirstGovernanceStatus,
+    pub safety_status: ChairmanShadowGovernanceApplySafetyGuardStatus,
+    pub ready_for_paper_governance_trial: bool,
+    pub trial_allowed_operations: Vec<PaperGovernanceTrialAllowedOperation>,
+    pub forbidden_operations: Vec<PaperGovernanceTrialForbiddenOperation>,
+    pub gate_status: PaperGovernanceTrialGateV2Status,
+    #[serde(default)]
+    pub blockers: Vec<String>,
+    #[serde(default)]
+    pub warnings: Vec<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChairmanShadowGovernanceHistorySafetyGuardStatus {
+    Preserved,
+    Violated,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceHistorySafetyGuard {
+    pub history_write_when_dry_run_detected: bool,
+    pub actual_score_mutation_detected: bool,
+    pub actual_voice_mutation_detected: bool,
+    pub promotion_demotion_detected: bool,
+    pub risk_governor_override_detected: bool,
+    pub committee_decision_mutation_detected: bool,
+    pub trade_signal_detected: bool,
+    pub order_detected: bool,
+    pub broker_order_account_detected: bool,
+    pub unsafe_trial_gate_open_detected: bool,
+    pub guard_status: ChairmanShadowGovernanceHistorySafetyGuardStatus,
+    #[serde(default)]
+    pub violations: Vec<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerShadowGovernanceHistorySummary {
+    pub summary_id: String,
+    pub snapshot_count: usize,
+    pub divergence_status: ActualVsShadowDivergenceDiagnosisStatus,
+    pub stability_status: ShadowGovernanceHistoryStabilityStatus,
+    pub trial_gate_status: PaperGovernanceTrialGateV2Status,
+    pub ready_for_paper_trial_design: bool,
+    pub message: String,
+    #[serde(default = "default_paper_only_true")]
+    pub shadow_only: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_actual_score_mutation: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_actual_voice_mutation: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_promotion_demotion: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_risk_override: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub not_trade_signal: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceHistoryRunConfig {
+    pub run_id: String,
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default)]
+    pub history_store_input_path: Option<String>,
+    #[serde(default)]
+    pub history_store_output_path: Option<String>,
+    #[serde(default = "default_chairman_shadow_governance_history_max_snapshots")]
+    pub max_snapshots: usize,
+    #[serde(default = "default_chairman_shadow_governance_history_min_snapshots_for_trial_gate")]
+    pub min_snapshots_for_trial_gate: usize,
+    #[serde(default = "default_paper_only_true")]
+    pub dry_run: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub emit_owner_summary: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChairmanShadowGovernanceHistoryRunStatus {
+    Passed,
+    PassedWithWarnings,
+    Failed,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceHistoryRunResult {
+    pub run_id: String,
+    pub accumulation_result: ChairmanShadowGovernanceHistoryAccumulationResult,
+    pub history_store: ChairmanShadowGovernanceHistoryStore,
+    pub divergence_diagnosis: ActualVsShadowDivergenceDiagnosis,
+    pub stability_metrics: ChairmanShadowGovernanceHistoryStabilityMetrics,
+    pub trial_criteria: PaperGovernanceTrialCriteria,
+    pub trial_gate_v2: PaperGovernanceTrialGateV2,
+    pub safety_guard: ChairmanShadowGovernanceHistorySafetyGuard,
+    #[serde(default)]
+    pub owner_summary: Option<OwnerShadowGovernanceHistorySummary>,
+    pub run_status: ChairmanShadowGovernanceHistoryRunStatus,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceMultiRunHarnessConfig {
+    pub run_id: String,
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default = "default_chairman_shadow_governance_multi_run_count")]
+    pub run_count: usize,
+    #[serde(default = "default_chairman_shadow_governance_multi_run_count")]
+    pub min_snapshots_required: usize,
+    #[serde(default)]
+    pub history_store_input_path: Option<String>,
+    #[serde(default)]
+    pub history_store_output_path: Option<String>,
+    #[serde(default)]
+    pub simulation_ledger_input_path: Option<String>,
+    #[serde(default)]
+    pub simulation_ledger_output_path: Option<String>,
+    #[serde(default)]
+    pub output_path: Option<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub dry_run: bool,
+    #[serde(default)]
+    pub write_history_store: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub emit_owner_summary: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PerRunShadowGovernanceHistoryResult {
+    pub run_index: usize,
+    pub snapshot_id: String,
+    pub divergence_status: ActualVsShadowDivergenceDiagnosisStatus,
+    pub stability_status: ShadowGovernanceHistoryStabilityStatus,
+    pub fairness_status: ChairmanGovernanceFairnessStatus,
+    pub risk_first_status: ChairmanRiskFirstGovernanceStatus,
+    pub gate_status: PaperGovernanceTrialGateV2Status,
+    pub safety_status: ChairmanShadowGovernanceHistorySafetyGuardStatus,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChairmanShadowGovernanceMultiRunHarnessStatus {
+    Passed,
+    PassedWithWarnings,
+    Failed,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceMultiRunHarnessResult {
+    pub run_id: String,
+    pub requested_run_count: usize,
+    pub completed_run_count: usize,
+    pub previous_snapshot_count: usize,
+    pub appended_snapshot_count: usize,
+    pub final_snapshot_count: usize,
+    pub wrote_history_store: bool,
+    #[serde(default)]
+    pub history_store_path: Option<String>,
+    pub history_store: ChairmanShadowGovernanceHistoryStore,
+    pub per_run_results: Vec<PerRunShadowGovernanceHistoryResult>,
+    pub aggregate_divergence_diagnosis: ActualVsShadowDivergenceDiagnosis,
+    pub aggregate_stability_metrics: ChairmanShadowGovernanceHistoryStabilityMetrics,
+    pub aggregate_fairness_status: ChairmanGovernanceFairnessStatus,
+    pub aggregate_risk_first_status: ChairmanRiskFirstGovernanceStatus,
+    pub paper_governance_trial_gate_v2: PaperGovernanceTrialGateV2,
+    pub safety_guard: ChairmanShadowGovernanceHistorySafetyGuard,
+    pub harness_status: ChairmanShadowGovernanceMultiRunHarnessStatus,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ActualVsShadowDivergenceTrendDirection {
+    Reducing,
+    Stable,
+    Increasing,
+    Oscillating,
+    InsufficientHistory,
+    Unsafe,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ActualVsShadowDivergenceTrendRecord {
+    pub member_id: String,
+    pub score_gap_series: Vec<f64>,
+    pub voice_gap_series: Vec<f64>,
+    pub max_score_gap: f64,
+    pub max_voice_gap: f64,
+    pub trend_direction: ActualVsShadowDivergenceTrendDirection,
+    pub unsafe_divergence: bool,
+    pub reason: String,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ActualVsShadowDivergenceTrendStatus {
+    Improving,
+    Stable,
+    Worsening,
+    Unsafe,
+    InsufficientHistory,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ActualVsShadowDivergenceTrendSummary {
+    pub summary_id: String,
+    pub snapshot_count: usize,
+    pub member_trends: Vec<ActualVsShadowDivergenceTrendRecord>,
+    pub reducing_count: usize,
+    pub stable_count: usize,
+    pub increasing_count: usize,
+    pub unsafe_count: usize,
+    pub trend_status: ActualVsShadowDivergenceTrendStatus,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ShadowGovernanceHistoryQualityStatus {
+    Valid,
+    ValidWithWarnings,
+    Invalid,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ShadowGovernanceHistoryQualityCheck {
+    pub check_id: String,
+    pub snapshot_count: usize,
+    pub required_snapshot_count: usize,
+    pub member_coverage_ok: bool,
+    pub all_snapshots_paper_only: bool,
+    pub duplicate_snapshot_count: usize,
+    pub missing_member_snapshot_count: usize,
+    pub unsafe_text_detected: bool,
+    pub quality_status: ShadowGovernanceHistoryQualityStatus,
+    #[serde(default)]
+    pub warnings: Vec<String>,
+    #[serde(default)]
+    pub blockers: Vec<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PaperGovernanceTrialDesignReadinessV3Status {
+    ReadyForPaperGovernanceTrialDesign,
+    ReadyWithWarnings,
+    NeedsMoreShadowHistory,
+    NeedsMoreEvidence,
+    BlockedByDivergence,
+    BlockedByFairness,
+    BlockedByRiskViolation,
+    BlockedBySafety,
+    BlockedByHistoryQuality,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PaperGovernanceTrialDesignReadinessV3 {
+    pub readiness_id: String,
+    pub history_quality_status: ShadowGovernanceHistoryQualityStatus,
+    pub divergence_trend_status: ActualVsShadowDivergenceTrendStatus,
+    pub stability_status: ShadowGovernanceHistoryStabilityStatus,
+    pub fairness_status: ChairmanGovernanceFairnessStatus,
+    pub risk_first_status: ChairmanRiskFirstGovernanceStatus,
+    pub safety_status: ChairmanShadowGovernanceMultiRunSafetyGuardStatus,
+    pub min_history_met: bool,
+    pub divergence_reducing_or_stable: bool,
+    pub fairness_ok: bool,
+    pub risk_first_ok: bool,
+    pub safety_ok: bool,
+    pub ready_for_paper_governance_trial_design: bool,
+    pub readiness_status: PaperGovernanceTrialDesignReadinessV3Status,
+    #[serde(default)]
+    pub blockers: Vec<String>,
+    #[serde(default)]
+    pub warnings: Vec<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ShadowGovernanceHistoryWriteProofStatus {
+    Proven,
+    ProvenWithWarnings,
+    Failed,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ShadowGovernanceHistoryWriteProof {
+    pub proof_id: String,
+    pub expected_output_path: String,
+    pub wrote_history_store: bool,
+    pub history_store_exists_after_write: bool,
+    pub snapshot_count: usize,
+    pub member_count: usize,
+    pub paper_only_count: usize,
+    pub unsafe_snapshot_count: usize,
+    pub proof_status: ShadowGovernanceHistoryWriteProofStatus,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerShadowGovernanceMultiRunSummary {
+    pub summary_id: String,
+    pub completed_run_count: usize,
+    pub final_snapshot_count: usize,
+    pub divergence_trend_status: ActualVsShadowDivergenceTrendStatus,
+    pub stability_status: ShadowGovernanceHistoryStabilityStatus,
+    pub readiness_v3_status: PaperGovernanceTrialDesignReadinessV3Status,
+    pub wrote_history_store: bool,
+    pub message: String,
+    #[serde(default = "default_paper_only_true")]
+    pub shadow_only: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_actual_score_mutation: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_actual_voice_mutation: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_promotion_demotion: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_risk_override: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub not_trade_signal: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChairmanShadowGovernanceMultiRunSafetyGuardStatus {
+    Preserved,
+    Violated,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceMultiRunSafetyGuard {
+    pub actual_score_mutation_detected: bool,
+    pub actual_voice_mutation_detected: bool,
+    pub promotion_demotion_detected: bool,
+    pub risk_governor_override_detected: bool,
+    pub committee_decision_mutation_detected: bool,
+    pub trade_signal_detected: bool,
+    pub order_detected: bool,
+    pub broker_order_account_detected: bool,
+    pub history_write_when_dry_run_detected: bool,
+    pub unsafe_gate_open_detected: bool,
+    pub guard_status: ChairmanShadowGovernanceMultiRunSafetyGuardStatus,
+    #[serde(default)]
+    pub violations: Vec<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceHistoryVerifyRunConfig {
+    pub run_id: String,
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub use_multi_run_harness: bool,
+    #[serde(default)]
+    pub verification_profile_path: Option<String>,
+    #[serde(default)]
+    pub history_output_path: Option<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub dry_run: bool,
+    #[serde(default = "default_chairman_shadow_governance_multi_run_count")]
+    pub run_count: usize,
+    #[serde(default = "default_chairman_shadow_governance_multi_run_count")]
+    pub min_snapshots_required: usize,
+    #[serde(default = "default_paper_only_true")]
+    pub emit_owner_summary: bool,
+    #[serde(default)]
+    pub output_path: Option<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChairmanShadowGovernanceHistoryVerifyRunStatus {
+    Passed,
+    PassedWithWarnings,
+    Failed,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceHistoryVerifyRunResult {
+    pub run_id: String,
+    pub multi_run_harness_result: ChairmanShadowGovernanceMultiRunHarnessResult,
+    pub history_quality_check: ShadowGovernanceHistoryQualityCheck,
+    pub divergence_trend_summary: ActualVsShadowDivergenceTrendSummary,
+    pub readiness_v3: PaperGovernanceTrialDesignReadinessV3,
+    #[serde(default)]
+    pub history_write_proof: Option<ShadowGovernanceHistoryWriteProof>,
+    pub multi_run_safety_guard: ChairmanShadowGovernanceMultiRunSafetyGuard,
+    #[serde(default)]
+    pub owner_summary: Option<OwnerShadowGovernanceMultiRunSummary>,
+    pub run_status: ChairmanShadowGovernanceHistoryVerifyRunStatus,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum ChairmanUnsafeDivergenceCause {
+    ExcessiveScoreDrift,
+    ExcessiveVoiceDrift,
+    ShadowOverReward,
+    ShadowOverPenalty,
+    RiskGuardOverDominance,
+    TrendEntrySuppression,
+    EvidenceRegimeUnderweight,
+    RoleImbalance,
+    InsufficientEvidence,
+    DeltaPolicyTooAggressive,
+    FairnessCapMissing,
+    RiskFirstPolicyTooLoose,
+    Unknown,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum ChairmanUnsafeDivergenceRole {
+    TrendEntry,
+    RiskGuard,
+    EvidenceRegime,
+    Unknown,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum ChairmanShadowTuningAction {
+    ReduceScoreDeltaCap,
+    ReduceVoiceDeltaCap,
+    AddRoleBalanceCap,
+    AddRiskGuardDominanceCap,
+    AddTrendEntrySuppressionGuard,
+    AddEvidenceRegimeMinimumVoiceFloor,
+    RequireMoreEvidence,
+    KeepObserving,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChairmanUnsafeDivergenceRootCauseSummaryStatus {
+    Actionable,
+    NeedsMoreEvidence,
+    NoUnsafeDivergence,
+    Unknown,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanUnsafeDivergenceRootCauseRecord {
+    pub record_id: String,
+    #[serde(default)]
+    pub source_divergence_id: Option<String>,
+    #[serde(default)]
+    pub member_id: Option<String>,
+    #[serde(default)]
+    pub role: Option<ChairmanUnsafeDivergenceRole>,
+    pub cause: ChairmanUnsafeDivergenceCause,
+    pub severity: ActualVsShadowDivergenceSeverity,
+    pub evidence_summary: String,
+    pub recommended_tuning_action: ChairmanShadowTuningAction,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanUnsafeDivergenceRootCauseSummary {
+    pub summary_id: String,
+    pub record_count: usize,
+    pub high_severity_count: usize,
+    pub by_cause: BTreeMap<ChairmanUnsafeDivergenceCause, usize>,
+    pub by_role: BTreeMap<ChairmanUnsafeDivergenceRole, usize>,
+    pub dominant_causes: Vec<ChairmanUnsafeDivergenceCause>,
+    pub recommended_tuning_actions: Vec<ChairmanShadowTuningAction>,
+    pub summary_status: ChairmanUnsafeDivergenceRootCauseSummaryStatus,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowDeltaTuningPolicy {
+    pub policy_id: String,
+    pub base_score_delta_cap: f64,
+    pub tuned_score_delta_cap: f64,
+    pub base_voice_delta_cap: f64,
+    pub tuned_voice_delta_cap: f64,
+    pub risk_guard_max_voice_share: f64,
+    pub trend_entry_min_voice_floor: f64,
+    pub evidence_regime_min_voice_floor: f64,
+    pub max_penalty_streak_per_member: usize,
+    pub max_reward_streak_per_member: usize,
+    #[serde(default = "default_paper_only_true")]
+    pub require_min_evidence_for_high_delta: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub reduce_delta_on_insufficient_evidence: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub preserve_risk_first_bias: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct TunedChairmanShadowGovernanceSimulationPolicy {
+    pub policy_id: String,
+    pub base_policy_id: String,
+    pub tuning_policy: ChairmanShadowDeltaTuningPolicy,
+    pub max_abs_score_delta_per_entry: f64,
+    pub max_abs_voice_delta_per_entry: f64,
+    pub max_total_voice_delta_per_member: f64,
+    pub min_shadow_voice_weight: f64,
+    pub max_shadow_voice_weight: f64,
+    #[serde(default = "default_paper_only_true")]
+    pub role_balance_enabled: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub risk_guard_dominance_cap_enabled: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub trend_entry_suppression_guard_enabled: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub evidence_regime_floor_enabled: bool,
+    #[serde(default)]
+    pub actual_score_apply_allowed: bool,
+    #[serde(default)]
+    pub actual_voice_apply_allowed: bool,
+    #[serde(default)]
+    pub promotion_demotion_allowed: bool,
+    #[serde(default)]
+    pub risk_governor_override_allowed: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowPolicyTuningExplanation {
+    pub explanation_id: String,
+    pub root_cause_summary_id: String,
+    pub tuning_policy_id: String,
+    pub changed_score_delta_cap: bool,
+    pub changed_voice_delta_cap: bool,
+    pub role_balance_changes: Vec<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub risk_first_preserved: bool,
+    pub human_readable_summary: String,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TunedChairmanShadowGovernanceImprovementStatus {
+    Improved,
+    ImprovedWithWarnings,
+    NoChange,
+    Worse,
+    Blocked,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct TunedChairmanShadowGovernanceMultiRunConfig {
+    pub run_id: String,
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default = "default_chairman_shadow_governance_multi_run_count")]
+    pub run_count: usize,
+    #[serde(default)]
+    pub base_history_store_path: Option<String>,
+    #[serde(default)]
+    pub output_history_store_path: Option<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub dry_run: bool,
+    #[serde(default)]
+    pub write_history_store: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub apply_tuned_policy: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct TunedChairmanShadowGovernanceMultiRunResult {
+    pub run_id: String,
+    pub root_cause_summary: ChairmanUnsafeDivergenceRootCauseSummary,
+    pub tuning_policy: ChairmanShadowDeltaTuningPolicy,
+    pub tuned_policy: TunedChairmanShadowGovernanceSimulationPolicy,
+    pub tuning_explanation: ChairmanShadowPolicyTuningExplanation,
+    pub multi_run_harness_result: ChairmanShadowGovernanceMultiRunHarnessResult,
+    pub divergence_trend_summary: ActualVsShadowDivergenceTrendSummary,
+    pub readiness_v3: PaperGovernanceTrialDesignReadinessV3,
+    pub before_gate_status: PaperGovernanceTrialGateV2Status,
+    pub after_gate_status: PaperGovernanceTrialDesignReadinessV3Status,
+    pub improvement_status: TunedChairmanShadowGovernanceImprovementStatus,
+    pub safety_guard: ChairmanShadowGovernanceMultiRunSafetyGuard,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChairmanRoleBalanceStatus {
+    Balanced,
+    BalancedWithWarnings,
+    Imbalanced,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanRoleBalanceCheck {
+    pub check_id: String,
+    pub trend_entry_voice_share: f64,
+    pub risk_guard_voice_share: f64,
+    pub evidence_regime_voice_share: f64,
+    pub risk_guard_over_cap: bool,
+    pub trend_entry_below_floor: bool,
+    pub evidence_regime_below_floor: bool,
+    pub balance_status: ChairmanRoleBalanceStatus,
+    #[serde(default)]
+    pub warnings: Vec<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TunedPaperGovernanceTrialGateRecheckStatus {
+    ReadyForPaperTrialDesign,
+    ReadyWithWarnings,
+    NeedsMoreEvidence,
+    NeedsMoreShadowHistory,
+    BlockedByDivergence,
+    BlockedByRoleImbalance,
+    BlockedByFairness,
+    BlockedByRiskViolation,
+    BlockedBySafety,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct TunedPaperGovernanceTrialGateRecheck {
+    pub previous_gate_status: PaperGovernanceTrialGateV2Status,
+    pub tuned_gate_status: PaperGovernanceTrialDesignReadinessV3Status,
+    pub previous_divergence_status: ActualVsShadowDivergenceDiagnosisStatus,
+    pub tuned_divergence_status: ActualVsShadowDivergenceTrendStatus,
+    #[serde(default)]
+    pub previous_role_balance_status: Option<ChairmanRoleBalanceStatus>,
+    pub tuned_role_balance_status: ChairmanRoleBalanceStatus,
+    pub readiness_improved: bool,
+    pub ready_for_paper_trial_design: bool,
+    pub gate_status: TunedPaperGovernanceTrialGateRecheckStatus,
+    #[serde(default)]
+    pub blockers: Vec<String>,
+    #[serde(default)]
+    pub warnings: Vec<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerShadowGovernanceTuningSummary {
+    pub summary_id: String,
+    pub root_cause_status: ChairmanUnsafeDivergenceRootCauseSummaryStatus,
+    pub dominant_causes: Vec<ChairmanUnsafeDivergenceCause>,
+    pub tuning_actions: Vec<ChairmanShadowTuningAction>,
+    pub before_gate_status: PaperGovernanceTrialGateV2Status,
+    pub after_gate_status: TunedPaperGovernanceTrialGateRecheckStatus,
+    pub role_balance_status: ChairmanRoleBalanceStatus,
+    pub readiness_improved: bool,
+    pub message: String,
+    #[serde(default = "default_paper_only_true")]
+    pub shadow_only: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_actual_score_mutation: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_actual_voice_mutation: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_promotion_demotion: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_risk_override: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub not_trade_signal: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChairmanShadowGovernanceTuningSafetyGuardStatus {
+    Preserved,
+    Violated,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceTuningSafetyGuard {
+    pub actual_score_mutation_detected: bool,
+    pub actual_voice_mutation_detected: bool,
+    pub promotion_demotion_detected: bool,
+    pub risk_governor_override_detected: bool,
+    pub committee_decision_mutation_detected: bool,
+    pub trade_signal_detected: bool,
+    pub order_detected: bool,
+    pub broker_order_account_detected: bool,
+    pub delta_cap_increased_without_justification: bool,
+    pub risk_first_disabled_detected: bool,
+    pub role_balance_disabled_detected: bool,
+    pub unsafe_gate_open_detected: bool,
+    pub guard_status: ChairmanShadowGovernanceTuningSafetyGuardStatus,
+    #[serde(default)]
+    pub violations: Vec<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceTuningRunConfig {
+    pub run_id: String,
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default)]
+    pub base_history_store_path: Option<String>,
+    #[serde(default)]
+    pub tuned_history_store_output_path: Option<String>,
+    #[serde(default)]
+    pub tuning_result_output_path: Option<String>,
+    #[serde(default = "default_chairman_shadow_governance_multi_run_count")]
+    pub run_count: usize,
+    #[serde(default = "default_paper_only_true")]
+    pub dry_run: bool,
+    #[serde(default)]
+    pub write_tuned_history: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub emit_owner_summary: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChairmanShadowGovernanceTuningRunStatus {
+    Passed,
+    PassedWithWarnings,
+    Failed,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanShadowGovernanceTuningRunResult {
+    pub run_id: String,
+    pub root_cause_summary: ChairmanUnsafeDivergenceRootCauseSummary,
+    pub tuning_policy: ChairmanShadowDeltaTuningPolicy,
+    pub tuned_policy: TunedChairmanShadowGovernanceSimulationPolicy,
+    pub tuning_explanation: ChairmanShadowPolicyTuningExplanation,
+    pub tuned_multi_run_result: TunedChairmanShadowGovernanceMultiRunResult,
+    pub role_balance_check: ChairmanRoleBalanceCheck,
+    pub gate_recheck: TunedPaperGovernanceTrialGateRecheck,
+    #[serde(default)]
+    pub owner_summary: Option<OwnerShadowGovernanceTuningSummary>,
+    pub tuning_safety_guard: ChairmanShadowGovernanceTuningSafetyGuard,
+    pub run_status: ChairmanShadowGovernanceTuningRunStatus,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum RemainingVoiceDriftCause {
+    RiskGuardOverDominance,
+    TrendEntrySuppression,
+    EvidenceRegimeUnderweight,
+    RepeatedVoiceDeltaCompounding,
+    VoiceCapStillTooHigh,
+    LowEvidenceHighDelta,
+    RoleFloorImbalance,
+    MixedSignalHistory,
+    InsufficientHistory,
+    Unknown,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum RemainingVoiceDriftRecommendedAction {
+    ReduceVoiceCapAgain,
+    AddCompoundingBrake,
+    RaiseTrendEntryFloor,
+    RaiseEvidenceRegimeFloor,
+    LowerRiskGuardCap,
+    RequireMoreEvidence,
+    KeepObserving,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum RemainingVoiceDriftAnalysisStatus {
+    Actionable,
+    NeedsMoreEvidence,
+    NoUnsafeVoiceDrift,
+    Unknown,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct RemainingVoiceDriftRecord {
+    pub record_id: String,
+    #[serde(default)]
+    pub member_id: Option<String>,
+    #[serde(default)]
+    pub role: Option<ChairmanUnsafeDivergenceRole>,
+    pub cause: RemainingVoiceDriftCause,
+    pub observed_voice_gap: f64,
+    #[serde(default)]
+    pub observed_voice_share: Option<f64>,
+    pub severity: ActualVsShadowDivergenceSeverity,
+    pub recommended_action: RemainingVoiceDriftRecommendedAction,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct RemainingVoiceDriftAnalysisResult {
+    pub analysis_id: String,
+    #[serde(default)]
+    pub records: Vec<RemainingVoiceDriftRecord>,
+    pub record_count: usize,
+    pub high_severity_count: usize,
+    pub dominant_causes: Vec<RemainingVoiceDriftCause>,
+    pub recommended_actions: Vec<RemainingVoiceDriftRecommendedAction>,
+    pub analysis_status: RemainingVoiceDriftAnalysisStatus,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ConservativeVoiceTuningV2Policy {
+    pub policy_id: String,
+    pub previous_voice_delta_cap: f64,
+    pub tuned_voice_delta_cap_v2: f64,
+    pub risk_guard_min_voice_share: f64,
+    pub risk_guard_max_voice_share: f64,
+    pub trend_entry_min_voice_share: f64,
+    pub evidence_regime_min_voice_share: f64,
+    #[serde(default = "default_paper_only_true")]
+    pub compounding_brake_enabled: bool,
+    pub max_consecutive_voice_increases_per_member: usize,
+    pub max_consecutive_voice_decreases_per_member: usize,
+    #[serde(default = "default_paper_only_true")]
+    pub dampen_low_evidence_delta: bool,
+    pub low_evidence_dampening_factor: f64,
+    #[serde(default = "default_paper_only_true")]
+    pub preserve_risk_first: bool,
+    #[serde(default)]
+    pub actual_voice_apply_allowed: bool,
+    #[serde(default)]
+    pub actual_score_apply_allowed: bool,
+    #[serde(default)]
+    pub promotion_demotion_allowed: bool,
+    #[serde(default)]
+    pub risk_governor_override_allowed: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanRoleVoiceFloorPolicy {
+    pub policy_id: String,
+    pub trend_entry_min_voice_share: f64,
+    pub risk_guard_min_voice_share: f64,
+    pub evidence_regime_min_voice_share: f64,
+    pub risk_guard_max_voice_share: f64,
+    pub total_share_target: f64,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChairmanRoleVoiceFloorStatus {
+    Met,
+    MetWithWarnings,
+    Violated,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairmanRoleVoiceFloorCheck {
+    pub check_id: String,
+    pub trend_entry_share: f64,
+    pub risk_guard_share: f64,
+    pub evidence_regime_share: f64,
+    pub trend_entry_floor_met: bool,
+    pub risk_guard_floor_met: bool,
+    pub evidence_regime_floor_met: bool,
+    pub risk_guard_cap_met: bool,
+    pub floor_status: ChairmanRoleVoiceFloorStatus,
+    #[serde(default)]
+    pub warnings: Vec<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct VoiceDeltaCompoundingBrakeResult {
+    pub member_id: String,
+    pub original_voice_delta_total: f64,
+    pub dampened_voice_delta_total: f64,
+    pub consecutive_increase_count: usize,
+    pub consecutive_decrease_count: usize,
+    pub brake_applied: bool,
+    pub reason: String,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct EvidenceBasedVoiceDampeningResult {
+    pub member_id: String,
+    pub input_delta: f64,
+    pub output_delta: f64,
+    pub evidence_confidence: SourceConfidence,
+    pub dampening_applied: bool,
+    pub reason: String,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ConservativeVoiceTunedMultiRunV2Config {
+    pub run_id: String,
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default = "default_chairman_shadow_governance_multi_run_count")]
+    pub run_count: usize,
+    #[serde(default = "default_paper_only_true")]
+    pub dry_run: bool,
+    #[serde(default)]
+    pub write_tuned_history: bool,
+    #[serde(default)]
+    pub tuned_history_output_path: Option<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ConservativeVoiceTunedMultiRunV2ImprovementStatus {
+    Improved,
+    ImprovedWithWarnings,
+    NoChange,
+    Worse,
+    Blocked,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ConservativeVoiceTunedMultiRunV2Result {
+    pub run_id: String,
+    pub remaining_voice_drift_analysis: RemainingVoiceDriftAnalysisResult,
+    pub voice_tuning_v2_policy: ConservativeVoiceTuningV2Policy,
+    pub role_floor_policy: ChairmanRoleVoiceFloorPolicy,
+    pub role_floor_check: ChairmanRoleVoiceFloorCheck,
+    pub compounding_brake_results: Vec<VoiceDeltaCompoundingBrakeResult>,
+    pub evidence_dampening_results: Vec<EvidenceBasedVoiceDampeningResult>,
+    pub tuned_multi_run_result: ChairmanShadowGovernanceMultiRunHarnessResult,
+    pub previous_gate_status: PaperGovernanceTrialGateV2Status,
+    pub tuned_v2_gate_status: PaperGovernanceTrialGateV2Status,
+    pub previous_divergence_status: ActualVsShadowDivergenceTrendStatus,
+    pub tuned_v2_divergence_status: ActualVsShadowDivergenceTrendStatus,
+    #[serde(default = "default_paper_only_true")]
+    pub risk_first_preserved: bool,
+    pub safety_status: ChairmanShadowGovernanceMultiRunSafetyGuardStatus,
+    pub improvement_status: ConservativeVoiceTunedMultiRunV2ImprovementStatus,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ConservativeVoiceTunedGateRecheckV2Status {
+    ReadyForPaperTrialDesign,
+    ReadyWithWarnings,
+    NeedsMoreEvidence,
+    NeedsMoreShadowHistory,
+    BlockedByDivergence,
+    BlockedByRoleFloor,
+    BlockedByFairness,
+    BlockedByRiskViolation,
+    BlockedBySafety,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ConservativeVoiceTunedGateRecheckV2 {
+    pub previous_gate_status: PaperGovernanceTrialGateV2Status,
+    pub tuned_v2_gate_status: PaperGovernanceTrialGateV2Status,
+    pub previous_divergence_status: ActualVsShadowDivergenceTrendStatus,
+    pub tuned_v2_divergence_status: ActualVsShadowDivergenceTrendStatus,
+    pub role_floor_status: ChairmanRoleVoiceFloorStatus,
+    #[serde(default = "default_paper_only_true")]
+    pub risk_first_preserved: bool,
+    pub readiness_improved: bool,
+    pub gate_status: ConservativeVoiceTunedGateRecheckV2Status,
+    #[serde(default)]
+    pub blockers: Vec<String>,
+    #[serde(default)]
+    pub warnings: Vec<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum OwnerGovernanceMode {
+    ShadowOnly,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum OwnerGovernanceNextAllowedStep {
+    KeepTuning,
+    CollectMoreEvidence,
+    PaperTrialDesignOnly,
+    Blocked,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum OwnerGovernanceConsoleSafetyStatus {
+    Preserved,
+    Warning,
+    Blocked,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerGovernanceConsoleSectionV1 {
+    pub section_id: String,
+    pub governance_mode: OwnerGovernanceMode,
+    pub current_gate_status: ConservativeVoiceTunedGateRecheckV2Status,
+    pub unsafe_divergence_status: ActualVsShadowDivergenceTrendStatus,
+    pub dominant_voice_drift_causes: Vec<RemainingVoiceDriftCause>,
+    pub voice_cap_before: f64,
+    pub voice_cap_after: f64,
+    pub role_floor_status: ChairmanRoleVoiceFloorStatus,
+    pub risk_first_status: ChairmanRiskFirstGovernanceStatus,
+    pub safety_status: OwnerGovernanceConsoleSafetyStatus,
+    pub next_allowed_step: OwnerGovernanceNextAllowedStep,
+    pub owner_message: String,
+    #[serde(default = "default_paper_only_true")]
+    pub read_only: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_actions: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_score_mutation: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_voice_mutation: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_trade_signal: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ConservativeVoiceTuningV2SafetyGuardStatus {
+    Preserved,
+    Violated,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ConservativeVoiceTuningV2SafetyGuard {
+    pub actual_score_mutation_detected: bool,
+    pub actual_voice_mutation_detected: bool,
+    pub promotion_demotion_detected: bool,
+    pub risk_governor_override_detected: bool,
+    pub committee_decision_mutation_detected: bool,
+    pub trade_signal_detected: bool,
+    pub order_detected: bool,
+    pub broker_order_account_detected: bool,
+    pub voice_cap_increased_detected: bool,
+    pub risk_first_disabled_detected: bool,
+    pub role_floor_disabled_detected: bool,
+    pub owner_console_action_detected: bool,
+    pub unsafe_gate_open_detected: bool,
+    pub guard_status: ConservativeVoiceTuningV2SafetyGuardStatus,
+    #[serde(default)]
+    pub violations: Vec<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ConservativeVoiceTuningV2RunConfig {
+    pub run_id: String,
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default = "default_chairman_shadow_governance_multi_run_count")]
+    pub run_count: usize,
+    #[serde(default)]
+    pub previous_history_path: Option<String>,
+    #[serde(default)]
+    pub previous_tuning_result_path: Option<String>,
+    #[serde(default)]
+    pub tuned_v2_history_output_path: Option<String>,
+    #[serde(default)]
+    pub tuning_v2_result_output_path: Option<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub dry_run: bool,
+    #[serde(default)]
+    pub write_tuned_history: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub emit_owner_console_section: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ConservativeVoiceTuningV2RunStatus {
+    Passed,
+    PassedWithWarnings,
+    Failed,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ConservativeVoiceTuningV2RunResult {
+    pub run_id: String,
+    pub v2_result: ConservativeVoiceTunedMultiRunV2Result,
+    pub gate_recheck_v2: ConservativeVoiceTunedGateRecheckV2,
+    #[serde(default)]
+    pub owner_console_section: Option<OwnerGovernanceConsoleSectionV1>,
+    pub safety_guard: ConservativeVoiceTuningV2SafetyGuard,
+    pub run_status: ConservativeVoiceTuningV2RunStatus,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PaperGovernanceTrialEligibilityPolicy {
+    pub policy_id: String,
+    #[serde(default = "default_paper_only_true")]
+    pub require_tuned_gate_not_blocked: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub require_safety_preserved: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub require_fairness_not_blocked: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub require_risk_first_not_blocked: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub require_no_actual_mutation: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub allow_score_delta_trial: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub allow_voice_delta_trial: bool,
+    #[serde(default)]
+    pub allow_promotion_demotion_trial: bool,
+    #[serde(default)]
+    pub allow_risk_governor_override_trial: bool,
+    pub max_score_delta_per_member: f64,
+    pub max_voice_delta_per_member: f64,
+    pub min_candidate_confidence: SourceConfidence,
+    #[serde(default)]
+    pub allow_review_required_candidates: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PaperGovernanceTrialCandidateKind {
+    ScoreDeltaTrial,
+    VoiceDeltaTrial,
+    CombinedScoreVoiceTrial,
+    NeedsMoreEvidence,
+    Rejected,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PaperGovernanceTrialCandidateReason {
+    HelpfulDissent,
+    RiskVetoAligned,
+    OverconfidentBadCall,
+    EvidenceWeakness,
+    ObserverAgreement,
+    ObserverDisagreement,
+    RoleBalanceAdjustment,
+    NeedsMoreEvidence,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PaperGovernanceTrialCandidate {
+    pub candidate_id: String,
+    #[serde(default)]
+    pub source_shadow_delta_id: Option<String>,
+    #[serde(default)]
+    pub source_governance_ledger_entry_id: Option<String>,
+    pub member_id: String,
+    #[serde(default)]
+    pub symbol: Option<String>,
+    #[serde(default)]
+    pub market_scope: Option<MarketScope>,
+    pub candidate_kind: PaperGovernanceTrialCandidateKind,
+    #[serde(default)]
+    pub proposed_score_delta: Option<f64>,
+    #[serde(default)]
+    pub proposed_voice_delta: Option<f64>,
+    pub confidence: SourceConfidence,
+    pub reason: PaperGovernanceTrialCandidateReason,
+    #[serde(default)]
+    pub eligible: bool,
+    #[serde(default)]
+    pub rejection_reason: Option<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PaperGovernanceTrialCandidateSelectionStatus {
+    Selected,
+    SelectedWithWarnings,
+    NoEligibleCandidates,
+    Blocked,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PaperGovernanceTrialCandidateSelectionResult {
+    pub selection_id: String,
+    pub input_candidate_count: usize,
+    pub eligible_candidate_count: usize,
+    pub rejected_candidate_count: usize,
+    pub needs_more_evidence_count: usize,
+    pub candidates: Vec<PaperGovernanceTrialCandidate>,
+    pub selection_status: PaperGovernanceTrialCandidateSelectionStatus,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PaperGovernanceTrialMemberRole {
+    TrendEntry,
+    RiskGuard,
+    EvidenceRegime,
+    Unknown,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PaperGovernanceTrialMemberState {
+    pub member_id: String,
+    pub role: PaperGovernanceTrialMemberRole,
+    pub actual_score_snapshot: f64,
+    pub actual_voice_snapshot: f64,
+    #[serde(default)]
+    pub shadow_score_snapshot: Option<f64>,
+    #[serde(default)]
+    pub shadow_voice_snapshot: Option<f64>,
+    pub paper_trial_score: f64,
+    pub paper_trial_voice_weight: f64,
+    pub applied_trial_score_delta: f64,
+    pub applied_trial_voice_delta: f64,
+    pub trial_reward_count: usize,
+    pub trial_penalty_count: usize,
+    pub trial_voice_increase_count: usize,
+    pub trial_voice_decrease_count: usize,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PaperGovernanceTrialStateStore {
+    pub store_id: String,
+    pub member_states: Vec<PaperGovernanceTrialMemberState>,
+    pub member_count: usize,
+    #[serde(default)]
+    pub latest_run_id: Option<String>,
+    pub update_count: usize,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PaperGovernanceTrialApplyStatus {
+    AppliedToPaperTrial,
+    AppliedToPaperTrialWithWarnings,
+    NoCandidatesApplied,
+    Blocked,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PaperTrialBeforeAfterStanding {
+    pub member_id: String,
+    pub paper_trial_score_before: f64,
+    pub paper_trial_score_after: f64,
+    pub paper_trial_voice_before: f64,
+    pub paper_trial_voice_after: f64,
+    pub score_delta_applied: f64,
+    pub voice_delta_applied: f64,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PaperGovernanceTrialApplyResult {
+    pub run_id: String,
+    pub input_candidate_count: usize,
+    pub applied_candidate_count: usize,
+    pub updated_member_count: usize,
+    pub score_delta_apply_count: usize,
+    pub voice_delta_apply_count: usize,
+    pub before_after_standings: Vec<PaperTrialBeforeAfterStanding>,
+    pub apply_status: PaperGovernanceTrialApplyStatus,
+    #[serde(default = "default_paper_only_true")]
+    pub no_actual_score_mutation: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_actual_voice_mutation: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_promotion_demotion: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_risk_governor_override: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ActualShadowPaperGovernanceComparisonStatus {
+    PaperTrialCloseToShadow,
+    PaperTrialCloseToActual,
+    PaperTrialDiverged,
+    NeedsMoreHistory,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ActualShadowPaperGovernanceComparison {
+    pub comparison_id: String,
+    pub member_id: String,
+    pub actual_score: f64,
+    #[serde(default)]
+    pub shadow_score: Option<f64>,
+    pub paper_trial_score: f64,
+    pub actual_voice: f64,
+    #[serde(default)]
+    pub shadow_voice: Option<f64>,
+    pub paper_trial_voice: f64,
+    pub actual_to_paper_score_gap: f64,
+    #[serde(default)]
+    pub shadow_to_paper_score_gap: Option<f64>,
+    pub actual_to_paper_voice_gap: f64,
+    #[serde(default)]
+    pub shadow_to_paper_voice_gap: Option<f64>,
+    pub comparison_status: ActualShadowPaperGovernanceComparisonStatus,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ActualShadowPaperGovernanceComparisonSummary {
+    pub summary_id: String,
+    pub member_count: usize,
+    pub paper_trial_diverged_count: usize,
+    pub close_to_shadow_count: usize,
+    pub close_to_actual_count: usize,
+    pub max_score_gap: f64,
+    pub max_voice_gap: f64,
+    pub summary_status: ActualVsShadowGovernanceSummaryStatus,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PaperGovernanceTrialCommitteeComparisonRecord {
+    pub record_id: String,
+    #[serde(default)]
+    pub member_id: Option<String>,
+    pub actual_voice_weight: f64,
+    pub paper_trial_voice_weight: f64,
+    #[serde(default)]
+    pub actual_vote_weight_contribution: Option<f64>,
+    #[serde(default)]
+    pub paper_trial_vote_weight_contribution: Option<f64>,
+    pub comparison_note: String,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PaperGovernanceTrialCommitteeComparisonStatus {
+    Compared,
+    ComparedWithWarnings,
+    NoChange,
+    Blocked,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PaperGovernanceTrialCommitteeComparisonResult {
+    pub comparison_id: String,
+    pub records: Vec<PaperGovernanceTrialCommitteeComparisonRecord>,
+    pub record_count: usize,
+    pub estimated_voice_shift_count: usize,
+    pub comparison_status: PaperGovernanceTrialCommitteeComparisonStatus,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PaperGovernanceTrialSafetyGuardStatus {
+    Preserved,
+    Violated,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PaperGovernanceTrialSafetyGuard {
+    pub actual_score_mutation_detected: bool,
+    pub actual_voice_mutation_detected: bool,
+    pub promotion_demotion_detected: bool,
+    pub risk_governor_override_detected: bool,
+    pub committee_decision_mutation_detected: bool,
+    pub member_opinion_mutation_detected: bool,
+    pub trade_signal_detected: bool,
+    pub order_detected: bool,
+    pub broker_order_account_detected: bool,
+    pub paper_trial_used_as_live_decision_detected: bool,
+    pub guard_status: PaperGovernanceTrialSafetyGuardStatus,
+    #[serde(default)]
+    pub violations: Vec<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PaperGovernanceTrialReadinessStatus {
+    ReadyForRepeatedPaperTrial,
+    ReadyWithWarnings,
+    NeedsMoreCandidates,
+    NeedsMoreShadowHistory,
+    BlockedByDivergence,
+    BlockedBySafety,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PaperGovernanceTrialReadinessResult {
+    pub readiness_id: String,
+    pub candidate_selection_status: PaperGovernanceTrialCandidateSelectionStatus,
+    pub trial_apply_status: PaperGovernanceTrialApplyStatus,
+    pub actual_shadow_paper_comparison_status: ActualVsShadowGovernanceSummaryStatus,
+    pub committee_comparison_status: PaperGovernanceTrialCommitteeComparisonStatus,
+    pub safety_guard_status: PaperGovernanceTrialSafetyGuardStatus,
+    pub ready_for_repeated_paper_trial: bool,
+    pub readiness_status: PaperGovernanceTrialReadinessStatus,
+    #[serde(default)]
+    pub blockers: Vec<String>,
+    #[serde(default)]
+    pub warnings: Vec<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerPaperGovernanceTrialSummary {
+    pub summary_id: String,
+    pub candidate_count: usize,
+    pub applied_candidate_count: usize,
+    pub updated_member_count: usize,
+    pub comparison_status: ActualVsShadowGovernanceSummaryStatus,
+    pub readiness_status: PaperGovernanceTrialReadinessStatus,
+    pub message: String,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_trial_only: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_actual_score_mutation: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_actual_voice_mutation: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_promotion_demotion: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_risk_override: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub no_committee_decision_change: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub not_trade_signal: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PaperGovernanceTrialRunConfig {
+    pub run_id: String,
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default)]
+    pub trial_state_input_path: Option<String>,
+    #[serde(default)]
+    pub trial_state_output_path: Option<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub dry_run: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub apply_trial_candidates: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub compare_committee_voice_distribution: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub emit_owner_summary: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_only: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PaperGovernanceTrialRunStatus {
+    Passed,
+    PassedWithWarnings,
+    Failed,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PaperGovernanceTrialRunResult {
+    pub run_id: String,
+    pub candidate_selection: PaperGovernanceTrialCandidateSelectionResult,
+    #[serde(default)]
+    pub trial_store_before: Option<PaperGovernanceTrialStateStore>,
+    pub trial_apply_result: PaperGovernanceTrialApplyResult,
+    #[serde(default)]
+    pub trial_store_after: Option<PaperGovernanceTrialStateStore>,
+    pub actual_shadow_paper_comparison: ActualShadowPaperGovernanceComparisonSummary,
+    #[serde(default)]
+    pub committee_voice_comparison: Option<PaperGovernanceTrialCommitteeComparisonResult>,
+    pub readiness_result: PaperGovernanceTrialReadinessResult,
+    pub safety_guard: PaperGovernanceTrialSafetyGuard,
+    #[serde(default)]
+    pub owner_summary: Option<OwnerPaperGovernanceTrialSummary>,
+    pub run_status: PaperGovernanceTrialRunStatus,
     #[serde(default = "default_paper_only_true")]
     pub paper_only: bool,
 }
@@ -15944,6 +18896,60 @@ pub struct AutonomousPaperRunConfig {
     pub observer_apply_verify_config_path: Option<String>,
     pub observer_apply_verify_emit_owner_summary: bool,
     pub chairman_shadow_governance_enabled: bool,
+    pub chairman_shadow_governance_run_enabled: bool,
+    pub chairman_shadow_governance_dry_run: bool,
+    pub chairman_shadow_governance_ledger_output_path: Option<String>,
+    pub chairman_shadow_governance_owner_feedback_path: Option<String>,
+    pub chairman_shadow_governance_emit_owner_explanations: bool,
+    pub chairman_shadow_governance_emit_owner_summary: bool,
+    pub chairman_shadow_governance_simulation_enabled: bool,
+    pub chairman_shadow_governance_simulation_dry_run: bool,
+    pub chairman_shadow_governance_simulation_ledger_output_path: Option<String>,
+    pub chairman_shadow_governance_simulation_result_output_path: Option<String>,
+    pub chairman_shadow_governance_emit_explanations: bool,
+    pub chairman_shadow_governance_state_enabled: bool,
+    pub chairman_shadow_governance_state_dry_run: bool,
+    pub chairman_shadow_governance_apply_deltas: bool,
+    pub chairman_shadow_governance_state_input_path: Option<String>,
+    pub chairman_shadow_governance_state_output_path: Option<String>,
+    pub chairman_shadow_governance_state_ledger_path: Option<String>,
+    pub chairman_shadow_governance_state_emit_owner_summary: bool,
+    pub chairman_shadow_governance_history_enabled: bool,
+    pub chairman_shadow_governance_history_dry_run: bool,
+    pub chairman_shadow_governance_history_input_path: Option<String>,
+    pub chairman_shadow_governance_history_output_path: Option<String>,
+    pub chairman_shadow_governance_history_max_snapshots: usize,
+    pub chairman_shadow_governance_history_min_snapshots_for_trial_gate: usize,
+    pub chairman_shadow_governance_history_emit_owner_summary: bool,
+    pub chairman_shadow_governance_multi_run_enabled: bool,
+    pub chairman_shadow_governance_multi_run_count: usize,
+    pub chairman_shadow_governance_multi_run_dry_run: bool,
+    pub chairman_shadow_governance_multi_run_write_history_store: bool,
+    pub chairman_shadow_governance_multi_run_output_path: Option<String>,
+    pub chairman_shadow_governance_history_verify_enabled: bool,
+    pub chairman_shadow_governance_history_verify_output_path: Option<String>,
+    pub chairman_shadow_governance_history_verify_emit_owner_summary: bool,
+    pub chairman_shadow_governance_tuning_enabled: bool,
+    pub chairman_shadow_governance_tuning_dry_run: bool,
+    pub chairman_shadow_governance_tuning_run_count: usize,
+    pub chairman_shadow_governance_tuned_history_output_path: Option<String>,
+    pub chairman_shadow_governance_tuning_result_output_path: Option<String>,
+    pub chairman_shadow_governance_tuning_write_history: bool,
+    pub chairman_shadow_governance_tuning_emit_owner_summary: bool,
+    pub chairman_shadow_voice_tuning_v2_enabled: bool,
+    pub chairman_shadow_voice_tuning_v2_dry_run: bool,
+    pub chairman_shadow_voice_tuning_v2_run_count: usize,
+    pub chairman_shadow_voice_tuning_v2_write_history: bool,
+    pub chairman_shadow_voice_tuning_v2_history_output_path: Option<String>,
+    pub chairman_shadow_voice_tuning_v2_result_output_path: Option<String>,
+    pub owner_governance_console_section_enabled: bool,
+    pub paper_governance_trial_enabled: bool,
+    pub paper_governance_trial_dry_run: bool,
+    pub paper_governance_trial_apply_candidates: bool,
+    pub paper_governance_trial_state_input_path: Option<String>,
+    pub paper_governance_trial_state_output_path: Option<String>,
+    pub paper_governance_trial_compare_committee_voice: bool,
+    pub paper_governance_trial_emit_owner_summary: bool,
     pub training_candidate_min_examples: Option<usize>,
     pub self_growing_replay_enabled: bool,
     pub research_source_registry_path: Option<String>,
@@ -16073,6 +19079,18 @@ fn default_smartcore_shadow_scenario_max_count() -> usize {
 }
 
 fn default_smartcore_observer_min_scenarios_required() -> usize {
+    3
+}
+
+fn default_chairman_shadow_governance_history_max_snapshots() -> usize {
+    20
+}
+
+fn default_chairman_shadow_governance_multi_run_count() -> usize {
+    3
+}
+
+fn default_chairman_shadow_governance_history_min_snapshots_for_trial_gate() -> usize {
     3
 }
 
@@ -16616,6 +19634,114 @@ pub struct MinimalAiCommitteeCycleConfig {
     pub observer_apply_verify_emit_owner_summary: bool,
     #[serde(default = "default_paper_only_true")]
     pub chairman_shadow_governance_enabled: bool,
+    #[serde(default)]
+    pub chairman_shadow_governance_run_enabled: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub chairman_shadow_governance_dry_run: bool,
+    #[serde(default)]
+    pub chairman_shadow_governance_ledger_output_path: Option<String>,
+    #[serde(default)]
+    pub chairman_shadow_governance_owner_feedback_path: Option<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub chairman_shadow_governance_emit_owner_explanations: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub chairman_shadow_governance_emit_owner_summary: bool,
+    #[serde(default)]
+    pub chairman_shadow_governance_simulation_enabled: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub chairman_shadow_governance_simulation_dry_run: bool,
+    #[serde(default)]
+    pub chairman_shadow_governance_simulation_ledger_output_path: Option<String>,
+    #[serde(default)]
+    pub chairman_shadow_governance_simulation_result_output_path: Option<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub chairman_shadow_governance_emit_explanations: bool,
+    #[serde(default)]
+    pub chairman_shadow_governance_state_enabled: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub chairman_shadow_governance_state_dry_run: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub chairman_shadow_governance_apply_deltas: bool,
+    #[serde(default)]
+    pub chairman_shadow_governance_state_input_path: Option<String>,
+    #[serde(default)]
+    pub chairman_shadow_governance_state_output_path: Option<String>,
+    #[serde(default)]
+    pub chairman_shadow_governance_state_ledger_path: Option<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub chairman_shadow_governance_state_emit_owner_summary: bool,
+    #[serde(default)]
+    pub chairman_shadow_governance_history_enabled: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub chairman_shadow_governance_history_dry_run: bool,
+    #[serde(default)]
+    pub chairman_shadow_governance_history_input_path: Option<String>,
+    #[serde(default)]
+    pub chairman_shadow_governance_history_output_path: Option<String>,
+    #[serde(default = "default_chairman_shadow_governance_history_max_snapshots")]
+    pub chairman_shadow_governance_history_max_snapshots: usize,
+    #[serde(default = "default_chairman_shadow_governance_history_min_snapshots_for_trial_gate")]
+    pub chairman_shadow_governance_history_min_snapshots_for_trial_gate: usize,
+    #[serde(default = "default_paper_only_true")]
+    pub chairman_shadow_governance_history_emit_owner_summary: bool,
+    #[serde(default)]
+    pub chairman_shadow_governance_multi_run_enabled: bool,
+    #[serde(default = "default_chairman_shadow_governance_multi_run_count")]
+    pub chairman_shadow_governance_multi_run_count: usize,
+    #[serde(default = "default_paper_only_true")]
+    pub chairman_shadow_governance_multi_run_dry_run: bool,
+    #[serde(default)]
+    pub chairman_shadow_governance_multi_run_write_history_store: bool,
+    #[serde(default)]
+    pub chairman_shadow_governance_multi_run_output_path: Option<String>,
+    #[serde(default)]
+    pub chairman_shadow_governance_history_verify_enabled: bool,
+    #[serde(default)]
+    pub chairman_shadow_governance_history_verify_output_path: Option<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub chairman_shadow_governance_history_verify_emit_owner_summary: bool,
+    #[serde(default)]
+    pub chairman_shadow_governance_tuning_enabled: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub chairman_shadow_governance_tuning_dry_run: bool,
+    #[serde(default = "default_chairman_shadow_governance_multi_run_count")]
+    pub chairman_shadow_governance_tuning_run_count: usize,
+    #[serde(default)]
+    pub chairman_shadow_governance_tuned_history_output_path: Option<String>,
+    #[serde(default)]
+    pub chairman_shadow_governance_tuning_result_output_path: Option<String>,
+    #[serde(default)]
+    pub chairman_shadow_governance_tuning_write_history: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub chairman_shadow_governance_tuning_emit_owner_summary: bool,
+    #[serde(default)]
+    pub chairman_shadow_voice_tuning_v2_enabled: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub chairman_shadow_voice_tuning_v2_dry_run: bool,
+    #[serde(default = "default_chairman_shadow_governance_multi_run_count")]
+    pub chairman_shadow_voice_tuning_v2_run_count: usize,
+    #[serde(default)]
+    pub chairman_shadow_voice_tuning_v2_write_history: bool,
+    #[serde(default)]
+    pub chairman_shadow_voice_tuning_v2_history_output_path: Option<String>,
+    #[serde(default)]
+    pub chairman_shadow_voice_tuning_v2_result_output_path: Option<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub owner_governance_console_section_enabled: bool,
+    #[serde(default)]
+    pub paper_governance_trial_enabled: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_governance_trial_dry_run: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_governance_trial_apply_candidates: bool,
+    #[serde(default)]
+    pub paper_governance_trial_state_input_path: Option<String>,
+    #[serde(default)]
+    pub paper_governance_trial_state_output_path: Option<String>,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_governance_trial_compare_committee_voice: bool,
+    #[serde(default = "default_paper_only_true")]
+    pub paper_governance_trial_emit_owner_summary: bool,
     #[serde(default)]
     pub training_candidate_min_examples: Option<usize>,
     #[serde(default)]
@@ -17223,6 +20349,82 @@ impl MinimalAiCommitteeCycleConfig {
                 self.observer_apply_verify_config_path.as_ref(),
                 "minimal AI committee observer_apply_verify_config_path",
             ),
+            (
+                self.chairman_shadow_governance_ledger_output_path.as_ref(),
+                "minimal AI committee chairman_shadow_governance_ledger_output_path",
+            ),
+            (
+                self.chairman_shadow_governance_owner_feedback_path.as_ref(),
+                "minimal AI committee chairman_shadow_governance_owner_feedback_path",
+            ),
+            (
+                self.chairman_shadow_governance_simulation_ledger_output_path
+                    .as_ref(),
+                "minimal AI committee chairman_shadow_governance_simulation_ledger_output_path",
+            ),
+            (
+                self.chairman_shadow_governance_simulation_result_output_path
+                    .as_ref(),
+                "minimal AI committee chairman_shadow_governance_simulation_result_output_path",
+            ),
+            (
+                self.chairman_shadow_governance_state_input_path.as_ref(),
+                "minimal AI committee chairman_shadow_governance_state_input_path",
+            ),
+            (
+                self.chairman_shadow_governance_state_output_path.as_ref(),
+                "minimal AI committee chairman_shadow_governance_state_output_path",
+            ),
+            (
+                self.chairman_shadow_governance_state_ledger_path.as_ref(),
+                "minimal AI committee chairman_shadow_governance_state_ledger_path",
+            ),
+            (
+                self.chairman_shadow_governance_history_input_path.as_ref(),
+                "minimal AI committee chairman_shadow_governance_history_input_path",
+            ),
+            (
+                self.chairman_shadow_governance_history_output_path.as_ref(),
+                "minimal AI committee chairman_shadow_governance_history_output_path",
+            ),
+            (
+                self.chairman_shadow_governance_multi_run_output_path
+                    .as_ref(),
+                "minimal AI committee chairman_shadow_governance_multi_run_output_path",
+            ),
+            (
+                self.chairman_shadow_governance_history_verify_output_path
+                    .as_ref(),
+                "minimal AI committee chairman_shadow_governance_history_verify_output_path",
+            ),
+            (
+                self.chairman_shadow_governance_tuned_history_output_path
+                    .as_ref(),
+                "minimal AI committee chairman_shadow_governance_tuned_history_output_path",
+            ),
+            (
+                self.chairman_shadow_governance_tuning_result_output_path
+                    .as_ref(),
+                "minimal AI committee chairman_shadow_governance_tuning_result_output_path",
+            ),
+            (
+                self.chairman_shadow_voice_tuning_v2_history_output_path
+                    .as_ref(),
+                "minimal AI committee chairman_shadow_voice_tuning_v2_history_output_path",
+            ),
+            (
+                self.chairman_shadow_voice_tuning_v2_result_output_path
+                    .as_ref(),
+                "minimal AI committee chairman_shadow_voice_tuning_v2_result_output_path",
+            ),
+            (
+                self.paper_governance_trial_state_input_path.as_ref(),
+                "minimal AI committee paper_governance_trial_state_input_path",
+            ),
+            (
+                self.paper_governance_trial_state_output_path.as_ref(),
+                "minimal AI committee paper_governance_trial_state_output_path",
+            ),
         ] {
             if let Some(path) = path {
                 if !local_only(path) {
@@ -17260,6 +20462,42 @@ impl MinimalAiCommitteeCycleConfig {
         {
             return Err(
                 "minimal AI committee smartcore shadow scenario thresholds must be positive"
+                    .to_string(),
+            );
+        }
+        if self.chairman_shadow_governance_history_max_snapshots == 0
+            || self.chairman_shadow_governance_history_min_snapshots_for_trial_gate == 0
+            || self.chairman_shadow_governance_history_max_snapshots
+                < self.chairman_shadow_governance_history_min_snapshots_for_trial_gate
+        {
+            return Err(
+                "minimal AI committee chairman shadow governance history thresholds must be positive and max_snapshots must be >= min_snapshots_for_trial_gate".to_string(),
+            );
+        }
+        if self.chairman_shadow_governance_multi_run_count == 0 {
+            return Err(
+                "minimal AI committee chairman shadow governance multi-run count must be positive"
+                    .to_string(),
+            );
+        }
+        if self.chairman_shadow_governance_tuning_run_count == 0 {
+            return Err(
+                "minimal AI committee chairman shadow governance tuning run count must be positive"
+                    .to_string(),
+            );
+        }
+        if self.chairman_shadow_voice_tuning_v2_run_count == 0 {
+            return Err(
+                "minimal AI committee chairman shadow voice tuning v2 run count must be positive"
+                    .to_string(),
+            );
+        }
+        if !self.paper_governance_trial_dry_run
+            && self.paper_governance_trial_enabled
+            && self.paper_governance_trial_state_output_path.is_none()
+        {
+            return Err(
+                "minimal AI committee paper governance trial requires state output path when dry_run=false"
                     .to_string(),
             );
         }
@@ -18277,6 +21515,120 @@ impl MinimalAiCommitteeCycleConfig {
             observer_apply_verify_config_path: self.observer_apply_verify_config_path.clone(),
             observer_apply_verify_emit_owner_summary: self.observer_apply_verify_emit_owner_summary,
             chairman_shadow_governance_enabled: self.chairman_shadow_governance_enabled,
+            chairman_shadow_governance_run_enabled: self.chairman_shadow_governance_run_enabled,
+            chairman_shadow_governance_dry_run: self.chairman_shadow_governance_dry_run,
+            chairman_shadow_governance_ledger_output_path: self
+                .chairman_shadow_governance_ledger_output_path
+                .clone(),
+            chairman_shadow_governance_owner_feedback_path: self
+                .chairman_shadow_governance_owner_feedback_path
+                .clone(),
+            chairman_shadow_governance_emit_owner_explanations: self
+                .chairman_shadow_governance_emit_owner_explanations,
+            chairman_shadow_governance_emit_owner_summary: self
+                .chairman_shadow_governance_emit_owner_summary,
+            chairman_shadow_governance_simulation_enabled: self
+                .chairman_shadow_governance_simulation_enabled,
+            chairman_shadow_governance_simulation_dry_run: self
+                .chairman_shadow_governance_simulation_dry_run,
+            chairman_shadow_governance_simulation_ledger_output_path: self
+                .chairman_shadow_governance_simulation_ledger_output_path
+                .clone(),
+            chairman_shadow_governance_simulation_result_output_path: self
+                .chairman_shadow_governance_simulation_result_output_path
+                .clone(),
+            chairman_shadow_governance_emit_explanations: self
+                .chairman_shadow_governance_emit_explanations,
+            chairman_shadow_governance_state_enabled: self.chairman_shadow_governance_state_enabled,
+            chairman_shadow_governance_state_dry_run: self.chairman_shadow_governance_state_dry_run,
+            chairman_shadow_governance_apply_deltas: self.chairman_shadow_governance_apply_deltas,
+            chairman_shadow_governance_state_input_path: self
+                .chairman_shadow_governance_state_input_path
+                .clone(),
+            chairman_shadow_governance_state_output_path: self
+                .chairman_shadow_governance_state_output_path
+                .clone(),
+            chairman_shadow_governance_state_ledger_path: self
+                .chairman_shadow_governance_state_ledger_path
+                .clone(),
+            chairman_shadow_governance_state_emit_owner_summary: self
+                .chairman_shadow_governance_state_emit_owner_summary,
+            chairman_shadow_governance_history_enabled: self
+                .chairman_shadow_governance_history_enabled,
+            chairman_shadow_governance_history_dry_run: self
+                .chairman_shadow_governance_history_dry_run,
+            chairman_shadow_governance_history_input_path: self
+                .chairman_shadow_governance_history_input_path
+                .clone(),
+            chairman_shadow_governance_history_output_path: self
+                .chairman_shadow_governance_history_output_path
+                .clone(),
+            chairman_shadow_governance_history_max_snapshots: self
+                .chairman_shadow_governance_history_max_snapshots,
+            chairman_shadow_governance_history_min_snapshots_for_trial_gate: self
+                .chairman_shadow_governance_history_min_snapshots_for_trial_gate,
+            chairman_shadow_governance_history_emit_owner_summary: self
+                .chairman_shadow_governance_history_emit_owner_summary,
+            chairman_shadow_governance_multi_run_enabled: self
+                .chairman_shadow_governance_multi_run_enabled,
+            chairman_shadow_governance_multi_run_count: self
+                .chairman_shadow_governance_multi_run_count,
+            chairman_shadow_governance_multi_run_dry_run: self
+                .chairman_shadow_governance_multi_run_dry_run,
+            chairman_shadow_governance_multi_run_write_history_store: self
+                .chairman_shadow_governance_multi_run_write_history_store,
+            chairman_shadow_governance_multi_run_output_path: self
+                .chairman_shadow_governance_multi_run_output_path
+                .clone(),
+            chairman_shadow_governance_history_verify_enabled: self
+                .chairman_shadow_governance_history_verify_enabled,
+            chairman_shadow_governance_history_verify_output_path: self
+                .chairman_shadow_governance_history_verify_output_path
+                .clone(),
+            chairman_shadow_governance_history_verify_emit_owner_summary: self
+                .chairman_shadow_governance_history_verify_emit_owner_summary,
+            chairman_shadow_governance_tuning_enabled: self
+                .chairman_shadow_governance_tuning_enabled,
+            chairman_shadow_governance_tuning_dry_run: self
+                .chairman_shadow_governance_tuning_dry_run,
+            chairman_shadow_governance_tuning_run_count: self
+                .chairman_shadow_governance_tuning_run_count,
+            chairman_shadow_governance_tuned_history_output_path: self
+                .chairman_shadow_governance_tuned_history_output_path
+                .clone(),
+            chairman_shadow_governance_tuning_result_output_path: self
+                .chairman_shadow_governance_tuning_result_output_path
+                .clone(),
+            chairman_shadow_governance_tuning_write_history: self
+                .chairman_shadow_governance_tuning_write_history,
+            chairman_shadow_governance_tuning_emit_owner_summary: self
+                .chairman_shadow_governance_tuning_emit_owner_summary,
+            chairman_shadow_voice_tuning_v2_enabled: self.chairman_shadow_voice_tuning_v2_enabled,
+            chairman_shadow_voice_tuning_v2_dry_run: self.chairman_shadow_voice_tuning_v2_dry_run,
+            chairman_shadow_voice_tuning_v2_run_count: self
+                .chairman_shadow_voice_tuning_v2_run_count,
+            chairman_shadow_voice_tuning_v2_write_history: self
+                .chairman_shadow_voice_tuning_v2_write_history,
+            chairman_shadow_voice_tuning_v2_history_output_path: self
+                .chairman_shadow_voice_tuning_v2_history_output_path
+                .clone(),
+            chairman_shadow_voice_tuning_v2_result_output_path: self
+                .chairman_shadow_voice_tuning_v2_result_output_path
+                .clone(),
+            owner_governance_console_section_enabled: self.owner_governance_console_section_enabled,
+            paper_governance_trial_enabled: self.paper_governance_trial_enabled,
+            paper_governance_trial_dry_run: self.paper_governance_trial_dry_run,
+            paper_governance_trial_apply_candidates: self.paper_governance_trial_apply_candidates,
+            paper_governance_trial_state_input_path: self
+                .paper_governance_trial_state_input_path
+                .clone(),
+            paper_governance_trial_state_output_path: self
+                .paper_governance_trial_state_output_path
+                .clone(),
+            paper_governance_trial_compare_committee_voice: self
+                .paper_governance_trial_compare_committee_voice,
+            paper_governance_trial_emit_owner_summary: self
+                .paper_governance_trial_emit_owner_summary,
             training_candidate_min_examples: self.training_candidate_min_examples,
             self_growing_replay_enabled: self.self_growing_replay_enabled,
             research_source_registry_path: self.research_source_registry_path.clone(),
@@ -21563,6 +24915,10 @@ fn reject_unsafe_owner_feedback_string(text: &str) -> Result<(), String> {
         "submit order",
         "execute trade",
         "place trade",
+        "broker order",
+        "order account",
+        "account order",
+        "real trade",
         "live execution",
         "live trading",
         "real money",
@@ -22986,6 +26342,82 @@ pub fn run_batch_committee_cycle(
         chairman_shadow_governance_input_set: None,
         chairman_shadow_governance_evaluation_result: None,
         chairman_shadow_governance_safety_guard: None,
+        chairman_shadow_governance_ledger: None,
+        chairman_governance_candidate_build_result: None,
+        owner_opinion_alignment_records: None,
+        owner_opinion_explanation_results: None,
+        chairman_voice_governance_shadow_summaries: None,
+        chairman_governance_shadow_safety_guard_v2: None,
+        chairman_shadow_governance_run_result: None,
+        owner_chairman_governance_summary: None,
+        chairman_shadow_governance_simulation_result: None,
+        chairman_governance_fairness_check: None,
+        chairman_risk_first_governance_check: None,
+        chairman_shadow_governance_simulation_ledger: None,
+        chairman_shadow_governance_trend_summary: None,
+        chairman_shadow_governance_readiness_gate: None,
+        chairman_shadow_governance_explanations: None,
+        chairman_governance_simulation_safety_guard_v3: None,
+        chairman_shadow_governance_simulation_run_result: None,
+        chairman_shadow_governance_state_store: None,
+        chairman_shadow_governance_apply_result: None,
+        actual_vs_shadow_governance_comparisons: None,
+        actual_vs_shadow_governance_summary: None,
+        chairman_shadow_governance_state_ledger: None,
+        chairman_shadow_governance_state_trend: None,
+        paper_governance_promotion_gate: None,
+        chairman_shadow_governance_apply_safety_guard: None,
+        owner_shadow_governance_state_summary: None,
+        chairman_shadow_governance_state_run_result: None,
+        chairman_shadow_governance_history_store: None,
+        chairman_shadow_governance_history_accumulation_result: None,
+        actual_vs_shadow_divergence_diagnosis: None,
+        chairman_shadow_governance_history_stability_metrics: None,
+        paper_governance_trial_criteria: None,
+        paper_governance_trial_gate_v2: None,
+        chairman_shadow_governance_history_safety_guard: None,
+        owner_shadow_governance_history_summary: None,
+        chairman_shadow_governance_history_run_result: None,
+        chairman_shadow_governance_multi_run_harness_result: None,
+        actual_vs_shadow_divergence_trend_summary: None,
+        shadow_governance_history_quality_check: None,
+        paper_governance_trial_design_readiness_v3: None,
+        shadow_governance_history_write_proof: None,
+        owner_shadow_governance_multi_run_summary: None,
+        chairman_shadow_governance_multi_run_safety_guard: None,
+        chairman_shadow_governance_history_verify_run_result: None,
+        chairman_unsafe_divergence_root_cause_summary: None,
+        chairman_shadow_delta_tuning_policy: None,
+        tuned_chairman_shadow_governance_simulation_policy: None,
+        chairman_shadow_policy_tuning_explanation: None,
+        tuned_chairman_shadow_governance_multi_run_result: None,
+        chairman_role_balance_check: None,
+        tuned_paper_governance_trial_gate_recheck: None,
+        owner_shadow_governance_tuning_summary: None,
+        chairman_shadow_governance_tuning_safety_guard: None,
+        chairman_shadow_governance_tuning_run_result: None,
+        remaining_voice_drift_analysis_result: None,
+        conservative_voice_tuning_v2_policy: None,
+        chairman_role_voice_floor_policy: None,
+        chairman_role_voice_floor_check: None,
+        voice_delta_compounding_brake_results: Vec::new(),
+        evidence_based_voice_dampening_results: Vec::new(),
+        conservative_voice_tuned_multi_run_v2_result: None,
+        conservative_voice_tuned_gate_recheck_v2: None,
+        owner_governance_console_section_v1: None,
+        conservative_voice_tuning_v2_safety_guard: None,
+        conservative_voice_tuning_v2_run_result: None,
+        paper_governance_trial_eligibility_policy: None,
+        paper_governance_trial_candidate_selection_result: None,
+        paper_governance_trial_state_store: None,
+        paper_governance_trial_apply_result: None,
+        actual_shadow_paper_governance_comparisons: None,
+        actual_shadow_paper_governance_summary: None,
+        paper_governance_trial_committee_comparison_result: None,
+        paper_governance_trial_safety_guard: None,
+        paper_governance_trial_readiness_result: None,
+        owner_paper_governance_trial_summary: None,
+        paper_governance_trial_run_result: None,
         self_growing_replay_evidence_result: None,
         self_growing_evidence_promotion_run: None,
         enriched_evidence_promotion_run: None,
@@ -23159,7 +26591,38 @@ pub fn run_autonomous_paper_committee_loop(
                 config.observer_apply_verify_output_path.as_ref(),
                 config.observer_apply_verify_config_path.as_ref(),
                 config.observer_apply_verify_dry_run,
-                config.chairman_shadow_governance_enabled,
+                config.chairman_shadow_governance_enabled
+                    || config.chairman_shadow_governance_run_enabled
+                    || config
+                        .chairman_shadow_governance_ledger_output_path
+                        .is_some()
+                    || config
+                        .chairman_shadow_governance_owner_feedback_path
+                        .is_some()
+                    || config.chairman_shadow_governance_emit_owner_explanations
+                    || config.chairman_shadow_governance_emit_owner_summary
+                    || config.chairman_shadow_governance_simulation_enabled
+                    || config
+                        .chairman_shadow_governance_simulation_ledger_output_path
+                        .is_some()
+                    || config
+                        .chairman_shadow_governance_simulation_result_output_path
+                        .is_some()
+                    || config.chairman_shadow_governance_state_enabled
+                    || config.chairman_shadow_governance_state_input_path.is_some()
+                    || config
+                        .chairman_shadow_governance_state_output_path
+                        .is_some()
+                    || config
+                        .chairman_shadow_governance_state_ledger_path
+                        .is_some()
+                    || config.chairman_shadow_governance_history_enabled
+                    || config
+                        .chairman_shadow_governance_history_input_path
+                        .is_some()
+                    || config
+                        .chairman_shadow_governance_history_output_path
+                        .is_some(),
                 config.observer_apply_verify_emit_owner_summary,
             );
         if config.replay_quality_eval_enabled
@@ -23444,14 +26907,14 @@ pub fn run_autonomous_paper_committee_loop(
                     config.smartcore_calibration_dataset_output_path.as_ref(),
                     config.smartcore_mismatch_learning_loop_output_path.as_ref(),
                 );
-                let shadow_opinion_requested = smartcore_shadow_opinion_requested_from_flags(
+                let _shadow_opinion_requested = smartcore_shadow_opinion_requested_from_flags(
                     config.smartcore_shadow_opinion_enabled,
                     config.smartcore_shadow_opinion_output_path.as_ref(),
                     config.smartcore_shadow_compare_member_opinion,
                     config.smartcore_shadow_target_eval,
                     config.smartcore_shadow_emit_owner_debug,
                 );
-                let shadow_stability_requested = smartcore_shadow_stability_requested_from_flags(
+                let _shadow_stability_requested = smartcore_shadow_stability_requested_from_flags(
                     config.smartcore_shadow_stability_enabled,
                     config.smartcore_shadow_stability_output_path.as_ref(),
                     config.smartcore_shadow_expand_agreement_targets,
@@ -23460,7 +26923,7 @@ pub fn run_autonomous_paper_committee_loop(
                         .as_ref(),
                     config.smartcore_shadow_stability_emit_owner_summary,
                 );
-                let shadow_scenario_sweep_requested =
+                let _shadow_scenario_sweep_requested =
                     smartcore_shadow_scenario_sweep_requested_from_flags(
                         config.smartcore_shadow_scenario_sweep_enabled,
                         config.smartcore_shadow_scenario_set_path.as_ref(),
@@ -23532,17 +26995,149 @@ pub fn run_autonomous_paper_committee_loop(
                         config.observer_apply_verify_output_path.as_ref(),
                         config.observer_apply_verify_config_path.as_ref(),
                         config.observer_apply_verify_dry_run,
-                        config.chairman_shadow_governance_enabled,
+                        config.chairman_shadow_governance_enabled
+                            || config.chairman_shadow_governance_run_enabled
+                            || config
+                                .chairman_shadow_governance_ledger_output_path
+                                .is_some()
+                            || config
+                                .chairman_shadow_governance_owner_feedback_path
+                                .is_some()
+                            || config.chairman_shadow_governance_emit_owner_explanations
+                            || config.chairman_shadow_governance_emit_owner_summary
+                            || config.chairman_shadow_governance_simulation_enabled
+                            || config
+                                .chairman_shadow_governance_simulation_ledger_output_path
+                                .is_some()
+                            || config
+                                .chairman_shadow_governance_simulation_result_output_path
+                                .is_some()
+                            || config.chairman_shadow_governance_state_enabled
+                            || config.chairman_shadow_governance_state_input_path.is_some()
+                            || config
+                                .chairman_shadow_governance_state_output_path
+                                .is_some()
+                            || config
+                                .chairman_shadow_governance_state_ledger_path
+                                .is_some()
+                            || config.chairman_shadow_governance_history_enabled
+                            || config
+                                .chairman_shadow_governance_history_input_path
+                                .is_some()
+                            || config
+                                .chairman_shadow_governance_history_output_path
+                                .is_some(),
                         config.observer_apply_verify_emit_owner_summary,
+                    );
+                let chairman_shadow_governance_run_requested =
+                    chairman_shadow_governance_requested_from_flags(
+                        config.chairman_shadow_governance_run_enabled,
+                        config.chairman_shadow_governance_dry_run,
+                        config
+                            .chairman_shadow_governance_ledger_output_path
+                            .as_ref(),
+                        config
+                            .chairman_shadow_governance_owner_feedback_path
+                            .as_ref(),
+                        config.chairman_shadow_governance_emit_owner_explanations,
+                        config.chairman_shadow_governance_emit_owner_summary,
+                    );
+                let chairman_shadow_governance_simulation_requested =
+                    chairman_shadow_governance_simulation_requested_from_flags(
+                        config.chairman_shadow_governance_simulation_enabled,
+                        config.chairman_shadow_governance_simulation_dry_run,
+                        config
+                            .chairman_shadow_governance_simulation_ledger_output_path
+                            .as_ref(),
+                        config
+                            .chairman_shadow_governance_simulation_result_output_path
+                            .as_ref(),
+                        config.chairman_shadow_governance_emit_explanations,
+                    );
+                let chairman_shadow_governance_state_requested =
+                    chairman_shadow_governance_state_requested_from_flags(
+                        config.chairman_shadow_governance_state_enabled,
+                        config.chairman_shadow_governance_state_dry_run,
+                        config.chairman_shadow_governance_apply_deltas,
+                        config.chairman_shadow_governance_state_input_path.as_ref(),
+                        config.chairman_shadow_governance_state_output_path.as_ref(),
+                        config.chairman_shadow_governance_state_ledger_path.as_ref(),
+                        config.chairman_shadow_governance_state_emit_owner_summary,
+                    );
+                let chairman_shadow_governance_history_requested =
+                    chairman_shadow_governance_history_requested_from_flags(
+                        config.chairman_shadow_governance_history_enabled,
+                        config.chairman_shadow_governance_history_dry_run,
+                        config
+                            .chairman_shadow_governance_history_input_path
+                            .as_ref(),
+                        config
+                            .chairman_shadow_governance_history_output_path
+                            .as_ref(),
+                        config.chairman_shadow_governance_history_max_snapshots,
+                        config.chairman_shadow_governance_history_min_snapshots_for_trial_gate,
+                        config.chairman_shadow_governance_history_emit_owner_summary,
+                    );
+                let chairman_shadow_governance_multi_run_requested =
+                    chairman_shadow_governance_multi_run_requested_from_flags(
+                        config.chairman_shadow_governance_multi_run_enabled,
+                        config.chairman_shadow_governance_multi_run_dry_run,
+                        config.chairman_shadow_governance_multi_run_count,
+                        config.chairman_shadow_governance_multi_run_write_history_store,
+                        config
+                            .chairman_shadow_governance_multi_run_output_path
+                            .as_ref(),
+                    );
+                let chairman_shadow_governance_history_verify_requested =
+                    chairman_shadow_governance_history_verify_requested_from_flags(
+                        config.chairman_shadow_governance_history_verify_enabled,
+                        config
+                            .chairman_shadow_governance_history_verify_output_path
+                            .as_ref(),
+                        config.chairman_shadow_governance_history_verify_emit_owner_summary,
+                    );
+                let chairman_shadow_governance_tuning_requested =
+                    chairman_shadow_governance_tuning_requested_from_flags(
+                        config.chairman_shadow_governance_tuning_enabled,
+                        config.chairman_shadow_governance_tuning_dry_run,
+                        config
+                            .chairman_shadow_governance_tuned_history_output_path
+                            .as_ref(),
+                        config
+                            .chairman_shadow_governance_tuning_result_output_path
+                            .as_ref(),
+                        config.chairman_shadow_governance_tuning_write_history,
+                    );
+                let conservative_voice_tuning_v2_requested =
+                    conservative_voice_tuning_v2_requested_from_flags(
+                        config.chairman_shadow_voice_tuning_v2_enabled,
+                        config.chairman_shadow_voice_tuning_v2_dry_run,
+                        config
+                            .chairman_shadow_voice_tuning_v2_history_output_path
+                            .as_ref(),
+                        config
+                            .chairman_shadow_voice_tuning_v2_result_output_path
+                            .as_ref(),
+                        config.chairman_shadow_voice_tuning_v2_write_history,
+                        config.owner_governance_console_section_enabled,
                     );
                 let observer_target_closure_requested = observer_target_closure_requested
                     || observer_apply_trend_requested
                     || observer_seed_apply_trend_requested
                     || observer_approved_apply_governance_requested
-                    || observer_apply_verify_chairman_shadow_requested;
+                    || observer_apply_verify_chairman_shadow_requested
+                    || chairman_shadow_governance_run_requested
+                    || chairman_shadow_governance_simulation_requested
+                    || chairman_shadow_governance_state_requested
+                    || chairman_shadow_governance_history_requested
+                    || chairman_shadow_governance_multi_run_requested
+                    || chairman_shadow_governance_history_verify_requested
+                    || chairman_shadow_governance_tuning_requested
+                    || conservative_voice_tuning_v2_requested;
                 let observer_lane_requested =
                     observer_lane_requested || observer_target_closure_requested;
-                let shadow_opinion_requested = shadow_opinion_requested || observer_lane_requested;
+                let _shadow_opinion_requested =
+                    _shadow_opinion_requested || observer_lane_requested;
                 let recalibration_requested = smartcore_recalibration_requested_from_flags(
                     config.smartcore_recalibration_enabled,
                     config
@@ -23551,9 +27146,7 @@ pub fn run_autonomous_paper_committee_loop(
                     config.smartcore_calibrated_debug_output_path.as_ref(),
                     config.smartcore_recalibration_result_output_path.as_ref(),
                     config.smartcore_recalibration_emit_owner_summary,
-                ) || shadow_opinion_requested
-                    || shadow_stability_requested
-                    || shadow_scenario_sweep_requested;
+                );
                 let mismatch_self_growing_requested =
                     smartcore_mismatch_pipeline_requested_from_flags(
                         config.smartcore_mismatch_self_growing_enabled,
@@ -23902,14 +27495,145 @@ pub fn run_autonomous_paper_committee_loop(
                     config.observer_apply_verify_output_path.as_ref(),
                     config.observer_apply_verify_config_path.as_ref(),
                     config.observer_apply_verify_dry_run,
-                    config.chairman_shadow_governance_enabled,
+                    config.chairman_shadow_governance_enabled
+                        || config.chairman_shadow_governance_run_enabled
+                        || config
+                            .chairman_shadow_governance_ledger_output_path
+                            .is_some()
+                        || config
+                            .chairman_shadow_governance_owner_feedback_path
+                            .is_some()
+                        || config.chairman_shadow_governance_emit_owner_explanations
+                        || config.chairman_shadow_governance_emit_owner_summary
+                        || config.chairman_shadow_governance_simulation_enabled
+                        || config
+                            .chairman_shadow_governance_simulation_ledger_output_path
+                            .is_some()
+                        || config
+                            .chairman_shadow_governance_simulation_result_output_path
+                            .is_some()
+                        || config.chairman_shadow_governance_state_enabled
+                        || config.chairman_shadow_governance_state_input_path.is_some()
+                        || config
+                            .chairman_shadow_governance_state_output_path
+                            .is_some()
+                        || config
+                            .chairman_shadow_governance_state_ledger_path
+                            .is_some()
+                        || config.chairman_shadow_governance_history_enabled
+                        || config
+                            .chairman_shadow_governance_history_input_path
+                            .is_some()
+                        || config
+                            .chairman_shadow_governance_history_output_path
+                            .is_some(),
                     config.observer_apply_verify_emit_owner_summary,
+                );
+            let chairman_shadow_governance_run_requested =
+                chairman_shadow_governance_requested_from_flags(
+                    config.chairman_shadow_governance_run_enabled,
+                    config.chairman_shadow_governance_dry_run,
+                    config
+                        .chairman_shadow_governance_ledger_output_path
+                        .as_ref(),
+                    config
+                        .chairman_shadow_governance_owner_feedback_path
+                        .as_ref(),
+                    config.chairman_shadow_governance_emit_owner_explanations,
+                    config.chairman_shadow_governance_emit_owner_summary,
+                );
+            let chairman_shadow_governance_simulation_requested =
+                chairman_shadow_governance_simulation_requested_from_flags(
+                    config.chairman_shadow_governance_simulation_enabled,
+                    config.chairman_shadow_governance_simulation_dry_run,
+                    config
+                        .chairman_shadow_governance_simulation_ledger_output_path
+                        .as_ref(),
+                    config
+                        .chairman_shadow_governance_simulation_result_output_path
+                        .as_ref(),
+                    config.chairman_shadow_governance_emit_explanations,
+                );
+            let chairman_shadow_governance_state_requested =
+                chairman_shadow_governance_state_requested_from_flags(
+                    config.chairman_shadow_governance_state_enabled,
+                    config.chairman_shadow_governance_state_dry_run,
+                    config.chairman_shadow_governance_apply_deltas,
+                    config.chairman_shadow_governance_state_input_path.as_ref(),
+                    config.chairman_shadow_governance_state_output_path.as_ref(),
+                    config.chairman_shadow_governance_state_ledger_path.as_ref(),
+                    config.chairman_shadow_governance_state_emit_owner_summary,
+                );
+            let chairman_shadow_governance_history_requested =
+                chairman_shadow_governance_history_requested_from_flags(
+                    config.chairman_shadow_governance_history_enabled,
+                    config.chairman_shadow_governance_history_dry_run,
+                    config
+                        .chairman_shadow_governance_history_input_path
+                        .as_ref(),
+                    config
+                        .chairman_shadow_governance_history_output_path
+                        .as_ref(),
+                    config.chairman_shadow_governance_history_max_snapshots,
+                    config.chairman_shadow_governance_history_min_snapshots_for_trial_gate,
+                    config.chairman_shadow_governance_history_emit_owner_summary,
+                );
+            let chairman_shadow_governance_multi_run_requested =
+                chairman_shadow_governance_multi_run_requested_from_flags(
+                    config.chairman_shadow_governance_multi_run_enabled,
+                    config.chairman_shadow_governance_multi_run_dry_run,
+                    config.chairman_shadow_governance_multi_run_count,
+                    config.chairman_shadow_governance_multi_run_write_history_store,
+                    config
+                        .chairman_shadow_governance_multi_run_output_path
+                        .as_ref(),
+                );
+            let chairman_shadow_governance_history_verify_requested =
+                chairman_shadow_governance_history_verify_requested_from_flags(
+                    config.chairman_shadow_governance_history_verify_enabled,
+                    config
+                        .chairman_shadow_governance_history_verify_output_path
+                        .as_ref(),
+                    config.chairman_shadow_governance_history_verify_emit_owner_summary,
+                );
+            let chairman_shadow_governance_tuning_requested =
+                chairman_shadow_governance_tuning_requested_from_flags(
+                    config.chairman_shadow_governance_tuning_enabled,
+                    config.chairman_shadow_governance_tuning_dry_run,
+                    config
+                        .chairman_shadow_governance_tuned_history_output_path
+                        .as_ref(),
+                    config
+                        .chairman_shadow_governance_tuning_result_output_path
+                        .as_ref(),
+                    config.chairman_shadow_governance_tuning_write_history,
+                );
+            let conservative_voice_tuning_v2_requested =
+                conservative_voice_tuning_v2_requested_from_flags(
+                    config.chairman_shadow_voice_tuning_v2_enabled,
+                    config.chairman_shadow_voice_tuning_v2_dry_run,
+                    config
+                        .chairman_shadow_voice_tuning_v2_history_output_path
+                        .as_ref(),
+                    config
+                        .chairman_shadow_voice_tuning_v2_result_output_path
+                        .as_ref(),
+                    config.chairman_shadow_voice_tuning_v2_write_history,
+                    config.owner_governance_console_section_enabled,
                 );
             let observer_target_closure_requested = observer_target_closure_requested
                 || observer_apply_trend_requested
                 || observer_seed_apply_trend_requested
                 || observer_approved_apply_governance_requested
-                || observer_apply_verify_chairman_shadow_requested;
+                || observer_apply_verify_chairman_shadow_requested
+                || chairman_shadow_governance_run_requested
+                || chairman_shadow_governance_simulation_requested
+                || chairman_shadow_governance_state_requested
+                || chairman_shadow_governance_history_requested
+                || chairman_shadow_governance_multi_run_requested
+                || chairman_shadow_governance_history_verify_requested
+                || chairman_shadow_governance_tuning_requested
+                || conservative_voice_tuning_v2_requested;
             let observer_lane_requested =
                 observer_lane_requested || observer_target_closure_requested;
             let shadow_opinion_requested = shadow_opinion_requested || observer_lane_requested;
@@ -23921,9 +27645,7 @@ pub fn run_autonomous_paper_committee_loop(
                 config.smartcore_calibrated_debug_output_path.as_ref(),
                 config.smartcore_recalibration_result_output_path.as_ref(),
                 config.smartcore_recalibration_emit_owner_summary,
-            ) || shadow_opinion_requested
-                || shadow_stability_requested
-                || shadow_scenario_sweep_requested;
+            );
             let mismatch_self_growing_requested = smartcore_mismatch_pipeline_requested_from_flags(
                 config.smartcore_mismatch_self_growing_enabled,
                 config.smartcore_calibration_dataset_output_path.as_ref(),
@@ -25081,6 +28803,328 @@ pub fn run_autonomous_paper_committee_loop(
                                                                 &mut result.batch_result,
                                                             )?;
                                                         }
+                                                        if chairman_shadow_governance_requested_from_flags(
+                                                            config.chairman_shadow_governance_run_enabled,
+                                                            config.chairman_shadow_governance_dry_run,
+                                                            config
+                                                                .chairman_shadow_governance_ledger_output_path
+                                                                .as_ref(),
+                                                            config
+                                                                .chairman_shadow_governance_owner_feedback_path
+                                                                .as_ref(),
+                                                            config
+                                                                .chairman_shadow_governance_emit_owner_explanations,
+                                                            config
+                                                                .chairman_shadow_governance_emit_owner_summary,
+                                                        ) {
+                                                            maybe_run_chairman_shadow_governance_for_batch_result(
+                                                                format!(
+                                                                    "{}-chairman-shadow-governance",
+                                                                    cycle_id
+                                                                ),
+                                                                config
+                                                                    .chairman_shadow_governance_run_enabled,
+                                                                config
+                                                                    .chairman_shadow_governance_dry_run,
+                                                                config
+                                                                    .chairman_shadow_governance_ledger_output_path
+                                                                    .as_ref(),
+                                                                config
+                                                                    .chairman_shadow_governance_owner_feedback_path
+                                                                    .as_ref(),
+                                                                config
+                                                                    .chairman_shadow_governance_emit_owner_explanations,
+                                                                config
+                                                                    .chairman_shadow_governance_emit_owner_summary,
+                                                                &mut result.batch_result,
+                                                            )?;
+                                                        }
+                                                        if chairman_shadow_governance_simulation_requested_from_flags(
+                                                            config.chairman_shadow_governance_simulation_enabled,
+                                                            config.chairman_shadow_governance_simulation_dry_run,
+                                                            config
+                                                                .chairman_shadow_governance_simulation_ledger_output_path
+                                                                .as_ref(),
+                                                            config
+                                                                .chairman_shadow_governance_simulation_result_output_path
+                                                                .as_ref(),
+                                                            config
+                                                                .chairman_shadow_governance_emit_explanations,
+                                                        ) {
+                                                            maybe_run_chairman_shadow_governance_simulation_for_batch_result(
+                                                                format!(
+                                                                    "{}-chairman-shadow-governance-simulation",
+                                                                    cycle_id
+                                                                ),
+                                                                config
+                                                                    .chairman_shadow_governance_simulation_enabled,
+                                                                config
+                                                                    .chairman_shadow_governance_simulation_dry_run,
+                                                                config
+                                                                    .chairman_shadow_governance_simulation_ledger_output_path
+                                                                    .as_ref(),
+                                                                config
+                                                                    .chairman_shadow_governance_simulation_result_output_path
+                                                                    .as_ref(),
+                                                                config
+                                                                    .chairman_shadow_governance_emit_explanations,
+                                                                result
+                                                                    .state_update
+                                                                    .updated_member_states
+                                                                    .as_slice(),
+                                                                &mut result.batch_result,
+                                                            )?;
+                                                        }
+                                                        if chairman_shadow_governance_state_requested_from_flags(
+                                                            config.chairman_shadow_governance_state_enabled,
+                                                            config.chairman_shadow_governance_state_dry_run,
+                                                            config.chairman_shadow_governance_apply_deltas,
+                                                            config
+                                                                .chairman_shadow_governance_state_input_path
+                                                                .as_ref(),
+                                                            config
+                                                                .chairman_shadow_governance_state_output_path
+                                                                .as_ref(),
+                                                            config
+                                                                .chairman_shadow_governance_state_ledger_path
+                                                                .as_ref(),
+                                                            config
+                                                                .chairman_shadow_governance_state_emit_owner_summary,
+                                                        ) {
+                                                            maybe_run_chairman_shadow_governance_state_update_for_batch_result(
+                                                                format!(
+                                                                    "{}-chairman-shadow-governance-state",
+                                                                    cycle_id
+                                                                ),
+                                                                config
+                                                                    .chairman_shadow_governance_state_enabled,
+                                                                config
+                                                                    .chairman_shadow_governance_state_dry_run,
+                                                                config
+                                                                    .chairman_shadow_governance_apply_deltas,
+                                                                config
+                                                                    .chairman_shadow_governance_state_input_path
+                                                                    .as_ref(),
+                                                                config
+                                                                    .chairman_shadow_governance_state_output_path
+                                                                    .as_ref(),
+                                                                config
+                                                                    .chairman_shadow_governance_state_ledger_path
+                                                                    .as_ref(),
+                                                                config
+                                                                    .chairman_shadow_governance_state_emit_owner_summary,
+                                                                result
+                                                                    .state_update
+                                                                    .updated_member_states
+                                                                    .as_slice(),
+                                                                &mut result.batch_result,
+                                                            )?;
+                                                        }
+                                                        if chairman_shadow_governance_history_requested_from_flags(
+                                                            config.chairman_shadow_governance_history_enabled,
+                                                            config.chairman_shadow_governance_history_dry_run,
+                                                            config
+                                                                .chairman_shadow_governance_history_input_path
+                                                                .as_ref(),
+                                                            config
+                                                                .chairman_shadow_governance_history_output_path
+                                                                .as_ref(),
+                                                            config
+                                                                .chairman_shadow_governance_history_max_snapshots,
+                                                            config
+                                                                .chairman_shadow_governance_history_min_snapshots_for_trial_gate,
+                                                            config
+                                                                .chairman_shadow_governance_history_emit_owner_summary,
+                                                        ) {
+                                                            maybe_run_chairman_shadow_governance_history_for_batch_result(
+                                                                format!(
+                                                                    "{}-chairman-shadow-governance-history",
+                                                                    cycle_id
+                                                                ),
+                                                                config
+                                                                    .chairman_shadow_governance_history_enabled,
+                                                                config
+                                                                    .chairman_shadow_governance_history_dry_run,
+                                                                config
+                                                                    .chairman_shadow_governance_history_input_path
+                                                                    .as_ref(),
+                                                                config
+                                                                    .chairman_shadow_governance_history_output_path
+                                                                    .as_ref(),
+                                                                config
+                                                                    .chairman_shadow_governance_history_max_snapshots,
+                                                                config
+                                                                    .chairman_shadow_governance_history_min_snapshots_for_trial_gate,
+                                                                config
+                                                                    .chairman_shadow_governance_history_emit_owner_summary,
+                                                                result
+                                                                    .state_update
+                                                                    .updated_member_states
+                                                                    .as_slice(),
+                                                                &mut result.batch_result,
+                                                            )?;
+                                                        }
+                                                        if chairman_shadow_governance_multi_run_requested_from_flags(
+                                                            config.chairman_shadow_governance_multi_run_enabled,
+                                                            config.chairman_shadow_governance_multi_run_dry_run,
+                                                            config.chairman_shadow_governance_multi_run_count,
+                                                            config.chairman_shadow_governance_multi_run_write_history_store,
+                                                            config
+                                                                .chairman_shadow_governance_multi_run_output_path
+                                                                .as_ref(),
+                                                        ) {
+                                                            maybe_run_chairman_shadow_governance_multi_run_harness_for_batch_result(
+                                                                format!(
+                                                                    "{}-chairman-shadow-governance-multi-run",
+                                                                    cycle_id
+                                                                ),
+                                                                config
+                                                                    .chairman_shadow_governance_multi_run_enabled,
+                                                                config
+                                                                    .chairman_shadow_governance_multi_run_dry_run,
+                                                                config
+                                                                    .chairman_shadow_governance_multi_run_count,
+                                                                config
+                                                                    .chairman_shadow_governance_multi_run_write_history_store,
+                                                                config
+                                                                    .chairman_shadow_governance_history_input_path
+                                                                    .as_ref(),
+                                                                config
+                                                                    .chairman_shadow_governance_history_output_path
+                                                                    .as_ref(),
+                                                                config
+                                                                    .chairman_shadow_governance_multi_run_output_path
+                                                                    .as_ref(),
+                                                                config
+                                                                    .chairman_shadow_governance_history_min_snapshots_for_trial_gate,
+                                                                config
+                                                                    .chairman_shadow_governance_history_emit_owner_summary,
+                                                                result
+                                                                    .state_update
+                                                                    .updated_member_states
+                                                                    .as_slice(),
+                                                                &mut result.batch_result,
+                                                            )?;
+                                                        }
+                                                        if chairman_shadow_governance_history_verify_requested_from_flags(
+                                                            config.chairman_shadow_governance_history_verify_enabled,
+                                                            config
+                                                                .chairman_shadow_governance_history_verify_output_path
+                                                                .as_ref(),
+                                                            config
+                                                                .chairman_shadow_governance_history_verify_emit_owner_summary,
+                                                        ) {
+                                                            maybe_run_chairman_shadow_governance_history_verify_for_batch_result(
+                                                                format!(
+                                                                    "{}-chairman-shadow-governance-history-verify",
+                                                                    cycle_id
+                                                                ),
+                                                                config
+                                                                    .chairman_shadow_governance_history_verify_enabled,
+                                                                config
+                                                                    .chairman_shadow_governance_multi_run_dry_run,
+                                                                config
+                                                                    .chairman_shadow_governance_multi_run_count,
+                                                                config
+                                                                    .chairman_shadow_governance_history_output_path
+                                                                    .as_ref(),
+                                                                config
+                                                                    .chairman_shadow_governance_history_verify_output_path
+                                                                    .as_ref(),
+                                                                config
+                                                                    .chairman_shadow_governance_history_verify_emit_owner_summary,
+                                                                result
+                                                                    .state_update
+                                                                    .updated_member_states
+                                                                    .as_slice(),
+                                                                &mut result.batch_result,
+                                                            )?;
+                                                        }
+                                                        if chairman_shadow_governance_tuning_requested_from_flags(
+                                                            config.chairman_shadow_governance_tuning_enabled,
+                                                            config.chairman_shadow_governance_tuning_dry_run,
+                                                            config
+                                                                .chairman_shadow_governance_tuned_history_output_path
+                                                                .as_ref(),
+                                                            config
+                                                                .chairman_shadow_governance_tuning_result_output_path
+                                                                .as_ref(),
+                                                            config
+                                                                .chairman_shadow_governance_tuning_write_history,
+                                                        ) {
+                                                            maybe_run_chairman_shadow_governance_tuning_for_batch_result(
+                                                                format!(
+                                                                    "{}-chairman-shadow-governance-tuning",
+                                                                    cycle_id
+                                                                ),
+                                                                config
+                                                                    .chairman_shadow_governance_tuning_enabled,
+                                                                config
+                                                                    .chairman_shadow_governance_tuning_dry_run,
+                                                                config
+                                                                    .chairman_shadow_governance_tuning_run_count,
+                                                                config
+                                                                    .chairman_shadow_governance_history_output_path
+                                                                    .as_ref(),
+                                                                config
+                                                                    .chairman_shadow_governance_tuned_history_output_path
+                                                                    .as_ref(),
+                                                                config
+                                                                    .chairman_shadow_governance_tuning_result_output_path
+                                                                    .as_ref(),
+                                                                config
+                                                                    .chairman_shadow_governance_tuning_write_history,
+                                                                config
+                                                                    .chairman_shadow_governance_tuning_emit_owner_summary,
+                                                                result
+                                                                    .state_update
+                                                                    .updated_member_states
+                                                                    .as_slice(),
+                                                                &mut result.batch_result,
+                                                            )?;
+                                                        }
+                                                        if conservative_voice_tuning_v2_requested_from_flags(
+                                                            config.chairman_shadow_voice_tuning_v2_enabled,
+                                                            config.chairman_shadow_voice_tuning_v2_dry_run,
+                                                            config
+                                                                .chairman_shadow_voice_tuning_v2_history_output_path
+                                                                .as_ref(),
+                                                            config
+                                                                .chairman_shadow_voice_tuning_v2_result_output_path
+                                                                .as_ref(),
+                                                            config
+                                                                .chairman_shadow_voice_tuning_v2_write_history,
+                                                            config
+                                                                .owner_governance_console_section_enabled,
+                                                        ) {
+                                                            maybe_run_conservative_voice_tuning_v2_for_batch_result(
+                                                                format!(
+                                                                    "{}-chairman-shadow-voice-tuning-v2",
+                                                                    cycle_id
+                                                                ),
+                                                                config
+                                                                    .chairman_shadow_voice_tuning_v2_enabled,
+                                                                config
+                                                                    .chairman_shadow_voice_tuning_v2_dry_run,
+                                                                config
+                                                                    .chairman_shadow_voice_tuning_v2_run_count,
+                                                                config
+                                                                    .chairman_shadow_voice_tuning_v2_history_output_path
+                                                                    .as_ref(),
+                                                                config
+                                                                    .chairman_shadow_voice_tuning_v2_result_output_path
+                                                                    .as_ref(),
+                                                                config
+                                                                    .chairman_shadow_voice_tuning_v2_write_history,
+                                                                config
+                                                                    .owner_governance_console_section_enabled,
+                                                                result
+                                                                    .state_update
+                                                                    .updated_member_states
+                                                                    .as_slice(),
+                                                                &mut result.batch_result,
+                                                            )?;
+                                                        }
                                                     }
                                                 }
                                             }
@@ -25158,6 +29202,409 @@ pub fn run_autonomous_paper_committee_loop(
                 }
                 result.batch_result.paper_scenario_collection_queue = Some(queue);
                 result.batch_result.replay_coverage_eval = Some(coverage_eval);
+            }
+        }
+        let observer_lane_requested_for_chairman_shadow =
+            smartcore_observer_lane_requested_from_flags(
+                config.smartcore_observer_lane_enabled,
+                config.smartcore_observer_output_path.as_ref(),
+                config.smartcore_observer_compare_member_opinion,
+                config.smartcore_observer_compare_chairman,
+                config.smartcore_observer_compare_risk_governor,
+                config.smartcore_observer_target_coverage_closure_enabled,
+                config.smartcore_observer_emit_owner_section,
+            );
+        let observer_apply_verify_requested_for_chairman_shadow =
+            observer_apply_verify_chairman_shadow_requested_from_flags(
+                config.observer_apply_verify_chairman_shadow_enabled,
+                config.observer_apply_verify_mode,
+                config
+                    .observer_apply_verify_target_store_output_path
+                    .as_ref(),
+                config.observer_apply_verify_output_path.as_ref(),
+                config.observer_apply_verify_config_path.as_ref(),
+                config.observer_apply_verify_dry_run,
+                config.chairman_shadow_governance_enabled
+                    || config.chairman_shadow_governance_run_enabled
+                    || config
+                        .chairman_shadow_governance_ledger_output_path
+                        .is_some()
+                    || config
+                        .chairman_shadow_governance_owner_feedback_path
+                        .is_some()
+                    || config.chairman_shadow_governance_emit_owner_explanations
+                    || config.chairman_shadow_governance_emit_owner_summary
+                    || config.chairman_shadow_governance_simulation_enabled
+                    || config
+                        .chairman_shadow_governance_simulation_ledger_output_path
+                        .is_some()
+                    || config
+                        .chairman_shadow_governance_simulation_result_output_path
+                        .is_some()
+                    || config.chairman_shadow_governance_state_enabled
+                    || config.chairman_shadow_governance_state_input_path.is_some()
+                    || config
+                        .chairman_shadow_governance_state_output_path
+                        .is_some()
+                    || config
+                        .chairman_shadow_governance_state_ledger_path
+                        .is_some()
+                    || config.chairman_shadow_governance_history_enabled
+                    || config
+                        .chairman_shadow_governance_history_input_path
+                        .is_some()
+                    || config
+                        .chairman_shadow_governance_history_output_path
+                        .is_some(),
+                config.observer_apply_verify_emit_owner_summary,
+            );
+        let chairman_shadow_run_requested = chairman_shadow_governance_requested_from_flags(
+            config.chairman_shadow_governance_run_enabled,
+            config.chairman_shadow_governance_dry_run,
+            config
+                .chairman_shadow_governance_ledger_output_path
+                .as_ref(),
+            config
+                .chairman_shadow_governance_owner_feedback_path
+                .as_ref(),
+            config.chairman_shadow_governance_emit_owner_explanations,
+            config.chairman_shadow_governance_emit_owner_summary,
+        );
+        let chairman_shadow_simulation_requested =
+            chairman_shadow_governance_simulation_requested_from_flags(
+                config.chairman_shadow_governance_simulation_enabled,
+                config.chairman_shadow_governance_simulation_dry_run,
+                config
+                    .chairman_shadow_governance_simulation_ledger_output_path
+                    .as_ref(),
+                config
+                    .chairman_shadow_governance_simulation_result_output_path
+                    .as_ref(),
+                config.chairman_shadow_governance_emit_explanations,
+            );
+        let chairman_shadow_state_requested = chairman_shadow_governance_state_requested_from_flags(
+            config.chairman_shadow_governance_state_enabled,
+            config.chairman_shadow_governance_state_dry_run,
+            config.chairman_shadow_governance_apply_deltas,
+            config.chairman_shadow_governance_state_input_path.as_ref(),
+            config.chairman_shadow_governance_state_output_path.as_ref(),
+            config.chairman_shadow_governance_state_ledger_path.as_ref(),
+            config.chairman_shadow_governance_state_emit_owner_summary,
+        );
+        let chairman_shadow_history_requested =
+            chairman_shadow_governance_history_requested_from_flags(
+                config.chairman_shadow_governance_history_enabled,
+                config.chairman_shadow_governance_history_dry_run,
+                config
+                    .chairman_shadow_governance_history_input_path
+                    .as_ref(),
+                config
+                    .chairman_shadow_governance_history_output_path
+                    .as_ref(),
+                config.chairman_shadow_governance_history_max_snapshots,
+                config.chairman_shadow_governance_history_min_snapshots_for_trial_gate,
+                config.chairman_shadow_governance_history_emit_owner_summary,
+            );
+        let chairman_shadow_multi_run_requested =
+            chairman_shadow_governance_multi_run_requested_from_flags(
+                config.chairman_shadow_governance_multi_run_enabled,
+                config.chairman_shadow_governance_multi_run_dry_run,
+                config.chairman_shadow_governance_multi_run_count,
+                config.chairman_shadow_governance_multi_run_write_history_store,
+                config
+                    .chairman_shadow_governance_multi_run_output_path
+                    .as_ref(),
+            );
+        let chairman_shadow_history_verify_requested =
+            chairman_shadow_governance_history_verify_requested_from_flags(
+                config.chairman_shadow_governance_history_verify_enabled,
+                config
+                    .chairman_shadow_governance_history_verify_output_path
+                    .as_ref(),
+                config.chairman_shadow_governance_history_verify_emit_owner_summary,
+            );
+        let chairman_shadow_tuning_requested =
+            chairman_shadow_governance_tuning_requested_from_flags(
+                config.chairman_shadow_governance_tuning_enabled,
+                config.chairman_shadow_governance_tuning_dry_run,
+                config
+                    .chairman_shadow_governance_tuned_history_output_path
+                    .as_ref(),
+                config
+                    .chairman_shadow_governance_tuning_result_output_path
+                    .as_ref(),
+                config.chairman_shadow_governance_tuning_write_history,
+            );
+        let paper_governance_trial_requested = paper_governance_trial_requested_from_flags(
+            config.paper_governance_trial_enabled,
+            config.paper_governance_trial_dry_run,
+            config.paper_governance_trial_apply_candidates,
+            config.paper_governance_trial_state_input_path.as_ref(),
+            config.paper_governance_trial_state_output_path.as_ref(),
+            config.paper_governance_trial_compare_committee_voice,
+            config.paper_governance_trial_emit_owner_summary,
+        );
+        let conservative_voice_tuning_v2_requested =
+            conservative_voice_tuning_v2_requested_from_flags(
+                config.chairman_shadow_voice_tuning_v2_enabled || paper_governance_trial_requested,
+                config.chairman_shadow_voice_tuning_v2_dry_run,
+                config
+                    .chairman_shadow_voice_tuning_v2_history_output_path
+                    .as_ref(),
+                config
+                    .chairman_shadow_voice_tuning_v2_result_output_path
+                    .as_ref(),
+                config.chairman_shadow_voice_tuning_v2_write_history,
+                config.owner_governance_console_section_enabled,
+            );
+        let chairman_shadow_pipeline_still_needed = ((chairman_shadow_run_requested
+            || paper_governance_trial_requested)
+            && result
+                .batch_result
+                .chairman_shadow_governance_run_result
+                .is_none())
+            || ((chairman_shadow_simulation_requested || paper_governance_trial_requested)
+                && result
+                    .batch_result
+                    .chairman_shadow_governance_simulation_run_result
+                    .is_none())
+            || ((chairman_shadow_state_requested || paper_governance_trial_requested)
+                && result
+                    .batch_result
+                    .chairman_shadow_governance_state_run_result
+                    .is_none())
+            || ((chairman_shadow_history_requested || paper_governance_trial_requested)
+                && result
+                    .batch_result
+                    .chairman_shadow_governance_history_run_result
+                    .is_none())
+            || (chairman_shadow_multi_run_requested
+                && result
+                    .batch_result
+                    .chairman_shadow_governance_multi_run_harness_result
+                    .is_none())
+            || (chairman_shadow_history_verify_requested
+                && result
+                    .batch_result
+                    .chairman_shadow_governance_history_verify_run_result
+                    .is_none())
+            || ((chairman_shadow_tuning_requested || paper_governance_trial_requested)
+                && result
+                    .batch_result
+                    .chairman_shadow_governance_tuning_run_result
+                    .is_none())
+            || (conservative_voice_tuning_v2_requested
+                && result
+                    .batch_result
+                    .conservative_voice_tuning_v2_run_result
+                    .is_none())
+            || (paper_governance_trial_requested
+                && result
+                    .batch_result
+                    .paper_governance_trial_run_result
+                    .is_none());
+        if chairman_shadow_pipeline_still_needed {
+            if observer_lane_requested_for_chairman_shadow
+                && result
+                    .batch_result
+                    .smartcore_observer_lane_run_result
+                    .is_none()
+            {
+                maybe_run_smartcore_observer_lane_for_batch_result(
+                    format!("{}-smartcore-observer-lane", cycle_id),
+                    config.smartcore_observer_lane_enabled,
+                    config.smartcore_observer_output_path.as_ref(),
+                    config.smartcore_observer_compare_member_opinion,
+                    config.smartcore_observer_compare_chairman,
+                    config.smartcore_observer_compare_risk_governor,
+                    config.smartcore_observer_target_coverage_closure_enabled,
+                    config.smartcore_observer_emit_owner_section,
+                    &mut result.batch_result,
+                )?;
+            }
+            if observer_apply_verify_requested_for_chairman_shadow
+                && result
+                    .batch_result
+                    .observer_apply_verify_chairman_shadow_run_result
+                    .is_none()
+            {
+                maybe_run_observer_apply_verify_and_chairman_shadow_for_batch_result(
+                    format!("{}-observer-apply-verify-shadow", cycle_id),
+                    config.observer_apply_verify_chairman_shadow_enabled,
+                    config.observer_apply_verify_mode,
+                    config.observer_apply_verify_dry_run,
+                    config
+                        .observer_apply_verify_target_store_output_path
+                        .as_ref(),
+                    config.observer_comparison_ledger_path.as_ref(),
+                    config.observer_apply_verify_output_path.as_ref(),
+                    config.observer_apply_verify_config_path.as_ref(),
+                    config.chairman_shadow_governance_enabled,
+                    config.observer_apply_verify_emit_owner_summary,
+                    &mut result.batch_result,
+                )?;
+            }
+            if chairman_shadow_run_requested || paper_governance_trial_requested {
+                maybe_run_chairman_shadow_governance_for_batch_result(
+                    format!("{}-chairman-shadow-governance", cycle_id),
+                    config.chairman_shadow_governance_run_enabled
+                        || paper_governance_trial_requested,
+                    config.chairman_shadow_governance_dry_run,
+                    config
+                        .chairman_shadow_governance_ledger_output_path
+                        .as_ref(),
+                    config
+                        .chairman_shadow_governance_owner_feedback_path
+                        .as_ref(),
+                    config.chairman_shadow_governance_emit_owner_explanations,
+                    config.chairman_shadow_governance_emit_owner_summary,
+                    &mut result.batch_result,
+                )?;
+            }
+            if chairman_shadow_simulation_requested || paper_governance_trial_requested {
+                maybe_run_chairman_shadow_governance_simulation_for_batch_result(
+                    format!("{}-chairman-shadow-governance-simulation", cycle_id),
+                    config.chairman_shadow_governance_simulation_enabled
+                        || paper_governance_trial_requested,
+                    config.chairman_shadow_governance_simulation_dry_run,
+                    config
+                        .chairman_shadow_governance_simulation_ledger_output_path
+                        .as_ref(),
+                    config
+                        .chairman_shadow_governance_simulation_result_output_path
+                        .as_ref(),
+                    config.chairman_shadow_governance_emit_explanations,
+                    result.state_update.updated_member_states.as_slice(),
+                    &mut result.batch_result,
+                )?;
+            }
+            if chairman_shadow_state_requested || paper_governance_trial_requested {
+                maybe_run_chairman_shadow_governance_state_update_for_batch_result(
+                    format!("{}-chairman-shadow-governance-state", cycle_id),
+                    config.chairman_shadow_governance_state_enabled
+                        || paper_governance_trial_requested,
+                    config.chairman_shadow_governance_state_dry_run,
+                    config.chairman_shadow_governance_apply_deltas,
+                    config.chairman_shadow_governance_state_input_path.as_ref(),
+                    config.chairman_shadow_governance_state_output_path.as_ref(),
+                    config.chairman_shadow_governance_state_ledger_path.as_ref(),
+                    config.chairman_shadow_governance_state_emit_owner_summary,
+                    result.state_update.updated_member_states.as_slice(),
+                    &mut result.batch_result,
+                )?;
+            }
+            if chairman_shadow_history_requested || paper_governance_trial_requested {
+                maybe_run_chairman_shadow_governance_history_for_batch_result(
+                    format!("{}-chairman-shadow-governance-history", cycle_id),
+                    config.chairman_shadow_governance_history_enabled
+                        || paper_governance_trial_requested,
+                    config.chairman_shadow_governance_history_dry_run,
+                    config
+                        .chairman_shadow_governance_history_input_path
+                        .as_ref(),
+                    config
+                        .chairman_shadow_governance_history_output_path
+                        .as_ref(),
+                    config.chairman_shadow_governance_history_max_snapshots,
+                    config.chairman_shadow_governance_history_min_snapshots_for_trial_gate,
+                    config.chairman_shadow_governance_history_emit_owner_summary,
+                    result.state_update.updated_member_states.as_slice(),
+                    &mut result.batch_result,
+                )?;
+            }
+            if chairman_shadow_multi_run_requested {
+                maybe_run_chairman_shadow_governance_multi_run_harness_for_batch_result(
+                    format!("{}-chairman-shadow-governance-multi-run", cycle_id),
+                    config.chairman_shadow_governance_multi_run_enabled,
+                    config.chairman_shadow_governance_multi_run_dry_run,
+                    config.chairman_shadow_governance_multi_run_count,
+                    config.chairman_shadow_governance_multi_run_write_history_store,
+                    config
+                        .chairman_shadow_governance_history_input_path
+                        .as_ref(),
+                    config
+                        .chairman_shadow_governance_history_output_path
+                        .as_ref(),
+                    config
+                        .chairman_shadow_governance_multi_run_output_path
+                        .as_ref(),
+                    config.chairman_shadow_governance_history_min_snapshots_for_trial_gate,
+                    config.chairman_shadow_governance_history_emit_owner_summary,
+                    result.state_update.updated_member_states.as_slice(),
+                    &mut result.batch_result,
+                )?;
+            }
+            if chairman_shadow_history_verify_requested {
+                maybe_run_chairman_shadow_governance_history_verify_for_batch_result(
+                    format!("{}-chairman-shadow-governance-history-verify", cycle_id),
+                    config.chairman_shadow_governance_history_verify_enabled,
+                    config.chairman_shadow_governance_multi_run_dry_run,
+                    config.chairman_shadow_governance_multi_run_count,
+                    config
+                        .chairman_shadow_governance_history_output_path
+                        .as_ref(),
+                    config
+                        .chairman_shadow_governance_history_verify_output_path
+                        .as_ref(),
+                    config.chairman_shadow_governance_history_verify_emit_owner_summary,
+                    result.state_update.updated_member_states.as_slice(),
+                    &mut result.batch_result,
+                )?;
+            }
+            if chairman_shadow_tuning_requested || paper_governance_trial_requested {
+                maybe_run_chairman_shadow_governance_tuning_for_batch_result(
+                    format!("{}-chairman-shadow-governance-tuning", cycle_id),
+                    config.chairman_shadow_governance_tuning_enabled
+                        || paper_governance_trial_requested,
+                    config.chairman_shadow_governance_tuning_dry_run,
+                    config.chairman_shadow_governance_tuning_run_count,
+                    config
+                        .chairman_shadow_governance_history_output_path
+                        .as_ref(),
+                    config
+                        .chairman_shadow_governance_tuned_history_output_path
+                        .as_ref(),
+                    config
+                        .chairman_shadow_governance_tuning_result_output_path
+                        .as_ref(),
+                    config.chairman_shadow_governance_tuning_write_history,
+                    config.chairman_shadow_governance_tuning_emit_owner_summary,
+                    result.state_update.updated_member_states.as_slice(),
+                    &mut result.batch_result,
+                )?;
+            }
+            if conservative_voice_tuning_v2_requested {
+                maybe_run_conservative_voice_tuning_v2_for_batch_result(
+                    format!("{}-chairman-shadow-voice-tuning-v2", cycle_id),
+                    config.chairman_shadow_voice_tuning_v2_enabled
+                        || paper_governance_trial_requested,
+                    config.chairman_shadow_voice_tuning_v2_dry_run,
+                    config.chairman_shadow_voice_tuning_v2_run_count,
+                    config
+                        .chairman_shadow_voice_tuning_v2_history_output_path
+                        .as_ref(),
+                    config
+                        .chairman_shadow_voice_tuning_v2_result_output_path
+                        .as_ref(),
+                    config.chairman_shadow_voice_tuning_v2_write_history,
+                    config.owner_governance_console_section_enabled,
+                    result.state_update.updated_member_states.as_slice(),
+                    &mut result.batch_result,
+                )?;
+            }
+            if paper_governance_trial_requested {
+                maybe_run_paper_governance_trial_for_batch_result(
+                    format!("{}-paper-governance-trial", cycle_id),
+                    config.paper_governance_trial_enabled,
+                    config.paper_governance_trial_dry_run,
+                    config.paper_governance_trial_apply_candidates,
+                    config.paper_governance_trial_state_input_path.as_ref(),
+                    config.paper_governance_trial_state_output_path.as_ref(),
+                    config.paper_governance_trial_compare_committee_voice,
+                    config.paper_governance_trial_emit_owner_summary,
+                    result.state_update.updated_member_states.as_slice(),
+                    &mut result.batch_result,
+                )?;
             }
         }
         store.members = result.state_update.updated_member_states.clone();
@@ -66339,6 +70786,10490 @@ fn maybe_run_observer_apply_verify_and_chairman_shadow_for_batch_result(
         batch_result.observer_agreement_target_store =
             result.apply_result.accepted_target_store.clone();
     }
+    Ok(Some(result))
+}
+
+fn default_empty_chairman_shadow_governance_ledger(run_id: &str) -> ChairmanShadowGovernanceLedger {
+    ChairmanShadowGovernanceLedger {
+        ledger_id: format!("{run_id}-chairman-shadow-governance-ledger"),
+        entries: Vec::new(),
+        entry_count: 0,
+        reward_candidate_count: 0,
+        penalty_candidate_count: 0,
+        voice_increase_candidate_count: 0,
+        voice_decrease_candidate_count: 0,
+        promotion_candidate_count: 0,
+        demotion_candidate_count: 0,
+        latest_entry_id: None,
+        paper_only: true,
+    }
+}
+
+fn chairman_shadow_governance_entry_key(
+    entry: &ChairmanShadowGovernanceLedgerEntry,
+) -> (
+    Option<String>,
+    Option<String>,
+    Option<String>,
+    Option<String>,
+    Option<MarketScope>,
+    String,
+    String,
+    String,
+) {
+    (
+        entry.member_id.clone(),
+        entry.observer_id.clone(),
+        entry.run_id.clone(),
+        entry.symbol.clone(),
+        entry.market_scope,
+        format!("{:?}", entry.signal_kind),
+        format!("{:?}", entry.governance_candidate),
+        entry.evidence_summary.clone(),
+    )
+}
+
+fn validate_chairman_shadow_governance_ledger_entry(
+    entry: &ChairmanShadowGovernanceLedgerEntry,
+) -> Result<(), String> {
+    if !entry.paper_only || !entry.shadow_only {
+        return Err(
+            "chairman shadow governance ledger entry must stay paper_only and shadow_only"
+                .to_string(),
+        );
+    }
+    if !entry.no_score_mutation
+        || !entry.no_voice_mutation
+        || !entry.no_promotion_demotion
+        || !entry.no_risk_governor_override
+    {
+        return Err(
+            "chairman shadow governance ledger entry must forbid all mutations".to_string(),
+        );
+    }
+    if reject_unsafe_owner_feedback_string(&entry.evidence_summary).is_err() {
+        return Err(
+            "chairman shadow governance ledger entry contains unsafe order/trade language"
+                .to_string(),
+        );
+    }
+    Ok(())
+}
+
+fn refresh_chairman_shadow_governance_ledger_counts(ledger: &mut ChairmanShadowGovernanceLedger) {
+    ledger.entry_count = ledger.entries.len();
+    ledger.reward_candidate_count = ledger
+        .entries
+        .iter()
+        .filter(|entry| {
+            entry.governance_candidate == ChairmanShadowGovernanceConsideration::RewardCandidate
+        })
+        .count();
+    ledger.penalty_candidate_count = ledger
+        .entries
+        .iter()
+        .filter(|entry| {
+            entry.governance_candidate == ChairmanShadowGovernanceConsideration::PenaltyCandidate
+        })
+        .count();
+    ledger.voice_increase_candidate_count = ledger
+        .entries
+        .iter()
+        .filter(|entry| {
+            entry.governance_candidate
+                == ChairmanShadowGovernanceConsideration::VoiceIncreaseCandidate
+        })
+        .count();
+    ledger.voice_decrease_candidate_count = ledger
+        .entries
+        .iter()
+        .filter(|entry| {
+            entry.governance_candidate
+                == ChairmanShadowGovernanceConsideration::VoiceDecreaseCandidate
+        })
+        .count();
+    ledger.promotion_candidate_count = ledger
+        .entries
+        .iter()
+        .filter(|entry| {
+            entry.governance_candidate == ChairmanShadowGovernanceConsideration::PromotionCandidate
+        })
+        .count();
+    ledger.demotion_candidate_count = ledger
+        .entries
+        .iter()
+        .filter(|entry| {
+            entry.governance_candidate == ChairmanShadowGovernanceConsideration::DemotionCandidate
+        })
+        .count();
+    ledger.latest_entry_id = ledger.entries.last().map(|entry| entry.entry_id.clone());
+}
+
+pub fn normalize_chairman_shadow_governance_ledger(ledger: &mut ChairmanShadowGovernanceLedger) {
+    let mut seen = std::collections::BTreeSet::new();
+    ledger.entries.sort_by(|left, right| {
+        chairman_shadow_governance_entry_key(left).cmp(&chairman_shadow_governance_entry_key(right))
+    });
+    ledger.entries.retain(|entry| {
+        validate_chairman_shadow_governance_ledger_entry(entry).is_ok()
+            && seen.insert(chairman_shadow_governance_entry_key(entry))
+    });
+    refresh_chairman_shadow_governance_ledger_counts(ledger);
+}
+
+pub fn load_chairman_shadow_governance_ledger_from_local_json(
+    path: &Path,
+) -> Result<ChairmanShadowGovernanceLedger, String> {
+    validate_local_json_path(path, "chairman shadow governance ledger path")?;
+    let text = fs::read_to_string(path).map_err(|err| err.to_string())?;
+    let mut ledger: ChairmanShadowGovernanceLedger =
+        serde_json::from_str(&text).map_err(|err| err.to_string())?;
+    for entry in &ledger.entries {
+        validate_chairman_shadow_governance_ledger_entry(entry)?;
+    }
+    normalize_chairman_shadow_governance_ledger(&mut ledger);
+    Ok(ledger)
+}
+
+pub fn save_chairman_shadow_governance_ledger_to_local_json(
+    path: &Path,
+    ledger: &ChairmanShadowGovernanceLedger,
+) -> Result<(), String> {
+    validate_local_json_path(path, "chairman shadow governance ledger path")?;
+    for entry in &ledger.entries {
+        validate_chairman_shadow_governance_ledger_entry(entry)?;
+    }
+    let mut normalized = ledger.clone();
+    normalize_chairman_shadow_governance_ledger(&mut normalized);
+    write_safe_json(path, &normalized)
+}
+
+pub fn append_chairman_shadow_governance_entries(
+    ledger: &mut ChairmanShadowGovernanceLedger,
+    entries: &[ChairmanShadowGovernanceLedgerEntry],
+) {
+    ledger.entries.extend(entries.iter().cloned());
+    normalize_chairman_shadow_governance_ledger(ledger);
+}
+
+pub fn latest_chairman_governance_entries(
+    ledger: &ChairmanShadowGovernanceLedger,
+    limit: usize,
+) -> Vec<ChairmanShadowGovernanceLedgerEntry> {
+    if limit == 0 {
+        return Vec::new();
+    }
+    let mut latest = ledger
+        .entries
+        .iter()
+        .rev()
+        .take(limit)
+        .cloned()
+        .collect::<Vec<_>>();
+    latest.reverse();
+    latest
+}
+
+pub fn default_chairman_reward_penalty_candidate_policy() -> ChairmanRewardPenaltyCandidatePolicy {
+    ChairmanRewardPenaltyCandidatePolicy {
+        allow_reward_candidates: true,
+        allow_penalty_candidates: true,
+        allow_voice_candidates: true,
+        allow_promotion_candidates: true,
+        allow_demotion_candidates: true,
+        allow_actual_score_mutation: false,
+        allow_actual_voice_mutation: false,
+        allow_actual_promotion_demotion: false,
+        allow_risk_governor_override: false,
+        require_paper_only: true,
+        require_shadow_only: true,
+        min_confidence_for_promotion_candidate: SourceConfidence::Medium,
+        min_confidence_for_demotion_candidate: SourceConfidence::Medium,
+        paper_only: true,
+    }
+}
+
+pub fn validate_chairman_reward_penalty_candidate_policy(
+    policy: &ChairmanRewardPenaltyCandidatePolicy,
+) -> Result<(), String> {
+    if !policy.paper_only || !policy.require_paper_only || !policy.require_shadow_only {
+        return Err(
+            "chairman reward/penalty candidate policy must stay paper_only/shadow_only".to_string(),
+        );
+    }
+    if policy.allow_actual_score_mutation
+        || policy.allow_actual_voice_mutation
+        || policy.allow_actual_promotion_demotion
+        || policy.allow_risk_governor_override
+    {
+        return Err(
+            "chairman reward/penalty candidate policy must forbid actual mutation".to_string(),
+        );
+    }
+    Ok(())
+}
+
+fn normalized_source_confidence_rank(confidence: SourceConfidence) -> usize {
+    match confidence {
+        SourceConfidence::ReviewRequired => 0,
+        SourceConfidence::Low => 1,
+        SourceConfidence::Medium => 2,
+        SourceConfidence::High => 3,
+    }
+}
+
+fn source_confidence_meets_minimum(
+    confidence: SourceConfidence,
+    minimum: SourceConfidence,
+) -> bool {
+    normalized_source_confidence_rank(confidence) >= normalized_source_confidence_rank(minimum)
+}
+
+fn chairman_candidate_entry(
+    entry_id: String,
+    run_id: &str,
+    member_id: Option<String>,
+    observer_id: Option<String>,
+    symbol: Option<String>,
+    market_scope: Option<MarketScope>,
+    signal_kind: ChairmanShadowGovernanceSignalKind,
+    governance_candidate: ChairmanShadowGovernanceConsideration,
+    evidence_summary: String,
+    confidence: SourceConfidence,
+) -> ChairmanShadowGovernanceLedgerEntry {
+    ChairmanShadowGovernanceLedgerEntry {
+        entry_id,
+        run_id: Some(run_id.to_string()),
+        member_id,
+        observer_id,
+        symbol,
+        market_scope,
+        signal_kind,
+        governance_candidate,
+        evidence_summary,
+        confidence,
+        shadow_only: true,
+        no_score_mutation: true,
+        no_voice_mutation: true,
+        no_promotion_demotion: true,
+        no_risk_governor_override: true,
+        paper_only: true,
+    }
+}
+
+fn outcome_is_positive_for_shadow_governance(outcome: MemberExperienceOutcome) -> bool {
+    matches!(
+        outcome,
+        MemberExperienceOutcome::PaperPositive
+            | MemberExperienceOutcome::RiskVetoSavedLoss
+            | MemberExperienceOutcome::HelpfulDissent
+    )
+}
+
+fn outcome_is_negative_for_shadow_governance(outcome: MemberExperienceOutcome) -> bool {
+    matches!(
+        outcome,
+        MemberExperienceOutcome::PaperNegative
+            | MemberExperienceOutcome::BadRiskCall
+            | MemberExperienceOutcome::MissedOpportunity
+    )
+}
+
+fn owner_intent_from_feedback_type(feedback_type: OwnerFeedbackType) -> OwnerOpinionIntent {
+    match feedback_type {
+        OwnerFeedbackType::RiskConcern => OwnerOpinionIntent::RiskConcern,
+        OwnerFeedbackType::EvidenceRequest => OwnerOpinionIntent::EvidenceRequest,
+        OwnerFeedbackType::WatchlistRequest => OwnerOpinionIntent::WatchlistRequest,
+        OwnerFeedbackType::ReconsiderationRequest | OwnerFeedbackType::Disagree => {
+            OwnerOpinionIntent::ReconsiderationRequest
+        }
+        OwnerFeedbackType::PaperOutcomeLabel => OwnerOpinionIntent::PaperOutcomeLabel,
+        OwnerFeedbackType::Comment => OwnerOpinionIntent::Comment,
+    }
+}
+
+pub fn build_chairman_governance_candidates(
+    governance_inputs: &ChairmanShadowGovernanceInputSet,
+    observer_comparison_result: &ObserverComparisonRerunV3Result,
+    observer_ledger_trend: &ObserverComparisonLedgerTrendV2,
+    member_experience_store: Option<&[MemberExperienceRecord]>,
+    owner_feedback: Option<&[OwnerFeedback]>,
+    policy: &ChairmanRewardPenaltyCandidatePolicy,
+) -> Result<ChairmanGovernanceCandidateBuildResult, String> {
+    validate_chairman_reward_penalty_candidate_policy(policy)?;
+    let mut warnings = Vec::new();
+    let mut entries = Vec::new();
+    let experience_records = member_experience_store.unwrap_or(&[]);
+    let mut positive_counts = std::collections::BTreeMap::<String, usize>::new();
+    let mut negative_counts = std::collections::BTreeMap::<String, usize>::new();
+    let mut evidence_request_members = std::collections::BTreeSet::<String>::new();
+    for record in experience_records {
+        if outcome_is_positive_for_shadow_governance(record.outcome) {
+            *positive_counts.entry(record.member_id.clone()).or_insert(0) += 1;
+        }
+        if outcome_is_negative_for_shadow_governance(record.outcome) {
+            *negative_counts.entry(record.member_id.clone()).or_insert(0) += 1;
+        }
+    }
+    if let Some(owner_feedback) = owner_feedback {
+        for feedback in owner_feedback {
+            if let Some(member_id) = feedback.target_member_id.as_ref() {
+                if feedback.feedback_type == OwnerFeedbackType::EvidenceRequest {
+                    evidence_request_members.insert(member_id.clone());
+                }
+            }
+        }
+    }
+
+    let run_id = format!("{}-candidate-build", governance_inputs.set_id);
+    for input in &governance_inputs.records {
+        let member_id = input.source_member_id.clone();
+        let positive_count = member_id
+            .as_ref()
+            .and_then(|member_id| positive_counts.get(member_id))
+            .copied()
+            .unwrap_or(0);
+        let negative_count = member_id
+            .as_ref()
+            .and_then(|member_id| negative_counts.get(member_id))
+            .copied()
+            .unwrap_or(0);
+        let evidence_requested = member_id
+            .as_ref()
+            .map(|member_id| evidence_request_members.contains(member_id))
+            .unwrap_or(false);
+        let mut primary_candidate = input.suggested_governance_consideration;
+        match input.signal_kind {
+            ChairmanShadowGovernanceSignalKind::HelpfulDissentCandidate => {
+                if !policy.allow_reward_candidates {
+                    primary_candidate = ChairmanShadowGovernanceConsideration::NeedsMoreEvidence;
+                } else {
+                    primary_candidate = ChairmanShadowGovernanceConsideration::RewardCandidate;
+                }
+            }
+            ChairmanShadowGovernanceSignalKind::RiskVetoAlignment => {
+                if policy.allow_voice_candidates {
+                    primary_candidate =
+                        ChairmanShadowGovernanceConsideration::VoiceIncreaseCandidate;
+                }
+            }
+            ChairmanShadowGovernanceSignalKind::ObserverDisagreement
+            | ChairmanShadowGovernanceSignalKind::OverconfidentCallCandidate => {
+                if negative_count > 0 || input.confidence == SourceConfidence::High {
+                    primary_candidate = ChairmanShadowGovernanceConsideration::PenaltyCandidate;
+                }
+            }
+            ChairmanShadowGovernanceSignalKind::NeedMoreEvidenceCandidate => {
+                primary_candidate = if evidence_requested
+                    || member_id
+                        .as_deref()
+                        .map(|member_id| member_id.contains("evidence"))
+                        .unwrap_or(false)
+                {
+                    ChairmanShadowGovernanceConsideration::KeepNeutral
+                } else {
+                    ChairmanShadowGovernanceConsideration::NeedsMoreEvidence
+                };
+            }
+            ChairmanShadowGovernanceSignalKind::ObserverAgreement => {
+                if positive_count > 0 && policy.allow_reward_candidates {
+                    primary_candidate = ChairmanShadowGovernanceConsideration::RewardCandidate;
+                }
+            }
+            ChairmanShadowGovernanceSignalKind::OwnerOpinionAligned
+            | ChairmanShadowGovernanceSignalKind::OwnerOpinionIgnoredWithReason
+            | ChairmanShadowGovernanceSignalKind::OwnerOpinionIgnoredWithReasonCandidate
+            | ChairmanShadowGovernanceSignalKind::Neutral => {}
+        }
+        entries.push(chairman_candidate_entry(
+            format!("{}-{}", run_id, entries.len()),
+            &run_id,
+            member_id.clone(),
+            input.observer_id.clone(),
+            input.symbol.clone(),
+            input.market_scope,
+            input.signal_kind,
+            primary_candidate,
+            input.evidence_summary.clone(),
+            input.confidence,
+        ));
+        if input.signal_kind == ChairmanShadowGovernanceSignalKind::HelpfulDissentCandidate
+            && positive_count > 0
+            && policy.allow_voice_candidates
+        {
+            entries.push(chairman_candidate_entry(
+                format!("{}-{}", run_id, entries.len()),
+                &run_id,
+                member_id.clone(),
+                input.observer_id.clone(),
+                input.symbol.clone(),
+                input.market_scope,
+                input.signal_kind,
+                ChairmanShadowGovernanceConsideration::VoiceIncreaseCandidate,
+                "Helpful dissent stayed constructive in paper evaluation".to_string(),
+                input.confidence,
+            ));
+        }
+        if input.signal_kind == ChairmanShadowGovernanceSignalKind::OverconfidentCallCandidate
+            && policy.allow_voice_candidates
+        {
+            entries.push(chairman_candidate_entry(
+                format!("{}-{}", run_id, entries.len()),
+                &run_id,
+                member_id.clone(),
+                input.observer_id.clone(),
+                input.symbol.clone(),
+                input.market_scope,
+                input.signal_kind,
+                ChairmanShadowGovernanceConsideration::VoiceDecreaseCandidate,
+                "High-confidence risky shadow call should stay advisory and reduce shadow voice pressure"
+                    .to_string(),
+                input.confidence,
+            ));
+        }
+    }
+
+    for member_id in positive_counts.keys().chain(negative_counts.keys()) {
+        let confidence = if positive_counts.get(member_id).copied().unwrap_or(0) >= 3
+            || negative_counts.get(member_id).copied().unwrap_or(0) >= 3
+        {
+            SourceConfidence::High
+        } else {
+            SourceConfidence::Medium
+        };
+        if positive_counts.get(member_id).copied().unwrap_or(0) >= 2
+            && policy.allow_promotion_candidates
+            && source_confidence_meets_minimum(
+                confidence,
+                policy.min_confidence_for_promotion_candidate,
+            )
+        {
+            entries.push(chairman_candidate_entry(
+                format!("{}-{}", run_id, entries.len()),
+                &run_id,
+                Some(member_id.clone()),
+                None,
+                None,
+                None,
+                ChairmanShadowGovernanceSignalKind::ObserverAgreement,
+                ChairmanShadowGovernanceConsideration::PromotionCandidate,
+                "Repeated good shadow/member agreement observed across paper outcomes".to_string(),
+                confidence,
+            ));
+        }
+        if negative_counts.get(member_id).copied().unwrap_or(0) >= 2
+            && policy.allow_demotion_candidates
+            && source_confidence_meets_minimum(
+                confidence,
+                policy.min_confidence_for_demotion_candidate,
+            )
+        {
+            entries.push(chairman_candidate_entry(
+                format!("{}-{}", run_id, entries.len()),
+                &run_id,
+                Some(member_id.clone()),
+                None,
+                None,
+                None,
+                ChairmanShadowGovernanceSignalKind::ObserverDisagreement,
+                ChairmanShadowGovernanceConsideration::DemotionCandidate,
+                "Repeated severe mismatch stayed shadow-only and becomes demotion review candidate"
+                    .to_string(),
+                confidence,
+            ));
+        }
+    }
+
+    if observer_comparison_result.disagreement_delta > 0
+        && observer_ledger_trend.disagreement_trend == ObserverTrendDirection::Worsening
+    {
+        warnings.push(
+            "observer disagreement is worsening; chairman governance remains shadow-only"
+                .to_string(),
+        );
+    }
+
+    let reward_candidate_count = entries
+        .iter()
+        .filter(|entry| {
+            entry.governance_candidate == ChairmanShadowGovernanceConsideration::RewardCandidate
+        })
+        .count();
+    let penalty_candidate_count = entries
+        .iter()
+        .filter(|entry| {
+            entry.governance_candidate == ChairmanShadowGovernanceConsideration::PenaltyCandidate
+        })
+        .count();
+    let voice_increase_candidate_count = entries
+        .iter()
+        .filter(|entry| {
+            entry.governance_candidate
+                == ChairmanShadowGovernanceConsideration::VoiceIncreaseCandidate
+        })
+        .count();
+    let voice_decrease_candidate_count = entries
+        .iter()
+        .filter(|entry| {
+            entry.governance_candidate
+                == ChairmanShadowGovernanceConsideration::VoiceDecreaseCandidate
+        })
+        .count();
+    let promotion_candidate_count = entries
+        .iter()
+        .filter(|entry| {
+            entry.governance_candidate == ChairmanShadowGovernanceConsideration::PromotionCandidate
+        })
+        .count();
+    let demotion_candidate_count = entries
+        .iter()
+        .filter(|entry| {
+            entry.governance_candidate == ChairmanShadowGovernanceConsideration::DemotionCandidate
+        })
+        .count();
+    let needs_more_evidence_count = entries
+        .iter()
+        .filter(|entry| {
+            entry.governance_candidate == ChairmanShadowGovernanceConsideration::NeedsMoreEvidence
+        })
+        .count();
+    let build_status = if entries.is_empty() {
+        ChairmanGovernanceCandidateBuildStatus::NoCandidates
+    } else if !warnings.is_empty() {
+        ChairmanGovernanceCandidateBuildStatus::BuiltWithWarnings
+    } else {
+        ChairmanGovernanceCandidateBuildStatus::Built
+    };
+    Ok(ChairmanGovernanceCandidateBuildResult {
+        run_id,
+        input_count: governance_inputs.record_count,
+        generated_entry_count: entries.len(),
+        reward_candidate_count,
+        penalty_candidate_count,
+        voice_increase_candidate_count,
+        voice_decrease_candidate_count,
+        promotion_candidate_count,
+        demotion_candidate_count,
+        needs_more_evidence_count,
+        entries,
+        build_status,
+        warnings,
+        paper_only: true,
+    })
+}
+
+pub fn evaluate_owner_opinion_alignment(
+    owner_input: &OwnerFeedback,
+    chairman_decision: Option<&ChairmanDecision>,
+    risk_governor_status: Option<RiskGovernorStatus>,
+    committee_summary: Option<&OwnerCommitteeSummary>,
+    observer_summary: Option<&str>,
+) -> OwnerOpinionAlignmentRecord {
+    let owner_reference = OwnerOpinionReferenceRecord {
+        owner_input_id: Some(owner_input.feedback_id.clone()),
+        symbol: owner_input.symbol.clone(),
+        market_scope: owner_input.market_scope,
+        owner_intent: owner_intent_from_feedback_type(owner_input.feedback_type),
+        owner_summary: owner_input.text.clone(),
+        paper_only: true,
+    };
+    if reject_unsafe_owner_feedback_string(&owner_input.text).is_err() {
+        return OwnerOpinionAlignmentRecord {
+            alignment_id: format!("{}-owner-alignment", owner_input.feedback_id),
+            owner_reference,
+            chairman_decision_id: chairman_decision.map(|decision| decision.decision_id.clone()),
+            risk_governor_status,
+            observer_summary: observer_summary.map(|summary| summary.to_string()),
+            alignment_status: OwnerOpinionAlignmentStatus::NotAligned,
+            followed_owner_opinion: false,
+            not_followed_reason: Some(OwnerOpinionNotFollowedReason::OwnerRequestedActionUnsafe),
+            explanation:
+                "Owner opinion was treated as reference only and unsafe trade/order language was rejected."
+                    .to_string(),
+            paper_only: true,
+        };
+    }
+    let final_action = chairman_decision.map(|decision| decision.final_action);
+    let disagreement_signal = committee_summary
+        .map(|summary| !summary.top_dissenting_members.is_empty())
+        .unwrap_or(false)
+        || observer_summary
+            .map(|summary| summary.to_ascii_lowercase().contains("disagreement"))
+            .unwrap_or(false);
+    let (alignment_status, followed_owner_opinion, not_followed_reason, explanation) =
+        match owner_input.feedback_type {
+            OwnerFeedbackType::RiskConcern => {
+                if matches!(
+                    risk_governor_status,
+                    Some(RiskGovernorStatus::Vetoed | RiskGovernorStatus::NeedsReview)
+                ) || matches!(
+                    final_action,
+                    Some(
+                        ChairmanFinalAction::RiskVetoed
+                            | ChairmanFinalAction::NeedMoreEvidence
+                            | ChairmanFinalAction::PaperNoTrade
+                    )
+                ) {
+                    (
+                        OwnerOpinionAlignmentStatus::Aligned,
+                        true,
+                        None,
+                        "Owner risk concern aligned with the paper-only risk boundary and Chairman kept governance shadow-only."
+                            .to_string(),
+                    )
+                } else {
+                    (
+                        OwnerOpinionAlignmentStatus::NotAligned,
+                        false,
+                        Some(OwnerOpinionNotFollowedReason::HigherRiskThanOwnerAssumed),
+                        "Owner risk concern was noted, but the Chairman shadow evaluation judged the paper decision risk lower than the owner assumed."
+                            .to_string(),
+                    )
+                }
+            }
+            OwnerFeedbackType::EvidenceRequest => {
+                if matches!(
+                    final_action,
+                    Some(ChairmanFinalAction::NeedMoreEvidence | ChairmanFinalAction::PaperNoTrade)
+                ) || matches!(risk_governor_status, Some(RiskGovernorStatus::NeedsReview))
+                {
+                    (
+                        OwnerOpinionAlignmentStatus::Aligned,
+                        true,
+                        None,
+                        "Owner evidence request aligned with the paper-only decision path and extra evidence remained required."
+                            .to_string(),
+                    )
+                } else {
+                    (
+                        OwnerOpinionAlignmentStatus::NeedsMoreEvidence,
+                        false,
+                        Some(OwnerOpinionNotFollowedReason::InsufficientEvidence),
+                        "Owner evidence request was recorded, but the current paper-only record still needs clearer supporting evidence."
+                            .to_string(),
+                    )
+                }
+            }
+            OwnerFeedbackType::WatchlistRequest => (
+                OwnerOpinionAlignmentStatus::Aligned,
+                true,
+                None,
+                "Owner watchlist opinion was treated as reference and kept in observation-only form."
+                    .to_string(),
+            ),
+            OwnerFeedbackType::ReconsiderationRequest | OwnerFeedbackType::Disagree => {
+                if matches!(risk_governor_status, Some(RiskGovernorStatus::Vetoed)) {
+                    (
+                        OwnerOpinionAlignmentStatus::NotAligned,
+                        false,
+                        Some(OwnerOpinionNotFollowedReason::RiskGovernorVeto),
+                        "Owner opinion was not followed because Risk Governor veto remained the paper-only boundary."
+                            .to_string(),
+                    )
+                } else if disagreement_signal {
+                    (
+                        OwnerOpinionAlignmentStatus::PartiallyAligned,
+                        true,
+                        Some(OwnerOpinionNotFollowedReason::CommitteeDisagreement),
+                        "Owner opinion was partially aligned because disagreement was visible, but the Chairman shadow evaluation did not change the committee decision."
+                            .to_string(),
+                    )
+                } else {
+                    (
+                        OwnerOpinionAlignmentStatus::NotAligned,
+                        false,
+                        Some(OwnerOpinionNotFollowedReason::PaperOnlyBoundary),
+                        "Owner opinion was considered, but paper-only governance cannot force a decision change."
+                            .to_string(),
+                    )
+                }
+            }
+            OwnerFeedbackType::PaperOutcomeLabel | OwnerFeedbackType::Comment => (
+                OwnerOpinionAlignmentStatus::NotApplicable,
+                false,
+                Some(OwnerOpinionNotFollowedReason::NotApplicable),
+                "Owner opinion was logged as paper-only reference and did not request governance action."
+                    .to_string(),
+            ),
+        };
+    OwnerOpinionAlignmentRecord {
+        alignment_id: format!("{}-owner-alignment", owner_input.feedback_id),
+        owner_reference,
+        chairman_decision_id: chairman_decision.map(|decision| decision.decision_id.clone()),
+        risk_governor_status,
+        observer_summary: observer_summary.map(|summary| summary.to_string()),
+        alignment_status,
+        followed_owner_opinion,
+        not_followed_reason,
+        explanation,
+        paper_only: true,
+    }
+}
+
+pub fn default_owner_opinion_explanation_contract() -> OwnerOpinionExplanationContract {
+    OwnerOpinionExplanationContract {
+        contract_id: "owner-opinion-explanation-contract".to_string(),
+        require_explanation_when_not_followed: true,
+        require_risk_governor_reason: true,
+        require_committee_disagreement_reason: true,
+        require_evidence_reason: true,
+        forbid_trade_execution_language: true,
+        paper_only: true,
+    }
+}
+
+pub fn build_owner_opinion_explanation(
+    alignment_record: &OwnerOpinionAlignmentRecord,
+    contract: &OwnerOpinionExplanationContract,
+) -> OwnerOpinionExplanationResult {
+    let mut explanation = alignment_record.explanation.clone();
+    let mut status = match alignment_record.alignment_status {
+        OwnerOpinionAlignmentStatus::NotApplicable => OwnerOpinionExplanationStatus::NotApplicable,
+        _ => OwnerOpinionExplanationStatus::Explained,
+    };
+    if contract.require_explanation_when_not_followed
+        && !alignment_record.followed_owner_opinion
+        && explanation.trim().is_empty()
+    {
+        explanation = "Owner opinion was not followed in paper-only governance, but no explanation was available."
+            .to_string();
+        status = OwnerOpinionExplanationStatus::Failed;
+    }
+    if let Some(reason) = alignment_record.not_followed_reason {
+        let required_reason = match reason {
+            OwnerOpinionNotFollowedReason::RiskGovernorVeto => {
+                contract.require_risk_governor_reason
+            }
+            OwnerOpinionNotFollowedReason::CommitteeDisagreement => {
+                contract.require_committee_disagreement_reason
+            }
+            OwnerOpinionNotFollowedReason::InsufficientEvidence => contract.require_evidence_reason,
+            _ => true,
+        };
+        if !required_reason {
+            status = OwnerOpinionExplanationStatus::ExplainedWithWarnings;
+        }
+    }
+    if contract.forbid_trade_execution_language
+        && reject_unsafe_owner_feedback_string(&explanation).is_err()
+    {
+        status = OwnerOpinionExplanationStatus::Failed;
+    } else if matches!(
+        alignment_record.alignment_status,
+        OwnerOpinionAlignmentStatus::PartiallyAligned
+    ) {
+        status = OwnerOpinionExplanationStatus::ExplainedWithWarnings;
+    }
+    OwnerOpinionExplanationResult {
+        explanation_id: format!("{}-explanation", alignment_record.alignment_id),
+        alignment_record: alignment_record.clone(),
+        owner_readable_explanation: explanation,
+        explanation_status: status,
+        paper_only: true,
+    }
+}
+
+fn build_owner_opinion_ledger_entries(
+    run_id: &str,
+    alignment_records: &[OwnerOpinionAlignmentRecord],
+) -> Vec<ChairmanShadowGovernanceLedgerEntry> {
+    alignment_records
+        .iter()
+        .enumerate()
+        .map(|(index, record)| {
+            let governance_candidate = match record.alignment_status {
+                OwnerOpinionAlignmentStatus::NeedsMoreEvidence => {
+                    ChairmanShadowGovernanceConsideration::NeedsMoreEvidence
+                }
+                _ => ChairmanShadowGovernanceConsideration::KeepNeutral,
+            };
+            let signal_kind = match record.alignment_status {
+                OwnerOpinionAlignmentStatus::Aligned
+                | OwnerOpinionAlignmentStatus::PartiallyAligned => {
+                    ChairmanShadowGovernanceSignalKind::OwnerOpinionAligned
+                }
+                _ => ChairmanShadowGovernanceSignalKind::OwnerOpinionIgnoredWithReason,
+            };
+            chairman_candidate_entry(
+                format!("{run_id}-owner-opinion-{index}"),
+                run_id,
+                None,
+                None,
+                record.owner_reference.symbol.clone(),
+                record.owner_reference.market_scope,
+                signal_kind,
+                governance_candidate,
+                record.explanation.clone(),
+                SourceConfidence::Medium,
+            )
+        })
+        .collect()
+}
+
+pub fn summarize_chairman_voice_governance_shadow(
+    ledger: &ChairmanShadowGovernanceLedger,
+) -> Vec<ChairmanVoiceGovernanceShadowSummary> {
+    let mut per_member =
+        std::collections::BTreeMap::<String, Vec<&ChairmanShadowGovernanceLedgerEntry>>::new();
+    for entry in &ledger.entries {
+        if let Some(member_id) = entry.member_id.as_ref() {
+            per_member.entry(member_id.clone()).or_default().push(entry);
+        }
+    }
+    per_member
+        .into_iter()
+        .map(|(member_id, entries)| {
+            let reward_candidate_count = entries
+                .iter()
+                .filter(|entry| {
+                    entry.governance_candidate
+                        == ChairmanShadowGovernanceConsideration::RewardCandidate
+                })
+                .count();
+            let penalty_candidate_count = entries
+                .iter()
+                .filter(|entry| {
+                    entry.governance_candidate
+                        == ChairmanShadowGovernanceConsideration::PenaltyCandidate
+                })
+                .count();
+            let voice_increase_candidate_count = entries
+                .iter()
+                .filter(|entry| {
+                    entry.governance_candidate
+                        == ChairmanShadowGovernanceConsideration::VoiceIncreaseCandidate
+                })
+                .count();
+            let voice_decrease_candidate_count = entries
+                .iter()
+                .filter(|entry| {
+                    entry.governance_candidate
+                        == ChairmanShadowGovernanceConsideration::VoiceDecreaseCandidate
+                })
+                .count();
+            let promotion_candidate_count = entries
+                .iter()
+                .filter(|entry| {
+                    entry.governance_candidate
+                        == ChairmanShadowGovernanceConsideration::PromotionCandidate
+                })
+                .count();
+            let demotion_candidate_count = entries
+                .iter()
+                .filter(|entry| {
+                    entry.governance_candidate
+                        == ChairmanShadowGovernanceConsideration::DemotionCandidate
+                })
+                .count();
+            let needs_more_evidence_count = entries
+                .iter()
+                .filter(|entry| {
+                    entry.governance_candidate
+                        == ChairmanShadowGovernanceConsideration::NeedsMoreEvidence
+                })
+                .count();
+            let (net_shadow_voice_pressure, suggested_shadow_action) =
+                if promotion_candidate_count > 0 {
+                    (
+                        ChairmanVoiceGovernanceShadowPressure::Increase,
+                        ChairmanVoiceGovernanceShadowAction::CandidateForPromotionReview,
+                    )
+                } else if demotion_candidate_count > 0 {
+                    (
+                        ChairmanVoiceGovernanceShadowPressure::Decrease,
+                        ChairmanVoiceGovernanceShadowAction::CandidateForDemotionReview,
+                    )
+                } else if voice_increase_candidate_count > voice_decrease_candidate_count {
+                    (
+                        ChairmanVoiceGovernanceShadowPressure::Increase,
+                        ChairmanVoiceGovernanceShadowAction::CandidateForVoiceIncrease,
+                    )
+                } else if voice_decrease_candidate_count > voice_increase_candidate_count {
+                    (
+                        ChairmanVoiceGovernanceShadowPressure::Decrease,
+                        ChairmanVoiceGovernanceShadowAction::CandidateForVoiceDecrease,
+                    )
+                } else if needs_more_evidence_count > 0
+                    && reward_candidate_count == 0
+                    && penalty_candidate_count == 0
+                {
+                    (
+                        ChairmanVoiceGovernanceShadowPressure::NeedsMoreEvidence,
+                        ChairmanVoiceGovernanceShadowAction::NeedsMoreEvidence,
+                    )
+                } else {
+                    (
+                        ChairmanVoiceGovernanceShadowPressure::Neutral,
+                        ChairmanVoiceGovernanceShadowAction::ObserveOnly,
+                    )
+                };
+            ChairmanVoiceGovernanceShadowSummary {
+                summary_id: format!("{}-voice-shadow-summary", member_id),
+                member_id,
+                reward_candidate_count,
+                penalty_candidate_count,
+                voice_increase_candidate_count,
+                voice_decrease_candidate_count,
+                promotion_candidate_count,
+                demotion_candidate_count,
+                net_shadow_voice_pressure,
+                suggested_shadow_action,
+                no_actual_voice_change: true,
+                paper_only: true,
+            }
+        })
+        .collect()
+}
+
+pub fn evaluate_chairman_governance_shadow_safety_v2(
+    governance_result: &ChairmanShadowGovernanceRunResult,
+    owner_alignment_results: &[OwnerOpinionAlignmentRecord],
+    batch_before: &BatchCommitteeCycleResult,
+    batch_after: Option<&BatchCommitteeCycleResult>,
+) -> ChairmanGovernanceShadowSafetyGuardV2 {
+    let after = batch_after.unwrap_or(batch_before);
+    let score_snapshot = |batch: &BatchCommitteeCycleResult| {
+        batch
+            .score_updates
+            .iter()
+            .map(|update| (update.member_id.clone(), update.new_score))
+            .collect::<std::collections::BTreeMap<_, _>>()
+    };
+    let voice_snapshot = |batch: &BatchCommitteeCycleResult| {
+        batch
+            .score_updates
+            .iter()
+            .map(|update| (update.member_id.clone(), update.new_voice_weight))
+            .collect::<std::collections::BTreeMap<_, _>>()
+    };
+    let promoted_members = |batch: &BatchCommitteeCycleResult| {
+        batch
+            .score_updates
+            .iter()
+            .filter(|update| update.promoted)
+            .map(|update| update.member_id.clone())
+            .collect::<std::collections::BTreeSet<_>>()
+    };
+    let demoted_members = |batch: &BatchCommitteeCycleResult| {
+        batch
+            .score_updates
+            .iter()
+            .filter(|update| update.demoted)
+            .map(|update| update.member_id.clone())
+            .collect::<std::collections::BTreeSet<_>>()
+    };
+    let score_mutation_detected = score_snapshot(batch_before) != score_snapshot(after);
+    let voice_mutation_detected = voice_snapshot(batch_before) != voice_snapshot(after);
+    let promotion_detected = promoted_members(batch_before) != promoted_members(after);
+    let demotion_detected = demoted_members(batch_before) != demoted_members(after);
+    let risk_governor_override_detected = batch_before
+        .chairman_decisions
+        .iter()
+        .map(|decision| decision.risk_governor_status)
+        .collect::<Vec<_>>()
+        != after
+            .chairman_decisions
+            .iter()
+            .map(|decision| decision.risk_governor_status)
+            .collect::<Vec<_>>();
+    let chairman_decision_mutation_detected =
+        batch_before.chairman_decisions != after.chairman_decisions;
+    let committee_decision_mutation_detected =
+        batch_before.committee_sessions != after.committee_sessions;
+    let markers = governance_result
+        .ledger
+        .entries
+        .iter()
+        .map(|entry| entry.entry_id.clone())
+        .collect::<Vec<_>>();
+    let trade_signal_detected = value_contains_debug_marker(&after.committee_sessions, &markers);
+    let order_detected = value_contains_debug_marker(&after.event_queue, &markers);
+    let broker_order_account_detected = governance_result
+        .ledger
+        .entries
+        .iter()
+        .any(|entry| reject_unsafe_owner_feedback_string(&entry.evidence_summary).is_err());
+    let owner_opinion_forced_trade_detected = owner_alignment_results.iter().any(|record| {
+        record.followed_owner_opinion
+            && reject_unsafe_owner_feedback_string(&record.owner_reference.owner_summary).is_err()
+    });
+    let mut violations = Vec::new();
+    if score_mutation_detected {
+        violations.push("chairman governance shadow mutated score".to_string());
+    }
+    if voice_mutation_detected {
+        violations.push("chairman governance shadow mutated voice".to_string());
+    }
+    if promotion_detected {
+        violations.push("chairman governance shadow promoted member".to_string());
+    }
+    if demotion_detected {
+        violations.push("chairman governance shadow demoted member".to_string());
+    }
+    if risk_governor_override_detected {
+        violations.push("chairman governance shadow overrode Risk Governor".to_string());
+    }
+    if chairman_decision_mutation_detected {
+        violations.push("chairman governance shadow changed Chairman decision".to_string());
+    }
+    if committee_decision_mutation_detected {
+        violations.push("chairman governance shadow changed committee decision".to_string());
+    }
+    if trade_signal_detected {
+        violations.push("chairman governance shadow created trade signal".to_string());
+    }
+    if order_detected {
+        violations.push("chairman governance shadow created order".to_string());
+    }
+    if broker_order_account_detected {
+        violations.push("chairman governance shadow touched broker/order/account path".to_string());
+    }
+    if owner_opinion_forced_trade_detected {
+        violations.push("owner opinion forced trade path".to_string());
+    }
+    ChairmanGovernanceShadowSafetyGuardV2 {
+        score_mutation_detected,
+        voice_mutation_detected,
+        promotion_detected,
+        demotion_detected,
+        risk_governor_override_detected,
+        chairman_decision_mutation_detected,
+        committee_decision_mutation_detected,
+        trade_signal_detected,
+        order_detected,
+        broker_order_account_detected,
+        owner_opinion_forced_trade_detected,
+        guard_status: if violations.is_empty() {
+            ChairmanGovernanceShadowSafetyGuardV2Status::Preserved
+        } else {
+            ChairmanGovernanceShadowSafetyGuardV2Status::Violated
+        },
+        violations,
+        paper_only: true,
+    }
+}
+
+pub fn build_owner_chairman_governance_summary(
+    run_result: &ChairmanShadowGovernanceRunResult,
+) -> OwnerChairmanGovernanceSummary {
+    OwnerChairmanGovernanceSummary {
+        summary_id: format!("{}-owner-chairman-governance-summary", run_result.run_id),
+        reward_candidate_count: run_result.ledger.reward_candidate_count,
+        penalty_candidate_count: run_result.ledger.penalty_candidate_count,
+        voice_increase_candidate_count: run_result.ledger.voice_increase_candidate_count,
+        voice_decrease_candidate_count: run_result.ledger.voice_decrease_candidate_count,
+        promotion_candidate_count: run_result.ledger.promotion_candidate_count,
+        demotion_candidate_count: run_result.ledger.demotion_candidate_count,
+        owner_opinion_explanation_count: run_result.owner_explanation_results.len(),
+        message: "Chairman governance is shadow-only. No score or voice weight changed. No member was promoted or demoted. Owner opinion was treated as reference and explanation was generated when needed."
+            .to_string(),
+        chairman_shadow_only: true,
+        no_score_mutation: true,
+        no_voice_mutation: true,
+        no_promotion_demotion: true,
+        no_risk_override: true,
+        not_trade_signal: true,
+        paper_only: true,
+    }
+}
+
+pub fn run_chairman_shadow_governance(
+    governance_inputs: &ChairmanShadowGovernanceInputSet,
+    observer_comparison_result: &ObserverComparisonRerunV3Result,
+    observer_ledger_trend: &ObserverComparisonLedgerTrendV2,
+    member_experience_store: Option<&[MemberExperienceRecord]>,
+    owner_feedback: Option<&[OwnerFeedback]>,
+    batch_result: &BatchCommitteeCycleResult,
+    config: &ChairmanShadowGovernanceRunConfig,
+) -> Result<ChairmanShadowGovernanceRunResult, String> {
+    if !config.paper_only {
+        return Err("chairman shadow governance run must remain paper_only".to_string());
+    }
+    let candidate_build_result = build_chairman_governance_candidates(
+        governance_inputs,
+        observer_comparison_result,
+        observer_ledger_trend,
+        member_experience_store,
+        owner_feedback,
+        &default_chairman_reward_penalty_candidate_policy(),
+    )?;
+    let mut ledger = if let Some(path) = config.ledger_input_path.as_ref() {
+        if Path::new(path).exists() {
+            load_chairman_shadow_governance_ledger_from_local_json(Path::new(path))?
+        } else {
+            default_empty_chairman_shadow_governance_ledger(&config.run_id)
+        }
+    } else {
+        default_empty_chairman_shadow_governance_ledger(&config.run_id)
+    };
+    append_chairman_shadow_governance_entries(&mut ledger, &candidate_build_result.entries);
+    let observer_summary = format!(
+        "rerun={:?}, disagreement_delta={}, trend={:?}",
+        observer_comparison_result.rerun_status,
+        observer_comparison_result.disagreement_delta,
+        observer_ledger_trend.disagreement_trend
+    );
+    let owner_opinion_alignment_records = owner_feedback
+        .unwrap_or(&[])
+        .iter()
+        .map(|feedback| {
+            let chairman_decision = batch_result.chairman_decisions.iter().find(|decision| {
+                feedback
+                    .symbol
+                    .as_ref()
+                    .map(|symbol| {
+                        batch_result
+                            .committee_sessions
+                            .iter()
+                            .find(|session| session.session_id == decision.session_id)
+                            .map(|session| session.event.symbol.as_str() == symbol.as_str())
+                            .unwrap_or(false)
+                    })
+                    .unwrap_or(true)
+            });
+            evaluate_owner_opinion_alignment(
+                feedback,
+                chairman_decision,
+                chairman_decision.map(|decision| decision.risk_governor_status),
+                None,
+                Some(&observer_summary),
+            )
+        })
+        .collect::<Vec<_>>();
+    let owner_alignment_entries =
+        build_owner_opinion_ledger_entries(&config.run_id, &owner_opinion_alignment_records);
+    append_chairman_shadow_governance_entries(&mut ledger, &owner_alignment_entries);
+    let owner_explanation_results = if config.emit_owner_explanations {
+        owner_opinion_alignment_records
+            .iter()
+            .map(|record| {
+                build_owner_opinion_explanation(
+                    record,
+                    &default_owner_opinion_explanation_contract(),
+                )
+            })
+            .collect::<Vec<_>>()
+    } else {
+        Vec::new()
+    };
+    if !config.dry_run {
+        let path = config.ledger_output_path.as_ref().ok_or_else(|| {
+            "chairman shadow governance non-dry run requires ledger_output_path".to_string()
+        })?;
+        save_chairman_shadow_governance_ledger_to_local_json(Path::new(path), &ledger)?;
+    }
+    let voice_governance_summaries = summarize_chairman_voice_governance_shadow(&ledger);
+    let provisional = ChairmanShadowGovernanceRunResult {
+        run_id: config.run_id.clone(),
+        candidate_build_result: candidate_build_result.clone(),
+        ledger: ledger.clone(),
+        owner_opinion_alignment_records: owner_opinion_alignment_records.clone(),
+        owner_explanation_results: owner_explanation_results.clone(),
+        voice_governance_summaries: voice_governance_summaries.clone(),
+        safety_guard: ChairmanGovernanceShadowSafetyGuardV2 {
+            score_mutation_detected: false,
+            voice_mutation_detected: false,
+            promotion_detected: false,
+            demotion_detected: false,
+            risk_governor_override_detected: false,
+            chairman_decision_mutation_detected: false,
+            committee_decision_mutation_detected: false,
+            trade_signal_detected: false,
+            order_detected: false,
+            broker_order_account_detected: false,
+            owner_opinion_forced_trade_detected: false,
+            guard_status: ChairmanGovernanceShadowSafetyGuardV2Status::Preserved,
+            violations: Vec::new(),
+            paper_only: true,
+        },
+        run_status: ChairmanShadowGovernanceRunStatus::Passed,
+        paper_only: true,
+    };
+    let safety_guard = evaluate_chairman_governance_shadow_safety_v2(
+        &provisional,
+        &owner_opinion_alignment_records,
+        batch_result,
+        Some(batch_result),
+    );
+    let run_status = if candidate_build_result.build_status
+        == ChairmanGovernanceCandidateBuildStatus::Failed
+        || safety_guard.guard_status == ChairmanGovernanceShadowSafetyGuardV2Status::Violated
+    {
+        ChairmanShadowGovernanceRunStatus::Failed
+    } else if config.dry_run
+        || candidate_build_result.build_status
+            == ChairmanGovernanceCandidateBuildStatus::BuiltWithWarnings
+        || owner_explanation_results.iter().any(|result| {
+            matches!(
+                result.explanation_status,
+                OwnerOpinionExplanationStatus::ExplainedWithWarnings
+            )
+        })
+    {
+        ChairmanShadowGovernanceRunStatus::PassedWithWarnings
+    } else {
+        ChairmanShadowGovernanceRunStatus::Passed
+    };
+    Ok(ChairmanShadowGovernanceRunResult {
+        run_id: config.run_id.clone(),
+        candidate_build_result,
+        ledger,
+        owner_opinion_alignment_records,
+        owner_explanation_results,
+        voice_governance_summaries,
+        safety_guard,
+        run_status,
+        paper_only: true,
+    })
+}
+
+pub fn chairman_shadow_governance_requested_from_flags(
+    enabled: bool,
+    dry_run: bool,
+    ledger_output_path: Option<&String>,
+    owner_feedback_path: Option<&String>,
+    _emit_owner_explanations: bool,
+    _emit_owner_summary: bool,
+) -> bool {
+    enabled || !dry_run || ledger_output_path.is_some() || owner_feedback_path.is_some()
+}
+
+fn maybe_run_chairman_shadow_governance_for_batch_result(
+    run_id: String,
+    enabled: bool,
+    dry_run: bool,
+    ledger_output_path: Option<&String>,
+    owner_feedback_path: Option<&String>,
+    emit_owner_explanations: bool,
+    emit_owner_summary: bool,
+    batch_result: &mut BatchCommitteeCycleResult,
+) -> Result<Option<ChairmanShadowGovernanceRunResult>, String> {
+    if !chairman_shadow_governance_requested_from_flags(
+        enabled,
+        dry_run,
+        ledger_output_path,
+        owner_feedback_path,
+        emit_owner_explanations,
+        emit_owner_summary,
+    ) {
+        return Ok(None);
+    }
+    let owner_feedback = if let Some(path) = owner_feedback_path {
+        load_owner_feedback_from_local_json(Path::new(path))?
+    } else {
+        Vec::new()
+    };
+    let comparison_rerun_v3 = if let Some(run) = batch_result
+        .observer_apply_verify_chairman_shadow_run_result
+        .as_ref()
+    {
+        run.comparison_rerun_v3.clone()
+    } else {
+        batch_result
+            .observer_comparison_rerun_v3_result
+            .clone()
+            .or_else(|| {
+                dry_run.then_some(ObserverComparisonRerunV3Result {
+                    previous_target_count: 0,
+                    new_target_count: 0,
+                    target_delta: 0,
+                    previous_disagreement_count: 0,
+                    new_disagreement_count: 0,
+                    disagreement_delta: 0,
+                    previous_readiness_status:
+                        SmartCoreObserverLaneReadinessStatus::NeedsMoreTargets,
+                    new_comparison_summary_status:
+                        ObserverVsCommitteeComparisonSummaryStatus::InsufficientComparisons,
+                    target_store_accepted: false,
+                    rerun_status: ObserverComparisonRerunV3Status::NeedsMoreTargets,
+                    paper_only: true,
+                })
+            })
+            .ok_or_else(|| {
+                "chairman shadow governance run requires observer comparison rerun v3".to_string()
+            })?
+    };
+    let ledger_trend_v2 = if let Some(run) = batch_result
+        .observer_apply_verify_chairman_shadow_run_result
+        .as_ref()
+    {
+        run.ledger_trend_v2.clone()
+    } else {
+        batch_result
+            .observer_comparison_ledger_trend_v2
+            .clone()
+            .or_else(|| {
+                dry_run.then_some(ObserverComparisonLedgerTrendV2 {
+                    ledger_id: format!("{run_id}-observer-neutral-trend"),
+                    entry_count: 0,
+                    latest_readiness_status: SmartCoreObserverLaneReadinessStatus::NeedsMoreTargets,
+                    latest_target_count: 0,
+                    latest_disagreement_count: 0,
+                    target_count_trend: ObserverTargetCountTrendDirection::InsufficientHistory,
+                    disagreement_trend: ObserverTrendDirection::InsufficientHistory,
+                    readiness_trend: ObserverTrendDirection::InsufficientHistory,
+                    trend_status: ObserverComparisonLedgerTrendStatus::InsufficientHistory,
+                    paper_only: true,
+                })
+            })
+            .ok_or_else(|| {
+                "chairman shadow governance run requires observer ledger trend v2".to_string()
+            })?
+    };
+    let governance_inputs = if let Some(run) = batch_result
+        .observer_apply_verify_chairman_shadow_run_result
+        .as_ref()
+    {
+        run.chairman_shadow_governance_inputs
+            .clone()
+            .unwrap_or_else(|| {
+                build_chairman_shadow_governance_input_set(
+                    format!("{run_id}-shadow-input"),
+                    &comparison_rerun_v3,
+                    &ledger_trend_v2,
+                    &batch_result.member_experience_records,
+                )
+            })
+    } else {
+        batch_result
+            .chairman_shadow_governance_input_set
+            .clone()
+            .unwrap_or_else(|| {
+                build_chairman_shadow_governance_input_set(
+                    format!("{run_id}-shadow-input"),
+                    &comparison_rerun_v3,
+                    &ledger_trend_v2,
+                    &batch_result.member_experience_records,
+                )
+            })
+    };
+    let result = run_chairman_shadow_governance(
+        &governance_inputs,
+        &comparison_rerun_v3,
+        &ledger_trend_v2,
+        Some(batch_result.member_experience_records.as_slice()),
+        Some(owner_feedback.as_slice()),
+        batch_result,
+        &ChairmanShadowGovernanceRunConfig {
+            run_id: run_id.clone(),
+            enabled,
+            ledger_input_path: None,
+            ledger_output_path: ledger_output_path.cloned(),
+            owner_feedback_path: owner_feedback_path.cloned(),
+            emit_owner_explanations,
+            dry_run,
+            paper_only: true,
+        },
+    )?;
+    batch_result.chairman_shadow_governance_ledger = Some(result.ledger.clone());
+    batch_result.chairman_governance_candidate_build_result =
+        Some(result.candidate_build_result.clone());
+    batch_result.owner_opinion_alignment_records =
+        Some(result.owner_opinion_alignment_records.clone());
+    batch_result.owner_opinion_explanation_results = Some(result.owner_explanation_results.clone());
+    batch_result.chairman_voice_governance_shadow_summaries =
+        Some(result.voice_governance_summaries.clone());
+    batch_result.chairman_governance_shadow_safety_guard_v2 = Some(result.safety_guard.clone());
+    batch_result.chairman_shadow_governance_run_result = Some(result.clone());
+    if emit_owner_summary {
+        batch_result.owner_chairman_governance_summary =
+            Some(build_owner_chairman_governance_summary(&result));
+    }
+    Ok(Some(result))
+}
+
+pub fn default_chairman_shadow_governance_simulation_policy()
+-> ChairmanShadowGovernanceSimulationPolicy {
+    ChairmanShadowGovernanceSimulationPolicy {
+        policy_id: "chairman-shadow-governance-simulation-policy".to_string(),
+        max_abs_score_delta_per_entry: 0.05,
+        max_abs_voice_delta_per_entry: 0.03,
+        max_total_voice_delta_per_member: 0.08,
+        min_confidence_for_positive_delta: SourceConfidence::Medium,
+        min_confidence_for_negative_delta: SourceConfidence::Medium,
+        allow_review_required_delta: false,
+        allow_actual_score_mutation: false,
+        allow_actual_voice_mutation: false,
+        allow_promotion_demotion: false,
+        allow_risk_governor_override: false,
+        risk_first_bias: true,
+        paper_only: true,
+    }
+}
+
+pub fn validate_chairman_shadow_governance_simulation_policy(
+    policy: &ChairmanShadowGovernanceSimulationPolicy,
+) -> Result<(), String> {
+    if !policy.paper_only {
+        return Err(
+            "chairman shadow governance simulation policy must stay paper_only".to_string(),
+        );
+    }
+    if policy.allow_actual_score_mutation
+        || policy.allow_actual_voice_mutation
+        || policy.allow_promotion_demotion
+        || policy.allow_risk_governor_override
+    {
+        return Err(
+            "chairman shadow governance simulation policy must forbid actual mutations".to_string(),
+        );
+    }
+    if policy.max_abs_score_delta_per_entry < 0.0
+        || policy.max_abs_voice_delta_per_entry < 0.0
+        || policy.max_total_voice_delta_per_member < 0.0
+    {
+        return Err(
+            "chairman shadow governance simulation policy bounds must be non-negative".to_string(),
+        );
+    }
+    Ok(())
+}
+
+fn bounded_shadow_delta(value: f64, max_abs: f64) -> f64 {
+    if value.is_nan() || !value.is_finite() {
+        0.0
+    } else if value > max_abs {
+        max_abs
+    } else if value < -max_abs {
+        -max_abs
+    } else {
+        value
+    }
+}
+
+fn build_score_delta_reason(
+    entry: &ChairmanShadowGovernanceLedgerEntry,
+) -> ChairmanShadowScoreDeltaReason {
+    match entry.signal_kind {
+        ChairmanShadowGovernanceSignalKind::HelpfulDissentCandidate => {
+            ChairmanShadowScoreDeltaReason::HelpfulDissent
+        }
+        ChairmanShadowGovernanceSignalKind::RiskVetoAlignment => {
+            ChairmanShadowScoreDeltaReason::RiskVetoAligned
+        }
+        ChairmanShadowGovernanceSignalKind::OverconfidentCallCandidate => {
+            ChairmanShadowScoreDeltaReason::OverconfidentBadCall
+        }
+        ChairmanShadowGovernanceSignalKind::ObserverAgreement => {
+            ChairmanShadowScoreDeltaReason::ObserverAgreement
+        }
+        ChairmanShadowGovernanceSignalKind::ObserverDisagreement => {
+            ChairmanShadowScoreDeltaReason::ObserverDisagreement
+        }
+        ChairmanShadowGovernanceSignalKind::OwnerOpinionAligned => {
+            ChairmanShadowScoreDeltaReason::OwnerOpinionAligned
+        }
+        ChairmanShadowGovernanceSignalKind::OwnerOpinionIgnoredWithReason
+        | ChairmanShadowGovernanceSignalKind::OwnerOpinionIgnoredWithReasonCandidate => {
+            ChairmanShadowScoreDeltaReason::OwnerOpinionNotFollowedSafely
+        }
+        ChairmanShadowGovernanceSignalKind::NeedMoreEvidenceCandidate
+        | ChairmanShadowGovernanceSignalKind::Neutral => {
+            ChairmanShadowScoreDeltaReason::NeedsMoreEvidence
+        }
+    }
+}
+
+fn build_voice_delta_reason(
+    entry: &ChairmanShadowGovernanceLedgerEntry,
+) -> ChairmanShadowVoiceDeltaReason {
+    match entry.signal_kind {
+        ChairmanShadowGovernanceSignalKind::HelpfulDissentCandidate => {
+            ChairmanShadowVoiceDeltaReason::HelpfulDissent
+        }
+        ChairmanShadowGovernanceSignalKind::RiskVetoAlignment => {
+            ChairmanShadowVoiceDeltaReason::RiskSavedLoss
+        }
+        ChairmanShadowGovernanceSignalKind::OverconfidentCallCandidate => {
+            ChairmanShadowVoiceDeltaReason::OverconfidentRisk
+        }
+        ChairmanShadowGovernanceSignalKind::ObserverAgreement => {
+            ChairmanShadowVoiceDeltaReason::ConsistentObserverAgreement
+        }
+        ChairmanShadowGovernanceSignalKind::ObserverDisagreement => {
+            ChairmanShadowVoiceDeltaReason::SevereObserverDisagreement
+        }
+        ChairmanShadowGovernanceSignalKind::NeedMoreEvidenceCandidate
+        | ChairmanShadowGovernanceSignalKind::OwnerOpinionAligned
+        | ChairmanShadowGovernanceSignalKind::OwnerOpinionIgnoredWithReason
+        | ChairmanShadowGovernanceSignalKind::OwnerOpinionIgnoredWithReasonCandidate
+        | ChairmanShadowGovernanceSignalKind::Neutral => {
+            ChairmanShadowVoiceDeltaReason::NeedsMoreEvidence
+        }
+    }
+}
+
+fn confidence_allows_shadow_delta(
+    confidence: SourceConfidence,
+    minimum: SourceConfidence,
+    allow_review_required_delta: bool,
+) -> bool {
+    if confidence == SourceConfidence::ReviewRequired && !allow_review_required_delta {
+        return false;
+    }
+    source_confidence_meets_minimum(confidence, minimum)
+}
+
+pub fn build_chairman_shadow_score_delta(
+    entry: &ChairmanShadowGovernanceLedgerEntry,
+    policy: &ChairmanShadowGovernanceSimulationPolicy,
+) -> ChairmanShadowScoreDelta {
+    let unsafe_or_needs_more_evidence =
+        reject_unsafe_owner_feedback_string(&entry.evidence_summary).is_err()
+            || entry.governance_candidate
+                == ChairmanShadowGovernanceConsideration::NeedsMoreEvidence;
+    let reason = if unsafe_or_needs_more_evidence {
+        ChairmanShadowScoreDeltaReason::NeedsMoreEvidence
+    } else if entry.governance_candidate == ChairmanShadowGovernanceConsideration::KeepNeutral {
+        ChairmanShadowScoreDeltaReason::EvidenceWeakness
+    } else {
+        build_score_delta_reason(entry)
+    };
+    let (delta_kind, proposed_score_delta) = if unsafe_or_needs_more_evidence {
+        (ChairmanShadowScoreDeltaKind::NeedsMoreEvidence, 0.0)
+    } else {
+        match entry.governance_candidate {
+            ChairmanShadowGovernanceConsideration::RewardCandidate
+            | ChairmanShadowGovernanceConsideration::PromotionCandidate => {
+                if confidence_allows_shadow_delta(
+                    entry.confidence,
+                    policy.min_confidence_for_positive_delta,
+                    policy.allow_review_required_delta,
+                ) {
+                    (
+                        ChairmanShadowScoreDeltaKind::Reward,
+                        bounded_shadow_delta(0.04, policy.max_abs_score_delta_per_entry),
+                    )
+                } else {
+                    (ChairmanShadowScoreDeltaKind::NeedsMoreEvidence, 0.0)
+                }
+            }
+            ChairmanShadowGovernanceConsideration::PenaltyCandidate
+            | ChairmanShadowGovernanceConsideration::DemotionCandidate => {
+                if confidence_allows_shadow_delta(
+                    entry.confidence,
+                    policy.min_confidence_for_negative_delta,
+                    policy.allow_review_required_delta,
+                ) {
+                    (
+                        ChairmanShadowScoreDeltaKind::Penalty,
+                        bounded_shadow_delta(-0.05, policy.max_abs_score_delta_per_entry),
+                    )
+                } else {
+                    (ChairmanShadowScoreDeltaKind::NeedsMoreEvidence, 0.0)
+                }
+            }
+            ChairmanShadowGovernanceConsideration::KeepNeutral
+            | ChairmanShadowGovernanceConsideration::VoiceIncreaseCandidate
+            | ChairmanShadowGovernanceConsideration::VoiceDecreaseCandidate => {
+                (ChairmanShadowScoreDeltaKind::Neutral, 0.0)
+            }
+            ChairmanShadowGovernanceConsideration::NeedsMoreEvidence => {
+                (ChairmanShadowScoreDeltaKind::NeedsMoreEvidence, 0.0)
+            }
+        }
+    };
+    ChairmanShadowScoreDelta {
+        delta_id: format!("{}-score-delta", entry.entry_id),
+        source_ledger_entry_id: entry.entry_id.clone(),
+        member_id: entry
+            .member_id
+            .clone()
+            .unwrap_or_else(|| "unknown-member".to_string()),
+        symbol: entry.symbol.clone(),
+        market_scope: entry.market_scope,
+        delta_kind,
+        proposed_score_delta,
+        reason,
+        confidence: entry.confidence,
+        shadow_only: true,
+        no_actual_score_mutation: true,
+        paper_only: true,
+    }
+}
+
+pub fn build_chairman_shadow_voice_delta(
+    entry: &ChairmanShadowGovernanceLedgerEntry,
+    policy: &ChairmanShadowGovernanceSimulationPolicy,
+) -> ChairmanShadowVoiceDelta {
+    let unsafe_or_needs_more_evidence =
+        reject_unsafe_owner_feedback_string(&entry.evidence_summary).is_err()
+            || entry.governance_candidate
+                == ChairmanShadowGovernanceConsideration::NeedsMoreEvidence;
+    let reason = if unsafe_or_needs_more_evidence {
+        ChairmanShadowVoiceDeltaReason::NeedsMoreEvidence
+    } else {
+        build_voice_delta_reason(entry)
+    };
+    let (delta_kind, proposed_voice_delta) = if unsafe_or_needs_more_evidence {
+        (ChairmanShadowVoiceDeltaKind::NeedsMoreEvidence, 0.0)
+    } else {
+        match entry.governance_candidate {
+            ChairmanShadowGovernanceConsideration::VoiceIncreaseCandidate
+            | ChairmanShadowGovernanceConsideration::PromotionCandidate => {
+                if confidence_allows_shadow_delta(
+                    entry.confidence,
+                    policy.min_confidence_for_positive_delta,
+                    policy.allow_review_required_delta,
+                ) {
+                    (
+                        ChairmanShadowVoiceDeltaKind::Increase,
+                        bounded_shadow_delta(0.02, policy.max_abs_voice_delta_per_entry),
+                    )
+                } else {
+                    (ChairmanShadowVoiceDeltaKind::NeedsMoreEvidence, 0.0)
+                }
+            }
+            ChairmanShadowGovernanceConsideration::VoiceDecreaseCandidate
+            | ChairmanShadowGovernanceConsideration::DemotionCandidate => {
+                if confidence_allows_shadow_delta(
+                    entry.confidence,
+                    policy.min_confidence_for_negative_delta,
+                    policy.allow_review_required_delta,
+                ) {
+                    (
+                        ChairmanShadowVoiceDeltaKind::Decrease,
+                        bounded_shadow_delta(-0.03, policy.max_abs_voice_delta_per_entry),
+                    )
+                } else {
+                    (ChairmanShadowVoiceDeltaKind::NeedsMoreEvidence, 0.0)
+                }
+            }
+            ChairmanShadowGovernanceConsideration::NeedsMoreEvidence => {
+                (ChairmanShadowVoiceDeltaKind::NeedsMoreEvidence, 0.0)
+            }
+            ChairmanShadowGovernanceConsideration::RewardCandidate
+                if entry.signal_kind == ChairmanShadowGovernanceSignalKind::RiskVetoAlignment =>
+            {
+                (
+                    ChairmanShadowVoiceDeltaKind::Increase,
+                    bounded_shadow_delta(0.02, policy.max_abs_voice_delta_per_entry),
+                )
+            }
+            ChairmanShadowGovernanceConsideration::PenaltyCandidate
+                if entry.signal_kind
+                    == ChairmanShadowGovernanceSignalKind::OverconfidentCallCandidate =>
+            {
+                (
+                    ChairmanShadowVoiceDeltaKind::Decrease,
+                    bounded_shadow_delta(-0.02, policy.max_abs_voice_delta_per_entry),
+                )
+            }
+            _ => (ChairmanShadowVoiceDeltaKind::Neutral, 0.0),
+        }
+    };
+    ChairmanShadowVoiceDelta {
+        delta_id: format!("{}-voice-delta", entry.entry_id),
+        source_ledger_entry_id: entry.entry_id.clone(),
+        member_id: entry
+            .member_id
+            .clone()
+            .unwrap_or_else(|| "unknown-member".to_string()),
+        symbol: entry.symbol.clone(),
+        market_scope: entry.market_scope,
+        delta_kind,
+        proposed_voice_delta,
+        reason,
+        confidence: entry.confidence,
+        shadow_only: true,
+        no_actual_voice_mutation: true,
+        paper_only: true,
+    }
+}
+
+pub fn simulate_chairman_shadow_governance(
+    ledger: &ChairmanShadowGovernanceLedger,
+    member_states: &[MemberStateSnapshot],
+    policy: &ChairmanShadowGovernanceSimulationPolicy,
+) -> Result<ChairmanShadowGovernanceSimulationResult, String> {
+    validate_chairman_shadow_governance_simulation_policy(policy)?;
+    let member_state_map = member_states
+        .iter()
+        .map(|state| (state.member_id.clone(), state))
+        .collect::<std::collections::BTreeMap<_, _>>();
+    let mut score_deltas = Vec::new();
+    let mut voice_deltas = Vec::new();
+    let mut aggregated = std::collections::BTreeMap::<String, (f64, f64, bool)>::new();
+    for entry in &ledger.entries {
+        let Some(member_id) = entry.member_id.as_ref() else {
+            continue;
+        };
+        if !member_state_map.contains_key(member_id) {
+            continue;
+        }
+        let score_delta = build_chairman_shadow_score_delta(entry, policy);
+        let voice_delta = build_chairman_shadow_voice_delta(entry, policy);
+        let aggregate = aggregated
+            .entry(member_id.clone())
+            .or_insert((0.0, 0.0, false));
+        aggregate.0 += score_delta.proposed_score_delta;
+        aggregate.1 += voice_delta.proposed_voice_delta;
+        aggregate.2 |= score_delta.delta_kind == ChairmanShadowScoreDeltaKind::NeedsMoreEvidence
+            || voice_delta.delta_kind == ChairmanShadowVoiceDeltaKind::NeedsMoreEvidence;
+        score_deltas.push(score_delta);
+        voice_deltas.push(voice_delta);
+    }
+    let simulated_member_standings = member_states
+        .iter()
+        .map(|state| {
+            let (score_delta_total, voice_delta_total_raw, needs_more_evidence) = aggregated
+                .get(&state.member_id)
+                .copied()
+                .unwrap_or((0.0, 0.0, false));
+            let voice_delta_total = bounded_shadow_delta(
+                voice_delta_total_raw,
+                policy.max_total_voice_delta_per_member,
+            );
+            let simulated_score = clamp_unit(state.score + score_delta_total);
+            let simulated_voice_weight = clamp_unit(state.voice_weight + voice_delta_total);
+            let standing_status = if needs_more_evidence
+                && score_delta_total.abs() <= f64::EPSILON
+                && voice_delta_total.abs() <= f64::EPSILON
+            {
+                SimulatedMemberStandingStatus::NeedsMoreEvidence
+            } else if score_delta_total > 0.0 || voice_delta_total > 0.0 {
+                SimulatedMemberStandingStatus::ImprovedShadowStanding
+            } else if score_delta_total < 0.0 || voice_delta_total < 0.0 {
+                SimulatedMemberStandingStatus::ReducedShadowStanding
+            } else {
+                SimulatedMemberStandingStatus::NeutralShadowStanding
+            };
+            SimulatedMemberStanding {
+                member_id: state.member_id.clone(),
+                original_score: state.score,
+                simulated_score,
+                original_voice_weight: state.voice_weight,
+                simulated_voice_weight,
+                score_delta_total,
+                voice_delta_total,
+                standing_status,
+                paper_only: true,
+            }
+        })
+        .collect::<Vec<_>>();
+    let reward_delta_count = score_deltas
+        .iter()
+        .filter(|delta| delta.delta_kind == ChairmanShadowScoreDeltaKind::Reward)
+        .count();
+    let penalty_delta_count = score_deltas
+        .iter()
+        .filter(|delta| delta.delta_kind == ChairmanShadowScoreDeltaKind::Penalty)
+        .count();
+    let voice_increase_count = voice_deltas
+        .iter()
+        .filter(|delta| delta.delta_kind == ChairmanShadowVoiceDeltaKind::Increase)
+        .count();
+    let voice_decrease_count = voice_deltas
+        .iter()
+        .filter(|delta| delta.delta_kind == ChairmanShadowVoiceDeltaKind::Decrease)
+        .count();
+    let needs_more_evidence_count = score_deltas
+        .iter()
+        .filter(|delta| delta.delta_kind == ChairmanShadowScoreDeltaKind::NeedsMoreEvidence)
+        .count()
+        + voice_deltas
+            .iter()
+            .filter(|delta| delta.delta_kind == ChairmanShadowVoiceDeltaKind::NeedsMoreEvidence)
+            .count();
+    let simulation_status = if score_deltas.is_empty() && voice_deltas.is_empty() {
+        ChairmanShadowGovernanceSimulationStatus::NoDeltas
+    } else if needs_more_evidence_count > 0 {
+        ChairmanShadowGovernanceSimulationStatus::SimulatedWithWarnings
+    } else {
+        ChairmanShadowGovernanceSimulationStatus::Simulated
+    };
+    Ok(ChairmanShadowGovernanceSimulationResult {
+        simulation_id: format!("{}-simulation", ledger.ledger_id),
+        source_ledger_id: ledger.ledger_id.clone(),
+        score_deltas,
+        voice_deltas,
+        simulated_member_standings,
+        reward_delta_count,
+        penalty_delta_count,
+        voice_increase_count,
+        voice_decrease_count,
+        needs_more_evidence_count,
+        simulation_status,
+        no_actual_score_mutation: true,
+        no_actual_voice_mutation: true,
+        no_promotion_demotion: true,
+        no_risk_governor_override: true,
+        paper_only: true,
+    })
+}
+
+pub fn evaluate_chairman_governance_fairness(
+    simulation_result: &ChairmanShadowGovernanceSimulationResult,
+    policy: &ChairmanShadowGovernanceSimulationPolicy,
+) -> ChairmanGovernanceFairnessCheck {
+    let member_count = simulation_result.simulated_member_standings.len();
+    let total_voice = simulation_result
+        .simulated_member_standings
+        .iter()
+        .map(|standing| standing.simulated_voice_weight)
+        .sum::<f64>();
+    let max_voice_concentration = if total_voice > f64::EPSILON {
+        simulation_result
+            .simulated_member_standings
+            .iter()
+            .map(|standing| standing.simulated_voice_weight / total_voice)
+            .fold(0.0, f64::max)
+    } else {
+        0.0
+    };
+    let min_voice_weight = simulation_result
+        .simulated_member_standings
+        .iter()
+        .map(|standing| standing.simulated_voice_weight)
+        .reduce(f64::min)
+        .unwrap_or(0.0);
+    let excessive_penalty_count = simulation_result
+        .simulated_member_standings
+        .iter()
+        .filter(|standing| standing.score_delta_total <= -policy.max_abs_score_delta_per_entry)
+        .count();
+    let excessive_reward_count = simulation_result
+        .simulated_member_standings
+        .iter()
+        .filter(|standing| standing.score_delta_total >= policy.max_abs_score_delta_per_entry)
+        .count();
+    let single_member_dominance_detected = max_voice_concentration > 0.55;
+    let unfair_penalty_detected = excessive_penalty_count > member_count.saturating_div(2)
+        && excessive_penalty_count > excessive_reward_count + 1;
+    let mut warnings = Vec::new();
+    if max_voice_concentration > 0.45 {
+        warnings.push("shadow voice concentration is approaching dominance".to_string());
+    }
+    if excessive_penalty_count > 0 {
+        warnings.push("shadow simulation contains concentrated penalties".to_string());
+    }
+    let fairness_status = if member_count == 0 {
+        ChairmanGovernanceFairnessStatus::InsufficientData
+    } else if single_member_dominance_detected || unfair_penalty_detected {
+        ChairmanGovernanceFairnessStatus::Unfair
+    } else if !warnings.is_empty() {
+        ChairmanGovernanceFairnessStatus::FairWithWarnings
+    } else {
+        ChairmanGovernanceFairnessStatus::Fair
+    };
+    ChairmanGovernanceFairnessCheck {
+        check_id: format!("{}-fairness", simulation_result.simulation_id),
+        member_count,
+        max_voice_concentration,
+        min_voice_weight,
+        excessive_penalty_count,
+        excessive_reward_count,
+        single_member_dominance_detected,
+        unfair_penalty_detected,
+        fairness_status,
+        warnings,
+        paper_only: true,
+    }
+}
+
+pub fn evaluate_chairman_risk_first_governance(
+    simulation_result: &ChairmanShadowGovernanceSimulationResult,
+    ledger: &ChairmanShadowGovernanceLedger,
+) -> ChairmanRiskFirstGovernanceCheck {
+    let risk_guard_rewarded_count = simulation_result
+        .score_deltas
+        .iter()
+        .filter(|delta| {
+            delta.reason == ChairmanShadowScoreDeltaReason::RiskVetoAligned
+                && delta.proposed_score_delta > 0.0
+        })
+        .count()
+        + simulation_result
+            .voice_deltas
+            .iter()
+            .filter(|delta| {
+                delta.reason == ChairmanShadowVoiceDeltaReason::RiskSavedLoss
+                    && delta.proposed_voice_delta > 0.0
+            })
+            .count();
+    let risky_overconfidence_penalized_count = simulation_result
+        .score_deltas
+        .iter()
+        .filter(|delta| {
+            delta.reason == ChairmanShadowScoreDeltaReason::OverconfidentBadCall
+                && delta.proposed_score_delta < 0.0
+        })
+        .count()
+        + simulation_result
+            .voice_deltas
+            .iter()
+            .filter(|delta| {
+                delta.reason == ChairmanShadowVoiceDeltaReason::OverconfidentRisk
+                    && delta.proposed_voice_delta < 0.0
+            })
+            .count();
+    let risk_veto_alignment_count = ledger
+        .entries
+        .iter()
+        .filter(|entry| entry.signal_kind == ChairmanShadowGovernanceSignalKind::RiskVetoAlignment)
+        .count();
+    let risk_override_attempt_detected = ledger
+        .entries
+        .iter()
+        .any(|entry| !entry.no_risk_governor_override);
+    let reckless_reward_detected = simulation_result.score_deltas.iter().any(|delta| {
+        delta.reason == ChairmanShadowScoreDeltaReason::OverconfidentBadCall
+            && delta.proposed_score_delta > 0.0
+    });
+    let mut warnings = Vec::new();
+    if risk_veto_alignment_count > 0 && risk_guard_rewarded_count == 0 {
+        warnings.push(
+            "risk-veto alignment exists but no positive shadow reward was simulated".to_string(),
+        );
+    }
+    if risky_overconfidence_penalized_count == 0
+        && ledger.entries.iter().any(|entry| {
+            entry.signal_kind == ChairmanShadowGovernanceSignalKind::OverconfidentCallCandidate
+        })
+    {
+        warnings.push("overconfident risk call exists without negative shadow delta".to_string());
+    }
+    let risk_first_status = if risk_override_attempt_detected || reckless_reward_detected {
+        ChairmanRiskFirstGovernanceStatus::Violated
+    } else if !warnings.is_empty() {
+        ChairmanRiskFirstGovernanceStatus::PreservedWithWarnings
+    } else {
+        ChairmanRiskFirstGovernanceStatus::Preserved
+    };
+    ChairmanRiskFirstGovernanceCheck {
+        check_id: format!("{}-risk-first", simulation_result.simulation_id),
+        risk_guard_rewarded_count,
+        risky_overconfidence_penalized_count,
+        risk_veto_alignment_count,
+        risk_override_attempt_detected,
+        reckless_reward_detected,
+        risk_first_status,
+        warnings,
+        paper_only: true,
+    }
+}
+
+fn simulation_ledger_entry_key(
+    entry: &ChairmanShadowGovernanceSimulationLedgerEntry,
+) -> (
+    String,
+    usize,
+    usize,
+    usize,
+    usize,
+    usize,
+    ChairmanGovernanceFairnessStatus,
+    ChairmanRiskFirstGovernanceStatus,
+) {
+    (
+        entry.simulation_id.clone(),
+        entry.reward_delta_count,
+        entry.penalty_delta_count,
+        entry.voice_increase_count,
+        entry.voice_decrease_count,
+        entry.needs_more_evidence_count,
+        entry.fairness_status,
+        entry.risk_first_status,
+    )
+}
+
+pub fn normalize_chairman_shadow_governance_simulation_ledger(
+    ledger: &mut ChairmanShadowGovernanceSimulationLedger,
+) {
+    let mut seen = std::collections::BTreeSet::new();
+    ledger.entries.sort_by(|left, right| {
+        simulation_ledger_entry_key(left).cmp(&simulation_ledger_entry_key(right))
+    });
+    ledger
+        .entries
+        .retain(|entry| seen.insert(simulation_ledger_entry_key(entry)));
+    ledger.entry_count = ledger.entries.len();
+    ledger.latest_entry_id = ledger.entries.last().map(|entry| entry.entry_id.clone());
+}
+
+fn validate_chairman_shadow_governance_simulation_ledger(
+    ledger: &ChairmanShadowGovernanceSimulationLedger,
+) -> Result<(), String> {
+    if !ledger.paper_only {
+        return Err(
+            "chairman shadow governance simulation ledger must stay paper_only".to_string(),
+        );
+    }
+    for entry in &ledger.entries {
+        if !entry.paper_only {
+            return Err(format!(
+                "chairman shadow governance simulation ledger entry {} must stay paper_only",
+                entry.entry_id
+            ));
+        }
+    }
+    Ok(())
+}
+
+pub fn load_chairman_shadow_governance_simulation_ledger_from_local_json(
+    path: &Path,
+) -> Result<ChairmanShadowGovernanceSimulationLedger, String> {
+    validate_local_json_path(path, "chairman shadow governance simulation ledger path")?;
+    let text = fs::read_to_string(path).map_err(|err| err.to_string())?;
+    let mut ledger: ChairmanShadowGovernanceSimulationLedger =
+        serde_json::from_str(&text).map_err(|err| err.to_string())?;
+    normalize_chairman_shadow_governance_simulation_ledger(&mut ledger);
+    validate_chairman_shadow_governance_simulation_ledger(&ledger)?;
+    Ok(ledger)
+}
+
+pub fn save_chairman_shadow_governance_simulation_ledger_to_local_json(
+    path: &Path,
+    ledger: &ChairmanShadowGovernanceSimulationLedger,
+) -> Result<(), String> {
+    validate_local_json_path(path, "chairman shadow governance simulation ledger path")?;
+    let mut normalized = ledger.clone();
+    normalize_chairman_shadow_governance_simulation_ledger(&mut normalized);
+    validate_chairman_shadow_governance_simulation_ledger(&normalized)?;
+    write_safe_json(path, &normalized)
+}
+
+pub fn append_chairman_shadow_governance_simulation_entry(
+    ledger: &mut ChairmanShadowGovernanceSimulationLedger,
+    entry: ChairmanShadowGovernanceSimulationLedgerEntry,
+) {
+    ledger.entries.push(entry);
+    normalize_chairman_shadow_governance_simulation_ledger(ledger);
+}
+
+fn trend_direction_from_counts(
+    first: usize,
+    last: usize,
+) -> ChairmanShadowGovernanceTrendDirection {
+    if last > first {
+        ChairmanShadowGovernanceTrendDirection::Increasing
+    } else if last < first {
+        ChairmanShadowGovernanceTrendDirection::Decreasing
+    } else {
+        ChairmanShadowGovernanceTrendDirection::Stable
+    }
+}
+
+pub fn compute_chairman_shadow_governance_trend(
+    ledger: &ChairmanShadowGovernanceSimulationLedger,
+) -> ChairmanShadowGovernanceTrendSummary {
+    if ledger.entries.len() < 2 {
+        return ChairmanShadowGovernanceTrendSummary {
+            ledger_id: ledger.ledger_id.clone(),
+            entry_count: ledger.entry_count,
+            reward_trend: ChairmanShadowGovernanceTrendDirection::InsufficientHistory,
+            penalty_trend: ChairmanShadowGovernanceTrendDirection::InsufficientHistory,
+            voice_change_trend: ChairmanShadowGovernanceTrendDirection::InsufficientHistory,
+            trend_status: ChairmanShadowGovernanceTrendStatus::InsufficientHistory,
+            paper_only: true,
+        };
+    }
+    let first = &ledger.entries[0];
+    let last = ledger.entries.last().expect("non-empty simulation ledger");
+    let reward_trend =
+        trend_direction_from_counts(first.reward_delta_count, last.reward_delta_count);
+    let penalty_trend =
+        trend_direction_from_counts(first.penalty_delta_count, last.penalty_delta_count);
+    let voice_change_trend = trend_direction_from_counts(
+        first.voice_increase_count + first.voice_decrease_count,
+        last.voice_increase_count + last.voice_decrease_count,
+    );
+    ChairmanShadowGovernanceTrendSummary {
+        ledger_id: ledger.ledger_id.clone(),
+        entry_count: ledger.entry_count,
+        reward_trend,
+        penalty_trend,
+        voice_change_trend,
+        trend_status: if ledger.entries.len() >= 3 {
+            ChairmanShadowGovernanceTrendStatus::Useful
+        } else {
+            ChairmanShadowGovernanceTrendStatus::UsefulWithWarnings
+        },
+        paper_only: true,
+    }
+}
+
+pub fn evaluate_chairman_shadow_governance_readiness(
+    simulation_result: &ChairmanShadowGovernanceSimulationResult,
+    fairness_check: &ChairmanGovernanceFairnessCheck,
+    risk_check: &ChairmanRiskFirstGovernanceCheck,
+    trend_summary: &ChairmanShadowGovernanceTrendSummary,
+    safety_guard: &ChairmanGovernanceSimulationSafetyGuardV3,
+) -> ChairmanShadowGovernanceReadinessGate {
+    let enough_history = trend_summary.entry_count >= 2;
+    let mut blockers = Vec::new();
+    let mut warnings = fairness_check.warnings.clone();
+    warnings.extend(risk_check.warnings.clone());
+    if safety_guard.guard_status == ChairmanGovernanceSimulationSafetyGuardV3Status::Violated {
+        blockers.push("shadow governance simulation safety violated".to_string());
+    }
+    if fairness_check.fairness_status == ChairmanGovernanceFairnessStatus::Unfair {
+        blockers.push("shadow governance simulation fairness blocked".to_string());
+    }
+    if risk_check.risk_first_status == ChairmanRiskFirstGovernanceStatus::Violated {
+        blockers.push("shadow governance simulation risk-first blocked".to_string());
+    }
+    let readiness_status =
+        if safety_guard.guard_status == ChairmanGovernanceSimulationSafetyGuardV3Status::Violated {
+            ChairmanShadowGovernanceReadinessStatus::BlockedBySafety
+        } else if fairness_check.fairness_status == ChairmanGovernanceFairnessStatus::Unfair {
+            ChairmanShadowGovernanceReadinessStatus::BlockedByFairness
+        } else if risk_check.risk_first_status == ChairmanRiskFirstGovernanceStatus::Violated {
+            ChairmanShadowGovernanceReadinessStatus::BlockedByRiskViolation
+        } else if !enough_history {
+            ChairmanShadowGovernanceReadinessStatus::NeedsMoreHistory
+        } else if simulation_result.needs_more_evidence_count > 0 {
+            ChairmanShadowGovernanceReadinessStatus::NeedsMoreEvidence
+        } else if !warnings.is_empty()
+            || simulation_result.simulation_status
+                == ChairmanShadowGovernanceSimulationStatus::SimulatedWithWarnings
+        {
+            ChairmanShadowGovernanceReadinessStatus::ShadowGovernanceObservationReadyWithWarnings
+        } else {
+            ChairmanShadowGovernanceReadinessStatus::ShadowGovernanceObservationReady
+        };
+    ChairmanShadowGovernanceReadinessGate {
+        gate_id: format!("{}-readiness", simulation_result.simulation_id),
+        simulation_status: simulation_result.simulation_status,
+        fairness_status: fairness_check.fairness_status,
+        risk_first_status: risk_check.risk_first_status,
+        trend_status: trend_summary.trend_status,
+        safety_status: safety_guard.guard_status,
+        enough_history,
+        ready_for_shadow_governance_observation: blockers.is_empty()
+            && enough_history
+            && simulation_result.simulation_status
+                != ChairmanShadowGovernanceSimulationStatus::Blocked,
+        readiness_status,
+        blockers,
+        warnings,
+        paper_only: true,
+    }
+}
+
+pub fn build_chairman_shadow_governance_explanations(
+    simulation_result: &ChairmanShadowGovernanceSimulationResult,
+    owner_alignment_records: Option<&[OwnerOpinionAlignmentRecord]>,
+) -> Vec<ChairmanShadowGovernanceExplanation> {
+    simulation_result
+        .simulated_member_standings
+        .iter()
+        .map(|standing| {
+            let score_reasons = simulation_result
+                .score_deltas
+                .iter()
+                .filter(|delta| delta.member_id == standing.member_id && delta.proposed_score_delta.abs() > f64::EPSILON)
+                .map(|delta| format!("{:?}({:+.2})", delta.reason, delta.proposed_score_delta))
+                .collect::<Vec<_>>();
+            let voice_reasons = simulation_result
+                .voice_deltas
+                .iter()
+                .filter(|delta| delta.member_id == standing.member_id && delta.proposed_voice_delta.abs() > f64::EPSILON)
+                .map(|delta| format!("{:?}({:+.2})", delta.reason, delta.proposed_voice_delta))
+                .collect::<Vec<_>>();
+            let owner_opinion_explanation = owner_alignment_records.and_then(|records| {
+                records
+                    .iter()
+                    .find(|record| {
+                        record.owner_reference.symbol.as_ref().is_some_and(|symbol| {
+                            simulation_result.score_deltas.iter().any(|delta| {
+                                delta.member_id == standing.member_id
+                                    && delta.symbol.as_deref() == Some(symbol.as_str())
+                            }) || simulation_result.voice_deltas.iter().any(|delta| {
+                                delta.member_id == standing.member_id
+                                    && delta.symbol.as_deref() == Some(symbol.as_str())
+                            })
+                        })
+                    })
+                    .map(|record| {
+                        if reject_unsafe_owner_feedback_string(&record.explanation).is_err() {
+                            "Owner opinion explanation was suppressed because it contained unsafe trade/order language."
+                                .to_string()
+                        } else {
+                            record.explanation.clone()
+                        }
+                    })
+            });
+            ChairmanShadowGovernanceExplanation {
+                explanation_id: format!("{}-explanation", standing.member_id),
+                member_id: standing.member_id.clone(),
+                score_delta_explanation: if score_reasons.is_empty() {
+                    "No shadow score delta was simulated.".to_string()
+                } else {
+                    format!("Shadow score delta reasons: {}", score_reasons.join(", "))
+                },
+                voice_delta_explanation: if voice_reasons.is_empty() {
+                    "No shadow voice delta was simulated.".to_string()
+                } else {
+                    format!("Shadow voice delta reasons: {}", voice_reasons.join(", "))
+                },
+                risk_first_explanation: if standing.score_delta_total < 0.0
+                    || standing.voice_delta_total < 0.0
+                {
+                    "Risk-first posture preserved by penalizing reckless or weak-evidence behavior in shadow-only simulation."
+                        .to_string()
+                } else {
+                    "Risk-first posture preserved without executing any real governance mutation."
+                        .to_string()
+                },
+                evidence_explanation: if standing.standing_status
+                    == SimulatedMemberStandingStatus::NeedsMoreEvidence
+                {
+                    "Evidence is still weak, so governance simulation stayed neutral or requested more evidence."
+                        .to_string()
+                } else {
+                    "Evidence stayed paper-only and was used for simulation only.".to_string()
+                },
+                owner_opinion_explanation,
+                paper_only: true,
+            }
+        })
+        .collect()
+}
+
+pub fn evaluate_chairman_governance_simulation_safety_v3(
+    simulation_result: &ChairmanShadowGovernanceSimulationResult,
+    batch_before: &BatchCommitteeCycleResult,
+    batch_after: Option<&BatchCommitteeCycleResult>,
+) -> ChairmanGovernanceSimulationSafetyGuardV3 {
+    let after = batch_after.unwrap_or(batch_before);
+    let score_snapshot = |updates: &[MemberScoreUpdate]| {
+        updates
+            .iter()
+            .map(|update| (update.member_id.clone(), update.new_score))
+            .collect::<std::collections::BTreeMap<_, _>>()
+    };
+    let voice_snapshot = |updates: &[MemberScoreUpdate]| {
+        updates
+            .iter()
+            .map(|update| (update.member_id.clone(), update.new_voice_weight))
+            .collect::<std::collections::BTreeMap<_, _>>()
+    };
+    let promotion_snapshot = |updates: &[MemberScoreUpdate]| {
+        updates
+            .iter()
+            .filter(|update| update.promoted)
+            .map(|update| update.member_id.clone())
+            .collect::<std::collections::BTreeSet<_>>()
+    };
+    let demotion_snapshot = |updates: &[MemberScoreUpdate]| {
+        updates
+            .iter()
+            .filter(|update| update.demoted)
+            .map(|update| update.member_id.clone())
+            .collect::<std::collections::BTreeSet<_>>()
+    };
+    let risk_governor_snapshot = |decisions: &[ChairmanDecision]| {
+        decisions
+            .iter()
+            .map(|decision| (decision.decision_id.clone(), decision.risk_governor_status))
+            .collect::<std::collections::BTreeMap<_, _>>()
+    };
+    let actual_score_mutation_detected =
+        score_snapshot(&batch_before.score_updates) != score_snapshot(&after.score_updates);
+    let actual_voice_mutation_detected =
+        voice_snapshot(&batch_before.score_updates) != voice_snapshot(&after.score_updates);
+    let promotion_execution_detected =
+        promotion_snapshot(&batch_before.score_updates) != promotion_snapshot(&after.score_updates);
+    let demotion_execution_detected =
+        demotion_snapshot(&batch_before.score_updates) != demotion_snapshot(&after.score_updates);
+    let risk_governor_override_detected = risk_governor_snapshot(&batch_before.chairman_decisions)
+        != risk_governor_snapshot(&after.chairman_decisions);
+    let committee_decision_mutation_detected =
+        batch_before.committee_sessions != after.committee_sessions;
+    let markers = simulation_result
+        .score_deltas
+        .iter()
+        .map(|delta| delta.delta_id.clone())
+        .chain(
+            simulation_result
+                .voice_deltas
+                .iter()
+                .map(|delta| delta.delta_id.clone()),
+        )
+        .collect::<Vec<_>>();
+    let trade_signal_detected = value_contains_debug_marker(&after.committee_sessions, &markers);
+    let order_detected = value_contains_debug_marker(&after.event_queue, &markers);
+    let broker_order_account_detected = value_contains_debug_marker(
+        &after.event_queue,
+        &[
+            "broker".to_string(),
+            "order".to_string(),
+            "account".to_string(),
+        ],
+    );
+    let owner_opinion_forced_trade_detected = simulation_result.score_deltas.iter().any(|delta| {
+        delta.reason == ChairmanShadowScoreDeltaReason::OwnerOpinionAligned
+            && (trade_signal_detected || order_detected || broker_order_account_detected)
+    });
+    let mut violations = Vec::new();
+    if actual_score_mutation_detected {
+        violations.push("shadow governance simulation mutated actual score".to_string());
+    }
+    if actual_voice_mutation_detected {
+        violations.push("shadow governance simulation mutated actual voice".to_string());
+    }
+    if promotion_execution_detected {
+        violations.push("shadow governance simulation executed promotion".to_string());
+    }
+    if demotion_execution_detected {
+        violations.push("shadow governance simulation executed demotion".to_string());
+    }
+    if risk_governor_override_detected {
+        violations.push("shadow governance simulation overrode Risk Governor".to_string());
+    }
+    if committee_decision_mutation_detected {
+        violations.push("shadow governance simulation changed committee decision".to_string());
+    }
+    if trade_signal_detected {
+        violations.push("shadow governance simulation produced trade signal".to_string());
+    }
+    if order_detected {
+        violations.push("shadow governance simulation produced order".to_string());
+    }
+    if broker_order_account_detected {
+        violations
+            .push("shadow governance simulation touched broker/order/account path".to_string());
+    }
+    if owner_opinion_forced_trade_detected {
+        violations.push("owner opinion forced trade through simulation".to_string());
+    }
+    ChairmanGovernanceSimulationSafetyGuardV3 {
+        actual_score_mutation_detected,
+        actual_voice_mutation_detected,
+        promotion_execution_detected,
+        demotion_execution_detected,
+        risk_governor_override_detected,
+        committee_decision_mutation_detected,
+        trade_signal_detected,
+        order_detected,
+        broker_order_account_detected,
+        owner_opinion_forced_trade_detected,
+        guard_status: if violations.is_empty() {
+            ChairmanGovernanceSimulationSafetyGuardV3Status::Preserved
+        } else {
+            ChairmanGovernanceSimulationSafetyGuardV3Status::Violated
+        },
+        violations,
+        paper_only: true,
+    }
+}
+
+pub fn run_chairman_shadow_governance_simulation(
+    governance_ledger: &ChairmanShadowGovernanceLedger,
+    member_states: &[MemberStateSnapshot],
+    owner_alignment_records: Option<&[OwnerOpinionAlignmentRecord]>,
+    batch_result: &BatchCommitteeCycleResult,
+    config: &ChairmanShadowGovernanceSimulationRunConfig,
+) -> Result<ChairmanShadowGovernanceSimulationRunResult, String> {
+    if !config.paper_only {
+        return Err("chairman shadow governance simulation run must stay paper_only".to_string());
+    }
+    let policy = default_chairman_shadow_governance_simulation_policy();
+    let simulation_result =
+        simulate_chairman_shadow_governance(governance_ledger, member_states, &policy)?;
+    let fairness_check = evaluate_chairman_governance_fairness(&simulation_result, &policy);
+    let risk_first_check =
+        evaluate_chairman_risk_first_governance(&simulation_result, governance_ledger);
+    let mut simulation_ledger = if let Some(path) = config.simulation_ledger_input_path.as_ref() {
+        if Path::new(path).exists() {
+            load_chairman_shadow_governance_simulation_ledger_from_local_json(Path::new(path))?
+        } else {
+            ChairmanShadowGovernanceSimulationLedger {
+                ledger_id: format!("{}-simulation-ledger", config.run_id),
+                entries: Vec::new(),
+                entry_count: 0,
+                latest_entry_id: None,
+                paper_only: true,
+            }
+        }
+    } else {
+        ChairmanShadowGovernanceSimulationLedger {
+            ledger_id: format!("{}-simulation-ledger", config.run_id),
+            entries: Vec::new(),
+            entry_count: 0,
+            latest_entry_id: None,
+            paper_only: true,
+        }
+    };
+    let simulation_entry_id = format!("{}-entry-{}", config.run_id, simulation_ledger.entry_count);
+    append_chairman_shadow_governance_simulation_entry(
+        &mut simulation_ledger,
+        ChairmanShadowGovernanceSimulationLedgerEntry {
+            entry_id: simulation_entry_id,
+            simulation_id: simulation_result.simulation_id.clone(),
+            timestamp: None,
+            reward_delta_count: simulation_result.reward_delta_count,
+            penalty_delta_count: simulation_result.penalty_delta_count,
+            voice_increase_count: simulation_result.voice_increase_count,
+            voice_decrease_count: simulation_result.voice_decrease_count,
+            needs_more_evidence_count: simulation_result.needs_more_evidence_count,
+            fairness_status: fairness_check.fairness_status,
+            risk_first_status: risk_first_check.risk_first_status,
+            paper_only: true,
+        },
+    );
+    let trend_summary = compute_chairman_shadow_governance_trend(&simulation_ledger);
+    let explanations = if config.emit_owner_explanations {
+        build_chairman_shadow_governance_explanations(&simulation_result, owner_alignment_records)
+    } else {
+        Vec::new()
+    };
+    let provisional_safety = evaluate_chairman_governance_simulation_safety_v3(
+        &simulation_result,
+        batch_result,
+        Some(batch_result),
+    );
+    let readiness_gate = evaluate_chairman_shadow_governance_readiness(
+        &simulation_result,
+        &fairness_check,
+        &risk_first_check,
+        &trend_summary,
+        &provisional_safety,
+    );
+    if !config.dry_run {
+        if let Some(path) = config.simulation_ledger_output_path.as_ref() {
+            save_chairman_shadow_governance_simulation_ledger_to_local_json(
+                Path::new(path),
+                &simulation_ledger,
+            )?;
+        }
+    }
+    let result = ChairmanShadowGovernanceSimulationRunResult {
+        run_id: config.run_id.clone(),
+        simulation_result: simulation_result.clone(),
+        fairness_check: fairness_check.clone(),
+        risk_first_check: risk_first_check.clone(),
+        simulation_ledger: simulation_ledger.clone(),
+        trend_summary: trend_summary.clone(),
+        readiness_gate: readiness_gate.clone(),
+        explanations: explanations.clone(),
+        safety_guard: provisional_safety.clone(),
+        run_status: if provisional_safety.guard_status
+            == ChairmanGovernanceSimulationSafetyGuardV3Status::Violated
+            || fairness_check.fairness_status == ChairmanGovernanceFairnessStatus::Unfair
+            || risk_first_check.risk_first_status == ChairmanRiskFirstGovernanceStatus::Violated
+        {
+            ChairmanShadowGovernanceSimulationRunStatus::Failed
+        } else if config.dry_run
+            || readiness_gate.readiness_status
+                != ChairmanShadowGovernanceReadinessStatus::ShadowGovernanceObservationReady
+            || simulation_result.simulation_status
+                == ChairmanShadowGovernanceSimulationStatus::SimulatedWithWarnings
+        {
+            ChairmanShadowGovernanceSimulationRunStatus::PassedWithWarnings
+        } else {
+            ChairmanShadowGovernanceSimulationRunStatus::Passed
+        },
+        paper_only: true,
+    };
+    if let Some(path) = config.simulation_result_output_path.as_ref() {
+        validate_local_json_path(
+            Path::new(path),
+            "chairman shadow governance simulation result path",
+        )?;
+        write_safe_json(Path::new(path), &result)?;
+    }
+    Ok(result)
+}
+
+pub fn chairman_shadow_governance_simulation_requested_from_flags(
+    enabled: bool,
+    dry_run: bool,
+    simulation_ledger_output_path: Option<&String>,
+    simulation_result_output_path: Option<&String>,
+    _emit_explanations: bool,
+) -> bool {
+    enabled
+        || !dry_run
+        || simulation_ledger_output_path.is_some()
+        || simulation_result_output_path.is_some()
+}
+
+fn maybe_run_chairman_shadow_governance_simulation_for_batch_result(
+    run_id: String,
+    enabled: bool,
+    dry_run: bool,
+    simulation_ledger_output_path: Option<&String>,
+    simulation_result_output_path: Option<&String>,
+    emit_explanations: bool,
+    member_states: &[MemberStateSnapshot],
+    batch_result: &mut BatchCommitteeCycleResult,
+) -> Result<Option<ChairmanShadowGovernanceSimulationRunResult>, String> {
+    if !chairman_shadow_governance_simulation_requested_from_flags(
+        enabled,
+        dry_run,
+        simulation_ledger_output_path,
+        simulation_result_output_path,
+        emit_explanations,
+    ) {
+        return Ok(None);
+    }
+    let governance_ledger = batch_result
+        .chairman_shadow_governance_ledger
+        .clone()
+        .or_else(|| {
+            batch_result
+                .chairman_shadow_governance_run_result
+                .as_ref()
+                .map(|run| run.ledger.clone())
+        })
+        .ok_or_else(|| {
+            "chairman shadow governance simulation requires chairman shadow governance ledger"
+                .to_string()
+        })?;
+    let result = run_chairman_shadow_governance_simulation(
+        &governance_ledger,
+        member_states,
+        batch_result.owner_opinion_alignment_records.as_deref(),
+        batch_result,
+        &ChairmanShadowGovernanceSimulationRunConfig {
+            run_id: run_id.clone(),
+            enabled,
+            governance_ledger_input_path: None,
+            simulation_ledger_input_path: None,
+            simulation_ledger_output_path: simulation_ledger_output_path.cloned(),
+            simulation_result_output_path: simulation_result_output_path.cloned(),
+            dry_run,
+            emit_owner_explanations: emit_explanations,
+            paper_only: true,
+        },
+    )?;
+    batch_result.chairman_shadow_governance_simulation_result =
+        Some(result.simulation_result.clone());
+    batch_result.chairman_governance_fairness_check = Some(result.fairness_check.clone());
+    batch_result.chairman_risk_first_governance_check = Some(result.risk_first_check.clone());
+    batch_result.chairman_shadow_governance_simulation_ledger =
+        Some(result.simulation_ledger.clone());
+    batch_result.chairman_shadow_governance_trend_summary = Some(result.trend_summary.clone());
+    batch_result.chairman_shadow_governance_readiness_gate = Some(result.readiness_gate.clone());
+    batch_result.chairman_shadow_governance_explanations = Some(result.explanations.clone());
+    batch_result.chairman_governance_simulation_safety_guard_v3 = Some(result.safety_guard.clone());
+    batch_result.chairman_shadow_governance_simulation_run_result = Some(result.clone());
+    Ok(Some(result))
+}
+
+fn classify_shadow_governance_member_role(member_id: &str) -> IndependentMemberRole {
+    let lowered = member_id.to_ascii_lowercase();
+    if lowered.contains("risk") {
+        IndependentMemberRole::RiskGuard
+    } else if lowered.contains("evidence") {
+        IndependentMemberRole::EvidenceRegime
+    } else {
+        IndependentMemberRole::TrendEntry
+    }
+}
+
+pub fn init_chairman_shadow_member_state(
+    member_state: &MemberStateSnapshot,
+) -> ChairmanShadowMemberGovernanceState {
+    ChairmanShadowMemberGovernanceState {
+        member_id: member_state.member_id.clone(),
+        canonical_member_id: Some(member_state.member_id.clone()),
+        role: classify_shadow_governance_member_role(&member_state.member_id),
+        actual_score_snapshot: member_state.score,
+        actual_voice_weight_snapshot: member_state.voice_weight,
+        shadow_score: member_state.score,
+        shadow_voice_weight: member_state.voice_weight,
+        shadow_reward_count: 0,
+        shadow_penalty_count: 0,
+        shadow_voice_increase_count: 0,
+        shadow_voice_decrease_count: 0,
+        shadow_promotion_candidate_count: 0,
+        shadow_demotion_candidate_count: 0,
+        last_update_run_id: None,
+        paper_only: true,
+    }
+}
+
+pub fn normalize_shadow_governance_state_store(store: &mut ChairmanShadowGovernanceStateStore) {
+    let mut seen = std::collections::BTreeSet::new();
+    store
+        .member_states
+        .sort_by(|left, right| left.member_id.cmp(&right.member_id));
+    store
+        .member_states
+        .retain(|state| seen.insert(state.member_id.clone()));
+    store.member_count = store.member_states.len();
+}
+
+fn validate_chairman_shadow_governance_state_store(
+    store: &ChairmanShadowGovernanceStateStore,
+) -> Result<(), String> {
+    if !store.paper_only {
+        return Err("chairman shadow governance state store must stay paper_only".to_string());
+    }
+    reject_unsafe_owner_feedback_string(&store.store_id)?;
+    for state in &store.member_states {
+        if !state.paper_only {
+            return Err(format!(
+                "chairman shadow governance state for {} must stay paper_only",
+                state.member_id
+            ));
+        }
+        reject_unsafe_owner_feedback_string(&state.member_id)?;
+        if let Some(canonical_member_id) = state.canonical_member_id.as_ref() {
+            reject_unsafe_owner_feedback_string(canonical_member_id)?;
+        }
+    }
+    Ok(())
+}
+
+pub fn initialize_shadow_governance_state_store(
+    member_states: &[MemberStateSnapshot],
+) -> ChairmanShadowGovernanceStateStore {
+    let mut store = ChairmanShadowGovernanceStateStore {
+        store_id: "chairman-shadow-governance-state-store".to_string(),
+        member_states: member_states
+            .iter()
+            .map(init_chairman_shadow_member_state)
+            .collect(),
+        member_count: member_states.len(),
+        latest_run_id: None,
+        update_count: 0,
+        paper_only: true,
+    };
+    normalize_shadow_governance_state_store(&mut store);
+    store
+}
+
+pub fn get_shadow_member_state<'a>(
+    store: &'a ChairmanShadowGovernanceStateStore,
+    member_id: &str,
+) -> Option<&'a ChairmanShadowMemberGovernanceState> {
+    store
+        .member_states
+        .iter()
+        .find(|state| state.member_id == member_id)
+}
+
+pub fn load_chairman_shadow_governance_state_store_from_local_json(
+    path: &Path,
+) -> Result<ChairmanShadowGovernanceStateStore, String> {
+    validate_local_json_path(path, "chairman shadow governance state input path")?;
+    let text = fs::read_to_string(path).map_err(|err| err.to_string())?;
+    let mut store: ChairmanShadowGovernanceStateStore =
+        serde_json::from_str(&text).map_err(|err| err.to_string())?;
+    validate_chairman_shadow_governance_state_store(&store)?;
+    normalize_shadow_governance_state_store(&mut store);
+    validate_chairman_shadow_governance_state_store(&store)?;
+    Ok(store)
+}
+
+pub fn save_chairman_shadow_governance_state_store_to_local_json(
+    path: &Path,
+    store: &ChairmanShadowGovernanceStateStore,
+) -> Result<(), String> {
+    validate_local_json_path(path, "chairman shadow governance state output path")?;
+    let mut normalized = store.clone();
+    normalize_shadow_governance_state_store(&mut normalized);
+    validate_chairman_shadow_governance_state_store(&normalized)?;
+    write_safe_json(path, &normalized)
+}
+
+pub fn default_chairman_shadow_governance_apply_policy() -> ChairmanShadowGovernanceApplyPolicy {
+    ChairmanShadowGovernanceApplyPolicy {
+        policy_id: "chairman-shadow-governance-apply-policy".to_string(),
+        allow_shadow_score_apply: true,
+        allow_shadow_voice_apply: true,
+        allow_actual_score_apply: false,
+        allow_actual_voice_apply: false,
+        allow_promotion_demotion_apply: false,
+        allow_risk_governor_override: false,
+        max_shadow_score_delta_per_run: 0.08,
+        max_shadow_voice_delta_per_run: 0.06,
+        min_shadow_voice_weight: 0.05,
+        max_shadow_voice_weight: 0.95,
+        normalize_shadow_voice_weights: true,
+        risk_first_bias: true,
+        require_fairness_check: true,
+        require_risk_first_check: true,
+        paper_only: true,
+    }
+}
+
+pub fn validate_chairman_shadow_governance_apply_policy(
+    policy: &ChairmanShadowGovernanceApplyPolicy,
+) -> Result<(), String> {
+    if !policy.paper_only {
+        return Err("chairman shadow governance apply policy must stay paper_only".to_string());
+    }
+    if policy.allow_actual_score_apply
+        || policy.allow_actual_voice_apply
+        || policy.allow_promotion_demotion_apply
+        || policy.allow_risk_governor_override
+    {
+        return Err(
+            "chairman shadow governance apply policy must forbid actual mutation".to_string(),
+        );
+    }
+    if !policy.max_shadow_score_delta_per_run.is_finite()
+        || !policy.max_shadow_voice_delta_per_run.is_finite()
+        || policy.max_shadow_score_delta_per_run < 0.0
+        || policy.max_shadow_voice_delta_per_run < 0.0
+    {
+        return Err(
+            "chairman shadow governance apply policy delta bounds must be finite and non-negative"
+                .to_string(),
+        );
+    }
+    if !policy.min_shadow_voice_weight.is_finite()
+        || !policy.max_shadow_voice_weight.is_finite()
+        || policy.min_shadow_voice_weight < 0.0
+        || policy.max_shadow_voice_weight > 1.0
+        || policy.min_shadow_voice_weight > policy.max_shadow_voice_weight
+    {
+        return Err(
+            "chairman shadow governance apply policy voice bounds must stay within 0..=1"
+                .to_string(),
+        );
+    }
+    Ok(())
+}
+
+fn normalize_shadow_voice_weights_in_store(
+    store: &mut ChairmanShadowGovernanceStateStore,
+    policy: &ChairmanShadowGovernanceApplyPolicy,
+) {
+    let total = store
+        .member_states
+        .iter()
+        .map(|state| state.shadow_voice_weight)
+        .sum::<f64>();
+    if total <= f64::EPSILON {
+        return;
+    }
+    for state in &mut store.member_states {
+        state.shadow_voice_weight = clamp_unit((state.shadow_voice_weight / total).clamp(
+            policy.min_shadow_voice_weight,
+            policy.max_shadow_voice_weight,
+        ));
+    }
+}
+
+pub fn update_shadow_member_state_with_deltas(
+    state: &mut ChairmanShadowMemberGovernanceState,
+    score_deltas: &[ChairmanShadowScoreDelta],
+    voice_deltas: &[ChairmanShadowVoiceDelta],
+    policy: &ChairmanShadowGovernanceApplyPolicy,
+) -> (f64, f64) {
+    let score_delta = bounded_shadow_delta(
+        score_deltas
+            .iter()
+            .map(|delta| delta.proposed_score_delta)
+            .sum::<f64>(),
+        policy.max_shadow_score_delta_per_run,
+    );
+    let voice_delta = bounded_shadow_delta(
+        voice_deltas
+            .iter()
+            .map(|delta| delta.proposed_voice_delta)
+            .sum::<f64>(),
+        policy.max_shadow_voice_delta_per_run,
+    );
+    if policy.allow_shadow_score_apply {
+        state.shadow_score = clamp_unit(state.shadow_score + score_delta);
+    }
+    if policy.allow_shadow_voice_apply {
+        state.shadow_voice_weight = (state.shadow_voice_weight + voice_delta).clamp(
+            policy.min_shadow_voice_weight,
+            policy.max_shadow_voice_weight,
+        );
+    }
+    state.shadow_reward_count += score_deltas
+        .iter()
+        .filter(|delta| delta.delta_kind == ChairmanShadowScoreDeltaKind::Reward)
+        .count();
+    state.shadow_penalty_count += score_deltas
+        .iter()
+        .filter(|delta| delta.delta_kind == ChairmanShadowScoreDeltaKind::Penalty)
+        .count();
+    state.shadow_voice_increase_count += voice_deltas
+        .iter()
+        .filter(|delta| delta.delta_kind == ChairmanShadowVoiceDeltaKind::Increase)
+        .count();
+    state.shadow_voice_decrease_count += voice_deltas
+        .iter()
+        .filter(|delta| delta.delta_kind == ChairmanShadowVoiceDeltaKind::Decrease)
+        .count();
+    state.shadow_promotion_candidate_count += score_deltas
+        .iter()
+        .filter(|delta| delta.proposed_score_delta > 0.0)
+        .count();
+    state.shadow_demotion_candidate_count += score_deltas
+        .iter()
+        .filter(|delta| delta.proposed_score_delta < 0.0)
+        .count();
+    (score_delta, voice_delta)
+}
+
+pub fn apply_chairman_shadow_governance_deltas(
+    store: &mut ChairmanShadowGovernanceStateStore,
+    simulation_result: &ChairmanShadowGovernanceSimulationResult,
+    fairness_check: &ChairmanGovernanceFairnessCheck,
+    risk_first_check: &ChairmanRiskFirstGovernanceCheck,
+    policy: &ChairmanShadowGovernanceApplyPolicy,
+    run_id: &str,
+) -> Result<ChairmanShadowGovernanceApplyResult, String> {
+    validate_chairman_shadow_governance_apply_policy(policy)?;
+    if policy.require_fairness_check
+        && fairness_check.fairness_status == ChairmanGovernanceFairnessStatus::Unfair
+    {
+        return Ok(ChairmanShadowGovernanceApplyResult {
+            run_id: run_id.to_string(),
+            input_score_delta_count: simulation_result.score_deltas.len(),
+            input_voice_delta_count: simulation_result.voice_deltas.len(),
+            applied_shadow_score_delta_count: 0,
+            applied_shadow_voice_delta_count: 0,
+            skipped_delta_count: simulation_result.score_deltas.len()
+                + simulation_result.voice_deltas.len(),
+            updated_member_count: 0,
+            before_after_standings: Vec::new(),
+            fairness_check: fairness_check.clone(),
+            risk_first_check: risk_first_check.clone(),
+            apply_status: ChairmanShadowGovernanceApplyStatus::Blocked,
+            no_actual_score_mutation: true,
+            no_actual_voice_mutation: true,
+            no_promotion_demotion: true,
+            no_risk_governor_override: true,
+            paper_only: true,
+        });
+    }
+    if policy.require_risk_first_check
+        && risk_first_check.risk_first_status == ChairmanRiskFirstGovernanceStatus::Violated
+    {
+        return Ok(ChairmanShadowGovernanceApplyResult {
+            run_id: run_id.to_string(),
+            input_score_delta_count: simulation_result.score_deltas.len(),
+            input_voice_delta_count: simulation_result.voice_deltas.len(),
+            applied_shadow_score_delta_count: 0,
+            applied_shadow_voice_delta_count: 0,
+            skipped_delta_count: simulation_result.score_deltas.len()
+                + simulation_result.voice_deltas.len(),
+            updated_member_count: 0,
+            before_after_standings: Vec::new(),
+            fairness_check: fairness_check.clone(),
+            risk_first_check: risk_first_check.clone(),
+            apply_status: ChairmanShadowGovernanceApplyStatus::Blocked,
+            no_actual_score_mutation: true,
+            no_actual_voice_mutation: true,
+            no_promotion_demotion: true,
+            no_risk_governor_override: true,
+            paper_only: true,
+        });
+    }
+    let mut before_after_standings = Vec::new();
+    let mut skipped_delta_count = 0;
+    for state in &mut store.member_states {
+        let score_deltas = simulation_result
+            .score_deltas
+            .iter()
+            .filter(|delta| delta.member_id == state.member_id)
+            .cloned()
+            .collect::<Vec<_>>();
+        let voice_deltas = simulation_result
+            .voice_deltas
+            .iter()
+            .filter(|delta| delta.member_id == state.member_id)
+            .cloned()
+            .collect::<Vec<_>>();
+        let shadow_score_before = state.shadow_score;
+        let shadow_voice_before = state.shadow_voice_weight;
+        let (score_delta_applied, voice_delta_applied) =
+            update_shadow_member_state_with_deltas(state, &score_deltas, &voice_deltas, policy);
+        skipped_delta_count += score_deltas
+            .iter()
+            .filter(|delta| delta.delta_kind == ChairmanShadowScoreDeltaKind::NeedsMoreEvidence)
+            .count()
+            + voice_deltas
+                .iter()
+                .filter(|delta| delta.delta_kind == ChairmanShadowVoiceDeltaKind::NeedsMoreEvidence)
+                .count();
+        before_after_standings.push(BeforeAfterShadowStanding {
+            member_id: state.member_id.clone(),
+            actual_score_snapshot: state.actual_score_snapshot,
+            actual_voice_weight_snapshot: state.actual_voice_weight_snapshot,
+            shadow_score_before,
+            shadow_score_after: state.shadow_score,
+            shadow_voice_before,
+            shadow_voice_after: state.shadow_voice_weight,
+            score_delta_applied,
+            voice_delta_applied,
+            standing_change: if score_deltas
+                .iter()
+                .any(|delta| delta.delta_kind == ChairmanShadowScoreDeltaKind::NeedsMoreEvidence)
+                && voice_deltas
+                    .iter()
+                    .all(|delta| delta.proposed_voice_delta.abs() <= f64::EPSILON)
+            {
+                SimulatedMemberStandingStatus::NeedsMoreEvidence
+            } else if score_delta_applied > 0.0 || voice_delta_applied > 0.0 {
+                SimulatedMemberStandingStatus::ImprovedShadowStanding
+            } else if score_delta_applied < 0.0 || voice_delta_applied < 0.0 {
+                SimulatedMemberStandingStatus::ReducedShadowStanding
+            } else {
+                SimulatedMemberStandingStatus::NeutralShadowStanding
+            },
+            paper_only: true,
+        });
+        state.last_update_run_id = Some(run_id.to_string());
+    }
+    if policy.normalize_shadow_voice_weights {
+        normalize_shadow_voice_weights_in_store(store, policy);
+    }
+    for standing in &mut before_after_standings {
+        if let Some(state) = store
+            .member_states
+            .iter()
+            .find(|state| state.member_id == standing.member_id)
+        {
+            standing.shadow_score_after = state.shadow_score;
+            standing.shadow_voice_after = state.shadow_voice_weight;
+            standing.score_delta_applied =
+                standing.shadow_score_after - standing.shadow_score_before;
+            standing.voice_delta_applied =
+                standing.shadow_voice_after - standing.shadow_voice_before;
+            standing.standing_change = if standing.score_delta_applied.abs() <= f64::EPSILON
+                && standing.voice_delta_applied.abs() <= f64::EPSILON
+                && standing.standing_change == SimulatedMemberStandingStatus::NeedsMoreEvidence
+            {
+                SimulatedMemberStandingStatus::NeedsMoreEvidence
+            } else if standing.score_delta_applied > 0.0 || standing.voice_delta_applied > 0.0 {
+                SimulatedMemberStandingStatus::ImprovedShadowStanding
+            } else if standing.score_delta_applied < 0.0 || standing.voice_delta_applied < 0.0 {
+                SimulatedMemberStandingStatus::ReducedShadowStanding
+            } else {
+                SimulatedMemberStandingStatus::NeutralShadowStanding
+            };
+        }
+    }
+    let applied_shadow_score_delta_count = before_after_standings
+        .iter()
+        .filter(|standing| standing.score_delta_applied.abs() > f64::EPSILON)
+        .count();
+    let applied_shadow_voice_delta_count = before_after_standings
+        .iter()
+        .filter(|standing| standing.voice_delta_applied.abs() > f64::EPSILON)
+        .count();
+    store.update_count += 1;
+    store.latest_run_id = Some(run_id.to_string());
+    normalize_shadow_governance_state_store(store);
+    let updated_member_count = before_after_standings
+        .iter()
+        .filter(|standing| {
+            standing.score_delta_applied.abs() > f64::EPSILON
+                || standing.voice_delta_applied.abs() > f64::EPSILON
+        })
+        .count();
+    Ok(ChairmanShadowGovernanceApplyResult {
+        run_id: run_id.to_string(),
+        input_score_delta_count: simulation_result.score_deltas.len(),
+        input_voice_delta_count: simulation_result.voice_deltas.len(),
+        applied_shadow_score_delta_count,
+        applied_shadow_voice_delta_count,
+        skipped_delta_count,
+        updated_member_count,
+        before_after_standings,
+        fairness_check: fairness_check.clone(),
+        risk_first_check: risk_first_check.clone(),
+        apply_status: if simulation_result.score_deltas.is_empty()
+            && simulation_result.voice_deltas.is_empty()
+        {
+            ChairmanShadowGovernanceApplyStatus::NoDeltas
+        } else if skipped_delta_count > 0 {
+            ChairmanShadowGovernanceApplyStatus::AppliedToShadowWithWarnings
+        } else {
+            ChairmanShadowGovernanceApplyStatus::AppliedToShadow
+        },
+        no_actual_score_mutation: true,
+        no_actual_voice_mutation: true,
+        no_promotion_demotion: true,
+        no_risk_governor_override: true,
+        paper_only: true,
+    })
+}
+
+pub fn compare_actual_vs_shadow_governance(
+    member_states: &[MemberStateSnapshot],
+    shadow_store: &ChairmanShadowGovernanceStateStore,
+) -> (
+    Vec<ActualVsShadowGovernanceComparison>,
+    ActualVsShadowGovernanceComparisonSummary,
+) {
+    let comparisons = member_states
+        .iter()
+        .map(|actual| {
+            let shadow = get_shadow_member_state(shadow_store, &actual.member_id);
+            let shadow_score = shadow
+                .map(|state| state.shadow_score)
+                .unwrap_or(actual.score);
+            let shadow_voice_weight = shadow
+                .map(|state| state.shadow_voice_weight)
+                .unwrap_or(actual.voice_weight);
+            let score_gap = shadow_score - actual.score;
+            let voice_gap = shadow_voice_weight - actual.voice_weight;
+            let comparison_status = if shadow_store.update_count == 0 {
+                ActualVsShadowGovernanceComparisonStatus::NeedsMoreHistory
+            } else if score_gap.abs() <= 0.01 && voice_gap.abs() <= 0.01 {
+                ActualVsShadowGovernanceComparisonStatus::InSync
+            } else if score_gap.abs() > 0.12 || voice_gap.abs() > 0.12 {
+                ActualVsShadowGovernanceComparisonStatus::Diverged
+            } else if score_gap > 0.0 || voice_gap > 0.0 {
+                ActualVsShadowGovernanceComparisonStatus::ShadowAhead
+            } else {
+                ActualVsShadowGovernanceComparisonStatus::ShadowBehind
+            };
+            ActualVsShadowGovernanceComparison {
+                comparison_id: format!("{}-actual-vs-shadow", actual.member_id),
+                member_id: actual.member_id.clone(),
+                actual_score: actual.score,
+                shadow_score,
+                score_gap,
+                actual_voice_weight: actual.voice_weight,
+                shadow_voice_weight,
+                voice_gap,
+                comparison_status,
+                paper_only: true,
+            }
+        })
+        .collect::<Vec<_>>();
+    let diverged_count = comparisons
+        .iter()
+        .filter(|item| item.comparison_status == ActualVsShadowGovernanceComparisonStatus::Diverged)
+        .count();
+    let shadow_ahead_count = comparisons
+        .iter()
+        .filter(|item| {
+            item.comparison_status == ActualVsShadowGovernanceComparisonStatus::ShadowAhead
+        })
+        .count();
+    let shadow_behind_count = comparisons
+        .iter()
+        .filter(|item| {
+            item.comparison_status == ActualVsShadowGovernanceComparisonStatus::ShadowBehind
+        })
+        .count();
+    let max_score_gap = comparisons
+        .iter()
+        .map(|item| item.score_gap.abs())
+        .fold(0.0, f64::max);
+    let max_voice_gap = comparisons
+        .iter()
+        .map(|item| item.voice_gap.abs())
+        .fold(0.0, f64::max);
+    let summary = ActualVsShadowGovernanceComparisonSummary {
+        summary_id: format!("{}-comparison-summary", shadow_store.store_id),
+        member_count: comparisons.len(),
+        diverged_count,
+        shadow_ahead_count,
+        shadow_behind_count,
+        max_score_gap,
+        max_voice_gap,
+        summary_status: if shadow_store.update_count == 0 {
+            ActualVsShadowGovernanceSummaryStatus::InsufficientHistory
+        } else if diverged_count > 0 {
+            ActualVsShadowGovernanceSummaryStatus::Diverged
+        } else if shadow_ahead_count > 0 || shadow_behind_count > 0 {
+            ActualVsShadowGovernanceSummaryStatus::StableWithWarnings
+        } else {
+            ActualVsShadowGovernanceSummaryStatus::Stable
+        },
+        paper_only: true,
+    };
+    (comparisons, summary)
+}
+
+fn shadow_governance_state_ledger_key(
+    entry: &ChairmanShadowGovernanceStateLedgerEntry,
+) -> (
+    String,
+    usize,
+    usize,
+    usize,
+    ChairmanGovernanceFairnessStatus,
+    ChairmanRiskFirstGovernanceStatus,
+    ActualVsShadowGovernanceSummaryStatus,
+) {
+    (
+        entry.run_id.clone(),
+        entry.updated_member_count,
+        entry.applied_shadow_score_delta_count,
+        entry.applied_shadow_voice_delta_count,
+        entry.fairness_status,
+        entry.risk_first_status,
+        entry.actual_vs_shadow_summary_status,
+    )
+}
+
+pub fn normalize_chairman_shadow_governance_state_ledger(
+    ledger: &mut ChairmanShadowGovernanceStateLedger,
+) {
+    let mut seen = std::collections::BTreeSet::new();
+    ledger.entries.sort_by(|left, right| {
+        shadow_governance_state_ledger_key(left).cmp(&shadow_governance_state_ledger_key(right))
+    });
+    ledger
+        .entries
+        .retain(|entry| seen.insert(shadow_governance_state_ledger_key(entry)));
+    ledger.entry_count = ledger.entries.len();
+    ledger.latest_entry_id = ledger.entries.last().map(|entry| entry.entry_id.clone());
+}
+
+fn validate_chairman_shadow_governance_state_ledger(
+    ledger: &ChairmanShadowGovernanceStateLedger,
+) -> Result<(), String> {
+    if !ledger.paper_only {
+        return Err("chairman shadow governance state ledger must stay paper_only".to_string());
+    }
+    reject_unsafe_owner_feedback_string(&ledger.ledger_id)?;
+    for entry in &ledger.entries {
+        if !entry.paper_only {
+            return Err(format!(
+                "chairman shadow governance state ledger entry {} must stay paper_only",
+                entry.entry_id
+            ));
+        }
+        reject_unsafe_owner_feedback_string(&entry.entry_id)?;
+        reject_unsafe_owner_feedback_string(&entry.run_id)?;
+    }
+    Ok(())
+}
+
+pub fn load_chairman_shadow_governance_state_ledger_from_local_json(
+    path: &Path,
+) -> Result<ChairmanShadowGovernanceStateLedger, String> {
+    validate_local_json_path(path, "chairman shadow governance state ledger path")?;
+    let text = fs::read_to_string(path).map_err(|err| err.to_string())?;
+    let mut ledger: ChairmanShadowGovernanceStateLedger =
+        serde_json::from_str(&text).map_err(|err| err.to_string())?;
+    validate_chairman_shadow_governance_state_ledger(&ledger)?;
+    normalize_chairman_shadow_governance_state_ledger(&mut ledger);
+    validate_chairman_shadow_governance_state_ledger(&ledger)?;
+    Ok(ledger)
+}
+
+pub fn save_chairman_shadow_governance_state_ledger_to_local_json(
+    path: &Path,
+    ledger: &ChairmanShadowGovernanceStateLedger,
+) -> Result<(), String> {
+    validate_local_json_path(path, "chairman shadow governance state ledger path")?;
+    let mut normalized = ledger.clone();
+    normalize_chairman_shadow_governance_state_ledger(&mut normalized);
+    validate_chairman_shadow_governance_state_ledger(&normalized)?;
+    write_safe_json(path, &normalized)
+}
+
+pub fn append_chairman_shadow_governance_state_ledger_entry(
+    ledger: &mut ChairmanShadowGovernanceStateLedger,
+    entry: ChairmanShadowGovernanceStateLedgerEntry,
+) {
+    ledger.entries.push(entry);
+    normalize_chairman_shadow_governance_state_ledger(ledger);
+}
+
+fn fairness_trend_direction(
+    first: ChairmanGovernanceFairnessStatus,
+    last: ChairmanGovernanceFairnessStatus,
+) -> ObserverTrendDirection {
+    let score = |status| match status {
+        ChairmanGovernanceFairnessStatus::Fair => 3,
+        ChairmanGovernanceFairnessStatus::FairWithWarnings => 2,
+        ChairmanGovernanceFairnessStatus::InsufficientData => 1,
+        ChairmanGovernanceFairnessStatus::Unfair => 0,
+    };
+    match score(last).cmp(&score(first)) {
+        std::cmp::Ordering::Greater => ObserverTrendDirection::Improving,
+        std::cmp::Ordering::Less => ObserverTrendDirection::Worsening,
+        std::cmp::Ordering::Equal => ObserverTrendDirection::Stable,
+    }
+}
+
+fn risk_first_trend_direction(
+    first: ChairmanRiskFirstGovernanceStatus,
+    last: ChairmanRiskFirstGovernanceStatus,
+) -> ObserverTrendDirection {
+    let score = |status| match status {
+        ChairmanRiskFirstGovernanceStatus::Preserved => 2,
+        ChairmanRiskFirstGovernanceStatus::PreservedWithWarnings => 1,
+        ChairmanRiskFirstGovernanceStatus::Violated => 0,
+    };
+    match score(last).cmp(&score(first)) {
+        std::cmp::Ordering::Greater => ObserverTrendDirection::Improving,
+        std::cmp::Ordering::Less => ObserverTrendDirection::Worsening,
+        std::cmp::Ordering::Equal => ObserverTrendDirection::Stable,
+    }
+}
+
+pub fn compute_chairman_shadow_governance_state_trend(
+    ledger: &ChairmanShadowGovernanceStateLedger,
+) -> ChairmanShadowGovernanceStateTrend {
+    if ledger.entries.len() < 2 {
+        return ChairmanShadowGovernanceStateTrend {
+            ledger_id: ledger.ledger_id.clone(),
+            entry_count: ledger.entry_count,
+            shadow_update_trend: ChairmanShadowGovernanceTrendDirection::InsufficientHistory,
+            fairness_trend: ObserverTrendDirection::InsufficientHistory,
+            risk_first_trend: ObserverTrendDirection::InsufficientHistory,
+            trend_status: ChairmanShadowGovernanceTrendStatus::InsufficientHistory,
+            paper_only: true,
+        };
+    }
+    let first = &ledger.entries[0];
+    let last = ledger.entries.last().expect("non-empty state ledger");
+    ChairmanShadowGovernanceStateTrend {
+        ledger_id: ledger.ledger_id.clone(),
+        entry_count: ledger.entry_count,
+        shadow_update_trend: trend_direction_from_counts(
+            first.updated_member_count,
+            last.updated_member_count,
+        ),
+        fairness_trend: fairness_trend_direction(first.fairness_status, last.fairness_status),
+        risk_first_trend: risk_first_trend_direction(
+            first.risk_first_status,
+            last.risk_first_status,
+        ),
+        trend_status: if ledger.entries.len() >= 3 {
+            ChairmanShadowGovernanceTrendStatus::Useful
+        } else {
+            ChairmanShadowGovernanceTrendStatus::UsefulWithWarnings
+        },
+        paper_only: true,
+    }
+}
+
+pub fn evaluate_paper_governance_promotion_gate(
+    apply_result: &ChairmanShadowGovernanceApplyResult,
+    comparison_summary: &ActualVsShadowGovernanceComparisonSummary,
+    state_trend: &ChairmanShadowGovernanceStateTrend,
+    safety_guard: &ChairmanShadowGovernanceApplySafetyGuard,
+) -> PaperGovernancePromotionGate {
+    let min_shadow_history_required = 3;
+    let mut blockers = Vec::new();
+    let mut warnings = Vec::new();
+    if safety_guard.guard_status == ChairmanShadowGovernanceApplySafetyGuardStatus::Violated {
+        blockers.push("shadow governance apply safety violated".to_string());
+    }
+    if apply_result.fairness_check.fairness_status == ChairmanGovernanceFairnessStatus::Unfair {
+        blockers.push("shadow governance apply fairness blocked".to_string());
+    }
+    if apply_result.risk_first_check.risk_first_status
+        == ChairmanRiskFirstGovernanceStatus::Violated
+    {
+        blockers.push("shadow governance apply risk-first blocked".to_string());
+    }
+    if comparison_summary.summary_status == ActualVsShadowGovernanceSummaryStatus::Diverged {
+        blockers.push("actual and shadow governance standings diverged".to_string());
+    }
+    if state_trend.entry_count < min_shadow_history_required {
+        warnings.push("not enough shadow governance history yet".to_string());
+    }
+    let readiness_status = if safety_guard.guard_status
+        == ChairmanShadowGovernanceApplySafetyGuardStatus::Violated
+    {
+        PaperGovernancePromotionReadinessStatus::BlockedBySafety
+    } else if apply_result.fairness_check.fairness_status
+        == ChairmanGovernanceFairnessStatus::Unfair
+    {
+        PaperGovernancePromotionReadinessStatus::BlockedByFairness
+    } else if apply_result.risk_first_check.risk_first_status
+        == ChairmanRiskFirstGovernanceStatus::Violated
+    {
+        PaperGovernancePromotionReadinessStatus::BlockedByRiskViolation
+    } else if comparison_summary.summary_status == ActualVsShadowGovernanceSummaryStatus::Diverged {
+        PaperGovernancePromotionReadinessStatus::NeedsMoreEvidence
+    } else if state_trend.entry_count < min_shadow_history_required {
+        PaperGovernancePromotionReadinessStatus::NeedsMoreShadowHistory
+    } else if apply_result.apply_status
+        == ChairmanShadowGovernanceApplyStatus::AppliedToShadowWithWarnings
+        || comparison_summary.summary_status
+            == ActualVsShadowGovernanceSummaryStatus::StableWithWarnings
+    {
+        PaperGovernancePromotionReadinessStatus::ReadyForPaperGovernanceTrialWithWarnings
+    } else if apply_result.apply_status == ChairmanShadowGovernanceApplyStatus::NoDeltas {
+        PaperGovernancePromotionReadinessStatus::NeedsMoreEvidence
+    } else {
+        PaperGovernancePromotionReadinessStatus::ReadyForPaperGovernanceTrial
+    };
+    PaperGovernancePromotionGate {
+        gate_id: format!("{}-paper-governance-gate", apply_result.run_id),
+        shadow_apply_status: apply_result.apply_status,
+        fairness_status: apply_result.fairness_check.fairness_status,
+        risk_first_status: apply_result.risk_first_check.risk_first_status,
+        actual_vs_shadow_status: comparison_summary.summary_status,
+        state_trend_status: state_trend.trend_status,
+        min_shadow_history_required,
+        actual_shadow_mutation_allowed: false,
+        ready_for_paper_score_voice_trial: blockers.is_empty()
+            && state_trend.entry_count >= min_shadow_history_required
+            && comparison_summary.summary_status != ActualVsShadowGovernanceSummaryStatus::Diverged,
+        readiness_status,
+        blockers,
+        warnings,
+        paper_only: true,
+    }
+}
+
+pub fn evaluate_chairman_shadow_governance_apply_safety(
+    apply_result: &ChairmanShadowGovernanceApplyResult,
+    actual_member_states_before: &[MemberStateSnapshot],
+    actual_member_states_after: Option<&[MemberStateSnapshot]>,
+    batch_before: &BatchCommitteeCycleResult,
+    batch_after: Option<&BatchCommitteeCycleResult>,
+    config: &ChairmanShadowGovernanceStateRunConfig,
+    shadow_store_written_when_dry_run: bool,
+) -> ChairmanShadowGovernanceApplySafetyGuard {
+    let after_states = actual_member_states_after.unwrap_or(actual_member_states_before);
+    let after_batch = batch_after.unwrap_or(batch_before);
+    let actual_score_snapshot = |states: &[MemberStateSnapshot]| {
+        states
+            .iter()
+            .map(|state| (state.member_id.clone(), state.score))
+            .collect::<std::collections::BTreeMap<_, _>>()
+    };
+    let actual_voice_snapshot = |states: &[MemberStateSnapshot]| {
+        states
+            .iter()
+            .map(|state| (state.member_id.clone(), state.voice_weight))
+            .collect::<std::collections::BTreeMap<_, _>>()
+    };
+    let promotion_snapshot = |updates: &[MemberScoreUpdate]| {
+        updates
+            .iter()
+            .filter(|update| update.promoted)
+            .map(|update| update.member_id.clone())
+            .collect::<std::collections::BTreeSet<_>>()
+    };
+    let demotion_snapshot = |updates: &[MemberScoreUpdate]| {
+        updates
+            .iter()
+            .filter(|update| update.demoted)
+            .map(|update| update.member_id.clone())
+            .collect::<std::collections::BTreeSet<_>>()
+    };
+    let risk_governor_snapshot = |decisions: &[ChairmanDecision]| {
+        decisions
+            .iter()
+            .map(|decision| (decision.decision_id.clone(), decision.risk_governor_status))
+            .collect::<std::collections::BTreeMap<_, _>>()
+    };
+    let actual_score_mutation_detected =
+        actual_score_snapshot(actual_member_states_before) != actual_score_snapshot(after_states);
+    let actual_voice_mutation_detected =
+        actual_voice_snapshot(actual_member_states_before) != actual_voice_snapshot(after_states);
+    let promotion_execution_detected = promotion_snapshot(&batch_before.score_updates)
+        != promotion_snapshot(&after_batch.score_updates);
+    let demotion_execution_detected = demotion_snapshot(&batch_before.score_updates)
+        != demotion_snapshot(&after_batch.score_updates);
+    let risk_governor_override_detected = risk_governor_snapshot(&batch_before.chairman_decisions)
+        != risk_governor_snapshot(&after_batch.chairman_decisions);
+    let committee_decision_mutation_detected =
+        batch_before.committee_sessions != after_batch.committee_sessions;
+    let markers = vec![
+        format!("{}-shadow-governance-apply", apply_result.run_id),
+        format!("{}-trade-signal", apply_result.run_id),
+        format!("{}-order", apply_result.run_id),
+    ];
+    let trade_signal_detected =
+        value_contains_debug_marker(&after_batch.committee_sessions, &markers);
+    let order_detected = value_contains_debug_marker(&after_batch.event_queue, &markers);
+    let broker_order_account_detected = value_contains_debug_marker(
+        &after_batch.event_queue,
+        &[
+            "broker".to_string(),
+            "order".to_string(),
+            "account".to_string(),
+        ],
+    );
+    let shadow_store_written_when_dry_run = config.dry_run && shadow_store_written_when_dry_run;
+    let mut violations = Vec::new();
+    if actual_score_mutation_detected {
+        violations.push("shadow governance apply mutated actual score".to_string());
+    }
+    if actual_voice_mutation_detected {
+        violations.push("shadow governance apply mutated actual voice".to_string());
+    }
+    if promotion_execution_detected {
+        violations.push("shadow governance apply executed promotion".to_string());
+    }
+    if demotion_execution_detected {
+        violations.push("shadow governance apply executed demotion".to_string());
+    }
+    if risk_governor_override_detected {
+        violations.push("shadow governance apply overrode Risk Governor".to_string());
+    }
+    if committee_decision_mutation_detected {
+        violations.push("shadow governance apply changed committee decision".to_string());
+    }
+    if trade_signal_detected {
+        violations.push("shadow governance apply created trade signal".to_string());
+    }
+    if order_detected {
+        violations.push("shadow governance apply created order".to_string());
+    }
+    if broker_order_account_detected {
+        violations.push("shadow governance apply touched broker/order/account".to_string());
+    }
+    if shadow_store_written_when_dry_run {
+        violations.push("shadow governance apply wrote shadow store during dry-run".to_string());
+    }
+    ChairmanShadowGovernanceApplySafetyGuard {
+        actual_score_mutation_detected,
+        actual_voice_mutation_detected,
+        promotion_execution_detected,
+        demotion_execution_detected,
+        risk_governor_override_detected,
+        committee_decision_mutation_detected,
+        trade_signal_detected,
+        order_detected,
+        broker_order_account_detected,
+        shadow_store_written_when_dry_run,
+        guard_status: if violations.is_empty() {
+            ChairmanShadowGovernanceApplySafetyGuardStatus::Preserved
+        } else {
+            ChairmanShadowGovernanceApplySafetyGuardStatus::Violated
+        },
+        violations,
+        paper_only: true,
+    }
+}
+
+pub fn build_owner_shadow_governance_state_summary(
+    apply_result: &ChairmanShadowGovernanceApplyResult,
+    comparison_summary: &ActualVsShadowGovernanceComparisonSummary,
+    promotion_gate: &PaperGovernancePromotionGate,
+) -> OwnerShadowGovernanceStateSummary {
+    OwnerShadowGovernanceStateSummary {
+        summary_id: format!("{}-owner-shadow-governance-summary", apply_result.run_id),
+        updated_member_count: apply_result.updated_member_count,
+        applied_shadow_score_delta_count: apply_result.applied_shadow_score_delta_count,
+        applied_shadow_voice_delta_count: apply_result.applied_shadow_voice_delta_count,
+        fairness_status: apply_result.fairness_check.fairness_status,
+        risk_first_status: apply_result.risk_first_check.risk_first_status,
+        actual_vs_shadow_status: comparison_summary.summary_status,
+        promotion_gate_status: promotion_gate.readiness_status,
+        message: "Chairman applied deltas only to shadow governance state. Actual score and voice weight did not change. No member was promoted or demoted. Risk Governor was not overridden."
+            .to_string(),
+        shadow_only: true,
+        no_actual_score_mutation: true,
+        no_actual_voice_mutation: true,
+        no_promotion_demotion: true,
+        no_risk_override: true,
+        not_trade_signal: true,
+        paper_only: true,
+    }
+}
+
+pub fn run_chairman_shadow_governance_state_update(
+    simulation_result: &ChairmanShadowGovernanceSimulationResult,
+    actual_member_states: &[MemberStateSnapshot],
+    batch_result: &BatchCommitteeCycleResult,
+    config: &ChairmanShadowGovernanceStateRunConfig,
+) -> Result<ChairmanShadowGovernanceStateRunResult, String> {
+    if !config.paper_only {
+        return Err("chairman shadow governance state run must stay paper_only".to_string());
+    }
+    let policy = default_chairman_shadow_governance_apply_policy();
+    let mut shadow_store = if let Some(path) = config.shadow_state_input_path.as_ref() {
+        if Path::new(path).exists() {
+            load_chairman_shadow_governance_state_store_from_local_json(Path::new(path))?
+        } else {
+            initialize_shadow_governance_state_store(actual_member_states)
+        }
+    } else {
+        initialize_shadow_governance_state_store(actual_member_states)
+    };
+    let shadow_store_before = Some(shadow_store.clone());
+    let fairness_check = batch_result
+        .chairman_governance_fairness_check
+        .clone()
+        .unwrap_or_else(|| {
+            evaluate_chairman_governance_fairness(
+                simulation_result,
+                &default_chairman_shadow_governance_simulation_policy(),
+            )
+        });
+    let risk_first_check = batch_result
+        .chairman_risk_first_governance_check
+        .clone()
+        .unwrap_or(ChairmanRiskFirstGovernanceCheck {
+            check_id: format!("{}-state-risk-first", config.run_id),
+            risk_guard_rewarded_count: 0,
+            risky_overconfidence_penalized_count: 0,
+            risk_veto_alignment_count: 0,
+            risk_override_attempt_detected: false,
+            reckless_reward_detected: false,
+            risk_first_status: ChairmanRiskFirstGovernanceStatus::PreservedWithWarnings,
+            warnings: vec![
+                "simulation risk-first check missing; state apply used warning-safe fallback"
+                    .to_string(),
+            ],
+            paper_only: true,
+        });
+    let apply_result = if config.apply_shadow_deltas {
+        apply_chairman_shadow_governance_deltas(
+            &mut shadow_store,
+            simulation_result,
+            &fairness_check,
+            &risk_first_check,
+            &policy,
+            &config.run_id,
+        )?
+    } else {
+        ChairmanShadowGovernanceApplyResult {
+            run_id: config.run_id.clone(),
+            input_score_delta_count: simulation_result.score_deltas.len(),
+            input_voice_delta_count: simulation_result.voice_deltas.len(),
+            applied_shadow_score_delta_count: 0,
+            applied_shadow_voice_delta_count: 0,
+            skipped_delta_count: simulation_result.score_deltas.len()
+                + simulation_result.voice_deltas.len(),
+            updated_member_count: 0,
+            before_after_standings: Vec::new(),
+            fairness_check: fairness_check.clone(),
+            risk_first_check: risk_first_check.clone(),
+            apply_status: ChairmanShadowGovernanceApplyStatus::NoDeltas,
+            no_actual_score_mutation: true,
+            no_actual_voice_mutation: true,
+            no_promotion_demotion: true,
+            no_risk_governor_override: true,
+            paper_only: true,
+        }
+    };
+    let (_comparisons, comparison_summary) =
+        compare_actual_vs_shadow_governance(actual_member_states, &shadow_store);
+    let mut state_ledger = if let Some(path) = config.shadow_state_ledger_path.as_ref() {
+        if Path::new(path).exists() {
+            load_chairman_shadow_governance_state_ledger_from_local_json(Path::new(path))?
+        } else {
+            ChairmanShadowGovernanceStateLedger {
+                ledger_id: format!("{}-shadow-state-ledger", config.run_id),
+                entries: Vec::new(),
+                entry_count: 0,
+                latest_entry_id: None,
+                paper_only: true,
+            }
+        }
+    } else {
+        ChairmanShadowGovernanceStateLedger {
+            ledger_id: format!("{}-shadow-state-ledger", config.run_id),
+            entries: Vec::new(),
+            entry_count: 0,
+            latest_entry_id: None,
+            paper_only: true,
+        }
+    };
+    let state_entry_id = format!("{}-state-entry-{}", config.run_id, state_ledger.entry_count);
+    append_chairman_shadow_governance_state_ledger_entry(
+        &mut state_ledger,
+        ChairmanShadowGovernanceStateLedgerEntry {
+            entry_id: state_entry_id,
+            run_id: config.run_id.clone(),
+            updated_member_count: apply_result.updated_member_count,
+            applied_shadow_score_delta_count: apply_result.applied_shadow_score_delta_count,
+            applied_shadow_voice_delta_count: apply_result.applied_shadow_voice_delta_count,
+            fairness_status: apply_result.fairness_check.fairness_status,
+            risk_first_status: apply_result.risk_first_check.risk_first_status,
+            actual_vs_shadow_summary_status: comparison_summary.summary_status,
+            paper_only: true,
+        },
+    );
+    let state_trend = compute_chairman_shadow_governance_state_trend(&state_ledger);
+    let shadow_store_path = config
+        .shadow_state_output_path
+        .as_ref()
+        .map(Path::new)
+        .map(Path::to_path_buf);
+    let ledger_path = config
+        .shadow_state_ledger_path
+        .as_ref()
+        .map(Path::new)
+        .map(Path::to_path_buf);
+    let shadow_store_written_when_dry_run = false;
+    if !config.dry_run {
+        if let Some(path) = shadow_store_path.as_ref() {
+            save_chairman_shadow_governance_state_store_to_local_json(path, &shadow_store)?;
+        }
+        if let Some(path) = ledger_path.as_ref() {
+            save_chairman_shadow_governance_state_ledger_to_local_json(path, &state_ledger)?;
+        }
+    }
+    let safety_guard = evaluate_chairman_shadow_governance_apply_safety(
+        &apply_result,
+        actual_member_states,
+        Some(actual_member_states),
+        batch_result,
+        Some(batch_result),
+        config,
+        shadow_store_written_when_dry_run,
+    );
+    let paper_governance_promotion_gate = evaluate_paper_governance_promotion_gate(
+        &apply_result,
+        &comparison_summary,
+        &state_trend,
+        &safety_guard,
+    );
+    let owner_summary = config.emit_owner_summary.then(|| {
+        build_owner_shadow_governance_state_summary(
+            &apply_result,
+            &comparison_summary,
+            &paper_governance_promotion_gate,
+        )
+    });
+    Ok(ChairmanShadowGovernanceStateRunResult {
+        run_id: config.run_id.clone(),
+        shadow_store_before,
+        apply_result: apply_result.clone(),
+        shadow_store_after: Some(shadow_store.clone()),
+        actual_vs_shadow_summary: comparison_summary.clone(),
+        state_ledger: state_ledger.clone(),
+        state_trend: state_trend.clone(),
+        paper_governance_promotion_gate: paper_governance_promotion_gate.clone(),
+        safety_guard: safety_guard.clone(),
+        owner_summary,
+        run_status: if safety_guard.guard_status
+            == ChairmanShadowGovernanceApplySafetyGuardStatus::Violated
+            || paper_governance_promotion_gate.readiness_status
+                == PaperGovernancePromotionReadinessStatus::BlockedByFairness
+            || paper_governance_promotion_gate.readiness_status
+                == PaperGovernancePromotionReadinessStatus::BlockedByRiskViolation
+            || paper_governance_promotion_gate.readiness_status
+                == PaperGovernancePromotionReadinessStatus::BlockedBySafety
+        {
+            ChairmanShadowGovernanceStateRunStatus::Failed
+        } else if config.dry_run
+            || apply_result.apply_status
+                == ChairmanShadowGovernanceApplyStatus::AppliedToShadowWithWarnings
+            || !paper_governance_promotion_gate.warnings.is_empty()
+        {
+            ChairmanShadowGovernanceStateRunStatus::PassedWithWarnings
+        } else {
+            ChairmanShadowGovernanceStateRunStatus::Passed
+        },
+        paper_only: true,
+    })
+}
+
+fn shadow_governance_history_snapshot_key(
+    snapshot: &ChairmanShadowGovernanceHistorySnapshot,
+) -> String {
+    snapshot.run_id.clone()
+}
+
+pub fn normalize_shadow_governance_history_store(store: &mut ChairmanShadowGovernanceHistoryStore) {
+    let mut seen = std::collections::BTreeSet::new();
+    store.snapshots.sort_by(|left, right| {
+        shadow_governance_history_snapshot_key(left)
+            .cmp(&shadow_governance_history_snapshot_key(right))
+    });
+    store
+        .snapshots
+        .retain(|snapshot| seen.insert(shadow_governance_history_snapshot_key(snapshot)));
+    store.snapshot_count = store.snapshots.len();
+    store.latest_snapshot_id = store
+        .snapshots
+        .last()
+        .map(|snapshot| snapshot.snapshot_id.clone());
+}
+
+fn validate_chairman_shadow_governance_history_store(
+    store: &ChairmanShadowGovernanceHistoryStore,
+) -> Result<(), String> {
+    if !store.paper_only {
+        return Err("chairman shadow governance history store must stay paper_only".to_string());
+    }
+    reject_unsafe_owner_feedback_string(&store.store_id)?;
+    for snapshot in &store.snapshots {
+        if !snapshot.paper_only {
+            return Err(format!(
+                "chairman shadow governance history snapshot {} must stay paper_only",
+                snapshot.snapshot_id
+            ));
+        }
+        reject_unsafe_owner_feedback_string(&snapshot.snapshot_id)?;
+        reject_unsafe_owner_feedback_string(&snapshot.run_id)?;
+        for state in &snapshot.member_states {
+            if !state.paper_only {
+                return Err(format!(
+                    "chairman shadow governance history member state {} must stay paper_only",
+                    state.member_id
+                ));
+            }
+            reject_unsafe_owner_feedback_string(&state.member_id)?;
+            if let Some(canonical_member_id) = state.canonical_member_id.as_ref() {
+                reject_unsafe_owner_feedback_string(canonical_member_id)?;
+            }
+        }
+    }
+    Ok(())
+}
+
+pub fn latest_shadow_governance_history_snapshot(
+    store: &ChairmanShadowGovernanceHistoryStore,
+) -> Option<&ChairmanShadowGovernanceHistorySnapshot> {
+    store.snapshots.last()
+}
+
+pub fn load_chairman_shadow_governance_history_store_from_local_json(
+    path: &Path,
+) -> Result<ChairmanShadowGovernanceHistoryStore, String> {
+    validate_local_json_path(path, "chairman shadow governance history input path")?;
+    let text = fs::read_to_string(path).map_err(|err| err.to_string())?;
+    let mut store: ChairmanShadowGovernanceHistoryStore =
+        serde_json::from_str(&text).map_err(|err| err.to_string())?;
+    validate_chairman_shadow_governance_history_store(&store)?;
+    normalize_shadow_governance_history_store(&mut store);
+    validate_chairman_shadow_governance_history_store(&store)?;
+    Ok(store)
+}
+
+pub fn save_chairman_shadow_governance_history_store_to_local_json(
+    path: &Path,
+    store: &ChairmanShadowGovernanceHistoryStore,
+) -> Result<(), String> {
+    validate_local_json_path(path, "chairman shadow governance history output path")?;
+    let mut normalized = store.clone();
+    normalize_shadow_governance_history_store(&mut normalized);
+    validate_chairman_shadow_governance_history_store(&normalized)?;
+    write_safe_json(path, &normalized)
+}
+
+pub fn append_chairman_shadow_governance_history_snapshot(
+    store: &mut ChairmanShadowGovernanceHistoryStore,
+    snapshot: ChairmanShadowGovernanceHistorySnapshot,
+) {
+    store.snapshots.push(snapshot);
+    normalize_shadow_governance_history_store(store);
+}
+
+fn build_chairman_shadow_governance_history_snapshot(
+    current_state_result: &ChairmanShadowGovernanceStateRunResult,
+) -> Result<ChairmanShadowGovernanceHistorySnapshot, String> {
+    let member_states = current_state_result
+        .shadow_store_after
+        .as_ref()
+        .or(current_state_result.shadow_store_before.as_ref())
+        .map(|store| store.member_states.clone())
+        .ok_or_else(|| {
+            "chairman shadow governance history snapshot requires shadow store".to_string()
+        })?;
+    Ok(ChairmanShadowGovernanceHistorySnapshot {
+        snapshot_id: format!("{}-history-snapshot", current_state_result.run_id),
+        run_id: current_state_result.run_id.clone(),
+        timestamp: None,
+        member_states,
+        actual_vs_shadow_summary: current_state_result.actual_vs_shadow_summary.clone(),
+        fairness_status: current_state_result
+            .apply_result
+            .fairness_check
+            .fairness_status,
+        risk_first_status: current_state_result
+            .apply_result
+            .risk_first_check
+            .risk_first_status,
+        safety_status: current_state_result.safety_guard.guard_status,
+        paper_governance_gate_status: current_state_result
+            .paper_governance_promotion_gate
+            .readiness_status,
+        paper_only: true,
+    })
+}
+
+pub fn accumulate_chairman_shadow_governance_history(
+    current_state_result: &ChairmanShadowGovernanceStateRunResult,
+    history_store: &mut ChairmanShadowGovernanceHistoryStore,
+    config: &ChairmanShadowGovernanceHistoryAccumulationConfig,
+) -> Result<ChairmanShadowGovernanceHistoryAccumulationResult, String> {
+    if !config.paper_only {
+        return Err(
+            "chairman shadow governance history accumulation must stay paper_only".to_string(),
+        );
+    }
+    if config.max_snapshots == 0 || config.min_snapshots_for_trial_gate == 0 {
+        return Err(
+            "chairman shadow governance history accumulation thresholds must be positive"
+                .to_string(),
+        );
+    }
+    if config.max_snapshots < config.min_snapshots_for_trial_gate {
+        return Err(
+            "chairman shadow governance history max_snapshots must cover the trial gate minimum"
+                .to_string(),
+        );
+    }
+    validate_chairman_shadow_governance_history_store(history_store)?;
+    let previous_snapshot_count = history_store.snapshot_count;
+    let snapshot = build_chairman_shadow_governance_history_snapshot(current_state_result)?;
+    let already_exists = history_store
+        .snapshots
+        .iter()
+        .any(|existing| existing.snapshot_id == snapshot.snapshot_id);
+    let mut warnings = Vec::new();
+    if already_exists {
+        return Ok(ChairmanShadowGovernanceHistoryAccumulationResult {
+            run_id: config.run_id.clone(),
+            previous_snapshot_count,
+            appended_snapshot_count: 0,
+            new_snapshot_count: history_store.snapshot_count,
+            latest_snapshot_id: history_store.latest_snapshot_id.clone(),
+            wrote_history_store: false,
+            accumulation_status: ChairmanShadowGovernanceHistoryAccumulationStatus::NoNewSnapshot,
+            warnings,
+            paper_only: true,
+        });
+    }
+    append_chairman_shadow_governance_history_snapshot(history_store, snapshot);
+    if history_store.snapshots.len() > config.max_snapshots {
+        let retain_from = history_store.snapshots.len() - config.max_snapshots;
+        history_store.snapshots = history_store.snapshots.split_off(retain_from);
+        warnings.push(format!(
+            "history store trimmed to max_snapshots={}",
+            config.max_snapshots
+        ));
+    }
+    normalize_shadow_governance_history_store(history_store);
+    validate_chairman_shadow_governance_history_store(history_store)?;
+    Ok(ChairmanShadowGovernanceHistoryAccumulationResult {
+        run_id: config.run_id.clone(),
+        previous_snapshot_count,
+        appended_snapshot_count: 1,
+        new_snapshot_count: history_store.snapshot_count,
+        latest_snapshot_id: history_store.latest_snapshot_id.clone(),
+        wrote_history_store: false,
+        accumulation_status: if warnings.is_empty() {
+            ChairmanShadowGovernanceHistoryAccumulationStatus::Accumulated
+        } else {
+            ChairmanShadowGovernanceHistoryAccumulationStatus::AccumulatedWithWarnings
+        },
+        warnings,
+        paper_only: true,
+    })
+}
+
+fn divergence_record(
+    member_id: &str,
+    divergence_type: ActualVsShadowDivergenceType,
+    score_gap: f64,
+    voice_gap: f64,
+    severity: ActualVsShadowDivergenceSeverity,
+    expected: bool,
+    unsafe_divergence: bool,
+    reason: &str,
+    recommended_action: ActualVsShadowRecommendedAction,
+) -> ActualVsShadowDivergenceRecord {
+    ActualVsShadowDivergenceRecord {
+        divergence_id: format!("{member_id}-{divergence_type:?}"),
+        member_id: member_id.to_string(),
+        divergence_type,
+        score_gap,
+        voice_gap,
+        severity,
+        expected,
+        unsafe_divergence,
+        reason: reason.to_string(),
+        recommended_action,
+        paper_only: true,
+    }
+}
+
+pub fn default_paper_governance_trial_criteria() -> PaperGovernanceTrialCriteria {
+    PaperGovernanceTrialCriteria {
+        criteria_id: "paper-governance-trial-criteria".to_string(),
+        min_history_snapshots:
+            default_chairman_shadow_governance_history_min_snapshots_for_trial_gate(),
+        require_fairness_status: ChairmanGovernanceFairnessStatus::FairWithWarnings,
+        require_risk_first_status: ChairmanRiskFirstGovernanceStatus::PreservedWithWarnings,
+        require_safety_status: ChairmanShadowGovernanceApplySafetyGuardStatus::Preserved,
+        max_allowed_high_severity_divergence: 0,
+        max_allowed_voice_concentration: 0.65,
+        max_allowed_voice_volatility: 0.12,
+        require_no_risk_governor_override: true,
+        require_no_actual_score_mutation: true,
+        require_no_actual_voice_mutation: true,
+        require_no_committee_decision_mutation: true,
+        paper_only: true,
+    }
+}
+
+pub fn diagnose_actual_vs_shadow_divergence(
+    comparison_summary: &ActualVsShadowGovernanceComparisonSummary,
+    shadow_store: &ChairmanShadowGovernanceStateStore,
+    history_store: &ChairmanShadowGovernanceHistoryStore,
+    criteria: &PaperGovernanceTrialCriteria,
+) -> ActualVsShadowDivergenceDiagnosis {
+    let mut records = Vec::new();
+    if history_store.snapshot_count < 2 {
+        records.push(divergence_record(
+            "history",
+            ActualVsShadowDivergenceType::InsufficientHistory,
+            comparison_summary.max_score_gap,
+            comparison_summary.max_voice_gap,
+            ActualVsShadowDivergenceSeverity::Low,
+            true,
+            false,
+            "Need more shadow governance history before diagnosing divergence.",
+            ActualVsShadowRecommendedAction::KeepAccumulatingHistory,
+        ));
+        return ActualVsShadowDivergenceDiagnosis {
+            diagnosis_id: format!("{}-divergence-diagnosis", comparison_summary.summary_id),
+            record_count: 1,
+            high_severity_count: 0,
+            unsafe_count: 0,
+            expected_count: 1,
+            divergence_records: records,
+            diagnosis_status: ActualVsShadowDivergenceDiagnosisStatus::NeedsMoreHistory,
+            paper_only: true,
+        };
+    }
+    for state in &shadow_store.member_states {
+        let score_gap = state.shadow_score - state.actual_score_snapshot;
+        let voice_gap = state.shadow_voice_weight - state.actual_voice_weight_snapshot;
+        if score_gap.abs() > 0.05 {
+            let unsafe_divergence = score_gap.abs() > 0.2;
+            records.push(divergence_record(
+                &state.member_id,
+                ActualVsShadowDivergenceType::ScoreDrift,
+                score_gap,
+                voice_gap,
+                if score_gap.abs() > 0.12 {
+                    ActualVsShadowDivergenceSeverity::High
+                } else {
+                    ActualVsShadowDivergenceSeverity::Medium
+                },
+                !unsafe_divergence,
+                unsafe_divergence,
+                "Shadow score drift reflects paper-only learning pressure while actual score stays frozen.",
+                if unsafe_divergence {
+                    ActualVsShadowRecommendedAction::BlockPaperGovernanceTrial
+                } else {
+                    ActualVsShadowRecommendedAction::KeepAccumulatingHistory
+                },
+            ));
+        }
+        if voice_gap.abs() > 0.05 {
+            let unsafe_divergence = voice_gap.abs() > criteria.max_allowed_voice_volatility;
+            records.push(divergence_record(
+                &state.member_id,
+                ActualVsShadowDivergenceType::VoiceDrift,
+                score_gap,
+                voice_gap,
+                if unsafe_divergence {
+                    ActualVsShadowDivergenceSeverity::High
+                } else {
+                    ActualVsShadowDivergenceSeverity::Medium
+                },
+                !unsafe_divergence,
+                unsafe_divergence,
+                "Shadow voice drift tracks chairman paper-only weighting while actual voice remains fixed.",
+                if unsafe_divergence {
+                    ActualVsShadowRecommendedAction::ReduceShadowDeltaPolicy
+                } else {
+                    ActualVsShadowRecommendedAction::KeepAccumulatingHistory
+                },
+            ));
+        }
+        if state.shadow_reward_count > state.shadow_penalty_count + 2 && score_gap > 0.08 {
+            records.push(divergence_record(
+                &state.member_id,
+                ActualVsShadowDivergenceType::ShadowOverReward,
+                score_gap,
+                voice_gap,
+                ActualVsShadowDivergenceSeverity::Medium,
+                false,
+                false,
+                "Shadow reward counts are accumulating faster than actual score can converge.",
+                ActualVsShadowRecommendedAction::IncreaseFairnessConstraint,
+            ));
+        }
+        if state.shadow_penalty_count > state.shadow_reward_count + 2 && score_gap < -0.08 {
+            records.push(divergence_record(
+                &state.member_id,
+                ActualVsShadowDivergenceType::ShadowOverPenalty,
+                score_gap,
+                voice_gap,
+                ActualVsShadowDivergenceSeverity::Medium,
+                false,
+                false,
+                "Shadow penalty counts are accumulating faster than actual governance can respond.",
+                ActualVsShadowRecommendedAction::RequireMoreEvidence,
+            ));
+        }
+        if state.role == IndependentMemberRole::RiskGuard
+            && state.shadow_voice_weight > criteria.max_allowed_voice_concentration
+        {
+            records.push(divergence_record(
+                &state.member_id,
+                ActualVsShadowDivergenceType::RiskGuardOverDominance,
+                score_gap,
+                voice_gap,
+                ActualVsShadowDivergenceSeverity::High,
+                false,
+                true,
+                "RiskGuard shadow voice concentration is dominating beyond the allowed paper-only threshold.",
+                ActualVsShadowRecommendedAction::ReviewRiskFirstPolicy,
+            ));
+        }
+        if state.role == IndependentMemberRole::TrendEntry
+            && state.shadow_penalty_count > state.shadow_reward_count + 1
+            && score_gap < -0.05
+        {
+            records.push(divergence_record(
+                &state.member_id,
+                ActualVsShadowDivergenceType::TrendEntrySuppression,
+                score_gap,
+                voice_gap,
+                ActualVsShadowDivergenceSeverity::Medium,
+                false,
+                false,
+                "TrendEntry shadow standing is being suppressed relative to actual standing.",
+                ActualVsShadowRecommendedAction::RequireMoreEvidence,
+            ));
+        }
+        if state.role == IndependentMemberRole::EvidenceRegime
+            && voice_gap < -0.05
+            && state.shadow_voice_weight + 0.05 < state.actual_voice_weight_snapshot
+        {
+            records.push(divergence_record(
+                &state.member_id,
+                ActualVsShadowDivergenceType::EvidenceRegimeUnderweight,
+                score_gap,
+                voice_gap,
+                ActualVsShadowDivergenceSeverity::Medium,
+                false,
+                false,
+                "EvidenceRegime shadow voice is underweight relative to the actual baseline.",
+                ActualVsShadowRecommendedAction::RequireMoreEvidence,
+            ));
+        }
+        if score_gap.abs() <= 0.05 && voice_gap.abs() <= 0.05 {
+            records.push(divergence_record(
+                &state.member_id,
+                ActualVsShadowDivergenceType::ExpectedShadowLearning,
+                score_gap,
+                voice_gap,
+                ActualVsShadowDivergenceSeverity::Low,
+                true,
+                false,
+                "Mild shadow divergence is expected while actual governance stays frozen.",
+                ActualVsShadowRecommendedAction::KeepAccumulatingHistory,
+            ));
+        }
+    }
+    let high_severity_count = records
+        .iter()
+        .filter(|record| record.severity == ActualVsShadowDivergenceSeverity::High)
+        .count();
+    let record_count = records.len();
+    let unsafe_count = records
+        .iter()
+        .filter(|record| record.unsafe_divergence)
+        .count();
+    let expected_count = records.iter().filter(|record| record.expected).count();
+    let diagnosis_status = if unsafe_count > 0 {
+        ActualVsShadowDivergenceDiagnosisStatus::UnsafeDivergence
+    } else if high_severity_count > criteria.max_allowed_high_severity_divergence {
+        ActualVsShadowDivergenceDiagnosisStatus::Blocked
+    } else if comparison_summary.summary_status == ActualVsShadowGovernanceSummaryStatus::Stable
+        && expected_count == records.len()
+    {
+        ActualVsShadowDivergenceDiagnosisStatus::AcceptableDivergence
+    } else {
+        ActualVsShadowDivergenceDiagnosisStatus::AcceptableWithWarnings
+    };
+    ActualVsShadowDivergenceDiagnosis {
+        diagnosis_id: format!("{}-divergence-diagnosis", comparison_summary.summary_id),
+        record_count,
+        high_severity_count,
+        unsafe_count,
+        expected_count,
+        divergence_records: records,
+        diagnosis_status,
+        paper_only: true,
+    }
+}
+
+pub fn compute_shadow_governance_history_stability(
+    history_store: &ChairmanShadowGovernanceHistoryStore,
+) -> ChairmanShadowGovernanceHistoryStabilityMetrics {
+    if history_store.snapshot_count < 2 {
+        return ChairmanShadowGovernanceHistoryStabilityMetrics {
+            metrics_id: format!("{}-stability", history_store.store_id),
+            snapshot_count: history_store.snapshot_count,
+            score_volatility_by_member: BTreeMap::new(),
+            voice_volatility_by_member: BTreeMap::new(),
+            max_score_swing: 0.0,
+            max_voice_swing: 0.0,
+            reward_penalty_balance: 0.0,
+            voice_change_balance: 0.0,
+            stability_status: ShadowGovernanceHistoryStabilityStatus::InsufficientHistory,
+            paper_only: true,
+        };
+    }
+    let mut score_series: BTreeMap<String, Vec<f64>> = BTreeMap::new();
+    let mut voice_series: BTreeMap<String, Vec<f64>> = BTreeMap::new();
+    let mut reward_total = 0usize;
+    let mut penalty_total = 0usize;
+    let mut voice_up_total = 0usize;
+    let mut voice_down_total = 0usize;
+    for snapshot in &history_store.snapshots {
+        for state in &snapshot.member_states {
+            score_series
+                .entry(state.member_id.clone())
+                .or_default()
+                .push(state.shadow_score);
+            voice_series
+                .entry(state.member_id.clone())
+                .or_default()
+                .push(state.shadow_voice_weight);
+            reward_total += state.shadow_reward_count;
+            penalty_total += state.shadow_penalty_count;
+            voice_up_total += state.shadow_voice_increase_count;
+            voice_down_total += state.shadow_voice_decrease_count;
+        }
+    }
+    let score_volatility_by_member = score_series
+        .into_iter()
+        .map(|(member_id, series)| {
+            let min = series.iter().copied().fold(f64::INFINITY, f64::min);
+            let max = series.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+            (member_id, (max - min).max(0.0))
+        })
+        .collect::<BTreeMap<_, _>>();
+    let voice_volatility_by_member = voice_series
+        .into_iter()
+        .map(|(member_id, series)| {
+            let min = series.iter().copied().fold(f64::INFINITY, f64::min);
+            let max = series.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+            (member_id, (max - min).max(0.0))
+        })
+        .collect::<BTreeMap<_, _>>();
+    let max_score_swing = score_volatility_by_member
+        .values()
+        .copied()
+        .fold(0.0, f64::max);
+    let max_voice_swing = voice_volatility_by_member
+        .values()
+        .copied()
+        .fold(0.0, f64::max);
+    let reward_penalty_balance = (reward_total as f64 - penalty_total as f64).abs()
+        / (reward_total + penalty_total).max(1) as f64;
+    let voice_change_balance = (voice_up_total as f64 - voice_down_total as f64).abs()
+        / (voice_up_total + voice_down_total).max(1) as f64;
+    ChairmanShadowGovernanceHistoryStabilityMetrics {
+        metrics_id: format!("{}-stability", history_store.store_id),
+        snapshot_count: history_store.snapshot_count,
+        score_volatility_by_member,
+        voice_volatility_by_member,
+        max_score_swing,
+        max_voice_swing,
+        reward_penalty_balance,
+        voice_change_balance,
+        stability_status: if max_score_swing > 0.25 || max_voice_swing > 0.2 {
+            ShadowGovernanceHistoryStabilityStatus::Unstable
+        } else if max_score_swing > 0.12 || max_voice_swing > 0.1 {
+            ShadowGovernanceHistoryStabilityStatus::StableWithWarnings
+        } else {
+            ShadowGovernanceHistoryStabilityStatus::Stable
+        },
+        paper_only: true,
+    }
+}
+
+fn fairness_status_satisfies(
+    actual: ChairmanGovernanceFairnessStatus,
+    required: ChairmanGovernanceFairnessStatus,
+) -> bool {
+    match required {
+        ChairmanGovernanceFairnessStatus::Fair => actual == ChairmanGovernanceFairnessStatus::Fair,
+        ChairmanGovernanceFairnessStatus::FairWithWarnings => matches!(
+            actual,
+            ChairmanGovernanceFairnessStatus::Fair
+                | ChairmanGovernanceFairnessStatus::FairWithWarnings
+        ),
+        ChairmanGovernanceFairnessStatus::InsufficientData => {
+            actual != ChairmanGovernanceFairnessStatus::Unfair
+        }
+        ChairmanGovernanceFairnessStatus::Unfair => true,
+    }
+}
+
+fn risk_first_status_satisfies(
+    actual: ChairmanRiskFirstGovernanceStatus,
+    required: ChairmanRiskFirstGovernanceStatus,
+) -> bool {
+    match required {
+        ChairmanRiskFirstGovernanceStatus::Preserved => {
+            actual == ChairmanRiskFirstGovernanceStatus::Preserved
+        }
+        ChairmanRiskFirstGovernanceStatus::PreservedWithWarnings => matches!(
+            actual,
+            ChairmanRiskFirstGovernanceStatus::Preserved
+                | ChairmanRiskFirstGovernanceStatus::PreservedWithWarnings
+        ),
+        ChairmanRiskFirstGovernanceStatus::Violated => true,
+    }
+}
+
+pub fn evaluate_paper_governance_trial_gate_v2(
+    history_store: &ChairmanShadowGovernanceHistoryStore,
+    divergence_diagnosis: &ActualVsShadowDivergenceDiagnosis,
+    stability_metrics: &ChairmanShadowGovernanceHistoryStabilityMetrics,
+    latest_apply_result: &ChairmanShadowGovernanceApplyResult,
+    criteria: &PaperGovernanceTrialCriteria,
+) -> PaperGovernanceTrialGateV2 {
+    let mut blockers = Vec::new();
+    let mut warnings = Vec::new();
+    let latest_voice_concentration = latest_shadow_governance_history_snapshot(history_store)
+        .map(|snapshot| {
+            snapshot
+                .member_states
+                .iter()
+                .map(|state| state.shadow_voice_weight)
+                .fold(0.0, f64::max)
+        })
+        .unwrap_or(0.0);
+    let safety_status = if latest_apply_result.no_actual_score_mutation
+        && latest_apply_result.no_actual_voice_mutation
+        && latest_apply_result.no_promotion_demotion
+        && latest_apply_result.no_risk_governor_override
+    {
+        ChairmanShadowGovernanceApplySafetyGuardStatus::Preserved
+    } else {
+        ChairmanShadowGovernanceApplySafetyGuardStatus::Violated
+    };
+    if history_store.snapshot_count < criteria.min_history_snapshots {
+        blockers.push("shadow governance history is below the minimum trial threshold".to_string());
+    }
+    if matches!(
+        divergence_diagnosis.diagnosis_status,
+        ActualVsShadowDivergenceDiagnosisStatus::UnsafeDivergence
+            | ActualVsShadowDivergenceDiagnosisStatus::Blocked
+    ) {
+        blockers.push(
+            "actual-vs-shadow divergence is not safe for a paper governance trial".to_string(),
+        );
+    }
+    if stability_metrics.stability_status == ShadowGovernanceHistoryStabilityStatus::Unstable {
+        blockers.push("shadow governance history is unstable".to_string());
+    } else if stability_metrics.stability_status
+        == ShadowGovernanceHistoryStabilityStatus::StableWithWarnings
+    {
+        warnings.push("shadow governance history is only stable with warnings".to_string());
+    }
+    if !fairness_status_satisfies(
+        latest_apply_result.fairness_check.fairness_status,
+        criteria.require_fairness_status,
+    ) {
+        blockers.push("fairness status does not meet the paper trial criteria".to_string());
+    }
+    if !risk_first_status_satisfies(
+        latest_apply_result.risk_first_check.risk_first_status,
+        criteria.require_risk_first_status,
+    ) {
+        blockers.push("risk-first status does not meet the paper trial criteria".to_string());
+    }
+    if safety_status != criteria.require_safety_status {
+        blockers.push("safety status does not meet the paper trial criteria".to_string());
+    }
+    if latest_voice_concentration > criteria.max_allowed_voice_concentration {
+        blockers.push("shadow voice concentration exceeds the allowed trial threshold".to_string());
+    }
+    if stability_metrics.max_voice_swing > criteria.max_allowed_voice_volatility {
+        blockers.push("shadow voice volatility exceeds the allowed trial threshold".to_string());
+    }
+    let gate_status = if history_store.snapshot_count < criteria.min_history_snapshots {
+        PaperGovernanceTrialGateV2Status::NeedsMoreShadowHistory
+    } else if matches!(
+        divergence_diagnosis.diagnosis_status,
+        ActualVsShadowDivergenceDiagnosisStatus::UnsafeDivergence
+            | ActualVsShadowDivergenceDiagnosisStatus::Blocked
+    ) {
+        PaperGovernanceTrialGateV2Status::BlockedByDivergence
+    } else if !fairness_status_satisfies(
+        latest_apply_result.fairness_check.fairness_status,
+        criteria.require_fairness_status,
+    ) {
+        PaperGovernanceTrialGateV2Status::BlockedByFairness
+    } else if !risk_first_status_satisfies(
+        latest_apply_result.risk_first_check.risk_first_status,
+        criteria.require_risk_first_status,
+    ) {
+        PaperGovernanceTrialGateV2Status::BlockedByRiskViolation
+    } else if safety_status != criteria.require_safety_status {
+        PaperGovernanceTrialGateV2Status::BlockedBySafety
+    } else if latest_voice_concentration > criteria.max_allowed_voice_concentration {
+        PaperGovernanceTrialGateV2Status::BlockedByDivergence
+    } else if stability_metrics.max_voice_swing > criteria.max_allowed_voice_volatility {
+        PaperGovernanceTrialGateV2Status::NeedsMoreEvidence
+    } else if stability_metrics.stability_status
+        == ShadowGovernanceHistoryStabilityStatus::InsufficientHistory
+        || divergence_diagnosis.diagnosis_status
+            == ActualVsShadowDivergenceDiagnosisStatus::NeedsMoreHistory
+    {
+        PaperGovernanceTrialGateV2Status::NeedsMoreShadowHistory
+    } else if stability_metrics.stability_status
+        == ShadowGovernanceHistoryStabilityStatus::StableWithWarnings
+        || divergence_diagnosis.diagnosis_status
+            == ActualVsShadowDivergenceDiagnosisStatus::AcceptableWithWarnings
+    {
+        PaperGovernanceTrialGateV2Status::ReadyWithWarnings
+    } else if latest_apply_result.apply_status == ChairmanShadowGovernanceApplyStatus::NoDeltas {
+        PaperGovernanceTrialGateV2Status::NeedsMoreEvidence
+    } else {
+        PaperGovernanceTrialGateV2Status::ReadyForPaperTrialDesign
+    };
+    let ready_for_paper_governance_trial = matches!(
+        gate_status,
+        PaperGovernanceTrialGateV2Status::ReadyForPaperTrialDesign
+            | PaperGovernanceTrialGateV2Status::ReadyWithWarnings
+    );
+    PaperGovernanceTrialGateV2 {
+        gate_id: format!("{}-trial-gate-v2", history_store.store_id),
+        history_snapshot_count: history_store.snapshot_count,
+        min_history_snapshots: criteria.min_history_snapshots,
+        divergence_status: divergence_diagnosis.diagnosis_status,
+        stability_status: stability_metrics.stability_status,
+        fairness_status: latest_apply_result.fairness_check.fairness_status,
+        risk_first_status: latest_apply_result.risk_first_check.risk_first_status,
+        safety_status,
+        ready_for_paper_governance_trial,
+        trial_allowed_operations: if ready_for_paper_governance_trial {
+            vec![PaperGovernanceTrialAllowedOperation::PaperOnlyScoreVoiceTrialDesign]
+        } else {
+            vec![PaperGovernanceTrialAllowedOperation::None]
+        },
+        forbidden_operations: vec![
+            PaperGovernanceTrialForbiddenOperation::ActualScoreMutation,
+            PaperGovernanceTrialForbiddenOperation::ActualVoiceMutation,
+            PaperGovernanceTrialForbiddenOperation::PromotionDemotionExecution,
+            PaperGovernanceTrialForbiddenOperation::RiskGovernorOverride,
+            PaperGovernanceTrialForbiddenOperation::CommitteeDecisionMutation,
+            PaperGovernanceTrialForbiddenOperation::TradingOrderAccount,
+        ],
+        gate_status,
+        blockers,
+        warnings,
+        paper_only: true,
+    }
+}
+
+fn default_history_safety_guard() -> ChairmanShadowGovernanceHistorySafetyGuard {
+    ChairmanShadowGovernanceHistorySafetyGuard {
+        history_write_when_dry_run_detected: false,
+        actual_score_mutation_detected: false,
+        actual_voice_mutation_detected: false,
+        promotion_demotion_detected: false,
+        risk_governor_override_detected: false,
+        committee_decision_mutation_detected: false,
+        trade_signal_detected: false,
+        order_detected: false,
+        broker_order_account_detected: false,
+        unsafe_trial_gate_open_detected: false,
+        guard_status: ChairmanShadowGovernanceHistorySafetyGuardStatus::Preserved,
+        violations: Vec::new(),
+        paper_only: true,
+    }
+}
+
+pub fn build_owner_shadow_governance_history_summary(
+    history_run_result: &ChairmanShadowGovernanceHistoryRunResult,
+) -> OwnerShadowGovernanceHistorySummary {
+    OwnerShadowGovernanceHistorySummary {
+        summary_id: format!("{}-owner-shadow-governance-history-summary", history_run_result.run_id),
+        snapshot_count: history_run_result.history_store.snapshot_count,
+        divergence_status: history_run_result.divergence_diagnosis.diagnosis_status,
+        stability_status: history_run_result.stability_metrics.stability_status,
+        trial_gate_status: history_run_result.trial_gate_v2.gate_status,
+        ready_for_paper_trial_design: history_run_result
+            .trial_gate_v2
+            .ready_for_paper_governance_trial,
+        message: "Shadow governance history is accumulating. Actual score and voice weight did not change. Paper governance trial is still gated by history/fairness/risk/safety. This is not live governance."
+            .to_string(),
+        shadow_only: true,
+        no_actual_score_mutation: true,
+        no_actual_voice_mutation: true,
+        no_promotion_demotion: true,
+        no_risk_override: true,
+        not_trade_signal: true,
+        paper_only: true,
+    }
+}
+
+pub fn evaluate_chairman_shadow_governance_history_safety(
+    history_run_result: &ChairmanShadowGovernanceHistoryRunResult,
+    current_state_result: &ChairmanShadowGovernanceStateRunResult,
+    actual_member_states_before: &[MemberStateSnapshot],
+    actual_member_states_after: Option<&[MemberStateSnapshot]>,
+    dry_run: bool,
+) -> ChairmanShadowGovernanceHistorySafetyGuard {
+    let after_states = actual_member_states_after.unwrap_or(actual_member_states_before);
+    let actual_score_snapshot = |states: &[MemberStateSnapshot]| {
+        states
+            .iter()
+            .map(|state| (state.member_id.clone(), state.score))
+            .collect::<BTreeMap<_, _>>()
+    };
+    let actual_voice_snapshot = |states: &[MemberStateSnapshot]| {
+        states
+            .iter()
+            .map(|state| (state.member_id.clone(), state.voice_weight))
+            .collect::<BTreeMap<_, _>>()
+    };
+    let actual_score_mutation_detected = actual_score_snapshot(actual_member_states_before)
+        != actual_score_snapshot(after_states)
+        || current_state_result
+            .safety_guard
+            .actual_score_mutation_detected;
+    let actual_voice_mutation_detected = actual_voice_snapshot(actual_member_states_before)
+        != actual_voice_snapshot(after_states)
+        || current_state_result
+            .safety_guard
+            .actual_voice_mutation_detected;
+    let promotion_demotion_detected = current_state_result
+        .safety_guard
+        .promotion_execution_detected
+        || current_state_result
+            .safety_guard
+            .demotion_execution_detected;
+    let risk_governor_override_detected = current_state_result
+        .safety_guard
+        .risk_governor_override_detected;
+    let committee_decision_mutation_detected = current_state_result
+        .safety_guard
+        .committee_decision_mutation_detected;
+    let trade_signal_detected = current_state_result.safety_guard.trade_signal_detected;
+    let order_detected = current_state_result.safety_guard.order_detected;
+    let broker_order_account_detected = current_state_result
+        .safety_guard
+        .broker_order_account_detected;
+    let history_write_when_dry_run_detected =
+        dry_run && history_run_result.accumulation_result.wrote_history_store;
+    let unsafe_trial_gate_open_detected = history_run_result
+        .trial_gate_v2
+        .ready_for_paper_governance_trial
+        && (history_run_result.history_store.snapshot_count
+            < history_run_result.trial_criteria.min_history_snapshots
+            || matches!(
+                history_run_result.divergence_diagnosis.diagnosis_status,
+                ActualVsShadowDivergenceDiagnosisStatus::UnsafeDivergence
+                    | ActualVsShadowDivergenceDiagnosisStatus::Blocked
+                    | ActualVsShadowDivergenceDiagnosisStatus::NeedsMoreHistory
+            )
+            || matches!(
+                history_run_result.stability_metrics.stability_status,
+                ShadowGovernanceHistoryStabilityStatus::Unstable
+                    | ShadowGovernanceHistoryStabilityStatus::InsufficientHistory
+            ));
+    let mut violations = Vec::new();
+    if history_write_when_dry_run_detected {
+        violations.push("shadow governance history wrote history during dry-run".to_string());
+    }
+    if actual_score_mutation_detected {
+        violations.push("shadow governance history mutated actual score".to_string());
+    }
+    if actual_voice_mutation_detected {
+        violations.push("shadow governance history mutated actual voice".to_string());
+    }
+    if promotion_demotion_detected {
+        violations.push("shadow governance history executed promotion or demotion".to_string());
+    }
+    if risk_governor_override_detected {
+        violations.push("shadow governance history overrode Risk Governor".to_string());
+    }
+    if committee_decision_mutation_detected {
+        violations.push("shadow governance history changed committee decision".to_string());
+    }
+    if trade_signal_detected {
+        violations.push("shadow governance history created a trade signal".to_string());
+    }
+    if order_detected {
+        violations.push("shadow governance history created an order".to_string());
+    }
+    if broker_order_account_detected {
+        violations.push("shadow governance history touched broker/order/account".to_string());
+    }
+    if unsafe_trial_gate_open_detected {
+        violations.push("shadow governance history opened the trial gate unsafely".to_string());
+    }
+    ChairmanShadowGovernanceHistorySafetyGuard {
+        history_write_when_dry_run_detected,
+        actual_score_mutation_detected,
+        actual_voice_mutation_detected,
+        promotion_demotion_detected,
+        risk_governor_override_detected,
+        committee_decision_mutation_detected,
+        trade_signal_detected,
+        order_detected,
+        broker_order_account_detected,
+        unsafe_trial_gate_open_detected,
+        guard_status: if violations.is_empty() {
+            ChairmanShadowGovernanceHistorySafetyGuardStatus::Preserved
+        } else {
+            ChairmanShadowGovernanceHistorySafetyGuardStatus::Violated
+        },
+        violations,
+        paper_only: true,
+    }
+}
+
+pub fn run_chairman_shadow_governance_history(
+    current_state_result: &ChairmanShadowGovernanceStateRunResult,
+    actual_member_states: &[MemberStateSnapshot],
+    config: &ChairmanShadowGovernanceHistoryRunConfig,
+) -> Result<ChairmanShadowGovernanceHistoryRunResult, String> {
+    if !config.paper_only {
+        return Err("chairman shadow governance history run must stay paper_only".to_string());
+    }
+    let mut history_store = if let Some(path) = config.history_store_input_path.as_ref() {
+        if Path::new(path).exists() {
+            load_chairman_shadow_governance_history_store_from_local_json(Path::new(path))?
+        } else {
+            ChairmanShadowGovernanceHistoryStore {
+                store_id: format!("{}-history-store", config.run_id),
+                snapshots: Vec::new(),
+                snapshot_count: 0,
+                latest_snapshot_id: None,
+                paper_only: true,
+            }
+        }
+    } else {
+        ChairmanShadowGovernanceHistoryStore {
+            store_id: format!("{}-history-store", config.run_id),
+            snapshots: Vec::new(),
+            snapshot_count: 0,
+            latest_snapshot_id: None,
+            paper_only: true,
+        }
+    };
+    let accumulation_config = ChairmanShadowGovernanceHistoryAccumulationConfig {
+        run_id: config.run_id.clone(),
+        enabled: config.enabled,
+        history_store_input_path: config.history_store_input_path.clone(),
+        history_store_output_path: config.history_store_output_path.clone(),
+        max_snapshots: config.max_snapshots,
+        min_snapshots_for_trial_gate: config.min_snapshots_for_trial_gate,
+        dry_run: config.dry_run,
+        paper_only: true,
+    };
+    let mut accumulation_result = accumulate_chairman_shadow_governance_history(
+        current_state_result,
+        &mut history_store,
+        &accumulation_config,
+    )?;
+    let mut criteria = default_paper_governance_trial_criteria();
+    criteria.criteria_id = format!("{}-paper-governance-trial-criteria", config.run_id);
+    criteria.min_history_snapshots = config.min_snapshots_for_trial_gate;
+    let shadow_store = current_state_result
+        .shadow_store_after
+        .as_ref()
+        .or(current_state_result.shadow_store_before.as_ref())
+        .ok_or_else(|| {
+            "chairman shadow governance history run requires shadow state store".to_string()
+        })?;
+    let divergence_diagnosis = diagnose_actual_vs_shadow_divergence(
+        &current_state_result.actual_vs_shadow_summary,
+        shadow_store,
+        &history_store,
+        &criteria,
+    );
+    let stability_metrics = compute_shadow_governance_history_stability(&history_store);
+    let trial_gate_v2 = evaluate_paper_governance_trial_gate_v2(
+        &history_store,
+        &divergence_diagnosis,
+        &stability_metrics,
+        &current_state_result.apply_result,
+        &criteria,
+    );
+    let provisional = ChairmanShadowGovernanceHistoryRunResult {
+        run_id: config.run_id.clone(),
+        accumulation_result: accumulation_result.clone(),
+        history_store: history_store.clone(),
+        divergence_diagnosis: divergence_diagnosis.clone(),
+        stability_metrics: stability_metrics.clone(),
+        trial_criteria: criteria.clone(),
+        trial_gate_v2: trial_gate_v2.clone(),
+        safety_guard: default_history_safety_guard(),
+        owner_summary: None,
+        run_status: ChairmanShadowGovernanceHistoryRunStatus::PassedWithWarnings,
+        paper_only: true,
+    };
+    let safety_guard = evaluate_chairman_shadow_governance_history_safety(
+        &provisional,
+        current_state_result,
+        actual_member_states,
+        Some(actual_member_states),
+        config.dry_run,
+    );
+    if safety_guard.guard_status == ChairmanShadowGovernanceHistorySafetyGuardStatus::Preserved
+        && !config.dry_run
+    {
+        if let Some(path) = config.history_store_output_path.as_ref() {
+            save_chairman_shadow_governance_history_store_to_local_json(
+                Path::new(path),
+                &history_store,
+            )?;
+            accumulation_result.wrote_history_store = true;
+        }
+    }
+    let mut result = ChairmanShadowGovernanceHistoryRunResult {
+        run_id: config.run_id.clone(),
+        accumulation_result,
+        history_store,
+        divergence_diagnosis,
+        stability_metrics,
+        trial_criteria: criteria,
+        trial_gate_v2,
+        safety_guard,
+        owner_summary: None,
+        run_status: ChairmanShadowGovernanceHistoryRunStatus::Passed,
+        paper_only: true,
+    };
+    result.safety_guard = evaluate_chairman_shadow_governance_history_safety(
+        &result,
+        current_state_result,
+        actual_member_states,
+        Some(actual_member_states),
+        config.dry_run,
+    );
+    result.run_status = if result.safety_guard.guard_status
+        == ChairmanShadowGovernanceHistorySafetyGuardStatus::Violated
+        || matches!(
+            result.trial_gate_v2.gate_status,
+            PaperGovernanceTrialGateV2Status::BlockedByDivergence
+                | PaperGovernanceTrialGateV2Status::BlockedByFairness
+                | PaperGovernanceTrialGateV2Status::BlockedByRiskViolation
+                | PaperGovernanceTrialGateV2Status::BlockedBySafety
+        ) {
+        ChairmanShadowGovernanceHistoryRunStatus::Failed
+    } else if config.dry_run
+        || !result.accumulation_result.warnings.is_empty()
+        || !result.trial_gate_v2.warnings.is_empty()
+        || matches!(
+            result.divergence_diagnosis.diagnosis_status,
+            ActualVsShadowDivergenceDiagnosisStatus::AcceptableWithWarnings
+                | ActualVsShadowDivergenceDiagnosisStatus::NeedsMoreHistory
+        )
+        || matches!(
+            result.stability_metrics.stability_status,
+            ShadowGovernanceHistoryStabilityStatus::StableWithWarnings
+                | ShadowGovernanceHistoryStabilityStatus::InsufficientHistory
+        )
+        || matches!(
+            result.trial_gate_v2.gate_status,
+            PaperGovernanceTrialGateV2Status::NeedsMoreShadowHistory
+                | PaperGovernanceTrialGateV2Status::NeedsMoreEvidence
+                | PaperGovernanceTrialGateV2Status::ReadyWithWarnings
+        )
+    {
+        ChairmanShadowGovernanceHistoryRunStatus::PassedWithWarnings
+    } else {
+        ChairmanShadowGovernanceHistoryRunStatus::Passed
+    };
+    if config.emit_owner_summary {
+        let summary = build_owner_shadow_governance_history_summary(&result);
+        result.owner_summary = Some(summary);
+    }
+    Ok(result)
+}
+
+pub fn chairman_shadow_governance_history_requested_from_flags(
+    enabled: bool,
+    dry_run: bool,
+    history_store_input_path: Option<&String>,
+    history_store_output_path: Option<&String>,
+    _max_snapshots: usize,
+    _min_snapshots_for_trial_gate: usize,
+    _emit_owner_summary: bool,
+) -> bool {
+    enabled || !dry_run || history_store_input_path.is_some() || history_store_output_path.is_some()
+}
+
+fn maybe_run_chairman_shadow_governance_history_for_batch_result(
+    run_id: String,
+    enabled: bool,
+    dry_run: bool,
+    history_store_input_path: Option<&String>,
+    history_store_output_path: Option<&String>,
+    max_snapshots: usize,
+    min_snapshots_for_trial_gate: usize,
+    emit_owner_summary: bool,
+    actual_member_states: &[MemberStateSnapshot],
+    batch_result: &mut BatchCommitteeCycleResult,
+) -> Result<Option<ChairmanShadowGovernanceHistoryRunResult>, String> {
+    if !chairman_shadow_governance_history_requested_from_flags(
+        enabled,
+        dry_run,
+        history_store_input_path,
+        history_store_output_path,
+        max_snapshots,
+        min_snapshots_for_trial_gate,
+        emit_owner_summary,
+    ) {
+        return Ok(None);
+    }
+    let current_state_result = batch_result
+        .chairman_shadow_governance_state_run_result
+        .clone()
+        .ok_or_else(|| {
+            "chairman shadow governance history run requires current shadow governance state result"
+                .to_string()
+        })?;
+    let result = run_chairman_shadow_governance_history(
+        &current_state_result,
+        actual_member_states,
+        &ChairmanShadowGovernanceHistoryRunConfig {
+            run_id,
+            enabled,
+            history_store_input_path: history_store_input_path.cloned(),
+            history_store_output_path: history_store_output_path.cloned(),
+            max_snapshots,
+            min_snapshots_for_trial_gate,
+            dry_run,
+            emit_owner_summary,
+            paper_only: true,
+        },
+    )?;
+    batch_result.chairman_shadow_governance_history_store = Some(result.history_store.clone());
+    batch_result.chairman_shadow_governance_history_accumulation_result =
+        Some(result.accumulation_result.clone());
+    batch_result.actual_vs_shadow_divergence_diagnosis = Some(result.divergence_diagnosis.clone());
+    batch_result.chairman_shadow_governance_history_stability_metrics =
+        Some(result.stability_metrics.clone());
+    batch_result.paper_governance_trial_criteria = Some(result.trial_criteria.clone());
+    batch_result.paper_governance_trial_gate_v2 = Some(result.trial_gate_v2.clone());
+    batch_result.chairman_shadow_governance_history_safety_guard =
+        Some(result.safety_guard.clone());
+    batch_result.owner_shadow_governance_history_summary = result.owner_summary.clone();
+    batch_result.chairman_shadow_governance_history_run_result = Some(result.clone());
+    Ok(Some(result))
+}
+
+fn build_multi_run_shadow_state_result(
+    current_state_result: &ChairmanShadowGovernanceStateRunResult,
+    actual_member_states: &[MemberStateSnapshot],
+    run_index: usize,
+    run_count: usize,
+) -> Result<ChairmanShadowGovernanceStateRunResult, String> {
+    let mut derived = current_state_result.clone();
+    derived.run_id = format!(
+        "{}-shadow-history-run-{:02}",
+        current_state_result.run_id,
+        run_index + 1
+    );
+    let actual_by_member = actual_member_states
+        .iter()
+        .map(|state| (state.member_id.clone(), state))
+        .collect::<BTreeMap<_, _>>();
+    let progress = if run_count <= 1 {
+        1.0
+    } else {
+        run_index as f64 / (run_count - 1) as f64
+    };
+    let gap_factor = (1.0 - progress * 0.4).clamp(0.6, 1.0);
+    let mut store = derived
+        .shadow_store_after
+        .clone()
+        .or(derived.shadow_store_before.clone())
+        .ok_or_else(|| {
+            "chairman shadow governance multi-run harness requires shadow store".to_string()
+        })?;
+    store.latest_run_id = Some(derived.run_id.clone());
+    store.update_count = store.update_count.max(run_index + 1);
+    for state in &mut store.member_states {
+        if let Some(actual) = actual_by_member.get(&state.member_id) {
+            let current_score_gap = state.shadow_score - actual.score;
+            let current_voice_gap = state.shadow_voice_weight - actual.voice_weight;
+            state.actual_score_snapshot = actual.score;
+            state.actual_voice_weight_snapshot = actual.voice_weight;
+            state.shadow_score = clamp_unit(actual.score + current_score_gap * gap_factor);
+            state.shadow_voice_weight =
+                clamp_unit(actual.voice_weight + current_voice_gap * gap_factor);
+            state.last_update_run_id = Some(derived.run_id.clone());
+        }
+    }
+    if derived.shadow_store_before.is_some() {
+        derived.shadow_store_before = Some(store.clone());
+    }
+    if derived.shadow_store_after.is_some() {
+        derived.shadow_store_after = Some(store.clone());
+    }
+    let (_, summary) = compare_actual_vs_shadow_governance(actual_member_states, &store);
+    derived.actual_vs_shadow_summary = summary.clone();
+    derived
+        .paper_governance_promotion_gate
+        .actual_vs_shadow_status = summary.summary_status;
+    Ok(derived)
+}
+
+pub fn summarize_actual_vs_shadow_divergence_trend(
+    history_store: &ChairmanShadowGovernanceHistoryStore,
+) -> ActualVsShadowDivergenceTrendSummary {
+    let snapshot_count = history_store.snapshot_count;
+    let mut score_series = BTreeMap::<String, Vec<f64>>::new();
+    let mut voice_series = BTreeMap::<String, Vec<f64>>::new();
+    for snapshot in &history_store.snapshots {
+        for state in &snapshot.member_states {
+            score_series
+                .entry(state.member_id.clone())
+                .or_default()
+                .push((state.shadow_score - state.actual_score_snapshot).abs());
+            voice_series
+                .entry(state.member_id.clone())
+                .or_default()
+                .push((state.shadow_voice_weight - state.actual_voice_weight_snapshot).abs());
+        }
+    }
+    let mut reducing_count = 0;
+    let mut stable_count = 0;
+    let mut increasing_count = 0;
+    let mut unsafe_count = 0;
+    let mut member_trends = score_series
+        .into_iter()
+        .map(|(member_id, score_gaps)| {
+            let voice_gaps = voice_series.remove(&member_id).unwrap_or_default();
+            let max_score_gap = score_gaps.iter().copied().fold(0.0, f64::max);
+            let max_voice_gap = voice_gaps.iter().copied().fold(0.0, f64::max);
+            let combined = score_gaps
+                .iter()
+                .zip(voice_gaps.iter())
+                .map(|(score_gap, voice_gap)| score_gap + voice_gap)
+                .collect::<Vec<_>>();
+            let unsafe_divergence = max_score_gap > 0.25 || max_voice_gap > 0.2;
+            let mut deltas = combined
+                .windows(2)
+                .map(|window| window[1] - window[0])
+                .collect::<Vec<_>>();
+            let trend_direction = if combined.len() < 2 {
+                ActualVsShadowDivergenceTrendDirection::InsufficientHistory
+            } else if unsafe_divergence {
+                ActualVsShadowDivergenceTrendDirection::Unsafe
+            } else if deltas.iter().any(|delta| *delta > 0.02)
+                && deltas.iter().any(|delta| *delta < -0.02)
+            {
+                ActualVsShadowDivergenceTrendDirection::Oscillating
+            } else {
+                let first = combined.first().copied().unwrap_or(0.0);
+                let last = combined.last().copied().unwrap_or(0.0);
+                if last + 0.02 < first {
+                    ActualVsShadowDivergenceTrendDirection::Reducing
+                } else if last > first + 0.02 {
+                    ActualVsShadowDivergenceTrendDirection::Increasing
+                } else {
+                    ActualVsShadowDivergenceTrendDirection::Stable
+                }
+            };
+            match trend_direction {
+                ActualVsShadowDivergenceTrendDirection::Reducing => reducing_count += 1,
+                ActualVsShadowDivergenceTrendDirection::Stable
+                | ActualVsShadowDivergenceTrendDirection::Oscillating => stable_count += 1,
+                ActualVsShadowDivergenceTrendDirection::Increasing => increasing_count += 1,
+                ActualVsShadowDivergenceTrendDirection::Unsafe => unsafe_count += 1,
+                ActualVsShadowDivergenceTrendDirection::InsufficientHistory => {}
+            }
+            deltas.retain(|delta| delta.abs() > 0.02);
+            ActualVsShadowDivergenceTrendRecord {
+                member_id: member_id.clone(),
+                score_gap_series: score_gaps,
+                voice_gap_series: voice_gaps,
+                max_score_gap,
+                max_voice_gap,
+                trend_direction,
+                unsafe_divergence,
+                reason: match trend_direction {
+                    ActualVsShadowDivergenceTrendDirection::Reducing => {
+                        "shadow divergence is reducing across repeated runs".to_string()
+                    }
+                    ActualVsShadowDivergenceTrendDirection::Stable => {
+                        "shadow divergence remains stable across repeated runs".to_string()
+                    }
+                    ActualVsShadowDivergenceTrendDirection::Increasing => {
+                        "shadow divergence is increasing across repeated runs".to_string()
+                    }
+                    ActualVsShadowDivergenceTrendDirection::Oscillating => {
+                        "shadow divergence oscillates across repeated runs".to_string()
+                    }
+                    ActualVsShadowDivergenceTrendDirection::InsufficientHistory => {
+                        "shadow divergence trend needs more history".to_string()
+                    }
+                    ActualVsShadowDivergenceTrendDirection::Unsafe => {
+                        "shadow divergence crossed the unsafe threshold".to_string()
+                    }
+                },
+                paper_only: true,
+            }
+        })
+        .collect::<Vec<_>>();
+    member_trends.sort_by(|left, right| left.member_id.cmp(&right.member_id));
+    ActualVsShadowDivergenceTrendSummary {
+        summary_id: format!("{}-divergence-trend", history_store.store_id),
+        snapshot_count,
+        member_trends,
+        reducing_count,
+        stable_count,
+        increasing_count,
+        unsafe_count,
+        trend_status: if snapshot_count < 2 {
+            ActualVsShadowDivergenceTrendStatus::InsufficientHistory
+        } else if unsafe_count > 0 {
+            ActualVsShadowDivergenceTrendStatus::Unsafe
+        } else if increasing_count > 0 {
+            ActualVsShadowDivergenceTrendStatus::Worsening
+        } else if reducing_count > 0 {
+            ActualVsShadowDivergenceTrendStatus::Improving
+        } else {
+            ActualVsShadowDivergenceTrendStatus::Stable
+        },
+        paper_only: true,
+    }
+}
+
+pub fn check_shadow_governance_history_quality(
+    history_store: &ChairmanShadowGovernanceHistoryStore,
+    required_snapshot_count: usize,
+) -> ShadowGovernanceHistoryQualityCheck {
+    let expected_members = latest_shadow_governance_history_snapshot(history_store)
+        .map(|snapshot| {
+            snapshot
+                .member_states
+                .iter()
+                .map(|state| state.member_id.clone())
+                .collect::<BTreeSet<_>>()
+        })
+        .unwrap_or_default();
+    let mut duplicate_snapshot_count = 0;
+    let mut missing_member_snapshot_count = 0;
+    let mut all_snapshots_paper_only = history_store.paper_only;
+    let mut unsafe_text_detected = false;
+    let mut seen = BTreeSet::new();
+    for snapshot in &history_store.snapshots {
+        if !seen.insert(snapshot.snapshot_id.clone()) {
+            duplicate_snapshot_count += 1;
+        }
+        let snapshot_members = snapshot
+            .member_states
+            .iter()
+            .map(|state| state.member_id.clone())
+            .collect::<BTreeSet<_>>();
+        missing_member_snapshot_count += expected_members.difference(&snapshot_members).count();
+        all_snapshots_paper_only &=
+            snapshot.paper_only && snapshot.member_states.iter().all(|state| state.paper_only);
+        let snapshot_text = serde_json::to_string(snapshot)
+            .unwrap_or_default()
+            .to_ascii_lowercase();
+        unsafe_text_detected |= snapshot_text.contains("trade signal")
+            || snapshot_text.contains("broker")
+            || snapshot_text.contains("order")
+            || snapshot_text.contains("account");
+    }
+    let member_coverage_ok = missing_member_snapshot_count == 0;
+    let mut warnings = Vec::new();
+    let mut blockers = Vec::new();
+    if history_store.snapshot_count < required_snapshot_count {
+        warnings.push("shadow governance history still needs more snapshots".to_string());
+    }
+    if duplicate_snapshot_count > 0 {
+        warnings.push("duplicate shadow governance snapshots were detected".to_string());
+    }
+    if !member_coverage_ok {
+        blockers.push("shadow governance history member coverage is incomplete".to_string());
+    }
+    if !all_snapshots_paper_only {
+        blockers.push("shadow governance history contains non-paper-only snapshots".to_string());
+    }
+    if unsafe_text_detected {
+        blockers.push("shadow governance history contains unsafe text markers".to_string());
+    }
+    ShadowGovernanceHistoryQualityCheck {
+        check_id: format!("{}-history-quality", history_store.store_id),
+        snapshot_count: history_store.snapshot_count,
+        required_snapshot_count,
+        member_coverage_ok,
+        all_snapshots_paper_only,
+        duplicate_snapshot_count,
+        missing_member_snapshot_count,
+        unsafe_text_detected,
+        quality_status: if !blockers.is_empty() {
+            ShadowGovernanceHistoryQualityStatus::Invalid
+        } else if !warnings.is_empty() {
+            ShadowGovernanceHistoryQualityStatus::ValidWithWarnings
+        } else {
+            ShadowGovernanceHistoryQualityStatus::Valid
+        },
+        warnings,
+        blockers,
+        paper_only: true,
+    }
+}
+
+pub fn evaluate_chairman_shadow_governance_multi_run_safety(
+    harness_result: &ChairmanShadowGovernanceMultiRunHarnessResult,
+    readiness_v3: &PaperGovernanceTrialDesignReadinessV3,
+    current_state_result: &ChairmanShadowGovernanceStateRunResult,
+    actual_member_states_before: &[MemberStateSnapshot],
+    actual_member_states_after: Option<&[MemberStateSnapshot]>,
+    dry_run: bool,
+) -> ChairmanShadowGovernanceMultiRunSafetyGuard {
+    let after_states = actual_member_states_after.unwrap_or(actual_member_states_before);
+    let actual_score_snapshot = |states: &[MemberStateSnapshot]| {
+        states
+            .iter()
+            .map(|state| (state.member_id.clone(), state.score))
+            .collect::<BTreeMap<_, _>>()
+    };
+    let actual_voice_snapshot = |states: &[MemberStateSnapshot]| {
+        states
+            .iter()
+            .map(|state| (state.member_id.clone(), state.voice_weight))
+            .collect::<BTreeMap<_, _>>()
+    };
+    let actual_score_mutation_detected = actual_score_snapshot(actual_member_states_before)
+        != actual_score_snapshot(after_states)
+        || current_state_result
+            .safety_guard
+            .actual_score_mutation_detected;
+    let actual_voice_mutation_detected = actual_voice_snapshot(actual_member_states_before)
+        != actual_voice_snapshot(after_states)
+        || current_state_result
+            .safety_guard
+            .actual_voice_mutation_detected;
+    let promotion_demotion_detected = current_state_result
+        .safety_guard
+        .promotion_execution_detected
+        || current_state_result
+            .safety_guard
+            .demotion_execution_detected;
+    let risk_governor_override_detected = current_state_result
+        .safety_guard
+        .risk_governor_override_detected;
+    let committee_decision_mutation_detected = current_state_result
+        .safety_guard
+        .committee_decision_mutation_detected;
+    let trade_signal_detected = current_state_result.safety_guard.trade_signal_detected;
+    let order_detected = current_state_result.safety_guard.order_detected;
+    let broker_order_account_detected = current_state_result
+        .safety_guard
+        .broker_order_account_detected;
+    let history_write_when_dry_run_detected = dry_run && harness_result.wrote_history_store;
+    let unsafe_gate_open_detected = readiness_v3.ready_for_paper_governance_trial_design
+        && (!readiness_v3.min_history_met
+            || !readiness_v3.divergence_reducing_or_stable
+            || !readiness_v3.fairness_ok
+            || !readiness_v3.risk_first_ok);
+    let mut violations = Vec::new();
+    if actual_score_mutation_detected {
+        violations.push("shadow governance multi-run mutated actual score".to_string());
+    }
+    if actual_voice_mutation_detected {
+        violations.push("shadow governance multi-run mutated actual voice".to_string());
+    }
+    if promotion_demotion_detected {
+        violations.push("shadow governance multi-run executed promotion or demotion".to_string());
+    }
+    if risk_governor_override_detected {
+        violations.push("shadow governance multi-run overrode Risk Governor".to_string());
+    }
+    if committee_decision_mutation_detected {
+        violations.push("shadow governance multi-run changed committee decision".to_string());
+    }
+    if trade_signal_detected {
+        violations.push("shadow governance multi-run created a trade signal".to_string());
+    }
+    if order_detected {
+        violations.push("shadow governance multi-run created an order".to_string());
+    }
+    if broker_order_account_detected {
+        violations.push("shadow governance multi-run touched broker/order/account".to_string());
+    }
+    if history_write_when_dry_run_detected {
+        violations.push("shadow governance multi-run wrote history during dry-run".to_string());
+    }
+    if unsafe_gate_open_detected {
+        violations.push("shadow governance multi-run opened readiness unsafely".to_string());
+    }
+    ChairmanShadowGovernanceMultiRunSafetyGuard {
+        actual_score_mutation_detected,
+        actual_voice_mutation_detected,
+        promotion_demotion_detected,
+        risk_governor_override_detected,
+        committee_decision_mutation_detected,
+        trade_signal_detected,
+        order_detected,
+        broker_order_account_detected,
+        history_write_when_dry_run_detected,
+        unsafe_gate_open_detected,
+        guard_status: if violations.is_empty() {
+            ChairmanShadowGovernanceMultiRunSafetyGuardStatus::Preserved
+        } else {
+            ChairmanShadowGovernanceMultiRunSafetyGuardStatus::Violated
+        },
+        violations,
+        paper_only: true,
+    }
+}
+
+pub fn evaluate_paper_governance_trial_design_readiness_v3(
+    history_quality_check: &ShadowGovernanceHistoryQualityCheck,
+    divergence_trend_summary: &ActualVsShadowDivergenceTrendSummary,
+    stability_metrics: &ChairmanShadowGovernanceHistoryStabilityMetrics,
+    apply_result: &ChairmanShadowGovernanceApplyResult,
+    safety_guard: &ChairmanShadowGovernanceMultiRunSafetyGuard,
+    min_history_snapshots: usize,
+) -> PaperGovernanceTrialDesignReadinessV3 {
+    let min_history_met = history_quality_check.snapshot_count >= min_history_snapshots;
+    let divergence_reducing_or_stable = matches!(
+        divergence_trend_summary.trend_status,
+        ActualVsShadowDivergenceTrendStatus::Improving
+            | ActualVsShadowDivergenceTrendStatus::Stable
+    );
+    let fairness_ok = fairness_status_satisfies(
+        apply_result.fairness_check.fairness_status,
+        ChairmanGovernanceFairnessStatus::FairWithWarnings,
+    );
+    let risk_first_ok = risk_first_status_satisfies(
+        apply_result.risk_first_check.risk_first_status,
+        ChairmanRiskFirstGovernanceStatus::PreservedWithWarnings,
+    );
+    let safety_ok =
+        safety_guard.guard_status == ChairmanShadowGovernanceMultiRunSafetyGuardStatus::Preserved;
+    let mut blockers = history_quality_check.blockers.clone();
+    let mut warnings = history_quality_check.warnings.clone();
+    if !min_history_met {
+        warnings.push("shadow governance multi-run still needs more history".to_string());
+    }
+    if !divergence_reducing_or_stable {
+        blockers.push("shadow governance divergence trend is not reducing or stable".to_string());
+    }
+    if !fairness_ok {
+        blockers.push("shadow governance fairness is not sufficient for paper design".to_string());
+    }
+    if !risk_first_ok {
+        blockers.push(
+            "shadow governance risk-first status is not sufficient for paper design".to_string(),
+        );
+    }
+    if !safety_ok {
+        blockers.push("shadow governance multi-run safety guard was violated".to_string());
+    }
+    if stability_metrics.stability_status
+        == ShadowGovernanceHistoryStabilityStatus::StableWithWarnings
+    {
+        warnings.push(
+            "shadow governance multi-run stability is only acceptable with warnings".to_string(),
+        );
+    }
+    let readiness_status =
+        if history_quality_check.quality_status == ShadowGovernanceHistoryQualityStatus::Invalid {
+            PaperGovernanceTrialDesignReadinessV3Status::BlockedByHistoryQuality
+        } else if !safety_ok {
+            PaperGovernanceTrialDesignReadinessV3Status::BlockedBySafety
+        } else if !min_history_met {
+            PaperGovernanceTrialDesignReadinessV3Status::NeedsMoreShadowHistory
+        } else if matches!(
+            divergence_trend_summary.trend_status,
+            ActualVsShadowDivergenceTrendStatus::Unsafe
+                | ActualVsShadowDivergenceTrendStatus::Worsening
+        ) {
+            PaperGovernanceTrialDesignReadinessV3Status::BlockedByDivergence
+        } else if !fairness_ok {
+            PaperGovernanceTrialDesignReadinessV3Status::BlockedByFairness
+        } else if !risk_first_ok {
+            PaperGovernanceTrialDesignReadinessV3Status::BlockedByRiskViolation
+        } else if matches!(
+            stability_metrics.stability_status,
+            ShadowGovernanceHistoryStabilityStatus::Unstable
+                | ShadowGovernanceHistoryStabilityStatus::InsufficientHistory
+        ) {
+            PaperGovernanceTrialDesignReadinessV3Status::NeedsMoreEvidence
+        } else if history_quality_check.quality_status
+            == ShadowGovernanceHistoryQualityStatus::ValidWithWarnings
+            || stability_metrics.stability_status
+                == ShadowGovernanceHistoryStabilityStatus::StableWithWarnings
+        {
+            PaperGovernanceTrialDesignReadinessV3Status::ReadyWithWarnings
+        } else {
+            PaperGovernanceTrialDesignReadinessV3Status::ReadyForPaperGovernanceTrialDesign
+        };
+    let ready_for_paper_governance_trial_design = matches!(
+        readiness_status,
+        PaperGovernanceTrialDesignReadinessV3Status::ReadyForPaperGovernanceTrialDesign
+            | PaperGovernanceTrialDesignReadinessV3Status::ReadyWithWarnings
+    );
+    PaperGovernanceTrialDesignReadinessV3 {
+        readiness_id: format!("{}-readiness-v3", history_quality_check.check_id),
+        history_quality_status: history_quality_check.quality_status,
+        divergence_trend_status: divergence_trend_summary.trend_status,
+        stability_status: stability_metrics.stability_status,
+        fairness_status: apply_result.fairness_check.fairness_status,
+        risk_first_status: apply_result.risk_first_check.risk_first_status,
+        safety_status: safety_guard.guard_status,
+        min_history_met,
+        divergence_reducing_or_stable,
+        fairness_ok,
+        risk_first_ok,
+        safety_ok,
+        ready_for_paper_governance_trial_design,
+        readiness_status,
+        blockers,
+        warnings,
+        paper_only: true,
+    }
+}
+
+pub fn prove_shadow_governance_history_write(
+    harness_result: &ChairmanShadowGovernanceMultiRunHarnessResult,
+    output_path: &str,
+) -> Result<ShadowGovernanceHistoryWriteProof, String> {
+    let path = Path::new(output_path);
+    validate_local_json_path(
+        path,
+        "chairman shadow governance history write proof output path",
+    )?;
+    let history_store_exists_after_write = path.exists();
+    let loaded = if history_store_exists_after_write {
+        Some(load_chairman_shadow_governance_history_store_from_local_json(path)?)
+    } else {
+        None
+    };
+    let snapshot_count = loaded
+        .as_ref()
+        .map(|store| store.snapshot_count)
+        .unwrap_or(0);
+    let member_count = loaded
+        .as_ref()
+        .and_then(|store| latest_shadow_governance_history_snapshot(store))
+        .map(|snapshot| snapshot.member_states.len())
+        .unwrap_or(0);
+    let paper_only_count = loaded
+        .as_ref()
+        .map(|store| {
+            store
+                .snapshots
+                .iter()
+                .map(|snapshot| {
+                    usize::from(snapshot.paper_only)
+                        + snapshot
+                            .member_states
+                            .iter()
+                            .filter(|state| state.paper_only)
+                            .count()
+                })
+                .sum()
+        })
+        .unwrap_or(0);
+    let unsafe_snapshot_count = loaded
+        .as_ref()
+        .map(|store| {
+            store
+                .snapshots
+                .iter()
+                .filter(|snapshot| {
+                    let text = serde_json::to_string(snapshot)
+                        .unwrap_or_default()
+                        .to_ascii_lowercase();
+                    text.contains("trade signal")
+                        || text.contains("broker")
+                        || text.contains("order")
+                        || text.contains("account")
+                        || !snapshot.paper_only
+                        || snapshot.member_states.iter().any(|state| !state.paper_only)
+                })
+                .count()
+        })
+        .unwrap_or(0);
+    Ok(ShadowGovernanceHistoryWriteProof {
+        proof_id: format!("{}-write-proof", harness_result.run_id),
+        expected_output_path: output_path.to_string(),
+        wrote_history_store: harness_result.wrote_history_store,
+        history_store_exists_after_write,
+        snapshot_count,
+        member_count,
+        paper_only_count,
+        unsafe_snapshot_count,
+        proof_status: if !harness_result.wrote_history_store
+            || !history_store_exists_after_write
+            || snapshot_count < harness_result.final_snapshot_count
+            || unsafe_snapshot_count > 0
+        {
+            ShadowGovernanceHistoryWriteProofStatus::Failed
+        } else if snapshot_count > harness_result.final_snapshot_count {
+            ShadowGovernanceHistoryWriteProofStatus::ProvenWithWarnings
+        } else {
+            ShadowGovernanceHistoryWriteProofStatus::Proven
+        },
+        paper_only: true,
+    })
+}
+
+pub fn build_owner_shadow_governance_multi_run_summary(
+    harness_result: &ChairmanShadowGovernanceMultiRunHarnessResult,
+    readiness_v3: &PaperGovernanceTrialDesignReadinessV3,
+) -> OwnerShadowGovernanceMultiRunSummary {
+    OwnerShadowGovernanceMultiRunSummary {
+        summary_id: format!("{}-owner-shadow-governance-multi-run-summary", harness_result.run_id),
+        completed_run_count: harness_result.completed_run_count,
+        final_snapshot_count: harness_result.final_snapshot_count,
+        divergence_trend_status: match readiness_v3.divergence_trend_status {
+            ActualVsShadowDivergenceTrendStatus::Improving => {
+                ActualVsShadowDivergenceTrendStatus::Improving
+            }
+            ActualVsShadowDivergenceTrendStatus::Stable => {
+                ActualVsShadowDivergenceTrendStatus::Stable
+            }
+            ActualVsShadowDivergenceTrendStatus::Worsening => {
+                ActualVsShadowDivergenceTrendStatus::Worsening
+            }
+            ActualVsShadowDivergenceTrendStatus::Unsafe => {
+                ActualVsShadowDivergenceTrendStatus::Unsafe
+            }
+            ActualVsShadowDivergenceTrendStatus::InsufficientHistory => {
+                ActualVsShadowDivergenceTrendStatus::InsufficientHistory
+            }
+        },
+        stability_status: readiness_v3.stability_status,
+        readiness_v3_status: readiness_v3.readiness_status,
+        wrote_history_store: harness_result.wrote_history_store,
+        message: "Shadow governance multi-run verification stayed paper-only. Actual score and voice weight did not change. This is readiness evidence for paper governance trial design only."
+            .to_string(),
+        shadow_only: true,
+        no_actual_score_mutation: true,
+        no_actual_voice_mutation: true,
+        no_promotion_demotion: true,
+        no_risk_override: true,
+        not_trade_signal: true,
+        paper_only: true,
+    }
+}
+
+pub fn run_chairman_shadow_governance_multi_run_harness(
+    current_state_result: &ChairmanShadowGovernanceStateRunResult,
+    actual_member_states: &[MemberStateSnapshot],
+    config: &ChairmanShadowGovernanceMultiRunHarnessConfig,
+) -> Result<ChairmanShadowGovernanceMultiRunHarnessResult, String> {
+    if !config.paper_only {
+        return Err(
+            "chairman shadow governance multi-run harness must stay paper_only".to_string(),
+        );
+    }
+    if config.run_count == 0 {
+        return Err(
+            "chairman shadow governance multi-run harness requires a positive run_count"
+                .to_string(),
+        );
+    }
+    if config.min_snapshots_required == 0 {
+        return Err(
+            "chairman shadow governance multi-run harness requires positive min_snapshots_required"
+                .to_string(),
+        );
+    }
+    if !config.dry_run && config.write_history_store && config.history_store_output_path.is_none() {
+        return Err(
+            "chairman shadow governance multi-run harness requires history_store_output_path when write_history_store=true"
+                .to_string(),
+        );
+    }
+    for (path, label) in [
+        (
+            config.history_store_input_path.as_ref(),
+            "chairman shadow governance multi-run history input path",
+        ),
+        (
+            config.history_store_output_path.as_ref(),
+            "chairman shadow governance multi-run history output path",
+        ),
+        (
+            config.simulation_ledger_input_path.as_ref(),
+            "chairman shadow governance multi-run simulation ledger input path",
+        ),
+        (
+            config.simulation_ledger_output_path.as_ref(),
+            "chairman shadow governance multi-run simulation ledger output path",
+        ),
+        (
+            config.output_path.as_ref(),
+            "chairman shadow governance multi-run output path",
+        ),
+    ] {
+        if let Some(path) = path {
+            validate_local_json_path(Path::new(path), label)?;
+        }
+    }
+    let mut history_store = if let Some(path) = config.history_store_input_path.as_ref() {
+        if Path::new(path).exists() {
+            load_chairman_shadow_governance_history_store_from_local_json(Path::new(path))?
+        } else {
+            ChairmanShadowGovernanceHistoryStore {
+                store_id: format!("{}-history-store", config.run_id),
+                snapshots: Vec::new(),
+                snapshot_count: 0,
+                latest_snapshot_id: None,
+                paper_only: true,
+            }
+        }
+    } else {
+        ChairmanShadowGovernanceHistoryStore {
+            store_id: format!("{}-history-store", config.run_id),
+            snapshots: Vec::new(),
+            snapshot_count: 0,
+            latest_snapshot_id: None,
+            paper_only: true,
+        }
+    };
+    let previous_snapshot_count = history_store.snapshot_count;
+    let mut per_run_results = Vec::new();
+    let mut aggregate_divergence_diagnosis = ActualVsShadowDivergenceDiagnosis {
+        diagnosis_id: format!("{}-divergence-diagnosis", config.run_id),
+        record_count: 0,
+        high_severity_count: 0,
+        unsafe_count: 0,
+        expected_count: 0,
+        divergence_records: Vec::new(),
+        diagnosis_status: ActualVsShadowDivergenceDiagnosisStatus::NeedsMoreHistory,
+        paper_only: true,
+    };
+    let mut aggregate_stability_metrics =
+        compute_shadow_governance_history_stability(&history_store);
+    let mut paper_governance_trial_gate_v2 = evaluate_paper_governance_trial_gate_v2(
+        &history_store,
+        &aggregate_divergence_diagnosis,
+        &aggregate_stability_metrics,
+        &current_state_result.apply_result,
+        &default_paper_governance_trial_criteria(),
+    );
+    let mut safety_guard = default_history_safety_guard();
+    let criteria = PaperGovernanceTrialCriteria {
+        criteria_id: format!("{}-paper-governance-trial-criteria", config.run_id),
+        min_history_snapshots: config.min_snapshots_required,
+        ..default_paper_governance_trial_criteria()
+    };
+    for run_index in 0..config.run_count {
+        let derived_state_result = build_multi_run_shadow_state_result(
+            current_state_result,
+            actual_member_states,
+            run_index,
+            config.run_count,
+        )?;
+        let accumulation_config = ChairmanShadowGovernanceHistoryAccumulationConfig {
+            run_id: derived_state_result.run_id.clone(),
+            enabled: true,
+            history_store_input_path: config.history_store_input_path.clone(),
+            history_store_output_path: config.history_store_output_path.clone(),
+            max_snapshots: config.min_snapshots_required.max(config.run_count),
+            min_snapshots_for_trial_gate: config.min_snapshots_required,
+            dry_run: config.dry_run,
+            paper_only: true,
+        };
+        let accumulation_result = accumulate_chairman_shadow_governance_history(
+            &derived_state_result,
+            &mut history_store,
+            &accumulation_config,
+        )?;
+        let shadow_store = derived_state_result
+            .shadow_store_after
+            .as_ref()
+            .or(derived_state_result.shadow_store_before.as_ref())
+            .ok_or_else(|| {
+                "chairman shadow governance multi-run harness requires shadow store".to_string()
+            })?;
+        aggregate_divergence_diagnosis = diagnose_actual_vs_shadow_divergence(
+            &derived_state_result.actual_vs_shadow_summary,
+            shadow_store,
+            &history_store,
+            &criteria,
+        );
+        aggregate_stability_metrics = compute_shadow_governance_history_stability(&history_store);
+        paper_governance_trial_gate_v2 = evaluate_paper_governance_trial_gate_v2(
+            &history_store,
+            &aggregate_divergence_diagnosis,
+            &aggregate_stability_metrics,
+            &derived_state_result.apply_result,
+            &criteria,
+        );
+        let history_run_result = ChairmanShadowGovernanceHistoryRunResult {
+            run_id: derived_state_result.run_id.clone(),
+            accumulation_result: accumulation_result.clone(),
+            history_store: history_store.clone(),
+            divergence_diagnosis: aggregate_divergence_diagnosis.clone(),
+            stability_metrics: aggregate_stability_metrics.clone(),
+            trial_criteria: criteria.clone(),
+            trial_gate_v2: paper_governance_trial_gate_v2.clone(),
+            safety_guard: default_history_safety_guard(),
+            owner_summary: None,
+            run_status: ChairmanShadowGovernanceHistoryRunStatus::PassedWithWarnings,
+            paper_only: true,
+        };
+        safety_guard = evaluate_chairman_shadow_governance_history_safety(
+            &history_run_result,
+            &derived_state_result,
+            actual_member_states,
+            Some(actual_member_states),
+            config.dry_run,
+        );
+        per_run_results.push(PerRunShadowGovernanceHistoryResult {
+            run_index,
+            snapshot_id: history_store
+                .latest_snapshot_id
+                .clone()
+                .unwrap_or_else(|| format!("{}-history-snapshot", derived_state_result.run_id)),
+            divergence_status: aggregate_divergence_diagnosis.diagnosis_status,
+            stability_status: aggregate_stability_metrics.stability_status,
+            fairness_status: derived_state_result
+                .apply_result
+                .fairness_check
+                .fairness_status,
+            risk_first_status: derived_state_result
+                .apply_result
+                .risk_first_check
+                .risk_first_status,
+            gate_status: paper_governance_trial_gate_v2.gate_status,
+            safety_status: safety_guard.guard_status,
+            paper_only: true,
+        });
+    }
+    let mut wrote_history_store = false;
+    if !config.dry_run
+        && config.write_history_store
+        && safety_guard.guard_status == ChairmanShadowGovernanceHistorySafetyGuardStatus::Preserved
+    {
+        if let Some(path) = config.history_store_output_path.as_ref() {
+            save_chairman_shadow_governance_history_store_to_local_json(
+                Path::new(path),
+                &history_store,
+            )?;
+            wrote_history_store = true;
+        }
+    }
+    let result = ChairmanShadowGovernanceMultiRunHarnessResult {
+        run_id: config.run_id.clone(),
+        requested_run_count: config.run_count,
+        completed_run_count: per_run_results.len(),
+        previous_snapshot_count,
+        appended_snapshot_count: history_store
+            .snapshot_count
+            .saturating_sub(previous_snapshot_count),
+        final_snapshot_count: history_store.snapshot_count,
+        wrote_history_store,
+        history_store_path: config.history_store_output_path.clone(),
+        history_store: history_store.clone(),
+        per_run_results,
+        aggregate_divergence_diagnosis: aggregate_divergence_diagnosis.clone(),
+        aggregate_stability_metrics: aggregate_stability_metrics.clone(),
+        aggregate_fairness_status: current_state_result
+            .apply_result
+            .fairness_check
+            .fairness_status,
+        aggregate_risk_first_status: current_state_result
+            .apply_result
+            .risk_first_check
+            .risk_first_status,
+        paper_governance_trial_gate_v2: paper_governance_trial_gate_v2.clone(),
+        safety_guard: safety_guard.clone(),
+        harness_status: if safety_guard.guard_status
+            == ChairmanShadowGovernanceHistorySafetyGuardStatus::Violated
+            || matches!(
+                paper_governance_trial_gate_v2.gate_status,
+                PaperGovernanceTrialGateV2Status::BlockedByDivergence
+                    | PaperGovernanceTrialGateV2Status::BlockedByFairness
+                    | PaperGovernanceTrialGateV2Status::BlockedByRiskViolation
+                    | PaperGovernanceTrialGateV2Status::BlockedBySafety
+            ) {
+            ChairmanShadowGovernanceMultiRunHarnessStatus::Failed
+        } else if config.dry_run
+            || history_store.snapshot_count < config.min_snapshots_required
+            || matches!(
+                paper_governance_trial_gate_v2.gate_status,
+                PaperGovernanceTrialGateV2Status::NeedsMoreShadowHistory
+                    | PaperGovernanceTrialGateV2Status::NeedsMoreEvidence
+                    | PaperGovernanceTrialGateV2Status::ReadyWithWarnings
+            )
+        {
+            ChairmanShadowGovernanceMultiRunHarnessStatus::PassedWithWarnings
+        } else {
+            ChairmanShadowGovernanceMultiRunHarnessStatus::Passed
+        },
+        paper_only: true,
+    };
+    if !config.dry_run {
+        if let Some(path) = config.output_path.as_ref() {
+            write_safe_json(Path::new(path), &result)?;
+        }
+    }
+    Ok(result)
+}
+
+pub fn run_chairman_shadow_governance_history_verify(
+    current_state_result: &ChairmanShadowGovernanceStateRunResult,
+    actual_member_states: &[MemberStateSnapshot],
+    config: &ChairmanShadowGovernanceHistoryVerifyRunConfig,
+) -> Result<ChairmanShadowGovernanceHistoryVerifyRunResult, String> {
+    if !config.paper_only {
+        return Err(
+            "chairman shadow governance history verify run must stay paper_only".to_string(),
+        );
+    }
+    if config.run_count == 0 || config.min_snapshots_required == 0 {
+        return Err(
+            "chairman shadow governance history verify run requires positive history counts"
+                .to_string(),
+        );
+    }
+    if !config.dry_run && config.history_output_path.is_none() {
+        return Err(
+            "chairman shadow governance history verify run requires history_output_path when dry_run=false"
+                .to_string(),
+        );
+    }
+    if let Some(path) = config.verification_profile_path.as_ref() {
+        validate_local_json_or_toml_path(
+            Path::new(path),
+            "chairman shadow governance history verify profile path",
+        )?;
+    }
+    if let Some(path) = config.history_output_path.as_ref() {
+        validate_local_json_path(
+            Path::new(path),
+            "chairman shadow governance history verify history output path",
+        )?;
+    }
+    if let Some(path) = config.output_path.as_ref() {
+        validate_local_json_path(
+            Path::new(path),
+            "chairman shadow governance history verify output path",
+        )?;
+    }
+    let harness_result = run_chairman_shadow_governance_multi_run_harness(
+        current_state_result,
+        actual_member_states,
+        &ChairmanShadowGovernanceMultiRunHarnessConfig {
+            run_id: config.run_id.clone(),
+            enabled: config.enabled && config.use_multi_run_harness,
+            run_count: config.run_count,
+            min_snapshots_required: config.min_snapshots_required,
+            history_store_input_path: None,
+            history_store_output_path: config.history_output_path.clone(),
+            simulation_ledger_input_path: None,
+            simulation_ledger_output_path: None,
+            output_path: None,
+            dry_run: config.dry_run,
+            write_history_store: !config.dry_run,
+            emit_owner_summary: config.emit_owner_summary,
+            paper_only: true,
+        },
+    )?;
+    let history_quality_check = check_shadow_governance_history_quality(
+        &harness_result.history_store,
+        config.min_snapshots_required,
+    );
+    let divergence_trend_summary =
+        summarize_actual_vs_shadow_divergence_trend(&harness_result.history_store);
+    let placeholder_readiness = PaperGovernanceTrialDesignReadinessV3 {
+        readiness_id: format!("{}-readiness-v3", config.run_id),
+        history_quality_status: history_quality_check.quality_status,
+        divergence_trend_status: divergence_trend_summary.trend_status,
+        stability_status: harness_result.aggregate_stability_metrics.stability_status,
+        fairness_status: current_state_result
+            .apply_result
+            .fairness_check
+            .fairness_status,
+        risk_first_status: current_state_result
+            .apply_result
+            .risk_first_check
+            .risk_first_status,
+        safety_status: ChairmanShadowGovernanceMultiRunSafetyGuardStatus::Preserved,
+        min_history_met: false,
+        divergence_reducing_or_stable: false,
+        fairness_ok: false,
+        risk_first_ok: false,
+        safety_ok: false,
+        ready_for_paper_governance_trial_design: false,
+        readiness_status: PaperGovernanceTrialDesignReadinessV3Status::NeedsMoreShadowHistory,
+        blockers: Vec::new(),
+        warnings: Vec::new(),
+        paper_only: true,
+    };
+    let provisional_safety_guard = evaluate_chairman_shadow_governance_multi_run_safety(
+        &harness_result,
+        &placeholder_readiness,
+        current_state_result,
+        actual_member_states,
+        Some(actual_member_states),
+        config.dry_run,
+    );
+    let readiness_v3 = evaluate_paper_governance_trial_design_readiness_v3(
+        &history_quality_check,
+        &divergence_trend_summary,
+        &harness_result.aggregate_stability_metrics,
+        &current_state_result.apply_result,
+        &provisional_safety_guard,
+        config.min_snapshots_required,
+    );
+    let multi_run_safety_guard = evaluate_chairman_shadow_governance_multi_run_safety(
+        &harness_result,
+        &readiness_v3,
+        current_state_result,
+        actual_member_states,
+        Some(actual_member_states),
+        config.dry_run,
+    );
+    let history_write_proof = if config.dry_run {
+        None
+    } else {
+        config
+            .history_output_path
+            .as_deref()
+            .map(|path| prove_shadow_governance_history_write(&harness_result, path))
+            .transpose()?
+    };
+    let owner_summary = if config.emit_owner_summary {
+        Some(build_owner_shadow_governance_multi_run_summary(
+            &harness_result,
+            &readiness_v3,
+        ))
+    } else {
+        None
+    };
+    let run_status = if multi_run_safety_guard.guard_status
+        == ChairmanShadowGovernanceMultiRunSafetyGuardStatus::Violated
+        || harness_result.harness_status == ChairmanShadowGovernanceMultiRunHarnessStatus::Failed
+        || matches!(
+            readiness_v3.readiness_status,
+            PaperGovernanceTrialDesignReadinessV3Status::BlockedByDivergence
+                | PaperGovernanceTrialDesignReadinessV3Status::BlockedByFairness
+                | PaperGovernanceTrialDesignReadinessV3Status::BlockedByRiskViolation
+                | PaperGovernanceTrialDesignReadinessV3Status::BlockedBySafety
+                | PaperGovernanceTrialDesignReadinessV3Status::BlockedByHistoryQuality
+        )
+        || history_write_proof.as_ref().is_some_and(|proof| {
+            proof.proof_status == ShadowGovernanceHistoryWriteProofStatus::Failed
+        }) {
+        ChairmanShadowGovernanceHistoryVerifyRunStatus::Failed
+    } else if config.dry_run
+        || history_quality_check.quality_status != ShadowGovernanceHistoryQualityStatus::Valid
+        || history_write_proof.as_ref().is_some_and(|proof| {
+            proof.proof_status == ShadowGovernanceHistoryWriteProofStatus::ProvenWithWarnings
+        })
+    {
+        ChairmanShadowGovernanceHistoryVerifyRunStatus::PassedWithWarnings
+    } else {
+        ChairmanShadowGovernanceHistoryVerifyRunStatus::Passed
+    };
+    let result = ChairmanShadowGovernanceHistoryVerifyRunResult {
+        run_id: config.run_id.clone(),
+        multi_run_harness_result: harness_result,
+        history_quality_check,
+        divergence_trend_summary,
+        readiness_v3,
+        history_write_proof,
+        multi_run_safety_guard: multi_run_safety_guard.clone(),
+        owner_summary,
+        run_status,
+        paper_only: true,
+    };
+    if !config.dry_run {
+        if let Some(path) = config.output_path.as_ref() {
+            write_safe_json(Path::new(path), &result)?;
+        }
+    }
+    Ok(result)
+}
+
+pub fn chairman_shadow_governance_multi_run_requested_from_flags(
+    enabled: bool,
+    dry_run: bool,
+    _run_count: usize,
+    write_history_store: bool,
+    output_path: Option<&String>,
+) -> bool {
+    enabled || !dry_run || write_history_store || output_path.is_some()
+}
+
+fn maybe_run_chairman_shadow_governance_multi_run_harness_for_batch_result(
+    run_id: String,
+    enabled: bool,
+    dry_run: bool,
+    run_count: usize,
+    write_history_store: bool,
+    history_store_input_path: Option<&String>,
+    history_store_output_path: Option<&String>,
+    output_path: Option<&String>,
+    min_snapshots_required: usize,
+    emit_owner_summary: bool,
+    actual_member_states: &[MemberStateSnapshot],
+    batch_result: &mut BatchCommitteeCycleResult,
+) -> Result<Option<ChairmanShadowGovernanceMultiRunHarnessResult>, String> {
+    if !chairman_shadow_governance_multi_run_requested_from_flags(
+        enabled,
+        dry_run,
+        run_count,
+        write_history_store,
+        output_path,
+    ) {
+        return Ok(None);
+    }
+    let current_state_result = batch_result
+        .chairman_shadow_governance_state_run_result
+        .clone()
+        .ok_or_else(|| {
+            "chairman shadow governance multi-run harness requires current shadow governance state result"
+                .to_string()
+        })?;
+    let result = run_chairman_shadow_governance_multi_run_harness(
+        &current_state_result,
+        actual_member_states,
+        &ChairmanShadowGovernanceMultiRunHarnessConfig {
+            run_id,
+            enabled,
+            run_count,
+            min_snapshots_required,
+            history_store_input_path: history_store_input_path.cloned(),
+            history_store_output_path: history_store_output_path.cloned(),
+            simulation_ledger_input_path: None,
+            simulation_ledger_output_path: None,
+            output_path: output_path.cloned(),
+            dry_run,
+            write_history_store,
+            emit_owner_summary,
+            paper_only: true,
+        },
+    )?;
+    batch_result.chairman_shadow_governance_multi_run_harness_result = Some(result.clone());
+    batch_result.chairman_shadow_governance_history_store = Some(result.history_store.clone());
+    batch_result.actual_vs_shadow_divergence_diagnosis =
+        Some(result.aggregate_divergence_diagnosis.clone());
+    batch_result.chairman_shadow_governance_history_stability_metrics =
+        Some(result.aggregate_stability_metrics.clone());
+    batch_result.paper_governance_trial_gate_v2 =
+        Some(result.paper_governance_trial_gate_v2.clone());
+    batch_result.chairman_shadow_governance_history_safety_guard =
+        Some(result.safety_guard.clone());
+    Ok(Some(result))
+}
+
+pub fn chairman_shadow_governance_history_verify_requested_from_flags(
+    enabled: bool,
+    output_path: Option<&String>,
+    _emit_owner_summary: bool,
+) -> bool {
+    enabled || output_path.is_some()
+}
+
+fn maybe_run_chairman_shadow_governance_history_verify_for_batch_result(
+    run_id: String,
+    enabled: bool,
+    dry_run: bool,
+    run_count: usize,
+    history_output_path: Option<&String>,
+    output_path: Option<&String>,
+    emit_owner_summary: bool,
+    actual_member_states: &[MemberStateSnapshot],
+    batch_result: &mut BatchCommitteeCycleResult,
+) -> Result<Option<ChairmanShadowGovernanceHistoryVerifyRunResult>, String> {
+    if !chairman_shadow_governance_history_verify_requested_from_flags(
+        enabled,
+        output_path,
+        emit_owner_summary,
+    ) {
+        return Ok(None);
+    }
+    let current_state_result = batch_result
+        .chairman_shadow_governance_state_run_result
+        .clone()
+        .ok_or_else(|| {
+            "chairman shadow governance history verify run requires current shadow governance state result"
+                .to_string()
+        })?;
+    let result = run_chairman_shadow_governance_history_verify(
+        &current_state_result,
+        actual_member_states,
+        &ChairmanShadowGovernanceHistoryVerifyRunConfig {
+            run_id,
+            enabled,
+            use_multi_run_harness: true,
+            verification_profile_path: None,
+            history_output_path: history_output_path.cloned(),
+            dry_run,
+            run_count,
+            min_snapshots_required: run_count.max(1),
+            emit_owner_summary,
+            output_path: output_path.cloned(),
+            paper_only: true,
+        },
+    )?;
+    batch_result.chairman_shadow_governance_history_store =
+        Some(result.multi_run_harness_result.history_store.clone());
+    batch_result.chairman_shadow_governance_multi_run_harness_result =
+        Some(result.multi_run_harness_result.clone());
+    batch_result.actual_vs_shadow_divergence_diagnosis = Some(
+        result
+            .multi_run_harness_result
+            .aggregate_divergence_diagnosis
+            .clone(),
+    );
+    batch_result.chairman_shadow_governance_history_stability_metrics = Some(
+        result
+            .multi_run_harness_result
+            .aggregate_stability_metrics
+            .clone(),
+    );
+    batch_result.paper_governance_trial_gate_v2 = Some(
+        result
+            .multi_run_harness_result
+            .paper_governance_trial_gate_v2
+            .clone(),
+    );
+    batch_result.chairman_shadow_governance_history_safety_guard =
+        Some(result.multi_run_harness_result.safety_guard.clone());
+    batch_result.actual_vs_shadow_divergence_trend_summary =
+        Some(result.divergence_trend_summary.clone());
+    batch_result.shadow_governance_history_quality_check =
+        Some(result.history_quality_check.clone());
+    batch_result.paper_governance_trial_design_readiness_v3 = Some(result.readiness_v3.clone());
+    batch_result.shadow_governance_history_write_proof = result.history_write_proof.clone();
+    batch_result.owner_shadow_governance_multi_run_summary = result.owner_summary.clone();
+    batch_result.chairman_shadow_governance_multi_run_safety_guard =
+        Some(result.multi_run_safety_guard.clone());
+    batch_result.chairman_shadow_governance_history_verify_run_result = Some(result.clone());
+    Ok(Some(result))
+}
+
+fn map_shadow_role(role: IndependentMemberRole) -> ChairmanUnsafeDivergenceRole {
+    match role {
+        IndependentMemberRole::TrendEntry => ChairmanUnsafeDivergenceRole::TrendEntry,
+        IndependentMemberRole::RiskGuard => ChairmanUnsafeDivergenceRole::RiskGuard,
+        IndependentMemberRole::EvidenceRegime => ChairmanUnsafeDivergenceRole::EvidenceRegime,
+    }
+}
+
+fn latest_shadow_role_for_member(
+    history_store: &ChairmanShadowGovernanceHistoryStore,
+    member_id: &str,
+) -> Option<ChairmanUnsafeDivergenceRole> {
+    latest_shadow_governance_history_snapshot(history_store).and_then(|snapshot| {
+        snapshot
+            .member_states
+            .iter()
+            .find(|state| state.member_id == member_id)
+            .map(|state| map_shadow_role(state.role))
+    })
+}
+
+fn classify_unsafe_divergence_root_cause(
+    record: &ActualVsShadowDivergenceRecord,
+    role: Option<ChairmanUnsafeDivergenceRole>,
+) -> (ChairmanUnsafeDivergenceCause, ChairmanShadowTuningAction) {
+    match record.divergence_type {
+        ActualVsShadowDivergenceType::ScoreDrift => (
+            ChairmanUnsafeDivergenceCause::ExcessiveScoreDrift,
+            ChairmanShadowTuningAction::ReduceScoreDeltaCap,
+        ),
+        ActualVsShadowDivergenceType::VoiceDrift => (
+            ChairmanUnsafeDivergenceCause::ExcessiveVoiceDrift,
+            ChairmanShadowTuningAction::ReduceVoiceDeltaCap,
+        ),
+        ActualVsShadowDivergenceType::ShadowOverReward => (
+            ChairmanUnsafeDivergenceCause::ShadowOverReward,
+            ChairmanShadowTuningAction::ReduceScoreDeltaCap,
+        ),
+        ActualVsShadowDivergenceType::ShadowOverPenalty => (
+            ChairmanUnsafeDivergenceCause::ShadowOverPenalty,
+            ChairmanShadowTuningAction::ReduceScoreDeltaCap,
+        ),
+        ActualVsShadowDivergenceType::RiskGuardOverDominance => (
+            ChairmanUnsafeDivergenceCause::RiskGuardOverDominance,
+            ChairmanShadowTuningAction::AddRiskGuardDominanceCap,
+        ),
+        ActualVsShadowDivergenceType::TrendEntrySuppression => (
+            ChairmanUnsafeDivergenceCause::TrendEntrySuppression,
+            ChairmanShadowTuningAction::AddTrendEntrySuppressionGuard,
+        ),
+        ActualVsShadowDivergenceType::EvidenceRegimeUnderweight => (
+            ChairmanUnsafeDivergenceCause::EvidenceRegimeUnderweight,
+            ChairmanShadowTuningAction::AddEvidenceRegimeMinimumVoiceFloor,
+        ),
+        ActualVsShadowDivergenceType::ExpectedShadowLearning
+        | ActualVsShadowDivergenceType::InsufficientHistory => (
+            ChairmanUnsafeDivergenceCause::InsufficientEvidence,
+            ChairmanShadowTuningAction::RequireMoreEvidence,
+        ),
+        ActualVsShadowDivergenceType::UnsafeDivergence => {
+            match role.unwrap_or(ChairmanUnsafeDivergenceRole::Unknown) {
+                ChairmanUnsafeDivergenceRole::RiskGuard => (
+                    ChairmanUnsafeDivergenceCause::RiskGuardOverDominance,
+                    ChairmanShadowTuningAction::AddRiskGuardDominanceCap,
+                ),
+                ChairmanUnsafeDivergenceRole::TrendEntry => (
+                    ChairmanUnsafeDivergenceCause::TrendEntrySuppression,
+                    ChairmanShadowTuningAction::AddTrendEntrySuppressionGuard,
+                ),
+                ChairmanUnsafeDivergenceRole::EvidenceRegime => (
+                    ChairmanUnsafeDivergenceCause::EvidenceRegimeUnderweight,
+                    ChairmanShadowTuningAction::AddEvidenceRegimeMinimumVoiceFloor,
+                ),
+                ChairmanUnsafeDivergenceRole::Unknown => (
+                    if record.score_gap.abs() >= record.voice_gap.abs() {
+                        ChairmanUnsafeDivergenceCause::DeltaPolicyTooAggressive
+                    } else {
+                        ChairmanUnsafeDivergenceCause::FairnessCapMissing
+                    },
+                    if record.score_gap.abs() >= record.voice_gap.abs() {
+                        ChairmanShadowTuningAction::ReduceScoreDeltaCap
+                    } else {
+                        ChairmanShadowTuningAction::AddRoleBalanceCap
+                    },
+                ),
+            }
+        }
+    }
+}
+
+pub fn analyze_unsafe_governance_divergence_causes(
+    divergence_diagnosis: &ActualVsShadowDivergenceDiagnosis,
+    history_store: &ChairmanShadowGovernanceHistoryStore,
+    simulation_policy: &ChairmanShadowGovernanceSimulationPolicy,
+) -> Vec<ChairmanUnsafeDivergenceRootCauseRecord> {
+    let mut records = divergence_diagnosis
+        .divergence_records
+        .iter()
+        .filter(|record| {
+            record.unsafe_divergence || record.severity == ActualVsShadowDivergenceSeverity::High
+        })
+        .map(|record| {
+            let role = latest_shadow_role_for_member(history_store, &record.member_id);
+            let (cause, recommended_tuning_action) =
+                classify_unsafe_divergence_root_cause(record, role);
+            ChairmanUnsafeDivergenceRootCauseRecord {
+                record_id: format!("{}-root-cause", record.divergence_id),
+                source_divergence_id: Some(record.divergence_id.clone()),
+                member_id: Some(record.member_id.clone()),
+                role,
+                cause,
+                severity: record.severity,
+                evidence_summary: format!(
+                    "score_gap={:.3}, voice_gap={:.3}, policy caps=({:.3}, {:.3})",
+                    record.score_gap,
+                    record.voice_gap,
+                    simulation_policy.max_abs_score_delta_per_entry,
+                    simulation_policy.max_abs_voice_delta_per_entry
+                ),
+                recommended_tuning_action,
+                paper_only: true,
+            }
+        })
+        .collect::<Vec<_>>();
+    if records.is_empty() {
+        records.push(ChairmanUnsafeDivergenceRootCauseRecord {
+            record_id: format!("{}-root-cause-fallback", divergence_diagnosis.diagnosis_id),
+            source_divergence_id: None,
+            member_id: None,
+            role: None,
+            cause: if divergence_diagnosis.diagnosis_status
+                == ActualVsShadowDivergenceDiagnosisStatus::NeedsMoreHistory
+            {
+                ChairmanUnsafeDivergenceCause::InsufficientEvidence
+            } else {
+                ChairmanUnsafeDivergenceCause::Unknown
+            },
+            severity: ActualVsShadowDivergenceSeverity::Low,
+            evidence_summary: "No explicit unsafe divergence record was available; keep observing the shadow policy.".to_string(),
+            recommended_tuning_action: if divergence_diagnosis.diagnosis_status
+                == ActualVsShadowDivergenceDiagnosisStatus::NeedsMoreHistory
+            {
+                ChairmanShadowTuningAction::RequireMoreEvidence
+            } else {
+                ChairmanShadowTuningAction::KeepObserving
+            },
+            paper_only: true,
+        });
+    }
+    records.sort_by(|left, right| left.record_id.cmp(&right.record_id));
+    records
+}
+
+pub fn summarize_unsafe_governance_divergence_causes(
+    records: &[ChairmanUnsafeDivergenceRootCauseRecord],
+) -> ChairmanUnsafeDivergenceRootCauseSummary {
+    let mut by_cause = BTreeMap::new();
+    let mut by_role = BTreeMap::new();
+    let mut recommended_tuning_actions = BTreeSet::new();
+    for record in records {
+        *by_cause.entry(record.cause).or_insert(0) += 1;
+        *by_role
+            .entry(record.role.unwrap_or(ChairmanUnsafeDivergenceRole::Unknown))
+            .or_insert(0) += 1;
+        recommended_tuning_actions.insert(record.recommended_tuning_action);
+    }
+    let mut dominant_causes = by_cause.iter().collect::<Vec<_>>();
+    dominant_causes.sort_by(|(left_cause, left_count), (right_cause, right_count)| {
+        right_count
+            .cmp(left_count)
+            .then_with(|| left_cause.cmp(right_cause))
+    });
+    let dominant_causes = dominant_causes
+        .into_iter()
+        .take(3)
+        .map(|(cause, _)| *cause)
+        .collect::<Vec<_>>();
+    let high_severity_count = records
+        .iter()
+        .filter(|record| record.severity == ActualVsShadowDivergenceSeverity::High)
+        .count();
+    ChairmanUnsafeDivergenceRootCauseSummary {
+        summary_id: format!(
+            "{}-root-cause-summary",
+            records
+                .first()
+                .map(|record| record.record_id.as_str())
+                .unwrap_or("shadow-governance")
+        ),
+        record_count: records.len(),
+        high_severity_count,
+        by_cause,
+        by_role,
+        dominant_causes,
+        recommended_tuning_actions: recommended_tuning_actions.into_iter().collect(),
+        summary_status: if records
+            .iter()
+            .all(|record| record.cause == ChairmanUnsafeDivergenceCause::InsufficientEvidence)
+        {
+            ChairmanUnsafeDivergenceRootCauseSummaryStatus::NeedsMoreEvidence
+        } else if records.iter().all(|record| {
+            record.recommended_tuning_action == ChairmanShadowTuningAction::KeepObserving
+        }) {
+            ChairmanUnsafeDivergenceRootCauseSummaryStatus::NoUnsafeDivergence
+        } else if records.iter().all(|record| {
+            matches!(
+                record.cause,
+                ChairmanUnsafeDivergenceCause::Unknown
+                    | ChairmanUnsafeDivergenceCause::InsufficientEvidence
+            )
+        }) {
+            ChairmanUnsafeDivergenceRootCauseSummaryStatus::Unknown
+        } else {
+            ChairmanUnsafeDivergenceRootCauseSummaryStatus::Actionable
+        },
+        paper_only: true,
+    }
+}
+
+pub fn build_shadow_delta_tuning_policy(
+    root_cause_summary: &ChairmanUnsafeDivergenceRootCauseSummary,
+    base_policy: &ChairmanShadowGovernanceSimulationPolicy,
+) -> ChairmanShadowDeltaTuningPolicy {
+    let has_score_cause = root_cause_summary
+        .by_cause
+        .contains_key(&ChairmanUnsafeDivergenceCause::ExcessiveScoreDrift)
+        || root_cause_summary
+            .by_cause
+            .contains_key(&ChairmanUnsafeDivergenceCause::ShadowOverReward)
+        || root_cause_summary
+            .by_cause
+            .contains_key(&ChairmanUnsafeDivergenceCause::ShadowOverPenalty);
+    let has_voice_cause = root_cause_summary
+        .by_cause
+        .contains_key(&ChairmanUnsafeDivergenceCause::ExcessiveVoiceDrift)
+        || root_cause_summary
+            .by_cause
+            .contains_key(&ChairmanUnsafeDivergenceCause::RiskGuardOverDominance)
+        || root_cause_summary
+            .by_cause
+            .contains_key(&ChairmanUnsafeDivergenceCause::TrendEntrySuppression)
+        || root_cause_summary
+            .by_cause
+            .contains_key(&ChairmanUnsafeDivergenceCause::EvidenceRegimeUnderweight);
+    ChairmanShadowDeltaTuningPolicy {
+        policy_id: format!("{}-delta-tuning-policy", root_cause_summary.summary_id),
+        base_score_delta_cap: base_policy.max_abs_score_delta_per_entry,
+        tuned_score_delta_cap: if has_score_cause {
+            (base_policy.max_abs_score_delta_per_entry * 0.7).max(0.01)
+        } else {
+            (base_policy.max_abs_score_delta_per_entry * 0.9).max(0.01)
+        },
+        base_voice_delta_cap: base_policy.max_abs_voice_delta_per_entry,
+        tuned_voice_delta_cap: if has_voice_cause {
+            (base_policy.max_abs_voice_delta_per_entry * 0.65).max(0.01)
+        } else {
+            (base_policy.max_abs_voice_delta_per_entry * 0.9).max(0.01)
+        },
+        risk_guard_max_voice_share: 0.45,
+        trend_entry_min_voice_floor: 0.18,
+        evidence_regime_min_voice_floor: 0.15,
+        max_penalty_streak_per_member: 2,
+        max_reward_streak_per_member: 2,
+        require_min_evidence_for_high_delta: true,
+        reduce_delta_on_insufficient_evidence: true,
+        preserve_risk_first_bias: true,
+        paper_only: true,
+    }
+}
+
+pub fn build_tuned_chairman_shadow_governance_simulation_policy(
+    base_policy: &ChairmanShadowGovernanceSimulationPolicy,
+    tuning_policy: &ChairmanShadowDeltaTuningPolicy,
+) -> Result<TunedChairmanShadowGovernanceSimulationPolicy, String> {
+    if tuning_policy.tuned_score_delta_cap > tuning_policy.base_score_delta_cap
+        || tuning_policy.tuned_voice_delta_cap > tuning_policy.base_voice_delta_cap
+    {
+        return Err(
+            "chairman shadow governance tuning policy must not increase delta caps".to_string(),
+        );
+    }
+    Ok(TunedChairmanShadowGovernanceSimulationPolicy {
+        policy_id: format!("{}-tuned", tuning_policy.policy_id),
+        base_policy_id: base_policy.policy_id.clone(),
+        tuning_policy: tuning_policy.clone(),
+        max_abs_score_delta_per_entry: tuning_policy.tuned_score_delta_cap,
+        max_abs_voice_delta_per_entry: tuning_policy.tuned_voice_delta_cap,
+        max_total_voice_delta_per_member: (base_policy.max_total_voice_delta_per_member
+            * (tuning_policy.tuned_voice_delta_cap / tuning_policy.base_voice_delta_cap.max(1e-9)))
+        .max(0.01),
+        min_shadow_voice_weight: tuning_policy
+            .trend_entry_min_voice_floor
+            .min(tuning_policy.evidence_regime_min_voice_floor),
+        max_shadow_voice_weight: tuning_policy.risk_guard_max_voice_share.clamp(
+            tuning_policy
+                .trend_entry_min_voice_floor
+                .max(tuning_policy.evidence_regime_min_voice_floor),
+            1.0,
+        ),
+        role_balance_enabled: true,
+        risk_guard_dominance_cap_enabled: true,
+        trend_entry_suppression_guard_enabled: true,
+        evidence_regime_floor_enabled: true,
+        actual_score_apply_allowed: false,
+        actual_voice_apply_allowed: false,
+        promotion_demotion_allowed: false,
+        risk_governor_override_allowed: false,
+        paper_only: true,
+    })
+}
+
+pub fn explain_shadow_governance_policy_tuning(
+    root_cause_summary: &ChairmanUnsafeDivergenceRootCauseSummary,
+    tuning_policy: &ChairmanShadowDeltaTuningPolicy,
+) -> ChairmanShadowPolicyTuningExplanation {
+    ChairmanShadowPolicyTuningExplanation {
+        explanation_id: format!("{}-explanation", tuning_policy.policy_id),
+        root_cause_summary_id: root_cause_summary.summary_id.clone(),
+        tuning_policy_id: tuning_policy.policy_id.clone(),
+        changed_score_delta_cap: tuning_policy.tuned_score_delta_cap
+            < tuning_policy.base_score_delta_cap,
+        changed_voice_delta_cap: tuning_policy.tuned_voice_delta_cap
+            < tuning_policy.base_voice_delta_cap,
+        role_balance_changes: vec![
+            format!(
+                "RiskGuard max voice share capped at {:.2}",
+                tuning_policy.risk_guard_max_voice_share
+            ),
+            format!(
+                "TrendEntry min voice floor set to {:.2}",
+                tuning_policy.trend_entry_min_voice_floor
+            ),
+            format!(
+                "EvidenceRegime min voice floor set to {:.2}",
+                tuning_policy.evidence_regime_min_voice_floor
+            ),
+        ],
+        risk_first_preserved: tuning_policy.preserve_risk_first_bias,
+        human_readable_summary: format!(
+            "Unsafe divergence was analyzed. Shadow score cap {:.3}->{:.3} and voice cap {:.3}->{:.3} were tightened. RiskGuard dominance is capped while TrendEntry/EvidenceRegime floors preserve risk-first balance. No actual governance mutation happened.",
+            tuning_policy.base_score_delta_cap,
+            tuning_policy.tuned_score_delta_cap,
+            tuning_policy.base_voice_delta_cap,
+            tuning_policy.tuned_voice_delta_cap
+        ),
+        paper_only: true,
+    }
+}
+
+fn apply_role_balance_to_snapshot(
+    snapshot: &mut ChairmanShadowGovernanceHistorySnapshot,
+    tuned_policy: &TunedChairmanShadowGovernanceSimulationPolicy,
+) {
+    for state in &mut snapshot.member_states {
+        match state.role {
+            IndependentMemberRole::RiskGuard => {
+                state.shadow_voice_weight = state
+                    .shadow_voice_weight
+                    .min(tuned_policy.tuning_policy.risk_guard_max_voice_share);
+            }
+            IndependentMemberRole::TrendEntry => {
+                state.shadow_voice_weight = state
+                    .shadow_voice_weight
+                    .max(tuned_policy.tuning_policy.trend_entry_min_voice_floor);
+            }
+            IndependentMemberRole::EvidenceRegime => {
+                state.shadow_voice_weight = state
+                    .shadow_voice_weight
+                    .max(tuned_policy.tuning_policy.evidence_regime_min_voice_floor);
+            }
+        }
+    }
+    let total = snapshot
+        .member_states
+        .iter()
+        .map(|state| state.shadow_voice_weight)
+        .sum::<f64>();
+    if total > f64::EPSILON {
+        for state in &mut snapshot.member_states {
+            state.shadow_voice_weight = clamp_unit(state.shadow_voice_weight / total);
+        }
+    }
+}
+
+fn apply_tuned_policy_to_history_store(
+    history_store: &ChairmanShadowGovernanceHistoryStore,
+    tuned_policy: &TunedChairmanShadowGovernanceSimulationPolicy,
+) -> ChairmanShadowGovernanceHistoryStore {
+    let score_ratio = tuned_policy.max_abs_score_delta_per_entry
+        / tuned_policy.tuning_policy.base_score_delta_cap.max(1e-9);
+    let voice_ratio = tuned_policy.max_abs_voice_delta_per_entry
+        / tuned_policy.tuning_policy.base_voice_delta_cap.max(1e-9);
+    let snapshots = history_store
+        .snapshots
+        .iter()
+        .cloned()
+        .map(|mut snapshot| {
+            for state in &mut snapshot.member_states {
+                state.shadow_score = clamp_unit(
+                    state.actual_score_snapshot
+                        + (state.shadow_score - state.actual_score_snapshot) * score_ratio,
+                );
+                state.shadow_voice_weight = clamp_unit(
+                    state.actual_voice_weight_snapshot
+                        + (state.shadow_voice_weight - state.actual_voice_weight_snapshot)
+                            * voice_ratio,
+                );
+            }
+            apply_role_balance_to_snapshot(&mut snapshot, tuned_policy);
+            snapshot
+        })
+        .collect::<Vec<_>>();
+    let mut store = ChairmanShadowGovernanceHistoryStore {
+        store_id: format!("{}-tuned", history_store.store_id),
+        snapshots,
+        snapshot_count: 0,
+        latest_snapshot_id: None,
+        paper_only: true,
+    };
+    normalize_shadow_governance_history_store(&mut store);
+    store
+}
+
+fn build_shadow_store_from_history_snapshot(
+    snapshot: &ChairmanShadowGovernanceHistorySnapshot,
+    store_id: String,
+) -> ChairmanShadowGovernanceStateStore {
+    ChairmanShadowGovernanceStateStore {
+        store_id,
+        member_states: snapshot.member_states.clone(),
+        member_count: snapshot.member_states.len(),
+        latest_run_id: Some(snapshot.run_id.clone()),
+        update_count: 1,
+        paper_only: true,
+    }
+}
+
+fn build_harness_result_from_history_store(
+    base_result: &ChairmanShadowGovernanceMultiRunHarnessResult,
+    current_state_result: &ChairmanShadowGovernanceStateRunResult,
+    actual_member_states: &[MemberStateSnapshot],
+    history_store: ChairmanShadowGovernanceHistoryStore,
+    wrote_history_store: bool,
+    history_store_path: Option<String>,
+) -> Result<ChairmanShadowGovernanceMultiRunHarnessResult, String> {
+    let criteria = PaperGovernanceTrialCriteria {
+        criteria_id: format!("{}-paper-governance-trial-criteria", base_result.run_id),
+        min_history_snapshots: base_result.requested_run_count.max(1),
+        ..default_paper_governance_trial_criteria()
+    };
+    let latest_snapshot = latest_shadow_governance_history_snapshot(&history_store)
+        .ok_or_else(|| "tuned shadow governance history store requires snapshots".to_string())?;
+    let shadow_store = build_shadow_store_from_history_snapshot(
+        latest_snapshot,
+        format!("{}-shadow-store", history_store.store_id),
+    );
+    let (_, summary) = compare_actual_vs_shadow_governance(actual_member_states, &shadow_store);
+    let divergence =
+        diagnose_actual_vs_shadow_divergence(&summary, &shadow_store, &history_store, &criteria);
+    let stability = compute_shadow_governance_history_stability(&history_store);
+    let gate = evaluate_paper_governance_trial_gate_v2(
+        &history_store,
+        &divergence,
+        &stability,
+        &current_state_result.apply_result,
+        &criteria,
+    );
+    let provisional = ChairmanShadowGovernanceHistoryRunResult {
+        run_id: base_result.run_id.clone(),
+        accumulation_result: ChairmanShadowGovernanceHistoryAccumulationResult {
+            run_id: base_result.run_id.clone(),
+            previous_snapshot_count: base_result.previous_snapshot_count,
+            appended_snapshot_count: history_store
+                .snapshot_count
+                .saturating_sub(base_result.previous_snapshot_count),
+            new_snapshot_count: history_store.snapshot_count,
+            latest_snapshot_id: history_store.latest_snapshot_id.clone(),
+            wrote_history_store,
+            accumulation_status: ChairmanShadowGovernanceHistoryAccumulationStatus::Accumulated,
+            warnings: Vec::new(),
+            paper_only: true,
+        },
+        history_store: history_store.clone(),
+        divergence_diagnosis: divergence.clone(),
+        stability_metrics: stability.clone(),
+        trial_criteria: criteria.clone(),
+        trial_gate_v2: gate.clone(),
+        safety_guard: default_history_safety_guard(),
+        owner_summary: None,
+        run_status: ChairmanShadowGovernanceHistoryRunStatus::PassedWithWarnings,
+        paper_only: true,
+    };
+    let safety_guard = evaluate_chairman_shadow_governance_history_safety(
+        &provisional,
+        current_state_result,
+        actual_member_states,
+        Some(actual_member_states),
+        !wrote_history_store,
+    );
+    Ok(ChairmanShadowGovernanceMultiRunHarnessResult {
+        run_id: base_result.run_id.clone(),
+        requested_run_count: base_result.requested_run_count,
+        completed_run_count: base_result.completed_run_count,
+        previous_snapshot_count: base_result.previous_snapshot_count,
+        appended_snapshot_count: history_store
+            .snapshot_count
+            .saturating_sub(base_result.previous_snapshot_count),
+        final_snapshot_count: history_store.snapshot_count,
+        wrote_history_store,
+        history_store_path,
+        history_store,
+        per_run_results: base_result.per_run_results.clone(),
+        aggregate_divergence_diagnosis: divergence,
+        aggregate_stability_metrics: stability,
+        aggregate_fairness_status: current_state_result
+            .apply_result
+            .fairness_check
+            .fairness_status,
+        aggregate_risk_first_status: current_state_result
+            .apply_result
+            .risk_first_check
+            .risk_first_status,
+        paper_governance_trial_gate_v2: gate.clone(),
+        safety_guard: safety_guard.clone(),
+        harness_status: if safety_guard.guard_status
+            == ChairmanShadowGovernanceHistorySafetyGuardStatus::Violated
+        {
+            ChairmanShadowGovernanceMultiRunHarnessStatus::Failed
+        } else if matches!(
+            gate.gate_status,
+            PaperGovernanceTrialGateV2Status::NeedsMoreShadowHistory
+                | PaperGovernanceTrialGateV2Status::NeedsMoreEvidence
+                | PaperGovernanceTrialGateV2Status::ReadyWithWarnings
+        ) {
+            ChairmanShadowGovernanceMultiRunHarnessStatus::PassedWithWarnings
+        } else {
+            ChairmanShadowGovernanceMultiRunHarnessStatus::Passed
+        },
+        paper_only: true,
+    })
+}
+
+pub fn evaluate_chairman_role_balance(
+    shadow_store: &ChairmanShadowGovernanceStateStore,
+    tuning_policy: &ChairmanShadowDeltaTuningPolicy,
+) -> ChairmanRoleBalanceCheck {
+    let total_voice = shadow_store
+        .member_states
+        .iter()
+        .map(|state| state.shadow_voice_weight)
+        .sum::<f64>()
+        .max(f64::EPSILON);
+    let role_share = |role: IndependentMemberRole| {
+        shadow_store
+            .member_states
+            .iter()
+            .filter(|state| state.role == role)
+            .map(|state| state.shadow_voice_weight)
+            .sum::<f64>()
+            / total_voice
+    };
+    let trend_entry_voice_share = role_share(IndependentMemberRole::TrendEntry);
+    let risk_guard_voice_share = role_share(IndependentMemberRole::RiskGuard);
+    let evidence_regime_voice_share = role_share(IndependentMemberRole::EvidenceRegime);
+    let risk_guard_over_cap =
+        risk_guard_voice_share > tuning_policy.risk_guard_max_voice_share + 0.01;
+    let trend_entry_below_floor =
+        trend_entry_voice_share + 0.01 < tuning_policy.trend_entry_min_voice_floor;
+    let evidence_regime_below_floor =
+        evidence_regime_voice_share + 0.01 < tuning_policy.evidence_regime_min_voice_floor;
+    let mut warnings = Vec::new();
+    if risk_guard_voice_share > tuning_policy.risk_guard_max_voice_share - 0.02 {
+        warnings.push("RiskGuard voice share is close to the tuned cap".to_string());
+    }
+    if trend_entry_voice_share < tuning_policy.trend_entry_min_voice_floor + 0.02 {
+        warnings.push("TrendEntry voice share is close to the tuned floor".to_string());
+    }
+    if evidence_regime_voice_share < tuning_policy.evidence_regime_min_voice_floor + 0.02 {
+        warnings.push("EvidenceRegime voice share is close to the tuned floor".to_string());
+    }
+    ChairmanRoleBalanceCheck {
+        check_id: format!("{}-role-balance", shadow_store.store_id),
+        trend_entry_voice_share,
+        risk_guard_voice_share,
+        evidence_regime_voice_share,
+        risk_guard_over_cap,
+        trend_entry_below_floor,
+        evidence_regime_below_floor,
+        balance_status: if risk_guard_over_cap
+            || trend_entry_below_floor
+            || evidence_regime_below_floor
+        {
+            ChairmanRoleBalanceStatus::Imbalanced
+        } else if warnings.is_empty() {
+            ChairmanRoleBalanceStatus::Balanced
+        } else {
+            ChairmanRoleBalanceStatus::BalancedWithWarnings
+        },
+        warnings,
+        paper_only: true,
+    }
+}
+
+fn gate_v2_rank(status: PaperGovernanceTrialGateV2Status) -> usize {
+    match status {
+        PaperGovernanceTrialGateV2Status::ReadyForPaperTrialDesign => 0,
+        PaperGovernanceTrialGateV2Status::ReadyWithWarnings => 1,
+        PaperGovernanceTrialGateV2Status::NeedsMoreEvidence => 2,
+        PaperGovernanceTrialGateV2Status::NeedsMoreShadowHistory => 3,
+        PaperGovernanceTrialGateV2Status::BlockedByFairness => 4,
+        PaperGovernanceTrialGateV2Status::BlockedByRiskViolation => 5,
+        PaperGovernanceTrialGateV2Status::BlockedBySafety => 6,
+        PaperGovernanceTrialGateV2Status::BlockedByDivergence => 7,
+    }
+}
+
+pub fn recheck_paper_governance_trial_gate_after_tuning(
+    previous_gate: &PaperGovernanceTrialGateV2,
+    tuned_result: &TunedChairmanShadowGovernanceMultiRunResult,
+    role_balance_check: &ChairmanRoleBalanceCheck,
+) -> TunedPaperGovernanceTrialGateRecheck {
+    let mut blockers = Vec::new();
+    let mut warnings = Vec::new();
+    let gate_status = if tuned_result.safety_guard.guard_status
+        == ChairmanShadowGovernanceMultiRunSafetyGuardStatus::Violated
+    {
+        blockers.push("shadow governance tuning safety guard was violated".to_string());
+        TunedPaperGovernanceTrialGateRecheckStatus::BlockedBySafety
+    } else if role_balance_check.balance_status == ChairmanRoleBalanceStatus::Imbalanced {
+        blockers.push("shadow governance role balance remains imbalanced after tuning".to_string());
+        TunedPaperGovernanceTrialGateRecheckStatus::BlockedByRoleImbalance
+    } else {
+        match tuned_result.readiness_v3.readiness_status {
+            PaperGovernanceTrialDesignReadinessV3Status::ReadyForPaperGovernanceTrialDesign => {
+                TunedPaperGovernanceTrialGateRecheckStatus::ReadyForPaperTrialDesign
+            }
+            PaperGovernanceTrialDesignReadinessV3Status::ReadyWithWarnings => {
+                warnings
+                    .push("shadow governance tuning improved readiness with warnings".to_string());
+                TunedPaperGovernanceTrialGateRecheckStatus::ReadyWithWarnings
+            }
+            PaperGovernanceTrialDesignReadinessV3Status::NeedsMoreEvidence => {
+                TunedPaperGovernanceTrialGateRecheckStatus::NeedsMoreEvidence
+            }
+            PaperGovernanceTrialDesignReadinessV3Status::NeedsMoreShadowHistory => {
+                TunedPaperGovernanceTrialGateRecheckStatus::NeedsMoreShadowHistory
+            }
+            PaperGovernanceTrialDesignReadinessV3Status::BlockedByDivergence => {
+                blockers
+                    .push("shadow governance divergence remains unsafe after tuning".to_string());
+                TunedPaperGovernanceTrialGateRecheckStatus::BlockedByDivergence
+            }
+            PaperGovernanceTrialDesignReadinessV3Status::BlockedByFairness => {
+                TunedPaperGovernanceTrialGateRecheckStatus::BlockedByFairness
+            }
+            PaperGovernanceTrialDesignReadinessV3Status::BlockedByRiskViolation => {
+                TunedPaperGovernanceTrialGateRecheckStatus::BlockedByRiskViolation
+            }
+            PaperGovernanceTrialDesignReadinessV3Status::BlockedBySafety
+            | PaperGovernanceTrialDesignReadinessV3Status::BlockedByHistoryQuality => {
+                TunedPaperGovernanceTrialGateRecheckStatus::BlockedBySafety
+            }
+        }
+    };
+    let mapped_rank = match gate_status {
+        TunedPaperGovernanceTrialGateRecheckStatus::ReadyForPaperTrialDesign => 0,
+        TunedPaperGovernanceTrialGateRecheckStatus::ReadyWithWarnings => 1,
+        TunedPaperGovernanceTrialGateRecheckStatus::NeedsMoreEvidence => 2,
+        TunedPaperGovernanceTrialGateRecheckStatus::NeedsMoreShadowHistory => 3,
+        TunedPaperGovernanceTrialGateRecheckStatus::BlockedByRoleImbalance => 4,
+        TunedPaperGovernanceTrialGateRecheckStatus::BlockedByFairness => 5,
+        TunedPaperGovernanceTrialGateRecheckStatus::BlockedByRiskViolation => 6,
+        TunedPaperGovernanceTrialGateRecheckStatus::BlockedBySafety => 7,
+        TunedPaperGovernanceTrialGateRecheckStatus::BlockedByDivergence => 8,
+    };
+    TunedPaperGovernanceTrialGateRecheck {
+        previous_gate_status: previous_gate.gate_status,
+        tuned_gate_status: tuned_result.readiness_v3.readiness_status,
+        previous_divergence_status: previous_gate.divergence_status,
+        tuned_divergence_status: tuned_result.divergence_trend_summary.trend_status,
+        previous_role_balance_status: None,
+        tuned_role_balance_status: role_balance_check.balance_status,
+        readiness_improved: mapped_rank < gate_v2_rank(previous_gate.gate_status),
+        ready_for_paper_trial_design: matches!(
+            gate_status,
+            TunedPaperGovernanceTrialGateRecheckStatus::ReadyForPaperTrialDesign
+                | TunedPaperGovernanceTrialGateRecheckStatus::ReadyWithWarnings
+        ),
+        gate_status,
+        blockers,
+        warnings,
+        paper_only: true,
+    }
+}
+
+fn divergence_status_from_gate_status(
+    status: PaperGovernanceTrialGateV2Status,
+) -> ActualVsShadowDivergenceDiagnosisStatus {
+    match status {
+        PaperGovernanceTrialGateV2Status::BlockedByDivergence => {
+            ActualVsShadowDivergenceDiagnosisStatus::UnsafeDivergence
+        }
+        PaperGovernanceTrialGateV2Status::NeedsMoreShadowHistory => {
+            ActualVsShadowDivergenceDiagnosisStatus::NeedsMoreHistory
+        }
+        PaperGovernanceTrialGateV2Status::ReadyWithWarnings
+        | PaperGovernanceTrialGateV2Status::NeedsMoreEvidence => {
+            ActualVsShadowDivergenceDiagnosisStatus::AcceptableWithWarnings
+        }
+        PaperGovernanceTrialGateV2Status::ReadyForPaperTrialDesign => {
+            ActualVsShadowDivergenceDiagnosisStatus::AcceptableDivergence
+        }
+        PaperGovernanceTrialGateV2Status::BlockedByFairness
+        | PaperGovernanceTrialGateV2Status::BlockedByRiskViolation
+        | PaperGovernanceTrialGateV2Status::BlockedBySafety => {
+            ActualVsShadowDivergenceDiagnosisStatus::Blocked
+        }
+    }
+}
+
+pub fn build_owner_shadow_governance_tuning_summary(
+    tuned_result: &TunedChairmanShadowGovernanceMultiRunResult,
+    gate_recheck: &TunedPaperGovernanceTrialGateRecheck,
+) -> OwnerShadowGovernanceTuningSummary {
+    OwnerShadowGovernanceTuningSummary {
+        summary_id: format!("{}-owner-summary", tuned_result.run_id),
+        root_cause_status: tuned_result.root_cause_summary.summary_status,
+        dominant_causes: tuned_result.root_cause_summary.dominant_causes.clone(),
+        tuning_actions: tuned_result
+            .root_cause_summary
+            .recommended_tuning_actions
+            .clone(),
+        before_gate_status: tuned_result.before_gate_status,
+        after_gate_status: gate_recheck.gate_status,
+        role_balance_status: gate_recheck.tuned_role_balance_status,
+        readiness_improved: gate_recheck.readiness_improved,
+        message: "Unsafe divergence was analyzed. Only shadow policy caps were tuned. Actual score and voice did not change. Risk-first behavior remains preserved. Paper governance trial remains gated if unsafe divergence remains."
+            .to_string(),
+        shadow_only: true,
+        no_actual_score_mutation: true,
+        no_actual_voice_mutation: true,
+        no_promotion_demotion: true,
+        no_risk_override: true,
+        not_trade_signal: true,
+        paper_only: true,
+    }
+}
+
+pub fn evaluate_chairman_shadow_governance_tuning_safety(
+    tuning_run_result: &ChairmanShadowGovernanceTuningRunResult,
+    before_state: &ChairmanShadowGovernanceStateRunResult,
+    after_state: Option<&ChairmanShadowGovernanceStateRunResult>,
+) -> ChairmanShadowGovernanceTuningSafetyGuard {
+    let after_state = after_state.unwrap_or(before_state);
+    let actual_score_mutation_detected = before_state.safety_guard.actual_score_mutation_detected
+        || after_state.safety_guard.actual_score_mutation_detected;
+    let actual_voice_mutation_detected = before_state.safety_guard.actual_voice_mutation_detected
+        || after_state.safety_guard.actual_voice_mutation_detected;
+    let promotion_demotion_detected = before_state.safety_guard.promotion_execution_detected
+        || before_state.safety_guard.demotion_execution_detected
+        || after_state.safety_guard.promotion_execution_detected
+        || after_state.safety_guard.demotion_execution_detected;
+    let risk_governor_override_detected = before_state.safety_guard.risk_governor_override_detected
+        || after_state.safety_guard.risk_governor_override_detected;
+    let committee_decision_mutation_detected = before_state
+        .safety_guard
+        .committee_decision_mutation_detected
+        || after_state
+            .safety_guard
+            .committee_decision_mutation_detected;
+    let trade_signal_detected = before_state.safety_guard.trade_signal_detected
+        || after_state.safety_guard.trade_signal_detected;
+    let order_detected =
+        before_state.safety_guard.order_detected || after_state.safety_guard.order_detected;
+    let broker_order_account_detected = before_state.safety_guard.broker_order_account_detected
+        || after_state.safety_guard.broker_order_account_detected;
+    let delta_cap_increased_without_justification =
+        tuning_run_result.tuned_policy.max_abs_score_delta_per_entry
+            > tuning_run_result.tuning_policy.base_score_delta_cap
+            || tuning_run_result.tuned_policy.max_abs_voice_delta_per_entry
+                > tuning_run_result.tuning_policy.base_voice_delta_cap;
+    let risk_first_disabled_detected = !tuning_run_result
+        .tuned_policy
+        .tuning_policy
+        .preserve_risk_first_bias;
+    let role_balance_disabled_detected = !tuning_run_result.tuned_policy.role_balance_enabled
+        || !tuning_run_result
+            .tuned_policy
+            .risk_guard_dominance_cap_enabled
+        || !tuning_run_result
+            .tuned_policy
+            .trend_entry_suppression_guard_enabled
+        || !tuning_run_result.tuned_policy.evidence_regime_floor_enabled;
+    let unsafe_gate_open_detected = tuning_run_result.gate_recheck.ready_for_paper_trial_design
+        && matches!(
+            tuning_run_result
+                .tuned_multi_run_result
+                .divergence_trend_summary
+                .trend_status,
+            ActualVsShadowDivergenceTrendStatus::Unsafe
+                | ActualVsShadowDivergenceTrendStatus::Worsening
+        );
+    let mut violations = Vec::new();
+    if actual_score_mutation_detected {
+        violations.push("shadow governance tuning mutated actual score".to_string());
+    }
+    if actual_voice_mutation_detected {
+        violations.push("shadow governance tuning mutated actual voice".to_string());
+    }
+    if promotion_demotion_detected {
+        violations.push("shadow governance tuning executed promotion or demotion".to_string());
+    }
+    if risk_governor_override_detected {
+        violations.push("shadow governance tuning overrode Risk Governor".to_string());
+    }
+    if committee_decision_mutation_detected {
+        violations.push("shadow governance tuning changed committee decision".to_string());
+    }
+    if trade_signal_detected {
+        violations.push("shadow governance tuning created a trade signal".to_string());
+    }
+    if order_detected {
+        violations.push("shadow governance tuning created an order".to_string());
+    }
+    if broker_order_account_detected {
+        violations.push("shadow governance tuning touched broker/order/account".to_string());
+    }
+    if delta_cap_increased_without_justification {
+        violations.push(
+            "shadow governance tuning increased delta caps without justification".to_string(),
+        );
+    }
+    if risk_first_disabled_detected {
+        violations.push("shadow governance tuning disabled risk-first behavior".to_string());
+    }
+    if role_balance_disabled_detected {
+        violations.push("shadow governance tuning disabled role balance controls".to_string());
+    }
+    if unsafe_gate_open_detected {
+        violations.push(
+            "shadow governance tuning opened the gate while divergence stayed unsafe".to_string(),
+        );
+    }
+    ChairmanShadowGovernanceTuningSafetyGuard {
+        actual_score_mutation_detected,
+        actual_voice_mutation_detected,
+        promotion_demotion_detected,
+        risk_governor_override_detected,
+        committee_decision_mutation_detected,
+        trade_signal_detected,
+        order_detected,
+        broker_order_account_detected,
+        delta_cap_increased_without_justification,
+        risk_first_disabled_detected,
+        role_balance_disabled_detected,
+        unsafe_gate_open_detected,
+        guard_status: if violations.is_empty() {
+            ChairmanShadowGovernanceTuningSafetyGuardStatus::Preserved
+        } else {
+            ChairmanShadowGovernanceTuningSafetyGuardStatus::Violated
+        },
+        violations,
+        paper_only: true,
+    }
+}
+
+pub fn run_tuned_chairman_shadow_governance_multi_run(
+    current_shadow_state_result: &ChairmanShadowGovernanceStateRunResult,
+    actual_member_states: &[MemberStateSnapshot],
+    previous_history: &ChairmanShadowGovernanceHistoryStore,
+    base_policy: &ChairmanShadowGovernanceSimulationPolicy,
+    config: &TunedChairmanShadowGovernanceMultiRunConfig,
+) -> Result<TunedChairmanShadowGovernanceMultiRunResult, String> {
+    if !config.paper_only {
+        return Err("tuned chairman shadow governance multi-run must stay paper_only".to_string());
+    }
+    if config.run_count == 0 {
+        return Err(
+            "tuned chairman shadow governance multi-run count must be positive".to_string(),
+        );
+    }
+    if !config.apply_tuned_policy {
+        return Err(
+            "tuned chairman shadow governance multi-run requires apply_tuned_policy=true"
+                .to_string(),
+        );
+    }
+    if !config.dry_run && config.write_history_store && config.output_history_store_path.is_none() {
+        return Err(
+            "tuned chairman shadow governance multi-run requires output_history_store_path when write_history_store=true"
+                .to_string(),
+        );
+    }
+    if let Some(path) = config.base_history_store_path.as_ref() {
+        validate_local_json_path(
+            Path::new(path),
+            "tuned chairman shadow governance base history store path",
+        )?;
+    }
+    if let Some(path) = config.output_history_store_path.as_ref() {
+        validate_local_json_path(
+            Path::new(path),
+            "tuned chairman shadow governance history output path",
+        )?;
+    }
+    let shadow_store = current_shadow_state_result
+        .shadow_store_after
+        .as_ref()
+        .or(current_shadow_state_result.shadow_store_before.as_ref())
+        .ok_or_else(|| "shadow governance tuning requires current shadow store".to_string())?;
+    let criteria = PaperGovernanceTrialCriteria {
+        criteria_id: format!("{}-paper-governance-trial-criteria", config.run_id),
+        min_history_snapshots: config.run_count.max(1),
+        ..default_paper_governance_trial_criteria()
+    };
+    let previous_diagnosis = diagnose_actual_vs_shadow_divergence(
+        &current_shadow_state_result.actual_vs_shadow_summary,
+        shadow_store,
+        previous_history,
+        &criteria,
+    );
+    let previous_stability = compute_shadow_governance_history_stability(previous_history);
+    let previous_gate = evaluate_paper_governance_trial_gate_v2(
+        previous_history,
+        &previous_diagnosis,
+        &previous_stability,
+        &current_shadow_state_result.apply_result,
+        &criteria,
+    );
+    let root_cause_records = analyze_unsafe_governance_divergence_causes(
+        &previous_diagnosis,
+        previous_history,
+        base_policy,
+    );
+    let root_cause_summary = summarize_unsafe_governance_divergence_causes(&root_cause_records);
+    let tuning_policy = build_shadow_delta_tuning_policy(&root_cause_summary, base_policy);
+    let tuned_policy =
+        build_tuned_chairman_shadow_governance_simulation_policy(base_policy, &tuning_policy)?;
+    let tuning_explanation =
+        explain_shadow_governance_policy_tuning(&root_cause_summary, &tuning_policy);
+    let base_harness_result = run_chairman_shadow_governance_multi_run_harness(
+        current_shadow_state_result,
+        actual_member_states,
+        &ChairmanShadowGovernanceMultiRunHarnessConfig {
+            run_id: config.run_id.clone(),
+            enabled: config.enabled,
+            run_count: config.run_count,
+            min_snapshots_required: config.run_count.max(1),
+            history_store_input_path: config.base_history_store_path.clone(),
+            history_store_output_path: config.output_history_store_path.clone(),
+            simulation_ledger_input_path: None,
+            simulation_ledger_output_path: None,
+            output_path: None,
+            dry_run: true,
+            write_history_store: false,
+            emit_owner_summary: false,
+            paper_only: true,
+        },
+    )?;
+    let tuned_history_store =
+        apply_tuned_policy_to_history_store(&base_harness_result.history_store, &tuned_policy);
+    let mut wrote_history_store = false;
+    if !config.dry_run && config.write_history_store {
+        if let Some(path) = config.output_history_store_path.as_ref() {
+            save_chairman_shadow_governance_history_store_to_local_json(
+                Path::new(path),
+                &tuned_history_store,
+            )?;
+            wrote_history_store = true;
+        }
+    }
+    let tuned_harness_result = build_harness_result_from_history_store(
+        &base_harness_result,
+        current_shadow_state_result,
+        actual_member_states,
+        tuned_history_store,
+        wrote_history_store,
+        config.output_history_store_path.clone(),
+    )?;
+    let placeholder = PaperGovernanceTrialDesignReadinessV3 {
+        readiness_id: format!("{}-placeholder", config.run_id),
+        history_quality_status: ShadowGovernanceHistoryQualityStatus::Valid,
+        divergence_trend_status: ActualVsShadowDivergenceTrendStatus::InsufficientHistory,
+        stability_status: tuned_harness_result
+            .aggregate_stability_metrics
+            .stability_status,
+        fairness_status: current_shadow_state_result
+            .apply_result
+            .fairness_check
+            .fairness_status,
+        risk_first_status: current_shadow_state_result
+            .apply_result
+            .risk_first_check
+            .risk_first_status,
+        safety_status: ChairmanShadowGovernanceMultiRunSafetyGuardStatus::Preserved,
+        min_history_met: false,
+        divergence_reducing_or_stable: false,
+        fairness_ok: false,
+        risk_first_ok: false,
+        safety_ok: false,
+        ready_for_paper_governance_trial_design: false,
+        readiness_status: PaperGovernanceTrialDesignReadinessV3Status::NeedsMoreShadowHistory,
+        blockers: Vec::new(),
+        warnings: Vec::new(),
+        paper_only: true,
+    };
+    let provisional_safety = evaluate_chairman_shadow_governance_multi_run_safety(
+        &tuned_harness_result,
+        &placeholder,
+        current_shadow_state_result,
+        actual_member_states,
+        Some(actual_member_states),
+        config.dry_run,
+    );
+    let divergence_trend_summary =
+        summarize_actual_vs_shadow_divergence_trend(&tuned_harness_result.history_store);
+    let history_quality_check = check_shadow_governance_history_quality(
+        &tuned_harness_result.history_store,
+        config.run_count.max(1),
+    );
+    let readiness_v3 = evaluate_paper_governance_trial_design_readiness_v3(
+        &history_quality_check,
+        &divergence_trend_summary,
+        &tuned_harness_result.aggregate_stability_metrics,
+        &current_shadow_state_result.apply_result,
+        &provisional_safety,
+        config.run_count.max(1),
+    );
+    let safety_guard = evaluate_chairman_shadow_governance_multi_run_safety(
+        &tuned_harness_result,
+        &readiness_v3,
+        current_shadow_state_result,
+        actual_member_states,
+        Some(actual_member_states),
+        config.dry_run,
+    );
+    let before_rank = gate_v2_rank(previous_gate.gate_status);
+    let after_rank = match readiness_v3.readiness_status {
+        PaperGovernanceTrialDesignReadinessV3Status::ReadyForPaperGovernanceTrialDesign => 0,
+        PaperGovernanceTrialDesignReadinessV3Status::ReadyWithWarnings => 1,
+        PaperGovernanceTrialDesignReadinessV3Status::NeedsMoreEvidence => 2,
+        PaperGovernanceTrialDesignReadinessV3Status::NeedsMoreShadowHistory => 3,
+        PaperGovernanceTrialDesignReadinessV3Status::BlockedByFairness => 4,
+        PaperGovernanceTrialDesignReadinessV3Status::BlockedByRiskViolation => 5,
+        PaperGovernanceTrialDesignReadinessV3Status::BlockedBySafety => 6,
+        PaperGovernanceTrialDesignReadinessV3Status::BlockedByHistoryQuality => 7,
+        PaperGovernanceTrialDesignReadinessV3Status::BlockedByDivergence => 8,
+    };
+    Ok(TunedChairmanShadowGovernanceMultiRunResult {
+        run_id: config.run_id.clone(),
+        root_cause_summary,
+        tuning_policy,
+        tuned_policy,
+        tuning_explanation,
+        multi_run_harness_result: tuned_harness_result,
+        divergence_trend_summary,
+        readiness_v3: readiness_v3.clone(),
+        before_gate_status: previous_gate.gate_status,
+        after_gate_status: readiness_v3.readiness_status,
+        improvement_status: if safety_guard.guard_status
+            == ChairmanShadowGovernanceMultiRunSafetyGuardStatus::Violated
+        {
+            TunedChairmanShadowGovernanceImprovementStatus::Blocked
+        } else if after_rank < before_rank {
+            if matches!(
+                readiness_v3.readiness_status,
+                PaperGovernanceTrialDesignReadinessV3Status::ReadyWithWarnings
+                    | PaperGovernanceTrialDesignReadinessV3Status::NeedsMoreEvidence
+            ) {
+                TunedChairmanShadowGovernanceImprovementStatus::ImprovedWithWarnings
+            } else {
+                TunedChairmanShadowGovernanceImprovementStatus::Improved
+            }
+        } else if after_rank == before_rank {
+            TunedChairmanShadowGovernanceImprovementStatus::NoChange
+        } else {
+            TunedChairmanShadowGovernanceImprovementStatus::Worse
+        },
+        safety_guard,
+        paper_only: true,
+    })
+}
+
+pub fn chairman_shadow_governance_tuning_requested_from_flags(
+    enabled: bool,
+    dry_run: bool,
+    tuned_history_output_path: Option<&String>,
+    tuning_result_output_path: Option<&String>,
+    write_tuned_history: bool,
+) -> bool {
+    enabled
+        || !dry_run
+        || tuned_history_output_path.is_some()
+        || tuning_result_output_path.is_some()
+        || write_tuned_history
+}
+
+pub fn run_chairman_shadow_governance_tuning(
+    current_shadow_state_result: &ChairmanShadowGovernanceStateRunResult,
+    actual_member_states: &[MemberStateSnapshot],
+    previous_history: &ChairmanShadowGovernanceHistoryStore,
+    config: &ChairmanShadowGovernanceTuningRunConfig,
+) -> Result<ChairmanShadowGovernanceTuningRunResult, String> {
+    if !config.paper_only {
+        return Err("chairman shadow governance tuning run must stay paper_only".to_string());
+    }
+    if config.run_count == 0 {
+        return Err("chairman shadow governance tuning run count must be positive".to_string());
+    }
+    if !config.dry_run
+        && config.write_tuned_history
+        && config.tuned_history_store_output_path.is_none()
+    {
+        return Err(
+            "chairman shadow governance tuning run requires tuned_history_store_output_path when write_tuned_history=true"
+                .to_string(),
+        );
+    }
+    if let Some(path) = config.base_history_store_path.as_ref() {
+        validate_local_json_path(
+            Path::new(path),
+            "chairman shadow governance tuning base history store path",
+        )?;
+    }
+    if let Some(path) = config.tuned_history_store_output_path.as_ref() {
+        validate_local_json_path(
+            Path::new(path),
+            "chairman shadow governance tuning tuned history output path",
+        )?;
+    }
+    if let Some(path) = config.tuning_result_output_path.as_ref() {
+        validate_local_json_path(
+            Path::new(path),
+            "chairman shadow governance tuning result output path",
+        )?;
+    }
+    let tuned_multi_run_result = run_tuned_chairman_shadow_governance_multi_run(
+        current_shadow_state_result,
+        actual_member_states,
+        previous_history,
+        &default_chairman_shadow_governance_simulation_policy(),
+        &TunedChairmanShadowGovernanceMultiRunConfig {
+            run_id: config.run_id.clone(),
+            enabled: config.enabled,
+            run_count: config.run_count,
+            base_history_store_path: config.base_history_store_path.clone(),
+            output_history_store_path: config.tuned_history_store_output_path.clone(),
+            dry_run: config.dry_run,
+            write_history_store: config.write_tuned_history,
+            apply_tuned_policy: true,
+            paper_only: true,
+        },
+    )?;
+    let latest_snapshot = latest_shadow_governance_history_snapshot(
+        &tuned_multi_run_result
+            .multi_run_harness_result
+            .history_store,
+    )
+    .ok_or_else(|| "shadow governance tuning requires tuned history snapshots".to_string())?;
+    let shadow_store = build_shadow_store_from_history_snapshot(
+        latest_snapshot,
+        format!("{}-tuned-shadow-store", config.run_id),
+    );
+    let role_balance_check =
+        evaluate_chairman_role_balance(&shadow_store, &tuned_multi_run_result.tuning_policy);
+    let previous_gate = PaperGovernanceTrialGateV2 {
+        gate_id: format!("{}-previous-gate", config.run_id),
+        history_snapshot_count: previous_history.snapshot_count,
+        min_history_snapshots: config.run_count.max(1),
+        divergence_status: divergence_status_from_gate_status(
+            tuned_multi_run_result.before_gate_status,
+        ),
+        stability_status: ShadowGovernanceHistoryStabilityStatus::Stable,
+        fairness_status: current_shadow_state_result
+            .apply_result
+            .fairness_check
+            .fairness_status,
+        risk_first_status: current_shadow_state_result
+            .apply_result
+            .risk_first_check
+            .risk_first_status,
+        safety_status: ChairmanShadowGovernanceApplySafetyGuardStatus::Preserved,
+        ready_for_paper_governance_trial: false,
+        trial_allowed_operations: vec![PaperGovernanceTrialAllowedOperation::None],
+        forbidden_operations: vec![
+            PaperGovernanceTrialForbiddenOperation::ActualScoreMutation,
+            PaperGovernanceTrialForbiddenOperation::ActualVoiceMutation,
+            PaperGovernanceTrialForbiddenOperation::PromotionDemotionExecution,
+            PaperGovernanceTrialForbiddenOperation::RiskGovernorOverride,
+            PaperGovernanceTrialForbiddenOperation::CommitteeDecisionMutation,
+            PaperGovernanceTrialForbiddenOperation::TradingOrderAccount,
+        ],
+        gate_status: tuned_multi_run_result.before_gate_status,
+        blockers: Vec::new(),
+        warnings: Vec::new(),
+        paper_only: true,
+    };
+    let gate_recheck = recheck_paper_governance_trial_gate_after_tuning(
+        &previous_gate,
+        &tuned_multi_run_result,
+        &role_balance_check,
+    );
+    let mut result = ChairmanShadowGovernanceTuningRunResult {
+        run_id: config.run_id.clone(),
+        root_cause_summary: tuned_multi_run_result.root_cause_summary.clone(),
+        tuning_policy: tuned_multi_run_result.tuning_policy.clone(),
+        tuned_policy: tuned_multi_run_result.tuned_policy.clone(),
+        tuning_explanation: tuned_multi_run_result.tuning_explanation.clone(),
+        tuned_multi_run_result,
+        role_balance_check,
+        gate_recheck,
+        owner_summary: None,
+        tuning_safety_guard: ChairmanShadowGovernanceTuningSafetyGuard {
+            actual_score_mutation_detected: false,
+            actual_voice_mutation_detected: false,
+            promotion_demotion_detected: false,
+            risk_governor_override_detected: false,
+            committee_decision_mutation_detected: false,
+            trade_signal_detected: false,
+            order_detected: false,
+            broker_order_account_detected: false,
+            delta_cap_increased_without_justification: false,
+            risk_first_disabled_detected: false,
+            role_balance_disabled_detected: false,
+            unsafe_gate_open_detected: false,
+            guard_status: ChairmanShadowGovernanceTuningSafetyGuardStatus::Preserved,
+            violations: Vec::new(),
+            paper_only: true,
+        },
+        run_status: ChairmanShadowGovernanceTuningRunStatus::PassedWithWarnings,
+        paper_only: true,
+    };
+    result.tuning_safety_guard = evaluate_chairman_shadow_governance_tuning_safety(
+        &result,
+        current_shadow_state_result,
+        Some(current_shadow_state_result),
+    );
+    if config.emit_owner_summary {
+        result.owner_summary = Some(build_owner_shadow_governance_tuning_summary(
+            &result.tuned_multi_run_result,
+            &result.gate_recheck,
+        ));
+    }
+    result.run_status = if result.tuning_safety_guard.guard_status
+        == ChairmanShadowGovernanceTuningSafetyGuardStatus::Violated
+    {
+        ChairmanShadowGovernanceTuningRunStatus::Failed
+    } else if config.dry_run
+        || !result.gate_recheck.readiness_improved
+        || matches!(
+            result.gate_recheck.gate_status,
+            TunedPaperGovernanceTrialGateRecheckStatus::ReadyWithWarnings
+                | TunedPaperGovernanceTrialGateRecheckStatus::NeedsMoreEvidence
+                | TunedPaperGovernanceTrialGateRecheckStatus::NeedsMoreShadowHistory
+        )
+    {
+        ChairmanShadowGovernanceTuningRunStatus::PassedWithWarnings
+    } else {
+        ChairmanShadowGovernanceTuningRunStatus::Passed
+    };
+    if !config.dry_run {
+        if let Some(path) = config.tuning_result_output_path.as_ref() {
+            write_safe_json(Path::new(path), &result)?;
+        }
+    }
+    Ok(result)
+}
+
+fn maybe_run_chairman_shadow_governance_tuning_for_batch_result(
+    run_id: String,
+    enabled: bool,
+    dry_run: bool,
+    run_count: usize,
+    base_history_store_path: Option<&String>,
+    tuned_history_store_output_path: Option<&String>,
+    tuning_result_output_path: Option<&String>,
+    write_tuned_history: bool,
+    emit_owner_summary: bool,
+    actual_member_states: &[MemberStateSnapshot],
+    batch_result: &mut BatchCommitteeCycleResult,
+) -> Result<Option<ChairmanShadowGovernanceTuningRunResult>, String> {
+    if !chairman_shadow_governance_tuning_requested_from_flags(
+        enabled,
+        dry_run,
+        tuned_history_store_output_path,
+        tuning_result_output_path,
+        write_tuned_history,
+    ) {
+        return Ok(None);
+    }
+    let current_state_result = batch_result
+        .chairman_shadow_governance_state_run_result
+        .clone()
+        .ok_or_else(|| {
+            "chairman shadow governance tuning requires current shadow governance state result"
+                .to_string()
+        })?;
+    let previous_history = if let Some(path) = base_history_store_path {
+        if Path::new(path).exists() {
+            load_chairman_shadow_governance_history_store_from_local_json(Path::new(path))?
+        } else {
+            batch_result
+                .chairman_shadow_governance_history_store
+                .clone()
+                .unwrap_or(ChairmanShadowGovernanceHistoryStore {
+                    store_id: format!("{}-history-store", run_id),
+                    snapshots: Vec::new(),
+                    snapshot_count: 0,
+                    latest_snapshot_id: None,
+                    paper_only: true,
+                })
+        }
+    } else {
+        batch_result
+            .chairman_shadow_governance_history_store
+            .clone()
+            .unwrap_or(ChairmanShadowGovernanceHistoryStore {
+                store_id: format!("{}-history-store", run_id),
+                snapshots: Vec::new(),
+                snapshot_count: 0,
+                latest_snapshot_id: None,
+                paper_only: true,
+            })
+    };
+    let result = run_chairman_shadow_governance_tuning(
+        &current_state_result,
+        actual_member_states,
+        &previous_history,
+        &ChairmanShadowGovernanceTuningRunConfig {
+            run_id,
+            enabled,
+            base_history_store_path: base_history_store_path.cloned(),
+            tuned_history_store_output_path: tuned_history_store_output_path.cloned(),
+            tuning_result_output_path: tuning_result_output_path.cloned(),
+            run_count,
+            dry_run,
+            write_tuned_history,
+            emit_owner_summary,
+            paper_only: true,
+        },
+    )?;
+    batch_result.chairman_unsafe_divergence_root_cause_summary =
+        Some(result.root_cause_summary.clone());
+    batch_result.chairman_shadow_delta_tuning_policy = Some(result.tuning_policy.clone());
+    batch_result.tuned_chairman_shadow_governance_simulation_policy =
+        Some(result.tuned_policy.clone());
+    batch_result.chairman_shadow_policy_tuning_explanation =
+        Some(result.tuning_explanation.clone());
+    batch_result.tuned_chairman_shadow_governance_multi_run_result =
+        Some(result.tuned_multi_run_result.clone());
+    batch_result.chairman_shadow_governance_history_store = Some(
+        result
+            .tuned_multi_run_result
+            .multi_run_harness_result
+            .history_store
+            .clone(),
+    );
+    batch_result.actual_vs_shadow_divergence_trend_summary = Some(
+        result
+            .tuned_multi_run_result
+            .divergence_trend_summary
+            .clone(),
+    );
+    batch_result.paper_governance_trial_design_readiness_v3 =
+        Some(result.tuned_multi_run_result.readiness_v3.clone());
+    batch_result.chairman_role_balance_check = Some(result.role_balance_check.clone());
+    batch_result.tuned_paper_governance_trial_gate_recheck = Some(result.gate_recheck.clone());
+    batch_result.owner_shadow_governance_tuning_summary = result.owner_summary.clone();
+    batch_result.chairman_shadow_governance_tuning_safety_guard =
+        Some(result.tuning_safety_guard.clone());
+    batch_result.chairman_shadow_governance_tuning_run_result = Some(result.clone());
+    Ok(Some(result))
+}
+
+fn paper_governance_gate_status_from_readiness_v3(
+    status: PaperGovernanceTrialDesignReadinessV3Status,
+) -> PaperGovernanceTrialGateV2Status {
+    match status {
+        PaperGovernanceTrialDesignReadinessV3Status::ReadyForPaperGovernanceTrialDesign => {
+            PaperGovernanceTrialGateV2Status::ReadyForPaperTrialDesign
+        }
+        PaperGovernanceTrialDesignReadinessV3Status::ReadyWithWarnings => {
+            PaperGovernanceTrialGateV2Status::ReadyWithWarnings
+        }
+        PaperGovernanceTrialDesignReadinessV3Status::NeedsMoreShadowHistory
+        | PaperGovernanceTrialDesignReadinessV3Status::BlockedByHistoryQuality => {
+            PaperGovernanceTrialGateV2Status::NeedsMoreShadowHistory
+        }
+        PaperGovernanceTrialDesignReadinessV3Status::NeedsMoreEvidence => {
+            PaperGovernanceTrialGateV2Status::NeedsMoreEvidence
+        }
+        PaperGovernanceTrialDesignReadinessV3Status::BlockedByDivergence => {
+            PaperGovernanceTrialGateV2Status::BlockedByDivergence
+        }
+        PaperGovernanceTrialDesignReadinessV3Status::BlockedByFairness => {
+            PaperGovernanceTrialGateV2Status::BlockedByFairness
+        }
+        PaperGovernanceTrialDesignReadinessV3Status::BlockedByRiskViolation => {
+            PaperGovernanceTrialGateV2Status::BlockedByRiskViolation
+        }
+        PaperGovernanceTrialDesignReadinessV3Status::BlockedBySafety => {
+            PaperGovernanceTrialGateV2Status::BlockedBySafety
+        }
+    }
+}
+
+fn conservative_voice_tuned_gate_rank(status: ConservativeVoiceTunedGateRecheckV2Status) -> usize {
+    match status {
+        ConservativeVoiceTunedGateRecheckV2Status::ReadyForPaperTrialDesign => 0,
+        ConservativeVoiceTunedGateRecheckV2Status::ReadyWithWarnings => 1,
+        ConservativeVoiceTunedGateRecheckV2Status::NeedsMoreEvidence => 2,
+        ConservativeVoiceTunedGateRecheckV2Status::NeedsMoreShadowHistory => 3,
+        ConservativeVoiceTunedGateRecheckV2Status::BlockedByRoleFloor => 4,
+        ConservativeVoiceTunedGateRecheckV2Status::BlockedByFairness => 5,
+        ConservativeVoiceTunedGateRecheckV2Status::BlockedByRiskViolation => 6,
+        ConservativeVoiceTunedGateRecheckV2Status::BlockedBySafety => 7,
+        ConservativeVoiceTunedGateRecheckV2Status::BlockedByDivergence => 8,
+    }
+}
+
+fn role_voice_share(
+    snapshot: &ChairmanShadowGovernanceHistorySnapshot,
+    role: IndependentMemberRole,
+) -> f64 {
+    let total_voice = snapshot
+        .member_states
+        .iter()
+        .map(|state| state.shadow_voice_weight)
+        .sum::<f64>()
+        .max(f64::EPSILON);
+    snapshot
+        .member_states
+        .iter()
+        .filter(|state| state.role == role)
+        .map(|state| state.shadow_voice_weight)
+        .sum::<f64>()
+        / total_voice
+}
+
+fn first_member_for_role(
+    snapshot: &ChairmanShadowGovernanceHistorySnapshot,
+    role: IndependentMemberRole,
+) -> Option<&ChairmanShadowMemberGovernanceState> {
+    snapshot
+        .member_states
+        .iter()
+        .find(|state| state.role == role)
+}
+
+fn summarize_remaining_voice_drift_records(
+    analysis_id: String,
+    mut records: Vec<RemainingVoiceDriftRecord>,
+) -> RemainingVoiceDriftAnalysisResult {
+    records.sort_by(|left, right| left.record_id.cmp(&right.record_id));
+    let mut dominant_causes = BTreeMap::new();
+    let mut recommended_actions = BTreeSet::new();
+    for record in &records {
+        *dominant_causes.entry(record.cause).or_insert(0usize) += 1;
+        recommended_actions.insert(record.recommended_action);
+    }
+    let mut ranked_causes = dominant_causes.into_iter().collect::<Vec<_>>();
+    ranked_causes.sort_by(|(left_cause, left_count), (right_cause, right_count)| {
+        right_count
+            .cmp(left_count)
+            .then_with(|| left_cause.cmp(right_cause))
+    });
+    let dominant_causes = ranked_causes
+        .into_iter()
+        .take(3)
+        .map(|(cause, _)| cause)
+        .collect::<Vec<_>>();
+    let high_severity_count = records
+        .iter()
+        .filter(|record| record.severity == ActualVsShadowDivergenceSeverity::High)
+        .count();
+    let record_count = records.len();
+    let analysis_status = if records.is_empty() {
+        RemainingVoiceDriftAnalysisStatus::NoUnsafeVoiceDrift
+    } else if records
+        .iter()
+        .all(|record| record.cause == RemainingVoiceDriftCause::InsufficientHistory)
+    {
+        RemainingVoiceDriftAnalysisStatus::NeedsMoreEvidence
+    } else if records.iter().all(|record| {
+        matches!(
+            record.cause,
+            RemainingVoiceDriftCause::Unknown | RemainingVoiceDriftCause::MixedSignalHistory
+        )
+    }) {
+        RemainingVoiceDriftAnalysisStatus::Unknown
+    } else {
+        RemainingVoiceDriftAnalysisStatus::Actionable
+    };
+    RemainingVoiceDriftAnalysisResult {
+        analysis_id,
+        records,
+        record_count,
+        high_severity_count,
+        dominant_causes,
+        recommended_actions: if recommended_actions.is_empty() {
+            vec![RemainingVoiceDriftRecommendedAction::KeepObserving]
+        } else {
+            recommended_actions.into_iter().collect()
+        },
+        analysis_status,
+        paper_only: true,
+    }
+}
+
+pub fn analyze_remaining_voice_drift_after_tuning(
+    tuned_result: &TunedChairmanShadowGovernanceMultiRunResult,
+    previous_history: &ChairmanShadowGovernanceHistoryStore,
+    policy: &ChairmanShadowDeltaTuningPolicy,
+) -> RemainingVoiceDriftAnalysisResult {
+    let analysis_id = format!("{}-remaining-voice-drift", tuned_result.run_id);
+    let Some(latest_snapshot) = latest_shadow_governance_history_snapshot(
+        &tuned_result.multi_run_harness_result.history_store,
+    ) else {
+        return summarize_remaining_voice_drift_records(
+            analysis_id,
+            vec![RemainingVoiceDriftRecord {
+                record_id: format!("{}-insufficient-history", tuned_result.run_id),
+                member_id: None,
+                role: None,
+                cause: RemainingVoiceDriftCause::InsufficientHistory,
+                observed_voice_gap: 0.0,
+                observed_voice_share: None,
+                severity: ActualVsShadowDivergenceSeverity::Low,
+                recommended_action: RemainingVoiceDriftRecommendedAction::RequireMoreEvidence,
+                paper_only: true,
+            }],
+        );
+    };
+    let mut records = Vec::new();
+    let snapshot_count = tuned_result
+        .multi_run_harness_result
+        .history_store
+        .snapshot_count;
+    let trend_share = role_voice_share(latest_snapshot, IndependentMemberRole::TrendEntry);
+    let risk_share = role_voice_share(latest_snapshot, IndependentMemberRole::RiskGuard);
+    let evidence_share = role_voice_share(latest_snapshot, IndependentMemberRole::EvidenceRegime);
+    if snapshot_count
+        < tuned_result
+            .multi_run_harness_result
+            .requested_run_count
+            .max(2)
+    {
+        records.push(RemainingVoiceDriftRecord {
+            record_id: format!("{}-insufficient-history", tuned_result.run_id),
+            member_id: None,
+            role: None,
+            cause: RemainingVoiceDriftCause::InsufficientHistory,
+            observed_voice_gap: latest_snapshot.actual_vs_shadow_summary.max_voice_gap,
+            observed_voice_share: None,
+            severity: ActualVsShadowDivergenceSeverity::Medium,
+            recommended_action: RemainingVoiceDriftRecommendedAction::RequireMoreEvidence,
+            paper_only: true,
+        });
+    }
+    if risk_share > policy.risk_guard_max_voice_share + 0.02 {
+        records.push(RemainingVoiceDriftRecord {
+            record_id: format!("{}-risk-guard-dominance", tuned_result.run_id),
+            member_id: first_member_for_role(latest_snapshot, IndependentMemberRole::RiskGuard)
+                .map(|state| state.member_id.clone()),
+            role: Some(ChairmanUnsafeDivergenceRole::RiskGuard),
+            cause: RemainingVoiceDriftCause::RiskGuardOverDominance,
+            observed_voice_gap: risk_share - policy.risk_guard_max_voice_share,
+            observed_voice_share: Some(risk_share),
+            severity: ActualVsShadowDivergenceSeverity::High,
+            recommended_action: RemainingVoiceDriftRecommendedAction::LowerRiskGuardCap,
+            paper_only: true,
+        });
+    }
+    if trend_share + 0.01 < policy.trend_entry_min_voice_floor {
+        records.push(RemainingVoiceDriftRecord {
+            record_id: format!("{}-trend-entry-floor", tuned_result.run_id),
+            member_id: first_member_for_role(latest_snapshot, IndependentMemberRole::TrendEntry)
+                .map(|state| state.member_id.clone()),
+            role: Some(ChairmanUnsafeDivergenceRole::TrendEntry),
+            cause: RemainingVoiceDriftCause::TrendEntrySuppression,
+            observed_voice_gap: trend_share - policy.trend_entry_min_voice_floor,
+            observed_voice_share: Some(trend_share),
+            severity: ActualVsShadowDivergenceSeverity::High,
+            recommended_action: RemainingVoiceDriftRecommendedAction::RaiseTrendEntryFloor,
+            paper_only: true,
+        });
+    }
+    if evidence_share + 0.01 < policy.evidence_regime_min_voice_floor {
+        records.push(RemainingVoiceDriftRecord {
+            record_id: format!("{}-evidence-floor", tuned_result.run_id),
+            member_id: first_member_for_role(
+                latest_snapshot,
+                IndependentMemberRole::EvidenceRegime,
+            )
+            .map(|state| state.member_id.clone()),
+            role: Some(ChairmanUnsafeDivergenceRole::EvidenceRegime),
+            cause: RemainingVoiceDriftCause::EvidenceRegimeUnderweight,
+            observed_voice_gap: evidence_share - policy.evidence_regime_min_voice_floor,
+            observed_voice_share: Some(evidence_share),
+            severity: ActualVsShadowDivergenceSeverity::High,
+            recommended_action: RemainingVoiceDriftRecommendedAction::RaiseEvidenceRegimeFloor,
+            paper_only: true,
+        });
+    }
+    if let Some(compounding_state) = latest_snapshot.member_states.iter().max_by_key(|state| {
+        state
+            .shadow_voice_increase_count
+            .max(state.shadow_voice_decrease_count)
+    }) {
+        if compounding_state.shadow_voice_increase_count > policy.max_reward_streak_per_member
+            || compounding_state.shadow_voice_decrease_count > policy.max_penalty_streak_per_member
+        {
+            records.push(RemainingVoiceDriftRecord {
+                record_id: format!("{}-compounding-brake", compounding_state.member_id),
+                member_id: Some(compounding_state.member_id.clone()),
+                role: Some(match compounding_state.role {
+                    IndependentMemberRole::TrendEntry => ChairmanUnsafeDivergenceRole::TrendEntry,
+                    IndependentMemberRole::RiskGuard => ChairmanUnsafeDivergenceRole::RiskGuard,
+                    IndependentMemberRole::EvidenceRegime => {
+                        ChairmanUnsafeDivergenceRole::EvidenceRegime
+                    }
+                }),
+                cause: RemainingVoiceDriftCause::RepeatedVoiceDeltaCompounding,
+                observed_voice_gap: compounding_state.shadow_voice_weight
+                    - compounding_state.actual_voice_weight_snapshot,
+                observed_voice_share: Some(compounding_state.shadow_voice_weight),
+                severity: if compounding_state.shadow_voice_increase_count
+                    >= policy.max_reward_streak_per_member + 2
+                    || compounding_state.shadow_voice_decrease_count
+                        >= policy.max_penalty_streak_per_member + 2
+                {
+                    ActualVsShadowDivergenceSeverity::High
+                } else {
+                    ActualVsShadowDivergenceSeverity::Medium
+                },
+                recommended_action: RemainingVoiceDriftRecommendedAction::AddCompoundingBrake,
+                paper_only: true,
+            });
+        }
+    }
+    if tuned_result.divergence_trend_summary.trend_status
+        == ActualVsShadowDivergenceTrendStatus::Unsafe
+        || tuned_result.divergence_trend_summary.trend_status
+            == ActualVsShadowDivergenceTrendStatus::Worsening
+        || latest_snapshot.actual_vs_shadow_summary.max_voice_gap
+            > policy.tuned_voice_delta_cap + 0.02
+    {
+        records.push(RemainingVoiceDriftRecord {
+            record_id: format!("{}-voice-cap", tuned_result.run_id),
+            member_id: None,
+            role: None,
+            cause: RemainingVoiceDriftCause::VoiceCapStillTooHigh,
+            observed_voice_gap: latest_snapshot.actual_vs_shadow_summary.max_voice_gap,
+            observed_voice_share: None,
+            severity: ActualVsShadowDivergenceSeverity::Medium,
+            recommended_action: RemainingVoiceDriftRecommendedAction::ReduceVoiceCapAgain,
+            paper_only: true,
+        });
+    }
+    if latest_snapshot.actual_vs_shadow_summary.max_voice_gap > policy.tuned_voice_delta_cap + 0.02
+        && previous_history.snapshot_count
+            < tuned_result.multi_run_harness_result.requested_run_count
+    {
+        records.push(RemainingVoiceDriftRecord {
+            record_id: format!("{}-low-evidence-high-delta", tuned_result.run_id),
+            member_id: None,
+            role: None,
+            cause: RemainingVoiceDriftCause::LowEvidenceHighDelta,
+            observed_voice_gap: latest_snapshot.actual_vs_shadow_summary.max_voice_gap,
+            observed_voice_share: None,
+            severity: ActualVsShadowDivergenceSeverity::Medium,
+            recommended_action: RemainingVoiceDriftRecommendedAction::RequireMoreEvidence,
+            paper_only: true,
+        });
+    }
+    if (trend_share + risk_share + evidence_share - 1.0).abs() > 0.05 || risk_share + 0.01 < 0.18 {
+        records.push(RemainingVoiceDriftRecord {
+            record_id: format!("{}-role-floor-imbalance", tuned_result.run_id),
+            member_id: None,
+            role: None,
+            cause: RemainingVoiceDriftCause::RoleFloorImbalance,
+            observed_voice_gap: trend_share + risk_share + evidence_share - 1.0,
+            observed_voice_share: None,
+            severity: ActualVsShadowDivergenceSeverity::Medium,
+            recommended_action: RemainingVoiceDriftRecommendedAction::KeepObserving,
+            paper_only: true,
+        });
+    }
+    if tuned_result.divergence_trend_summary.reducing_count > 0
+        && tuned_result.divergence_trend_summary.increasing_count > 0
+    {
+        records.push(RemainingVoiceDriftRecord {
+            record_id: format!("{}-mixed-signal-history", tuned_result.run_id),
+            member_id: None,
+            role: None,
+            cause: RemainingVoiceDriftCause::MixedSignalHistory,
+            observed_voice_gap: latest_snapshot.actual_vs_shadow_summary.max_voice_gap,
+            observed_voice_share: None,
+            severity: ActualVsShadowDivergenceSeverity::Low,
+            recommended_action: RemainingVoiceDriftRecommendedAction::RequireMoreEvidence,
+            paper_only: true,
+        });
+    }
+    summarize_remaining_voice_drift_records(analysis_id, records)
+}
+
+pub fn build_conservative_voice_tuning_v2_policy(
+    remaining_voice_drift_analysis: &RemainingVoiceDriftAnalysisResult,
+    previous_tuning_policy: &ChairmanShadowDeltaTuningPolicy,
+) -> Result<ConservativeVoiceTuningV2Policy, String> {
+    let actionable = remaining_voice_drift_analysis.analysis_status
+        == RemainingVoiceDriftAnalysisStatus::Actionable;
+    let reduce_voice_cap = actionable
+        || remaining_voice_drift_analysis
+            .recommended_actions
+            .contains(&RemainingVoiceDriftRecommendedAction::ReduceVoiceCapAgain);
+    let lower_risk_guard_cap = remaining_voice_drift_analysis
+        .dominant_causes
+        .contains(&RemainingVoiceDriftCause::RiskGuardOverDominance);
+    let raise_trend_floor = remaining_voice_drift_analysis
+        .dominant_causes
+        .contains(&RemainingVoiceDriftCause::TrendEntrySuppression);
+    let raise_evidence_floor = remaining_voice_drift_analysis
+        .dominant_causes
+        .iter()
+        .any(|cause| {
+            matches!(
+                cause,
+                RemainingVoiceDriftCause::EvidenceRegimeUnderweight
+                    | RemainingVoiceDriftCause::LowEvidenceHighDelta
+            )
+        });
+    let policy = ConservativeVoiceTuningV2Policy {
+        policy_id: format!(
+            "{}-voice-tuning-v2",
+            remaining_voice_drift_analysis.analysis_id
+        ),
+        previous_voice_delta_cap: previous_tuning_policy.tuned_voice_delta_cap,
+        tuned_voice_delta_cap_v2: if reduce_voice_cap {
+            (previous_tuning_policy.tuned_voice_delta_cap * 0.8).max(0.005)
+        } else {
+            (previous_tuning_policy.tuned_voice_delta_cap * 0.92).max(0.005)
+        },
+        risk_guard_min_voice_share: 0.20,
+        risk_guard_max_voice_share: if lower_risk_guard_cap {
+            (previous_tuning_policy.risk_guard_max_voice_share - 0.05).max(0.30)
+        } else {
+            previous_tuning_policy.risk_guard_max_voice_share.min(0.45)
+        },
+        trend_entry_min_voice_share: if raise_trend_floor {
+            (previous_tuning_policy.trend_entry_min_voice_floor + 0.03).min(0.30)
+        } else {
+            previous_tuning_policy.trend_entry_min_voice_floor.max(0.18)
+        },
+        evidence_regime_min_voice_share: if raise_evidence_floor {
+            (previous_tuning_policy.evidence_regime_min_voice_floor + 0.03).min(0.28)
+        } else {
+            previous_tuning_policy
+                .evidence_regime_min_voice_floor
+                .max(0.15)
+        },
+        compounding_brake_enabled: true,
+        max_consecutive_voice_increases_per_member: previous_tuning_policy
+            .max_reward_streak_per_member
+            .saturating_sub(1)
+            .max(1),
+        max_consecutive_voice_decreases_per_member: previous_tuning_policy
+            .max_penalty_streak_per_member
+            .saturating_sub(1)
+            .max(1),
+        dampen_low_evidence_delta: true,
+        low_evidence_dampening_factor: 0.45,
+        preserve_risk_first: true,
+        actual_voice_apply_allowed: false,
+        actual_score_apply_allowed: false,
+        promotion_demotion_allowed: false,
+        risk_governor_override_allowed: false,
+        paper_only: true,
+    };
+    if policy.tuned_voice_delta_cap_v2 > policy.previous_voice_delta_cap {
+        return Err("conservative voice tuning v2 must not increase voice cap".to_string());
+    }
+    if policy.actual_voice_apply_allowed
+        || policy.actual_score_apply_allowed
+        || policy.promotion_demotion_allowed
+        || policy.risk_governor_override_allowed
+    {
+        return Err(
+            "conservative voice tuning v2 must keep all actual governance apply flags false"
+                .to_string(),
+        );
+    }
+    if !policy.preserve_risk_first {
+        return Err("conservative voice tuning v2 must preserve risk-first".to_string());
+    }
+    if policy.trend_entry_min_voice_share <= 0.0
+        || policy.risk_guard_min_voice_share <= 0.0
+        || policy.evidence_regime_min_voice_share <= 0.0
+    {
+        return Err("conservative voice tuning v2 role floors must be positive".to_string());
+    }
+    if policy.risk_guard_max_voice_share <= policy.risk_guard_min_voice_share {
+        return Err(
+            "conservative voice tuning v2 RiskGuard cap must preserve a positive risk-first role"
+                .to_string(),
+        );
+    }
+    Ok(policy)
+}
+
+fn build_role_voice_floor_policy(
+    policy: &ConservativeVoiceTuningV2Policy,
+) -> ChairmanRoleVoiceFloorPolicy {
+    ChairmanRoleVoiceFloorPolicy {
+        policy_id: format!("{}-role-floor-policy", policy.policy_id),
+        trend_entry_min_voice_share: policy.trend_entry_min_voice_share,
+        risk_guard_min_voice_share: policy.risk_guard_min_voice_share,
+        evidence_regime_min_voice_share: policy.evidence_regime_min_voice_share,
+        risk_guard_max_voice_share: policy.risk_guard_max_voice_share,
+        total_share_target: 1.0,
+        paper_only: true,
+    }
+}
+
+pub fn evaluate_role_voice_floor_policy(
+    shadow_store: &ChairmanShadowGovernanceStateStore,
+    floor_policy: &ChairmanRoleVoiceFloorPolicy,
+) -> ChairmanRoleVoiceFloorCheck {
+    let total_voice = shadow_store
+        .member_states
+        .iter()
+        .map(|state| state.shadow_voice_weight)
+        .sum::<f64>()
+        .max(f64::EPSILON);
+    let role_share = |role: IndependentMemberRole| {
+        shadow_store
+            .member_states
+            .iter()
+            .filter(|state| state.role == role)
+            .map(|state| state.shadow_voice_weight)
+            .sum::<f64>()
+            / total_voice
+    };
+    let trend_entry_share = role_share(IndependentMemberRole::TrendEntry);
+    let risk_guard_share = role_share(IndependentMemberRole::RiskGuard);
+    let evidence_regime_share = role_share(IndependentMemberRole::EvidenceRegime);
+    let trend_entry_floor_met =
+        trend_entry_share + 0.01 >= floor_policy.trend_entry_min_voice_share;
+    let risk_guard_floor_met = risk_guard_share + 0.01 >= floor_policy.risk_guard_min_voice_share;
+    let evidence_regime_floor_met =
+        evidence_regime_share + 0.01 >= floor_policy.evidence_regime_min_voice_share;
+    let risk_guard_cap_met = risk_guard_share <= floor_policy.risk_guard_max_voice_share + 0.01;
+    let mut warnings = Vec::new();
+    if trend_entry_share < floor_policy.trend_entry_min_voice_share + 0.02 {
+        warnings.push("TrendEntry voice share is close to the conservative floor".to_string());
+    }
+    if evidence_regime_share < floor_policy.evidence_regime_min_voice_share + 0.02 {
+        warnings.push("EvidenceRegime voice share is close to the conservative floor".to_string());
+    }
+    if risk_guard_share > floor_policy.risk_guard_max_voice_share - 0.02 {
+        warnings.push("RiskGuard voice share is close to the conservative cap".to_string());
+    }
+    ChairmanRoleVoiceFloorCheck {
+        check_id: format!("{}-role-floor-check", shadow_store.store_id),
+        trend_entry_share,
+        risk_guard_share,
+        evidence_regime_share,
+        trend_entry_floor_met,
+        risk_guard_floor_met,
+        evidence_regime_floor_met,
+        risk_guard_cap_met,
+        floor_status: if trend_entry_floor_met
+            && risk_guard_floor_met
+            && evidence_regime_floor_met
+            && risk_guard_cap_met
+        {
+            if warnings.is_empty() {
+                ChairmanRoleVoiceFloorStatus::Met
+            } else {
+                ChairmanRoleVoiceFloorStatus::MetWithWarnings
+            }
+        } else {
+            ChairmanRoleVoiceFloorStatus::Violated
+        },
+        warnings,
+        paper_only: true,
+    }
+}
+
+fn build_shadow_voice_deltas_from_state_run_result(
+    current_shadow_state_result: &ChairmanShadowGovernanceStateRunResult,
+) -> Vec<ChairmanShadowVoiceDelta> {
+    let role_by_member = current_shadow_state_result
+        .shadow_store_after
+        .as_ref()
+        .or(current_shadow_state_result.shadow_store_before.as_ref())
+        .map(|store| {
+            store
+                .member_states
+                .iter()
+                .map(|state| (state.member_id.clone(), state.role))
+                .collect::<BTreeMap<_, _>>()
+        })
+        .unwrap_or_default();
+    let mut deltas = current_shadow_state_result
+        .apply_result
+        .before_after_standings
+        .iter()
+        .map(|standing| {
+            let delta_kind = if standing.voice_delta_applied > 0.0 {
+                ChairmanShadowVoiceDeltaKind::Increase
+            } else if standing.voice_delta_applied < 0.0 {
+                ChairmanShadowVoiceDeltaKind::Decrease
+            } else if standing.standing_change == SimulatedMemberStandingStatus::NeedsMoreEvidence {
+                ChairmanShadowVoiceDeltaKind::NeedsMoreEvidence
+            } else {
+                ChairmanShadowVoiceDeltaKind::Neutral
+            };
+            let reason = if standing.voice_delta_applied > 0.0 {
+                ChairmanShadowVoiceDeltaReason::RiskSavedLoss
+            } else if standing.voice_delta_applied < 0.0 {
+                ChairmanShadowVoiceDeltaReason::OverconfidentRisk
+            } else {
+                ChairmanShadowVoiceDeltaReason::NeedsMoreEvidence
+            };
+            let role = role_by_member
+                .get(&standing.member_id)
+                .copied()
+                .unwrap_or(IndependentMemberRole::EvidenceRegime);
+            let abs_delta = standing.voice_delta_applied.abs();
+            let confidence = if abs_delta >= 0.08 {
+                SourceConfidence::ReviewRequired
+            } else if abs_delta >= 0.05 {
+                SourceConfidence::Low
+            } else if role == IndependentMemberRole::RiskGuard {
+                SourceConfidence::High
+            } else {
+                SourceConfidence::Medium
+            };
+            ChairmanShadowVoiceDelta {
+                delta_id: format!(
+                    "{}-voice-v2-delta-{}",
+                    current_shadow_state_result.run_id, standing.member_id
+                ),
+                source_ledger_entry_id: current_shadow_state_result
+                    .state_ledger
+                    .latest_entry_id
+                    .clone()
+                    .unwrap_or_else(|| current_shadow_state_result.run_id.clone()),
+                member_id: standing.member_id.clone(),
+                symbol: None,
+                market_scope: None,
+                delta_kind,
+                proposed_voice_delta: standing.voice_delta_applied,
+                reason,
+                confidence,
+                shadow_only: true,
+                no_actual_voice_mutation: true,
+                paper_only: true,
+            }
+        })
+        .collect::<Vec<_>>();
+    deltas.sort_by(|left, right| left.delta_id.cmp(&right.delta_id));
+    deltas
+}
+
+pub fn apply_voice_delta_compounding_brake(
+    voice_deltas: &[ChairmanShadowVoiceDelta],
+    history_store: &ChairmanShadowGovernanceHistoryStore,
+    policy: &ConservativeVoiceTuningV2Policy,
+) -> (
+    Vec<ChairmanShadowVoiceDelta>,
+    Vec<VoiceDeltaCompoundingBrakeResult>,
+) {
+    let latest_counts = latest_shadow_governance_history_snapshot(history_store)
+        .map(|snapshot| {
+            snapshot
+                .member_states
+                .iter()
+                .map(|state| {
+                    (
+                        state.member_id.clone(),
+                        (
+                            state.shadow_voice_increase_count,
+                            state.shadow_voice_decrease_count,
+                        ),
+                    )
+                })
+                .collect::<BTreeMap<_, _>>()
+        })
+        .unwrap_or_default();
+    let mut dampened_deltas = Vec::new();
+    let mut by_member = BTreeMap::<String, VoiceDeltaCompoundingBrakeResult>::new();
+    for delta in voice_deltas.iter().cloned() {
+        let (increase_count, decrease_count) = latest_counts
+            .get(&delta.member_id)
+            .copied()
+            .unwrap_or((0, 0));
+        let mut factor: f64 = 1.0;
+        let mut reason = "voice delta stayed within conservative compounding limits".to_string();
+        if policy.compounding_brake_enabled {
+            if delta.proposed_voice_delta > 0.0
+                && increase_count > policy.max_consecutive_voice_increases_per_member
+            {
+                factor = 0.5;
+                reason = format!(
+                    "repeated positive voice deltas exceeded conservative limit {}",
+                    policy.max_consecutive_voice_increases_per_member
+                );
+            } else if delta.proposed_voice_delta < 0.0
+                && decrease_count > policy.max_consecutive_voice_decreases_per_member
+            {
+                factor = 0.5;
+                reason = format!(
+                    "repeated negative voice deltas exceeded conservative limit {}",
+                    policy.max_consecutive_voice_decreases_per_member
+                );
+            }
+            if delta.reason == ChairmanShadowVoiceDeltaReason::RiskSavedLoss
+                && delta.confidence == SourceConfidence::High
+                && factor < 1.0
+            {
+                factor = factor.max(0.7);
+                reason = "risk-saved-loss kept less dampening but remained bounded".to_string();
+            }
+        }
+        let mut dampened = delta.clone();
+        dampened.proposed_voice_delta *= factor;
+        dampened_deltas.push(dampened.clone());
+        let entry =
+            by_member
+                .entry(delta.member_id.clone())
+                .or_insert(VoiceDeltaCompoundingBrakeResult {
+                    member_id: delta.member_id.clone(),
+                    original_voice_delta_total: 0.0,
+                    dampened_voice_delta_total: 0.0,
+                    consecutive_increase_count: increase_count,
+                    consecutive_decrease_count: decrease_count,
+                    brake_applied: false,
+                    reason: reason.clone(),
+                    paper_only: true,
+                });
+        entry.original_voice_delta_total += delta.proposed_voice_delta;
+        entry.dampened_voice_delta_total += dampened.proposed_voice_delta;
+        entry.brake_applied |= (factor - 1.0).abs() > f64::EPSILON;
+        if entry.brake_applied {
+            entry.reason = reason.clone();
+        }
+    }
+    let results = by_member.into_values().collect::<Vec<_>>();
+    (dampened_deltas, results)
+}
+
+pub fn apply_evidence_based_voice_dampening(
+    voice_delta: &ChairmanShadowVoiceDelta,
+    evidence_confidence: SourceConfidence,
+    policy: &ConservativeVoiceTuningV2Policy,
+) -> (ChairmanShadowVoiceDelta, EvidenceBasedVoiceDampeningResult) {
+    let multiplier = match evidence_confidence {
+        SourceConfidence::High => 1.0,
+        SourceConfidence::Medium => 0.85,
+        SourceConfidence::Low | SourceConfidence::ReviewRequired => {
+            if policy.dampen_low_evidence_delta {
+                policy.low_evidence_dampening_factor
+            } else {
+                1.0
+            }
+        }
+    };
+    let output_delta = (voice_delta.proposed_voice_delta * multiplier).clamp(
+        -policy.tuned_voice_delta_cap_v2,
+        policy.tuned_voice_delta_cap_v2,
+    );
+    let dampened = ChairmanShadowVoiceDelta {
+        proposed_voice_delta: output_delta,
+        ..voice_delta.clone()
+    };
+    (
+        dampened.clone(),
+        EvidenceBasedVoiceDampeningResult {
+            member_id: voice_delta.member_id.clone(),
+            input_delta: voice_delta.proposed_voice_delta,
+            output_delta,
+            evidence_confidence,
+            dampening_applied: (output_delta - voice_delta.proposed_voice_delta).abs() > 1e-9,
+            reason: match evidence_confidence {
+                SourceConfidence::High => {
+                    "high-confidence voice delta remained bounded by the conservative v2 cap"
+                        .to_string()
+                }
+                SourceConfidence::Medium => {
+                    "medium-confidence voice delta received a light conservative dampening"
+                        .to_string()
+                }
+                SourceConfidence::Low => {
+                    "low-confidence voice delta was dampened by the conservative evidence guard"
+                        .to_string()
+                }
+                SourceConfidence::ReviewRequired => {
+                    "review-required voice delta was heavily dampened by the conservative evidence guard"
+                        .to_string()
+                }
+            },
+            paper_only: true,
+        },
+    )
+}
+
+fn apply_role_voice_floor_policy_to_snapshot(
+    snapshot: &mut ChairmanShadowGovernanceHistorySnapshot,
+    floor_policy: &ChairmanRoleVoiceFloorPolicy,
+) {
+    let enforce_once = |states: &mut [ChairmanShadowMemberGovernanceState]| {
+        for state in states.iter_mut() {
+            match state.role {
+                IndependentMemberRole::TrendEntry => {
+                    state.shadow_voice_weight = state
+                        .shadow_voice_weight
+                        .max(floor_policy.trend_entry_min_voice_share);
+                }
+                IndependentMemberRole::RiskGuard => {
+                    state.shadow_voice_weight = state
+                        .shadow_voice_weight
+                        .max(floor_policy.risk_guard_min_voice_share)
+                        .min(floor_policy.risk_guard_max_voice_share);
+                }
+                IndependentMemberRole::EvidenceRegime => {
+                    state.shadow_voice_weight = state
+                        .shadow_voice_weight
+                        .max(floor_policy.evidence_regime_min_voice_share);
+                }
+            }
+            state.shadow_voice_weight = clamp_unit(state.shadow_voice_weight);
+        }
+        let total = states
+            .iter()
+            .map(|state| state.shadow_voice_weight)
+            .sum::<f64>()
+            .max(f64::EPSILON);
+        let ratio = floor_policy.total_share_target / total;
+        for state in states.iter_mut() {
+            state.shadow_voice_weight = clamp_unit(state.shadow_voice_weight * ratio);
+        }
+    };
+    enforce_once(&mut snapshot.member_states);
+    enforce_once(&mut snapshot.member_states);
+}
+
+fn apply_voice_tuning_v2_to_history_store(
+    history_store: &ChairmanShadowGovernanceHistoryStore,
+    policy: &ConservativeVoiceTuningV2Policy,
+    floor_policy: &ChairmanRoleVoiceFloorPolicy,
+    dampened_voice_deltas: &[ChairmanShadowVoiceDelta],
+) -> ChairmanShadowGovernanceHistoryStore {
+    let cap_ratio = (policy.tuned_voice_delta_cap_v2 / policy.previous_voice_delta_cap.max(1e-9))
+        .clamp(0.0, 1.0);
+    let mut per_member_cap = BTreeMap::<String, f64>::new();
+    for delta in dampened_voice_deltas {
+        let entry = per_member_cap
+            .entry(delta.member_id.clone())
+            .or_insert(policy.tuned_voice_delta_cap_v2);
+        *entry = (*entry).min(delta.proposed_voice_delta.abs().max(0.001));
+    }
+    let snapshots = history_store
+        .snapshots
+        .iter()
+        .cloned()
+        .map(|mut snapshot| {
+            for state in &mut snapshot.member_states {
+                let current_gap = state.shadow_voice_weight - state.actual_voice_weight_snapshot;
+                let member_cap = per_member_cap
+                    .get(&state.member_id)
+                    .copied()
+                    .unwrap_or(policy.tuned_voice_delta_cap_v2)
+                    .max(0.001);
+                let dampened_gap = (current_gap * cap_ratio).clamp(-member_cap, member_cap);
+                state.shadow_voice_weight =
+                    clamp_unit(state.actual_voice_weight_snapshot + dampened_gap);
+            }
+            apply_role_voice_floor_policy_to_snapshot(&mut snapshot, floor_policy);
+            snapshot
+        })
+        .collect::<Vec<_>>();
+    let mut store = ChairmanShadowGovernanceHistoryStore {
+        store_id: format!("{}-voice-v2", history_store.store_id),
+        snapshots,
+        snapshot_count: 0,
+        latest_snapshot_id: None,
+        paper_only: true,
+    };
+    normalize_shadow_governance_history_store(&mut store);
+    store
+}
+
+pub fn run_conservative_voice_tuned_multi_run_v2(
+    current_shadow_state_result: &ChairmanShadowGovernanceStateRunResult,
+    actual_member_states: &[MemberStateSnapshot],
+    previous_history: &ChairmanShadowGovernanceHistoryStore,
+    previous_tuned_result: Option<&ChairmanShadowGovernanceTuningRunResult>,
+    config: &ConservativeVoiceTunedMultiRunV2Config,
+) -> Result<ConservativeVoiceTunedMultiRunV2Result, String> {
+    if !config.paper_only {
+        return Err("conservative voice tuned multi-run v2 must stay paper_only".to_string());
+    }
+    if config.run_count == 0 {
+        return Err("conservative voice tuned multi-run v2 run_count must be positive".to_string());
+    }
+    if !config.dry_run && config.write_tuned_history && config.tuned_history_output_path.is_none() {
+        return Err(
+            "conservative voice tuned multi-run v2 requires tuned_history_output_path when write_tuned_history=true"
+                .to_string(),
+        );
+    }
+    if let Some(path) = config.tuned_history_output_path.as_ref() {
+        validate_local_json_path(
+            Path::new(path),
+            "conservative voice tuned multi-run v2 history output path",
+        )?;
+    }
+    let baseline = if let Some(previous_tuned_result) = previous_tuned_result {
+        previous_tuned_result.clone()
+    } else {
+        run_chairman_shadow_governance_tuning(
+            current_shadow_state_result,
+            actual_member_states,
+            previous_history,
+            &ChairmanShadowGovernanceTuningRunConfig {
+                run_id: format!("{}-baseline", config.run_id),
+                enabled: true,
+                base_history_store_path: None,
+                tuned_history_store_output_path: None,
+                tuning_result_output_path: None,
+                run_count: config.run_count,
+                dry_run: true,
+                write_tuned_history: false,
+                emit_owner_summary: false,
+                paper_only: true,
+            },
+        )?
+    };
+    let remaining_voice_drift_analysis = analyze_remaining_voice_drift_after_tuning(
+        &baseline.tuned_multi_run_result,
+        previous_history,
+        &baseline.tuning_policy,
+    );
+    let voice_tuning_v2_policy = build_conservative_voice_tuning_v2_policy(
+        &remaining_voice_drift_analysis,
+        &baseline.tuning_policy,
+    )?;
+    let role_floor_policy = build_role_voice_floor_policy(&voice_tuning_v2_policy);
+    let base_voice_deltas =
+        build_shadow_voice_deltas_from_state_run_result(current_shadow_state_result);
+    let (braked_voice_deltas, compounding_brake_results) = apply_voice_delta_compounding_brake(
+        &base_voice_deltas,
+        &baseline
+            .tuned_multi_run_result
+            .multi_run_harness_result
+            .history_store,
+        &voice_tuning_v2_policy,
+    );
+    let mut evidence_dampening_results = Vec::new();
+    let dampened_voice_deltas = braked_voice_deltas
+        .iter()
+        .map(|voice_delta| {
+            let (dampened_delta, result) = apply_evidence_based_voice_dampening(
+                voice_delta,
+                voice_delta.confidence,
+                &voice_tuning_v2_policy,
+            );
+            evidence_dampening_results.push(result);
+            dampened_delta
+        })
+        .collect::<Vec<_>>();
+    let tuned_history_store = apply_voice_tuning_v2_to_history_store(
+        &baseline
+            .tuned_multi_run_result
+            .multi_run_harness_result
+            .history_store,
+        &voice_tuning_v2_policy,
+        &role_floor_policy,
+        &dampened_voice_deltas,
+    );
+    let mut wrote_tuned_history = false;
+    if !config.dry_run && config.write_tuned_history {
+        if let Some(path) = config.tuned_history_output_path.as_ref() {
+            save_chairman_shadow_governance_history_store_to_local_json(
+                Path::new(path),
+                &tuned_history_store,
+            )?;
+            wrote_tuned_history = true;
+        }
+    }
+    let tuned_multi_run_result = build_harness_result_from_history_store(
+        &baseline.tuned_multi_run_result.multi_run_harness_result,
+        current_shadow_state_result,
+        actual_member_states,
+        tuned_history_store,
+        wrote_tuned_history,
+        config.tuned_history_output_path.clone(),
+    )?;
+    let placeholder = PaperGovernanceTrialDesignReadinessV3 {
+        readiness_id: format!("{}-voice-v2-placeholder", config.run_id),
+        history_quality_status: ShadowGovernanceHistoryQualityStatus::Valid,
+        divergence_trend_status: ActualVsShadowDivergenceTrendStatus::InsufficientHistory,
+        stability_status: tuned_multi_run_result
+            .aggregate_stability_metrics
+            .stability_status,
+        fairness_status: current_shadow_state_result
+            .apply_result
+            .fairness_check
+            .fairness_status,
+        risk_first_status: current_shadow_state_result
+            .apply_result
+            .risk_first_check
+            .risk_first_status,
+        safety_status: ChairmanShadowGovernanceMultiRunSafetyGuardStatus::Preserved,
+        min_history_met: false,
+        divergence_reducing_or_stable: false,
+        fairness_ok: false,
+        risk_first_ok: false,
+        safety_ok: false,
+        ready_for_paper_governance_trial_design: false,
+        readiness_status: PaperGovernanceTrialDesignReadinessV3Status::NeedsMoreShadowHistory,
+        blockers: Vec::new(),
+        warnings: Vec::new(),
+        paper_only: true,
+    };
+    let provisional_safety = evaluate_chairman_shadow_governance_multi_run_safety(
+        &tuned_multi_run_result,
+        &placeholder,
+        current_shadow_state_result,
+        actual_member_states,
+        Some(actual_member_states),
+        config.dry_run,
+    );
+    let divergence_trend_summary =
+        summarize_actual_vs_shadow_divergence_trend(&tuned_multi_run_result.history_store);
+    let history_quality_check = check_shadow_governance_history_quality(
+        &tuned_multi_run_result.history_store,
+        config.run_count.max(1),
+    );
+    let readiness_v3 = evaluate_paper_governance_trial_design_readiness_v3(
+        &history_quality_check,
+        &divergence_trend_summary,
+        &tuned_multi_run_result.aggregate_stability_metrics,
+        &current_shadow_state_result.apply_result,
+        &provisional_safety,
+        config.run_count.max(1),
+    );
+    let final_safety = evaluate_chairman_shadow_governance_multi_run_safety(
+        &tuned_multi_run_result,
+        &readiness_v3,
+        current_shadow_state_result,
+        actual_member_states,
+        Some(actual_member_states),
+        config.dry_run,
+    );
+    let latest_snapshot =
+        latest_shadow_governance_history_snapshot(&tuned_multi_run_result.history_store)
+            .ok_or_else(|| {
+                "conservative voice tuned multi-run v2 requires tuned history snapshots".to_string()
+            })?;
+    let shadow_store = build_shadow_store_from_history_snapshot(
+        latest_snapshot,
+        format!("{}-voice-v2-shadow-store", config.run_id),
+    );
+    let role_floor_check = evaluate_role_voice_floor_policy(&shadow_store, &role_floor_policy);
+    let previous_gate_status = paper_governance_gate_status_from_readiness_v3(
+        baseline.tuned_multi_run_result.after_gate_status,
+    );
+    let tuned_v2_gate_status =
+        paper_governance_gate_status_from_readiness_v3(readiness_v3.readiness_status);
+    let before_rank = gate_v2_rank(previous_gate_status);
+    let after_rank = gate_v2_rank(tuned_v2_gate_status);
+    Ok(ConservativeVoiceTunedMultiRunV2Result {
+        run_id: config.run_id.clone(),
+        remaining_voice_drift_analysis,
+        voice_tuning_v2_policy,
+        role_floor_policy,
+        role_floor_check,
+        compounding_brake_results,
+        evidence_dampening_results,
+        tuned_multi_run_result,
+        previous_gate_status,
+        tuned_v2_gate_status,
+        previous_divergence_status: baseline
+            .tuned_multi_run_result
+            .divergence_trend_summary
+            .trend_status,
+        tuned_v2_divergence_status: divergence_trend_summary.trend_status,
+        risk_first_preserved: current_shadow_state_result
+            .apply_result
+            .risk_first_check
+            .risk_first_status
+            != ChairmanRiskFirstGovernanceStatus::Violated,
+        safety_status: final_safety.guard_status,
+        improvement_status: if final_safety.guard_status
+            == ChairmanShadowGovernanceMultiRunSafetyGuardStatus::Violated
+        {
+            ConservativeVoiceTunedMultiRunV2ImprovementStatus::Blocked
+        } else if after_rank < before_rank {
+            if matches!(
+                tuned_v2_gate_status,
+                PaperGovernanceTrialGateV2Status::ReadyWithWarnings
+                    | PaperGovernanceTrialGateV2Status::NeedsMoreEvidence
+                    | PaperGovernanceTrialGateV2Status::NeedsMoreShadowHistory
+            ) {
+                ConservativeVoiceTunedMultiRunV2ImprovementStatus::ImprovedWithWarnings
+            } else {
+                ConservativeVoiceTunedMultiRunV2ImprovementStatus::Improved
+            }
+        } else if after_rank == before_rank {
+            ConservativeVoiceTunedMultiRunV2ImprovementStatus::NoChange
+        } else {
+            ConservativeVoiceTunedMultiRunV2ImprovementStatus::Worse
+        },
+        paper_only: true,
+    })
+}
+
+pub fn evaluate_conservative_voice_tuning_v2_safety(
+    v2_result: &ConservativeVoiceTunedMultiRunV2Result,
+    console_section: &OwnerGovernanceConsoleSectionV1,
+    before_state: &ChairmanShadowGovernanceStateRunResult,
+    after_state: Option<&ChairmanShadowGovernanceStateRunResult>,
+) -> ConservativeVoiceTuningV2SafetyGuard {
+    let after_state = after_state.unwrap_or(before_state);
+    let actual_score_mutation_detected = before_state.safety_guard.actual_score_mutation_detected
+        || after_state.safety_guard.actual_score_mutation_detected;
+    let actual_voice_mutation_detected = before_state.safety_guard.actual_voice_mutation_detected
+        || after_state.safety_guard.actual_voice_mutation_detected;
+    let promotion_demotion_detected = before_state.safety_guard.promotion_execution_detected
+        || before_state.safety_guard.demotion_execution_detected
+        || after_state.safety_guard.promotion_execution_detected
+        || after_state.safety_guard.demotion_execution_detected;
+    let risk_governor_override_detected = before_state.safety_guard.risk_governor_override_detected
+        || after_state.safety_guard.risk_governor_override_detected;
+    let committee_decision_mutation_detected = before_state
+        .safety_guard
+        .committee_decision_mutation_detected
+        || after_state
+            .safety_guard
+            .committee_decision_mutation_detected;
+    let trade_signal_detected = before_state.safety_guard.trade_signal_detected
+        || after_state.safety_guard.trade_signal_detected;
+    let order_detected =
+        before_state.safety_guard.order_detected || after_state.safety_guard.order_detected;
+    let broker_order_account_detected = before_state.safety_guard.broker_order_account_detected
+        || after_state.safety_guard.broker_order_account_detected;
+    let voice_cap_increased_detected = v2_result.voice_tuning_v2_policy.tuned_voice_delta_cap_v2
+        > v2_result.voice_tuning_v2_policy.previous_voice_delta_cap;
+    let risk_first_disabled_detected = !v2_result.voice_tuning_v2_policy.preserve_risk_first;
+    let role_floor_disabled_detected = v2_result.role_floor_policy.trend_entry_min_voice_share
+        <= 0.0
+        || v2_result.role_floor_policy.risk_guard_min_voice_share <= 0.0
+        || v2_result.role_floor_policy.evidence_regime_min_voice_share <= 0.0
+        || v2_result.role_floor_policy.risk_guard_max_voice_share
+            <= v2_result.role_floor_policy.risk_guard_min_voice_share;
+    let owner_console_action_detected = !console_section.read_only
+        || !console_section.no_actions
+        || !console_section.no_score_mutation
+        || !console_section.no_voice_mutation
+        || !console_section.no_trade_signal;
+    let unsafe_gate_open_detected = matches!(
+        v2_result.tuned_v2_gate_status,
+        PaperGovernanceTrialGateV2Status::ReadyForPaperTrialDesign
+            | PaperGovernanceTrialGateV2Status::ReadyWithWarnings
+    ) && matches!(
+        v2_result.tuned_v2_divergence_status,
+        ActualVsShadowDivergenceTrendStatus::Unsafe
+            | ActualVsShadowDivergenceTrendStatus::Worsening
+    );
+    let mut violations = Vec::new();
+    if actual_score_mutation_detected {
+        violations.push("conservative voice tuning v2 mutated actual score".to_string());
+    }
+    if actual_voice_mutation_detected {
+        violations.push("conservative voice tuning v2 mutated actual voice".to_string());
+    }
+    if promotion_demotion_detected {
+        violations.push("conservative voice tuning v2 executed promotion or demotion".to_string());
+    }
+    if risk_governor_override_detected {
+        violations.push("conservative voice tuning v2 overrode Risk Governor".to_string());
+    }
+    if committee_decision_mutation_detected {
+        violations.push("conservative voice tuning v2 changed committee decision".to_string());
+    }
+    if trade_signal_detected {
+        violations.push("conservative voice tuning v2 created a trade signal".to_string());
+    }
+    if order_detected {
+        violations.push("conservative voice tuning v2 created an order".to_string());
+    }
+    if broker_order_account_detected {
+        violations.push("conservative voice tuning v2 touched broker/order/account".to_string());
+    }
+    if voice_cap_increased_detected {
+        violations.push("conservative voice tuning v2 increased the voice cap".to_string());
+    }
+    if risk_first_disabled_detected {
+        violations.push("conservative voice tuning v2 disabled risk-first behavior".to_string());
+    }
+    if role_floor_disabled_detected {
+        violations.push("conservative voice tuning v2 disabled role floor protection".to_string());
+    }
+    if owner_console_action_detected {
+        violations.push("owner governance console section exposed a mutation action".to_string());
+    }
+    if unsafe_gate_open_detected {
+        violations.push(
+            "conservative voice tuning v2 opened the gate while unsafe divergence remained"
+                .to_string(),
+        );
+    }
+    ConservativeVoiceTuningV2SafetyGuard {
+        actual_score_mutation_detected,
+        actual_voice_mutation_detected,
+        promotion_demotion_detected,
+        risk_governor_override_detected,
+        committee_decision_mutation_detected,
+        trade_signal_detected,
+        order_detected,
+        broker_order_account_detected,
+        voice_cap_increased_detected,
+        risk_first_disabled_detected,
+        role_floor_disabled_detected,
+        owner_console_action_detected,
+        unsafe_gate_open_detected,
+        guard_status: if violations.is_empty() {
+            ConservativeVoiceTuningV2SafetyGuardStatus::Preserved
+        } else {
+            ConservativeVoiceTuningV2SafetyGuardStatus::Violated
+        },
+        violations,
+        paper_only: true,
+    }
+}
+
+pub fn recheck_paper_governance_gate_with_voice_tuning_v2(
+    v2_result: &ConservativeVoiceTunedMultiRunV2Result,
+    role_floor_check: &ChairmanRoleVoiceFloorCheck,
+    safety_guard: &ConservativeVoiceTuningV2SafetyGuard,
+) -> ConservativeVoiceTunedGateRecheckV2 {
+    let mut blockers = Vec::new();
+    let mut warnings = role_floor_check.warnings.clone();
+    let gate_status = if safety_guard.guard_status
+        == ConservativeVoiceTuningV2SafetyGuardStatus::Violated
+    {
+        blockers.push("conservative voice tuning v2 safety guard was violated".to_string());
+        ConservativeVoiceTunedGateRecheckV2Status::BlockedBySafety
+    } else if !v2_result.risk_first_preserved {
+        blockers.push("risk-first behavior was not preserved".to_string());
+        ConservativeVoiceTunedGateRecheckV2Status::BlockedByRiskViolation
+    } else if role_floor_check.floor_status == ChairmanRoleVoiceFloorStatus::Violated {
+        blockers
+            .push("role floor rebalance remains violated after conservative tuning".to_string());
+        ConservativeVoiceTunedGateRecheckV2Status::BlockedByRoleFloor
+    } else if matches!(
+        v2_result.tuned_v2_divergence_status,
+        ActualVsShadowDivergenceTrendStatus::Unsafe
+            | ActualVsShadowDivergenceTrendStatus::Worsening
+    ) || v2_result.remaining_voice_drift_analysis.analysis_status
+        == RemainingVoiceDriftAnalysisStatus::Actionable
+    {
+        blockers.push("unsafe voice drift remains after conservative tuning v2".to_string());
+        ConservativeVoiceTunedGateRecheckV2Status::BlockedByDivergence
+    } else {
+        match v2_result.tuned_v2_gate_status {
+            PaperGovernanceTrialGateV2Status::ReadyForPaperTrialDesign => {
+                ConservativeVoiceTunedGateRecheckV2Status::ReadyForPaperTrialDesign
+            }
+            PaperGovernanceTrialGateV2Status::ReadyWithWarnings => {
+                warnings.push(
+                    "conservative voice tuning v2 improved readiness with warnings".to_string(),
+                );
+                ConservativeVoiceTunedGateRecheckV2Status::ReadyWithWarnings
+            }
+            PaperGovernanceTrialGateV2Status::NeedsMoreEvidence => {
+                ConservativeVoiceTunedGateRecheckV2Status::NeedsMoreEvidence
+            }
+            PaperGovernanceTrialGateV2Status::NeedsMoreShadowHistory => {
+                ConservativeVoiceTunedGateRecheckV2Status::NeedsMoreShadowHistory
+            }
+            PaperGovernanceTrialGateV2Status::BlockedByFairness => {
+                ConservativeVoiceTunedGateRecheckV2Status::BlockedByFairness
+            }
+            PaperGovernanceTrialGateV2Status::BlockedByRiskViolation => {
+                ConservativeVoiceTunedGateRecheckV2Status::BlockedByRiskViolation
+            }
+            PaperGovernanceTrialGateV2Status::BlockedBySafety => {
+                ConservativeVoiceTunedGateRecheckV2Status::BlockedBySafety
+            }
+            PaperGovernanceTrialGateV2Status::BlockedByDivergence => {
+                blockers
+                    .push("unsafe voice drift remains after conservative tuning v2".to_string());
+                ConservativeVoiceTunedGateRecheckV2Status::BlockedByDivergence
+            }
+        }
+    };
+    ConservativeVoiceTunedGateRecheckV2 {
+        previous_gate_status: v2_result.previous_gate_status,
+        tuned_v2_gate_status: v2_result.tuned_v2_gate_status,
+        previous_divergence_status: v2_result.previous_divergence_status,
+        tuned_v2_divergence_status: v2_result.tuned_v2_divergence_status,
+        role_floor_status: role_floor_check.floor_status,
+        risk_first_preserved: v2_result.risk_first_preserved,
+        readiness_improved: conservative_voice_tuned_gate_rank(gate_status)
+            < conservative_voice_tuned_gate_rank(match v2_result.previous_gate_status {
+                PaperGovernanceTrialGateV2Status::ReadyForPaperTrialDesign => {
+                    ConservativeVoiceTunedGateRecheckV2Status::ReadyForPaperTrialDesign
+                }
+                PaperGovernanceTrialGateV2Status::ReadyWithWarnings => {
+                    ConservativeVoiceTunedGateRecheckV2Status::ReadyWithWarnings
+                }
+                PaperGovernanceTrialGateV2Status::NeedsMoreEvidence => {
+                    ConservativeVoiceTunedGateRecheckV2Status::NeedsMoreEvidence
+                }
+                PaperGovernanceTrialGateV2Status::NeedsMoreShadowHistory => {
+                    ConservativeVoiceTunedGateRecheckV2Status::NeedsMoreShadowHistory
+                }
+                PaperGovernanceTrialGateV2Status::BlockedByFairness => {
+                    ConservativeVoiceTunedGateRecheckV2Status::BlockedByFairness
+                }
+                PaperGovernanceTrialGateV2Status::BlockedByRiskViolation => {
+                    ConservativeVoiceTunedGateRecheckV2Status::BlockedByRiskViolation
+                }
+                PaperGovernanceTrialGateV2Status::BlockedBySafety => {
+                    ConservativeVoiceTunedGateRecheckV2Status::BlockedBySafety
+                }
+                PaperGovernanceTrialGateV2Status::BlockedByDivergence => {
+                    ConservativeVoiceTunedGateRecheckV2Status::BlockedByDivergence
+                }
+            }),
+        gate_status,
+        blockers,
+        warnings,
+        paper_only: true,
+    }
+}
+
+pub fn build_owner_governance_console_section_v1(
+    v2_result: &ConservativeVoiceTunedMultiRunV2Result,
+    gate_recheck: &ConservativeVoiceTunedGateRecheckV2,
+) -> OwnerGovernanceConsoleSectionV1 {
+    OwnerGovernanceConsoleSectionV1 {
+        section_id: format!("{}-owner-console-v1", v2_result.run_id),
+        governance_mode: OwnerGovernanceMode::ShadowOnly,
+        current_gate_status: gate_recheck.gate_status,
+        unsafe_divergence_status: v2_result.tuned_v2_divergence_status,
+        dominant_voice_drift_causes: v2_result
+            .remaining_voice_drift_analysis
+            .dominant_causes
+            .clone(),
+        voice_cap_before: v2_result.voice_tuning_v2_policy.previous_voice_delta_cap,
+        voice_cap_after: v2_result.voice_tuning_v2_policy.tuned_voice_delta_cap_v2,
+        role_floor_status: gate_recheck.role_floor_status,
+        risk_first_status: if gate_recheck.risk_first_preserved {
+            if gate_recheck.gate_status
+                == ConservativeVoiceTunedGateRecheckV2Status::ReadyWithWarnings
+            {
+                ChairmanRiskFirstGovernanceStatus::PreservedWithWarnings
+            } else {
+                ChairmanRiskFirstGovernanceStatus::Preserved
+            }
+        } else {
+            ChairmanRiskFirstGovernanceStatus::Violated
+        },
+        safety_status: match gate_recheck.gate_status {
+            ConservativeVoiceTunedGateRecheckV2Status::BlockedBySafety
+            | ConservativeVoiceTunedGateRecheckV2Status::BlockedByRiskViolation => {
+                OwnerGovernanceConsoleSafetyStatus::Blocked
+            }
+            ConservativeVoiceTunedGateRecheckV2Status::ReadyWithWarnings
+            | ConservativeVoiceTunedGateRecheckV2Status::NeedsMoreEvidence
+            | ConservativeVoiceTunedGateRecheckV2Status::NeedsMoreShadowHistory => {
+                OwnerGovernanceConsoleSafetyStatus::Warning
+            }
+            _ => OwnerGovernanceConsoleSafetyStatus::Preserved,
+        },
+        next_allowed_step: match gate_recheck.gate_status {
+            ConservativeVoiceTunedGateRecheckV2Status::ReadyForPaperTrialDesign => {
+                OwnerGovernanceNextAllowedStep::PaperTrialDesignOnly
+            }
+            ConservativeVoiceTunedGateRecheckV2Status::NeedsMoreEvidence
+            | ConservativeVoiceTunedGateRecheckV2Status::NeedsMoreShadowHistory => {
+                OwnerGovernanceNextAllowedStep::CollectMoreEvidence
+            }
+            ConservativeVoiceTunedGateRecheckV2Status::BlockedByDivergence
+            | ConservativeVoiceTunedGateRecheckV2Status::BlockedByRoleFloor
+            | ConservativeVoiceTunedGateRecheckV2Status::ReadyWithWarnings => {
+                OwnerGovernanceNextAllowedStep::KeepTuning
+            }
+            ConservativeVoiceTunedGateRecheckV2Status::BlockedByFairness
+            | ConservativeVoiceTunedGateRecheckV2Status::BlockedByRiskViolation
+            | ConservativeVoiceTunedGateRecheckV2Status::BlockedBySafety => {
+                OwnerGovernanceNextAllowedStep::Blocked
+            }
+        },
+        owner_message: format!(
+            "Rust-only owner governance console summary: gate={:?}, remaining_voice_drift={:?}, voice_cap {:.3}->{:.3}. Read-only only; no score mutation, no voice mutation, no trade signal.",
+            gate_recheck.gate_status,
+            v2_result.remaining_voice_drift_analysis.analysis_status,
+            v2_result.voice_tuning_v2_policy.previous_voice_delta_cap,
+            v2_result.voice_tuning_v2_policy.tuned_voice_delta_cap_v2
+        ),
+        read_only: true,
+        no_actions: true,
+        no_score_mutation: true,
+        no_voice_mutation: true,
+        no_trade_signal: true,
+        paper_only: true,
+    }
+}
+
+pub fn run_conservative_voice_tuning_v2(
+    current_shadow_state_result: &ChairmanShadowGovernanceStateRunResult,
+    actual_member_states: &[MemberStateSnapshot],
+    previous_history: &ChairmanShadowGovernanceHistoryStore,
+    previous_tuned_result: Option<&ChairmanShadowGovernanceTuningRunResult>,
+    config: &ConservativeVoiceTuningV2RunConfig,
+) -> Result<ConservativeVoiceTuningV2RunResult, String> {
+    if !config.paper_only {
+        return Err("conservative voice tuning v2 run must stay paper_only".to_string());
+    }
+    if config.run_count == 0 {
+        return Err("conservative voice tuning v2 run_count must be positive".to_string());
+    }
+    if !config.dry_run
+        && config.write_tuned_history
+        && config.tuned_v2_history_output_path.is_none()
+    {
+        return Err(
+            "conservative voice tuning v2 run requires tuned_v2_history_output_path when write_tuned_history=true"
+                .to_string(),
+        );
+    }
+    for (path, label) in [
+        (
+            config.previous_history_path.as_ref(),
+            "conservative voice tuning v2 previous_history_path",
+        ),
+        (
+            config.previous_tuning_result_path.as_ref(),
+            "conservative voice tuning v2 previous_tuning_result_path",
+        ),
+        (
+            config.tuned_v2_history_output_path.as_ref(),
+            "conservative voice tuning v2 tuned_v2_history_output_path",
+        ),
+        (
+            config.tuning_v2_result_output_path.as_ref(),
+            "conservative voice tuning v2 tuning_v2_result_output_path",
+        ),
+    ] {
+        if let Some(path) = path {
+            validate_local_json_path(Path::new(path), label)?;
+        }
+    }
+    let loaded_previous_history = if let Some(path) = config.previous_history_path.as_ref() {
+        if Path::new(path).exists() {
+            Some(load_chairman_shadow_governance_history_store_from_local_json(Path::new(path))?)
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+    let previous_history = loaded_previous_history.as_ref().unwrap_or(previous_history);
+    let loaded_previous_tuning = if let Some(path) = config.previous_tuning_result_path.as_ref() {
+        if Path::new(path).exists() {
+            Some(
+                serde_json::from_str::<ChairmanShadowGovernanceTuningRunResult>(
+                    &std::fs::read_to_string(path)
+                        .map_err(|error| format!("failed to read {path}: {error}"))?,
+                )
+                .map_err(|error| {
+                    format!(
+                        "failed to deserialize conservative voice tuning v2 previous tuning result {path}: {error}"
+                    )
+                })?,
+            )
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+    let previous_tuned_result = loaded_previous_tuning.as_ref().or(previous_tuned_result);
+    let v2_result = run_conservative_voice_tuned_multi_run_v2(
+        current_shadow_state_result,
+        actual_member_states,
+        previous_history,
+        previous_tuned_result,
+        &ConservativeVoiceTunedMultiRunV2Config {
+            run_id: config.run_id.clone(),
+            enabled: config.enabled,
+            run_count: config.run_count.max(1),
+            dry_run: config.dry_run,
+            write_tuned_history: config.write_tuned_history,
+            tuned_history_output_path: config.tuned_v2_history_output_path.clone(),
+            paper_only: true,
+        },
+    )?;
+    let provisional_gate_recheck = ConservativeVoiceTunedGateRecheckV2 {
+        previous_gate_status: v2_result.previous_gate_status,
+        tuned_v2_gate_status: v2_result.tuned_v2_gate_status,
+        previous_divergence_status: v2_result.previous_divergence_status,
+        tuned_v2_divergence_status: v2_result.tuned_v2_divergence_status,
+        role_floor_status: v2_result.role_floor_check.floor_status,
+        risk_first_preserved: v2_result.risk_first_preserved,
+        readiness_improved: false,
+        gate_status: ConservativeVoiceTunedGateRecheckV2Status::NeedsMoreEvidence,
+        blockers: Vec::new(),
+        warnings: v2_result.role_floor_check.warnings.clone(),
+        paper_only: true,
+    };
+    let provisional_console =
+        build_owner_governance_console_section_v1(&v2_result, &provisional_gate_recheck);
+    let mut safety_guard = evaluate_conservative_voice_tuning_v2_safety(
+        &v2_result,
+        &provisional_console,
+        current_shadow_state_result,
+        Some(current_shadow_state_result),
+    );
+    let gate_recheck_v2 = recheck_paper_governance_gate_with_voice_tuning_v2(
+        &v2_result,
+        &v2_result.role_floor_check,
+        &safety_guard,
+    );
+    let mut result = ConservativeVoiceTuningV2RunResult {
+        run_id: config.run_id.clone(),
+        v2_result,
+        gate_recheck_v2,
+        owner_console_section: None,
+        safety_guard: ConservativeVoiceTuningV2SafetyGuard {
+            actual_score_mutation_detected: false,
+            actual_voice_mutation_detected: false,
+            promotion_demotion_detected: false,
+            risk_governor_override_detected: false,
+            committee_decision_mutation_detected: false,
+            trade_signal_detected: false,
+            order_detected: false,
+            broker_order_account_detected: false,
+            voice_cap_increased_detected: false,
+            risk_first_disabled_detected: false,
+            role_floor_disabled_detected: false,
+            owner_console_action_detected: false,
+            unsafe_gate_open_detected: false,
+            guard_status: ConservativeVoiceTuningV2SafetyGuardStatus::Preserved,
+            violations: Vec::new(),
+            paper_only: true,
+        },
+        run_status: ConservativeVoiceTuningV2RunStatus::PassedWithWarnings,
+        paper_only: true,
+    };
+    if config.emit_owner_console_section {
+        result.owner_console_section = Some(build_owner_governance_console_section_v1(
+            &result.v2_result,
+            &result.gate_recheck_v2,
+        ));
+    }
+    let console_section = result.owner_console_section.clone().unwrap_or_else(|| {
+        build_owner_governance_console_section_v1(&result.v2_result, &result.gate_recheck_v2)
+    });
+    safety_guard = evaluate_conservative_voice_tuning_v2_safety(
+        &result.v2_result,
+        &console_section,
+        current_shadow_state_result,
+        Some(current_shadow_state_result),
+    );
+    result.safety_guard = safety_guard.clone();
+    result.gate_recheck_v2 = recheck_paper_governance_gate_with_voice_tuning_v2(
+        &result.v2_result,
+        &result.v2_result.role_floor_check,
+        &safety_guard,
+    );
+    if config.emit_owner_console_section {
+        result.owner_console_section = Some(build_owner_governance_console_section_v1(
+            &result.v2_result,
+            &result.gate_recheck_v2,
+        ));
+    }
+    result.run_status = if result.safety_guard.guard_status
+        == ConservativeVoiceTuningV2SafetyGuardStatus::Violated
+    {
+        ConservativeVoiceTuningV2RunStatus::Failed
+    } else if matches!(
+        result.gate_recheck_v2.gate_status,
+        ConservativeVoiceTunedGateRecheckV2Status::ReadyForPaperTrialDesign
+    ) && result.gate_recheck_v2.readiness_improved
+    {
+        ConservativeVoiceTuningV2RunStatus::Passed
+    } else {
+        ConservativeVoiceTuningV2RunStatus::PassedWithWarnings
+    };
+    if !config.dry_run {
+        if let Some(path) = config.tuning_v2_result_output_path.as_ref() {
+            write_safe_json(Path::new(path), &result)?;
+        }
+    }
+    Ok(result)
+}
+
+pub fn conservative_voice_tuning_v2_requested_from_flags(
+    enabled: bool,
+    dry_run: bool,
+    history_output_path: Option<&String>,
+    result_output_path: Option<&String>,
+    write_tuned_history: bool,
+    owner_console_section_enabled: bool,
+) -> bool {
+    enabled
+        || !dry_run
+        || history_output_path.is_some()
+        || result_output_path.is_some()
+        || write_tuned_history
+        || (enabled && owner_console_section_enabled)
+}
+
+fn maybe_run_conservative_voice_tuning_v2_for_batch_result(
+    run_id: String,
+    enabled: bool,
+    dry_run: bool,
+    run_count: usize,
+    history_output_path: Option<&String>,
+    result_output_path: Option<&String>,
+    write_tuned_history: bool,
+    owner_console_section_enabled: bool,
+    actual_member_states: &[MemberStateSnapshot],
+    batch_result: &mut BatchCommitteeCycleResult,
+) -> Result<Option<ConservativeVoiceTuningV2RunResult>, String> {
+    if !conservative_voice_tuning_v2_requested_from_flags(
+        enabled,
+        dry_run,
+        history_output_path,
+        result_output_path,
+        write_tuned_history,
+        owner_console_section_enabled,
+    ) {
+        return Ok(None);
+    }
+    let current_state_result = batch_result
+        .chairman_shadow_governance_state_run_result
+        .clone()
+        .ok_or_else(|| {
+            "conservative voice tuning v2 requires current shadow governance state result"
+                .to_string()
+        })?;
+    let previous_history = batch_result
+        .chairman_shadow_governance_history_store
+        .clone()
+        .unwrap_or(ChairmanShadowGovernanceHistoryStore {
+            store_id: format!("{}-history-store", run_id),
+            snapshots: Vec::new(),
+            snapshot_count: 0,
+            latest_snapshot_id: None,
+            paper_only: true,
+        });
+    let previous_tuned_result = batch_result
+        .chairman_shadow_governance_tuning_run_result
+        .clone();
+    let result = run_conservative_voice_tuning_v2(
+        &current_state_result,
+        actual_member_states,
+        &previous_history,
+        previous_tuned_result.as_ref(),
+        &ConservativeVoiceTuningV2RunConfig {
+            run_id,
+            enabled,
+            run_count,
+            previous_history_path: None,
+            previous_tuning_result_path: None,
+            tuned_v2_history_output_path: history_output_path.cloned(),
+            tuning_v2_result_output_path: result_output_path.cloned(),
+            dry_run,
+            write_tuned_history,
+            emit_owner_console_section: owner_console_section_enabled,
+            paper_only: true,
+        },
+    )?;
+    batch_result.remaining_voice_drift_analysis_result =
+        Some(result.v2_result.remaining_voice_drift_analysis.clone());
+    batch_result.conservative_voice_tuning_v2_policy =
+        Some(result.v2_result.voice_tuning_v2_policy.clone());
+    batch_result.chairman_role_voice_floor_policy =
+        Some(result.v2_result.role_floor_policy.clone());
+    batch_result.chairman_role_voice_floor_check = Some(result.v2_result.role_floor_check.clone());
+    batch_result.voice_delta_compounding_brake_results =
+        result.v2_result.compounding_brake_results.clone();
+    batch_result.evidence_based_voice_dampening_results =
+        result.v2_result.evidence_dampening_results.clone();
+    batch_result.conservative_voice_tuned_multi_run_v2_result = Some(result.v2_result.clone());
+    batch_result.conservative_voice_tuned_gate_recheck_v2 = Some(result.gate_recheck_v2.clone());
+    batch_result.owner_governance_console_section_v1 = result.owner_console_section.clone();
+    batch_result.conservative_voice_tuning_v2_safety_guard = Some(result.safety_guard.clone());
+    batch_result.conservative_voice_tuning_v2_run_result = Some(result.clone());
+    batch_result.chairman_shadow_governance_history_store = Some(
+        result
+            .v2_result
+            .tuned_multi_run_result
+            .history_store
+            .clone(),
+    );
+    batch_result.actual_vs_shadow_divergence_trend_summary =
+        Some(summarize_actual_vs_shadow_divergence_trend(
+            &result.v2_result.tuned_multi_run_result.history_store,
+        ));
+    Ok(Some(result))
+}
+
+fn paper_governance_trial_member_role_from(
+    role: IndependentMemberRole,
+) -> PaperGovernanceTrialMemberRole {
+    match role {
+        IndependentMemberRole::TrendEntry => PaperGovernanceTrialMemberRole::TrendEntry,
+        IndependentMemberRole::RiskGuard => PaperGovernanceTrialMemberRole::RiskGuard,
+        IndependentMemberRole::EvidenceRegime => PaperGovernanceTrialMemberRole::EvidenceRegime,
+    }
+}
+
+fn paper_governance_trial_role_for_member(
+    member_id: &str,
+    shadow_store: Option<&ChairmanShadowGovernanceStateStore>,
+) -> PaperGovernanceTrialMemberRole {
+    shadow_store
+        .and_then(|store| get_shadow_member_state(store, member_id))
+        .map(|state| paper_governance_trial_member_role_from(state.role))
+        .unwrap_or_else(|| {
+            paper_governance_trial_member_role_from(classify_shadow_governance_member_role(
+                member_id,
+            ))
+        })
+}
+
+fn source_confidence_rank(confidence: SourceConfidence) -> u8 {
+    match confidence {
+        SourceConfidence::Low => 0,
+        SourceConfidence::Medium => 1,
+        SourceConfidence::High => 2,
+        SourceConfidence::ReviewRequired => 3,
+    }
+}
+
+fn worst_source_confidence(values: impl IntoIterator<Item = SourceConfidence>) -> SourceConfidence {
+    let collected = values.into_iter().collect::<Vec<_>>();
+    if collected.contains(&SourceConfidence::ReviewRequired) {
+        SourceConfidence::ReviewRequired
+    } else {
+        collected
+            .into_iter()
+            .min_by_key(|confidence| source_confidence_rank(*confidence))
+            .unwrap_or(SourceConfidence::Medium)
+    }
+}
+
+fn confidence_meets_minimum(
+    confidence: SourceConfidence,
+    minimum: SourceConfidence,
+    allow_review_required: bool,
+) -> bool {
+    if confidence == SourceConfidence::ReviewRequired && !allow_review_required {
+        return false;
+    }
+    source_confidence_rank(confidence) >= source_confidence_rank(minimum)
+}
+
+fn paper_trial_candidate_reason_from_score(
+    reason: ChairmanShadowScoreDeltaReason,
+) -> PaperGovernanceTrialCandidateReason {
+    match reason {
+        ChairmanShadowScoreDeltaReason::HelpfulDissent => {
+            PaperGovernanceTrialCandidateReason::HelpfulDissent
+        }
+        ChairmanShadowScoreDeltaReason::RiskVetoAligned => {
+            PaperGovernanceTrialCandidateReason::RiskVetoAligned
+        }
+        ChairmanShadowScoreDeltaReason::OverconfidentBadCall => {
+            PaperGovernanceTrialCandidateReason::OverconfidentBadCall
+        }
+        ChairmanShadowScoreDeltaReason::EvidenceWeakness => {
+            PaperGovernanceTrialCandidateReason::EvidenceWeakness
+        }
+        ChairmanShadowScoreDeltaReason::ObserverAgreement => {
+            PaperGovernanceTrialCandidateReason::ObserverAgreement
+        }
+        ChairmanShadowScoreDeltaReason::ObserverDisagreement => {
+            PaperGovernanceTrialCandidateReason::ObserverDisagreement
+        }
+        ChairmanShadowScoreDeltaReason::OwnerOpinionAligned => {
+            PaperGovernanceTrialCandidateReason::ObserverAgreement
+        }
+        ChairmanShadowScoreDeltaReason::OwnerOpinionNotFollowedSafely => {
+            PaperGovernanceTrialCandidateReason::RoleBalanceAdjustment
+        }
+        ChairmanShadowScoreDeltaReason::NeedsMoreEvidence => {
+            PaperGovernanceTrialCandidateReason::NeedsMoreEvidence
+        }
+    }
+}
+
+fn paper_trial_candidate_reason_from_voice(
+    reason: ChairmanShadowVoiceDeltaReason,
+) -> PaperGovernanceTrialCandidateReason {
+    match reason {
+        ChairmanShadowVoiceDeltaReason::HelpfulDissent => {
+            PaperGovernanceTrialCandidateReason::HelpfulDissent
+        }
+        ChairmanShadowVoiceDeltaReason::RiskSavedLoss => {
+            PaperGovernanceTrialCandidateReason::RiskVetoAligned
+        }
+        ChairmanShadowVoiceDeltaReason::OverconfidentRisk => {
+            PaperGovernanceTrialCandidateReason::OverconfidentBadCall
+        }
+        ChairmanShadowVoiceDeltaReason::RepeatedEvidenceWeakness => {
+            PaperGovernanceTrialCandidateReason::EvidenceWeakness
+        }
+        ChairmanShadowVoiceDeltaReason::ConsistentObserverAgreement => {
+            PaperGovernanceTrialCandidateReason::ObserverAgreement
+        }
+        ChairmanShadowVoiceDeltaReason::SevereObserverDisagreement => {
+            PaperGovernanceTrialCandidateReason::ObserverDisagreement
+        }
+        ChairmanShadowVoiceDeltaReason::NeedsMoreEvidence => {
+            PaperGovernanceTrialCandidateReason::NeedsMoreEvidence
+        }
+    }
+}
+
+fn effective_paper_trial_score_cap(
+    policy: &PaperGovernanceTrialEligibilityPolicy,
+    tuned_result: &ConservativeVoiceTuningV2RunResult,
+) -> f64 {
+    let _ = tuned_result;
+    policy
+        .max_score_delta_per_member
+        .min(default_chairman_shadow_governance_simulation_policy().max_abs_score_delta_per_entry)
+}
+
+fn effective_paper_trial_voice_cap(
+    policy: &PaperGovernanceTrialEligibilityPolicy,
+    tuned_result: &ConservativeVoiceTuningV2RunResult,
+) -> f64 {
+    policy.max_voice_delta_per_member.min(
+        tuned_result
+            .v2_result
+            .voice_tuning_v2_policy
+            .tuned_voice_delta_cap_v2
+            .min(
+                default_chairman_shadow_governance_simulation_policy()
+                    .max_total_voice_delta_per_member,
+            ),
+    )
+}
+
+pub fn default_paper_governance_trial_eligibility_policy() -> PaperGovernanceTrialEligibilityPolicy
+{
+    PaperGovernanceTrialEligibilityPolicy {
+        policy_id: "paper-governance-trial-eligibility-policy".to_string(),
+        require_tuned_gate_not_blocked: true,
+        require_safety_preserved: true,
+        require_fairness_not_blocked: true,
+        require_risk_first_not_blocked: true,
+        require_no_actual_mutation: true,
+        allow_score_delta_trial: true,
+        allow_voice_delta_trial: true,
+        allow_promotion_demotion_trial: false,
+        allow_risk_governor_override_trial: false,
+        max_score_delta_per_member: 0.08,
+        max_voice_delta_per_member: 0.05,
+        min_candidate_confidence: SourceConfidence::Medium,
+        allow_review_required_candidates: false,
+        paper_only: true,
+    }
+}
+
+pub fn validate_paper_governance_trial_eligibility_policy(
+    policy: &PaperGovernanceTrialEligibilityPolicy,
+) -> Result<(), String> {
+    if !policy.paper_only {
+        return Err("paper governance trial eligibility policy must stay paper_only".to_string());
+    }
+    reject_unsafe_owner_feedback_string(&policy.policy_id)?;
+    if policy.allow_promotion_demotion_trial {
+        return Err(
+            "paper governance trial eligibility policy must keep promotion/demotion disabled"
+                .to_string(),
+        );
+    }
+    if policy.allow_risk_governor_override_trial {
+        return Err(
+            "paper governance trial eligibility policy must keep Risk Governor override disabled"
+                .to_string(),
+        );
+    }
+    if !(0.0..=1.0).contains(&policy.max_score_delta_per_member)
+        || !(0.0..=1.0).contains(&policy.max_voice_delta_per_member)
+    {
+        return Err(
+            "paper governance trial eligibility policy delta caps must be within 0..=1".to_string(),
+        );
+    }
+    Ok(())
+}
+
+pub fn select_paper_governance_trial_candidates(
+    shadow_simulation_result: &ChairmanShadowGovernanceSimulationResult,
+    tuned_policy_result: &ConservativeVoiceTuningV2RunResult,
+    eligibility_policy: &PaperGovernanceTrialEligibilityPolicy,
+) -> Result<PaperGovernanceTrialCandidateSelectionResult, String> {
+    validate_paper_governance_trial_eligibility_policy(eligibility_policy)?;
+    let gate_blocker = match tuned_policy_result.gate_recheck_v2.gate_status {
+        ConservativeVoiceTunedGateRecheckV2Status::ReadyForPaperTrialDesign
+        | ConservativeVoiceTunedGateRecheckV2Status::ReadyWithWarnings => None,
+        status => Some(format!("tuned paper trial gate blocked: {status:?}")),
+    };
+    let safety_blocker = (eligibility_policy.require_safety_preserved
+        && tuned_policy_result.safety_guard.guard_status
+            == ConservativeVoiceTuningV2SafetyGuardStatus::Violated)
+        .then_some("conservative voice tuning v2 safety guard is violated".to_string());
+    let fairness_blocker = (eligibility_policy.require_fairness_not_blocked
+        && matches!(
+            tuned_policy_result
+                .v2_result
+                .tuned_multi_run_result
+                .aggregate_fairness_status,
+            ChairmanGovernanceFairnessStatus::Unfair
+        ))
+    .then_some("tuned shadow governance fairness is blocked".to_string());
+    let risk_blocker = (eligibility_policy.require_risk_first_not_blocked
+        && !tuned_policy_result.gate_recheck_v2.risk_first_preserved)
+        .then_some("tuned shadow governance risk-first protection is not preserved".to_string());
+    let mutation_blocker = (eligibility_policy.require_no_actual_mutation
+        && (tuned_policy_result
+            .v2_result
+            .voice_tuning_v2_policy
+            .actual_score_apply_allowed
+            || tuned_policy_result
+                .v2_result
+                .voice_tuning_v2_policy
+                .actual_voice_apply_allowed
+            || tuned_policy_result
+                .v2_result
+                .voice_tuning_v2_policy
+                .promotion_demotion_allowed
+            || tuned_policy_result
+                .v2_result
+                .voice_tuning_v2_policy
+                .risk_governor_override_allowed))
+        .then_some("tuned shadow governance policy allows actual mutation".to_string());
+    let global_blocker = gate_blocker
+        .or(safety_blocker)
+        .or(fairness_blocker)
+        .or(risk_blocker)
+        .or(mutation_blocker);
+    let score_cap = effective_paper_trial_score_cap(eligibility_policy, tuned_policy_result);
+    let voice_cap = effective_paper_trial_voice_cap(eligibility_policy, tuned_policy_result);
+    let mut grouped =
+        BTreeMap::<String, (Vec<ChairmanShadowScoreDelta>, Vec<ChairmanShadowVoiceDelta>)>::new();
+    for delta in &shadow_simulation_result.score_deltas {
+        grouped
+            .entry(delta.member_id.clone())
+            .or_default()
+            .0
+            .push(delta.clone());
+    }
+    for delta in &shadow_simulation_result.voice_deltas {
+        grouped
+            .entry(delta.member_id.clone())
+            .or_default()
+            .1
+            .push(delta.clone());
+    }
+    let mut candidates = Vec::new();
+    for (member_id, (mut score_deltas, mut voice_deltas)) in grouped {
+        score_deltas.sort_by(|left, right| left.delta_id.cmp(&right.delta_id));
+        voice_deltas.sort_by(|left, right| left.delta_id.cmp(&right.delta_id));
+        let score_total = score_deltas
+            .iter()
+            .filter(|delta| delta.delta_kind != ChairmanShadowScoreDeltaKind::NeedsMoreEvidence)
+            .map(|delta| delta.proposed_score_delta)
+            .sum::<f64>();
+        let voice_total = voice_deltas
+            .iter()
+            .filter(|delta| delta.delta_kind != ChairmanShadowVoiceDeltaKind::NeedsMoreEvidence)
+            .map(|delta| delta.proposed_voice_delta)
+            .sum::<f64>();
+        let confidences = score_deltas
+            .iter()
+            .map(|delta| delta.confidence)
+            .chain(voice_deltas.iter().map(|delta| delta.confidence))
+            .collect::<Vec<_>>();
+        let confidence = worst_source_confidence(confidences);
+        let source_score = score_deltas.first();
+        let source_voice = voice_deltas.first();
+        let needs_more_evidence = score_deltas.iter().all(|delta| {
+            delta.delta_kind == ChairmanShadowScoreDeltaKind::NeedsMoreEvidence
+                || delta.proposed_score_delta.abs() <= f64::EPSILON
+        }) && voice_deltas.iter().all(|delta| {
+            delta.delta_kind == ChairmanShadowVoiceDeltaKind::NeedsMoreEvidence
+                || delta.proposed_voice_delta.abs() <= f64::EPSILON
+        });
+        let reason = source_score
+            .map(|delta| paper_trial_candidate_reason_from_score(delta.reason))
+            .or_else(|| {
+                source_voice.map(|delta| paper_trial_candidate_reason_from_voice(delta.reason))
+            })
+            .unwrap_or(PaperGovernanceTrialCandidateReason::NeedsMoreEvidence);
+        let mut candidate = PaperGovernanceTrialCandidate {
+            candidate_id: format!(
+                "{}-paper-trial-candidate",
+                member_id.replace('/', "-").replace(' ', "-")
+            ),
+            source_shadow_delta_id: source_score
+                .map(|delta| delta.delta_id.clone())
+                .or_else(|| source_voice.map(|delta| delta.delta_id.clone())),
+            source_governance_ledger_entry_id: source_score
+                .map(|delta| delta.source_ledger_entry_id.clone())
+                .or_else(|| source_voice.map(|delta| delta.source_ledger_entry_id.clone())),
+            member_id: member_id.clone(),
+            symbol: source_score
+                .and_then(|delta| delta.symbol.clone())
+                .or_else(|| source_voice.and_then(|delta| delta.symbol.clone())),
+            market_scope: source_score
+                .and_then(|delta| delta.market_scope)
+                .or_else(|| source_voice.and_then(|delta| delta.market_scope)),
+            candidate_kind: PaperGovernanceTrialCandidateKind::Rejected,
+            proposed_score_delta: (score_total.abs() > f64::EPSILON).then_some(score_total),
+            proposed_voice_delta: (voice_total.abs() > f64::EPSILON).then_some(voice_total),
+            confidence,
+            reason,
+            eligible: false,
+            rejection_reason: None,
+            paper_only: true,
+        };
+        if needs_more_evidence {
+            candidate.candidate_kind = PaperGovernanceTrialCandidateKind::NeedsMoreEvidence;
+            candidate.rejection_reason = Some("needs more evidence".to_string());
+        } else if let Some(reason) = global_blocker.as_ref() {
+            candidate.candidate_kind = PaperGovernanceTrialCandidateKind::Rejected;
+            candidate.rejection_reason = Some(reason.clone());
+        } else if !confidence_meets_minimum(
+            candidate.confidence,
+            eligibility_policy.min_candidate_confidence,
+            eligibility_policy.allow_review_required_candidates,
+        ) {
+            candidate.candidate_kind = PaperGovernanceTrialCandidateKind::Rejected;
+            candidate.rejection_reason = Some(format!(
+                "candidate confidence {:?} is below minimum {:?}",
+                candidate.confidence, eligibility_policy.min_candidate_confidence
+            ));
+        } else if candidate
+            .proposed_score_delta
+            .is_some_and(|delta| delta.abs() > score_cap + f64::EPSILON)
+        {
+            candidate.candidate_kind = PaperGovernanceTrialCandidateKind::Rejected;
+            candidate.rejection_reason = Some("score delta exceeds paper trial cap".to_string());
+        } else if candidate
+            .proposed_voice_delta
+            .is_some_and(|delta| delta.abs() > voice_cap + f64::EPSILON)
+        {
+            candidate.candidate_kind = PaperGovernanceTrialCandidateKind::Rejected;
+            candidate.rejection_reason = Some("voice delta exceeds paper trial cap".to_string());
+        } else if !eligibility_policy.allow_score_delta_trial
+            && candidate.proposed_score_delta.is_some()
+        {
+            candidate.candidate_kind = PaperGovernanceTrialCandidateKind::Rejected;
+            candidate.rejection_reason = Some("score delta trial is disabled".to_string());
+        } else if !eligibility_policy.allow_voice_delta_trial
+            && candidate.proposed_voice_delta.is_some()
+        {
+            candidate.candidate_kind = PaperGovernanceTrialCandidateKind::Rejected;
+            candidate.rejection_reason = Some("voice delta trial is disabled".to_string());
+        } else {
+            candidate.candidate_kind = match (
+                candidate.proposed_score_delta.is_some(),
+                candidate.proposed_voice_delta.is_some(),
+            ) {
+                (true, true) => PaperGovernanceTrialCandidateKind::CombinedScoreVoiceTrial,
+                (true, false) => PaperGovernanceTrialCandidateKind::ScoreDeltaTrial,
+                (false, true) => PaperGovernanceTrialCandidateKind::VoiceDeltaTrial,
+                (false, false) => PaperGovernanceTrialCandidateKind::NeedsMoreEvidence,
+            };
+            candidate.eligible = !matches!(
+                candidate.candidate_kind,
+                PaperGovernanceTrialCandidateKind::NeedsMoreEvidence
+                    | PaperGovernanceTrialCandidateKind::Rejected
+            );
+            if !candidate.eligible {
+                candidate.rejection_reason = Some("needs more evidence".to_string());
+            }
+        }
+        candidates.push(candidate);
+    }
+    candidates.sort_by(|left, right| left.member_id.cmp(&right.member_id));
+    let eligible_candidate_count = candidates
+        .iter()
+        .filter(|candidate| candidate.eligible)
+        .count();
+    let rejected_candidate_count = candidates
+        .iter()
+        .filter(|candidate| candidate.candidate_kind == PaperGovernanceTrialCandidateKind::Rejected)
+        .count();
+    let needs_more_evidence_count = candidates
+        .iter()
+        .filter(|candidate| {
+            candidate.candidate_kind == PaperGovernanceTrialCandidateKind::NeedsMoreEvidence
+        })
+        .count();
+    Ok(PaperGovernanceTrialCandidateSelectionResult {
+        selection_id: format!("{}-paper-trial-selection", tuned_policy_result.run_id),
+        input_candidate_count: candidates.len(),
+        eligible_candidate_count,
+        rejected_candidate_count,
+        needs_more_evidence_count,
+        candidates,
+        selection_status: if global_blocker.is_some() {
+            PaperGovernanceTrialCandidateSelectionStatus::Blocked
+        } else if eligible_candidate_count == 0 {
+            PaperGovernanceTrialCandidateSelectionStatus::NoEligibleCandidates
+        } else if rejected_candidate_count > 0 || needs_more_evidence_count > 0 {
+            PaperGovernanceTrialCandidateSelectionStatus::SelectedWithWarnings
+        } else {
+            PaperGovernanceTrialCandidateSelectionStatus::Selected
+        },
+        paper_only: true,
+    })
+}
+
+fn init_paper_governance_trial_member_state(
+    actual_member_state: &MemberStateSnapshot,
+    shadow_store: Option<&ChairmanShadowGovernanceStateStore>,
+) -> PaperGovernanceTrialMemberState {
+    let shadow_state = shadow_store
+        .and_then(|store| get_shadow_member_state(store, &actual_member_state.member_id));
+    PaperGovernanceTrialMemberState {
+        member_id: actual_member_state.member_id.clone(),
+        role: paper_governance_trial_role_for_member(&actual_member_state.member_id, shadow_store),
+        actual_score_snapshot: actual_member_state.score,
+        actual_voice_snapshot: actual_member_state.voice_weight,
+        shadow_score_snapshot: shadow_state.map(|state| state.shadow_score),
+        shadow_voice_snapshot: shadow_state.map(|state| state.shadow_voice_weight),
+        paper_trial_score: actual_member_state.score,
+        paper_trial_voice_weight: actual_member_state.voice_weight,
+        applied_trial_score_delta: 0.0,
+        applied_trial_voice_delta: 0.0,
+        trial_reward_count: 0,
+        trial_penalty_count: 0,
+        trial_voice_increase_count: 0,
+        trial_voice_decrease_count: 0,
+        paper_only: true,
+    }
+}
+
+pub fn normalize_paper_governance_trial_state_store(store: &mut PaperGovernanceTrialStateStore) {
+    let mut seen = BTreeSet::new();
+    store
+        .member_states
+        .sort_by(|left, right| left.member_id.cmp(&right.member_id));
+    store
+        .member_states
+        .retain(|state| seen.insert(state.member_id.clone()));
+    store.member_count = store.member_states.len();
+}
+
+fn validate_paper_governance_trial_state_store(
+    store: &PaperGovernanceTrialStateStore,
+) -> Result<(), String> {
+    if !store.paper_only {
+        return Err("paper governance trial state store must stay paper_only".to_string());
+    }
+    reject_unsafe_owner_feedback_string(&store.store_id)?;
+    if value_contains_debug_marker(
+        store,
+        &[
+            "broker".to_string(),
+            "order".to_string(),
+            "account".to_string(),
+            "trade".to_string(),
+            "live".to_string(),
+        ],
+    ) {
+        return Err(
+            "paper governance trial state store contains forbidden live-execution wording"
+                .to_string(),
+        );
+    }
+    for state in &store.member_states {
+        if !state.paper_only {
+            return Err(format!(
+                "paper governance trial member state {} must stay paper_only",
+                state.member_id
+            ));
+        }
+        reject_unsafe_owner_feedback_string(&state.member_id)?;
+    }
+    Ok(())
+}
+
+pub fn initialize_paper_governance_trial_state_store(
+    actual_member_states: &[MemberStateSnapshot],
+    shadow_store: Option<&ChairmanShadowGovernanceStateStore>,
+) -> PaperGovernanceTrialStateStore {
+    let mut store = PaperGovernanceTrialStateStore {
+        store_id: "paper-governance-trial-state-store".to_string(),
+        member_states: actual_member_states
+            .iter()
+            .map(|state| init_paper_governance_trial_member_state(state, shadow_store))
+            .collect(),
+        member_count: actual_member_states.len(),
+        latest_run_id: None,
+        update_count: 0,
+        paper_only: true,
+    };
+    normalize_paper_governance_trial_state_store(&mut store);
+    store
+}
+
+pub fn load_paper_governance_trial_state_store_from_local_json(
+    path: &Path,
+) -> Result<PaperGovernanceTrialStateStore, String> {
+    validate_local_json_path(path, "paper governance trial state path")?;
+    let text = fs::read_to_string(path).map_err(|err| err.to_string())?;
+    let mut store: PaperGovernanceTrialStateStore =
+        serde_json::from_str(&text).map_err(|err| err.to_string())?;
+    validate_paper_governance_trial_state_store(&store)?;
+    normalize_paper_governance_trial_state_store(&mut store);
+    validate_paper_governance_trial_state_store(&store)?;
+    Ok(store)
+}
+
+pub fn save_paper_governance_trial_state_store_to_local_json(
+    path: &Path,
+    store: &PaperGovernanceTrialStateStore,
+) -> Result<(), String> {
+    validate_local_json_path(path, "paper governance trial state path")?;
+    let mut normalized = store.clone();
+    normalize_paper_governance_trial_state_store(&mut normalized);
+    validate_paper_governance_trial_state_store(&normalized)?;
+    write_safe_json(path, &normalized)
+}
+
+fn normalize_paper_trial_voice_weights(store: &mut PaperGovernanceTrialStateStore) {
+    if store.member_states.is_empty() {
+        return;
+    }
+    for state in &mut store.member_states {
+        state.paper_trial_voice_weight = state.paper_trial_voice_weight.max(0.0);
+    }
+    let total = store
+        .member_states
+        .iter()
+        .map(|state| state.paper_trial_voice_weight)
+        .sum::<f64>();
+    if total <= f64::EPSILON {
+        let equal_weight = 1.0 / store.member_states.len() as f64;
+        for state in &mut store.member_states {
+            state.paper_trial_voice_weight = equal_weight;
+            state.applied_trial_voice_delta =
+                state.paper_trial_voice_weight - state.actual_voice_snapshot;
+        }
+        return;
+    }
+    for state in &mut store.member_states {
+        state.paper_trial_voice_weight /= total;
+        state.applied_trial_voice_delta =
+            state.paper_trial_voice_weight - state.actual_voice_snapshot;
+    }
+}
+
+pub fn apply_paper_governance_trial_candidates(
+    store: &mut PaperGovernanceTrialStateStore,
+    candidates: &[PaperGovernanceTrialCandidate],
+    policy: &PaperGovernanceTrialEligibilityPolicy,
+) -> Result<PaperGovernanceTrialApplyResult, String> {
+    validate_paper_governance_trial_eligibility_policy(policy)?;
+    validate_paper_governance_trial_state_store(store)?;
+    if !policy.allow_score_delta_trial && !policy.allow_voice_delta_trial {
+        return Ok(PaperGovernanceTrialApplyResult {
+            run_id: store
+                .latest_run_id
+                .clone()
+                .unwrap_or_else(|| "paper-governance-trial-blocked".to_string()),
+            input_candidate_count: candidates.len(),
+            applied_candidate_count: 0,
+            updated_member_count: 0,
+            score_delta_apply_count: 0,
+            voice_delta_apply_count: 0,
+            before_after_standings: Vec::new(),
+            apply_status: PaperGovernanceTrialApplyStatus::Blocked,
+            no_actual_score_mutation: true,
+            no_actual_voice_mutation: true,
+            no_promotion_demotion: true,
+            no_risk_governor_override: true,
+            paper_only: true,
+        });
+    }
+    let eligible_by_member = candidates
+        .iter()
+        .filter(|candidate| candidate.eligible)
+        .map(|candidate| (candidate.member_id.clone(), candidate))
+        .collect::<BTreeMap<_, _>>();
+    let mut before_after_standings = Vec::new();
+    let mut applied_candidate_count = 0;
+    let mut score_delta_apply_count = 0;
+    let mut voice_delta_apply_count = 0;
+    let mut updated_member_count = 0;
+    for state in &mut store.member_states {
+        let paper_trial_score_before = state.paper_trial_score;
+        let paper_trial_voice_before = state.paper_trial_voice_weight;
+        if let Some(candidate) = eligible_by_member.get(&state.member_id) {
+            let mut touched = false;
+            if policy.allow_score_delta_trial {
+                if let Some(score_delta) = candidate.proposed_score_delta {
+                    let bounded = score_delta.clamp(
+                        -policy.max_score_delta_per_member,
+                        policy.max_score_delta_per_member,
+                    );
+                    state.paper_trial_score += bounded;
+                    state.applied_trial_score_delta += bounded;
+                    if bounded > 0.0 {
+                        state.trial_reward_count += 1;
+                    } else if bounded < 0.0 {
+                        state.trial_penalty_count += 1;
+                    }
+                    if bounded.abs() > f64::EPSILON {
+                        touched = true;
+                        score_delta_apply_count += 1;
+                    }
+                }
+            }
+            if policy.allow_voice_delta_trial {
+                if let Some(voice_delta) = candidate.proposed_voice_delta {
+                    let bounded = voice_delta.clamp(
+                        -policy.max_voice_delta_per_member,
+                        policy.max_voice_delta_per_member,
+                    );
+                    state.paper_trial_voice_weight += bounded;
+                    state.applied_trial_voice_delta += bounded;
+                    if bounded > 0.0 {
+                        state.trial_voice_increase_count += 1;
+                    } else if bounded < 0.0 {
+                        state.trial_voice_decrease_count += 1;
+                    }
+                    if bounded.abs() > f64::EPSILON {
+                        touched = true;
+                        voice_delta_apply_count += 1;
+                    }
+                }
+            }
+            if touched {
+                applied_candidate_count += 1;
+                updated_member_count += 1;
+            }
+        }
+        before_after_standings.push(PaperTrialBeforeAfterStanding {
+            member_id: state.member_id.clone(),
+            paper_trial_score_before,
+            paper_trial_score_after: state.paper_trial_score,
+            paper_trial_voice_before,
+            paper_trial_voice_after: state.paper_trial_voice_weight,
+            score_delta_applied: state.paper_trial_score - paper_trial_score_before,
+            voice_delta_applied: state.paper_trial_voice_weight - paper_trial_voice_before,
+            paper_only: true,
+        });
+    }
+    if voice_delta_apply_count > 0 {
+        normalize_paper_trial_voice_weights(store);
+        for standing in &mut before_after_standings {
+            if let Some(state) = store
+                .member_states
+                .iter()
+                .find(|state| state.member_id == standing.member_id)
+            {
+                standing.paper_trial_score_after = state.paper_trial_score;
+                standing.paper_trial_voice_after = state.paper_trial_voice_weight;
+                standing.score_delta_applied =
+                    standing.paper_trial_score_after - standing.paper_trial_score_before;
+                standing.voice_delta_applied =
+                    standing.paper_trial_voice_after - standing.paper_trial_voice_before;
+            }
+        }
+    }
+    store.update_count += usize::from(applied_candidate_count > 0);
+    normalize_paper_governance_trial_state_store(store);
+    Ok(PaperGovernanceTrialApplyResult {
+        run_id: store
+            .latest_run_id
+            .clone()
+            .unwrap_or_else(|| "paper-governance-trial-apply".to_string()),
+        input_candidate_count: candidates.len(),
+        applied_candidate_count,
+        updated_member_count,
+        score_delta_apply_count,
+        voice_delta_apply_count,
+        before_after_standings,
+        apply_status: if candidates.is_empty() || applied_candidate_count == 0 {
+            PaperGovernanceTrialApplyStatus::NoCandidatesApplied
+        } else if applied_candidate_count
+            < candidates
+                .iter()
+                .filter(|candidate| candidate.eligible)
+                .count()
+        {
+            PaperGovernanceTrialApplyStatus::AppliedToPaperTrialWithWarnings
+        } else {
+            PaperGovernanceTrialApplyStatus::AppliedToPaperTrial
+        },
+        no_actual_score_mutation: true,
+        no_actual_voice_mutation: true,
+        no_promotion_demotion: true,
+        no_risk_governor_override: true,
+        paper_only: true,
+    })
+}
+
+pub fn compare_actual_shadow_paper_governance(
+    actual_member_states: &[MemberStateSnapshot],
+    shadow_store: Option<&ChairmanShadowGovernanceStateStore>,
+    paper_trial_store: &PaperGovernanceTrialStateStore,
+) -> (
+    Vec<ActualShadowPaperGovernanceComparison>,
+    ActualShadowPaperGovernanceComparisonSummary,
+) {
+    let comparisons = actual_member_states
+        .iter()
+        .map(|actual| {
+            let shadow =
+                shadow_store.and_then(|store| get_shadow_member_state(store, &actual.member_id));
+            let paper = paper_trial_store
+                .member_states
+                .iter()
+                .find(|state| state.member_id == actual.member_id);
+            let paper_trial_score = paper
+                .map(|state| state.paper_trial_score)
+                .unwrap_or(actual.score);
+            let paper_trial_voice = paper
+                .map(|state| state.paper_trial_voice_weight)
+                .unwrap_or(actual.voice_weight);
+            let shadow_score = shadow.map(|state| state.shadow_score);
+            let shadow_voice = shadow.map(|state| state.shadow_voice_weight);
+            let actual_to_paper_score_gap = paper_trial_score - actual.score;
+            let actual_to_paper_voice_gap = paper_trial_voice - actual.voice_weight;
+            let shadow_to_paper_score_gap =
+                shadow_score.map(|shadow_score| paper_trial_score - shadow_score);
+            let shadow_to_paper_voice_gap =
+                shadow_voice.map(|shadow_voice| paper_trial_voice - shadow_voice);
+            let comparison_status = if paper_trial_store.update_count == 0 {
+                ActualShadowPaperGovernanceComparisonStatus::NeedsMoreHistory
+            } else if shadow_to_paper_score_gap
+                .zip(shadow_to_paper_voice_gap)
+                .is_some_and(|(score_gap, voice_gap)| {
+                    score_gap.abs() <= 0.05 && voice_gap.abs() <= 0.05
+                })
+            {
+                ActualShadowPaperGovernanceComparisonStatus::PaperTrialCloseToShadow
+            } else if actual_to_paper_score_gap.abs() <= 0.05
+                && actual_to_paper_voice_gap.abs() <= 0.05
+            {
+                ActualShadowPaperGovernanceComparisonStatus::PaperTrialCloseToActual
+            } else {
+                ActualShadowPaperGovernanceComparisonStatus::PaperTrialDiverged
+            };
+            ActualShadowPaperGovernanceComparison {
+                comparison_id: format!("{}-actual-shadow-paper", actual.member_id),
+                member_id: actual.member_id.clone(),
+                actual_score: actual.score,
+                shadow_score,
+                paper_trial_score,
+                actual_voice: actual.voice_weight,
+                shadow_voice,
+                paper_trial_voice,
+                actual_to_paper_score_gap,
+                shadow_to_paper_score_gap,
+                actual_to_paper_voice_gap,
+                shadow_to_paper_voice_gap,
+                comparison_status,
+                paper_only: true,
+            }
+        })
+        .collect::<Vec<_>>();
+    let paper_trial_diverged_count = comparisons
+        .iter()
+        .filter(|comparison| {
+            comparison.comparison_status
+                == ActualShadowPaperGovernanceComparisonStatus::PaperTrialDiverged
+        })
+        .count();
+    let close_to_shadow_count = comparisons
+        .iter()
+        .filter(|comparison| {
+            comparison.comparison_status
+                == ActualShadowPaperGovernanceComparisonStatus::PaperTrialCloseToShadow
+        })
+        .count();
+    let close_to_actual_count = comparisons
+        .iter()
+        .filter(|comparison| {
+            comparison.comparison_status
+                == ActualShadowPaperGovernanceComparisonStatus::PaperTrialCloseToActual
+        })
+        .count();
+    let max_score_gap = comparisons
+        .iter()
+        .map(|comparison| comparison.actual_to_paper_score_gap.abs())
+        .fold(0.0, f64::max);
+    let max_voice_gap = comparisons
+        .iter()
+        .map(|comparison| comparison.actual_to_paper_voice_gap.abs())
+        .fold(0.0, f64::max);
+    let summary = ActualShadowPaperGovernanceComparisonSummary {
+        summary_id: format!("{}-actual-shadow-paper-summary", paper_trial_store.store_id),
+        member_count: comparisons.len(),
+        paper_trial_diverged_count,
+        close_to_shadow_count,
+        close_to_actual_count,
+        max_score_gap,
+        max_voice_gap,
+        summary_status: if paper_trial_store.update_count == 0 {
+            ActualVsShadowGovernanceSummaryStatus::InsufficientHistory
+        } else if paper_trial_diverged_count > 0 {
+            ActualVsShadowGovernanceSummaryStatus::Diverged
+        } else if close_to_actual_count > 0 {
+            ActualVsShadowGovernanceSummaryStatus::StableWithWarnings
+        } else {
+            ActualVsShadowGovernanceSummaryStatus::Stable
+        },
+        paper_only: true,
+    };
+    (comparisons, summary)
+}
+
+pub fn compare_committee_voice_distribution_under_paper_trial(
+    actual_member_states: &[MemberStateSnapshot],
+    paper_trial_store: &PaperGovernanceTrialStateStore,
+) -> PaperGovernanceTrialCommitteeComparisonResult {
+    if actual_member_states.is_empty() {
+        return PaperGovernanceTrialCommitteeComparisonResult {
+            comparison_id: format!("{}-committee-voice-comparison", paper_trial_store.store_id),
+            records: Vec::new(),
+            record_count: 0,
+            estimated_voice_shift_count: 0,
+            comparison_status: PaperGovernanceTrialCommitteeComparisonStatus::Blocked,
+            paper_only: true,
+        };
+    }
+    let records = actual_member_states
+        .iter()
+        .map(|state| {
+            let paper_state = paper_trial_store
+                .member_states
+                .iter()
+                .find(|member_state| member_state.member_id == state.member_id);
+            let paper_trial_voice_weight = paper_state
+                .map(|member_state| member_state.paper_trial_voice_weight)
+                .unwrap_or(state.voice_weight);
+            let comparison_note = if (paper_trial_voice_weight - state.voice_weight).abs() <= 0.01 {
+                "paper trial keeps effective committee voice unchanged".to_string()
+            } else if paper_trial_voice_weight > state.voice_weight {
+                "paper trial would increase hypothetical committee voice".to_string()
+            } else {
+                "paper trial would decrease hypothetical committee voice".to_string()
+            };
+            PaperGovernanceTrialCommitteeComparisonRecord {
+                record_id: format!("{}-paper-trial-voice", state.member_id),
+                member_id: Some(state.member_id.clone()),
+                actual_voice_weight: state.voice_weight,
+                paper_trial_voice_weight,
+                actual_vote_weight_contribution: Some(state.voice_weight),
+                paper_trial_vote_weight_contribution: Some(paper_trial_voice_weight),
+                comparison_note,
+                paper_only: true,
+            }
+        })
+        .collect::<Vec<_>>();
+    let estimated_voice_shift_count = records
+        .iter()
+        .filter(|record| {
+            (record.paper_trial_voice_weight - record.actual_voice_weight).abs() > 0.01
+        })
+        .count();
+    PaperGovernanceTrialCommitteeComparisonResult {
+        comparison_id: format!("{}-committee-voice-comparison", paper_trial_store.store_id),
+        record_count: records.len(),
+        records,
+        estimated_voice_shift_count,
+        comparison_status: if paper_trial_store.update_count == 0 {
+            PaperGovernanceTrialCommitteeComparisonStatus::ComparedWithWarnings
+        } else if estimated_voice_shift_count == 0 {
+            PaperGovernanceTrialCommitteeComparisonStatus::NoChange
+        } else {
+            PaperGovernanceTrialCommitteeComparisonStatus::Compared
+        },
+        paper_only: true,
+    }
+}
+
+pub fn evaluate_paper_governance_trial_safety(
+    trial_result: &PaperGovernanceTrialRunResult,
+    before_actual_state: &[MemberStateSnapshot],
+    after_actual_state: Option<&[MemberStateSnapshot]>,
+    batch_before: &BatchCommitteeCycleResult,
+    batch_after: Option<&BatchCommitteeCycleResult>,
+) -> PaperGovernanceTrialSafetyGuard {
+    let after_actual_state = after_actual_state.unwrap_or(before_actual_state);
+    let after_batch = batch_after.unwrap_or(batch_before);
+    let actual_score_snapshot = |states: &[MemberStateSnapshot]| {
+        states
+            .iter()
+            .map(|state| (state.member_id.clone(), state.score))
+            .collect::<BTreeMap<_, _>>()
+    };
+    let actual_voice_snapshot = |states: &[MemberStateSnapshot]| {
+        states
+            .iter()
+            .map(|state| (state.member_id.clone(), state.voice_weight))
+            .collect::<BTreeMap<_, _>>()
+    };
+    let promotion_snapshot = |updates: &[MemberScoreUpdate]| {
+        updates
+            .iter()
+            .filter(|update| update.promoted || update.demoted)
+            .map(|update| update.member_id.clone())
+            .collect::<BTreeSet<_>>()
+    };
+    let risk_snapshot = |decisions: &[ChairmanDecision]| {
+        decisions
+            .iter()
+            .map(|decision| (decision.decision_id.clone(), decision.risk_governor_status))
+            .collect::<BTreeMap<_, _>>()
+    };
+    let live_decision_markers = vec![
+        trial_result.run_id.clone(),
+        "paper-trial-live".to_string(),
+        "paper-governance-live".to_string(),
+    ];
+    let actual_score_mutation_detected =
+        actual_score_snapshot(before_actual_state) != actual_score_snapshot(after_actual_state);
+    let actual_voice_mutation_detected =
+        actual_voice_snapshot(before_actual_state) != actual_voice_snapshot(after_actual_state);
+    let promotion_demotion_detected = promotion_snapshot(&batch_before.score_updates)
+        != promotion_snapshot(&after_batch.score_updates);
+    let risk_governor_override_detected = risk_snapshot(&batch_before.chairman_decisions)
+        != risk_snapshot(&after_batch.chairman_decisions);
+    let committee_decision_mutation_detected = batch_before.committee_sessions
+        != after_batch.committee_sessions
+        || batch_before.chairman_decisions != after_batch.chairman_decisions;
+    let member_opinion_mutation_detected =
+        batch_before.member_opinions != after_batch.member_opinions;
+    let trade_markers = [
+        format!("{}-paper-trial-trade", trial_result.run_id),
+        "trade-signal".to_string(),
+    ];
+    let order_markers = [
+        format!("{}-paper-trial-order", trial_result.run_id),
+        "order".to_string(),
+    ];
+    let broker_order_account_markers = [
+        "broker".to_string(),
+        "order".to_string(),
+        "account".to_string(),
+    ];
+    let trade_signal_detected =
+        value_contains_debug_marker(&after_batch.committee_sessions, &trade_markers)
+            && !value_contains_debug_marker(&batch_before.committee_sessions, &trade_markers);
+    let order_detected = value_contains_debug_marker(&after_batch.event_queue, &order_markers)
+        && !value_contains_debug_marker(&batch_before.event_queue, &order_markers);
+    let broker_order_account_detected =
+        value_contains_debug_marker(after_batch, &broker_order_account_markers)
+            && !value_contains_debug_marker(batch_before, &broker_order_account_markers);
+    let paper_trial_used_as_live_decision_detected =
+        (value_contains_debug_marker(&after_batch.chairman_decisions, &live_decision_markers)
+            && !value_contains_debug_marker(
+                &batch_before.chairman_decisions,
+                &live_decision_markers,
+            ))
+            || (value_contains_debug_marker(
+                &after_batch.committee_sessions,
+                &live_decision_markers,
+            ) && !value_contains_debug_marker(
+                &batch_before.committee_sessions,
+                &live_decision_markers,
+            ));
+    let mut violations = Vec::new();
+    if actual_score_mutation_detected {
+        violations.push("paper governance trial mutated actual score".to_string());
+    }
+    if actual_voice_mutation_detected {
+        violations.push("paper governance trial mutated actual voice".to_string());
+    }
+    if promotion_demotion_detected {
+        violations.push("paper governance trial executed promotion or demotion".to_string());
+    }
+    if risk_governor_override_detected {
+        violations.push("paper governance trial overrode Risk Governor".to_string());
+    }
+    if committee_decision_mutation_detected {
+        violations.push("paper governance trial changed committee decisions".to_string());
+    }
+    if member_opinion_mutation_detected {
+        violations.push("paper governance trial changed member opinions".to_string());
+    }
+    if trade_signal_detected {
+        violations.push("paper governance trial created a trade signal".to_string());
+    }
+    if order_detected {
+        violations.push("paper governance trial created an order".to_string());
+    }
+    if broker_order_account_detected {
+        violations.push("paper governance trial touched broker/order/account".to_string());
+    }
+    if paper_trial_used_as_live_decision_detected {
+        violations
+            .push("paper governance trial was referenced as a live decision source".to_string());
+    }
+    PaperGovernanceTrialSafetyGuard {
+        actual_score_mutation_detected,
+        actual_voice_mutation_detected,
+        promotion_demotion_detected,
+        risk_governor_override_detected,
+        committee_decision_mutation_detected,
+        member_opinion_mutation_detected,
+        trade_signal_detected,
+        order_detected,
+        broker_order_account_detected,
+        paper_trial_used_as_live_decision_detected,
+        guard_status: if violations.is_empty() {
+            PaperGovernanceTrialSafetyGuardStatus::Preserved
+        } else {
+            PaperGovernanceTrialSafetyGuardStatus::Violated
+        },
+        violations,
+        paper_only: true,
+    }
+}
+
+pub fn evaluate_paper_governance_trial_readiness(
+    candidate_selection: &PaperGovernanceTrialCandidateSelectionResult,
+    trial_apply: &PaperGovernanceTrialApplyResult,
+    comparison_summary: &ActualShadowPaperGovernanceComparisonSummary,
+    committee_comparison: Option<&PaperGovernanceTrialCommitteeComparisonResult>,
+    safety_guard: &PaperGovernanceTrialSafetyGuard,
+) -> PaperGovernanceTrialReadinessResult {
+    let committee_status = committee_comparison
+        .map(|comparison| comparison.comparison_status)
+        .unwrap_or(PaperGovernanceTrialCommitteeComparisonStatus::ComparedWithWarnings);
+    let mut blockers = Vec::new();
+    let mut warnings = Vec::new();
+    if safety_guard.guard_status == PaperGovernanceTrialSafetyGuardStatus::Violated {
+        blockers.push("paper trial safety guard violated".to_string());
+    }
+    match candidate_selection.selection_status {
+        PaperGovernanceTrialCandidateSelectionStatus::Blocked => {
+            blockers.push("paper trial candidate selection blocked".to_string());
+        }
+        PaperGovernanceTrialCandidateSelectionStatus::NoEligibleCandidates => {
+            blockers.push("paper trial has no eligible governance candidates".to_string());
+        }
+        PaperGovernanceTrialCandidateSelectionStatus::SelectedWithWarnings => {
+            warnings.push("paper trial candidate selection has warnings".to_string());
+        }
+        PaperGovernanceTrialCandidateSelectionStatus::Selected => {}
+    }
+    if comparison_summary.summary_status == ActualVsShadowGovernanceSummaryStatus::Diverged {
+        blockers.push("paper trial diverged from actual/shadow standing".to_string());
+    } else if comparison_summary.summary_status
+        == ActualVsShadowGovernanceSummaryStatus::InsufficientHistory
+    {
+        warnings.push("paper trial needs more shadow history".to_string());
+    } else if comparison_summary.summary_status
+        == ActualVsShadowGovernanceSummaryStatus::StableWithWarnings
+    {
+        warnings.push("paper trial comparison is stable with warnings".to_string());
+    }
+    if matches!(
+        committee_status,
+        PaperGovernanceTrialCommitteeComparisonStatus::ComparedWithWarnings
+    ) {
+        warnings.push("committee voice comparison was emitted with warnings".to_string());
+    } else if committee_status == PaperGovernanceTrialCommitteeComparisonStatus::Blocked {
+        blockers.push("committee voice comparison is blocked".to_string());
+    }
+    let readiness_status = if safety_guard.guard_status
+        == PaperGovernanceTrialSafetyGuardStatus::Violated
+    {
+        PaperGovernanceTrialReadinessStatus::BlockedBySafety
+    } else if candidate_selection.selection_status
+        == PaperGovernanceTrialCandidateSelectionStatus::Blocked
+        || comparison_summary.summary_status == ActualVsShadowGovernanceSummaryStatus::Diverged
+        || trial_apply.apply_status == PaperGovernanceTrialApplyStatus::Blocked
+    {
+        PaperGovernanceTrialReadinessStatus::BlockedByDivergence
+    } else if candidate_selection.selection_status
+        == PaperGovernanceTrialCandidateSelectionStatus::NoEligibleCandidates
+    {
+        PaperGovernanceTrialReadinessStatus::NeedsMoreCandidates
+    } else if comparison_summary.summary_status
+        == ActualVsShadowGovernanceSummaryStatus::InsufficientHistory
+    {
+        PaperGovernanceTrialReadinessStatus::NeedsMoreShadowHistory
+    } else if trial_apply.apply_status == PaperGovernanceTrialApplyStatus::AppliedToPaperTrial
+        && committee_status != PaperGovernanceTrialCommitteeComparisonStatus::ComparedWithWarnings
+        && comparison_summary.summary_status == ActualVsShadowGovernanceSummaryStatus::Stable
+    {
+        PaperGovernanceTrialReadinessStatus::ReadyForRepeatedPaperTrial
+    } else {
+        PaperGovernanceTrialReadinessStatus::ReadyWithWarnings
+    };
+    PaperGovernanceTrialReadinessResult {
+        readiness_id: format!("{}-readiness", candidate_selection.selection_id),
+        candidate_selection_status: candidate_selection.selection_status,
+        trial_apply_status: trial_apply.apply_status,
+        actual_shadow_paper_comparison_status: comparison_summary.summary_status,
+        committee_comparison_status: committee_status,
+        safety_guard_status: safety_guard.guard_status,
+        ready_for_repeated_paper_trial: readiness_status
+            == PaperGovernanceTrialReadinessStatus::ReadyForRepeatedPaperTrial,
+        readiness_status,
+        blockers,
+        warnings,
+        paper_only: true,
+    }
+}
+
+pub fn build_owner_paper_governance_trial_summary(
+    trial_result: &PaperGovernanceTrialRunResult,
+) -> OwnerPaperGovernanceTrialSummary {
+    OwnerPaperGovernanceTrialSummary {
+        summary_id: format!("{}-owner-paper-trial-summary", trial_result.run_id),
+        candidate_count: trial_result.candidate_selection.eligible_candidate_count,
+        applied_candidate_count: trial_result.trial_apply_result.applied_candidate_count,
+        updated_member_count: trial_result.trial_apply_result.updated_member_count,
+        comparison_status: trial_result.actual_shadow_paper_comparison.summary_status,
+        readiness_status: trial_result.readiness_result.readiness_status,
+        message: "Governance candidates were applied only to paper trial state. Actual member score and voice did not change. Committee decisions and Risk Governor were not changed. This is not live governance."
+            .to_string(),
+        paper_trial_only: true,
+        no_actual_score_mutation: true,
+        no_actual_voice_mutation: true,
+        no_promotion_demotion: true,
+        no_risk_override: true,
+        no_committee_decision_change: true,
+        not_trade_signal: true,
+        paper_only: true,
+    }
+}
+
+pub fn run_paper_governance_trial_sandbox(
+    actual_member_states: &[MemberStateSnapshot],
+    shadow_store: Option<&ChairmanShadowGovernanceStateStore>,
+    tuned_governance_result: &ConservativeVoiceTuningV2RunResult,
+    batch_result: &BatchCommitteeCycleResult,
+    config: &PaperGovernanceTrialRunConfig,
+) -> Result<PaperGovernanceTrialRunResult, String> {
+    if !config.paper_only {
+        return Err("paper governance trial run must stay paper_only".to_string());
+    }
+    for (path, label) in [
+        (
+            config.trial_state_input_path.as_ref(),
+            "paper governance trial state input path",
+        ),
+        (
+            config.trial_state_output_path.as_ref(),
+            "paper governance trial state output path",
+        ),
+    ] {
+        if let Some(path) = path {
+            validate_local_json_path(Path::new(path), label)?;
+        }
+    }
+    if !config.dry_run && config.trial_state_output_path.is_none() {
+        return Err(
+            "paper governance trial requires trial_state_output_path when dry_run=false"
+                .to_string(),
+        );
+    }
+    let simulation_result = batch_result
+        .chairman_shadow_governance_simulation_result
+        .as_ref()
+        .ok_or_else(|| {
+            "paper governance trial requires chairman shadow governance simulation result"
+                .to_string()
+        })?;
+    let eligibility_policy = default_paper_governance_trial_eligibility_policy();
+    let candidate_selection = select_paper_governance_trial_candidates(
+        simulation_result,
+        tuned_governance_result,
+        &PaperGovernanceTrialEligibilityPolicy {
+            max_score_delta_per_member: effective_paper_trial_score_cap(
+                &eligibility_policy,
+                tuned_governance_result,
+            ),
+            max_voice_delta_per_member: effective_paper_trial_voice_cap(
+                &eligibility_policy,
+                tuned_governance_result,
+            ),
+            ..eligibility_policy.clone()
+        },
+    )?;
+    let mut trial_store = if let Some(path) = config.trial_state_input_path.as_ref() {
+        if Path::new(path).exists() {
+            load_paper_governance_trial_state_store_from_local_json(Path::new(path))?
+        } else {
+            initialize_paper_governance_trial_state_store(actual_member_states, shadow_store)
+        }
+    } else {
+        initialize_paper_governance_trial_state_store(actual_member_states, shadow_store)
+    };
+    let trial_store_before = Some(trial_store.clone());
+    trial_store.latest_run_id = Some(config.run_id.clone());
+    let trial_apply_result = if config.apply_trial_candidates {
+        apply_paper_governance_trial_candidates(
+            &mut trial_store,
+            &candidate_selection.candidates,
+            &PaperGovernanceTrialEligibilityPolicy {
+                max_score_delta_per_member: effective_paper_trial_score_cap(
+                    &eligibility_policy,
+                    tuned_governance_result,
+                ),
+                max_voice_delta_per_member: effective_paper_trial_voice_cap(
+                    &eligibility_policy,
+                    tuned_governance_result,
+                ),
+                ..eligibility_policy.clone()
+            },
+        )?
+    } else {
+        PaperGovernanceTrialApplyResult {
+            run_id: config.run_id.clone(),
+            input_candidate_count: candidate_selection.input_candidate_count,
+            applied_candidate_count: 0,
+            updated_member_count: 0,
+            score_delta_apply_count: 0,
+            voice_delta_apply_count: 0,
+            before_after_standings: Vec::new(),
+            apply_status: PaperGovernanceTrialApplyStatus::NoCandidatesApplied,
+            no_actual_score_mutation: true,
+            no_actual_voice_mutation: true,
+            no_promotion_demotion: true,
+            no_risk_governor_override: true,
+            paper_only: true,
+        }
+    };
+    let (_comparisons, actual_shadow_paper_comparison) =
+        compare_actual_shadow_paper_governance(actual_member_states, shadow_store, &trial_store);
+    let committee_voice_comparison = config.compare_committee_voice_distribution.then(|| {
+        compare_committee_voice_distribution_under_paper_trial(actual_member_states, &trial_store)
+    });
+    let committee_readiness_comparison = committee_voice_comparison.clone().or_else(|| {
+        Some(PaperGovernanceTrialCommitteeComparisonResult {
+            comparison_id: format!("{}-committee-voice-comparison", config.run_id),
+            records: Vec::new(),
+            record_count: 0,
+            estimated_voice_shift_count: 0,
+            comparison_status: PaperGovernanceTrialCommitteeComparisonStatus::ComparedWithWarnings,
+            paper_only: true,
+        })
+    });
+    let mut provisional = PaperGovernanceTrialRunResult {
+        run_id: config.run_id.clone(),
+        candidate_selection: candidate_selection.clone(),
+        trial_store_before,
+        trial_apply_result: trial_apply_result.clone(),
+        trial_store_after: Some(trial_store.clone()),
+        actual_shadow_paper_comparison: actual_shadow_paper_comparison.clone(),
+        committee_voice_comparison: committee_voice_comparison.clone(),
+        readiness_result: PaperGovernanceTrialReadinessResult {
+            readiness_id: format!("{}-paper-trial-readiness", config.run_id),
+            candidate_selection_status: candidate_selection.selection_status,
+            trial_apply_status: trial_apply_result.apply_status,
+            actual_shadow_paper_comparison_status: actual_shadow_paper_comparison.summary_status,
+            committee_comparison_status: committee_readiness_comparison
+                .as_ref()
+                .map(|comparison| comparison.comparison_status)
+                .unwrap_or(PaperGovernanceTrialCommitteeComparisonStatus::ComparedWithWarnings),
+            safety_guard_status: PaperGovernanceTrialSafetyGuardStatus::Preserved,
+            ready_for_repeated_paper_trial: false,
+            readiness_status: PaperGovernanceTrialReadinessStatus::ReadyWithWarnings,
+            blockers: Vec::new(),
+            warnings: Vec::new(),
+            paper_only: true,
+        },
+        safety_guard: PaperGovernanceTrialSafetyGuard {
+            actual_score_mutation_detected: false,
+            actual_voice_mutation_detected: false,
+            promotion_demotion_detected: false,
+            risk_governor_override_detected: false,
+            committee_decision_mutation_detected: false,
+            member_opinion_mutation_detected: false,
+            trade_signal_detected: false,
+            order_detected: false,
+            broker_order_account_detected: false,
+            paper_trial_used_as_live_decision_detected: false,
+            guard_status: PaperGovernanceTrialSafetyGuardStatus::Preserved,
+            violations: Vec::new(),
+            paper_only: true,
+        },
+        owner_summary: None,
+        run_status: PaperGovernanceTrialRunStatus::PassedWithWarnings,
+        paper_only: true,
+    };
+    let safety_guard = evaluate_paper_governance_trial_safety(
+        &provisional,
+        actual_member_states,
+        Some(actual_member_states),
+        batch_result,
+        Some(batch_result),
+    );
+    provisional.safety_guard = safety_guard.clone();
+    provisional.readiness_result = evaluate_paper_governance_trial_readiness(
+        &provisional.candidate_selection,
+        &provisional.trial_apply_result,
+        &provisional.actual_shadow_paper_comparison,
+        committee_readiness_comparison.as_ref(),
+        &provisional.safety_guard,
+    );
+    if config.emit_owner_summary {
+        provisional.owner_summary = Some(build_owner_paper_governance_trial_summary(&provisional));
+    }
+    provisional.run_status = if provisional.safety_guard.guard_status
+        == PaperGovernanceTrialSafetyGuardStatus::Violated
+    {
+        PaperGovernanceTrialRunStatus::Failed
+    } else if provisional.readiness_result.readiness_status
+        == PaperGovernanceTrialReadinessStatus::ReadyForRepeatedPaperTrial
+    {
+        PaperGovernanceTrialRunStatus::Passed
+    } else {
+        PaperGovernanceTrialRunStatus::PassedWithWarnings
+    };
+    if !config.dry_run {
+        if let Some(path) = config.trial_state_output_path.as_ref() {
+            save_paper_governance_trial_state_store_to_local_json(Path::new(path), &trial_store)?;
+        }
+    }
+    Ok(provisional)
+}
+
+pub fn paper_governance_trial_requested_from_flags(
+    enabled: bool,
+    dry_run: bool,
+    apply_trial_candidates: bool,
+    state_input_path: Option<&String>,
+    state_output_path: Option<&String>,
+    compare_committee_voice: bool,
+    emit_owner_summary: bool,
+) -> bool {
+    enabled
+        || !dry_run
+        || state_input_path.is_some()
+        || state_output_path.is_some()
+        || (enabled && (apply_trial_candidates || compare_committee_voice || emit_owner_summary))
+}
+
+fn maybe_run_paper_governance_trial_for_batch_result(
+    run_id: String,
+    enabled: bool,
+    dry_run: bool,
+    apply_trial_candidates: bool,
+    trial_state_input_path: Option<&String>,
+    trial_state_output_path: Option<&String>,
+    compare_committee_voice: bool,
+    emit_owner_summary: bool,
+    actual_member_states: &[MemberStateSnapshot],
+    batch_result: &mut BatchCommitteeCycleResult,
+) -> Result<Option<PaperGovernanceTrialRunResult>, String> {
+    if !paper_governance_trial_requested_from_flags(
+        enabled,
+        dry_run,
+        apply_trial_candidates,
+        trial_state_input_path,
+        trial_state_output_path,
+        compare_committee_voice,
+        emit_owner_summary,
+    ) {
+        return Ok(None);
+    }
+    let shadow_store = batch_result
+        .chairman_shadow_governance_state_run_result
+        .as_ref()
+        .and_then(|run| run.shadow_store_after.as_ref())
+        .ok_or_else(|| {
+            "paper governance trial requires current shadow governance state store".to_string()
+        })?;
+    let tuned_result = batch_result
+        .conservative_voice_tuning_v2_run_result
+        .clone()
+        .ok_or_else(|| {
+            "paper governance trial requires conservative voice tuning v2 result".to_string()
+        })?;
+    let result = run_paper_governance_trial_sandbox(
+        actual_member_states,
+        Some(shadow_store),
+        &tuned_result,
+        batch_result,
+        &PaperGovernanceTrialRunConfig {
+            run_id,
+            enabled,
+            trial_state_input_path: trial_state_input_path.cloned(),
+            trial_state_output_path: trial_state_output_path.cloned(),
+            dry_run,
+            apply_trial_candidates,
+            compare_committee_voice_distribution: compare_committee_voice,
+            emit_owner_summary,
+            paper_only: true,
+        },
+    )?;
+    let effective_policy = PaperGovernanceTrialEligibilityPolicy {
+        max_score_delta_per_member: effective_paper_trial_score_cap(
+            &default_paper_governance_trial_eligibility_policy(),
+            &tuned_result,
+        ),
+        max_voice_delta_per_member: effective_paper_trial_voice_cap(
+            &default_paper_governance_trial_eligibility_policy(),
+            &tuned_result,
+        ),
+        ..default_paper_governance_trial_eligibility_policy()
+    };
+    let (comparison_records, comparison_summary) = result
+        .trial_store_after
+        .as_ref()
+        .map(|store| {
+            compare_actual_shadow_paper_governance(actual_member_states, Some(shadow_store), store)
+        })
+        .unwrap_or_else(|| {
+            compare_actual_shadow_paper_governance(
+                actual_member_states,
+                Some(shadow_store),
+                result
+                    .trial_store_before
+                    .as_ref()
+                    .expect("paper trial store before"),
+            )
+        });
+    batch_result.paper_governance_trial_eligibility_policy = Some(effective_policy);
+    batch_result.paper_governance_trial_candidate_selection_result =
+        Some(result.candidate_selection.clone());
+    batch_result.paper_governance_trial_state_store = result
+        .trial_store_after
+        .clone()
+        .or(result.trial_store_before.clone());
+    batch_result.paper_governance_trial_apply_result = Some(result.trial_apply_result.clone());
+    batch_result.actual_shadow_paper_governance_comparisons = Some(comparison_records);
+    batch_result.actual_shadow_paper_governance_summary = Some(comparison_summary);
+    batch_result.paper_governance_trial_committee_comparison_result =
+        result.committee_voice_comparison.clone();
+    batch_result.paper_governance_trial_safety_guard = Some(result.safety_guard.clone());
+    batch_result.paper_governance_trial_readiness_result = Some(result.readiness_result.clone());
+    batch_result.owner_paper_governance_trial_summary = result.owner_summary.clone();
+    batch_result.paper_governance_trial_run_result = Some(result.clone());
+    Ok(Some(result))
+}
+
+pub fn chairman_shadow_governance_state_requested_from_flags(
+    enabled: bool,
+    dry_run: bool,
+    _apply_shadow_deltas: bool,
+    shadow_state_input_path: Option<&String>,
+    shadow_state_output_path: Option<&String>,
+    shadow_state_ledger_path: Option<&String>,
+    _emit_owner_summary: bool,
+) -> bool {
+    enabled
+        || !dry_run
+        || shadow_state_input_path.is_some()
+        || shadow_state_output_path.is_some()
+        || shadow_state_ledger_path.is_some()
+}
+
+fn maybe_run_chairman_shadow_governance_state_update_for_batch_result(
+    run_id: String,
+    enabled: bool,
+    dry_run: bool,
+    apply_shadow_deltas: bool,
+    shadow_state_input_path: Option<&String>,
+    shadow_state_output_path: Option<&String>,
+    shadow_state_ledger_path: Option<&String>,
+    emit_owner_summary: bool,
+    actual_member_states: &[MemberStateSnapshot],
+    batch_result: &mut BatchCommitteeCycleResult,
+) -> Result<Option<ChairmanShadowGovernanceStateRunResult>, String> {
+    if !chairman_shadow_governance_state_requested_from_flags(
+        enabled,
+        dry_run,
+        apply_shadow_deltas,
+        shadow_state_input_path,
+        shadow_state_output_path,
+        shadow_state_ledger_path,
+        emit_owner_summary,
+    ) {
+        return Ok(None);
+    }
+    let simulation_result = batch_result
+        .chairman_shadow_governance_simulation_result
+        .clone()
+        .or_else(|| {
+            batch_result
+                .chairman_shadow_governance_simulation_run_result
+                .as_ref()
+                .map(|run| run.simulation_result.clone())
+        })
+        .ok_or_else(|| {
+            "chairman shadow governance state update requires simulation result".to_string()
+        })?;
+    let result = run_chairman_shadow_governance_state_update(
+        &simulation_result,
+        actual_member_states,
+        batch_result,
+        &ChairmanShadowGovernanceStateRunConfig {
+            run_id: run_id.clone(),
+            enabled,
+            shadow_state_input_path: shadow_state_input_path.cloned(),
+            shadow_state_output_path: shadow_state_output_path.cloned(),
+            shadow_state_ledger_path: shadow_state_ledger_path.cloned(),
+            dry_run,
+            apply_shadow_deltas,
+            emit_owner_summary,
+            paper_only: true,
+        },
+    )?;
+    batch_result.chairman_shadow_governance_state_store = result.shadow_store_after.clone();
+    batch_result.chairman_shadow_governance_apply_result = Some(result.apply_result.clone());
+    let (comparisons, summary) = compare_actual_vs_shadow_governance(
+        actual_member_states,
+        result
+            .shadow_store_after
+            .as_ref()
+            .expect("shadow store after"),
+    );
+    batch_result.actual_vs_shadow_governance_comparisons = Some(comparisons);
+    batch_result.actual_vs_shadow_governance_summary = Some(summary);
+    batch_result.chairman_shadow_governance_state_ledger = Some(result.state_ledger.clone());
+    batch_result.chairman_shadow_governance_state_trend = Some(result.state_trend.clone());
+    batch_result.paper_governance_promotion_gate =
+        Some(result.paper_governance_promotion_gate.clone());
+    batch_result.chairman_shadow_governance_apply_safety_guard = Some(result.safety_guard.clone());
+    batch_result.owner_shadow_governance_state_summary = result.owner_summary.clone();
+    batch_result.chairman_shadow_governance_state_run_result = Some(result.clone());
     Ok(Some(result))
 }
 
