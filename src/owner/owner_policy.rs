@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-use crate::core::{ReasonCode, stable_reason_codes};
+use crate::core::{
+    MarketSnapshot, ReasonCode, Regime, RiskDecision, RiskDecisionKind, stable_reason_codes,
+};
 
 use super::{OwnerInput, OwnerInputKind};
 
@@ -38,6 +40,17 @@ pub struct OwnerPolicyValidationResult {
     #[serde(default)]
     pub blocked_constraints: Vec<OwnerPolicyConstraint>,
     pub diagnostic_only: bool,
+    #[serde(default)]
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct OwnerTradeRequestReview {
+    pub input_id: String,
+    pub advisory_only: bool,
+    pub owner_forced_trade: bool,
+    pub paper_action_allowed: bool,
+    pub explanation: String,
     #[serde(default)]
     pub reason_codes: Vec<ReasonCode>,
 }
@@ -234,4 +247,222 @@ pub fn validate_owner_input(input: &OwnerInput) -> OwnerPolicyValidationResult {
     };
     result.stabilize();
     result
+}
+
+pub fn review_owner_trade_request(
+    input: &OwnerInput,
+    risk_decision: &RiskDecision,
+    market: &MarketSnapshot,
+    evaluation_timestamp_ms: u64,
+) -> OwnerTradeRequestReview {
+    let validation = validate_owner_input(input);
+    let paper_confirm = matches!(input.input_kind, OwnerInputKind::PaperConfirm);
+    let risk_approved = risk_decision.kind == RiskDecisionKind::ApprovePaper
+        && risk_decision.approved_order_plan.is_some();
+    let paper_action_allowed = validation.allowed && paper_confirm && risk_approved;
+    let mut reason_codes = validation.reason_codes;
+
+    if !risk_approved {
+        reason_codes.push(ReasonCode::OwnerRequestedButRiskDenied);
+    }
+    if !validation.allowed || !paper_confirm {
+        reason_codes.push(ReasonCode::OwnerRequestedButPolicyBlocked);
+    }
+    if risk_decision.reason_codes.iter().any(|reason| {
+        matches!(
+            reason,
+            ReasonCode::ExpectedEdgeNonPositive | ReasonCode::ExpectedEdgeBelowThreshold
+        )
+    }) {
+        reason_codes.push(ReasonCode::OwnerRequestedButLowEdge);
+    }
+    if market.spread_bps > 12.0
+        || risk_decision
+            .reason_codes
+            .contains(&ReasonCode::SpreadGateBreached)
+    {
+        reason_codes.push(ReasonCode::OwnerRequestedButBadSpread);
+    }
+    if risk_decision
+        .reason_codes
+        .contains(&ReasonCode::ConfidenceGateBreached)
+    {
+        reason_codes.push(ReasonCode::OwnerRequestedButLowConfidence);
+    }
+    if market.regime == Regime::Unknown
+        || risk_decision
+            .reason_codes
+            .contains(&ReasonCode::UnknownRegimeGateBreached)
+    {
+        reason_codes.push(ReasonCode::OwnerRequestedButUnknownRegime);
+    }
+    if evaluation_timestamp_ms.saturating_sub(market.timestamp_ms) > 60_000
+        || market.timestamp_ms > evaluation_timestamp_ms.saturating_add(60_000)
+    {
+        reason_codes.push(ReasonCode::OwnerRequestedButStaleData);
+    }
+    reason_codes.extend(risk_decision.reason_codes.iter().cloned());
+    reason_codes = stable_reason_codes(&reason_codes);
+
+    let explanation = if paper_action_allowed {
+        "Owner input remained advisory; Risk Governor independently approved a paper-only action."
+            .to_string()
+    } else {
+        owner_rejection_explanation(&reason_codes)
+    };
+    OwnerTradeRequestReview {
+        input_id: input.owner_input_id.clone(),
+        advisory_only: true,
+        owner_forced_trade: false,
+        paper_action_allowed,
+        explanation,
+        reason_codes,
+    }
+}
+
+pub fn owner_rejection_explanation(reason_codes: &[ReasonCode]) -> String {
+    let messages = stable_reason_codes(reason_codes)
+        .into_iter()
+        .filter_map(|reason| match reason {
+            ReasonCode::OwnerRequestedButRiskDenied => {
+                Some("Risk Governor did not approve the requested paper action.")
+            }
+            ReasonCode::OwnerRequestedButLowEdge => Some("Expected numeric edge is below policy."),
+            ReasonCode::OwnerRequestedButBadSpread => {
+                Some("Observed spread exceeds the conservative limit.")
+            }
+            ReasonCode::OwnerRequestedButStaleData => {
+                Some("Market data is stale for this decision.")
+            }
+            ReasonCode::OwnerRequestedButLowConfidence => {
+                Some("Signal confidence is below the required threshold.")
+            }
+            ReasonCode::OwnerRequestedButUnknownRegime => Some("Market regime is unknown."),
+            ReasonCode::OwnerRequestedButPolicyBlocked => {
+                Some("Owner input policy does not allow this action.")
+            }
+            ReasonCode::OwnerRequestedButAgentInCooldown => {
+                Some("The requested agent is in a safety cooldown.")
+            }
+            ReasonCode::CooldownOwnerBypassRejected => {
+                Some("Owner input cannot clear or bypass an agent cooldown.")
+            }
+            ReasonCode::OwnerRequestedButDoctrineViolation => {
+                Some("The requested action conflicts with immutable agent doctrine.")
+            }
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    if messages.is_empty() {
+        "NoTrade remains the default; no owner-requested paper action was approved.".to_string()
+    } else {
+        messages.join(" ")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn owner_confirm() -> OwnerInput {
+        OwnerInput {
+            owner_input_id: "owner-confirm-fixture".to_string(),
+            input_kind: OwnerInputKind::PaperConfirm,
+            ..OwnerInput::default()
+        }
+    }
+
+    fn market() -> MarketSnapshot {
+        MarketSnapshot {
+            symbol: "FAKE123".to_string(),
+            timestamp_ms: 1_800_000_000_000,
+            price: 100.0,
+            bid: 99.0,
+            ask: 101.0,
+            spread_bps: 200.0,
+            volume: 1_000.0,
+            trade_value: 100_000.0,
+            volatility: 0.01,
+            regime: Regime::Unknown,
+            data_quality_score: 0.55,
+        }
+    }
+
+    #[test]
+    fn owner_request_cannot_force_risk_denied_trade() {
+        let risk = RiskDecision {
+            kind: RiskDecisionKind::Deny,
+            approved_order_plan: None,
+            reason_codes: vec![
+                ReasonCode::SpreadGateBreached,
+                ReasonCode::UnknownRegimeGateBreached,
+            ],
+            audit_id: "risk-denied-fixture".to_string(),
+        };
+        let review =
+            review_owner_trade_request(&owner_confirm(), &risk, &market(), 1_800_000_000_000);
+        assert!(review.advisory_only);
+        assert!(!review.owner_forced_trade);
+        assert!(!review.paper_action_allowed);
+        assert!(
+            review
+                .reason_codes
+                .contains(&ReasonCode::OwnerRequestedButRiskDenied)
+        );
+        assert!(
+            review
+                .reason_codes
+                .contains(&ReasonCode::OwnerRequestedButBadSpread)
+        );
+    }
+
+    #[test]
+    fn owner_rejection_explanation_is_stable_and_llm_free() {
+        let reasons = vec![
+            ReasonCode::OwnerRequestedButLowEdge,
+            ReasonCode::OwnerRequestedButRiskDenied,
+        ];
+        let first = owner_rejection_explanation(&reasons);
+        let second = owner_rejection_explanation(&reasons);
+        assert_eq!(first, second);
+        assert!(first.contains("Risk Governor"));
+        assert!(first.contains("numeric edge"));
+    }
+
+    #[test]
+    fn owner_request_rejected_for_stale_data_has_stable_reason() {
+        let risk = RiskDecision {
+            kind: RiskDecisionKind::Deny,
+            approved_order_plan: None,
+            reason_codes: vec![ReasonCode::DataQualityGateBreached],
+            audit_id: "risk-stale-fixture".to_string(),
+        };
+        let mut stale_market = market();
+        stale_market.timestamp_ms = 1;
+
+        let review =
+            review_owner_trade_request(&owner_confirm(), &risk, &stale_market, 1_800_000_000_000);
+
+        assert!(!review.owner_forced_trade);
+        assert!(!review.paper_action_allowed);
+        assert!(
+            review
+                .reason_codes
+                .contains(&ReasonCode::OwnerRequestedButStaleData)
+        );
+        assert!(review.explanation.contains("stale"));
+    }
+
+    #[test]
+    fn owner_cooldown_and_doctrine_rejections_use_stable_templates() {
+        let reasons = vec![
+            ReasonCode::OwnerRequestedButAgentInCooldown,
+            ReasonCode::OwnerRequestedButDoctrineViolation,
+        ];
+        let first = owner_rejection_explanation(&reasons);
+        let second = owner_rejection_explanation(&reasons);
+        assert_eq!(first, second);
+        assert!(first.contains("cooldown"));
+        assert!(first.contains("immutable agent doctrine"));
+    }
 }

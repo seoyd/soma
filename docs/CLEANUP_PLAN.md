@@ -15,5 +15,5 @@ The earlier quarantine step was used as an intermediate safety check before perm
 
 ## What still needs human judgment
 
-- `work.md` as a user-owned planning artifact
+- the local temporary instruction artifact
 - whether any remaining docs/history files should also be trimmed now that the archive is gone

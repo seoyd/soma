@@ -37,4 +37,13 @@ debug/
 
 # Environment
 .env
-.env.local
+.env.*
+!.env.example
+local_private/
+*.private.*
+secrets/
+credentials/
+*.key
+*.pem
+work.md
+copilot-session-*.md

@@ -82,7 +82,7 @@ Final quarantine batch (historical intermediate step before later deletion):
 Evidence:
 
 - all three remained zero-inbound workspace members in a fresh reverse-dependency audit
-- non-code references were limited to `work.md`, root README/docs, workspace membership, or already-quarantined wrappers
+- non-code references were limited to the temporary instruction artifact, root README/docs, workspace membership, or already-quarantined wrappers
 - after removing them from `[workspace].members` and moving them into quarantine, the workspace still passed `cargo fmt --all`, `cargo check --workspace`, and `cargo test --workspace --quiet`
 
 First active-legacy isolation batch:
@@ -153,7 +153,7 @@ No legacy model-system crates remain technically live in the workspace after the
 - `docs/REPO_AUDIT.md`
 - `docs/CLEANUP_PLAN.md`
 - `docs/DEFERRED_MODULES.md`
-- `work.md`
+- local temporary instruction artifact
 
 **KEEP_DEFERRED**
 
@@ -174,7 +174,7 @@ No legacy model-system crates remain technically live in the workspace after the
 
 **UNKNOWN**
 
-- `work.md` as a retained planning artifact outside build reachability
+- local temporary instruction artifact retained outside build reachability
 
 ### Quarantined in Sprint 02
 
@@ -216,5 +216,5 @@ Evidence:
 
 ### Deferred / unknown
 
-- `work.md` — planning artifact, intentionally kept out of cleanup scope
+- local temporary instruction artifact, intentionally kept out of cleanup scope
 - remaining active crates are support/runtime crates rather than legacy model-system modules

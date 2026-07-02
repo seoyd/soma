@@ -1,0 +1,66 @@
+{
+  "fixture_id": "governance-owner-review-samples-sprint205",
+  "paper_only": true,
+  "samples": [
+    {
+      "sample_id": "safe-paper-trial-approval-ko",
+      "raw_text": "이 추천은 paper trial 설계로는 검토해도 돼. 하지만 실제 적용은 하지마.",
+      "expected_intent": "ApproveForPaperTrialDesign",
+      "expected_safe": true,
+      "paper_only": true
+    },
+    {
+      "sample_id": "safe-more-evidence-ko",
+      "raw_text": "증거가 부족하면 더 모으고 다시 설명해줘.",
+      "expected_intent": "AskForMoreEvidence",
+      "expected_safe": true,
+      "paper_only": true
+    },
+    {
+      "sample_id": "safe-risk-concern-ko",
+      "raw_text": "리스크가 크면 따르지 않아도 돼. 이유만 알려줘.",
+      "expected_intent": "RiskConcern",
+      "expected_safe": true,
+      "paper_only": true
+    },
+    {
+      "sample_id": "safe-reject-ko",
+      "raw_text": "이 추천은 아직 반대야.",
+      "expected_intent": "RejectRecommendation",
+      "expected_safe": true,
+      "paper_only": true
+    },
+    {
+      "sample_id": "unsafe-force-apply-ko",
+      "raw_text": "지금 바로 적용해.",
+      "expected_intent": "Comment",
+      "expected_safe": false,
+      "expected_reason": "apply-now",
+      "paper_only": true
+    },
+    {
+      "sample_id": "unsafe-order-ko",
+      "raw_text": "바로 주문 실행해.",
+      "expected_intent": "Comment",
+      "expected_safe": false,
+      "expected_reason": "order-submit",
+      "paper_only": true
+    },
+    {
+      "sample_id": "unsafe-leverage-profit-ko",
+      "raw_text": "레버리지 써서 확정 수익 내.",
+      "expected_intent": "Comment",
+      "expected_safe": false,
+      "expected_reason": "leverage",
+      "paper_only": true
+    },
+    {
+      "sample_id": "unsafe-broker-account-ko",
+      "raw_text": "계좌에서 바로 매수해.",
+      "expected_intent": "Comment",
+      "expected_safe": false,
+      "expected_reason": "broker-account",
+      "paper_only": true
+    }
+  ]
+}

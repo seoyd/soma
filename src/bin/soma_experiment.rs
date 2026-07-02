@@ -177,12 +177,15 @@ use soma_zero::{
     OwnerActionApplyMode, OwnerActionComposerConfig, OwnerActionConsumptionConfig,
     OwnerActionDuplicatePolicy, OwnerConsoleTerminalOptions, OwnerNaturalInput,
     compose_owner_action_from_read_model, consume_owner_action_file,
-    load_owner_intent_policy_from_local_file, parse_owner_attention_action_type,
+    governance_review_workflow_requested_from_flags, load_owner_intent_policy_from_local_file,
+    owner_governance_console_surfacing_requested_from_flags,
+    owner_paper_review_navigation_requested_from_flags, parse_owner_attention_action_type,
     run_autonomous_paper_committee_loop_from_config_path,
     run_batch_committee_cycle_from_config_path,
     run_batch_committee_cycle_with_state_from_config_path,
     run_minimal_committee_cycle_from_config_path, run_owner_console_viewer,
-    run_research_auto_run_from_minimal_config_path, write_owner_natural_input_action_file,
+    run_research_auto_run_from_minimal_config_path,
+    stable_keep_policy_review_export_requested_from_flags, write_owner_natural_input_action_file,
     write_owner_natural_input_action_file_with_policy,
 };
 use soma_zero::{
@@ -1218,13 +1221,215 @@ fn run_minimal_ai_committee_cycle(
                         || (parsed.chairman_shadow_voice_tuning_v2_enabled
                             && parsed.owner_governance_console_section_enabled)
                         || parsed.paper_governance_trial_enabled
+                        || parsed.paper_governance_trial_evaluation_enabled
+                        || parsed.paper_governance_trial_multicycle_enabled
+                        || parsed.governance_policy_feedback_tuning_enabled
+                        || parsed.governance_recommendation_stability_enabled
+                        || parsed.governance_recommendation_multirun_enabled
+                        || parsed.governance_recommendation_materialization_enabled
+                        || parsed.governance_recommendation_support_materialization_enabled
+                        || parsed.governance_recommendation_owner_review_enabled
+                        || parsed.governance_owner_review_verify_enabled
+                        || parsed.governance_owner_review_verify_expected_intent.is_some()
+                        || parsed.governance_owner_review_verify_require_design_draft
+                        || parsed.governance_owner_review_run_firewall_regression
+                        || parsed.paper_policy_trial_plan_enabled
+                        || parsed.paper_policy_trial_scenario_execution_enabled
+                        || parsed.paper_policy_trial_repeated_scenario_enabled
+                        || parsed.paper_policy_trial_outcome_scorecard_enabled
                         || !parsed.paper_governance_trial_dry_run
+                        || !parsed.paper_governance_trial_evaluation_dry_run
+                        || !parsed.paper_governance_trial_multicycle_dry_run
+                        || !parsed.governance_policy_feedback_tuning_dry_run
+                        || !parsed.governance_recommendation_stability_dry_run
+                        || !parsed.governance_recommendation_multirun_dry_run
+                        || !parsed.governance_recommendation_materialization_dry_run
+                        || !parsed.governance_recommendation_support_materialization_dry_run
+                        || !parsed.governance_recommendation_owner_review_dry_run
+                        || !parsed.paper_policy_trial_plan_dry_run
+                        || !parsed.paper_policy_trial_scenario_execution_dry_run
+                        || !parsed.paper_policy_trial_repeated_scenario_dry_run
+                        || !parsed.paper_policy_trial_outcome_scorecard_dry_run
                         || parsed.paper_governance_trial_state_input_path.is_some()
                         || parsed.paper_governance_trial_state_output_path.is_some()
+                        || parsed.paper_governance_trial_ledger_input_path.is_some()
+                        || parsed.paper_governance_trial_ledger_output_path.is_some()
+                        || parsed
+                            .paper_governance_trial_multicycle_ledger_output_path
+                            .is_some()
+                        || parsed
+                            .paper_governance_trial_multicycle_output_path
+                            .is_some()
+                        || parsed
+                            .governance_policy_feedback_tuning_ledger_output_path
+                            .is_some()
+                        || parsed
+                            .governance_policy_feedback_tuning_output_path
+                            .is_some()
+                        || parsed
+                            .governance_recommendation_stability_ledger_input_path
+                            .is_some()
+                        || parsed
+                            .governance_recommendation_stability_ledger_output_path
+                            .is_some()
+                        || parsed
+                            .governance_recommendation_stability_output_path
+                            .is_some()
+                        || parsed
+                            .governance_recommendation_multirun_ledger_input_path
+                            .is_some()
+                        || parsed
+                            .governance_recommendation_multirun_ledger_output_path
+                            .is_some()
+                        || parsed
+                            .governance_recommendation_multirun_output_path
+                            .is_some()
+                        || parsed
+                            .governance_recommendation_support_evidence_output_path
+                            .is_some()
+                        || parsed
+                            .governance_recommendation_closure_queue_output_path
+                            .is_some()
+                        || parsed
+                            .governance_recommendation_materialization_output_path
+                            .is_some()
+                        || parsed
+                            .governance_recommendation_support_evidence_fixture_path
+                            .as_ref()
+                            .is_some_and(|path| !path.trim().is_empty())
+                        || parsed
+                            .governance_recommendation_support_materialization_output_path
+                            .is_some()
+                        || parsed
+                            .governance_recommendation_owner_review_text
+                            .as_ref()
+                            .is_some_and(|text| !text.trim().is_empty())
+                        || parsed
+                            .governance_recommendation_owner_review_input_path
+                            .as_ref()
+                            .is_some_and(|path| !path.trim().is_empty())
+                        || parsed
+                            .governance_recommendation_review_ledger_output_path
+                            .is_some()
+                        || parsed
+                            .governance_recommendation_design_draft_output_path
+                            .is_some()
+                        || parsed
+                            .governance_recommendation_owner_review_output_path
+                            .is_some()
+                        || parsed
+                            .governance_owner_review_samples_path
+                            .as_ref()
+                            .is_some_and(|path| !path.trim().is_empty())
+                        || parsed.paper_policy_trial_plan_output_path.is_some()
+                        || parsed
+                            .paper_policy_trial_scenario_plan_input_path
+                            .as_ref()
+                            .is_some_and(|path| !path.trim().is_empty())
+                        || parsed
+                            .paper_policy_trial_scenario_matrix_input_path
+                            .as_ref()
+                            .is_some_and(|path| !path.trim().is_empty())
+                        || parsed
+                            .paper_policy_trial_scenario_ledger_input_path
+                            .as_ref()
+                            .is_some_and(|path| !path.trim().is_empty())
+                        || parsed.paper_policy_trial_scenario_ledger_output_path.is_some()
+                        || parsed
+                            .paper_policy_trial_repeated_scenario_ledger_input_path
+                            .as_ref()
+                            .is_some_and(|path| !path.trim().is_empty())
+                        || parsed
+                            .paper_policy_trial_repeated_scenario_ledger_output_path
+                            .is_some()
+                        || parsed
+                            .paper_policy_trial_outcome_scorecard_input_path
+                            .as_ref()
+                            .is_some_and(|path| !path.trim().is_empty())
+                        || parsed
+                            .paper_policy_trial_outcome_scorecard_output_path
+                            .is_some()
                         || (parsed.paper_governance_trial_enabled
                             && (parsed.paper_governance_trial_apply_candidates
                                 || parsed.paper_governance_trial_compare_committee_voice
-                                || parsed.paper_governance_trial_emit_owner_summary))))
+                                || parsed.paper_governance_trial_emit_owner_summary))
+                        || (parsed.paper_governance_trial_evaluation_enabled
+                            && (parsed.paper_governance_trial_append_ledger_entry
+                                || parsed.paper_governance_trial_run_counterfactual_replay
+                                || parsed.paper_governance_trial_evaluation_emit_owner_summary))
+                        || (parsed.paper_governance_trial_multicycle_enabled
+                            && (parsed.paper_governance_trial_multicycle_count > 1
+                                || parsed.paper_governance_trial_multicycle_append_ledger
+                                || parsed.paper_governance_trial_multicycle_emit_owner_summary))
+                        || (parsed.governance_policy_feedback_tuning_enabled
+                            && (parsed.governance_policy_feedback_tuning_write_ledger
+                                || parsed.governance_policy_feedback_tuning_emit_owner_summary))
+                        || (parsed.governance_recommendation_stability_enabled
+                            && (parsed.governance_recommendation_stability_append_ledger
+                                || parsed
+                                    .governance_recommendation_stability_min_entries_required
+                                    > 1
+                                || parsed.governance_recommendation_stability_emit_owner_summary))
+                        || (parsed.governance_recommendation_multirun_enabled
+                            && (parsed.governance_recommendation_multirun_count > 3
+                                || parsed.governance_recommendation_multirun_append_ledger
+                                || parsed.governance_recommendation_multirun_emit_owner_summary))
+                        || (parsed.governance_recommendation_materialization_enabled
+                            && parsed
+                                .governance_recommendation_materialization_emit_owner_summary)
+                        || (parsed.governance_recommendation_support_materialization_enabled
+                            && parsed
+                                .governance_recommendation_support_materialization_emit_owner_summary)
+                        || (parsed.governance_recommendation_owner_review_enabled
+                            && parsed.governance_recommendation_owner_review_emit_summary)
+                        || parsed.governance_owner_review_verify_enabled
+                        || parsed.governance_owner_review_verify_expected_intent.is_some()
+                        || parsed.governance_owner_review_verify_require_design_draft
+                        || parsed.governance_owner_review_run_firewall_regression
+                        || (parsed.paper_policy_trial_plan_enabled
+                            && (parsed.paper_policy_trial_plan_write_output
+                                || parsed.paper_policy_trial_plan_emit_owner_summary))
+                        || (parsed.paper_policy_trial_scenario_execution_enabled
+                            && (parsed.paper_policy_trial_scenario_execution_write_ledger
+                                || parsed.paper_policy_trial_scenario_execution_emit_owner_summary
+                                || !parsed
+                                    .paper_policy_trial_scenario_stop_on_first_blocking_condition
+                                || parsed.paper_policy_trial_scenario_max_scenarios != 16))
+                        || (parsed.paper_policy_trial_repeated_scenario_enabled
+                            && (parsed.paper_policy_trial_repeated_scenario_append_ledger
+                                || parsed.paper_policy_trial_repeated_scenario_count != 3
+                                || !parsed
+                                    .paper_policy_trial_repeated_scenario_stop_on_recurrent_block
+                                || parsed
+                                    .paper_policy_trial_repeated_scenario_emit_owner_summary))
+                        || (parsed.paper_policy_trial_outcome_scorecard_enabled
+                            && (parsed.paper_policy_trial_outcome_scorecard_write_output
+                                || parsed
+                                    .paper_policy_trial_outcome_scorecard_emit_owner_summary))
+                        || (parsed.paper_policy_outcome_feedback_bridge_enabled
+                            && (parsed.paper_policy_outcome_feedback_bridge_append_ledger
+                                || parsed
+                                    .paper_policy_outcome_feedback_bridge_emit_owner_summary))
+                        || !parsed.paper_policy_outcome_feedback_bridge_dry_run
+                        || parsed
+                            .paper_policy_outcome_feedback_bridge_ledger_input_path
+                            .is_some()
+                        || parsed.governance_outcome_feedback_reentry_enabled
+                        || !parsed.governance_outcome_feedback_reentry_dry_run
+                        || (parsed.governance_outcome_feedback_reentry_enabled
+                            && parsed.governance_outcome_feedback_reentry_emit_owner_summary)
+                        || parsed.governance_keep_policy_review_enabled
+                        || !parsed.governance_keep_policy_review_dry_run
+                        || parsed.governance_keep_policy_review_append_ledger
+                        || parsed
+                            .governance_keep_policy_review_owner_text
+                            .as_ref()
+                            .is_some_and(|text| !text.trim().is_empty())
+                        || parsed
+                            .governance_keep_policy_review_ledger_input_path
+                            .is_some()
+                        || (parsed.governance_keep_policy_review_enabled
+                            && parsed.governance_keep_policy_review_emit_owner_summary)))
                 || parsed.chairman_shadow_governance_run_enabled
                 || !parsed.chairman_shadow_governance_dry_run
                 || parsed
@@ -1292,13 +1497,319 @@ fn run_minimal_ai_committee_cycle(
                 || (parsed.chairman_shadow_voice_tuning_v2_enabled
                     && parsed.owner_governance_console_section_enabled)
                 || parsed.paper_governance_trial_enabled
+                || parsed.paper_governance_trial_evaluation_enabled
+                || parsed.paper_governance_trial_multicycle_enabled
+                || parsed.governance_policy_feedback_tuning_enabled
+                || parsed.governance_recommendation_stability_enabled
+                || parsed.governance_recommendation_multirun_enabled
+                || parsed.governance_recommendation_materialization_enabled
+                || parsed.governance_recommendation_support_materialization_enabled
+                || parsed.governance_recommendation_owner_review_enabled
+                || parsed.governance_owner_review_verify_enabled
+                || parsed.governance_owner_review_verify_expected_intent.is_some()
+                || parsed.governance_owner_review_verify_require_design_draft
+                || parsed.governance_owner_review_run_firewall_regression
+                || parsed.paper_policy_trial_plan_enabled
+                || parsed.paper_policy_trial_scenario_execution_enabled
+                || parsed.paper_policy_trial_repeated_scenario_enabled
+                || parsed.paper_policy_trial_outcome_scorecard_enabled
                 || !parsed.paper_governance_trial_dry_run
+                || !parsed.paper_governance_trial_evaluation_dry_run
+                || !parsed.paper_governance_trial_multicycle_dry_run
+                || !parsed.governance_policy_feedback_tuning_dry_run
+                || !parsed.governance_recommendation_stability_dry_run
+                || !parsed.governance_recommendation_multirun_dry_run
+                || !parsed.governance_recommendation_materialization_dry_run
+                || !parsed.governance_recommendation_support_materialization_dry_run
+                || !parsed.governance_recommendation_owner_review_dry_run
+                || !parsed.paper_policy_trial_plan_dry_run
+                || !parsed.paper_policy_trial_scenario_execution_dry_run
+                || !parsed.paper_policy_trial_repeated_scenario_dry_run
+                || !parsed.paper_policy_trial_outcome_scorecard_dry_run
                 || parsed.paper_governance_trial_state_input_path.is_some()
                 || parsed.paper_governance_trial_state_output_path.is_some()
+                || parsed.paper_governance_trial_ledger_input_path.is_some()
+                || parsed.paper_governance_trial_ledger_output_path.is_some()
+                || parsed
+                    .paper_governance_trial_multicycle_ledger_output_path
+                    .is_some()
+                || parsed
+                    .paper_governance_trial_multicycle_output_path
+                    .is_some()
+                || parsed
+                    .governance_policy_feedback_tuning_ledger_output_path
+                    .is_some()
+                || parsed
+                    .governance_policy_feedback_tuning_output_path
+                    .is_some()
+                || parsed
+                    .governance_recommendation_stability_ledger_input_path
+                    .is_some()
+                || parsed
+                    .governance_recommendation_stability_ledger_output_path
+                    .is_some()
+                || parsed
+                    .governance_recommendation_stability_output_path
+                    .is_some()
+                || parsed
+                    .governance_recommendation_multirun_ledger_input_path
+                    .is_some()
+                || parsed
+                    .governance_recommendation_multirun_ledger_output_path
+                    .is_some()
+                || parsed
+                    .governance_recommendation_multirun_output_path
+                    .is_some()
+                || parsed
+                    .governance_recommendation_support_evidence_output_path
+                    .is_some()
+                || parsed
+                    .governance_recommendation_closure_queue_output_path
+                    .is_some()
+                || parsed
+                    .governance_recommendation_materialization_output_path
+                    .is_some()
+                || parsed
+                    .governance_recommendation_support_evidence_fixture_path
+                    .as_ref()
+                    .is_some_and(|path| !path.trim().is_empty())
+                || parsed
+                    .governance_recommendation_support_materialization_output_path
+                    .is_some()
+                || parsed
+                    .governance_recommendation_owner_review_text
+                    .as_ref()
+                    .is_some_and(|text| !text.trim().is_empty())
+                || parsed
+                    .governance_recommendation_owner_review_input_path
+                    .as_ref()
+                    .is_some_and(|path| !path.trim().is_empty())
+                || parsed
+                    .governance_recommendation_review_ledger_output_path
+                    .is_some()
+                || parsed
+                    .governance_recommendation_design_draft_output_path
+                    .is_some()
+                || parsed
+                    .governance_recommendation_owner_review_output_path
+                    .is_some()
+                || parsed
+                    .governance_owner_review_samples_path
+                    .as_ref()
+                    .is_some_and(|path| !path.trim().is_empty())
+                || parsed.paper_policy_trial_plan_output_path.is_some()
+                || parsed
+                    .paper_policy_trial_scenario_plan_input_path
+                    .as_ref()
+                    .is_some_and(|path| !path.trim().is_empty())
+                || parsed
+                    .paper_policy_trial_scenario_matrix_input_path
+                    .as_ref()
+                    .is_some_and(|path| !path.trim().is_empty())
+                || parsed
+                    .paper_policy_trial_scenario_ledger_input_path
+                    .as_ref()
+                    .is_some_and(|path| !path.trim().is_empty())
+                || parsed.paper_policy_trial_scenario_ledger_output_path.is_some()
+                || parsed
+                    .paper_policy_trial_repeated_scenario_ledger_input_path
+                    .as_ref()
+                    .is_some_and(|path| !path.trim().is_empty())
+                || parsed
+                    .paper_policy_trial_repeated_scenario_ledger_output_path
+                    .is_some()
+                || parsed
+                    .paper_policy_trial_outcome_scorecard_input_path
+                    .as_ref()
+                    .is_some_and(|path| !path.trim().is_empty())
+                || parsed.paper_policy_trial_outcome_scorecard_output_path.is_some()
                 || (parsed.paper_governance_trial_enabled
                     && (parsed.paper_governance_trial_apply_candidates
                         || parsed.paper_governance_trial_compare_committee_voice
                         || parsed.paper_governance_trial_emit_owner_summary))
+                || (parsed.paper_governance_trial_evaluation_enabled
+                    && (parsed.paper_governance_trial_append_ledger_entry
+                        || parsed.paper_governance_trial_run_counterfactual_replay
+                        || parsed.paper_governance_trial_evaluation_emit_owner_summary))
+                || (parsed.paper_governance_trial_multicycle_enabled
+                    && (parsed.paper_governance_trial_multicycle_count > 1
+                        || parsed.paper_governance_trial_multicycle_append_ledger
+                        || parsed.paper_governance_trial_multicycle_emit_owner_summary))
+                || (parsed.governance_policy_feedback_tuning_enabled
+                    && (parsed.governance_policy_feedback_tuning_write_ledger
+                        || parsed.governance_policy_feedback_tuning_emit_owner_summary))
+                || (parsed.governance_recommendation_stability_enabled
+                    && (parsed.governance_recommendation_stability_append_ledger
+                        || parsed.governance_recommendation_stability_min_entries_required > 1
+                        || parsed.governance_recommendation_stability_emit_owner_summary))
+                || (parsed.governance_recommendation_multirun_enabled
+                    && (parsed.governance_recommendation_multirun_count > 3
+                        || parsed.governance_recommendation_multirun_append_ledger
+                        || parsed.governance_recommendation_multirun_emit_owner_summary))
+                || (parsed.governance_recommendation_materialization_enabled
+                    && parsed.governance_recommendation_materialization_emit_owner_summary)
+                || (parsed.governance_recommendation_support_materialization_enabled
+                    && parsed.governance_recommendation_support_materialization_emit_owner_summary)
+                || (parsed.governance_recommendation_owner_review_enabled
+                    && parsed.governance_recommendation_owner_review_emit_summary)
+                || parsed.governance_owner_review_verify_enabled
+                || parsed.governance_owner_review_verify_expected_intent.is_some()
+                || parsed.governance_owner_review_verify_require_design_draft
+                || parsed.governance_owner_review_run_firewall_regression
+                || (parsed.paper_policy_trial_plan_enabled
+                    && (parsed.paper_policy_trial_plan_write_output
+                        || parsed.paper_policy_trial_plan_emit_owner_summary))
+                || (parsed.paper_policy_trial_scenario_execution_enabled
+                    && (parsed.paper_policy_trial_scenario_execution_write_ledger
+                        || parsed.paper_policy_trial_scenario_execution_emit_owner_summary
+                        || !parsed.paper_policy_trial_scenario_stop_on_first_blocking_condition
+                        || parsed.paper_policy_trial_scenario_max_scenarios != 16))
+                || (parsed.paper_policy_trial_repeated_scenario_enabled
+                    && (parsed.paper_policy_trial_repeated_scenario_append_ledger
+                        || parsed.paper_policy_trial_repeated_scenario_count != 3
+                        || !parsed.paper_policy_trial_repeated_scenario_stop_on_recurrent_block
+                        || parsed.paper_policy_trial_repeated_scenario_emit_owner_summary))
+                || (parsed.paper_policy_trial_outcome_scorecard_enabled
+                    && (parsed.paper_policy_trial_outcome_scorecard_write_output
+                        || parsed.paper_policy_trial_outcome_scorecard_emit_owner_summary))
+                || (parsed.paper_policy_outcome_feedback_bridge_enabled
+                    && (parsed.paper_policy_outcome_feedback_bridge_append_ledger
+                        || parsed.paper_policy_outcome_feedback_bridge_emit_owner_summary))
+                || !parsed.paper_policy_outcome_feedback_bridge_dry_run
+                || parsed
+                    .paper_policy_outcome_feedback_bridge_ledger_input_path
+                    .is_some()
+                || parsed.governance_outcome_feedback_reentry_enabled
+                || !parsed.governance_outcome_feedback_reentry_dry_run
+                || (parsed.governance_outcome_feedback_reentry_enabled
+                    && parsed.governance_outcome_feedback_reentry_emit_owner_summary)
+                || parsed.governance_keep_policy_review_enabled
+                || !parsed.governance_keep_policy_review_dry_run
+                || parsed.governance_keep_policy_review_append_ledger
+                || parsed
+                    .governance_keep_policy_review_owner_text
+                    .as_ref()
+                    .is_some_and(|text| !text.trim().is_empty())
+                || parsed
+                    .governance_keep_policy_review_ledger_input_path
+                    .is_some()
+                || (parsed.governance_keep_policy_review_enabled
+                    && parsed.governance_keep_policy_review_emit_owner_summary)
+                || parsed.governance_keep_policy_review_multirun_enabled
+                || !parsed.governance_keep_policy_review_multirun_dry_run
+                || parsed.governance_keep_policy_review_multirun_count != 3
+                || parsed.governance_keep_policy_review_multirun_append_ledger
+                || parsed
+                    .governance_keep_policy_review_multirun_ledger_input_path
+                    .is_some()
+                || parsed
+                    .governance_keep_policy_review_multirun_ledger_output_path
+                    .is_some()
+                || parsed
+                    .governance_keep_policy_review_multirun_output_path
+                    .is_some()
+                || (parsed.governance_keep_policy_review_multirun_enabled
+                    && parsed.governance_keep_policy_review_multirun_emit_owner_summary)
+                || stable_keep_policy_review_export_requested_from_flags(
+                    parsed.stable_keep_policy_review_export_enabled,
+                    parsed.stable_keep_policy_review_export_dry_run,
+                    parsed
+                        .stable_keep_policy_review_export_continuation_ledger_input_path
+                        .as_ref(),
+                    parsed
+                        .stable_keep_policy_review_export_archive_input_path
+                        .as_ref(),
+                    parsed.stable_keep_policy_review_archive_output_path.as_ref(),
+                    parsed
+                        .stable_keep_policy_review_read_model_output_path
+                        .as_ref(),
+                    parsed.stable_keep_policy_review_console_output_path.as_ref(),
+                    parsed.stable_keep_policy_review_export_write_archive,
+                    parsed.stable_keep_policy_review_export_write_read_model,
+                    parsed.stable_keep_policy_review_export_write_console_render_model,
+                    parsed.stable_keep_policy_review_export_emit_owner_summary,
+                )
+                || governance_review_workflow_requested_from_flags(
+                    parsed.governance_review_workflow_enabled,
+                    parsed.governance_review_workflow_dry_run,
+                    parsed.governance_review_workflow_archive_input_path.as_ref(),
+                    parsed
+                        .governance_review_workflow_archive_index_output_path
+                        .as_ref(),
+                    parsed
+                        .governance_review_workflow_owner_inbox_output_path
+                        .as_ref(),
+                    parsed.governance_review_workflow_viewer_output_path.as_ref(),
+                    parsed.governance_review_workflow_write_archive_index,
+                    parsed.governance_review_workflow_write_owner_inbox,
+                    parsed.governance_review_workflow_write_viewer,
+                    parsed.governance_review_workflow_emit_owner_summary,
+                )
+                || owner_governance_console_surfacing_requested_from_flags(
+                    parsed.owner_governance_console_surfacing_enabled,
+                    parsed.owner_governance_console_surfacing_dry_run,
+                    parsed
+                        .owner_governance_console_archive_index_input_path
+                        .as_ref(),
+                    parsed
+                        .owner_governance_console_owner_inbox_input_path
+                        .as_ref(),
+                    parsed.owner_governance_console_viewer_input_path.as_ref(),
+                    parsed
+                        .owner_governance_console_chairman_memory_input_path
+                        .as_ref(),
+                    parsed
+                        .owner_governance_console_surface_model_output_path
+                        .as_ref(),
+                    parsed.owner_governance_console_terminal_output_path.as_ref(),
+                    parsed.owner_governance_console_json_output_path.as_ref(),
+                    parsed.owner_governance_console_write_surface_model,
+                    parsed.owner_governance_console_write_terminal_render,
+                    parsed.owner_governance_console_write_json_render,
+                    parsed.owner_governance_console_render_terminal_text,
+                    parsed.owner_governance_console_render_json,
+                    parsed.owner_governance_console_emit_owner_summary,
+                )
+                || owner_paper_review_navigation_requested_from_flags(
+                    parsed.owner_paper_review_navigation_enabled,
+                    parsed.owner_paper_review_navigation_dry_run,
+                    parsed
+                        .owner_paper_review_navigation_governance_console_surface_path
+                        .as_ref(),
+                    parsed
+                        .owner_paper_review_navigation_review_inbox_path
+                        .as_ref(),
+                    parsed
+                        .owner_paper_review_navigation_archive_index_path
+                        .as_ref(),
+                    parsed.owner_paper_review_navigation_read_model_path.as_ref(),
+                    parsed
+                        .owner_paper_review_navigation_memory_reference_path
+                        .as_ref(),
+                    parsed
+                        .owner_paper_review_navigation_outcome_scorecard_path
+                        .as_ref(),
+                    parsed
+                        .owner_paper_review_navigation_feedback_bridge_path
+                        .as_ref(),
+                    parsed
+                        .owner_paper_review_navigation_itinerary_output_path
+                        .as_ref(),
+                    parsed
+                        .owner_paper_review_navigation_read_model_output_path
+                        .as_ref(),
+                    parsed
+                        .owner_paper_review_navigation_terminal_output_path
+                        .as_ref(),
+                    parsed.owner_paper_review_navigation_json_output_path.as_ref(),
+                    parsed.owner_paper_review_navigation_write_itinerary,
+                    parsed.owner_paper_review_navigation_write_read_model,
+                    parsed.owner_paper_review_navigation_write_terminal,
+                    parsed.owner_paper_review_navigation_write_json,
+                    parsed.owner_paper_review_navigation_render_terminal,
+                    parsed.owner_paper_review_navigation_render_json,
+                    parsed.owner_paper_review_navigation_emit_owner_summary,
+                )
             {
                 serde_json::to_value(run_batch_committee_cycle_with_state_from_config_path(
                     std::path::Path::new(config),

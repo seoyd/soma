@@ -45,7 +45,7 @@ Validation target:
 - `cargo fmt --all`
 - `cargo check --workspace`
 - `cargo test --workspace --quiet`
-- Sprint 53 owner/dashboard CLI smoke commands from `work.md`
+- Sprint 53 owner/dashboard CLI smoke commands from the temporary instruction artifact
 
 ## Next sprint recommendation
 

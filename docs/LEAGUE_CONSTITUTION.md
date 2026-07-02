@@ -2,15 +2,15 @@
 
 ## Binding runtime rules
 
-The live Soma Zero path is governed by these rules:
+The current paper/runtime Soma Zero path is governed by these rules:
 
 1. Runtime LLM is forbidden.
-2. Live decisions are numeric-only and deterministic.
+2. All decisions are numeric-only and deterministic.
 3. Default action is `NoTrade`.
 4. Risk Governor is above Chair and has absolute veto.
 5. Chair is a meta-controller only. It may rank, filter, and shape candidates, but it may not execute.
 6. Paper execution only. No real broker path is allowed in this sprint.
-7. Only 3 active personas are live in Sprint 03.
+7. Only 3 active personas are active in the current restart.
 8. No live self-mutation is allowed.
 9. Evolution remains sandbox-only and is deferred.
 
@@ -31,7 +31,13 @@ The live Soma Zero path is governed by these rules:
 
 ## Future extension path
 
-The path to 6 / 12 / 18 personas remains open through additional `PersonaCard` entries and deterministic delegates, but those personas are not active now. Any future expansion must preserve:
+The owner direction is to expand carefully from 3 independent agents to 8.
+Expansion requires outcome evidence and explicit safety approval. The agents
+must retain distinct investor-style doctrines, while Chair manages speaking
+rights, promotion/relegation, rewards, and penalties. Owner input remains
+advisory; rejection must include reasons.
+
+Any future expansion must preserve:
 
 - immutable doctrine
 - numeric-only decisions

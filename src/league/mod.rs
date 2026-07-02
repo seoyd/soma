@@ -631,9 +631,27 @@ pub use paper_position_lifecycle::{
 };
 pub use persona::Persona;
 pub use persona_card::{
-    EvaluationProfile, Horizon, ImmutableDoctrine, MutablePolicy, PersonaCard, VoiceConfig,
-    active_persona_cards, cycle_risk_skeptic_card, horizon_from_bars, momentum_trend_fast_card,
-    persona_card_by_id, value_quality_filter_card,
+    AgentAttributionSummary, AgentDoctrine, AgentFeedback, AgentFeedbackBuildError,
+    AgentFeedbackOutcomeKind, AgentId, AgentKind, AgentLearningSummary, AgentMemorySummary,
+    AgentProposal, AgentStateJournal, AgentStateJournalError, AgentStateSnapshot, AgentStatus,
+    AgentVersion, AgentVoiceState, CanonicalAgentState, ChairRewardPenalty, ChairTierAction,
+    CooldownTickMode, EvaluationProfile, FeedbackContext, FeedbackCycleResult, Horizon,
+    ImmutableDoctrine,
+    LearningChainSummary, MutablePolicy, PaperLearningChainConfig, PaperLearningChainError,
+    PaperLearningChainInput, PaperLearningChainResult, PaperLearningEpisode,
+    PaperLearningEpisodeResult, PaperLearningLoopConfig, PaperLearningLoopError,
+    PaperFillEvidence, PaperLearningLoopInput, PaperLearningLoopReport, PaperLearningLoopResult,
+    PaperOutcomeContext, PaperOutcomeKind, PaperReplayConfig, PaperReplayError, PaperReplayInput,
+    PaperReplayResult, PersonaCard, ReplayAttributionSummary, SandboxPromotionCandidate,
+    SandboxPromotionStatus, VoiceConfig, active_persona_cards, apply_cooldown_tick_after_episode,
+    apply_feedback_to_memory_summary, apply_paper_feedback_cycle,
+    build_agent_feedback_from_paper_outcome, build_sandbox_promotion_candidate,
+    canonical_agent_state_from_card, canonical_current_agent_states, classify_agent_status,
+    clear_expired_cooldown, compute_chair_reward_penalty, cycle_risk_skeptic_card,
+    detect_doctrine_violation, future_agent_placeholder_state, horizon_from_bars,
+    is_agent_available_for_live_decision, momentum_trend_fast_card, persona_card_by_id,
+    run_3_agent_paper_learning_chain, run_3_agent_paper_learning_loop,
+    run_3_agent_paper_replay, update_agent_voice_state, value_quality_filter_card,
 };
 pub use persona_card_lite::{
     DoctrineRule, PersonaCardLite, PersonaGroup, PersonaHorizon, PersonaMutablePolicy, PersonaRole,

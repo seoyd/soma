@@ -160,7 +160,7 @@
 ## 31. CLI and examples
 
 - Required Sprint 106 CLI commands and example configs are present.
-- Representative CLI smoke passed for 8 commands listed in `work.md`.
+- Representative CLI smoke passed for 8 commands from the temporary instruction artifact.
 
 ## 32. Tests added
 

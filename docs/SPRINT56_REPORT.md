@@ -48,7 +48,7 @@ Run:
 - `cargo fmt --all`
 - `cargo check --workspace`
 - `cargo test --workspace --quiet`
-- Sprint 56 CLI smoke commands from `work.md`
+- Sprint 56 CLI smoke commands from the temporary instruction artifact
 
 ## Next recommendation
 

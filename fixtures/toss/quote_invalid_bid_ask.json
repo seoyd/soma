@@ -1,0 +1,10 @@
+{
+  "symbol": "FAKE123",
+  "timestamp_ms": 1800000000000,
+  "price": 100.0,
+  "bid": 101.0,
+  "ask": 99.0,
+  "volume": 1000.0,
+  "trade_value": 100000.0,
+  "raw_status": "OK"
+}

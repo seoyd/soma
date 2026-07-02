@@ -75,19 +75,6 @@ test_status = "passed"
 destination = "quarantine/old_experiments/reports/UPGRADE_REPORT.md"
 
 [[files]]
-path = "work.md"
-classification = "UNKNOWN"
-reason = "Historical task note; not part of build reachability, but referenced by the quarantined acceptance report and not proven safe enough to remove."
-evidence = [
-  "top-level markdown outside cargo metadata",
-  "referenced by ACCEPTANCE_REPORT.md historically",
-  "no stronger proof of irrelevance collected in Sprint 02"
-]
-action = "kept_in_place"
-risk_level = "medium"
-test_status = "not_applicable"
-
-[[files]]
 path = "soma-ssm"
 classification = "QUARANTINE_CANDIDATE"
 reason = "Legacy Sparse/Mamba model crate; became zero-inbound after `soma-model` switched to an internal deterministic block path."
@@ -286,10 +273,10 @@ destination = "quarantine/unused_bins/soma-soak"
 [[files]]
 path = "soma-prop"
 classification = "QUARANTINE_CANDIDATE"
-reason = "Minimal property-test utility crate outside the active Soma Zero v0 runtime; remained zero-inbound and was explicitly approved for quarantine despite work.md mentions."
+reason = "Minimal property-test utility crate outside the active Soma Zero v0 runtime; remained zero-inbound and was explicitly approved for quarantine despite temporary instruction-artifact mentions."
 evidence = [
   "zero inbound workspace dependencies in fresh reverse-dependency audit",
-  "non-code references limited to work.md, workspace membership, and root docs",
+  "non-code references limited to temporary instruction artifacts, workspace membership, and root docs",
   "cargo fmt/check/test passed after removal from workspace members and move to quarantine"
 ]
 action = "moved_to_quarantine"
@@ -300,10 +287,10 @@ destination = "quarantine/old_experiments/soma-prop"
 [[files]]
 path = "soma-replay"
 classification = "QUARANTINE_CANDIDATE"
-reason = "Legacy replay CLI outside the active Soma Zero v0 runtime; remained zero-inbound and was explicitly approved for quarantine despite work.md mentions."
+reason = "Legacy replay CLI outside the active Soma Zero v0 runtime; remained zero-inbound and was explicitly approved for quarantine despite temporary instruction-artifact mentions."
 evidence = [
   "zero inbound workspace dependencies in fresh reverse-dependency audit",
-  "non-code references limited to work.md, workspace membership, root docs, and already-quarantined wrappers",
+  "non-code references limited to temporary instruction artifacts, workspace membership, root docs, and already-quarantined wrappers",
   "cargo fmt/check/test passed after removal from workspace members and move to quarantine"
 ]
 action = "moved_to_quarantine"
@@ -314,10 +301,10 @@ destination = "quarantine/unused_bins/soma-replay"
 [[files]]
 path = "soma-serve"
 classification = "QUARANTINE_CANDIDATE"
-reason = "Legacy serving CLI outside the active Soma Zero v0 runtime; remained zero-inbound and was explicitly approved for quarantine despite work.md mentions."
+reason = "Legacy serving CLI outside the active Soma Zero v0 runtime; remained zero-inbound and was explicitly approved for quarantine despite temporary instruction-artifact mentions."
 evidence = [
   "zero inbound workspace dependencies in fresh reverse-dependency audit",
-  "non-code references limited to work.md, workspace membership, root docs, and already-quarantined wrappers",
+  "non-code references limited to temporary instruction artifacts, workspace membership, root docs, and already-quarantined wrappers",
   "cargo fmt/check/test passed after removal from workspace members and move to quarantine"
 ]
 action = "moved_to_quarantine"

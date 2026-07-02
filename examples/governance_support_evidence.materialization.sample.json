@@ -1,0 +1,95 @@
+{
+  "fixture_id": "governance-support-evidence-materialization-sprint203",
+  "schema_version": "sprint203.v1",
+  "paper_only": true,
+  "records": [
+    {
+      "fixture_record_id": "sprint203-continue-paper-risk-regression",
+      "proposal_id": "governance-proposal-continuepapertrial-global",
+      "evidence_kind": "RiskRegressionImprovement",
+      "member_id": "risk-guard-ai",
+      "role": "RiskGuard",
+      "confidence": "High",
+      "support_score": 12.0,
+      "reason": "Paper-only replay showed lower risk regression for the conservative continue-paper proposal.",
+      "paper_only": true
+    },
+    {
+      "fixture_record_id": "sprint203-continue-paper-voice-concentration",
+      "proposal_id": "governance-proposal-continuepapertrial-global",
+      "evidence_kind": "VoiceConcentrationReduction",
+      "member_id": "risk-guard-ai",
+      "role": "RiskGuard",
+      "confidence": "High",
+      "support_score": 10.0,
+      "reason": "Paper-only replay reduced single-role voice concentration while preserving dissent.",
+      "paper_only": true
+    },
+    {
+      "fixture_record_id": "sprint203-continue-paper-abstention-bias",
+      "proposal_id": "governance-proposal-continuepapertrial-global",
+      "evidence_kind": "NoTradeBiasReduction",
+      "member_id": "evidence-regime-ai",
+      "role": "EvidenceRegime",
+      "confidence": "Medium",
+      "support_score": 8.0,
+      "reason": "Paper-only replay reduced excessive abstention bias without weakening safety.",
+      "paper_only": true
+    },
+    {
+      "fixture_record_id": "sprint203-continue-paper-risk-first",
+      "proposal_id": "governance-proposal-continuepapertrial-global",
+      "evidence_kind": "RiskFirstPreserved",
+      "member_id": "risk-guard-ai",
+      "role": "RiskGuard",
+      "confidence": "High",
+      "support_score": 12.0,
+      "reason": "Risk-first behavior remained preserved in the paper-only review candidate.",
+      "paper_only": true
+    },
+    {
+      "fixture_record_id": "sprint203-continue-paper-role-balance",
+      "proposal_id": "governance-proposal-continuepapertrial-global",
+      "evidence_kind": "RoleBalancePreserved",
+      "member_id": "trend-entry-ai",
+      "role": "TrendEntry",
+      "confidence": "Medium",
+      "support_score": 8.0,
+      "reason": "TrendEntry and EvidenceRegime were not suppressed by the review candidate.",
+      "paper_only": true
+    },
+    {
+      "fixture_record_id": "sprint203-continue-paper-safety",
+      "proposal_id": "governance-proposal-continuepapertrial-global",
+      "evidence_kind": "SafetyPreserved",
+      "member_id": "risk-guard-ai",
+      "role": "RiskGuard",
+      "confidence": "High",
+      "support_score": 16.0,
+      "reason": "Safety was preserved during paper-only support materialization review.",
+      "paper_only": true
+    },
+    {
+      "fixture_record_id": "sprint203-continue-paper-review-required",
+      "proposal_id": "governance-proposal-continuepapertrial-global",
+      "evidence_kind": "ReviewRequired",
+      "member_id": "owner-review",
+      "role": "Unknown",
+      "confidence": "ReviewRequired",
+      "support_score": -10.0,
+      "reason": "Owner review remains required before any future design discussion.",
+      "paper_only": true
+    },
+    {
+      "fixture_record_id": "sprint203-weak-secondary-record",
+      "proposal_id": "governance-proposal-addevidencerequirement-global",
+      "evidence_kind": "InsufficientEvidence",
+      "member_id": "evidence-regime-ai",
+      "role": "EvidenceRegime",
+      "confidence": "Low",
+      "support_score": -2.0,
+      "reason": "Secondary proposal has weak paper-only support and must not dominate.",
+      "paper_only": true
+    }
+  ]
+}
