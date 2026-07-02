@@ -344,6 +344,12 @@ pub fn owner_rejection_explanation(reason_codes: &[ReasonCode]) -> String {
             ReasonCode::OwnerRequestedButAgentInCooldown => {
                 Some("The requested agent is in a safety cooldown.")
             }
+            ReasonCode::OwnerRequestedButCooldownActive => {
+                Some("Active cooldown cannot be cleared by owner input.")
+            }
+            ReasonCode::OwnerRequestedButSandboxOnly => {
+                Some("Sandbox candidates cannot be promoted by owner input.")
+            }
             ReasonCode::CooldownOwnerBypassRejected => {
                 Some("Owner input cannot clear or bypass an agent cooldown.")
             }

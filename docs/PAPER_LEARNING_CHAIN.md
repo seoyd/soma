@@ -121,3 +121,7 @@ persistence, full eight-agent operation, and live execution remain deferred.
 this chain with one finalized episode at a time so an optional cooldown tick
 can be recorded as a separate post-episode child version before the next
 decision. This chain remains the canonical learning implementation.
+
+The owner learning report consumes only the replay result produced above the
+chain. Report generation is not part of vote, Chair, Risk, broker, feedback, or
+version-transition processing.

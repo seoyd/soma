@@ -86,3 +86,10 @@ performance.
 This is not a complete AI system. Durable persistence, long historical market
 ingestion, eight-agent activation, online learning, heavy models, and live
 execution remain outside this implementation.
+
+## Owner Report Projection
+
+`build_owner_learning_report` reads the completed replay result and projects
+its existing numeric summaries into an owner view. It cannot change replay
+states or journal entries. Report renderers and review commands operate only
+on this immutable projection.

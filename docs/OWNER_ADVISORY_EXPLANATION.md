@@ -87,3 +87,10 @@ decision.
 - Runtime LLM use is unnecessary and forbidden.
 - Explanations must not contain credentials, private provider payloads, or raw
   account data.
+
+## Learning Report Use
+
+The owner learning report reuses these stable reason templates for rejected
+paper requests. Cooldown-clear and sandbox-promotion intent receive explicit
+rejection reasons. Rendering an explanation cannot approve the original
+request or trigger a later action.

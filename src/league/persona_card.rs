@@ -643,6 +643,127 @@ pub enum PaperReplayError {
     VersionJournal(AgentStateJournalError),
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerAgentLearningView {
+    pub agent_id: AgentId,
+    pub agent_kind: AgentKind,
+    pub start_version_id: String,
+    pub end_version_id: String,
+    pub start_voice_power: f64,
+    pub end_voice_power: f64,
+    pub voice_delta: f64,
+    pub tier_before: PersonaTier,
+    pub tier_after: PersonaTier,
+    pub status_before: AgentStatus,
+    pub status_after: AgentStatus,
+    pub cooldown_before: u32,
+    pub cooldown_after: u32,
+    pub wins_delta: u64,
+    pub losses_delta: u64,
+    pub avoided_losses_delta: u64,
+    pub missed_gains_delta: u64,
+    pub high_confidence_misses_delta: u64,
+    pub doctrine_violations_delta: u64,
+    pub total_reward: f64,
+    pub total_penalty: f64,
+    pub net_reward_penalty: f64,
+    pub sandbox_candidates_created: u64,
+    pub owner_visible_explanation: String,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ChairReviewSummary {
+    pub decisions_composed: u64,
+    pub rewards_given: u64,
+    pub penalties_given: u64,
+    pub cooldowns_started: u64,
+    pub quarantines: u64,
+    pub sandbox_candidates: u64,
+    pub top_rewarded_agent: Option<AgentId>,
+    pub top_penalized_agent: Option<AgentId>,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct RiskReviewSummary {
+    pub risk_denials: u64,
+    pub emergency_stops: u64,
+    pub cooldown_blocks: u64,
+    pub owner_requests_denied: u64,
+    pub bad_data_denials: u64,
+    pub spread_denials: u64,
+    pub stale_data_denials: u64,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SandboxReviewSummary {
+    pub candidate_count: u64,
+    pub candidates_by_agent: BTreeMap<AgentId, u64>,
+    pub any_live_candidate: bool,
+    pub safety_status: String,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerAdvisorySummary {
+    pub owner_requests_seen: u64,
+    pub owner_requests_accepted_as_context: u64,
+    pub owner_requests_rejected: u64,
+    pub owner_forced_trade_attempts_blocked: u64,
+    pub owner_promotion_attempts_blocked: u64,
+    pub owner_cooldown_clear_attempts_blocked: u64,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerLearningReport {
+    pub report_id: String,
+    pub generated_from_replay_id: Option<String>,
+    pub total_episodes: usize,
+    pub total_paper_trades: u64,
+    pub total_no_trades: u64,
+    pub total_risk_denials: u64,
+    pub agents: Vec<OwnerAgentLearningView>,
+    pub chair_summary: ChairReviewSummary,
+    pub risk_summary: RiskReviewSummary,
+    pub sandbox_summary: SandboxReviewSummary,
+    pub owner_advisory_summary: OwnerAdvisorySummary,
+    pub safety_warnings: Vec<String>,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum OwnerLearningReportError {
+    InvalidReportId,
+    InvalidReplayRoster,
+    MissingAgentSummary,
+    UnsafePrivateData {
+        reason_codes: Vec<ReasonCode>,
+    },
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum OwnerReviewCommand {
+    ShowSummary,
+    ShowAgent { agent_id: AgentId },
+    ShowRisk,
+    ShowSandbox,
+    ShowOwnerAdvisory,
+    ExplainReasonCodes { reason_codes: Vec<ReasonCode> },
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct OwnerReviewResponse {
+    pub text: String,
+    pub reason_codes: Vec<ReasonCode>,
+    pub no_state_mutation: bool,
+    pub order_execution_supported: bool,
+    pub sandbox_promotion_supported: bool,
+    pub cooldown_clear_supported: bool,
+}
+
 impl CanonicalAgentState {
     pub fn can_vote_live(&self) -> bool {
         self.status == AgentStatus::Active
@@ -880,6 +1001,23 @@ pub fn run_3_agent_paper_learning_loop(
             review
                 .reason_codes
                 .push(ReasonCode::CooldownOwnerBypassRejected);
+            review
+                .reason_codes
+                .push(ReasonCode::OwnerRequestedButCooldownActive);
+            review.reason_codes = stable_reason_codes(&review.reason_codes);
+            review.explanation = owner_rejection_explanation(&review.reason_codes);
+        }
+        if requested_action.contains("promote")
+            || requested_action.contains("promotion")
+            || requested_action.contains("sandbox")
+        {
+            review.paper_action_allowed = false;
+            review
+                .reason_codes
+                .push(ReasonCode::OwnerRequestedButSandboxOnly);
+            review
+                .reason_codes
+                .push(ReasonCode::OwnerRequestedButPolicyBlocked);
             review.reason_codes = stable_reason_codes(&review.reason_codes);
             review.explanation = owner_rejection_explanation(&review.reason_codes);
         }
@@ -1645,6 +1783,589 @@ fn finalize_replay_attribution(
         }
         summary.net_reward_penalty = summary.total_reward - summary.total_penalty;
         summary.reason_codes = stable_reason_codes(&summary.reason_codes);
+    }
+}
+
+pub fn build_owner_learning_report(
+    report_id: &str,
+    generated_from_replay_id: Option<String>,
+    replay: &PaperReplayResult,
+) -> Result<OwnerLearningReport, OwnerLearningReportError> {
+    if report_id.trim().is_empty() {
+        return Err(OwnerLearningReportError::InvalidReportId);
+    }
+    if contains_owner_report_private_material(report_id)
+        || generated_from_replay_id
+            .as_deref()
+            .is_some_and(contains_owner_report_private_material)
+    {
+        return Err(OwnerLearningReportError::UnsafePrivateData {
+            reason_codes: vec![ReasonCode::OwnerReportUnsafePrivateDataRejected],
+        });
+    }
+    if replay.initial_states.len() != 3 || replay.final_states.len() != 3 {
+        return Err(OwnerLearningReportError::InvalidReplayRoster);
+    }
+
+    let mut agents = Vec::with_capacity(3);
+    for learning in &replay.learning_chain_summary.agent_summaries {
+        let initial = replay
+            .initial_states
+            .iter()
+            .find(|state| state.agent_id == learning.agent_id)
+            .ok_or(OwnerLearningReportError::MissingAgentSummary)?;
+        let final_state = replay
+            .final_states
+            .iter()
+            .find(|state| state.agent_id == learning.agent_id)
+            .ok_or(OwnerLearningReportError::MissingAgentSummary)?;
+        let attribution = replay
+            .replay_attribution_summary
+            .iter()
+            .find(|summary| summary.agent_id == learning.agent_id)
+            .ok_or(OwnerLearningReportError::MissingAgentSummary)?;
+        let mut reason_codes = learning
+            .reason_codes
+            .iter()
+            .chain(attribution.reason_codes.iter())
+            .cloned()
+            .collect::<Vec<_>>();
+        if final_state.status == AgentStatus::Quarantined {
+            reason_codes.push(ReasonCode::Quarantined);
+        }
+        if final_state.voice_state.cooldown_bars > 0 {
+            reason_codes.push(ReasonCode::CooldownRequired);
+        }
+        let explanation = owner_agent_learning_explanation(
+            attribution.net_reward_penalty,
+            final_state.status,
+            learning,
+        );
+        agents.push(OwnerAgentLearningView {
+            agent_id: learning.agent_id.clone(),
+            agent_kind: final_state.kind,
+            start_version_id: learning.start_version_id.clone(),
+            end_version_id: learning.end_version_id.clone(),
+            start_voice_power: learning.start_voice_power,
+            end_voice_power: learning.end_voice_power,
+            voice_delta: learning.end_voice_power - learning.start_voice_power,
+            tier_before: learning.tier_before,
+            tier_after: learning.tier_after,
+            status_before: learning.status_before,
+            status_after: learning.status_after,
+            cooldown_before: initial.voice_state.cooldown_bars,
+            cooldown_after: final_state.voice_state.cooldown_bars,
+            wins_delta: learning.wins_delta,
+            losses_delta: learning.losses_delta,
+            avoided_losses_delta: learning.avoided_losses_delta,
+            missed_gains_delta: learning.missed_gains_delta,
+            high_confidence_misses_delta: learning.high_confidence_misses_delta,
+            doctrine_violations_delta: learning.doctrine_violations_delta,
+            total_reward: attribution.total_reward,
+            total_penalty: attribution.total_penalty,
+            net_reward_penalty: attribution.net_reward_penalty,
+            sandbox_candidates_created: learning.sandbox_candidates_created,
+            owner_visible_explanation: explanation,
+            reason_codes: stable_reason_codes(&reason_codes),
+        });
+    }
+    agents.sort_by(|left, right| left.agent_id.cmp(&right.agent_id));
+    if agents.len() != 3 {
+        return Err(OwnerLearningReportError::MissingAgentSummary);
+    }
+
+    let episode_results = replay
+        .chain_results
+        .iter()
+        .flat_map(|chain| chain.episode_results.iter())
+        .collect::<Vec<_>>();
+    let rewards_given = episode_results
+        .iter()
+        .flat_map(|episode| episode.result.reward_penalties.iter())
+        .filter(|reward| reward.reward_delta > 0.0)
+        .count() as u64;
+    let penalties_given = episode_results
+        .iter()
+        .flat_map(|episode| episode.result.reward_penalties.iter())
+        .filter(|reward| reward.penalty_delta > 0.0)
+        .count() as u64;
+    let cooldowns_started = episode_results
+        .iter()
+        .flat_map(|episode| episode.result.reward_penalties.iter())
+        .filter(|reward| reward.tier_action == ChairTierAction::Cooldown)
+        .count() as u64;
+    let quarantines = episode_results
+        .iter()
+        .flat_map(|episode| episode.result.reward_penalties.iter())
+        .filter(|reward| reward.tier_action == ChairTierAction::Quarantine)
+        .count() as u64;
+    let top_rewarded_agent = top_agent_by(&agents, |agent| agent.total_reward);
+    let top_penalized_agent = top_agent_by(&agents, |agent| agent.total_penalty);
+    let chair_summary = ChairReviewSummary {
+        decisions_composed: episode_results.len() as u64,
+        rewards_given,
+        penalties_given,
+        cooldowns_started,
+        quarantines,
+        sandbox_candidates: replay.sandbox_candidates.len() as u64,
+        top_rewarded_agent,
+        top_penalized_agent,
+        reason_codes: vec![ReasonCode::DeterministicPath, ReasonCode::PaperExecutionOnly],
+    };
+
+    let owner_reviews = episode_results
+        .iter()
+        .filter_map(|episode| episode.result.owner_explanation.as_ref())
+        .collect::<Vec<_>>();
+    let owner_advisory_summary = OwnerAdvisorySummary {
+        owner_requests_seen: owner_reviews.len() as u64,
+        owner_requests_accepted_as_context: owner_reviews
+            .iter()
+            .filter(|review| review.paper_action_allowed)
+            .count() as u64,
+        owner_requests_rejected: owner_reviews
+            .iter()
+            .filter(|review| !review.paper_action_allowed)
+            .count() as u64,
+        owner_forced_trade_attempts_blocked: owner_reviews
+            .iter()
+            .filter(|review| {
+                !review.owner_forced_trade
+                    && review
+                        .reason_codes
+                        .contains(&ReasonCode::OwnerRequestedButRiskDenied)
+            })
+            .count() as u64,
+        owner_promotion_attempts_blocked: owner_reviews
+            .iter()
+            .filter(|review| {
+                review
+                    .reason_codes
+                    .contains(&ReasonCode::OwnerRequestedButSandboxOnly)
+            })
+            .count() as u64,
+        owner_cooldown_clear_attempts_blocked: owner_reviews
+            .iter()
+            .filter(|review| {
+                review
+                    .reason_codes
+                    .contains(&ReasonCode::OwnerRequestedButCooldownActive)
+            })
+            .count() as u64,
+        reason_codes: stable_reason_codes(
+            &owner_reviews
+                .iter()
+                .flat_map(|review| review.reason_codes.iter().cloned())
+                .collect::<Vec<_>>(),
+        ),
+    };
+    let risk_decisions = episode_results
+        .iter()
+        .map(|episode| &episode.result.risk_decision)
+        .collect::<Vec<_>>();
+    let risk_summary = RiskReviewSummary {
+        risk_denials: risk_decisions
+            .iter()
+            .filter(|decision| decision.kind != RiskDecisionKind::ApprovePaper)
+            .count() as u64,
+        emergency_stops: risk_decisions
+            .iter()
+            .filter(|decision| decision.kind == RiskDecisionKind::EmergencyStop)
+            .count() as u64,
+        cooldown_blocks: risk_decisions
+            .iter()
+            .filter(|decision| decision.kind == RiskDecisionKind::Cooldown)
+            .count() as u64,
+        owner_requests_denied: owner_advisory_summary.owner_requests_rejected,
+        bad_data_denials: risk_decisions
+            .iter()
+            .filter(|decision| {
+                decision
+                    .reason_codes
+                    .contains(&ReasonCode::DataQualityGateBreached)
+            })
+            .count() as u64,
+        spread_denials: risk_decisions
+            .iter()
+            .filter(|decision| {
+                decision
+                    .reason_codes
+                    .contains(&ReasonCode::SpreadGateBreached)
+            })
+            .count() as u64,
+        stale_data_denials: owner_reviews
+            .iter()
+            .filter(|review| {
+                review
+                    .reason_codes
+                    .contains(&ReasonCode::OwnerRequestedButStaleData)
+            })
+            .count() as u64,
+        reason_codes: stable_reason_codes(
+            &risk_decisions
+                .iter()
+                .flat_map(|decision| decision.reason_codes.iter().cloned())
+                .collect::<Vec<_>>(),
+        ),
+    };
+
+    let mut candidates_by_agent = BTreeMap::new();
+    for candidate in &replay.sandbox_candidates {
+        *candidates_by_agent
+            .entry(candidate.agent_id.clone())
+            .or_insert(0) += 1;
+    }
+    let any_live_candidate = replay.sandbox_candidates.iter().any(|candidate| {
+        !candidate.sandbox_only
+            || candidate.can_vote_live()
+            || candidate.can_affect_live_decision()
+    });
+    let sandbox_summary = SandboxReviewSummary {
+        candidate_count: replay.sandbox_candidates.len() as u64,
+        candidates_by_agent,
+        any_live_candidate,
+        safety_status: if any_live_candidate {
+            "unsafe-live-candidate-detected".to_string()
+        } else {
+            "safe-paper-only".to_string()
+        },
+        reason_codes: vec![
+            ReasonCode::PaperExecutionOnly,
+            ReasonCode::ShadowEvaluationPending,
+        ],
+    };
+
+    Ok(OwnerLearningReport {
+        report_id: report_id.to_string(),
+        generated_from_replay_id,
+        total_episodes: replay.learning_chain_summary.total_episodes,
+        total_paper_trades: replay.learning_chain_summary.total_paper_trades,
+        total_no_trades: replay.learning_chain_summary.total_no_trades,
+        total_risk_denials: replay.learning_chain_summary.total_risk_denials,
+        agents,
+        chair_summary,
+        risk_summary,
+        sandbox_summary,
+        owner_advisory_summary,
+        safety_warnings: vec![
+            "Paper-only report.".to_string(),
+            "Not live trading ready.".to_string(),
+            "Risk Governor remains final veto.".to_string(),
+            "Owner input is advisory only.".to_string(),
+        ],
+        reason_codes: vec![
+            ReasonCode::DeterministicPath,
+            ReasonCode::OwnerLearningReportBuilt,
+            ReasonCode::PaperExecutionOnly,
+        ],
+    })
+}
+
+pub fn render_owner_learning_report_text(report: &OwnerLearningReport) -> String {
+    let mut lines = vec![
+        format!("Owner Learning Report: {}", report.report_id),
+        "Safety status".to_string(),
+    ];
+    lines.extend(report.safety_warnings.iter().cloned());
+    lines.extend([
+        "Overall paper replay summary".to_string(),
+        format!("total_episodes={}", report.total_episodes),
+        format!("total_paper_trades={}", report.total_paper_trades),
+        format!("total_no_trades={}", report.total_no_trades),
+        format!("total_risk_denials={}", report.total_risk_denials),
+        "Agent changes".to_string(),
+    ]);
+    for agent in &report.agents {
+        lines.push(format!(
+            "agent={} kind={:?} voice={:.6}->{:.6} delta={:.6} tier={:?}->{:?} status={:?}->{:?} cooldown={}->{} wins={} losses={} avoided_losses={} missed_gains={} high_confidence_misses={} doctrine_violations={} reward={:.6} penalty={:.6} net={:.6} sandbox_candidates={} explanation={}",
+            agent.agent_id,
+            agent.agent_kind,
+            agent.start_voice_power,
+            agent.end_voice_power,
+            agent.voice_delta,
+            agent.tier_before,
+            agent.tier_after,
+            agent.status_before,
+            agent.status_after,
+            agent.cooldown_before,
+            agent.cooldown_after,
+            agent.wins_delta,
+            agent.losses_delta,
+            agent.avoided_losses_delta,
+            agent.missed_gains_delta,
+            agent.high_confidence_misses_delta,
+            agent.doctrine_violations_delta,
+            agent.total_reward,
+            agent.total_penalty,
+            agent.net_reward_penalty,
+            agent.sandbox_candidates_created,
+            agent.owner_visible_explanation,
+        ));
+    }
+    lines.extend([
+        "Chair rewards and penalties".to_string(),
+        format!(
+            "decisions={} rewards={} penalties={} cooldowns={} quarantines={} top_rewarded={} top_penalized={}",
+            report.chair_summary.decisions_composed,
+            report.chair_summary.rewards_given,
+            report.chair_summary.penalties_given,
+            report.chair_summary.cooldowns_started,
+            report.chair_summary.quarantines,
+            report
+                .chair_summary
+                .top_rewarded_agent
+                .as_deref()
+                .unwrap_or("none"),
+            report
+                .chair_summary
+                .top_penalized_agent
+                .as_deref()
+                .unwrap_or("none"),
+        ),
+        "Risk Governor denials".to_string(),
+        format!(
+            "denials={} emergency_stops={} cooldown_blocks={} bad_data={} spread={} stale_data={}",
+            report.risk_summary.risk_denials,
+            report.risk_summary.emergency_stops,
+            report.risk_summary.cooldown_blocks,
+            report.risk_summary.bad_data_denials,
+            report.risk_summary.spread_denials,
+            report.risk_summary.stale_data_denials,
+        ),
+        "Sandbox candidates".to_string(),
+        format!(
+            "candidate_count={} any_live_candidate={} safety_status={}",
+            report.sandbox_summary.candidate_count,
+            report.sandbox_summary.any_live_candidate,
+            report.sandbox_summary.safety_status,
+        ),
+        "Owner advisory outcomes".to_string(),
+        format!(
+            "seen={} accepted_as_context={} rejected={} forced_trade_blocked={} promotion_blocked={} cooldown_clear_blocked={}",
+            report.owner_advisory_summary.owner_requests_seen,
+            report
+                .owner_advisory_summary
+                .owner_requests_accepted_as_context,
+            report.owner_advisory_summary.owner_requests_rejected,
+            report
+                .owner_advisory_summary
+                .owner_forced_trade_attempts_blocked,
+            report
+                .owner_advisory_summary
+                .owner_promotion_attempts_blocked,
+            report
+                .owner_advisory_summary
+                .owner_cooldown_clear_attempts_blocked,
+        ),
+        "Deferred/live-readiness warning".to_string(),
+        "This report cannot approve, execute, promote, or clear cooldown.".to_string(),
+    ]);
+    redact_owner_report_output(&lines.join("\n"))
+}
+
+pub fn render_owner_learning_report_markdown(report: &OwnerLearningReport) -> String {
+    let text = render_owner_learning_report_text(report);
+    let mut markdown = String::from("# Owner Learning Report\n\n");
+    for line in text.lines() {
+        if matches!(
+            line,
+            "Safety status"
+                | "Overall paper replay summary"
+                | "Agent changes"
+                | "Chair rewards and penalties"
+                | "Risk Governor denials"
+                | "Sandbox candidates"
+                | "Owner advisory outcomes"
+                | "Deferred/live-readiness warning"
+        ) {
+            markdown.push_str(&format!("\n## {line}\n"));
+        } else {
+            markdown.push_str(&format!("- {line}\n"));
+        }
+    }
+    redact_owner_report_output(&markdown)
+}
+
+pub fn render_owner_learning_report_json_like(report: &OwnerLearningReport) -> String {
+    let serialized = serde_json::to_string_pretty(report)
+        .unwrap_or_else(|_| "{\"error\":\"serialization-failed\"}".to_string());
+    redact_owner_report_output(&serialized)
+}
+
+pub fn handle_owner_review_command(
+    report: &OwnerLearningReport,
+    command: OwnerReviewCommand,
+) -> OwnerReviewResponse {
+    let (text, reason_codes) = match command {
+        OwnerReviewCommand::ShowSummary => (
+            render_owner_learning_report_text(report),
+            report.reason_codes.clone(),
+        ),
+        OwnerReviewCommand::ShowAgent { agent_id } => {
+            if let Some(agent) = report.agents.iter().find(|agent| agent.agent_id == agent_id) {
+                (
+                    format!(
+                        "agent={} voice_delta={:.6} status={:?} cooldown={} net={:.6} explanation={}",
+                        agent.agent_id,
+                        agent.voice_delta,
+                        agent.status_after,
+                        agent.cooldown_after,
+                        agent.net_reward_penalty,
+                        agent.owner_visible_explanation,
+                    ),
+                    agent.reason_codes.clone(),
+                )
+            } else {
+                (
+                    format!("agent={agent_id} unavailable"),
+                    vec![ReasonCode::AttributionUnavailable],
+                )
+            }
+        }
+        OwnerReviewCommand::ShowRisk => (
+            format!(
+                "Risk Governor remains final veto. denials={} emergency_stops={} cooldown_blocks={}",
+                report.risk_summary.risk_denials,
+                report.risk_summary.emergency_stops,
+                report.risk_summary.cooldown_blocks,
+            ),
+            report.risk_summary.reason_codes.clone(),
+        ),
+        OwnerReviewCommand::ShowSandbox => (
+            format!(
+                "sandbox_candidates={} any_live_candidate={} safety_status={}",
+                report.sandbox_summary.candidate_count,
+                report.sandbox_summary.any_live_candidate,
+                report.sandbox_summary.safety_status,
+            ),
+            report.sandbox_summary.reason_codes.clone(),
+        ),
+        OwnerReviewCommand::ShowOwnerAdvisory => (
+            format!(
+                "Owner input is advisory only. seen={} rejected={} forced_trade_blocked={} promotion_blocked={} cooldown_clear_blocked={}",
+                report.owner_advisory_summary.owner_requests_seen,
+                report.owner_advisory_summary.owner_requests_rejected,
+                report
+                    .owner_advisory_summary
+                    .owner_forced_trade_attempts_blocked,
+                report
+                    .owner_advisory_summary
+                    .owner_promotion_attempts_blocked,
+                report
+                    .owner_advisory_summary
+                    .owner_cooldown_clear_attempts_blocked,
+            ),
+            report.owner_advisory_summary.reason_codes.clone(),
+        ),
+        OwnerReviewCommand::ExplainReasonCodes { reason_codes } => {
+            let explanation = owner_rejection_explanation(&reason_codes);
+            let stable = stable_reason_codes(&reason_codes);
+            (
+                format!(
+                    "{} reason_codes={}",
+                    explanation,
+                    stable
+                        .iter()
+                        .map(|reason| format!("{reason:?}"))
+                        .collect::<Vec<_>>()
+                        .join(",")
+                ),
+                stable,
+            )
+        }
+    };
+    OwnerReviewResponse {
+        text: redact_owner_report_output(&text),
+        reason_codes: stable_reason_codes(&reason_codes),
+        no_state_mutation: true,
+        order_execution_supported: false,
+        sandbox_promotion_supported: false,
+        cooldown_clear_supported: false,
+    }
+}
+
+fn owner_agent_learning_explanation(
+    net_reward_penalty: f64,
+    final_status: AgentStatus,
+    learning: &AgentLearningSummary,
+) -> String {
+    if final_status == AgentStatus::Quarantined {
+        "Quarantined after a severe doctrine or safety violation.".to_string()
+    } else if final_status == AgentStatus::Cooldown {
+        "Temporarily unavailable because bounded penalties triggered cooldown.".to_string()
+    } else if net_reward_penalty > 0.0 {
+        "Paper outcomes produced more bounded reward than penalty.".to_string()
+    } else if net_reward_penalty < 0.0 {
+        "Paper outcomes produced more bounded penalty than reward.".to_string()
+    } else if learning.avoided_losses_delta > 0 {
+        "NoTrade behavior recorded an avoided paper loss.".to_string()
+    } else {
+        "No net reward or penalty change was recorded.".to_string()
+    }
+}
+
+fn top_agent_by(
+    agents: &[OwnerAgentLearningView],
+    value: impl Fn(&OwnerAgentLearningView) -> f64,
+) -> Option<AgentId> {
+    let mut selected: Option<&OwnerAgentLearningView> = None;
+    for agent in agents {
+        if selected.is_none_or(|current| value(agent) > value(current)) {
+            selected = Some(agent);
+        }
+    }
+    selected
+        .filter(|agent| value(agent) > 0.0)
+        .map(|agent| agent.agent_id.clone())
+}
+
+fn contains_owner_report_private_material(text: &str) -> bool {
+    let normalized = text.to_ascii_lowercase();
+    [
+        "authorization:",
+        "bearer ",
+        "toss_app_key",
+        "toss_app_secret",
+        "app_key",
+        "app_secret",
+        "api_key",
+        "api_secret",
+        "secret=",
+        "token=",
+        "access_token",
+        "refresh_token",
+        "account_id",
+        "raw toss response",
+        "private field mapping",
+        "local_private",
+        ".env",
+        concat!("work", ".", "md"),
+    ]
+    .iter()
+    .any(|marker| normalized.contains(marker))
+}
+
+fn redact_owner_report_output(text: &str) -> String {
+    let mut redacted = false;
+    let lines = text
+        .lines()
+        .map(|line| {
+            if contains_owner_report_private_material(line) {
+                redacted = true;
+                "[REDACTED PRIVATE DATA]".to_string()
+            } else {
+                line.to_string()
+            }
+        })
+        .collect::<Vec<_>>();
+    if redacted {
+        format!(
+            "reason={:?}\n{}",
+            ReasonCode::OwnerReportSecretRedacted,
+            lines.join("\n")
+        )
+    } else {
+        lines.join("\n")
     }
 }
 
@@ -5231,5 +5952,254 @@ mod tests {
                     && !candidate.can_vote_live()
                     && !candidate.can_affect_live_decision())
         );
+    }
+
+    #[test]
+    fn owner_learning_report_is_deterministic_read_only_and_owner_visible() {
+        let replay = run_3_agent_paper_replay(improving_replay_input())
+            .expect("owner report replay");
+        let original = replay.clone();
+        let first = build_owner_learning_report(
+            "owner-learning-report-stable",
+            Some("replay-stable".to_string()),
+            &replay,
+        )
+        .expect("first owner report");
+        let second = build_owner_learning_report(
+            "owner-learning-report-stable",
+            Some("replay-stable".to_string()),
+            &replay,
+        )
+        .expect("second owner report");
+
+        assert_eq!(first, second);
+        assert_eq!(replay, original);
+        assert_eq!(first.agents.len(), 3);
+        assert_eq!(
+            first.chair_summary.top_rewarded_agent.as_deref(),
+            Some("momentum_trend_fast")
+        );
+        assert!(
+            first
+                .agents
+                .iter()
+                .find(|agent| agent.agent_id == "momentum_trend_fast")
+                .is_some_and(|agent| agent.wins_delta > 0 && agent.voice_delta > 0.0)
+        );
+        assert!(
+            first
+                .agents
+                .iter()
+                .any(|agent| agent.avoided_losses_delta > 0)
+        );
+        assert!(!first.sandbox_summary.any_live_candidate);
+        let text = render_owner_learning_report_text(&first);
+        assert!(text.contains("Paper-only report."));
+        assert!(text.contains("Not live trading ready."));
+        assert!(text.contains("Risk Governor remains final veto."));
+        assert!(text.contains("Owner input is advisory only."));
+        assert_eq!(
+            render_owner_learning_report_markdown(&first),
+            render_owner_learning_report_markdown(&second)
+        );
+        assert_eq!(
+            render_owner_learning_report_json_like(&first),
+            render_owner_learning_report_json_like(&second)
+        );
+    }
+
+    #[test]
+    fn owner_report_shows_high_confidence_penalty_cooldown_and_quarantine() {
+        let first_loss = learning_episode(
+            "report-loss-one",
+            paper_learning_loop_input(0.90, -0.02, 2.0),
+            81,
+        );
+        let second_loss = learning_episode(
+            "report-loss-two",
+            paper_learning_loop_input(0.90, -0.02, 2.0),
+            82,
+        );
+        let mut violation_input = paper_learning_loop_input(0.90, 0.0, 2.0);
+        let violation_context = violation_input
+            .paper_context
+            .as_mut()
+            .expect("report violation context");
+        violation_context.outcome_kind = PaperOutcomeKind::NoExecution;
+        violation_context.fill_evidence = None;
+        violation_context
+            .doctrine_violation_agents
+            .push("momentum_trend_fast".to_string());
+        let replay = run_3_agent_paper_replay(PaperReplayInput {
+            initial_agent_states: canonical_current_agent_states(),
+            episode_inputs: vec![
+                first_loss,
+                second_loss,
+                learning_episode("report-violation", violation_input, 83),
+            ],
+            replay_config: PaperReplayConfig::default(),
+        })
+        .expect("penalty owner report replay");
+        let report = build_owner_learning_report("owner-report-penalty", None, &replay)
+            .expect("penalty owner report");
+        let momentum = report
+            .agents
+            .iter()
+            .find(|agent| agent.agent_id == "momentum_trend_fast")
+            .expect("momentum report view");
+
+        assert!(momentum.high_confidence_misses_delta >= 2);
+        assert!(momentum.net_reward_penalty < 0.0);
+        assert!(
+            momentum
+                .owner_visible_explanation
+                .contains("more bounded penalty")
+        );
+        assert_eq!(momentum.status_after, AgentStatus::Quarantined);
+        assert!(
+            momentum
+                .reason_codes
+                .contains(&ReasonCode::Quarantined)
+        );
+        assert!(report.chair_summary.penalties_given > 0);
+        assert!(report.chair_summary.cooldowns_started > 0);
+        assert!(report.chair_summary.quarantines > 0);
+    }
+
+    #[test]
+    fn owner_report_exposes_no_trade_missed_gain_without_execution() {
+        let mut input = paper_learning_loop_input(0.20, 0.0, 2.0);
+        input.signal_input.p_win = 0.20;
+        input.signal_input.expected_return = 0.0;
+        input.signal_input.no_trade_probability = 0.95;
+        let context = input.paper_context.as_mut().expect("missed gain context");
+        context.outcome_kind = PaperOutcomeKind::NoExecution;
+        context.fill_evidence = None;
+        context.hypothetical_net_return_pct = Some(0.05);
+        let replay = run_3_agent_paper_replay(PaperReplayInput {
+            initial_agent_states: canonical_current_agent_states(),
+            episode_inputs: vec![learning_episode("report-missed-gain", input, 86)],
+            replay_config: PaperReplayConfig::default(),
+        })
+        .expect("missed gain report replay");
+        let report = build_owner_learning_report("owner-report-missed-gain", None, &replay)
+            .expect("missed gain owner report");
+
+        assert!(
+            report
+                .agents
+                .iter()
+                .any(|agent| agent.missed_gains_delta > 0 && agent.total_penalty > 0.0)
+        );
+        assert_eq!(report.total_paper_trades, 0);
+    }
+
+    #[test]
+    fn owner_report_counts_risk_and_all_owner_bypass_rejections() {
+        let mut initial_states = canonical_current_agent_states();
+        let momentum = initial_states
+            .iter_mut()
+            .find(|state| state.agent_id == "momentum_trend_fast")
+            .expect("owner report cooldown state");
+        momentum.status = AgentStatus::Cooldown;
+        momentum.voice_state.cooldown_bars = 2;
+        let mut input = paper_learning_loop_input(0.90, 0.0, 50.0);
+        let context = input.paper_context.as_mut().expect("owner report context");
+        context.outcome_kind = PaperOutcomeKind::NoExecution;
+        context.fill_evidence = None;
+        input.owner_advisory = Some(OwnerInput {
+            owner_input_id: "owner-report-bypass".to_string(),
+            input_kind: crate::owner::OwnerInputKind::PaperConfirm,
+            requested_action: Some(
+                "force buy, clear cooldown, activate agent, and promote sandbox".to_string(),
+            ),
+            ..OwnerInput::default()
+        });
+        let replay = run_3_agent_paper_replay(PaperReplayInput {
+            initial_agent_states,
+            episode_inputs: vec![learning_episode("owner-report-risk", input, 91)],
+            replay_config: PaperReplayConfig::default(),
+        })
+        .expect("owner bypass report replay");
+        let report = build_owner_learning_report("owner-report-risk", None, &replay)
+            .expect("owner bypass report");
+
+        assert!(report.risk_summary.risk_denials > 0);
+        assert!(report.owner_advisory_summary.owner_requests_rejected > 0);
+        assert!(
+            report
+                .owner_advisory_summary
+                .owner_forced_trade_attempts_blocked
+                > 0
+        );
+        assert!(
+            report
+                .owner_advisory_summary
+                .owner_promotion_attempts_blocked
+                > 0
+        );
+        assert!(
+            report
+                .owner_advisory_summary
+                .owner_cooldown_clear_attempts_blocked
+                > 0
+        );
+        assert!(
+            report
+                .agents
+                .iter()
+                .find(|agent| agent.agent_id == "momentum_trend_fast")
+                .is_some_and(|agent| {
+                    agent.status_after == AgentStatus::Cooldown
+                        && agent.cooldown_after < agent.cooldown_before
+                })
+        );
+        assert_eq!(replay.learning_chain_summary.total_paper_trades, 0);
+    }
+
+    #[test]
+    fn owner_console_is_read_only_and_renderers_redact_private_material() {
+        let replay = run_3_agent_paper_replay(improving_replay_input())
+            .expect("console report replay");
+        let mut report =
+            build_owner_learning_report("owner-console-report", None, &replay)
+                .expect("console report");
+        let original = report.clone();
+        for command in [
+            OwnerReviewCommand::ShowSummary,
+            OwnerReviewCommand::ShowAgent {
+                agent_id: "momentum_trend_fast".to_string(),
+            },
+            OwnerReviewCommand::ShowRisk,
+            OwnerReviewCommand::ShowSandbox,
+            OwnerReviewCommand::ShowOwnerAdvisory,
+            OwnerReviewCommand::ExplainReasonCodes {
+                reason_codes: vec![ReasonCode::OwnerRequestedButRiskDenied],
+            },
+        ] {
+            let response = handle_owner_review_command(&report, command);
+            assert!(!response.text.is_empty());
+            assert!(response.no_state_mutation);
+            assert!(!response.order_execution_supported);
+            assert!(!response.sandbox_promotion_supported);
+            assert!(!response.cooldown_clear_supported);
+        }
+        assert_eq!(report, original);
+
+        let fake_token = "Bearer fake-owner-report-token-value";
+        assert!(matches!(
+            build_owner_learning_report(fake_token, None, &replay),
+            Err(OwnerLearningReportError::UnsafePrivateData { reason_codes })
+                if reason_codes
+                    .contains(&ReasonCode::OwnerReportUnsafePrivateDataRejected)
+        ));
+        report.agents[0].owner_visible_explanation = fake_token.to_string();
+        let rendered = render_owner_learning_report_text(&report);
+        assert!(!rendered.contains(fake_token));
+        assert!(rendered.contains("[REDACTED PRIVATE DATA]"));
+        let private_instruction_name = concat!("work", ".", "md");
+        report.agents[0].owner_visible_explanation = private_instruction_name.to_string();
+        let rendered_private = render_owner_learning_report_json_like(&report);
+        assert!(!rendered_private.contains(private_instruction_name));
     }
 }
