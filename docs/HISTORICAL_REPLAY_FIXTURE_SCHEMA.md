@@ -75,3 +75,14 @@ value.
 Forbidden columns include account, order, credential, authorization, token,
 wallet, private, and raw-response fields. Duplicate timestamps and
 multi-symbol files are rejected.
+
+## Batch Use
+
+The batch runner applies the same profile and adapter validation independently
+to every source. Accepted fixture quality summaries are retained in the source
+performance table. Rejected fixtures remain visible with zero replay counts
+and stable reason codes.
+
+Multiple accepted fixtures run sequentially through the same three-agent
+paper-learning state. This preserves deterministic state evolution without
+adding network ingestion, live execution, or a second normalization path.

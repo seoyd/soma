@@ -89,3 +89,18 @@ Local source reports additionally attach `LocalDataQualitySummary`. Text,
 Markdown, and JSON-like output can show source kind, accepted and rejected row
 counts, timestamp range, monotonicity, trade-value availability, and close
 range. This metadata does not change replay state.
+
+## Batch Reports
+
+`build_batch_owner_learning_report` combines immutable source and agent
+performance tables from `BatchReplayResult`. It references the per-source
+owner reports already produced by accepted replays and does not rerun or
+mutate replay state.
+
+`render_batch_owner_learning_report_text` emits fixed paper-only and
+not-live-ready warnings, source and agent summaries, Risk Governor and sandbox
+sections, rejected sources, and deferred items. It reuses the same line-level
+private-material redaction as the single-replay renderers.
+
+Batch values describe synthetic paper replay only. They are not claims of
+profitability, production data quality, or live execution readiness.

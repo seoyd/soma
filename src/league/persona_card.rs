@@ -9,12 +9,11 @@ use crate::backtest::{
 use crate::chair::{ChairConfig, ChairEngine};
 use crate::core::{
     ChairInput, ChairOutput, InvestorVote, MarketSnapshot, PaperOrder, PaperOrderStatus,
-    PersonaTier, ReasonCode, RiskDecision, RiskDecisionKind, RiskSnapshot, SignalOutput, Stance,
-    stable_hash_string, stable_reason_codes,
+    PersonaTier, ReasonCode, Regime, RiskDecision, RiskDecisionKind, RiskSnapshot, SignalOutput,
+    Stance, stable_hash_string, stable_reason_codes,
 };
 use crate::owner::{
-    OwnerInput, OwnerTradeRequestReview, owner_rejection_explanation,
-    review_owner_trade_request,
+    OwnerInput, OwnerTradeRequestReview, owner_rejection_explanation, review_owner_trade_request,
 };
 use crate::paper::{Broker, PaperBroker};
 use crate::risk::{GovernorConfig, RiskGovernor};
@@ -741,9 +740,7 @@ pub enum OwnerLearningReportError {
     InvalidReportId,
     InvalidReplayRoster,
     MissingAgentSummary,
-    UnsafePrivateData {
-        reason_codes: Vec<ReasonCode>,
-    },
+    UnsafePrivateData { reason_codes: Vec<ReasonCode> },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -825,9 +822,7 @@ pub enum HistoricalOwnerReportError {
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct HistoricalReplayAdapter;
 
-#[derive(
-    Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize,
-)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum LocalDataSourceKind {
     SyntheticFixture,
     KoreanStockCsv,
@@ -897,6 +892,186 @@ pub enum LocalDataSourceError {
     Historical(HistoricalReplayError),
     Replay(PaperReplayError),
     Report(OwnerLearningReportError),
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct BatchReplaySource {
+    pub source_id: String,
+    pub source_kind: LocalDataSourceKind,
+    pub display_name: String,
+    pub csv_text: String,
+    pub profile_name: String,
+    pub enabled: bool,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BatchReplayConfig {
+    pub max_sources: usize,
+    pub max_rows_per_source: usize,
+    pub require_all_sources_valid: bool,
+    pub stop_on_source_error: bool,
+    pub include_owner_reports: bool,
+    pub include_agent_tables: bool,
+    pub active_agent_limit: usize,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+impl Default for BatchReplayConfig {
+    fn default() -> Self {
+        Self {
+            max_sources: 16,
+            max_rows_per_source: 10_000,
+            require_all_sources_valid: true,
+            stop_on_source_error: true,
+            include_owner_reports: true,
+            include_agent_tables: true,
+            active_agent_limit: 3,
+            reason_codes: vec![ReasonCode::DeterministicPath, ReasonCode::LocalFileOnly],
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct BatchReplayInput {
+    pub initial_agent_states: Vec<CanonicalAgentState>,
+    pub sources: Vec<BatchReplaySource>,
+    pub config: BatchReplayConfig,
+    pub replay_config: PaperReplayConfig,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct AgentPerformanceRow {
+    pub agent_id: AgentId,
+    pub agent_kind: AgentKind,
+    pub source_kind: Option<LocalDataSourceKind>,
+    pub source_id: Option<String>,
+    pub total_episodes: u64,
+    pub selected_count: u64,
+    pub supported_count: u64,
+    pub opposed_count: u64,
+    pub abstained_count: u64,
+    pub risk_veto_aligned_count: u64,
+    pub no_trade_correct_count: u64,
+    pub no_trade_missed_gain_count: u64,
+    pub wins_delta: u64,
+    pub losses_delta: u64,
+    pub avoided_losses_delta: u64,
+    pub missed_gains_delta: u64,
+    pub high_confidence_misses_delta: u64,
+    pub doctrine_violations_delta: u64,
+    pub reward_total: f64,
+    pub penalty_total: f64,
+    pub net_reward_penalty: f64,
+    pub start_voice_power: f64,
+    pub end_voice_power: f64,
+    pub voice_delta: f64,
+    pub start_status: AgentStatus,
+    pub end_status: AgentStatus,
+    pub start_tier: PersonaTier,
+    pub end_tier: PersonaTier,
+    pub cooldown_events: u64,
+    pub quarantine_events: u64,
+    pub sandbox_candidates_created: u64,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct AgentPerformanceTable {
+    pub rows: Vec<AgentPerformanceRow>,
+    pub aggregate_rows_by_agent: Vec<AgentPerformanceRow>,
+    pub aggregate_rows_by_source_kind: Vec<AgentPerformanceRow>,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SourcePerformanceRow {
+    pub source_id: String,
+    pub source_kind: LocalDataSourceKind,
+    pub display_name: String,
+    pub accepted: bool,
+    pub total_rows: usize,
+    pub accepted_rows: usize,
+    pub rejected_rows: usize,
+    pub total_episodes: usize,
+    pub total_paper_trades: u64,
+    pub total_no_trades: u64,
+    pub total_risk_denials: u64,
+    pub data_quality_summary: Option<LocalDataQualitySummary>,
+    pub first_timestamp: u64,
+    pub last_timestamp: u64,
+    pub symbol: String,
+    pub min_close: f64,
+    pub max_close: f64,
+    pub monotonic: bool,
+    pub paper_only: bool,
+    pub not_live_ready: bool,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SourcePerformanceTable {
+    pub rows: Vec<SourcePerformanceRow>,
+    pub accepted_count: usize,
+    pub rejected_count: usize,
+    pub by_source_kind_counts: BTreeMap<LocalDataSourceKind, u64>,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BatchLearningSummary {
+    pub total_sources: usize,
+    pub total_episodes: usize,
+    pub total_paper_trades: u64,
+    pub total_no_trades: u64,
+    pub total_risk_denials: u64,
+    pub sandbox_candidate_count: usize,
+    pub any_live_mutation_detected: bool,
+    pub any_risk_bypass_detected: bool,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct BatchReplaySourceResult {
+    pub source_id: String,
+    pub source_kind: LocalDataSourceKind,
+    pub accepted: bool,
+    pub dataset_quality_summary: Option<LocalDataQualitySummary>,
+    pub replay_result: Option<PaperReplayResult>,
+    pub owner_learning_report: Option<OwnerLearningReport>,
+    pub agent_performance_rows: Vec<AgentPerformanceRow>,
+    pub source_performance_row: SourcePerformanceRow,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct BatchReplayResult {
+    pub initial_states: Vec<CanonicalAgentState>,
+    pub final_states: Vec<CanonicalAgentState>,
+    pub source_results: Vec<BatchReplaySourceResult>,
+    pub aggregate_agent_performance_table: AgentPerformanceTable,
+    pub aggregate_source_performance_table: SourcePerformanceTable,
+    pub aggregate_learning_summary: BatchLearningSummary,
+    pub rejected_sources: usize,
+    pub accepted_sources: usize,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BatchReplayError {
+    pub source_id: Option<String>,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct BatchOwnerLearningReport {
+    pub batch_summary: BatchLearningSummary,
+    pub source_performance_table: SourcePerformanceTable,
+    pub agent_performance_table: AgentPerformanceTable,
+    pub per_source_report_refs: Vec<String>,
+    pub safety_warnings: Vec<String>,
+    pub deferred_items: Vec<String>,
+    pub reason_codes: Vec<ReasonCode>,
 }
 
 impl CanonicalAgentState {
@@ -989,16 +1164,14 @@ pub fn run_3_agent_paper_learning_loop(
             .find(|state| state.agent_id == vote.persona_id)
             .ok_or(PaperLearningLoopError::InvalidActiveAgentSet)?;
         if state.can_vote_live() {
-            vote.voice_power =
-                (state.voice_state.voice_power * vote.conviction).clamp(0.0, 1.0);
+            vote.voice_power = (state.voice_state.voice_power * vote.conviction).clamp(0.0, 1.0);
         } else {
             vote.stance = Stance::Abstain;
             vote.voice_power = 0.0;
             vote.veto = false;
             vote.reason_codes.push(ReasonCode::AgentAbstained);
             if state.status == AgentStatus::Cooldown || state.voice_state.cooldown_bars > 0 {
-                vote.reason_codes
-                    .push(ReasonCode::CooldownAgentUnavailable);
+                vote.reason_codes.push(ReasonCode::CooldownAgentUnavailable);
                 vote.reason_codes
                     .push(ReasonCode::CooldownChairBypassRejected);
             }
@@ -1015,11 +1188,8 @@ pub fn run_3_agent_paper_learning_loop(
         votes: agent_votes.clone(),
         full_auto: true,
     });
-    let trade_proposal = chair.build_trade_proposal(
-        &input.market_snapshot,
-        &input.signal_input,
-        &chair_output,
-    );
+    let trade_proposal =
+        chair.build_trade_proposal(&input.market_snapshot, &input.signal_input, &chair_output);
     let risk_governor = RiskGovernor {
         config: input.loop_config.risk_governor,
     };
@@ -1055,13 +1225,9 @@ pub fn run_3_agent_paper_learning_loop(
         if !paper_fill_evidence_matches(order, context.fill_evidence.as_ref()) {
             return Err(PaperLearningLoopError::InvalidPaperOutcome);
         }
-        if context
-            .fill_evidence
-            .as_ref()
-            .is_none_or(|evidence| {
-                evidence.filled_at_timestamp_ms > context.finalized_at_timestamp_ms
-            })
-        {
+        if context.fill_evidence.as_ref().is_none_or(|evidence| {
+            evidence.filled_at_timestamp_ms > context.finalized_at_timestamp_ms
+        }) {
             return Err(PaperLearningLoopError::InvalidPaperOutcome);
         }
         order.status = PaperOrderStatus::Filled;
@@ -1085,6 +1251,7 @@ pub fn run_3_agent_paper_learning_loop(
     );
     let agent_proposals = build_loop_agent_proposals(
         &agent_votes,
+        &original_agent_states,
         &chair_output,
         &input.market_snapshot,
         &input.signal_input,
@@ -1186,9 +1353,7 @@ pub fn run_3_agent_paper_learning_loop(
             let feedback_context = FeedbackContext {
                 paper_only: true,
                 outcome_finalized: true,
-                doctrine_violation: context
-                    .doctrine_violation_agents
-                    .contains(&state.agent_id),
+                doctrine_violation: context.doctrine_violation_agents.contains(&state.agent_id),
                 overtrade: context.overtrade_agents.contains(&state.agent_id),
             };
             let mut feedback = build_agent_feedback_from_paper_outcome(
@@ -1324,7 +1489,10 @@ pub fn run_3_agent_paper_learning_chain(
         .iter()
         .map(|episode| episode.episode_id.as_str())
         .collect::<Vec<_>>();
-    if episode_ids.iter().any(|episode_id| episode_id.trim().is_empty()) {
+    if episode_ids
+        .iter()
+        .any(|episode_id| episode_id.trim().is_empty())
+    {
         return Err(PaperLearningChainError::InvalidEpisodeId);
     }
     if input.episodes.iter().any(|episode| {
@@ -1368,8 +1536,7 @@ pub fn run_3_agent_paper_learning_chain(
         .map(|episode| {
             format!(
                 "{}:{}",
-                episode.input.market_snapshot.symbol,
-                episode.input.market_snapshot.timestamp_ms
+                episode.input.market_snapshot.symbol, episode.input.market_snapshot.timestamp_ms
             )
         })
         .collect::<Vec<_>>();
@@ -1378,21 +1545,15 @@ pub fn run_3_agent_paper_learning_chain(
         return Err(PaperLearningChainError::DuplicateDecisionId);
     }
     if input.episodes.windows(2).any(|pair| {
-        pair[0].input.market_snapshot.timestamp_ms
-            >= pair[1].input.market_snapshot.timestamp_ms
+        pair[0].input.market_snapshot.timestamp_ms >= pair[1].input.market_snapshot.timestamp_ms
     }) {
         return Err(PaperLearningChainError::NonMonotonicEpisodeTime);
     }
     if input.episodes.windows(2).any(|pair| {
-        pair[0]
-            .input
-            .paper_context
-            .as_ref()
-            .is_some_and(|context| {
-                context.outcome_finalized
-                    && context.finalized_at_timestamp_ms
-                        >= pair[1].input.market_snapshot.timestamp_ms
-            })
+        pair[0].input.paper_context.as_ref().is_some_and(|context| {
+            context.outcome_finalized
+                && context.finalized_at_timestamp_ms >= pair[1].input.market_snapshot.timestamp_ms
+        })
     }) {
         return Err(PaperLearningChainError::NonCausalOutcomeTime);
     }
@@ -1406,7 +1567,10 @@ pub fn run_3_agent_paper_learning_chain(
         .iter()
         .map(empty_attribution_summary)
         .collect::<Vec<_>>();
-    let mut reason_codes = vec![ReasonCode::DeterministicPath, ReasonCode::PaperExecutionOnly];
+    let mut reason_codes = vec![
+        ReasonCode::DeterministicPath,
+        ReasonCode::PaperExecutionOnly,
+    ];
 
     for episode in input.episodes {
         let input_states = current_states.clone();
@@ -1426,11 +1590,7 @@ pub fn run_3_agent_paper_learning_chain(
                 .append_snapshot(snapshot.clone())
                 .map_err(PaperLearningChainError::VersionJournal)?;
         }
-        accumulate_attribution(
-            &mut attribution_summary,
-            &input_states,
-            &result,
-        );
+        accumulate_attribution(&mut attribution_summary, &input_states, &result);
         sandbox_candidates.extend(result.sandbox_candidates.iter().cloned());
         current_states = result.updated_agent_states.clone();
         let episode_reason_codes = stable_reason_codes(
@@ -1457,22 +1617,21 @@ pub fn run_3_agent_paper_learning_chain(
         &episode_results,
         &sandbox_candidates,
     );
-    if current_states.iter().any(|state| {
-        match version_journal.latest_for_agent(&state.agent_id) {
+    if current_states.iter().any(
+        |state| match version_journal.latest_for_agent(&state.agent_id) {
             Some(snapshot) => snapshot.version_id != state.version.version_id,
             None => initial_states
                 .iter()
                 .find(|initial| initial.agent_id == state.agent_id)
                 .is_none_or(|initial| initial.version.version_id != state.version.version_id),
-        }
-    }) {
+        },
+    ) {
         return Err(PaperLearningChainError::VersionFinalMismatch);
     }
     let any_live_mutation_detected = episode_results.iter().any(|episode| {
         episode.result.original_agent_states != episode.input_states
             || (episode.result.paper_outcome.is_none()
-                && episode.result.updated_agent_states
-                    != episode.result.original_agent_states)
+                && episode.result.updated_agent_states != episode.result.original_agent_states)
             || episode
                 .result
                 .updated_agent_states
@@ -1486,9 +1645,11 @@ pub fn run_3_agent_paper_learning_chain(
     let any_risk_bypass_detected = episode_results.iter().any(|episode| {
         (episode.result.risk_decision.kind != RiskDecisionKind::ApprovePaper
             && episode.result.paper_order.is_some())
-            || episode.result.paper_outcome.as_ref().is_some_and(|outcome| {
-                outcome.denied_by_risk && outcome.executed
-            })
+            || episode
+                .result
+                .paper_outcome
+                .as_ref()
+                .is_some_and(|outcome| outcome.denied_by_risk && outcome.executed)
             || episode
                 .result
                 .owner_explanation
@@ -1602,7 +1763,10 @@ pub fn run_3_agent_paper_replay(
         .map(empty_replay_attribution_summary)
         .collect::<Vec<_>>();
     let mut stop_reason_codes = Vec::new();
-    let mut reason_codes = vec![ReasonCode::DeterministicPath, ReasonCode::PaperExecutionOnly];
+    let mut reason_codes = vec![
+        ReasonCode::DeterministicPath,
+        ReasonCode::PaperExecutionOnly,
+    ];
 
     for episode in input.episode_inputs {
         let episode_id = episode.episode_id.clone();
@@ -1764,21 +1928,15 @@ fn validate_paper_replay_input(input: &PaperReplayInput) -> Result<(), PaperRepl
         return Err(PaperReplayError::DuplicateDecisionId);
     }
     if input.episode_inputs.windows(2).any(|pair| {
-        pair[0].input.market_snapshot.timestamp_ms
-            >= pair[1].input.market_snapshot.timestamp_ms
+        pair[0].input.market_snapshot.timestamp_ms >= pair[1].input.market_snapshot.timestamp_ms
     }) {
         return Err(PaperReplayError::NonMonotonicEpisodeTime);
     }
     if input.episode_inputs.windows(2).any(|pair| {
-        pair[0]
-            .input
-            .paper_context
-            .as_ref()
-            .is_some_and(|context| {
-                context.outcome_finalized
-                    && context.finalized_at_timestamp_ms
-                        >= pair[1].input.market_snapshot.timestamp_ms
-            })
+        pair[0].input.paper_context.as_ref().is_some_and(|context| {
+            context.outcome_finalized
+                && context.finalized_at_timestamp_ms >= pair[1].input.market_snapshot.timestamp_ms
+        })
     }) {
         return Err(PaperReplayError::NonCausalOutcomeTime);
     }
@@ -1874,7 +2032,9 @@ fn accumulate_replay_attribution(
         summary.losing_selected_count += attribution.losing_selected_count;
         summary.total_reward += attribution.total_reward;
         summary.total_penalty += attribution.total_penalty;
-        summary.reason_codes.extend(attribution.reason_codes.iter().cloned());
+        summary
+            .reason_codes
+            .extend(attribution.reason_codes.iter().cloned());
     }
     for episode in &chain.episode_results {
         for state in &episode.input_states {
@@ -1982,9 +2142,9 @@ pub fn parse_local_csv_with_profile(
         .lines()
         .map(str::trim)
         .filter(|line| !line.is_empty());
-    let header_line = lines.next().ok_or_else(|| {
-        local_registry_error(ReasonCode::HistoricalReplayEmptyDataset)
-    })?;
+    let header_line = lines
+        .next()
+        .ok_or_else(|| local_registry_error(ReasonCode::HistoricalReplayEmptyDataset))?;
     let header = header_line
         .split(',')
         .map(|value| value.trim().to_ascii_lowercase())
@@ -1995,9 +2155,7 @@ pub fn parse_local_csv_with_profile(
         .map(|(index, name)| (name.as_str(), index))
         .collect::<BTreeMap<_, _>>();
     if header_index.len() != header.len() {
-        return Err(local_registry_error(
-            ReasonCode::LocalSourceProfileInvalid,
-        ));
+        return Err(local_registry_error(ReasonCode::LocalSourceProfileInvalid));
     }
     if header.iter().any(|column| forbidden_local_column(column)) {
         return Err(local_registry_error(
@@ -2029,13 +2187,10 @@ pub fn parse_local_csv_with_profile(
         ));
     }
     let has_timestamp_ms = header_index.contains_key("timestamp_ms");
-    let has_date_time =
-        header_index.contains_key("date") && header_index.contains_key("time");
+    let has_date_time = header_index.contains_key("date") && header_index.contains_key("time");
     let timestamp_supported = match profile.timestamp_unit {
         LocalTimestampUnit::Milliseconds => has_timestamp_ms,
-        LocalTimestampUnit::MillisecondsOrDateTimeUtc => {
-            has_timestamp_ms || has_date_time
-        }
+        LocalTimestampUnit::MillisecondsOrDateTimeUtc => has_timestamp_ms || has_date_time,
     };
     if !timestamp_supported {
         return Err(local_registry_error(
@@ -2085,20 +2240,18 @@ pub fn parse_local_csv_with_profile(
             ));
         }
         first_symbol.get_or_insert_with(|| symbol.to_string());
-        let timestamp_ms = if let Some(timestamp) = value("timestamp_ms")
-            .filter(|timestamp| !timestamp.is_empty())
+        let timestamp_ms = if let Some(timestamp) =
+            value("timestamp_ms").filter(|timestamp| !timestamp.is_empty())
         {
-            timestamp.parse::<u64>().map_err(|_| {
-                local_registry_error(ReasonCode::LocalSourceUnsupportedTimestamp)
-            })?
+            timestamp
+                .parse::<u64>()
+                .map_err(|_| local_registry_error(ReasonCode::LocalSourceUnsupportedTimestamp))?
         } else {
             parse_local_datetime_utc_ms(
                 value("date").unwrap_or_default(),
                 value("time").unwrap_or_default(),
             )
-            .ok_or_else(|| {
-                local_registry_error(ReasonCode::LocalSourceUnsupportedTimestamp)
-            })?
+            .ok_or_else(|| local_registry_error(ReasonCode::LocalSourceUnsupportedTimestamp))?
         };
         if previous_timestamp == Some(timestamp_ms) {
             return Err(local_registry_error(
@@ -2118,8 +2271,7 @@ pub fn parse_local_csv_with_profile(
             .unwrap_or("synthetic");
         if !profile.allowed_source_markers.iter().any(|allowed| {
             let normalized = source.to_ascii_lowercase();
-            normalized == allowed.as_str()
-                || normalized.starts_with(&format!("{allowed}:"))
+            normalized == allowed.as_str() || normalized.starts_with(&format!("{allowed}:"))
         }) {
             return Err(local_registry_error(
                 ReasonCode::HistoricalReplayUnsafeSource,
@@ -2128,9 +2280,7 @@ pub fn parse_local_csv_with_profile(
         let scaled = |name: &str, scale: f64| -> Result<String, LocalDataSourceError> {
             let parsed = value(name)
                 .and_then(|number| number.parse::<f64>().ok())
-                .ok_or_else(|| {
-                    local_registry_error(ReasonCode::HistoricalReplayInvalidRow)
-                })?;
+                .ok_or_else(|| local_registry_error(ReasonCode::HistoricalReplayInvalidRow))?;
             Ok(format!("{:.12}", parsed * scale))
         };
         let trade_value = value("trade_value")
@@ -2138,19 +2288,16 @@ pub fn parse_local_csv_with_profile(
             .filter(|value| !value.is_empty())
             .unwrap_or_default();
         for optional_numeric in ["adjusted_close", "quote_volume", "trade_count"] {
-            if let Some(optional_value) =
-                value(optional_numeric).filter(|value| !value.is_empty())
+            if let Some(optional_value) = value(optional_numeric).filter(|value| !value.is_empty())
             {
-                let parsed = optional_value.parse::<f64>().map_err(|_| {
-                    local_registry_error(ReasonCode::HistoricalReplayInvalidRow)
-                })?;
+                let parsed = optional_value
+                    .parse::<f64>()
+                    .map_err(|_| local_registry_error(ReasonCode::HistoricalReplayInvalidRow))?;
                 if !parsed.is_finite()
                     || parsed < 0.0
                     || (optional_numeric == "adjusted_close" && parsed == 0.0)
                 {
-                    return Err(local_registry_error(
-                        ReasonCode::HistoricalReplayInvalidRow,
-                    ));
+                    return Err(local_registry_error(ReasonCode::HistoricalReplayInvalidRow));
                 }
             }
         }
@@ -2203,9 +2350,9 @@ pub fn build_owner_learning_report_from_local_csv_source(
     replay_config: PaperReplayConfig,
 ) -> Result<OwnerLearningReport, LocalDataSourceError> {
     let registry = LocalDataSourceRegistry::default();
-    let profile = registry.get_profile(source_kind).ok_or_else(|| {
-        local_registry_error(ReasonCode::LocalSourceUnknown)
-    })?;
+    let profile = registry
+        .get_profile(source_kind)
+        .ok_or_else(|| local_registry_error(ReasonCode::LocalSourceUnknown))?;
     let parsed = parse_local_csv_with_profile(csv_text, profile, historical_config)?;
     let replay_input = HistoricalReplayAdapter
         .to_paper_replay_input(
@@ -2215,8 +2362,7 @@ pub fn build_owner_learning_report_from_local_csv_source(
             replay_config,
         )
         .map_err(LocalDataSourceError::Historical)?;
-    let replay =
-        run_3_agent_paper_replay(replay_input).map_err(LocalDataSourceError::Replay)?;
+    let replay = run_3_agent_paper_replay(replay_input).map_err(LocalDataSourceError::Replay)?;
     let mut report = build_owner_learning_report(
         report_id,
         Some(format!(
@@ -2242,6 +2388,714 @@ pub fn build_owner_learning_report_from_local_csv_source(
     Ok(report)
 }
 
+pub fn run_local_dataset_batch_replay(
+    input: BatchReplayInput,
+) -> Result<BatchReplayResult, BatchReplayError> {
+    validate_three_agent_set(&input.initial_agent_states).map_err(|_| BatchReplayError {
+        source_id: None,
+        reason_codes: vec![
+            ReasonCode::BatchReplaySourceRejected,
+            ReasonCode::LocalSourceRejected,
+        ],
+    })?;
+    if input.sources.is_empty()
+        || input.sources.len() > input.config.max_sources
+        || input.config.max_sources == 0
+        || input.config.max_rows_per_source == 0
+        || input.config.active_agent_limit != 3
+        || input.replay_config.active_agent_limit != 3
+    {
+        return Err(BatchReplayError {
+            source_id: None,
+            reason_codes: vec![ReasonCode::LocalSourceRejected],
+        });
+    }
+    let mut source_ids = input
+        .sources
+        .iter()
+        .map(|source| source.source_id.as_str())
+        .collect::<Vec<_>>();
+    source_ids.sort_unstable();
+    if source_ids
+        .iter()
+        .any(|source_id| source_id.trim().is_empty())
+        || source_ids.windows(2).any(|pair| pair[0] == pair[1])
+    {
+        return Err(BatchReplayError {
+            source_id: None,
+            reason_codes: vec![ReasonCode::LocalSourceRejected],
+        });
+    }
+
+    let registry = LocalDataSourceRegistry::default();
+    let initial_states = input.initial_agent_states.clone();
+    let mut current_states = initial_states.clone();
+    let mut source_results = Vec::with_capacity(input.sources.len());
+    let mut detailed_agent_rows = Vec::new();
+    let mut source_rows = Vec::with_capacity(input.sources.len());
+    let mut reason_codes = input.config.reason_codes.clone();
+
+    for source in input.sources {
+        let source_failure = if !source.enabled {
+            Some(vec![
+                ReasonCode::BatchReplaySourceRejected,
+                ReasonCode::LocalSourceRejected,
+            ])
+        } else if let Some(reason) = batch_source_safety_reason(&source) {
+            Some(vec![ReasonCode::BatchReplaySourceRejected, reason])
+        } else {
+            None
+        };
+        if let Some(failure_reasons) = source_failure {
+            if input.config.require_all_sources_valid || input.config.stop_on_source_error {
+                return Err(BatchReplayError {
+                    source_id: Some(source.source_id),
+                    reason_codes: stable_reason_codes(&failure_reasons),
+                });
+            }
+            let rejected = rejected_batch_source_result(&source, failure_reasons);
+            source_rows.push(rejected.source_performance_row.clone());
+            reason_codes.extend(rejected.reason_codes.iter().cloned());
+            source_results.push(rejected);
+            continue;
+        }
+
+        let parsed = registry
+            .get_profile(source.source_kind)
+            .ok_or_else(|| local_registry_error(ReasonCode::LocalSourceUnknown))
+            .and_then(|profile| {
+                if source.profile_name.trim().is_empty() || source.profile_name != profile.name {
+                    return Err(local_registry_error(ReasonCode::LocalSourceProfileInvalid));
+                }
+                let historical_config = HistoricalReplayConfig {
+                    max_rows: input.config.max_rows_per_source,
+                    ..HistoricalReplayConfig::default()
+                };
+                parse_local_csv_with_profile(&source.csv_text, profile, &historical_config)
+                    .map(|parsed| (parsed, historical_config))
+            });
+        let (parsed, historical_config) = match parsed {
+            Ok(parsed) => parsed,
+            Err(error) => {
+                let mut failure_reasons = local_data_source_error_reasons(&error);
+                failure_reasons.push(ReasonCode::BatchReplaySourceRejected);
+                if input.config.require_all_sources_valid || input.config.stop_on_source_error {
+                    return Err(BatchReplayError {
+                        source_id: Some(source.source_id),
+                        reason_codes: stable_reason_codes(&failure_reasons),
+                    });
+                }
+                let rejected = rejected_batch_source_result(&source, failure_reasons);
+                source_rows.push(rejected.source_performance_row.clone());
+                reason_codes.extend(rejected.reason_codes.iter().cloned());
+                source_results.push(rejected);
+                continue;
+            }
+        };
+        let replay_input = match HistoricalReplayAdapter.to_paper_replay_input(
+            &parsed.dataset,
+            &historical_config,
+            current_states.clone(),
+            input.replay_config,
+        ) {
+            Ok(replay_input) => replay_input,
+            Err(error) => {
+                let failure_reasons = stable_reason_codes(
+                    &error
+                        .reason_codes
+                        .iter()
+                        .cloned()
+                        .chain([ReasonCode::BatchReplaySourceRejected])
+                        .collect::<Vec<_>>(),
+                );
+                if input.config.require_all_sources_valid || input.config.stop_on_source_error {
+                    return Err(BatchReplayError {
+                        source_id: Some(source.source_id),
+                        reason_codes: failure_reasons,
+                    });
+                }
+                let rejected = rejected_batch_source_result(&source, failure_reasons);
+                source_rows.push(rejected.source_performance_row.clone());
+                reason_codes.extend(rejected.reason_codes.iter().cloned());
+                source_results.push(rejected);
+                continue;
+            }
+        };
+        let replay = match run_3_agent_paper_replay(replay_input) {
+            Ok(replay) => replay,
+            Err(_) => {
+                let failure_reasons = vec![
+                    ReasonCode::BatchReplaySourceRejected,
+                    ReasonCode::LocalSourceRejected,
+                    ReasonCode::DeterministicPath,
+                    ReasonCode::PaperExecutionOnly,
+                ];
+                if input.config.require_all_sources_valid || input.config.stop_on_source_error {
+                    return Err(BatchReplayError {
+                        source_id: Some(source.source_id),
+                        reason_codes: stable_reason_codes(&failure_reasons),
+                    });
+                }
+                let rejected = rejected_batch_source_result(&source, failure_reasons);
+                source_rows.push(rejected.source_performance_row.clone());
+                reason_codes.extend(rejected.reason_codes.iter().cloned());
+                source_results.push(rejected);
+                continue;
+            }
+        };
+        let mut owner_report = match build_owner_learning_report(
+            &format!("batch-owner-report:{}", source.source_id),
+            Some(format!(
+                "batch-local-csv:{}:{}",
+                local_source_kind_label(source.source_kind),
+                parsed.dataset.symbol
+            )),
+            &replay,
+        ) {
+            Ok(report) => report,
+            Err(_) => {
+                let failure_reasons = vec![
+                    ReasonCode::BatchReplaySourceRejected,
+                    ReasonCode::LocalSourceRejected,
+                ];
+                if input.config.require_all_sources_valid || input.config.stop_on_source_error {
+                    return Err(BatchReplayError {
+                        source_id: Some(source.source_id),
+                        reason_codes: stable_reason_codes(&failure_reasons),
+                    });
+                }
+                let rejected = rejected_batch_source_result(&source, failure_reasons);
+                source_rows.push(rejected.source_performance_row.clone());
+                reason_codes.extend(rejected.reason_codes.iter().cloned());
+                source_results.push(rejected);
+                continue;
+            }
+        };
+        owner_report.data_quality_summary = Some(parsed.quality_summary.clone());
+        owner_report
+            .safety_warnings
+            .push("Local CSV source is sanitized and read-only.".to_string());
+        owner_report.reason_codes = stable_reason_codes(
+            &owner_report
+                .reason_codes
+                .iter()
+                .chain(parsed.reason_codes.iter())
+                .cloned()
+                .collect::<Vec<_>>(),
+        );
+        let agent_rows = build_agent_performance_rows(&source, &replay, &owner_report);
+        let source_row = accepted_source_performance_row(&source, &parsed.quality_summary, &replay);
+        current_states = replay.final_states.clone();
+        detailed_agent_rows.extend(agent_rows.iter().cloned());
+        source_rows.push(source_row.clone());
+        let accepted_reasons = stable_reason_codes(
+            &source
+                .reason_codes
+                .iter()
+                .chain(parsed.reason_codes.iter())
+                .cloned()
+                .chain([
+                    ReasonCode::BatchReplaySourceAccepted,
+                    ReasonCode::PaperExecutionOnly,
+                ])
+                .collect::<Vec<_>>(),
+        );
+        reason_codes.extend(accepted_reasons.iter().cloned());
+        source_results.push(BatchReplaySourceResult {
+            source_id: source.source_id,
+            source_kind: source.source_kind,
+            accepted: true,
+            dataset_quality_summary: Some(parsed.quality_summary),
+            replay_result: Some(replay),
+            owner_learning_report: input.config.include_owner_reports.then_some(owner_report),
+            agent_performance_rows: if input.config.include_agent_tables {
+                agent_rows
+            } else {
+                Vec::new()
+            },
+            source_performance_row: source_row,
+            reason_codes: accepted_reasons,
+        });
+    }
+
+    source_rows.sort_by(|left, right| {
+        left.source_kind
+            .cmp(&right.source_kind)
+            .then_with(|| left.source_id.cmp(&right.source_id))
+    });
+    let accepted_sources = source_rows.iter().filter(|row| row.accepted).count();
+    let rejected_sources = source_rows.len().saturating_sub(accepted_sources);
+    let aggregate_agent_performance_table = build_agent_performance_table(detailed_agent_rows);
+    let aggregate_source_performance_table = build_source_performance_table(source_rows);
+    let aggregate_learning_summary = BatchLearningSummary {
+        total_sources: source_results.len(),
+        total_episodes: aggregate_source_performance_table
+            .rows
+            .iter()
+            .map(|row| row.total_episodes)
+            .sum(),
+        total_paper_trades: aggregate_source_performance_table
+            .rows
+            .iter()
+            .map(|row| row.total_paper_trades)
+            .sum(),
+        total_no_trades: aggregate_source_performance_table
+            .rows
+            .iter()
+            .map(|row| row.total_no_trades)
+            .sum(),
+        total_risk_denials: aggregate_source_performance_table
+            .rows
+            .iter()
+            .map(|row| row.total_risk_denials)
+            .sum(),
+        sandbox_candidate_count: source_results
+            .iter()
+            .filter_map(|result| result.replay_result.as_ref())
+            .map(|replay| replay.sandbox_candidates.len())
+            .sum(),
+        any_live_mutation_detected: source_results
+            .iter()
+            .filter_map(|result| result.replay_result.as_ref())
+            .any(|replay| replay.learning_chain_summary.any_live_mutation_detected),
+        any_risk_bypass_detected: source_results
+            .iter()
+            .filter_map(|result| result.replay_result.as_ref())
+            .any(|replay| replay.learning_chain_summary.any_risk_bypass_detected),
+        reason_codes: vec![
+            ReasonCode::BatchReplayBuilt,
+            ReasonCode::DeterministicPath,
+            ReasonCode::PaperExecutionOnly,
+        ],
+    };
+    reason_codes.extend([
+        ReasonCode::BatchReplayBuilt,
+        ReasonCode::DeterministicPath,
+        ReasonCode::PaperExecutionOnly,
+    ]);
+
+    Ok(BatchReplayResult {
+        initial_states,
+        final_states: current_states,
+        source_results,
+        aggregate_agent_performance_table,
+        aggregate_source_performance_table,
+        aggregate_learning_summary,
+        rejected_sources,
+        accepted_sources,
+        reason_codes: stable_reason_codes(&reason_codes),
+    })
+}
+
+pub fn build_batch_owner_learning_report(batch: &BatchReplayResult) -> BatchOwnerLearningReport {
+    BatchOwnerLearningReport {
+        batch_summary: batch.aggregate_learning_summary.clone(),
+        source_performance_table: batch.aggregate_source_performance_table.clone(),
+        agent_performance_table: batch.aggregate_agent_performance_table.clone(),
+        per_source_report_refs: batch
+            .source_results
+            .iter()
+            .filter_map(|source| {
+                source
+                    .owner_learning_report
+                    .as_ref()
+                    .map(|report| report.report_id.clone())
+            })
+            .collect(),
+        safety_warnings: vec![
+            "Paper-only batch report.".to_string(),
+            "Not live trading ready.".to_string(),
+            "Risk Governor remains final veto.".to_string(),
+            "Local sanitized CSV sources only.".to_string(),
+        ],
+        deferred_items: vec![
+            "Live downloads remain disabled.".to_string(),
+            "Broker and account integration remain disabled.".to_string(),
+            "Real profitability is not established.".to_string(),
+        ],
+        reason_codes: vec![
+            ReasonCode::BatchReplayBuilt,
+            ReasonCode::DeterministicPath,
+            ReasonCode::PaperExecutionOnly,
+        ],
+    }
+}
+
+pub fn render_batch_owner_learning_report_text(report: &BatchOwnerLearningReport) -> String {
+    let mut lines = vec![
+        "Local Dataset Batch Learning Report".to_string(),
+        "Paper-only batch report.".to_string(),
+        "Not live trading ready.".to_string(),
+        "Source summary".to_string(),
+        format!(
+            "sources={} accepted={} rejected={} episodes={} paper_trades={} no_trades={} risk_denials={}",
+            report.batch_summary.total_sources,
+            report.source_performance_table.accepted_count,
+            report.source_performance_table.rejected_count,
+            report.batch_summary.total_episodes,
+            report.batch_summary.total_paper_trades,
+            report.batch_summary.total_no_trades,
+            report.batch_summary.total_risk_denials,
+        ),
+    ];
+    for source in &report.source_performance_table.rows {
+        lines.push(format!(
+            "source={} kind={:?} accepted={} rows={} episodes={} no_trades={} risk_denials={} paper_only={} not_live_ready={}",
+            source.source_id,
+            source.source_kind,
+            source.accepted,
+            source.total_rows,
+            source.total_episodes,
+            source.total_no_trades,
+            source.total_risk_denials,
+            source.paper_only,
+            source.not_live_ready,
+        ));
+    }
+    lines.push("Agent performance table".to_string());
+    for agent in &report.agent_performance_table.aggregate_rows_by_agent {
+        lines.push(format!(
+            "agent={} episodes={} selected={} supported={} opposed={} abstained={} risk_aligned={} no_trade_correct={} missed_gain={} wins={} losses={} avoided_losses={} reward={:.6} penalty={:.6} net={:.6} voice_delta={:.6}",
+            agent.agent_id,
+            agent.total_episodes,
+            agent.selected_count,
+            agent.supported_count,
+            agent.opposed_count,
+            agent.abstained_count,
+            agent.risk_veto_aligned_count,
+            agent.no_trade_correct_count,
+            agent.no_trade_missed_gain_count,
+            agent.wins_delta,
+            agent.losses_delta,
+            agent.avoided_losses_delta,
+            agent.reward_total,
+            agent.penalty_total,
+            agent.net_reward_penalty,
+            agent.voice_delta,
+        ));
+    }
+    lines.extend([
+        "Risk Governor summary".to_string(),
+        format!("risk_denials={}", report.batch_summary.total_risk_denials),
+        "Sandbox summary".to_string(),
+        format!(
+            "sandbox_candidates={}",
+            report.batch_summary.sandbox_candidate_count
+        ),
+        "Rejected source list".to_string(),
+    ]);
+    lines.extend(
+        report
+            .source_performance_table
+            .rows
+            .iter()
+            .filter(|row| !row.accepted)
+            .map(|row| format!("rejected_source={}", row.source_id)),
+    );
+    lines.push("Deferred/live-readiness warning".to_string());
+    lines.extend(report.deferred_items.iter().cloned());
+    redact_owner_report_output(&lines.join("\n"))
+}
+
+fn build_agent_performance_rows(
+    source: &BatchReplaySource,
+    replay: &PaperReplayResult,
+    report: &OwnerLearningReport,
+) -> Vec<AgentPerformanceRow> {
+    report
+        .agents
+        .iter()
+        .filter_map(|agent| {
+            let attribution = replay
+                .replay_attribution_summary
+                .iter()
+                .find(|summary| summary.agent_id == agent.agent_id)?;
+            Some(AgentPerformanceRow {
+                agent_id: agent.agent_id.clone(),
+                agent_kind: agent.agent_kind,
+                source_kind: Some(source.source_kind),
+                source_id: Some(source.source_id.clone()),
+                total_episodes: report.total_episodes as u64,
+                selected_count: attribution.selected_count,
+                supported_count: attribution.supported_final_count,
+                opposed_count: attribution.opposed_final_count,
+                abstained_count: attribution.abstained_count,
+                risk_veto_aligned_count: attribution.risk_veto_aligned_count,
+                no_trade_correct_count: attribution.no_trade_correct_count,
+                no_trade_missed_gain_count: attribution.no_trade_missed_gain_count,
+                wins_delta: agent.wins_delta,
+                losses_delta: agent.losses_delta,
+                avoided_losses_delta: agent.avoided_losses_delta,
+                missed_gains_delta: agent.missed_gains_delta,
+                high_confidence_misses_delta: agent.high_confidence_misses_delta,
+                doctrine_violations_delta: agent.doctrine_violations_delta,
+                reward_total: agent.total_reward,
+                penalty_total: agent.total_penalty,
+                net_reward_penalty: agent.net_reward_penalty,
+                start_voice_power: agent.start_voice_power,
+                end_voice_power: agent.end_voice_power,
+                voice_delta: agent.voice_delta,
+                start_status: agent.status_before,
+                end_status: agent.status_after,
+                start_tier: agent.tier_before,
+                end_tier: agent.tier_after,
+                cooldown_events: replay
+                    .chain_results
+                    .iter()
+                    .flat_map(|chain| chain.agent_learning_summaries.iter())
+                    .filter(|summary| {
+                        summary.agent_id == agent.agent_id && summary.cooldown_triggered
+                    })
+                    .count() as u64,
+                quarantine_events: replay
+                    .chain_results
+                    .iter()
+                    .flat_map(|chain| chain.agent_learning_summaries.iter())
+                    .filter(|summary| summary.agent_id == agent.agent_id && summary.quarantined)
+                    .count() as u64,
+                sandbox_candidates_created: agent.sandbox_candidates_created,
+                reason_codes: agent.reason_codes.clone(),
+            })
+        })
+        .collect()
+}
+
+fn accepted_source_performance_row(
+    source: &BatchReplaySource,
+    quality: &LocalDataQualitySummary,
+    replay: &PaperReplayResult,
+) -> SourcePerformanceRow {
+    SourcePerformanceRow {
+        source_id: source.source_id.clone(),
+        source_kind: source.source_kind,
+        display_name: source.display_name.clone(),
+        accepted: true,
+        total_rows: quality.total_rows,
+        accepted_rows: quality.accepted_rows,
+        rejected_rows: quality.rejected_rows,
+        total_episodes: replay.learning_chain_summary.total_episodes,
+        total_paper_trades: replay.learning_chain_summary.total_paper_trades,
+        total_no_trades: replay.learning_chain_summary.total_no_trades,
+        total_risk_denials: replay.learning_chain_summary.total_risk_denials,
+        data_quality_summary: Some(quality.clone()),
+        first_timestamp: quality.first_timestamp,
+        last_timestamp: quality.last_timestamp,
+        symbol: quality.symbol.clone(),
+        min_close: quality.min_close,
+        max_close: quality.max_close,
+        monotonic: quality.monotonic,
+        paper_only: true,
+        not_live_ready: true,
+        reason_codes: stable_reason_codes(
+            &source
+                .reason_codes
+                .iter()
+                .chain(quality.reason_codes.iter())
+                .chain(replay.reason_codes.iter())
+                .cloned()
+                .chain([
+                    ReasonCode::BatchReplaySourceAccepted,
+                    ReasonCode::PaperExecutionOnly,
+                ])
+                .collect::<Vec<_>>(),
+        ),
+    }
+}
+
+fn rejected_batch_source_result(
+    source: &BatchReplaySource,
+    reason_codes: Vec<ReasonCode>,
+) -> BatchReplaySourceResult {
+    let reason_codes = stable_reason_codes(&reason_codes);
+    let row = SourcePerformanceRow {
+        source_id: source.source_id.clone(),
+        source_kind: source.source_kind,
+        display_name: source.display_name.clone(),
+        accepted: false,
+        total_rows: 0,
+        accepted_rows: 0,
+        rejected_rows: 0,
+        total_episodes: 0,
+        total_paper_trades: 0,
+        total_no_trades: 0,
+        total_risk_denials: 0,
+        data_quality_summary: None,
+        first_timestamp: 0,
+        last_timestamp: 0,
+        symbol: String::new(),
+        min_close: 0.0,
+        max_close: 0.0,
+        monotonic: false,
+        paper_only: true,
+        not_live_ready: true,
+        reason_codes: reason_codes.clone(),
+    };
+    BatchReplaySourceResult {
+        source_id: source.source_id.clone(),
+        source_kind: source.source_kind,
+        accepted: false,
+        dataset_quality_summary: None,
+        replay_result: None,
+        owner_learning_report: None,
+        agent_performance_rows: Vec::new(),
+        source_performance_row: row,
+        reason_codes,
+    }
+}
+
+fn build_agent_performance_table(mut rows: Vec<AgentPerformanceRow>) -> AgentPerformanceTable {
+    let aggregate_rows_by_agent = aggregate_agent_performance_rows(&rows, false);
+    let aggregate_rows_by_source_kind = aggregate_agent_performance_rows(&rows, true);
+    rows.sort_by(agent_performance_sort);
+    AgentPerformanceTable {
+        rows,
+        aggregate_rows_by_agent,
+        aggregate_rows_by_source_kind,
+        reason_codes: vec![
+            ReasonCode::BatchReplayBuilt,
+            ReasonCode::DeterministicPath,
+            ReasonCode::PaperExecutionOnly,
+        ],
+    }
+}
+
+fn aggregate_agent_performance_rows(
+    rows: &[AgentPerformanceRow],
+    group_by_source_kind: bool,
+) -> Vec<AgentPerformanceRow> {
+    let mut grouped =
+        BTreeMap::<(Option<LocalDataSourceKind>, AgentId), AgentPerformanceRow>::new();
+    for row in rows {
+        let key = (
+            group_by_source_kind.then_some(row.source_kind).flatten(),
+            row.agent_id.clone(),
+        );
+        if let Some(aggregate) = grouped.get_mut(&key) {
+            aggregate.total_episodes += row.total_episodes;
+            aggregate.selected_count += row.selected_count;
+            aggregate.supported_count += row.supported_count;
+            aggregate.opposed_count += row.opposed_count;
+            aggregate.abstained_count += row.abstained_count;
+            aggregate.risk_veto_aligned_count += row.risk_veto_aligned_count;
+            aggregate.no_trade_correct_count += row.no_trade_correct_count;
+            aggregate.no_trade_missed_gain_count += row.no_trade_missed_gain_count;
+            aggregate.wins_delta += row.wins_delta;
+            aggregate.losses_delta += row.losses_delta;
+            aggregate.avoided_losses_delta += row.avoided_losses_delta;
+            aggregate.missed_gains_delta += row.missed_gains_delta;
+            aggregate.high_confidence_misses_delta += row.high_confidence_misses_delta;
+            aggregate.doctrine_violations_delta += row.doctrine_violations_delta;
+            aggregate.reward_total += row.reward_total;
+            aggregate.penalty_total += row.penalty_total;
+            aggregate.net_reward_penalty = aggregate.reward_total - aggregate.penalty_total;
+            aggregate.end_voice_power = row.end_voice_power;
+            aggregate.voice_delta += row.voice_delta;
+            aggregate.end_status = row.end_status;
+            aggregate.end_tier = row.end_tier;
+            aggregate.cooldown_events += row.cooldown_events;
+            aggregate.quarantine_events += row.quarantine_events;
+            aggregate.sandbox_candidates_created += row.sandbox_candidates_created;
+            aggregate
+                .reason_codes
+                .extend(row.reason_codes.iter().cloned());
+            aggregate.reason_codes = stable_reason_codes(&aggregate.reason_codes);
+        } else {
+            let mut aggregate = row.clone();
+            aggregate.source_kind = if group_by_source_kind {
+                row.source_kind
+            } else {
+                None
+            };
+            aggregate.source_id = None;
+            grouped.insert(key, aggregate);
+        }
+    }
+    grouped.into_values().collect()
+}
+
+fn build_source_performance_table(rows: Vec<SourcePerformanceRow>) -> SourcePerformanceTable {
+    let accepted_count = rows.iter().filter(|row| row.accepted).count();
+    let rejected_count = rows.len().saturating_sub(accepted_count);
+    let mut by_source_kind_counts = BTreeMap::new();
+    for row in &rows {
+        *by_source_kind_counts.entry(row.source_kind).or_insert(0) += 1;
+    }
+    SourcePerformanceTable {
+        rows,
+        accepted_count,
+        rejected_count,
+        by_source_kind_counts,
+        reason_codes: vec![
+            ReasonCode::BatchReplayBuilt,
+            ReasonCode::DeterministicPath,
+            ReasonCode::PaperExecutionOnly,
+        ],
+    }
+}
+
+fn agent_performance_sort(
+    left: &AgentPerformanceRow,
+    right: &AgentPerformanceRow,
+) -> std::cmp::Ordering {
+    left.source_kind
+        .cmp(&right.source_kind)
+        .then_with(|| left.source_id.cmp(&right.source_id))
+        .then_with(|| left.agent_id.cmp(&right.agent_id))
+}
+
+fn local_data_source_error_reasons(error: &LocalDataSourceError) -> Vec<ReasonCode> {
+    match error {
+        LocalDataSourceError::Registry { reason_codes } => reason_codes.clone(),
+        LocalDataSourceError::Historical(error) => error.reason_codes.clone(),
+        LocalDataSourceError::Replay(_) | LocalDataSourceError::Report(_) => {
+            vec![ReasonCode::LocalSourceRejected]
+        }
+    }
+}
+
+fn batch_source_safety_reason(source: &BatchReplaySource) -> Option<ReasonCode> {
+    let combined = format!(
+        "{}\n{}\n{}\n{}",
+        source.source_id, source.display_name, source.profile_name, source.csv_text
+    );
+    let normalized = combined.to_ascii_lowercase();
+    if contains_temporary_instruction_marker(&combined) {
+        Some(ReasonCode::BatchReplayWorkMdMarkerRejected)
+    } else if normalized.contains("http://") || normalized.contains("https://") {
+        Some(ReasonCode::LocalSourceNetworkForbidden)
+    } else if normalized.contains("broker-endpoint") || normalized.contains("order-endpoint") {
+        Some(ReasonCode::LocalSourceBrokerForbidden)
+    } else if normalized.contains("raw_response") || normalized.contains("raw provider response") {
+        Some(ReasonCode::BatchReplayRawProviderResponseRejected)
+    } else if normalized.contains("account_id") {
+        Some(ReasonCode::BatchReplayAccountDataRejected)
+    } else if normalized.contains("order_id") {
+        Some(ReasonCode::BatchReplayOrderDataRejected)
+    } else if [
+        "authorization",
+        "bearer ",
+        "access_token",
+        "refresh_token",
+        "app_key",
+        "app_secret",
+        "api_key",
+        "private_key",
+        "wallet_private_key",
+    ]
+    .iter()
+    .any(|marker| normalized.contains(marker))
+    {
+        Some(ReasonCode::BatchReplaySecretLikeDataRejected)
+    } else if normalized.contains("local_private")
+        || normalized.contains("private mapping")
+        || normalized.contains(".env")
+    {
+        Some(ReasonCode::BatchReplayUnsafePrivateData)
+    } else {
+        None
+    }
+}
+
 fn local_source_profile(kind: LocalDataSourceKind) -> LocalDataSourceProfile {
     let mut required_columns = vec![
         "symbol".to_string(),
@@ -2252,73 +3106,27 @@ fn local_source_profile(kind: LocalDataSourceKind) -> LocalDataSourceProfile {
         "close".to_string(),
         "volume".to_string(),
     ];
-    let (name, description, timestamp_unit, optional_columns, allowed_source_markers) =
-        match kind {
-            LocalDataSourceKind::SyntheticFixture => (
-                "synthetic-fixture",
-                "Generic sanitized fixture CSV",
-                LocalTimestampUnit::Milliseconds,
-                vec!["trade_value", "source"],
-                vec!["synthetic", "fixture"],
-            ),
-            LocalDataSourceKind::KoreanStockCsv => {
-                required_columns.retain(|column| column != "timestamp_ms");
-                (
-                    "korean-stock-csv",
-                    "Local sanitized Korean stock CSV",
-                    LocalTimestampUnit::MillisecondsOrDateTimeUtc,
-                    vec![
-                        "timestamp_ms",
-                        "date",
-                        "time",
-                        "trade_value",
-                        "market",
-                        "source",
-                        "currency",
-                    ],
-                    vec![
-                        "local",
-                        "sanitized",
-                        "fixture",
-                        "manual_export",
-                        "synthetic",
-                    ],
-                )
-            }
-            LocalDataSourceKind::UsStockCsv => {
-                required_columns.retain(|column| column != "timestamp_ms");
-                (
-                    "us-stock-csv",
-                    "Local sanitized US stock CSV",
-                    LocalTimestampUnit::MillisecondsOrDateTimeUtc,
-                    vec![
-                        "timestamp_ms",
-                        "date",
-                        "time",
-                        "adjusted_close",
-                        "trade_value",
-                        "market",
-                        "source",
-                        "currency",
-                    ],
-                    vec![
-                        "local",
-                        "sanitized",
-                        "fixture",
-                        "manual_export",
-                        "synthetic",
-                    ],
-                )
-            }
-            LocalDataSourceKind::BtcCryptoCsv => (
-                "btc-crypto-csv",
-                "Local sanitized BTC crypto CSV",
-                LocalTimestampUnit::Milliseconds,
+    let (name, description, timestamp_unit, optional_columns, allowed_source_markers) = match kind {
+        LocalDataSourceKind::SyntheticFixture => (
+            "synthetic-fixture",
+            "Generic sanitized fixture CSV",
+            LocalTimestampUnit::Milliseconds,
+            vec!["trade_value", "source"],
+            vec!["synthetic", "fixture"],
+        ),
+        LocalDataSourceKind::KoreanStockCsv => {
+            required_columns.retain(|column| column != "timestamp_ms");
+            (
+                "korean-stock-csv",
+                "Local sanitized Korean stock CSV",
+                LocalTimestampUnit::MillisecondsOrDateTimeUtc,
                 vec![
-                    "quote_volume",
-                    "trade_count",
+                    "timestamp_ms",
+                    "date",
+                    "time",
+                    "trade_value",
+                    "market",
                     "source",
-                    "exchange",
                     "currency",
                 ],
                 vec![
@@ -2328,24 +3136,66 @@ fn local_source_profile(kind: LocalDataSourceKind) -> LocalDataSourceProfile {
                     "manual_export",
                     "synthetic",
                 ],
-            ),
-            LocalDataSourceKind::Unknown => (
-                "unknown",
-                "Rejected local source",
-                LocalTimestampUnit::Milliseconds,
-                Vec::new(),
-                Vec::new(),
-            ),
-        };
+            )
+        }
+        LocalDataSourceKind::UsStockCsv => {
+            required_columns.retain(|column| column != "timestamp_ms");
+            (
+                "us-stock-csv",
+                "Local sanitized US stock CSV",
+                LocalTimestampUnit::MillisecondsOrDateTimeUtc,
+                vec![
+                    "timestamp_ms",
+                    "date",
+                    "time",
+                    "adjusted_close",
+                    "trade_value",
+                    "market",
+                    "source",
+                    "currency",
+                ],
+                vec![
+                    "local",
+                    "sanitized",
+                    "fixture",
+                    "manual_export",
+                    "synthetic",
+                ],
+            )
+        }
+        LocalDataSourceKind::BtcCryptoCsv => (
+            "btc-crypto-csv",
+            "Local sanitized BTC crypto CSV",
+            LocalTimestampUnit::Milliseconds,
+            vec![
+                "quote_volume",
+                "trade_count",
+                "source",
+                "exchange",
+                "currency",
+            ],
+            vec![
+                "local",
+                "sanitized",
+                "fixture",
+                "manual_export",
+                "synthetic",
+            ],
+        ),
+        LocalDataSourceKind::Unknown => (
+            "unknown",
+            "Rejected local source",
+            LocalTimestampUnit::Milliseconds,
+            Vec::new(),
+            Vec::new(),
+        ),
+    };
     LocalDataSourceProfile {
         kind,
         name: name.to_string(),
         description: description.to_string(),
         required_columns,
-        optional_columns: optional_columns
-            .into_iter()
-            .map(str::to_string)
-            .collect(),
+        optional_columns: optional_columns.into_iter().map(str::to_string).collect(),
         timestamp_unit,
         price_scale: 1.0,
         volume_scale: 1.0,
@@ -2377,12 +3227,8 @@ fn validate_local_source_profile(
             ReasonCode::LocalSourceNetworkForbidden,
         ));
     }
-    if profile_text.contains("broker-endpoint")
-        || profile_text.contains("order-endpoint")
-    {
-        return Err(local_registry_error(
-            ReasonCode::LocalSourceBrokerForbidden,
-        ));
+    if profile_text.contains("broker-endpoint") || profile_text.contains("order-endpoint") {
+        return Err(local_registry_error(ReasonCode::LocalSourceBrokerForbidden));
     }
     let mut columns = profile
         .required_columns
@@ -2409,9 +3255,7 @@ fn validate_local_source_profile(
             .iter()
             .any(|required| !columns.contains(required))
     {
-        return Err(local_registry_error(
-            ReasonCode::LocalSourceProfileInvalid,
-        ));
+        return Err(local_registry_error(ReasonCode::LocalSourceProfileInvalid));
     }
     Ok(())
 }
@@ -2454,8 +3298,14 @@ fn build_local_data_quality_summary(
 }
 
 fn parse_local_datetime_utc_ms(date: &str, time: &str) -> Option<u64> {
-    let date_digits = date.chars().filter(|value| value.is_ascii_digit()).collect::<String>();
-    let time_digits = time.chars().filter(|value| value.is_ascii_digit()).collect::<String>();
+    let date_digits = date
+        .chars()
+        .filter(|value| value.is_ascii_digit())
+        .collect::<String>();
+    let time_digits = time
+        .chars()
+        .filter(|value| value.is_ascii_digit())
+        .collect::<String>();
     if date_digits.len() != 8 || time_digits.len() != 6 {
         return None;
     }
@@ -2479,12 +3329,8 @@ fn parse_local_datetime_utc_ms(date: &str, time: &str) -> Option<u64> {
     let era = adjusted_year.div_euclid(400);
     let year_of_era = adjusted_year - era * 400;
     let shifted_month = i64::from(month) + if month > 2 { -3 } else { 9 };
-    let day_of_year =
-        (153 * shifted_month + 2) / 5 + i64::from(day) - 1;
-    let day_of_era = year_of_era * 365
-        + year_of_era / 4
-        - year_of_era / 100
-        + day_of_year;
+    let day_of_year = (153 * shifted_month + 2) / 5 + i64::from(day) - 1;
+    let day_of_era = year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
     let days_since_epoch = era * 146_097 + day_of_era - 719_468;
     let seconds_since_epoch = days_since_epoch
         .checked_mul(86_400)?
@@ -2589,13 +3435,10 @@ impl HistoricalReplayAdapter {
                 ReasonCode::HistoricalReplayUnsafePrivateDataRejected,
             ));
         }
-        let mut lines = input
-            .lines()
-            .map(str::trim)
-            .filter(|line| !line.is_empty());
-        let header_line = lines.next().ok_or_else(|| {
-            historical_error(None, ReasonCode::HistoricalReplayEmptyDataset)
-        })?;
+        let mut lines = input.lines().map(str::trim).filter(|line| !line.is_empty());
+        let header_line = lines
+            .next()
+            .ok_or_else(|| historical_error(None, ReasonCode::HistoricalReplayEmptyDataset))?;
         let header = header_line
             .split(',')
             .map(|value| value.trim())
@@ -2627,9 +3470,7 @@ impl HistoricalReplayAdapter {
             .collect::<BTreeMap<_, _>>();
         if header.is_empty()
             || column_index.len() != header.len()
-            || header
-                .iter()
-                .any(|name| !allowed_columns.contains(name))
+            || header.iter().any(|name| !allowed_columns.contains(name))
             || required_columns
                 .iter()
                 .any(|name| !column_index.contains_key(name))
@@ -2690,8 +3531,7 @@ impl HistoricalReplayAdapter {
                     ReasonCode::HistoricalReplayInvalidRow,
                 ));
             }
-            if !historical_source_is_safe(source)
-                || contains_owner_report_private_material(source)
+            if !historical_source_is_safe(source) || contains_owner_report_private_material(source)
             {
                 return Err(historical_error(
                     Some(row_number),
@@ -2864,22 +3704,17 @@ impl HistoricalReplayAdapter {
         let mut episode_inputs = Vec::with_capacity(series.len() / 2);
         for decision_index in (0..series.len().saturating_sub(1)).step_by(2) {
             let outcome_index = decision_index + 1;
-            let market = series
-                .market_snapshot_at(decision_index)
-                .ok_or_else(|| {
-                    historical_error(
-                        Some(decision_index + 2),
-                        ReasonCode::HistoricalReplayInvalidRow,
-                    )
-                })?;
+            let market = series.market_snapshot_at(decision_index).ok_or_else(|| {
+                historical_error(
+                    Some(decision_index + 2),
+                    ReasonCode::HistoricalReplayInvalidRow,
+                )
+            })?;
             let decision_candle = &series.candles[decision_index];
             let outcome_candle = &series.candles[outcome_index];
-            let hypothetical_return =
-                outcome_candle.close / decision_candle.close - 1.0;
-            let intrabar_return =
-                decision_candle.close / decision_candle.open - 1.0;
-            let range_pct =
-                (decision_candle.high - decision_candle.low) / decision_candle.open;
+            let hypothetical_return = outcome_candle.close / decision_candle.close - 1.0;
+            let intrabar_return = decision_candle.close / decision_candle.open - 1.0;
+            let range_pct = (decision_candle.high - decision_candle.low) / decision_candle.open;
             let signal = SignalOutput {
                 symbol: dataset.symbol.clone(),
                 horizon_bars: 1,
@@ -2964,10 +3799,7 @@ pub fn build_owner_learning_report_from_historical_replay(
         run_3_agent_paper_replay(replay_input).map_err(HistoricalOwnerReportError::Replay)?;
     build_owner_learning_report(
         report_id,
-        Some(format!(
-            "historical:{}:{}",
-            dataset.source, dataset.symbol
-        )),
+        Some(format!("historical:{}:{}", dataset.source, dataset.symbol)),
         &replay,
     )
     .map_err(HistoricalOwnerReportError::Report)
@@ -2980,12 +3812,7 @@ fn parse_historical_u64(
     value
         .filter(|value| !value.is_empty())
         .and_then(|value| value.parse::<u64>().ok())
-        .ok_or_else(|| {
-            historical_error(
-                Some(row_number),
-                ReasonCode::HistoricalReplayInvalidRow,
-            )
-        })
+        .ok_or_else(|| historical_error(Some(row_number), ReasonCode::HistoricalReplayInvalidRow))
 }
 
 fn parse_historical_f64(
@@ -2995,12 +3822,7 @@ fn parse_historical_f64(
     value
         .filter(|value| !value.is_empty())
         .and_then(|value| value.parse::<f64>().ok())
-        .ok_or_else(|| {
-            historical_error(
-                Some(row_number),
-                ReasonCode::HistoricalReplayInvalidRow,
-            )
-        })
+        .ok_or_else(|| historical_error(Some(row_number), ReasonCode::HistoricalReplayInvalidRow))
 }
 
 fn validate_historical_row(
@@ -3017,9 +3839,7 @@ fn validate_historical_row(
         row.volume,
         row.trade_value.unwrap_or(0.0),
     ];
-    if config.reject_non_finite
-        && numeric_values.iter().any(|value| !value.is_finite())
-    {
+    if config.reject_non_finite && numeric_values.iter().any(|value| !value.is_finite()) {
         return Err(historical_error(
             Some(row_number),
             ReasonCode::HistoricalReplayNonFinite,
@@ -3035,9 +3855,7 @@ fn validate_historical_row(
             ReasonCode::HistoricalReplayNonPositivePrice,
         ));
     }
-    if row.timestamp_ms == 0
-        || row.volume < 0.0
-        || row.trade_value.is_some_and(|value| value < 0.0)
+    if row.timestamp_ms == 0 || row.volume < 0.0 || row.trade_value.is_some_and(|value| value < 0.0)
     {
         return Err(historical_error(
             Some(row_number),
@@ -3075,10 +3893,7 @@ fn historical_source_is_safe(source: &str) -> bool {
         || normalized.starts_with("synthetic:")
 }
 
-fn historical_error(
-    row_number: Option<usize>,
-    reason_code: ReasonCode,
-) -> HistoricalReplayError {
+fn historical_error(row_number: Option<usize>, reason_code: ReasonCode) -> HistoricalReplayError {
     HistoricalReplayError {
         row_number,
         reason_codes: vec![reason_code],
@@ -3209,7 +4024,10 @@ pub fn build_owner_learning_report(
         sandbox_candidates: replay.sandbox_candidates.len() as u64,
         top_rewarded_agent,
         top_penalized_agent,
-        reason_codes: vec![ReasonCode::DeterministicPath, ReasonCode::PaperExecutionOnly],
+        reason_codes: vec![
+            ReasonCode::DeterministicPath,
+            ReasonCode::PaperExecutionOnly,
+        ],
     };
 
     let owner_reviews = episode_results
@@ -3315,9 +4133,7 @@ pub fn build_owner_learning_report(
             .or_insert(0) += 1;
     }
     let any_live_candidate = replay.sandbox_candidates.iter().any(|candidate| {
-        !candidate.sandbox_only
-            || candidate.can_vote_live()
-            || candidate.can_affect_live_decision()
+        !candidate.sandbox_only || candidate.can_vote_live() || candidate.can_affect_live_decision()
     });
     let sandbox_summary = SandboxReviewSummary {
         candidate_count: replay.sandbox_candidates.len() as u64,
@@ -3527,7 +4343,11 @@ pub fn handle_owner_review_command(
             report.reason_codes.clone(),
         ),
         OwnerReviewCommand::ShowAgent { agent_id } => {
-            if let Some(agent) = report.agents.iter().find(|agent| agent.agent_id == agent_id) {
+            if let Some(agent) = report
+                .agents
+                .iter()
+                .find(|agent| agent.agent_id == agent_id)
+            {
                 (
                     format!(
                         "agent={} voice_delta={:.6} status={:?} cooldown={} net={:.6} explanation={}",
@@ -3660,7 +4480,12 @@ fn contains_owner_report_private_material(text: &str) -> bool {
         "access_token",
         "refresh_token",
         "account_id",
+        "order_id",
+        "private_key",
+        "wallet_private_key",
+        "raw_response",
         "raw toss response",
+        "private mapping",
         "private field mapping",
         "local_private",
         ".env",
@@ -3735,7 +4560,9 @@ fn accumulate_attribution(
             .iter()
             .find(|feedback| feedback.agent_id == state.agent_id)
         else {
-            summary.reason_codes.push(ReasonCode::AttributionUnavailable);
+            summary
+                .reason_codes
+                .push(ReasonCode::AttributionUnavailable);
             continue;
         };
         let has_reason = |reason: ReasonCode| feedback.reason_codes.contains(&reason);
@@ -3757,8 +4584,7 @@ fn accumulate_attribution(
         summary.no_trade_missed_gain_count += no_trade_missed as u64;
         summary.profitable_selected_count +=
             (selected && feedback.realized_net_return > 0.0) as u64;
-        summary.losing_selected_count +=
-            (selected && feedback.realized_net_return < 0.0) as u64;
+        summary.losing_selected_count += (selected && feedback.realized_net_return < 0.0) as u64;
         summary.high_confidence_miss_count += feedback
             .reason_codes
             .contains(&ReasonCode::FeedbackHighConfidenceLoss)
@@ -3773,7 +4599,9 @@ fn accumulate_attribution(
             || no_trade_correct
             || no_trade_missed)
         {
-            summary.reason_codes.push(ReasonCode::AttributionUnavailable);
+            summary
+                .reason_codes
+                .push(ReasonCode::AttributionUnavailable);
         }
         if let Some(reward) = result
             .reward_penalties
@@ -3815,9 +4643,7 @@ fn finalize_attribution(
                 .push(ReasonCode::AttributionOpposedFinal);
         }
         if summary.abstained_count > 0 {
-            summary
-                .reason_codes
-                .push(ReasonCode::AttributionAbstained);
+            summary.reason_codes.push(ReasonCode::AttributionAbstained);
         }
         if summary.risk_veto_aligned_count > 0 {
             summary
@@ -3921,9 +4747,7 @@ fn build_agent_learning_summaries(
         .collect()
 }
 
-fn validate_three_agent_set(
-    states: &[CanonicalAgentState],
-) -> Result<(), PaperLearningLoopError> {
+fn validate_three_agent_set(states: &[CanonicalAgentState]) -> Result<(), PaperLearningLoopError> {
     let mut actual = states
         .iter()
         .map(|state| state.agent_id.as_str())
@@ -3939,7 +4763,10 @@ fn validate_three_agent_set(
         || states.iter().any(|state| {
             state.kind == AgentKind::Future8AgentPlaceholder
                 || agent_kind_from_id(&state.agent_id) != Some(state.kind)
-                || matches!(state.status, AgentStatus::SandboxOnly | AgentStatus::Disabled)
+                || matches!(
+                    state.status,
+                    AgentStatus::SandboxOnly | AgentStatus::Disabled
+                )
                 || !canonical_state_numeric_valid(state)
         })
     {
@@ -4048,8 +4875,7 @@ fn validate_learning_loop_input(
             .all(|agent_id| valid_agent_ids.contains(&agent_id.as_str()))
     });
     let context_time_valid = input.paper_context.as_ref().is_none_or(|context| {
-        !context.outcome_finalized
-            || context.finalized_at_timestamp_ms >= market.timestamp_ms
+        !context.outcome_finalized || context.finalized_at_timestamp_ms >= market.timestamp_ms
     });
     let valid_probabilities = [
         signal.p_win,
@@ -4109,6 +4935,7 @@ fn validate_learning_loop_input(
 
 fn build_loop_agent_proposals(
     votes: &[InvestorVote],
+    states: &[CanonicalAgentState],
     chair_output: &ChairOutput,
     market: &MarketSnapshot,
     signal: &SignalOutput,
@@ -4118,13 +4945,16 @@ fn build_loop_agent_proposals(
     votes
         .iter()
         .map(|vote| {
+            let proposal_horizon = states
+                .iter()
+                .find(|state| state.agent_id == vote.persona_id)
+                .and_then(|state| state.doctrine.allowed_horizons.first())
+                .copied()
+                .unwrap_or_else(|| horizon_from_bars(signal.horizon_bars));
             let mut reason_codes = vote.reason_codes.clone();
             if chair_output.lead_speaker == vote.persona_id {
                 reason_codes.push(ReasonCode::AgentSelectedForDecision);
-            } else if chair_output
-                .selected_speakers
-                .contains(&vote.persona_id)
-            {
+            } else if chair_output.selected_speakers.contains(&vote.persona_id) {
                 reason_codes.push(ReasonCode::AgentSupportedFinalDecision);
             }
             if vote.stance == Stance::Abstain {
@@ -4138,7 +4968,7 @@ fn build_loop_agent_proposals(
                 expected_edge: signal.expected_return + vote.expected_return_adjustment,
                 expected_drawdown: signal.expected_drawdown.max(0.0),
                 no_trade_probability: signal.no_trade_probability.clamp(0.0, 1.0),
-                horizon: horizon_from_bars(signal.horizon_bars),
+                horizon: proposal_horizon,
                 market: market_name.to_string(),
                 symbol: market.symbol.clone(),
                 reason_codes: stable_reason_codes(&reason_codes),
@@ -4178,10 +5008,10 @@ fn build_loop_outcome(
         (None, PaperOutcomeKind::NoExecution) if context.fill_evidence.is_none() => false,
         _ => return Err(PaperLearningLoopError::InvalidPaperOutcome),
     };
-    let denied_by_risk =
-        !executed && risk_decision.kind != RiskDecisionKind::ApprovePaper
-            && risk_decision.approved_order_plan.is_none()
-            && chair_output.decision != crate::core::ChairDecisionKind::NoTrade;
+    let denied_by_risk = !executed
+        && risk_decision.kind != RiskDecisionKind::ApprovePaper
+        && risk_decision.approved_order_plan.is_none()
+        && chair_output.decision != crate::core::ChairDecisionKind::NoTrade;
     let no_trade = !executed && !denied_by_risk;
     let triple_barrier_result = executed.then(|| {
         synthetic_barrier_result(
@@ -4194,11 +5024,7 @@ fn build_loop_outcome(
         .then(|| context.hypothetical_net_return_pct)
         .flatten()
         .map(|return_pct| {
-            synthetic_barrier_result(
-                return_pct,
-                market.price,
-                context.max_adverse_excursion_pct,
-            )
+            synthetic_barrier_result(return_pct, market.price, context.max_adverse_excursion_pct)
         });
     let avoided_loss_score = hypothetical_result
         .as_ref()
@@ -4210,8 +5036,7 @@ fn build_loop_outcome(
         .filter(|result| result.net_return_pct > 0.0)
         .map(|result| result.net_return_pct * 0.20)
         .unwrap_or(0.0);
-    let attribution_records =
-        build_loop_attribution(votes, chair_output, denied_by_risk, no_trade);
+    let attribution_records = build_loop_attribution(votes, chair_output, denied_by_risk, no_trade);
     let mut reason_codes = chair_output
         .reason_codes
         .iter()
@@ -4261,10 +5086,7 @@ fn build_loop_outcome(
     })
 }
 
-fn paper_fill_evidence_matches(
-    order: &PaperOrder,
-    evidence: Option<&PaperFillEvidence>,
-) -> bool {
+fn paper_fill_evidence_matches(order: &PaperOrder, evidence: Option<&PaperFillEvidence>) -> bool {
     evidence.is_some_and(|evidence| {
         !evidence.fill_id.trim().is_empty()
             && evidence.paper_order_id == order.order_id
@@ -4327,8 +5149,7 @@ fn build_loop_attribution(
     votes
         .iter()
         .map(|vote| {
-            let selected_for_decision =
-                chair_output.selected_speakers.contains(&vote.persona_id);
+            let selected_for_decision = chair_output.selected_speakers.contains(&vote.persona_id);
             let counterfactual_role = if denied_by_risk {
                 if matches!(vote.stance, Stance::NoTrade | Stance::Abstain) || vote.veto {
                     CounterfactualRole::RiskVetoAligned
@@ -4354,13 +5175,9 @@ fn build_loop_attribution(
                 voice_power: vote.voice_power,
                 contribution_score: match counterfactual_role {
                     CounterfactualRole::SupportedFinalDecision
-                    | CounterfactualRole::RiskVetoAligned => {
-                        vote.voice_power * vote.conviction
-                    }
+                    | CounterfactualRole::RiskVetoAligned => vote.voice_power * vote.conviction,
                     CounterfactualRole::OpposedFinalDecision
-                    | CounterfactualRole::RiskVetoOpposed => {
-                        -(vote.voice_power * vote.conviction)
-                    }
+                    | CounterfactualRole::RiskVetoOpposed => -(vote.voice_power * vote.conviction),
                     CounterfactualRole::ForcedContrarian => {
                         vote.voice_power * vote.conviction * 0.5
                     }
@@ -4448,12 +5265,12 @@ fn apply_attribution_to_feedback(
         CounterfactualRole::OpposedFinalDecision | CounterfactualRole::ForcedContrarian => feedback
             .reason_codes
             .push(ReasonCode::AgentOpposedFinalDecision),
-        CounterfactualRole::RiskVetoAligned => feedback
-            .reason_codes
-            .push(ReasonCode::AgentRiskVetoAligned),
-        CounterfactualRole::RiskVetoOpposed => feedback
-            .reason_codes
-            .push(ReasonCode::AgentRiskVetoOpposed),
+        CounterfactualRole::RiskVetoAligned => {
+            feedback.reason_codes.push(ReasonCode::AgentRiskVetoAligned)
+        }
+        CounterfactualRole::RiskVetoOpposed => {
+            feedback.reason_codes.push(ReasonCode::AgentRiskVetoOpposed)
+        }
         CounterfactualRole::ShadowOnly => {}
     }
     let no_trade_aligned = matches!(vote.stance, Stance::NoTrade);
@@ -4625,13 +5442,12 @@ pub fn compute_chair_reward_penalty(
             reason_codes: vec![ReasonCode::PaperExecutionOnly],
         };
     }
-    let performance_return = if feedback.outcome_kind
-        == AgentFeedbackOutcomeKind::ExecutedPaperTrade
-    {
-        feedback.realized_net_return
-    } else {
-        feedback.counterfactual_net_return.unwrap_or(0.0)
-    };
+    let performance_return =
+        if feedback.outcome_kind == AgentFeedbackOutcomeKind::ExecutedPaperTrade {
+            feedback.realized_net_return
+        } else {
+            feedback.counterfactual_net_return.unwrap_or(0.0)
+        };
     let profit_reward = (performance_return.max(0.0) * 4.0).clamp(0.0, 0.25);
     let avoided_loss_reward = (feedback.avoided_loss_score.max(0.0) * 0.60).clamp(0.0, 0.35);
     let risk_warning_reward = if feedback.risk_warning_correct {
@@ -4649,8 +5465,8 @@ pub fn compute_chair_reward_penalty(
     } else {
         (4.0, 0.40)
     };
-    let loss_penalty = (performance_return.min(0.0).abs() * loss_multiplier)
-        .clamp(0.0, loss_penalty_cap);
+    let loss_penalty =
+        (performance_return.min(0.0).abs() * loss_multiplier).clamp(0.0, loss_penalty_cap);
     let repeated_high_confidence_penalty = if performance_return < 0.0
         && feedback.confidence_at_decision >= 0.75
         && state.memory_summary.high_confidence_misses > 0
@@ -4746,8 +5562,7 @@ pub fn compute_chair_reward_penalty(
 }
 
 fn feedback_event_id(feedback: &AgentFeedback) -> String {
-    let payload =
-        serde_json::to_string(feedback).unwrap_or_else(|_| format!("{feedback:?}"));
+    let payload = serde_json::to_string(feedback).unwrap_or_else(|_| format!("{feedback:?}"));
     format!(
         "{}::feedback::{}",
         feedback.outcome_id,
@@ -4772,7 +5587,10 @@ pub fn update_agent_voice_state(
         .saturating_add(reward_penalty.cooldown_delta);
     next.tier = match reward_penalty.tier_action {
         ChairTierAction::Promote | ChairTierAction::SandboxCandidate => next.tier,
-        ChairTierAction::Demote => demote_one_tier(next.tier),
+        ChairTierAction::Demote => match next.tier {
+            PersonaTier::D | PersonaTier::XQuarantined => next.tier,
+            _ => demote_one_tier(next.tier),
+        },
         ChairTierAction::Quarantine => PersonaTier::XQuarantined,
         _ => next.tier,
     };
@@ -4873,7 +5691,7 @@ pub fn build_agent_feedback_from_paper_outcome(
     {
         return Err(feedback_error(ReasonCode::FeedbackOutcomeIncomplete));
     }
-    if proposal.symbol != paper_outcome.symbol || proposal.horizon != paper_outcome.horizon {
+    if proposal.symbol != paper_outcome.symbol {
         return Err(feedback_error(ReasonCode::FeedbackProposalOutcomeMismatch));
     }
     if !context.paper_only {
@@ -4909,9 +5727,7 @@ pub fn build_agent_feedback_from_paper_outcome(
                 (result.net_return_pct - paper_outcome.realized_net_return_pct).abs() > 1e-12
             })
     {
-        return Err(feedback_error(
-            ReasonCode::FeedbackProposalOutcomeMismatch,
-        ));
+        return Err(feedback_error(ReasonCode::FeedbackProposalOutcomeMismatch));
     }
 
     let mut reason_codes = paper_outcome
@@ -4938,10 +5754,7 @@ pub fn build_agent_feedback_from_paper_outcome(
     let no_trade_aligned = proposal.stance == Stance::NoTrade
         || matches!(
             risk_role,
-            Some(
-                CounterfactualRole::SupportedFinalDecision
-                    | CounterfactualRole::RiskVetoAligned
-            )
+            Some(CounterfactualRole::SupportedFinalDecision | CounterfactualRole::RiskVetoAligned)
         );
     let no_trade_correct = (paper_outcome.no_trade || paper_outcome.denied_by_risk)
         && no_trade_aligned
@@ -4971,8 +5784,7 @@ pub fn build_agent_feedback_from_paper_outcome(
             CounterfactualRole::SupportedFinalDecision => {
                 reason_codes.push(ReasonCode::AgentSupportedFinalDecision);
             }
-            CounterfactualRole::OpposedFinalDecision
-            | CounterfactualRole::ForcedContrarian => {
+            CounterfactualRole::OpposedFinalDecision | CounterfactualRole::ForcedContrarian => {
                 reason_codes.push(ReasonCode::AgentOpposedFinalDecision);
             }
             CounterfactualRole::RiskVetoAligned => {
@@ -5061,16 +5873,14 @@ pub fn build_agent_feedback_from_paper_outcome(
     } else {
         AgentFeedbackOutcomeKind::NoTrade
     };
-    let realized_net_return =
-        if outcome_kind == AgentFeedbackOutcomeKind::ExecutedPaperTrade {
-            attributed_return
-        } else {
-            0.0
-        };
-    let counterfactual_net_return =
-        (outcome_kind != AgentFeedbackOutcomeKind::ExecutedPaperTrade
-            && matches!(proposal.stance, Stance::Buy | Stance::Sell))
-        .then_some(attributed_return);
+    let realized_net_return = if outcome_kind == AgentFeedbackOutcomeKind::ExecutedPaperTrade {
+        attributed_return
+    } else {
+        0.0
+    };
+    let counterfactual_net_return = (outcome_kind != AgentFeedbackOutcomeKind::ExecutedPaperTrade
+        && matches!(proposal.stance, Stance::Buy | Stance::Sell))
+    .then_some(attributed_return);
     if realized_net_return < 0.0 && proposal.confidence >= 0.75 {
         reason_codes.push(ReasonCode::FeedbackHighConfidenceLoss);
     }
@@ -5519,6 +6329,60 @@ mod tests {
             no_trade_correct: false,
             overtrade: false,
             reason_codes: vec![ReasonCode::PaperExecutionOnly],
+        }
+    }
+
+    fn batch_source(
+        source_id: &str,
+        kind: LocalDataSourceKind,
+        csv_text: &str,
+    ) -> BatchReplaySource {
+        let profile_name = LocalDataSourceRegistry::default()
+            .get_profile(kind)
+            .map(|profile| profile.name.clone())
+            .unwrap_or_default();
+        BatchReplaySource {
+            source_id: source_id.to_string(),
+            source_kind: kind,
+            display_name: source_id.to_string(),
+            csv_text: csv_text.to_string(),
+            profile_name,
+            enabled: true,
+            reason_codes: vec![ReasonCode::LocalFileOnly],
+        }
+    }
+
+    fn valid_batch_sources() -> Vec<BatchReplaySource> {
+        vec![
+            batch_source(
+                "synthetic-fixture",
+                LocalDataSourceKind::SyntheticFixture,
+                include_str!("../../fixtures/historical/sample_ohlcv.csv"),
+            ),
+            batch_source(
+                "korean-stock",
+                LocalDataSourceKind::KoreanStockCsv,
+                include_str!("../../fixtures/historical/sample_kr_stock.csv"),
+            ),
+            batch_source(
+                "us-stock",
+                LocalDataSourceKind::UsStockCsv,
+                include_str!("../../fixtures/historical/sample_us_stock.csv"),
+            ),
+            batch_source(
+                "btc-crypto",
+                LocalDataSourceKind::BtcCryptoCsv,
+                include_str!("../../fixtures/historical/sample_btc_crypto.csv"),
+            ),
+        ]
+    }
+
+    fn valid_batch_input() -> BatchReplayInput {
+        BatchReplayInput {
+            initial_agent_states: canonical_current_agent_states(),
+            sources: valid_batch_sources(),
+            config: BatchReplayConfig::default(),
+            replay_config: PaperReplayConfig::default(),
         }
     }
 
@@ -6130,13 +6994,22 @@ mod tests {
         assert_eq!(result.agent_votes.len(), 3);
         assert_eq!(result.report.active_agent_count, 3);
         assert_eq!(result.risk_decision.kind, RiskDecisionKind::ApprovePaper);
-        assert!(result.paper_order.as_ref().is_some_and(|order| order.paper_only));
-        assert!(result.paper_outcome.as_ref().is_some_and(|outcome| outcome.executed));
+        assert!(
+            result
+                .paper_order
+                .as_ref()
+                .is_some_and(|order| order.paper_only)
+        );
+        assert!(
+            result
+                .paper_outcome
+                .as_ref()
+                .is_some_and(|outcome| outcome.executed)
+        );
         assert_eq!(selected_updated.memory_summary.wins, 1);
         assert!(selected_reward.reward_delta > selected_reward.penalty_delta);
         assert!(
-            selected_updated.voice_state.voice_power
-                > selected_original.voice_state.voice_power
+            selected_updated.voice_state.voice_power > selected_original.voice_state.voice_power
         );
         assert_eq!(result.version_snapshots.len(), 3);
         assert!(result.version_snapshots.iter().all(|snapshot| {
@@ -6220,8 +7093,7 @@ mod tests {
             .as_mut()
             .expect("paper context")
             .hypothetical_net_return_pct = Some(-0.04);
-        let result =
-            run_3_agent_paper_learning_loop(input).expect("NoTrade avoided loss loop");
+        let result = run_3_agent_paper_learning_loop(input).expect("NoTrade avoided loss loop");
         let skeptic_feedback = result
             .feedback_records
             .iter()
@@ -6234,7 +7106,12 @@ mod tests {
             .expect("skeptic state");
 
         assert!(result.paper_order.is_none());
-        assert!(result.paper_outcome.as_ref().is_some_and(|outcome| outcome.no_trade));
+        assert!(
+            result
+                .paper_outcome
+                .as_ref()
+                .is_some_and(|outcome| outcome.no_trade)
+        );
         assert!(skeptic_feedback.no_trade_correct);
         assert!(
             skeptic_feedback
@@ -6279,8 +7156,7 @@ mod tests {
             .expect("paper context")
             .hypothetical_net_return_pct = Some(0.04);
 
-        let result =
-            run_3_agent_paper_learning_loop(input).expect("NoTrade missed gain loop");
+        let result = run_3_agent_paper_learning_loop(input).expect("NoTrade missed gain loop");
         let abstained = result
             .feedback_records
             .iter()
@@ -6293,11 +7169,7 @@ mod tests {
             .expect("NoTrade skeptic feedback");
 
         assert_eq!(result.feedback_records.len(), 3);
-        assert!(
-            abstained
-                .reason_codes
-                .contains(&ReasonCode::AgentAbstained)
-        );
+        assert!(abstained.reason_codes.contains(&ReasonCode::AgentAbstained));
         assert_eq!(
             result
                 .updated_agent_states
@@ -6313,10 +7185,7 @@ mod tests {
                 .reason_codes
                 .contains(&ReasonCode::AgentNoTradeMissedGain)
         );
-        assert!(
-            no_trade.missed_gain_penalty > 0.0
-                && !no_trade.no_trade_correct
-        );
+        assert!(no_trade.missed_gain_penalty > 0.0 && !no_trade.no_trade_correct);
     }
 
     #[test]
@@ -6336,9 +7205,12 @@ mod tests {
 
         assert_eq!(result.risk_decision.kind, RiskDecisionKind::Deny);
         assert!(result.paper_order.is_none());
-        assert!(result.paper_outcome.as_ref().is_some_and(|outcome| {
-            outcome.denied_by_risk && !outcome.executed
-        }));
+        assert!(
+            result
+                .paper_outcome
+                .as_ref()
+                .is_some_and(|outcome| { outcome.denied_by_risk && !outcome.executed })
+        );
         assert!(
             result
                 .risk_decision
@@ -6440,8 +7312,8 @@ mod tests {
         let input = paper_learning_loop_input(0.90, -0.02, 2.0);
         let first =
             run_3_agent_paper_learning_loop(input.clone()).expect("first deterministic loop");
-        let second = run_3_agent_paper_learning_loop(input.clone())
-            .expect("second deterministic loop");
+        let second =
+            run_3_agent_paper_learning_loop(input.clone()).expect("second deterministic loop");
         assert_eq!(first, second);
 
         let mut pending = input;
@@ -6450,17 +7322,13 @@ mod tests {
             .as_mut()
             .expect("pending context")
             .outcome_finalized = false;
-        let pending =
-            run_3_agent_paper_learning_loop(pending).expect("pending paper outcome loop");
+        let pending = run_3_agent_paper_learning_loop(pending).expect("pending paper outcome loop");
         assert!(pending.paper_outcome.is_none());
         assert!(pending.feedback_records.is_empty());
         assert!(pending.reward_penalties.is_empty());
         assert!(pending.version_snapshots.is_empty());
         assert!(pending.sandbox_candidates.is_empty());
-        assert_eq!(
-            pending.updated_agent_states,
-            pending.original_agent_states
-        );
+        assert_eq!(pending.updated_agent_states, pending.original_agent_states);
 
         let future = future_agent_placeholder_state("future-agent-four");
         let mut invalid = paper_learning_loop_input(0.90, 0.01, 2.0);
@@ -6533,8 +7401,10 @@ mod tests {
         mut input: PaperLearningLoopInput,
         timestamp_offset: u64,
     ) -> PaperLearningEpisode {
-        input.market_snapshot.timestamp_ms =
-            input.market_snapshot.timestamp_ms.saturating_add(timestamp_offset);
+        input.market_snapshot.timestamp_ms = input
+            .market_snapshot
+            .timestamp_ms
+            .saturating_add(timestamp_offset);
         if let Some(context) = input.paper_context.as_mut() {
             context.finalized_at_timestamp_ms = input.market_snapshot.timestamp_ms;
             if let Some(evidence) = context.fill_evidence.as_mut() {
@@ -6589,8 +7459,7 @@ mod tests {
     #[test]
     fn paper_learning_chain_runs_three_deterministic_episodes_with_stable_attribution() {
         let input = improving_learning_chain_input();
-        let first =
-            run_3_agent_paper_learning_chain(input.clone()).expect("first learning chain");
+        let first = run_3_agent_paper_learning_chain(input.clone()).expect("first learning chain");
         let second = run_3_agent_paper_learning_chain(input).expect("second learning chain");
         assert_eq!(first, second);
         assert_eq!(first.episode_results.len(), 3);
@@ -6667,12 +7536,16 @@ mod tests {
         );
         assert!(!first.summary.any_live_mutation_detected);
         assert!(!first.summary.any_risk_bypass_detected);
-        assert!(first.final_states.iter().zip(first.initial_states.iter()).all(
-            |(final_state, initial)| {
-                final_state.doctrine == initial.doctrine
-                    && final_state.mutable_policy == initial.mutable_policy
-            }
-        ));
+        assert!(
+            first
+                .final_states
+                .iter()
+                .zip(first.initial_states.iter())
+                .all(|(final_state, initial)| {
+                    final_state.doctrine == initial.doctrine
+                        && final_state.mutable_policy == initial.mutable_policy
+                })
+        );
     }
 
     #[test]
@@ -6773,19 +7646,12 @@ mod tests {
         });
         let result = run_3_agent_paper_learning_chain(PaperLearningChainInput {
             initial_agent_states: canonical_current_agent_states(),
-            episodes: vec![learning_episode(
-                "episode-owner-pressure",
-                owner_input,
-                21,
-            )],
+            episodes: vec![learning_episode("episode-owner-pressure", owner_input, 21)],
             chain_config: PaperLearningChainConfig::default(),
         })
         .expect("owner pressure chain");
         let episode = &result.episode_results[0].result;
-        let owner_review = episode
-            .owner_explanation
-            .as_ref()
-            .expect("owner rejection");
+        let owner_review = episode.owner_explanation.as_ref().expect("owner rejection");
 
         assert_eq!(episode.risk_decision.kind, RiskDecisionKind::Deny);
         assert!(episode.paper_order.is_none());
@@ -6857,10 +7723,7 @@ mod tests {
         let mut pending = paper_learning_loop_input(0.20, 0.0, 2.0);
         pending.signal_input.expected_return = 0.0;
         pending.signal_input.no_trade_probability = 0.95;
-        let pending_context = pending
-            .paper_context
-            .as_mut()
-            .expect("pending context");
+        let pending_context = pending.paper_context.as_mut().expect("pending context");
         pending_context.outcome_finalized = false;
         pending_context.outcome_kind = PaperOutcomeKind::NoExecution;
         pending_context.fill_evidence = None;
@@ -6916,24 +7779,16 @@ mod tests {
             .input
             .market_snapshot
             .timestamp_ms = duplicate_timestamp;
-        duplicate_decision.episodes[1]
-            .input
-            .market_snapshot
-            .symbol = duplicate_symbol;
+        duplicate_decision.episodes[1].input.market_snapshot.symbol = duplicate_symbol;
         assert_eq!(
             run_3_agent_paper_learning_chain(duplicate_decision),
             Err(PaperLearningChainError::DuplicateDecisionId)
         );
 
         let mut reversed_time = improving_learning_chain_input();
-        let later_timestamp = reversed_time.episodes[1]
-            .input
-            .market_snapshot
-            .timestamp_ms;
-        reversed_time.episodes[0]
-            .input
-            .market_snapshot
-            .timestamp_ms = later_timestamp.saturating_add(10);
+        let later_timestamp = reversed_time.episodes[1].input.market_snapshot.timestamp_ms;
+        reversed_time.episodes[0].input.market_snapshot.timestamp_ms =
+            later_timestamp.saturating_add(10);
         assert_eq!(
             run_3_agent_paper_learning_chain(reversed_time),
             Err(PaperLearningChainError::NonMonotonicEpisodeTime)
@@ -6979,6 +7834,8 @@ mod tests {
     fn improving_replay_input() -> PaperReplayInput {
         let mut episodes = improving_learning_chain_input().episodes;
         let mut safe_risk_input = paper_learning_loop_input(0.20, 0.0, 50.0);
+        safe_risk_input.signal_input.p_win = 0.20;
+        safe_risk_input.signal_input.p_stop = 0.60;
         safe_risk_input.signal_input.expected_return = 0.0;
         safe_risk_input.signal_input.expected_drawdown = 0.04;
         safe_risk_input.signal_input.no_trade_probability = 0.95;
@@ -7018,15 +7875,12 @@ mod tests {
                 .iter()
                 .all(|chain| chain.episode_results[0].result.report.active_agent_count == 3)
         );
-        assert!(
+        assert!(first.final_states.iter().all(|state| {
             first
-                .final_states
-                .iter()
-                .all(|state| first
-                    .version_journal
-                    .latest_for_agent(&state.agent_id)
-                    .is_some_and(|snapshot| snapshot.version_id == state.version.version_id))
-        );
+                .version_journal
+                .latest_for_agent(&state.agent_id)
+                .is_some_and(|snapshot| snapshot.version_id == state.version.version_id)
+        }));
         assert!(
             first
                 .final_states
@@ -7039,12 +7893,24 @@ mod tests {
         );
         assert!(!first.learning_chain_summary.any_live_mutation_detected);
         assert!(!first.learning_chain_summary.any_risk_bypass_detected);
-        assert!(first.final_states.iter().all(|state| {
-            !matches!(
-                state.status,
-                AgentStatus::Cooldown | AgentStatus::Quarantined
-            )
-        }));
+        let final_statuses = first
+            .final_states
+            .iter()
+            .map(|state| {
+                (
+                    state.agent_id.clone(),
+                    state.status,
+                    state.memory_summary.doctrine_violations,
+                    state.reason_codes.clone(),
+                )
+            })
+            .collect::<Vec<_>>();
+        assert!(
+            final_statuses.iter().all(|(_, status, _, _)| {
+                !matches!(status, AgentStatus::Cooldown | AgentStatus::Quarantined)
+            }),
+            "unexpected stable replay statuses: {final_statuses:?}"
+        );
         assert!(!first.sandbox_candidates.is_empty());
         assert!(first.sandbox_candidates.iter().all(|candidate| {
             candidate.sandbox_only
@@ -7077,7 +7943,7 @@ mod tests {
         first_context.fill_evidence = None;
         let second_input = first_input.clone();
         let result = run_3_agent_paper_replay(PaperReplayInput {
-            initial_agent_states,
+            initial_agent_states: initial_states,
             episode_inputs: vec![
                 learning_episode("cooldown-one", first_input, 41),
                 learning_episode("cooldown-two", second_input, 42),
@@ -7239,12 +8105,8 @@ mod tests {
             ..OwnerInput::default()
         });
         let result = run_3_agent_paper_replay(PaperReplayInput {
-            initial_agent_states,
-            episode_inputs: vec![learning_episode(
-                "owner-cooldown-bypass",
-                episode_input,
-                71,
-            )],
+            initial_agent_states: initial_states,
+            episode_inputs: vec![learning_episode("owner-cooldown-bypass", episode_input, 71)],
             replay_config: PaperReplayConfig::default(),
         })
         .expect("owner cooldown replay");
@@ -7281,8 +8143,8 @@ mod tests {
 
     #[test]
     fn owner_learning_report_is_deterministic_read_only_and_owner_visible() {
-        let replay = run_3_agent_paper_replay(improving_replay_input())
-            .expect("owner report replay");
+        let replay =
+            run_3_agent_paper_replay(improving_replay_input()).expect("owner report replay");
         let original = replay.clone();
         let first = build_owner_learning_report(
             "owner-learning-report-stable",
@@ -7375,17 +8237,9 @@ mod tests {
 
         assert!(momentum.high_confidence_misses_delta >= 2);
         assert!(momentum.net_reward_penalty < 0.0);
-        assert!(
-            momentum
-                .owner_visible_explanation
-                .contains("more bounded penalty")
-        );
+        assert!(momentum.owner_visible_explanation.contains("Quarantined"));
         assert_eq!(momentum.status_after, AgentStatus::Quarantined);
-        assert!(
-            momentum
-                .reason_codes
-                .contains(&ReasonCode::Quarantined)
-        );
+        assert!(momentum.reason_codes.contains(&ReasonCode::Quarantined));
         assert!(report.chair_summary.penalties_given > 0);
         assert!(report.chair_summary.cooldowns_started > 0);
         assert!(report.chair_summary.quarantines > 0);
@@ -7441,7 +8295,7 @@ mod tests {
             ..OwnerInput::default()
         });
         let replay = run_3_agent_paper_replay(PaperReplayInput {
-            initial_agent_states,
+            initial_agent_states: initial_states,
             episode_inputs: vec![learning_episode("owner-report-risk", input, 91)],
             replay_config: PaperReplayConfig::default(),
         })
@@ -7484,11 +8338,10 @@ mod tests {
 
     #[test]
     fn owner_console_is_read_only_and_renderers_redact_private_material() {
-        let replay = run_3_agent_paper_replay(improving_replay_input())
-            .expect("console report replay");
-        let mut report =
-            build_owner_learning_report("owner-console-report", None, &replay)
-                .expect("console report");
+        let replay =
+            run_3_agent_paper_replay(improving_replay_input()).expect("console report replay");
+        let mut report = build_owner_learning_report("owner-console-report", None, &replay)
+            .expect("console report");
         let original = report.clone();
         for command in [
             OwnerReviewCommand::ShowSummary,
@@ -7645,20 +8498,13 @@ mod tests {
 
         assert_eq!(replay_input.episode_inputs.len(), 4);
         assert_eq!(replay_input.initial_agent_states.len(), 3);
-        assert!(
-            replay_input
-                .episode_inputs
-                .iter()
-                .all(|episode| episode
-                    .input
-                    .paper_context
-                    .as_ref()
-                    .is_some_and(|context| {
-                        context.outcome_finalized
-                            && context.outcome_kind == PaperOutcomeKind::NoExecution
-                            && context.fill_evidence.is_none()
-                    }))
-        );
+        assert!(replay_input.episode_inputs.iter().all(|episode| {
+            episode.input.paper_context.as_ref().is_some_and(|context| {
+                context.outcome_finalized
+                    && context.outcome_kind == PaperOutcomeKind::NoExecution
+                    && context.fill_evidence.is_none()
+            })
+        }));
         let first = build_owner_learning_report_from_historical_replay(
             "historical-owner-report",
             &dataset,
@@ -7776,9 +8622,8 @@ mod tests {
                 parse_local_csv_with_profile(csv, profile, &config).expect("first local parse");
             let second =
                 parse_local_csv_with_profile(csv, profile, &config).expect("second local parse");
-            let series =
-                normalize_dataset_to_candle_series(&first.dataset, &config)
-                    .expect("normalized candle series");
+            let series = normalize_dataset_to_candle_series(&first.dataset, &config)
+                .expect("normalized candle series");
 
             assert_eq!(first, second);
             assert_eq!(first.dataset.symbol, expected_symbol);
@@ -7790,10 +8635,7 @@ mod tests {
             assert_eq!(first.quality_summary.rejected_rows, 0);
             assert_eq!(first.quality_summary.source_kind, kind);
             assert!(first.quality_summary.min_close > 0.0);
-            assert!(
-                first.quality_summary.max_close
-                    >= first.quality_summary.min_close
-            );
+            assert!(first.quality_summary.max_close >= first.quality_summary.min_close);
         }
     }
 
@@ -7951,5 +8793,307 @@ mod tests {
             assert_eq!(first.total_paper_trades, 0);
         }
         assert_eq!(initial_states, original_states);
+    }
+
+    #[test]
+    fn valid_four_source_batch_is_deterministic_and_aggregates_performance() {
+        let input = valid_batch_input();
+        let first =
+            run_local_dataset_batch_replay(input.clone()).expect("first valid batch replay");
+        let second = run_local_dataset_batch_replay(input).expect("second valid batch replay");
+
+        assert_eq!(first, second);
+        assert_eq!(first.accepted_sources, 4);
+        assert_eq!(first.rejected_sources, 0);
+        assert_eq!(first.source_results.len(), 4);
+        assert_eq!(first.initial_states.len(), 3);
+        assert_eq!(first.final_states.len(), 3);
+        assert_eq!(first.aggregate_agent_performance_table.rows.len(), 12);
+        assert_eq!(
+            first
+                .aggregate_agent_performance_table
+                .aggregate_rows_by_agent
+                .len(),
+            3
+        );
+        assert_eq!(
+            first
+                .aggregate_agent_performance_table
+                .aggregate_rows_by_source_kind
+                .len(),
+            12
+        );
+        assert_eq!(first.aggregate_source_performance_table.rows.len(), 4);
+        assert_eq!(
+            first
+                .aggregate_source_performance_table
+                .by_source_kind_counts
+                .len(),
+            4
+        );
+        assert!(first.source_results.iter().all(|source| {
+            source.accepted
+                && source.dataset_quality_summary.is_some()
+                && source.owner_learning_report.is_some()
+                && source.agent_performance_rows.len() == 3
+        }));
+        assert!(
+            first
+                .aggregate_source_performance_table
+                .rows
+                .iter()
+                .all(|row| row.paper_only
+                    && row.not_live_ready
+                    && row.data_quality_summary.is_some())
+        );
+        assert!(!first.aggregate_learning_summary.any_live_mutation_detected);
+        assert!(!first.aggregate_learning_summary.any_risk_bypass_detected);
+
+        let table = &first.aggregate_agent_performance_table;
+        let keys = table
+            .rows
+            .iter()
+            .map(|row| (row.source_kind, row.source_id.clone(), row.agent_id.clone()))
+            .collect::<Vec<_>>();
+        let mut sorted_keys = keys.clone();
+        sorted_keys.sort();
+        assert_eq!(keys, sorted_keys);
+        for aggregate in &table.aggregate_rows_by_agent {
+            let rows = table
+                .rows
+                .iter()
+                .filter(|row| row.agent_id == aggregate.agent_id)
+                .collect::<Vec<_>>();
+            let reward_total = rows.iter().map(|row| row.reward_total).sum::<f64>();
+            let penalty_total = rows.iter().map(|row| row.penalty_total).sum::<f64>();
+            assert!((aggregate.reward_total - reward_total).abs() < 1e-12);
+            assert!((aggregate.penalty_total - penalty_total).abs() < 1e-12);
+            assert_eq!(
+                aggregate.no_trade_correct_count,
+                rows.iter()
+                    .map(|row| row.no_trade_correct_count)
+                    .sum::<u64>()
+            );
+            assert_eq!(
+                aggregate.high_confidence_misses_delta,
+                rows.iter()
+                    .map(|row| row.high_confidence_misses_delta)
+                    .sum::<u64>()
+            );
+        }
+
+        let future = future_agent_placeholder_state("future-disabled");
+        assert_eq!(future.status, AgentStatus::Disabled);
+        assert!(!future.can_vote_live());
+    }
+
+    #[test]
+    fn non_strict_batch_records_rejected_source_and_continues() {
+        let unsafe_csv = "symbol,timestamp_ms,open,high,low,close,volume,account_id\n\
+                          FAKE,1,1,1,1,1,1,private-account";
+        let mut input = valid_batch_input();
+        input.sources = vec![
+            valid_batch_sources().remove(0),
+            batch_source(
+                "unsafe-account-source",
+                LocalDataSourceKind::SyntheticFixture,
+                unsafe_csv,
+            ),
+        ];
+        input.config.require_all_sources_valid = false;
+        input.config.stop_on_source_error = false;
+
+        let batch = run_local_dataset_batch_replay(input).expect("non-strict batch");
+        assert_eq!(batch.accepted_sources, 1);
+        assert_eq!(batch.rejected_sources, 1);
+        assert_eq!(batch.aggregate_source_performance_table.rows.len(), 2);
+        let rejected = batch
+            .aggregate_source_performance_table
+            .rows
+            .iter()
+            .find(|row| !row.accepted)
+            .expect("visible rejected source");
+        assert_eq!(rejected.source_id, "unsafe-account-source");
+        assert!(rejected.paper_only);
+        assert!(rejected.not_live_ready);
+        assert!(
+            rejected
+                .reason_codes
+                .contains(&ReasonCode::BatchReplayAccountDataRejected)
+        );
+    }
+
+    #[test]
+    fn strict_batch_stops_on_rejected_source_with_reason() {
+        let unsafe_csv = "symbol,timestamp_ms,open,high,low,close,volume,order_id\n\
+                          FAKE,1,1,1,1,1,1,private-order";
+        let mut input = valid_batch_input();
+        input.sources.push(batch_source(
+            "unsafe-order-source",
+            LocalDataSourceKind::SyntheticFixture,
+            unsafe_csv,
+        ));
+
+        let error = run_local_dataset_batch_replay(input).expect_err("strict rejection");
+        assert_eq!(error.source_id.as_deref(), Some("unsafe-order-source"));
+        assert!(
+            error
+                .reason_codes
+                .contains(&ReasonCode::BatchReplayOrderDataRejected)
+        );
+        assert!(
+            error
+                .reason_codes
+                .contains(&ReasonCode::BatchReplaySourceRejected)
+        );
+    }
+
+    #[test]
+    fn batch_rejects_unknown_profile_and_all_private_marker_categories() {
+        let temporary_marker = concat!("work", ".", "md");
+        let unsafe_cases = vec![
+            (
+                "account",
+                "symbol,timestamp_ms,open,high,low,close,volume,account_id\nFAKE,1,1,1,1,1,1,x"
+                    .to_string(),
+                ReasonCode::BatchReplayAccountDataRejected,
+            ),
+            (
+                "order",
+                "symbol,timestamp_ms,open,high,low,close,volume,order_id\nFAKE,1,1,1,1,1,1,x"
+                    .to_string(),
+                ReasonCode::BatchReplayOrderDataRejected,
+            ),
+            (
+                "authorization",
+                "symbol,timestamp_ms,open,high,low,close,volume,Authorization\nFAKE,1,1,1,1,1,1,x"
+                    .to_string(),
+                ReasonCode::BatchReplaySecretLikeDataRejected,
+            ),
+            (
+                "bearer",
+                "symbol,timestamp_ms,open,high,low,close,volume,source\nFAKE,1,1,1,1,1,1,Bearer fake-secret"
+                    .to_string(),
+                ReasonCode::BatchReplaySecretLikeDataRejected,
+            ),
+            (
+                "raw-response",
+                "symbol,timestamp_ms,open,high,low,close,volume,raw_response\nFAKE,1,1,1,1,1,1,x"
+                    .to_string(),
+                ReasonCode::BatchReplayRawProviderResponseRejected,
+            ),
+            (
+                "local-private",
+                "symbol,timestamp_ms,open,high,low,close,volume,local_private\nFAKE,1,1,1,1,1,1,x"
+                    .to_string(),
+                ReasonCode::BatchReplayUnsafePrivateData,
+            ),
+            (
+                "temporary-marker",
+                format!(
+                    "symbol,timestamp_ms,open,high,low,close,volume,source\nFAKE,1,1,1,1,1,1,{temporary_marker}"
+                ),
+                ReasonCode::BatchReplayWorkMdMarkerRejected,
+            ),
+        ];
+
+        for (source_id, csv, expected_reason) in unsafe_cases {
+            let mut input = valid_batch_input();
+            input.sources = vec![batch_source(
+                source_id,
+                LocalDataSourceKind::SyntheticFixture,
+                &csv,
+            )];
+            input.config.require_all_sources_valid = false;
+            input.config.stop_on_source_error = false;
+            let batch = run_local_dataset_batch_replay(input).expect("record unsafe source");
+            assert_eq!(batch.accepted_sources, 0);
+            assert_eq!(batch.rejected_sources, 1);
+            assert!(
+                batch.source_results[0]
+                    .reason_codes
+                    .contains(&expected_reason),
+                "missing reason for {source_id}"
+            );
+        }
+
+        let mut unknown_input = valid_batch_input();
+        unknown_input.sources = vec![BatchReplaySource {
+            source_id: "unknown-profile".to_string(),
+            source_kind: LocalDataSourceKind::Unknown,
+            display_name: "Unknown".to_string(),
+            csv_text: "local sanitized csv".to_string(),
+            profile_name: "unknown".to_string(),
+            enabled: true,
+            reason_codes: Vec::new(),
+        }];
+        unknown_input.config.require_all_sources_valid = false;
+        unknown_input.config.stop_on_source_error = false;
+        let unknown =
+            run_local_dataset_batch_replay(unknown_input).expect("record unknown profile");
+        assert_eq!(unknown.rejected_sources, 1);
+        assert!(
+            unknown.source_results[0]
+                .reason_codes
+                .contains(&ReasonCode::LocalSourceUnknown)
+        );
+
+        let mut mismatched_profile = valid_batch_input();
+        mismatched_profile.sources[0].profile_name = "us-stock-csv".to_string();
+        mismatched_profile.config.require_all_sources_valid = false;
+        mismatched_profile.config.stop_on_source_error = false;
+        let mismatch =
+            run_local_dataset_batch_replay(mismatched_profile).expect("record profile mismatch");
+        assert!(
+            mismatch.source_results[0]
+                .reason_codes
+                .contains(&ReasonCode::LocalSourceProfileInvalid)
+        );
+
+        let mut invalid_agent_limit = valid_batch_input();
+        invalid_agent_limit.replay_config.active_agent_limit = 8;
+        assert!(run_local_dataset_batch_replay(invalid_agent_limit).is_err());
+    }
+
+    #[test]
+    fn batch_owner_report_is_deterministic_read_only_and_redacted() {
+        let batch =
+            run_local_dataset_batch_replay(valid_batch_input()).expect("valid batch report input");
+        let first = build_batch_owner_learning_report(&batch);
+        let second = build_batch_owner_learning_report(&batch);
+        let first_text = render_batch_owner_learning_report_text(&first);
+        let second_text = render_batch_owner_learning_report_text(&second);
+
+        assert_eq!(first, second);
+        assert_eq!(first_text, second_text);
+        assert!(first_text.contains("Local Dataset Batch Learning Report"));
+        assert!(first_text.contains("Paper-only batch report."));
+        assert!(first_text.contains("Not live trading ready."));
+        assert!(first_text.contains("Source summary"));
+        assert!(first_text.contains("Agent performance table"));
+        assert!(first_text.contains("Risk Governor summary"));
+        assert!(first_text.contains("Sandbox summary"));
+        assert!(first_text.contains("Rejected source list"));
+        for kind in [
+            LocalDataSourceKind::SyntheticFixture,
+            LocalDataSourceKind::KoreanStockCsv,
+            LocalDataSourceKind::UsStockCsv,
+            LocalDataSourceKind::BtcCryptoCsv,
+        ] {
+            assert!(first_text.contains(&format!("kind={kind:?}")));
+        }
+        for state in canonical_current_agent_states() {
+            assert!(first_text.contains(&format!("agent={}", state.agent_id)));
+        }
+        assert!(!first_text.contains("fake-secret"));
+        assert!(!first_text.contains(concat!("work", ".", "md")));
+
+        let mut private_report = first;
+        private_report
+            .deferred_items
+            .push("Bearer fake-secret".to_string());
+        let redacted = render_batch_owner_learning_report_text(&private_report);
+        assert!(redacted.contains("[REDACTED PRIVATE DATA]"));
+        assert!(!redacted.contains("fake-secret"));
     }
 }

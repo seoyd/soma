@@ -58,6 +58,18 @@ trade-value presence, monotonicity, and close range.
 The normalized dataset enters the existing three-agent paper replay and owner
 report path. It cannot bypass Chair or Risk Governor.
 
+## Batch Replay
+
+`run_local_dataset_batch_replay` resolves every batch item through this
+registry. A source kind and non-empty profile name must identify the same
+canonical profile. Accepted sources proceed to the historical adapter;
+rejected sources retain their reason codes in the source performance table.
+
+Strict mode stops on the first rejection. Continuing mode records the
+rejection and proceeds to later sources. Neither mode silently skips invalid
+data. The batch is bounded by source count, rows per source, and an exact
+three-agent limit.
+
 ## Boundaries
 
 All profiles are local, read-only, sanitized, and paper-only. No registry API
