@@ -57,3 +57,21 @@ documents.
 The adapter performs no live API call and has no broker or account access. Its
 paper episodes use the existing Chair and Risk Governor path and represent
 counterfactual `NoExecution` outcomes rather than fabricated fills.
+
+## Market Profiles
+
+Korean stock fixtures may use `timestamp_ms` or `date` plus `time`; date/time
+is interpreted as synthetic UTC, not an exchange calendar. Optional fields are
+`trade_value`, `market`, `source`, and `currency`.
+
+US stock fixtures support the same timestamp alternatives and may add
+`adjusted_close`. The adjusted value is validated but never substitutes for
+canonical `close`.
+
+BTC fixtures require `timestamp_ms` and may add `quote_volume`, `trade_count`,
+`source`, `exchange`, and `currency`. Quote volume may populate canonical trade
+value.
+
+Forbidden columns include account, order, credential, authorization, token,
+wallet, private, and raw-response fields. Duplicate timestamps and
+multi-symbol files are rejected.

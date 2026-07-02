@@ -98,3 +98,7 @@ Synthetic historical fixtures can supply replay episodes through
 `HistoricalReplayAdapter`. The adapter uses alternating decision and outcome
 candles, never downloads data, and emits finalized `NoExecution`
 counterfactuals through this unchanged replay path.
+
+The local source registry can normalize KR stock, US stock, BTC crypto, and
+generic fixture profiles into the same historical dataset. Profile metadata
+cannot alter Chair, Risk Governor, feedback, cooldown, or sandbox behavior.

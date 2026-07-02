@@ -84,3 +84,8 @@ synthetic dataset into the existing paper replay path and then calls the same
 report builder. The report records the fixture source in
 `generated_from_replay_id`. It does not label counterfactual observations as
 executed trades.
+
+Local source reports additionally attach `LocalDataQualitySummary`. Text,
+Markdown, and JSON-like output can show source kind, accepted and rejected row
+counts, timestamp range, monotonicity, trade-value availability, and close
+range. This metadata does not change replay state.

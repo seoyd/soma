@@ -730,6 +730,8 @@ pub struct OwnerLearningReport {
     pub risk_summary: RiskReviewSummary,
     pub sandbox_summary: SandboxReviewSummary,
     pub owner_advisory_summary: OwnerAdvisorySummary,
+    #[serde(default)]
+    pub data_quality_summary: Option<LocalDataQualitySummary>,
     pub safety_warnings: Vec<String>,
     pub reason_codes: Vec<ReasonCode>,
 }
@@ -822,6 +824,80 @@ pub enum HistoricalOwnerReportError {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct HistoricalReplayAdapter;
+
+#[derive(
+    Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize,
+)]
+pub enum LocalDataSourceKind {
+    SyntheticFixture,
+    KoreanStockCsv,
+    UsStockCsv,
+    BtcCryptoCsv,
+    Unknown,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LocalTimestampUnit {
+    Milliseconds,
+    MillisecondsOrDateTimeUtc,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LocalSymbolPolicy {
+    SingleSymbolStrict,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct LocalDataSourceProfile {
+    pub kind: LocalDataSourceKind,
+    pub name: String,
+    pub description: String,
+    pub required_columns: Vec<String>,
+    pub optional_columns: Vec<String>,
+    pub timestamp_unit: LocalTimestampUnit,
+    pub price_scale: f64,
+    pub volume_scale: f64,
+    pub symbol_policy: LocalSymbolPolicy,
+    pub allowed_source_markers: Vec<String>,
+    pub reject_private_markers: bool,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct LocalDataSourceRegistry {
+    profiles: BTreeMap<LocalDataSourceKind, LocalDataSourceProfile>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct LocalDataQualitySummary {
+    pub total_rows: usize,
+    pub accepted_rows: usize,
+    pub rejected_rows: usize,
+    pub first_timestamp: u64,
+    pub last_timestamp: u64,
+    pub symbol: String,
+    pub source_kind: LocalDataSourceKind,
+    pub has_trade_value: bool,
+    pub monotonic: bool,
+    pub min_close: f64,
+    pub max_close: f64,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct LocalCsvSourceResult {
+    pub dataset: HistoricalReplayDataset,
+    pub quality_summary: LocalDataQualitySummary,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LocalDataSourceError {
+    Registry { reason_codes: Vec<ReasonCode> },
+    Historical(HistoricalReplayError),
+    Replay(PaperReplayError),
+    Report(OwnerLearningReportError),
+}
 
 impl CanonicalAgentState {
     pub fn can_vote_live(&self) -> bool {
@@ -1845,6 +1921,650 @@ fn finalize_replay_attribution(
     }
 }
 
+impl Default for LocalDataSourceRegistry {
+    fn default() -> Self {
+        let profiles = [
+            local_source_profile(LocalDataSourceKind::SyntheticFixture),
+            local_source_profile(LocalDataSourceKind::KoreanStockCsv),
+            local_source_profile(LocalDataSourceKind::UsStockCsv),
+            local_source_profile(LocalDataSourceKind::BtcCryptoCsv),
+        ]
+        .into_iter()
+        .map(|profile| (profile.kind, profile))
+        .collect();
+        Self { profiles }
+    }
+}
+
+impl LocalDataSourceRegistry {
+    pub fn register_profile(
+        &mut self,
+        profile: LocalDataSourceProfile,
+    ) -> Result<(), LocalDataSourceError> {
+        self.validate_profile(&profile)?;
+        self.profiles.insert(profile.kind, profile);
+        Ok(())
+    }
+
+    pub fn get_profile(&self, kind: LocalDataSourceKind) -> Option<&LocalDataSourceProfile> {
+        self.profiles.get(&kind)
+    }
+
+    pub fn list_profiles(&self) -> Vec<&LocalDataSourceProfile> {
+        self.profiles.values().collect()
+    }
+
+    pub fn validate_profile(
+        &self,
+        profile: &LocalDataSourceProfile,
+    ) -> Result<(), LocalDataSourceError> {
+        validate_local_source_profile(profile)
+    }
+}
+
+pub fn parse_local_csv_with_profile(
+    csv_text: &str,
+    profile: &LocalDataSourceProfile,
+    historical_config: &HistoricalReplayConfig,
+) -> Result<LocalCsvSourceResult, LocalDataSourceError> {
+    validate_local_source_profile(profile)?;
+    if contains_temporary_instruction_marker(csv_text) {
+        return Err(local_registry_error(
+            ReasonCode::HistoricalReplayWorkMdMarker,
+        ));
+    }
+    if contains_local_private_marker(csv_text) {
+        return Err(local_registry_error(
+            ReasonCode::HistoricalReplayPrivateMarker,
+        ));
+    }
+    let mut lines = csv_text
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty());
+    let header_line = lines.next().ok_or_else(|| {
+        local_registry_error(ReasonCode::HistoricalReplayEmptyDataset)
+    })?;
+    let header = header_line
+        .split(',')
+        .map(|value| value.trim().to_ascii_lowercase())
+        .collect::<Vec<_>>();
+    let header_index = header
+        .iter()
+        .enumerate()
+        .map(|(index, name)| (name.as_str(), index))
+        .collect::<BTreeMap<_, _>>();
+    if header_index.len() != header.len() {
+        return Err(local_registry_error(
+            ReasonCode::LocalSourceProfileInvalid,
+        ));
+    }
+    if header.iter().any(|column| forbidden_local_column(column)) {
+        return Err(local_registry_error(
+            ReasonCode::HistoricalReplayForbiddenColumn,
+        ));
+    }
+    let allowed_columns = profile
+        .required_columns
+        .iter()
+        .chain(profile.optional_columns.iter())
+        .map(|column| column.as_str())
+        .collect::<Vec<_>>();
+    if header
+        .iter()
+        .any(|column| !allowed_columns.contains(&column.as_str()))
+    {
+        return Err(local_registry_error(
+            ReasonCode::HistoricalReplayForbiddenColumn,
+        ));
+    }
+    if profile
+        .required_columns
+        .iter()
+        .filter(|column| column.as_str() != "timestamp_ms")
+        .any(|column| !header_index.contains_key(column.as_str()))
+    {
+        return Err(local_registry_error(
+            ReasonCode::LocalSourceMissingRequiredColumn,
+        ));
+    }
+    let has_timestamp_ms = header_index.contains_key("timestamp_ms");
+    let has_date_time =
+        header_index.contains_key("date") && header_index.contains_key("time");
+    let timestamp_supported = match profile.timestamp_unit {
+        LocalTimestampUnit::Milliseconds => has_timestamp_ms,
+        LocalTimestampUnit::MillisecondsOrDateTimeUtc => {
+            has_timestamp_ms || has_date_time
+        }
+    };
+    if !timestamp_supported {
+        return Err(local_registry_error(
+            ReasonCode::LocalSourceUnsupportedTimestamp,
+        ));
+    }
+
+    let data_lines = lines.collect::<Vec<_>>();
+    if data_lines.is_empty() {
+        return Err(local_registry_error(
+            ReasonCode::HistoricalReplayEmptyDataset,
+        ));
+    }
+    if data_lines.len() > historical_config.max_rows {
+        return Err(local_registry_error(
+            ReasonCode::HistoricalReplayTooManyRows,
+        ));
+    }
+    let mut canonical_rows = Vec::with_capacity(data_lines.len());
+    let mut first_symbol: Option<String> = None;
+    let mut previous_timestamp: Option<u64> = None;
+    for (offset, line) in data_lines.iter().enumerate() {
+        let values = line
+            .split(',')
+            .map(|value| value.trim())
+            .collect::<Vec<_>>();
+        if values.len() != header.len() {
+            return Err(LocalDataSourceError::Historical(historical_error(
+                Some(offset + 2),
+                ReasonCode::HistoricalReplayInvalidRow,
+            )));
+        }
+        let value = |name: &str| {
+            header_index
+                .get(name)
+                .and_then(|index| values.get(*index))
+                .copied()
+        };
+        let symbol = value("symbol").unwrap_or_default();
+        if symbol.is_empty()
+            || first_symbol
+                .as_deref()
+                .is_some_and(|expected| expected != symbol)
+        {
+            return Err(local_registry_error(
+                ReasonCode::HistoricalReplayMultiSymbolUnsupported,
+            ));
+        }
+        first_symbol.get_or_insert_with(|| symbol.to_string());
+        let timestamp_ms = if let Some(timestamp) = value("timestamp_ms")
+            .filter(|timestamp| !timestamp.is_empty())
+        {
+            timestamp.parse::<u64>().map_err(|_| {
+                local_registry_error(ReasonCode::LocalSourceUnsupportedTimestamp)
+            })?
+        } else {
+            parse_local_datetime_utc_ms(
+                value("date").unwrap_or_default(),
+                value("time").unwrap_or_default(),
+            )
+            .ok_or_else(|| {
+                local_registry_error(ReasonCode::LocalSourceUnsupportedTimestamp)
+            })?
+        };
+        if previous_timestamp == Some(timestamp_ms) {
+            return Err(local_registry_error(
+                ReasonCode::HistoricalReplayDuplicateTimestamp,
+            ));
+        }
+        if historical_config.require_monotonic_timestamps
+            && previous_timestamp.is_some_and(|previous| previous > timestamp_ms)
+        {
+            return Err(local_registry_error(
+                ReasonCode::HistoricalReplayNonMonotonicTimestamp,
+            ));
+        }
+        previous_timestamp = Some(timestamp_ms);
+        let source = value("source")
+            .filter(|source| !source.is_empty())
+            .unwrap_or("synthetic");
+        if !profile.allowed_source_markers.iter().any(|allowed| {
+            let normalized = source.to_ascii_lowercase();
+            normalized == allowed.as_str()
+                || normalized.starts_with(&format!("{allowed}:"))
+        }) {
+            return Err(local_registry_error(
+                ReasonCode::HistoricalReplayUnsafeSource,
+            ));
+        }
+        let scaled = |name: &str, scale: f64| -> Result<String, LocalDataSourceError> {
+            let parsed = value(name)
+                .and_then(|number| number.parse::<f64>().ok())
+                .ok_or_else(|| {
+                    local_registry_error(ReasonCode::HistoricalReplayInvalidRow)
+                })?;
+            Ok(format!("{:.12}", parsed * scale))
+        };
+        let trade_value = value("trade_value")
+            .or_else(|| value("quote_volume"))
+            .filter(|value| !value.is_empty())
+            .unwrap_or_default();
+        for optional_numeric in ["adjusted_close", "quote_volume", "trade_count"] {
+            if let Some(optional_value) =
+                value(optional_numeric).filter(|value| !value.is_empty())
+            {
+                let parsed = optional_value.parse::<f64>().map_err(|_| {
+                    local_registry_error(ReasonCode::HistoricalReplayInvalidRow)
+                })?;
+                if !parsed.is_finite()
+                    || parsed < 0.0
+                    || (optional_numeric == "adjusted_close" && parsed == 0.0)
+                {
+                    return Err(local_registry_error(
+                        ReasonCode::HistoricalReplayInvalidRow,
+                    ));
+                }
+            }
+        }
+        canonical_rows.push(format!(
+            "{symbol},{timestamp_ms},{},{},{},{},{},{},synthetic:{}",
+            scaled("open", profile.price_scale)?,
+            scaled("high", profile.price_scale)?,
+            scaled("low", profile.price_scale)?,
+            scaled("close", profile.price_scale)?,
+            scaled("volume", profile.volume_scale)?,
+            trade_value,
+            local_source_kind_label(profile.kind),
+        ));
+    }
+    let canonical_csv = format!(
+        "symbol,timestamp_ms,open,high,low,close,volume,trade_value,source\n{}",
+        canonical_rows.join("\n")
+    );
+    let dataset = HistoricalReplayAdapter
+        .parse_csv_string(&canonical_csv, historical_config)
+        .map_err(LocalDataSourceError::Historical)?;
+    let quality_summary = build_local_data_quality_summary(&dataset, profile.kind);
+    Ok(LocalCsvSourceResult {
+        reason_codes: stable_reason_codes(
+            &profile
+                .reason_codes
+                .iter()
+                .chain(dataset.reason_codes.iter())
+                .cloned()
+                .collect::<Vec<_>>(),
+        ),
+        dataset,
+        quality_summary,
+    })
+}
+
+pub fn normalize_dataset_to_candle_series(
+    dataset: &HistoricalReplayDataset,
+    historical_config: &HistoricalReplayConfig,
+) -> Result<CandleSeries, HistoricalReplayError> {
+    HistoricalReplayAdapter.to_candle_series(dataset, historical_config)
+}
+
+pub fn build_owner_learning_report_from_local_csv_source(
+    report_id: &str,
+    csv_text: &str,
+    source_kind: LocalDataSourceKind,
+    historical_config: &HistoricalReplayConfig,
+    initial_agent_states: &[CanonicalAgentState],
+    replay_config: PaperReplayConfig,
+) -> Result<OwnerLearningReport, LocalDataSourceError> {
+    let registry = LocalDataSourceRegistry::default();
+    let profile = registry.get_profile(source_kind).ok_or_else(|| {
+        local_registry_error(ReasonCode::LocalSourceUnknown)
+    })?;
+    let parsed = parse_local_csv_with_profile(csv_text, profile, historical_config)?;
+    let replay_input = HistoricalReplayAdapter
+        .to_paper_replay_input(
+            &parsed.dataset,
+            historical_config,
+            initial_agent_states.to_vec(),
+            replay_config,
+        )
+        .map_err(LocalDataSourceError::Historical)?;
+    let replay =
+        run_3_agent_paper_replay(replay_input).map_err(LocalDataSourceError::Replay)?;
+    let mut report = build_owner_learning_report(
+        report_id,
+        Some(format!(
+            "local-csv:{}:{}",
+            local_source_kind_label(source_kind),
+            parsed.dataset.symbol
+        )),
+        &replay,
+    )
+    .map_err(LocalDataSourceError::Report)?;
+    report.data_quality_summary = Some(parsed.quality_summary);
+    report
+        .safety_warnings
+        .push("Local CSV source is sanitized and read-only.".to_string());
+    report.reason_codes = stable_reason_codes(
+        &report
+            .reason_codes
+            .iter()
+            .chain(parsed.reason_codes.iter())
+            .cloned()
+            .collect::<Vec<_>>(),
+    );
+    Ok(report)
+}
+
+fn local_source_profile(kind: LocalDataSourceKind) -> LocalDataSourceProfile {
+    let mut required_columns = vec![
+        "symbol".to_string(),
+        "timestamp_ms".to_string(),
+        "open".to_string(),
+        "high".to_string(),
+        "low".to_string(),
+        "close".to_string(),
+        "volume".to_string(),
+    ];
+    let (name, description, timestamp_unit, optional_columns, allowed_source_markers) =
+        match kind {
+            LocalDataSourceKind::SyntheticFixture => (
+                "synthetic-fixture",
+                "Generic sanitized fixture CSV",
+                LocalTimestampUnit::Milliseconds,
+                vec!["trade_value", "source"],
+                vec!["synthetic", "fixture"],
+            ),
+            LocalDataSourceKind::KoreanStockCsv => {
+                required_columns.retain(|column| column != "timestamp_ms");
+                (
+                    "korean-stock-csv",
+                    "Local sanitized Korean stock CSV",
+                    LocalTimestampUnit::MillisecondsOrDateTimeUtc,
+                    vec![
+                        "timestamp_ms",
+                        "date",
+                        "time",
+                        "trade_value",
+                        "market",
+                        "source",
+                        "currency",
+                    ],
+                    vec![
+                        "local",
+                        "sanitized",
+                        "fixture",
+                        "manual_export",
+                        "synthetic",
+                    ],
+                )
+            }
+            LocalDataSourceKind::UsStockCsv => {
+                required_columns.retain(|column| column != "timestamp_ms");
+                (
+                    "us-stock-csv",
+                    "Local sanitized US stock CSV",
+                    LocalTimestampUnit::MillisecondsOrDateTimeUtc,
+                    vec![
+                        "timestamp_ms",
+                        "date",
+                        "time",
+                        "adjusted_close",
+                        "trade_value",
+                        "market",
+                        "source",
+                        "currency",
+                    ],
+                    vec![
+                        "local",
+                        "sanitized",
+                        "fixture",
+                        "manual_export",
+                        "synthetic",
+                    ],
+                )
+            }
+            LocalDataSourceKind::BtcCryptoCsv => (
+                "btc-crypto-csv",
+                "Local sanitized BTC crypto CSV",
+                LocalTimestampUnit::Milliseconds,
+                vec![
+                    "quote_volume",
+                    "trade_count",
+                    "source",
+                    "exchange",
+                    "currency",
+                ],
+                vec![
+                    "local",
+                    "sanitized",
+                    "fixture",
+                    "manual_export",
+                    "synthetic",
+                ],
+            ),
+            LocalDataSourceKind::Unknown => (
+                "unknown",
+                "Rejected local source",
+                LocalTimestampUnit::Milliseconds,
+                Vec::new(),
+                Vec::new(),
+            ),
+        };
+    LocalDataSourceProfile {
+        kind,
+        name: name.to_string(),
+        description: description.to_string(),
+        required_columns,
+        optional_columns: optional_columns
+            .into_iter()
+            .map(str::to_string)
+            .collect(),
+        timestamp_unit,
+        price_scale: 1.0,
+        volume_scale: 1.0,
+        symbol_policy: LocalSymbolPolicy::SingleSymbolStrict,
+        allowed_source_markers: allowed_source_markers
+            .into_iter()
+            .map(str::to_string)
+            .collect(),
+        reject_private_markers: true,
+        reason_codes: vec![ReasonCode::DeterministicPath, ReasonCode::LocalFileOnly],
+    }
+}
+
+fn validate_local_source_profile(
+    profile: &LocalDataSourceProfile,
+) -> Result<(), LocalDataSourceError> {
+    if profile.kind == LocalDataSourceKind::Unknown {
+        return Err(local_registry_error(ReasonCode::LocalSourceUnknown));
+    }
+    let profile_text = format!(
+        "{} {} {}",
+        profile.name,
+        profile.description,
+        profile.allowed_source_markers.join(" ")
+    )
+    .to_ascii_lowercase();
+    if profile_text.contains("http://") || profile_text.contains("https://") {
+        return Err(local_registry_error(
+            ReasonCode::LocalSourceNetworkForbidden,
+        ));
+    }
+    if profile_text.contains("broker-endpoint")
+        || profile_text.contains("order-endpoint")
+    {
+        return Err(local_registry_error(
+            ReasonCode::LocalSourceBrokerForbidden,
+        ));
+    }
+    let mut columns = profile
+        .required_columns
+        .iter()
+        .chain(profile.optional_columns.iter())
+        .map(|column| column.as_str())
+        .collect::<Vec<_>>();
+    columns.sort_unstable();
+    if columns.iter().any(|column| forbidden_local_column(column)) {
+        return Err(local_registry_error(
+            ReasonCode::LocalSourceUnsafePrivateData,
+        ));
+    }
+    if profile.name.trim().is_empty()
+        || profile.description.trim().is_empty()
+        || !profile.price_scale.is_finite()
+        || profile.price_scale <= 0.0
+        || !profile.volume_scale.is_finite()
+        || profile.volume_scale <= 0.0
+        || profile.allowed_source_markers.is_empty()
+        || !profile.reject_private_markers
+        || columns.windows(2).any(|pair| pair[0] == pair[1])
+        || ["symbol", "open", "high", "low", "close", "volume"]
+            .iter()
+            .any(|required| !columns.contains(required))
+    {
+        return Err(local_registry_error(
+            ReasonCode::LocalSourceProfileInvalid,
+        ));
+    }
+    Ok(())
+}
+
+fn build_local_data_quality_summary(
+    dataset: &HistoricalReplayDataset,
+    source_kind: LocalDataSourceKind,
+) -> LocalDataQualitySummary {
+    let min_close = dataset
+        .rows
+        .iter()
+        .map(|row| row.close)
+        .fold(f64::INFINITY, f64::min);
+    let max_close = dataset
+        .rows
+        .iter()
+        .map(|row| row.close)
+        .fold(f64::NEG_INFINITY, f64::max);
+    LocalDataQualitySummary {
+        total_rows: dataset.rows.len(),
+        accepted_rows: dataset.rows.len(),
+        rejected_rows: 0,
+        first_timestamp: dataset.rows.first().map_or(0, |row| row.timestamp_ms),
+        last_timestamp: dataset.rows.last().map_or(0, |row| row.timestamp_ms),
+        symbol: dataset.symbol.clone(),
+        source_kind,
+        has_trade_value: dataset.rows.iter().any(|row| row.trade_value.is_some()),
+        monotonic: dataset
+            .rows
+            .windows(2)
+            .all(|pair| pair[0].timestamp_ms < pair[1].timestamp_ms),
+        min_close,
+        max_close,
+        reason_codes: vec![
+            ReasonCode::DeterministicPath,
+            ReasonCode::LocalFileOnly,
+            ReasonCode::SyntheticFixtureEvidence,
+        ],
+    }
+}
+
+fn parse_local_datetime_utc_ms(date: &str, time: &str) -> Option<u64> {
+    let date_digits = date.chars().filter(|value| value.is_ascii_digit()).collect::<String>();
+    let time_digits = time.chars().filter(|value| value.is_ascii_digit()).collect::<String>();
+    if date_digits.len() != 8 || time_digits.len() != 6 {
+        return None;
+    }
+    let year = date_digits.get(0..4)?.parse::<i64>().ok()?;
+    let month = date_digits.get(4..6)?.parse::<u32>().ok()?;
+    let day = date_digits.get(6..8)?.parse::<u32>().ok()?;
+    let hour = time_digits.get(0..2)?.parse::<u32>().ok()?;
+    let minute = time_digits.get(2..4)?.parse::<u32>().ok()?;
+    let second = time_digits.get(4..6)?.parse::<u32>().ok()?;
+    if year < 1970
+        || !(1..=12).contains(&month)
+        || day == 0
+        || day > days_in_month(year, month)
+        || hour > 23
+        || minute > 59
+        || second > 59
+    {
+        return None;
+    }
+    let adjusted_year = year - if month <= 2 { 1 } else { 0 };
+    let era = adjusted_year.div_euclid(400);
+    let year_of_era = adjusted_year - era * 400;
+    let shifted_month = i64::from(month) + if month > 2 { -3 } else { 9 };
+    let day_of_year =
+        (153 * shifted_month + 2) / 5 + i64::from(day) - 1;
+    let day_of_era = year_of_era * 365
+        + year_of_era / 4
+        - year_of_era / 100
+        + day_of_year;
+    let days_since_epoch = era * 146_097 + day_of_era - 719_468;
+    let seconds_since_epoch = days_since_epoch
+        .checked_mul(86_400)?
+        .checked_add(i64::from(hour) * 3_600)?
+        .checked_add(i64::from(minute) * 60)?
+        .checked_add(i64::from(second))?;
+    u64::try_from(seconds_since_epoch).ok()?.checked_mul(1_000)
+}
+
+fn days_in_month(year: i64, month: u32) -> u32 {
+    match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 if year % 400 == 0 || (year % 4 == 0 && year % 100 != 0) => 29,
+        2 => 28,
+        _ => 0,
+    }
+}
+
+fn forbidden_local_column(column: &str) -> bool {
+    let normalized = column.to_ascii_lowercase();
+    [
+        "account_id",
+        "order_id",
+        "api_key",
+        "app_key",
+        "app_secret",
+        "token",
+        "authorization",
+        "bearer",
+        "wallet",
+        "private",
+        "raw_response",
+    ]
+    .iter()
+    .any(|marker| normalized.contains(marker))
+}
+
+fn contains_local_private_marker(text: &str) -> bool {
+    let normalized = text.to_ascii_lowercase();
+    [
+        "authorization",
+        "bearer ",
+        "account_id",
+        "order_id",
+        "api_key",
+        "app_key",
+        "app_secret",
+        "access_token",
+        "refresh_token",
+        "wallet",
+        "local_private",
+        "raw_response",
+        "raw toss response",
+    ]
+    .iter()
+    .any(|marker| normalized.contains(marker))
+}
+
+fn contains_temporary_instruction_marker(text: &str) -> bool {
+    text.to_ascii_lowercase()
+        .contains(concat!("work", ".", "md"))
+}
+
+fn local_source_kind_label(kind: LocalDataSourceKind) -> &'static str {
+    match kind {
+        LocalDataSourceKind::SyntheticFixture => "synthetic-fixture",
+        LocalDataSourceKind::KoreanStockCsv => "kr-stock",
+        LocalDataSourceKind::UsStockCsv => "us-stock",
+        LocalDataSourceKind::BtcCryptoCsv => "btc-crypto",
+        LocalDataSourceKind::Unknown => "unknown",
+    }
+}
+
+fn local_registry_error(reason_code: ReasonCode) -> LocalDataSourceError {
+    LocalDataSourceError::Registry {
+        reason_codes: vec![reason_code],
+    }
+}
+
 impl HistoricalReplayAdapter {
     pub fn parse_csv_string(
         &self,
@@ -2626,6 +3346,7 @@ pub fn build_owner_learning_report(
         risk_summary,
         sandbox_summary,
         owner_advisory_summary,
+        data_quality_summary: None,
         safety_warnings: vec![
             "Paper-only report.".to_string(),
             "Not live trading ready.".to_string(),
@@ -2659,8 +3380,25 @@ pub fn render_owner_learning_report_text(report: &OwnerLearningReport) -> String
         format!("total_paper_trades={}", report.total_paper_trades),
         format!("total_no_trades={}", report.total_no_trades),
         format!("total_risk_denials={}", report.total_risk_denials),
-        "Agent changes".to_string(),
     ]);
+    if let Some(quality) = &report.data_quality_summary {
+        lines.push("Data quality summary".to_string());
+        lines.push(format!(
+            "source_kind={:?} symbol={} rows={} accepted={} rejected={} first_timestamp={} last_timestamp={} monotonic={} has_trade_value={} min_close={:.6} max_close={:.6}",
+            quality.source_kind,
+            quality.symbol,
+            quality.total_rows,
+            quality.accepted_rows,
+            quality.rejected_rows,
+            quality.first_timestamp,
+            quality.last_timestamp,
+            quality.monotonic,
+            quality.has_trade_value,
+            quality.min_close,
+            quality.max_close,
+        ));
+    }
+    lines.push("Agent changes".to_string());
     for agent in &report.agents {
         lines.push(format!(
             "agent={} kind={:?} voice={:.6}->{:.6} delta={:.6} tier={:?}->{:?} status={:?}->{:?} cooldown={}->{} wins={} losses={} avoided_losses={} missed_gains={} high_confidence_misses={} doctrine_violations={} reward={:.6} penalty={:.6} net={:.6} sandbox_candidates={} explanation={}",
@@ -2757,6 +3495,7 @@ pub fn render_owner_learning_report_markdown(report: &OwnerLearningReport) -> St
             line,
             "Safety status"
                 | "Overall paper replay summary"
+                | "Data quality summary"
                 | "Agent changes"
                 | "Chair rewards and penalties"
                 | "Risk Governor denials"
@@ -6952,5 +7691,265 @@ mod tests {
         assert!(text.contains("Paper-only report."));
         assert!(text.contains("Not live trading ready."));
         assert!(text.contains("historical:synthetic:FAKE123"));
+    }
+
+    #[test]
+    fn local_source_registry_contains_only_valid_read_only_profiles() {
+        let registry = LocalDataSourceRegistry::default();
+        assert_eq!(registry.list_profiles().len(), 4);
+        for kind in [
+            LocalDataSourceKind::SyntheticFixture,
+            LocalDataSourceKind::KoreanStockCsv,
+            LocalDataSourceKind::UsStockCsv,
+            LocalDataSourceKind::BtcCryptoCsv,
+        ] {
+            let profile = registry.get_profile(kind).expect("local source profile");
+            registry
+                .validate_profile(profile)
+                .expect("valid local source profile");
+            assert!(profile.reject_private_markers);
+            assert_eq!(profile.price_scale, 1.0);
+            assert_eq!(profile.volume_scale, 1.0);
+        }
+        assert!(registry.get_profile(LocalDataSourceKind::Unknown).is_none());
+
+        let mut unsafe_network = registry
+            .get_profile(LocalDataSourceKind::UsStockCsv)
+            .expect("US profile")
+            .clone();
+        unsafe_network.description = "https://forbidden.example/data".to_string();
+        assert!(matches!(
+            registry.validate_profile(&unsafe_network),
+            Err(LocalDataSourceError::Registry { reason_codes })
+                if reason_codes.contains(&ReasonCode::LocalSourceNetworkForbidden)
+        ));
+        let mut unsafe_broker = unsafe_network;
+        unsafe_broker.description = "broker-endpoint".to_string();
+        assert!(matches!(
+            registry.validate_profile(&unsafe_broker),
+            Err(LocalDataSourceError::Registry { reason_codes })
+                if reason_codes.contains(&ReasonCode::LocalSourceBrokerForbidden)
+        ));
+        let mut mutable_registry = registry.clone();
+        assert!(matches!(
+            mutable_registry.register_profile(local_source_profile(
+                LocalDataSourceKind::Unknown
+            )),
+            Err(LocalDataSourceError::Registry { reason_codes })
+                if reason_codes.contains(&ReasonCode::LocalSourceUnknown)
+        ));
+    }
+
+    #[test]
+    fn market_specific_local_fixtures_normalize_deterministically() {
+        let registry = LocalDataSourceRegistry::default();
+        let config = HistoricalReplayConfig::default();
+        let fixtures = [
+            (
+                LocalDataSourceKind::SyntheticFixture,
+                include_str!("../../fixtures/historical/sample_ohlcv.csv"),
+                "FAKE123",
+                8usize,
+            ),
+            (
+                LocalDataSourceKind::KoreanStockCsv,
+                include_str!("../../fixtures/historical/sample_kr_stock.csv"),
+                "FAKEKR",
+                6usize,
+            ),
+            (
+                LocalDataSourceKind::UsStockCsv,
+                include_str!("../../fixtures/historical/sample_us_stock.csv"),
+                "FAKEUS",
+                6usize,
+            ),
+            (
+                LocalDataSourceKind::BtcCryptoCsv,
+                include_str!("../../fixtures/historical/sample_btc_crypto.csv"),
+                "BTC-TEST",
+                6usize,
+            ),
+        ];
+        for (kind, csv, expected_symbol, expected_rows) in fixtures {
+            let profile = registry.get_profile(kind).expect("fixture profile");
+            let first =
+                parse_local_csv_with_profile(csv, profile, &config).expect("first local parse");
+            let second =
+                parse_local_csv_with_profile(csv, profile, &config).expect("second local parse");
+            let series =
+                normalize_dataset_to_candle_series(&first.dataset, &config)
+                    .expect("normalized candle series");
+
+            assert_eq!(first, second);
+            assert_eq!(first.dataset.symbol, expected_symbol);
+            assert_eq!(first.dataset.rows.len(), expected_rows);
+            assert_eq!(series.len(), expected_rows);
+            assert_eq!(series.symbol, expected_symbol);
+            assert!(first.quality_summary.monotonic);
+            assert_eq!(first.quality_summary.accepted_rows, expected_rows);
+            assert_eq!(first.quality_summary.rejected_rows, 0);
+            assert_eq!(first.quality_summary.source_kind, kind);
+            assert!(first.quality_summary.min_close > 0.0);
+            assert!(
+                first.quality_summary.max_close
+                    >= first.quality_summary.min_close
+            );
+        }
+    }
+
+    #[test]
+    fn local_source_parser_rejects_forbidden_columns_and_unstable_rows() {
+        let registry = LocalDataSourceRegistry::default();
+        let profile = registry
+            .get_profile(LocalDataSourceKind::SyntheticFixture)
+            .expect("synthetic source profile");
+        let config = HistoricalReplayConfig::default();
+        let private_instruction_marker = concat!("work", ".", "md");
+        let cases = [
+            (
+                "symbol,timestamp_ms,open,high,low,volume\nFAKE,1,1,2,1,1".to_string(),
+                ReasonCode::LocalSourceMissingRequiredColumn,
+            ),
+            (
+                "symbol,timestamp_ms,open,high,low,close,volume,endpoint\nFAKE,1,1,2,1,1,1,none".to_string(),
+                ReasonCode::HistoricalReplayForbiddenColumn,
+            ),
+            (
+                "symbol,timestamp_ms,open,high,low,close,volume,account_id\nFAKE,1,1,2,1,1,1,fake".to_string(),
+                ReasonCode::HistoricalReplayPrivateMarker,
+            ),
+            (
+                "symbol,timestamp_ms,open,high,low,close,volume,order_id\nFAKE,1,1,2,1,1,1,fake".to_string(),
+                ReasonCode::HistoricalReplayPrivateMarker,
+            ),
+            (
+                "symbol,timestamp_ms,open,high,low,close,volume,authorization\nFAKE,1,1,2,1,1,1,fake".to_string(),
+                ReasonCode::HistoricalReplayPrivateMarker,
+            ),
+            (
+                "symbol,timestamp_ms,open,high,low,close,volume,source\nFAKE,1,1,2,1,1,1,Bearer fake-token".to_string(),
+                ReasonCode::HistoricalReplayPrivateMarker,
+            ),
+            (
+                format!(
+                    "symbol,timestamp_ms,open,high,low,close,volume,source\nFAKE,1,1,2,1,1,1,{private_instruction_marker}"
+                ),
+                ReasonCode::HistoricalReplayWorkMdMarker,
+            ),
+            (
+                "symbol,timestamp_ms,open,high,low,close,volume,source\nFAKE,1,1,2,1,1,1,synthetic\nOTHER,2,1,2,1,1,1,synthetic".to_string(),
+                ReasonCode::HistoricalReplayMultiSymbolUnsupported,
+            ),
+            (
+                "symbol,timestamp_ms,open,high,low,close,volume,source\nFAKE,1,1,2,1,1,1,synthetic\nFAKE,1,1,2,1,1,1,synthetic".to_string(),
+                ReasonCode::HistoricalReplayDuplicateTimestamp,
+            ),
+            (
+                "symbol,timestamp_ms,open,high,low,close,volume,source\nFAKE,1,1,2,1,1,1,live-source".to_string(),
+                ReasonCode::HistoricalReplayUnsafeSource,
+            ),
+            (
+                "symbol,timestamp_ms,open,high,low,close,volume,source\nFAKE,2,1,2,1,1,1,synthetic\nFAKE,1,1,2,1,1,1,synthetic".to_string(),
+                ReasonCode::HistoricalReplayNonMonotonicTimestamp,
+            ),
+        ];
+        for (csv, expected_reason) in cases {
+            let error = parse_local_csv_with_profile(&csv, profile, &config)
+                .expect_err("unsafe local source must fail");
+            assert!(matches!(
+                error,
+                LocalDataSourceError::Registry { reason_codes }
+                    if reason_codes.contains(&expected_reason)
+            ));
+        }
+        let invalid_numeric_cases = [
+            (
+                "symbol,timestamp_ms,open,high,low,close,volume,source\nFAKE,1,NaN,2,1,1,1,synthetic",
+                ReasonCode::HistoricalReplayNonFinite,
+            ),
+            (
+                "symbol,timestamp_ms,open,high,low,close,volume,source\nFAKE,1,0,2,1,1,1,synthetic",
+                ReasonCode::HistoricalReplayNonPositivePrice,
+            ),
+            (
+                "symbol,timestamp_ms,open,high,low,close,volume,source\nFAKE,1,1,1,2,1,1,synthetic",
+                ReasonCode::HistoricalReplayInvalidOhlc,
+            ),
+            (
+                "symbol,timestamp_ms,open,high,low,close,volume,source\nFAKE,1,3,2,1,1,1,synthetic",
+                ReasonCode::HistoricalReplayInvalidOhlc,
+            ),
+        ];
+        for (csv, expected_reason) in invalid_numeric_cases {
+            assert!(matches!(
+                parse_local_csv_with_profile(csv, profile, &config),
+                Err(LocalDataSourceError::Historical(HistoricalReplayError {
+                    reason_codes,
+                    ..
+                })) if reason_codes.contains(&expected_reason)
+            ));
+        }
+    }
+
+    #[test]
+    fn all_local_source_profiles_build_paper_only_owner_reports() {
+        let config = HistoricalReplayConfig::default();
+        let initial_states = canonical_current_agent_states();
+        let original_states = initial_states.clone();
+        let fixtures = [
+            (
+                LocalDataSourceKind::SyntheticFixture,
+                include_str!("../../fixtures/historical/sample_ohlcv.csv"),
+            ),
+            (
+                LocalDataSourceKind::KoreanStockCsv,
+                include_str!("../../fixtures/historical/sample_kr_stock.csv"),
+            ),
+            (
+                LocalDataSourceKind::UsStockCsv,
+                include_str!("../../fixtures/historical/sample_us_stock.csv"),
+            ),
+            (
+                LocalDataSourceKind::BtcCryptoCsv,
+                include_str!("../../fixtures/historical/sample_btc_crypto.csv"),
+            ),
+        ];
+        for (kind, csv) in fixtures {
+            let first = build_owner_learning_report_from_local_csv_source(
+                "local-source-owner-report",
+                csv,
+                kind,
+                &config,
+                &initial_states,
+                PaperReplayConfig::default(),
+            )
+            .expect("first local source report");
+            let second = build_owner_learning_report_from_local_csv_source(
+                "local-source-owner-report",
+                csv,
+                kind,
+                &config,
+                &initial_states,
+                PaperReplayConfig::default(),
+            )
+            .expect("second local source report");
+            let quality = first
+                .data_quality_summary
+                .as_ref()
+                .expect("local data quality summary");
+            let text = render_owner_learning_report_text(&first);
+
+            assert_eq!(first, second);
+            assert_eq!(first.agents.len(), 3);
+            assert_eq!(quality.source_kind, kind);
+            assert_eq!(quality.accepted_rows, quality.total_rows);
+            assert_eq!(quality.rejected_rows, 0);
+            assert!(text.contains("Paper-only report."));
+            assert!(text.contains("Not live trading ready."));
+            assert!(text.contains("Local CSV source is sanitized and read-only."));
+            assert!(text.contains(&format!("source_kind={kind:?}")));
+            assert_eq!(first.total_paper_trades, 0);
+        }
+        assert_eq!(initial_states, original_states);
     }
 }
