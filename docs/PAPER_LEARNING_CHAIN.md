@@ -125,3 +125,7 @@ decision. This chain remains the canonical learning implementation.
 The owner learning report consumes only the replay result produced above the
 chain. Report generation is not part of vote, Chair, Risk, broker, feedback, or
 version-transition processing.
+
+Historical fixture episodes enter through the same chain API. Dataset parsing
+cannot write agent state, submit an order, or skip Chair and Risk Governor
+evaluation.

@@ -93,3 +93,8 @@ execution remain outside this implementation.
 its existing numeric summaries into an owner view. It cannot change replay
 states or journal entries. Report renderers and review commands operate only
 on this immutable projection.
+
+Synthetic historical fixtures can supply replay episodes through
+`HistoricalReplayAdapter`. The adapter uses alternating decision and outcome
+candles, never downloads data, and emits finalized `NoExecution`
+counterfactuals through this unchanged replay path.

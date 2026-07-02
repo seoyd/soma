@@ -3,8 +3,8 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 
 use crate::backtest::{
-    AttributionRecord, BarrierHit, CounterfactualRole, OutcomeRecord, TripleBarrierOutcome,
-    TripleBarrierResult,
+    AttributionRecord, BarrierHit, Candle, CandleSeries, CounterfactualRole, OutcomeRecord,
+    Timeframe, TripleBarrierOutcome, TripleBarrierResult,
 };
 use crate::chair::{ChairConfig, ChairEngine};
 use crate::core::{
@@ -763,6 +763,65 @@ pub struct OwnerReviewResponse {
     pub sandbox_promotion_supported: bool,
     pub cooldown_clear_supported: bool,
 }
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct HistoricalOhlcvRow {
+    pub symbol: String,
+    pub timestamp_ms: u64,
+    pub open: f64,
+    pub high: f64,
+    pub low: f64,
+    pub close: f64,
+    pub volume: f64,
+    pub trade_value: Option<f64>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct HistoricalReplayDataset {
+    pub symbol: String,
+    pub rows: Vec<HistoricalOhlcvRow>,
+    pub source: String,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct HistoricalReplayConfig {
+    pub max_rows: usize,
+    pub require_monotonic_timestamps: bool,
+    pub reject_non_finite: bool,
+    pub reject_non_positive_prices: bool,
+    pub strict_ohlc_bounds: bool,
+    pub synthetic_only: bool,
+}
+
+impl Default for HistoricalReplayConfig {
+    fn default() -> Self {
+        Self {
+            max_rows: 10_000,
+            require_monotonic_timestamps: true,
+            reject_non_finite: true,
+            reject_non_positive_prices: true,
+            strict_ohlc_bounds: true,
+            synthetic_only: true,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct HistoricalReplayError {
+    pub row_number: Option<usize>,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum HistoricalOwnerReportError {
+    Historical(HistoricalReplayError),
+    Replay(PaperReplayError),
+    Report(OwnerLearningReportError),
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct HistoricalReplayAdapter;
 
 impl CanonicalAgentState {
     pub fn can_vote_live(&self) -> bool {
@@ -1786,6 +1845,526 @@ fn finalize_replay_attribution(
     }
 }
 
+impl HistoricalReplayAdapter {
+    pub fn parse_csv_string(
+        &self,
+        input: &str,
+        config: &HistoricalReplayConfig,
+    ) -> Result<HistoricalReplayDataset, HistoricalReplayError> {
+        if !config.reject_non_finite {
+            return Err(historical_error(
+                None,
+                ReasonCode::HistoricalReplayNonFinite,
+            ));
+        }
+        if !config.reject_non_positive_prices {
+            return Err(historical_error(
+                None,
+                ReasonCode::HistoricalReplayNonPositivePrice,
+            ));
+        }
+        if contains_owner_report_private_material(input) {
+            return Err(historical_error(
+                None,
+                ReasonCode::HistoricalReplayUnsafePrivateDataRejected,
+            ));
+        }
+        let mut lines = input
+            .lines()
+            .map(str::trim)
+            .filter(|line| !line.is_empty());
+        let header_line = lines.next().ok_or_else(|| {
+            historical_error(None, ReasonCode::HistoricalReplayEmptyDataset)
+        })?;
+        let header = header_line
+            .split(',')
+            .map(|value| value.trim())
+            .collect::<Vec<_>>();
+        let allowed_columns = [
+            "symbol",
+            "timestamp_ms",
+            "open",
+            "high",
+            "low",
+            "close",
+            "volume",
+            "trade_value",
+            "source",
+        ];
+        let required_columns = [
+            "symbol",
+            "timestamp_ms",
+            "open",
+            "high",
+            "low",
+            "close",
+            "volume",
+        ];
+        let column_index = header
+            .iter()
+            .enumerate()
+            .map(|(index, name)| (*name, index))
+            .collect::<BTreeMap<_, _>>();
+        if header.is_empty()
+            || column_index.len() != header.len()
+            || header
+                .iter()
+                .any(|name| !allowed_columns.contains(name))
+            || required_columns
+                .iter()
+                .any(|name| !column_index.contains_key(name))
+        {
+            return Err(historical_error(
+                None,
+                ReasonCode::HistoricalReplayInvalidHeader,
+            ));
+        }
+        let data_lines = lines.collect::<Vec<_>>();
+        if data_lines.is_empty() {
+            return Err(historical_error(
+                None,
+                ReasonCode::HistoricalReplayEmptyDataset,
+            ));
+        }
+        if config.max_rows == 0 || data_lines.len() > config.max_rows {
+            return Err(historical_error(
+                None,
+                ReasonCode::HistoricalReplayTooManyRows,
+            ));
+        }
+        if !config.synthetic_only {
+            return Err(historical_error(
+                None,
+                ReasonCode::HistoricalReplayUnsafeSource,
+            ));
+        }
+
+        let mut rows = Vec::with_capacity(data_lines.len());
+        let mut dataset_symbol: Option<String> = None;
+        let mut dataset_source: Option<String> = None;
+        for (offset, line) in data_lines.iter().enumerate() {
+            let row_number = offset + 2;
+            let values = line
+                .split(',')
+                .map(|value| value.trim())
+                .collect::<Vec<_>>();
+            if values.len() != header.len() {
+                return Err(historical_error(
+                    Some(row_number),
+                    ReasonCode::HistoricalReplayInvalidRow,
+                ));
+            }
+            let value = |name: &str| {
+                column_index
+                    .get(name)
+                    .and_then(|index| values.get(*index))
+                    .copied()
+            };
+            let symbol = value("symbol").unwrap_or_default();
+            let source = value("source")
+                .filter(|source| !source.is_empty())
+                .unwrap_or("fixture");
+            if symbol.is_empty() {
+                return Err(historical_error(
+                    Some(row_number),
+                    ReasonCode::HistoricalReplayInvalidRow,
+                ));
+            }
+            if !historical_source_is_safe(source)
+                || contains_owner_report_private_material(source)
+            {
+                return Err(historical_error(
+                    Some(row_number),
+                    ReasonCode::HistoricalReplayUnsafeSource,
+                ));
+            }
+            if dataset_symbol
+                .as_deref()
+                .is_some_and(|expected| expected != symbol)
+                || dataset_source
+                    .as_deref()
+                    .is_some_and(|expected| expected != source)
+            {
+                return Err(historical_error(
+                    Some(row_number),
+                    ReasonCode::HistoricalReplayInvalidRow,
+                ));
+            }
+            dataset_symbol.get_or_insert_with(|| symbol.to_string());
+            dataset_source.get_or_insert_with(|| source.to_string());
+
+            let timestamp_ms = parse_historical_u64(value("timestamp_ms"), row_number)?;
+            let open = parse_historical_f64(value("open"), row_number)?;
+            let high = parse_historical_f64(value("high"), row_number)?;
+            let low = parse_historical_f64(value("low"), row_number)?;
+            let close = parse_historical_f64(value("close"), row_number)?;
+            let volume = parse_historical_f64(value("volume"), row_number)?;
+            let trade_value = value("trade_value")
+                .filter(|value| !value.is_empty())
+                .map(|value| parse_historical_f64(Some(value), row_number))
+                .transpose()?;
+            let row = HistoricalOhlcvRow {
+                symbol: symbol.to_string(),
+                timestamp_ms,
+                open,
+                high,
+                low,
+                close,
+                volume,
+                trade_value,
+            };
+            validate_historical_row(&row, config, rows.last(), row_number)?;
+            rows.push(row);
+        }
+        let dataset = HistoricalReplayDataset {
+            symbol: dataset_symbol.unwrap_or_default(),
+            rows,
+            source: dataset_source.unwrap_or_else(|| "fixture".to_string()),
+            reason_codes: vec![
+                ReasonCode::DeterministicPath,
+                ReasonCode::LocalFileOnly,
+                ReasonCode::SyntheticFixtureEvidence,
+            ],
+        };
+        self.validate_dataset(&dataset, config)?;
+        Ok(dataset)
+    }
+
+    pub fn validate_dataset(
+        &self,
+        dataset: &HistoricalReplayDataset,
+        config: &HistoricalReplayConfig,
+    ) -> Result<(), HistoricalReplayError> {
+        if !config.reject_non_finite {
+            return Err(historical_error(
+                None,
+                ReasonCode::HistoricalReplayNonFinite,
+            ));
+        }
+        if !config.reject_non_positive_prices {
+            return Err(historical_error(
+                None,
+                ReasonCode::HistoricalReplayNonPositivePrice,
+            ));
+        }
+        if dataset.rows.is_empty() {
+            return Err(historical_error(
+                None,
+                ReasonCode::HistoricalReplayEmptyDataset,
+            ));
+        }
+        if config.max_rows == 0 || dataset.rows.len() > config.max_rows {
+            return Err(historical_error(
+                None,
+                ReasonCode::HistoricalReplayTooManyRows,
+            ));
+        }
+        if contains_owner_report_private_material(&dataset.source) {
+            return Err(historical_error(
+                None,
+                ReasonCode::HistoricalReplayUnsafePrivateDataRejected,
+            ));
+        }
+        if !config.synthetic_only || !historical_source_is_safe(&dataset.source) {
+            return Err(historical_error(
+                None,
+                ReasonCode::HistoricalReplayUnsafeSource,
+            ));
+        }
+        if dataset.symbol.trim().is_empty()
+            || contains_owner_report_private_material(&dataset.symbol)
+        {
+            return Err(historical_error(
+                None,
+                ReasonCode::HistoricalReplayUnsafePrivateDataRejected,
+            ));
+        }
+        let mut previous = None;
+        for (index, row) in dataset.rows.iter().enumerate() {
+            if contains_owner_report_private_material(&row.symbol) {
+                return Err(historical_error(
+                    Some(index + 2),
+                    ReasonCode::HistoricalReplayUnsafePrivateDataRejected,
+                ));
+            }
+            if row.symbol != dataset.symbol {
+                return Err(historical_error(
+                    Some(index + 2),
+                    ReasonCode::HistoricalReplayInvalidRow,
+                ));
+            }
+            validate_historical_row(row, config, previous, index + 2)?;
+            previous = Some(row);
+        }
+        Ok(())
+    }
+
+    pub fn to_candle_series(
+        &self,
+        dataset: &HistoricalReplayDataset,
+        config: &HistoricalReplayConfig,
+    ) -> Result<CandleSeries, HistoricalReplayError> {
+        self.validate_dataset(dataset, config)?;
+        Ok(CandleSeries {
+            symbol: dataset.symbol.clone(),
+            timeframe: Timeframe::OneMinute,
+            candles: dataset
+                .rows
+                .iter()
+                .map(|row| Candle {
+                    timestamp_ms: row.timestamp_ms,
+                    open: row.open,
+                    high: row.high,
+                    low: row.low,
+                    close: row.close,
+                    volume: row.volume,
+                    trade_value: row.trade_value,
+                    bid: None,
+                    ask: None,
+                    spread_bps: None,
+                })
+                .collect(),
+        })
+    }
+
+    pub fn to_paper_replay_input(
+        &self,
+        dataset: &HistoricalReplayDataset,
+        historical_config: &HistoricalReplayConfig,
+        initial_agent_states: Vec<CanonicalAgentState>,
+        replay_config: PaperReplayConfig,
+    ) -> Result<PaperReplayInput, HistoricalReplayError> {
+        let series = self.to_candle_series(dataset, historical_config)?;
+        if series.len() < 2 {
+            return Err(historical_error(
+                None,
+                ReasonCode::HistoricalReplayEmptyDataset,
+            ));
+        }
+        let mut episode_inputs = Vec::with_capacity(series.len() / 2);
+        for decision_index in (0..series.len().saturating_sub(1)).step_by(2) {
+            let outcome_index = decision_index + 1;
+            let market = series
+                .market_snapshot_at(decision_index)
+                .ok_or_else(|| {
+                    historical_error(
+                        Some(decision_index + 2),
+                        ReasonCode::HistoricalReplayInvalidRow,
+                    )
+                })?;
+            let decision_candle = &series.candles[decision_index];
+            let outcome_candle = &series.candles[outcome_index];
+            let hypothetical_return =
+                outcome_candle.close / decision_candle.close - 1.0;
+            let intrabar_return =
+                decision_candle.close / decision_candle.open - 1.0;
+            let range_pct =
+                (decision_candle.high - decision_candle.low) / decision_candle.open;
+            let signal = SignalOutput {
+                symbol: dataset.symbol.clone(),
+                horizon_bars: 1,
+                p_win: (0.5 + intrabar_return * 4.0).clamp(0.20, 0.80),
+                p_stop: (0.5 - intrabar_return * 4.0).clamp(0.20, 0.80),
+                expected_return: intrabar_return.clamp(-0.05, 0.05),
+                expected_drawdown: range_pct.max(0.0),
+                confidence: 0.20,
+                no_trade_probability: 0.80,
+                source: format!("historical-{}-adapter", dataset.source),
+            };
+            let input = PaperLearningLoopInput {
+                initial_agent_states: initial_agent_states.clone(),
+                market_snapshot: market,
+                signal_input: signal,
+                owner_advisory: None,
+                risk_snapshot: RiskSnapshot {
+                    daily_pnl_pct: 0.0,
+                    consecutive_losses: 0,
+                    current_positions_count: 0,
+                    total_exposure_pct: 0.0,
+                    symbol_exposure_pct: 0.0,
+                    api_health_score: 1.0,
+                    data_quality_score: 1.0,
+                },
+                paper_context: Some(PaperOutcomeContext {
+                    outcome_finalized: true,
+                    finalized_at_timestamp_ms: outcome_candle.timestamp_ms,
+                    outcome_kind: PaperOutcomeKind::NoExecution,
+                    fill_evidence: None,
+                    realized_net_return_pct: 0.0,
+                    hypothetical_net_return_pct: Some(hypothetical_return),
+                    max_adverse_excursion_pct: hypothetical_return.min(0.0).abs(),
+                    doctrine_violation_agents: Vec::new(),
+                    overtrade_agents: Vec::new(),
+                }),
+                loop_config: PaperLearningLoopConfig::default(),
+            };
+            episode_inputs.push(PaperLearningEpisode {
+                episode_id: format!(
+                    "historical:{}:{}",
+                    dataset.symbol, decision_candle.timestamp_ms
+                ),
+                input,
+                reason_codes: vec![
+                    ReasonCode::DeterministicPath,
+                    ReasonCode::PaperExecutionOnly,
+                    ReasonCode::SyntheticFixtureEvidence,
+                ],
+            });
+        }
+        if episode_inputs.is_empty() {
+            return Err(historical_error(
+                None,
+                ReasonCode::HistoricalReplayEmptyDataset,
+            ));
+        }
+        Ok(PaperReplayInput {
+            initial_agent_states,
+            episode_inputs,
+            replay_config,
+        })
+    }
+}
+
+pub fn build_owner_learning_report_from_historical_replay(
+    report_id: &str,
+    dataset: &HistoricalReplayDataset,
+    historical_config: &HistoricalReplayConfig,
+    initial_agent_states: &[CanonicalAgentState],
+    replay_config: PaperReplayConfig,
+) -> Result<OwnerLearningReport, HistoricalOwnerReportError> {
+    let replay_input = HistoricalReplayAdapter
+        .to_paper_replay_input(
+            dataset,
+            historical_config,
+            initial_agent_states.to_vec(),
+            replay_config,
+        )
+        .map_err(HistoricalOwnerReportError::Historical)?;
+    let replay =
+        run_3_agent_paper_replay(replay_input).map_err(HistoricalOwnerReportError::Replay)?;
+    build_owner_learning_report(
+        report_id,
+        Some(format!(
+            "historical:{}:{}",
+            dataset.source, dataset.symbol
+        )),
+        &replay,
+    )
+    .map_err(HistoricalOwnerReportError::Report)
+}
+
+fn parse_historical_u64(
+    value: Option<&str>,
+    row_number: usize,
+) -> Result<u64, HistoricalReplayError> {
+    value
+        .filter(|value| !value.is_empty())
+        .and_then(|value| value.parse::<u64>().ok())
+        .ok_or_else(|| {
+            historical_error(
+                Some(row_number),
+                ReasonCode::HistoricalReplayInvalidRow,
+            )
+        })
+}
+
+fn parse_historical_f64(
+    value: Option<&str>,
+    row_number: usize,
+) -> Result<f64, HistoricalReplayError> {
+    value
+        .filter(|value| !value.is_empty())
+        .and_then(|value| value.parse::<f64>().ok())
+        .ok_or_else(|| {
+            historical_error(
+                Some(row_number),
+                ReasonCode::HistoricalReplayInvalidRow,
+            )
+        })
+}
+
+fn validate_historical_row(
+    row: &HistoricalOhlcvRow,
+    config: &HistoricalReplayConfig,
+    previous: Option<&HistoricalOhlcvRow>,
+    row_number: usize,
+) -> Result<(), HistoricalReplayError> {
+    let numeric_values = [
+        row.open,
+        row.high,
+        row.low,
+        row.close,
+        row.volume,
+        row.trade_value.unwrap_or(0.0),
+    ];
+    if config.reject_non_finite
+        && numeric_values.iter().any(|value| !value.is_finite())
+    {
+        return Err(historical_error(
+            Some(row_number),
+            ReasonCode::HistoricalReplayNonFinite,
+        ));
+    }
+    if config.reject_non_positive_prices
+        && [row.open, row.high, row.low, row.close]
+            .iter()
+            .any(|value| *value <= 0.0)
+    {
+        return Err(historical_error(
+            Some(row_number),
+            ReasonCode::HistoricalReplayNonPositivePrice,
+        ));
+    }
+    if row.timestamp_ms == 0
+        || row.volume < 0.0
+        || row.trade_value.is_some_and(|value| value < 0.0)
+    {
+        return Err(historical_error(
+            Some(row_number),
+            ReasonCode::HistoricalReplayInvalidRow,
+        ));
+    }
+    if row.high < row.low
+        || (config.strict_ohlc_bounds
+            && (row.open < row.low
+                || row.open > row.high
+                || row.close < row.low
+                || row.close > row.high))
+    {
+        return Err(historical_error(
+            Some(row_number),
+            ReasonCode::HistoricalReplayInvalidOhlc,
+        ));
+    }
+    if config.require_monotonic_timestamps
+        && previous.is_some_and(|previous| previous.timestamp_ms >= row.timestamp_ms)
+    {
+        return Err(historical_error(
+            Some(row_number),
+            ReasonCode::HistoricalReplayNonMonotonicTimestamp,
+        ));
+    }
+    Ok(())
+}
+
+fn historical_source_is_safe(source: &str) -> bool {
+    let normalized = source.trim().to_ascii_lowercase();
+    normalized == "fixture"
+        || normalized == "synthetic"
+        || normalized.starts_with("fixture:")
+        || normalized.starts_with("synthetic:")
+}
+
+fn historical_error(
+    row_number: Option<usize>,
+    reason_code: ReasonCode,
+) -> HistoricalReplayError {
+    HistoricalReplayError {
+        row_number,
+        reason_codes: vec![reason_code],
+    }
+}
+
 pub fn build_owner_learning_report(
     report_id: &str,
     generated_from_replay_id: Option<String>,
@@ -2069,6 +2648,13 @@ pub fn render_owner_learning_report_text(report: &OwnerLearningReport) -> String
     lines.extend(report.safety_warnings.iter().cloned());
     lines.extend([
         "Overall paper replay summary".to_string(),
+        format!(
+            "generated_from={}",
+            report
+                .generated_from_replay_id
+                .as_deref()
+                .unwrap_or("unspecified")
+        ),
         format!("total_episodes={}", report.total_episodes),
         format!("total_paper_trades={}", report.total_paper_trades),
         format!("total_no_trades={}", report.total_no_trades),
@@ -6201,5 +6787,170 @@ mod tests {
         report.agents[0].owner_visible_explanation = private_instruction_name.to_string();
         let rendered_private = render_owner_learning_report_json_like(&report);
         assert!(!rendered_private.contains(private_instruction_name));
+    }
+
+    #[test]
+    fn historical_fixture_parser_is_deterministic_and_builds_candle_series() {
+        let csv = include_str!("../../fixtures/historical/sample_ohlcv.csv");
+        let adapter = HistoricalReplayAdapter;
+        let config = HistoricalReplayConfig::default();
+        let first = adapter
+            .parse_csv_string(csv, &config)
+            .expect("first historical fixture parse");
+        let second = adapter
+            .parse_csv_string(csv, &config)
+            .expect("second historical fixture parse");
+        let series = adapter
+            .to_candle_series(&first, &config)
+            .expect("historical candle series");
+
+        assert_eq!(first, second);
+        assert_eq!(first.symbol, "FAKE123");
+        assert_eq!(first.source, "synthetic");
+        assert_eq!(first.rows.len(), 8);
+        assert_eq!(series.len(), 8);
+        assert_eq!(series.symbol, first.symbol);
+        assert!(
+            first
+                .reason_codes
+                .contains(&ReasonCode::SyntheticFixtureEvidence)
+        );
+    }
+
+    #[test]
+    fn historical_fixture_parser_rejects_invalid_and_unsafe_inputs() {
+        let adapter = HistoricalReplayAdapter;
+        let config = HistoricalReplayConfig::default();
+        let cases = [
+            (
+                "symbol,timestamp_ms,open,high,low,volume\nFAKE,1,1,1,1,1",
+                ReasonCode::HistoricalReplayInvalidHeader,
+            ),
+            (
+                "symbol,timestamp_ms,open,high,low,close,volume,source\nFAKE,1,1,2,1,1,1",
+                ReasonCode::HistoricalReplayInvalidRow,
+            ),
+            (
+                "symbol,timestamp_ms,open,high,low,close,volume,source\nFAKE,1,NaN,2,1,1,1,synthetic",
+                ReasonCode::HistoricalReplayNonFinite,
+            ),
+            (
+                "symbol,timestamp_ms,open,high,low,close,volume,source\nFAKE,1,0,2,1,1,1,synthetic",
+                ReasonCode::HistoricalReplayNonPositivePrice,
+            ),
+            (
+                "symbol,timestamp_ms,open,high,low,close,volume,source\nFAKE,1,1,1,2,1,1,synthetic",
+                ReasonCode::HistoricalReplayInvalidOhlc,
+            ),
+            (
+                "symbol,timestamp_ms,open,high,low,close,volume,source\nFAKE,2,1,2,1,1,1,synthetic\nFAKE,1,1,2,1,1,1,synthetic",
+                ReasonCode::HistoricalReplayNonMonotonicTimestamp,
+            ),
+            (
+                "symbol,timestamp_ms,open,high,low,close,volume,source\nFAKE,1,1,2,1,1,1,live-provider",
+                ReasonCode::HistoricalReplayUnsafeSource,
+            ),
+            (
+                "symbol,timestamp_ms,open,high,low,close,volume,source\nFAKE,1,1,2,1,1,1,Bearer fake-private-token",
+                ReasonCode::HistoricalReplayUnsafePrivateDataRejected,
+            ),
+            (
+                "symbol,timestamp_ms,open,high,low,close,volume,source",
+                ReasonCode::HistoricalReplayEmptyDataset,
+            ),
+        ];
+        for (csv, expected_reason) in cases {
+            let error = adapter
+                .parse_csv_string(csv, &config)
+                .expect_err("unsafe historical fixture must fail");
+            assert!(
+                error.reason_codes.contains(&expected_reason),
+                "missing {expected_reason:?} in {:?}",
+                error.reason_codes
+            );
+        }
+
+        let csv = include_str!("../../fixtures/historical/sample_ohlcv.csv");
+        let too_small = HistoricalReplayConfig {
+            max_rows: 2,
+            ..HistoricalReplayConfig::default()
+        };
+        assert!(
+            adapter
+                .parse_csv_string(csv, &too_small)
+                .expect_err("historical fixture row limit")
+                .reason_codes
+                .contains(&ReasonCode::HistoricalReplayTooManyRows)
+        );
+    }
+
+    #[test]
+    fn historical_fixture_replay_builds_deterministic_read_only_owner_report() {
+        let csv = include_str!("../../fixtures/historical/sample_ohlcv.csv");
+        let adapter = HistoricalReplayAdapter;
+        let historical_config = HistoricalReplayConfig::default();
+        let dataset = adapter
+            .parse_csv_string(csv, &historical_config)
+            .expect("historical report dataset");
+        let original_dataset = dataset.clone();
+        let initial_states = canonical_current_agent_states();
+        let original_states = initial_states.clone();
+        let replay_input = adapter
+            .to_paper_replay_input(
+                &dataset,
+                &historical_config,
+                initial_states.clone(),
+                PaperReplayConfig::default(),
+            )
+            .expect("historical replay input");
+
+        assert_eq!(replay_input.episode_inputs.len(), 4);
+        assert_eq!(replay_input.initial_agent_states.len(), 3);
+        assert!(
+            replay_input
+                .episode_inputs
+                .iter()
+                .all(|episode| episode
+                    .input
+                    .paper_context
+                    .as_ref()
+                    .is_some_and(|context| {
+                        context.outcome_finalized
+                            && context.outcome_kind == PaperOutcomeKind::NoExecution
+                            && context.fill_evidence.is_none()
+                    }))
+        );
+        let first = build_owner_learning_report_from_historical_replay(
+            "historical-owner-report",
+            &dataset,
+            &historical_config,
+            &initial_states,
+            PaperReplayConfig::default(),
+        )
+        .expect("first historical owner report");
+        let second = build_owner_learning_report_from_historical_replay(
+            "historical-owner-report",
+            &dataset,
+            &historical_config,
+            &initial_states,
+            PaperReplayConfig::default(),
+        )
+        .expect("second historical owner report");
+
+        assert_eq!(first, second);
+        assert_eq!(dataset, original_dataset);
+        assert_eq!(original_states, canonical_current_agent_states());
+        assert_eq!(first.total_episodes, 4);
+        assert_eq!(first.total_paper_trades, 0);
+        assert_eq!(first.agents.len(), 3);
+        assert_eq!(
+            first.generated_from_replay_id.as_deref(),
+            Some("historical:synthetic:FAKE123")
+        );
+        assert!(!first.sandbox_summary.any_live_candidate);
+        let text = render_owner_learning_report_text(&first);
+        assert!(text.contains("Paper-only report."));
+        assert!(text.contains("Not live trading ready."));
+        assert!(text.contains("historical:synthetic:FAKE123"));
     }
 }

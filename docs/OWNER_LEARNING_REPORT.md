@@ -76,3 +76,11 @@ activation path.
 
 A future UI may display the same immutable schema, but UI, database
 persistence, authentication, and remote export remain deferred.
+
+## Historical Fixture Reports
+
+`build_owner_learning_report_from_historical_replay` first converts a validated
+synthetic dataset into the existing paper replay path and then calls the same
+report builder. The report records the fixture source in
+`generated_from_replay_id`. It does not label counterfactual observations as
+executed trades.
