@@ -77,6 +77,17 @@ to true. Counts by source kind support market-level inspection.
 optional-column, profile-match, and scale diagnostics. Quality anomalies are
 warnings unless the underlying parser or safety boundary rejects the data.
 
+## Quality-Aware Replay
+
+Every parsed source receives a deterministic score and quality bucket before
+paper replay. The conservative default blocks `Poor` and `Rejected`.
+Alternative policies may replay parsed `Poor` data with warnings, but
+`Rejected` data never enters replay.
+
+Blocked results preserve quality diagnostics and appear in source and owner
+reports with zero episodes. Agent performance is also grouped by quality
+bucket so lower-quality context remains visible.
+
 `AgentCrossSourceConsistencyTable` compares numeric paper observations for the
 three active agents across accepted sources. Stable, source-sensitive,
 unstable, and insufficient-data statuses describe evidence variation only.
@@ -92,6 +103,7 @@ deferred items. The text renderer includes:
 - agent performance table,
 - cross-source diagnostics and warnings,
 - agent cross-source consistency,
+- quality policy, bucket counts, blocked sources, and agent results by bucket,
 - Risk Governor summary,
 - sandbox summary,
 - rejected source list,

@@ -108,5 +108,11 @@ warnings, and the three-agent cross-source consistency table. Fixed report
 statements identify synthetic/sanitized local data, make no profitability
 claim, retain Risk Governor veto, and keep owner input advisory.
 
+Quality-aware reports additionally show the active replay policy, profile
+threshold summary, quality bucket counts, sources blocked before replay, and
+agent performance grouped by quality bucket. They explicitly state that
+source diagnostics are not live validation and market calendar/session
+validation is deferred.
+
 Batch values describe synthetic paper replay only. They are not claims of
 profitability, production data quality, or live execution readiness.

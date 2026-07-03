@@ -842,6 +842,36 @@ pub enum LocalSymbolPolicy {
     SingleSymbolStrict,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ExpectedCadence {
+    FixedMillis(u64),
+    DailyApprox,
+    Variable,
+    Unknown,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CadenceTolerance {
+    pub allowed_gap_multiplier: u64,
+    pub max_gap_count: usize,
+    pub allow_weekend_or_session_gap: bool,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SourceQualityThresholds {
+    pub max_timestamp_gap_count: usize,
+    pub max_duplicate_timestamp_count: usize,
+    pub max_missing_optional_ratio: f64,
+    pub max_volume_anomaly_ratio: f64,
+    pub max_suspicious_scale_score: f64,
+    pub max_ohlc_distortion_count: usize,
+    pub min_accepted_rows: usize,
+    pub min_quality_score: f64,
+    pub reject_on_private_marker: bool,
+    pub reject_on_forbidden_column: bool,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct LocalDataSourceProfile {
     pub kind: LocalDataSourceKind,
@@ -855,6 +885,9 @@ pub struct LocalDataSourceProfile {
     pub symbol_policy: LocalSymbolPolicy,
     pub allowed_source_markers: Vec<String>,
     pub reject_private_markers: bool,
+    pub expected_cadence: ExpectedCadence,
+    pub cadence_tolerance: CadenceTolerance,
+    pub quality_thresholds: SourceQualityThresholds,
     pub reason_codes: Vec<ReasonCode>,
 }
 
@@ -917,6 +950,13 @@ pub enum SourceOrderPolicy {
     SourceKindThenId,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum QualityReplayPolicy {
+    RejectPoorAndBelow,
+    RejectRejectedOnly,
+    ReplayAllAcceptedWithWarnings,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BatchReplayConfig {
     pub max_sources: usize,
@@ -928,6 +968,7 @@ pub struct BatchReplayConfig {
     pub active_agent_limit: usize,
     pub replay_mode: BatchReplayMode,
     pub source_order_policy: SourceOrderPolicy,
+    pub quality_policy: QualityReplayPolicy,
     pub reason_codes: Vec<ReasonCode>,
 }
 
@@ -943,6 +984,7 @@ impl Default for BatchReplayConfig {
             active_agent_limit: 3,
             replay_mode: BatchReplayMode::SequentialCarryover,
             source_order_policy: SourceOrderPolicy::AsProvided,
+            quality_policy: QualityReplayPolicy::RejectPoorAndBelow,
             reason_codes: vec![ReasonCode::DeterministicPath, ReasonCode::LocalFileOnly],
         }
     }
@@ -1052,9 +1094,32 @@ pub struct SourceConsistencyDiagnostics {
     pub trade_value_range_ratio: Option<f64>,
     pub trade_value_available: bool,
     pub optional_columns_present: Vec<String>,
+    pub missing_optional_ratio: f64,
     pub profile_match: bool,
     pub suspicious_scale: bool,
+    pub suspicious_scale_score: f64,
+    pub ohlc_distortion_count: usize,
+    pub expected_cadence: ExpectedCadence,
+    pub quality_score: f64,
+    pub quality_bucket: DataQualityBucket,
     pub data_quality_warnings: Vec<String>,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum DataQualityBucket {
+    Excellent,
+    Good,
+    Caution,
+    Poor,
+    Rejected,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SourceQualityScore {
+    pub score: f64,
+    pub bucket: DataQualityBucket,
+    pub diagnostics: Vec<String>,
     pub reason_codes: Vec<ReasonCode>,
 }
 
@@ -1105,6 +1170,31 @@ pub struct AgentCrossSourceConsistencyTable {
     pub reason_codes: Vec<ReasonCode>,
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct AgentPerformanceByQualityRow {
+    pub agent_id: AgentId,
+    pub agent_kind: AgentKind,
+    pub quality_bucket: DataQualityBucket,
+    pub source_count: usize,
+    pub total_episodes: u64,
+    pub reward_total: f64,
+    pub penalty_total: f64,
+    pub net_reward_penalty: f64,
+    pub voice_delta_min: f64,
+    pub voice_delta_max: f64,
+    pub high_confidence_misses: u64,
+    pub avoided_losses: u64,
+    pub cooldown_events: u64,
+    pub quarantine_events: u64,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct AgentPerformanceByQualityTable {
+    pub rows: Vec<AgentPerformanceByQualityRow>,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BatchLearningSummary {
     pub total_sources: usize,
@@ -1129,6 +1219,10 @@ pub struct BatchReplaySourceResult {
     pub agent_performance_rows: Vec<AgentPerformanceRow>,
     pub source_performance_row: SourcePerformanceRow,
     pub source_consistency_diagnostics: SourceConsistencyDiagnostics,
+    pub quality_score: SourceQualityScore,
+    pub quality_bucket: DataQualityBucket,
+    pub quality_reason_codes: Vec<ReasonCode>,
+    pub replay_blocked_by_quality: bool,
     pub reason_codes: Vec<ReasonCode>,
 }
 
@@ -1142,11 +1236,14 @@ pub struct BatchReplayResult {
     pub aggregate_source_performance_table: SourcePerformanceTable,
     pub cross_source_consistency_report: CrossSourceConsistencyReport,
     pub agent_cross_source_consistency_table: AgentCrossSourceConsistencyTable,
+    pub agent_performance_by_quality_table: AgentPerformanceByQualityTable,
+    pub quality_bucket_counts: BTreeMap<DataQualityBucket, u64>,
     pub aggregate_learning_summary: BatchLearningSummary,
     pub rejected_sources: usize,
     pub accepted_sources: usize,
     pub replay_mode: BatchReplayMode,
     pub source_order_policy: SourceOrderPolicy,
+    pub quality_policy: QualityReplayPolicy,
     pub reason_codes: Vec<ReasonCode>,
 }
 
@@ -1163,6 +1260,11 @@ pub struct BatchOwnerLearningReport {
     pub agent_performance_table: AgentPerformanceTable,
     pub cross_source_consistency_report: CrossSourceConsistencyReport,
     pub agent_cross_source_consistency_table: AgentCrossSourceConsistencyTable,
+    pub agent_performance_by_quality_table: AgentPerformanceByQualityTable,
+    pub quality_policy: QualityReplayPolicy,
+    pub quality_bucket_counts: BTreeMap<DataQualityBucket, u64>,
+    pub blocked_by_quality_sources: Vec<String>,
+    pub source_quality_threshold_summary: Vec<String>,
     pub replay_mode: BatchReplayMode,
     pub source_order_policy: SourceOrderPolicy,
     pub source_processing_order: Vec<String>,
@@ -2526,6 +2628,7 @@ pub fn run_local_dataset_batch_replay(
     }
     let replay_mode = input.config.replay_mode;
     let source_order_policy = input.config.source_order_policy;
+    let quality_policy = input.config.quality_policy;
     let mut sources = input.sources;
     if source_order_policy == SourceOrderPolicy::SourceKindThenId {
         sources.sort_by(|left, right| {
@@ -2600,6 +2703,23 @@ pub fn run_local_dataset_batch_replay(
                 continue;
             }
         };
+        let source_consistency_diagnostics =
+            build_source_consistency_diagnostics(&source, &profile, &parsed.dataset);
+        let quality_score = source_quality_score(&source_consistency_diagnostics);
+        let replay_blocked_by_quality =
+            quality_replay_blocked(quality_policy, quality_score.bucket);
+        if replay_blocked_by_quality {
+            let blocked = quality_blocked_source_result(
+                &source,
+                parsed.quality_summary,
+                source_consistency_diagnostics,
+                quality_score,
+            );
+            source_rows.push(blocked.source_performance_row.clone());
+            reason_codes.extend(blocked.reason_codes.iter().cloned());
+            source_results.push(blocked);
+            continue;
+        }
         let replay_input = match HistoricalReplayAdapter.to_paper_replay_input(
             &parsed.dataset,
             &historical_config,
@@ -2696,8 +2816,6 @@ pub fn run_local_dataset_batch_replay(
         );
         let agent_rows = build_agent_performance_rows(&source, &replay, &owner_report);
         let source_row = accepted_source_performance_row(&source, &parsed.quality_summary, &replay);
-        let source_consistency_diagnostics =
-            build_source_consistency_diagnostics(&source, &profile, &parsed.dataset);
         if replay_mode == BatchReplayMode::SequentialCarryover {
             current_states = replay.final_states.clone();
         }
@@ -2730,6 +2848,10 @@ pub fn run_local_dataset_batch_replay(
             },
             source_performance_row: source_row,
             source_consistency_diagnostics,
+            quality_score: quality_score.clone(),
+            quality_bucket: quality_score.bucket,
+            quality_reason_codes: quality_score.reason_codes.clone(),
+            replay_blocked_by_quality: false,
             reason_codes: accepted_reasons,
         });
     }
@@ -2746,6 +2868,16 @@ pub fn run_local_dataset_batch_replay(
     let cross_source_consistency_report = build_cross_source_consistency_report(&source_results);
     let agent_cross_source_consistency_table =
         build_agent_cross_source_consistency_table(&aggregate_agent_performance_table.rows);
+    let agent_performance_by_quality_table = build_agent_performance_by_quality_table(
+        &aggregate_agent_performance_table.rows,
+        &source_results,
+    );
+    let mut quality_bucket_counts = BTreeMap::new();
+    for result in &source_results {
+        *quality_bucket_counts
+            .entry(result.quality_bucket)
+            .or_insert(0) += 1;
+    }
     let aggregate_learning_summary = BatchLearningSummary {
         total_sources: source_results.len(),
         total_episodes: aggregate_source_performance_table
@@ -2806,11 +2938,14 @@ pub fn run_local_dataset_batch_replay(
         aggregate_source_performance_table,
         cross_source_consistency_report,
         agent_cross_source_consistency_table,
+        agent_performance_by_quality_table,
+        quality_bucket_counts,
         aggregate_learning_summary,
         rejected_sources,
         accepted_sources,
         replay_mode,
         source_order_policy,
+        quality_policy,
         reason_codes: stable_reason_codes(&reason_codes),
     })
 }
@@ -2822,6 +2957,16 @@ pub fn build_batch_owner_learning_report(batch: &BatchReplayResult) -> BatchOwne
         agent_performance_table: batch.aggregate_agent_performance_table.clone(),
         cross_source_consistency_report: batch.cross_source_consistency_report.clone(),
         agent_cross_source_consistency_table: batch.agent_cross_source_consistency_table.clone(),
+        agent_performance_by_quality_table: batch.agent_performance_by_quality_table.clone(),
+        quality_policy: batch.quality_policy,
+        quality_bucket_counts: batch.quality_bucket_counts.clone(),
+        blocked_by_quality_sources: batch
+            .source_results
+            .iter()
+            .filter(|source| source.replay_blocked_by_quality)
+            .map(|source| source.source_id.clone())
+            .collect(),
+        source_quality_threshold_summary: build_source_quality_threshold_summary(),
         replay_mode: batch.replay_mode,
         source_order_policy: batch.source_order_policy,
         source_processing_order: batch.source_processing_order.clone(),
@@ -2841,7 +2986,9 @@ pub fn build_batch_owner_learning_report(batch: &BatchReplayResult) -> BatchOwne
             "Risk Governor remains final veto.".to_string(),
             "Owner input remains advisory only.".to_string(),
             "Synthetic/sanitized local data only.".to_string(),
+            "Source quality diagnostics are not live data validation.".to_string(),
             "No profitability claim.".to_string(),
+            "Market calendar/session validation is deferred.".to_string(),
             "Expanded fixtures remain synthetic and are not production market data.".to_string(),
         ],
         deferred_items: vec![
@@ -2863,11 +3010,31 @@ pub fn render_batch_owner_learning_report_text(report: &BatchOwnerLearningReport
     lines.extend([
         "Replay mode".to_string(),
         format!(
-            "replay_mode={:?} source_order_policy={:?} processing_order={}",
+            "replay_mode={:?} source_order_policy={:?} quality_policy={:?} processing_order={}",
             report.replay_mode,
             report.source_order_policy,
+            report.quality_policy,
             report.source_processing_order.join(",")
         ),
+        "Source quality threshold summary".to_string(),
+    ]);
+    lines.extend(report.source_quality_threshold_summary.iter().cloned());
+    lines.push("Quality bucket counts".to_string());
+    for (bucket, count) in &report.quality_bucket_counts {
+        lines.push(format!("quality_bucket={bucket:?} count={count}"));
+    }
+    lines.push("Blocked-by-quality sources".to_string());
+    if report.blocked_by_quality_sources.is_empty() {
+        lines.push("none".to_string());
+    } else {
+        lines.extend(
+            report
+                .blocked_by_quality_sources
+                .iter()
+                .map(|source| format!("blocked_source={source}")),
+        );
+    }
+    lines.extend([
         "Source summary".to_string(),
         format!(
             "sources={} accepted={} rejected={} episodes={} paper_trades={} no_trades={} risk_denials={}",
@@ -2919,12 +3086,15 @@ pub fn render_batch_owner_learning_report_text(report: &BatchOwnerLearningReport
     lines.push("Cross-source diagnostics".to_string());
     for diagnostic in &report.cross_source_consistency_report.source_diagnostics {
         lines.push(format!(
-            "source={} kind={:?} rows={} monotonic={} timestamp_gaps={} close_range_pct={:.6} volume_range_ratio={:.6} trade_value_range_ratio={:?} trade_value={} profile_match={} suspicious_scale={} warnings={}",
+            "source={} kind={:?} rows={} cadence={:?} timestamp_gaps={} quality_score={:.6} quality_bucket={:?} monotonic={} close_range_pct={:.6} volume_range_ratio={:.6} trade_value_range_ratio={:?} trade_value={} profile_match={} suspicious_scale={} warnings={}",
             diagnostic.source_id,
             diagnostic.source_kind,
             diagnostic.row_count,
-            diagnostic.timestamp_monotonic,
+            diagnostic.expected_cadence,
             diagnostic.timestamp_gap_count,
+            diagnostic.quality_score,
+            diagnostic.quality_bucket,
+            diagnostic.timestamp_monotonic,
             diagnostic.close_range_pct,
             diagnostic.volume_range_ratio,
             diagnostic.trade_value_range_ratio,
@@ -2968,6 +3138,25 @@ pub fn render_batch_owner_learning_report_text(report: &BatchOwnerLearningReport
             agent.consistency_status,
         ));
     }
+    lines.push("Agent performance by quality bucket".to_string());
+    for agent in &report.agent_performance_by_quality_table.rows {
+        lines.push(format!(
+            "agent={} quality_bucket={:?} sources={} episodes={} reward={:.6} penalty={:.6} net={:.6} voice_min={:.6} voice_max={:.6} high_confidence_misses={} avoided_losses={} cooldowns={} quarantines={}",
+            agent.agent_id,
+            agent.quality_bucket,
+            agent.source_count,
+            agent.total_episodes,
+            agent.reward_total,
+            agent.penalty_total,
+            agent.net_reward_penalty,
+            agent.voice_delta_min,
+            agent.voice_delta_max,
+            agent.high_confidence_misses,
+            agent.avoided_losses,
+            agent.cooldown_events,
+            agent.quarantine_events,
+        ));
+    }
     lines.extend([
         "Risk Governor summary".to_string(),
         format!("risk_denials={}", report.batch_summary.total_risk_denials),
@@ -2989,6 +3178,27 @@ pub fn render_batch_owner_learning_report_text(report: &BatchOwnerLearningReport
     lines.push("Deferred/live-readiness warning".to_string());
     lines.extend(report.deferred_items.iter().cloned());
     redact_owner_report_output(&lines.join("\n"))
+}
+
+fn build_source_quality_threshold_summary() -> Vec<String> {
+    LocalDataSourceRegistry::default()
+        .list_profiles()
+        .into_iter()
+        .map(|profile| {
+            format!(
+                "kind={:?} cadence={:?} gap_multiplier={} max_gaps={} max_missing_optional_ratio={:.3} max_volume_ratio={:.3} max_ohlc_distortions={} min_rows={} min_score={:.3}",
+                profile.kind,
+                profile.expected_cadence,
+                profile.cadence_tolerance.allowed_gap_multiplier,
+                profile.quality_thresholds.max_timestamp_gap_count,
+                profile.quality_thresholds.max_missing_optional_ratio,
+                profile.quality_thresholds.max_volume_anomaly_ratio,
+                profile.quality_thresholds.max_ohlc_distortion_count,
+                profile.quality_thresholds.min_accepted_rows,
+                profile.quality_thresholds.min_quality_score,
+            )
+        })
+        .collect()
 }
 
 fn build_agent_performance_rows(
@@ -3096,11 +3306,111 @@ fn accepted_source_performance_row(
     }
 }
 
+fn source_quality_score(diagnostics: &SourceConsistencyDiagnostics) -> SourceQualityScore {
+    SourceQualityScore {
+        score: diagnostics.quality_score,
+        bucket: diagnostics.quality_bucket,
+        diagnostics: diagnostics.data_quality_warnings.clone(),
+        reason_codes: diagnostics.reason_codes.clone(),
+    }
+}
+
+fn quality_replay_blocked(policy: QualityReplayPolicy, bucket: DataQualityBucket) -> bool {
+    match policy {
+        QualityReplayPolicy::RejectPoorAndBelow => {
+            matches!(
+                bucket,
+                DataQualityBucket::Poor | DataQualityBucket::Rejected
+            )
+        }
+        QualityReplayPolicy::RejectRejectedOnly
+        | QualityReplayPolicy::ReplayAllAcceptedWithWarnings => {
+            bucket == DataQualityBucket::Rejected
+        }
+    }
+}
+
+fn quality_blocked_source_result(
+    source: &BatchReplaySource,
+    quality_summary: LocalDataQualitySummary,
+    source_consistency_diagnostics: SourceConsistencyDiagnostics,
+    mut quality_score: SourceQualityScore,
+) -> BatchReplaySourceResult {
+    quality_score
+        .reason_codes
+        .push(ReasonCode::SourceQualityReplayBlocked);
+    quality_score.reason_codes = stable_reason_codes(&quality_score.reason_codes);
+    let reason_codes = stable_reason_codes(
+        &source
+            .reason_codes
+            .iter()
+            .chain(quality_score.reason_codes.iter())
+            .cloned()
+            .chain([ReasonCode::BatchReplaySourceRejected])
+            .collect::<Vec<_>>(),
+    );
+    let source_performance_row = SourcePerformanceRow {
+        source_id: source.source_id.clone(),
+        source_kind: source.source_kind,
+        display_name: source.display_name.clone(),
+        accepted: false,
+        total_rows: quality_summary.total_rows,
+        accepted_rows: quality_summary.accepted_rows,
+        rejected_rows: quality_summary.rejected_rows,
+        total_episodes: 0,
+        total_paper_trades: 0,
+        total_no_trades: 0,
+        total_risk_denials: 0,
+        data_quality_summary: Some(quality_summary.clone()),
+        first_timestamp: quality_summary.first_timestamp,
+        last_timestamp: quality_summary.last_timestamp,
+        symbol: quality_summary.symbol.clone(),
+        min_close: quality_summary.min_close,
+        max_close: quality_summary.max_close,
+        monotonic: quality_summary.monotonic,
+        paper_only: true,
+        not_live_ready: true,
+        reason_codes: reason_codes.clone(),
+    };
+    BatchReplaySourceResult {
+        source_id: source.source_id.clone(),
+        source_kind: source.source_kind,
+        accepted: false,
+        dataset_quality_summary: Some(quality_summary),
+        replay_result: None,
+        owner_learning_report: None,
+        agent_performance_rows: Vec::new(),
+        source_performance_row,
+        source_consistency_diagnostics,
+        quality_bucket: quality_score.bucket,
+        quality_reason_codes: quality_score.reason_codes.clone(),
+        quality_score,
+        replay_blocked_by_quality: true,
+        reason_codes,
+    }
+}
+
 fn rejected_batch_source_result(
     source: &BatchReplaySource,
     reason_codes: Vec<ReasonCode>,
 ) -> BatchReplaySourceResult {
-    let reason_codes = stable_reason_codes(&reason_codes);
+    let reason_codes = stable_reason_codes(
+        &reason_codes
+            .into_iter()
+            .chain([
+                ReasonCode::SourceQualityRejected,
+                ReasonCode::SourceQualityReplayBlocked,
+            ])
+            .collect::<Vec<_>>(),
+    );
+    let source_consistency_diagnostics =
+        rejected_source_consistency_diagnostics(source, &reason_codes);
+    let quality_score = SourceQualityScore {
+        score: 0.0,
+        bucket: DataQualityBucket::Rejected,
+        diagnostics: source_consistency_diagnostics.data_quality_warnings.clone(),
+        reason_codes: reason_codes.clone(),
+    };
     let row = SourcePerformanceRow {
         source_id: source.source_id.clone(),
         source_kind: source.source_kind,
@@ -3133,10 +3443,11 @@ fn rejected_batch_source_result(
         owner_learning_report: None,
         agent_performance_rows: Vec::new(),
         source_performance_row: row,
-        source_consistency_diagnostics: rejected_source_consistency_diagnostics(
-            source,
-            &reason_codes,
-        ),
+        source_consistency_diagnostics,
+        quality_score,
+        quality_bucket: DataQualityBucket::Rejected,
+        quality_reason_codes: reason_codes.clone(),
+        replay_blocked_by_quality: true,
         reason_codes,
     }
 }
@@ -3241,15 +3552,17 @@ fn build_source_consistency_diagnostics(
         .windows(2)
         .map(|pair| pair[1].timestamp_ms.saturating_sub(pair[0].timestamp_ms))
         .collect::<Vec<_>>();
-    let baseline_gap = timestamp_deltas
-        .iter()
-        .copied()
-        .filter(|gap| *gap > 0)
-        .min();
-    let timestamp_gap_count = baseline_gap.map_or(0, |baseline| {
+    let expected_interval = match profile.expected_cadence {
+        ExpectedCadence::FixedMillis(interval) => Some(interval),
+        ExpectedCadence::DailyApprox => Some(86_400_000),
+        ExpectedCadence::Variable | ExpectedCadence::Unknown => None,
+    };
+    let timestamp_gap_count = expected_interval.map_or(0, |expected| {
         timestamp_deltas
             .iter()
-            .filter(|gap| **gap > baseline.saturating_mul(3))
+            .filter(|gap| {
+                **gap > expected.saturating_mul(profile.cadence_tolerance.allowed_gap_multiplier)
+            })
             .count()
     });
     let min_close = dataset
@@ -3322,20 +3635,38 @@ fn build_source_consistency_diagnostics(
         .cloned()
         .collect::<Vec<_>>();
     optional_columns_present.sort();
+    let missing_optional_ratio = if profile.optional_columns.is_empty() {
+        0.0
+    } else {
+        (profile.optional_columns.len() - optional_columns_present.len()) as f64
+            / profile.optional_columns.len() as f64
+    };
     let trade_value_available = dataset.rows.iter().any(|row| row.trade_value.is_some());
     let profile_match = source.profile_name == profile.name && source.source_kind == profile.kind;
     let suspicious_scale = min_close < 0.0001 || max_close > 10_000_000.0 || close_range_pct > 5.0;
-    let volume_anomaly = volume_range_ratio > 1_000.0
-        || trade_value_range_ratio.is_some_and(|ratio| ratio > 1_000.0);
-    let ohlc_distortion = dataset
+    let suspicious_scale_score = if suspicious_scale { 1.0 } else { 0.0 };
+    let volume_anomaly = volume_range_ratio > profile.quality_thresholds.max_volume_anomaly_ratio
+        || trade_value_range_ratio
+            .is_some_and(|ratio| ratio > profile.quality_thresholds.max_volume_anomaly_ratio);
+    let ohlc_distortion_count = dataset
         .rows
         .iter()
-        .any(|row| row.close > 0.0 && (row.high - row.low) / row.close > 0.50);
+        .filter(|row| row.close > 0.0 && (row.high - row.low) / row.close > 0.50)
+        .count();
     let mut data_quality_warnings = Vec::new();
-    let mut reason_codes = vec![ReasonCode::DeterministicPath, ReasonCode::LocalFileOnly];
+    let mut reason_codes = profile.cadence_tolerance.reason_codes.clone();
+    reason_codes.extend([ReasonCode::DeterministicPath, ReasonCode::LocalFileOnly]);
     if timestamp_gap_count > 0 {
         data_quality_warnings.push("Irregular timestamp gap detected.".to_string());
-        reason_codes.push(ReasonCode::SourceConsistencyTimestampGap);
+        reason_codes.extend([
+            ReasonCode::SourceConsistencyTimestampGap,
+            ReasonCode::SourceCadenceGapDetected,
+        ]);
+    }
+    if timestamp_gap_count > profile.cadence_tolerance.max_gap_count
+        || timestamp_gap_count > profile.quality_thresholds.max_timestamp_gap_count
+    {
+        reason_codes.push(ReasonCode::SourceCadenceTooManyGaps);
     }
     if suspicious_scale {
         data_quality_warnings.push("Suspicious price scale or close range detected.".to_string());
@@ -3345,6 +3676,10 @@ fn build_source_consistency_diagnostics(
         data_quality_warnings.push("Abnormal volume or trade-value range detected.".to_string());
         reason_codes.push(ReasonCode::SourceConsistencyVolumeAnomaly);
     }
+    if missing_optional_ratio > profile.quality_thresholds.max_missing_optional_ratio {
+        data_quality_warnings
+            .push("Optional column coverage is below profile threshold.".to_string());
+    }
     if !trade_value_available {
         data_quality_warnings.push("Optional trade value is unavailable.".to_string());
         reason_codes.push(ReasonCode::SourceConsistencyMissingOptionalTradeValue);
@@ -3353,10 +3688,50 @@ fn build_source_consistency_diagnostics(
         data_quality_warnings.push("Source profile does not match source kind.".to_string());
         reason_codes.push(ReasonCode::SourceConsistencyProfileMismatch);
     }
-    if ohlc_distortion {
+    if ohlc_distortion_count > 0 {
         data_quality_warnings.push("Wide OHLC range requires review.".to_string());
         reason_codes.push(ReasonCode::SourceConsistencyQualityWarning);
     }
+    if profile.expected_cadence == ExpectedCadence::Variable {
+        reason_codes.push(ReasonCode::SourceCadenceVariableAccepted);
+    }
+    let mut score = 1.0_f64;
+    score -= (timestamp_gap_count as f64 * 0.20).min(0.60);
+    if missing_optional_ratio > profile.quality_thresholds.max_missing_optional_ratio {
+        score -= 0.20;
+    }
+    if volume_anomaly {
+        score -= 0.25;
+    }
+    if suspicious_scale_score > profile.quality_thresholds.max_suspicious_scale_score {
+        score -= 0.35;
+    }
+    if ohlc_distortion_count > profile.quality_thresholds.max_ohlc_distortion_count {
+        score -= (ohlc_distortion_count as f64 * 0.15).min(0.45);
+    }
+    score = score.clamp(0.0, 1.0);
+    let quality_bucket = if dataset.rows.len() < profile.quality_thresholds.min_accepted_rows
+        || score < profile.quality_thresholds.min_quality_score
+    {
+        score = 0.0;
+        reason_codes.extend([
+            ReasonCode::SourceQualityBelowThreshold,
+            ReasonCode::SourceQualityRejected,
+        ]);
+        DataQualityBucket::Rejected
+    } else if score >= 0.95 {
+        reason_codes.push(ReasonCode::SourceQualityExcellent);
+        DataQualityBucket::Excellent
+    } else if score >= 0.80 {
+        reason_codes.push(ReasonCode::SourceQualityGood);
+        DataQualityBucket::Good
+    } else if score >= 0.55 {
+        reason_codes.push(ReasonCode::SourceQualityCaution);
+        DataQualityBucket::Caution
+    } else {
+        reason_codes.push(ReasonCode::SourceQualityPoor);
+        DataQualityBucket::Poor
+    };
     if !data_quality_warnings.is_empty() {
         reason_codes.push(ReasonCode::SourceConsistencyQualityWarning);
     }
@@ -3381,8 +3756,14 @@ fn build_source_consistency_diagnostics(
         trade_value_range_ratio,
         trade_value_available,
         optional_columns_present,
+        missing_optional_ratio,
         profile_match,
         suspicious_scale,
+        suspicious_scale_score,
+        ohlc_distortion_count,
+        expected_cadence: profile.expected_cadence,
+        quality_score: score,
+        quality_bucket,
         data_quality_warnings,
         reason_codes: stable_reason_codes(&reason_codes),
     }
@@ -3432,8 +3813,14 @@ fn rejected_source_consistency_diagnostics(
         trade_value_range_ratio: None,
         trade_value_available: false,
         optional_columns_present: Vec::new(),
+        missing_optional_ratio: 1.0,
         profile_match,
         suspicious_scale: false,
+        suspicious_scale_score: 0.0,
+        ohlc_distortion_count: 0,
+        expected_cadence: ExpectedCadence::Unknown,
+        quality_score: 0.0,
+        quality_bucket: DataQualityBucket::Rejected,
         data_quality_warnings: warnings,
         reason_codes: stable_reason_codes(&reason_codes),
     }
@@ -3594,6 +3981,72 @@ fn build_agent_cross_source_consistency_table(
     }
 }
 
+fn build_agent_performance_by_quality_table(
+    rows: &[AgentPerformanceRow],
+    source_results: &[BatchReplaySourceResult],
+) -> AgentPerformanceByQualityTable {
+    let source_buckets = source_results
+        .iter()
+        .map(|result| (result.source_id.as_str(), result.quality_bucket))
+        .collect::<BTreeMap<_, _>>();
+    let mut grouped = BTreeMap::<(AgentId, DataQualityBucket), AgentPerformanceByQualityRow>::new();
+    for row in rows {
+        let Some(source_id) = row.source_id.as_deref() else {
+            continue;
+        };
+        let Some(quality_bucket) = source_buckets.get(source_id).copied() else {
+            continue;
+        };
+        let key = (row.agent_id.clone(), quality_bucket);
+        if let Some(aggregate) = grouped.get_mut(&key) {
+            aggregate.source_count += 1;
+            aggregate.total_episodes += row.total_episodes;
+            aggregate.reward_total += row.reward_total;
+            aggregate.penalty_total += row.penalty_total;
+            aggregate.net_reward_penalty = aggregate.reward_total - aggregate.penalty_total;
+            aggregate.voice_delta_min = aggregate.voice_delta_min.min(row.voice_delta);
+            aggregate.voice_delta_max = aggregate.voice_delta_max.max(row.voice_delta);
+            aggregate.high_confidence_misses += row.high_confidence_misses_delta;
+            aggregate.avoided_losses += row.avoided_losses_delta;
+            aggregate.cooldown_events += row.cooldown_events;
+            aggregate.quarantine_events += row.quarantine_events;
+            aggregate
+                .reason_codes
+                .extend(row.reason_codes.iter().cloned());
+            aggregate.reason_codes = stable_reason_codes(&aggregate.reason_codes);
+        } else {
+            grouped.insert(
+                key,
+                AgentPerformanceByQualityRow {
+                    agent_id: row.agent_id.clone(),
+                    agent_kind: row.agent_kind,
+                    quality_bucket,
+                    source_count: 1,
+                    total_episodes: row.total_episodes,
+                    reward_total: row.reward_total,
+                    penalty_total: row.penalty_total,
+                    net_reward_penalty: row.net_reward_penalty,
+                    voice_delta_min: row.voice_delta,
+                    voice_delta_max: row.voice_delta,
+                    high_confidence_misses: row.high_confidence_misses_delta,
+                    avoided_losses: row.avoided_losses_delta,
+                    cooldown_events: row.cooldown_events,
+                    quarantine_events: row.quarantine_events,
+                    reason_codes: row.reason_codes.clone(),
+                },
+            );
+        }
+    }
+    AgentPerformanceByQualityTable {
+        rows: grouped.into_values().collect(),
+        reason_codes: vec![
+            ReasonCode::BatchReplayBuilt,
+            ReasonCode::DeterministicPath,
+            ReasonCode::PaperExecutionOnly,
+        ],
+    }
+}
+
 fn agent_performance_sort(
     left: &AgentPerformanceRow,
     right: &AgentPerformanceRow,
@@ -3622,6 +4075,11 @@ fn batch_source_safety_reason(source: &BatchReplaySource) -> Option<ReasonCode> 
     let normalized = combined.to_ascii_lowercase();
     if contains_temporary_instruction_marker(&combined) {
         Some(ReasonCode::BatchReplayWorkMdMarkerRejected)
+    } else if normalized.contains("live_provider")
+        || normalized.contains("live_endpoint")
+        || normalized.contains("exchange_secret")
+    {
+        Some(ReasonCode::BatchReplayLiveProviderRejected)
     } else if normalized.contains("http://")
         || normalized.contains("https://")
         || normalized.contains("broker-endpoint")
@@ -3756,6 +4214,43 @@ fn local_source_profile(kind: LocalDataSourceKind) -> LocalDataSourceProfile {
             Vec::new(),
         ),
     };
+    let calendar_deferred = matches!(
+        kind,
+        LocalDataSourceKind::KoreanStockCsv | LocalDataSourceKind::UsStockCsv
+    );
+    let cadence_tolerance = CadenceTolerance {
+        allowed_gap_multiplier: 2,
+        max_gap_count: 0,
+        allow_weekend_or_session_gap: false,
+        reason_codes: if calendar_deferred {
+            vec![
+                ReasonCode::SourceCadenceExpected,
+                ReasonCode::SourceCadenceCalendarDeferred,
+            ]
+        } else {
+            vec![ReasonCode::SourceCadenceExpected]
+        },
+    };
+    let quality_thresholds = SourceQualityThresholds {
+        max_timestamp_gap_count: 0,
+        max_duplicate_timestamp_count: 0,
+        max_missing_optional_ratio: if kind == LocalDataSourceKind::BtcCryptoCsv {
+            0.20
+        } else {
+            0.25
+        },
+        max_volume_anomaly_ratio: if kind == LocalDataSourceKind::BtcCryptoCsv {
+            500.0
+        } else {
+            1_000.0
+        },
+        max_suspicious_scale_score: 0.0,
+        max_ohlc_distortion_count: 0,
+        min_accepted_rows: 4,
+        min_quality_score: 0.30,
+        reject_on_private_marker: true,
+        reject_on_forbidden_column: true,
+    };
     LocalDataSourceProfile {
         kind,
         name: name.to_string(),
@@ -3771,6 +4266,9 @@ fn local_source_profile(kind: LocalDataSourceKind) -> LocalDataSourceProfile {
             .map(str::to_string)
             .collect(),
         reject_private_markers: true,
+        expected_cadence: ExpectedCadence::FixedMillis(60_000),
+        cadence_tolerance,
+        quality_thresholds,
         reason_codes: vec![ReasonCode::DeterministicPath, ReasonCode::LocalFileOnly],
     }
 }
@@ -3816,6 +4314,26 @@ fn validate_local_source_profile(
         || profile.volume_scale <= 0.0
         || profile.allowed_source_markers.is_empty()
         || !profile.reject_private_markers
+        || profile.cadence_tolerance.allowed_gap_multiplier == 0
+        || !profile
+            .quality_thresholds
+            .max_missing_optional_ratio
+            .is_finite()
+        || !(0.0..=1.0).contains(&profile.quality_thresholds.max_missing_optional_ratio)
+        || !profile
+            .quality_thresholds
+            .max_volume_anomaly_ratio
+            .is_finite()
+        || profile.quality_thresholds.max_volume_anomaly_ratio <= 1.0
+        || !profile
+            .quality_thresholds
+            .max_suspicious_scale_score
+            .is_finite()
+        || !profile.quality_thresholds.min_quality_score.is_finite()
+        || !(0.0..=1.0).contains(&profile.quality_thresholds.min_quality_score)
+        || profile.quality_thresholds.min_accepted_rows < 2
+        || matches!(profile.expected_cadence, ExpectedCadence::FixedMillis(0))
+        || matches!(profile.expected_cadence, ExpectedCadence::Unknown)
         || columns.windows(2).any(|pair| pair[0] == pair[1])
         || ["symbol", "open", "high", "low", "close", "volume"]
             .iter()
@@ -5056,6 +5574,9 @@ fn contains_owner_report_private_material(text: &str) -> bool {
         "broker-endpoint",
         "order-endpoint",
         "url_endpoint",
+        "live_provider",
+        "live_endpoint",
+        "exchange_secret",
         "private mapping",
         "private field mapping",
         "local_private",
@@ -6969,6 +7490,36 @@ mod tests {
                 "expanded-btc-crypto",
                 LocalDataSourceKind::BtcCryptoCsv,
                 include_str!("../../fixtures/historical/expanded_btc_crypto.csv"),
+            ),
+        ]
+    }
+
+    fn quality_fixture_sources() -> Vec<BatchReplaySource> {
+        vec![
+            batch_source(
+                "quality-clean-synthetic",
+                LocalDataSourceKind::SyntheticFixture,
+                include_str!("../../fixtures/historical/quality_clean_synthetic.csv"),
+            ),
+            batch_source(
+                "quality-gap-korean",
+                LocalDataSourceKind::KoreanStockCsv,
+                include_str!("../../fixtures/historical/quality_gap_kr_stock.csv"),
+            ),
+            batch_source(
+                "quality-scale-us",
+                LocalDataSourceKind::UsStockCsv,
+                include_str!("../../fixtures/historical/quality_scale_us_stock.csv"),
+            ),
+            batch_source(
+                "quality-volume-btc",
+                LocalDataSourceKind::BtcCryptoCsv,
+                include_str!("../../fixtures/historical/quality_volume_btc_crypto.csv"),
+            ),
+            batch_source(
+                "quality-missing-optional-btc",
+                LocalDataSourceKind::BtcCryptoCsv,
+                include_str!("../../fixtures/historical/quality_missing_optional_btc_crypto.csv"),
             ),
         ]
     }
@@ -9838,11 +10389,11 @@ mod tests {
     fn source_order_policy_and_consistency_warnings_are_deterministic() {
         let anomalous_csv = "symbol,timestamp_ms,open,high,low,close,volume,source\n\
             FAKE,1000,1,2,0.1,1,1,synthetic\n\
-            FAKE,2000,2,2.1,1.9,2,2,synthetic\n\
-            FAKE,3000,1000,1010,990,1000,1000000,synthetic\n\
-            FAKE,20000,1050,1060,1040,1050,3,synthetic\n\
-            FAKE,21000,1075,1085,1065,1075,4,synthetic\n\
-            FAKE,22000,1100,1110,1090,1100,5,synthetic";
+            FAKE,61000,2,2.1,1.9,2,2,synthetic\n\
+            FAKE,121000,1000,1010,990,1000,1000000,synthetic\n\
+            FAKE,721000,1050,1060,1040,1050,3,synthetic\n\
+            FAKE,781000,1075,1085,1065,1075,4,synthetic\n\
+            FAKE,841000,1100,1110,1090,1100,5,synthetic";
         let mut warning_input = valid_batch_input();
         warning_input.sources = vec![batch_source(
             "anomalous-source",
@@ -9853,7 +10404,13 @@ mod tests {
         let diagnostic = &warning_batch
             .cross_source_consistency_report
             .source_diagnostics[0];
-        assert_eq!(warning_batch.accepted_sources, 1);
+        assert_eq!(warning_batch.accepted_sources, 0);
+        assert_eq!(warning_batch.rejected_sources, 1);
+        assert!(warning_batch.source_results[0].replay_blocked_by_quality);
+        assert_eq!(
+            warning_batch.source_results[0].quality_bucket,
+            DataQualityBucket::Rejected
+        );
         assert!(diagnostic.timestamp_gap_count > 0);
         assert!(diagnostic.suspicious_scale);
         assert!(diagnostic.volume_range_ratio > 1_000.0);
@@ -9979,5 +10536,213 @@ mod tests {
                         | ReasonCode::AgentConsistencyInsufficientData
                 )))
         );
+    }
+
+    #[test]
+    fn source_profiles_define_local_cadence_and_conservative_thresholds() {
+        let registry = LocalDataSourceRegistry::default();
+        for kind in [
+            LocalDataSourceKind::SyntheticFixture,
+            LocalDataSourceKind::KoreanStockCsv,
+            LocalDataSourceKind::UsStockCsv,
+            LocalDataSourceKind::BtcCryptoCsv,
+        ] {
+            let profile = registry.get_profile(kind).expect("quality profile");
+            assert_eq!(
+                profile.expected_cadence,
+                ExpectedCadence::FixedMillis(60_000)
+            );
+            assert_eq!(profile.cadence_tolerance.max_gap_count, 0);
+            assert!(!profile.cadence_tolerance.allow_weekend_or_session_gap);
+            assert_eq!(profile.quality_thresholds.max_duplicate_timestamp_count, 0);
+            assert!(profile.quality_thresholds.min_accepted_rows >= 4);
+            assert!(profile.quality_thresholds.reject_on_private_marker);
+            assert!(profile.quality_thresholds.reject_on_forbidden_column);
+        }
+        for kind in [
+            LocalDataSourceKind::KoreanStockCsv,
+            LocalDataSourceKind::UsStockCsv,
+        ] {
+            assert!(
+                registry
+                    .get_profile(kind)
+                    .expect("calendar-deferred profile")
+                    .cadence_tolerance
+                    .reason_codes
+                    .contains(&ReasonCode::SourceCadenceCalendarDeferred)
+            );
+        }
+    }
+
+    #[test]
+    fn quality_fixture_pack_scores_expected_buckets_deterministically() {
+        let registry = LocalDataSourceRegistry::default();
+        let historical_config = HistoricalReplayConfig::default();
+        let expected = [
+            ("quality-clean-synthetic", DataQualityBucket::Excellent),
+            ("quality-gap-korean", DataQualityBucket::Poor),
+            ("quality-scale-us", DataQualityBucket::Poor),
+            ("quality-volume-btc", DataQualityBucket::Caution),
+            ("quality-missing-optional-btc", DataQualityBucket::Good),
+        ];
+        for source in quality_fixture_sources() {
+            let profile = registry
+                .get_profile(source.source_kind)
+                .expect("quality fixture profile");
+            let parsed =
+                parse_local_csv_with_profile(&source.csv_text, profile, &historical_config)
+                    .expect("quality fixture parse");
+            assert_eq!(parsed.dataset.rows.len(), 20);
+            assert!(!contains_local_private_marker(&source.csv_text));
+            assert!(!contains_temporary_instruction_marker(&source.csv_text));
+            assert!(batch_source_safety_reason(&source).is_none());
+
+            let mut input = valid_batch_input();
+            input.sources = vec![source.clone()];
+            input.config.quality_policy = QualityReplayPolicy::RejectRejectedOnly;
+            let first = run_local_dataset_batch_replay(input.clone()).expect("quality batch");
+            let second = run_local_dataset_batch_replay(input).expect("repeat quality batch");
+            assert_eq!(first, second);
+            let result = &first.source_results[0];
+            let expected_bucket = expected
+                .iter()
+                .find(|(source_id, _)| *source_id == source.source_id)
+                .map(|(_, bucket)| *bucket)
+                .expect("expected quality bucket");
+            assert_eq!(result.quality_bucket, expected_bucket);
+            assert_eq!(result.quality_score.bucket, expected_bucket);
+            assert!((0.0..=1.0).contains(&result.quality_score.score));
+            assert!(!result.replay_blocked_by_quality);
+        }
+    }
+
+    #[test]
+    fn quality_replay_policies_block_or_allow_poor_sources() {
+        let poor_source = quality_fixture_sources()
+            .into_iter()
+            .find(|source| source.source_id == "quality-gap-korean")
+            .expect("poor quality source");
+
+        let mut conservative = valid_batch_input();
+        conservative.sources = vec![poor_source.clone()];
+        conservative.config.quality_policy = QualityReplayPolicy::RejectPoorAndBelow;
+        let blocked =
+            run_local_dataset_batch_replay(conservative).expect("conservative quality policy");
+        assert_eq!(
+            blocked.source_results[0].quality_bucket,
+            DataQualityBucket::Poor
+        );
+        assert!(blocked.source_results[0].replay_blocked_by_quality);
+        assert!(blocked.source_results[0].replay_result.is_none());
+        assert!(
+            blocked.source_results[0]
+                .quality_reason_codes
+                .contains(&ReasonCode::SourceQualityReplayBlocked)
+        );
+
+        for policy in [
+            QualityReplayPolicy::RejectRejectedOnly,
+            QualityReplayPolicy::ReplayAllAcceptedWithWarnings,
+        ] {
+            let mut input = valid_batch_input();
+            input.sources = vec![poor_source.clone()];
+            input.config.quality_policy = policy;
+            let allowed = run_local_dataset_batch_replay(input).expect("permissive quality policy");
+            assert_eq!(
+                allowed.source_results[0].quality_bucket,
+                DataQualityBucket::Poor
+            );
+            assert!(!allowed.source_results[0].replay_blocked_by_quality);
+            assert!(allowed.source_results[0].replay_result.is_some());
+        }
+
+        for policy in [
+            QualityReplayPolicy::RejectPoorAndBelow,
+            QualityReplayPolicy::RejectRejectedOnly,
+            QualityReplayPolicy::ReplayAllAcceptedWithWarnings,
+        ] {
+            let mut input = valid_batch_input();
+            input.sources = vec![batch_source(
+                "unsafe-live-provider",
+                LocalDataSourceKind::SyntheticFixture,
+                "symbol,timestamp_ms,open,high,low,close,volume,live_provider\nFAKE,1,1,1,1,1,1,x",
+            )];
+            input.config.require_all_sources_valid = false;
+            input.config.stop_on_source_error = false;
+            input.config.quality_policy = policy;
+            let rejected = run_local_dataset_batch_replay(input).expect("unsafe source result");
+            assert_eq!(
+                rejected.source_results[0].quality_bucket,
+                DataQualityBucket::Rejected
+            );
+            assert!(rejected.source_results[0].replay_blocked_by_quality);
+            assert!(rejected.source_results[0].replay_result.is_none());
+            assert!(
+                rejected.source_results[0]
+                    .reason_codes
+                    .contains(&ReasonCode::BatchReplayLiveProviderRejected)
+            );
+        }
+    }
+
+    #[test]
+    fn owner_report_and_agent_table_include_quality_context() {
+        let selected_sources = quality_fixture_sources()
+            .into_iter()
+            .filter(|source| {
+                matches!(
+                    source.source_id.as_str(),
+                    "quality-clean-synthetic"
+                        | "quality-volume-btc"
+                        | "quality-missing-optional-btc"
+                )
+            })
+            .collect::<Vec<_>>();
+        let mut input = valid_batch_input();
+        input.sources = selected_sources;
+        input.config.replay_mode = BatchReplayMode::IndependentPerSource;
+        let first = run_local_dataset_batch_replay(input.clone()).expect("quality report batch");
+        let second = run_local_dataset_batch_replay(input).expect("repeat quality report batch");
+        assert_eq!(first, second);
+        assert_eq!(first.agent_performance_by_quality_table.rows.len(), 9);
+        assert!(
+            first
+                .agent_performance_by_quality_table
+                .rows
+                .windows(2)
+                .all(|pair| {
+                    (pair[0].agent_id.as_str(), pair[0].quality_bucket)
+                        <= (pair[1].agent_id.as_str(), pair[1].quality_bucket)
+                })
+        );
+        assert!(
+            first
+                .agent_performance_by_quality_table
+                .rows
+                .iter()
+                .all(|row| row.agent_kind != AgentKind::Future8AgentPlaceholder)
+        );
+
+        let report = build_batch_owner_learning_report(&first);
+        let text = render_batch_owner_learning_report_text(&report);
+        for expected in [
+            "Source quality threshold summary",
+            "Quality bucket counts",
+            "Blocked-by-quality sources",
+            "Agent performance by quality bucket",
+            "Source quality diagnostics are not live data validation.",
+            "No profitability claim.",
+            "Paper-only batch report.",
+            "Market calendar/session validation is deferred.",
+            "quality_policy=RejectPoorAndBelow",
+        ] {
+            assert!(
+                text.contains(expected),
+                "missing quality report text: {expected}"
+            );
+        }
+        assert_eq!(report.agent_performance_by_quality_table.rows.len(), 9);
+        assert!(!text.contains("fake-secret"));
+        assert!(!text.contains(concat!("work", ".", "md")));
     }
 }

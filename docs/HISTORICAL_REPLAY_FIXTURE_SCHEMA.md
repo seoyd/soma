@@ -101,3 +101,17 @@ Every file is fake and uses the existing profile schema. Each provides trend,
 range, drawdown or volatility, and recovery segments with varying volume.
 These examples are diagnostic fixtures, not real provider exports or evidence
 of production data quality.
+
+## Quality Fixture Pack
+
+The V2 quality pack adds five fake 20-row files:
+
+- `quality_clean_synthetic.csv`
+- `quality_gap_kr_stock.csv`
+- `quality_scale_us_stock.csv`
+- `quality_volume_btc_crypto.csv`
+- `quality_missing_optional_btc_crypto.csv`
+
+They isolate clean cadence, timestamp gaps, suspicious scale, abnormal volume,
+and missing optional fields. Warning fixtures remain syntactically valid so
+quality policies can be tested independently of hard parser rejection.

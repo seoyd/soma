@@ -30,12 +30,18 @@ not prove a source is production quality.
 - optional columns present,
 - source profile match,
 - suspicious scale status,
+- expected profile cadence and optional-column coverage ratio,
+- quality score and quality bucket,
 - warning text and reason codes.
 
 Timestamp gaps are detected relative to the smallest positive interval in the
 dataset. Suspicious scale, abnormal volume range, wide OHLC range, and missing
 optional trade value are warnings. Invalid ordering, invalid schema, and
 private or endpoint material are rejected before replay.
+
+Profile thresholds convert diagnostics into `Excellent`, `Good`, `Caution`,
+`Poor`, or `Rejected`. Quality scoring describes input evidence only and is
+kept separate from agent paper outcomes.
 
 `CrossSourceConsistencyReport` sorts diagnostic rows by source kind and source
 ID. It includes kind counts, accepted and rejected counts, suspicious source

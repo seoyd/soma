@@ -19,7 +19,8 @@ Supported source kinds:
 
 Every profile declares required and optional columns, timestamp handling,
 numeric scales, strict single-symbol policy, allowed local source markers,
-private-marker rejection, and reason codes.
+private-marker rejection, expected cadence, cadence tolerance, quality
+thresholds, and reason codes.
 
 | Kind | Timestamp | Additional optional fields |
 | --- | --- | --- |
@@ -84,3 +85,7 @@ access, broker access, or order execution.
 A future real-data adapter would require a separate reviewed import boundary.
 It must sanitize into this schema before registry parsing; no endpoint belongs
 in a source profile.
+
+Current cadence contracts are local 60-second fixture rules. They do not
+implement exchange sessions, holidays, timezones, or weekend handling. Korean
+and US profiles explicitly report that calendar validation is deferred.
