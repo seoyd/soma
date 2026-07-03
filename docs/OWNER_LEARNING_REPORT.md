@@ -102,5 +102,11 @@ not-live-ready warnings, source and agent summaries, Risk Governor and sandbox
 sections, rejected sources, and deferred items. It reuses the same line-level
 private-material redaction as the single-replay renderers.
 
+The batch report also records replay mode, source order policy, actual
+processing order, cross-source quality diagnostics, deduplicated source
+warnings, and the three-agent cross-source consistency table. Fixed report
+statements identify synthetic/sanitized local data, make no profitability
+claim, retain Risk Governor veto, and keep owner input advisory.
+
 Batch values describe synthetic paper replay only. They are not claims of
 profitability, production data quality, or live execution readiness.

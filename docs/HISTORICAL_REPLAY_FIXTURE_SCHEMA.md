@@ -84,5 +84,20 @@ performance table. Rejected fixtures remain visible with zero replay counts
 and stable reason codes.
 
 Multiple accepted fixtures run sequentially through the same three-agent
-paper-learning state. This preserves deterministic state evolution without
-adding network ingestion, live execution, or a second normalization path.
+paper-learning state in sequential mode or reset to the same initial state in
+independent mode. Both preserve deterministic behavior without adding network
+ingestion, live execution, or a second normalization path.
+
+## Expanded Fixture Pack
+
+The expanded pack contains four 20-row files:
+
+- `expanded_synthetic_mixed.csv`
+- `expanded_kr_stock.csv`
+- `expanded_us_stock.csv`
+- `expanded_btc_crypto.csv`
+
+Every file is fake and uses the existing profile schema. Each provides trend,
+range, drawdown or volatility, and recovery segments with varying volume.
+These examples are diagnostic fixtures, not real provider exports or evidence
+of production data quality.

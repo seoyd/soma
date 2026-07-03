@@ -70,6 +70,11 @@ rejection and proceeds to later sources. Neither mode silently skips invalid
 data. The batch is bounded by source count, rows per source, and an exact
 three-agent limit.
 
+Endpoint-like metadata or columns, including URL, generic endpoint, broker
+endpoint, and order endpoint markers, are rejected before profile parsing.
+Accepted sources retain the resolved profile for consistency diagnostics; a
+profile-name mismatch is visible in the rejected diagnostic row.
+
 ## Boundaries
 
 All profiles are local, read-only, sanitized, and paper-only. No registry API

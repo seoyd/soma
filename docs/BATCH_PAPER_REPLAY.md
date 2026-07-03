@@ -27,12 +27,22 @@ For each enabled source, the batch runner:
 4. runs the existing Chair and Risk Governor paper replay with exactly three
    agents,
 5. builds the existing owner learning report,
-6. carries the resulting three agent states into the next accepted source,
+6. applies the configured independent reset or sequential state carryover,
 7. records source and agent performance rows.
 
 The runner uses no randomness or wall clock. Source rows are sorted by source
 kind and source ID. Agent rows are sorted by source kind, source ID, and agent
-ID. State transitions follow input order.
+ID.
+
+## Replay Modes And Ordering
+
+`IndependentPerSource` starts every source from the same initial three-agent
+state. `SequentialCarryover` feeds accepted final states into the next source
+and remains the compatibility default.
+
+`AsProvided` preserves input order. `SourceKindThenId` sorts execution by
+source kind and source ID. The result and owner report expose replay mode,
+order policy, and actual processing order.
 
 ## Accepted And Rejected Sources
 
@@ -63,6 +73,14 @@ rows expose data quality, timestamp range, symbol, close range, replay counts,
 `NoTrade`, and risk denials. Every row sets `paper_only` and `not_live_ready`
 to true. Counts by source kind support market-level inspection.
 
+`CrossSourceConsistencyReport` adds timestamp-gap, close-range, volume-range,
+optional-column, profile-match, and scale diagnostics. Quality anomalies are
+warnings unless the underlying parser or safety boundary rejects the data.
+
+`AgentCrossSourceConsistencyTable` compares numeric paper observations for the
+three active agents across accepted sources. Stable, source-sensitive,
+unstable, and insufficient-data statuses describe evidence variation only.
+
 ## Owner Report
 
 `build_batch_owner_learning_report` produces an immutable batch summary with
@@ -72,6 +90,8 @@ deferred items. The text renderer includes:
 - paper-only and not-live-ready warnings,
 - source summary,
 - agent performance table,
+- cross-source diagnostics and warnings,
+- agent cross-source consistency,
 - Risk Governor summary,
 - sandbox summary,
 - rejected source list,
