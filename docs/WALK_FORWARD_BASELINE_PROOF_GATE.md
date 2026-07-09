@@ -107,3 +107,25 @@ The current aggregation method is mean total return, mean max drawdown, and
 mean Brier score by baseline. Failures are not hidden by the mean: the report
 also lists symbols where voice lost to equal weight, buy-and-hold was
 stronger, or no-trade was stronger.
+
+## Owner Evidence Trial Use
+
+The owner evidence trial reuses this proof gate without adding a downloader,
+network provider, live broker, order path, runtime model, online learning, or
+heavy AI runtime.
+
+When a local owner pack is present, every accepted source is evaluated through
+the same walk-forward rule. When no pack is present, the trial returns
+`NoOwnerEvidencePackFound` and does not fabricate results.
+
+The trial report adds failure triage around the proof gate:
+
+- VoiceAdaptiveCommittee losing to EqualWeightCommittee,
+- committee losing to AlwaysNoTrade,
+- committee losing to BuyAndHold,
+- weak prediction-quality evidence,
+- market-level US, KR, and BTC split results,
+- rejected and insufficient sources.
+
+The output remains a skeptical evidence report, not a profitability claim and
+not live trading readiness.

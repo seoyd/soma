@@ -133,6 +133,21 @@ samples are below the configured minimum.
 Bad, failed, mixed, and insufficient results are valid outputs. The report must
 show them rather than average them away.
 
+## Owner Evidence Trial
+
+`run_owner_historical_evidence_trial` is the owner-facing orchestration layer
+over this pack loader and evaluator. It accepts a local manifest path or
+test-only manifest JSON, then returns:
+
+- `NoOwnerEvidencePackFound` when no local pack is supplied,
+- `RejectedForSafety` when unsafe paths or private data are detected,
+- `InsufficientEvidence` when source, row, or prediction samples are too thin,
+- `Fail`, `Mixed`, or `Pass` from computed proof-gate results.
+
+The trial keeps rejected, disabled, insufficient, failed, and mixed sources
+visible in an owner-readable triage report. It also separates US, KR, and BTC
+market-level results so market failures cannot be hidden by aggregate means.
+
 ## Boundaries
 
 The evidence pack adds no network client, downloader, broker, order placement,

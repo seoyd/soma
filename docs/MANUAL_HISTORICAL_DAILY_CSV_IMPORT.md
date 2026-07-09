@@ -17,6 +17,7 @@ Owner-provided larger datasets should remain local unless a separate sanitized
 sample policy allows committing them. The preferred local directory is:
 
 - `data/historical/sanitized/`
+- `data/historical/evidence_packs/` for local manifest files
 
 Small deterministic unit-test CSV strings may remain inline in tests. The
 production parser does not require a path and performs no filesystem access.
@@ -105,3 +106,22 @@ than replacing it:
 The loader rejects unsafe paths before reading and rejects unsafe CSV text
 before parsing. It adds no live provider, no broker, no order path, no network
 client, and no credential requirement.
+
+## Owner Trial Wrapper
+
+`run_owner_historical_evidence_trial` is the owner-facing wrapper around the
+evidence pack loader. It keeps the import contract unchanged:
+
+- local sanitized daily CSV only,
+- no downloader,
+- no network,
+- no broker,
+- no orders,
+- no credentials,
+- no profitability claim,
+- no live-readiness claim.
+
+If no owner manifest is supplied, the wrapper returns
+`NoOwnerEvidencePackFound` and an action checklist instead of creating fake
+data. If a source is unsafe, the source remains visible as rejected whenever
+the manifest itself can be parsed safely.

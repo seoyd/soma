@@ -1826,6 +1826,148 @@ pub struct MultiSymbolProofGateReport {
     pub reason_codes: Vec<ReasonCode>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum OwnerEvidenceTrialStatus {
+    NoOwnerEvidencePackFound,
+    RejectedForSafety,
+    InsufficientEvidence,
+    Fail,
+    Mixed,
+    Pass,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum OwnerEvidenceManifestStatus {
+    Missing,
+    ProvidedJson,
+    LoadedFromLocalPath,
+    Rejected,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum EvidenceTriageDimensionStatus {
+    Pass,
+    Fail,
+    Mixed,
+    InsufficientEvidence,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct OwnerActionItem {
+    pub item_id: String,
+    pub description: String,
+    pub required: bool,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerEvidenceTrialConfig {
+    pub manifest_path: Option<String>,
+    pub manifest_json: Option<String>,
+    pub require_owner_pack: bool,
+    pub allow_example_pack: bool,
+    pub min_accepted_sources: usize,
+    pub min_sources_by_market: BTreeMap<String, usize>,
+    pub include_rejected_sources: bool,
+    pub include_failed_symbols: bool,
+    pub historical_pack_config: HistoricalEvidencePackConfig,
+    pub evaluation_config: HistoricalEvidencePackEvaluationConfig,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+impl Default for OwnerEvidenceTrialConfig {
+    fn default() -> Self {
+        Self {
+            manifest_path: None,
+            manifest_json: None,
+            require_owner_pack: false,
+            allow_example_pack: false,
+            min_accepted_sources: 1,
+            min_sources_by_market: BTreeMap::new(),
+            include_rejected_sources: true,
+            include_failed_symbols: true,
+            historical_pack_config: HistoricalEvidencePackConfig::default(),
+            evaluation_config: HistoricalEvidencePackEvaluationConfig::default(),
+            reason_codes: vec![
+                ReasonCode::OwnerEvidencePackExpectedPath,
+                ReasonCode::OwnerEvidencePackLocalOnly,
+                ReasonCode::OwnerEvidencePackSanitizedOnly,
+                ReasonCode::EvidencePackNoNetwork,
+                ReasonCode::EvidencePackNoDownloader,
+                ReasonCode::PaperExecutionOnly,
+            ],
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct EvidenceTriageSummary {
+    pub status: OwnerEvidenceTrialStatus,
+    pub pack_id: Option<String>,
+    pub accepted_source_count: usize,
+    pub rejected_source_count: usize,
+    pub disabled_source_count: usize,
+    pub insufficient_source_count: usize,
+    pub failed_symbol_count: usize,
+    pub mixed_symbol_count: usize,
+    pub pass_symbol_count: usize,
+    pub markets_present: Vec<String>,
+    pub voice_adaptation_status: EvidenceTriageDimensionStatus,
+    pub committee_vs_no_trade_status: EvidenceTriageDimensionStatus,
+    pub committee_vs_buy_hold_status: EvidenceTriageDimensionStatus,
+    pub prediction_quality_status: EvidenceTriageDimensionStatus,
+    pub owner_action_items: Vec<OwnerActionItem>,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct MarketTriageResult {
+    pub market: String,
+    pub source_count: usize,
+    pub accepted_count: usize,
+    pub rejected_count: usize,
+    pub insufficient_count: usize,
+    pub voice_status: EvidenceTriageDimensionStatus,
+    pub committee_vs_no_trade_status: EvidenceTriageDimensionStatus,
+    pub committee_vs_buy_hold_status: EvidenceTriageDimensionStatus,
+    pub brier_status: EvidenceTriageDimensionStatus,
+    pub status: OwnerEvidenceTrialStatus,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerEvidenceTriageReport {
+    pub header: String,
+    pub trial_status: OwnerEvidenceTrialStatus,
+    pub pack_summary: String,
+    pub source_summary: Vec<String>,
+    pub market_summary: Vec<String>,
+    pub baseline_failure_summary: Vec<String>,
+    pub voice_adaptation_summary: String,
+    pub prediction_quality_summary: String,
+    pub failed_symbols: Vec<String>,
+    pub rejected_sources: Vec<String>,
+    pub insufficient_evidence_reasons: Vec<String>,
+    pub owner_action_checklist: Vec<OwnerActionItem>,
+    pub safety_warnings: Vec<String>,
+    pub no_profitability_claim: String,
+    pub no_live_readiness_warning: String,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerEvidenceTrialResult {
+    pub trial_status: OwnerEvidenceTrialStatus,
+    pub manifest_status: OwnerEvidenceManifestStatus,
+    pub pack_evaluation: Option<HistoricalEvidencePackEvaluationResult>,
+    pub multi_symbol_report: Option<MultiSymbolProofGateReport>,
+    pub triage_summary: EvidenceTriageSummary,
+    pub market_triage: Vec<MarketTriageResult>,
+    pub triage_report: OwnerEvidenceTriageReport,
+    pub owner_action_checklist: Vec<OwnerActionItem>,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
 impl CanonicalAgentState {
     pub fn can_vote_live(&self) -> bool {
         self.status == AgentStatus::Active
@@ -4202,6 +4344,985 @@ pub fn render_multi_symbol_proof_gate_report_text(report: &MultiSymbolProofGateR
     lines.push("Next required evidence:".to_string());
     lines.extend(report.next_required_evidence.iter().cloned());
     redact_owner_report_output(&lines.join("\n"))
+}
+
+pub fn run_owner_historical_evidence_trial(
+    config: OwnerEvidenceTrialConfig,
+) -> OwnerEvidenceTrialResult {
+    let manifest_input = match owner_trial_manifest_input(&config) {
+        OwnerTrialManifestInput::Missing => {
+            return owner_trial_no_pack_result(
+                &config,
+                OwnerEvidenceManifestStatus::Missing,
+                vec![
+                    ReasonCode::OwnerEvidencePackNotFound,
+                    ReasonCode::EvidenceTriageNoPack,
+                ],
+            );
+        }
+        OwnerTrialManifestInput::Json(text) => (OwnerEvidenceManifestStatus::ProvidedJson, text),
+        OwnerTrialManifestInput::Path(path) => {
+            if let Some(reason) = evidence_pack_path_safety_reason(&path) {
+                return owner_trial_rejected_result(
+                    &config,
+                    OwnerEvidenceManifestStatus::Rejected,
+                    owner_trial_reason_from_evidence(reason),
+                );
+            }
+            match fs::read_to_string(&path) {
+                Ok(text) => (OwnerEvidenceManifestStatus::LoadedFromLocalPath, text),
+                Err(_) => {
+                    return owner_trial_no_pack_result(
+                        &config,
+                        OwnerEvidenceManifestStatus::Missing,
+                        vec![
+                            ReasonCode::OwnerEvidencePackNotFound,
+                            ReasonCode::EvidenceTriageNoPack,
+                        ],
+                    );
+                }
+            }
+        }
+    };
+    let (manifest_status, manifest_text) = manifest_input;
+    let manifest = match serde_json::from_str::<HistoricalEvidencePackManifest>(&manifest_text) {
+        Ok(manifest) => manifest,
+        Err(_) => {
+            return owner_trial_rejected_result(
+                &config,
+                OwnerEvidenceManifestStatus::Rejected,
+                ReasonCode::EvidencePackSourceRejected,
+            );
+        }
+    };
+    if owner_trial_manifest_is_example(&manifest) && !config.allow_example_pack {
+        return owner_trial_no_pack_result(
+            &config,
+            manifest_status,
+            vec![
+                ReasonCode::OwnerEvidencePackExampleOnly,
+                ReasonCode::EvidenceTriageNoPack,
+            ],
+        );
+    }
+
+    let mut pack_config = config.historical_pack_config.clone();
+    pack_config.min_sources = pack_config.min_sources.max(config.min_accepted_sources);
+    if config.allow_example_pack {
+        pack_config.allow_synthetic_sources_for_tests_only = true;
+    }
+    let pack = match load_historical_evidence_pack_from_manifest(&manifest, &pack_config) {
+        Ok(pack) => pack,
+        Err(error) => {
+            let reason = error
+                .reason_codes
+                .first()
+                .cloned()
+                .map(owner_trial_reason_from_evidence)
+                .unwrap_or(ReasonCode::EvidenceTriageRejectedForSafety);
+            return owner_trial_rejected_result(
+                &config,
+                OwnerEvidenceManifestStatus::Rejected,
+                reason,
+            );
+        }
+    };
+    let validation_error = validate_historical_evidence_pack(&pack, &pack_config).err();
+    let mut eval_config = config.evaluation_config.clone();
+    eval_config.min_accepted_sources_for_proof = eval_config
+        .min_accepted_sources_for_proof
+        .max(config.min_accepted_sources);
+    let pack_evaluation = evaluate_historical_evidence_pack(&pack, &eval_config);
+    let mut triage_summary = build_evidence_triage_summary(&pack_evaluation, Some(&pack), &config);
+    if let Some(error) = validation_error {
+        triage_summary.reason_codes = stable_reason_codes(
+            &triage_summary
+                .reason_codes
+                .iter()
+                .cloned()
+                .chain(
+                    error
+                        .reason_codes
+                        .iter()
+                        .cloned()
+                        .map(owner_trial_reason_from_evidence),
+                )
+                .collect::<Vec<_>>(),
+        );
+        if triage_summary.status == OwnerEvidenceTrialStatus::Pass {
+            triage_summary.status = OwnerEvidenceTrialStatus::InsufficientEvidence;
+        }
+    }
+    let market_triage = build_market_triage_results(&pack_evaluation, &config);
+    let multi_symbol_report = build_multi_symbol_proof_gate_report(&pack_evaluation);
+    let triage_report = build_owner_evidence_triage_report(
+        &triage_summary,
+        &market_triage,
+        Some(&pack_evaluation),
+        Some(&multi_symbol_report),
+        manifest_status,
+        &config,
+    );
+    let reason_codes = stable_reason_codes(
+        &config
+            .reason_codes
+            .iter()
+            .chain(pack.reason_codes.iter())
+            .chain(pack_evaluation.reason_codes.iter())
+            .chain(triage_summary.reason_codes.iter())
+            .cloned()
+            .chain([
+                ReasonCode::OwnerEvidencePackLocalOnly,
+                ReasonCode::OwnerEvidencePackSanitizedOnly,
+                ReasonCode::EvidencePackNoNetwork,
+                ReasonCode::EvidencePackNoDownloader,
+                ReasonCode::PaperExecutionOnly,
+                ReasonCode::HardcodingAuditPassed,
+            ])
+            .collect::<Vec<_>>(),
+    );
+    OwnerEvidenceTrialResult {
+        trial_status: triage_summary.status,
+        manifest_status,
+        pack_evaluation: Some(pack_evaluation),
+        multi_symbol_report: Some(multi_symbol_report),
+        triage_report,
+        owner_action_checklist: triage_summary.owner_action_items.clone(),
+        triage_summary,
+        market_triage,
+        reason_codes,
+    }
+}
+
+pub fn render_owner_evidence_triage_report_text(report: &OwnerEvidenceTriageReport) -> String {
+    let mut lines = vec![
+        report.header.clone(),
+        format!("Trial status: {:?}", report.trial_status),
+        "Local owner-provided sanitized historical daily CSV only.".to_string(),
+        "Paper-only evaluation.".to_string(),
+        "No live trading readiness.".to_string(),
+        "No profitability claim.".to_string(),
+        "Bad, mixed, or insufficient results are valid outputs.".to_string(),
+        "VoiceAdaptiveCommittee must beat EqualWeightCommittee before it is trusted.".to_string(),
+        "No data was downloaded.".to_string(),
+        format!("Pack summary: {}", report.pack_summary),
+        "Source summary:".to_string(),
+    ];
+    lines.extend(report.source_summary.iter().cloned());
+    lines.push("Market triage:".to_string());
+    lines.extend(report.market_summary.iter().cloned());
+    lines.push("Baseline failure summary:".to_string());
+    if report.baseline_failure_summary.is_empty() {
+        lines.push("none".to_string());
+    } else {
+        lines.extend(report.baseline_failure_summary.iter().cloned());
+    }
+    lines.push(format!(
+        "Voice adaptation summary: {}",
+        report.voice_adaptation_summary
+    ));
+    lines.push(format!(
+        "Prediction-quality summary: {}",
+        report.prediction_quality_summary
+    ));
+    lines.push("Failed symbols:".to_string());
+    if report.failed_symbols.is_empty() {
+        lines.push("none".to_string());
+    } else {
+        lines.extend(report.failed_symbols.iter().cloned());
+    }
+    lines.push("Rejected sources:".to_string());
+    if report.rejected_sources.is_empty() {
+        lines.push("none".to_string());
+    } else {
+        lines.extend(report.rejected_sources.iter().cloned());
+    }
+    lines.push("Insufficient evidence reasons:".to_string());
+    if report.insufficient_evidence_reasons.is_empty() {
+        lines.push("none".to_string());
+    } else {
+        lines.extend(report.insufficient_evidence_reasons.iter().cloned());
+    }
+    lines.push("Owner action checklist:".to_string());
+    lines.extend(report.owner_action_checklist.iter().map(|item| {
+        format!(
+            "{} required={} {}",
+            item.item_id, item.required, item.description
+        )
+    }));
+    lines.push("Safety warnings:".to_string());
+    lines.extend(report.safety_warnings.iter().cloned());
+    lines.push(report.no_profitability_claim.clone());
+    lines.push(report.no_live_readiness_warning.clone());
+    redact_owner_report_output(&lines.join("\n"))
+}
+
+enum OwnerTrialManifestInput {
+    Missing,
+    Json(String),
+    Path(String),
+}
+
+fn owner_trial_manifest_input(config: &OwnerEvidenceTrialConfig) -> OwnerTrialManifestInput {
+    match (&config.manifest_json, &config.manifest_path) {
+        (Some(json), _) if !json.trim().is_empty() => OwnerTrialManifestInput::Json(json.clone()),
+        (_, Some(path)) if !path.trim().is_empty() => OwnerTrialManifestInput::Path(path.clone()),
+        _ => OwnerTrialManifestInput::Missing,
+    }
+}
+
+fn owner_trial_no_pack_result(
+    config: &OwnerEvidenceTrialConfig,
+    manifest_status: OwnerEvidenceManifestStatus,
+    reason_codes: Vec<ReasonCode>,
+) -> OwnerEvidenceTrialResult {
+    let checklist = owner_action_checklist(config);
+    let triage_summary = EvidenceTriageSummary {
+        status: OwnerEvidenceTrialStatus::NoOwnerEvidencePackFound,
+        pack_id: None,
+        accepted_source_count: 0,
+        rejected_source_count: 0,
+        disabled_source_count: 0,
+        insufficient_source_count: 0,
+        failed_symbol_count: 0,
+        mixed_symbol_count: 0,
+        pass_symbol_count: 0,
+        markets_present: Vec::new(),
+        voice_adaptation_status: EvidenceTriageDimensionStatus::InsufficientEvidence,
+        committee_vs_no_trade_status: EvidenceTriageDimensionStatus::InsufficientEvidence,
+        committee_vs_buy_hold_status: EvidenceTriageDimensionStatus::InsufficientEvidence,
+        prediction_quality_status: EvidenceTriageDimensionStatus::InsufficientEvidence,
+        owner_action_items: checklist.clone(),
+        reason_codes: stable_reason_codes(&reason_codes),
+    };
+    let triage_report = build_owner_evidence_triage_report(
+        &triage_summary,
+        &[],
+        None,
+        None,
+        manifest_status,
+        config,
+    );
+    OwnerEvidenceTrialResult {
+        trial_status: OwnerEvidenceTrialStatus::NoOwnerEvidencePackFound,
+        manifest_status,
+        pack_evaluation: None,
+        multi_symbol_report: None,
+        triage_report,
+        owner_action_checklist: checklist,
+        triage_summary,
+        market_triage: Vec::new(),
+        reason_codes: stable_reason_codes(
+            &config
+                .reason_codes
+                .iter()
+                .cloned()
+                .chain(reason_codes)
+                .chain([
+                    ReasonCode::EvidenceTriageNoPack,
+                    ReasonCode::EvidencePackNoNetwork,
+                    ReasonCode::EvidencePackNoDownloader,
+                    ReasonCode::PaperExecutionOnly,
+                ])
+                .collect::<Vec<_>>(),
+        ),
+    }
+}
+
+fn owner_trial_rejected_result(
+    config: &OwnerEvidenceTrialConfig,
+    manifest_status: OwnerEvidenceManifestStatus,
+    reason: ReasonCode,
+) -> OwnerEvidenceTrialResult {
+    let checklist = owner_action_checklist(config);
+    let triage_summary = EvidenceTriageSummary {
+        status: OwnerEvidenceTrialStatus::RejectedForSafety,
+        pack_id: None,
+        accepted_source_count: 0,
+        rejected_source_count: 1,
+        disabled_source_count: 0,
+        insufficient_source_count: 0,
+        failed_symbol_count: 0,
+        mixed_symbol_count: 0,
+        pass_symbol_count: 0,
+        markets_present: Vec::new(),
+        voice_adaptation_status: EvidenceTriageDimensionStatus::InsufficientEvidence,
+        committee_vs_no_trade_status: EvidenceTriageDimensionStatus::InsufficientEvidence,
+        committee_vs_buy_hold_status: EvidenceTriageDimensionStatus::InsufficientEvidence,
+        prediction_quality_status: EvidenceTriageDimensionStatus::InsufficientEvidence,
+        owner_action_items: checklist.clone(),
+        reason_codes: stable_reason_codes(&[
+            reason.clone(),
+            ReasonCode::EvidenceTriageRejectedForSafety,
+        ]),
+    };
+    let triage_report = build_owner_evidence_triage_report(
+        &triage_summary,
+        &[],
+        None,
+        None,
+        manifest_status,
+        config,
+    );
+    OwnerEvidenceTrialResult {
+        trial_status: OwnerEvidenceTrialStatus::RejectedForSafety,
+        manifest_status,
+        pack_evaluation: None,
+        multi_symbol_report: None,
+        triage_report,
+        owner_action_checklist: checklist,
+        triage_summary,
+        market_triage: Vec::new(),
+        reason_codes: stable_reason_codes(
+            &config
+                .reason_codes
+                .iter()
+                .cloned()
+                .chain([reason, ReasonCode::EvidenceTriageRejectedForSafety])
+                .collect::<Vec<_>>(),
+        ),
+    }
+}
+
+fn owner_trial_manifest_is_example(manifest: &HistoricalEvidencePackManifest) -> bool {
+    let manifest_text = format!(
+        "{} {}",
+        manifest.pack_id.to_ascii_lowercase(),
+        manifest.description.to_ascii_lowercase()
+    );
+    manifest_text.contains("example")
+        || manifest
+            .sources
+            .iter()
+            .any(|source| source.source_kind == HistoricalEvidenceSourceKind::SyntheticDailySample)
+}
+
+fn build_evidence_triage_summary(
+    result: &HistoricalEvidencePackEvaluationResult,
+    pack: Option<&HistoricalEvidencePack>,
+    config: &OwnerEvidenceTrialConfig,
+) -> EvidenceTriageSummary {
+    let disabled_source_count = pack.map_or(0, |pack| {
+        pack.sources.iter().filter(|source| source.disabled).count()
+    });
+    let source_statuses = result
+        .source_results
+        .iter()
+        .filter_map(symbol_triage_status)
+        .collect::<Vec<_>>();
+    let pass_symbol_count = source_statuses
+        .iter()
+        .filter(|status| **status == EvidenceTriageDimensionStatus::Pass)
+        .count();
+    let failed_symbol_count = source_statuses
+        .iter()
+        .filter(|status| **status == EvidenceTriageDimensionStatus::Fail)
+        .count();
+    let mixed_symbol_count = source_statuses
+        .iter()
+        .filter(|status| **status == EvidenceTriageDimensionStatus::Mixed)
+        .count();
+    let markets_present = result
+        .source_results
+        .iter()
+        .map(|source| source.market.clone())
+        .collect::<std::collections::BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+    let voice_adaptation_status = voice_triage_dimension(result.voice_adaptation_summary.status);
+    let committee_vs_no_trade_status = comparison_triage_dimension(
+        result.aggregate_result.committee_beats_no_trade_count,
+        result.aggregate_result.committee_loses_no_trade_count,
+        result.aggregate_result.accepted_source_count,
+        config.min_accepted_sources,
+    );
+    let committee_vs_buy_hold_status = comparison_triage_dimension(
+        result.aggregate_result.committee_beats_buy_hold_count,
+        result.aggregate_result.committee_loses_buy_hold_count,
+        result.aggregate_result.accepted_source_count,
+        config.min_accepted_sources,
+    );
+    let prediction_quality_status =
+        prediction_quality_triage_dimension(&result.prediction_quality_summary);
+    let market_min_missing = config
+        .min_sources_by_market
+        .iter()
+        .any(|(market, min_count)| {
+            result
+                .market_results
+                .iter()
+                .find(|row| row.market == *market)
+                .map_or(0, |row| row.accepted_count)
+                < *min_count
+        });
+    let safety_rejected = result
+        .source_results
+        .iter()
+        .any(|source| source.reason_codes.iter().any(owner_trial_reason_is_safety));
+    let mut reason_codes = result
+        .reason_codes
+        .iter()
+        .cloned()
+        .chain([ReasonCode::HardcodingAuditPassed])
+        .collect::<Vec<_>>();
+    reason_codes.extend(
+        result
+            .source_results
+            .iter()
+            .flat_map(|source| source.reason_codes.iter().cloned())
+            .map(owner_trial_reason_from_evidence),
+    );
+    let status = if safety_rejected {
+        reason_codes.push(ReasonCode::EvidenceTriageRejectedForSafety);
+        OwnerEvidenceTrialStatus::RejectedForSafety
+    } else if result.aggregate_result.accepted_source_count < config.min_accepted_sources
+        || market_min_missing
+        || result.prediction_quality_summary.insufficient_evidence
+    {
+        reason_codes.push(ReasonCode::EvidenceTriageInsufficient);
+        OwnerEvidenceTrialStatus::InsufficientEvidence
+    } else if result.aggregate_result.overall_status == AggregateBaselineOverallStatus::Mixed
+        || mixed_symbol_count > 0
+        || (pass_symbol_count > 0 && failed_symbol_count > 0)
+    {
+        reason_codes.push(ReasonCode::EvidenceTriageMixed);
+        OwnerEvidenceTrialStatus::Mixed
+    } else if voice_adaptation_status == EvidenceTriageDimensionStatus::Fail
+        || committee_vs_no_trade_status == EvidenceTriageDimensionStatus::Fail
+        || committee_vs_buy_hold_status == EvidenceTriageDimensionStatus::Fail
+        || result.aggregate_result.overall_status == AggregateBaselineOverallStatus::Fail
+    {
+        reason_codes.push(ReasonCode::EvidenceTriageFail);
+        OwnerEvidenceTrialStatus::Fail
+    } else if result.aggregate_result.overall_status == AggregateBaselineOverallStatus::Pass
+        && prediction_quality_status == EvidenceTriageDimensionStatus::Pass
+    {
+        reason_codes.push(ReasonCode::EvidenceTriagePass);
+        OwnerEvidenceTrialStatus::Pass
+    } else {
+        reason_codes.push(ReasonCode::EvidenceTriageMixed);
+        OwnerEvidenceTrialStatus::Mixed
+    };
+    if voice_adaptation_status == EvidenceTriageDimensionStatus::Fail {
+        reason_codes.push(ReasonCode::EvidenceTriageVoiceFailed);
+    }
+    if result.aggregate_result.committee_loses_buy_hold_count > 0 {
+        reason_codes.push(ReasonCode::EvidenceTriageBuyHoldStronger);
+    }
+    if result.aggregate_result.committee_loses_no_trade_count > 0 {
+        reason_codes.push(ReasonCode::EvidenceTriageNoTradeStronger);
+    }
+    if prediction_quality_status != EvidenceTriageDimensionStatus::Pass {
+        reason_codes.push(ReasonCode::EvidenceTriagePredictionWeak);
+    }
+    EvidenceTriageSummary {
+        status,
+        pack_id: Some(result.pack_id.clone()),
+        accepted_source_count: result.aggregate_result.accepted_source_count,
+        rejected_source_count: result.aggregate_result.rejected_source_count,
+        disabled_source_count,
+        insufficient_source_count: result.aggregate_result.insufficient_source_count,
+        failed_symbol_count,
+        mixed_symbol_count,
+        pass_symbol_count,
+        markets_present,
+        voice_adaptation_status,
+        committee_vs_no_trade_status,
+        committee_vs_buy_hold_status,
+        prediction_quality_status,
+        owner_action_items: owner_action_checklist(config),
+        reason_codes: stable_reason_codes(&reason_codes),
+    }
+}
+
+fn build_market_triage_results(
+    result: &HistoricalEvidencePackEvaluationResult,
+    config: &OwnerEvidenceTrialConfig,
+) -> Vec<MarketTriageResult> {
+    result
+        .market_results
+        .iter()
+        .map(|market| {
+            let market_min_sources = *config
+                .min_sources_by_market
+                .get(&market.market)
+                .unwrap_or(&config.min_accepted_sources.min(1));
+            let voice_status = market_voice_triage_dimension(
+                &market.voice_adaptation_comparison,
+                market_min_sources,
+            );
+            let committee_vs_no_trade_status = comparison_triage_dimension(
+                market.baseline_comparison.committee_beats_no_trade_count,
+                market.baseline_comparison.committee_loses_no_trade_count,
+                market.accepted_count,
+                market_min_sources,
+            );
+            let committee_vs_buy_hold_status = comparison_triage_dimension(
+                market.baseline_comparison.committee_beats_buy_hold_count,
+                market.baseline_comparison.committee_loses_buy_hold_count,
+                market.accepted_count,
+                market_min_sources,
+            );
+            let brier_status = market_prediction_quality_triage_dimension(
+                &market.prediction_quality_summary,
+                market_min_sources,
+            );
+            let safety_rejected = result.source_results.iter().any(|source| {
+                source.market == market.market
+                    && source.reason_codes.iter().any(owner_trial_reason_is_safety)
+            });
+            let insufficient_count = result
+                .source_results
+                .iter()
+                .filter(|source| source.market == market.market && source.insufficient_evidence)
+                .count();
+            let status = if safety_rejected && market.accepted_count == 0 {
+                OwnerEvidenceTrialStatus::RejectedForSafety
+            } else if market.accepted_count < market_min_sources
+                || brier_status == EvidenceTriageDimensionStatus::InsufficientEvidence
+            {
+                OwnerEvidenceTrialStatus::InsufficientEvidence
+            } else if [
+                voice_status,
+                committee_vs_no_trade_status,
+                committee_vs_buy_hold_status,
+                brier_status,
+            ]
+            .contains(&EvidenceTriageDimensionStatus::Fail)
+            {
+                OwnerEvidenceTrialStatus::Fail
+            } else if [
+                voice_status,
+                committee_vs_no_trade_status,
+                committee_vs_buy_hold_status,
+                brier_status,
+            ]
+            .contains(&EvidenceTriageDimensionStatus::Mixed)
+            {
+                OwnerEvidenceTrialStatus::Mixed
+            } else {
+                OwnerEvidenceTrialStatus::Pass
+            };
+            let mut reason_codes = market.reason_codes.clone();
+            reason_codes.push(match status {
+                OwnerEvidenceTrialStatus::Pass => ReasonCode::EvidenceTriagePass,
+                OwnerEvidenceTrialStatus::Fail => ReasonCode::EvidenceTriageFail,
+                OwnerEvidenceTrialStatus::Mixed => ReasonCode::EvidenceTriageMixed,
+                OwnerEvidenceTrialStatus::InsufficientEvidence => {
+                    ReasonCode::EvidenceTriageInsufficient
+                }
+                OwnerEvidenceTrialStatus::RejectedForSafety => {
+                    ReasonCode::EvidenceTriageRejectedForSafety
+                }
+                OwnerEvidenceTrialStatus::NoOwnerEvidencePackFound => {
+                    ReasonCode::EvidenceTriageNoPack
+                }
+            });
+            MarketTriageResult {
+                market: market.market.clone(),
+                source_count: market.source_count,
+                accepted_count: market.accepted_count,
+                rejected_count: market.rejected_count,
+                insufficient_count,
+                voice_status,
+                committee_vs_no_trade_status,
+                committee_vs_buy_hold_status,
+                brier_status,
+                status,
+                reason_codes: stable_reason_codes(&reason_codes),
+            }
+        })
+        .collect()
+}
+
+fn build_owner_evidence_triage_report(
+    summary: &EvidenceTriageSummary,
+    market_triage: &[MarketTriageResult],
+    result: Option<&HistoricalEvidencePackEvaluationResult>,
+    report: Option<&MultiSymbolProofGateReport>,
+    manifest_status: OwnerEvidenceManifestStatus,
+    config: &OwnerEvidenceTrialConfig,
+) -> OwnerEvidenceTriageReport {
+    let source_summary = result.map_or_else(
+        || vec!["No owner evidence pack was found; no data was evaluated.".to_string()],
+        |result| {
+            result
+                .source_results
+                .iter()
+                .map(|source| {
+                    format!(
+                        "{} {} {} accepted={} rejected={} insufficient={}",
+                        source.source_id,
+                        source.market,
+                        source.symbol,
+                        source.accepted,
+                        source.rejected,
+                        source.insufficient_evidence
+                    )
+                })
+                .collect()
+        },
+    );
+    let market_summary = if market_triage.is_empty() {
+        vec!["No market evidence was evaluated.".to_string()]
+    } else {
+        market_triage
+            .iter()
+            .map(|market| {
+                format!(
+                    "{} status={:?} sources={} accepted={} rejected={} insufficient={} voice={:?} no_trade={:?} buy_hold={:?} brier={:?}",
+                    market.market,
+                    market.status,
+                    market.source_count,
+                    market.accepted_count,
+                    market.rejected_count,
+                    market.insufficient_count,
+                    market.voice_status,
+                    market.committee_vs_no_trade_status,
+                    market.committee_vs_buy_hold_status,
+                    market.brier_status,
+                )
+            })
+            .collect()
+    };
+    let baseline_failure_summary = result.map_or_else(Vec::new, |result| {
+        let mut failures = Vec::new();
+        if result.aggregate_result.voice_loses_equal_weight_count > 0 {
+            failures.push(format!(
+                "VoiceAdaptiveCommittee lost to EqualWeightCommittee on {} source(s).",
+                result.aggregate_result.voice_loses_equal_weight_count
+            ));
+        }
+        if result.aggregate_result.committee_loses_buy_hold_count > 0 {
+            failures.push(format!(
+                "BuyAndHold beat the committee on {} source(s).",
+                result.aggregate_result.committee_loses_buy_hold_count
+            ));
+        }
+        if result.aggregate_result.committee_loses_no_trade_count > 0 {
+            failures.push(format!(
+                "AlwaysNoTrade beat the committee on {} source(s).",
+                result.aggregate_result.committee_loses_no_trade_count
+            ));
+        }
+        failures
+    });
+    let failed_symbols = report
+        .filter(|_| config.include_failed_symbols)
+        .map_or_else(Vec::new, |report| report.failed_symbols.clone());
+    let rejected_sources = report
+        .filter(|_| config.include_rejected_sources)
+        .map_or_else(Vec::new, |report| report.rejected_sources.clone());
+    let insufficient_evidence_reasons = report.map_or_else(
+        || {
+            vec![
+                "No owner evidence pack was found, so no out-of-sample source was evaluated."
+                    .to_string(),
+            ]
+        },
+        |report| report.insufficient_evidence_warnings.clone(),
+    );
+    let prediction_quality_summary = result.map_or_else(
+        || "No prediction-quality evidence was evaluated.".to_string(),
+        |result| {
+            format!(
+                "status={:?} samples={} mean_brier={:?} missing={} abstained={} high_confidence_errors={}",
+                summary.prediction_quality_status,
+                result.prediction_quality_summary.total_samples,
+                result.prediction_quality_summary.mean_brier_score,
+                result.prediction_quality_summary.missing_probability_count,
+                result.prediction_quality_summary.abstention_count,
+                result.prediction_quality_summary.high_confidence_error_count,
+            )
+        },
+    );
+    let safety_warnings = vec![
+        "Local files only; URL paths and live endpoints are rejected.".to_string(),
+        "Secrets, account data, order data, raw provider responses, and private markers are rejected."
+            .to_string(),
+        "No downloader, network client, broker, order, or runtime model is used.".to_string(),
+    ];
+    let mut reason_codes = summary.reason_codes.clone();
+    reason_codes.extend(match manifest_status {
+        OwnerEvidenceManifestStatus::Missing => vec![ReasonCode::OwnerEvidencePackNotFound],
+        OwnerEvidenceManifestStatus::ProvidedJson => vec![ReasonCode::OwnerEvidencePackLocalOnly],
+        OwnerEvidenceManifestStatus::LoadedFromLocalPath => {
+            vec![ReasonCode::OwnerEvidencePackExpectedPath]
+        }
+        OwnerEvidenceManifestStatus::Rejected => vec![ReasonCode::EvidenceTriageRejectedForSafety],
+    });
+    OwnerEvidenceTriageReport {
+        header: "Owner historical evidence trial report.".to_string(),
+        trial_status: summary.status,
+        pack_summary: result.map_or_else(
+            || "No owner evidence pack found; no data evaluated.".to_string(),
+            |result| {
+                format!(
+                    "pack_id={} accepted={} rejected={} disabled={} insufficient={} status={:?}",
+                    result.pack_id,
+                    summary.accepted_source_count,
+                    summary.rejected_source_count,
+                    summary.disabled_source_count,
+                    summary.insufficient_source_count,
+                    summary.status,
+                )
+            },
+        ),
+        source_summary,
+        market_summary,
+        baseline_failure_summary,
+        voice_adaptation_summary: owner_voice_summary(summary.voice_adaptation_status),
+        prediction_quality_summary,
+        failed_symbols,
+        rejected_sources,
+        insufficient_evidence_reasons,
+        owner_action_checklist: summary.owner_action_items.clone(),
+        safety_warnings,
+        no_profitability_claim: "No profitability claim.".to_string(),
+        no_live_readiness_warning: "No live trading readiness.".to_string(),
+        reason_codes: stable_reason_codes(&reason_codes),
+    }
+}
+
+fn symbol_triage_status(
+    source: &HistoricalEvidenceSourceEvaluationResult,
+) -> Option<EvidenceTriageDimensionStatus> {
+    let result = source.walk_forward_result.as_ref()?;
+    let comparison = &result.aggregate_baseline_comparison;
+    if comparison.insufficient_evidence || source.insufficient_evidence {
+        return Some(EvidenceTriageDimensionStatus::InsufficientEvidence);
+    }
+    let wins = [
+        comparison.voice_beats_equal_weight,
+        comparison.committee_beats_no_trade,
+        comparison.committee_beats_buy_hold_risk_adjusted,
+    ]
+    .iter()
+    .filter(|value| **value)
+    .count();
+    match wins {
+        3 => Some(EvidenceTriageDimensionStatus::Pass),
+        0 => Some(EvidenceTriageDimensionStatus::Fail),
+        _ => Some(EvidenceTriageDimensionStatus::Mixed),
+    }
+}
+
+fn voice_triage_dimension(status: VoiceAdaptationValidityStatus) -> EvidenceTriageDimensionStatus {
+    match status {
+        VoiceAdaptationValidityStatus::Helped => EvidenceTriageDimensionStatus::Pass,
+        VoiceAdaptationValidityStatus::Failed => EvidenceTriageDimensionStatus::Fail,
+        VoiceAdaptationValidityStatus::Mixed => EvidenceTriageDimensionStatus::Mixed,
+        VoiceAdaptationValidityStatus::InsufficientEvidence => {
+            EvidenceTriageDimensionStatus::InsufficientEvidence
+        }
+    }
+}
+
+fn market_voice_triage_dimension(
+    summary: &VoiceAdaptationValidity,
+    min_count: usize,
+) -> EvidenceTriageDimensionStatus {
+    if summary.compared_source_count < min_count.max(1) {
+        EvidenceTriageDimensionStatus::InsufficientEvidence
+    } else if summary.voice_better_count == summary.compared_source_count {
+        EvidenceTriageDimensionStatus::Pass
+    } else if summary.equal_weight_better_count + summary.tie_count == summary.compared_source_count
+    {
+        EvidenceTriageDimensionStatus::Fail
+    } else {
+        EvidenceTriageDimensionStatus::Mixed
+    }
+}
+
+fn comparison_triage_dimension(
+    win_count: usize,
+    loss_count: usize,
+    accepted_count: usize,
+    min_count: usize,
+) -> EvidenceTriageDimensionStatus {
+    if accepted_count < min_count.max(1) || win_count + loss_count == 0 {
+        EvidenceTriageDimensionStatus::InsufficientEvidence
+    } else if win_count > 0 && loss_count == 0 {
+        EvidenceTriageDimensionStatus::Pass
+    } else if win_count == 0 && loss_count > 0 {
+        EvidenceTriageDimensionStatus::Fail
+    } else {
+        EvidenceTriageDimensionStatus::Mixed
+    }
+}
+
+fn market_prediction_quality_triage_dimension(
+    summary: &AggregatePredictionQualitySummary,
+    min_count: usize,
+) -> EvidenceTriageDimensionStatus {
+    if summary.source_count < min_count.max(1)
+        || summary.total_samples == 0
+        || summary.mean_brier_score.is_none()
+    {
+        EvidenceTriageDimensionStatus::InsufficientEvidence
+    } else if summary.high_confidence_error_count > 0
+        || summary.missing_probability_count > summary.total_samples / 2
+    {
+        EvidenceTriageDimensionStatus::Mixed
+    } else {
+        EvidenceTriageDimensionStatus::Pass
+    }
+}
+
+fn prediction_quality_triage_dimension(
+    summary: &AggregatePredictionQualitySummary,
+) -> EvidenceTriageDimensionStatus {
+    if summary.insufficient_evidence
+        || summary.total_samples == 0
+        || summary.mean_brier_score.is_none()
+    {
+        EvidenceTriageDimensionStatus::InsufficientEvidence
+    } else if summary.high_confidence_error_count > 0
+        || summary.missing_probability_count > summary.total_samples / 2
+    {
+        EvidenceTriageDimensionStatus::Mixed
+    } else {
+        EvidenceTriageDimensionStatus::Pass
+    }
+}
+
+fn owner_voice_summary(status: EvidenceTriageDimensionStatus) -> String {
+    match status {
+        EvidenceTriageDimensionStatus::Pass => {
+            "VoiceAdaptiveCommittee beat EqualWeightCommittee on the computed trial evidence."
+                .to_string()
+        }
+        EvidenceTriageDimensionStatus::Fail => {
+            "VoiceAdaptiveCommittee failed to beat EqualWeightCommittee on the computed trial evidence."
+                .to_string()
+        }
+        EvidenceTriageDimensionStatus::Mixed => {
+            "VoiceAdaptiveCommittee evidence is mixed against EqualWeightCommittee.".to_string()
+        }
+        EvidenceTriageDimensionStatus::InsufficientEvidence => {
+            "Insufficient evidence to trust VoiceAdaptiveCommittee over EqualWeightCommittee."
+                .to_string()
+        }
+    }
+}
+
+fn owner_action_checklist(config: &OwnerEvidenceTrialConfig) -> Vec<OwnerActionItem> {
+    let min_sources = config.min_accepted_sources.max(1);
+    vec![
+        OwnerActionItem {
+            item_id: "provide-us-daily-csv".to_string(),
+            description: format!(
+                "Provide at least {min_sources} sanitized local US daily CSV file(s)."
+            ),
+            required: true,
+            reason_codes: vec![ReasonCode::OwnerEvidencePackExpectedPath],
+        },
+        OwnerActionItem {
+            item_id: "provide-kr-daily-csv".to_string(),
+            description: format!(
+                "Provide at least {min_sources} sanitized local KR daily CSV file(s)."
+            ),
+            required: true,
+            reason_codes: vec![ReasonCode::OwnerEvidencePackExpectedPath],
+        },
+        OwnerActionItem {
+            item_id: "provide-btc-daily-csv".to_string(),
+            description: "Provide a sanitized local BTC daily CSV file.".to_string(),
+            required: true,
+            reason_codes: vec![ReasonCode::OwnerEvidencePackExpectedPath],
+        },
+        OwnerActionItem {
+            item_id: "use-required-columns".to_string(),
+            description:
+                "Use symbol,date,open,high,low,close,volume with YYYY-MM-DD dates.".to_string(),
+            required: true,
+            reason_codes: vec![ReasonCode::ManualHistoricalImportDailyOnly],
+        },
+        OwnerActionItem {
+            item_id: "remove-private-columns".to_string(),
+            description:
+                "Remove account, order, API, private, raw-response, endpoint, and live-provider columns."
+                    .to_string(),
+            required: true,
+            reason_codes: vec![ReasonCode::EvidenceTrialUnsafePrivateData],
+        },
+        OwnerActionItem {
+            item_id: "keep-local".to_string(),
+            description:
+                "Keep files local; do not paste API keys, broker credentials, private provider docs, or temporary instruction files."
+                    .to_string(),
+            required: true,
+            reason_codes: vec![
+                ReasonCode::OwnerEvidencePackLocalOnly,
+                ReasonCode::EvidencePackNoNetwork,
+                ReasonCode::EvidencePackNoDownloader,
+            ],
+        },
+    ]
+}
+
+fn owner_trial_reason_from_evidence(reason: ReasonCode) -> ReasonCode {
+    match reason {
+        ReasonCode::EvidencePackUnsafePrivateData
+        | ReasonCode::EvidencePackEnvPathRejected
+        | ReasonCode::EvidencePackPrivatePathRejected
+        | ReasonCode::EvidencePackPathRejected => ReasonCode::EvidenceTrialUnsafePrivateData,
+        ReasonCode::EvidencePackSecretLikeDataRejected => {
+            ReasonCode::EvidenceTrialSecretLikeDataRejected
+        }
+        ReasonCode::EvidencePackWorkMdPathRejected
+        | ReasonCode::EvidencePackWorkMdMarkerRejected => {
+            ReasonCode::EvidenceTrialWorkMdMarkerRejected
+        }
+        ReasonCode::EvidencePackRawProviderResponseRejected => {
+            ReasonCode::EvidenceTrialRawProviderResponseRejected
+        }
+        ReasonCode::EvidencePackAccountDataRejected => ReasonCode::EvidenceTrialAccountDataRejected,
+        ReasonCode::EvidencePackOrderDataRejected => ReasonCode::EvidenceTrialOrderDataRejected,
+        ReasonCode::EvidencePackEndpointDataRejected => {
+            ReasonCode::EvidenceTrialEndpointDataRejected
+        }
+        ReasonCode::EvidencePackLiveProviderRejected => {
+            ReasonCode::EvidenceTrialLiveProviderRejected
+        }
+        ReasonCode::EvidencePackUrlPathRejected | ReasonCode::EvidencePackUrlRejected => {
+            ReasonCode::EvidenceTrialUrlRejected
+        }
+        ReasonCode::EvidencePackLocalOnly => ReasonCode::OwnerEvidencePackLocalOnly,
+        ReasonCode::EvidencePackSanitizedOnly => ReasonCode::OwnerEvidencePackSanitizedOnly,
+        ReasonCode::EvidencePackInsufficientSources | ReasonCode::EvidencePackInsufficientRows => {
+            ReasonCode::EvidenceTriageInsufficient
+        }
+        other => other,
+    }
+}
+
+fn owner_trial_reason_is_safety(reason: &ReasonCode) -> bool {
+    matches!(
+        reason,
+        ReasonCode::EvidenceTrialUnsafePrivateData
+            | ReasonCode::EvidenceTrialSecretLikeDataRejected
+            | ReasonCode::EvidenceTrialWorkMdMarkerRejected
+            | ReasonCode::EvidenceTrialRawProviderResponseRejected
+            | ReasonCode::EvidenceTrialAccountDataRejected
+            | ReasonCode::EvidenceTrialOrderDataRejected
+            | ReasonCode::EvidenceTrialEndpointDataRejected
+            | ReasonCode::EvidenceTrialLiveProviderRejected
+            | ReasonCode::EvidenceTrialUrlRejected
+            | ReasonCode::EvidencePackUnsafePrivateData
+            | ReasonCode::EvidencePackSecretLikeDataRejected
+            | ReasonCode::EvidencePackWorkMdPathRejected
+            | ReasonCode::EvidencePackWorkMdMarkerRejected
+            | ReasonCode::EvidencePackRawProviderResponseRejected
+            | ReasonCode::EvidencePackAccountDataRejected
+            | ReasonCode::EvidencePackOrderDataRejected
+            | ReasonCode::EvidencePackEndpointDataRejected
+            | ReasonCode::EvidencePackLiveProviderRejected
+            | ReasonCode::EvidencePackUrlPathRejected
+            | ReasonCode::EvidencePackUrlRejected
+            | ReasonCode::EvidencePackEnvPathRejected
+            | ReasonCode::EvidencePackPrivatePathRejected
+    )
 }
 
 fn validate_historical_evidence_manifest_header(
@@ -15394,6 +16515,25 @@ mod tests {
         }
     }
 
+    fn clean_prediction_source_result(
+        source_id: &str,
+        market: &str,
+        symbol: &str,
+        result: WalkForwardEvaluationResult,
+    ) -> HistoricalEvidenceSourceEvaluationResult {
+        let mut source = synthetic_source_result(source_id, market, symbol, result);
+        if let Some(result) = &mut source.walk_forward_result {
+            for metrics in &mut result.scoring_summary {
+                if metrics.strategy == BaselineStrategyKind::VoiceAdaptiveCommittee {
+                    metrics.missing_probability_count = 0;
+                    metrics.abstention_count = 0;
+                    metrics.high_confidence_error_count = 0;
+                }
+            }
+        }
+        source
+    }
+
     #[test]
     fn aggregate_status_and_voice_validity_change_with_input_metrics() {
         let config = evidence_pack_eval_config(2);
@@ -15562,6 +16702,330 @@ mod tests {
                 .all(|state| state.kind != AgentKind::Future8AgentPlaceholder)
         );
         assert_eq!(WalkForwardCommitteeConfig::default().active_agent_limit, 3);
+    }
+
+    fn trial_eval_from_rows(
+        pack_id: &str,
+        rows: Vec<HistoricalEvidenceSourceEvaluationResult>,
+        min_sources: usize,
+    ) -> HistoricalEvidencePackEvaluationResult {
+        let config = evidence_pack_eval_config(min_sources);
+        let aggregate_result = build_aggregate_baseline_comparison(&rows, &config);
+        HistoricalEvidencePackEvaluationResult {
+            pack_id: pack_id.to_string(),
+            source_results: rows.clone(),
+            aggregate_result: aggregate_result.clone(),
+            market_results: build_market_evidence_results(&rows, &config),
+            symbol_results: rows.clone(),
+            voice_adaptation_summary: build_voice_adaptation_validity(&rows, &config),
+            prediction_quality_summary: build_aggregate_prediction_quality_summary(&rows, &config),
+            proof_gate_status: aggregate_result.overall_status,
+            reason_codes: vec![ReasonCode::HardcodingAuditPassed],
+        }
+    }
+
+    #[test]
+    fn owner_trial_no_pack_returns_checklist_and_no_fake_evaluation() {
+        let result = run_owner_historical_evidence_trial(OwnerEvidenceTrialConfig::default());
+        assert_eq!(
+            result.trial_status,
+            OwnerEvidenceTrialStatus::NoOwnerEvidencePackFound
+        );
+        assert_eq!(result.manifest_status, OwnerEvidenceManifestStatus::Missing);
+        assert!(result.pack_evaluation.is_none());
+        assert!(result.multi_symbol_report.is_none());
+        assert!(!result.owner_action_checklist.is_empty());
+        assert!(
+            result
+                .reason_codes
+                .contains(&ReasonCode::EvidenceTriageNoPack)
+        );
+
+        let text = render_owner_evidence_triage_report_text(&result.triage_report);
+        assert!(text.contains("No owner evidence pack was found; no data was evaluated."));
+        assert!(text.contains("No data was downloaded."));
+        assert!(text.contains("No profitability claim."));
+        assert!(text.contains("No live trading readiness."));
+        assert!(!text.contains(concat!("work", ".", "md")));
+    }
+
+    #[test]
+    fn owner_trial_valid_test_json_pack_evaluates_and_renders_market_triage() {
+        let manifest = valid_multi_symbol_manifest();
+        let mut trial_config = OwnerEvidenceTrialConfig {
+            manifest_json: Some(serde_json::to_string(&manifest).expect("manifest json")),
+            min_accepted_sources: 3,
+            evaluation_config: evidence_pack_eval_config(3),
+            ..OwnerEvidenceTrialConfig::default()
+        };
+        trial_config
+            .historical_pack_config
+            .min_sources_by_kind
+            .insert(HistoricalEvidenceSourceKind::UsStockDaily, 1);
+        trial_config
+            .historical_pack_config
+            .min_sources_by_kind
+            .insert(HistoricalEvidenceSourceKind::KoreanStockDaily, 1);
+        trial_config
+            .historical_pack_config
+            .min_sources_by_kind
+            .insert(HistoricalEvidenceSourceKind::BtcCryptoDaily, 1);
+        for market in ["US", "KR", "BTC"] {
+            trial_config
+                .min_sources_by_market
+                .insert(market.to_string(), 1);
+        }
+
+        let result = run_owner_historical_evidence_trial(trial_config);
+        assert_ne!(
+            result.trial_status,
+            OwnerEvidenceTrialStatus::NoOwnerEvidencePackFound
+        );
+        assert!(result.pack_evaluation.is_some());
+        assert!(result.multi_symbol_report.is_some());
+        assert_eq!(result.triage_summary.accepted_source_count, 3);
+        assert_eq!(result.market_triage.len(), 3);
+        for market in ["US", "KR", "BTC"] {
+            assert!(result.market_triage.iter().any(|row| row.market == market));
+        }
+        assert!(
+            result
+                .triage_report
+                .reason_codes
+                .contains(&ReasonCode::HardcodingAuditPassed)
+        );
+
+        let first = render_owner_evidence_triage_report_text(&result.triage_report);
+        let second = render_owner_evidence_triage_report_text(&result.triage_report);
+        assert_eq!(first, second);
+        for expected in [
+            "Trial status:",
+            "Market triage:",
+            "Baseline failure summary:",
+            "Voice adaptation summary:",
+            "Owner action checklist:",
+            "No data was downloaded.",
+            "No profitability claim.",
+            "No live trading readiness.",
+        ] {
+            assert!(first.contains(expected), "missing {expected}");
+        }
+        assert!(!first.contains("fake-secret"));
+        assert!(!first.contains(concat!("work", ".", "md")));
+    }
+
+    #[test]
+    fn owner_trial_rejects_unsafe_manifest_paths() {
+        let instruction_file = concat!("work", ".", "md");
+        let cases = [
+            (
+                format!("https://example.invalid/{instruction_file}"),
+                ReasonCode::EvidenceTrialUrlRejected,
+            ),
+            (
+                format!("./{instruction_file}"),
+                ReasonCode::EvidenceTrialWorkMdMarkerRejected,
+            ),
+            (
+                "./.env".to_string(),
+                ReasonCode::EvidenceTrialUnsafePrivateData,
+            ),
+            (
+                "./local_private/owner_pack.json".to_string(),
+                ReasonCode::EvidenceTrialUnsafePrivateData,
+            ),
+        ];
+        for (path, expected_reason) in cases {
+            let result = run_owner_historical_evidence_trial(OwnerEvidenceTrialConfig {
+                manifest_path: Some(path),
+                ..OwnerEvidenceTrialConfig::default()
+            });
+            assert_eq!(
+                result.trial_status,
+                OwnerEvidenceTrialStatus::RejectedForSafety
+            );
+            assert!(
+                result.reason_codes.contains(&expected_reason),
+                "missing {expected_reason:?} in {:?}",
+                result.reason_codes
+            );
+        }
+    }
+
+    #[test]
+    fn owner_trial_keeps_rejected_sources_visible() {
+        let mut manifest = valid_multi_symbol_manifest();
+        manifest.sources.push(evidence_source_spec(
+            "unsafe-account",
+            HistoricalEvidenceSourceKind::UsStockDaily,
+            "BAD",
+            "US",
+            Some(
+                "symbol,date,open,high,low,close,volume,account_id\nBAD,2024-01-02,1,2,1,1,1,x"
+                    .to_string(),
+            ),
+        ));
+        manifest.sources.push(evidence_source_spec(
+            "unsafe-raw",
+            HistoricalEvidenceSourceKind::UsStockDaily,
+            "RAW",
+            "US",
+            Some(
+                "symbol,date,open,high,low,close,volume,raw_response\nRAW,2024-01-02,1,2,1,1,1,x"
+                    .to_string(),
+            ),
+        ));
+        let result = run_owner_historical_evidence_trial(OwnerEvidenceTrialConfig {
+            manifest_json: Some(serde_json::to_string(&manifest).expect("manifest json")),
+            min_accepted_sources: 3,
+            evaluation_config: evidence_pack_eval_config(3),
+            ..OwnerEvidenceTrialConfig::default()
+        });
+        assert_eq!(
+            result.trial_status,
+            OwnerEvidenceTrialStatus::RejectedForSafety
+        );
+        assert_eq!(
+            result.triage_summary.rejected_source_count, 2,
+            "source_summary={:?} reason_codes={:?}",
+            result.triage_report.source_summary, result.triage_summary.reason_codes
+        );
+        assert!(
+            result
+                .triage_summary
+                .reason_codes
+                .contains(&ReasonCode::EvidenceTrialAccountDataRejected)
+        );
+        assert!(
+            result
+                .triage_summary
+                .reason_codes
+                .contains(&ReasonCode::EvidenceTrialRawProviderResponseRejected)
+        );
+        let text = render_owner_evidence_triage_report_text(&result.triage_report);
+        assert!(text.contains("unsafe-account"));
+        assert!(text.contains("unsafe-raw"));
+    }
+
+    #[test]
+    fn owner_triage_status_changes_when_metrics_change() {
+        let config = OwnerEvidenceTrialConfig {
+            min_accepted_sources: 2,
+            evaluation_config: evidence_pack_eval_config(2),
+            ..OwnerEvidenceTrialConfig::default()
+        };
+        let pass_rows = vec![
+            clean_prediction_source_result(
+                "a",
+                "US",
+                "A",
+                synthetic_walk_result("a", "A", 0.0, 0.01, 0.02, 0.06),
+            ),
+            clean_prediction_source_result(
+                "b",
+                "KR",
+                "B",
+                synthetic_walk_result("b", "B", 0.0, 0.01, 0.02, 0.06),
+            ),
+        ];
+        let pass_result = trial_eval_from_rows("computed-pass", pass_rows, 2);
+        let pass_summary = build_evidence_triage_summary(&pass_result, None, &config);
+        assert_eq!(pass_summary.status, OwnerEvidenceTrialStatus::Pass);
+
+        let fail_rows = vec![
+            synthetic_source_result(
+                "a",
+                "US",
+                "A",
+                synthetic_walk_result("a", "A", 0.0, 0.05, 0.04, -0.01),
+            ),
+            synthetic_source_result(
+                "b",
+                "KR",
+                "B",
+                synthetic_walk_result("b", "B", 0.0, 0.05, 0.04, -0.01),
+            ),
+        ];
+        let fail_result = trial_eval_from_rows("computed-fail", fail_rows, 2);
+        let fail_summary = build_evidence_triage_summary(&fail_result, None, &config);
+        assert_eq!(fail_summary.status, OwnerEvidenceTrialStatus::Fail);
+        assert!(
+            fail_summary
+                .reason_codes
+                .contains(&ReasonCode::EvidenceTriageVoiceFailed)
+        );
+        assert!(
+            fail_summary
+                .reason_codes
+                .contains(&ReasonCode::EvidenceTriageBuyHoldStronger)
+        );
+        assert!(
+            fail_summary
+                .reason_codes
+                .contains(&ReasonCode::EvidenceTriageNoTradeStronger)
+        );
+
+        let report = build_owner_evidence_triage_report(
+            &fail_summary,
+            &build_market_triage_results(&fail_result, &config),
+            Some(&fail_result),
+            None,
+            OwnerEvidenceManifestStatus::ProvidedJson,
+            &config,
+        );
+        let text = render_owner_evidence_triage_report_text(&report);
+        assert!(text.contains("failed to beat EqualWeightCommittee"));
+        assert!(text.contains("BuyAndHold beat the committee"));
+        assert!(text.contains("AlwaysNoTrade beat the committee"));
+        assert!(!text.contains(
+            "VoiceAdaptiveCommittee beat EqualWeightCommittee on the computed trial evidence."
+        ));
+    }
+
+    #[test]
+    fn owner_triage_insufficient_and_mixed_statuses_are_computed() {
+        let config = OwnerEvidenceTrialConfig {
+            min_accepted_sources: 2,
+            evaluation_config: evidence_pack_eval_config(2),
+            ..OwnerEvidenceTrialConfig::default()
+        };
+        let insufficient_rows = vec![synthetic_source_result(
+            "single",
+            "US",
+            "SINGLE",
+            synthetic_walk_result("single", "SINGLE", 0.0, 0.01, 0.02, 0.06),
+        )];
+        let insufficient_result = trial_eval_from_rows("insufficient", insufficient_rows, 2);
+        let insufficient = build_evidence_triage_summary(&insufficient_result, None, &config);
+        assert_eq!(
+            insufficient.status,
+            OwnerEvidenceTrialStatus::InsufficientEvidence
+        );
+
+        let mixed_rows = vec![
+            clean_prediction_source_result(
+                "pass",
+                "US",
+                "PASS",
+                synthetic_walk_result("pass", "PASS", 0.0, 0.01, 0.02, 0.06),
+            ),
+            synthetic_source_result(
+                "fail",
+                "BTC",
+                "FAIL",
+                synthetic_walk_result("fail", "FAIL", 0.0, 0.05, 0.04, -0.01),
+            ),
+        ];
+        let mixed_result = trial_eval_from_rows("mixed", mixed_rows, 2);
+        let mixed = build_evidence_triage_summary(&mixed_result, None, &config);
+        assert_eq!(mixed.status, OwnerEvidenceTrialStatus::Mixed);
+        let market_triage = build_market_triage_results(&mixed_result, &config);
+        assert!(market_triage.iter().any(|market| {
+            market.market == "US" && market.status == OwnerEvidenceTrialStatus::Pass
+        }));
+        assert!(market_triage.iter().any(|market| {
+            market.market == "BTC" && market.status == OwnerEvidenceTrialStatus::Fail
+        }));
     }
 
     #[test]
