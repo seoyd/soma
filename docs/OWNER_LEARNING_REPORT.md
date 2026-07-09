@@ -116,3 +116,14 @@ validation is deferred.
 
 Batch values describe synthetic paper replay only. They are not claims of
 profitability, production data quality, or live execution readiness.
+
+## Proof Gate Reports
+
+`build_proof_gate_report` converts a completed walk-forward baseline
+evaluation into an owner-readable proof gate. It is local historical daily CSV
+only, paper-only, and explicitly warns that synthetic fixture success is not
+market evidence.
+
+The report shows four baseline rows, voice-adaptive versus equal-weight
+comparison, Brier-style prediction quality summary, insufficient-evidence
+warnings, no profitability claim, and no live trading readiness.

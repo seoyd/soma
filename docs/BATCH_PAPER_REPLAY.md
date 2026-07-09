@@ -92,6 +92,17 @@ bucket so lower-quality context remains visible.
 three active agents across accepted sources. Stable, source-sensitive,
 unstable, and insufficient-data statuses describe evidence variation only.
 
+## Manual Daily Proof Gate
+
+Manual historical daily CSV proof-gate evaluation is separate from batch paper
+replay. It uses sanitized local daily rows, walk-forward splits, and four
+computed baselines: `AlwaysNoTrade`, `BuyAndHold`, `EqualWeightCommittee`, and
+`VoiceAdaptiveCommittee`.
+
+The proof gate does not replace this batch replay path and does not claim
+profitability or live readiness. It answers whether committee behavior beats
+null and passive baselines on out-of-sample local daily CSV windows.
+
 ## Owner Report
 
 `build_batch_owner_learning_report` produces an immutable batch summary with

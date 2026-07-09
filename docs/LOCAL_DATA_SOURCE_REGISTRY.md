@@ -89,3 +89,17 @@ in a source profile.
 Current cadence contracts are local 60-second fixture rules. They do not
 implement exchange sessions, holidays, timezones, or weekend handling. Korean
 and US profiles explicitly report that calendar validation is deferred.
+
+## Manual Historical Daily Import
+
+`ManualHistoricalDailyDataset` is a separate local-only daily CSV contract for
+sanitized owner-provided historical data. It supports `UsStockCsv`,
+`KoreanStockCsv`, and `BtcCryptoCsv` daily rows with `symbol`, `date`, OHLC,
+and `volume`, plus optional adjusted close, trade value, currency, market,
+source, split factor, and dividend fields.
+
+The manual import rejects unsafe private material, raw provider responses,
+endpoint-like fields, live-provider markers, malformed dates, duplicate or
+non-monotonic dates, multi-symbol strict-mode rows, invalid OHLC, and
+non-finite values. It converts accepted rows to `Timeframe::OneDay`
+`CandleSeries` for local walk-forward proof-gate evaluation.

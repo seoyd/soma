@@ -9,8 +9,8 @@ use crate::backtest::{
 use crate::chair::{ChairConfig, ChairEngine};
 use crate::core::{
     ChairInput, ChairOutput, InvestorVote, MarketSnapshot, PaperOrder, PaperOrderStatus,
-    PersonaTier, ReasonCode, Regime, RiskDecision, RiskDecisionKind, RiskSnapshot, SignalOutput,
-    Stance, stable_hash_string, stable_reason_codes,
+    PersonaTier, ReasonCode, Regime, RiskDecision, RiskDecisionKind, RiskSnapshot, Side,
+    SignalOutput, Stance, TradeProposal, stable_hash_string, stable_reason_codes,
 };
 use crate::owner::{
     OwnerInput, OwnerTradeRequestReview, owner_rejection_explanation, review_owner_trade_request,
@@ -1271,6 +1271,304 @@ pub struct BatchOwnerLearningReport {
     pub per_source_report_refs: Vec<String>,
     pub safety_warnings: Vec<String>,
     pub deferred_items: Vec<String>,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ManualAdjustedClosePolicy {
+    Ignore,
+    UseForReturnOnly,
+    RejectIfPresent,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ManualHistoricalDailyImportConfig {
+    pub dataset_id: String,
+    pub source_kind: LocalDataSourceKind,
+    pub max_rows: usize,
+    pub min_rows: usize,
+    pub require_monotonic_dates: bool,
+    pub allow_duplicate_dates: bool,
+    pub strict_single_symbol: bool,
+    pub allow_adjusted_close: bool,
+    pub adjusted_close_policy: ManualAdjustedClosePolicy,
+    pub reject_weekend_gap: bool,
+    pub calendar_validation_deferred: bool,
+    pub reject_private_markers: bool,
+    pub reject_endpoint_markers: bool,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+impl Default for ManualHistoricalDailyImportConfig {
+    fn default() -> Self {
+        Self {
+            dataset_id: "manual-historical-daily-dataset".to_string(),
+            source_kind: LocalDataSourceKind::UsStockCsv,
+            max_rows: 20_000,
+            min_rows: 4,
+            require_monotonic_dates: true,
+            allow_duplicate_dates: false,
+            strict_single_symbol: true,
+            allow_adjusted_close: true,
+            adjusted_close_policy: ManualAdjustedClosePolicy::Ignore,
+            reject_weekend_gap: false,
+            calendar_validation_deferred: true,
+            reject_private_markers: true,
+            reject_endpoint_markers: true,
+            reason_codes: vec![
+                ReasonCode::ManualHistoricalImportDailyOnly,
+                ReasonCode::ManualHistoricalImportNoNetwork,
+                ReasonCode::ManualHistoricalImportSanitizedOnly,
+                ReasonCode::LocalFileOnly,
+            ],
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ManualHistoricalDailyRow {
+    pub symbol: String,
+    pub date: String,
+    pub timestamp_ms: u64,
+    pub open: f64,
+    pub high: f64,
+    pub low: f64,
+    pub close: f64,
+    pub volume: f64,
+    pub adjusted_close: Option<f64>,
+    pub trade_value: Option<f64>,
+    pub currency: Option<String>,
+    pub market: Option<String>,
+    pub source: Option<String>,
+    pub split_factor: Option<f64>,
+    pub dividend: Option<f64>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ManualHistoricalDateRange {
+    pub start_date: String,
+    pub end_date: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ManualHistoricalDailyDataset {
+    pub dataset_id: String,
+    pub source_kind: LocalDataSourceKind,
+    pub symbol: String,
+    pub rows: Vec<ManualHistoricalDailyRow>,
+    pub date_range: ManualHistoricalDateRange,
+    pub data_quality_summary: LocalDataQualitySummary,
+    pub sanitized: bool,
+    pub local_only: bool,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ManualHistoricalDailyImportError {
+    pub row_number: Option<usize>,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WalkForwardSplit {
+    pub train_start_index: usize,
+    pub train_end_index: usize,
+    pub eval_start_index: usize,
+    pub eval_end_index: usize,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct WalkForwardConfig {
+    pub min_train_rows: usize,
+    pub eval_window_rows: usize,
+    pub step_rows: usize,
+    pub cost_bps: f64,
+    pub slippage_bps: f64,
+    pub max_position_fraction: f64,
+    pub allow_short: bool,
+    pub no_lookahead: bool,
+    pub min_prediction_samples: usize,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+impl Default for WalkForwardConfig {
+    fn default() -> Self {
+        Self {
+            min_train_rows: 4,
+            eval_window_rows: 4,
+            step_rows: 2,
+            cost_bps: 5.0,
+            slippage_bps: 5.0,
+            max_position_fraction: 1.0,
+            allow_short: false,
+            no_lookahead: true,
+            min_prediction_samples: 8,
+            reason_codes: vec![
+                ReasonCode::WalkForwardNoLookahead,
+                ReasonCode::WalkForwardEvaluationOnly,
+                ReasonCode::WalkForwardTrainingDeferred,
+                ReasonCode::PaperExecutionOnly,
+                ReasonCode::LocalFileOnly,
+            ],
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct WalkForwardCommitteeConfig {
+    pub active_agent_limit: usize,
+    pub min_vote_score_for_trade: f64,
+    pub probability_return_scale: f64,
+    pub min_probability: f64,
+    pub max_probability: f64,
+    pub stop_loss_bps: f64,
+    pub take_profit_bps: f64,
+    pub expected_edge_scale: f64,
+}
+
+impl Default for WalkForwardCommitteeConfig {
+    fn default() -> Self {
+        Self {
+            active_agent_limit: 3,
+            min_vote_score_for_trade: 0.10,
+            probability_return_scale: 5.0,
+            min_probability: 0.20,
+            max_probability: 0.80,
+            stop_loss_bps: 200.0,
+            take_profit_bps: 400.0,
+            expected_edge_scale: 0.02,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct WalkForwardEvaluationInput {
+    pub dataset: ManualHistoricalDailyDataset,
+    pub initial_agent_states: Vec<CanonicalAgentState>,
+    pub walk_forward_config: WalkForwardConfig,
+    pub committee_config: WalkForwardCommitteeConfig,
+    pub risk_config: GovernorConfig,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum BaselineStrategyKind {
+    AlwaysNoTrade,
+    BuyAndHold,
+    EqualWeightCommittee,
+    VoiceAdaptiveCommittee,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct BaselinePerformanceMetrics {
+    pub strategy: BaselineStrategyKind,
+    pub total_return: f64,
+    pub max_drawdown: f64,
+    pub trade_count: u64,
+    pub win_count: u64,
+    pub loss_count: u64,
+    pub no_trade_count: u64,
+    pub risk_denial_count: u64,
+    pub avg_return_per_trade: f64,
+    pub volatility_estimate: Option<f64>,
+    pub sharpe_like: Option<f64>,
+    pub downside_loss: Option<f64>,
+    pub cost_paid: f64,
+    pub slippage_paid: f64,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PredictionQualitySample {
+    pub predicted_probability: Option<f64>,
+    pub abstained: bool,
+    pub realized_direction_up: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct PredictionQualityMetrics {
+    pub strategy: BaselineStrategyKind,
+    pub brier_score: Option<f64>,
+    pub sample_count: usize,
+    pub calibrated_sample_count: usize,
+    pub missing_probability_count: usize,
+    pub abstention_count: usize,
+    pub high_confidence_error_count: usize,
+    pub low_confidence_correct_count: usize,
+    pub mean_confidence: Option<f64>,
+    pub mean_realized_direction: Option<f64>,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ProofGateComparison {
+    pub always_no_trade: BaselinePerformanceMetrics,
+    pub buy_and_hold: BaselinePerformanceMetrics,
+    pub equal_weight_committee: BaselinePerformanceMetrics,
+    pub voice_adaptive_committee: BaselinePerformanceMetrics,
+    pub voice_beats_equal_weight: bool,
+    pub committee_beats_no_trade: bool,
+    pub committee_beats_buy_hold_risk_adjusted: bool,
+    pub insufficient_evidence: bool,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct VoiceAdaptationComparison {
+    pub equal_weight_total_return: f64,
+    pub voice_adaptive_total_return: f64,
+    pub equal_weight_risk_adjusted_score: f64,
+    pub voice_adaptive_risk_adjusted_score: f64,
+    pub voice_beats_equal_weight: bool,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProofGateStatus {
+    ComputedNoProfitabilityClaim,
+    InsufficientEvidence,
+    NoEdgeProven,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct WalkForwardWindowResult {
+    pub split: WalkForwardSplit,
+    pub baseline_results: Vec<BaselinePerformanceMetrics>,
+    pub committee_results: Vec<BaselinePerformanceMetrics>,
+    pub scoring_results: Vec<PredictionQualityMetrics>,
+    pub agent_state_before: Vec<CanonicalAgentState>,
+    pub agent_state_after: Vec<CanonicalAgentState>,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct WalkForwardEvaluationResult {
+    pub dataset_id: String,
+    pub symbol: String,
+    pub windows: Vec<WalkForwardWindowResult>,
+    pub aggregate_baseline_comparison: ProofGateComparison,
+    pub voice_adaptation_comparison: VoiceAdaptationComparison,
+    pub scoring_summary: Vec<PredictionQualityMetrics>,
+    pub proof_gate_status: ProofGateStatus,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WalkForwardEvaluationError {
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProofGateReport {
+    pub dataset_summary: String,
+    pub walk_forward_config: String,
+    pub baseline_comparison_table: Vec<String>,
+    pub voice_adaptation_result: String,
+    pub prediction_quality_summary: Vec<String>,
+    pub null_strategy_warning: String,
+    pub insufficient_evidence_warning: Option<String>,
+    pub no_profitability_claim: String,
+    pub no_live_readiness_warning: String,
+    pub next_required_evidence: String,
     pub reason_codes: Vec<ReasonCode>,
 }
 
@@ -2539,6 +2837,1963 @@ pub fn normalize_dataset_to_candle_series(
     historical_config: &HistoricalReplayConfig,
 ) -> Result<CandleSeries, HistoricalReplayError> {
     HistoricalReplayAdapter.to_candle_series(dataset, historical_config)
+}
+
+pub fn parse_manual_historical_daily_csv(
+    csv_text: &str,
+    config: &ManualHistoricalDailyImportConfig,
+) -> Result<ManualHistoricalDailyDataset, ManualHistoricalDailyImportError> {
+    validate_manual_historical_config(config)?;
+    if let Some(reason) = manual_historical_safety_reason(csv_text, None, config) {
+        return Err(manual_historical_error(None, reason));
+    }
+    let mut lines = csv_text
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty());
+    let header_line = lines
+        .next()
+        .ok_or_else(|| manual_historical_error(None, ReasonCode::HistoricalReplayEmptyDataset))?;
+    let header = header_line
+        .split(',')
+        .map(|value| value.trim().to_ascii_lowercase())
+        .collect::<Vec<_>>();
+    if let Some(reason) = manual_historical_safety_reason(csv_text, Some(&header), config) {
+        return Err(manual_historical_error(None, reason));
+    }
+    let header_index = header
+        .iter()
+        .enumerate()
+        .map(|(index, name)| (name.as_str(), index))
+        .collect::<BTreeMap<_, _>>();
+    if header.is_empty() || header_index.len() != header.len() {
+        return Err(manual_historical_error(
+            None,
+            ReasonCode::HistoricalReplayInvalidHeader,
+        ));
+    }
+    let allowed_columns = [
+        "symbol",
+        "date",
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume",
+        "adjusted_close",
+        "trade_value",
+        "currency",
+        "market",
+        "source",
+        "split_factor",
+        "dividend",
+    ];
+    let required_columns = ["symbol", "date", "open", "high", "low", "close", "volume"];
+    if header
+        .iter()
+        .any(|column| !allowed_columns.contains(&column.as_str()))
+    {
+        return Err(manual_historical_error(
+            None,
+            ReasonCode::HistoricalReplayForbiddenColumn,
+        ));
+    }
+    if required_columns
+        .iter()
+        .any(|column| !header_index.contains_key(column))
+    {
+        return Err(manual_historical_error(
+            None,
+            ReasonCode::LocalSourceMissingRequiredColumn,
+        ));
+    }
+    if header_index.contains_key("adjusted_close")
+        && (!config.allow_adjusted_close
+            || config.adjusted_close_policy == ManualAdjustedClosePolicy::RejectIfPresent)
+    {
+        return Err(manual_historical_error(
+            None,
+            ReasonCode::HistoricalReplayForbiddenColumn,
+        ));
+    }
+
+    let data_lines = lines.collect::<Vec<_>>();
+    if data_lines.is_empty() {
+        return Err(manual_historical_error(
+            None,
+            ReasonCode::HistoricalReplayEmptyDataset,
+        ));
+    }
+    if config.max_rows == 0 || data_lines.len() > config.max_rows {
+        return Err(manual_historical_error(
+            None,
+            ReasonCode::HistoricalReplayTooManyRows,
+        ));
+    }
+    if data_lines.len() < config.min_rows {
+        return Err(manual_historical_error(
+            None,
+            ReasonCode::WalkForwardInsufficientRows,
+        ));
+    }
+
+    let mut rows = Vec::with_capacity(data_lines.len());
+    let mut first_symbol: Option<String> = None;
+    let mut previous_timestamp: Option<u64> = None;
+    for (offset, line) in data_lines.iter().enumerate() {
+        let row_number = offset + 2;
+        if let Some(reason) = manual_historical_safety_reason(line, None, config) {
+            return Err(manual_historical_error(Some(row_number), reason));
+        }
+        let values = line
+            .split(',')
+            .map(|value| value.trim())
+            .collect::<Vec<_>>();
+        if values.len() != header.len() {
+            return Err(manual_historical_error(
+                Some(row_number),
+                ReasonCode::HistoricalReplayInvalidRow,
+            ));
+        }
+        let value = |name: &str| {
+            header_index
+                .get(name)
+                .and_then(|index| values.get(*index))
+                .copied()
+        };
+        let symbol = value("symbol").unwrap_or_default().trim();
+        if symbol.is_empty() {
+            return Err(manual_historical_error(
+                Some(row_number),
+                ReasonCode::HistoricalReplayInvalidRow,
+            ));
+        }
+        if config.strict_single_symbol
+            && first_symbol
+                .as_deref()
+                .is_some_and(|expected| expected != symbol)
+        {
+            return Err(manual_historical_error(
+                Some(row_number),
+                ReasonCode::HistoricalReplayMultiSymbolUnsupported,
+            ));
+        }
+        first_symbol.get_or_insert_with(|| symbol.to_string());
+        let date = value("date").unwrap_or_default();
+        let timestamp_ms = parse_manual_daily_date_ms(date).ok_or_else(|| {
+            manual_historical_error(
+                Some(row_number),
+                ReasonCode::ManualHistoricalImportInvalidDate,
+            )
+        })?;
+        if previous_timestamp == Some(timestamp_ms) && !config.allow_duplicate_dates {
+            return Err(manual_historical_error(
+                Some(row_number),
+                ReasonCode::HistoricalReplayDuplicateTimestamp,
+            ));
+        }
+        if config.require_monotonic_dates
+            && previous_timestamp.is_some_and(|previous| previous > timestamp_ms)
+        {
+            return Err(manual_historical_error(
+                Some(row_number),
+                ReasonCode::HistoricalReplayNonMonotonicTimestamp,
+            ));
+        }
+        previous_timestamp = Some(timestamp_ms);
+
+        let open = parse_manual_required_number(value("open"), row_number)?;
+        let high = parse_manual_required_number(value("high"), row_number)?;
+        let low = parse_manual_required_number(value("low"), row_number)?;
+        let close = parse_manual_required_number(value("close"), row_number)?;
+        let volume = parse_manual_volume(value("volume"), row_number)?;
+        if low > high || open < low || open > high || close < low || close > high || low <= 0.0 {
+            return Err(manual_historical_error(
+                Some(row_number),
+                ReasonCode::HistoricalReplayInvalidOhlc,
+            ));
+        }
+        let adjusted_close = parse_manual_optional_positive(value("adjusted_close"), row_number)?;
+        let trade_value = parse_manual_optional_non_negative(value("trade_value"), row_number)?;
+        let split_factor = parse_manual_optional_positive(value("split_factor"), row_number)?;
+        let dividend = parse_manual_optional_non_negative(value("dividend"), row_number)?;
+
+        rows.push(ManualHistoricalDailyRow {
+            symbol: symbol.to_string(),
+            date: date.to_string(),
+            timestamp_ms,
+            open,
+            high,
+            low,
+            close,
+            volume,
+            adjusted_close,
+            trade_value,
+            currency: optional_manual_string(value("currency"))?,
+            market: optional_manual_string(value("market"))?,
+            source: optional_manual_string(value("source"))?,
+            split_factor,
+            dividend,
+        });
+    }
+
+    let symbol = first_symbol.unwrap_or_default();
+    let date_range = ManualHistoricalDateRange {
+        start_date: rows.first().map_or(String::new(), |row| row.date.clone()),
+        end_date: rows.last().map_or(String::new(), |row| row.date.clone()),
+    };
+    let quality_summary = manual_daily_quality_summary(&symbol, config.source_kind, &rows);
+    let reason_codes = stable_reason_codes(
+        &config
+            .reason_codes
+            .iter()
+            .cloned()
+            .chain([
+                ReasonCode::ManualHistoricalImportDailyOnly,
+                ReasonCode::ManualHistoricalImportNoNetwork,
+                ReasonCode::ManualHistoricalImportSanitizedOnly,
+                ReasonCode::WalkForwardTrainingDeferred,
+                ReasonCode::DeterministicPath,
+                ReasonCode::LocalFileOnly,
+            ])
+            .collect::<Vec<_>>(),
+    );
+    let dataset = ManualHistoricalDailyDataset {
+        dataset_id: config.dataset_id.clone(),
+        source_kind: config.source_kind,
+        symbol,
+        rows,
+        date_range,
+        data_quality_summary: quality_summary,
+        sanitized: true,
+        local_only: true,
+        reason_codes,
+    };
+    validate_manual_historical_daily_dataset(&dataset, config)?;
+    Ok(dataset)
+}
+
+pub fn validate_manual_historical_daily_dataset(
+    dataset: &ManualHistoricalDailyDataset,
+    config: &ManualHistoricalDailyImportConfig,
+) -> Result<(), ManualHistoricalDailyImportError> {
+    validate_manual_historical_config(config)?;
+    if !dataset.sanitized || !dataset.local_only {
+        return Err(manual_historical_error(
+            None,
+            ReasonCode::ManualHistoricalImportSanitizedOnly,
+        ));
+    }
+    if dataset.rows.len() < config.min_rows
+        || dataset.rows.len() > config.max_rows
+        || dataset.symbol.trim().is_empty()
+        || dataset.source_kind != config.source_kind
+    {
+        return Err(manual_historical_error(
+            None,
+            ReasonCode::WalkForwardInsufficientRows,
+        ));
+    }
+    let mut previous_timestamp = None;
+    let mut expected_symbol: Option<&str> = None;
+    for (index, row) in dataset.rows.iter().enumerate() {
+        let row_number = index + 2;
+        if parse_manual_daily_date_ms(&row.date) != Some(row.timestamp_ms) {
+            return Err(manual_historical_error(
+                Some(row_number),
+                ReasonCode::ManualHistoricalImportInvalidDate,
+            ));
+        }
+        if config.strict_single_symbol
+            && expected_symbol.is_some_and(|symbol| symbol != row.symbol.as_str())
+        {
+            return Err(manual_historical_error(
+                Some(row_number),
+                ReasonCode::HistoricalReplayMultiSymbolUnsupported,
+            ));
+        }
+        expected_symbol.get_or_insert(row.symbol.as_str());
+        if previous_timestamp == Some(row.timestamp_ms) && !config.allow_duplicate_dates {
+            return Err(manual_historical_error(
+                Some(row_number),
+                ReasonCode::HistoricalReplayDuplicateTimestamp,
+            ));
+        }
+        if config.require_monotonic_dates
+            && previous_timestamp.is_some_and(|previous| previous > row.timestamp_ms)
+        {
+            return Err(manual_historical_error(
+                Some(row_number),
+                ReasonCode::HistoricalReplayNonMonotonicTimestamp,
+            ));
+        }
+        previous_timestamp = Some(row.timestamp_ms);
+        let numeric_values = [
+            row.open,
+            row.high,
+            row.low,
+            row.close,
+            row.volume,
+            row.adjusted_close.unwrap_or(1.0),
+            row.trade_value.unwrap_or(0.0),
+            row.split_factor.unwrap_or(1.0),
+            row.dividend.unwrap_or(0.0),
+        ];
+        if numeric_values.iter().any(|value| !value.is_finite()) {
+            return Err(manual_historical_error(
+                Some(row_number),
+                ReasonCode::HistoricalReplayNonFinite,
+            ));
+        }
+        if row.open <= 0.0 || row.high <= 0.0 || row.low <= 0.0 || row.close <= 0.0 {
+            return Err(manual_historical_error(
+                Some(row_number),
+                ReasonCode::HistoricalReplayNonPositivePrice,
+            ));
+        }
+        if row.volume < 0.0
+            || row.adjusted_close.is_some_and(|value| value <= 0.0)
+            || row.trade_value.is_some_and(|value| value < 0.0)
+            || row.split_factor.is_some_and(|value| value <= 0.0)
+            || row.dividend.is_some_and(|value| value < 0.0)
+        {
+            return Err(manual_historical_error(
+                Some(row_number),
+                ReasonCode::HistoricalReplayInvalidRow,
+            ));
+        }
+        if row.low > row.high
+            || row.open < row.low
+            || row.open > row.high
+            || row.close < row.low
+            || row.close > row.high
+        {
+            return Err(manual_historical_error(
+                Some(row_number),
+                ReasonCode::HistoricalReplayInvalidOhlc,
+            ));
+        }
+    }
+    Ok(())
+}
+
+pub fn to_daily_candle_series(
+    dataset: &ManualHistoricalDailyDataset,
+    config: &ManualHistoricalDailyImportConfig,
+) -> Result<CandleSeries, ManualHistoricalDailyImportError> {
+    validate_manual_historical_daily_dataset(dataset, config)?;
+    Ok(CandleSeries {
+        symbol: dataset.symbol.clone(),
+        timeframe: Timeframe::OneDay,
+        candles: dataset
+            .rows
+            .iter()
+            .map(|row| Candle {
+                timestamp_ms: row.timestamp_ms,
+                open: row.open,
+                high: row.high,
+                low: row.low,
+                close: match config.adjusted_close_policy {
+                    ManualAdjustedClosePolicy::UseForReturnOnly => {
+                        row.adjusted_close.unwrap_or(row.close)
+                    }
+                    ManualAdjustedClosePolicy::Ignore
+                    | ManualAdjustedClosePolicy::RejectIfPresent => row.close,
+                },
+                volume: row.volume,
+                trade_value: row.trade_value,
+                bid: None,
+                ask: None,
+                spread_bps: None,
+            })
+            .collect(),
+    })
+}
+
+pub fn build_walk_forward_splits(
+    row_count: usize,
+    config: &WalkForwardConfig,
+) -> Result<Vec<WalkForwardSplit>, WalkForwardEvaluationError> {
+    if !walk_forward_config_is_valid(config) {
+        return Err(walk_forward_error(vec![
+            ReasonCode::WalkForwardInsufficientRows,
+        ]));
+    }
+    if row_count < config.min_train_rows + config.eval_window_rows {
+        return Err(walk_forward_error(vec![
+            ReasonCode::WalkForwardInsufficientRows,
+        ]));
+    }
+    let mut splits = Vec::new();
+    let mut eval_start = config.min_train_rows;
+    while eval_start + config.eval_window_rows <= row_count {
+        let split = WalkForwardSplit {
+            train_start_index: 0,
+            train_end_index: eval_start,
+            eval_start_index: eval_start,
+            eval_end_index: eval_start + config.eval_window_rows,
+        };
+        if split.train_end_index > split.eval_start_index
+            || split.eval_start_index >= split.eval_end_index
+            || split.eval_end_index > row_count
+        {
+            return Err(walk_forward_error(vec![ReasonCode::LeakageDetected]));
+        }
+        splits.push(split);
+        eval_start = eval_start.saturating_add(config.step_rows);
+    }
+    if splits.is_empty() {
+        return Err(walk_forward_error(vec![
+            ReasonCode::WalkForwardInsufficientRows,
+        ]));
+    }
+    Ok(splits)
+}
+
+pub fn compute_prediction_quality_metrics(
+    strategy: BaselineStrategyKind,
+    samples: &[PredictionQualitySample],
+    min_samples: usize,
+) -> PredictionQualityMetrics {
+    let mut brier_sum = 0.0;
+    let mut calibrated_sample_count = 0usize;
+    let mut missing_probability_count = 0usize;
+    let mut abstention_count = 0usize;
+    let mut high_confidence_error_count = 0usize;
+    let mut low_confidence_correct_count = 0usize;
+    let mut confidence_sum = 0.0;
+    let mut realized_sum = 0.0;
+    let mut reason_codes = vec![
+        ReasonCode::PredictionScoringBrier,
+        ReasonCode::DeterministicPath,
+    ];
+    for sample in samples {
+        let realized = if sample.realized_direction_up {
+            1.0
+        } else {
+            0.0
+        };
+        realized_sum += realized;
+        if sample.abstained {
+            abstention_count += 1;
+            reason_codes.push(ReasonCode::PredictionScoringAbstained);
+        }
+        let Some(probability) = sample.predicted_probability else {
+            missing_probability_count += 1;
+            reason_codes.push(ReasonCode::PredictionScoringMissingProbability);
+            continue;
+        };
+        if !(0.0..=1.0).contains(&probability) || !probability.is_finite() {
+            missing_probability_count += 1;
+            reason_codes.push(ReasonCode::InvalidProbability);
+            continue;
+        }
+        calibrated_sample_count += 1;
+        brier_sum += (probability - realized).powi(2);
+        let confidence = if probability >= 0.5 {
+            probability
+        } else {
+            1.0 - probability
+        };
+        confidence_sum += confidence;
+        let predicted_up = probability >= 0.5;
+        let correct = predicted_up == sample.realized_direction_up;
+        if confidence >= 0.75 && !correct {
+            high_confidence_error_count += 1;
+        }
+        if confidence <= 0.55 && correct {
+            low_confidence_correct_count += 1;
+        }
+    }
+    if samples.len() < min_samples || calibrated_sample_count == 0 {
+        reason_codes.push(ReasonCode::PredictionScoringInsufficientSamples);
+    }
+    PredictionQualityMetrics {
+        strategy,
+        brier_score: (samples.len() >= min_samples && calibrated_sample_count > 0)
+            .then_some(brier_sum / calibrated_sample_count as f64),
+        sample_count: samples.len(),
+        calibrated_sample_count,
+        missing_probability_count,
+        abstention_count,
+        high_confidence_error_count,
+        low_confidence_correct_count,
+        mean_confidence: (calibrated_sample_count > 0)
+            .then_some(confidence_sum / calibrated_sample_count as f64),
+        mean_realized_direction: (!samples.is_empty())
+            .then_some(realized_sum / samples.len() as f64),
+        reason_codes: stable_reason_codes(&reason_codes),
+    }
+}
+
+pub fn run_walk_forward_evaluation(
+    input: WalkForwardEvaluationInput,
+) -> Result<WalkForwardEvaluationResult, WalkForwardEvaluationError> {
+    validate_three_agent_set(&input.initial_agent_states)
+        .map_err(|_| walk_forward_error(vec![ReasonCode::LocalSourceRejected]))?;
+    if input.committee_config.active_agent_limit != 3
+        || input
+            .initial_agent_states
+            .iter()
+            .any(|state| state.kind == AgentKind::Future8AgentPlaceholder)
+    {
+        return Err(walk_forward_error(vec![ReasonCode::LocalSourceRejected]));
+    }
+    let import_config = ManualHistoricalDailyImportConfig {
+        dataset_id: input.dataset.dataset_id.clone(),
+        source_kind: input.dataset.source_kind,
+        min_rows: input.walk_forward_config.min_train_rows
+            + input.walk_forward_config.eval_window_rows,
+        ..ManualHistoricalDailyImportConfig::default()
+    };
+    let series = to_daily_candle_series(&input.dataset, &import_config)
+        .map_err(|error| walk_forward_error(error.reason_codes))?;
+    let splits = build_walk_forward_splits(series.len(), &input.walk_forward_config)?;
+    let mut windows = Vec::with_capacity(splits.len());
+    let mut voice_states = input.initial_agent_states.clone();
+    let equal_states = input.initial_agent_states.clone();
+    for split in splits {
+        let agent_state_before = voice_states.clone();
+        let always = evaluate_always_no_trade_window(&series, split);
+        let buy_hold = evaluate_buy_and_hold_window(
+            &series,
+            split,
+            &input.walk_forward_config,
+            &input.committee_config,
+            &input.risk_config,
+        );
+        let equal = evaluate_committee_window(
+            BaselineStrategyKind::EqualWeightCommittee,
+            &series,
+            split,
+            &equal_states,
+            &input.walk_forward_config,
+            &input.committee_config,
+            &input.risk_config,
+        );
+        let voice = evaluate_committee_window(
+            BaselineStrategyKind::VoiceAdaptiveCommittee,
+            &series,
+            split,
+            &voice_states,
+            &input.walk_forward_config,
+            &input.committee_config,
+            &input.risk_config,
+        );
+        voice_states = voice.final_states.clone();
+        let reason_codes = stable_reason_codes(
+            &input
+                .walk_forward_config
+                .reason_codes
+                .iter()
+                .cloned()
+                .chain([
+                    ReasonCode::WalkForwardWindowCreated,
+                    ReasonCode::WalkForwardNoLookahead,
+                    ReasonCode::WalkForwardEvaluated,
+                    ReasonCode::PaperExecutionOnly,
+                ])
+                .collect::<Vec<_>>(),
+        );
+        windows.push(WalkForwardWindowResult {
+            split,
+            baseline_results: vec![always.metrics.clone(), buy_hold.metrics.clone()],
+            committee_results: vec![equal.metrics.clone(), voice.metrics.clone()],
+            scoring_results: vec![
+                always.scoring.clone(),
+                buy_hold.scoring.clone(),
+                equal.scoring.clone(),
+                voice.scoring.clone(),
+            ],
+            agent_state_before,
+            agent_state_after: voice_states.clone(),
+            reason_codes,
+        });
+    }
+    let aggregate_metrics = aggregate_walk_forward_metrics(&windows);
+    let scoring_summary =
+        aggregate_prediction_summaries(&windows, input.walk_forward_config.min_prediction_samples);
+    let comparison = build_proof_gate_comparison(
+        &aggregate_metrics,
+        &scoring_summary,
+        input.walk_forward_config.min_prediction_samples,
+    );
+    let voice_adaptation_comparison = VoiceAdaptationComparison {
+        equal_weight_total_return: comparison.equal_weight_committee.total_return,
+        voice_adaptive_total_return: comparison.voice_adaptive_committee.total_return,
+        equal_weight_risk_adjusted_score: risk_adjusted_score(&comparison.equal_weight_committee),
+        voice_adaptive_risk_adjusted_score: risk_adjusted_score(
+            &comparison.voice_adaptive_committee,
+        ),
+        voice_beats_equal_weight: comparison.voice_beats_equal_weight,
+        reason_codes: if comparison.voice_beats_equal_weight {
+            vec![ReasonCode::BaselineComparisonVoiceAdaptationHelped]
+        } else {
+            vec![ReasonCode::BaselineComparisonVoiceAdaptationFailed]
+        },
+    };
+    let proof_gate_status = if comparison.insufficient_evidence {
+        ProofGateStatus::InsufficientEvidence
+    } else if comparison.voice_beats_equal_weight
+        && comparison.committee_beats_no_trade
+        && comparison.committee_beats_buy_hold_risk_adjusted
+    {
+        ProofGateStatus::ComputedNoProfitabilityClaim
+    } else {
+        ProofGateStatus::NoEdgeProven
+    };
+    let reason_codes = stable_reason_codes(
+        &input
+            .dataset
+            .reason_codes
+            .iter()
+            .chain(input.walk_forward_config.reason_codes.iter())
+            .chain(comparison.reason_codes.iter())
+            .cloned()
+            .chain([
+                ReasonCode::ManualHistoricalImportNoNetwork,
+                ReasonCode::ManualHistoricalImportSanitizedOnly,
+                ReasonCode::WalkForwardEvaluationOnly,
+                ReasonCode::PaperExecutionOnly,
+                ReasonCode::HardcodingAuditPassed,
+            ])
+            .collect::<Vec<_>>(),
+    );
+    Ok(WalkForwardEvaluationResult {
+        dataset_id: input.dataset.dataset_id,
+        symbol: input.dataset.symbol,
+        windows,
+        aggregate_baseline_comparison: comparison,
+        voice_adaptation_comparison,
+        scoring_summary,
+        proof_gate_status,
+        reason_codes,
+    })
+}
+
+pub fn build_proof_gate_report(result: &WalkForwardEvaluationResult) -> ProofGateReport {
+    let comparison = &result.aggregate_baseline_comparison;
+    let baseline_comparison_table = [
+        &comparison.always_no_trade,
+        &comparison.buy_and_hold,
+        &comparison.equal_weight_committee,
+        &comparison.voice_adaptive_committee,
+    ]
+    .into_iter()
+    .map(|metrics| {
+        format!(
+            "{:?}: total_return={:.6} max_drawdown={:.6} trades={} no_trades={} risk_denials={} risk_adjusted={:.6}",
+            metrics.strategy,
+            metrics.total_return,
+            metrics.max_drawdown,
+            metrics.trade_count,
+            metrics.no_trade_count,
+            metrics.risk_denial_count,
+            risk_adjusted_score(metrics),
+        )
+    })
+    .collect::<Vec<_>>();
+    let prediction_quality_summary = result
+        .scoring_summary
+        .iter()
+        .map(|metrics| {
+            format!(
+                "{:?}: brier={:?} samples={} calibrated={} missing={} abstained={} high_confidence_errors={}",
+                metrics.strategy,
+                metrics.brier_score,
+                metrics.sample_count,
+                metrics.calibrated_sample_count,
+                metrics.missing_probability_count,
+                metrics.abstention_count,
+                metrics.high_confidence_error_count,
+            )
+        })
+        .collect::<Vec<_>>();
+    let mut reason_codes = result.reason_codes.clone();
+    reason_codes.push(ReasonCode::HardcodingAuditPassed);
+    ProofGateReport {
+        dataset_summary: format!(
+            "dataset_id={} symbol={} windows={}",
+            result.dataset_id,
+            result.symbol,
+            result.windows.len()
+        ),
+        walk_forward_config:
+            "expanding train window; eval window is out-of-sample and no-lookahead".to_string(),
+        baseline_comparison_table,
+        voice_adaptation_result: if comparison.voice_beats_equal_weight {
+            "VoiceAdaptiveCommittee beat EqualWeightCommittee on computed risk-adjusted score."
+                .to_string()
+        } else {
+            "VoiceAdaptiveCommittee did not beat EqualWeightCommittee on this dataset.".to_string()
+        },
+        prediction_quality_summary,
+        null_strategy_warning: if comparison.committee_beats_no_trade {
+            "Committee beat AlwaysNoTrade on this computed sample, but this is not a profitability claim.".to_string()
+        } else {
+            "Committee did not beat AlwaysNoTrade. No edge proven.".to_string()
+        },
+        insufficient_evidence_warning: comparison
+            .insufficient_evidence
+            .then_some("Insufficient evidence due to small sample count.".to_string()),
+        no_profitability_claim: "No profitability claim.".to_string(),
+        no_live_readiness_warning: "No live trading readiness.".to_string(),
+        next_required_evidence: if comparison.committee_beats_buy_hold_risk_adjusted {
+            "Retest on larger owner-provided sanitized local daily CSV datasets before trusting any committee edge.".to_string()
+        } else {
+            "Committee did not beat BuyAndHold. Next evidence must improve baseline-relative out-of-sample results.".to_string()
+        },
+        reason_codes: stable_reason_codes(&reason_codes),
+    }
+}
+
+pub fn render_proof_gate_report_text(report: &ProofGateReport) -> String {
+    let mut lines = vec![
+        "Proof gate report.".to_string(),
+        "Local historical daily CSV only.".to_string(),
+        "Paper-only evaluation.".to_string(),
+        "No live trading readiness.".to_string(),
+        "No profitability claim.".to_string(),
+        "Voice adaptation must beat equal weight before it is trusted.".to_string(),
+        "Synthetic fixture success is not market evidence.".to_string(),
+        format!("Dataset: {}", report.dataset_summary),
+        format!("Walk-forward: {}", report.walk_forward_config),
+        "Baseline comparison table:".to_string(),
+    ];
+    lines.extend(report.baseline_comparison_table.iter().cloned());
+    lines.push(format!(
+        "Voice adaptation: {}",
+        report.voice_adaptation_result
+    ));
+    lines.push("Prediction quality summary:".to_string());
+    lines.extend(report.prediction_quality_summary.iter().cloned());
+    lines.push(report.null_strategy_warning.clone());
+    if let Some(warning) = &report.insufficient_evidence_warning {
+        lines.push(warning.clone());
+    }
+    lines.push(report.no_profitability_claim.clone());
+    lines.push(report.no_live_readiness_warning.clone());
+    lines.push(report.next_required_evidence.clone());
+    redact_owner_report_output(&lines.join("\n"))
+}
+
+fn validate_manual_historical_config(
+    config: &ManualHistoricalDailyImportConfig,
+) -> Result<(), ManualHistoricalDailyImportError> {
+    if !matches!(
+        config.source_kind,
+        LocalDataSourceKind::UsStockCsv
+            | LocalDataSourceKind::KoreanStockCsv
+            | LocalDataSourceKind::BtcCryptoCsv
+    ) || config.dataset_id.trim().is_empty()
+        || config.max_rows == 0
+        || config.min_rows < 2
+        || config.min_rows > config.max_rows
+        || config.reject_weekend_gap
+        || !config.calendar_validation_deferred
+    {
+        return Err(manual_historical_error(
+            None,
+            ReasonCode::ManualHistoricalImportDailyOnly,
+        ));
+    }
+    Ok(())
+}
+
+fn manual_historical_error(
+    row_number: Option<usize>,
+    reason_code: ReasonCode,
+) -> ManualHistoricalDailyImportError {
+    ManualHistoricalDailyImportError {
+        row_number,
+        reason_codes: vec![reason_code],
+    }
+}
+
+fn manual_historical_safety_reason(
+    text: &str,
+    header: Option<&[String]>,
+    config: &ManualHistoricalDailyImportConfig,
+) -> Option<ReasonCode> {
+    let normalized = text.to_ascii_lowercase();
+    if contains_temporary_instruction_marker(text) {
+        return Some(ReasonCode::ManualHistoricalImportWorkMdMarkerRejected);
+    }
+    if config.reject_endpoint_markers
+        && header.is_some_and(|columns| {
+            columns.iter().any(|column| {
+                column.contains("endpoint")
+                    || column == "url"
+                    || column == "url_endpoint"
+                    || column == "broker_endpoint"
+                    || column == "order_endpoint"
+            })
+        })
+    {
+        return Some(ReasonCode::ManualHistoricalImportEndpointDataRejected);
+    }
+    if normalized.contains("live_provider")
+        || normalized.contains("live_endpoint")
+        || normalized.contains("exchange_secret")
+    {
+        return Some(ReasonCode::ManualHistoricalImportLiveProviderRejected);
+    }
+    if config.reject_endpoint_markers
+        && (normalized.contains("http://")
+            || normalized.contains("https://")
+            || normalized.contains("broker-endpoint")
+            || normalized.contains("order-endpoint")
+            || normalized.contains("url_endpoint")
+            || normalized.contains("broker_endpoint")
+            || normalized.contains("order_endpoint"))
+    {
+        return Some(ReasonCode::ManualHistoricalImportEndpointDataRejected);
+    }
+    if normalized.contains("raw_response") || normalized.contains("raw provider response") {
+        return Some(ReasonCode::ManualHistoricalImportRawProviderResponseRejected);
+    }
+    if normalized.contains("account_id") {
+        return Some(ReasonCode::ManualHistoricalImportAccountDataRejected);
+    }
+    if normalized.contains("order_id") {
+        return Some(ReasonCode::ManualHistoricalImportOrderDataRejected);
+    }
+    if [
+        "authorization",
+        "bearer ",
+        "access_token",
+        "refresh_token",
+        "app_key",
+        "app_secret",
+        "api_key",
+        "private_key",
+        "wallet_private_key",
+    ]
+    .iter()
+    .any(|marker| normalized.contains(marker))
+    {
+        return Some(ReasonCode::ManualHistoricalImportSecretLikeDataRejected);
+    }
+    if config.reject_private_markers
+        && (normalized.contains("local_private")
+            || normalized.contains("private mapping")
+            || normalized.contains(".env"))
+    {
+        return Some(ReasonCode::ManualHistoricalImportUnsafePrivateData);
+    }
+    None
+}
+
+fn parse_manual_daily_date_ms(date: &str) -> Option<u64> {
+    let bytes = date.as_bytes();
+    if bytes.len() != 10 || bytes[4] != b'-' || bytes[7] != b'-' {
+        return None;
+    }
+    if !bytes
+        .iter()
+        .enumerate()
+        .all(|(index, value)| index == 4 || index == 7 || value.is_ascii_digit())
+    {
+        return None;
+    }
+    parse_local_datetime_utc_ms(date, "000000")
+}
+
+fn parse_manual_required_number(
+    value: Option<&str>,
+    row_number: usize,
+) -> Result<f64, ManualHistoricalDailyImportError> {
+    let parsed = value
+        .and_then(|value| value.parse::<f64>().ok())
+        .ok_or_else(|| {
+            manual_historical_error(Some(row_number), ReasonCode::HistoricalReplayInvalidRow)
+        })?;
+    if !parsed.is_finite() {
+        return Err(manual_historical_error(
+            Some(row_number),
+            ReasonCode::HistoricalReplayNonFinite,
+        ));
+    }
+    if parsed <= 0.0 {
+        return Err(manual_historical_error(
+            Some(row_number),
+            ReasonCode::HistoricalReplayNonPositivePrice,
+        ));
+    }
+    Ok(parsed)
+}
+
+fn parse_manual_volume(
+    value: Option<&str>,
+    row_number: usize,
+) -> Result<f64, ManualHistoricalDailyImportError> {
+    let parsed = value
+        .and_then(|value| value.parse::<f64>().ok())
+        .ok_or_else(|| {
+            manual_historical_error(Some(row_number), ReasonCode::HistoricalReplayInvalidRow)
+        })?;
+    if !parsed.is_finite() {
+        return Err(manual_historical_error(
+            Some(row_number),
+            ReasonCode::HistoricalReplayNonFinite,
+        ));
+    }
+    if parsed < 0.0 {
+        return Err(manual_historical_error(
+            Some(row_number),
+            ReasonCode::HistoricalReplayInvalidRow,
+        ));
+    }
+    Ok(parsed)
+}
+
+fn parse_manual_optional_positive(
+    value: Option<&str>,
+    row_number: usize,
+) -> Result<Option<f64>, ManualHistoricalDailyImportError> {
+    let Some(value) = value.filter(|value| !value.trim().is_empty()) else {
+        return Ok(None);
+    };
+    let parsed = parse_manual_required_number(Some(value), row_number)?;
+    Ok(Some(parsed))
+}
+
+fn parse_manual_optional_non_negative(
+    value: Option<&str>,
+    row_number: usize,
+) -> Result<Option<f64>, ManualHistoricalDailyImportError> {
+    let Some(value) = value.filter(|value| !value.trim().is_empty()) else {
+        return Ok(None);
+    };
+    let parsed = value.parse::<f64>().map_err(|_| {
+        manual_historical_error(Some(row_number), ReasonCode::HistoricalReplayInvalidRow)
+    })?;
+    if !parsed.is_finite() {
+        return Err(manual_historical_error(
+            Some(row_number),
+            ReasonCode::HistoricalReplayNonFinite,
+        ));
+    }
+    if parsed < 0.0 {
+        return Err(manual_historical_error(
+            Some(row_number),
+            ReasonCode::HistoricalReplayInvalidRow,
+        ));
+    }
+    Ok(Some(parsed))
+}
+
+fn optional_manual_string(
+    value: Option<&str>,
+) -> Result<Option<String>, ManualHistoricalDailyImportError> {
+    let Some(value) = value.map(str::trim).filter(|value| !value.is_empty()) else {
+        return Ok(None);
+    };
+    if let Some(reason) =
+        manual_historical_safety_reason(value, None, &ManualHistoricalDailyImportConfig::default())
+    {
+        return Err(manual_historical_error(None, reason));
+    }
+    Ok(Some(value.to_string()))
+}
+
+fn manual_daily_quality_summary(
+    symbol: &str,
+    source_kind: LocalDataSourceKind,
+    rows: &[ManualHistoricalDailyRow],
+) -> LocalDataQualitySummary {
+    let min_close = rows
+        .iter()
+        .map(|row| row.close)
+        .fold(f64::INFINITY, f64::min);
+    let max_close = rows
+        .iter()
+        .map(|row| row.close)
+        .fold(f64::NEG_INFINITY, f64::max);
+    LocalDataQualitySummary {
+        total_rows: rows.len(),
+        accepted_rows: rows.len(),
+        rejected_rows: 0,
+        first_timestamp: rows.first().map_or(0, |row| row.timestamp_ms),
+        last_timestamp: rows.last().map_or(0, |row| row.timestamp_ms),
+        symbol: symbol.to_string(),
+        source_kind,
+        has_trade_value: rows.iter().any(|row| row.trade_value.is_some()),
+        monotonic: rows
+            .windows(2)
+            .all(|pair| pair[0].timestamp_ms < pair[1].timestamp_ms),
+        min_close,
+        max_close,
+        reason_codes: vec![
+            ReasonCode::ManualHistoricalImportDailyOnly,
+            ReasonCode::ManualHistoricalImportNoNetwork,
+            ReasonCode::ManualHistoricalImportSanitizedOnly,
+            ReasonCode::LocalFileOnly,
+        ],
+    }
+}
+
+fn walk_forward_config_is_valid(config: &WalkForwardConfig) -> bool {
+    config.min_train_rows >= 1
+        && config.eval_window_rows >= 2
+        && config.step_rows >= 1
+        && config.cost_bps.is_finite()
+        && config.cost_bps >= 0.0
+        && config.slippage_bps.is_finite()
+        && config.slippage_bps >= 0.0
+        && config.max_position_fraction.is_finite()
+        && (0.0..=1.0).contains(&config.max_position_fraction)
+        && config.no_lookahead
+}
+
+fn walk_forward_error(reason_codes: Vec<ReasonCode>) -> WalkForwardEvaluationError {
+    WalkForwardEvaluationError {
+        reason_codes: stable_reason_codes(&reason_codes),
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+struct StrategyEvaluation {
+    metrics: BaselinePerformanceMetrics,
+    scoring: PredictionQualityMetrics,
+    final_states: Vec<CanonicalAgentState>,
+}
+
+fn evaluate_always_no_trade_window(
+    series: &CandleSeries,
+    split: WalkForwardSplit,
+) -> StrategyEvaluation {
+    let decision_count = split
+        .eval_end_index
+        .saturating_sub(split.eval_start_index + 1);
+    let samples = (split.eval_start_index..split.eval_end_index.saturating_sub(1))
+        .map(|index| PredictionQualitySample {
+            predicted_probability: None,
+            abstained: true,
+            realized_direction_up: direction_up(series, index),
+        })
+        .collect::<Vec<_>>();
+    StrategyEvaluation {
+        metrics: BaselinePerformanceMetrics {
+            strategy: BaselineStrategyKind::AlwaysNoTrade,
+            total_return: 0.0,
+            max_drawdown: 0.0,
+            trade_count: 0,
+            win_count: 0,
+            loss_count: 0,
+            no_trade_count: decision_count as u64,
+            risk_denial_count: 0,
+            avg_return_per_trade: 0.0,
+            volatility_estimate: None,
+            sharpe_like: None,
+            downside_loss: None,
+            cost_paid: 0.0,
+            slippage_paid: 0.0,
+            reason_codes: vec![
+                ReasonCode::BaselineAlwaysNoTrade,
+                ReasonCode::NoTradePreferred,
+                ReasonCode::PaperExecutionOnly,
+            ],
+        },
+        scoring: compute_prediction_quality_metrics(
+            BaselineStrategyKind::AlwaysNoTrade,
+            &samples,
+            1,
+        ),
+        final_states: Vec::new(),
+    }
+}
+
+fn evaluate_buy_and_hold_window(
+    series: &CandleSeries,
+    split: WalkForwardSplit,
+    walk_config: &WalkForwardConfig,
+    committee_config: &WalkForwardCommitteeConfig,
+    risk_config: &GovernorConfig,
+) -> StrategyEvaluation {
+    let Some(first) = series.candle(split.eval_start_index) else {
+        return empty_strategy_evaluation(BaselineStrategyKind::BuyAndHold);
+    };
+    let Some(last) = series.candle(split.eval_end_index.saturating_sub(1)) else {
+        return empty_strategy_evaluation(BaselineStrategyKind::BuyAndHold);
+    };
+    let market = series
+        .market_snapshot_at(split.eval_start_index)
+        .expect("split index validated");
+    let expected_edge = committee_config
+        .expected_edge_scale
+        .max(risk_config.min_expected_edge + f64::EPSILON);
+    let risk_decision = evaluate_baseline_trade_risk(
+        BaselineStrategyKind::BuyAndHold,
+        &market,
+        Side::Long,
+        walk_config.max_position_fraction,
+        expected_edge,
+        risk_config.min_confidence,
+        walk_config,
+        committee_config,
+        risk_config,
+    );
+    let approved = risk_decision.kind == RiskDecisionKind::ApprovePaper;
+    let gross_return = if first.close > 0.0 {
+        (last.close / first.close - 1.0) * walk_config.max_position_fraction
+    } else {
+        0.0
+    };
+    let cost_paid = if approved {
+        bps_fraction(walk_config.cost_bps) * 2.0 * walk_config.max_position_fraction
+    } else {
+        0.0
+    };
+    let slippage_paid = if approved {
+        bps_fraction(walk_config.slippage_bps) * 2.0 * walk_config.max_position_fraction
+    } else {
+        0.0
+    };
+    let net_return = if approved {
+        gross_return - cost_paid - slippage_paid
+    } else {
+        0.0
+    };
+    let samples = vec![PredictionQualitySample {
+        predicted_probability: None,
+        abstained: false,
+        realized_direction_up: last.close > first.close,
+    }];
+    let reason_codes = stable_reason_codes(
+        &risk_decision
+            .reason_codes
+            .iter()
+            .cloned()
+            .chain([
+                ReasonCode::BaselineBuyAndHold,
+                ReasonCode::WalkForwardCostApplied,
+                ReasonCode::PaperExecutionOnly,
+            ])
+            .collect::<Vec<_>>(),
+    );
+    StrategyEvaluation {
+        metrics: BaselinePerformanceMetrics {
+            strategy: BaselineStrategyKind::BuyAndHold,
+            total_return: net_return,
+            max_drawdown: if approved {
+                buy_hold_drawdown(series, split, first.close) * walk_config.max_position_fraction
+            } else {
+                0.0
+            },
+            trade_count: u64::from(approved),
+            win_count: u64::from(approved && net_return > 0.0),
+            loss_count: u64::from(approved && net_return < 0.0),
+            no_trade_count: u64::from(!approved),
+            risk_denial_count: u64::from(!approved),
+            avg_return_per_trade: if approved { net_return } else { 0.0 },
+            volatility_estimate: buy_hold_volatility(series, split),
+            sharpe_like: None,
+            downside_loss: (approved && net_return < 0.0).then_some(net_return.abs()),
+            cost_paid,
+            slippage_paid,
+            reason_codes,
+        },
+        scoring: compute_prediction_quality_metrics(BaselineStrategyKind::BuyAndHold, &samples, 1),
+        final_states: Vec::new(),
+    }
+}
+
+fn evaluate_committee_window(
+    strategy: BaselineStrategyKind,
+    series: &CandleSeries,
+    split: WalkForwardSplit,
+    states: &[CanonicalAgentState],
+    walk_config: &WalkForwardConfig,
+    committee_config: &WalkForwardCommitteeConfig,
+    risk_config: &GovernorConfig,
+) -> StrategyEvaluation {
+    let mut returns = Vec::new();
+    let mut samples = Vec::new();
+    let mut trade_count = 0u64;
+    let mut win_count = 0u64;
+    let mut loss_count = 0u64;
+    let mut no_trade_count = 0u64;
+    let mut risk_denial_count = 0u64;
+    let mut cost_paid = 0.0;
+    let mut slippage_paid = 0.0;
+    let mut current_states = states.to_vec();
+    let mut reason_codes = vec![
+        strategy_reason_code(strategy),
+        ReasonCode::PaperExecutionOnly,
+    ];
+    for index in split.eval_start_index..split.eval_end_index.saturating_sub(1) {
+        let decision = committee_decision_at(
+            strategy,
+            series,
+            index,
+            &current_states,
+            walk_config,
+            committee_config,
+            risk_config,
+        );
+        samples.push(PredictionQualitySample {
+            predicted_probability: decision.predicted_probability,
+            abstained: decision.position_fraction == 0.0,
+            realized_direction_up: direction_up(series, index),
+        });
+        reason_codes.extend(decision.reason_codes.iter().cloned());
+        if decision.position_fraction == 0.0 {
+            no_trade_count += 1;
+            continue;
+        }
+        if decision.risk_decision.kind != RiskDecisionKind::ApprovePaper {
+            no_trade_count += 1;
+            risk_denial_count += 1;
+            if strategy == BaselineStrategyKind::VoiceAdaptiveCommittee {
+                current_states =
+                    apply_voice_adaptive_feedback(&current_states, &decision, 0.0, true, true);
+            }
+            continue;
+        }
+        let gross = next_return(series, index) * decision.position_fraction;
+        let trade_cost =
+            bps_fraction(walk_config.cost_bps) * 2.0 * decision.position_fraction.abs();
+        let trade_slippage =
+            bps_fraction(walk_config.slippage_bps) * 2.0 * decision.position_fraction.abs();
+        let net = gross - trade_cost - trade_slippage;
+        cost_paid += trade_cost;
+        slippage_paid += trade_slippage;
+        returns.push(net);
+        trade_count += 1;
+        if net > 0.0 {
+            win_count += 1;
+        } else if net < 0.0 {
+            loss_count += 1;
+        }
+        if strategy == BaselineStrategyKind::VoiceAdaptiveCommittee {
+            current_states =
+                apply_voice_adaptive_feedback(&current_states, &decision, net, false, false);
+        }
+    }
+    let total_return = returns.iter().sum::<f64>();
+    let max_drawdown = cumulative_max_drawdown(&returns);
+    StrategyEvaluation {
+        metrics: BaselinePerformanceMetrics {
+            strategy,
+            total_return,
+            max_drawdown,
+            trade_count,
+            win_count,
+            loss_count,
+            no_trade_count,
+            risk_denial_count,
+            avg_return_per_trade: if trade_count > 0 {
+                total_return / trade_count as f64
+            } else {
+                0.0
+            },
+            volatility_estimate: volatility(&returns),
+            sharpe_like: sharpe_like(&returns),
+            downside_loss: downside_loss(&returns),
+            cost_paid,
+            slippage_paid,
+            reason_codes: stable_reason_codes(&reason_codes),
+        },
+        scoring: compute_prediction_quality_metrics(strategy, &samples, 1),
+        final_states: current_states,
+    }
+}
+
+#[derive(Clone, Debug)]
+struct CommitteeDecisionAt {
+    decision_id: String,
+    market: MarketSnapshot,
+    signal: SignalOutput,
+    votes: Vec<InvestorVote>,
+    chair_output: ChairOutput,
+    proposals: Vec<AgentProposal>,
+    risk_decision: RiskDecision,
+    position_fraction: f64,
+    predicted_probability: Option<f64>,
+    reason_codes: Vec<ReasonCode>,
+}
+
+fn committee_decision_at(
+    strategy: BaselineStrategyKind,
+    series: &CandleSeries,
+    index: usize,
+    states: &[CanonicalAgentState],
+    walk_config: &WalkForwardConfig,
+    committee_config: &WalkForwardCommitteeConfig,
+    risk_config: &GovernorConfig,
+) -> CommitteeDecisionAt {
+    let market = series
+        .market_snapshot_at(index)
+        .expect("walk-forward split index validated");
+    let signal = walk_forward_signal(series, index, committee_config);
+    let mut votes = super::default_league_votes(&market, &signal);
+    let adaptive = strategy == BaselineStrategyKind::VoiceAdaptiveCommittee;
+    let mut weighted_sum = 0.0;
+    let mut weight_total = 0.0;
+    for vote in &mut votes {
+        let state = states
+            .iter()
+            .find(|state| state.agent_id == vote.persona_id);
+        let active = state.is_some_and(|state| {
+            state.kind != AgentKind::Future8AgentPlaceholder
+                && state.status == AgentStatus::Active
+                && state.voice_state.cooldown_bars == 0
+        });
+        let weight = if !active {
+            0.0
+        } else if adaptive {
+            state.map_or(0.0, |state| state.voice_state.voice_power)
+        } else {
+            1.0
+        };
+        vote.voice_power = weight;
+        if weight == 0.0 {
+            vote.stance = Stance::Abstain;
+            vote.reason_codes.push(ReasonCode::AgentAbstained);
+        }
+        weighted_sum += vote.stance.direction() * vote.conviction * weight;
+        weight_total += weight;
+        vote.reason_codes = stable_reason_codes(&vote.reason_codes);
+    }
+    let score = if weight_total > 0.0 {
+        weighted_sum / weight_total
+    } else {
+        0.0
+    };
+    let position_fraction = if score >= committee_config.min_vote_score_for_trade {
+        walk_config.max_position_fraction
+    } else if walk_config.allow_short && score <= -committee_config.min_vote_score_for_trade {
+        -walk_config.max_position_fraction
+    } else {
+        0.0
+    };
+    let predicted_probability = Some(probability_from_vote_score(score, committee_config));
+    let selected_speakers = votes
+        .iter()
+        .filter(|vote| vote.voice_power > 0.0)
+        .map(|vote| vote.persona_id.clone())
+        .collect::<Vec<_>>();
+    let lead_speaker = votes
+        .iter()
+        .max_by(|left, right| {
+            (left.voice_power * left.conviction)
+                .partial_cmp(&(right.voice_power * right.conviction))
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
+        .map(|vote| vote.persona_id.clone())
+        .unwrap_or_else(|| "none".to_string());
+    let chair_output = ChairOutput {
+        selected_speakers,
+        lead_speaker,
+        forced_contrarian: false,
+        council_score: score.abs().clamp(0.0, 1.0),
+        disagreement_score: 0.0,
+        groupthink_risk: 0.0,
+        size_multiplier: position_fraction.abs(),
+        decision: if position_fraction == 0.0 {
+            crate::core::ChairDecisionKind::NoTrade
+        } else {
+            crate::core::ChairDecisionKind::ApproveCandidate
+        },
+        reason_codes: vec![
+            strategy_reason_code(strategy),
+            ReasonCode::DeterministicPath,
+        ],
+    };
+    let decision_id = format!(
+        "manual-walk-forward:{}:{}:{:?}",
+        series.symbol, market.timestamp_ms, strategy
+    );
+    let proposals = build_loop_agent_proposals(
+        &votes,
+        states,
+        &chair_output,
+        &market,
+        &signal,
+        manual_market_name_from_symbol(&series.symbol),
+        &decision_id,
+    );
+    let side = if position_fraction < 0.0 {
+        Side::Short
+    } else {
+        Side::Long
+    };
+    let risk_decision = if position_fraction == 0.0 {
+        RiskDecision {
+            kind: RiskDecisionKind::Deny,
+            approved_order_plan: None,
+            reason_codes: vec![ReasonCode::NoTradePreferred],
+            audit_id: format!("manual-walk-forward-no-trade:{}", market.timestamp_ms),
+        }
+    } else {
+        evaluate_baseline_trade_risk(
+            strategy,
+            &market,
+            side,
+            position_fraction.abs(),
+            score.abs() * committee_config.expected_edge_scale
+                - bps_fraction(walk_config.cost_bps + walk_config.slippage_bps) * 2.0,
+            predicted_probability
+                .map(|probability| probability.max(1.0 - probability))
+                .unwrap_or(0.0),
+            walk_config,
+            committee_config,
+            risk_config,
+        )
+    };
+    let reason_codes = stable_reason_codes(
+        &chair_output
+            .reason_codes
+            .iter()
+            .chain(risk_decision.reason_codes.iter())
+            .cloned()
+            .chain([
+                ReasonCode::WalkForwardNoLookahead,
+                ReasonCode::WalkForwardEvaluated,
+            ])
+            .collect::<Vec<_>>(),
+    );
+    CommitteeDecisionAt {
+        decision_id,
+        market,
+        signal,
+        votes,
+        chair_output,
+        proposals,
+        risk_decision,
+        position_fraction,
+        predicted_probability,
+        reason_codes,
+    }
+}
+
+fn walk_forward_signal(
+    series: &CandleSeries,
+    index: usize,
+    config: &WalkForwardCommitteeConfig,
+) -> SignalOutput {
+    let current = series.candle(index).expect("split index validated");
+    let previous_close = index
+        .checked_sub(1)
+        .and_then(|previous| series.candle(previous))
+        .map_or(current.open, |candle| candle.close);
+    let past_return = if previous_close > 0.0 {
+        current.close / previous_close - 1.0
+    } else {
+        0.0
+    };
+    let range_pct = if current.open > 0.0 {
+        (current.high - current.low).abs() / current.open
+    } else {
+        0.0
+    };
+    let p_win = (0.5 + past_return * config.probability_return_scale)
+        .clamp(config.min_probability, config.max_probability);
+    SignalOutput {
+        symbol: series.symbol.clone(),
+        horizon_bars: 1,
+        p_win,
+        p_stop: (1.0 - p_win).clamp(config.min_probability, config.max_probability),
+        expected_return: past_return,
+        expected_drawdown: range_pct,
+        confidence: ((p_win - 0.5).abs() * 2.0).clamp(0.0, 1.0),
+        no_trade_probability: (1.0 - (p_win - 0.5).abs() * 2.0).clamp(0.0, 1.0),
+        source: "manual-historical-walk-forward".to_string(),
+    }
+}
+
+fn evaluate_baseline_trade_risk(
+    strategy: BaselineStrategyKind,
+    market: &MarketSnapshot,
+    side: Side,
+    quantity_hint: f64,
+    expected_edge_after_cost: f64,
+    confidence: f64,
+    walk_config: &WalkForwardConfig,
+    committee_config: &WalkForwardCommitteeConfig,
+    risk_config: &GovernorConfig,
+) -> RiskDecision {
+    let stop_loss = if side == Side::Long {
+        market.price * (1.0 - bps_fraction(committee_config.stop_loss_bps))
+    } else {
+        market.price * (1.0 + bps_fraction(committee_config.stop_loss_bps))
+    };
+    let take_profit = if side == Side::Long {
+        market.price * (1.0 + bps_fraction(committee_config.take_profit_bps))
+    } else {
+        market.price * (1.0 - bps_fraction(committee_config.take_profit_bps))
+    };
+    let chair_output = ChairOutput {
+        selected_speakers: vec![format!("{strategy:?}")],
+        lead_speaker: format!("{strategy:?}"),
+        forced_contrarian: false,
+        council_score: confidence.clamp(0.0, 1.0),
+        disagreement_score: 0.0,
+        groupthink_risk: 0.0,
+        size_multiplier: quantity_hint,
+        decision: crate::core::ChairDecisionKind::ApproveCandidate,
+        reason_codes: vec![strategy_reason_code(strategy)],
+    };
+    let proposal = TradeProposal {
+        symbol: market.symbol.clone(),
+        side,
+        quantity_hint,
+        entry_price_hint: market.price,
+        stop_loss: Some(stop_loss),
+        take_profit: Some(take_profit),
+        max_slippage_bps: walk_config.slippage_bps,
+        expected_edge_after_cost,
+        confidence: confidence.clamp(0.0, 1.0),
+        source_chair_output: chair_output,
+    };
+    RiskGovernor {
+        config: *risk_config,
+    }
+    .evaluate(
+        market,
+        &RiskSnapshot {
+            daily_pnl_pct: 0.0,
+            consecutive_losses: 0,
+            current_positions_count: 0,
+            total_exposure_pct: 0.0,
+            symbol_exposure_pct: 0.0,
+            api_health_score: 1.0,
+            data_quality_score: market.data_quality_score,
+        },
+        Some(&proposal),
+        market.timestamp_ms,
+    )
+}
+
+fn apply_voice_adaptive_feedback(
+    states: &[CanonicalAgentState],
+    decision: &CommitteeDecisionAt,
+    net_return: f64,
+    denied_by_risk: bool,
+    no_trade: bool,
+) -> Vec<CanonicalAgentState> {
+    let outcome = committee_outcome_record(decision, net_return, denied_by_risk, no_trade);
+    let context = FeedbackContext {
+        paper_only: true,
+        outcome_finalized: true,
+        doctrine_violation: false,
+        overtrade: false,
+    };
+    states
+        .iter()
+        .map(|state| {
+            let Some(proposal) = decision
+                .proposals
+                .iter()
+                .find(|proposal| proposal.agent_id == state.agent_id)
+            else {
+                return state.clone();
+            };
+            apply_paper_feedback_cycle(state, proposal, &outcome, &context)
+                .map(|cycle| cycle.updated_state)
+                .unwrap_or_else(|_| state.clone())
+        })
+        .collect()
+}
+
+fn committee_outcome_record(
+    decision: &CommitteeDecisionAt,
+    net_return: f64,
+    denied_by_risk: bool,
+    no_trade: bool,
+) -> OutcomeRecord {
+    let executed = !denied_by_risk && !no_trade && decision.position_fraction != 0.0;
+    let hypothetical = net_return;
+    let avoided_loss_score = if !executed && hypothetical < 0.0 {
+        hypothetical.abs()
+    } else {
+        0.0
+    };
+    let missed_gain_penalty = if !executed && hypothetical > 0.0 {
+        hypothetical * 0.20
+    } else {
+        0.0
+    };
+    let attribution_records = build_loop_attribution(
+        &decision.votes,
+        &decision.chair_output,
+        denied_by_risk,
+        no_trade,
+    );
+    let mut reason_codes = decision.reason_codes.clone();
+    reason_codes.push(ReasonCode::PaperExecutionOnly);
+    if executed {
+        reason_codes.push(ReasonCode::PaperFillSimulated);
+    } else if denied_by_risk {
+        reason_codes.push(ReasonCode::RiskDeniedCounterfactual);
+    } else {
+        reason_codes.push(ReasonCode::NoTradeCounterfactual);
+    }
+    OutcomeRecord {
+        decision_id: decision.decision_id.clone(),
+        symbol: decision.market.symbol.clone(),
+        timestamp_ms: decision.market.timestamp_ms,
+        regime: decision.market.regime,
+        horizon: Horizon::Position,
+        signal_confidence: decision.signal.confidence,
+        executed,
+        denied_by_risk,
+        no_trade,
+        triple_barrier_result: executed.then(|| {
+            synthetic_barrier_result(net_return, decision.market.price, net_return.min(0.0).abs())
+        }),
+        hypothetical_result: (!executed).then(|| {
+            synthetic_barrier_result(
+                hypothetical,
+                decision.market.price,
+                hypothetical.min(0.0).abs(),
+            )
+        }),
+        realized_net_return_pct: if executed { net_return } else { 0.0 },
+        avoided_loss_score,
+        missed_gain_penalty,
+        attribution_records,
+        shadow_outcomes: Vec::new(),
+        reason_codes: stable_reason_codes(&reason_codes),
+    }
+}
+
+fn empty_strategy_evaluation(strategy: BaselineStrategyKind) -> StrategyEvaluation {
+    StrategyEvaluation {
+        metrics: BaselinePerformanceMetrics {
+            strategy,
+            total_return: 0.0,
+            max_drawdown: 0.0,
+            trade_count: 0,
+            win_count: 0,
+            loss_count: 0,
+            no_trade_count: 0,
+            risk_denial_count: 0,
+            avg_return_per_trade: 0.0,
+            volatility_estimate: None,
+            sharpe_like: None,
+            downside_loss: None,
+            cost_paid: 0.0,
+            slippage_paid: 0.0,
+            reason_codes: vec![strategy_reason_code(strategy)],
+        },
+        scoring: compute_prediction_quality_metrics(strategy, &[], 1),
+        final_states: Vec::new(),
+    }
+}
+
+fn strategy_reason_code(strategy: BaselineStrategyKind) -> ReasonCode {
+    match strategy {
+        BaselineStrategyKind::AlwaysNoTrade => ReasonCode::BaselineAlwaysNoTrade,
+        BaselineStrategyKind::BuyAndHold => ReasonCode::BaselineBuyAndHold,
+        BaselineStrategyKind::EqualWeightCommittee => ReasonCode::BaselineEqualWeightCommittee,
+        BaselineStrategyKind::VoiceAdaptiveCommittee => ReasonCode::BaselineVoiceAdaptiveCommittee,
+    }
+}
+
+fn probability_from_vote_score(score: f64, config: &WalkForwardCommitteeConfig) -> f64 {
+    (0.5 + score / 2.0).clamp(config.min_probability, config.max_probability)
+}
+
+fn bps_fraction(bps: f64) -> f64 {
+    bps / 10_000.0
+}
+
+fn direction_up(series: &CandleSeries, index: usize) -> bool {
+    series
+        .candle(index)
+        .zip(series.candle(index + 1))
+        .is_some_and(|(current, next)| next.close > current.close)
+}
+
+fn next_return(series: &CandleSeries, index: usize) -> f64 {
+    series
+        .candle(index)
+        .zip(series.candle(index + 1))
+        .and_then(|(current, next)| {
+            (current.close > 0.0).then_some(next.close / current.close - 1.0)
+        })
+        .unwrap_or(0.0)
+}
+
+fn buy_hold_drawdown(series: &CandleSeries, split: WalkForwardSplit, entry_price: f64) -> f64 {
+    if entry_price <= 0.0 {
+        return 0.0;
+    }
+    let mut peak = entry_price;
+    let mut max_drawdown = 0.0_f64;
+    for candle in &series.candles[split.eval_start_index..split.eval_end_index] {
+        peak = peak.max(candle.close);
+        if peak > 0.0 {
+            max_drawdown = max_drawdown.max((peak - candle.close) / peak);
+        }
+    }
+    max_drawdown
+}
+
+fn buy_hold_volatility(series: &CandleSeries, split: WalkForwardSplit) -> Option<f64> {
+    let returns = (split.eval_start_index..split.eval_end_index.saturating_sub(1))
+        .map(|index| next_return(series, index))
+        .collect::<Vec<_>>();
+    volatility(&returns)
+}
+
+fn volatility(returns: &[f64]) -> Option<f64> {
+    if returns.len() < 3 {
+        return None;
+    }
+    let mean = returns.iter().sum::<f64>() / returns.len() as f64;
+    let variance = returns
+        .iter()
+        .map(|value| (value - mean).powi(2))
+        .sum::<f64>()
+        / returns.len() as f64;
+    Some(variance.sqrt())
+}
+
+fn sharpe_like(returns: &[f64]) -> Option<f64> {
+    let vol = volatility(returns)?;
+    if vol <= f64::EPSILON {
+        None
+    } else {
+        Some((returns.iter().sum::<f64>() / returns.len() as f64) / vol)
+    }
+}
+
+fn downside_loss(returns: &[f64]) -> Option<f64> {
+    let losses = returns
+        .iter()
+        .copied()
+        .filter(|value| *value < 0.0)
+        .collect::<Vec<_>>();
+    (!losses.is_empty())
+        .then_some(losses.iter().map(|value| value.abs()).sum::<f64>() / losses.len() as f64)
+}
+
+fn cumulative_max_drawdown(returns: &[f64]) -> f64 {
+    let mut cumulative = 0.0_f64;
+    let mut peak = 0.0_f64;
+    let mut max_drawdown = 0.0_f64;
+    for value in returns {
+        cumulative += value;
+        peak = peak.max(cumulative);
+        max_drawdown = max_drawdown.max(peak - cumulative);
+    }
+    max_drawdown
+}
+
+fn manual_market_name_from_symbol(symbol: &str) -> &'static str {
+    if symbol.ends_with(".KS") || symbol.ends_with(".KQ") {
+        "KR"
+    } else if symbol.contains("BTC") {
+        "BTC"
+    } else {
+        "US"
+    }
+}
+
+fn aggregate_walk_forward_metrics(
+    windows: &[WalkForwardWindowResult],
+) -> BTreeMap<BaselineStrategyKind, BaselinePerformanceMetrics> {
+    let mut grouped = BTreeMap::<BaselineStrategyKind, Vec<BaselinePerformanceMetrics>>::new();
+    for window in windows {
+        for metrics in window
+            .baseline_results
+            .iter()
+            .chain(window.committee_results.iter())
+        {
+            grouped
+                .entry(metrics.strategy)
+                .or_default()
+                .push(metrics.clone());
+        }
+    }
+    grouped
+        .into_iter()
+        .map(|(strategy, rows)| (strategy, aggregate_strategy_metrics(strategy, &rows)))
+        .collect()
+}
+
+fn aggregate_strategy_metrics(
+    strategy: BaselineStrategyKind,
+    rows: &[BaselinePerformanceMetrics],
+) -> BaselinePerformanceMetrics {
+    let total_return = rows.iter().map(|row| row.total_return).sum::<f64>();
+    let trade_count = rows.iter().map(|row| row.trade_count).sum::<u64>();
+    let mut reason_codes = vec![
+        strategy_reason_code(strategy),
+        ReasonCode::DeterministicPath,
+    ];
+    reason_codes.extend(rows.iter().flat_map(|row| row.reason_codes.iter().cloned()));
+    let window_returns = rows.iter().map(|row| row.total_return).collect::<Vec<_>>();
+    BaselinePerformanceMetrics {
+        strategy,
+        total_return,
+        max_drawdown: rows
+            .iter()
+            .map(|row| row.max_drawdown)
+            .fold(0.0_f64, f64::max),
+        trade_count,
+        win_count: rows.iter().map(|row| row.win_count).sum(),
+        loss_count: rows.iter().map(|row| row.loss_count).sum(),
+        no_trade_count: rows.iter().map(|row| row.no_trade_count).sum(),
+        risk_denial_count: rows.iter().map(|row| row.risk_denial_count).sum(),
+        avg_return_per_trade: if trade_count > 0 {
+            total_return / trade_count as f64
+        } else {
+            0.0
+        },
+        volatility_estimate: volatility(&window_returns),
+        sharpe_like: sharpe_like(&window_returns),
+        downside_loss: downside_loss(&window_returns),
+        cost_paid: rows.iter().map(|row| row.cost_paid).sum(),
+        slippage_paid: rows.iter().map(|row| row.slippage_paid).sum(),
+        reason_codes: stable_reason_codes(&reason_codes),
+    }
+}
+
+fn aggregate_prediction_summaries(
+    windows: &[WalkForwardWindowResult],
+    min_samples: usize,
+) -> Vec<PredictionQualityMetrics> {
+    [
+        BaselineStrategyKind::AlwaysNoTrade,
+        BaselineStrategyKind::BuyAndHold,
+        BaselineStrategyKind::EqualWeightCommittee,
+        BaselineStrategyKind::VoiceAdaptiveCommittee,
+    ]
+    .into_iter()
+    .map(|strategy| {
+        let rows = windows
+            .iter()
+            .flat_map(|window| window.scoring_results.iter())
+            .filter(|metrics| metrics.strategy == strategy)
+            .collect::<Vec<_>>();
+        aggregate_prediction_metrics(strategy, &rows, min_samples)
+    })
+    .collect()
+}
+
+fn aggregate_prediction_metrics(
+    strategy: BaselineStrategyKind,
+    rows: &[&PredictionQualityMetrics],
+    min_samples: usize,
+) -> PredictionQualityMetrics {
+    let sample_count = rows.iter().map(|row| row.sample_count).sum::<usize>();
+    let calibrated_sample_count = rows
+        .iter()
+        .map(|row| row.calibrated_sample_count)
+        .sum::<usize>();
+    let brier_numerator = rows
+        .iter()
+        .filter_map(|row| {
+            row.brier_score
+                .map(|score| score * row.calibrated_sample_count as f64)
+        })
+        .sum::<f64>();
+    let confidence_numerator = rows
+        .iter()
+        .filter_map(|row| {
+            row.mean_confidence
+                .map(|confidence| confidence * row.calibrated_sample_count as f64)
+        })
+        .sum::<f64>();
+    let realized_numerator = rows
+        .iter()
+        .filter_map(|row| {
+            row.mean_realized_direction
+                .map(|realized| realized * row.sample_count as f64)
+        })
+        .sum::<f64>();
+    let mut reason_codes = vec![ReasonCode::PredictionScoringBrier];
+    reason_codes.extend(rows.iter().flat_map(|row| row.reason_codes.iter().cloned()));
+    if sample_count < min_samples || calibrated_sample_count == 0 {
+        reason_codes.push(ReasonCode::PredictionScoringInsufficientSamples);
+    }
+    PredictionQualityMetrics {
+        strategy,
+        brier_score: (sample_count >= min_samples && calibrated_sample_count > 0)
+            .then_some(brier_numerator / calibrated_sample_count as f64),
+        sample_count,
+        calibrated_sample_count,
+        missing_probability_count: rows.iter().map(|row| row.missing_probability_count).sum(),
+        abstention_count: rows.iter().map(|row| row.abstention_count).sum(),
+        high_confidence_error_count: rows.iter().map(|row| row.high_confidence_error_count).sum(),
+        low_confidence_correct_count: rows
+            .iter()
+            .map(|row| row.low_confidence_correct_count)
+            .sum(),
+        mean_confidence: (calibrated_sample_count > 0)
+            .then_some(confidence_numerator / calibrated_sample_count as f64),
+        mean_realized_direction: (sample_count > 0)
+            .then_some(realized_numerator / sample_count as f64),
+        reason_codes: stable_reason_codes(&reason_codes),
+    }
+}
+
+fn build_proof_gate_comparison(
+    metrics: &BTreeMap<BaselineStrategyKind, BaselinePerformanceMetrics>,
+    scoring: &[PredictionQualityMetrics],
+    min_prediction_samples: usize,
+) -> ProofGateComparison {
+    let always = metrics
+        .get(&BaselineStrategyKind::AlwaysNoTrade)
+        .cloned()
+        .unwrap_or_else(|| aggregate_strategy_metrics(BaselineStrategyKind::AlwaysNoTrade, &[]));
+    let buy_hold = metrics
+        .get(&BaselineStrategyKind::BuyAndHold)
+        .cloned()
+        .unwrap_or_else(|| aggregate_strategy_metrics(BaselineStrategyKind::BuyAndHold, &[]));
+    let equal = metrics
+        .get(&BaselineStrategyKind::EqualWeightCommittee)
+        .cloned()
+        .unwrap_or_else(|| {
+            aggregate_strategy_metrics(BaselineStrategyKind::EqualWeightCommittee, &[])
+        });
+    let voice = metrics
+        .get(&BaselineStrategyKind::VoiceAdaptiveCommittee)
+        .cloned()
+        .unwrap_or_else(|| {
+            aggregate_strategy_metrics(BaselineStrategyKind::VoiceAdaptiveCommittee, &[])
+        });
+    let voice_beats_equal_weight = risk_adjusted_score(&voice) > risk_adjusted_score(&equal);
+    let committee_beats_no_trade =
+        voice.total_return > always.total_return && voice.trade_count > 0;
+    let committee_beats_buy_hold_risk_adjusted =
+        risk_adjusted_score(&voice) > risk_adjusted_score(&buy_hold);
+    let voice_scoring_samples = scoring
+        .iter()
+        .find(|metrics| metrics.strategy == BaselineStrategyKind::VoiceAdaptiveCommittee)
+        .map_or(0, |metrics| metrics.sample_count);
+    let insufficient_evidence = voice_scoring_samples < min_prediction_samples;
+    let mut reason_codes = vec![ReasonCode::HardcodingAuditPassed];
+    if voice_beats_equal_weight {
+        reason_codes.push(ReasonCode::BaselineComparisonVoiceAdaptationHelped);
+    } else {
+        reason_codes.push(ReasonCode::BaselineComparisonVoiceAdaptationFailed);
+    }
+    if !committee_beats_no_trade || !committee_beats_buy_hold_risk_adjusted {
+        reason_codes.push(ReasonCode::BaselineComparisonNoEdge);
+    }
+    if insufficient_evidence {
+        reason_codes.push(ReasonCode::PredictionScoringInsufficientSamples);
+    }
+    ProofGateComparison {
+        always_no_trade: always,
+        buy_and_hold: buy_hold,
+        equal_weight_committee: equal,
+        voice_adaptive_committee: voice,
+        voice_beats_equal_weight,
+        committee_beats_no_trade,
+        committee_beats_buy_hold_risk_adjusted,
+        insufficient_evidence,
+        reason_codes: stable_reason_codes(&reason_codes),
+    }
+}
+
+fn risk_adjusted_score(metrics: &BaselinePerformanceMetrics) -> f64 {
+    metrics.sharpe_like.unwrap_or(metrics.total_return) - metrics.max_drawdown
 }
 
 pub fn build_owner_learning_report_from_local_csv_source(
@@ -10683,6 +12938,375 @@ mod tests {
                     .contains(&ReasonCode::BatchReplayLiveProviderRejected)
             );
         }
+    }
+
+    fn manual_daily_csv() -> &'static str {
+        "symbol,date,open,high,low,close,volume,adjusted_close,trade_value,currency,market,source\n\
+         FAKEUS,2024-01-02,100,103,99,102,10000,102,1020000,USD,US,manual_export\n\
+         FAKEUS,2024-01-03,102,104,101,103,10000,103,1030000,USD,US,manual_export\n\
+         FAKEUS,2024-01-04,103,105,102,104,10000,104,1040000,USD,US,manual_export\n\
+         FAKEUS,2024-01-05,104,106,103,105,10000,105,1050000,USD,US,manual_export\n\
+         FAKEUS,2024-01-08,105,107,104,106,10000,106,1060000,USD,US,manual_export\n\
+         FAKEUS,2024-01-09,106,108,105,107,10000,107,1070000,USD,US,manual_export\n\
+         FAKEUS,2024-01-10,107,109,105,106,10000,106,1060000,USD,US,manual_export\n\
+         FAKEUS,2024-01-11,106,107,103,104,10000,104,1040000,USD,US,manual_export\n\
+         FAKEUS,2024-01-12,104,106,103,105,10000,105,1050000,USD,US,manual_export\n\
+         FAKEUS,2024-01-16,105,108,104,107,10000,107,1070000,USD,US,manual_export\n\
+         FAKEUS,2024-01-17,107,110,106,109,10000,109,1090000,USD,US,manual_export\n\
+         FAKEUS,2024-01-18,109,111,107,108,10000,108,1080000,USD,US,manual_export"
+    }
+
+    fn manual_import_config() -> ManualHistoricalDailyImportConfig {
+        ManualHistoricalDailyImportConfig {
+            dataset_id: "unit-manual-daily".to_string(),
+            source_kind: LocalDataSourceKind::UsStockCsv,
+            min_rows: 4,
+            ..ManualHistoricalDailyImportConfig::default()
+        }
+    }
+
+    fn proof_gate_input() -> WalkForwardEvaluationInput {
+        let dataset =
+            parse_manual_historical_daily_csv(manual_daily_csv(), &manual_import_config())
+                .expect("manual daily dataset");
+        WalkForwardEvaluationInput {
+            dataset,
+            initial_agent_states: canonical_current_agent_states(),
+            walk_forward_config: WalkForwardConfig {
+                min_train_rows: 4,
+                eval_window_rows: 4,
+                step_rows: 4,
+                cost_bps: 0.0,
+                slippage_bps: 0.0,
+                min_prediction_samples: 2,
+                ..WalkForwardConfig::default()
+            },
+            committee_config: WalkForwardCommitteeConfig {
+                min_vote_score_for_trade: 0.0,
+                min_probability: 0.10,
+                max_probability: 0.90,
+                expected_edge_scale: 0.10,
+                ..WalkForwardCommitteeConfig::default()
+            },
+            risk_config: GovernorConfig {
+                min_expected_edge: 0.0,
+                min_confidence: 0.0,
+                min_data_quality: 0.0,
+                max_allowed_volatility: 1.0,
+                max_spread_bps: 1_000.0,
+                min_risk_reward: 1.0,
+                min_trade_value: 0.0,
+                ..GovernorConfig::default()
+            },
+        }
+    }
+
+    #[test]
+    fn manual_historical_daily_import_parses_valid_csv_and_rejects_bad_rows() {
+        let config = manual_import_config();
+        let dataset =
+            parse_manual_historical_daily_csv(manual_daily_csv(), &config).expect("manual import");
+        let series = to_daily_candle_series(&dataset, &config).expect("daily candle series");
+
+        assert_eq!(dataset.dataset_id, "unit-manual-daily");
+        assert_eq!(dataset.source_kind, LocalDataSourceKind::UsStockCsv);
+        assert_eq!(dataset.symbol, "FAKEUS");
+        assert_eq!(dataset.rows.len(), 12);
+        assert_eq!(dataset.date_range.start_date, "2024-01-02");
+        assert_eq!(dataset.date_range.end_date, "2024-01-18");
+        assert!(dataset.sanitized);
+        assert!(dataset.local_only);
+        assert_eq!(series.timeframe, Timeframe::OneDay);
+        assert_eq!(series.len(), dataset.rows.len());
+        assert!(
+            dataset
+                .reason_codes
+                .contains(&ReasonCode::ManualHistoricalImportNoNetwork)
+        );
+        assert!(
+            dataset
+                .reason_codes
+                .contains(&ReasonCode::ManualHistoricalImportSanitizedOnly)
+        );
+
+        let cases = [
+            (
+                "symbol,date,open,high,low,close,volume\nFAKE,20240102,1,2,1,1,1\nFAKE,2024-01-03,1,2,1,1,1",
+                ReasonCode::ManualHistoricalImportInvalidDate,
+            ),
+            (
+                "symbol,date,open,high,low,close,volume\nFAKE,2024-01-03,1,2,1,1,1\nFAKE,2024-01-02,1,2,1,1,1",
+                ReasonCode::HistoricalReplayNonMonotonicTimestamp,
+            ),
+            (
+                "symbol,date,open,high,low,close,volume\nFAKE,2024-01-02,1,2,1,1,1\nFAKE,2024-01-02,1,2,1,1,1",
+                ReasonCode::HistoricalReplayDuplicateTimestamp,
+            ),
+            (
+                "symbol,date,open,high,low,close,volume\nFAKE,2024-01-02,1,2,1,1,1\nOTHER,2024-01-03,1,2,1,1,1",
+                ReasonCode::HistoricalReplayMultiSymbolUnsupported,
+            ),
+            (
+                "symbol,date,open,high,low,close,volume\nFAKE,2024-01-02,1,1,2,1,1\nFAKE,2024-01-03,1,2,1,1,1",
+                ReasonCode::HistoricalReplayInvalidOhlc,
+            ),
+            (
+                "symbol,date,open,high,low,close,volume\nFAKE,2024-01-02,NaN,2,1,1,1\nFAKE,2024-01-03,1,2,1,1,1",
+                ReasonCode::HistoricalReplayNonFinite,
+            ),
+        ];
+        for (csv, expected_reason) in cases {
+            let mut strict = config.clone();
+            strict.min_rows = 2;
+            let error = parse_manual_historical_daily_csv(csv, &strict)
+                .expect_err("invalid manual daily csv");
+            assert!(
+                error.reason_codes.contains(&expected_reason),
+                "missing {expected_reason:?} in {:?}",
+                error.reason_codes
+            );
+        }
+    }
+
+    #[test]
+    fn manual_historical_daily_import_rejects_private_and_live_markers() {
+        let private_instruction_name = concat!("work", ".", "md");
+        let cases = [
+            (
+                "symbol,date,open,high,low,close,volume,account_id\nFAKE,2024-01-02,1,2,1,1,1,x".to_string(),
+                ReasonCode::ManualHistoricalImportAccountDataRejected,
+            ),
+            (
+                "symbol,date,open,high,low,close,volume,order_id\nFAKE,2024-01-02,1,2,1,1,1,x".to_string(),
+                ReasonCode::ManualHistoricalImportOrderDataRejected,
+            ),
+            (
+                "symbol,date,open,high,low,close,volume,source\nFAKE,2024-01-02,1,2,1,1,1,Authorization: fake".to_string(),
+                ReasonCode::ManualHistoricalImportSecretLikeDataRejected,
+            ),
+            (
+                "symbol,date,open,high,low,close,volume,raw_response\nFAKE,2024-01-02,1,2,1,1,1,x".to_string(),
+                ReasonCode::ManualHistoricalImportRawProviderResponseRejected,
+            ),
+            (
+                "symbol,date,open,high,low,close,volume,live_endpoint\nFAKE,2024-01-02,1,2,1,1,1,x".to_string(),
+                ReasonCode::ManualHistoricalImportLiveProviderRejected,
+            ),
+            (
+                format!(
+                    "symbol,date,open,high,low,close,volume,source\nFAKE,2024-01-02,1,2,1,1,1,{private_instruction_name}"
+                ),
+                ReasonCode::ManualHistoricalImportWorkMdMarkerRejected,
+            ),
+        ];
+        for (csv, expected_reason) in cases {
+            let mut config = manual_import_config();
+            config.min_rows = 2;
+            let error =
+                parse_manual_historical_daily_csv(&csv, &config).expect_err("unsafe daily csv");
+            assert!(
+                error.reason_codes.contains(&expected_reason),
+                "missing {expected_reason:?} in {:?}",
+                error.reason_codes
+            );
+        }
+    }
+
+    #[test]
+    fn walk_forward_splits_are_deterministic_and_no_lookahead() {
+        let config = WalkForwardConfig {
+            min_train_rows: 4,
+            eval_window_rows: 3,
+            step_rows: 2,
+            ..WalkForwardConfig::default()
+        };
+        let first = build_walk_forward_splits(10, &config).expect("first split");
+        let second = build_walk_forward_splits(10, &config).expect("second split");
+        assert_eq!(first, second);
+        assert_eq!(
+            first,
+            vec![
+                WalkForwardSplit {
+                    train_start_index: 0,
+                    train_end_index: 4,
+                    eval_start_index: 4,
+                    eval_end_index: 7,
+                },
+                WalkForwardSplit {
+                    train_start_index: 0,
+                    train_end_index: 6,
+                    eval_start_index: 6,
+                    eval_end_index: 9,
+                },
+            ]
+        );
+        assert!(first.iter().all(|split| {
+            split.train_end_index <= split.eval_start_index
+                && split.eval_start_index < split.eval_end_index
+                && split.eval_end_index <= 10
+        }));
+        assert!(build_walk_forward_splits(5, &config).is_err());
+        let bad = WalkForwardConfig {
+            no_lookahead: false,
+            ..config
+        };
+        assert!(build_walk_forward_splits(10, &bad).is_err());
+    }
+
+    #[test]
+    fn four_baseline_walk_forward_proof_gate_is_computed_and_deterministic() {
+        let input = proof_gate_input();
+        let first = run_walk_forward_evaluation(input.clone()).expect("first proof gate");
+        let second = run_walk_forward_evaluation(input).expect("second proof gate");
+        assert_eq!(first, second);
+        assert_eq!(first.windows.len(), 2);
+        assert_eq!(first.symbol, "FAKEUS");
+        assert!(first.windows.iter().all(|window| {
+            window.split.train_end_index <= window.split.eval_start_index
+                && window
+                    .reason_codes
+                    .contains(&ReasonCode::WalkForwardNoLookahead)
+                && window.agent_state_before.len() == 3
+                && window.agent_state_after.len() == 3
+        }));
+        let comparison = &first.aggregate_baseline_comparison;
+        assert_eq!(
+            comparison.always_no_trade.strategy,
+            BaselineStrategyKind::AlwaysNoTrade
+        );
+        assert_eq!(
+            comparison.buy_and_hold.strategy,
+            BaselineStrategyKind::BuyAndHold
+        );
+        assert_eq!(
+            comparison.equal_weight_committee.strategy,
+            BaselineStrategyKind::EqualWeightCommittee
+        );
+        assert_eq!(
+            comparison.voice_adaptive_committee.strategy,
+            BaselineStrategyKind::VoiceAdaptiveCommittee
+        );
+        assert_eq!(
+            comparison.voice_beats_equal_weight,
+            risk_adjusted_score(&comparison.voice_adaptive_committee)
+                > risk_adjusted_score(&comparison.equal_weight_committee)
+        );
+        assert_eq!(
+            comparison.committee_beats_no_trade,
+            comparison.voice_adaptive_committee.total_return
+                > comparison.always_no_trade.total_return
+                && comparison.voice_adaptive_committee.trade_count > 0
+        );
+        assert!(
+            first
+                .reason_codes
+                .contains(&ReasonCode::HardcodingAuditPassed)
+        );
+        assert!(first.scoring_summary.iter().any(|metrics| metrics.strategy
+            == BaselineStrategyKind::VoiceAdaptiveCommittee
+            && metrics.calibrated_sample_count > 0));
+        assert!(first.windows.iter().all(|window| {
+            window
+                .agent_state_after
+                .iter()
+                .all(|state| state.kind != AgentKind::Future8AgentPlaceholder)
+        }));
+    }
+
+    #[test]
+    fn brier_prediction_quality_counts_missing_abstention_and_confidence_errors() {
+        let samples = vec![
+            PredictionQualitySample {
+                predicted_probability: Some(0.90),
+                abstained: false,
+                realized_direction_up: false,
+            },
+            PredictionQualitySample {
+                predicted_probability: Some(0.20),
+                abstained: false,
+                realized_direction_up: false,
+            },
+            PredictionQualitySample {
+                predicted_probability: Some(0.52),
+                abstained: false,
+                realized_direction_up: true,
+            },
+            PredictionQualitySample {
+                predicted_probability: None,
+                abstained: false,
+                realized_direction_up: true,
+            },
+            PredictionQualitySample {
+                predicted_probability: None,
+                abstained: true,
+                realized_direction_up: false,
+            },
+        ];
+        let metrics = compute_prediction_quality_metrics(
+            BaselineStrategyKind::VoiceAdaptiveCommittee,
+            &samples,
+            3,
+        );
+        assert_eq!(metrics.sample_count, 5);
+        assert_eq!(metrics.calibrated_sample_count, 3);
+        assert_eq!(metrics.missing_probability_count, 2);
+        assert_eq!(metrics.abstention_count, 1);
+        assert_eq!(metrics.high_confidence_error_count, 1);
+        assert_eq!(metrics.low_confidence_correct_count, 1);
+        assert!((metrics.brier_score.expect("brier score") - 0.360_133_333_333).abs() < 1e-9);
+        let insufficient = compute_prediction_quality_metrics(
+            BaselineStrategyKind::AlwaysNoTrade,
+            &samples[0..1],
+            3,
+        );
+        assert!(insufficient.brier_score.is_none());
+        assert!(
+            insufficient
+                .reason_codes
+                .contains(&ReasonCode::PredictionScoringInsufficientSamples)
+        );
+    }
+
+    #[test]
+    fn proof_gate_report_is_owner_readable_and_preserves_safety_boundaries() {
+        let result = run_walk_forward_evaluation(proof_gate_input()).expect("proof gate");
+        let report = build_proof_gate_report(&result);
+        let first = render_proof_gate_report_text(&report);
+        let second = render_proof_gate_report_text(&report);
+        assert_eq!(first, second);
+        for expected in [
+            "Local historical daily CSV only.",
+            "Paper-only evaluation.",
+            "No live trading readiness.",
+            "No profitability claim.",
+            "Voice adaptation must beat equal weight before it is trusted.",
+            "Synthetic fixture success is not market evidence.",
+            "AlwaysNoTrade",
+            "BuyAndHold",
+            "EqualWeightCommittee",
+            "VoiceAdaptiveCommittee",
+        ] {
+            assert!(first.contains(expected), "missing report text: {expected}");
+        }
+        if !result
+            .aggregate_baseline_comparison
+            .voice_beats_equal_weight
+        {
+            assert!(first.contains("VoiceAdaptiveCommittee did not beat EqualWeightCommittee"));
+        }
+        if !result
+            .aggregate_baseline_comparison
+            .committee_beats_buy_hold_risk_adjusted
+        {
+            assert!(first.contains("Committee did not beat BuyAndHold"));
+        }
+        assert!(!first.contains("fake-secret"));
+        assert!(!first.contains(concat!("work", ".", "md")));
+        assert!(
+            report
+                .reason_codes
+                .contains(&ReasonCode::HardcodingAuditPassed)
+        );
     }
 
     #[test]
