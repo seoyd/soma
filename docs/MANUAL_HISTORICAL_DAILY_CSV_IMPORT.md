@@ -88,3 +88,20 @@ fields, broker endpoint fields, or private mappings belong in this CSV.
 `to_daily_candle_series` converts the dataset into `CandleSeries` with
 `Timeframe::OneDay`. It does not call Chair, Risk Governor, broker, network,
 or any runtime model.
+
+## Evidence Pack Wrapper
+
+`HistoricalEvidencePackManifest` can list multiple owner-provided sanitized
+local daily CSV sources. The evidence pack loader wraps this importer rather
+than replacing it:
+
+- each enabled source is parsed as a single-symbol daily dataset,
+- disabled and rejected sources remain visible,
+- US, Korean, and BTC daily source kinds map to the existing local daily CSV
+  kinds,
+- test-only CSV text can be used for deterministic unit tests,
+- production use supports local CSV paths without adding a downloader.
+
+The loader rejects unsafe paths before reading and rejects unsafe CSV text
+before parsing. It adds no live provider, no broker, no order path, no network
+client, and no credential requirement.

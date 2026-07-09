@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, fs};
 
 use serde::{Deserialize, Serialize};
 
@@ -1569,6 +1569,260 @@ pub struct ProofGateReport {
     pub no_profitability_claim: String,
     pub no_live_readiness_warning: String,
     pub next_required_evidence: String,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum HistoricalEvidenceSourceKind {
+    UsStockDaily,
+    KoreanStockDaily,
+    BtcCryptoDaily,
+    SyntheticDailySample,
+    Unknown,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct HistoricalEvidenceSourceSpec {
+    pub source_id: String,
+    pub source_kind: HistoricalEvidenceSourceKind,
+    pub symbol: String,
+    pub market: String,
+    pub currency: Option<String>,
+    pub csv_path: Option<String>,
+    pub csv_text: Option<String>,
+    pub enabled: bool,
+    pub expected_min_rows: usize,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct HistoricalEvidencePackManifest {
+    pub pack_id: String,
+    pub description: String,
+    pub sources: Vec<HistoricalEvidenceSourceSpec>,
+    pub local_only: bool,
+    pub sanitized_only: bool,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct HistoricalEvidencePackConfig {
+    pub max_sources: usize,
+    pub min_sources: usize,
+    pub min_sources_by_kind: BTreeMap<HistoricalEvidenceSourceKind, usize>,
+    pub max_rows_per_source: usize,
+    pub require_all_sources_valid: bool,
+    pub allow_synthetic_sources_for_tests_only: bool,
+    pub reject_private_markers: bool,
+    pub reject_endpoint_markers: bool,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+impl Default for HistoricalEvidencePackConfig {
+    fn default() -> Self {
+        Self {
+            max_sources: 32,
+            min_sources: 1,
+            min_sources_by_kind: BTreeMap::new(),
+            max_rows_per_source: 20_000,
+            require_all_sources_valid: false,
+            allow_synthetic_sources_for_tests_only: false,
+            reject_private_markers: true,
+            reject_endpoint_markers: true,
+            reason_codes: vec![
+                ReasonCode::EvidencePackLocalOnly,
+                ReasonCode::EvidencePackSanitizedOnly,
+                ReasonCode::EvidencePackNoNetwork,
+                ReasonCode::EvidencePackNoDownloader,
+                ReasonCode::LocalFileOnly,
+                ReasonCode::PaperExecutionOnly,
+            ],
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct HistoricalEvidenceSource {
+    pub spec: HistoricalEvidenceSourceSpec,
+    pub dataset: Option<ManualHistoricalDailyDataset>,
+    pub accepted: bool,
+    pub rejected: bool,
+    pub disabled: bool,
+    pub insufficient_evidence: bool,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct HistoricalEvidencePack {
+    pub pack_id: String,
+    pub description: String,
+    pub sources: Vec<HistoricalEvidenceSource>,
+    pub local_only: bool,
+    pub sanitized_only: bool,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct HistoricalEvidencePackError {
+    pub source_id: Option<String>,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum EvidenceAggregationMethod {
+    Mean,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct HistoricalEvidencePackEvaluationConfig {
+    pub initial_agent_states: Vec<CanonicalAgentState>,
+    pub walk_forward_config: WalkForwardConfig,
+    pub committee_config: WalkForwardCommitteeConfig,
+    pub risk_config: GovernorConfig,
+    pub min_accepted_sources_for_proof: usize,
+    pub min_prediction_samples: usize,
+    pub aggregation_method: EvidenceAggregationMethod,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+impl Default for HistoricalEvidencePackEvaluationConfig {
+    fn default() -> Self {
+        Self {
+            initial_agent_states: canonical_current_agent_states(),
+            walk_forward_config: WalkForwardConfig::default(),
+            committee_config: WalkForwardCommitteeConfig::default(),
+            risk_config: GovernorConfig::default(),
+            min_accepted_sources_for_proof: 1,
+            min_prediction_samples: WalkForwardConfig::default().min_prediction_samples,
+            aggregation_method: EvidenceAggregationMethod::Mean,
+            reason_codes: vec![
+                ReasonCode::WalkForwardNoLookahead,
+                ReasonCode::WalkForwardEvaluationOnly,
+                ReasonCode::EvidencePackLocalOnly,
+                ReasonCode::EvidencePackNoNetwork,
+                ReasonCode::EvidencePackNoDownloader,
+                ReasonCode::PaperExecutionOnly,
+            ],
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum AggregateBaselineOverallStatus {
+    Pass,
+    Fail,
+    Mixed,
+    InsufficientEvidence,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct AggregateBaselineComparison {
+    pub source_count: usize,
+    pub accepted_source_count: usize,
+    pub rejected_source_count: usize,
+    pub insufficient_source_count: usize,
+    pub voice_beats_equal_weight_count: usize,
+    pub voice_loses_equal_weight_count: usize,
+    pub voice_ties_equal_weight_count: usize,
+    pub committee_beats_no_trade_count: usize,
+    pub committee_loses_no_trade_count: usize,
+    pub committee_beats_buy_hold_count: usize,
+    pub committee_loses_buy_hold_count: usize,
+    pub mean_total_return_by_baseline: BTreeMap<BaselineStrategyKind, f64>,
+    pub mean_max_drawdown_by_baseline: BTreeMap<BaselineStrategyKind, f64>,
+    pub mean_brier_score_by_baseline: BTreeMap<BaselineStrategyKind, f64>,
+    pub overall_status: AggregateBaselineOverallStatus,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum VoiceAdaptationValidityStatus {
+    Helped,
+    Failed,
+    Mixed,
+    InsufficientEvidence,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct VoiceAdaptationValidity {
+    pub compared_source_count: usize,
+    pub voice_better_count: usize,
+    pub equal_weight_better_count: usize,
+    pub tie_count: usize,
+    pub mean_delta_vs_equal_weight: f64,
+    pub brier_delta_vs_equal_weight: Option<f64>,
+    pub drawdown_delta_vs_equal_weight: Option<f64>,
+    pub status: VoiceAdaptationValidityStatus,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct AggregatePredictionQualitySummary {
+    pub source_count: usize,
+    pub total_samples: usize,
+    pub missing_probability_count: usize,
+    pub abstention_count: usize,
+    pub high_confidence_error_count: usize,
+    pub mean_brier_score: Option<f64>,
+    pub best_source_by_brier: Option<String>,
+    pub worst_source_by_brier: Option<String>,
+    pub insufficient_evidence: bool,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct HistoricalEvidenceSourceEvaluationResult {
+    pub source_id: String,
+    pub source_kind: HistoricalEvidenceSourceKind,
+    pub symbol: String,
+    pub market: String,
+    pub dataset_summary: String,
+    pub walk_forward_result: Option<WalkForwardEvaluationResult>,
+    pub proof_gate_report: Option<ProofGateReport>,
+    pub accepted: bool,
+    pub rejected: bool,
+    pub insufficient_evidence: bool,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct MarketEvidenceResult {
+    pub market: String,
+    pub source_count: usize,
+    pub accepted_count: usize,
+    pub rejected_count: usize,
+    pub baseline_comparison: AggregateBaselineComparison,
+    pub voice_adaptation_comparison: VoiceAdaptationValidity,
+    pub prediction_quality_summary: AggregatePredictionQualitySummary,
+    pub insufficient_evidence: bool,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct HistoricalEvidencePackEvaluationResult {
+    pub pack_id: String,
+    pub source_results: Vec<HistoricalEvidenceSourceEvaluationResult>,
+    pub aggregate_result: AggregateBaselineComparison,
+    pub market_results: Vec<MarketEvidenceResult>,
+    pub symbol_results: Vec<HistoricalEvidenceSourceEvaluationResult>,
+    pub voice_adaptation_summary: VoiceAdaptationValidity,
+    pub prediction_quality_summary: AggregatePredictionQualitySummary,
+    pub proof_gate_status: AggregateBaselineOverallStatus,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MultiSymbolProofGateReport {
+    pub pack_summary: String,
+    pub source_table: Vec<String>,
+    pub market_table: Vec<String>,
+    pub aggregate_baseline_comparison: String,
+    pub voice_adaptation_validity: String,
+    pub prediction_quality_summary: String,
+    pub failed_symbols: Vec<String>,
+    pub rejected_sources: Vec<String>,
+    pub insufficient_evidence_warnings: Vec<String>,
+    pub next_required_evidence: Vec<String>,
     pub reason_codes: Vec<ReasonCode>,
 }
 
@@ -3575,6 +3829,1283 @@ pub fn render_proof_gate_report_text(report: &ProofGateReport) -> String {
     lines.push(report.no_live_readiness_warning.clone());
     lines.push(report.next_required_evidence.clone());
     redact_owner_report_output(&lines.join("\n"))
+}
+
+pub fn parse_historical_evidence_pack_manifest_json(
+    manifest_json: &str,
+) -> Result<HistoricalEvidencePackManifest, HistoricalEvidencePackError> {
+    if let Some(reason) = evidence_pack_data_safety_reason(manifest_json) {
+        return Err(historical_evidence_pack_error(None, reason));
+    }
+    serde_json::from_str(manifest_json)
+        .map_err(|_| historical_evidence_pack_error(None, ReasonCode::EvidencePackSourceRejected))
+}
+
+pub fn load_historical_evidence_pack_from_manifest(
+    manifest: &HistoricalEvidencePackManifest,
+    config: &HistoricalEvidencePackConfig,
+) -> Result<HistoricalEvidencePack, HistoricalEvidencePackError> {
+    validate_historical_evidence_manifest_header(manifest, config)?;
+    let mut sources = manifest.sources.clone();
+    sources.sort_by(|left, right| {
+        (
+            left.source_kind,
+            left.market.as_str(),
+            left.symbol.as_str(),
+            left.source_id.as_str(),
+        )
+            .cmp(&(
+                right.source_kind,
+                right.market.as_str(),
+                right.symbol.as_str(),
+                right.source_id.as_str(),
+            ))
+    });
+    let loaded_sources = sources
+        .into_iter()
+        .map(|source| load_historical_evidence_source(source, config))
+        .collect::<Vec<_>>();
+    let mut reason_codes = manifest
+        .reason_codes
+        .iter()
+        .chain(config.reason_codes.iter())
+        .cloned()
+        .chain([
+            ReasonCode::EvidencePackLocalOnly,
+            ReasonCode::EvidencePackSanitizedOnly,
+            ReasonCode::EvidencePackNoNetwork,
+            ReasonCode::EvidencePackNoDownloader,
+            ReasonCode::LocalFileOnly,
+            ReasonCode::PaperExecutionOnly,
+        ])
+        .collect::<Vec<_>>();
+    reason_codes.extend(
+        loaded_sources
+            .iter()
+            .flat_map(|source| source.reason_codes.iter().cloned()),
+    );
+    Ok(HistoricalEvidencePack {
+        pack_id: manifest.pack_id.clone(),
+        description: manifest.description.clone(),
+        sources: loaded_sources,
+        local_only: manifest.local_only,
+        sanitized_only: manifest.sanitized_only,
+        reason_codes: stable_reason_codes(&reason_codes),
+    })
+}
+
+pub fn validate_historical_evidence_pack(
+    pack: &HistoricalEvidencePack,
+    config: &HistoricalEvidencePackConfig,
+) -> Result<(), HistoricalEvidencePackError> {
+    if !pack.local_only {
+        return Err(historical_evidence_pack_error(
+            None,
+            ReasonCode::EvidencePackLocalOnly,
+        ));
+    }
+    if !pack.sanitized_only {
+        return Err(historical_evidence_pack_error(
+            None,
+            ReasonCode::EvidencePackSanitizedOnly,
+        ));
+    }
+    if config.require_all_sources_valid && pack.sources.iter().any(|source| source.rejected) {
+        return Err(historical_evidence_pack_error(
+            pack.sources
+                .iter()
+                .find(|source| source.rejected)
+                .map(|source| source.spec.source_id.clone()),
+            ReasonCode::EvidencePackSourceRejected,
+        ));
+    }
+    let accepted = pack.sources.iter().filter(|source| source.accepted).count();
+    if accepted < config.min_sources {
+        return Err(historical_evidence_pack_error(
+            None,
+            ReasonCode::EvidencePackInsufficientSources,
+        ));
+    }
+    for (kind, min_count) in &config.min_sources_by_kind {
+        let count = pack
+            .sources
+            .iter()
+            .filter(|source| source.accepted && source.spec.source_kind == *kind)
+            .count();
+        if count < *min_count {
+            return Err(historical_evidence_pack_error(
+                None,
+                ReasonCode::EvidencePackInsufficientSources,
+            ));
+        }
+    }
+    Ok(())
+}
+
+pub fn evaluate_historical_evidence_pack(
+    pack: &HistoricalEvidencePack,
+    eval_config: &HistoricalEvidencePackEvaluationConfig,
+) -> HistoricalEvidencePackEvaluationResult {
+    let mut source_results = pack
+        .sources
+        .iter()
+        .map(|source| evaluate_historical_evidence_source(source, eval_config))
+        .collect::<Vec<_>>();
+    source_results.sort_by(|left, right| {
+        (
+            left.source_kind,
+            left.market.as_str(),
+            left.symbol.as_str(),
+            left.source_id.as_str(),
+        )
+            .cmp(&(
+                right.source_kind,
+                right.market.as_str(),
+                right.symbol.as_str(),
+                right.source_id.as_str(),
+            ))
+    });
+    let aggregate_result = build_aggregate_baseline_comparison(&source_results, eval_config);
+    let voice_adaptation_summary = build_voice_adaptation_validity(&source_results, eval_config);
+    let prediction_quality_summary =
+        build_aggregate_prediction_quality_summary(&source_results, eval_config);
+    let market_results = build_market_evidence_results(&source_results, eval_config);
+    let symbol_results = source_results.clone();
+    let mut reason_codes = pack
+        .reason_codes
+        .iter()
+        .chain(eval_config.reason_codes.iter())
+        .chain(aggregate_result.reason_codes.iter())
+        .chain(voice_adaptation_summary.reason_codes.iter())
+        .chain(prediction_quality_summary.reason_codes.iter())
+        .cloned()
+        .chain([
+            ReasonCode::EvidencePackLocalOnly,
+            ReasonCode::EvidencePackNoNetwork,
+            ReasonCode::EvidencePackNoDownloader,
+            ReasonCode::WalkForwardEvaluationOnly,
+            ReasonCode::PaperExecutionOnly,
+            ReasonCode::HardcodingAuditPassed,
+        ])
+        .collect::<Vec<_>>();
+    reason_codes.extend(
+        source_results
+            .iter()
+            .flat_map(|source| source.reason_codes.iter().cloned()),
+    );
+    HistoricalEvidencePackEvaluationResult {
+        pack_id: pack.pack_id.clone(),
+        source_results,
+        aggregate_result: aggregate_result.clone(),
+        market_results,
+        symbol_results,
+        voice_adaptation_summary,
+        prediction_quality_summary,
+        proof_gate_status: aggregate_result.overall_status,
+        reason_codes: stable_reason_codes(&reason_codes),
+    }
+}
+
+pub fn build_multi_symbol_proof_gate_report(
+    result: &HistoricalEvidencePackEvaluationResult,
+) -> MultiSymbolProofGateReport {
+    let source_table = result
+        .source_results
+        .iter()
+        .map(|source| {
+            format!(
+                "{} {:?} {} {} accepted={} rejected={} insufficient={} status={:?}",
+                source.source_id,
+                source.source_kind,
+                source.market,
+                source.symbol,
+                source.accepted,
+                source.rejected,
+                source.insufficient_evidence,
+                source
+                    .walk_forward_result
+                    .as_ref()
+                    .map(|result| result.proof_gate_status)
+            )
+        })
+        .collect::<Vec<_>>();
+    let market_table = result
+        .market_results
+        .iter()
+        .map(|market| {
+            format!(
+                "{} sources={} accepted={} rejected={} status={:?} voice={:?}",
+                market.market,
+                market.source_count,
+                market.accepted_count,
+                market.rejected_count,
+                market.baseline_comparison.overall_status,
+                market.voice_adaptation_comparison.status,
+            )
+        })
+        .collect::<Vec<_>>();
+    let failed_symbols = result
+        .source_results
+        .iter()
+        .filter_map(|source| {
+            let comparison = &source
+                .walk_forward_result
+                .as_ref()?
+                .aggregate_baseline_comparison;
+            (!comparison.voice_beats_equal_weight
+                || !comparison.committee_beats_buy_hold_risk_adjusted
+                || !comparison.committee_beats_no_trade)
+                .then_some(format!(
+                    "{}:{} voice_lost={} buy_hold_stronger={} no_trade_stronger={}",
+                    source.market,
+                    source.symbol,
+                    !comparison.voice_beats_equal_weight,
+                    !comparison.committee_beats_buy_hold_risk_adjusted,
+                    !comparison.committee_beats_no_trade,
+                ))
+        })
+        .collect::<Vec<_>>();
+    let rejected_sources = result
+        .source_results
+        .iter()
+        .filter(|source| source.rejected)
+        .map(|source| {
+            format!(
+                "{} {:?} {}",
+                source.source_id, source.source_kind, source.symbol
+            )
+        })
+        .collect::<Vec<_>>();
+    let mut insufficient_evidence_warnings = result
+        .source_results
+        .iter()
+        .filter(|source| source.insufficient_evidence)
+        .map(|source| format!("{}:{} insufficient evidence", source.market, source.symbol))
+        .collect::<Vec<_>>();
+    if result.aggregate_result.overall_status
+        == AggregateBaselineOverallStatus::InsufficientEvidence
+    {
+        insufficient_evidence_warnings
+            .push("Evidence pack has insufficient accepted out-of-sample sources.".to_string());
+    }
+    let next_required_evidence = vec![
+        "Add more owner-provided sanitized local daily CSV symbols before trusting any edge."
+            .to_string(),
+        "Keep US, KR, and BTC market evidence separated while increasing source count."
+            .to_string(),
+        "Continue comparing VoiceAdaptiveCommittee against EqualWeightCommittee, AlwaysNoTrade, and BuyAndHold."
+            .to_string(),
+    ];
+    let reason_codes = stable_reason_codes(
+        &result
+            .reason_codes
+            .iter()
+            .cloned()
+            .chain([
+                ReasonCode::EvidencePackLocalOnly,
+                ReasonCode::WalkForwardEvaluationOnly,
+                ReasonCode::HardcodingAuditPassed,
+            ])
+            .collect::<Vec<_>>(),
+    );
+    MultiSymbolProofGateReport {
+        pack_summary: format!(
+            "pack_id={} sources={} accepted={} rejected={} status={:?}",
+            result.pack_id,
+            result.aggregate_result.source_count,
+            result.aggregate_result.accepted_source_count,
+            result.aggregate_result.rejected_source_count,
+            result.proof_gate_status,
+        ),
+        source_table,
+        market_table,
+        aggregate_baseline_comparison: format!(
+            "status={:?} voice_win/loss/tie={}/{}/{} committee_vs_no_trade={}/{} committee_vs_buy_hold={}/{}",
+            result.aggregate_result.overall_status,
+            result.aggregate_result.voice_beats_equal_weight_count,
+            result.aggregate_result.voice_loses_equal_weight_count,
+            result.aggregate_result.voice_ties_equal_weight_count,
+            result.aggregate_result.committee_beats_no_trade_count,
+            result.aggregate_result.committee_loses_no_trade_count,
+            result.aggregate_result.committee_beats_buy_hold_count,
+            result.aggregate_result.committee_loses_buy_hold_count,
+        ),
+        voice_adaptation_validity: voice_adaptation_report_sentence(
+            &result.voice_adaptation_summary,
+        ),
+        prediction_quality_summary: format!(
+            "sources={} samples={} mean_brier={:?} missing={} abstained={} high_confidence_errors={} insufficient={}",
+            result.prediction_quality_summary.source_count,
+            result.prediction_quality_summary.total_samples,
+            result.prediction_quality_summary.mean_brier_score,
+            result.prediction_quality_summary.missing_probability_count,
+            result.prediction_quality_summary.abstention_count,
+            result
+                .prediction_quality_summary
+                .high_confidence_error_count,
+            result.prediction_quality_summary.insufficient_evidence,
+        ),
+        failed_symbols,
+        rejected_sources,
+        insufficient_evidence_warnings,
+        next_required_evidence,
+        reason_codes,
+    }
+}
+
+pub fn render_multi_symbol_proof_gate_report_text(report: &MultiSymbolProofGateReport) -> String {
+    let mut lines = vec![
+        "Multi-symbol proof gate report.".to_string(),
+        "Local owner-provided sanitized historical daily CSV only.".to_string(),
+        "Paper-only evaluation.".to_string(),
+        "No live trading readiness.".to_string(),
+        "No profitability claim.".to_string(),
+        "Synthetic fixture success is not market evidence.".to_string(),
+        "Voice adaptation must beat equal weight before it is trusted.".to_string(),
+        "Bad or mixed results are valid outputs.".to_string(),
+        format!("Pack summary: {}", report.pack_summary),
+        "Source table:".to_string(),
+    ];
+    lines.extend(report.source_table.iter().cloned());
+    lines.push("Market table:".to_string());
+    lines.extend(report.market_table.iter().cloned());
+    lines.push(format!(
+        "Aggregate baseline comparison: {}",
+        report.aggregate_baseline_comparison
+    ));
+    lines.push(format!(
+        "Voice adaptation validity: {}",
+        report.voice_adaptation_validity
+    ));
+    lines.push(format!(
+        "Prediction quality summary: {}",
+        report.prediction_quality_summary
+    ));
+    lines.push("Failed symbols:".to_string());
+    if report.failed_symbols.is_empty() {
+        lines.push("none".to_string());
+    } else {
+        lines.extend(report.failed_symbols.iter().cloned());
+    }
+    lines.push("Rejected sources:".to_string());
+    if report.rejected_sources.is_empty() {
+        lines.push("none".to_string());
+    } else {
+        lines.extend(report.rejected_sources.iter().cloned());
+    }
+    lines.push("Insufficient evidence warnings:".to_string());
+    if report.insufficient_evidence_warnings.is_empty() {
+        lines.push("none".to_string());
+    } else {
+        lines.extend(report.insufficient_evidence_warnings.iter().cloned());
+    }
+    lines.push("Next required evidence:".to_string());
+    lines.extend(report.next_required_evidence.iter().cloned());
+    redact_owner_report_output(&lines.join("\n"))
+}
+
+fn validate_historical_evidence_manifest_header(
+    manifest: &HistoricalEvidencePackManifest,
+    config: &HistoricalEvidencePackConfig,
+) -> Result<(), HistoricalEvidencePackError> {
+    if manifest.pack_id.trim().is_empty()
+        || manifest.sources.len() > config.max_sources
+        || config.max_sources == 0
+        || config.max_rows_per_source == 0
+    {
+        return Err(historical_evidence_pack_error(
+            None,
+            ReasonCode::EvidencePackSourceRejected,
+        ));
+    }
+    if !manifest.local_only {
+        return Err(historical_evidence_pack_error(
+            None,
+            ReasonCode::EvidencePackLocalOnly,
+        ));
+    }
+    if !manifest.sanitized_only {
+        return Err(historical_evidence_pack_error(
+            None,
+            ReasonCode::EvidencePackSanitizedOnly,
+        ));
+    }
+    let manifest_reason_text = format!("{:?}", manifest.reason_codes);
+    for value in [
+        manifest.pack_id.as_str(),
+        manifest.description.as_str(),
+        manifest_reason_text.as_str(),
+    ] {
+        if let Some(reason) = evidence_pack_data_safety_reason(value) {
+            return Err(historical_evidence_pack_error(None, reason));
+        }
+    }
+    Ok(())
+}
+
+fn load_historical_evidence_source(
+    spec: HistoricalEvidenceSourceSpec,
+    config: &HistoricalEvidencePackConfig,
+) -> HistoricalEvidenceSource {
+    let base_reasons = stable_reason_codes(
+        &spec
+            .reason_codes
+            .iter()
+            .chain(config.reason_codes.iter())
+            .cloned()
+            .chain([
+                ReasonCode::EvidencePackLocalOnly,
+                ReasonCode::EvidencePackSanitizedOnly,
+                ReasonCode::EvidencePackNoNetwork,
+                ReasonCode::EvidencePackNoDownloader,
+                ReasonCode::LocalFileOnly,
+            ])
+            .collect::<Vec<_>>(),
+    );
+    if !spec.enabled {
+        return HistoricalEvidenceSource {
+            spec,
+            dataset: None,
+            accepted: false,
+            rejected: false,
+            disabled: true,
+            insufficient_evidence: false,
+            reason_codes: stable_reason_codes(
+                &base_reasons
+                    .iter()
+                    .cloned()
+                    .chain([ReasonCode::EvidencePackSourceDisabled])
+                    .collect::<Vec<_>>(),
+            ),
+        };
+    }
+    if spec.source_id.trim().is_empty()
+        || spec.symbol.trim().is_empty()
+        || spec.market.trim().is_empty()
+    {
+        return rejected_historical_evidence_source(
+            spec,
+            &base_reasons,
+            ReasonCode::EvidencePackSourceRejected,
+            false,
+        );
+    }
+    let source_field_safety_reason = [
+        spec.source_id.as_str(),
+        spec.symbol.as_str(),
+        spec.market.as_str(),
+        spec.currency.as_deref().unwrap_or_default(),
+    ]
+    .iter()
+    .find_map(|value| evidence_pack_data_safety_reason(value));
+    if let Some(reason) = source_field_safety_reason {
+        return rejected_historical_evidence_source(spec, &base_reasons, reason, false);
+    }
+    let Some(local_kind) = evidence_source_local_kind(&spec, config) else {
+        return rejected_historical_evidence_source(
+            spec,
+            &base_reasons,
+            ReasonCode::EvidencePackUnsupportedSourceKind,
+            false,
+        );
+    };
+    if spec.expected_min_rows > config.max_rows_per_source {
+        return rejected_historical_evidence_source(
+            spec,
+            &base_reasons,
+            ReasonCode::EvidencePackInsufficientRows,
+            true,
+        );
+    }
+    let csv_text = match evidence_pack_source_text(&spec) {
+        Ok(csv_text) => csv_text,
+        Err(reason) => {
+            return rejected_historical_evidence_source(spec, &base_reasons, reason, false);
+        }
+    };
+    if let Some(reason) = evidence_pack_data_safety_reason(&csv_text) {
+        return rejected_historical_evidence_source(spec, &base_reasons, reason, false);
+    }
+    let import_config = ManualHistoricalDailyImportConfig {
+        dataset_id: spec.source_id.clone(),
+        source_kind: local_kind,
+        max_rows: config.max_rows_per_source,
+        min_rows: spec.expected_min_rows.max(2),
+        reject_private_markers: config.reject_private_markers,
+        reject_endpoint_markers: config.reject_endpoint_markers,
+        ..ManualHistoricalDailyImportConfig::default()
+    };
+    let dataset = match parse_manual_historical_daily_csv(&csv_text, &import_config) {
+        Ok(dataset) => dataset,
+        Err(error) => {
+            let reason = error
+                .reason_codes
+                .first()
+                .cloned()
+                .map(evidence_pack_reason_from_manual)
+                .unwrap_or(ReasonCode::EvidencePackSourceRejected);
+            let insufficient = reason == ReasonCode::EvidencePackInsufficientRows;
+            return rejected_historical_evidence_source(spec, &base_reasons, reason, insufficient);
+        }
+    };
+    if dataset.symbol != spec.symbol || dataset.rows.len() < spec.expected_min_rows {
+        return rejected_historical_evidence_source(
+            spec,
+            &base_reasons,
+            ReasonCode::EvidencePackInsufficientRows,
+            true,
+        );
+    }
+    let reason_codes = stable_reason_codes(
+        &base_reasons
+            .iter()
+            .chain(dataset.reason_codes.iter())
+            .cloned()
+            .chain([ReasonCode::HardcodingAuditPassed])
+            .collect::<Vec<_>>(),
+    );
+    HistoricalEvidenceSource {
+        spec,
+        dataset: Some(dataset),
+        accepted: true,
+        rejected: false,
+        disabled: false,
+        insufficient_evidence: false,
+        reason_codes,
+    }
+}
+
+fn rejected_historical_evidence_source(
+    spec: HistoricalEvidenceSourceSpec,
+    base_reasons: &[ReasonCode],
+    reason: ReasonCode,
+    insufficient_evidence: bool,
+) -> HistoricalEvidenceSource {
+    HistoricalEvidenceSource {
+        spec,
+        dataset: None,
+        accepted: false,
+        rejected: true,
+        disabled: false,
+        insufficient_evidence,
+        reason_codes: stable_reason_codes(
+            &base_reasons
+                .iter()
+                .cloned()
+                .chain([reason, ReasonCode::EvidencePackSourceRejected])
+                .collect::<Vec<_>>(),
+        ),
+    }
+}
+
+fn evidence_source_local_kind(
+    spec: &HistoricalEvidenceSourceSpec,
+    config: &HistoricalEvidencePackConfig,
+) -> Option<LocalDataSourceKind> {
+    match spec.source_kind {
+        HistoricalEvidenceSourceKind::UsStockDaily => Some(LocalDataSourceKind::UsStockCsv),
+        HistoricalEvidenceSourceKind::KoreanStockDaily => Some(LocalDataSourceKind::KoreanStockCsv),
+        HistoricalEvidenceSourceKind::BtcCryptoDaily => Some(LocalDataSourceKind::BtcCryptoCsv),
+        HistoricalEvidenceSourceKind::SyntheticDailySample
+            if config.allow_synthetic_sources_for_tests_only =>
+        {
+            let market = spec.market.to_ascii_uppercase();
+            if market.contains("KR") {
+                Some(LocalDataSourceKind::KoreanStockCsv)
+            } else if market.contains("BTC") || spec.symbol.to_ascii_uppercase().contains("BTC") {
+                Some(LocalDataSourceKind::BtcCryptoCsv)
+            } else {
+                Some(LocalDataSourceKind::UsStockCsv)
+            }
+        }
+        _ => None,
+    }
+}
+
+fn evidence_pack_source_text(spec: &HistoricalEvidenceSourceSpec) -> Result<String, ReasonCode> {
+    if let Some(csv_text) = &spec.csv_text {
+        return Ok(csv_text.clone());
+    }
+    let path = spec
+        .csv_path
+        .as_deref()
+        .ok_or(ReasonCode::EvidencePackPathRejected)?;
+    if let Some(reason) = evidence_pack_path_safety_reason(path) {
+        return Err(reason);
+    }
+    fs::read_to_string(path).map_err(|_| ReasonCode::EvidencePackPathRejected)
+}
+
+fn evidence_pack_path_safety_reason(path: &str) -> Option<ReasonCode> {
+    let lower = path.to_ascii_lowercase();
+    let private_instruction_name = concat!("work", ".", "md");
+    if lower.trim().is_empty() {
+        return Some(ReasonCode::EvidencePackPathRejected);
+    }
+    if ["http://", "https://", "ws://", "wss://", "ftp://"]
+        .iter()
+        .any(|prefix| lower.starts_with(prefix))
+    {
+        return Some(ReasonCode::EvidencePackUrlPathRejected);
+    }
+    if lower.contains(private_instruction_name) || contains_temporary_instruction_marker(path) {
+        return Some(ReasonCode::EvidencePackWorkMdPathRejected);
+    }
+    if lower.contains(".env") {
+        return Some(ReasonCode::EvidencePackEnvPathRejected);
+    }
+    if lower.contains("local_private") || lower.contains("private mapping") {
+        return Some(ReasonCode::EvidencePackPrivatePathRejected);
+    }
+    if lower.contains("broker_endpoint")
+        || lower.contains("order_endpoint")
+        || lower.contains("live_endpoint")
+        || lower.contains("exchange_secret")
+    {
+        return Some(ReasonCode::EvidencePackPathRejected);
+    }
+    None
+}
+
+fn evidence_pack_data_safety_reason(text: &str) -> Option<ReasonCode> {
+    let lower = text.to_ascii_lowercase();
+    let private_instruction_name = concat!("work", ".", "md");
+    if lower.contains(private_instruction_name) || contains_temporary_instruction_marker(text) {
+        return Some(ReasonCode::EvidencePackWorkMdMarkerRejected);
+    }
+    if lower.contains("live_provider")
+        || lower.contains("live_endpoint")
+        || lower.contains("exchange_secret")
+    {
+        return Some(ReasonCode::EvidencePackLiveProviderRejected);
+    }
+    if ["http://", "https://", "ws://", "wss://", "ftp://"]
+        .iter()
+        .any(|marker| lower.contains(marker))
+    {
+        return Some(ReasonCode::EvidencePackUrlRejected);
+    }
+    if lower.contains("raw_response") || lower.contains("raw provider response") {
+        return Some(ReasonCode::EvidencePackRawProviderResponseRejected);
+    }
+    if lower.contains("account_id") {
+        return Some(ReasonCode::EvidencePackAccountDataRejected);
+    }
+    if lower.contains("order_id") {
+        return Some(ReasonCode::EvidencePackOrderDataRejected);
+    }
+    if lower.contains("endpoint")
+        || lower.contains("url_endpoint")
+        || lower.contains("broker_endpoint")
+        || lower.contains("order_endpoint")
+    {
+        return Some(ReasonCode::EvidencePackEndpointDataRejected);
+    }
+    if [
+        "authorization",
+        "bearer ",
+        "access_token",
+        "refresh_token",
+        "app_key",
+        "app_secret",
+        "api_key",
+        "private_key",
+        "wallet_private_key",
+    ]
+    .iter()
+    .any(|marker| lower.contains(marker))
+    {
+        return Some(ReasonCode::EvidencePackSecretLikeDataRejected);
+    }
+    if lower.contains("local_private")
+        || lower.contains("private mapping")
+        || lower.contains(".env")
+    {
+        return Some(ReasonCode::EvidencePackUnsafePrivateData);
+    }
+    None
+}
+
+fn evidence_pack_reason_from_manual(reason: ReasonCode) -> ReasonCode {
+    match reason {
+        ReasonCode::WalkForwardInsufficientRows => ReasonCode::EvidencePackInsufficientRows,
+        ReasonCode::ManualHistoricalImportUnsafePrivateData => {
+            ReasonCode::EvidencePackUnsafePrivateData
+        }
+        ReasonCode::ManualHistoricalImportSecretLikeDataRejected => {
+            ReasonCode::EvidencePackSecretLikeDataRejected
+        }
+        ReasonCode::ManualHistoricalImportRawProviderRejected
+        | ReasonCode::ManualHistoricalImportRawProviderResponseRejected => {
+            ReasonCode::EvidencePackRawProviderResponseRejected
+        }
+        ReasonCode::ManualHistoricalImportEndpointRejected
+        | ReasonCode::ManualHistoricalImportEndpointDataRejected => {
+            ReasonCode::EvidencePackEndpointDataRejected
+        }
+        ReasonCode::ManualHistoricalImportAccountDataRejected => {
+            ReasonCode::EvidencePackAccountDataRejected
+        }
+        ReasonCode::ManualHistoricalImportOrderDataRejected => {
+            ReasonCode::EvidencePackOrderDataRejected
+        }
+        ReasonCode::ManualHistoricalImportLiveProviderRejected => {
+            ReasonCode::EvidencePackLiveProviderRejected
+        }
+        ReasonCode::ManualHistoricalImportWorkMdRejected
+        | ReasonCode::ManualHistoricalImportWorkMdMarkerRejected => {
+            ReasonCode::EvidencePackWorkMdMarkerRejected
+        }
+        _ => ReasonCode::EvidencePackSourceRejected,
+    }
+}
+
+fn historical_evidence_pack_error(
+    source_id: Option<String>,
+    reason: ReasonCode,
+) -> HistoricalEvidencePackError {
+    HistoricalEvidencePackError {
+        source_id,
+        reason_codes: vec![reason],
+    }
+}
+
+fn evaluate_historical_evidence_source(
+    source: &HistoricalEvidenceSource,
+    eval_config: &HistoricalEvidencePackEvaluationConfig,
+) -> HistoricalEvidenceSourceEvaluationResult {
+    let dataset_summary = source
+        .dataset
+        .as_ref()
+        .map(historical_evidence_dataset_summary)
+        .unwrap_or_else(|| {
+            if source.disabled {
+                "disabled source".to_string()
+            } else {
+                "rejected source".to_string()
+            }
+        });
+    let Some(dataset) = &source.dataset else {
+        return HistoricalEvidenceSourceEvaluationResult {
+            source_id: source.spec.source_id.clone(),
+            source_kind: source.spec.source_kind,
+            symbol: source.spec.symbol.clone(),
+            market: source.spec.market.clone(),
+            dataset_summary,
+            walk_forward_result: None,
+            proof_gate_report: None,
+            accepted: false,
+            rejected: source.rejected,
+            insufficient_evidence: source.insufficient_evidence,
+            reason_codes: source.reason_codes.clone(),
+        };
+    };
+    let walk_forward_config = WalkForwardConfig {
+        min_prediction_samples: eval_config.min_prediction_samples,
+        ..eval_config.walk_forward_config.clone()
+    };
+    let input = WalkForwardEvaluationInput {
+        dataset: dataset.clone(),
+        initial_agent_states: eval_config.initial_agent_states.clone(),
+        walk_forward_config,
+        committee_config: eval_config.committee_config.clone(),
+        risk_config: eval_config.risk_config,
+    };
+    match run_walk_forward_evaluation(input) {
+        Ok(result) => {
+            let insufficient_evidence = result.proof_gate_status
+                == ProofGateStatus::InsufficientEvidence
+                || result.aggregate_baseline_comparison.insufficient_evidence;
+            let proof_gate_report = build_proof_gate_report(&result);
+            let reason_codes = stable_reason_codes(
+                &source
+                    .reason_codes
+                    .iter()
+                    .chain(result.reason_codes.iter())
+                    .cloned()
+                    .chain([ReasonCode::HardcodingAuditPassed])
+                    .collect::<Vec<_>>(),
+            );
+            HistoricalEvidenceSourceEvaluationResult {
+                source_id: source.spec.source_id.clone(),
+                source_kind: source.spec.source_kind,
+                symbol: source.spec.symbol.clone(),
+                market: source.spec.market.clone(),
+                dataset_summary,
+                walk_forward_result: Some(result),
+                proof_gate_report: Some(proof_gate_report),
+                accepted: source.accepted,
+                rejected: false,
+                insufficient_evidence,
+                reason_codes,
+            }
+        }
+        Err(error) => HistoricalEvidenceSourceEvaluationResult {
+            source_id: source.spec.source_id.clone(),
+            source_kind: source.spec.source_kind,
+            symbol: source.spec.symbol.clone(),
+            market: source.spec.market.clone(),
+            dataset_summary,
+            walk_forward_result: None,
+            proof_gate_report: None,
+            accepted: source.accepted,
+            rejected: false,
+            insufficient_evidence: true,
+            reason_codes: stable_reason_codes(
+                &source
+                    .reason_codes
+                    .iter()
+                    .chain(error.reason_codes.iter())
+                    .cloned()
+                    .chain([ReasonCode::EvidencePackInsufficientRows])
+                    .collect::<Vec<_>>(),
+            ),
+        },
+    }
+}
+
+fn historical_evidence_dataset_summary(dataset: &ManualHistoricalDailyDataset) -> String {
+    format!(
+        "dataset_id={} symbol={} rows={} range={}..{} source_kind={:?}",
+        dataset.dataset_id,
+        dataset.symbol,
+        dataset.rows.len(),
+        dataset.date_range.start_date,
+        dataset.date_range.end_date,
+        dataset.source_kind,
+    )
+}
+
+fn build_aggregate_baseline_comparison(
+    source_results: &[HistoricalEvidenceSourceEvaluationResult],
+    eval_config: &HistoricalEvidencePackEvaluationConfig,
+) -> AggregateBaselineComparison {
+    let accepted_results = accepted_walk_forward_results(source_results);
+    let accepted_source_count = accepted_results.len();
+    let rejected_source_count = source_results
+        .iter()
+        .filter(|source| source.rejected)
+        .count();
+    let insufficient_source_count = source_results
+        .iter()
+        .filter(|source| source.insufficient_evidence)
+        .count();
+    let mut voice_beats_equal_weight_count = 0usize;
+    let mut voice_loses_equal_weight_count = 0usize;
+    let mut voice_ties_equal_weight_count = 0usize;
+    let mut committee_beats_no_trade_count = 0usize;
+    let mut committee_loses_no_trade_count = 0usize;
+    let mut committee_beats_buy_hold_count = 0usize;
+    let mut committee_loses_buy_hold_count = 0usize;
+    for result in &accepted_results {
+        let comparison = &result.aggregate_baseline_comparison;
+        let delta = risk_adjusted_score(&comparison.voice_adaptive_committee)
+            - risk_adjusted_score(&comparison.equal_weight_committee);
+        if delta > f64::EPSILON {
+            voice_beats_equal_weight_count += 1;
+        } else if delta < -f64::EPSILON {
+            voice_loses_equal_weight_count += 1;
+        } else {
+            voice_ties_equal_weight_count += 1;
+        }
+        if comparison.committee_beats_no_trade {
+            committee_beats_no_trade_count += 1;
+        } else {
+            committee_loses_no_trade_count += 1;
+        }
+        if comparison.committee_beats_buy_hold_risk_adjusted {
+            committee_beats_buy_hold_count += 1;
+        } else {
+            committee_loses_buy_hold_count += 1;
+        }
+    }
+    let overall_status = aggregate_baseline_status(
+        accepted_source_count,
+        voice_beats_equal_weight_count,
+        voice_loses_equal_weight_count,
+        voice_ties_equal_weight_count,
+        committee_loses_no_trade_count,
+        committee_loses_buy_hold_count,
+        eval_config.min_accepted_sources_for_proof,
+    );
+    let mut reason_codes = vec![ReasonCode::HardcodingAuditPassed];
+    match overall_status {
+        AggregateBaselineOverallStatus::Pass => {
+            reason_codes.push(ReasonCode::AggregateBaselineVoiceWon)
+        }
+        AggregateBaselineOverallStatus::Fail => {
+            reason_codes.push(ReasonCode::AggregateBaselineNoEdge)
+        }
+        AggregateBaselineOverallStatus::Mixed => {
+            reason_codes.push(ReasonCode::AggregateBaselineVoiceMixed)
+        }
+        AggregateBaselineOverallStatus::InsufficientEvidence => {
+            reason_codes.push(ReasonCode::AggregateBaselineInsufficientEvidence)
+        }
+    }
+    if voice_beats_equal_weight_count > 0 {
+        reason_codes.push(ReasonCode::AggregateBaselineVoiceWon);
+    }
+    if voice_loses_equal_weight_count > 0 {
+        reason_codes.push(ReasonCode::AggregateBaselineVoiceLost);
+    }
+    if committee_loses_buy_hold_count > 0 {
+        reason_codes.push(ReasonCode::AggregateBaselineBuyHoldStronger);
+    }
+    if committee_loses_no_trade_count > 0 {
+        reason_codes.push(ReasonCode::AggregateBaselineNoTradeStronger);
+    }
+    if overall_status != AggregateBaselineOverallStatus::Pass {
+        reason_codes.push(ReasonCode::AggregateBaselineNoEdge);
+    }
+    AggregateBaselineComparison {
+        source_count: source_results.len(),
+        accepted_source_count,
+        rejected_source_count,
+        insufficient_source_count,
+        voice_beats_equal_weight_count,
+        voice_loses_equal_weight_count,
+        voice_ties_equal_weight_count,
+        committee_beats_no_trade_count,
+        committee_loses_no_trade_count,
+        committee_beats_buy_hold_count,
+        committee_loses_buy_hold_count,
+        mean_total_return_by_baseline: mean_baseline_metric(&accepted_results, |metrics| {
+            metrics.total_return
+        }),
+        mean_max_drawdown_by_baseline: mean_baseline_metric(&accepted_results, |metrics| {
+            metrics.max_drawdown
+        }),
+        mean_brier_score_by_baseline: mean_brier_score_by_baseline(&accepted_results),
+        overall_status,
+        reason_codes: stable_reason_codes(&reason_codes),
+    }
+}
+
+fn aggregate_baseline_status(
+    accepted_source_count: usize,
+    voice_win_count: usize,
+    voice_loss_count: usize,
+    voice_tie_count: usize,
+    no_trade_loss_count: usize,
+    buy_hold_loss_count: usize,
+    min_accepted_sources_for_proof: usize,
+) -> AggregateBaselineOverallStatus {
+    if accepted_source_count < min_accepted_sources_for_proof || accepted_source_count == 0 {
+        return AggregateBaselineOverallStatus::InsufficientEvidence;
+    }
+    if voice_win_count == accepted_source_count
+        && no_trade_loss_count == 0
+        && buy_hold_loss_count == 0
+    {
+        return AggregateBaselineOverallStatus::Pass;
+    }
+    if voice_win_count > 0
+        && (voice_loss_count > 0
+            || voice_tie_count > 0
+            || no_trade_loss_count > 0
+            || buy_hold_loss_count > 0)
+    {
+        return AggregateBaselineOverallStatus::Mixed;
+    }
+    AggregateBaselineOverallStatus::Fail
+}
+
+fn accepted_walk_forward_results(
+    source_results: &[HistoricalEvidenceSourceEvaluationResult],
+) -> Vec<WalkForwardEvaluationResult> {
+    source_results
+        .iter()
+        .filter(|source| source.accepted)
+        .filter_map(|source| source.walk_forward_result.clone())
+        .collect()
+}
+
+fn mean_baseline_metric(
+    results: &[WalkForwardEvaluationResult],
+    value: fn(&BaselinePerformanceMetrics) -> f64,
+) -> BTreeMap<BaselineStrategyKind, f64> {
+    let mut grouped = BTreeMap::<BaselineStrategyKind, Vec<f64>>::new();
+    for result in results {
+        let comparison = &result.aggregate_baseline_comparison;
+        for metrics in [
+            &comparison.always_no_trade,
+            &comparison.buy_and_hold,
+            &comparison.equal_weight_committee,
+            &comparison.voice_adaptive_committee,
+        ] {
+            grouped
+                .entry(metrics.strategy)
+                .or_default()
+                .push(value(metrics));
+        }
+    }
+    grouped
+        .into_iter()
+        .map(|(strategy, values)| {
+            let mean = values.iter().sum::<f64>() / values.len() as f64;
+            (strategy, mean)
+        })
+        .collect()
+}
+
+fn mean_brier_score_by_baseline(
+    results: &[WalkForwardEvaluationResult],
+) -> BTreeMap<BaselineStrategyKind, f64> {
+    let mut grouped = BTreeMap::<BaselineStrategyKind, Vec<f64>>::new();
+    for result in results {
+        for metrics in &result.scoring_summary {
+            if let Some(score) = metrics.brier_score {
+                grouped.entry(metrics.strategy).or_default().push(score);
+            }
+        }
+    }
+    grouped
+        .into_iter()
+        .map(|(strategy, values)| {
+            let mean = values.iter().sum::<f64>() / values.len() as f64;
+            (strategy, mean)
+        })
+        .collect()
+}
+
+fn build_voice_adaptation_validity(
+    source_results: &[HistoricalEvidenceSourceEvaluationResult],
+    eval_config: &HistoricalEvidencePackEvaluationConfig,
+) -> VoiceAdaptationValidity {
+    let accepted_results = accepted_walk_forward_results(source_results);
+    let mut voice_better_count = 0usize;
+    let mut equal_weight_better_count = 0usize;
+    let mut tie_count = 0usize;
+    let mut deltas = Vec::new();
+    let mut brier_deltas = Vec::new();
+    let mut drawdown_deltas = Vec::new();
+    for result in &accepted_results {
+        let comparison = &result.aggregate_baseline_comparison;
+        let delta = risk_adjusted_score(&comparison.voice_adaptive_committee)
+            - risk_adjusted_score(&comparison.equal_weight_committee);
+        deltas.push(delta);
+        if delta > f64::EPSILON {
+            voice_better_count += 1;
+        } else if delta < -f64::EPSILON {
+            equal_weight_better_count += 1;
+        } else {
+            tie_count += 1;
+        }
+        drawdown_deltas.push(
+            comparison.voice_adaptive_committee.max_drawdown
+                - comparison.equal_weight_committee.max_drawdown,
+        );
+        let equal_brier = result
+            .scoring_summary
+            .iter()
+            .find(|metrics| metrics.strategy == BaselineStrategyKind::EqualWeightCommittee)
+            .and_then(|metrics| metrics.brier_score);
+        let voice_brier = result
+            .scoring_summary
+            .iter()
+            .find(|metrics| metrics.strategy == BaselineStrategyKind::VoiceAdaptiveCommittee)
+            .and_then(|metrics| metrics.brier_score);
+        if let (Some(voice), Some(equal)) = (voice_brier, equal_brier) {
+            brier_deltas.push(voice - equal);
+        }
+    }
+    let compared_source_count = accepted_results.len();
+    let status = if compared_source_count < eval_config.min_accepted_sources_for_proof {
+        VoiceAdaptationValidityStatus::InsufficientEvidence
+    } else if voice_better_count == compared_source_count && compared_source_count > 0 {
+        VoiceAdaptationValidityStatus::Helped
+    } else if equal_weight_better_count + tie_count == compared_source_count {
+        VoiceAdaptationValidityStatus::Failed
+    } else {
+        VoiceAdaptationValidityStatus::Mixed
+    };
+    let mut reason_codes = vec![ReasonCode::HardcodingAuditPassed];
+    match status {
+        VoiceAdaptationValidityStatus::Helped => {
+            reason_codes.push(ReasonCode::AggregateBaselineVoiceWon)
+        }
+        VoiceAdaptationValidityStatus::Failed => {
+            reason_codes.push(ReasonCode::AggregateBaselineVoiceLost);
+            reason_codes.push(ReasonCode::HardcodedVoiceSuccessRejected);
+        }
+        VoiceAdaptationValidityStatus::Mixed => {
+            reason_codes.push(ReasonCode::AggregateBaselineVoiceMixed)
+        }
+        VoiceAdaptationValidityStatus::InsufficientEvidence => {
+            reason_codes.push(ReasonCode::AggregateBaselineInsufficientEvidence)
+        }
+    }
+    VoiceAdaptationValidity {
+        compared_source_count,
+        voice_better_count,
+        equal_weight_better_count,
+        tie_count,
+        mean_delta_vs_equal_weight: mean_or_zero(&deltas),
+        brier_delta_vs_equal_weight: (!brier_deltas.is_empty())
+            .then_some(mean_or_zero(&brier_deltas)),
+        drawdown_delta_vs_equal_weight: (!drawdown_deltas.is_empty())
+            .then_some(mean_or_zero(&drawdown_deltas)),
+        status,
+        reason_codes: stable_reason_codes(&reason_codes),
+    }
+}
+
+fn build_aggregate_prediction_quality_summary(
+    source_results: &[HistoricalEvidenceSourceEvaluationResult],
+    eval_config: &HistoricalEvidencePackEvaluationConfig,
+) -> AggregatePredictionQualitySummary {
+    let mut voice_rows = Vec::new();
+    for source in source_results {
+        let Some(result) = &source.walk_forward_result else {
+            continue;
+        };
+        if let Some(metrics) = result
+            .scoring_summary
+            .iter()
+            .find(|metrics| metrics.strategy == BaselineStrategyKind::VoiceAdaptiveCommittee)
+        {
+            voice_rows.push((source.source_id.clone(), metrics.clone()));
+        }
+    }
+    let source_count = voice_rows.len();
+    let total_samples = voice_rows
+        .iter()
+        .map(|(_, metrics)| metrics.sample_count)
+        .sum::<usize>();
+    let calibrated_samples = voice_rows
+        .iter()
+        .map(|(_, metrics)| metrics.calibrated_sample_count)
+        .sum::<usize>();
+    let brier_numerator = voice_rows
+        .iter()
+        .filter_map(|(_, metrics)| {
+            metrics
+                .brier_score
+                .map(|score| score * metrics.calibrated_sample_count as f64)
+        })
+        .sum::<f64>();
+    let ranked_brier = voice_rows
+        .iter()
+        .filter_map(|(source_id, metrics)| metrics.brier_score.map(|score| (source_id, score)))
+        .collect::<Vec<_>>();
+    let best_source_by_brier = ranked_brier
+        .iter()
+        .min_by(|left, right| {
+            left.1
+                .partial_cmp(&right.1)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
+        .map(|(source_id, _)| (*source_id).clone());
+    let worst_source_by_brier = ranked_brier
+        .iter()
+        .max_by(|left, right| {
+            left.1
+                .partial_cmp(&right.1)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
+        .map(|(source_id, _)| (*source_id).clone());
+    let insufficient_evidence = source_count < eval_config.min_accepted_sources_for_proof
+        || total_samples < eval_config.min_prediction_samples
+        || calibrated_samples == 0;
+    let mut reason_codes = vec![ReasonCode::PredictionScoringBrier];
+    if insufficient_evidence {
+        reason_codes.push(ReasonCode::PredictionScoringInsufficientSamples);
+        reason_codes.push(ReasonCode::AggregateBaselineInsufficientEvidence);
+    }
+    AggregatePredictionQualitySummary {
+        source_count,
+        total_samples,
+        missing_probability_count: voice_rows
+            .iter()
+            .map(|(_, metrics)| metrics.missing_probability_count)
+            .sum(),
+        abstention_count: voice_rows
+            .iter()
+            .map(|(_, metrics)| metrics.abstention_count)
+            .sum(),
+        high_confidence_error_count: voice_rows
+            .iter()
+            .map(|(_, metrics)| metrics.high_confidence_error_count)
+            .sum(),
+        mean_brier_score: (calibrated_samples > 0)
+            .then_some(brier_numerator / calibrated_samples as f64),
+        best_source_by_brier,
+        worst_source_by_brier,
+        insufficient_evidence,
+        reason_codes: stable_reason_codes(&reason_codes),
+    }
+}
+
+fn build_market_evidence_results(
+    source_results: &[HistoricalEvidenceSourceEvaluationResult],
+    eval_config: &HistoricalEvidencePackEvaluationConfig,
+) -> Vec<MarketEvidenceResult> {
+    let mut grouped = BTreeMap::<String, Vec<HistoricalEvidenceSourceEvaluationResult>>::new();
+    for source in source_results {
+        grouped
+            .entry(source.market.clone())
+            .or_default()
+            .push(source.clone());
+    }
+    grouped
+        .into_iter()
+        .map(|(market, rows)| {
+            let baseline_comparison = build_aggregate_baseline_comparison(&rows, eval_config);
+            let voice_adaptation_comparison = build_voice_adaptation_validity(&rows, eval_config);
+            let prediction_quality_summary =
+                build_aggregate_prediction_quality_summary(&rows, eval_config);
+            let insufficient_evidence = baseline_comparison.overall_status
+                == AggregateBaselineOverallStatus::InsufficientEvidence;
+            let reason_codes = stable_reason_codes(
+                &baseline_comparison
+                    .reason_codes
+                    .iter()
+                    .chain(voice_adaptation_comparison.reason_codes.iter())
+                    .chain(prediction_quality_summary.reason_codes.iter())
+                    .cloned()
+                    .collect::<Vec<_>>(),
+            );
+            MarketEvidenceResult {
+                market,
+                source_count: rows.len(),
+                accepted_count: rows
+                    .iter()
+                    .filter(|source| source.accepted && source.walk_forward_result.is_some())
+                    .count(),
+                rejected_count: rows.iter().filter(|source| source.rejected).count(),
+                baseline_comparison,
+                voice_adaptation_comparison,
+                prediction_quality_summary,
+                insufficient_evidence,
+                reason_codes,
+            }
+        })
+        .collect()
+}
+
+fn voice_adaptation_report_sentence(summary: &VoiceAdaptationValidity) -> String {
+    match summary.status {
+        VoiceAdaptationValidityStatus::Helped => {
+            "Voice adaptation helped on this evidence pack based on computed risk-adjusted results."
+                .to_string()
+        }
+        VoiceAdaptationValidityStatus::Failed => {
+            "Voice adaptation did not beat equal weight on this evidence pack.".to_string()
+        }
+        VoiceAdaptationValidityStatus::Mixed => "Voice adaptation evidence is mixed.".to_string(),
+        VoiceAdaptationValidityStatus::InsufficientEvidence => {
+            "Insufficient evidence to trust voice adaptation.".to_string()
+        }
+    }
+}
+
+fn mean_or_zero(values: &[f64]) -> f64 {
+    if values.is_empty() {
+        0.0
+    } else {
+        values.iter().sum::<f64>() / values.len() as f64
+    }
 }
 
 fn validate_manual_historical_config(
@@ -13307,6 +14838,730 @@ mod tests {
                 .reason_codes
                 .contains(&ReasonCode::HardcodingAuditPassed)
         );
+    }
+
+    fn daily_evidence_csv(symbol: &str, market: &str, currency: &str, closes: &[f64]) -> String {
+        let mut rows =
+            "symbol,date,open,high,low,close,volume,currency,market,source\n".to_string();
+        for (index, close) in closes.iter().enumerate() {
+            let day = index + 2;
+            rows.push_str(&format!(
+                "{symbol},2024-01-{day:02},{close:.2},{:.2},{:.2},{close:.2},10000,{currency},{market},manual_export\n",
+                close + 1.0,
+                close - 1.0,
+            ));
+        }
+        rows
+    }
+
+    fn evidence_source_spec(
+        source_id: &str,
+        source_kind: HistoricalEvidenceSourceKind,
+        symbol: &str,
+        market: &str,
+        csv_text: Option<String>,
+    ) -> HistoricalEvidenceSourceSpec {
+        HistoricalEvidenceSourceSpec {
+            source_id: source_id.to_string(),
+            source_kind,
+            symbol: symbol.to_string(),
+            market: market.to_string(),
+            currency: Some(
+                match source_kind {
+                    HistoricalEvidenceSourceKind::KoreanStockDaily => "KRW",
+                    HistoricalEvidenceSourceKind::BtcCryptoDaily => "USD",
+                    _ => "USD",
+                }
+                .to_string(),
+            ),
+            csv_path: None,
+            csv_text,
+            enabled: true,
+            expected_min_rows: 12,
+            reason_codes: Vec::new(),
+        }
+    }
+
+    fn evidence_pack_eval_config(min_sources: usize) -> HistoricalEvidencePackEvaluationConfig {
+        HistoricalEvidencePackEvaluationConfig {
+            initial_agent_states: canonical_current_agent_states(),
+            walk_forward_config: WalkForwardConfig {
+                min_train_rows: 4,
+                eval_window_rows: 4,
+                step_rows: 4,
+                cost_bps: 0.0,
+                slippage_bps: 0.0,
+                min_prediction_samples: 2,
+                ..WalkForwardConfig::default()
+            },
+            committee_config: WalkForwardCommitteeConfig {
+                min_vote_score_for_trade: 0.0,
+                min_probability: 0.10,
+                max_probability: 0.90,
+                expected_edge_scale: 0.10,
+                ..WalkForwardCommitteeConfig::default()
+            },
+            risk_config: GovernorConfig {
+                min_expected_edge: 0.0,
+                min_confidence: 0.0,
+                min_data_quality: 0.0,
+                max_allowed_volatility: 1.0,
+                max_spread_bps: 1_000.0,
+                min_risk_reward: 1.0,
+                min_trade_value: 0.0,
+                ..GovernorConfig::default()
+            },
+            min_accepted_sources_for_proof: min_sources,
+            min_prediction_samples: 2,
+            aggregation_method: EvidenceAggregationMethod::Mean,
+            reason_codes: Vec::new(),
+        }
+    }
+
+    fn valid_multi_symbol_manifest() -> HistoricalEvidencePackManifest {
+        HistoricalEvidencePackManifest {
+            pack_id: "unit-multi-symbol-pack".to_string(),
+            description: "sanitized local daily CSV pack".to_string(),
+            sources: vec![
+                evidence_source_spec(
+                    "us-a",
+                    HistoricalEvidenceSourceKind::UsStockDaily,
+                    "FAKEUS",
+                    "US",
+                    Some(daily_evidence_csv(
+                        "FAKEUS",
+                        "US",
+                        "USD",
+                        &[
+                            100.0, 102.0, 101.0, 103.0, 104.0, 103.0, 105.0, 106.0, 104.0, 107.0,
+                            108.0, 109.0,
+                        ],
+                    )),
+                ),
+                evidence_source_spec(
+                    "kr-a",
+                    HistoricalEvidenceSourceKind::KoreanStockDaily,
+                    "FAKEKR.KS",
+                    "KR",
+                    Some(daily_evidence_csv(
+                        "FAKEKR.KS",
+                        "KR",
+                        "KRW",
+                        &[
+                            50.0, 49.0, 51.0, 50.0, 52.0, 51.0, 53.0, 52.0, 54.0, 53.0, 55.0, 56.0,
+                        ],
+                    )),
+                ),
+                evidence_source_spec(
+                    "btc-a",
+                    HistoricalEvidenceSourceKind::BtcCryptoDaily,
+                    "BTC-USD",
+                    "BTC",
+                    Some(daily_evidence_csv(
+                        "BTC-USD",
+                        "BTC",
+                        "USD",
+                        &[
+                            30000.0, 30100.0, 29900.0, 30200.0, 30400.0, 30300.0, 30600.0, 30500.0,
+                            30700.0, 30650.0, 30800.0, 30900.0,
+                        ],
+                    )),
+                ),
+            ],
+            local_only: true,
+            sanitized_only: true,
+            reason_codes: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn multi_symbol_evidence_pack_accepts_us_kr_btc_and_reports_deterministically() {
+        let mut config = HistoricalEvidencePackConfig {
+            min_sources: 3,
+            ..HistoricalEvidencePackConfig::default()
+        };
+        config
+            .min_sources_by_kind
+            .insert(HistoricalEvidenceSourceKind::UsStockDaily, 1);
+        config
+            .min_sources_by_kind
+            .insert(HistoricalEvidenceSourceKind::KoreanStockDaily, 1);
+        config
+            .min_sources_by_kind
+            .insert(HistoricalEvidenceSourceKind::BtcCryptoDaily, 1);
+
+        let manifest = valid_multi_symbol_manifest();
+        let encoded = serde_json::to_string(&manifest).expect("manifest json");
+        let parsed =
+            parse_historical_evidence_pack_manifest_json(&encoded).expect("manifest parsed");
+        let pack = load_historical_evidence_pack_from_manifest(&parsed, &config)
+            .expect("evidence pack loaded");
+        validate_historical_evidence_pack(&pack, &config).expect("evidence pack valid");
+
+        let result = evaluate_historical_evidence_pack(&pack, &evidence_pack_eval_config(3));
+        assert_eq!(result.source_results.len(), 3);
+        assert_eq!(result.market_results.len(), 3);
+        assert!(result.source_results.iter().all(|source| {
+            source.accepted
+                && !source.rejected
+                && source.walk_forward_result.is_some()
+                && source.proof_gate_report.is_some()
+        }));
+        assert_eq!(
+            result
+                .source_results
+                .iter()
+                .map(|source| source.source_id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["us-a", "kr-a", "btc-a"]
+        );
+        for source in &result.source_results {
+            let walk = source.walk_forward_result.as_ref().expect("walk result");
+            let comparison = &walk.aggregate_baseline_comparison;
+            assert_eq!(
+                comparison.always_no_trade.strategy,
+                BaselineStrategyKind::AlwaysNoTrade
+            );
+            assert_eq!(
+                comparison.buy_and_hold.strategy,
+                BaselineStrategyKind::BuyAndHold
+            );
+            assert_eq!(
+                comparison.equal_weight_committee.strategy,
+                BaselineStrategyKind::EqualWeightCommittee
+            );
+            assert_eq!(
+                comparison.voice_adaptive_committee.strategy,
+                BaselineStrategyKind::VoiceAdaptiveCommittee
+            );
+            assert_eq!(
+                comparison.voice_beats_equal_weight,
+                risk_adjusted_score(&comparison.voice_adaptive_committee)
+                    > risk_adjusted_score(&comparison.equal_weight_committee)
+            );
+            assert!(walk.windows.iter().all(|window| {
+                window.split.train_end_index <= window.split.eval_start_index
+                    && window
+                        .reason_codes
+                        .contains(&ReasonCode::WalkForwardNoLookahead)
+            }));
+        }
+
+        let report = build_multi_symbol_proof_gate_report(&result);
+        let first = render_multi_symbol_proof_gate_report_text(&report);
+        let second = render_multi_symbol_proof_gate_report_text(&report);
+        assert_eq!(first, second);
+        for expected in [
+            "Local owner-provided sanitized historical daily CSV only.",
+            "Paper-only evaluation.",
+            "No live trading readiness.",
+            "No profitability claim.",
+            "Synthetic fixture success is not market evidence.",
+            "Voice adaptation must beat equal weight before it is trusted.",
+            "Bad or mixed results are valid outputs.",
+            "AlwaysNoTrade",
+            "BuyAndHold",
+            "EqualWeightCommittee",
+            "VoiceAdaptiveCommittee",
+        ] {
+            assert!(first.contains(expected), "missing {expected}");
+        }
+        assert!(!first.contains("fake-secret"));
+        assert!(!first.contains(concat!("work", ".", "md")));
+    }
+
+    #[test]
+    fn evidence_pack_rejected_sources_stay_visible_with_safety_reasons() {
+        let unsafe_instruction_path = format!("./{}", concat!("work", ".", "md"));
+        let cases = vec![
+            (
+                "disabled",
+                {
+                    let mut source = evidence_source_spec(
+                        "disabled",
+                        HistoricalEvidenceSourceKind::UsStockDaily,
+                        "FAKEUS",
+                        "US",
+                        Some(daily_evidence_csv(
+                            "FAKEUS",
+                            "US",
+                            "USD",
+                            &[10.0, 11.0, 12.0, 13.0],
+                        )),
+                    );
+                    source.enabled = false;
+                    source
+                },
+                ReasonCode::EvidencePackSourceDisabled,
+                false,
+            ),
+            (
+                "unsupported",
+                evidence_source_spec("unsupported", HistoricalEvidenceSourceKind::Unknown, "X", "US", None),
+                ReasonCode::EvidencePackUnsupportedSourceKind,
+                true,
+            ),
+            (
+                "url-path",
+                HistoricalEvidenceSourceSpec {
+                    csv_path: Some("https://example.invalid/local.csv".to_string()),
+                    csv_text: None,
+                    ..evidence_source_spec(
+                        "url-path",
+                        HistoricalEvidenceSourceKind::UsStockDaily,
+                        "FAKEUS",
+                        "US",
+                        None,
+                    )
+                },
+                ReasonCode::EvidencePackUrlPathRejected,
+                true,
+            ),
+            (
+                "instruction-path",
+                HistoricalEvidenceSourceSpec {
+                    csv_path: Some(unsafe_instruction_path),
+                    csv_text: None,
+                    ..evidence_source_spec(
+                        "instruction-path",
+                        HistoricalEvidenceSourceKind::UsStockDaily,
+                        "FAKEUS",
+                        "US",
+                        None,
+                    )
+                },
+                ReasonCode::EvidencePackWorkMdPathRejected,
+                true,
+            ),
+            (
+                "env-path",
+                HistoricalEvidenceSourceSpec {
+                    csv_path: Some("./.env".to_string()),
+                    csv_text: None,
+                    ..evidence_source_spec(
+                        "env-path",
+                        HistoricalEvidenceSourceKind::UsStockDaily,
+                        "FAKEUS",
+                        "US",
+                        None,
+                    )
+                },
+                ReasonCode::EvidencePackEnvPathRejected,
+                true,
+            ),
+            (
+                "private-path",
+                HistoricalEvidenceSourceSpec {
+                    csv_path: Some("./local_private/data.csv".to_string()),
+                    csv_text: None,
+                    ..evidence_source_spec(
+                        "private-path",
+                        HistoricalEvidenceSourceKind::UsStockDaily,
+                        "FAKEUS",
+                        "US",
+                        None,
+                    )
+                },
+                ReasonCode::EvidencePackPrivatePathRejected,
+                true,
+            ),
+            (
+                "account",
+                evidence_source_spec(
+                    "account",
+                    HistoricalEvidenceSourceKind::UsStockDaily,
+                    "FAKEUS",
+                    "US",
+                    Some("symbol,date,open,high,low,close,volume,account_id\nFAKEUS,2024-01-02,1,2,1,1,1,x".to_string()),
+                ),
+                ReasonCode::EvidencePackAccountDataRejected,
+                true,
+            ),
+            (
+                "order",
+                evidence_source_spec(
+                    "order",
+                    HistoricalEvidenceSourceKind::UsStockDaily,
+                    "FAKEUS",
+                    "US",
+                    Some("symbol,date,open,high,low,close,volume,order_id\nFAKEUS,2024-01-02,1,2,1,1,1,x".to_string()),
+                ),
+                ReasonCode::EvidencePackOrderDataRejected,
+                true,
+            ),
+            (
+                "secret",
+                evidence_source_spec(
+                    "secret",
+                    HistoricalEvidenceSourceKind::UsStockDaily,
+                    "FAKEUS",
+                    "US",
+                    Some("symbol,date,open,high,low,close,volume,source\nFAKEUS,2024-01-02,1,2,1,1,1,Authorization: fake".to_string()),
+                ),
+                ReasonCode::EvidencePackSecretLikeDataRejected,
+                true,
+            ),
+            (
+                "raw",
+                evidence_source_spec(
+                    "raw",
+                    HistoricalEvidenceSourceKind::UsStockDaily,
+                    "FAKEUS",
+                    "US",
+                    Some("symbol,date,open,high,low,close,volume,raw_response\nFAKEUS,2024-01-02,1,2,1,1,1,x".to_string()),
+                ),
+                ReasonCode::EvidencePackRawProviderResponseRejected,
+                true,
+            ),
+            (
+                "live",
+                evidence_source_spec(
+                    "live",
+                    HistoricalEvidenceSourceKind::UsStockDaily,
+                    "FAKEUS",
+                    "US",
+                    Some("symbol,date,open,high,low,close,volume,live_endpoint\nFAKEUS,2024-01-02,1,2,1,1,1,x".to_string()),
+                ),
+                ReasonCode::EvidencePackLiveProviderRejected,
+                true,
+            ),
+        ];
+
+        for (source_id, source, expected_reason, rejected) in cases {
+            let manifest = HistoricalEvidencePackManifest {
+                pack_id: format!("pack-{source_id}"),
+                description: "safety case".to_string(),
+                sources: vec![source],
+                local_only: true,
+                sanitized_only: true,
+                reason_codes: Vec::new(),
+            };
+            let pack = load_historical_evidence_pack_from_manifest(
+                &manifest,
+                &HistoricalEvidencePackConfig::default(),
+            )
+            .expect("pack loads with visible source state");
+            assert_eq!(pack.sources.len(), 1);
+            assert_eq!(pack.sources[0].rejected, rejected);
+            assert!(
+                pack.sources[0].reason_codes.contains(&expected_reason),
+                "{source_id} missing {expected_reason:?}: {:?}",
+                pack.sources[0].reason_codes
+            );
+        }
+    }
+
+    fn metric(
+        strategy: BaselineStrategyKind,
+        total_return: f64,
+        max_drawdown: f64,
+    ) -> BaselinePerformanceMetrics {
+        BaselinePerformanceMetrics {
+            strategy,
+            total_return,
+            max_drawdown,
+            trade_count: u64::from(strategy != BaselineStrategyKind::AlwaysNoTrade),
+            win_count: u64::from(total_return > 0.0),
+            loss_count: u64::from(total_return < 0.0),
+            no_trade_count: u64::from(strategy == BaselineStrategyKind::AlwaysNoTrade),
+            risk_denial_count: 0,
+            avg_return_per_trade: total_return,
+            volatility_estimate: Some(max_drawdown.abs()),
+            sharpe_like: None,
+            downside_loss: (total_return < 0.0).then_some(total_return.abs()),
+            cost_paid: 0.0,
+            slippage_paid: 0.0,
+            reason_codes: vec![strategy_reason_code(strategy)],
+        }
+    }
+
+    fn scoring(
+        strategy: BaselineStrategyKind,
+        brier_score: Option<f64>,
+        sample_count: usize,
+        missing: usize,
+        abstained: usize,
+        high_confidence_errors: usize,
+    ) -> PredictionQualityMetrics {
+        PredictionQualityMetrics {
+            strategy,
+            brier_score,
+            sample_count,
+            calibrated_sample_count: brier_score
+                .map_or(0, |_| sample_count.saturating_sub(missing)),
+            missing_probability_count: missing,
+            abstention_count: abstained,
+            high_confidence_error_count: high_confidence_errors,
+            low_confidence_correct_count: 0,
+            mean_confidence: brier_score.map(|_| 0.60),
+            mean_realized_direction: Some(0.50),
+            reason_codes: vec![ReasonCode::PredictionScoringBrier],
+        }
+    }
+
+    fn synthetic_walk_result(
+        dataset_id: &str,
+        symbol: &str,
+        always_return: f64,
+        buy_hold_return: f64,
+        equal_return: f64,
+        voice_return: f64,
+    ) -> WalkForwardEvaluationResult {
+        let always = metric(BaselineStrategyKind::AlwaysNoTrade, always_return, 0.0);
+        let buy_hold = metric(BaselineStrategyKind::BuyAndHold, buy_hold_return, 0.02);
+        let equal = metric(
+            BaselineStrategyKind::EqualWeightCommittee,
+            equal_return,
+            0.03,
+        );
+        let voice = metric(
+            BaselineStrategyKind::VoiceAdaptiveCommittee,
+            voice_return,
+            0.03,
+        );
+        let scoring_summary = vec![
+            scoring(BaselineStrategyKind::AlwaysNoTrade, None, 4, 4, 4, 0),
+            scoring(BaselineStrategyKind::BuyAndHold, None, 4, 4, 0, 0),
+            scoring(
+                BaselineStrategyKind::EqualWeightCommittee,
+                Some(0.24),
+                4,
+                0,
+                1,
+                0,
+            ),
+            scoring(
+                BaselineStrategyKind::VoiceAdaptiveCommittee,
+                Some(0.20),
+                4,
+                1,
+                2,
+                1,
+            ),
+        ];
+        let comparison = ProofGateComparison {
+            always_no_trade: always,
+            buy_and_hold: buy_hold,
+            equal_weight_committee: equal,
+            voice_adaptive_committee: voice,
+            voice_beats_equal_weight: voice_return > equal_return,
+            committee_beats_no_trade: voice_return > always_return && voice_return != 0.0,
+            committee_beats_buy_hold_risk_adjusted: voice_return - 0.03 > buy_hold_return - 0.02,
+            insufficient_evidence: false,
+            reason_codes: vec![ReasonCode::HardcodingAuditPassed],
+        };
+        WalkForwardEvaluationResult {
+            dataset_id: dataset_id.to_string(),
+            symbol: symbol.to_string(),
+            windows: Vec::new(),
+            voice_adaptation_comparison: VoiceAdaptationComparison {
+                equal_weight_total_return: comparison.equal_weight_committee.total_return,
+                voice_adaptive_total_return: comparison.voice_adaptive_committee.total_return,
+                equal_weight_risk_adjusted_score: risk_adjusted_score(
+                    &comparison.equal_weight_committee,
+                ),
+                voice_adaptive_risk_adjusted_score: risk_adjusted_score(
+                    &comparison.voice_adaptive_committee,
+                ),
+                voice_beats_equal_weight: comparison.voice_beats_equal_weight,
+                reason_codes: vec![ReasonCode::BaselineComparisonVoiceAdaptationHelped],
+            },
+            aggregate_baseline_comparison: comparison,
+            scoring_summary,
+            proof_gate_status: ProofGateStatus::ComputedNoProfitabilityClaim,
+            reason_codes: vec![ReasonCode::HardcodingAuditPassed],
+        }
+    }
+
+    fn synthetic_source_result(
+        source_id: &str,
+        market: &str,
+        symbol: &str,
+        result: WalkForwardEvaluationResult,
+    ) -> HistoricalEvidenceSourceEvaluationResult {
+        HistoricalEvidenceSourceEvaluationResult {
+            source_id: source_id.to_string(),
+            source_kind: HistoricalEvidenceSourceKind::UsStockDaily,
+            symbol: symbol.to_string(),
+            market: market.to_string(),
+            dataset_summary: format!("synthetic {symbol}"),
+            walk_forward_result: Some(result),
+            proof_gate_report: None,
+            accepted: true,
+            rejected: false,
+            insufficient_evidence: false,
+            reason_codes: vec![ReasonCode::HardcodingAuditPassed],
+        }
+    }
+
+    #[test]
+    fn aggregate_status_and_voice_validity_change_with_input_metrics() {
+        let config = evidence_pack_eval_config(2);
+        let helped_rows = vec![
+            synthetic_source_result(
+                "a",
+                "US",
+                "A",
+                synthetic_walk_result("a", "A", 0.0, 0.01, 0.02, 0.05),
+            ),
+            synthetic_source_result(
+                "b",
+                "US",
+                "B",
+                synthetic_walk_result("b", "B", 0.0, 0.01, 0.02, 0.05),
+            ),
+        ];
+        let helped = build_voice_adaptation_validity(&helped_rows, &config);
+        assert_eq!(helped.status, VoiceAdaptationValidityStatus::Helped);
+
+        let failed_rows = vec![
+            synthetic_source_result(
+                "a",
+                "US",
+                "A",
+                synthetic_walk_result("a", "A", 0.0, 0.01, 0.05, 0.02),
+            ),
+            synthetic_source_result(
+                "b",
+                "US",
+                "B",
+                synthetic_walk_result("b", "B", 0.0, 0.01, 0.05, 0.02),
+            ),
+        ];
+        let failed = build_voice_adaptation_validity(&failed_rows, &config);
+        assert_eq!(failed.status, VoiceAdaptationValidityStatus::Failed);
+        assert_eq!(
+            voice_adaptation_report_sentence(&failed),
+            "Voice adaptation did not beat equal weight on this evidence pack."
+        );
+
+        let mixed_rows = vec![helped_rows[0].clone(), failed_rows[0].clone()];
+        let mixed = build_voice_adaptation_validity(&mixed_rows, &config);
+        assert_eq!(mixed.status, VoiceAdaptationValidityStatus::Mixed);
+        assert_eq!(
+            voice_adaptation_report_sentence(&mixed),
+            "Voice adaptation evidence is mixed."
+        );
+    }
+
+    #[test]
+    fn aggregate_report_surfaces_insufficient_buy_hold_and_no_trade_failures() {
+        let config = evidence_pack_eval_config(2);
+        let rows = vec![synthetic_source_result(
+            "down",
+            "US",
+            "DOWN",
+            synthetic_walk_result("down", "DOWN", 0.0, 0.03, 0.01, -0.02),
+        )];
+        let aggregate = build_aggregate_baseline_comparison(&rows, &config);
+        assert_eq!(
+            aggregate.overall_status,
+            AggregateBaselineOverallStatus::InsufficientEvidence
+        );
+        assert_eq!(aggregate.committee_loses_no_trade_count, 1);
+        assert_eq!(aggregate.committee_loses_buy_hold_count, 1);
+        assert!(
+            aggregate
+                .reason_codes
+                .contains(&ReasonCode::AggregateBaselineBuyHoldStronger)
+        );
+        assert!(
+            aggregate
+                .reason_codes
+                .contains(&ReasonCode::AggregateBaselineNoTradeStronger)
+        );
+
+        let pack_result = HistoricalEvidencePackEvaluationResult {
+            pack_id: "synthetic-pack".to_string(),
+            source_results: rows.clone(),
+            aggregate_result: aggregate.clone(),
+            market_results: Vec::new(),
+            symbol_results: rows,
+            voice_adaptation_summary: build_voice_adaptation_validity(&[], &config),
+            prediction_quality_summary: build_aggregate_prediction_quality_summary(&[], &config),
+            proof_gate_status: aggregate.overall_status,
+            reason_codes: aggregate.reason_codes,
+        };
+        let report = build_multi_symbol_proof_gate_report(&pack_result);
+        let text = render_multi_symbol_proof_gate_report_text(&report);
+        assert!(text.contains("buy_hold_stronger=true"));
+        assert!(text.contains("no_trade_stronger=true"));
+        assert!(text.contains("Insufficient evidence to trust voice adaptation."));
+        assert!(text.contains("Evidence pack has insufficient accepted out-of-sample sources."));
+    }
+
+    #[test]
+    fn aggregate_prediction_quality_counts_brier_missing_abstention_and_errors() {
+        let config = evidence_pack_eval_config(1);
+        let rows = vec![
+            synthetic_source_result(
+                "a",
+                "US",
+                "A",
+                synthetic_walk_result("a", "A", 0.0, 0.01, 0.02, 0.05),
+            ),
+            synthetic_source_result(
+                "b",
+                "KR",
+                "B",
+                synthetic_walk_result("b", "B", 0.0, 0.01, 0.02, 0.04),
+            ),
+        ];
+        let summary = build_aggregate_prediction_quality_summary(&rows, &config);
+        assert_eq!(summary.source_count, 2);
+        assert_eq!(summary.total_samples, 8);
+        assert_eq!(summary.missing_probability_count, 2);
+        assert_eq!(summary.abstention_count, 4);
+        assert_eq!(summary.high_confidence_error_count, 2);
+        assert!((summary.mean_brier_score.expect("mean brier") - 0.20).abs() < 1e-12);
+        assert_eq!(summary.best_source_by_brier.as_deref(), Some("a"));
+        assert!(!summary.insufficient_evidence);
+    }
+
+    #[test]
+    fn evidence_pack_validation_marks_insufficient_sources_and_preserves_safety_boundaries() {
+        let manifest = HistoricalEvidencePackManifest {
+            sources: vec![evidence_source_spec(
+                "us-only",
+                HistoricalEvidenceSourceKind::UsStockDaily,
+                "FAKEUS",
+                "US",
+                Some(daily_evidence_csv(
+                    "FAKEUS",
+                    "US",
+                    "USD",
+                    &[
+                        100.0, 101.0, 102.0, 103.0, 104.0, 105.0, 106.0, 107.0, 108.0, 109.0,
+                        110.0, 111.0,
+                    ],
+                )),
+            )],
+            ..valid_multi_symbol_manifest()
+        };
+        let config = HistoricalEvidencePackConfig {
+            min_sources: 2,
+            ..HistoricalEvidencePackConfig::default()
+        };
+        let pack =
+            load_historical_evidence_pack_from_manifest(&manifest, &config).expect("pack loaded");
+        let error = validate_historical_evidence_pack(&pack, &config)
+            .expect_err("insufficient accepted sources");
+        assert!(
+            error
+                .reason_codes
+                .contains(&ReasonCode::EvidencePackInsufficientSources)
+        );
+
+        let broker = PaperBroker::default();
+        assert!(!broker.supports_live_execution());
+        let states = canonical_current_agent_states();
+        assert_eq!(states.len(), 3);
+        assert!(
+            states
+                .iter()
+                .all(|state| state.kind != AgentKind::Future8AgentPlaceholder)
+        );
+        assert_eq!(WalkForwardCommitteeConfig::default().active_agent_limit, 3);
     }
 
     #[test]

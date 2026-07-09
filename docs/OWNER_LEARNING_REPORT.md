@@ -127,3 +127,29 @@ market evidence.
 The report shows four baseline rows, voice-adaptive versus equal-weight
 comparison, Brier-style prediction quality summary, insufficient-evidence
 warnings, no profitability claim, and no live trading readiness.
+
+## Multi-Symbol Proof Gate Reports
+
+`build_multi_symbol_proof_gate_report` converts a completed historical
+evidence pack evaluation into an owner-readable multi-symbol proof report. It
+does not rerun evaluation, read files, call network APIs, call a broker, or
+mutate agent state.
+
+The report includes:
+
+- pack summary,
+- source table,
+- market table,
+- aggregate four-baseline comparison,
+- voice adaptation validity,
+- aggregate prediction-quality summary,
+- symbols where voice-adaptive lost to equal weight,
+- symbols where buy-and-hold or no-trade was stronger,
+- rejected sources,
+- insufficient-evidence warnings,
+- next required evidence.
+
+The renderer states that evidence is local owner-provided sanitized historical
+daily CSV only, paper-only, not live trading readiness, and not a
+profitability claim. Bad, failed, mixed, and insufficient results remain valid
+report outputs.

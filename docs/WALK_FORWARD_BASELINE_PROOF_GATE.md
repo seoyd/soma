@@ -79,3 +79,31 @@ The report must keep these warnings visible:
 - No profitability claim.
 - Voice adaptation must beat equal weight before it is trusted.
 - Synthetic fixture success is not market evidence.
+
+## Multi-Symbol Evidence Pack Extension
+
+Sprint 20 extends the same proof gate across multiple accepted daily CSV
+sources. Each source is evaluated independently first, then aggregated by
+symbol, market, and pack.
+
+The aggregate comparison keeps all four baselines visible for every accepted
+source:
+
+- `AlwaysNoTrade`,
+- `BuyAndHold`,
+- `EqualWeightCommittee`,
+- `VoiceAdaptiveCommittee`.
+
+The aggregate status is computed from source-level results:
+
+- `Pass` only when voice-adaptive beats equal weight and the committee beats
+  both no-trade and buy-and-hold across enough accepted sources,
+- `Fail` when no edge is shown,
+- `Mixed` when wins and failures coexist,
+- `InsufficientEvidence` when configured source or prediction sample minimums
+  are not met.
+
+The current aggregation method is mean total return, mean max drawdown, and
+mean Brier score by baseline. Failures are not hidden by the mean: the report
+also lists symbols where voice lost to equal weight, buy-and-hold was
+stronger, or no-trade was stronger.
