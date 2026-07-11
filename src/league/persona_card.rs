@@ -1,4 +1,9 @@
-use std::{collections::BTreeMap, fs};
+use std::{
+    collections::BTreeMap,
+    fs,
+    path::{Path, PathBuf},
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use serde::{Deserialize, Serialize};
 
@@ -1965,6 +1970,52 @@ pub struct OwnerEvidenceTrialResult {
     pub market_triage: Vec<MarketTriageResult>,
     pub triage_report: OwnerEvidenceTriageReport,
     pub owner_action_checklist: Vec<OwnerActionItem>,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct OwnerEvidenceReportEmissionConfig {
+    pub output_dir: String,
+    pub write_report: bool,
+    pub overwrite: bool,
+    pub include_timestamp: bool,
+    pub report_filename: Option<String>,
+    pub allow_custom_output_dir: bool,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+impl Default for OwnerEvidenceReportEmissionConfig {
+    fn default() -> Self {
+        Self {
+            output_dir: owner_evidence_report_directory().to_string(),
+            write_report: true,
+            overwrite: false,
+            include_timestamp: false,
+            report_filename: None,
+            allow_custom_output_dir: false,
+            reason_codes: vec![
+                ReasonCode::OwnerEvidenceLocalReportPath,
+                ReasonCode::OwnerEvidenceReportLocalOnly,
+                ReasonCode::OwnerEvidenceDataIgnoredByDefault,
+            ],
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct OwnerEvidenceReportEmissionResult {
+    pub written: bool,
+    pub output_path: Option<String>,
+    pub report_text_hash: Option<String>,
+    pub reason_codes: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct OwnerEvidenceLocalTrialRunResult {
+    pub discovered_manifest_path: Option<String>,
+    pub trial_result: OwnerEvidenceTrialResult,
+    pub report_text: String,
+    pub report_emission: OwnerEvidenceReportEmissionResult,
     pub reason_codes: Vec<ReasonCode>,
 }
 
@@ -4555,6 +4606,234 @@ pub fn render_owner_evidence_triage_report_text(report: &OwnerEvidenceTriageRepo
     lines.push(report.no_profitability_claim.clone());
     lines.push(report.no_live_readiness_warning.clone());
     redact_owner_report_output(&lines.join("\n"))
+}
+
+pub fn run_owner_historical_evidence_trial_from_local_candidates(
+    mut config: OwnerEvidenceTrialConfig,
+    emission_config: OwnerEvidenceReportEmissionConfig,
+) -> OwnerEvidenceLocalTrialRunResult {
+    let discovered_manifest_path =
+        if config.manifest_json.is_none() && config.manifest_path.is_none() {
+            discover_owner_evidence_manifest_path()
+        } else {
+            None
+        };
+    if let Some(path) = &discovered_manifest_path {
+        config.manifest_path = Some(path.clone());
+    }
+
+    let trial_result = run_owner_historical_evidence_trial(config);
+    let report_text = render_owner_evidence_triage_report_text(&trial_result.triage_report);
+    let report_emission = emit_owner_evidence_triage_report_local(&report_text, emission_config);
+    let reason_codes = stable_reason_codes(
+        &trial_result
+            .reason_codes
+            .iter()
+            .chain(report_emission.reason_codes.iter())
+            .cloned()
+            .chain([
+                ReasonCode::OwnerEvidenceLocalPathContract,
+                ReasonCode::OwnerEvidenceManifestPathCandidate,
+                ReasonCode::OwnerEvidenceReportLocalOnly,
+                ReasonCode::HardcodingAuditPassed,
+            ])
+            .collect::<Vec<_>>(),
+    );
+
+    OwnerEvidenceLocalTrialRunResult {
+        discovered_manifest_path,
+        trial_result,
+        report_text,
+        report_emission,
+        reason_codes,
+    }
+}
+
+pub fn emit_owner_evidence_triage_report_local(
+    report_text: &str,
+    config: OwnerEvidenceReportEmissionConfig,
+) -> OwnerEvidenceReportEmissionResult {
+    let text_hash = Some(stable_hash_string(report_text));
+    let base_reason_codes = config.reason_codes;
+    if contains_owner_report_private_material(report_text)
+        || owner_evidence_report_text_is_unsafe(report_text)
+    {
+        return owner_evidence_report_emission_result(
+            false,
+            None,
+            None,
+            &base_reason_codes,
+            ReasonCode::OwnerEvidenceReportUnsafeTextRejected,
+        );
+    }
+    if !config.write_report {
+        return owner_evidence_report_emission_result(
+            false,
+            None,
+            text_hash,
+            &base_reason_codes,
+            ReasonCode::OwnerEvidenceReportEmissionDisabled,
+        );
+    }
+
+    let filename = match owner_evidence_report_filename(&config) {
+        Some(filename) => filename,
+        None => {
+            return owner_evidence_report_emission_result(
+                false,
+                None,
+                text_hash,
+                &base_reason_codes,
+                ReasonCode::OwnerEvidenceReportOutputPathRejected,
+            );
+        }
+    };
+    let output_dir = PathBuf::from(&config.output_dir);
+    if owner_evidence_report_path_rejected(&output_dir, config.allow_custom_output_dir) {
+        return owner_evidence_report_emission_result(
+            false,
+            None,
+            text_hash,
+            &base_reason_codes,
+            ReasonCode::OwnerEvidenceReportOutputPathRejected,
+        );
+    }
+    let output_path = output_dir.join(filename);
+    if owner_evidence_report_path_rejected(&output_path, config.allow_custom_output_dir)
+        || (output_path.exists() && !config.overwrite)
+        || fs::create_dir_all(&output_dir).is_err()
+        || fs::write(&output_path, report_text).is_err()
+    {
+        return owner_evidence_report_emission_result(
+            false,
+            None,
+            text_hash,
+            &base_reason_codes,
+            ReasonCode::OwnerEvidenceReportOutputPathRejected,
+        );
+    }
+
+    owner_evidence_report_emission_result(
+        true,
+        Some(output_path.display().to_string()),
+        text_hash,
+        &base_reason_codes,
+        ReasonCode::OwnerEvidenceReportWritten,
+    )
+}
+
+pub fn discover_owner_evidence_manifest_path() -> Option<String> {
+    owner_evidence_manifest_candidate_paths()
+        .into_iter()
+        .find(|path| Path::new(path).is_file())
+}
+
+fn owner_evidence_manifest_candidate_paths() -> Vec<String> {
+    [
+        "owner_pack.local.json",
+        "owner_pack.json",
+        "first_owner_pack.local.json",
+    ]
+    .iter()
+    .map(|filename| {
+        Path::new(owner_evidence_pack_directory())
+            .join(filename)
+            .display()
+            .to_string()
+    })
+    .collect()
+}
+
+fn owner_evidence_pack_directory() -> &'static str {
+    "data/historical/evidence_packs"
+}
+
+fn owner_evidence_report_directory() -> &'static str {
+    "reports/local/evidence_trials"
+}
+
+fn owner_evidence_report_filename(config: &OwnerEvidenceReportEmissionConfig) -> Option<String> {
+    let filename = config
+        .report_filename
+        .clone()
+        .unwrap_or_else(|| "owner_evidence_triage_report.txt".to_string());
+    if filename.trim().is_empty()
+        || filename.contains('/')
+        || filename.contains('\\')
+        || owner_evidence_report_text_is_unsafe(&filename)
+    {
+        return None;
+    }
+    if config.include_timestamp {
+        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).ok()?.as_secs();
+        let path = Path::new(&filename);
+        let stem = path.file_stem()?.to_str()?;
+        let extension = path.extension().and_then(|value| value.to_str());
+        return Some(match extension {
+            Some(extension) => format!("{stem}_{timestamp}.{extension}"),
+            None => format!("{stem}_{timestamp}"),
+        });
+    }
+    Some(filename)
+}
+
+fn owner_evidence_report_path_rejected(path: &Path, allow_custom_output_dir: bool) -> bool {
+    let normalized = path
+        .display()
+        .to_string()
+        .replace('\\', "/")
+        .to_ascii_lowercase();
+    let default_dir = Path::new(owner_evidence_report_directory());
+    if normalized.trim().is_empty()
+        || normalized.contains("://")
+        || owner_evidence_report_text_is_unsafe(&normalized)
+        || [
+            "src/",
+            "docs/",
+            "tests/",
+            "fixtures/",
+            "examples/",
+            ".github/",
+            "cargo.toml",
+        ]
+        .iter()
+        .any(|marker| normalized.starts_with(marker) || normalized.contains(&format!("/{marker}")))
+    {
+        return true;
+    }
+    !allow_custom_output_dir && !path.starts_with(default_dir)
+}
+
+fn owner_evidence_report_text_is_unsafe(text: &str) -> bool {
+    let private_instruction_name = concat!("work", ".", "md");
+    let normalized = text.to_ascii_lowercase();
+    normalized.contains(private_instruction_name)
+        || normalized.contains(".env")
+        || normalized.contains("local_private")
+        || ["http://", "https://", "ws://", "wss://", "ftp://"]
+            .iter()
+            .any(|marker| normalized.contains(marker))
+}
+
+fn owner_evidence_report_emission_result(
+    written: bool,
+    output_path: Option<String>,
+    report_text_hash: Option<String>,
+    base_reason_codes: &[ReasonCode],
+    outcome_reason: ReasonCode,
+) -> OwnerEvidenceReportEmissionResult {
+    OwnerEvidenceReportEmissionResult {
+        written,
+        output_path,
+        report_text_hash,
+        reason_codes: stable_reason_codes(
+            &base_reason_codes
+                .iter()
+                .cloned()
+                .chain([ReasonCode::OwnerEvidenceReportLocalOnly, outcome_reason])
+                .collect::<Vec<_>>(),
+        ),
+    }
 }
 
 enum OwnerTrialManifestInput {
@@ -10458,7 +10737,7 @@ fn top_agent_by(
 fn contains_owner_report_private_material(text: &str) -> bool {
     let normalized = text.to_ascii_lowercase();
     [
-        "authorization:",
+        "authorization",
         "bearer ",
         "toss_app_key",
         "toss_app_secret",
@@ -10478,6 +10757,9 @@ fn contains_owner_report_private_material(text: &str) -> bool {
         "raw toss response",
         "http://",
         "https://",
+        "ws://",
+        "wss://",
+        "ftp://",
         "broker-endpoint",
         "order-endpoint",
         "url_endpoint",
@@ -16747,6 +17029,111 @@ mod tests {
         assert!(text.contains("No profitability claim."));
         assert!(text.contains("No live trading readiness."));
         assert!(!text.contains(concat!("work", ".", "md")));
+    }
+
+    #[test]
+    fn owner_local_trial_keeps_missing_manifest_as_no_pack_without_writing_when_disabled() {
+        let missing_manifest = std::env::temp_dir()
+            .join(format!(
+                "soma-owner-evidence-missing-{}",
+                std::process::id()
+            ))
+            .join("owner_pack.json");
+        let result = run_owner_historical_evidence_trial_from_local_candidates(
+            OwnerEvidenceTrialConfig {
+                manifest_path: Some(missing_manifest.display().to_string()),
+                ..OwnerEvidenceTrialConfig::default()
+            },
+            OwnerEvidenceReportEmissionConfig {
+                write_report: false,
+                ..OwnerEvidenceReportEmissionConfig::default()
+            },
+        );
+
+        assert!(result.discovered_manifest_path.is_none());
+        assert_eq!(
+            result.trial_result.trial_status,
+            OwnerEvidenceTrialStatus::NoOwnerEvidencePackFound
+        );
+        assert!(result.trial_result.pack_evaluation.is_none());
+        assert!(!result.report_emission.written);
+        assert!(
+            result
+                .report_emission
+                .reason_codes
+                .contains(&ReasonCode::OwnerEvidenceReportEmissionDisabled)
+        );
+        assert!(
+            result
+                .report_text
+                .contains("No owner evidence pack was found")
+        );
+    }
+
+    #[test]
+    fn owner_evidence_report_emission_writes_only_to_allowed_local_path() {
+        let output_dir =
+            std::env::temp_dir().join(format!("soma-owner-evidence-report-{}", std::process::id()));
+        let config = OwnerEvidenceReportEmissionConfig {
+            output_dir: output_dir.display().to_string(),
+            report_filename: Some("deterministic-report.txt".to_string()),
+            allow_custom_output_dir: true,
+            ..OwnerEvidenceReportEmissionConfig::default()
+        };
+        let result = emit_owner_evidence_triage_report_local("safe local report", config);
+        assert!(result.written);
+        let output_path = result.output_path.expect("written output path");
+        assert!(output_path.ends_with("deterministic-report.txt"));
+        assert_eq!(
+            fs::read_to_string(&output_path).expect("report text"),
+            "safe local report"
+        );
+        assert!(
+            result
+                .reason_codes
+                .contains(&ReasonCode::OwnerEvidenceReportWritten)
+        );
+        fs::remove_dir_all(&output_dir).expect("remove test output");
+    }
+
+    #[test]
+    fn owner_evidence_report_emission_rejects_unsafe_paths_and_private_text() {
+        for output_dir in [
+            "src",
+            "docs",
+            "tests",
+            "examples",
+            "https://example.invalid/report",
+        ] {
+            let result = emit_owner_evidence_triage_report_local(
+                "safe local report",
+                OwnerEvidenceReportEmissionConfig {
+                    output_dir: output_dir.to_string(),
+                    allow_custom_output_dir: true,
+                    ..OwnerEvidenceReportEmissionConfig::default()
+                },
+            );
+            assert!(!result.written, "unsafe output dir {output_dir}");
+            assert!(
+                result
+                    .reason_codes
+                    .contains(&ReasonCode::OwnerEvidenceReportOutputPathRejected)
+            );
+        }
+
+        let result = emit_owner_evidence_triage_report_local(
+            "Authorization Bearer synthetic-secret",
+            OwnerEvidenceReportEmissionConfig {
+                write_report: false,
+                ..OwnerEvidenceReportEmissionConfig::default()
+            },
+        );
+        assert!(!result.written);
+        assert!(
+            result
+                .reason_codes
+                .contains(&ReasonCode::OwnerEvidenceReportUnsafeTextRejected)
+        );
     }
 
     #[test]

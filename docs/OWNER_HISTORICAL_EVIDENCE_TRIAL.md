@@ -94,6 +94,22 @@ either a local `manifest_path` or test-only `manifest_json`. It reuses:
 The runner does not download data, call network APIs, invoke a broker, place
 orders, cancel orders, or call a runtime model.
 
+## Local Candidate Run and Report
+
+`run_owner_historical_evidence_trial_from_local_candidates` checks only these
+local manifest candidates when no override is provided:
+
+- `data/historical/evidence_packs/owner_pack.local.json`
+- `data/historical/evidence_packs/owner_pack.json`
+- `data/historical/evidence_packs/first_owner_pack.local.json`
+
+It passes a discovered safe manifest to the existing trial runner and renders
+the same triage report. `OwnerEvidenceReportEmissionConfig` can write that text
+to the ignored local directory `reports/local/evidence_trials/`; it rejects
+unsafe text and source, documentation, test, fixture, example, Cargo, URL,
+environment, and private paths. Setting `write_report=false` leaves the report
+in memory only.
+
 ## No-Pack Behavior
 
 If no manifest path or JSON is supplied, the result is

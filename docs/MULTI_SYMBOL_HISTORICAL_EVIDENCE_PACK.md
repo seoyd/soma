@@ -148,6 +148,13 @@ The trial keeps rejected, disabled, insufficient, failed, and mixed sources
 visible in an owner-readable triage report. It also separates US, KR, and BTC
 market-level results so market failures cannot be hidden by aggregate means.
 
+For a local owner run, `run_owner_historical_evidence_trial_from_local_candidates`
+checks the approved manifest names below `data/historical/evidence_packs/` and
+then calls this same trial. The resulting text may be written only below the
+ignored `reports/local/evidence_trials/` directory by
+`OwnerEvidenceReportEmissionConfig`; this does not change any proof-gate
+calculation.
+
 ## Boundaries
 
 The evidence pack adds no network client, downloader, broker, order placement,

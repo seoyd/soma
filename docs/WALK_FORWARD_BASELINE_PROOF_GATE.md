@@ -129,3 +129,11 @@ The trial report adds failure triage around the proof gate:
 
 The output remains a skeptical evidence report, not a profitability claim and
 not live trading readiness.
+
+## Local Owner Report Emission
+
+The owner local-candidate runner reuses this proof gate unchanged. It may render
+and store the computed triage text below `reports/local/evidence_trials/` after
+the report-text safety check passes. Local report emission is not an execution
+path and does not alter baseline, VoiceAdaptiveCommittee, Risk Governor, or
+paper-only evaluation behavior.

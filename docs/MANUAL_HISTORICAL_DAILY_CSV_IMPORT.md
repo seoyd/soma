@@ -125,3 +125,8 @@ If no owner manifest is supplied, the wrapper returns
 `NoOwnerEvidencePackFound` and an action checklist instead of creating fake
 data. If a source is unsafe, the source remains visible as rejected whenever
 the manifest itself can be parsed safely.
+
+The local-candidate wrapper checks only the approved manifest names in
+`data/historical/evidence_packs/`. It can emit the existing rendered triage
+text below the ignored `reports/local/evidence_trials/` directory after a
+private-marker safety check. This remains local filesystem behavior only.
