@@ -1,3 +1,4 @@
+pub mod acquisition;
 pub mod alpaca_provider;
 pub mod collector;
 pub mod config_gen;
@@ -28,6 +29,20 @@ pub mod timeframe;
 pub mod validation;
 pub mod yfinance_bridge;
 
+pub use acquisition::{
+    AcquisitionMarketScope, AcquisitionMode, AcquisitionPlan, AcquisitionPolicy,
+    AcquisitionReceipt, AcquisitionReceiptStatus, AgentDataIntent, AgentDataPolicy,
+    AgentEvidenceBundle, AgentProposalEvidenceBinding, AutonomousDataCycleInput,
+    AutonomousDataCyclePlan, AutonomousDataCycleResult, BrokerExecutionResult, ConfiguredUniverse,
+    DataAcquisitionBroker, DataLookback, DataPriority, DataSnapshot, DatasetKind,
+    EvidenceDecisionGate, EvidenceFreshnessStatus, FrozenSnapshotSet, InMemorySnapshotStore,
+    MockReadOnlyProvider, ProviderCapabilities, ProviderFetchFailure, ReadOnlyMarketDataProvider,
+    ReadOnlyProviderRegistry, ReadOnlyProviderRequest, ReadOnlyProviderResponse,
+    RejectedAcquisitionRequest, SnapshotProvenance, SnapshotQualitySummary, SnapshotSourceType,
+    StaleDataPolicy, bind_proposal_to_frozen_evidence, build_acquisition_plan,
+    build_agent_evidence_bundles, default_agent_data_policies, execute_autonomous_data_cycle,
+    freeze_decision_snapshot_set, plan_agent_data_intent, plan_autonomous_data_cycle,
+};
 pub use alpaca_provider::{
     AlpacaHistoricalBarsImportConfig, AlpacaHistoricalBarsImportReport, AlpacaProviderStatus,
     default_alpaca_output_dir, parse_alpaca_historical_bars_fixture,

@@ -4654,7 +4654,7 @@ pub fn emit_owner_evidence_triage_report_local(
     config: OwnerEvidenceReportEmissionConfig,
 ) -> OwnerEvidenceReportEmissionResult {
     let text_hash = Some(stable_hash_string(report_text));
-    let base_reason_codes = config.reason_codes;
+    let base_reason_codes = config.reason_codes.clone();
     if contains_owner_report_private_material(report_text)
         || owner_evidence_report_text_is_unsafe(report_text)
     {

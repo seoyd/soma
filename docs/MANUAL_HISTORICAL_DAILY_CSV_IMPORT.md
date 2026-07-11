@@ -130,3 +130,10 @@ The local-candidate wrapper checks only the approved manifest names in
 `data/historical/evidence_packs/`. It can emit the existing rendered triage
 text below the ignored `reports/local/evidence_trials/` directory after a
 private-marker safety check. This remains local filesystem behavior only.
+
+## Autonomous Acquisition Relationship
+
+Manual CSV import remains the offline replay, audit, and reproducibility path.
+The autonomous read-only acquisition broker uses separate normalized snapshots
+and can replay them without network access; it does not reinterpret local CSV
+fixtures as live provider evidence.

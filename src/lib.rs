@@ -42,6 +42,20 @@ pub use core::{
     critical_reason_codes, deterministic_float_format, evaluate_core_readiness,
     measure_performance_budget, stable_hash_string, stable_ordered_strings, stable_reason_codes,
 };
+pub use data::acquisition::{
+    AcquisitionMarketScope, AcquisitionMode, AcquisitionPlan, AcquisitionPolicy,
+    AcquisitionReceipt, AcquisitionReceiptStatus, AgentDataIntent, AgentDataPolicy,
+    AgentEvidenceBundle, AgentProposalEvidenceBinding, AutonomousDataCycleInput,
+    AutonomousDataCyclePlan, AutonomousDataCycleResult, BrokerExecutionResult, ConfiguredUniverse,
+    DataAcquisitionBroker, DataLookback, DataPriority, DataSnapshot, DatasetKind,
+    EvidenceDecisionGate, EvidenceFreshnessStatus, FrozenSnapshotSet, InMemorySnapshotStore,
+    MockReadOnlyProvider, ProviderCapabilities, ProviderFetchFailure, ReadOnlyMarketDataProvider,
+    ReadOnlyProviderRegistry, ReadOnlyProviderRequest, ReadOnlyProviderResponse,
+    RejectedAcquisitionRequest, SnapshotProvenance, SnapshotQualitySummary, SnapshotSourceType,
+    StaleDataPolicy, bind_proposal_to_frozen_evidence, build_acquisition_plan,
+    build_agent_evidence_bundles, default_agent_data_policies, execute_autonomous_data_cycle,
+    freeze_decision_snapshot_set, plan_agent_data_intent, plan_autonomous_data_cycle,
+};
 pub use data::{
     AdjustedPricePolicy, AlpacaHistoricalBarsImportConfig, AlpacaHistoricalBarsImportReport,
     AlpacaProviderStatus, AssetClass, AuthConfig, AuthRequirement, CandleCsvConfig,
