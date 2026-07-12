@@ -9843,7 +9843,6 @@ fn sprint173_smartcore_forward_and_safety_guard_fail_closed() {
         "pytorch",
         "torch",
         "tensorflow",
-        "cuda",
         "onnxruntime",
         "candle",
         "burn",

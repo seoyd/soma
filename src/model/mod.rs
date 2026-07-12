@@ -1,3 +1,4 @@
+pub mod backend;
 pub mod calibration;
 pub mod comparison;
 pub mod escalation;
@@ -21,6 +22,13 @@ pub mod sequence_spec;
 pub mod threshold;
 pub mod tiny_tensor;
 
+pub use backend::{
+    BackendCapabilities, BackendDeviceInfo, BackendError, BackendFallbackPolicy, BackendOperation,
+    BackendOperationSet, BackendPreference, BackendReadiness, BackendReasonCode, BackendSelection,
+    BackendSelectionRequest, BackendState, CpuMamba3Backend, Mamba3BackendKind,
+    Mamba3ExecutionBackend, ModelPrecision, StaticBackendCapabilityProbe,
+    SystemBackendCapabilityProbe, select_mamba3_backend,
+};
 pub use calibration::{CalibrationReport, build_calibration_report};
 pub use comparison::{ModelComparisonReport, compare_walk_forward_reports};
 pub use escalation::{
