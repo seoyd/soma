@@ -4,15 +4,18 @@
 
 This is a small, portable Rust `f32` reference block for inspecting the Mamba-3 SISO state update. It is CPU-only, sequential, deterministic when parameters are supplied or initialized with an explicit seed, and intentionally not connected to the committee, risk, data-provider, or execution paths.
 
-The implementation reuses the repository's existing tiny contiguous tensor storage, shape checks, finite-value checks, serialization derives, and deterministic seed convention. The legacy `Mamba3TemporalCellV0` remains an older paper-only simplified cell; the new `Mamba3Siso*V0` types are the executable reference path.
+The executable block is isolated in `src/model/mamba3.rs` and uses generic contiguous storage from `src/model/tiny_tensor.rs`. The legacy `Mamba3TemporalCellV0` remains a separate paper-only simplified committee cell. The `Mamba3Siso*V0` types are the reference path and do not depend on league governance.
 
 ## Official Reference Lock
 
 - Paper: *Mamba-3: Improved Sequence Modeling using State Space Principles*, arXiv:2603.15569.
 - Implementation repository: `state-spaces/mamba`.
 - Examined commit: `f577286d052741c35d39cd43bdc3fad27120f22c`.
+- Commit date: `2026-07-07T04:22:25-04:00`.
 - Primary implementation mapping: `mamba_ssm/modules/mamba3.py` and `mamba_ssm/ops/triton/mamba3/mamba3_siso_step.py`.
 - Differential context: `mamba_ssm/modules/mamba2.py`, `mamba_ssm/modules/mamba2_simple.py`, and `mamba_ssm/modules/ssd_minimal.py`.
+
+The available local host has Python 3.9.6 but no PyTorch installation. The pinned upstream per-step API also documents an H100/CUDA/CuTe implementation requirement. Therefore no official vector was generated on this host.
 
 The paper is the mathematical reference. The official implementation is the ordering and layout reference. The core follows the official SISO step ordering: projection, BC RMS normalization, B/C bias, angle update and pair rotation, exponential-trapezoidal state update, skip, SiLU gate, and output projection.
 
@@ -74,9 +77,9 @@ rows and `input_dim` columns. B/C biases are `[nheads, state_dim]`; their norm s
 
 ## Conformance Method
 
-`Mamba3SisoReferenceFixtureV0` is an explicit JSON format for test/reference arrays, configuration metadata, upstream commit, output vectors, and a configured tolerance. Production math never reads fixture data unless a caller explicitly invokes the import API.
+`Mamba3SisoReferenceFixtureV0` is an explicit JSON format for test/reference arrays, configuration metadata, upstream commit, source paths, Python/PyTorch/device provenance, deterministic parameter ordering, initial state, per-step output/state vectors, tolerances, and an FNV-1a digest. Production math never reads fixture data unless a caller explicitly invokes the import API.
 
-No official vector was generated in this environment because the official implementation requires its Python/PyTorch kernel environment. The harness therefore returns `OfficialOracleUnavailable` when expected vectors are absent. It does not fabricate vectors and does not claim official numerical parity. Once vectors are generated externally from the pinned official commit, the same fixture import and comparison path can validate them without adding Python to Rust builds or tests.
+No official vector was generated in this environment because the official implementation requires its Python/PyTorch kernel environment. The harness therefore returns `OfficialOracleUnavailable` when expected vectors are absent. It does not fabricate vectors and does not claim official numerical parity. Once vectors are generated externally from the pinned official commit, the same fixture import and comparison path validates output and every stored recurrent state without adding Python to Rust builds or tests. The developer-only generator is `tools/mamba3_reference/generate_oracle.py`.
 
 ## Numerical Limits
 

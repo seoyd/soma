@@ -6,6 +6,7 @@ pub mod external_model_research_ops;
 pub mod external_prediction_import_v2;
 pub mod external_signal;
 pub mod import;
+pub mod mamba3;
 pub mod mamba3fin_lite_plan;
 pub mod mamba_readiness;
 pub mod mamba_readiness_v2;
@@ -18,6 +19,7 @@ pub mod sequence_dataset_export;
 pub mod sequence_readiness;
 pub mod sequence_spec;
 pub mod threshold;
+pub mod tiny_tensor;
 
 pub use calibration::{CalibrationReport, build_calibration_report};
 pub use comparison::{ModelComparisonReport, compare_walk_forward_reports};
@@ -86,6 +88,14 @@ pub use mamba_readiness_v2::{
     Mamba3ReadinessAuditV2, Mamba3ReadinessDimension, Mamba3ReadinessDimensionResult,
     Mamba3ReadinessRecommendation, Mamba3ReadinessState, MambaReadinessV2Config,
     MambaReadinessV2Runner,
+};
+pub use mamba3::{
+    Mamba3ConformanceReportV0, Mamba3ConformanceStatusV0, Mamba3SisoConfigV0,
+    Mamba3SisoConformanceToleranceV0, Mamba3SisoErrorV0, Mamba3SisoFixtureProvenanceV0,
+    Mamba3SisoForwardResultV0, Mamba3SisoModelMetadataV0, Mamba3SisoParamsV0,
+    Mamba3SisoPrecisionV0, Mamba3SisoReferenceFixtureV0, Mamba3SisoRopeFractionV0,
+    Mamba3SisoStateV0, TinyMamba3SisoV0, mamba3_siso_conformance_v0, mamba3_siso_forward_v0,
+    mamba3_siso_model_metadata_v0, mamba3_siso_params_from_seed_v0, mamba3_siso_step_v0,
 };
 pub use mamba3fin_lite_plan::{
     Mamba3FinLitePrototypeBackend, Mamba3FinLitePrototypePlan, Mamba3FinLitePrototypePlanConfig,
@@ -536,6 +546,40 @@ pub use sequence_spec::{
 pub use threshold::{
     OptimizeMetric, ThresholdCandidateResult, ThresholdSearchConfig, ThresholdSearchReport,
     ThresholdSet, search_thresholds,
+};
+
+#[cfg(test)]
+mod mamba3_module_boundary_tests {
+    #[test]
+    fn mamba3_source_has_no_governance_or_runtime_dependency() {
+        let source = include_str!("mamba3.rs");
+        for forbidden in [
+            "crate::league",
+            "crate::chair",
+            "crate::risk",
+            "crate::paper",
+            "crate::data",
+            "crate::owner",
+            "std::process",
+            "http://",
+            "https://",
+        ] {
+            assert!(
+                !source.contains(forbidden),
+                "forbidden dependency: {forbidden}"
+            );
+        }
+    }
+
+    #[test]
+    fn legacy_league_path_reexports_the_extracted_siso_api() {
+        let _ = crate::league::minimal_ai_committee_core::mamba3_siso_params_from_seed_v0;
+        let _ = crate::league::minimal_ai_committee_core::TinyMamba3SisoV0::new;
+    }
+}
+pub use tiny_tensor::{
+    TinyTensor1D, TinyTensor2D, clamp_finite, elem_add, elem_mul, from_vec_1d, from_vec_2d, matvec,
+    sigmoid_approx, tanh_approx, zeros_1d, zeros_2d,
 };
 
 pub use model_ops_rollup::{
