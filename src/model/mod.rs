@@ -7,6 +7,7 @@ pub mod external_model_research_ops;
 pub mod external_prediction_import_v2;
 pub mod external_signal;
 pub mod import;
+pub mod learning;
 pub mod mamba3;
 pub mod mamba3fin_lite_plan;
 pub mod mamba_readiness;
@@ -85,6 +86,20 @@ pub use external_signal::{
 };
 pub use import::{
     prediction_frame_from_csv_string, prediction_frame_from_rows, prediction_frame_to_csv_string,
+};
+pub use learning::{
+    AgentModelRuntimeV0, BaselineComparisonV0, CalibrationBucketV0, ChronologicalSplitConfigV0,
+    ChronologicalSplitsV0, ConstantProbabilityBaselineV0, EncodedSequenceV0,
+    EncodedTrainingExampleV0, EvaluationMetricsV0, FeatureNormalizerV0, FrozenMamba3EncoderV0,
+    HeadGradientsV0, HeadTrainingConfigV0, HeadTrainingResultV0, IndexRangeV0, LearningError,
+    LinearMomentumBaselineV0, LogisticPredictionHeadV0, MambaRepresentationValueStatusV0,
+    ModelAgentDeploymentStatus, ModelMathematicalStatus, MomentumCandleV0, MomentumFeatureConfigV0,
+    MomentumFeatureRowV0, MomentumSequenceConfigV0, SandboxModelMetricsV0,
+    SandboxModelVersionJournalV0, SandboxModelVersionV0, SequenceExampleV0, SequencePooling,
+    SgdConfigV0, TrainingEpochMetricsV0, apply_sgd_v0, brier_loss_and_gradients_v0,
+    build_momentum_features_v0, build_momentum_sequence_examples_v0, chronological_split_v0,
+    evaluate_head_v0, evaluate_probabilities_v0, mamba_representation_value_status_v0,
+    train_frozen_mamba_head_v0,
 };
 pub use mamba_readiness::{
     InferenceMode, Mamba3FinCandidateReadiness, Mamba3FinCandidateReport, Mamba3FinCandidateSpec,
