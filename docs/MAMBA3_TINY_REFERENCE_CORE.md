@@ -17,6 +17,10 @@ The executable block is isolated in `src/model/mamba3.rs` and uses generic conti
 
 The available local host has Python 3.9.6 but no PyTorch installation. The pinned upstream per-step API also documents an H100/CUDA/CuTe implementation requirement. Therefore no official vector was generated on this host.
 
+## Official Execution Route
+
+The pinned checkout is clean at the recorded commit and its official source hashes are checked by the developer generator. No faithful CPU path was found in the inspected Mamba-3 module: the SISO combined and step paths import Triton/CUDA code, while `Mamba3.step` requires the CuTe step function and documents H100 testing. The selected local result is therefore `OfficialOracleExecutionBlocked`, not an output or state parity claim.
+
 The paper is the mathematical reference. The official implementation is the ordering and layout reference. The core follows the official SISO step ordering: projection, BC RMS normalization, B/C bias, angle update and pair rotation, exponential-trapezoidal state update, skip, SiLU gate, and output projection.
 
 The upstream project is Apache-2.0 licensed. This implementation is an independently written, small Rust translation of the documented behavior and does not copy upstream source.
@@ -71,6 +75,19 @@ rows and `input_dim` columns. B/C biases are `[nheads, state_dim]`; their norm s
 
 `Mamba3SisoStateV0` owns `[nheads, nangles]` angles, `[d_inner, state_dim]` SSM values, `[nheads, state_dim]` previous keys, and `[nheads, head_dim]` previous values. There is no global or hidden state.
 
+## Parameter And State Mapping
+
+| Rust field | Official Mamba-3 field | Shape/order |
+| --- | --- | --- |
+| `input_projection` | `in_proj.weight` | `[projection_rows, d_model]`, row-major |
+| `dt_bias` | `dt_bias` | `[nheads]` |
+| `b_bias`, `c_bias` | `B_bias`, `C_bias` | `[nheads, d_state]`, SISO rank squeezed |
+| `b_norm_scale`, `c_norm_scale` | `B_norm.weight`, `C_norm.weight` | `[d_state]` |
+| `skip` | `D` | `[nheads]` |
+| `output_projection` | `out_proj.weight` | `[d_model, d_inner]`, row-major |
+
+The official cache maps to Rust state without a batch dimension: `angle_dt_state[0]`, `ssm_state[0]`, `k_state[0, 0]`, and `v_state[0]`. The selected SISO implementation stores real-valued SSM entries; phase is represented by persistent angle pairs used to rotate key/query coordinates. A fixture must never invent a separate imaginary state when the official cache does not expose one.
+
 ## Forward And Streaming
 
 `mamba3_siso_forward_v0` begins from `Mamba3SisoStateV0::zero` and invokes `mamba3_siso_step_v0` for every token. Streaming callers retain and mutate their own explicit state. The test suite verifies bit-identical output and final state for both paths under identical inputs and parameters.
@@ -79,7 +96,11 @@ rows and `input_dim` columns. B/C biases are `[nheads, state_dim]`; their norm s
 
 `Mamba3SisoReferenceFixtureV0` is an explicit JSON format for test/reference arrays, configuration metadata, upstream commit, source paths, Python/PyTorch/device provenance, deterministic parameter ordering, initial state, per-step output/state vectors, tolerances, and an FNV-1a digest. Production math never reads fixture data unless a caller explicitly invokes the import API.
 
+The fixture parser requires a case id, official source SHA-256 values, generator SHA-256, known `float32` dtype, complete state/parameter shapes, and a typed binary FNV-1a digest. It rejects missing provenance, corrupted digests, non-finite values, unsupported MIMO, and invalid source hashes.
+
 No official vector was generated in this environment because the official implementation requires its Python/PyTorch kernel environment. The harness therefore returns `OfficialOracleUnavailable` when expected vectors are absent. It does not fabricate vectors and does not claim official numerical parity. Once vectors are generated externally from the pinned official commit, the same fixture import and comparison path validates output and every stored recurrent state without adding Python to Rust builds or tests. The developer-only generator is `tools/mamba3_reference/generate_oracle.py`.
+
+The tolerance profile has separate output absolute/relative and state absolute limits. On a mismatch, comparison records the first step/index and should be investigated in projection, time step, B/C normalization and bias, rotation, decay, trapezoidal contribution, state, readout, skip, gate, then output-projection order. Tolerances are not changed before that first divergence is explained.
 
 ## Numerical Limits
 
@@ -91,4 +112,4 @@ The block is reference-only. It has no HTTP, provider, credential, subprocess, P
 
 ## Next Stage
 
-Generate a tiny official vector fixture from the pinned upstream commit on an explicitly prepared reference environment, compare output and optional per-step state, then consider only evidence-backed portability or performance work.
+Run the developer-only generator on a clean CUDA environment that satisfies the pinned official Mamba-3 dependencies, review each case A-E fixture, and compare output and state before considering training or performance work.

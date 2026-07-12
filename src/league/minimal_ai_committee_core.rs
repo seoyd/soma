@@ -8,7 +8,8 @@ pub use crate::model::mamba3::{
     Mamba3SisoConformanceToleranceV0, Mamba3SisoErrorV0, Mamba3SisoFixtureProvenanceV0,
     Mamba3SisoForwardResultV0, Mamba3SisoModelMetadataV0, Mamba3SisoParamsV0,
     Mamba3SisoPrecisionV0, Mamba3SisoReferenceFixtureV0, Mamba3SisoRopeFractionV0,
-    Mamba3SisoStateV0, TinyMamba3SisoV0, mamba3_siso_conformance_v0, mamba3_siso_forward_v0,
+    Mamba3SisoSourceHashV0, Mamba3SisoStateV0, TinyMamba3SisoV0,
+    mamba3_oracle_execution_blocked_v0, mamba3_siso_conformance_v0, mamba3_siso_forward_v0,
     mamba3_siso_model_metadata_v0, mamba3_siso_params_from_seed_v0, mamba3_siso_step_v0,
 };
 pub use crate::model::tiny_tensor::{

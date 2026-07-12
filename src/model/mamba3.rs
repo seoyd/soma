@@ -647,15 +647,32 @@ impl Mamba3SisoConformanceToleranceV0 {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Mamba3SisoSourceHashV0 {
+    pub path: String,
+    pub sha256: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Mamba3SisoFixtureProvenanceV0 {
+    pub case_id: String,
     pub official_repository: String,
     pub official_commit: String,
     pub official_source_paths: Vec<String>,
+    pub official_source_hashes: Vec<Mamba3SisoSourceHashV0>,
     pub paper_identifier: String,
+    pub generator_sha256: String,
+    #[serde(default)]
+    pub instrumentation_patch_sha256: Option<String>,
     pub python_version: String,
     pub pytorch_version: String,
     pub dtype: Mamba3SisoPrecisionV0,
     pub device: String,
+    #[serde(default)]
+    pub cuda_runtime: Option<String>,
+    #[serde(default)]
+    pub triton_version: Option<String>,
+    #[serde(default)]
+    pub cute_version: Option<String>,
     pub parameter_ordering: Vec<String>,
     pub parameter_count: usize,
     pub digest: String,
@@ -679,14 +696,15 @@ pub struct Mamba3SisoReferenceFixtureV0 {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Mamba3ConformanceStatusV0 {
     OfficialOracleUnavailable,
-    InternalReferenceOnly,
-    OfficialOutputMatched,
+    OfficialOracleExecutionBlocked,
+    OfficialOutputMatchedStateUnavailable,
     OfficialOutputAndStateMatched,
     OfficialMismatch,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Mamba3ConformanceReportV0 {
+    pub case_id: Option<String>,
     pub status: Mamba3ConformanceStatusV0,
     pub max_output_abs_error: Option<f32>,
     pub max_output_rel_error: Option<f32>,
@@ -695,6 +713,9 @@ pub struct Mamba3ConformanceReportV0 {
     pub failing_index: Option<usize>,
     pub compared_output_values: usize,
     pub compared_state_values: usize,
+    pub fixture_digest: Option<String>,
+    pub official_commit: Option<String>,
+    pub execution_detail: Option<String>,
 }
 
 impl Mamba3SisoReferenceFixtureV0 {
@@ -711,14 +732,7 @@ impl Mamba3SisoReferenceFixtureV0 {
     }
 
     pub fn computed_digest(&self) -> Result<String, Mamba3SisoErrorV0> {
-        let mut canonical = self.clone();
-        canonical.provenance.digest.clear();
-        let text =
-            serde_json::to_string(&canonical).map_err(|_| Mamba3SisoErrorV0::FixtureFormat)?;
-        let digest = text.bytes().fold(0xcbf29ce484222325_u64, |hash, byte| {
-            (hash ^ byte as u64).wrapping_mul(0x100000001b3)
-        });
-        Ok(format!("fnv1a64-{digest:016x}"))
+        Ok(mamba3_siso_fixture_digest(self))
     }
 
     pub fn validate(&self) -> Result<(), Mamba3SisoErrorV0> {
@@ -729,7 +743,11 @@ impl Mamba3SisoReferenceFixtureV0 {
             || self.provenance.official_repository.is_empty()
             || self.provenance.official_commit.is_empty()
             || self.provenance.official_source_paths.is_empty()
+            || self.provenance.case_id.is_empty()
+            || self.provenance.official_source_hashes.len()
+                != self.provenance.official_source_paths.len()
             || self.provenance.paper_identifier.is_empty()
+            || !mamba3_siso_is_sha256(&self.provenance.generator_sha256)
             || self.provenance.python_version.is_empty()
             || self.provenance.pytorch_version.is_empty()
             || self.provenance.device.is_empty()
@@ -737,6 +755,20 @@ impl Mamba3SisoReferenceFixtureV0 {
             || self.provenance.dtype != Mamba3SisoPrecisionV0::F32
             || self.provenance.digest.is_empty()
             || self.provenance.official_commit != self.metadata.reference_commit
+        {
+            return Err(Mamba3SisoErrorV0::FixtureFormat);
+        }
+        if self
+            .provenance
+            .official_source_hashes
+            .iter()
+            .zip(&self.provenance.official_source_paths)
+            .any(|(hash, path)| hash.path != *path || !mamba3_siso_is_sha256(&hash.sha256))
+            || self
+                .provenance
+                .instrumentation_patch_sha256
+                .as_deref()
+                .is_some_and(|hash| !mamba3_siso_is_sha256(hash))
         {
             return Err(Mamba3SisoErrorV0::FixtureFormat);
         }
@@ -778,6 +810,171 @@ impl Mamba3SisoReferenceFixtureV0 {
         }
         Ok(())
     }
+}
+
+fn mamba3_siso_is_sha256(value: &str) -> bool {
+    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
+struct Mamba3SisoDigest(u64);
+
+impl Mamba3SisoDigest {
+    fn new() -> Self {
+        Self(0xcbf29ce484222325)
+    }
+
+    fn bytes(&mut self, value: &[u8]) {
+        for byte in value {
+            self.0 = (self.0 ^ u64::from(*byte)).wrapping_mul(0x100000001b3);
+        }
+    }
+
+    fn bool(&mut self, value: bool) {
+        self.bytes(&[u8::from(value)]);
+    }
+
+    fn u64(&mut self, value: u64) {
+        self.bytes(&value.to_le_bytes());
+    }
+
+    fn usize(&mut self, value: usize) {
+        self.u64(value as u64);
+    }
+
+    fn f32(&mut self, value: f32) {
+        self.bytes(&value.to_bits().to_le_bytes());
+    }
+
+    fn string(&mut self, value: &str) {
+        self.usize(value.len());
+        self.bytes(value.as_bytes());
+    }
+
+    fn optional_string(&mut self, value: Option<&str>) {
+        self.bool(value.is_some());
+        if let Some(value) = value {
+            self.string(value);
+        }
+    }
+}
+
+fn mamba3_siso_digest_precision(digest: &mut Mamba3SisoDigest, value: Mamba3SisoPrecisionV0) {
+    digest.bytes(&[match value {
+        Mamba3SisoPrecisionV0::F32 => 0,
+        Mamba3SisoPrecisionV0::F64Unsupported => 1,
+    }]);
+}
+
+fn mamba3_siso_digest_tensor_1d(digest: &mut Mamba3SisoDigest, value: &TinyTensor1D) {
+    digest.usize(value.dim);
+    digest.bool(value.paper_only);
+    digest.usize(value.values.len());
+    for value in &value.values {
+        digest.f32(*value);
+    }
+}
+
+fn mamba3_siso_digest_tensor_2d(digest: &mut Mamba3SisoDigest, value: &TinyTensor2D) {
+    digest.usize(value.rows);
+    digest.usize(value.cols);
+    digest.bool(value.paper_only);
+    digest.usize(value.values.len());
+    for value in &value.values {
+        digest.f32(*value);
+    }
+}
+
+fn mamba3_siso_fixture_digest(fixture: &Mamba3SisoReferenceFixtureV0) -> String {
+    let mut digest = Mamba3SisoDigest::new();
+    digest.u64(fixture.format_version as u64);
+    digest.u64(fixture.metadata.format_version as u64);
+    digest.string(&fixture.metadata.architecture);
+    let config = &fixture.metadata.config;
+    digest.usize(config.input_dim);
+    digest.usize(config.state_dim);
+    digest.usize(config.head_dim);
+    digest.usize(config.expansion);
+    digest.bytes(&[match config.rope_fraction {
+        Mamba3SisoRopeFractionV0::Half => 0,
+        Mamba3SisoRopeFractionV0::Full => 1,
+    }]);
+    digest.f32(config.norm_epsilon);
+    digest.f32(config.a_floor);
+    digest.usize(config.mimo_rank);
+    mamba3_siso_digest_precision(&mut digest, config.precision);
+    digest.bool(config.short_convolution_enabled);
+    digest.usize(fixture.metadata.parameter_count);
+    digest.string(&fixture.metadata.reference_commit);
+    digest.bool(fixture.metadata.reference_only);
+    let provenance = &fixture.provenance;
+    digest.string(&provenance.case_id);
+    digest.string(&provenance.official_repository);
+    digest.string(&provenance.official_commit);
+    digest.usize(provenance.official_source_paths.len());
+    for value in &provenance.official_source_paths {
+        digest.string(value);
+    }
+    digest.usize(provenance.official_source_hashes.len());
+    for value in &provenance.official_source_hashes {
+        digest.string(&value.path);
+        digest.string(&value.sha256);
+    }
+    digest.string(&provenance.paper_identifier);
+    digest.string(&provenance.generator_sha256);
+    digest.optional_string(provenance.instrumentation_patch_sha256.as_deref());
+    digest.string(&provenance.python_version);
+    digest.string(&provenance.pytorch_version);
+    mamba3_siso_digest_precision(&mut digest, provenance.dtype);
+    digest.string(&provenance.device);
+    digest.optional_string(provenance.cuda_runtime.as_deref());
+    digest.optional_string(provenance.triton_version.as_deref());
+    digest.optional_string(provenance.cute_version.as_deref());
+    digest.usize(provenance.parameter_ordering.len());
+    for value in &provenance.parameter_ordering {
+        digest.string(value);
+    }
+    digest.usize(provenance.parameter_count);
+    let params = &fixture.parameters;
+    mamba3_siso_digest_tensor_2d(&mut digest, &params.input_projection);
+    mamba3_siso_digest_tensor_1d(&mut digest, &params.dt_bias);
+    mamba3_siso_digest_tensor_2d(&mut digest, &params.b_bias);
+    mamba3_siso_digest_tensor_2d(&mut digest, &params.c_bias);
+    mamba3_siso_digest_tensor_1d(&mut digest, &params.b_norm_scale);
+    mamba3_siso_digest_tensor_1d(&mut digest, &params.c_norm_scale);
+    mamba3_siso_digest_tensor_1d(&mut digest, &params.skip);
+    mamba3_siso_digest_tensor_2d(&mut digest, &params.output_projection);
+    mamba3_siso_digest_state(&mut digest, &fixture.initial_state);
+    mamba3_siso_digest_tensor_list(&mut digest, &fixture.input);
+    digest.bool(fixture.expected_output.is_some());
+    if let Some(output) = &fixture.expected_output {
+        mamba3_siso_digest_tensor_list(&mut digest, output);
+    }
+    digest.bool(fixture.expected_state.is_some());
+    if let Some(states) = &fixture.expected_state {
+        digest.usize(states.len());
+        for state in states {
+            mamba3_siso_digest_state(&mut digest, state);
+        }
+    }
+    digest.f32(fixture.tolerance.absolute);
+    digest.f32(fixture.tolerance.relative);
+    digest.f32(fixture.tolerance.state_absolute);
+    format!("fnv1a64-{:016x}", digest.0)
+}
+
+fn mamba3_siso_digest_tensor_list(digest: &mut Mamba3SisoDigest, values: &[TinyTensor1D]) {
+    digest.usize(values.len());
+    for value in values {
+        mamba3_siso_digest_tensor_1d(digest, value);
+    }
+}
+
+fn mamba3_siso_digest_state(digest: &mut Mamba3SisoDigest, state: &Mamba3SisoStateV0) {
+    mamba3_siso_digest_tensor_2d(digest, &state.angle_state);
+    mamba3_siso_digest_tensor_1d(digest, &state.ssm_state);
+    mamba3_siso_digest_tensor_2d(digest, &state.previous_key);
+    mamba3_siso_digest_tensor_2d(digest, &state.previous_value);
+    digest.usize(state.step_index);
 }
 
 fn mamba3_siso_compare_values(
@@ -822,6 +1019,7 @@ pub fn mamba3_siso_conformance_v0(
     fixture.validate()?;
     let Some(expected_output) = fixture.expected_output.as_ref() else {
         return Ok(Mamba3ConformanceReportV0 {
+            case_id: Some(fixture.provenance.case_id.clone()),
             status: Mamba3ConformanceStatusV0::OfficialOracleUnavailable,
             max_output_abs_error: None,
             max_output_rel_error: None,
@@ -830,6 +1028,9 @@ pub fn mamba3_siso_conformance_v0(
             failing_index: None,
             compared_output_values: 0,
             compared_state_values: 0,
+            fixture_digest: Some(fixture.provenance.digest.clone()),
+            official_commit: Some(fixture.provenance.official_commit.clone()),
+            execution_detail: None,
         });
     };
     let mut state = fixture.initial_state.clone();
@@ -879,12 +1080,13 @@ pub fn mamba3_siso_conformance_v0(
     }
     let mismatch = failing_step.is_some();
     Ok(Mamba3ConformanceReportV0 {
+        case_id: Some(fixture.provenance.case_id.clone()),
         status: if mismatch {
             Mamba3ConformanceStatusV0::OfficialMismatch
         } else if fixture.expected_state.is_some() {
             Mamba3ConformanceStatusV0::OfficialOutputAndStateMatched
         } else {
-            Mamba3ConformanceStatusV0::OfficialOutputMatched
+            Mamba3ConformanceStatusV0::OfficialOutputMatchedStateUnavailable
         },
         max_output_abs_error: Some(max_output_abs_error),
         max_output_rel_error: Some(max_output_rel_error),
@@ -893,7 +1095,30 @@ pub fn mamba3_siso_conformance_v0(
         failing_index,
         compared_output_values,
         compared_state_values,
+        fixture_digest: Some(fixture.provenance.digest.clone()),
+        official_commit: Some(fixture.provenance.official_commit.clone()),
+        execution_detail: None,
     })
+}
+
+pub fn mamba3_oracle_execution_blocked_v0(
+    official_commit: impl Into<String>,
+    detail: impl Into<String>,
+) -> Mamba3ConformanceReportV0 {
+    Mamba3ConformanceReportV0 {
+        case_id: None,
+        status: Mamba3ConformanceStatusV0::OfficialOracleExecutionBlocked,
+        max_output_abs_error: None,
+        max_output_rel_error: None,
+        max_state_abs_error: None,
+        failing_step: None,
+        failing_index: None,
+        compared_output_values: 0,
+        compared_state_values: 0,
+        fixture_digest: None,
+        official_commit: Some(official_commit.into()),
+        execution_detail: Some(detail.into()),
+    }
 }
 
 #[cfg(test)]
@@ -989,17 +1214,33 @@ mod mamba3_siso_reference_core_tests {
             metadata: mamba3_siso_model_metadata_v0(&config, &parameters, reference_commit)
                 .unwrap(),
             provenance: Mamba3SisoFixtureProvenanceV0 {
+                case_id: "test-only".to_string(),
                 official_repository: "state-spaces/mamba".to_string(),
                 official_commit: reference_commit.to_string(),
                 official_source_paths: vec![
                     "mamba_ssm/modules/mamba3.py".to_string(),
                     "mamba_ssm/ops/triton/mamba3/mamba3_siso_step.py".to_string(),
                 ],
+                official_source_hashes: vec![
+                    Mamba3SisoSourceHashV0 {
+                        path: "mamba_ssm/modules/mamba3.py".to_string(),
+                        sha256: "0".repeat(64),
+                    },
+                    Mamba3SisoSourceHashV0 {
+                        path: "mamba_ssm/ops/triton/mamba3/mamba3_siso_step.py".to_string(),
+                        sha256: "1".repeat(64),
+                    },
+                ],
                 paper_identifier: "arXiv:2603.15569".to_string(),
+                generator_sha256: "2".repeat(64),
+                instrumentation_patch_sha256: None,
                 python_version: "test-only".to_string(),
                 pytorch_version: "test-only".to_string(),
                 dtype: Mamba3SisoPrecisionV0::F32,
                 device: "cpu-reference".to_string(),
+                cuda_runtime: None,
+                triton_version: None,
+                cute_version: None,
                 parameter_ordering: vec![
                     "input_projection".to_string(),
                     "dt_bias".to_string(),
@@ -1292,19 +1533,48 @@ mod mamba3_siso_reference_core_tests {
 
     #[test]
     fn mamba3_siso_fixture_rejects_missing_provenance_and_mimo() {
-        let config = config();
-        let params = mamba3_siso_params_from_seed_v0(&config, 47).unwrap();
-        let mut missing_commit = fixture(config.clone(), params.clone(), sequence(), None, None);
+        let model_config = config();
+        let params = mamba3_siso_params_from_seed_v0(&model_config, 47).unwrap();
+        let mut missing_commit =
+            fixture(model_config.clone(), params.clone(), sequence(), None, None);
         missing_commit.provenance.official_commit.clear();
         missing_commit.refresh_digest().unwrap();
         assert_eq!(
             missing_commit.validate(),
             Err(Mamba3SisoErrorV0::FixtureFormat)
         );
-        let mut mimo = fixture(config, params, sequence(), None, None);
+        let mut mimo = fixture(model_config, params, sequence(), None, None);
         mimo.metadata.config.mimo_rank = 2;
         mimo.refresh_digest().unwrap();
         assert_eq!(mimo.validate(), Err(Mamba3SisoErrorV0::UnsupportedMimo));
+        let invalid_config = config();
+        let mut invalid_hash = fixture(
+            invalid_config.clone(),
+            mamba3_siso_params_from_seed_v0(&invalid_config, 49).unwrap(),
+            sequence(),
+            None,
+            None,
+        );
+        invalid_hash.provenance.official_source_hashes[0].sha256 = "not-a-sha256".to_string();
+        invalid_hash.refresh_digest().unwrap();
+        assert_eq!(
+            invalid_hash.validate(),
+            Err(Mamba3SisoErrorV0::FixtureFormat)
+        );
+    }
+
+    #[test]
+    fn mamba3_siso_reports_a_blocked_oracle_without_claiming_parity() {
+        let report = mamba3_oracle_execution_blocked_v0(
+            "f577286d052741c35d39cd43bdc3fad27120f22c",
+            "PyTorch and a CUDA reference device are unavailable",
+        );
+        assert_eq!(
+            report.status,
+            Mamba3ConformanceStatusV0::OfficialOracleExecutionBlocked
+        );
+        assert_eq!(report.compared_output_values, 0);
+        assert!(report.execution_detail.is_some());
     }
 
     #[test]
