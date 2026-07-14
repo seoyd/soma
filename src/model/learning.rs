@@ -1260,6 +1260,20 @@ pub struct SandboxModelVersionV0 {
     pub test_range: IndexRangeV0,
     pub backend: Mamba3BackendKind,
     pub metrics: SandboxModelMetricsV0,
+    #[serde(default)]
+    pub campaign_id: Option<String>,
+    #[serde(default)]
+    pub window_id: Option<String>,
+    #[serde(default)]
+    pub training_path: Option<String>,
+    #[serde(default)]
+    pub initial_head_parameter_digest: Option<String>,
+    #[serde(default)]
+    pub backend_fallback_reason: Option<String>,
+    #[serde(default)]
+    pub drift_status: Option<String>,
+    #[serde(default)]
+    pub creation_reason_codes: Vec<String>,
 }
 
 impl SandboxModelVersionV0 {
@@ -1314,7 +1328,46 @@ impl SandboxModelVersionV0 {
             test_range,
             backend,
             metrics,
+            campaign_id: None,
+            window_id: None,
+            training_path: None,
+            initial_head_parameter_digest: None,
+            backend_fallback_reason: None,
+            drift_status: None,
+            creation_reason_codes: vec![],
         }
+    }
+
+    pub fn with_campaign_metadata(
+        mut self,
+        campaign_id: impl Into<String>,
+        window_id: impl Into<String>,
+        training_path: impl Into<String>,
+        initial_head_parameter_digest: String,
+        backend_fallback_reason: Option<String>,
+        drift_status: impl Into<String>,
+        creation_reason_codes: Vec<String>,
+    ) -> Self {
+        self.campaign_id = Some(campaign_id.into());
+        self.window_id = Some(window_id.into());
+        self.training_path = Some(training_path.into());
+        self.initial_head_parameter_digest = Some(initial_head_parameter_digest);
+        self.backend_fallback_reason = backend_fallback_reason;
+        self.drift_status = Some(drift_status.into());
+        self.creation_reason_codes = creation_reason_codes;
+        self.model_version_id = format!(
+            "frozen-mamba-campaign-{}",
+            stable_hash_string(&format!(
+                "{}:{:?}:{:?}:{:?}:{:?}:{:?}",
+                self.model_version_id,
+                self.campaign_id,
+                self.window_id,
+                self.training_path,
+                self.parent_version_id,
+                self.initial_head_parameter_digest
+            ))
+        );
+        self
     }
 }
 

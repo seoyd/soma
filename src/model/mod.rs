@@ -8,6 +8,7 @@ pub mod external_prediction_import_v2;
 pub mod external_signal;
 pub mod import;
 pub mod learning;
+pub mod learning_campaign;
 pub mod mamba3;
 pub mod mamba3fin_lite_plan;
 pub mod mamba_readiness;
@@ -100,6 +101,16 @@ pub use learning::{
     build_momentum_features_v0, build_momentum_sequence_examples_v0, chronological_split_v0,
     evaluate_head_v0, evaluate_probabilities_v0, mamba_representation_value_status_v0,
     train_frozen_mamba_head_v0,
+};
+pub use learning_campaign::{
+    AggregateMambaGateConfigV0, AggregateMambaValueEvidenceV0, CampaignErrorV0,
+    CampaignShadowAssessmentV0, CampaignShadowSuggestedActionV0, CampaignSplitPolicyV0,
+    HeadInitializationPolicyV0, ModelDriftConfigV0, ModelDriftStatusV0,
+    MomentumLearningCampaignConfigV0, MomentumLearningCampaignResultV0,
+    MomentumLearningCampaignStatusV0, MomentumLearningPathResultV0, MomentumLearningPathV0,
+    MomentumLearningWindowResultV0, MomentumLearningWindowV0, PredictionDiagnosticsV0,
+    RejectedLearningWindowV0, WarmStartValueEvidenceV0, WarmStartValueStatusV0,
+    build_momentum_learning_windows_v0, run_momentum_learning_campaign_v0,
 };
 pub use mamba_readiness::{
     InferenceMode, Mamba3FinCandidateReadiness, Mamba3FinCandidateReport, Mamba3FinCandidateSpec,

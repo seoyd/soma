@@ -35,6 +35,16 @@ Each immutable sandbox model version records feature/normalizer/encoder/head/tra
 
 Inference goes through the existing backend selector and requires `FullInferenceReady`. Current full inference is CPU. Partial Metal and unavailable or contract-only CUDA are rejected; Auto may fall back to CPU with its recorded reason. Training is CPU-only `f32`.
 
+## Walk-Forward Campaign Boundary
+
+The offline campaign accepts only immutable, sanitized, credential-free normalized daily OHLCV snapshots with a verified content digest, coherent symbol, and strictly increasing timestamps. Mock evidence and unsafe, mutable, malformed, or unverifiable inputs are rejected. With no acceptable historical evidence, the campaign reports no historical learning evidence and creates no version.
+
+Each expanding window has train, validation, and future-test ranges separated by a configurable purge gap of at least `sequence_length - 1 + prediction_horizon`. Features remain causal, a new normalizer is fitted from that window's train rows only, and sequence/label boundaries are checked before training. Test data is sealed from optimization, normalization, checkpoint selection, and parent selection.
+
+Cold heads use a deterministic campaign/window/path seed. Warm heads can only start from the immediately preceding compatible shadow version; cold and warm paths can be compared without using test results to choose either path. Every successful path records its campaign/window/path metadata, digests, ranges, snapshot identifiers, backend fallback outcome, and `ShadowOnly` status.
+
+The campaign compares the frozen Mamba head with train-only constant and linear baselines on the same future samples. Aggregate value, warm-start value, and report-only drift status are computed from window evidence. These results do not promote, vote, execute, mutate the encoder, or alter the active committee.
+
 ## Shadow Boundary
 
 `MomentumMambaSandboxAgentV0` accepts frozen evidence plus a prepared sequence and emits a deterministic `ShadowAgentAssessmentV0`. Every assessment has `ShadowOnly`, `eligible_to_vote = false`, and `eligible_to_execute = false`. It is not an active proposal and is not included in the three-agent committee.
