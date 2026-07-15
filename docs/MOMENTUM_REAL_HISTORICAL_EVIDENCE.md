@@ -24,6 +24,8 @@ Accepted series form a deterministic frozen pack with a digest. Provider calls a
 
 Before a campaign consumes a series, it re-verifies the same canonical semantic dataset digest used by snapshot acquisition and frozen-pack verification. The campaign result includes an ordered sanitized safety trace with the first rejecting gate and exact reason code. A valid immutable series may run offline Shadow evaluation while promotion, voting, and execution remain separately blocked.
 
+Probability-collapse forensics uses the same frozen series without provider access. Candidate registration is fixed before validation, representation fitting is train-only, and only the selected validation candidate may open the future test partition.
+
 The current single-series path reports a per-series outcome only when a real frozen pack and campaign result exist. It cannot establish broad cross-market value, profitability, promotion readiness, or live readiness.
 
 ## Aggregate Verdict

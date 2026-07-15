@@ -260,6 +260,15 @@ fn run_momentum_campaign_if_enabled(
             eligibility.voting,
             eligibility.execution,
         );
+        for forensics in &result.campaign.collapse_forensics {
+            println!(
+                "campaign_collapse_forensics=status={:?};root_cause={:?};selected_candidate={:?};test_opened_once={}",
+                forensics.diagnostic_status,
+                forensics.root_cause,
+                forensics.selected_candidate,
+                forensics.test_partition_opened_once,
+            );
+        }
         for window in result.campaign.windows {
             for path in window.paths {
                 let baselines = path.baselines;

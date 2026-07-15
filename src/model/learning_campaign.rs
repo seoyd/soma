@@ -12,11 +12,12 @@ use crate::{
 
 use super::{
     BackendFallbackPolicy, BackendPreference, BaselineComparisonV0, ConstantProbabilityBaselineV0,
-    EvaluationMetricsV0, FeatureNormalizerV0, FrozenMamba3EncoderV0, HeadTrainingConfigV0,
-    IndexRangeV0, LearningError, LinearMomentumBaselineV0, LogisticPredictionHeadV0,
-    Mamba3BackendKind, MambaRepresentationValueStatusV0, ModelAgentDeploymentStatus,
-    ModelMathematicalStatus, MomentumCandleV0, MomentumFeatureConfigV0, MomentumSequenceConfigV0,
-    SandboxModelMetricsV0, SandboxModelVersionJournalV0, SandboxModelVersionV0, SequenceExampleV0,
+    EncodedTrainingExampleV0, EvaluationMetricsV0, FeatureNormalizerV0, FrozenMamba3EncoderV0,
+    HeadTrainingConfigV0, IndexRangeV0, LearningError, LinearMomentumBaselineV0,
+    LogisticPredictionHeadV0, Mamba3BackendKind, MambaRepresentationValueStatusV0,
+    ModelAgentDeploymentStatus, ModelMathematicalStatus, MomentumCandleV0, MomentumFeatureConfigV0,
+    MomentumSequenceConfigV0, SandboxModelMetricsV0, SandboxModelVersionJournalV0,
+    SandboxModelVersionV0, SequenceExampleV0, apply_sgd_v0, brier_loss_and_gradients_v0,
     build_momentum_features_v0, build_momentum_sequence_examples_v0, evaluate_head_v0,
     mamba_representation_value_status_v0, train_frozen_mamba_head_v0,
 };
@@ -99,6 +100,196 @@ pub enum CampaignErrorV0 {
     VersionCycle,
     LeakageInvariantFailed,
     Learning,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ProbabilityCollapseConfigV0 {
+    pub minimum_probability_stddev: f32,
+    pub minimum_prediction_entropy: f32,
+    pub maximum_single_side_fraction: f32,
+    pub low_saturation_threshold: f32,
+    pub high_saturation_threshold: f32,
+    pub maximum_saturation_fraction: f32,
+    pub minimum_unique_probability_bins: usize,
+    pub comparison_epsilon: f32,
+    pub minimum_samples: usize,
+}
+
+impl Default for ProbabilityCollapseConfigV0 {
+    fn default() -> Self {
+        Self {
+            minimum_probability_stddev: 0.01,
+            minimum_prediction_entropy: 0.1,
+            maximum_single_side_fraction: 0.98,
+            low_saturation_threshold: 0.05,
+            high_saturation_threshold: 0.95,
+            maximum_saturation_fraction: 0.9,
+            minimum_unique_probability_bins: 2,
+            comparison_epsilon: 1e-4,
+            minimum_samples: 4,
+        }
+    }
+}
+
+impl ProbabilityCollapseConfigV0 {
+    pub fn validate(&self) -> Result<(), CampaignErrorV0> {
+        if !self.minimum_probability_stddev.is_finite()
+            || self.minimum_probability_stddev < 0.0
+            || !self.minimum_prediction_entropy.is_finite()
+            || self.minimum_prediction_entropy < 0.0
+            || !self.maximum_single_side_fraction.is_finite()
+            || !(0.0..=1.0).contains(&self.maximum_single_side_fraction)
+            || !self.low_saturation_threshold.is_finite()
+            || !self.high_saturation_threshold.is_finite()
+            || !(0.0..=1.0).contains(&self.low_saturation_threshold)
+            || !(0.0..=1.0).contains(&self.high_saturation_threshold)
+            || self.low_saturation_threshold >= self.high_saturation_threshold
+            || !self.maximum_saturation_fraction.is_finite()
+            || !(0.0..=1.0).contains(&self.maximum_saturation_fraction)
+            || self.minimum_unique_probability_bins == 0
+            || self.minimum_unique_probability_bins > 10
+            || !self.comparison_epsilon.is_finite()
+            || self.comparison_epsilon < 0.0
+            || self.minimum_samples == 0
+        {
+            Err(CampaignErrorV0::InvalidConfig)
+        } else {
+            Ok(())
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ProbabilityCollapseSubtypeV0 {
+    NearConstantProbability,
+    NearZeroProbability,
+    NearOneProbability,
+    SingleSidePrediction,
+    SaturatedProbability,
+    LowEntropyPrediction,
+    InsufficientUniquePredictions,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ProbabilityCollapseMetricsV0 {
+    pub sample_count: usize,
+    pub mean_probability: f32,
+    pub probability_stddev: f32,
+    pub minimum_probability: f32,
+    pub maximum_probability: f32,
+    pub mean_entropy: f32,
+    pub unique_probability_bins: usize,
+    pub low_saturation_fraction: f32,
+    pub high_saturation_fraction: f32,
+    pub positive_prediction_fraction: f32,
+    pub saturation_fraction: f32,
+    pub high_confidence_error_count: usize,
+    pub subtypes: Vec<ProbabilityCollapseSubtypeV0>,
+}
+
+impl ProbabilityCollapseMetricsV0 {
+    pub fn is_collapsed(&self) -> bool {
+        !self.subtypes.is_empty()
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ProbabilityCollapseDiagnosticStatusV0 {
+    Reproduced,
+    NotReproduced,
+    RootCauseIdentified,
+    MultipleContributingCauses,
+    InsufficientDiagnosticEvidence,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ProbabilityCollapseRootCauseV0 {
+    RawFeatureCollapse,
+    NormalizedFeatureCollapse,
+    SequenceDiversityCollapse,
+    EncoderRepresentationCollapse,
+    RepresentationScaleMismatch,
+    HeadInitializationCollapse,
+    GradientVanishing,
+    GradientExplosion,
+    OptimizerInstability,
+    BiasDominatedPrediction,
+    ValidationCheckpointCollapse,
+    WarmStartLockIn,
+    ClassPrevalenceDominance,
+    ProbabilitySaturation,
+    CalibrationOnlyFailure,
+    Mixed,
+    Unknown,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MomentumForensicCandidateV0 {
+    C0Reference,
+    C1RepresentationNormalized,
+    C2PrevalenceBias,
+    C3Combined,
+}
+
+impl MomentumForensicCandidateV0 {
+    fn label(self) -> &'static str {
+        match self {
+            Self::C0Reference => "c0_reference",
+            Self::C1RepresentationNormalized => "c1_representation_normalized",
+            Self::C2PrevalenceBias => "c2_prevalence_bias",
+            Self::C3Combined => "c3_combined",
+        }
+    }
+
+    fn uses_representation_normalization(self) -> bool {
+        matches!(self, Self::C1RepresentationNormalized | Self::C3Combined)
+    }
+
+    fn uses_prevalence_bias(self) -> bool {
+        matches!(self, Self::C2PrevalenceBias | Self::C3Combined)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct RepresentationNormalizerV0 {
+    pub means: Vec<f32>,
+    pub scales: Vec<f32>,
+    pub constant_dimension_indices: Vec<usize>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct MomentumForensicCandidateResultV0 {
+    pub candidate: MomentumForensicCandidateV0,
+    pub validation: EvaluationMetricsV0,
+    pub validation_collapse: ProbabilityCollapseMetricsV0,
+    pub test: Option<EvaluationMetricsV0>,
+    pub test_collapse: Option<ProbabilityCollapseMetricsV0>,
+    pub eligible_for_selection: bool,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct MomentumLearningDiagnosticTraceV0 {
+    pub window_id: String,
+    pub path: MomentumLearningPathV0,
+    pub raw_feature_stddev: f32,
+    pub normalized_feature_stddev: f32,
+    pub sequence_count: usize,
+    pub duplicate_sequence_count: usize,
+    pub representation_stddev: f32,
+    pub duplicate_representation_count: usize,
+    pub initial_probability_stddev: f32,
+    pub final_probability_stddev: f32,
+    pub root_cause: ProbabilityCollapseRootCauseV0,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct MomentumProbabilityCollapseForensicsV0 {
+    pub diagnostic_status: ProbabilityCollapseDiagnosticStatusV0,
+    pub root_cause: ProbabilityCollapseRootCauseV0,
+    pub candidates: Vec<MomentumForensicCandidateV0>,
+    pub selected_candidate: Option<MomentumForensicCandidateV0>,
+    pub candidate_results: Vec<MomentumForensicCandidateResultV0>,
+    pub test_partition_opened_once: bool,
 }
 
 /// Deterministic, sanitized campaign gates. These gates describe the boundary
@@ -246,6 +437,7 @@ pub struct MomentumLearningCampaignConfigV0 {
     pub fallback_policy: BackendFallbackPolicy,
     pub aggregate_gate: AggregateMambaGateConfigV0,
     pub drift_config: ModelDriftConfigV0,
+    pub collapse_config: ProbabilityCollapseConfigV0,
 }
 
 impl Default for MomentumLearningCampaignConfigV0 {
@@ -274,6 +466,7 @@ impl Default for MomentumLearningCampaignConfigV0 {
             fallback_policy: BackendFallbackPolicy::AllowCpuFallback,
             aggregate_gate: AggregateMambaGateConfigV0::default(),
             drift_config: ModelDriftConfigV0::default(),
+            collapse_config: ProbabilityCollapseConfigV0::default(),
         }
     }
 }
@@ -325,6 +518,7 @@ impl MomentumLearningCampaignConfigV0 {
         self.training_config
             .validate()
             .map_err(|_| CampaignErrorV0::InvalidConfig)?;
+        self.collapse_config.validate()?;
         if self.split_policy == CampaignSplitPolicyV0::RollingWindow {
             return Err(CampaignErrorV0::UnsupportedSplitPolicy);
         }
@@ -342,7 +536,7 @@ impl MomentumLearningCampaignConfigV0 {
 
     fn digest(&self) -> String {
         stable_hash_string(&format!(
-            "{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{:?}:{:?}:{}:{}:{}:{:?}:{:?}",
+            "{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{:?}:{:?}:{}:{}:{}:{:?}:{:?}:{:?}",
             self.campaign_id,
             self.campaign_seed,
             self.minimum_history_rows,
@@ -360,6 +554,7 @@ impl MomentumLearningCampaignConfigV0 {
             self.training_config.digest(),
             self.backend_preference,
             self.fallback_policy,
+            self.collapse_config,
         ))
     }
 }
@@ -479,6 +674,7 @@ pub struct MomentumLearningCampaignResultV0 {
     pub rejected_windows: Vec<RejectedLearningWindowV0>,
     pub reason_codes: Vec<String>,
     pub safety_trace: CampaignSafetyTraceV0,
+    pub collapse_forensics: Vec<MomentumProbabilityCollapseForensicsV0>,
 }
 
 #[derive(Clone)]
@@ -570,6 +766,461 @@ pub fn build_momentum_learning_windows_v0(
         return Err(CampaignErrorV0::InsufficientHistory);
     }
     Ok(windows)
+}
+
+impl RepresentationNormalizerV0 {
+    pub fn fit(examples: &[EncodedTrainingExampleV0]) -> Result<Self, CampaignErrorV0> {
+        let dimension = examples
+            .first()
+            .map(|example| example.representation.len())
+            .filter(|dimension| *dimension > 0)
+            .ok_or(CampaignErrorV0::InsufficientHistory)?;
+        if examples.iter().any(|example| {
+            example.representation.len() != dimension
+                || example
+                    .representation
+                    .iter()
+                    .any(|value| !value.is_finite())
+        }) {
+            return Err(CampaignErrorV0::Learning);
+        }
+        let mut means = Vec::with_capacity(dimension);
+        let mut scales = Vec::with_capacity(dimension);
+        let mut constant_dimension_indices = Vec::new();
+        for index in 0..dimension {
+            let values = examples
+                .iter()
+                .map(|example| example.representation[index])
+                .collect::<Vec<_>>();
+            let mean = mean_f32(&values)?;
+            let scale = stddev_f32(&values, mean)?;
+            means.push(mean);
+            if scale <= 1e-6 {
+                scales.push(1.0);
+                constant_dimension_indices.push(index);
+            } else {
+                scales.push(scale);
+            }
+        }
+        Ok(Self {
+            means,
+            scales,
+            constant_dimension_indices,
+        })
+    }
+
+    pub fn transform(
+        &self,
+        examples: &[EncodedTrainingExampleV0],
+    ) -> Result<Vec<EncodedTrainingExampleV0>, CampaignErrorV0> {
+        if self.means.is_empty()
+            || self.means.len() != self.scales.len()
+            || self
+                .means
+                .iter()
+                .chain(&self.scales)
+                .any(|value| !value.is_finite())
+            || self.scales.iter().any(|value| *value <= 0.0)
+        {
+            return Err(CampaignErrorV0::Learning);
+        }
+        examples
+            .iter()
+            .map(|example| {
+                if example.representation.len() != self.means.len() {
+                    return Err(CampaignErrorV0::Learning);
+                }
+                let representation = example
+                    .representation
+                    .iter()
+                    .enumerate()
+                    .map(|(index, value)| (value - self.means[index]) / self.scales[index])
+                    .collect::<Vec<_>>();
+                if representation.iter().any(|value| !value.is_finite()) {
+                    return Err(CampaignErrorV0::Learning);
+                }
+                Ok(EncodedTrainingExampleV0 {
+                    representation,
+                    label: example.label,
+                    snapshot_ids: example.snapshot_ids.clone(),
+                })
+            })
+            .collect()
+    }
+}
+
+pub fn probability_collapse_metrics_v0(
+    probabilities: &[f32],
+    labels: &[f32],
+    config: &ProbabilityCollapseConfigV0,
+) -> Result<ProbabilityCollapseMetricsV0, CampaignErrorV0> {
+    config.validate()?;
+    if probabilities.len() != labels.len() || probabilities.len() < config.minimum_samples {
+        return Err(CampaignErrorV0::InsufficientHistory);
+    }
+    if probabilities
+        .iter()
+        .chain(labels)
+        .any(|value| !value.is_finite() || !(0.0..=1.0).contains(value))
+    {
+        return Err(CampaignErrorV0::Learning);
+    }
+    let mean_probability = mean_f32(probabilities)?;
+    let probability_stddev = stddev_f32(probabilities, mean_probability)?;
+    let minimum_probability = probabilities.iter().copied().fold(f32::INFINITY, f32::min);
+    let maximum_probability = probabilities
+        .iter()
+        .copied()
+        .fold(f32::NEG_INFINITY, f32::max);
+    let mean_entropy = probabilities
+        .iter()
+        .map(|value| {
+            let value = value.clamp(1e-6, 1.0 - 1e-6);
+            -value * value.ln() - (1.0 - value) * (1.0 - value).ln()
+        })
+        .sum::<f32>()
+        / probabilities.len() as f32;
+    let mut occupied_bins = [false; 10];
+    for probability in probabilities {
+        occupied_bins[((*probability * 10.0).floor() as usize).min(9)] = true;
+    }
+    let unique_probability_bins = occupied_bins.into_iter().filter(|value| *value).count();
+    let low_count = probabilities
+        .iter()
+        .filter(|value| **value <= config.low_saturation_threshold)
+        .count();
+    let high_count = probabilities
+        .iter()
+        .filter(|value| **value >= config.high_saturation_threshold)
+        .count();
+    let positive_count = probabilities.iter().filter(|value| **value >= 0.5).count();
+    let count = probabilities.len() as f32;
+    let low_saturation_fraction = low_count as f32 / count;
+    let high_saturation_fraction = high_count as f32 / count;
+    let positive_prediction_fraction = positive_count as f32 / count;
+    let saturation_fraction = low_saturation_fraction + high_saturation_fraction;
+    let high_confidence_error_count = probabilities
+        .iter()
+        .zip(labels)
+        .filter(|(probability, label)| {
+            (**probability >= 0.8 && **label < 0.5) || (**probability <= 0.2 && **label >= 0.5)
+        })
+        .count();
+    let mut subtypes = Vec::new();
+    if probability_stddev < config.minimum_probability_stddev {
+        subtypes.push(ProbabilityCollapseSubtypeV0::NearConstantProbability);
+    }
+    if low_saturation_fraction >= config.maximum_saturation_fraction {
+        subtypes.push(ProbabilityCollapseSubtypeV0::NearZeroProbability);
+    }
+    if high_saturation_fraction >= config.maximum_saturation_fraction {
+        subtypes.push(ProbabilityCollapseSubtypeV0::NearOneProbability);
+    }
+    if positive_prediction_fraction >= config.maximum_single_side_fraction
+        || positive_prediction_fraction <= 1.0 - config.maximum_single_side_fraction
+    {
+        subtypes.push(ProbabilityCollapseSubtypeV0::SingleSidePrediction);
+    }
+    if saturation_fraction >= config.maximum_saturation_fraction {
+        subtypes.push(ProbabilityCollapseSubtypeV0::SaturatedProbability);
+    }
+    if mean_entropy < config.minimum_prediction_entropy {
+        subtypes.push(ProbabilityCollapseSubtypeV0::LowEntropyPrediction);
+    }
+    if unique_probability_bins < config.minimum_unique_probability_bins {
+        subtypes.push(ProbabilityCollapseSubtypeV0::InsufficientUniquePredictions);
+    }
+    Ok(ProbabilityCollapseMetricsV0 {
+        sample_count: probabilities.len(),
+        mean_probability,
+        probability_stddev,
+        minimum_probability,
+        maximum_probability,
+        mean_entropy,
+        unique_probability_bins,
+        low_saturation_fraction,
+        high_saturation_fraction,
+        positive_prediction_fraction,
+        saturation_fraction,
+        high_confidence_error_count,
+        subtypes,
+    })
+}
+
+pub fn run_momentum_probability_collapse_forensics_v0(
+    config: &MomentumLearningCampaignConfigV0,
+    encoder: &FrozenMamba3EncoderV0,
+    train: &[SequenceExampleV0],
+    validation: &[SequenceExampleV0],
+    test: &[SequenceExampleV0],
+    collapse_config: &ProbabilityCollapseConfigV0,
+) -> Result<MomentumProbabilityCollapseForensicsV0, CampaignErrorV0> {
+    config.validate()?;
+    collapse_config.validate()?;
+    if train.is_empty() || validation.is_empty() || test.is_empty() {
+        return Err(CampaignErrorV0::InsufficientHistory);
+    }
+    let train_encoded = encoder.encode_batch(train)?;
+    let validation_encoded = encoder.encode_batch(validation)?;
+    let normalizer = RepresentationNormalizerV0::fit(&train_encoded)?;
+    let candidates = vec![
+        MomentumForensicCandidateV0::C0Reference,
+        MomentumForensicCandidateV0::C1RepresentationNormalized,
+        MomentumForensicCandidateV0::C2PrevalenceBias,
+        MomentumForensicCandidateV0::C3Combined,
+    ];
+    let mut candidate_results = Vec::with_capacity(candidates.len());
+    let mut trained = Vec::with_capacity(candidates.len());
+    for candidate in &candidates {
+        let (candidate_train, candidate_validation) = candidate_encoded_partitions(
+            *candidate,
+            &normalizer,
+            &train_encoded,
+            &validation_encoded,
+        )?;
+        let mut head = LogisticPredictionHeadV0::seeded(
+            candidate_train[0].representation.len(),
+            deterministic_candidate_seed(config.campaign_seed, *candidate),
+        )?;
+        if candidate.uses_prevalence_bias() {
+            head.bias = prevalence_logit(&candidate_train)?;
+        }
+        let head = train_encoded_head(
+            &mut head,
+            &candidate_train,
+            &candidate_validation,
+            &config.training_config,
+        )?;
+        let validation_metrics = evaluate_head_v0(&head, &candidate_validation)?;
+        let validation_probabilities = probabilities_for_head(&head, &candidate_validation)?;
+        let validation_labels = candidate_validation
+            .iter()
+            .map(|example| example.label)
+            .collect::<Vec<_>>();
+        let validation_collapse = probability_collapse_metrics_v0(
+            &validation_probabilities,
+            &validation_labels,
+            collapse_config,
+        )?;
+        let eligible_for_selection = !validation_collapse.is_collapsed();
+        candidate_results.push(MomentumForensicCandidateResultV0 {
+            candidate: *candidate,
+            validation: validation_metrics,
+            validation_collapse,
+            test: None,
+            test_collapse: None,
+            eligible_for_selection,
+        });
+        trained.push((head, candidate.uses_representation_normalization()));
+    }
+    let selected_index =
+        select_forensic_candidate(&candidate_results, collapse_config.comparison_epsilon);
+    let mut test_partition_opened_once = false;
+    if let Some(index) = selected_index {
+        let (head, uses_normalization) = &trained[index];
+        let test_encoded = encoder.encode_batch(test)?;
+        let test_encoded = if *uses_normalization {
+            normalizer.transform(&test_encoded)?
+        } else {
+            test_encoded
+        };
+        let test_metrics = evaluate_head_v0(head, &test_encoded)?;
+        let test_probabilities = probabilities_for_head(head, &test_encoded)?;
+        let test_labels = test_encoded
+            .iter()
+            .map(|example| example.label)
+            .collect::<Vec<_>>();
+        let test_collapse =
+            probability_collapse_metrics_v0(&test_probabilities, &test_labels, collapse_config)?;
+        candidate_results[index].test = Some(test_metrics);
+        candidate_results[index].test_collapse = Some(test_collapse);
+        test_partition_opened_once = true;
+    }
+    let selected_candidate = selected_index.map(|index| candidates[index]);
+    let selected_result = selected_index.map(|index| &candidate_results[index]);
+    let diagnostic_status = match selected_result {
+        Some(result)
+            if result
+                .test_collapse
+                .as_ref()
+                .is_some_and(|collapse| collapse.is_collapsed()) =>
+        {
+            ProbabilityCollapseDiagnosticStatusV0::Reproduced
+        }
+        Some(_) => ProbabilityCollapseDiagnosticStatusV0::RootCauseIdentified,
+        None => ProbabilityCollapseDiagnosticStatusV0::InsufficientDiagnosticEvidence,
+    };
+    let root_cause = selected_result
+        .and_then(|result| result.test_collapse.as_ref())
+        .map(classify_probability_root_cause)
+        .unwrap_or(ProbabilityCollapseRootCauseV0::Unknown);
+    Ok(MomentumProbabilityCollapseForensicsV0 {
+        diagnostic_status,
+        root_cause,
+        candidates,
+        selected_candidate,
+        candidate_results,
+        test_partition_opened_once,
+    })
+}
+
+fn candidate_encoded_partitions(
+    candidate: MomentumForensicCandidateV0,
+    normalizer: &RepresentationNormalizerV0,
+    train: &[EncodedTrainingExampleV0],
+    validation: &[EncodedTrainingExampleV0],
+) -> Result<(Vec<EncodedTrainingExampleV0>, Vec<EncodedTrainingExampleV0>), CampaignErrorV0> {
+    if candidate.uses_representation_normalization() {
+        Ok((
+            normalizer.transform(train)?,
+            normalizer.transform(validation)?,
+        ))
+    } else {
+        Ok((train.to_vec(), validation.to_vec()))
+    }
+}
+
+fn deterministic_candidate_seed(seed: u64, candidate: MomentumForensicCandidateV0) -> u64 {
+    seed ^ match candidate {
+        MomentumForensicCandidateV0::C0Reference => 0xC0,
+        MomentumForensicCandidateV0::C1RepresentationNormalized => 0xC1,
+        MomentumForensicCandidateV0::C2PrevalenceBias => 0xC2,
+        MomentumForensicCandidateV0::C3Combined => 0xC3,
+    }
+}
+
+fn prevalence_logit(examples: &[EncodedTrainingExampleV0]) -> Result<f32, CampaignErrorV0> {
+    if examples.is_empty()
+        || examples
+            .iter()
+            .any(|example| !(0.0..=1.0).contains(&example.label))
+    {
+        return Err(CampaignErrorV0::InsufficientHistory);
+    }
+    let prevalence =
+        examples.iter().map(|example| example.label).sum::<f32>() / examples.len() as f32;
+    let prevalence = prevalence.clamp(1e-4, 1.0 - 1e-4);
+    let bias = (prevalence / (1.0 - prevalence)).ln();
+    if bias.is_finite() {
+        Ok(bias)
+    } else {
+        Err(CampaignErrorV0::Learning)
+    }
+}
+
+fn train_encoded_head(
+    head: &mut LogisticPredictionHeadV0,
+    train: &[EncodedTrainingExampleV0],
+    validation: &[EncodedTrainingExampleV0],
+    config: &HeadTrainingConfigV0,
+) -> Result<LogisticPredictionHeadV0, CampaignErrorV0> {
+    config.validate()?;
+    if train.is_empty() || validation.is_empty() {
+        return Err(CampaignErrorV0::InsufficientHistory);
+    }
+    let mut best = head.clone();
+    let mut best_validation = f32::INFINITY;
+    let mut stale_epochs = 0usize;
+    for _ in 0..config.epochs {
+        for batch in train.chunks(config.batch_size) {
+            let (_, gradients) = brier_loss_and_gradients_v0(head, batch)?;
+            apply_sgd_v0(head, &gradients, &config.optimizer)?;
+        }
+        let validation_brier = brier_loss_and_gradients_v0(head, validation)?.0;
+        if validation_brier + 1e-8 < best_validation {
+            best_validation = validation_brier;
+            best = head.clone();
+            stale_epochs = 0;
+        } else {
+            stale_epochs += 1;
+            if config
+                .early_stopping_patience
+                .is_some_and(|patience| stale_epochs >= patience)
+            {
+                break;
+            }
+        }
+    }
+    Ok(best)
+}
+
+fn probabilities_for_head(
+    head: &LogisticPredictionHeadV0,
+    examples: &[EncodedTrainingExampleV0],
+) -> Result<Vec<f32>, CampaignErrorV0> {
+    examples
+        .iter()
+        .map(|example| {
+            head.probability(&example.representation)
+                .map_err(Into::into)
+        })
+        .collect()
+}
+
+fn select_forensic_candidate(
+    candidates: &[MomentumForensicCandidateResultV0],
+    epsilon: f32,
+) -> Option<usize> {
+    candidates
+        .iter()
+        .enumerate()
+        .filter(|(_, candidate)| candidate.eligible_for_selection)
+        .min_by(|(_, left), (_, right)| {
+            let difference = left.validation.brier_score - right.validation.brier_score;
+            if difference.abs() <= epsilon {
+                left.candidate.label().cmp(right.candidate.label())
+            } else {
+                left.validation
+                    .brier_score
+                    .total_cmp(&right.validation.brier_score)
+            }
+        })
+        .map(|(index, _)| index)
+}
+
+fn classify_probability_root_cause(
+    metrics: &ProbabilityCollapseMetricsV0,
+) -> ProbabilityCollapseRootCauseV0 {
+    if metrics
+        .subtypes
+        .iter()
+        .any(|subtype| matches!(subtype, ProbabilityCollapseSubtypeV0::SaturatedProbability))
+    {
+        ProbabilityCollapseRootCauseV0::ProbabilitySaturation
+    } else if metrics.subtypes.iter().any(|subtype| {
+        matches!(
+            subtype,
+            ProbabilityCollapseSubtypeV0::NearConstantProbability
+        )
+    }) {
+        ProbabilityCollapseRootCauseV0::ValidationCheckpointCollapse
+    } else {
+        ProbabilityCollapseRootCauseV0::Unknown
+    }
+}
+
+fn mean_f32(values: &[f32]) -> Result<f32, CampaignErrorV0> {
+    if values.is_empty() || values.iter().any(|value| !value.is_finite()) {
+        return Err(CampaignErrorV0::Learning);
+    }
+    Ok(values.iter().sum::<f32>() / values.len() as f32)
+}
+
+fn stddev_f32(values: &[f32], mean: f32) -> Result<f32, CampaignErrorV0> {
+    if !mean.is_finite() || values.is_empty() || values.iter().any(|value| !value.is_finite()) {
+        return Err(CampaignErrorV0::Learning);
+    }
+    let value = (values
+        .iter()
+        .map(|value| (value - mean).powi(2))
+        .sum::<f32>()
+        / values.len() as f32)
+        .sqrt();
+    if value.is_finite() {
+        Ok(value)
+    } else {
+        Err(CampaignErrorV0::Learning)
+    }
 }
 
 pub fn run_momentum_learning_campaign_v0(
@@ -682,6 +1333,7 @@ pub fn run_momentum_learning_campaign_v0(
     let encoder_digest = encoder.parameter_digest();
     let mut journal = SandboxModelVersionJournalV0::default();
     let mut results = Vec::new();
+    let mut collapse_forensics = Vec::new();
     let mut rejected_windows = Vec::new();
     let mut last_parent: Option<WarmParent> = None;
 
@@ -720,6 +1372,14 @@ pub fn run_momentum_learning_campaign_v0(
             });
             continue;
         }
+        collapse_forensics.push(run_momentum_probability_collapse_forensics_v0(
+            config,
+            encoder,
+            &train,
+            &validation,
+            &test,
+            &config.collapse_config,
+        )?);
         let mut paths = Vec::new();
         let requested_paths = match config.initialization_policy {
             HeadInitializationPolicyV0::ColdStartEachWindow => vec![MomentumLearningPathV0::Cold],
@@ -863,6 +1523,7 @@ pub fn run_momentum_learning_campaign_v0(
         rejected_windows,
         reason_codes: vec!["offline_shadow_only".to_string(), config.digest()],
         safety_trace: complete_safety_trace(safety_trace),
+        collapse_forensics,
     })
 }
 
@@ -1552,6 +2213,7 @@ fn empty_result_with_trace(
         rejected_windows: vec![],
         reason_codes: vec![reason.to_string(), "offline_shadow_only".to_string()],
         safety_trace,
+        collapse_forensics: vec![],
     }
 }
 
@@ -1899,6 +2561,25 @@ mod tests {
     }
 
     #[test]
+    fn probability_collapse_contract_detects_constant_without_hardcoding_outcome() {
+        let config = ProbabilityCollapseConfigV0::default();
+        let collapsed =
+            probability_collapse_metrics_v0(&[0.5, 0.5, 0.5, 0.5], &[0.0, 1.0, 0.0, 1.0], &config)
+                .unwrap();
+        assert!(collapsed.is_collapsed());
+        assert!(
+            collapsed
+                .subtypes
+                .contains(&ProbabilityCollapseSubtypeV0::NearConstantProbability)
+        );
+
+        let diverse =
+            probability_collapse_metrics_v0(&[0.1, 0.3, 0.7, 0.9], &[0.0, 0.0, 1.0, 1.0], &config)
+                .unwrap();
+        assert!(!diverse.is_collapsed());
+    }
+
+    #[test]
     fn aggregate_gate_does_not_allow_one_winning_window_to_help() {
         let gate = AggregateMambaGateConfigV0 {
             minimum_windows: 2,
@@ -1962,6 +2643,15 @@ mod tests {
         assert!(result.safety_trace.gates.iter().any(|gate| {
             gate.gate == CampaignSafetyGateV0::CanonicalSemanticDigest
                 && gate.outcome == CampaignSafetyGateOutcomeV0::Passed
+        }));
+        assert!(result.collapse_forensics.iter().all(|forensics| {
+            forensics.test_partition_opened_once
+                && forensics
+                    .candidate_results
+                    .iter()
+                    .filter(|candidate| candidate.test.is_some())
+                    .count()
+                    == 1
         }));
     }
 }
