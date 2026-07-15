@@ -1,0 +1,9 @@
+# Restart Sprint 40 report
+
+Sprint 40 closes temporal evidence reporting without changing the frozen encoder, candidate set, evidence identity, training thresholds, data, or Shadow-only permissions. The campaign result now carries real stage metrics, label-free validation and sealed-test support decisions, a deterministic decision digest, post-label outcome shift, stage/root-cause classification, warm/cold comparison, aggregate evidence, and one single-series verdict.
+
+The local diagnostic CLI renders one sanitized text or JSON report. It reuses the existing read-only local snapshot convention, freezes and verifies evidence in memory, makes no provider call, and emits no filesystem path, raw OHLCV row, credential, or raw head parameter. Counterfactual test evaluation is separate from the operational Shadow outcome.
+
+Complete command results, including the selected C1 checkpoint and measured metrics, are retained in the release handoff rather than embedding private local evidence details here. The implementation remains offline-only: learned versions cannot vote, execute, promote, join the committee, place orders, or mutate accepted evidence.
+
+The accepted local replay produced four windows: three remained no-signal and sealed, while C1 representation normalization selected checkpoint epoch 30 in the remaining window. The validation support decision was out-of-support despite full measured coverage, so the sealed-test support result was support-gate-unavailable and the operational result was abstention. The earliest measured breach was frozen representations, classified as frozen-representation support breach; the later test computation is research-only. The warm/cold aggregate was warm-and-cold-both-no-signal. The report digest was deterministic for the same frozen replay.

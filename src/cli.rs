@@ -22,13 +22,26 @@ pub struct CliArgs {
     #[arg(long)]
     pub historical_snapshot_campaign_config: Option<PathBuf>,
     #[arg(long, default_value_t = false)]
+    pub momentum_temporal_diagnostics: bool,
+    #[arg(long, default_value = "text", value_parser = ["text", "json"])]
+    pub output_format: String,
+    #[arg(long, default_value_t = false)]
     pub allow_network: bool,
 }
 
 pub fn run() -> Result<(), String> {
     let args = CliArgs::parse();
     if let Some(config) = args.historical_snapshot_campaign_config {
-        return run_local_historical_snapshot_campaign(&config);
+        return run_local_historical_snapshot_campaign(
+            &config,
+            args.momentum_temporal_diagnostics,
+            &args.output_format,
+        );
+    }
+    if args.momentum_temporal_diagnostics {
+        return Err(
+            "temporal diagnostics require a local historical snapshot campaign config".to_string(),
+        );
     }
     if let Some(config) = args.historical_provider_smoke_config {
         if !args.allow_network {
@@ -91,7 +104,14 @@ pub fn run() -> Result<(), String> {
             .map_err(|_| "momentum campaign sufficiency calculation failed".to_string())?;
             println!("campaign_sufficient={}", sufficiency.sufficient);
             println!("campaign_possible_windows={}", sufficiency.possible_windows);
-            run_momentum_campaign_if_enabled(&config, &snapshot, &campaign_config, &sufficiency)?;
+            run_momentum_campaign_if_enabled(
+                &config,
+                &snapshot,
+                &campaign_config,
+                &sufficiency,
+                false,
+                "text",
+            )?;
         }
         return Ok(());
     }
@@ -144,7 +164,11 @@ pub fn run() -> Result<(), String> {
     Ok(())
 }
 
-fn run_local_historical_snapshot_campaign(config_path: &Path) -> Result<(), String> {
+fn run_local_historical_snapshot_campaign(
+    config_path: &Path,
+    temporal_diagnostics: bool,
+    output_format: &str,
+) -> Result<(), String> {
     let config = crate::data::UpbitHistoricalPilotConfigV0::from_toml_path(config_path)
         .map_err(|_| "local provider config unavailable".to_string())?;
     config
@@ -172,30 +196,42 @@ fn run_local_historical_snapshot_campaign(config_path: &Path) -> Result<(), Stri
             .map_err(|_| "momentum campaign sufficiency calculation failed".to_string())?;
     let reloaded_digest =
         crate::data::historical_replay_dataset_digest_v0(&snapshot.normalized_dataset);
-    println!(
-        "inventory_accepted_series={}",
-        inventory.accepted_series.len()
-    );
-    println!(
-        "snapshot_digest_matches={}",
-        reloaded_digest == snapshot.content_digest
-    );
-    println!(
-        "snapshot_reloaded_digest_prefix={}",
-        reloaded_digest.chars().take(12).collect::<String>()
-    );
-    println!(
-        "inventory_rejection_statuses={}",
-        inventory
-            .rejected_snapshots
-            .iter()
-            .map(|rejected| format!("{:?}", rejected.status))
-            .collect::<Vec<_>>()
-            .join("|")
-    );
-    println!("campaign_sufficient={}", sufficiency.sufficient);
-    println!("campaign_possible_windows={}", sufficiency.possible_windows);
-    run_momentum_campaign_if_enabled(config_path, &snapshot, &campaign_config, &sufficiency)
+    if !temporal_diagnostics {
+        println!(
+            "inventory_accepted_series={}",
+            inventory.accepted_series.len()
+        );
+        println!(
+            "snapshot_digest_matches={}",
+            reloaded_digest == snapshot.content_digest
+        );
+        println!(
+            "snapshot_reloaded_digest_prefix={}",
+            reloaded_digest.chars().take(12).collect::<String>()
+        );
+        println!(
+            "inventory_rejection_statuses={}",
+            inventory
+                .rejected_snapshots
+                .iter()
+                .map(|rejected| format!("{:?}", rejected.status))
+                .collect::<Vec<_>>()
+                .join("|")
+        );
+        println!("campaign_sufficient={}", sufficiency.sufficient);
+        println!("campaign_possible_windows={}", sufficiency.possible_windows);
+    }
+    if reloaded_digest != snapshot.content_digest || inventory.accepted_series.is_empty() {
+        return Err("local snapshot integrity or evidence inventory failed".to_string());
+    }
+    run_momentum_campaign_if_enabled(
+        config_path,
+        &snapshot,
+        &campaign_config,
+        &sufficiency,
+        temporal_diagnostics,
+        output_format,
+    )
 }
 
 fn run_momentum_campaign_if_enabled(
@@ -203,6 +239,8 @@ fn run_momentum_campaign_if_enabled(
     snapshot: &crate::data::DataSnapshot,
     campaign_config: &crate::model::MomentumLearningCampaignConfigV0,
     sufficiency: &crate::model::MomentumCampaignSufficiencyV0,
+    temporal_diagnostics: bool,
+    output_format: &str,
 ) -> Result<(), String> {
     let local_config = crate::data::UpbitHistoricalPilotConfigV0::from_toml_path(config_path)
         .map_err(|_| "local provider config unavailable after smoke".to_string())?;
@@ -224,11 +262,13 @@ fn run_momentum_campaign_if_enabled(
     .map_err(|_| "historical evidence freeze failed".to_string())?;
     crate::model::verify_momentum_historical_evidence_pack_v0(&pack)
         .map_err(|_| "historical evidence pack verification failed".to_string())?;
-    println!("evidence_pack_frozen={}", pack.frozen);
-    println!(
-        "evidence_pack_digest_prefix={}",
-        pack.digest.chars().take(12).collect::<String>()
-    );
+    if !temporal_diagnostics {
+        println!("evidence_pack_frozen={}", pack.frozen);
+        println!(
+            "evidence_pack_digest_prefix={}",
+            pack.digest.chars().take(12).collect::<String>()
+        );
+    }
     let encoder = crate::model::frozen_mamba3_encoder_from_seed_v0(
         &campaign_config.feature_config,
         campaign_config.campaign_seed,
@@ -239,6 +279,20 @@ fn run_momentum_campaign_if_enabled(
     let results = crate::model::run_momentum_series_campaigns_v0(&pack, campaign_config, &encoder)
         .map_err(|_| "momentum campaign execution failed".to_string())?;
     for result in results {
+        if temporal_diagnostics {
+            let report = crate::model::build_momentum_temporal_diagnostic_report_v0(
+                &result.campaign,
+                snapshot.row_count,
+                &pack.digest,
+            );
+            let rendered = match output_format {
+                "json" => crate::model::momentum_temporal_diagnostic_report_json_v0(&report),
+                "text" => crate::model::momentum_temporal_diagnostic_report_text_v0(&report),
+                _ => return Err("unsupported temporal diagnostic output format".to_string()),
+            };
+            println!("{rendered}");
+            continue;
+        }
         println!(
             "campaign_series_status={:?};windows={};drift={:?};versions={}",
             result.campaign.status,

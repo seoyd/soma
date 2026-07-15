@@ -396,6 +396,8 @@ pub enum ShadowLearningAbstentionReasonV0 {
     InsufficientValidationSamples,
     SingleClassValidation,
     NumericalFailure,
+    TemporalOutOfSupport,
+    TemporalSupportUnavailable,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -494,8 +496,11 @@ pub enum ShadowSupportDecisionV0 {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum EarliestTemporalShiftStageV0 {
     None,
+    RawFeatures,
     NormalizedFeatures,
+    Sequences,
     FrozenRepresentations,
+    RepresentationScale,
     Logits,
     Probabilities,
     OutcomesOnly,
@@ -518,9 +523,20 @@ pub enum TemporalDistributionShiftStatusV0 {
 pub struct TemporalGeneralizationResultV0 {
     pub validation_support_decision: ShadowSupportDecisionV0,
     pub test_support_decision: ShadowSupportDecisionV0,
+    pub validation_support_coverage: f32,
+    pub raw_feature_shift: Option<DistributionShiftMetricBundleV0>,
+    pub normalized_feature_shift: Option<DistributionShiftMetricBundleV0>,
+    pub sequence_shift: DistributionShiftMetricBundleV0,
+    pub frozen_representation_shift: DistributionShiftMetricBundleV0,
     pub representation_shift: DistributionShiftMetricBundleV0,
+    pub validation_representation_shift: DistributionShiftMetricBundleV0,
+    pub logit_shift: DistributionShiftMetricBundleV0,
+    pub probability_shift: DistributionShiftMetricBundleV0,
+    pub outcome_shift: DistributionShiftMetricBundleV0,
     pub earliest_shift_stage: EarliestTemporalShiftStageV0,
     pub shift_status: TemporalDistributionShiftStatusV0,
+    pub root_cause: ProbabilityCollapseRootCauseV0,
+    pub counterfactual_test_evaluated: bool,
     pub decision_digest: String,
 }
 
@@ -546,6 +562,14 @@ pub enum ProbabilityCollapseRootCauseV0 {
     SequenceDiversityCollapse,
     EncoderRepresentationCollapse,
     RepresentationScaleMismatch,
+    FeatureScaleDrift,
+    SequenceSupportBreach,
+    FrozenRepresentationSupportBreach,
+    RepresentationScaleDrift,
+    HeadBiasSensitivity,
+    LogitVarianceCollapse,
+    OutcomePrevalenceShift,
+    ImplementationBug,
     HeadInitializationCollapse,
     GradientVanishing,
     GradientExplosion,
@@ -624,6 +648,7 @@ pub struct MomentumLearningDiagnosticTraceV0 {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct MomentumProbabilityCollapseForensicsV0 {
+    pub window_id: String,
     pub diagnostic_status: ProbabilityCollapseDiagnosticStatusV0,
     pub root_cause: ProbabilityCollapseRootCauseV0,
     pub candidates: Vec<MomentumForensicCandidateV0>,
@@ -991,6 +1016,12 @@ pub struct MomentumLearningPathResultV0 {
     pub path: MomentumLearningPathV0,
     pub parent_version_id: Option<String>,
     pub initial_head_digest: String,
+    pub initial_head: LogisticPredictionHeadV0,
+    pub initial_weight_norm: f32,
+    pub initial_bias: f32,
+    pub initial_probability_mean: f32,
+    pub initial_probability_stddev: f32,
+    pub training_prevalence: f32,
     pub final_head_digest: String,
     pub final_head: LogisticPredictionHeadV0,
     pub stopped_epoch: usize,
@@ -1026,6 +1057,113 @@ pub struct MomentumLearningCampaignResultV0 {
     pub reason_codes: Vec<String>,
     pub safety_trace: CampaignSafetyTraceV0,
     pub collapse_forensics: Vec<MomentumProbabilityCollapseForensicsV0>,
+    pub validation_signal_gate: ValidationSignalGateConfigV0,
+    pub support_gate: ShadowSupportGateConfigV0,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum WarmStartLockInStatusV0 {
+    NoLockInEvidence,
+    LockInSuspected,
+    LockInConfirmed,
+    WarmAndColdBothNoSignal,
+    WarmBetter,
+    ColdBetter,
+    Mixed,
+    InsufficientEvidence,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct WarmColdTrajectoryComparisonV0 {
+    pub window_id: String,
+    pub cold_initial_head_digest: String,
+    pub warm_initial_head_digest: String,
+    pub warm_parent_version_id: Option<String>,
+    pub initial_parameter_distance: f32,
+    pub initial_bias_difference: f32,
+    pub cold_initial_probability_mean: f32,
+    pub warm_initial_probability_mean: f32,
+    pub cold_initial_probability_stddev: f32,
+    pub warm_initial_probability_stddev: f32,
+    pub training_prevalence: f32,
+    pub cold_stopped_epoch: usize,
+    pub warm_stopped_epoch: usize,
+    pub cold_validation_brier: f32,
+    pub warm_validation_brier: f32,
+    pub cold_validation_probability_stddev: f32,
+    pub warm_validation_probability_stddev: f32,
+    pub cold_won_validation: bool,
+    pub warm_won_validation: bool,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct AggregateTemporalGeneralizationEvidenceV0 {
+    pub total_windows: usize,
+    pub no_signal_windows: usize,
+    pub selected_checkpoint_windows: usize,
+    pub support_gate_usable_windows: usize,
+    pub in_support_windows: usize,
+    pub out_of_support_windows: usize,
+    pub support_gate_unavailable_windows: usize,
+    pub temporal_collapse_windows: usize,
+    pub raw_feature_shift_windows: usize,
+    pub normalized_feature_shift_windows: usize,
+    pub sequence_shift_windows: usize,
+    pub representation_shift_windows: usize,
+    pub logit_shift_windows: usize,
+    pub probability_shift_windows: usize,
+    pub outcomes_only_windows: usize,
+    pub warm_lock_in_windows: usize,
+    pub operational_abstentions: usize,
+    pub counterfactual_evaluations: usize,
+    pub accepted_predictive_versions: usize,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SupportGatedMomentumSeriesVerdictV0 {
+    InSupportUsableSignalAndMambaHelpedOnThisSeries,
+    InSupportUsableSignalButLinearStrongerOnThisSeries,
+    InSupportMixedEvidence,
+    TemporalOutOfSupportAbstention,
+    FrozenRepresentationShiftRisk,
+    WarmStartLockInRisk,
+    NoUsableValidationSignal,
+    InsufficientEvidence,
+    CampaignFailed,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct MomentumTemporalDiagnosticReportV0 {
+    pub report_version: String,
+    pub campaign_digest: String,
+    pub evidence_row_count: usize,
+    pub evidence_pack_digest_prefix: String,
+    pub selected_window_id: Option<String>,
+    pub selected_candidate: Option<MomentumForensicCandidateV0>,
+    pub selected_checkpoint: Option<CheckpointRefV0>,
+    pub raw_feature_shift: Option<DistributionShiftMetricBundleV0>,
+    pub normalized_feature_shift: Option<DistributionShiftMetricBundleV0>,
+    pub sequence_shift: Option<DistributionShiftMetricBundleV0>,
+    pub frozen_representation_shift: Option<DistributionShiftMetricBundleV0>,
+    pub representation_scale_shift: Option<DistributionShiftMetricBundleV0>,
+    pub logit_shift: Option<DistributionShiftMetricBundleV0>,
+    pub probability_shift: Option<DistributionShiftMetricBundleV0>,
+    pub outcome_shift: Option<DistributionShiftMetricBundleV0>,
+    pub validation_support_decision: ShadowSupportDecisionV0,
+    pub test_support_decision: ShadowSupportDecisionV0,
+    pub validation_support_coverage: Option<f32>,
+    pub support_decision_digest: Option<String>,
+    pub earliest_shift_stage: EarliestTemporalShiftStageV0,
+    pub temporal_root_cause: ProbabilityCollapseRootCauseV0,
+    pub warm_start_status: WarmStartLockInStatusV0,
+    pub warm_cold_comparisons: Vec<WarmColdTrajectoryComparisonV0>,
+    pub aggregate: AggregateTemporalGeneralizationEvidenceV0,
+    pub final_verdict: SupportGatedMomentumSeriesVerdictV0,
+    pub operational_result: String,
+    pub counterfactual_result: String,
+    pub layered_eligibility: CampaignLayeredEligibilityV0,
+    pub reason_codes: Vec<String>,
+    pub report_digest: String,
 }
 
 #[derive(Clone)]
@@ -1039,6 +1177,13 @@ struct WarmParent {
     window_id: String,
     version: SandboxModelVersionV0,
     head: LogisticPredictionHeadV0,
+}
+
+struct TemporalFeaturePartitionsV0 {
+    raw_train: Vec<Vec<f32>>,
+    raw_test: Vec<Vec<f32>>,
+    normalized_train: Vec<Vec<f32>>,
+    normalized_test: Vec<Vec<f32>>,
 }
 
 pub fn build_momentum_learning_windows_v0(
@@ -1589,6 +1734,197 @@ fn support_decision(
     }
 }
 
+fn shadow_support_decision_label_v0(decision: ShadowSupportDecisionV0) -> &'static str {
+    match decision {
+        ShadowSupportDecisionV0::InSupport => "in_support",
+        ShadowSupportDecisionV0::OutOfSupport => "out_of_support",
+        ShadowSupportDecisionV0::SupportGateUnavailable => "support_gate_unavailable",
+        ShadowSupportDecisionV0::InsufficientEvidence => "insufficient_evidence",
+        ShadowSupportDecisionV0::NumericalFailure => "numerical_failure",
+    }
+}
+
+fn flatten_sequence_inputs_v0(examples: &[SequenceExampleV0]) -> Vec<Vec<f32>> {
+    examples
+        .iter()
+        .map(|example| example.input.iter().flatten().copied().collect())
+        .collect()
+}
+
+fn distribution_shift_for_rows_v0(
+    reference: &[Vec<f32>],
+    target: &[Vec<f32>],
+    gate: &ShadowSupportGateConfigV0,
+) -> Result<DistributionShiftMetricBundleV0, CampaignErrorV0> {
+    let envelope = DistributionSupportEnvelopeV0::fit(reference, gate)?;
+    distribution_shift_metrics_v0(reference, target, &envelope)
+}
+
+fn distribution_shift_for_scalars_v0(
+    reference: &[f32],
+    target: &[f32],
+    gate: &ShadowSupportGateConfigV0,
+) -> Result<DistributionShiftMetricBundleV0, CampaignErrorV0> {
+    let reference = reference
+        .iter()
+        .map(|value| vec![*value])
+        .collect::<Vec<_>>();
+    let target = target.iter().map(|value| vec![*value]).collect::<Vec<_>>();
+    distribution_shift_for_rows_v0(&reference, &target, gate)
+}
+
+fn head_logits_v0(
+    head: &LogisticPredictionHeadV0,
+    examples: &[EncodedTrainingExampleV0],
+) -> Result<Vec<f32>, CampaignErrorV0> {
+    head.validate()?;
+    examples
+        .iter()
+        .map(|example| {
+            if example.representation.len() != head.weights.len()
+                || example
+                    .representation
+                    .iter()
+                    .any(|value| !value.is_finite())
+            {
+                return Err(CampaignErrorV0::Learning);
+            }
+            let logit = head.bias
+                + head
+                    .weights
+                    .iter()
+                    .zip(&example.representation)
+                    .map(|(weight, value)| weight * value)
+                    .sum::<f32>();
+            if logit.is_finite() {
+                Ok(logit)
+            } else {
+                Err(CampaignErrorV0::Learning)
+            }
+        })
+        .collect()
+}
+
+fn has_material_distribution_shift_v0(
+    metrics: &DistributionShiftMetricBundleV0,
+    gate: &ShadowSupportGateConfigV0,
+) -> bool {
+    !metrics.finite
+        || metrics.mean_absolute_standardized_mean_shift > gate.maximum_mean_standardized_shift
+        || metrics.maximum_absolute_standardized_mean_shift
+            > gate.maximum_dimension_standardized_shift
+        || metrics.mean_absolute_log_variance_ratio > gate.maximum_mean_log_variance_ratio
+        || metrics.out_of_support_fraction > gate.maximum_out_of_support_fraction
+}
+
+fn earliest_temporal_shift_stage_v0(
+    raw: Option<&DistributionShiftMetricBundleV0>,
+    normalized: Option<&DistributionShiftMetricBundleV0>,
+    sequence: &DistributionShiftMetricBundleV0,
+    frozen_representation: &DistributionShiftMetricBundleV0,
+    representation_scale: &DistributionShiftMetricBundleV0,
+    logits: &DistributionShiftMetricBundleV0,
+    probabilities: &DistributionShiftMetricBundleV0,
+    outcomes: &DistributionShiftMetricBundleV0,
+    gate: &ShadowSupportGateConfigV0,
+) -> EarliestTemporalShiftStageV0 {
+    let stages = [
+        (raw, EarliestTemporalShiftStageV0::RawFeatures),
+        (normalized, EarliestTemporalShiftStageV0::NormalizedFeatures),
+    ];
+    if let Some((_, stage)) = stages.into_iter().find(|(metrics, _)| {
+        metrics.is_some_and(|metrics| has_material_distribution_shift_v0(metrics, gate))
+    }) {
+        return stage;
+    }
+    [
+        (sequence, EarliestTemporalShiftStageV0::Sequences),
+        (
+            frozen_representation,
+            EarliestTemporalShiftStageV0::FrozenRepresentations,
+        ),
+        (
+            representation_scale,
+            EarliestTemporalShiftStageV0::RepresentationScale,
+        ),
+        (logits, EarliestTemporalShiftStageV0::Logits),
+        (probabilities, EarliestTemporalShiftStageV0::Probabilities),
+        (outcomes, EarliestTemporalShiftStageV0::OutcomesOnly),
+    ]
+    .into_iter()
+    .find(|(metrics, _)| has_material_distribution_shift_v0(metrics, gate))
+    .map(|(_, stage)| stage)
+    .unwrap_or(EarliestTemporalShiftStageV0::None)
+}
+
+fn temporal_shift_status_v0(
+    stage: EarliestTemporalShiftStageV0,
+) -> TemporalDistributionShiftStatusV0 {
+    match stage {
+        EarliestTemporalShiftStageV0::None => TemporalDistributionShiftStatusV0::Stable,
+        EarliestTemporalShiftStageV0::RawFeatures
+        | EarliestTemporalShiftStageV0::NormalizedFeatures => {
+            TemporalDistributionShiftStatusV0::NormalizedFeatureShift
+        }
+        EarliestTemporalShiftStageV0::Sequences
+        | EarliestTemporalShiftStageV0::FrozenRepresentations
+        | EarliestTemporalShiftStageV0::RepresentationScale => {
+            TemporalDistributionShiftStatusV0::FrozenRepresentationShift
+        }
+        EarliestTemporalShiftStageV0::Logits => {
+            TemporalDistributionShiftStatusV0::LogitDistributionShift
+        }
+        EarliestTemporalShiftStageV0::Probabilities => {
+            TemporalDistributionShiftStatusV0::ProbabilityDistributionShift
+        }
+        EarliestTemporalShiftStageV0::OutcomesOnly => TemporalDistributionShiftStatusV0::Stable,
+        EarliestTemporalShiftStageV0::MultipleStages => {
+            TemporalDistributionShiftStatusV0::MultiStageShift
+        }
+        EarliestTemporalShiftStageV0::InsufficientEvidence => {
+            TemporalDistributionShiftStatusV0::InsufficientSamples
+        }
+    }
+}
+
+fn temporal_root_cause_v0(
+    stage: EarliestTemporalShiftStageV0,
+    probability_shift: &DistributionShiftMetricBundleV0,
+) -> ProbabilityCollapseRootCauseV0 {
+    match stage {
+        EarliestTemporalShiftStageV0::RawFeatures => {
+            ProbabilityCollapseRootCauseV0::RawFeatureCollapse
+        }
+        EarliestTemporalShiftStageV0::NormalizedFeatures => {
+            ProbabilityCollapseRootCauseV0::FeatureScaleDrift
+        }
+        EarliestTemporalShiftStageV0::Sequences => {
+            ProbabilityCollapseRootCauseV0::SequenceSupportBreach
+        }
+        EarliestTemporalShiftStageV0::FrozenRepresentations => {
+            ProbabilityCollapseRootCauseV0::FrozenRepresentationSupportBreach
+        }
+        EarliestTemporalShiftStageV0::RepresentationScale => {
+            ProbabilityCollapseRootCauseV0::RepresentationScaleDrift
+        }
+        EarliestTemporalShiftStageV0::Logits => {
+            ProbabilityCollapseRootCauseV0::LogitVarianceCollapse
+        }
+        EarliestTemporalShiftStageV0::Probabilities
+            if probability_shift.out_of_support_fraction > 0.0 =>
+        {
+            ProbabilityCollapseRootCauseV0::ProbabilitySaturation
+        }
+        EarliestTemporalShiftStageV0::Probabilities => {
+            ProbabilityCollapseRootCauseV0::HeadBiasSensitivity
+        }
+        EarliestTemporalShiftStageV0::OutcomesOnly => {
+            ProbabilityCollapseRootCauseV0::OutcomePrevalenceShift
+        }
+        _ => ProbabilityCollapseRootCauseV0::Unknown,
+    }
+}
+
 fn validation_status(
     bundle: &ForecastMetricBundleV0,
     gate: &ValidationSignalGateConfigV0,
@@ -1656,6 +1992,28 @@ pub fn run_momentum_probability_collapse_forensics_v0(
     validation: &[SequenceExampleV0],
     test: &[SequenceExampleV0],
     collapse_config: &ProbabilityCollapseConfigV0,
+) -> Result<MomentumProbabilityCollapseForensicsV0, CampaignErrorV0> {
+    run_momentum_probability_collapse_forensics_with_temporal_inputs_v0(
+        config,
+        encoder,
+        train,
+        validation,
+        test,
+        collapse_config,
+        None,
+        "sealed-window",
+    )
+}
+
+fn run_momentum_probability_collapse_forensics_with_temporal_inputs_v0(
+    config: &MomentumLearningCampaignConfigV0,
+    encoder: &FrozenMamba3EncoderV0,
+    train: &[SequenceExampleV0],
+    validation: &[SequenceExampleV0],
+    test: &[SequenceExampleV0],
+    collapse_config: &ProbabilityCollapseConfigV0,
+    temporal_inputs: Option<&TemporalFeaturePartitionsV0>,
+    window_id: &str,
 ) -> Result<MomentumProbabilityCollapseForensicsV0, CampaignErrorV0> {
     config.validate()?;
     collapse_config.validate()?;
@@ -1758,46 +2116,117 @@ pub fn run_momentum_probability_collapse_forensics_v0(
             .iter()
             .map(|row| row.representation.clone())
             .collect::<Vec<_>>();
+        let raw_representation_train = train_encoded
+            .iter()
+            .map(|row| row.representation.clone())
+            .collect::<Vec<_>>();
+        let raw_representation_test = encoder
+            .encode_batch(test)?
+            .iter()
+            .map(|row| row.representation.clone())
+            .collect::<Vec<_>>();
         let envelope = DistributionSupportEnvelopeV0::fit(&train_rows, &config.support_gate)?;
         let validation_shift =
             distribution_shift_metrics_v0(&train_rows, &validation_rows, &envelope)?;
         let test_shift = distribution_shift_metrics_v0(&train_rows, &test_rows, &envelope)?;
+        let frozen_representation_shift = distribution_shift_for_rows_v0(
+            &raw_representation_train,
+            &raw_representation_test,
+            &config.support_gate,
+        )?;
+        let sequence_shift = distribution_shift_for_rows_v0(
+            &flatten_sequence_inputs_v0(train),
+            &flatten_sequence_inputs_v0(test),
+            &config.support_gate,
+        )?;
+        let raw_feature_shift = temporal_inputs
+            .map(|inputs| {
+                distribution_shift_for_rows_v0(
+                    &inputs.raw_train,
+                    &inputs.raw_test,
+                    &config.support_gate,
+                )
+            })
+            .transpose()?;
+        let normalized_feature_shift = temporal_inputs
+            .map(|inputs| {
+                distribution_shift_for_rows_v0(
+                    &inputs.normalized_train,
+                    &inputs.normalized_test,
+                    &config.support_gate,
+                )
+            })
+            .transpose()?;
+        let logits_train = head_logits_v0(head, &candidate_train)?;
+        let logits_test = head_logits_v0(head, &test_encoded)?;
+        let logit_shift =
+            distribution_shift_for_scalars_v0(&logits_train, &logits_test, &config.support_gate)?;
+        let probabilities_train = probabilities_for_head(head, &candidate_train)?;
+        let probabilities_test = probabilities_for_head(head, &test_encoded)?;
+        let probability_shift = distribution_shift_for_scalars_v0(
+            &probabilities_train,
+            &probabilities_test,
+            &config.support_gate,
+        )?;
         let validation_support = support_decision(&validation_shift, &config.support_gate, true);
         let test_support = if validation_support == ShadowSupportDecisionV0::InSupport {
             support_decision(&test_shift, &config.support_gate, false)
         } else {
             ShadowSupportDecisionV0::SupportGateUnavailable
         };
-        let shift_status = if test_shift.out_of_support_fraction
-            > config.support_gate.maximum_out_of_support_fraction
-        {
-            TemporalDistributionShiftStatusV0::FrozenRepresentationShift
-        } else {
-            TemporalDistributionShiftStatusV0::Stable
-        };
-        temporal_generalization = Some(TemporalGeneralizationResultV0 {
-            validation_support_decision: validation_support,
-            test_support_decision: test_support,
-            representation_shift: test_shift.clone(),
-            earliest_shift_stage: if shift_status == TemporalDistributionShiftStatusV0::Stable {
-                EarliestTemporalShiftStageV0::None
-            } else {
-                EarliestTemporalShiftStageV0::FrozenRepresentations
-            },
-            shift_status,
-            decision_digest: stable_hash_string(&format!(
-                "{:?}:{:?}:{}",
-                validation_support, test_support, envelope.digest
-            )),
-        });
+        let validation_support_coverage = 1.0 - validation_shift.out_of_support_fraction;
+        let decision_digest = stable_hash_string(&format!(
+            "{}:{}:{:.8}:{}",
+            shadow_support_decision_label_v0(validation_support),
+            shadow_support_decision_label_v0(test_support),
+            validation_support_coverage,
+            envelope.digest,
+        ));
         let test_metrics = evaluate_head_v0(head, &test_encoded)?;
-        let test_probabilities = probabilities_for_head(head, &test_encoded)?;
         let test_labels = test_encoded
             .iter()
             .map(|example| example.label)
             .collect::<Vec<_>>();
         let test_collapse =
-            probability_collapse_metrics_v0(&test_probabilities, &test_labels, collapse_config)?;
+            probability_collapse_metrics_v0(&probabilities_test, &test_labels, collapse_config)?;
+        let train_labels = candidate_train
+            .iter()
+            .map(|example| example.label)
+            .collect::<Vec<_>>();
+        let outcome_shift =
+            distribution_shift_for_scalars_v0(&train_labels, &test_labels, &config.support_gate)?;
+        let earliest_shift_stage = earliest_temporal_shift_stage_v0(
+            raw_feature_shift.as_ref(),
+            normalized_feature_shift.as_ref(),
+            &sequence_shift,
+            &frozen_representation_shift,
+            &test_shift,
+            &logit_shift,
+            &probability_shift,
+            &outcome_shift,
+            &config.support_gate,
+        );
+        let shift_status = temporal_shift_status_v0(earliest_shift_stage);
+        let root_cause = temporal_root_cause_v0(earliest_shift_stage, &probability_shift);
+        temporal_generalization = Some(TemporalGeneralizationResultV0 {
+            validation_support_decision: validation_support,
+            test_support_decision: test_support,
+            validation_support_coverage,
+            raw_feature_shift,
+            normalized_feature_shift,
+            sequence_shift,
+            frozen_representation_shift,
+            representation_shift: test_shift.clone(),
+            validation_representation_shift: validation_shift,
+            logit_shift,
+            probability_shift,
+            outcome_shift,
+            earliest_shift_stage,
+            shift_status,
+            root_cause,
+            counterfactual_test_evaluated: true,
+            decision_digest,
+        });
         candidate_results[index].test = Some(test_metrics);
         candidate_results[index].test_collapse = Some(test_collapse);
         candidate_results[index].generalization_status = if candidate_results[index]
@@ -1825,16 +2254,22 @@ pub fn run_momentum_probability_collapse_forensics_v0(
         Some(_) => ProbabilityCollapseDiagnosticStatusV0::RootCauseIdentified,
         None => ProbabilityCollapseDiagnosticStatusV0::InsufficientDiagnosticEvidence,
     };
-    let root_cause = selected_result
-        .and_then(|result| result.test_collapse.as_ref())
-        .map(classify_probability_root_cause)
+    let root_cause = temporal_generalization
+        .as_ref()
+        .filter(|result| result.earliest_shift_stage != EarliestTemporalShiftStageV0::None)
+        .map(|result| result.root_cause)
+        .or_else(|| {
+            selected_result
+                .and_then(|result| result.test_collapse.as_ref())
+                .map(classify_probability_root_cause)
+        })
         .unwrap_or(ProbabilityCollapseRootCauseV0::Unknown);
     let selected_checkpoint = selected_result.and_then(|result| result.selected_checkpoint.clone());
     let abstention = if selected_candidate.is_none() {
         Some(ShadowLearningAbstentionV0 {
             agent_id: config.agent_id.clone(),
             campaign_id: config.campaign_id.clone(),
-            window_id: "sealed-window".to_string(),
+            window_id: window_id.to_string(),
             reason: ShadowLearningAbstentionReasonV0::NoUsableValidationSignal,
             eligible_to_vote: false,
             eligible_to_execute: false,
@@ -1842,13 +2277,19 @@ pub fn run_momentum_probability_collapse_forensics_v0(
         })
     } else if temporal_generalization
         .as_ref()
-        .is_some_and(|result| result.test_support_decision == ShadowSupportDecisionV0::OutOfSupport)
+        .is_some_and(|result| result.test_support_decision != ShadowSupportDecisionV0::InSupport)
     {
         Some(ShadowLearningAbstentionV0 {
             agent_id: config.agent_id.clone(),
             campaign_id: config.campaign_id.clone(),
-            window_id: "support-gated-window".to_string(),
-            reason: ShadowLearningAbstentionReasonV0::TemporalOutOfSupport,
+            window_id: window_id.to_string(),
+            reason: if temporal_generalization.as_ref().is_some_and(|result| {
+                result.test_support_decision == ShadowSupportDecisionV0::OutOfSupport
+            }) {
+                ShadowLearningAbstentionReasonV0::TemporalOutOfSupport
+            } else {
+                ShadowLearningAbstentionReasonV0::TemporalSupportUnavailable
+            },
             eligible_to_vote: false,
             eligible_to_execute: false,
             eligible_for_promotion: false,
@@ -1857,6 +2298,7 @@ pub fn run_momentum_probability_collapse_forensics_v0(
         None
     };
     Ok(MomentumProbabilityCollapseForensicsV0 {
+        window_id: window_id.to_string(),
         diagnostic_status,
         root_cause,
         candidates,
@@ -2307,6 +2749,21 @@ pub fn run_momentum_learning_campaign_v0(
         let train_rows = rows_in_range(&raw_features, &window.train_range);
         let normalizer = FeatureNormalizerV0::fit(&train_rows)?;
         let normalized = normalizer.transform(&raw_features)?;
+        let temporal_inputs = TemporalFeaturePartitionsV0 {
+            raw_train: train_rows.iter().map(|row| row.values.clone()).collect(),
+            raw_test: rows_in_range(&raw_features, &window.test_range)
+                .iter()
+                .map(|row| row.values.clone())
+                .collect(),
+            normalized_train: rows_in_range(&normalized, &window.train_range)
+                .iter()
+                .map(|row| row.values.clone())
+                .collect(),
+            normalized_test: rows_in_range(&normalized, &window.test_range)
+                .iter()
+                .map(|row| row.values.clone())
+                .collect(),
+        };
         let all_examples = build_momentum_sequence_examples_v0(
             &evidence.candles,
             &normalized,
@@ -2338,14 +2795,18 @@ pub fn run_momentum_learning_campaign_v0(
             });
             continue;
         }
-        collapse_forensics.push(run_momentum_probability_collapse_forensics_v0(
-            config,
-            encoder,
-            &train,
-            &validation,
-            &test,
-            &config.collapse_config,
-        )?);
+        collapse_forensics.push(
+            run_momentum_probability_collapse_forensics_with_temporal_inputs_v0(
+                config,
+                encoder,
+                &train,
+                &validation,
+                &test,
+                &config.collapse_config,
+                Some(&temporal_inputs),
+                &window.window_id,
+            )?,
+        );
         let mut paths = Vec::new();
         let requested_paths = match config.initialization_policy {
             HeadInitializationPolicyV0::ColdStartEachWindow => vec![MomentumLearningPathV0::Cold],
@@ -2490,7 +2951,674 @@ pub fn run_momentum_learning_campaign_v0(
         reason_codes: vec!["offline_shadow_only".to_string(), config.digest()],
         safety_trace: complete_safety_trace(safety_trace),
         collapse_forensics,
+        validation_signal_gate: config.validation_signal_gate.clone(),
+        support_gate: config.support_gate.clone(),
     })
+}
+
+pub fn build_momentum_temporal_diagnostic_report_v0(
+    campaign: &MomentumLearningCampaignResultV0,
+    evidence_row_count: usize,
+    evidence_pack_digest: &str,
+) -> MomentumTemporalDiagnosticReportV0 {
+    let selected = campaign
+        .collapse_forensics
+        .iter()
+        .find(|forensics| forensics.selected_candidate.is_some());
+    let temporal = selected.and_then(|forensics| forensics.temporal_generalization.as_ref());
+    let comparisons = warm_cold_trajectory_comparisons_v0(&campaign.windows);
+    let warm_start_status =
+        warm_start_lock_in_status_v0(&comparisons, &campaign.validation_signal_gate);
+    let aggregate = aggregate_temporal_evidence_v0(campaign, warm_start_status);
+    let (
+        validation_support_decision,
+        test_support_decision,
+        validation_support_coverage,
+        support_decision_digest,
+        earliest_shift_stage,
+        temporal_root_cause,
+        operational_result,
+        counterfactual_result,
+    ) = if let Some(temporal) = temporal {
+        (
+            temporal.validation_support_decision,
+            temporal.test_support_decision,
+            Some(temporal.validation_support_coverage),
+            Some(temporal.decision_digest.clone()),
+            temporal.earliest_shift_stage,
+            temporal.root_cause,
+            if temporal.test_support_decision == ShadowSupportDecisionV0::InSupport {
+                "shadow_prediction_research_only".to_string()
+            } else {
+                "shadow_abstain".to_string()
+            },
+            if temporal.counterfactual_test_evaluated {
+                "research_only_test_evaluated".to_string()
+            } else {
+                "test_sealed".to_string()
+            },
+        )
+    } else {
+        (
+            ShadowSupportDecisionV0::InsufficientEvidence,
+            ShadowSupportDecisionV0::InsufficientEvidence,
+            None,
+            None,
+            EarliestTemporalShiftStageV0::InsufficientEvidence,
+            ProbabilityCollapseRootCauseV0::Unknown,
+            "shadow_abstain".to_string(),
+            "test_sealed".to_string(),
+        )
+    };
+    let final_verdict =
+        final_temporal_verdict_v0(campaign, temporal, warm_start_status, &aggregate);
+    let mut reason_codes = campaign.reason_codes.clone();
+    reason_codes.push(format!(
+        "support={}",
+        shadow_support_decision_label_v0(test_support_decision)
+    ));
+    reason_codes.push(format!(
+        "verdict={}",
+        temporal_verdict_label_v0(final_verdict)
+    ));
+    reason_codes.sort();
+    reason_codes.dedup();
+    let campaign_digest = stable_hash_string(&format!(
+        "{}:{}:{}:{}",
+        campaign.campaign_id,
+        evidence_row_count,
+        campaign.windows.len(),
+        campaign.reason_codes.join(":"),
+    ));
+    let report_digest = stable_hash_string(&format!(
+        "v1:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+        campaign_digest,
+        evidence_pack_digest,
+        selected
+            .map(|value| value.window_id.as_str())
+            .unwrap_or("none"),
+        selected
+            .and_then(|value| value.selected_candidate)
+            .map(forensic_candidate_label_v0)
+            .unwrap_or("none"),
+        shadow_support_decision_label_v0(validation_support_decision),
+        shadow_support_decision_label_v0(test_support_decision),
+        earliest_stage_label_v0(earliest_shift_stage),
+        root_cause_label_v0(temporal_root_cause),
+        warm_start_status_label_v0(warm_start_status),
+        temporal_verdict_label_v0(final_verdict),
+        reason_codes.join(":"),
+    ));
+    MomentumTemporalDiagnosticReportV0 {
+        report_version: "momentum-temporal-diagnostic-v1".to_string(),
+        campaign_digest,
+        evidence_row_count,
+        evidence_pack_digest_prefix: evidence_pack_digest.chars().take(12).collect(),
+        selected_window_id: selected.map(|value| value.window_id.clone()),
+        selected_candidate: selected.and_then(|value| value.selected_candidate),
+        selected_checkpoint: selected.and_then(|value| value.selected_checkpoint.clone()),
+        raw_feature_shift: temporal.and_then(|value| value.raw_feature_shift.clone()),
+        normalized_feature_shift: temporal.and_then(|value| value.normalized_feature_shift.clone()),
+        sequence_shift: temporal.map(|value| value.sequence_shift.clone()),
+        frozen_representation_shift: temporal
+            .map(|value| value.frozen_representation_shift.clone()),
+        representation_scale_shift: temporal.map(|value| value.representation_shift.clone()),
+        logit_shift: temporal.map(|value| value.logit_shift.clone()),
+        probability_shift: temporal.map(|value| value.probability_shift.clone()),
+        outcome_shift: temporal.map(|value| value.outcome_shift.clone()),
+        validation_support_decision,
+        test_support_decision,
+        validation_support_coverage,
+        support_decision_digest,
+        earliest_shift_stage,
+        temporal_root_cause,
+        warm_start_status,
+        warm_cold_comparisons: comparisons,
+        aggregate,
+        final_verdict,
+        operational_result,
+        counterfactual_result,
+        layered_eligibility: campaign.safety_trace.eligibility.clone(),
+        reason_codes,
+        report_digest,
+    }
+}
+
+fn warm_cold_trajectory_comparisons_v0(
+    windows: &[MomentumLearningWindowResultV0],
+) -> Vec<WarmColdTrajectoryComparisonV0> {
+    windows
+        .iter()
+        .filter_map(|window| {
+            let cold = window
+                .paths
+                .iter()
+                .find(|path| path.path == MomentumLearningPathV0::Cold)?;
+            let warm = window
+                .paths
+                .iter()
+                .find(|path| path.path == MomentumLearningPathV0::Warm)?;
+            let initial_parameter_distance = (cold
+                .initial_head
+                .weights
+                .iter()
+                .zip(&warm.initial_head.weights)
+                .map(|(left, right)| (left - right).powi(2))
+                .sum::<f32>()
+                + (cold.initial_head.bias - warm.initial_head.bias).powi(2))
+            .sqrt();
+            let comparison_epsilon = 1e-6;
+            Some(WarmColdTrajectoryComparisonV0 {
+                window_id: window.window.window_id.clone(),
+                cold_initial_head_digest: cold.initial_head_digest.clone(),
+                warm_initial_head_digest: warm.initial_head_digest.clone(),
+                warm_parent_version_id: warm.parent_version_id.clone(),
+                initial_parameter_distance,
+                initial_bias_difference: (cold.initial_bias - warm.initial_bias).abs(),
+                cold_initial_probability_mean: cold.initial_probability_mean,
+                warm_initial_probability_mean: warm.initial_probability_mean,
+                cold_initial_probability_stddev: cold.initial_probability_stddev,
+                warm_initial_probability_stddev: warm.initial_probability_stddev,
+                training_prevalence: cold.training_prevalence,
+                cold_stopped_epoch: cold.stopped_epoch,
+                warm_stopped_epoch: warm.stopped_epoch,
+                cold_validation_brier: cold.validation.metrics.brier_score,
+                warm_validation_brier: warm.validation.metrics.brier_score,
+                cold_validation_probability_stddev: cold.validation.probability_stddev,
+                warm_validation_probability_stddev: warm.validation.probability_stddev,
+                cold_won_validation: cold.validation.metrics.brier_score + comparison_epsilon
+                    < warm.validation.metrics.brier_score,
+                warm_won_validation: warm.validation.metrics.brier_score + comparison_epsilon
+                    < cold.validation.metrics.brier_score,
+            })
+        })
+        .collect()
+}
+
+fn warm_start_lock_in_status_v0(
+    comparisons: &[WarmColdTrajectoryComparisonV0],
+    gate: &ValidationSignalGateConfigV0,
+) -> WarmStartLockInStatusV0 {
+    if comparisons.is_empty() {
+        return WarmStartLockInStatusV0::InsufficientEvidence;
+    }
+    if comparisons.iter().all(|comparison| {
+        comparison.cold_validation_probability_stddev < gate.minimum_probability_stddev
+            && comparison.warm_validation_probability_stddev < gate.minimum_probability_stddev
+    }) {
+        return WarmStartLockInStatusV0::WarmAndColdBothNoSignal;
+    }
+    let cold_wins = comparisons
+        .iter()
+        .filter(|comparison| comparison.cold_won_validation)
+        .count();
+    let warm_wins = comparisons
+        .iter()
+        .filter(|comparison| comparison.warm_won_validation)
+        .count();
+    if cold_wins > 0 && warm_wins == 0 {
+        WarmStartLockInStatusV0::ColdBetter
+    } else if warm_wins > 0 && cold_wins == 0 {
+        WarmStartLockInStatusV0::WarmBetter
+    } else if cold_wins == 0 && warm_wins == 0 {
+        WarmStartLockInStatusV0::NoLockInEvidence
+    } else {
+        WarmStartLockInStatusV0::Mixed
+    }
+}
+
+fn aggregate_temporal_evidence_v0(
+    campaign: &MomentumLearningCampaignResultV0,
+    warm_start_status: WarmStartLockInStatusV0,
+) -> AggregateTemporalGeneralizationEvidenceV0 {
+    let temporal = campaign
+        .collapse_forensics
+        .iter()
+        .filter_map(|forensics| forensics.temporal_generalization.as_ref())
+        .collect::<Vec<_>>();
+    let count_stage = |stage| {
+        temporal
+            .iter()
+            .filter(|result| result.earliest_shift_stage == stage)
+            .count()
+    };
+    let accepted_predictive_versions = campaign
+        .collapse_forensics
+        .iter()
+        .filter(|forensics| {
+            forensics
+                .temporal_generalization
+                .as_ref()
+                .is_some_and(|result| {
+                    result.test_support_decision == ShadowSupportDecisionV0::InSupport
+                })
+                && forensics
+                    .candidate_results
+                    .iter()
+                    .find(|candidate| Some(candidate.candidate) == forensics.selected_candidate)
+                    .and_then(|candidate| candidate.test.as_ref())
+                    .is_some_and(|test| test.brier_score.is_finite())
+        })
+        .count();
+    AggregateTemporalGeneralizationEvidenceV0 {
+        total_windows: campaign.collapse_forensics.len(),
+        no_signal_windows: campaign
+            .collapse_forensics
+            .iter()
+            .filter(|forensics| forensics.selected_candidate.is_none())
+            .count(),
+        selected_checkpoint_windows: campaign
+            .collapse_forensics
+            .iter()
+            .filter(|forensics| forensics.selected_checkpoint.is_some())
+            .count(),
+        support_gate_usable_windows: temporal
+            .iter()
+            .filter(|result| {
+                result.validation_support_decision == ShadowSupportDecisionV0::InSupport
+            })
+            .count(),
+        in_support_windows: temporal
+            .iter()
+            .filter(|result| result.test_support_decision == ShadowSupportDecisionV0::InSupport)
+            .count(),
+        out_of_support_windows: temporal
+            .iter()
+            .filter(|result| result.test_support_decision == ShadowSupportDecisionV0::OutOfSupport)
+            .count(),
+        support_gate_unavailable_windows: temporal
+            .iter()
+            .filter(|result| {
+                result.test_support_decision == ShadowSupportDecisionV0::SupportGateUnavailable
+            })
+            .count(),
+        temporal_collapse_windows: campaign
+            .collapse_forensics
+            .iter()
+            .filter(|forensics| {
+                forensics.candidate_results.iter().any(|candidate| {
+                    candidate
+                        .test_collapse
+                        .as_ref()
+                        .is_some_and(ProbabilityCollapseMetricsV0::is_collapsed)
+                })
+            })
+            .count(),
+        raw_feature_shift_windows: temporal
+            .iter()
+            .filter(|result| {
+                result.raw_feature_shift.as_ref().is_some_and(|metrics| {
+                    has_material_distribution_shift_v0(metrics, &campaign.support_gate)
+                })
+            })
+            .count(),
+        normalized_feature_shift_windows: temporal
+            .iter()
+            .filter(|result| {
+                result
+                    .normalized_feature_shift
+                    .as_ref()
+                    .is_some_and(|metrics| {
+                        has_material_distribution_shift_v0(metrics, &campaign.support_gate)
+                    })
+            })
+            .count(),
+        sequence_shift_windows: count_stage(EarliestTemporalShiftStageV0::Sequences),
+        representation_shift_windows: count_stage(
+            EarliestTemporalShiftStageV0::FrozenRepresentations,
+        ) + count_stage(
+            EarliestTemporalShiftStageV0::RepresentationScale,
+        ),
+        logit_shift_windows: count_stage(EarliestTemporalShiftStageV0::Logits),
+        probability_shift_windows: count_stage(EarliestTemporalShiftStageV0::Probabilities),
+        outcomes_only_windows: count_stage(EarliestTemporalShiftStageV0::OutcomesOnly),
+        warm_lock_in_windows: usize::from(matches!(
+            warm_start_status,
+            WarmStartLockInStatusV0::LockInConfirmed | WarmStartLockInStatusV0::LockInSuspected
+        )),
+        operational_abstentions: campaign
+            .collapse_forensics
+            .iter()
+            .filter(|forensics| forensics.abstention.is_some())
+            .count(),
+        counterfactual_evaluations: temporal
+            .iter()
+            .filter(|result| result.counterfactual_test_evaluated)
+            .count(),
+        accepted_predictive_versions,
+    }
+}
+
+fn final_temporal_verdict_v0(
+    campaign: &MomentumLearningCampaignResultV0,
+    temporal: Option<&TemporalGeneralizationResultV0>,
+    warm_start_status: WarmStartLockInStatusV0,
+    aggregate: &AggregateTemporalGeneralizationEvidenceV0,
+) -> SupportGatedMomentumSeriesVerdictV0 {
+    if matches!(
+        campaign.status,
+        MomentumLearningCampaignStatusV0::BackendUnavailable
+            | MomentumLearningCampaignStatusV0::LeakageInvariantFailed
+            | MomentumLearningCampaignStatusV0::RejectedForSafety
+    ) {
+        return SupportGatedMomentumSeriesVerdictV0::CampaignFailed;
+    }
+    if aggregate.selected_checkpoint_windows == 0 {
+        return SupportGatedMomentumSeriesVerdictV0::NoUsableValidationSignal;
+    }
+    if matches!(
+        warm_start_status,
+        WarmStartLockInStatusV0::LockInConfirmed | WarmStartLockInStatusV0::LockInSuspected
+    ) {
+        return SupportGatedMomentumSeriesVerdictV0::WarmStartLockInRisk;
+    }
+    let Some(temporal) = temporal else {
+        return SupportGatedMomentumSeriesVerdictV0::InsufficientEvidence;
+    };
+    if temporal.test_support_decision != ShadowSupportDecisionV0::InSupport {
+        return if temporal.earliest_shift_stage
+            == EarliestTemporalShiftStageV0::FrozenRepresentations
+        {
+            SupportGatedMomentumSeriesVerdictV0::FrozenRepresentationShiftRisk
+        } else {
+            SupportGatedMomentumSeriesVerdictV0::TemporalOutOfSupportAbstention
+        };
+    }
+    let delta_vs_linear = campaign
+        .collapse_forensics
+        .iter()
+        .find(|forensics| {
+            forensics
+                .temporal_generalization
+                .as_ref()
+                .is_some_and(|result| result.decision_digest == temporal.decision_digest)
+        })
+        .and_then(|forensics| {
+            campaign
+                .windows
+                .iter()
+                .find(|window| window.window.window_id == forensics.window_id)
+        })
+        .and_then(|window| {
+            window
+                .paths
+                .iter()
+                .find(|path| path.path == MomentumLearningPathV0::Cold)
+                .or_else(|| window.paths.first())
+        })
+        .map(|path| {
+            path.baselines.frozen_mamba.brier_score - path.baselines.linear_momentum.brier_score
+        });
+    match delta_vs_linear {
+        Some(delta) if delta < -1e-6 => {
+            SupportGatedMomentumSeriesVerdictV0::InSupportUsableSignalAndMambaHelpedOnThisSeries
+        }
+        Some(delta) if delta > 1e-6 => {
+            SupportGatedMomentumSeriesVerdictV0::InSupportUsableSignalButLinearStrongerOnThisSeries
+        }
+        _ => SupportGatedMomentumSeriesVerdictV0::InSupportMixedEvidence,
+    }
+}
+
+fn forensic_candidate_label_v0(candidate: MomentumForensicCandidateV0) -> &'static str {
+    candidate.label()
+}
+
+fn earliest_stage_label_v0(stage: EarliestTemporalShiftStageV0) -> &'static str {
+    match stage {
+        EarliestTemporalShiftStageV0::None => "none",
+        EarliestTemporalShiftStageV0::RawFeatures => "raw_features",
+        EarliestTemporalShiftStageV0::NormalizedFeatures => "normalized_features",
+        EarliestTemporalShiftStageV0::Sequences => "sequences",
+        EarliestTemporalShiftStageV0::FrozenRepresentations => "frozen_representations",
+        EarliestTemporalShiftStageV0::RepresentationScale => "representation_scale",
+        EarliestTemporalShiftStageV0::Logits => "logits",
+        EarliestTemporalShiftStageV0::Probabilities => "probabilities",
+        EarliestTemporalShiftStageV0::OutcomesOnly => "outcomes_only",
+        EarliestTemporalShiftStageV0::MultipleStages => "multiple_stages",
+        EarliestTemporalShiftStageV0::InsufficientEvidence => "insufficient_evidence",
+    }
+}
+
+fn root_cause_label_v0(cause: ProbabilityCollapseRootCauseV0) -> &'static str {
+    match cause {
+        ProbabilityCollapseRootCauseV0::RawFeatureCollapse => "raw_feature_collapse",
+        ProbabilityCollapseRootCauseV0::NormalizedFeatureCollapse => "normalized_feature_collapse",
+        ProbabilityCollapseRootCauseV0::SequenceDiversityCollapse => "sequence_diversity_collapse",
+        ProbabilityCollapseRootCauseV0::EncoderRepresentationCollapse => {
+            "encoder_representation_collapse"
+        }
+        ProbabilityCollapseRootCauseV0::RepresentationScaleMismatch => {
+            "representation_scale_mismatch"
+        }
+        ProbabilityCollapseRootCauseV0::FeatureScaleDrift => "feature_scale_drift",
+        ProbabilityCollapseRootCauseV0::SequenceSupportBreach => "sequence_support_breach",
+        ProbabilityCollapseRootCauseV0::FrozenRepresentationSupportBreach => {
+            "frozen_representation_support_breach"
+        }
+        ProbabilityCollapseRootCauseV0::RepresentationScaleDrift => "representation_scale_drift",
+        ProbabilityCollapseRootCauseV0::HeadBiasSensitivity => "head_bias_sensitivity",
+        ProbabilityCollapseRootCauseV0::LogitVarianceCollapse => "logit_variance_collapse",
+        ProbabilityCollapseRootCauseV0::OutcomePrevalenceShift => "outcome_prevalence_shift",
+        ProbabilityCollapseRootCauseV0::ImplementationBug => "implementation_bug",
+        ProbabilityCollapseRootCauseV0::HeadInitializationCollapse => {
+            "head_initialization_collapse"
+        }
+        ProbabilityCollapseRootCauseV0::GradientVanishing => "gradient_vanishing",
+        ProbabilityCollapseRootCauseV0::GradientExplosion => "gradient_explosion",
+        ProbabilityCollapseRootCauseV0::OptimizerInstability => "optimizer_instability",
+        ProbabilityCollapseRootCauseV0::BiasDominatedPrediction => "bias_dominated_prediction",
+        ProbabilityCollapseRootCauseV0::ValidationCheckpointCollapse => {
+            "validation_checkpoint_collapse"
+        }
+        ProbabilityCollapseRootCauseV0::WarmStartLockIn => "warm_start_lock_in",
+        ProbabilityCollapseRootCauseV0::ClassPrevalenceDominance => "class_prevalence_dominance",
+        ProbabilityCollapseRootCauseV0::ProbabilitySaturation => "probability_saturation",
+        ProbabilityCollapseRootCauseV0::CalibrationOnlyFailure => "calibration_only_failure",
+        ProbabilityCollapseRootCauseV0::Mixed => "mixed",
+        ProbabilityCollapseRootCauseV0::Unknown => "unknown",
+    }
+}
+
+fn warm_start_status_label_v0(status: WarmStartLockInStatusV0) -> &'static str {
+    match status {
+        WarmStartLockInStatusV0::NoLockInEvidence => "no_lock_in_evidence",
+        WarmStartLockInStatusV0::LockInSuspected => "lock_in_suspected",
+        WarmStartLockInStatusV0::LockInConfirmed => "lock_in_confirmed",
+        WarmStartLockInStatusV0::WarmAndColdBothNoSignal => "warm_and_cold_both_no_signal",
+        WarmStartLockInStatusV0::WarmBetter => "warm_better",
+        WarmStartLockInStatusV0::ColdBetter => "cold_better",
+        WarmStartLockInStatusV0::Mixed => "mixed",
+        WarmStartLockInStatusV0::InsufficientEvidence => "insufficient_evidence",
+    }
+}
+
+fn temporal_verdict_label_v0(verdict: SupportGatedMomentumSeriesVerdictV0) -> &'static str {
+    match verdict {
+        SupportGatedMomentumSeriesVerdictV0::InSupportUsableSignalAndMambaHelpedOnThisSeries => {
+            "in_support_mamba_helped"
+        }
+        SupportGatedMomentumSeriesVerdictV0::InSupportUsableSignalButLinearStrongerOnThisSeries => {
+            "in_support_linear_stronger"
+        }
+        SupportGatedMomentumSeriesVerdictV0::InSupportMixedEvidence => "in_support_mixed_evidence",
+        SupportGatedMomentumSeriesVerdictV0::TemporalOutOfSupportAbstention => {
+            "temporal_out_of_support_abstention"
+        }
+        SupportGatedMomentumSeriesVerdictV0::FrozenRepresentationShiftRisk => {
+            "frozen_representation_shift_risk"
+        }
+        SupportGatedMomentumSeriesVerdictV0::WarmStartLockInRisk => "warm_start_lock_in_risk",
+        SupportGatedMomentumSeriesVerdictV0::NoUsableValidationSignal => {
+            "no_usable_validation_signal"
+        }
+        SupportGatedMomentumSeriesVerdictV0::InsufficientEvidence => "insufficient_evidence",
+        SupportGatedMomentumSeriesVerdictV0::CampaignFailed => "campaign_failed",
+    }
+}
+
+pub fn momentum_temporal_diagnostic_report_json_v0(
+    report: &MomentumTemporalDiagnosticReportV0,
+) -> String {
+    let shift = |metrics: &Option<DistributionShiftMetricBundleV0>| {
+        metrics.as_ref().map(|metrics| {
+            serde_json::json!({
+                "reference_samples": metrics.sample_count_reference,
+                "target_samples": metrics.sample_count_target,
+                "dimensions": metrics.dimensions,
+                "mean_standardized_shift": metrics.mean_absolute_standardized_mean_shift,
+                "max_standardized_shift": metrics.maximum_absolute_standardized_mean_shift,
+                "mean_log_variance_ratio": metrics.mean_absolute_log_variance_ratio,
+                "max_log_variance_ratio": metrics.maximum_absolute_log_variance_ratio,
+                "out_of_support_fraction": metrics.out_of_support_fraction,
+                "dimensions_out_of_support": metrics.dimensions_out_of_support,
+                "finite": metrics.finite,
+            })
+        })
+    };
+    let comparisons = report
+        .warm_cold_comparisons
+        .iter()
+        .map(|comparison| {
+            serde_json::json!({
+                "window_id": comparison.window_id,
+                "cold_initial_head_digest": comparison.cold_initial_head_digest,
+                "warm_initial_head_digest": comparison.warm_initial_head_digest,
+                "warm_parent_version_id": comparison.warm_parent_version_id,
+                "initial_parameter_distance": comparison.initial_parameter_distance,
+                "initial_bias_difference": comparison.initial_bias_difference,
+                "cold_initial_probability_mean": comparison.cold_initial_probability_mean,
+                "warm_initial_probability_mean": comparison.warm_initial_probability_mean,
+                "cold_initial_probability_stddev": comparison.cold_initial_probability_stddev,
+                "warm_initial_probability_stddev": comparison.warm_initial_probability_stddev,
+                "training_prevalence": comparison.training_prevalence,
+                "cold_stopped_epoch": comparison.cold_stopped_epoch,
+                "warm_stopped_epoch": comparison.warm_stopped_epoch,
+                "cold_validation_brier": comparison.cold_validation_brier,
+                "warm_validation_brier": comparison.warm_validation_brier,
+                "cold_validation_probability_stddev": comparison.cold_validation_probability_stddev,
+                "warm_validation_probability_stddev": comparison.warm_validation_probability_stddev,
+                "cold_won_validation": comparison.cold_won_validation,
+                "warm_won_validation": comparison.warm_won_validation,
+            })
+        })
+        .collect::<Vec<_>>();
+    serde_json::json!({
+        "report_version": report.report_version,
+        "campaign_digest": report.campaign_digest,
+        "evidence": {
+            "row_count": report.evidence_row_count,
+            "pack_digest_prefix": report.evidence_pack_digest_prefix,
+        },
+        "reproduction": {
+            "total_windows": report.aggregate.total_windows,
+            "no_signal_windows": report.aggregate.no_signal_windows,
+            "selected_checkpoint_windows": report.aggregate.selected_checkpoint_windows,
+        },
+        "selected_path": {
+            "window_id": report.selected_window_id,
+            "candidate": report.selected_candidate.map(forensic_candidate_label_v0),
+            "checkpoint_epoch": report.selected_checkpoint.as_ref().map(|checkpoint| checkpoint.epoch),
+        },
+        "shift": {
+            "raw_feature": shift(&report.raw_feature_shift),
+            "normalized_feature": shift(&report.normalized_feature_shift),
+            "sequence": shift(&report.sequence_shift),
+            "frozen_representation": shift(&report.frozen_representation_shift),
+            "representation_scale": shift(&report.representation_scale_shift),
+            "logit": shift(&report.logit_shift),
+            "probability": shift(&report.probability_shift),
+            "outcome": shift(&report.outcome_shift),
+            "earliest_stage": earliest_stage_label_v0(report.earliest_shift_stage),
+            "root_cause": root_cause_label_v0(report.temporal_root_cause),
+        },
+        "support": {
+            "validation_decision": shadow_support_decision_label_v0(report.validation_support_decision),
+            "validation_coverage": report.validation_support_coverage,
+            "sealed_test_decision": shadow_support_decision_label_v0(report.test_support_decision),
+            "decision_digest": report.support_decision_digest,
+        },
+        "operational_result": report.operational_result,
+        "counterfactual_result": report.counterfactual_result,
+        "warm_start": {
+            "status": warm_start_status_label_v0(report.warm_start_status),
+            "comparisons": comparisons,
+        },
+        "aggregate": {
+            "support_gate_usable_windows": report.aggregate.support_gate_usable_windows,
+            "in_support_windows": report.aggregate.in_support_windows,
+            "out_of_support_windows": report.aggregate.out_of_support_windows,
+            "support_gate_unavailable_windows": report.aggregate.support_gate_unavailable_windows,
+            "temporal_collapse_windows": report.aggregate.temporal_collapse_windows,
+            "raw_feature_shift_windows": report.aggregate.raw_feature_shift_windows,
+            "normalized_feature_shift_windows": report.aggregate.normalized_feature_shift_windows,
+            "sequence_shift_windows": report.aggregate.sequence_shift_windows,
+            "representation_shift_windows": report.aggregate.representation_shift_windows,
+            "logit_shift_windows": report.aggregate.logit_shift_windows,
+            "probability_shift_windows": report.aggregate.probability_shift_windows,
+            "outcomes_only_windows": report.aggregate.outcomes_only_windows,
+            "warm_lock_in_windows": report.aggregate.warm_lock_in_windows,
+            "operational_abstentions": report.aggregate.operational_abstentions,
+            "counterfactual_evaluations": report.aggregate.counterfactual_evaluations,
+            "accepted_predictive_versions": report.aggregate.accepted_predictive_versions,
+        },
+        "final_verdict": temporal_verdict_label_v0(report.final_verdict),
+        "permissions": {
+            "offline_shadow_learning": report.layered_eligibility.offline_shadow_learning,
+            "promotion": report.layered_eligibility.promotion,
+            "voting": report.layered_eligibility.voting,
+            "execution": report.layered_eligibility.execution,
+        },
+        "reason_codes": report.reason_codes,
+        "report_digest": report.report_digest,
+    })
+    .to_string()
+}
+
+pub fn momentum_temporal_diagnostic_report_text_v0(
+    report: &MomentumTemporalDiagnosticReportV0,
+) -> String {
+    [
+        format!("report_version={}", report.report_version),
+        format!("evidence_rows={}", report.evidence_row_count),
+        format!("windows={}", report.aggregate.total_windows),
+        format!("no_signal_windows={}", report.aggregate.no_signal_windows),
+        format!(
+            "selected_candidate={}",
+            report
+                .selected_candidate
+                .map(forensic_candidate_label_v0)
+                .unwrap_or("none")
+        ),
+        format!(
+            "validation_support={}",
+            shadow_support_decision_label_v0(report.validation_support_decision)
+        ),
+        format!(
+            "sealed_test_support={}",
+            shadow_support_decision_label_v0(report.test_support_decision)
+        ),
+        format!(
+            "earliest_shift_stage={}",
+            earliest_stage_label_v0(report.earliest_shift_stage)
+        ),
+        format!(
+            "temporal_root_cause={}",
+            root_cause_label_v0(report.temporal_root_cause)
+        ),
+        format!(
+            "warm_start_status={}",
+            warm_start_status_label_v0(report.warm_start_status)
+        ),
+        format!("operational_result={}", report.operational_result),
+        format!("counterfactual_result={}", report.counterfactual_result),
+        format!(
+            "final_verdict={}",
+            temporal_verdict_label_v0(report.final_verdict)
+        ),
+        format!("report_digest={}", report.report_digest),
+    ]
+    .join("\n")
 }
 
 fn validate_historical_evidence(
@@ -2750,9 +3878,19 @@ fn train_path(
     encoder_digest: &str,
 ) -> Result<MomentumLearningPathResultV0, CampaignErrorV0> {
     let initial_head_digest = initial_head.parameter_digest();
+    let initial_encoded = encoder.encode_batch(train)?;
+    let initial_probabilities = probabilities_for_head(&initial_head, &initial_encoded)?;
+    let initial_probability_mean = mean_f32(&initial_probabilities)?;
+    let initial_probability_stddev = stddev_f32(&initial_probabilities, initial_probability_mean)?;
+    let training_prevalence = mean_f32(
+        &train
+            .iter()
+            .map(|example| example.label)
+            .collect::<Vec<_>>(),
+    )?;
     let training = train_frozen_mamba_head_v0(
         encoder,
-        initial_head,
+        initial_head.clone(),
         train,
         validation,
         &config.training_config,
@@ -2846,6 +3984,12 @@ fn train_path(
         path,
         parent_version_id,
         initial_head_digest,
+        initial_head: initial_head.clone(),
+        initial_weight_norm: head_weight_norm(&initial_head),
+        initial_bias: initial_head.bias,
+        initial_probability_mean,
+        initial_probability_stddev,
+        training_prevalence,
         final_head_digest: training.final_head.parameter_digest(),
         final_head: training.final_head,
         stopped_epoch: training.stopped_epoch,
@@ -3180,6 +4324,8 @@ fn empty_result_with_trace(
         reason_codes: vec![reason.to_string(), "offline_shadow_only".to_string()],
         safety_trace,
         collapse_forensics: vec![],
+        validation_signal_gate: config.validation_signal_gate.clone(),
+        support_gate: config.support_gate.clone(),
     }
 }
 
@@ -3673,5 +4819,84 @@ mod tests {
             support_decision(&metrics, &gate, false),
             ShadowSupportDecisionV0::OutOfSupport
         );
+    }
+
+    #[test]
+    fn earliest_temporal_stage_uses_data_driven_precedence() {
+        let gate = ShadowSupportGateConfigV0::default();
+        let stable = DistributionShiftMetricBundleV0 {
+            sample_count_reference: 4,
+            sample_count_target: 4,
+            dimensions: 1,
+            mean_absolute_standardized_mean_shift: 0.0,
+            maximum_absolute_standardized_mean_shift: 0.0,
+            mean_absolute_log_variance_ratio: 0.0,
+            maximum_absolute_log_variance_ratio: 0.0,
+            out_of_support_fraction: 0.0,
+            dimensions_out_of_support: 0,
+            finite: true,
+        };
+        let shifted = DistributionShiftMetricBundleV0 {
+            mean_absolute_standardized_mean_shift: gate.maximum_mean_standardized_shift + 1.0,
+            ..stable.clone()
+        };
+        assert_eq!(
+            earliest_temporal_shift_stage_v0(
+                Some(&shifted),
+                Some(&shifted),
+                &shifted,
+                &shifted,
+                &shifted,
+                &shifted,
+                &shifted,
+                &shifted,
+                &gate,
+            ),
+            EarliestTemporalShiftStageV0::RawFeatures
+        );
+        assert_eq!(
+            earliest_temporal_shift_stage_v0(
+                None, None, &stable, &stable, &stable, &stable, &stable, &shifted, &gate,
+            ),
+            EarliestTemporalShiftStageV0::OutcomesOnly
+        );
+    }
+
+    #[test]
+    fn temporal_report_is_deterministic_and_redacted() {
+        let config = MomentumLearningCampaignConfigV0 {
+            minimum_history_rows: 140,
+            train_rows: 56,
+            validation_rows: 24,
+            test_rows: 24,
+            step_rows: 20,
+            purge_gap_rows: 8,
+            minimum_test_samples: 4,
+            minimum_evaluated_windows: 2,
+            training_config: HeadTrainingConfigV0 {
+                epochs: 2,
+                batch_size: 8,
+                ..HeadTrainingConfigV0::default()
+            },
+            aggregate_gate: AggregateMambaGateConfigV0 {
+                minimum_windows: 2,
+                minimum_test_samples: 4,
+                ..AggregateMambaGateConfigV0::default()
+            },
+            ..MomentumLearningCampaignConfigV0::default()
+        };
+        let campaign =
+            run_momentum_learning_campaign_v0(&config, &[snapshot(180)], &encoder()).unwrap();
+        let first = build_momentum_temporal_diagnostic_report_v0(&campaign, 180, "pack-digest");
+        let second = build_momentum_temporal_diagnostic_report_v0(&campaign, 180, "pack-digest");
+        let first_json = momentum_temporal_diagnostic_report_json_v0(&first);
+        assert_eq!(first.report_digest, second.report_digest);
+        assert_eq!(
+            first_json,
+            momentum_temporal_diagnostic_report_json_v0(&second)
+        );
+        assert!(!first_json.contains("/Users/"));
+        assert!(!first_json.contains("\"weights\""));
+        assert!(first_json.contains("sealed_test_decision"));
     }
 }
