@@ -7,7 +7,7 @@ use std::collections::BTreeSet;
 
 use crate::{
     core::stable_hash_string,
-    data::{DataSnapshot, DatasetKind, SnapshotSourceType},
+    data::{DataSnapshot, DatasetKind, SnapshotSourceType, historical_replay_dataset_digest_v0},
 };
 
 use super::{
@@ -99,6 +99,81 @@ pub enum CampaignErrorV0 {
     VersionCycle,
     LeakageInvariantFailed,
     Learning,
+}
+
+/// Deterministic, sanitized campaign gates. These gates describe the boundary
+/// between offline assessment and authorities that this campaign never receives.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CampaignSafetyGateV0 {
+    ImmutableSanitizedEvidence,
+    RealHistoricalEvidence,
+    CanonicalSemanticDigest,
+    ChronologicalEvidence,
+    FiniteOhlcvValues,
+    MinimumHistory,
+    PurgedChronologicalWindows,
+    CpuFullInferenceReady,
+    FrozenEncoderCaptured,
+    OfflineShadowLearning,
+    PromotionEligibility,
+    VotingEligibility,
+    ExecutionEligibility,
+    FrozenEncoderUnchanged,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CampaignSafetyGateOutcomeV0 {
+    Passed,
+    Rejected,
+    Blocked,
+    NotEvaluatedAfterEarlierRejection,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CampaignSafetyGateEvaluationV0 {
+    pub gate: CampaignSafetyGateV0,
+    pub outcome: CampaignSafetyGateOutcomeV0,
+    pub reason_code: Option<String>,
+    /// Deliberately count/boolean-only facts; no local paths, identifiers, or values.
+    pub sanitized_facts: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CampaignLayeredEligibilityV0 {
+    pub offline_shadow_learning: bool,
+    pub promotion: bool,
+    pub voting: bool,
+    pub execution: bool,
+}
+
+impl Default for CampaignLayeredEligibilityV0 {
+    fn default() -> Self {
+        Self {
+            offline_shadow_learning: false,
+            promotion: false,
+            voting: false,
+            execution: false,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CampaignSafetyTraceV0 {
+    pub gates: Vec<CampaignSafetyGateEvaluationV0>,
+    pub first_rejecting_gate: Option<CampaignSafetyGateV0>,
+    pub first_reason_code: Option<String>,
+    pub eligibility: CampaignLayeredEligibilityV0,
+}
+
+impl Default for CampaignSafetyTraceV0 {
+    fn default() -> Self {
+        Self {
+            gates: Vec::new(),
+            first_rejecting_gate: None,
+            first_reason_code: None,
+            eligibility: CampaignLayeredEligibilityV0::default(),
+        }
+    }
 }
 
 impl From<LearningError> for CampaignErrorV0 {
@@ -403,6 +478,7 @@ pub struct MomentumLearningCampaignResultV0 {
     pub shadow_assessments: Vec<CampaignShadowAssessmentV0>,
     pub rejected_windows: Vec<RejectedLearningWindowV0>,
     pub reason_codes: Vec<String>,
+    pub safety_trace: CampaignSafetyTraceV0,
 }
 
 #[derive(Clone)]
@@ -502,39 +578,106 @@ pub fn run_momentum_learning_campaign_v0(
     encoder: &FrozenMamba3EncoderV0,
 ) -> Result<MomentumLearningCampaignResultV0, CampaignErrorV0> {
     config.validate()?;
+    let mut safety_trace = CampaignSafetyTraceV0::default();
     if snapshots.is_empty() {
-        return Ok(empty_result(
+        trace_rejection(
+            &mut safety_trace,
+            CampaignSafetyGateV0::ImmutableSanitizedEvidence,
+            "no_historical_learning_evidence",
+            vec!["snapshot_count=0".to_string()],
+        );
+        return Ok(empty_result_with_trace(
             config,
             MomentumLearningCampaignStatusV0::NoHistoricalLearningEvidence,
             "no_historical_learning_evidence",
+            complete_safety_trace(safety_trace),
         ));
     }
-    let evidence = match validate_historical_evidence(snapshots) {
+    let evidence = match validate_historical_evidence(snapshots, &mut safety_trace) {
         Ok(evidence) => evidence,
         Err(error) => {
-            return Ok(empty_result(
+            return Ok(empty_result_with_trace(
                 config,
                 MomentumLearningCampaignStatusV0::RejectedForSafety,
                 error_label(error),
+                complete_safety_trace(safety_trace),
             ));
         }
     };
     if evidence.candles.len() < config.minimum_history_rows {
-        return Ok(empty_result(
+        trace_rejection(
+            &mut safety_trace,
+            CampaignSafetyGateV0::MinimumHistory,
+            "insufficient_historical_rows",
+            vec![format!("row_count={}", evidence.candles.len())],
+        );
+        return Ok(empty_result_with_trace(
             config,
             MomentumLearningCampaignStatusV0::NoHistoricalLearningEvidence,
             "insufficient_historical_rows",
+            complete_safety_trace(safety_trace),
         ));
     }
+    trace_pass(
+        &mut safety_trace,
+        CampaignSafetyGateV0::MinimumHistory,
+        vec![format!("row_count={}", evidence.candles.len())],
+    );
     if !backend_is_permitted(config, encoder) {
-        return Ok(empty_result(
+        trace_rejection(
+            &mut safety_trace,
+            CampaignSafetyGateV0::CpuFullInferenceReady,
+            "backend_not_full_ready_cpu",
+            vec!["cpu_full_inference_ready=false".to_string()],
+        );
+        return Ok(empty_result_with_trace(
             config,
             MomentumLearningCampaignStatusV0::BackendUnavailable,
             "backend_not_full_ready_cpu",
+            complete_safety_trace(safety_trace),
         ));
     }
+    trace_pass(
+        &mut safety_trace,
+        CampaignSafetyGateV0::CpuFullInferenceReady,
+        vec!["cpu_full_inference_ready=true".to_string()],
+    );
     let windows =
         build_momentum_learning_windows_v0(config, evidence.candles.len(), &evidence.snapshot_ids)?;
+    trace_pass(
+        &mut safety_trace,
+        CampaignSafetyGateV0::PurgedChronologicalWindows,
+        vec![format!("window_count={}", windows.len())],
+    );
+    trace_pass(
+        &mut safety_trace,
+        CampaignSafetyGateV0::FrozenEncoderCaptured,
+        vec!["parameter_digest_present=true".to_string()],
+    );
+    trace_pass(
+        &mut safety_trace,
+        CampaignSafetyGateV0::OfflineShadowLearning,
+        vec![
+            "deployment=shadow_only".to_string(),
+            "provider_or_transport_input=false".to_string(),
+        ],
+    );
+    safety_trace.eligibility.offline_shadow_learning = true;
+    trace_blocked(
+        &mut safety_trace,
+        CampaignSafetyGateV0::PromotionEligibility,
+        "experimental_internal_reference",
+    );
+    trace_blocked(
+        &mut safety_trace,
+        CampaignSafetyGateV0::VotingEligibility,
+        "shadow_only",
+    );
+    trace_blocked(
+        &mut safety_trace,
+        CampaignSafetyGateV0::ExecutionEligibility,
+        "official_oracle_execution_blocked",
+    );
     let raw_features = build_momentum_features_v0(&evidence.candles, &config.feature_config)?;
     let encoder_digest = encoder.parameter_digest();
     let mut journal = SandboxModelVersionJournalV0::default();
@@ -686,6 +829,11 @@ pub fn run_momentum_learning_campaign_v0(
     if encoder.parameter_digest() != encoder_digest {
         return Err(CampaignErrorV0::Learning);
     }
+    trace_pass(
+        &mut safety_trace,
+        CampaignSafetyGateV0::FrozenEncoderUnchanged,
+        vec!["parameter_digest_unchanged=true".to_string()],
+    );
     let generated_versions = results
         .iter()
         .flat_map(|window| window.paths.iter().map(|path| path.version.clone()))
@@ -714,18 +862,16 @@ pub fn run_momentum_learning_campaign_v0(
         shadow_assessments,
         rejected_windows,
         reason_codes: vec!["offline_shadow_only".to_string(), config.digest()],
+        safety_trace: complete_safety_trace(safety_trace),
     })
 }
 
 fn validate_historical_evidence(
     snapshots: &[DataSnapshot],
+    safety_trace: &mut CampaignSafetyTraceV0,
 ) -> Result<ValidatedEvidence, CampaignErrorV0> {
-    let mut candles = Vec::new();
-    let mut ids = BTreeSet::new();
-    let mut expected_symbol: Option<String> = None;
-    let mut prior_timestamp = None;
-    for snapshot in snapshots {
-        if !snapshot.read_only
+    if snapshots.iter().any(|snapshot| {
+        !snapshot.read_only
             || !snapshot.sanitized
             || !snapshot.provenance.sanitized
             || !snapshot.provenance.credential_free
@@ -736,10 +882,22 @@ fn validate_historical_evidence(
                 .reason_codes
                 .iter()
                 .any(|code| matches!(code, crate::core::ReasonCode::DataSnapshotImmutable))
-        {
-            return Err(CampaignErrorV0::MutableEvidence);
-        }
-        if !matches!(
+    }) {
+        trace_rejection(
+            safety_trace,
+            CampaignSafetyGateV0::ImmutableSanitizedEvidence,
+            error_label(CampaignErrorV0::MutableEvidence),
+            vec![format!("snapshot_count={}", snapshots.len())],
+        );
+        return Err(CampaignErrorV0::MutableEvidence);
+    }
+    trace_pass(
+        safety_trace,
+        CampaignSafetyGateV0::ImmutableSanitizedEvidence,
+        vec![format!("snapshot_count={}", snapshots.len())],
+    );
+    if snapshots.iter().any(|snapshot| {
+        !matches!(
             snapshot.dataset_kind,
             DatasetKind::DailyOhlcv | DatasetKind::AdjustedDailyOhlcv
         ) || matches!(snapshot.provenance.source_type, SnapshotSourceType::Mock)
@@ -750,20 +908,55 @@ fn validate_historical_evidence(
                 snapshot.normalized_dataset.symbol,
                 snapshot.normalized_dataset.source
             ))
-        {
-            return Err(CampaignErrorV0::UnsafeEvidence);
-        }
-        let digest = serde_json::to_string(&snapshot.normalized_dataset)
-            .map(|text| stable_hash_string(&text))
-            .map_err(|_| CampaignErrorV0::CorruptEvidence)?;
-        if digest != snapshot.content_digest {
-            return Err(CampaignErrorV0::CorruptEvidence);
-        }
+    }) {
+        trace_rejection(
+            safety_trace,
+            CampaignSafetyGateV0::RealHistoricalEvidence,
+            error_label(CampaignErrorV0::UnsafeEvidence),
+            vec![format!("snapshot_count={}", snapshots.len())],
+        );
+        return Err(CampaignErrorV0::UnsafeEvidence);
+    }
+    trace_pass(
+        safety_trace,
+        CampaignSafetyGateV0::RealHistoricalEvidence,
+        vec!["mock_source=false".to_string()],
+    );
+    if snapshots.iter().any(|snapshot| {
+        historical_replay_dataset_digest_v0(&snapshot.normalized_dataset) != snapshot.content_digest
+    }) {
+        trace_rejection(
+            safety_trace,
+            CampaignSafetyGateV0::CanonicalSemanticDigest,
+            "canonical_semantic_digest_mismatch",
+            vec![
+                format!("snapshot_count={}", snapshots.len()),
+                "semantic_digest_match=false".to_string(),
+            ],
+        );
+        return Err(CampaignErrorV0::CorruptEvidence);
+    }
+    trace_pass(
+        safety_trace,
+        CampaignSafetyGateV0::CanonicalSemanticDigest,
+        vec!["semantic_digest_match=true".to_string()],
+    );
+    let mut candles = Vec::new();
+    let mut ids = BTreeSet::new();
+    let mut expected_symbol: Option<String> = None;
+    let mut prior_timestamp = None;
+    for snapshot in snapshots {
         let symbol = snapshot.normalized_dataset.symbol.clone();
         if expected_symbol
             .as_ref()
             .is_some_and(|value| value != &symbol)
         {
+            trace_rejection(
+                safety_trace,
+                CampaignSafetyGateV0::ChronologicalEvidence,
+                error_label(CampaignErrorV0::IncompatibleEvidence),
+                vec!["single_symbol=false".to_string()],
+            );
             return Err(CampaignErrorV0::IncompatibleEvidence);
         }
         expected_symbol = Some(symbol.clone());
@@ -772,9 +965,21 @@ fn validate_historical_evidence(
                 || unsafe_evidence_text(&row.symbol)
                 || prior_timestamp.is_some_and(|prior| row.timestamp_ms < prior)
             {
+                trace_rejection(
+                    safety_trace,
+                    CampaignSafetyGateV0::ChronologicalEvidence,
+                    error_label(CampaignErrorV0::NonMonotonicEvidence),
+                    vec!["strictly_monotonic=false".to_string()],
+                );
                 return Err(CampaignErrorV0::NonMonotonicEvidence);
             }
             if prior_timestamp == Some(row.timestamp_ms) {
+                trace_rejection(
+                    safety_trace,
+                    CampaignSafetyGateV0::ChronologicalEvidence,
+                    error_label(CampaignErrorV0::DuplicateTimestamp),
+                    vec!["duplicate_timestamp=false".to_string()],
+                );
                 return Err(CampaignErrorV0::DuplicateTimestamp);
             }
             let values = [row.open, row.high, row.low, row.close, row.volume];
@@ -785,10 +990,23 @@ fn validate_historical_evidence(
                 || row.low > row.open.min(row.close)
                 || row.volume < 0.0
             {
+                trace_rejection(
+                    safety_trace,
+                    CampaignSafetyGateV0::FiniteOhlcvValues,
+                    error_label(CampaignErrorV0::UnsafeEvidence),
+                    vec!["finite_valid_ohlcv=false".to_string()],
+                );
                 return Err(CampaignErrorV0::UnsafeEvidence);
             }
-            let timestamp =
-                i64::try_from(row.timestamp_ms).map_err(|_| CampaignErrorV0::UnsafeEvidence)?;
+            let timestamp = i64::try_from(row.timestamp_ms).map_err(|_| {
+                trace_rejection(
+                    safety_trace,
+                    CampaignSafetyGateV0::FiniteOhlcvValues,
+                    error_label(CampaignErrorV0::UnsafeEvidence),
+                    vec!["timestamp_representable=false".to_string()],
+                );
+                CampaignErrorV0::UnsafeEvidence
+            })?;
             candles.push(MomentumCandleV0 {
                 timestamp,
                 open: row.open as f32,
@@ -802,8 +1020,24 @@ fn validate_historical_evidence(
         ids.insert(snapshot.snapshot_id.clone());
     }
     if candles.is_empty() || ids.is_empty() {
+        trace_rejection(
+            safety_trace,
+            CampaignSafetyGateV0::MinimumHistory,
+            "insufficient_historical_rows",
+            vec!["row_count=0".to_string()],
+        );
         return Err(CampaignErrorV0::InsufficientHistory);
     }
+    trace_pass(
+        safety_trace,
+        CampaignSafetyGateV0::ChronologicalEvidence,
+        vec!["strictly_monotonic=true".to_string()],
+    );
+    trace_pass(
+        safety_trace,
+        CampaignSafetyGateV0::FiniteOhlcvValues,
+        vec!["finite_valid_ohlcv=true".to_string()],
+    );
     Ok(ValidatedEvidence {
         candles,
         snapshot_ids: ids.into_iter().collect(),
@@ -1286,6 +1520,15 @@ fn empty_result(
     status: MomentumLearningCampaignStatusV0,
     reason: &str,
 ) -> MomentumLearningCampaignResultV0 {
+    empty_result_with_trace(config, status, reason, CampaignSafetyTraceV0::default())
+}
+
+fn empty_result_with_trace(
+    config: &MomentumLearningCampaignConfigV0,
+    status: MomentumLearningCampaignStatusV0,
+    reason: &str,
+    safety_trace: CampaignSafetyTraceV0,
+) -> MomentumLearningCampaignResultV0 {
     MomentumLearningCampaignResultV0 {
         campaign_id: config.campaign_id.clone(),
         status,
@@ -1308,7 +1551,85 @@ fn empty_result(
         shadow_assessments: vec![],
         rejected_windows: vec![],
         reason_codes: vec![reason.to_string(), "offline_shadow_only".to_string()],
+        safety_trace,
     }
+}
+
+const CAMPAIGN_SAFETY_GATE_ORDER: [CampaignSafetyGateV0; 14] = [
+    CampaignSafetyGateV0::ImmutableSanitizedEvidence,
+    CampaignSafetyGateV0::RealHistoricalEvidence,
+    CampaignSafetyGateV0::CanonicalSemanticDigest,
+    CampaignSafetyGateV0::ChronologicalEvidence,
+    CampaignSafetyGateV0::FiniteOhlcvValues,
+    CampaignSafetyGateV0::MinimumHistory,
+    CampaignSafetyGateV0::PurgedChronologicalWindows,
+    CampaignSafetyGateV0::CpuFullInferenceReady,
+    CampaignSafetyGateV0::FrozenEncoderCaptured,
+    CampaignSafetyGateV0::OfflineShadowLearning,
+    CampaignSafetyGateV0::PromotionEligibility,
+    CampaignSafetyGateV0::VotingEligibility,
+    CampaignSafetyGateV0::ExecutionEligibility,
+    CampaignSafetyGateV0::FrozenEncoderUnchanged,
+];
+
+fn trace_pass(
+    trace: &mut CampaignSafetyTraceV0,
+    gate: CampaignSafetyGateV0,
+    sanitized_facts: Vec<String>,
+) {
+    trace.gates.push(CampaignSafetyGateEvaluationV0 {
+        gate,
+        outcome: CampaignSafetyGateOutcomeV0::Passed,
+        reason_code: None,
+        sanitized_facts,
+    });
+}
+
+fn trace_rejection(
+    trace: &mut CampaignSafetyTraceV0,
+    gate: CampaignSafetyGateV0,
+    reason_code: &str,
+    sanitized_facts: Vec<String>,
+) {
+    trace.gates.push(CampaignSafetyGateEvaluationV0 {
+        gate,
+        outcome: CampaignSafetyGateOutcomeV0::Rejected,
+        reason_code: Some(reason_code.to_string()),
+        sanitized_facts,
+    });
+    if trace.first_rejecting_gate.is_none() {
+        trace.first_rejecting_gate = Some(gate);
+        trace.first_reason_code = Some(reason_code.to_string());
+    }
+}
+
+fn trace_blocked(trace: &mut CampaignSafetyTraceV0, gate: CampaignSafetyGateV0, reason_code: &str) {
+    trace.gates.push(CampaignSafetyGateEvaluationV0 {
+        gate,
+        outcome: CampaignSafetyGateOutcomeV0::Blocked,
+        reason_code: Some(reason_code.to_string()),
+        sanitized_facts: vec![],
+    });
+}
+
+fn complete_safety_trace(mut trace: CampaignSafetyTraceV0) -> CampaignSafetyTraceV0 {
+    for gate in CAMPAIGN_SAFETY_GATE_ORDER {
+        if !trace.gates.iter().any(|evaluation| evaluation.gate == gate) {
+            trace.gates.push(CampaignSafetyGateEvaluationV0 {
+                gate,
+                outcome: CampaignSafetyGateOutcomeV0::NotEvaluatedAfterEarlierRejection,
+                reason_code: None,
+                sanitized_facts: vec![],
+            });
+        }
+    }
+    trace.gates.sort_by_key(|evaluation| {
+        CAMPAIGN_SAFETY_GATE_ORDER
+            .iter()
+            .position(|gate| *gate == evaluation.gate)
+            .unwrap_or(CAMPAIGN_SAFETY_GATE_ORDER.len())
+    });
+    trace
 }
 
 fn deterministic_seed(base: u64, window_id: &str, path: MomentumLearningPathV0) -> u64 {
@@ -1440,7 +1761,7 @@ mod tests {
                 .collect(),
             reason_codes: vec![],
         };
-        let content_digest = stable_hash_string(&serde_json::to_string(&dataset).unwrap());
+        let content_digest = historical_replay_dataset_digest_v0(&dataset);
         DataSnapshot {
             snapshot_id: "snapshot-soma".to_string(),
             request_key: "daily:SOMA".to_string(),
@@ -1554,6 +1875,30 @@ mod tests {
     }
 
     #[test]
+    fn canonical_digest_rejection_records_the_first_safety_gate() {
+        let config = MomentumLearningCampaignConfigV0::default();
+        let mut invalid_snapshot = snapshot(128);
+        invalid_snapshot.content_digest = "invalid-semantic-digest".to_string();
+
+        let result =
+            run_momentum_learning_campaign_v0(&config, &[invalid_snapshot], &encoder()).unwrap();
+
+        assert_eq!(
+            result.status,
+            MomentumLearningCampaignStatusV0::RejectedForSafety
+        );
+        assert_eq!(
+            result.safety_trace.first_rejecting_gate,
+            Some(CampaignSafetyGateV0::CanonicalSemanticDigest)
+        );
+        assert_eq!(
+            result.safety_trace.first_reason_code.as_deref(),
+            Some("canonical_semantic_digest_mismatch")
+        );
+        assert!(result.generated_versions.is_empty());
+    }
+
+    #[test]
     fn aggregate_gate_does_not_allow_one_winning_window_to_help() {
         let gate = AggregateMambaGateConfigV0 {
             minimum_windows: 2,
@@ -1609,5 +1954,14 @@ mod tests {
                 .iter()
                 .any(|rejected| rejected.path == Some(MomentumLearningPathV0::Warm))
         );
+        assert_eq!(result.safety_trace.first_rejecting_gate, None);
+        assert!(result.safety_trace.eligibility.offline_shadow_learning);
+        assert!(!result.safety_trace.eligibility.promotion);
+        assert!(!result.safety_trace.eligibility.voting);
+        assert!(!result.safety_trace.eligibility.execution);
+        assert!(result.safety_trace.gates.iter().any(|gate| {
+            gate.gate == CampaignSafetyGateV0::CanonicalSemanticDigest
+                && gate.outcome == CampaignSafetyGateOutcomeV0::Passed
+        }));
     }
 }

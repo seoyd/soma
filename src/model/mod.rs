@@ -119,13 +119,15 @@ pub use learning::{
 };
 pub use learning_campaign::{
     AggregateMambaGateConfigV0, AggregateMambaValueEvidenceV0, CampaignErrorV0,
-    CampaignShadowAssessmentV0, CampaignShadowSuggestedActionV0, CampaignSplitPolicyV0,
-    HeadInitializationPolicyV0, ModelDriftConfigV0, ModelDriftStatusV0,
-    MomentumLearningCampaignConfigV0, MomentumLearningCampaignResultV0,
-    MomentumLearningCampaignStatusV0, MomentumLearningPathResultV0, MomentumLearningPathV0,
-    MomentumLearningWindowResultV0, MomentumLearningWindowV0, PredictionDiagnosticsV0,
-    RejectedLearningWindowV0, WarmStartValueEvidenceV0, WarmStartValueStatusV0,
-    build_momentum_learning_windows_v0, run_momentum_learning_campaign_v0,
+    CampaignLayeredEligibilityV0, CampaignSafetyGateEvaluationV0, CampaignSafetyGateOutcomeV0,
+    CampaignSafetyGateV0, CampaignSafetyTraceV0, CampaignShadowAssessmentV0,
+    CampaignShadowSuggestedActionV0, CampaignSplitPolicyV0, HeadInitializationPolicyV0,
+    ModelDriftConfigV0, ModelDriftStatusV0, MomentumLearningCampaignConfigV0,
+    MomentumLearningCampaignResultV0, MomentumLearningCampaignStatusV0,
+    MomentumLearningPathResultV0, MomentumLearningPathV0, MomentumLearningWindowResultV0,
+    MomentumLearningWindowV0, PredictionDiagnosticsV0, RejectedLearningWindowV0,
+    WarmStartValueEvidenceV0, WarmStartValueStatusV0, build_momentum_learning_windows_v0,
+    run_momentum_learning_campaign_v0,
 };
 pub use mamba_readiness::{
     InferenceMode, Mamba3FinCandidateReadiness, Mamba3FinCandidateReport, Mamba3FinCandidateSpec,

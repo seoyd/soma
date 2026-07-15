@@ -22,6 +22,8 @@ For a qualifying provider, the existing broker receives one configured daily req
 
 Accepted series form a deterministic frozen pack with a digest. Provider calls are outside the pack and never occur during training. Each series uses its own existing walk-forward campaign, frozen encoder, train-only normalization, cold/warm comparison, baselines, drift reporting, and ShadowOnly versions.
 
+Before a campaign consumes a series, it re-verifies the same canonical semantic dataset digest used by snapshot acquisition and frozen-pack verification. The campaign result includes an ordered sanitized safety trace with the first rejecting gate and exact reason code. A valid immutable series may run offline Shadow evaluation while promotion, voting, and execution remain separately blocked.
+
 The current single-series path reports a per-series outcome only when a real frozen pack and campaign result exist. It cannot establish broad cross-market value, profitability, promotion readiness, or live readiness.
 
 ## Aggregate Verdict

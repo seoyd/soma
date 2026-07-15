@@ -246,6 +246,20 @@ fn run_momentum_campaign_if_enabled(
             result.campaign.aggregate_drift,
             result.campaign.generated_versions.len()
         );
+        if let (Some(gate), Some(reason_code)) = (
+            result.campaign.safety_trace.first_rejecting_gate,
+            result.campaign.safety_trace.first_reason_code.as_deref(),
+        ) {
+            println!("campaign_safety_first_rejection={gate:?};reason_code={reason_code}");
+        }
+        let eligibility = &result.campaign.safety_trace.eligibility;
+        println!(
+            "campaign_layered_eligibility=offline_shadow_learning:{};promotion:{};voting:{};execution:{}",
+            eligibility.offline_shadow_learning,
+            eligibility.promotion,
+            eligibility.voting,
+            eligibility.execution,
+        );
         for window in result.campaign.windows {
             for path in window.paths {
                 let baselines = path.baselines;
