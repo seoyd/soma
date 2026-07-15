@@ -187,6 +187,227 @@ pub struct ProbabilityCollapseMetricsV0 {
     pub subtypes: Vec<ProbabilityCollapseSubtypeV0>,
 }
 
+/// Validation-only policy for deciding whether a checkpoint has enough measured
+/// signal to earn a sealed-test evaluation.  It deliberately has no test fields.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ValidationSignalGateConfigV0 {
+    pub minimum_samples: usize,
+    pub minimum_probability_stddev: f32,
+    pub minimum_entropy: f32,
+    pub minimum_brier_resolution: f32,
+    pub maximum_saturation_fraction: f32,
+    pub maximum_single_side_fraction: f32,
+    pub minimum_unique_probability_bins: usize,
+    pub maximum_brier_delta_vs_constant: f32,
+    pub minimum_rank_auc_margin: Option<f32>,
+    pub comparison_epsilon: f32,
+    pub brier_bin_count: usize,
+}
+
+impl Default for ValidationSignalGateConfigV0 {
+    fn default() -> Self {
+        Self {
+            minimum_samples: 4,
+            minimum_probability_stddev: 0.01,
+            minimum_entropy: 0.1,
+            minimum_brier_resolution: 0.0001,
+            maximum_saturation_fraction: 0.9,
+            maximum_single_side_fraction: 0.98,
+            minimum_unique_probability_bins: 2,
+            maximum_brier_delta_vs_constant: 0.0,
+            minimum_rank_auc_margin: None,
+            comparison_epsilon: 1e-4,
+            brier_bin_count: 10,
+        }
+    }
+}
+
+impl ValidationSignalGateConfigV0 {
+    pub fn validate(&self) -> Result<(), CampaignErrorV0> {
+        let fraction = |value: f32| value.is_finite() && (0.0..=1.0).contains(&value);
+        if self.minimum_samples == 0
+            || !self.minimum_probability_stddev.is_finite()
+            || self.minimum_probability_stddev < 0.0
+            || !self.minimum_entropy.is_finite()
+            || self.minimum_entropy < 0.0
+            || !self.minimum_brier_resolution.is_finite()
+            || self.minimum_brier_resolution < 0.0
+            || !fraction(self.maximum_saturation_fraction)
+            || !fraction(self.maximum_single_side_fraction)
+            || self.minimum_unique_probability_bins == 0
+            || !self.maximum_brier_delta_vs_constant.is_finite()
+            || self.maximum_brier_delta_vs_constant < 0.0
+            || self
+                .minimum_rank_auc_margin
+                .is_some_and(|value| !fraction(value))
+            || !self.comparison_epsilon.is_finite()
+            || self.comparison_epsilon < 0.0
+            || self.brier_bin_count < 2
+        {
+            Err(CampaignErrorV0::InvalidConfig)
+        } else {
+            Ok(())
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct BrierDecompositionV0 {
+    pub brier_score: f32,
+    pub reliability: f32,
+    pub resolution: f32,
+    pub uncertainty: f32,
+    pub bin_count: usize,
+    pub occupied_bin_count: usize,
+    pub sample_count: usize,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum BinaryRankAucStatusV0 {
+    Defined,
+    UndefinedSingleClass,
+    InsufficientClassCount,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct BinaryRankAucV0 {
+    pub status: BinaryRankAucStatusV0,
+    pub value: Option<f32>,
+    pub positive_count: usize,
+    pub negative_count: usize,
+    pub tie_count: usize,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ForecastMetricBundleV0 {
+    pub evaluation: EvaluationMetricsV0,
+    pub collapse: ProbabilityCollapseMetricsV0,
+    pub brier: BrierDecompositionV0,
+    pub rank_auc: BinaryRankAucV0,
+    pub finite: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ValidationSignalStatusV0 {
+    Usable,
+    ConstantLike,
+    NoResolution,
+    NoDiscrimination,
+    Collapsed,
+    NumericallyInvalid,
+    InsufficientSamples,
+    SingleClassValidation,
+    Mixed,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CheckpointEligibilityV0 {
+    Eligible,
+    RejectedCollapse,
+    RejectedNoResolution,
+    RejectedNoDiscrimination,
+    RejectedConstantLike,
+    RejectedWorseThanConstant,
+    RejectedInsufficientSamples,
+    RejectedSingleClassValidation,
+    RejectedNumericalFailure,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CheckpointTrajectoryStatusV0 {
+    HealthyEligibleCheckpointFound,
+    CollapsedCheckpointSelectedByOldPolicy,
+    NoUsableValidationSignal,
+    ValidationSignalTooWeak,
+    ValidationSignalUnstable,
+    WarmStartLockIn,
+    CandidateNumericalFailure,
+    InsufficientValidationSamples,
+    NondeterministicTrajectory,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CheckpointGeneralizationStatusV0 {
+    TestNotEvaluatedNoEligibleCheckpoint,
+    GeneralizedWithoutCollapse,
+    TemporalGeneralizationCollapse,
+    TestPerformanceDegradation,
+    TestCalibrationFailure,
+    TestDiscriminationFailure,
+    Mixed,
+    InsufficientEvidence,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct CheckpointObservationV0 {
+    pub epoch: usize,
+    pub train: ForecastMetricBundleV0,
+    pub validation: ForecastMetricBundleV0,
+    pub head_digest: String,
+    pub weight_norm: f32,
+    pub bias: f32,
+    pub gradient_norm: f32,
+    pub update_norm: f32,
+    pub finite: bool,
+    pub signal_status: ValidationSignalStatusV0,
+    pub eligibility: CheckpointEligibilityV0,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CheckpointRefV0 {
+    pub candidate: MomentumForensicCandidateV0,
+    pub epoch: usize,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct EligibleCheckpointV0 {
+    pub reference: CheckpointRefV0,
+    pub validation_brier: f32,
+    pub reliability: f32,
+    pub resolution: f32,
+    pub entropy: f32,
+    pub probability_stddev: f32,
+    pub rank_auc: Option<f32>,
+    pub head_digest: String,
+    pub update_norm: f32,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct EligibleCheckpointFrontierV0 {
+    pub checkpoints: Vec<EligibleCheckpointV0>,
+    pub rejected_count_by_reason: Vec<(CheckpointEligibilityV0, usize)>,
+    pub digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct CheckpointTrajectoryV0 {
+    pub candidate: MomentumForensicCandidateV0,
+    pub checkpoints: Vec<CheckpointObservationV0>,
+    pub frontier: EligibleCheckpointFrontierV0,
+    pub selected_checkpoint: Option<CheckpointRefV0>,
+    pub status: CheckpointTrajectoryStatusV0,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ShadowLearningAbstentionReasonV0 {
+    NoUsableValidationSignal,
+    AllCandidatesCollapsed,
+    InsufficientValidationSamples,
+    SingleClassValidation,
+    NumericalFailure,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ShadowLearningAbstentionV0 {
+    pub agent_id: String,
+    pub campaign_id: String,
+    pub window_id: String,
+    pub reason: ShadowLearningAbstentionReasonV0,
+    pub eligible_to_vote: bool,
+    pub eligible_to_execute: bool,
+    pub eligible_for_promotion: bool,
+}
+
 impl ProbabilityCollapseMetricsV0 {
     pub fn is_collapsed(&self) -> bool {
         !self.subtypes.is_empty()
@@ -265,6 +486,9 @@ pub struct MomentumForensicCandidateResultV0 {
     pub test: Option<EvaluationMetricsV0>,
     pub test_collapse: Option<ProbabilityCollapseMetricsV0>,
     pub eligible_for_selection: bool,
+    pub trajectory: Option<CheckpointTrajectoryV0>,
+    pub selected_checkpoint: Option<CheckpointRefV0>,
+    pub generalization_status: CheckpointGeneralizationStatusV0,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -290,6 +514,8 @@ pub struct MomentumProbabilityCollapseForensicsV0 {
     pub selected_candidate: Option<MomentumForensicCandidateV0>,
     pub candidate_results: Vec<MomentumForensicCandidateResultV0>,
     pub test_partition_opened_once: bool,
+    pub selected_checkpoint: Option<CheckpointRefV0>,
+    pub abstention: Option<ShadowLearningAbstentionV0>,
 }
 
 /// Deterministic, sanitized campaign gates. These gates describe the boundary
@@ -438,6 +664,7 @@ pub struct MomentumLearningCampaignConfigV0 {
     pub aggregate_gate: AggregateMambaGateConfigV0,
     pub drift_config: ModelDriftConfigV0,
     pub collapse_config: ProbabilityCollapseConfigV0,
+    pub validation_signal_gate: ValidationSignalGateConfigV0,
 }
 
 impl Default for MomentumLearningCampaignConfigV0 {
@@ -467,6 +694,7 @@ impl Default for MomentumLearningCampaignConfigV0 {
             aggregate_gate: AggregateMambaGateConfigV0::default(),
             drift_config: ModelDriftConfigV0::default(),
             collapse_config: ProbabilityCollapseConfigV0::default(),
+            validation_signal_gate: ValidationSignalGateConfigV0::default(),
         }
     }
 }
@@ -519,6 +747,7 @@ impl MomentumLearningCampaignConfigV0 {
             .validate()
             .map_err(|_| CampaignErrorV0::InvalidConfig)?;
         self.collapse_config.validate()?;
+        self.validation_signal_gate.validate()?;
         if self.split_policy == CampaignSplitPolicyV0::RollingWindow {
             return Err(CampaignErrorV0::UnsupportedSplitPolicy);
         }
@@ -536,7 +765,7 @@ impl MomentumLearningCampaignConfigV0 {
 
     fn digest(&self) -> String {
         stable_hash_string(&format!(
-            "{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{:?}:{:?}:{}:{}:{}:{:?}:{:?}:{:?}",
+            "{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{:?}:{:?}:{}:{}:{}:{:?}:{:?}:{:?}:{:?}",
             self.campaign_id,
             self.campaign_seed,
             self.minimum_history_rows,
@@ -555,6 +784,7 @@ impl MomentumLearningCampaignConfigV0 {
             self.backend_preference,
             self.fallback_policy,
             self.collapse_config,
+            self.validation_signal_gate,
         ))
     }
 }
@@ -947,6 +1177,210 @@ pub fn probability_collapse_metrics_v0(
     })
 }
 
+pub fn brier_decomposition_v0(
+    probabilities: &[f32],
+    labels: &[f32],
+    bin_count: usize,
+) -> Result<BrierDecompositionV0, CampaignErrorV0> {
+    if probabilities.is_empty() || probabilities.len() != labels.len() || bin_count < 2 {
+        return Err(CampaignErrorV0::InvalidConfig);
+    }
+    if probabilities
+        .iter()
+        .chain(labels)
+        .any(|value| !value.is_finite() || !(0.0..=1.0).contains(value))
+    {
+        return Err(CampaignErrorV0::Learning);
+    }
+    let prevalence = labels.iter().sum::<f32>() / labels.len() as f32;
+    let mut reliability = 0.0;
+    let mut resolution = 0.0;
+    let mut occupied = 0;
+    for bin in 0..bin_count {
+        let rows = probabilities
+            .iter()
+            .zip(labels)
+            .filter(|(p, _)| {
+                let index = ((**p * bin_count as f32).floor() as usize).min(bin_count - 1);
+                index == bin
+            })
+            .collect::<Vec<_>>();
+        if rows.is_empty() {
+            continue;
+        }
+        occupied += 1;
+        let count = rows.len() as f32;
+        let mean_p = rows.iter().map(|(p, _)| **p).sum::<f32>() / count;
+        let mean_y = rows.iter().map(|(_, y)| **y).sum::<f32>() / count;
+        reliability += count / labels.len() as f32 * (mean_p - mean_y).powi(2);
+        resolution += count / labels.len() as f32 * (mean_y - prevalence).powi(2);
+    }
+    let uncertainty = prevalence * (1.0 - prevalence);
+    let brier_score = probabilities
+        .iter()
+        .zip(labels)
+        .map(|(p, y)| (*p - *y).powi(2))
+        .sum::<f32>()
+        / labels.len() as f32;
+    Ok(BrierDecompositionV0 {
+        brier_score,
+        reliability,
+        resolution,
+        uncertainty,
+        bin_count,
+        occupied_bin_count: occupied,
+        sample_count: labels.len(),
+    })
+}
+
+pub fn binary_rank_auc_v0(
+    probabilities: &[f32],
+    labels: &[f32],
+) -> Result<BinaryRankAucV0, CampaignErrorV0> {
+    if probabilities.len() != labels.len() || probabilities.is_empty() {
+        return Err(CampaignErrorV0::InsufficientHistory);
+    }
+    if probabilities
+        .iter()
+        .chain(labels)
+        .any(|value| !value.is_finite() || !(0.0..=1.0).contains(value))
+    {
+        return Err(CampaignErrorV0::Learning);
+    }
+    let positive_count = labels.iter().filter(|value| **value >= 0.5).count();
+    let negative_count = labels.len() - positive_count;
+    if positive_count == 0 || negative_count == 0 {
+        return Ok(BinaryRankAucV0 {
+            status: BinaryRankAucStatusV0::UndefinedSingleClass,
+            value: None,
+            positive_count,
+            negative_count,
+            tie_count: 0,
+        });
+    }
+    let mut values = probabilities
+        .iter()
+        .copied()
+        .zip(labels.iter().copied())
+        .collect::<Vec<_>>();
+    values.sort_by(|left, right| left.0.total_cmp(&right.0));
+    let mut positive_rank_sum = 0.0;
+    let mut ties = 0;
+    let mut start = 0;
+    while start < values.len() {
+        let mut end = start + 1;
+        while end < values.len() && values[end].0 == values[start].0 {
+            end += 1;
+        }
+        let rank = (start as f32 + 1.0 + end as f32) / 2.0;
+        positive_rank_sum +=
+            values[start..end].iter().filter(|(_, y)| *y >= 0.5).count() as f32 * rank;
+        ties += (end - start).saturating_sub(1);
+        start = end;
+    }
+    let auc = (positive_rank_sum - positive_count as f32 * (positive_count as f32 + 1.0) / 2.0)
+        / (positive_count * negative_count) as f32;
+    Ok(BinaryRankAucV0 {
+        status: BinaryRankAucStatusV0::Defined,
+        value: Some(auc),
+        positive_count,
+        negative_count,
+        tie_count: ties,
+    })
+}
+
+fn forecast_metric_bundle(
+    head: &LogisticPredictionHeadV0,
+    examples: &[EncodedTrainingExampleV0],
+    collapse: &ProbabilityCollapseConfigV0,
+    gate: &ValidationSignalGateConfigV0,
+) -> Result<ForecastMetricBundleV0, CampaignErrorV0> {
+    let probabilities = probabilities_for_head(head, examples)?;
+    let labels = examples
+        .iter()
+        .map(|example| example.label)
+        .collect::<Vec<_>>();
+    let evaluation = evaluate_head_v0(head, examples)?;
+    let collapse = probability_collapse_metrics_v0(&probabilities, &labels, collapse)?;
+    let brier = brier_decomposition_v0(&probabilities, &labels, gate.brier_bin_count)?;
+    let rank_auc = binary_rank_auc_v0(&probabilities, &labels)?;
+    let finite = [
+        evaluation.brier_score,
+        brier.reliability,
+        brier.resolution,
+        brier.uncertainty,
+    ]
+    .iter()
+    .all(|value| value.is_finite());
+    Ok(ForecastMetricBundleV0 {
+        evaluation,
+        collapse,
+        brier,
+        rank_auc,
+        finite,
+    })
+}
+
+fn validation_status(
+    bundle: &ForecastMetricBundleV0,
+    gate: &ValidationSignalGateConfigV0,
+) -> ValidationSignalStatusV0 {
+    if !bundle.finite {
+        ValidationSignalStatusV0::NumericallyInvalid
+    } else if bundle.evaluation.sample_count < gate.minimum_samples {
+        ValidationSignalStatusV0::InsufficientSamples
+    } else if bundle.collapse.is_collapsed() {
+        ValidationSignalStatusV0::Collapsed
+    } else if bundle.collapse.probability_stddev < gate.minimum_probability_stddev
+        || bundle.collapse.mean_entropy < gate.minimum_entropy
+    {
+        ValidationSignalStatusV0::ConstantLike
+    } else if bundle.brier.resolution < gate.minimum_brier_resolution {
+        ValidationSignalStatusV0::NoResolution
+    } else if bundle.rank_auc.status == BinaryRankAucStatusV0::UndefinedSingleClass {
+        ValidationSignalStatusV0::SingleClassValidation
+    } else if gate.minimum_rank_auc_margin.is_some_and(|margin| {
+        bundle
+            .rank_auc
+            .value
+            .is_some_and(|value| value < 0.5 + margin)
+    }) {
+        ValidationSignalStatusV0::NoDiscrimination
+    } else {
+        ValidationSignalStatusV0::Usable
+    }
+}
+
+fn checkpoint_eligibility(
+    bundle: &ForecastMetricBundleV0,
+    constant_brier: f32,
+    gate: &ValidationSignalGateConfigV0,
+) -> CheckpointEligibilityV0 {
+    match validation_status(bundle, gate) {
+        ValidationSignalStatusV0::NumericallyInvalid => {
+            CheckpointEligibilityV0::RejectedNumericalFailure
+        }
+        ValidationSignalStatusV0::InsufficientSamples => {
+            CheckpointEligibilityV0::RejectedInsufficientSamples
+        }
+        ValidationSignalStatusV0::Collapsed => CheckpointEligibilityV0::RejectedCollapse,
+        ValidationSignalStatusV0::ConstantLike => CheckpointEligibilityV0::RejectedConstantLike,
+        ValidationSignalStatusV0::NoResolution => CheckpointEligibilityV0::RejectedNoResolution,
+        ValidationSignalStatusV0::NoDiscrimination => {
+            CheckpointEligibilityV0::RejectedNoDiscrimination
+        }
+        ValidationSignalStatusV0::SingleClassValidation => {
+            CheckpointEligibilityV0::RejectedSingleClassValidation
+        }
+        _ if bundle.evaluation.brier_score
+            > constant_brier + gate.maximum_brier_delta_vs_constant =>
+        {
+            CheckpointEligibilityV0::RejectedWorseThanConstant
+        }
+        _ => CheckpointEligibilityV0::Eligible,
+    }
+}
+
 pub fn run_momentum_probability_collapse_forensics_v0(
     config: &MomentumLearningCampaignConfigV0,
     encoder: &FrozenMamba3EncoderV0,
@@ -985,12 +1419,22 @@ pub fn run_momentum_probability_collapse_forensics_v0(
         if candidate.uses_prevalence_bias() {
             head.bias = prevalence_logit(&candidate_train)?;
         }
-        let head = train_encoded_head(
-            &mut head,
+        let (trajectory, heads) = trace_encoded_head(
+            head,
+            *candidate,
             &candidate_train,
             &candidate_validation,
             &config.training_config,
+            collapse_config,
+            &config.validation_signal_gate,
         )?;
+        let head = trajectory
+            .selected_checkpoint
+            .as_ref()
+            .and_then(|selected| heads.get(selected.epoch.saturating_sub(1)))
+            .cloned()
+            .or_else(|| heads.last().cloned())
+            .ok_or(CampaignErrorV0::Learning)?;
         let validation_metrics = evaluate_head_v0(&head, &candidate_validation)?;
         let validation_probabilities = probabilities_for_head(&head, &candidate_validation)?;
         let validation_labels = candidate_validation
@@ -1002,7 +1446,7 @@ pub fn run_momentum_probability_collapse_forensics_v0(
             &validation_labels,
             collapse_config,
         )?;
-        let eligible_for_selection = !validation_collapse.is_collapsed();
+        let eligible_for_selection = trajectory.selected_checkpoint.is_some();
         candidate_results.push(MomentumForensicCandidateResultV0 {
             candidate: *candidate,
             validation: validation_metrics,
@@ -1010,6 +1454,10 @@ pub fn run_momentum_probability_collapse_forensics_v0(
             test: None,
             test_collapse: None,
             eligible_for_selection,
+            selected_checkpoint: trajectory.selected_checkpoint.clone(),
+            trajectory: Some(trajectory),
+            generalization_status:
+                CheckpointGeneralizationStatusV0::TestNotEvaluatedNoEligibleCheckpoint,
         });
         trained.push((head, candidate.uses_representation_normalization()));
     }
@@ -1034,6 +1482,15 @@ pub fn run_momentum_probability_collapse_forensics_v0(
             probability_collapse_metrics_v0(&test_probabilities, &test_labels, collapse_config)?;
         candidate_results[index].test = Some(test_metrics);
         candidate_results[index].test_collapse = Some(test_collapse);
+        candidate_results[index].generalization_status = if candidate_results[index]
+            .test_collapse
+            .as_ref()
+            .is_some_and(ProbabilityCollapseMetricsV0::is_collapsed)
+        {
+            CheckpointGeneralizationStatusV0::TemporalGeneralizationCollapse
+        } else {
+            CheckpointGeneralizationStatusV0::GeneralizedWithoutCollapse
+        };
         test_partition_opened_once = true;
     }
     let selected_candidate = selected_index.map(|index| candidates[index]);
@@ -1054,6 +1511,20 @@ pub fn run_momentum_probability_collapse_forensics_v0(
         .and_then(|result| result.test_collapse.as_ref())
         .map(classify_probability_root_cause)
         .unwrap_or(ProbabilityCollapseRootCauseV0::Unknown);
+    let selected_checkpoint = selected_result.and_then(|result| result.selected_checkpoint.clone());
+    let abstention = if selected_candidate.is_none() {
+        Some(ShadowLearningAbstentionV0 {
+            agent_id: config.agent_id.clone(),
+            campaign_id: config.campaign_id.clone(),
+            window_id: "sealed-window".to_string(),
+            reason: ShadowLearningAbstentionReasonV0::NoUsableValidationSignal,
+            eligible_to_vote: false,
+            eligible_to_execute: false,
+            eligible_for_promotion: false,
+        })
+    } else {
+        None
+    };
     Ok(MomentumProbabilityCollapseForensicsV0 {
         diagnostic_status,
         root_cause,
@@ -1061,6 +1532,8 @@ pub fn run_momentum_probability_collapse_forensics_v0(
         selected_candidate,
         candidate_results,
         test_partition_opened_once,
+        selected_checkpoint,
+        abstention,
     })
 }
 
@@ -1142,6 +1615,167 @@ fn train_encoded_head(
         }
     }
     Ok(best)
+}
+
+fn trace_encoded_head(
+    mut head: LogisticPredictionHeadV0,
+    candidate: MomentumForensicCandidateV0,
+    train: &[EncodedTrainingExampleV0],
+    validation: &[EncodedTrainingExampleV0],
+    config: &HeadTrainingConfigV0,
+    collapse: &ProbabilityCollapseConfigV0,
+    gate: &ValidationSignalGateConfigV0,
+) -> Result<(CheckpointTrajectoryV0, Vec<LogisticPredictionHeadV0>), CampaignErrorV0> {
+    config.validate()?;
+    let prevalence = train.iter().map(|row| row.label).sum::<f32>() / train.len() as f32;
+    let constant_brier = validation
+        .iter()
+        .map(|row| (prevalence - row.label).powi(2))
+        .sum::<f32>()
+        / validation.len() as f32;
+    let mut checkpoints = Vec::new();
+    let mut heads = Vec::new();
+    let mut stale = 0usize;
+    let mut best_brier = f32::INFINITY;
+    for epoch in 1..=config.epochs {
+        let before = head.clone();
+        let mut gradient_norm = 0.0;
+        for batch in train.chunks(config.batch_size) {
+            let (_, gradients) = brier_loss_and_gradients_v0(&head, batch)?;
+            gradient_norm += (gradients
+                .weight_gradients
+                .iter()
+                .map(|value| value * value)
+                .sum::<f32>()
+                + gradients.bias_gradient.powi(2))
+            .sqrt();
+            apply_sgd_v0(&mut head, &gradients, &config.optimizer)?;
+        }
+        let update_norm = (head
+            .weights
+            .iter()
+            .zip(&before.weights)
+            .map(|(after, prior)| (after - prior).powi(2))
+            .sum::<f32>()
+            + (head.bias - before.bias).powi(2))
+        .sqrt();
+        let train_metrics = forecast_metric_bundle(&head, train, collapse, gate)?;
+        let validation_metrics = forecast_metric_bundle(&head, validation, collapse, gate)?;
+        let status = validation_status(&validation_metrics, gate);
+        let eligibility = checkpoint_eligibility(&validation_metrics, constant_brier, gate);
+        let brier = validation_metrics.evaluation.brier_score;
+        checkpoints.push(CheckpointObservationV0 {
+            epoch,
+            train: train_metrics,
+            validation: validation_metrics,
+            head_digest: head.parameter_digest(),
+            weight_norm: head_weight_norm(&head),
+            bias: head.bias,
+            gradient_norm,
+            update_norm,
+            finite: head.bias.is_finite() && head.weights.iter().all(|value| value.is_finite()),
+            signal_status: status,
+            eligibility,
+        });
+        heads.push(head.clone());
+        if brier < best_brier {
+            best_brier = brier;
+            stale = 0;
+        } else {
+            stale += 1;
+        }
+        if config
+            .early_stopping_patience
+            .is_some_and(|limit| stale >= limit)
+        {
+            break;
+        }
+    }
+    let mut frontier = checkpoints
+        .iter()
+        .filter(|row| row.eligibility == CheckpointEligibilityV0::Eligible)
+        .map(|row| EligibleCheckpointV0 {
+            reference: CheckpointRefV0 {
+                candidate,
+                epoch: row.epoch,
+            },
+            validation_brier: row.validation.evaluation.brier_score,
+            reliability: row.validation.brier.reliability,
+            resolution: row.validation.brier.resolution,
+            entropy: row.validation.collapse.mean_entropy,
+            probability_stddev: row.validation.collapse.probability_stddev,
+            rank_auc: row.validation.rank_auc.value,
+            head_digest: row.head_digest.clone(),
+            update_norm: row.update_norm,
+        })
+        .collect::<Vec<_>>();
+    frontier.sort_by(|left, right| {
+        left.validation_brier
+            .total_cmp(&right.validation_brier)
+            .then_with(|| right.resolution.total_cmp(&left.resolution))
+            .then_with(|| left.reliability.total_cmp(&right.reliability))
+            .then_with(|| left.update_norm.total_cmp(&right.update_norm))
+            .then_with(|| left.reference.epoch.cmp(&right.reference.epoch))
+    });
+    let reasons = [
+        CheckpointEligibilityV0::RejectedCollapse,
+        CheckpointEligibilityV0::RejectedNoResolution,
+        CheckpointEligibilityV0::RejectedNoDiscrimination,
+        CheckpointEligibilityV0::RejectedConstantLike,
+        CheckpointEligibilityV0::RejectedWorseThanConstant,
+        CheckpointEligibilityV0::RejectedInsufficientSamples,
+        CheckpointEligibilityV0::RejectedSingleClassValidation,
+        CheckpointEligibilityV0::RejectedNumericalFailure,
+    ]
+    .into_iter()
+    .map(|reason| {
+        (
+            reason,
+            checkpoints
+                .iter()
+                .filter(|row| row.eligibility == reason)
+                .count(),
+        )
+    })
+    .filter(|(_, count)| *count > 0)
+    .collect::<Vec<_>>();
+    let digest = stable_hash_string(&format!(
+        "{:?}",
+        frontier
+            .iter()
+            .map(|row| (&row.reference, &row.head_digest))
+            .collect::<Vec<_>>()
+    ));
+    let old_best = checkpoints.iter().min_by(|left, right| {
+        left.validation
+            .evaluation
+            .brier_score
+            .total_cmp(&right.validation.evaluation.brier_score)
+    });
+    let status = if !frontier.is_empty() {
+        CheckpointTrajectoryStatusV0::HealthyEligibleCheckpointFound
+    } else if old_best
+        .is_some_and(|row| row.eligibility == CheckpointEligibilityV0::RejectedCollapse)
+    {
+        CheckpointTrajectoryStatusV0::CollapsedCheckpointSelectedByOldPolicy
+    } else {
+        CheckpointTrajectoryStatusV0::NoUsableValidationSignal
+    };
+    let selected_checkpoint = frontier.first().map(|row| row.reference.clone());
+    Ok((
+        CheckpointTrajectoryV0 {
+            candidate,
+            checkpoints,
+            frontier: EligibleCheckpointFrontierV0 {
+                checkpoints: frontier,
+                rejected_count_by_reason: reasons,
+                digest,
+            },
+            selected_checkpoint,
+            status,
+        },
+        heads,
+    ))
 }
 
 fn probabilities_for_head(
@@ -2645,13 +3279,39 @@ mod tests {
                 && gate.outcome == CampaignSafetyGateOutcomeV0::Passed
         }));
         assert!(result.collapse_forensics.iter().all(|forensics| {
-            forensics.test_partition_opened_once
+            forensics.test_partition_opened_once == forensics.selected_checkpoint.is_some()
                 && forensics
                     .candidate_results
                     .iter()
                     .filter(|candidate| candidate.test.is_some())
                     .count()
-                    == 1
+                    <= 1
+                && forensics.abstention.as_ref().is_none_or(|abstention| {
+                    !abstention.eligible_to_vote
+                        && !abstention.eligible_to_execute
+                        && !abstention.eligible_for_promotion
+                })
         }));
+    }
+
+    #[test]
+    fn checkpoint_gate_rejects_constant_predictions_and_keeps_test_sealed() {
+        let collapse = ProbabilityCollapseConfigV0::default();
+        let gate = ValidationSignalGateConfigV0::default();
+        let metrics =
+            probability_collapse_metrics_v0(&[0.5; 4], &[0.0, 1.0, 0.0, 1.0], &collapse).unwrap();
+        assert!(metrics.is_collapsed());
+        let decomposition = brier_decomposition_v0(&[0.5; 4], &[0.0, 1.0, 0.0, 1.0], 5).unwrap();
+        assert!(decomposition.resolution.abs() < 1e-6);
+        assert!(gate.validate().is_ok());
+    }
+
+    #[test]
+    fn rank_auc_is_deterministic_for_ties_and_single_class_is_explicit() {
+        let tied = binary_rank_auc_v0(&[0.2, 0.2, 0.8, 0.8], &[0.0, 1.0, 0.0, 1.0]).unwrap();
+        assert_eq!(tied.status, BinaryRankAucStatusV0::Defined);
+        assert_eq!(tied.value, Some(0.5));
+        let single = binary_rank_auc_v0(&[0.2, 0.8], &[1.0, 1.0]).unwrap();
+        assert_eq!(single.status, BinaryRankAucStatusV0::UndefinedSingleClass);
     }
 }

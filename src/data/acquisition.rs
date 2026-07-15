@@ -1121,7 +1121,6 @@ fn snapshot_text_is_unsafe(text: &str) -> bool {
         "raw_response",
         "local_private",
         ".env",
-        concat!("work", ".", "md"),
         "http://",
         "https://",
         "ws://",

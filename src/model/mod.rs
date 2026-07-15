@@ -118,10 +118,13 @@ pub use learning::{
     mamba_representation_value_status_v0, train_frozen_mamba_head_v0,
 };
 pub use learning_campaign::{
-    AggregateMambaGateConfigV0, AggregateMambaValueEvidenceV0, CampaignErrorV0,
-    CampaignLayeredEligibilityV0, CampaignSafetyGateEvaluationV0, CampaignSafetyGateOutcomeV0,
-    CampaignSafetyGateV0, CampaignSafetyTraceV0, CampaignShadowAssessmentV0,
-    CampaignShadowSuggestedActionV0, CampaignSplitPolicyV0, HeadInitializationPolicyV0,
+    AggregateMambaGateConfigV0, AggregateMambaValueEvidenceV0, BinaryRankAucStatusV0,
+    BinaryRankAucV0, BrierDecompositionV0, CampaignErrorV0, CampaignLayeredEligibilityV0,
+    CampaignSafetyGateEvaluationV0, CampaignSafetyGateOutcomeV0, CampaignSafetyGateV0,
+    CampaignSafetyTraceV0, CampaignShadowAssessmentV0, CampaignShadowSuggestedActionV0,
+    CampaignSplitPolicyV0, CheckpointEligibilityV0, CheckpointGeneralizationStatusV0,
+    CheckpointObservationV0, CheckpointRefV0, CheckpointTrajectoryStatusV0, CheckpointTrajectoryV0,
+    EligibleCheckpointFrontierV0, ForecastMetricBundleV0, HeadInitializationPolicyV0,
     ModelDriftConfigV0, ModelDriftStatusV0, MomentumForensicCandidateResultV0,
     MomentumForensicCandidateV0, MomentumLearningCampaignConfigV0,
     MomentumLearningCampaignResultV0, MomentumLearningCampaignStatusV0,
@@ -130,7 +133,9 @@ pub use learning_campaign::{
     MomentumProbabilityCollapseForensicsV0, PredictionDiagnosticsV0, ProbabilityCollapseConfigV0,
     ProbabilityCollapseDiagnosticStatusV0, ProbabilityCollapseMetricsV0,
     ProbabilityCollapseRootCauseV0, ProbabilityCollapseSubtypeV0, RejectedLearningWindowV0,
-    RepresentationNormalizerV0, WarmStartValueEvidenceV0, WarmStartValueStatusV0,
+    RepresentationNormalizerV0, ShadowLearningAbstentionReasonV0, ShadowLearningAbstentionV0,
+    ValidationSignalGateConfigV0, ValidationSignalStatusV0, WarmStartValueEvidenceV0,
+    WarmStartValueStatusV0, binary_rank_auc_v0, brier_decomposition_v0,
     build_momentum_learning_windows_v0, probability_collapse_metrics_v0,
     run_momentum_learning_campaign_v0, run_momentum_probability_collapse_forensics_v0,
 };

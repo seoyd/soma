@@ -5,3 +5,6 @@ The offline campaign uses a validated probability-collapse contract: probability
 The forensic candidate registry is deterministic and capped at four entries: C0 reference, train-fitted representation normalization, training-prevalence bias initialization, and their combination. All candidates train on train data and are compared on validation only. The first validation-eligible candidate selected by lowest Brier with deterministic tie-breaking is the sole candidate whose test partition is opened.
 
 Representation normalization fits only encoded training examples. Bias initialization uses only training-label prevalence with a bounded finite logit. The frozen encoder remains unchanged, all output remains ShadowOnly, and no candidate grants promotion, voting, or execution authority.
+# Checkpoint trajectory extension
+
+Probability-collapse forensics now retain the full epoch trajectory for every fixed candidate. Candidate eligibility is derived from validation-only collapse, Brier decomposition, resolution, train-prevalence Constant comparison, and optional rank discrimination requirements. A rejected epoch cannot be selected merely for lower Brier. Empty frontiers produce Shadow abstention and leave the test sealed; a selected checkpoint receives one test evaluation only.
