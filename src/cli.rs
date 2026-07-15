@@ -1,4 +1,7 @@
-use std::{fs, path::PathBuf};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 use clap::Parser;
 
@@ -16,12 +19,17 @@ pub struct CliArgs {
     pub full_auto: bool,
     #[arg(long)]
     pub historical_provider_smoke_config: Option<PathBuf>,
+    #[arg(long)]
+    pub historical_snapshot_campaign_config: Option<PathBuf>,
     #[arg(long, default_value_t = false)]
     pub allow_network: bool,
 }
 
 pub fn run() -> Result<(), String> {
     let args = CliArgs::parse();
+    if let Some(config) = args.historical_snapshot_campaign_config {
+        return run_local_historical_snapshot_campaign(&config);
+    }
     if let Some(config) = args.historical_provider_smoke_config {
         if !args.allow_network {
             return Err("historical provider smoke requires --allow-network".to_string());
@@ -70,6 +78,15 @@ pub fn run() -> Result<(), String> {
                 "inventory_rejected_snapshots={}",
                 inventory.rejected_snapshots.len()
             );
+            println!(
+                "inventory_rejection_statuses={}",
+                inventory
+                    .rejected_snapshots
+                    .iter()
+                    .map(|rejected| format!("{:?}", rejected.status))
+                    .collect::<Vec<_>>()
+                    .join("|")
+            );
             let sufficiency = crate::model::assess_momentum_campaign_sufficiency_v0(
                 snapshot.row_count,
                 &campaign_config,
@@ -77,6 +94,7 @@ pub fn run() -> Result<(), String> {
             .map_err(|_| "momentum campaign sufficiency calculation failed".to_string())?;
             println!("campaign_sufficient={}", sufficiency.sufficient);
             println!("campaign_possible_windows={}", sufficiency.possible_windows);
+            run_momentum_campaign_if_enabled(&config, &snapshot, &campaign_config, &sufficiency)?;
         }
         return Ok(());
     }
@@ -125,6 +143,127 @@ pub fn run() -> Result<(), String> {
         println!("paper_order: {}", order.order_id);
     } else {
         println!("paper_order: none");
+    }
+    Ok(())
+}
+
+fn run_local_historical_snapshot_campaign(config_path: &Path) -> Result<(), String> {
+    let config = crate::data::UpbitHistoricalPilotConfigV0::from_toml_path(config_path)
+        .map_err(|_| "local provider config unavailable".to_string())?;
+    config
+        .validate()
+        .map_err(|_| "local provider config is invalid".to_string())?;
+    let mut snapshot_paths = fs::read_dir(&config.snapshot_output_dir)
+        .map_err(|_| "local snapshot directory unavailable".to_string())?
+        .filter_map(Result::ok)
+        .map(|entry| entry.path())
+        .filter(|path| {
+            path.extension()
+                .is_some_and(|extension| extension == "json")
+        })
+        .collect::<Vec<_>>();
+    snapshot_paths.sort();
+    if snapshot_paths.len() != 1 {
+        return Err("local historical campaign requires exactly one snapshot".to_string());
+    }
+    let snapshot: crate::data::DataSnapshot = serde_json::from_slice(
+        &fs::read(&snapshot_paths[0]).map_err(|_| "local snapshot reread failed".to_string())?,
+    )
+    .map_err(|_| "local snapshot decode failed".to_string())?;
+    let campaign_config = crate::model::MomentumLearningCampaignConfigV0::default();
+    let inventory = crate::model::inventory_historical_snapshots_v0(
+        std::slice::from_ref(&snapshot),
+        &crate::model::HistoricalEvidencePolicyV0::default(),
+    )
+    .map_err(|_| "historical snapshot inventory failed".to_string())?;
+    let sufficiency =
+        crate::model::assess_momentum_campaign_sufficiency_v0(snapshot.row_count, &campaign_config)
+            .map_err(|_| "momentum campaign sufficiency calculation failed".to_string())?;
+    let reloaded_digest =
+        crate::data::historical_replay_dataset_digest_v0(&snapshot.normalized_dataset);
+    println!(
+        "inventory_accepted_series={}",
+        inventory.accepted_series.len()
+    );
+    println!(
+        "snapshot_digest_matches={}",
+        reloaded_digest == snapshot.content_digest
+    );
+    println!(
+        "snapshot_reloaded_digest_prefix={}",
+        reloaded_digest.chars().take(12).collect::<String>()
+    );
+    println!(
+        "inventory_rejection_statuses={}",
+        inventory
+            .rejected_snapshots
+            .iter()
+            .map(|rejected| format!("{:?}", rejected.status))
+            .collect::<Vec<_>>()
+            .join("|")
+    );
+    println!("campaign_sufficient={}", sufficiency.sufficient);
+    println!("campaign_possible_windows={}", sufficiency.possible_windows);
+    run_momentum_campaign_if_enabled(config_path, &snapshot, &campaign_config, &sufficiency)
+}
+
+fn run_momentum_campaign_if_enabled(
+    config_path: &Path,
+    snapshot: &crate::data::DataSnapshot,
+    campaign_config: &crate::model::MomentumLearningCampaignConfigV0,
+    sufficiency: &crate::model::MomentumCampaignSufficiencyV0,
+) -> Result<(), String> {
+    let local_config = crate::data::UpbitHistoricalPilotConfigV0::from_toml_path(config_path)
+        .map_err(|_| "local provider config unavailable after smoke".to_string())?;
+    if !local_config.campaign_attempt_enabled || !sufficiency.sufficient {
+        return Ok(());
+    }
+    let (_, pack) = crate::model::freeze_momentum_historical_evidence_pack_v0(
+        std::slice::from_ref(snapshot),
+        &crate::model::HistoricalEvidencePolicyV0::default(),
+    )
+    .map_err(|_| "historical evidence freeze failed".to_string())?;
+    crate::model::verify_momentum_historical_evidence_pack_v0(&pack)
+        .map_err(|_| "historical evidence pack verification failed".to_string())?;
+    println!("evidence_pack_frozen={}", pack.frozen);
+    println!(
+        "evidence_pack_digest_prefix={}",
+        pack.digest.chars().take(12).collect::<String>()
+    );
+    let encoder = crate::model::frozen_mamba3_encoder_from_seed_v0(
+        &campaign_config.feature_config,
+        campaign_config.campaign_seed,
+        campaign_config.backend_preference,
+        campaign_config.fallback_policy,
+    )
+    .map_err(|_| "frozen momentum encoder unavailable".to_string())?;
+    let results = crate::model::run_momentum_series_campaigns_v0(&pack, campaign_config, &encoder)
+        .map_err(|_| "momentum campaign execution failed".to_string())?;
+    for result in results {
+        println!(
+            "campaign_series_status={:?};windows={};drift={:?};versions={}",
+            result.campaign.status,
+            result.campaign.windows.len(),
+            result.campaign.aggregate_drift,
+            result.campaign.generated_versions.len()
+        );
+        for window in result.campaign.windows {
+            for path in window.paths {
+                let baselines = path.baselines;
+                println!(
+                    "campaign_window={};path={:?};constant_brier={:.6};linear_brier={:.6};mamba_brier={:.6};mamba_minus_linear={:.6};test_samples={};high_confidence_errors={};drift={:?}",
+                    window.window.window_id,
+                    path.path,
+                    baselines.constant_probability.brier_score,
+                    baselines.linear_momentum.brier_score,
+                    baselines.frozen_mamba.brier_score,
+                    baselines.frozen_mamba.brier_score - baselines.linear_momentum.brier_score,
+                    baselines.frozen_mamba.sample_count,
+                    baselines.frozen_mamba.high_confidence_error_count,
+                    window.drift_status,
+                );
+            }
+        }
     }
     Ok(())
 }

@@ -114,8 +114,8 @@ pub use learning::{
     SandboxModelVersionJournalV0, SandboxModelVersionV0, SequenceExampleV0, SequencePooling,
     SgdConfigV0, TrainingEpochMetricsV0, apply_sgd_v0, brier_loss_and_gradients_v0,
     build_momentum_features_v0, build_momentum_sequence_examples_v0, chronological_split_v0,
-    evaluate_head_v0, evaluate_probabilities_v0, mamba_representation_value_status_v0,
-    train_frozen_mamba_head_v0,
+    evaluate_head_v0, evaluate_probabilities_v0, frozen_mamba3_encoder_from_seed_v0,
+    mamba_representation_value_status_v0, train_frozen_mamba_head_v0,
 };
 pub use learning_campaign::{
     AggregateMambaGateConfigV0, AggregateMambaValueEvidenceV0, CampaignErrorV0,

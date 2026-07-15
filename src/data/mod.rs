@@ -42,7 +42,8 @@ pub use acquisition::{
     RejectedAcquisitionRequest, SnapshotProvenance, SnapshotQualitySummary, SnapshotSourceType,
     StaleDataPolicy, bind_proposal_to_frozen_evidence, build_acquisition_plan,
     build_agent_evidence_bundles, default_agent_data_policies, execute_autonomous_data_cycle,
-    freeze_decision_snapshot_set, plan_agent_data_intent, plan_autonomous_data_cycle,
+    freeze_decision_snapshot_set, historical_replay_dataset_digest_v0, plan_agent_data_intent,
+    plan_autonomous_data_cycle,
 };
 pub use alpaca_provider::{
     AlpacaHistoricalBarsImportConfig, AlpacaHistoricalBarsImportReport, AlpacaProviderStatus,

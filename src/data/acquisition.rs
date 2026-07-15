@@ -1026,7 +1026,7 @@ fn snapshot_from_response(
         return Err(ReasonCode::AcquisitionResponseTooLarge);
     }
     validate_normalized_dataset(&response.normalized_dataset)?;
-    let digest = stable_hash_string(&serialized);
+    let digest = historical_replay_dataset_digest_v0(&response.normalized_dataset);
     let snapshot_id = format!(
         "snapshot-{}",
         stable_hash_string(&format!("{}:{}", request.request_key, digest))
@@ -1151,10 +1151,29 @@ fn valid_ohlcv(row: &HistoricalOhlcvRow) -> bool {
             .is_none_or(|value| value.is_finite() && value >= 0.0)
 }
 
+pub fn historical_replay_dataset_digest_v0(dataset: &HistoricalReplayDataset) -> String {
+    let mut material = format!("{:?}|{:?}|", dataset.symbol, dataset.source);
+    for reason in &dataset.reason_codes {
+        material.push_str(&format!("{reason:?}|"));
+    }
+    for row in &dataset.rows {
+        material.push_str(&format!(
+            "{:?}|{}|{:016x}|{:016x}|{:016x}|{:016x}|{:016x}|{:?}|",
+            row.symbol,
+            row.timestamp_ms,
+            row.open.to_bits(),
+            row.high.to_bits(),
+            row.low.to_bits(),
+            row.close.to_bits(),
+            row.volume.to_bits(),
+            row.trade_value.map(f64::to_bits),
+        ));
+    }
+    stable_hash_string(&material)
+}
+
 fn snapshot_digest(dataset: &HistoricalReplayDataset) -> String {
-    serde_json::to_string(dataset)
-        .map(|text| stable_hash_string(&text))
-        .unwrap_or_default()
+    historical_replay_dataset_digest_v0(dataset)
 }
 
 fn acquisition_request_key(dataset_kind: DatasetKind, intent: &AgentDataIntent) -> String {

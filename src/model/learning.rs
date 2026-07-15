@@ -15,7 +15,9 @@ use super::tiny_tensor::from_vec_1d;
 use super::{
     BackendError, BackendFallbackPolicy, BackendOperationSet, BackendPreference, BackendSelection,
     BackendSelectionRequest, CpuMamba3Backend, Mamba3BackendKind, Mamba3ConformanceStatusV0,
-    Mamba3ExecutionBackend, Mamba3SisoErrorV0, ModelPrecision, TinyMamba3SisoV0,
+    Mamba3ExecutionBackend, Mamba3SisoConfigV0, Mamba3SisoErrorV0, Mamba3SisoPrecisionV0,
+    Mamba3SisoRopeFractionV0, ModelPrecision, SystemBackendCapabilityProbe, TinyMamba3SisoV0,
+    mamba3_siso_params_from_seed_v0,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -650,6 +652,39 @@ impl FrozenMamba3EncoderV0 {
             })
             .collect()
     }
+}
+
+pub fn frozen_mamba3_encoder_from_seed_v0(
+    feature_config: &MomentumFeatureConfigV0,
+    seed: u64,
+    backend_preference: BackendPreference,
+    fallback_policy: BackendFallbackPolicy,
+) -> Result<FrozenMamba3EncoderV0, LearningError> {
+    feature_config.validate()?;
+    let config = Mamba3SisoConfigV0 {
+        input_dim: feature_config.feature_count(),
+        state_dim: 8,
+        head_dim: 2,
+        expansion: 1,
+        rope_fraction: Mamba3SisoRopeFractionV0::Half,
+        norm_epsilon: 1e-5,
+        a_floor: 1e-4,
+        mimo_rank: 1,
+        precision: Mamba3SisoPrecisionV0::F32,
+        short_convolution_enabled: false,
+    };
+    Ok(FrozenMamba3EncoderV0 {
+        model: TinyMamba3SisoV0::new(
+            config.clone(),
+            mamba3_siso_params_from_seed_v0(&config, seed)?,
+        )?,
+        runtime: AgentModelRuntimeV0::select(
+            &SystemBackendCapabilityProbe,
+            backend_preference,
+            fallback_policy,
+        )?,
+        pooling: SequencePooling::LastOutput,
+    })
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -1738,6 +1773,26 @@ mod tests {
         assert_eq!(
             first,
             encoder.encode_sequence(&examples()[0].input).unwrap()
+        );
+    }
+
+    #[test]
+    fn seeded_frozen_encoder_uses_the_feature_schema_width() {
+        let features = MomentumFeatureConfigV0::default();
+        let encoder = frozen_mamba3_encoder_from_seed_v0(
+            &features,
+            19,
+            BackendPreference::Cpu,
+            BackendFallbackPolicy::Strict,
+        )
+        .unwrap();
+        assert_eq!(encoder.model.config.input_dim, features.feature_count());
+        assert_eq!(
+            encoder
+                .encode_sequence(&examples()[0].input)
+                .unwrap()
+                .backend,
+            Mamba3BackendKind::CpuReference
         );
     }
 

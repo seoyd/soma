@@ -12,7 +12,7 @@ use crate::{
         AcquisitionMarketScope, AcquisitionMode, AgentDataIntent, ConfiguredUniverse,
         DataAcquisitionBroker, DataLookback, DataPriority, DataSnapshot, DatasetKind,
         ProviderCapabilities, ReadOnlyMarketDataProvider, ReadOnlyProviderRegistry,
-        SnapshotSourceType, build_acquisition_plan,
+        SnapshotSourceType, build_acquisition_plan, historical_replay_dataset_digest_v0,
     },
     league::AgentKind,
 };
@@ -1058,9 +1058,7 @@ fn classify_snapshot(
 }
 
 fn snapshot_digest_valid(snapshot: &DataSnapshot) -> bool {
-    serde_json::to_string(&snapshot.normalized_dataset)
-        .map(|value| stable_hash_string(&value) == snapshot.content_digest)
-        .unwrap_or(false)
+    historical_replay_dataset_digest_v0(&snapshot.normalized_dataset) == snapshot.content_digest
 }
 
 fn snapshot_contains_unsafe_text(snapshot: &DataSnapshot) -> bool {
@@ -1331,7 +1329,7 @@ fn median(mut values: Vec<f32>) -> f32 {
 mod tests {
     use super::*;
     use crate::{
-        core::{ReasonCode, stable_hash_string},
+        core::ReasonCode,
         data::{
             AcquisitionPolicy, DataLookback, MockReadOnlyProvider, ReadOnlyProviderResponse,
             SnapshotProvenance, SnapshotQualitySummary,
@@ -1380,7 +1378,7 @@ mod tests {
                 row_count: rows,
                 reason_codes: vec![],
             },
-            content_digest: stable_hash_string(&serde_json::to_string(&dataset).unwrap()),
+            content_digest: historical_replay_dataset_digest_v0(&dataset),
             sanitized: true,
             read_only: true,
             normalized_dataset: dataset,
@@ -1520,9 +1518,8 @@ mod tests {
         let mut unsafe_snapshot =
             snapshot("UNSAFE", SnapshotSourceType::ApprovedReadOnlyProvider, 128);
         unsafe_snapshot.normalized_dataset.source = "bearer token".to_string();
-        unsafe_snapshot.content_digest = stable_hash_string(
-            &serde_json::to_string(&unsafe_snapshot.normalized_dataset).unwrap(),
-        );
+        unsafe_snapshot.content_digest =
+            historical_replay_dataset_digest_v0(&unsafe_snapshot.normalized_dataset);
         let inventory = inventory_historical_snapshots_v0(
             &[mutable, corrupt, unsafe_snapshot],
             &HistoricalEvidencePolicyV0::default(),
@@ -1575,7 +1572,9 @@ mod tests {
         .unwrap();
         assert_eq!(
             harvest.status,
-            HistoricalAcquisitionStatusV0::SnapshotsAcquired
+            HistoricalAcquisitionStatusV0::SnapshotsAcquired,
+            "{:?}",
+            harvest.reason_codes
         );
         assert_eq!(harvest.acquired_snapshots.len(), 1);
         assert_eq!(provider.requests.len(), 1);

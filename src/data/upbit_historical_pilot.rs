@@ -939,9 +939,7 @@ fn merged_snapshot_v0(
 }
 
 fn dataset_digest(dataset: &HistoricalReplayDataset) -> String {
-    serde_json::to_string(dataset)
-        .map(|value| stable_hash_string(&value))
-        .unwrap_or_default()
+    super::acquisition::historical_replay_dataset_digest_v0(dataset)
 }
 
 fn completed_backfill_result(
@@ -1081,6 +1079,9 @@ pub fn write_and_verify_local_snapshot_v0(
     if !safe_snapshot_output_dir(output_dir) {
         return Err("local snapshot output path rejected".to_string());
     }
+    if dataset_digest(&snapshot.normalized_dataset) != snapshot.content_digest {
+        return Err("snapshot input digest verification failed".to_string());
+    }
     let serialized =
         serde_json::to_vec(snapshot).map_err(|_| "snapshot serialization failed".to_string())?;
     fs::create_dir_all(output_dir)
@@ -1088,18 +1089,31 @@ pub fn write_and_verify_local_snapshot_v0(
     let path = output_dir.join(format!("{}.json", snapshot.snapshot_id));
     let temporary = output_dir.join(format!(".{}.tmp", snapshot.snapshot_id));
     fs::write(&temporary, serialized).map_err(|_| "local snapshot write failed".to_string())?;
+    let temporary_snapshot = read_and_verify_local_snapshot_v0(&temporary, snapshot)?;
+    if temporary_snapshot.snapshot_id != snapshot.snapshot_id {
+        return Err("local snapshot identifier verification failed".to_string());
+    }
     fs::rename(&temporary, &path).map_err(|_| "local snapshot atomic rename failed".to_string())?;
+    read_and_verify_local_snapshot_v0(&path, snapshot)?;
+    Ok(path)
+}
+
+fn read_and_verify_local_snapshot_v0(
+    path: &Path,
+    expected: &DataSnapshot,
+) -> Result<DataSnapshot, String> {
     let stored: DataSnapshot = serde_json::from_slice(
-        &fs::read(&path).map_err(|_| "local snapshot reread failed".to_string())?,
+        &fs::read(path).map_err(|_| "local snapshot reread failed".to_string())?,
     )
     .map_err(|_| "local snapshot decode failed".to_string())?;
-    let digest = serde_json::to_string(&stored.normalized_dataset)
-        .map(|value| stable_hash_string(&value))
-        .map_err(|_| "local snapshot digest serialization failed".to_string())?;
-    if digest != stored.content_digest || stored.snapshot_id != snapshot.snapshot_id {
+    if stored.snapshot_id != expected.snapshot_id {
+        return Err("local snapshot identifier verification failed".to_string());
+    }
+    let digest = dataset_digest(&stored.normalized_dataset);
+    if digest != stored.content_digest || stored.content_digest != expected.content_digest {
         return Err("local snapshot digest verification failed".to_string());
     }
-    Ok(path)
+    Ok(stored)
 }
 
 fn harvest_result(
@@ -1253,6 +1267,7 @@ fn current_time_ms() -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::data::{SnapshotProvenance, SnapshotQualitySummary, SnapshotSourceType};
 
     fn config() -> UpbitHistoricalPilotConfigV0 {
         UpbitHistoricalPilotConfigV0 {
@@ -1274,6 +1289,49 @@ mod tests {
             maximum_pages: 2,
             stop_when_campaign_sufficient: true,
             campaign_attempt_enabled: false,
+        }
+    }
+
+    fn local_snapshot(dataset: HistoricalReplayDataset, snapshot_id: &str) -> DataSnapshot {
+        let row_count = dataset.rows.len();
+        let digest = dataset_digest(&dataset);
+        DataSnapshot {
+            snapshot_id: snapshot_id.to_string(),
+            request_key: "upbit-test-local-snapshot".to_string(),
+            provider_id: UPBIT_PROVIDER_ID.to_string(),
+            dataset_kind: DatasetKind::DailyOhlcv,
+            market_scope: AcquisitionMarketScope::BtcCrypto,
+            symbols: vec!["KRW-BTC".to_string()],
+            requested_lookback: DataLookback {
+                bars: row_count,
+                start_timestamp_ms: Some(1_704_067_200_000),
+                end_timestamp_ms: Some(1_704_240_000_000),
+            },
+            actual_start_timestamp_ms: dataset.rows.first().map(|row| row.timestamp_ms),
+            actual_end_timestamp_ms: dataset.rows.last().map(|row| row.timestamp_ms),
+            fetched_at_ms: 1_704_240_000_000,
+            normalized_at_ms: 1_704_240_000_000,
+            schema_version: 1,
+            row_count,
+            quality_summary: SnapshotQualitySummary {
+                accepted: true,
+                row_count,
+                reason_codes: vec![],
+            },
+            content_digest: digest,
+            sanitized: true,
+            read_only: true,
+            normalized_dataset: dataset,
+            provenance: SnapshotProvenance {
+                provider_id: UPBIT_PROVIDER_ID.to_string(),
+                acquisition_request_id: "upbit-test-request".to_string(),
+                fetch_receipt_id: "upbit-test-receipt".to_string(),
+                source_type: SnapshotSourceType::ApprovedReadOnlyProvider,
+                sanitized: true,
+                credential_free: true,
+                reason_codes: vec![],
+            },
+            reason_codes: vec![ReasonCode::DataSnapshotImmutable],
         }
     }
 
@@ -1338,6 +1396,33 @@ mod tests {
                 .status,
             UpbitHistoricalPreflightStatusV0::ConfigurationMissing
         );
+    }
+
+    #[test]
+    fn local_snapshot_write_verifies_before_and_after_atomic_rename() {
+        let dataset = parse_upbit_daily_ohlcv_v0(
+            r#"[{"market":"KRW-BTC","candle_date_time_utc":"2024-01-01T00:00:00","opening_price":1.0,"high_price":2.0,"low_price":0.5,"trade_price":1.5,"candle_acc_trade_volume":1.0}]"#,
+            "KRW-BTC",
+        )
+        .unwrap();
+        let output_dir = Path::new(DEFAULT_SNAPSHOT_OUTPUT_DIR);
+        let snapshot = local_snapshot(dataset, "snapshot-upbit-local-write-test");
+        let path = output_dir.join(format!("{}.json", snapshot.snapshot_id));
+        let _ = fs::remove_file(&path);
+        let written = write_and_verify_local_snapshot_v0(&snapshot, output_dir).unwrap();
+        assert_eq!(written, path);
+        let stored: DataSnapshot = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+        assert_eq!(stored.snapshot_id, snapshot.snapshot_id);
+        assert_eq!(stored.content_digest, snapshot.content_digest);
+        fs::remove_file(&path).unwrap();
+
+        let mut invalid = snapshot;
+        invalid.snapshot_id = "snapshot-upbit-local-write-invalid".to_string();
+        invalid.content_digest = "invalid".to_string();
+        let invalid_path = output_dir.join(format!("{}.json", invalid.snapshot_id));
+        let _ = fs::remove_file(&invalid_path);
+        assert!(write_and_verify_local_snapshot_v0(&invalid, output_dir).is_err());
+        assert!(!invalid_path.exists());
     }
 
     #[test]
