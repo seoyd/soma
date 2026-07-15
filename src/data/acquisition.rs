@@ -1027,10 +1027,7 @@ fn snapshot_from_response(
     }
     validate_normalized_dataset(&response.normalized_dataset)?;
     let digest = historical_replay_dataset_digest_v0(&response.normalized_dataset);
-    let snapshot_id = format!(
-        "snapshot-{}",
-        stable_hash_string(&format!("{}:{}", request.request_key, digest))
-    );
+    let snapshot_id = snapshot_id_from_semantic_digest_v1(&digest);
     let timestamps = response
         .normalized_dataset
         .rows
@@ -1152,24 +1149,93 @@ fn valid_ohlcv(row: &HistoricalOhlcvRow) -> bool {
 }
 
 pub fn historical_replay_dataset_digest_v0(dataset: &HistoricalReplayDataset) -> String {
-    let mut material = format!("{:?}|{:?}|", dataset.symbol, dataset.source);
-    for reason in &dataset.reason_codes {
-        material.push_str(&format!("{reason:?}|"));
+    let mut material = Vec::with_capacity(dataset.rows.len().saturating_mul(80));
+    material.extend_from_slice(b"SOMA-HISTORICAL-DATASET-SEMANTIC-V1");
+    canonical_string(&mut material, 1, &dataset.symbol);
+    canonical_string(&mut material, 2, &dataset.source);
+    let mut reasons = dataset
+        .reason_codes
+        .iter()
+        .map(|reason| *reason as u16)
+        .collect::<Vec<_>>();
+    reasons.sort_unstable();
+    reasons.dedup();
+    canonical_u32(&mut material, 3, reasons.len() as u32);
+    for reason in reasons {
+        canonical_u16(&mut material, 4, reason);
     }
+    canonical_u32(&mut material, 5, dataset.rows.len() as u32);
     for row in &dataset.rows {
-        material.push_str(&format!(
-            "{:?}|{}|{:016x}|{:016x}|{:016x}|{:016x}|{:016x}|{:?}|",
-            row.symbol,
-            row.timestamp_ms,
-            row.open.to_bits(),
-            row.high.to_bits(),
-            row.low.to_bits(),
-            row.close.to_bits(),
-            row.volume.to_bits(),
-            row.trade_value.map(f64::to_bits),
-        ));
+        canonical_string(&mut material, 6, &row.symbol);
+        canonical_u64(&mut material, 7, row.timestamp_ms);
+        canonical_f64(&mut material, 8, row.open);
+        canonical_f64(&mut material, 9, row.high);
+        canonical_f64(&mut material, 10, row.low);
+        canonical_f64(&mut material, 11, row.close);
+        canonical_f64(&mut material, 12, row.volume);
+        match row.trade_value {
+            Some(value) => {
+                canonical_u8(&mut material, 13, 1);
+                canonical_f64(&mut material, 14, value);
+            }
+            None => canonical_u8(&mut material, 13, 0),
+        }
     }
-    stable_hash_string(&material)
+    canonical_hash_hex(&material)
+}
+
+/// The semantic identity is the normalized, validated historical dataset.  It deliberately
+/// excludes the storage container and the derived snapshot identifier.
+pub fn canonical_snapshot_semantic_digest_v1(snapshot: &DataSnapshot) -> String {
+    historical_replay_dataset_digest_v0(&snapshot.normalized_dataset)
+}
+
+pub fn snapshot_id_from_semantic_digest_v1(semantic_digest: &str) -> String {
+    format!("snapshot-{semantic_digest}")
+}
+
+fn canonical_field(material: &mut Vec<u8>, tag: u8, bytes: &[u8]) {
+    material.push(tag);
+    material.extend_from_slice(&(bytes.len() as u32).to_be_bytes());
+    material.extend_from_slice(bytes);
+}
+
+fn canonical_string(material: &mut Vec<u8>, tag: u8, value: &str) {
+    canonical_field(material, tag, value.as_bytes());
+}
+
+fn canonical_u8(material: &mut Vec<u8>, tag: u8, value: u8) {
+    canonical_field(material, tag, &[value]);
+}
+
+fn canonical_u16(material: &mut Vec<u8>, tag: u8, value: u16) {
+    canonical_field(material, tag, &value.to_be_bytes());
+}
+
+fn canonical_u32(material: &mut Vec<u8>, tag: u8, value: u32) {
+    canonical_field(material, tag, &value.to_be_bytes());
+}
+
+fn canonical_u64(material: &mut Vec<u8>, tag: u8, value: u64) {
+    canonical_field(material, tag, &value.to_be_bytes());
+}
+
+fn canonical_f64(material: &mut Vec<u8>, tag: u8, value: f64) {
+    let bits = if value == 0.0 {
+        0.0f64.to_bits()
+    } else {
+        value.to_bits()
+    };
+    canonical_field(material, tag, &bits.to_be_bytes());
+}
+
+pub(crate) fn canonical_hash_hex(bytes: &[u8]) -> String {
+    let mut hash = 0xcbf2_9ce4_8422_2325u64;
+    for byte in bytes {
+        hash ^= u64::from(*byte);
+        hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
+    }
+    format!("{hash:016x}")
 }
 
 fn snapshot_digest(dataset: &HistoricalReplayDataset) -> String {

@@ -61,10 +61,7 @@ pub fn run() -> Result<(), String> {
         );
         println!("reasons={}", result.reason_codes.join("|"));
         if let Some(path) = result.local_snapshot_path {
-            let snapshot: crate::data::DataSnapshot = serde_json::from_slice(
-                &fs::read(path).map_err(|_| "local snapshot reread failed".to_string())?,
-            )
-            .map_err(|_| "local snapshot decode failed".to_string())?;
+            let snapshot = crate::data::read_local_snapshot_protobuf_v1(Path::new(&path))?;
             let inventory = crate::model::inventory_historical_snapshots_v0(
                 std::slice::from_ref(&snapshot),
                 &crate::model::HistoricalEvidencePolicyV0::default(),
@@ -157,19 +154,13 @@ fn run_local_historical_snapshot_campaign(config_path: &Path) -> Result<(), Stri
         .map_err(|_| "local snapshot directory unavailable".to_string())?
         .filter_map(Result::ok)
         .map(|entry| entry.path())
-        .filter(|path| {
-            path.extension()
-                .is_some_and(|extension| extension == "json")
-        })
+        .filter(|path| path.extension().is_some_and(|extension| extension == "pb"))
         .collect::<Vec<_>>();
     snapshot_paths.sort();
     if snapshot_paths.len() != 1 {
         return Err("local historical campaign requires exactly one snapshot".to_string());
     }
-    let snapshot: crate::data::DataSnapshot = serde_json::from_slice(
-        &fs::read(&snapshot_paths[0]).map_err(|_| "local snapshot reread failed".to_string())?,
-    )
-    .map_err(|_| "local snapshot decode failed".to_string())?;
+    let snapshot = crate::data::read_local_snapshot_protobuf_v1(&snapshot_paths[0])?;
     let campaign_config = crate::model::MomentumLearningCampaignConfigV0::default();
     let inventory = crate::model::inventory_historical_snapshots_v0(
         std::slice::from_ref(&snapshot),

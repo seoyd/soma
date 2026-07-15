@@ -41,9 +41,10 @@ pub use acquisition::{
     ReadOnlyProviderRegistry, ReadOnlyProviderRequest, ReadOnlyProviderResponse,
     RejectedAcquisitionRequest, SnapshotProvenance, SnapshotQualitySummary, SnapshotSourceType,
     StaleDataPolicy, bind_proposal_to_frozen_evidence, build_acquisition_plan,
-    build_agent_evidence_bundles, default_agent_data_policies, execute_autonomous_data_cycle,
-    freeze_decision_snapshot_set, historical_replay_dataset_digest_v0, plan_agent_data_intent,
-    plan_autonomous_data_cycle,
+    build_agent_evidence_bundles, canonical_snapshot_semantic_digest_v1,
+    default_agent_data_policies, execute_autonomous_data_cycle, freeze_decision_snapshot_set,
+    historical_replay_dataset_digest_v0, plan_agent_data_intent, plan_autonomous_data_cycle,
+    snapshot_id_from_semantic_digest_v1,
 };
 pub use alpaca_provider::{
     AlpacaHistoricalBarsImportConfig, AlpacaHistoricalBarsImportReport, AlpacaProviderStatus,
@@ -130,12 +131,14 @@ pub use upbit_historical_pilot::{
     FirstHistoricalHarvestResultV0, FirstHistoricalHarvestStatusV0,
     HistoricalProviderQualificationStatusV0, HistoricalProviderQualificationV0,
     HistoricalProviderSelectionStatusV0, HistoricalProviderSelectionV0, NetworkConsentV0,
-    UpbitDailyOhlcvProviderV0, UpbitHistoricalBackfillResultV0, UpbitHistoricalBackfillStatusV0,
-    UpbitHistoricalPageReceiptV0, UpbitHistoricalPilotConfigV0, UpbitHistoricalPreflightStatusV0,
-    UpbitHistoricalPreflightV0, merge_upbit_historical_pages_v0, parse_upbit_daily_ohlcv_v0,
+    SnapshotCodec, SnapshotStorageFormat, UpbitDailyOhlcvProviderV0,
+    UpbitHistoricalBackfillResultV0, UpbitHistoricalBackfillStatusV0, UpbitHistoricalPageReceiptV0,
+    UpbitHistoricalPilotConfigV0, UpbitHistoricalPreflightStatusV0, UpbitHistoricalPreflightV0,
+    merge_upbit_historical_pages_v0, migrate_legacy_json_snapshot_v0, parse_upbit_daily_ohlcv_v0,
     preflight_upbit_historical_backfill_v0, qualify_upbit_historical_provider_v0,
-    run_manual_upbit_historical_backfill_v0, run_manual_upbit_historical_smoke_v0,
-    select_upbit_historical_provider_v0, write_and_verify_local_snapshot_v0,
+    read_local_snapshot_protobuf_v1, run_manual_upbit_historical_backfill_v0,
+    run_manual_upbit_historical_smoke_v0, select_upbit_historical_provider_v0,
+    write_and_verify_local_snapshot_v0,
 };
 pub use validation::{
     CandleParseError, CandleParseIssue, DataValidationConfig, ValidationStats,

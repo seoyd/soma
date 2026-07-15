@@ -6,11 +6,13 @@
 
 use std::{
     collections::{BTreeMap, BTreeSet},
-    fs,
+    fs::{self, File},
+    io::Write,
     path::{Component, Path, PathBuf},
     process::Command,
 };
 
+use prost::Message;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -23,13 +25,191 @@ use super::{
     AcquisitionMarketScope, AcquisitionMode, AcquisitionPlan, AcquisitionPolicy,
     DataAcquisitionBroker, DataLookback, DataSnapshot, DatasetKind, ProviderCapabilities,
     ProviderFetchFailure, ReadOnlyMarketDataProvider, ReadOnlyProviderRegistry,
-    ReadOnlyProviderRequest, ReadOnlyProviderResponse,
+    ReadOnlyProviderRequest, ReadOnlyProviderResponse, SnapshotProvenance, SnapshotQualitySummary,
+    SnapshotSourceType,
 };
 
 const UPBIT_PROVIDER_ID: &str = "upbit";
 const UPBIT_DAILY_CANDLES_ENDPOINT: &str = "https://api.upbit.com/v1/candles/days";
 const UPBIT_MAX_CANDLES_PER_REQUEST: usize = 200;
 const DEFAULT_SNAPSHOT_OUTPUT_DIR: &str = "data/local_snapshots/upbit";
+const SNAPSHOT_PROTOBUF_MAGIC_V1: &[u8] = b"SOMA-SNAPSHOT-PB-V1";
+const SNAPSHOT_PROTOBUF_SCHEMA_V1: &str = "soma.data_snapshot.v1";
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SnapshotStorageFormat {
+    JsonLegacyV0,
+    ProtobufV1,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct SnapshotCodec {
+    pub format: SnapshotStorageFormat,
+}
+
+impl SnapshotCodec {
+    pub const fn protobuf_v1() -> Self {
+        Self {
+            format: SnapshotStorageFormat::ProtobufV1,
+        }
+    }
+
+    pub const fn json_legacy_v0() -> Self {
+        Self {
+            format: SnapshotStorageFormat::JsonLegacyV0,
+        }
+    }
+
+    pub fn encode(&self, snapshot: &DataSnapshot) -> Result<Vec<u8>, String> {
+        match self.format {
+            SnapshotStorageFormat::JsonLegacyV0 => serde_json::to_vec(snapshot)
+                .map_err(|_| "legacy snapshot serialization failed".to_string()),
+            SnapshotStorageFormat::ProtobufV1 => encode_snapshot_protobuf_v1(snapshot),
+        }
+    }
+
+    pub fn decode(&self, bytes: &[u8]) -> Result<DataSnapshot, String> {
+        match self.format {
+            SnapshotStorageFormat::JsonLegacyV0 => serde_json::from_slice(bytes)
+                .map_err(|_| "legacy snapshot decode failed".to_string()),
+            SnapshotStorageFormat::ProtobufV1 => decode_snapshot_protobuf_v1(bytes),
+        }
+    }
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct SnapshotEnvelopeProtobufV1 {
+    #[prost(bytes = "vec", tag = "1")]
+    magic: Vec<u8>,
+    #[prost(uint32, tag = "2")]
+    version: u32,
+    #[prost(string, tag = "3")]
+    schema: String,
+    #[prost(string, tag = "4")]
+    semantic_digest: String,
+    #[prost(string, tag = "5")]
+    snapshot_id: String,
+    #[prost(uint64, tag = "6")]
+    payload_length: u64,
+    #[prost(string, tag = "7")]
+    payload_digest: String,
+    #[prost(bytes = "vec", tag = "8")]
+    payload: Vec<u8>,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct SnapshotPayloadProtobufV1 {
+    #[prost(string, tag = "1")]
+    snapshot_id: String,
+    #[prost(string, tag = "2")]
+    request_key: String,
+    #[prost(string, tag = "3")]
+    provider_id: String,
+    #[prost(uint32, tag = "4")]
+    dataset_kind: u32,
+    #[prost(uint32, tag = "5")]
+    market_scope: u32,
+    #[prost(string, repeated, tag = "6")]
+    symbols: Vec<String>,
+    #[prost(message, optional, tag = "7")]
+    requested_lookback: Option<LookbackProtobufV1>,
+    #[prost(uint64, optional, tag = "8")]
+    actual_start_timestamp_ms: Option<u64>,
+    #[prost(uint64, optional, tag = "9")]
+    actual_end_timestamp_ms: Option<u64>,
+    #[prost(uint64, tag = "10")]
+    fetched_at_ms: u64,
+    #[prost(uint64, tag = "11")]
+    normalized_at_ms: u64,
+    #[prost(uint32, tag = "12")]
+    schema_version: u32,
+    #[prost(uint64, tag = "13")]
+    row_count: u64,
+    #[prost(message, optional, tag = "14")]
+    quality_summary: Option<QualityProtobufV1>,
+    #[prost(string, tag = "15")]
+    content_digest: String,
+    #[prost(bool, tag = "16")]
+    sanitized: bool,
+    #[prost(bool, tag = "17")]
+    read_only: bool,
+    #[prost(message, optional, tag = "18")]
+    normalized_dataset: Option<DatasetProtobufV1>,
+    #[prost(message, optional, tag = "19")]
+    provenance: Option<ProvenanceProtobufV1>,
+    #[prost(string, repeated, tag = "20")]
+    reason_codes: Vec<String>,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct LookbackProtobufV1 {
+    #[prost(uint64, tag = "1")]
+    bars: u64,
+    #[prost(uint64, optional, tag = "2")]
+    start_timestamp_ms: Option<u64>,
+    #[prost(uint64, optional, tag = "3")]
+    end_timestamp_ms: Option<u64>,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct QualityProtobufV1 {
+    #[prost(bool, tag = "1")]
+    accepted: bool,
+    #[prost(uint64, tag = "2")]
+    row_count: u64,
+    #[prost(string, repeated, tag = "3")]
+    reason_codes: Vec<String>,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct DatasetProtobufV1 {
+    #[prost(string, tag = "1")]
+    symbol: String,
+    #[prost(message, repeated, tag = "2")]
+    rows: Vec<OhlcvProtobufV1>,
+    #[prost(string, tag = "3")]
+    source: String,
+    #[prost(string, repeated, tag = "4")]
+    reason_codes: Vec<String>,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct OhlcvProtobufV1 {
+    #[prost(string, tag = "1")]
+    symbol: String,
+    #[prost(uint64, tag = "2")]
+    timestamp_ms: u64,
+    #[prost(fixed64, tag = "3")]
+    open_bits: u64,
+    #[prost(fixed64, tag = "4")]
+    high_bits: u64,
+    #[prost(fixed64, tag = "5")]
+    low_bits: u64,
+    #[prost(fixed64, tag = "6")]
+    close_bits: u64,
+    #[prost(fixed64, tag = "7")]
+    volume_bits: u64,
+    #[prost(fixed64, optional, tag = "8")]
+    trade_value_bits: Option<u64>,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct ProvenanceProtobufV1 {
+    #[prost(string, tag = "1")]
+    provider_id: String,
+    #[prost(string, tag = "2")]
+    acquisition_request_id: String,
+    #[prost(string, tag = "3")]
+    fetch_receipt_id: String,
+    #[prost(uint32, tag = "4")]
+    source_type: u32,
+    #[prost(bool, tag = "5")]
+    sanitized: bool,
+    #[prost(bool, tag = "6")]
+    credential_free: bool,
+    #[prost(string, repeated, tag = "7")]
+    reason_codes: Vec<String>,
+}
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -911,10 +1091,7 @@ fn merged_snapshot_v0(
         config.symbol, config.start_timestamp_ms, config.end_timestamp_ms
     );
     let mut snapshot = first.clone();
-    snapshot.snapshot_id = format!(
-        "snapshot-{}",
-        stable_hash_string(&format!("{request_key}:{digest}"))
-    );
+    snapshot.snapshot_id = super::acquisition::snapshot_id_from_semantic_digest_v1(&digest);
     snapshot.request_key = request_key;
     snapshot.requested_lookback = DataLookback {
         bars: dataset.rows.len(),
@@ -1079,16 +1256,19 @@ pub fn write_and_verify_local_snapshot_v0(
     if !safe_snapshot_output_dir(output_dir) {
         return Err("local snapshot output path rejected".to_string());
     }
-    if dataset_digest(&snapshot.normalized_dataset) != snapshot.content_digest {
-        return Err("snapshot input digest verification failed".to_string());
-    }
-    let serialized =
-        serde_json::to_vec(snapshot).map_err(|_| "snapshot serialization failed".to_string())?;
+    verify_snapshot_semantic_identity_v1(snapshot)?;
+    let serialized = SnapshotCodec::protobuf_v1().encode(snapshot)?;
     fs::create_dir_all(output_dir)
         .map_err(|_| "local snapshot directory unavailable".to_string())?;
-    let path = output_dir.join(format!("{}.json", snapshot.snapshot_id));
+    let path = output_dir.join(format!("{}.pb", snapshot.snapshot_id));
     let temporary = output_dir.join(format!(".{}.tmp", snapshot.snapshot_id));
-    fs::write(&temporary, serialized).map_err(|_| "local snapshot write failed".to_string())?;
+    let mut file =
+        File::create(&temporary).map_err(|_| "local snapshot write failed".to_string())?;
+    file.write_all(&serialized)
+        .map_err(|_| "local snapshot write failed".to_string())?;
+    file.sync_all()
+        .map_err(|_| "local snapshot sync failed".to_string())?;
+    drop(file);
     let temporary_snapshot = read_and_verify_local_snapshot_v0(&temporary, snapshot)?;
     if temporary_snapshot.snapshot_id != snapshot.snapshot_id {
         return Err("local snapshot identifier verification failed".to_string());
@@ -1102,18 +1282,370 @@ fn read_and_verify_local_snapshot_v0(
     path: &Path,
     expected: &DataSnapshot,
 ) -> Result<DataSnapshot, String> {
-    let stored: DataSnapshot = serde_json::from_slice(
-        &fs::read(path).map_err(|_| "local snapshot reread failed".to_string())?,
-    )
-    .map_err(|_| "local snapshot decode failed".to_string())?;
+    let stored = SnapshotCodec::protobuf_v1()
+        .decode(&fs::read(path).map_err(|_| "local snapshot reread failed".to_string())?)?;
     if stored.snapshot_id != expected.snapshot_id {
         return Err("local snapshot identifier verification failed".to_string());
     }
-    let digest = dataset_digest(&stored.normalized_dataset);
-    if digest != stored.content_digest || stored.content_digest != expected.content_digest {
+    if stored.content_digest != expected.content_digest {
         return Err("local snapshot digest verification failed".to_string());
     }
+    verify_snapshot_semantic_identity_v1(&stored)?;
     Ok(stored)
+}
+
+pub fn read_local_snapshot_protobuf_v1(path: &Path) -> Result<DataSnapshot, String> {
+    SnapshotCodec::protobuf_v1()
+        .decode(&fs::read(path).map_err(|_| "local snapshot reread failed".to_string())?)
+}
+
+pub fn migrate_legacy_json_snapshot_v0(path: &Path) -> Result<PathBuf, String> {
+    if path.extension().is_none_or(|extension| extension != "json") {
+        return Err("legacy snapshot path must be json".to_string());
+    }
+    let mut snapshot = SnapshotCodec::json_legacy_v0()
+        .decode(&fs::read(path).map_err(|_| "legacy snapshot reread failed".to_string())?)?;
+    validate_snapshot_shape_v1(&snapshot)?;
+    snapshot.content_digest = dataset_digest(&snapshot.normalized_dataset);
+    snapshot.snapshot_id =
+        super::acquisition::snapshot_id_from_semantic_digest_v1(&snapshot.content_digest);
+    let output_dir = path
+        .parent()
+        .ok_or_else(|| "legacy snapshot parent unavailable".to_string())?;
+    write_and_verify_local_snapshot_v0(&snapshot, output_dir)
+}
+
+fn encode_snapshot_protobuf_v1(snapshot: &DataSnapshot) -> Result<Vec<u8>, String> {
+    verify_snapshot_semantic_identity_v1(snapshot)?;
+    let payload = SnapshotPayloadProtobufV1::from_snapshot(snapshot)?.encode_to_vec();
+    let envelope = SnapshotEnvelopeProtobufV1 {
+        magic: SNAPSHOT_PROTOBUF_MAGIC_V1.to_vec(),
+        version: 1,
+        schema: SNAPSHOT_PROTOBUF_SCHEMA_V1.to_string(),
+        semantic_digest: snapshot.content_digest.clone(),
+        snapshot_id: snapshot.snapshot_id.clone(),
+        payload_length: u64::try_from(payload.len())
+            .map_err(|_| "snapshot payload too large".to_string())?,
+        payload_digest: super::acquisition::canonical_hash_hex(&payload),
+        payload,
+    };
+    Ok(envelope.encode_to_vec())
+}
+
+fn decode_snapshot_protobuf_v1(bytes: &[u8]) -> Result<DataSnapshot, String> {
+    let envelope = SnapshotEnvelopeProtobufV1::decode(bytes)
+        .map_err(|_| "protobuf snapshot envelope decode failed".to_string())?;
+    if envelope.magic != SNAPSHOT_PROTOBUF_MAGIC_V1
+        || envelope.version != 1
+        || envelope.schema != SNAPSHOT_PROTOBUF_SCHEMA_V1
+    {
+        return Err("protobuf snapshot envelope version rejected".to_string());
+    }
+    if usize::try_from(envelope.payload_length).ok() != Some(envelope.payload.len())
+        || super::acquisition::canonical_hash_hex(&envelope.payload) != envelope.payload_digest
+    {
+        return Err("protobuf snapshot payload integrity rejected".to_string());
+    }
+    let snapshot = SnapshotPayloadProtobufV1::decode(envelope.payload.as_slice())
+        .map_err(|_| "protobuf snapshot payload decode failed".to_string())?
+        .into_snapshot()?;
+    if snapshot.snapshot_id != envelope.snapshot_id
+        || snapshot.content_digest != envelope.semantic_digest
+    {
+        return Err("protobuf snapshot identity mismatch".to_string());
+    }
+    verify_snapshot_semantic_identity_v1(&snapshot)?;
+    Ok(snapshot)
+}
+
+fn verify_snapshot_semantic_identity_v1(snapshot: &DataSnapshot) -> Result<(), String> {
+    validate_snapshot_shape_v1(snapshot)?;
+    let digest = dataset_digest(&snapshot.normalized_dataset);
+    if snapshot.content_digest != digest {
+        return Err("snapshot semantic digest verification failed".to_string());
+    }
+    if snapshot.snapshot_id != super::acquisition::snapshot_id_from_semantic_digest_v1(&digest) {
+        return Err("snapshot semantic identifier verification failed".to_string());
+    }
+    Ok(())
+}
+
+fn validate_snapshot_shape_v1(snapshot: &DataSnapshot) -> Result<(), String> {
+    let dataset = &snapshot.normalized_dataset;
+    if snapshot.row_count != dataset.rows.len()
+        || snapshot.quality_summary.row_count != snapshot.row_count
+        || dataset.rows.is_empty()
+        || snapshot.symbols.len() != 1
+        || snapshot.symbols[0] != dataset.symbol
+        || snapshot.actual_start_timestamp_ms != dataset.rows.first().map(|row| row.timestamp_ms)
+        || snapshot.actual_end_timestamp_ms != dataset.rows.last().map(|row| row.timestamp_ms)
+    {
+        return Err("snapshot shape verification failed".to_string());
+    }
+    for pair in dataset.rows.windows(2) {
+        if pair[0].timestamp_ms >= pair[1].timestamp_ms {
+            return Err("snapshot chronology verification failed".to_string());
+        }
+    }
+    if dataset.rows.iter().any(|row| {
+        row.symbol != dataset.symbol
+            || !row.open.is_finite()
+            || !row.high.is_finite()
+            || !row.low.is_finite()
+            || !row.close.is_finite()
+            || !row.volume.is_finite()
+            || row.trade_value.is_some_and(|value| !value.is_finite())
+    }) {
+        return Err("snapshot OHLCV verification failed".to_string());
+    }
+    Ok(())
+}
+
+impl SnapshotPayloadProtobufV1 {
+    fn from_snapshot(snapshot: &DataSnapshot) -> Result<Self, String> {
+        Ok(Self {
+            snapshot_id: snapshot.snapshot_id.clone(),
+            request_key: snapshot.request_key.clone(),
+            provider_id: snapshot.provider_id.clone(),
+            dataset_kind: dataset_kind_tag(snapshot.dataset_kind),
+            market_scope: market_scope_tag(snapshot.market_scope),
+            symbols: sorted_strings(&snapshot.symbols),
+            requested_lookback: Some(LookbackProtobufV1 {
+                bars: u64::try_from(snapshot.requested_lookback.bars)
+                    .map_err(|_| "snapshot lookback too large".to_string())?,
+                start_timestamp_ms: snapshot.requested_lookback.start_timestamp_ms,
+                end_timestamp_ms: snapshot.requested_lookback.end_timestamp_ms,
+            }),
+            actual_start_timestamp_ms: snapshot.actual_start_timestamp_ms,
+            actual_end_timestamp_ms: snapshot.actual_end_timestamp_ms,
+            fetched_at_ms: snapshot.fetched_at_ms,
+            normalized_at_ms: snapshot.normalized_at_ms,
+            schema_version: snapshot.schema_version,
+            row_count: u64::try_from(snapshot.row_count)
+                .map_err(|_| "snapshot row count too large".to_string())?,
+            quality_summary: Some(QualityProtobufV1 {
+                accepted: snapshot.quality_summary.accepted,
+                row_count: u64::try_from(snapshot.quality_summary.row_count)
+                    .map_err(|_| "snapshot quality row count too large".to_string())?,
+                reason_codes: wire_reason_codes(&snapshot.quality_summary.reason_codes)?,
+            }),
+            content_digest: snapshot.content_digest.clone(),
+            sanitized: snapshot.sanitized,
+            read_only: snapshot.read_only,
+            normalized_dataset: Some(DatasetProtobufV1 {
+                symbol: snapshot.normalized_dataset.symbol.clone(),
+                rows: snapshot
+                    .normalized_dataset
+                    .rows
+                    .iter()
+                    .map(|row| OhlcvProtobufV1 {
+                        symbol: row.symbol.clone(),
+                        timestamp_ms: row.timestamp_ms,
+                        open_bits: row.open.to_bits(),
+                        high_bits: row.high.to_bits(),
+                        low_bits: row.low.to_bits(),
+                        close_bits: row.close.to_bits(),
+                        volume_bits: row.volume.to_bits(),
+                        trade_value_bits: row.trade_value.map(f64::to_bits),
+                    })
+                    .collect(),
+                source: snapshot.normalized_dataset.source.clone(),
+                reason_codes: wire_reason_codes(&snapshot.normalized_dataset.reason_codes)?,
+            }),
+            provenance: Some(ProvenanceProtobufV1 {
+                provider_id: snapshot.provenance.provider_id.clone(),
+                acquisition_request_id: snapshot.provenance.acquisition_request_id.clone(),
+                fetch_receipt_id: snapshot.provenance.fetch_receipt_id.clone(),
+                source_type: source_type_tag(snapshot.provenance.source_type),
+                sanitized: snapshot.provenance.sanitized,
+                credential_free: snapshot.provenance.credential_free,
+                reason_codes: wire_reason_codes(&snapshot.provenance.reason_codes)?,
+            }),
+            reason_codes: wire_reason_codes(&snapshot.reason_codes)?,
+        })
+    }
+
+    fn into_snapshot(self) -> Result<DataSnapshot, String> {
+        let lookback = self
+            .requested_lookback
+            .ok_or_else(|| "protobuf snapshot lookback missing".to_string())?;
+        let quality = self
+            .quality_summary
+            .ok_or_else(|| "protobuf snapshot quality missing".to_string())?;
+        let dataset = self
+            .normalized_dataset
+            .ok_or_else(|| "protobuf snapshot dataset missing".to_string())?;
+        let provenance = self
+            .provenance
+            .ok_or_else(|| "protobuf snapshot provenance missing".to_string())?;
+        Ok(DataSnapshot {
+            snapshot_id: self.snapshot_id,
+            request_key: self.request_key,
+            provider_id: self.provider_id,
+            dataset_kind: dataset_kind_from_tag(self.dataset_kind)?,
+            market_scope: market_scope_from_tag(self.market_scope)?,
+            symbols: self.symbols,
+            requested_lookback: DataLookback {
+                bars: usize::try_from(lookback.bars)
+                    .map_err(|_| "protobuf snapshot lookback rejected".to_string())?,
+                start_timestamp_ms: lookback.start_timestamp_ms,
+                end_timestamp_ms: lookback.end_timestamp_ms,
+            },
+            actual_start_timestamp_ms: self.actual_start_timestamp_ms,
+            actual_end_timestamp_ms: self.actual_end_timestamp_ms,
+            fetched_at_ms: self.fetched_at_ms,
+            normalized_at_ms: self.normalized_at_ms,
+            schema_version: self.schema_version,
+            row_count: usize::try_from(self.row_count)
+                .map_err(|_| "protobuf snapshot row count rejected".to_string())?,
+            quality_summary: SnapshotQualitySummary {
+                accepted: quality.accepted,
+                row_count: usize::try_from(quality.row_count)
+                    .map_err(|_| "protobuf snapshot quality row count rejected".to_string())?,
+                reason_codes: parse_wire_reason_codes(&quality.reason_codes)?,
+            },
+            content_digest: self.content_digest,
+            sanitized: self.sanitized,
+            read_only: self.read_only,
+            normalized_dataset: HistoricalReplayDataset {
+                symbol: dataset.symbol,
+                rows: dataset
+                    .rows
+                    .into_iter()
+                    .map(|row| HistoricalOhlcvRow {
+                        symbol: row.symbol,
+                        timestamp_ms: row.timestamp_ms,
+                        open: f64::from_bits(row.open_bits),
+                        high: f64::from_bits(row.high_bits),
+                        low: f64::from_bits(row.low_bits),
+                        close: f64::from_bits(row.close_bits),
+                        volume: f64::from_bits(row.volume_bits),
+                        trade_value: row.trade_value_bits.map(f64::from_bits),
+                    })
+                    .collect(),
+                source: dataset.source,
+                reason_codes: parse_wire_reason_codes(&dataset.reason_codes)?,
+            },
+            provenance: SnapshotProvenance {
+                provider_id: provenance.provider_id,
+                acquisition_request_id: provenance.acquisition_request_id,
+                fetch_receipt_id: provenance.fetch_receipt_id,
+                source_type: source_type_from_tag(provenance.source_type)?,
+                sanitized: provenance.sanitized,
+                credential_free: provenance.credential_free,
+                reason_codes: parse_wire_reason_codes(&provenance.reason_codes)?,
+            },
+            reason_codes: parse_wire_reason_codes(&self.reason_codes)?,
+        })
+    }
+}
+
+fn sorted_strings(values: &[String]) -> Vec<String> {
+    let mut values = values.to_vec();
+    values.sort();
+    values.dedup();
+    values
+}
+
+fn wire_reason_codes(values: &[ReasonCode]) -> Result<Vec<String>, String> {
+    let mut values = values
+        .iter()
+        .map(|value| {
+            serde_json::to_value(value).map_err(|_| "reason code serialization failed".to_string())
+        })
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
+        .map(|value| {
+            value
+                .as_str()
+                .map(str::to_owned)
+                .ok_or_else(|| "reason code wire value rejected".to_string())
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    values.sort();
+    values.dedup();
+    Ok(values)
+}
+
+fn parse_wire_reason_codes(values: &[String]) -> Result<Vec<ReasonCode>, String> {
+    values
+        .iter()
+        .map(|value| {
+            serde_json::from_value(serde_json::Value::String(value.clone()))
+                .map_err(|_| "protobuf reason code rejected".to_string())
+        })
+        .collect()
+}
+
+fn dataset_kind_tag(value: DatasetKind) -> u32 {
+    match value {
+        DatasetKind::DailyOhlcv => 1,
+        DatasetKind::AdjustedDailyOhlcv => 2,
+        DatasetKind::CorporateActions => 3,
+        DatasetKind::QuarterlyFundamentals => 4,
+        DatasetKind::ValuationMetrics => 5,
+        DatasetKind::MarketIndexDaily => 6,
+        DatasetKind::MarketBreadthDaily => 7,
+        DatasetKind::VolatilityDaily => 8,
+        DatasetKind::LiquidityDaily => 9,
+        DatasetKind::CryptoDailyOhlcv => 10,
+        DatasetKind::MacroSeries => 11,
+        DatasetKind::Unknown => 12,
+    }
+}
+
+fn dataset_kind_from_tag(value: u32) -> Result<DatasetKind, String> {
+    match value {
+        1 => Ok(DatasetKind::DailyOhlcv),
+        2 => Ok(DatasetKind::AdjustedDailyOhlcv),
+        3 => Ok(DatasetKind::CorporateActions),
+        4 => Ok(DatasetKind::QuarterlyFundamentals),
+        5 => Ok(DatasetKind::ValuationMetrics),
+        6 => Ok(DatasetKind::MarketIndexDaily),
+        7 => Ok(DatasetKind::MarketBreadthDaily),
+        8 => Ok(DatasetKind::VolatilityDaily),
+        9 => Ok(DatasetKind::LiquidityDaily),
+        10 => Ok(DatasetKind::CryptoDailyOhlcv),
+        11 => Ok(DatasetKind::MacroSeries),
+        12 => Ok(DatasetKind::Unknown),
+        _ => Err("protobuf dataset kind rejected".to_string()),
+    }
+}
+
+fn market_scope_tag(value: AcquisitionMarketScope) -> u32 {
+    match value {
+        AcquisitionMarketScope::UsStocks => 1,
+        AcquisitionMarketScope::KoreanStocks => 2,
+        AcquisitionMarketScope::BtcCrypto => 3,
+        AcquisitionMarketScope::Unknown => 4,
+    }
+}
+
+fn market_scope_from_tag(value: u32) -> Result<AcquisitionMarketScope, String> {
+    match value {
+        1 => Ok(AcquisitionMarketScope::UsStocks),
+        2 => Ok(AcquisitionMarketScope::KoreanStocks),
+        3 => Ok(AcquisitionMarketScope::BtcCrypto),
+        4 => Ok(AcquisitionMarketScope::Unknown),
+        _ => Err("protobuf market scope rejected".to_string()),
+    }
+}
+
+fn source_type_tag(value: SnapshotSourceType) -> u32 {
+    match value {
+        SnapshotSourceType::Mock => 1,
+        SnapshotSourceType::LocalSnapshotReplay => 2,
+        SnapshotSourceType::ApprovedReadOnlyProvider => 3,
+    }
+}
+
+fn source_type_from_tag(value: u32) -> Result<SnapshotSourceType, String> {
+    match value {
+        1 => Ok(SnapshotSourceType::Mock),
+        2 => Ok(SnapshotSourceType::LocalSnapshotReplay),
+        3 => Ok(SnapshotSourceType::ApprovedReadOnlyProvider),
+        _ => Err("protobuf snapshot source type rejected".to_string()),
+    }
 }
 
 fn harvest_result(
@@ -1292,16 +1824,17 @@ mod tests {
         }
     }
 
-    fn local_snapshot(dataset: HistoricalReplayDataset, snapshot_id: &str) -> DataSnapshot {
+    fn local_snapshot(dataset: HistoricalReplayDataset, _snapshot_id: &str) -> DataSnapshot {
         let row_count = dataset.rows.len();
         let digest = dataset_digest(&dataset);
+        let symbol = dataset.symbol.clone();
         DataSnapshot {
-            snapshot_id: snapshot_id.to_string(),
+            snapshot_id: crate::data::snapshot_id_from_semantic_digest_v1(&digest),
             request_key: "upbit-test-local-snapshot".to_string(),
             provider_id: UPBIT_PROVIDER_ID.to_string(),
             dataset_kind: DatasetKind::DailyOhlcv,
             market_scope: AcquisitionMarketScope::BtcCrypto,
-            symbols: vec!["KRW-BTC".to_string()],
+            symbols: vec![symbol],
             requested_lookback: DataLookback {
                 bars: row_count,
                 start_timestamp_ms: Some(1_704_067_200_000),
@@ -1407,11 +1940,11 @@ mod tests {
         .unwrap();
         let output_dir = Path::new(DEFAULT_SNAPSHOT_OUTPUT_DIR);
         let snapshot = local_snapshot(dataset, "snapshot-upbit-local-write-test");
-        let path = output_dir.join(format!("{}.json", snapshot.snapshot_id));
+        let path = output_dir.join(format!("{}.pb", snapshot.snapshot_id));
         let _ = fs::remove_file(&path);
         let written = write_and_verify_local_snapshot_v0(&snapshot, output_dir).unwrap();
         assert_eq!(written, path);
-        let stored: DataSnapshot = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+        let stored = read_local_snapshot_protobuf_v1(&path).unwrap();
         assert_eq!(stored.snapshot_id, snapshot.snapshot_id);
         assert_eq!(stored.content_digest, snapshot.content_digest);
         fs::remove_file(&path).unwrap();
@@ -1419,10 +1952,142 @@ mod tests {
         let mut invalid = snapshot;
         invalid.snapshot_id = "snapshot-upbit-local-write-invalid".to_string();
         invalid.content_digest = "invalid".to_string();
-        let invalid_path = output_dir.join(format!("{}.json", invalid.snapshot_id));
+        let invalid_path = output_dir.join(format!("{}.pb", invalid.snapshot_id));
         let _ = fs::remove_file(&invalid_path);
         assert!(write_and_verify_local_snapshot_v0(&invalid, output_dir).is_err());
         assert!(!invalid_path.exists());
+    }
+
+    #[test]
+    fn protobuf_snapshot_round_trip_is_storage_independent_and_detects_corruption() {
+        let dataset = parse_upbit_daily_ohlcv_v0(
+            r#"[{"market":"KRW-BTC","candle_date_time_utc":"2024-01-01T00:00:00","opening_price":1.0,"high_price":2.0,"low_price":0.5,"trade_price":1.5,"candle_acc_trade_volume":1.0}]"#,
+            "KRW-BTC",
+        )
+        .unwrap();
+        let snapshot = local_snapshot(dataset, "unused");
+        let protobuf = SnapshotCodec::protobuf_v1().encode(&snapshot).unwrap();
+        let json = SnapshotCodec::json_legacy_v0().encode(&snapshot).unwrap();
+        assert_ne!(protobuf, json);
+        assert_eq!(
+            SnapshotCodec::protobuf_v1().decode(&protobuf).unwrap(),
+            snapshot
+        );
+        let mut corrupt = protobuf;
+        let last = corrupt.len() - 1;
+        corrupt[last] ^= 1;
+        assert!(SnapshotCodec::protobuf_v1().decode(&corrupt).is_err());
+    }
+
+    #[test]
+    fn legacy_json_migration_writes_verified_protobuf_sidecar_without_overwrite() {
+        let dataset = parse_upbit_daily_ohlcv_v0(
+            r#"[{"market":"KRW-BTC","candle_date_time_utc":"2024-01-01T00:00:00","opening_price":1.0,"high_price":2.0,"low_price":0.5,"trade_price":1.5,"candle_acc_trade_volume":1.0}]"#,
+            "KRW-BTC",
+        )
+        .unwrap();
+        let snapshot = local_snapshot(dataset, "unused");
+        let output_dir = Path::new(DEFAULT_SNAPSHOT_OUTPUT_DIR)
+            .join(format!("legacy-migration-{}", std::process::id()));
+        fs::create_dir_all(&output_dir).unwrap();
+        let legacy_path = output_dir.join("snapshot-upbit-legacy-migration.json");
+        let _ = fs::remove_file(&legacy_path);
+        let protobuf_path = output_dir.join(format!("{}.pb", snapshot.snapshot_id));
+        let _ = fs::remove_file(&protobuf_path);
+        fs::write(
+            &legacy_path,
+            SnapshotCodec::json_legacy_v0().encode(&snapshot).unwrap(),
+        )
+        .unwrap();
+        let migrated = migrate_legacy_json_snapshot_v0(&legacy_path).unwrap();
+        assert_eq!(migrated, protobuf_path);
+        assert!(legacy_path.exists());
+        assert_eq!(
+            read_local_snapshot_protobuf_v1(&migrated).unwrap(),
+            snapshot
+        );
+        fs::remove_file(&legacy_path).unwrap();
+        fs::remove_file(&migrated).unwrap();
+        fs::remove_dir(&output_dir).unwrap();
+    }
+
+    #[test]
+    fn canonical_identity_normalizes_negative_zero_but_preserves_nonzero_float_bits() {
+        let mut negative_zero = parse_upbit_daily_ohlcv_v0(
+            r#"[{"market":"KRW-BTC","candle_date_time_utc":"2024-01-01T00:00:00","opening_price":1.0,"high_price":2.0,"low_price":0.5,"trade_price":1.5,"candle_acc_trade_volume":1.0}]"#,
+            "KRW-BTC",
+        )
+        .unwrap();
+        let positive = negative_zero.clone();
+        negative_zero.rows[0].trade_value = Some(-0.0);
+        let mut positive_zero = positive;
+        positive_zero.rows[0].trade_value = Some(0.0);
+        assert_eq!(
+            dataset_digest(&negative_zero),
+            dataset_digest(&positive_zero)
+        );
+        positive_zero.rows[0].close = f64::from_bits(positive_zero.rows[0].close.to_bits() + 1);
+        assert_ne!(
+            dataset_digest(&negative_zero),
+            dataset_digest(&positive_zero)
+        );
+    }
+
+    #[test]
+    fn protobuf_storage_measurement_uses_sanitized_synthetic_rows() {
+        fn measured_snapshot(rows: usize) -> DataSnapshot {
+            let dataset = HistoricalReplayDataset {
+                symbol: "SYNTH".to_string(),
+                source: "sanitized-synthetic-measurement".to_string(),
+                rows: (0..rows)
+                    .map(|index| {
+                        let base = 100.0 + index as f64;
+                        HistoricalOhlcvRow {
+                            symbol: "SYNTH".to_string(),
+                            timestamp_ms: 1_700_000_000_000 + index as u64 * 86_400_000,
+                            open: base,
+                            high: base + 1.0,
+                            low: base - 1.0,
+                            close: base + 0.5,
+                            volume: 10.0 + index as f64,
+                            trade_value: Some(base * 10.0),
+                        }
+                    })
+                    .collect(),
+                reason_codes: vec![],
+            };
+            local_snapshot(dataset, "unused")
+        }
+
+        for rows in [16, 128, 1_024] {
+            let snapshot = measured_snapshot(rows);
+            let json = SnapshotCodec::json_legacy_v0().encode(&snapshot).unwrap();
+            let protobuf = SnapshotCodec::protobuf_v1().encode(&snapshot).unwrap();
+            let mut json_samples = Vec::new();
+            let mut protobuf_samples = Vec::new();
+            for iteration in 0..10 {
+                let start = std::time::Instant::now();
+                let _ = SnapshotCodec::json_legacy_v0().encode(&snapshot).unwrap();
+                let json_elapsed = start.elapsed().as_nanos();
+                let start = std::time::Instant::now();
+                let _ = SnapshotCodec::protobuf_v1().encode(&snapshot).unwrap();
+                let protobuf_elapsed = start.elapsed().as_nanos();
+                if iteration >= 2 {
+                    json_samples.push(json_elapsed);
+                    protobuf_samples.push(protobuf_elapsed);
+                }
+            }
+            json_samples.sort_unstable();
+            protobuf_samples.sort_unstable();
+            println!(
+                "rows={rows} json_bytes={} protobuf_bytes={} json_median_ns={} protobuf_median_ns={}",
+                json.len(),
+                protobuf.len(),
+                json_samples[json_samples.len() / 2],
+                protobuf_samples[protobuf_samples.len() / 2],
+            );
+            assert!(protobuf.len() < json.len());
+        }
     }
 
     #[test]
