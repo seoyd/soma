@@ -9,3 +9,5 @@ A checkpoint is eligible only when its values are finite, sample count is suffic
 If a frontier is empty, the test partition remains sealed and the campaign emits a Shadow abstention with voting, execution, and promotion all false. If a selected validation checkpoint collapses on its one sealed test evaluation, the result is classified as temporal generalization collapse; test results never revise selection.
 
 All resulting learning remains offline and ShadowOnly. This gate does not add candidates, data, model gradients, runtime inference authority, promotion, voting, or execution.
+
+Selected checkpoints additionally receive a train-fitted temporal support audit before future labels are consulted. An out-of-support decision is an operational abstention, not a model win; later metrics are counterfactual diagnostics only.

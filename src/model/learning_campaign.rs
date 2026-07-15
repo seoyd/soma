@@ -297,6 +297,7 @@ pub enum ValidationSignalStatusV0 {
     NumericallyInvalid,
     InsufficientSamples,
     SingleClassValidation,
+    TemporalOutOfSupport,
     Mixed,
 }
 
@@ -408,6 +409,121 @@ pub struct ShadowLearningAbstentionV0 {
     pub eligible_for_promotion: bool,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct DistributionShiftMetricBundleV0 {
+    pub sample_count_reference: usize,
+    pub sample_count_target: usize,
+    pub dimensions: usize,
+    pub mean_absolute_standardized_mean_shift: f32,
+    pub maximum_absolute_standardized_mean_shift: f32,
+    pub mean_absolute_log_variance_ratio: f32,
+    pub maximum_absolute_log_variance_ratio: f32,
+    pub out_of_support_fraction: f32,
+    pub dimensions_out_of_support: usize,
+    pub finite: bool,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct DistributionSupportEnvelopeV0 {
+    pub means: Vec<f32>,
+    pub scales: Vec<f32>,
+    pub lower_z_limit: f32,
+    pub upper_z_limit: f32,
+    pub maximum_out_of_support_fraction: f32,
+    pub epsilon: f32,
+    pub digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ShadowSupportGateConfigV0 {
+    pub minimum_samples: usize,
+    pub maximum_mean_standardized_shift: f32,
+    pub maximum_dimension_standardized_shift: f32,
+    pub maximum_mean_log_variance_ratio: f32,
+    pub maximum_out_of_support_fraction: f32,
+    pub minimum_validation_coverage: f32,
+    pub comparison_epsilon: f32,
+}
+
+impl Default for ShadowSupportGateConfigV0 {
+    fn default() -> Self {
+        Self {
+            minimum_samples: 4,
+            maximum_mean_standardized_shift: 3.0,
+            maximum_dimension_standardized_shift: 6.0,
+            maximum_mean_log_variance_ratio: 2.0,
+            maximum_out_of_support_fraction: 0.1,
+            minimum_validation_coverage: 0.8,
+            comparison_epsilon: 1e-6,
+        }
+    }
+}
+impl ShadowSupportGateConfigV0 {
+    pub fn validate(&self) -> Result<(), CampaignErrorV0> {
+        if self.minimum_samples == 0
+            || [
+                self.maximum_mean_standardized_shift,
+                self.maximum_dimension_standardized_shift,
+                self.maximum_mean_log_variance_ratio,
+                self.comparison_epsilon,
+            ]
+            .iter()
+            .any(|v| !v.is_finite() || *v < 0.0)
+            || [
+                self.maximum_out_of_support_fraction,
+                self.minimum_validation_coverage,
+            ]
+            .iter()
+            .any(|v| !v.is_finite() || !(0.0..=1.0).contains(v))
+        {
+            Err(CampaignErrorV0::InvalidConfig)
+        } else {
+            Ok(())
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ShadowSupportDecisionV0 {
+    InSupport,
+    OutOfSupport,
+    SupportGateUnavailable,
+    InsufficientEvidence,
+    NumericalFailure,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum EarliestTemporalShiftStageV0 {
+    None,
+    NormalizedFeatures,
+    FrozenRepresentations,
+    Logits,
+    Probabilities,
+    OutcomesOnly,
+    MultipleStages,
+    InsufficientEvidence,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TemporalDistributionShiftStatusV0 {
+    Stable,
+    NormalizedFeatureShift,
+    FrozenRepresentationShift,
+    LogitDistributionShift,
+    ProbabilityDistributionShift,
+    MultiStageShift,
+    InsufficientSamples,
+    NumericalFailure,
+    Unknown,
+}
+#[derive(Clone, Debug, PartialEq)]
+pub struct TemporalGeneralizationResultV0 {
+    pub validation_support_decision: ShadowSupportDecisionV0,
+    pub test_support_decision: ShadowSupportDecisionV0,
+    pub representation_shift: DistributionShiftMetricBundleV0,
+    pub earliest_shift_stage: EarliestTemporalShiftStageV0,
+    pub shift_status: TemporalDistributionShiftStatusV0,
+    pub decision_digest: String,
+}
+
 impl ProbabilityCollapseMetricsV0 {
     pub fn is_collapsed(&self) -> bool {
         !self.subtypes.is_empty()
@@ -516,6 +632,7 @@ pub struct MomentumProbabilityCollapseForensicsV0 {
     pub test_partition_opened_once: bool,
     pub selected_checkpoint: Option<CheckpointRefV0>,
     pub abstention: Option<ShadowLearningAbstentionV0>,
+    pub temporal_generalization: Option<TemporalGeneralizationResultV0>,
 }
 
 /// Deterministic, sanitized campaign gates. These gates describe the boundary
@@ -665,6 +782,7 @@ pub struct MomentumLearningCampaignConfigV0 {
     pub drift_config: ModelDriftConfigV0,
     pub collapse_config: ProbabilityCollapseConfigV0,
     pub validation_signal_gate: ValidationSignalGateConfigV0,
+    pub support_gate: ShadowSupportGateConfigV0,
 }
 
 impl Default for MomentumLearningCampaignConfigV0 {
@@ -695,6 +813,7 @@ impl Default for MomentumLearningCampaignConfigV0 {
             drift_config: ModelDriftConfigV0::default(),
             collapse_config: ProbabilityCollapseConfigV0::default(),
             validation_signal_gate: ValidationSignalGateConfigV0::default(),
+            support_gate: ShadowSupportGateConfigV0::default(),
         }
     }
 }
@@ -748,6 +867,7 @@ impl MomentumLearningCampaignConfigV0 {
             .map_err(|_| CampaignErrorV0::InvalidConfig)?;
         self.collapse_config.validate()?;
         self.validation_signal_gate.validate()?;
+        self.support_gate.validate()?;
         if self.split_policy == CampaignSplitPolicyV0::RollingWindow {
             return Err(CampaignErrorV0::UnsupportedSplitPolicy);
         }
@@ -765,7 +885,7 @@ impl MomentumLearningCampaignConfigV0 {
 
     fn digest(&self) -> String {
         stable_hash_string(&format!(
-            "{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{:?}:{:?}:{}:{}:{}:{:?}:{:?}:{:?}:{:?}",
+            "{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{:?}:{:?}:{}:{}:{}:{:?}:{:?}:{:?}:{:?}:{:?}",
             self.campaign_id,
             self.campaign_seed,
             self.minimum_history_rows,
@@ -785,6 +905,7 @@ impl MomentumLearningCampaignConfigV0 {
             self.fallback_policy,
             self.collapse_config,
             self.validation_signal_gate,
+            self.support_gate,
         ))
     }
 }
@@ -1321,6 +1442,153 @@ fn forecast_metric_bundle(
     })
 }
 
+impl DistributionSupportEnvelopeV0 {
+    pub fn fit(
+        rows: &[Vec<f32>],
+        gate: &ShadowSupportGateConfigV0,
+    ) -> Result<Self, CampaignErrorV0> {
+        gate.validate()?;
+        let width = rows
+            .first()
+            .map(Vec::len)
+            .filter(|width| *width > 0)
+            .ok_or(CampaignErrorV0::InsufficientHistory)?;
+        if rows.len() < gate.minimum_samples
+            || rows
+                .iter()
+                .any(|row| row.len() != width || row.iter().any(|value| !value.is_finite()))
+        {
+            return Err(CampaignErrorV0::Learning);
+        }
+        let means = (0..width)
+            .map(|index| rows.iter().map(|row| row[index]).sum::<f32>() / rows.len() as f32)
+            .collect::<Vec<_>>();
+        let scales = (0..width)
+            .map(|index| {
+                (rows
+                    .iter()
+                    .map(|row| (row[index] - means[index]).powi(2))
+                    .sum::<f32>()
+                    / rows.len() as f32)
+                    .sqrt()
+                    .max(gate.comparison_epsilon)
+            })
+            .collect::<Vec<_>>();
+        let digest = stable_hash_string(&format!(
+            "{:?}:{:?}:{:.6}",
+            means, scales, gate.maximum_dimension_standardized_shift
+        ));
+        Ok(Self {
+            means,
+            scales,
+            lower_z_limit: -gate.maximum_dimension_standardized_shift,
+            upper_z_limit: gate.maximum_dimension_standardized_shift,
+            maximum_out_of_support_fraction: gate.maximum_out_of_support_fraction,
+            epsilon: gate.comparison_epsilon,
+            digest,
+        })
+    }
+}
+
+pub fn distribution_shift_metrics_v0(
+    reference: &[Vec<f32>],
+    target: &[Vec<f32>],
+    envelope: &DistributionSupportEnvelopeV0,
+) -> Result<DistributionShiftMetricBundleV0, CampaignErrorV0> {
+    let width = envelope.means.len();
+    if width == 0
+        || envelope.scales.len() != width
+        || reference.len() < 1
+        || target.len() < 1
+        || reference
+            .iter()
+            .chain(target)
+            .any(|row| row.len() != width || row.iter().any(|value| !value.is_finite()))
+    {
+        return Err(CampaignErrorV0::Learning);
+    }
+    let mut mean_shift = Vec::with_capacity(width);
+    let mut variance_shift = Vec::with_capacity(width);
+    let mut breaches = 0usize;
+    let mut out = 0usize;
+    for index in 0..width {
+        let reference_mean =
+            reference.iter().map(|row| row[index]).sum::<f32>() / reference.len() as f32;
+        let target_mean = target.iter().map(|row| row[index]).sum::<f32>() / target.len() as f32;
+        let reference_variance = reference
+            .iter()
+            .map(|row| (row[index] - reference_mean).powi(2))
+            .sum::<f32>()
+            / reference.len() as f32;
+        let target_variance = target
+            .iter()
+            .map(|row| (row[index] - target_mean).powi(2))
+            .sum::<f32>()
+            / target.len() as f32;
+        mean_shift.push(
+            ((target_mean - reference_mean) / reference_variance.sqrt().max(envelope.epsilon))
+                .abs(),
+        );
+        variance_shift.push(
+            (target_variance.max(envelope.epsilon) / reference_variance.max(envelope.epsilon))
+                .ln()
+                .abs(),
+        );
+        if target.iter().any(|row| {
+            let z =
+                (row[index] - envelope.means[index]) / envelope.scales[index].max(envelope.epsilon);
+            z < envelope.lower_z_limit || z > envelope.upper_z_limit
+        }) {
+            breaches += 1;
+        }
+    }
+    for row in target {
+        for index in 0..width {
+            let z =
+                (row[index] - envelope.means[index]) / envelope.scales[index].max(envelope.epsilon);
+            out += usize::from(z < envelope.lower_z_limit || z > envelope.upper_z_limit);
+        }
+    }
+    Ok(DistributionShiftMetricBundleV0 {
+        sample_count_reference: reference.len(),
+        sample_count_target: target.len(),
+        dimensions: width,
+        mean_absolute_standardized_mean_shift: mean_shift.iter().sum::<f32>() / width as f32,
+        maximum_absolute_standardized_mean_shift: mean_shift.iter().copied().fold(0.0, f32::max),
+        mean_absolute_log_variance_ratio: variance_shift.iter().sum::<f32>() / width as f32,
+        maximum_absolute_log_variance_ratio: variance_shift.iter().copied().fold(0.0, f32::max),
+        out_of_support_fraction: out as f32 / (target.len() * width) as f32,
+        dimensions_out_of_support: breaches,
+        finite: true,
+    })
+}
+
+fn support_decision(
+    metrics: &DistributionShiftMetricBundleV0,
+    gate: &ShadowSupportGateConfigV0,
+    validation: bool,
+) -> ShadowSupportDecisionV0 {
+    if !metrics.finite {
+        ShadowSupportDecisionV0::NumericalFailure
+    } else if metrics.sample_count_reference < gate.minimum_samples
+        || metrics.sample_count_target < gate.minimum_samples
+    {
+        ShadowSupportDecisionV0::InsufficientEvidence
+    } else if validation && 1.0 - metrics.out_of_support_fraction < gate.minimum_validation_coverage
+    {
+        ShadowSupportDecisionV0::SupportGateUnavailable
+    } else if metrics.mean_absolute_standardized_mean_shift > gate.maximum_mean_standardized_shift
+        || metrics.maximum_absolute_standardized_mean_shift
+            > gate.maximum_dimension_standardized_shift
+        || metrics.mean_absolute_log_variance_ratio > gate.maximum_mean_log_variance_ratio
+        || metrics.out_of_support_fraction > gate.maximum_out_of_support_fraction
+    {
+        ShadowSupportDecisionV0::OutOfSupport
+    } else {
+        ShadowSupportDecisionV0::InSupport
+    }
+}
+
 fn validation_status(
     bundle: &ForecastMetricBundleV0,
     gate: &ValidationSignalGateConfigV0,
@@ -1459,19 +1727,69 @@ pub fn run_momentum_probability_collapse_forensics_v0(
             generalization_status:
                 CheckpointGeneralizationStatusV0::TestNotEvaluatedNoEligibleCheckpoint,
         });
-        trained.push((head, candidate.uses_representation_normalization()));
+        trained.push((
+            head,
+            candidate.uses_representation_normalization(),
+            candidate_train,
+            candidate_validation,
+        ));
     }
     let selected_index =
         select_forensic_candidate(&candidate_results, collapse_config.comparison_epsilon);
     let mut test_partition_opened_once = false;
+    let mut temporal_generalization = None;
     if let Some(index) = selected_index {
-        let (head, uses_normalization) = &trained[index];
+        let (head, uses_normalization, candidate_train, candidate_validation) = &trained[index];
         let test_encoded = encoder.encode_batch(test)?;
         let test_encoded = if *uses_normalization {
             normalizer.transform(&test_encoded)?
         } else {
             test_encoded
         };
+        let train_rows = candidate_train
+            .iter()
+            .map(|row| row.representation.clone())
+            .collect::<Vec<_>>();
+        let validation_rows = candidate_validation
+            .iter()
+            .map(|row| row.representation.clone())
+            .collect::<Vec<_>>();
+        let test_rows = test_encoded
+            .iter()
+            .map(|row| row.representation.clone())
+            .collect::<Vec<_>>();
+        let envelope = DistributionSupportEnvelopeV0::fit(&train_rows, &config.support_gate)?;
+        let validation_shift =
+            distribution_shift_metrics_v0(&train_rows, &validation_rows, &envelope)?;
+        let test_shift = distribution_shift_metrics_v0(&train_rows, &test_rows, &envelope)?;
+        let validation_support = support_decision(&validation_shift, &config.support_gate, true);
+        let test_support = if validation_support == ShadowSupportDecisionV0::InSupport {
+            support_decision(&test_shift, &config.support_gate, false)
+        } else {
+            ShadowSupportDecisionV0::SupportGateUnavailable
+        };
+        let shift_status = if test_shift.out_of_support_fraction
+            > config.support_gate.maximum_out_of_support_fraction
+        {
+            TemporalDistributionShiftStatusV0::FrozenRepresentationShift
+        } else {
+            TemporalDistributionShiftStatusV0::Stable
+        };
+        temporal_generalization = Some(TemporalGeneralizationResultV0 {
+            validation_support_decision: validation_support,
+            test_support_decision: test_support,
+            representation_shift: test_shift.clone(),
+            earliest_shift_stage: if shift_status == TemporalDistributionShiftStatusV0::Stable {
+                EarliestTemporalShiftStageV0::None
+            } else {
+                EarliestTemporalShiftStageV0::FrozenRepresentations
+            },
+            shift_status,
+            decision_digest: stable_hash_string(&format!(
+                "{:?}:{:?}:{}",
+                validation_support, test_support, envelope.digest
+            )),
+        });
         let test_metrics = evaluate_head_v0(head, &test_encoded)?;
         let test_probabilities = probabilities_for_head(head, &test_encoded)?;
         let test_labels = test_encoded
@@ -1522,6 +1840,19 @@ pub fn run_momentum_probability_collapse_forensics_v0(
             eligible_to_execute: false,
             eligible_for_promotion: false,
         })
+    } else if temporal_generalization
+        .as_ref()
+        .is_some_and(|result| result.test_support_decision == ShadowSupportDecisionV0::OutOfSupport)
+    {
+        Some(ShadowLearningAbstentionV0 {
+            agent_id: config.agent_id.clone(),
+            campaign_id: config.campaign_id.clone(),
+            window_id: "support-gated-window".to_string(),
+            reason: ShadowLearningAbstentionReasonV0::TemporalOutOfSupport,
+            eligible_to_vote: false,
+            eligible_to_execute: false,
+            eligible_for_promotion: false,
+        })
     } else {
         None
     };
@@ -1534,6 +1865,7 @@ pub fn run_momentum_probability_collapse_forensics_v0(
         test_partition_opened_once,
         selected_checkpoint,
         abstention,
+        temporal_generalization,
     })
 }
 
@@ -3313,5 +3645,33 @@ mod tests {
         assert_eq!(tied.value, Some(0.5));
         let single = binary_rank_auc_v0(&[0.2, 0.8], &[1.0, 1.0]).unwrap();
         assert_eq!(single.status, BinaryRankAucStatusV0::UndefinedSingleClass);
+    }
+
+    #[test]
+    fn train_fitted_support_envelope_detects_shift_without_labels() {
+        let gate = ShadowSupportGateConfigV0::default();
+        let train = vec![
+            vec![0.0, 1.0],
+            vec![0.1, 1.1],
+            vec![-0.1, 0.9],
+            vec![0.0, 1.0],
+        ];
+        let envelope = DistributionSupportEnvelopeV0::fit(&train, &gate).unwrap();
+        let stable = distribution_shift_metrics_v0(&train, &train, &envelope).unwrap();
+        assert_eq!(
+            support_decision(&stable, &gate, true),
+            ShadowSupportDecisionV0::InSupport
+        );
+        let shifted = vec![
+            vec![10.0, 1.0],
+            vec![11.0, 1.1],
+            vec![9.0, 0.9],
+            vec![10.0, 1.0],
+        ];
+        let metrics = distribution_shift_metrics_v0(&train, &shifted, &envelope).unwrap();
+        assert_eq!(
+            support_decision(&metrics, &gate, false),
+            ShadowSupportDecisionV0::OutOfSupport
+        );
     }
 }

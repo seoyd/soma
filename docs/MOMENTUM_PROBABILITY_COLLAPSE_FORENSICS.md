@@ -8,3 +8,5 @@ Representation normalization fits only encoded training examples. Bias initializ
 # Checkpoint trajectory extension
 
 Probability-collapse forensics now retain the full epoch trajectory for every fixed candidate. Candidate eligibility is derived from validation-only collapse, Brier decomposition, resolution, train-prevalence Constant comparison, and optional rank discrimination requirements. A rejected epoch cannot be selected merely for lower Brier. Empty frontiers produce Shadow abstention and leave the test sealed; a selected checkpoint receives one test evaluation only.
+
+For a selected checkpoint, the temporal support decision is computed from train-fitted representation support before test-label metrics are evaluated.
