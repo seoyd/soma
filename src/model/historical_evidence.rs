@@ -7,7 +7,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::{
-    core::stable_hash_string,
+    core::{ReasonCode, stable_hash_string},
     data::{
         AcquisitionMarketScope, AcquisitionMode, AgentDataIntent, ConfiguredUniverse,
         DataAcquisitionBroker, DataLookback, DataPriority, DataSnapshot, DatasetKind,
@@ -20,7 +20,8 @@ use crate::{
 use super::{
     FrozenMamba3EncoderV0, MambaRepresentationValueStatusV0, ModelDriftStatusV0,
     MomentumLearningCampaignConfigV0, MomentumLearningCampaignResultV0,
-    MomentumLearningCampaignStatusV0, run_momentum_learning_campaign_v0,
+    MomentumLearningCampaignStatusV0, build_momentum_learning_windows_v0,
+    run_momentum_learning_campaign_v0,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -308,6 +309,64 @@ pub struct MomentumHistoricalEvidenceReportV0 {
     pub acquisition_status: HistoricalAcquisitionStatusV0,
     pub provider_status: HistoricalProviderGateStatusV0,
     pub lines: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct MomentumCampaignSufficiencyV0 {
+    pub available_rows: usize,
+    pub required_minimum_rows: usize,
+    pub possible_windows: usize,
+    pub required_windows: usize,
+    pub sufficient: bool,
+    pub limiting_reasons: Vec<ReasonCode>,
+}
+
+pub fn assess_momentum_campaign_sufficiency_v0(
+    available_rows: usize,
+    config: &MomentumLearningCampaignConfigV0,
+) -> Result<MomentumCampaignSufficiencyV0, HistoricalEvidenceErrorV0> {
+    config
+        .validate()
+        .map_err(|_| HistoricalEvidenceErrorV0::CampaignConfigurationRejected)?;
+    let first_window_rows = config
+        .train_rows
+        .checked_add(config.purge_gap_rows)
+        .and_then(|value| value.checked_add(config.validation_rows))
+        .and_then(|value| value.checked_add(config.purge_gap_rows))
+        .and_then(|value| value.checked_add(config.test_rows))
+        .ok_or(HistoricalEvidenceErrorV0::InvalidConfig)?;
+    let required_minimum_rows = config.minimum_history_rows.max(
+        first_window_rows.saturating_add(
+            config
+                .minimum_evaluated_windows
+                .saturating_sub(1)
+                .saturating_mul(config.step_rows),
+        ),
+    );
+    let possible_windows = if available_rows < config.minimum_history_rows {
+        0
+    } else {
+        build_momentum_learning_windows_v0(config, available_rows, &["sufficiency".to_string()])
+            .map(|windows| windows.len())
+            .unwrap_or_default()
+    };
+    let sufficient = available_rows >= required_minimum_rows
+        && possible_windows >= config.minimum_evaluated_windows;
+    let mut limiting_reasons = Vec::new();
+    if available_rows < required_minimum_rows {
+        limiting_reasons.push(ReasonCode::WalkForwardInsufficientRows);
+    }
+    if possible_windows < config.minimum_evaluated_windows {
+        limiting_reasons.push(ReasonCode::PredictionScoringInsufficientSamples);
+    }
+    Ok(MomentumCampaignSufficiencyV0 {
+        available_rows,
+        required_minimum_rows,
+        possible_windows,
+        required_windows: config.minimum_evaluated_windows,
+        sufficient,
+        limiting_reasons,
+    })
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -1595,5 +1654,19 @@ mod tests {
                 .lines
                 .contains(&"no_live_trading_readiness".to_string())
         );
+    }
+
+    #[test]
+    fn campaign_sufficiency_uses_existing_window_requirements() {
+        let config = MomentumLearningCampaignConfigV0::default();
+        let insufficient = assess_momentum_campaign_sufficiency_v0(128, &config).unwrap();
+        assert!(!insufficient.sufficient);
+        assert!(insufficient.required_minimum_rows > insufficient.available_rows);
+
+        let sufficient =
+            assess_momentum_campaign_sufficiency_v0(insufficient.required_minimum_rows, &config)
+                .unwrap();
+        assert!(sufficient.sufficient);
+        assert!(sufficient.possible_windows >= sufficient.required_windows);
     }
 }

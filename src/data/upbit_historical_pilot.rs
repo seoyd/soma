@@ -5,6 +5,7 @@
 //! order, streaming, or background-polling surface.
 
 use std::{
+    collections::{BTreeMap, BTreeSet},
     fs,
     path::{Component, Path, PathBuf},
     process::Command,
@@ -13,7 +14,7 @@ use std::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    core::stable_hash_string,
+    core::{ReasonCode, stable_hash_string},
     league::{HistoricalOhlcvRow, HistoricalReplayDataset},
 };
 
@@ -103,6 +104,16 @@ pub struct UpbitHistoricalPilotConfigV0 {
     pub snapshot_output_dir: String,
     pub network_consent: NetworkConsentV0,
     pub manual_smoke_enabled: bool,
+    #[serde(default = "default_page_size")]
+    pub page_size: usize,
+    #[serde(default = "default_target_rows")]
+    pub target_rows: usize,
+    #[serde(default = "default_maximum_pages")]
+    pub maximum_pages: usize,
+    #[serde(default)]
+    pub stop_when_campaign_sufficient: bool,
+    #[serde(default)]
+    pub campaign_attempt_enabled: bool,
 }
 
 impl UpbitHistoricalPilotConfigV0 {
@@ -119,6 +130,14 @@ impl UpbitHistoricalPilotConfigV0 {
             || self.start_timestamp_ms >= self.end_timestamp_ms
             || self.maximum_rows == 0
             || self.maximum_rows > UPBIT_MAX_CANDLES_PER_REQUEST
+            || self.page_size == 0
+            || self.page_size > UPBIT_MAX_CANDLES_PER_REQUEST
+            || self.target_rows == 0
+            || self.maximum_pages == 0
+            || self
+                .page_size
+                .checked_mul(self.maximum_pages)
+                .is_none_or(|capacity| self.target_rows > capacity)
             || self.timeout_seconds == 0
             || self.maximum_response_bytes == 0
             || !safe_snapshot_output_dir(Path::new(&self.snapshot_output_dir))
@@ -127,6 +146,80 @@ impl UpbitHistoricalPilotConfigV0 {
         }
         Ok(())
     }
+}
+
+fn default_page_size() -> usize {
+    UPBIT_MAX_CANDLES_PER_REQUEST
+}
+
+fn default_target_rows() -> usize {
+    128
+}
+
+fn default_maximum_pages() -> usize {
+    1
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum UpbitHistoricalPreflightStatusV0 {
+    Ready,
+    #[default]
+    ConfigurationMissing,
+    NetworkConsentRequired,
+    InvalidConfiguration,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct UpbitHistoricalPreflightV0 {
+    pub status: UpbitHistoricalPreflightStatusV0,
+    pub provider_id: Option<String>,
+    pub reason_codes: Vec<String>,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum UpbitHistoricalBackfillStatusV0 {
+    RealUpbitSnapshotHarvested,
+    RealUpbitBackfillSnapshotHarvested,
+    NetworkConsentRequired,
+    ConfigurationMissing,
+    RealSmokeExecutionBlocked,
+    RealSmokeFailed,
+    MaximumPagesReachedInsufficient,
+    StartBoundaryReached,
+    EmptyPageReachedInsufficient,
+    CursorStalled,
+    ValidationFailure,
+    #[default]
+    NotAttempted,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct UpbitHistoricalPageReceiptV0 {
+    pub request_id: String,
+    pub receipt_id: String,
+    pub end_exclusive_timestamp_ms: u64,
+    pub row_count: usize,
+    pub attempt_count: usize,
+    pub snapshot_id: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct UpbitHistoricalBackfillResultV0 {
+    pub status: UpbitHistoricalBackfillStatusV0,
+    pub provider_id: Option<String>,
+    pub symbol: Option<String>,
+    pub requested_start_timestamp_ms: Option<u64>,
+    pub requested_end_timestamp_ms: Option<u64>,
+    pub actual_start_timestamp_ms: Option<u64>,
+    pub actual_end_timestamp_ms: Option<u64>,
+    pub row_count: usize,
+    pub page_receipts: Vec<UpbitHistoricalPageReceiptV0>,
+    pub snapshot_id: Option<String>,
+    pub snapshot_digest: Option<String>,
+    pub local_snapshot_path: Option<String>,
+    pub reason_codes: Vec<String>,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -254,6 +347,42 @@ pub fn select_upbit_historical_provider_v0(
         rejected_candidates: vec![],
         status: HistoricalProviderSelectionStatusV0::Selected,
         reason_codes: vec!["single_readonly_provider_selected".to_string()],
+    }
+}
+
+pub fn preflight_upbit_historical_backfill_v0(
+    config_path: &Path,
+    allow_network: bool,
+) -> UpbitHistoricalPreflightV0 {
+    let config = match UpbitHistoricalPilotConfigV0::from_toml_path(config_path) {
+        Ok(config) => config,
+        Err(_) => {
+            return UpbitHistoricalPreflightV0 {
+                status: UpbitHistoricalPreflightStatusV0::ConfigurationMissing,
+                provider_id: None,
+                reason_codes: vec!["copy_and_enable_the_ignored_local_upbit_config".to_string()],
+            };
+        }
+    };
+    if config.validate().is_err() {
+        return UpbitHistoricalPreflightV0 {
+            status: UpbitHistoricalPreflightStatusV0::InvalidConfiguration,
+            provider_id: Some(config.provider_id),
+            reason_codes: vec!["local_provider_configuration_invalid".to_string()],
+        };
+    }
+    let selection = select_upbit_historical_provider_v0(Some(&config), allow_network);
+    let status = match selection.status {
+        HistoricalProviderSelectionStatusV0::Selected => UpbitHistoricalPreflightStatusV0::Ready,
+        HistoricalProviderSelectionStatusV0::NetworkConsentRequired => {
+            UpbitHistoricalPreflightStatusV0::NetworkConsentRequired
+        }
+        _ => UpbitHistoricalPreflightStatusV0::InvalidConfiguration,
+    };
+    UpbitHistoricalPreflightV0 {
+        status,
+        provider_id: Some(config.provider_id),
+        reason_codes: selection.reason_codes,
     }
 }
 
@@ -461,6 +590,428 @@ pub fn run_manual_upbit_historical_smoke_v0(
             Some(&config),
             vec![reason],
         ),
+    }
+}
+
+pub fn run_manual_upbit_historical_backfill_v0(
+    config_path: &Path,
+    allow_network: bool,
+    campaign_required_rows: usize,
+) -> UpbitHistoricalBackfillResultV0 {
+    let config = match UpbitHistoricalPilotConfigV0::from_toml_path(config_path) {
+        Ok(config) if config.validate().is_ok() => config,
+        _ => {
+            return backfill_result(
+                UpbitHistoricalBackfillStatusV0::ConfigurationMissing,
+                None,
+                vec!["local_provider_configuration_missing_or_invalid".to_string()],
+            );
+        }
+    };
+    let preflight = preflight_upbit_historical_backfill_v0(config_path, allow_network);
+    if preflight.status != UpbitHistoricalPreflightStatusV0::Ready {
+        let status = if preflight.status == UpbitHistoricalPreflightStatusV0::NetworkConsentRequired
+        {
+            UpbitHistoricalBackfillStatusV0::NetworkConsentRequired
+        } else {
+            UpbitHistoricalBackfillStatusV0::RealSmokeExecutionBlocked
+        };
+        return backfill_result(status, Some(&config), preflight.reason_codes);
+    }
+    if campaign_required_rows == 0 {
+        return backfill_result(
+            UpbitHistoricalBackfillStatusV0::ValidationFailure,
+            Some(&config),
+            vec!["campaign_required_rows_invalid".to_string()],
+        );
+    }
+
+    let (first_snapshot, first_receipt) =
+        match acquire_upbit_page_v0(&config, config.end_timestamp_ms, config.page_size) {
+            Ok(value) => value,
+            Err(reason) => {
+                return backfill_result(
+                    UpbitHistoricalBackfillStatusV0::RealSmokeFailed,
+                    Some(&config),
+                    vec![reason],
+                );
+            }
+        };
+    let first_path = match write_and_verify_local_snapshot_v0(
+        &first_snapshot,
+        Path::new(&config.snapshot_output_dir),
+    ) {
+        Ok(path) => path,
+        Err(reason) => {
+            return backfill_result(
+                UpbitHistoricalBackfillStatusV0::RealSmokeFailed,
+                Some(&config),
+                vec![reason],
+            );
+        }
+    };
+    let mut page_receipts = vec![first_receipt];
+    let mut pages = vec![first_snapshot.normalized_dataset.clone()];
+    let mut cursors = BTreeSet::from([config.end_timestamp_ms]);
+    let mut page_digests = BTreeSet::from([dataset_digest(&pages[0])]);
+    let mut merged = match merge_upbit_historical_pages_v0(&pages, &config.symbol) {
+        Ok((dataset, _)) => dataset,
+        Err(reason) => {
+            return backfill_result(
+                UpbitHistoricalBackfillStatusV0::ValidationFailure,
+                Some(&config),
+                vec![reason],
+            );
+        }
+    };
+    let required_rows = if config.stop_when_campaign_sufficient {
+        campaign_required_rows.min(config.target_rows)
+    } else {
+        config.target_rows
+    };
+    if merged.rows.len() >= required_rows {
+        return completed_backfill_result(
+            UpbitHistoricalBackfillStatusV0::RealUpbitSnapshotHarvested,
+            &config,
+            &first_snapshot,
+            first_path,
+            page_receipts,
+            vec!["single_page_target_reached".to_string()],
+        );
+    }
+
+    let mut stop_status = UpbitHistoricalBackfillStatusV0::MaximumPagesReachedInsufficient;
+    while page_receipts.len() < config.maximum_pages {
+        let oldest = merged
+            .rows
+            .first()
+            .map(|row| row.timestamp_ms)
+            .unwrap_or_default();
+        let page_span_ms = (config.page_size as u64).saturating_mul(86_400_000);
+        if oldest <= config.start_timestamp_ms.saturating_add(page_span_ms) {
+            stop_status = UpbitHistoricalBackfillStatusV0::StartBoundaryReached;
+            break;
+        }
+        if !cursors.insert(oldest) {
+            stop_status = UpbitHistoricalBackfillStatusV0::CursorStalled;
+            break;
+        }
+        let (snapshot, receipt) = match acquire_upbit_page_v0(&config, oldest, config.page_size) {
+            Ok(value) => value,
+            Err(reason) => {
+                return partial_backfill_result(
+                    UpbitHistoricalBackfillStatusV0::RealSmokeFailed,
+                    &config,
+                    &merged,
+                    page_receipts,
+                    vec![reason],
+                );
+            }
+        };
+        let digest = dataset_digest(&snapshot.normalized_dataset);
+        if !page_digests.insert(digest) {
+            return partial_backfill_result(
+                UpbitHistoricalBackfillStatusV0::CursorStalled,
+                &config,
+                &merged,
+                page_receipts,
+                vec!["repeated_page_digest".to_string()],
+            );
+        }
+        if snapshot
+            .normalized_dataset
+            .rows
+            .iter()
+            .all(|row| row.timestamp_ms >= oldest)
+        {
+            return partial_backfill_result(
+                UpbitHistoricalBackfillStatusV0::CursorStalled,
+                &config,
+                &merged,
+                page_receipts,
+                vec!["backfill_cursor_did_not_advance".to_string()],
+            );
+        }
+        page_receipts.push(receipt);
+        pages.push(snapshot.normalized_dataset);
+        merged = match merge_upbit_historical_pages_v0(&pages, &config.symbol) {
+            Ok((dataset, _)) => dataset,
+            Err(reason) => {
+                return partial_backfill_result(
+                    UpbitHistoricalBackfillStatusV0::ValidationFailure,
+                    &config,
+                    &merged,
+                    page_receipts,
+                    vec![reason],
+                );
+            }
+        };
+        if merged.rows.len() >= required_rows {
+            let snapshot = merged_snapshot_v0(&first_snapshot, &config, merged, &page_receipts);
+            return match write_and_verify_local_snapshot_v0(
+                &snapshot,
+                Path::new(&config.snapshot_output_dir),
+            ) {
+                Ok(path) => completed_backfill_result(
+                    UpbitHistoricalBackfillStatusV0::RealUpbitBackfillSnapshotHarvested,
+                    &config,
+                    &snapshot,
+                    path,
+                    page_receipts,
+                    vec!["bounded_backfill_target_reached".to_string()],
+                ),
+                Err(reason) => backfill_result(
+                    UpbitHistoricalBackfillStatusV0::RealSmokeFailed,
+                    Some(&config),
+                    vec![reason],
+                ),
+            };
+        }
+    }
+    partial_backfill_result(
+        stop_status,
+        &config,
+        &merged,
+        page_receipts,
+        vec!["bounded_backfill_stopped_before_target".to_string()],
+    )
+}
+
+pub fn merge_upbit_historical_pages_v0(
+    pages: &[HistoricalReplayDataset],
+    expected_symbol: &str,
+) -> Result<(HistoricalReplayDataset, usize), String> {
+    let mut rows = BTreeMap::<u64, HistoricalOhlcvRow>::new();
+    let mut duplicates = 0;
+    for page in pages {
+        if page.symbol != expected_symbol {
+            return Err("upbit page symbol mismatch".to_string());
+        }
+        for row in &page.rows {
+            if row.symbol != expected_symbol {
+                return Err("upbit page row symbol mismatch".to_string());
+            }
+            match rows.get(&row.timestamp_ms) {
+                Some(existing) if existing == row => duplicates += 1,
+                Some(_) => return Err("upbit duplicate timestamp conflicts".to_string()),
+                None => {
+                    rows.insert(row.timestamp_ms, row.clone());
+                }
+            }
+        }
+    }
+    if rows.is_empty() {
+        return Err("upbit backfill has no rows".to_string());
+    }
+    Ok((
+        HistoricalReplayDataset {
+            symbol: expected_symbol.to_string(),
+            source: "upbit-approved-readonly-daily-backfill".to_string(),
+            rows: rows.into_values().collect(),
+            reason_codes: vec![ReasonCode::DataSnapshotImmutable],
+        },
+        duplicates,
+    ))
+}
+
+fn acquire_upbit_page_v0(
+    config: &UpbitHistoricalPilotConfigV0,
+    end_timestamp_ms: u64,
+    page_size: usize,
+) -> Result<(DataSnapshot, UpbitHistoricalPageReceiptV0), String> {
+    let capabilities = UpbitDailyOhlcvProviderV0::new(config.clone()).capabilities();
+    let mut registry = ReadOnlyProviderRegistry::default();
+    registry.register(capabilities);
+    let mut policy = AcquisitionPolicy::default();
+    policy.allow_approved_readonly_network = true;
+    policy.max_response_bytes = config.maximum_response_bytes;
+    policy.max_retries = config.max_retries;
+    policy.max_requests_per_provider = 1;
+    let mut broker = DataAcquisitionBroker::new(registry, policy);
+    let request = ReadOnlyProviderRequest {
+        request_id: format!(
+            "upbit-page-{}",
+            stable_hash_string(&format!("{}:{end_timestamp_ms}", config.symbol))
+        ),
+        request_key: format!(
+            "upbit-daily-page:{}:{}:{page_size}",
+            config.symbol, end_timestamp_ms
+        ),
+        provider_id: UPBIT_PROVIDER_ID.to_string(),
+        dataset_kind: DatasetKind::DailyOhlcv,
+        market_scope: AcquisitionMarketScope::BtcCrypto,
+        symbols: vec![config.symbol.clone()],
+        lookback: DataLookback {
+            bars: page_size,
+            start_timestamp_ms: Some(config.start_timestamp_ms),
+            end_timestamp_ms: Some(end_timestamp_ms),
+        },
+        cadence: "1d".to_string(),
+        max_staleness_ms: u64::MAX,
+        reason_codes: vec![],
+    };
+    let plan = AcquisitionPlan {
+        planned_requests: vec![AcquisitionRequest {
+            request,
+            requested_by_agents: vec![],
+            required_by_agents: vec![],
+        }],
+        rejected_requests: vec![],
+        agent_request_mapping: Default::default(),
+        deduplicated_request_count: 0,
+        reason_codes: vec![],
+    };
+    let mut provider = UpbitDailyOhlcvProviderV0::new(config.clone());
+    let execution = broker.execute_acquisition_plan(
+        &plan,
+        AcquisitionMode::ApprovedReadOnlyNetwork,
+        current_time_ms(),
+        Some(&mut provider),
+    );
+    let receipt = execution
+        .receipts
+        .into_iter()
+        .next()
+        .ok_or_else(|| "upbit page receipt missing".to_string())?;
+    let snapshot = execution.new_snapshots.into_iter().next().ok_or_else(|| {
+        receipt
+            .reason_codes
+            .iter()
+            .map(|reason| format!("{reason:?}"))
+            .collect::<Vec<_>>()
+            .join("|")
+    })?;
+    Ok((
+        snapshot.clone(),
+        UpbitHistoricalPageReceiptV0 {
+            request_id: receipt.request_id,
+            receipt_id: receipt.receipt_id,
+            end_exclusive_timestamp_ms: end_timestamp_ms,
+            row_count: snapshot.row_count,
+            attempt_count: receipt.attempt_count,
+            snapshot_id: Some(snapshot.snapshot_id),
+        },
+    ))
+}
+
+fn merged_snapshot_v0(
+    first: &DataSnapshot,
+    config: &UpbitHistoricalPilotConfigV0,
+    dataset: HistoricalReplayDataset,
+    receipts: &[UpbitHistoricalPageReceiptV0],
+) -> DataSnapshot {
+    let digest = dataset_digest(&dataset);
+    let receipt_material = receipts
+        .iter()
+        .map(|receipt| receipt.receipt_id.as_str())
+        .collect::<Vec<_>>()
+        .join("|");
+    let request_key = format!(
+        "upbit-daily-backfill:{}:{}:{}",
+        config.symbol, config.start_timestamp_ms, config.end_timestamp_ms
+    );
+    let mut snapshot = first.clone();
+    snapshot.snapshot_id = format!(
+        "snapshot-{}",
+        stable_hash_string(&format!("{request_key}:{digest}"))
+    );
+    snapshot.request_key = request_key;
+    snapshot.requested_lookback = DataLookback {
+        bars: dataset.rows.len(),
+        start_timestamp_ms: Some(config.start_timestamp_ms),
+        end_timestamp_ms: Some(config.end_timestamp_ms),
+    };
+    snapshot.actual_start_timestamp_ms = dataset.rows.first().map(|row| row.timestamp_ms);
+    snapshot.actual_end_timestamp_ms = dataset.rows.last().map(|row| row.timestamp_ms);
+    snapshot.fetched_at_ms = current_time_ms();
+    snapshot.normalized_at_ms = snapshot.fetched_at_ms;
+    snapshot.row_count = dataset.rows.len();
+    snapshot.quality_summary.row_count = snapshot.row_count;
+    snapshot.content_digest = digest;
+    snapshot.normalized_dataset = dataset;
+    snapshot.provenance.acquisition_request_id = format!(
+        "upbit-backfill-{}",
+        stable_hash_string(&snapshot.request_key)
+    );
+    snapshot.provenance.fetch_receipt_id =
+        format!("backfill-{}", stable_hash_string(&receipt_material));
+    snapshot
+}
+
+fn dataset_digest(dataset: &HistoricalReplayDataset) -> String {
+    serde_json::to_string(dataset)
+        .map(|value| stable_hash_string(&value))
+        .unwrap_or_default()
+}
+
+fn completed_backfill_result(
+    status: UpbitHistoricalBackfillStatusV0,
+    config: &UpbitHistoricalPilotConfigV0,
+    snapshot: &DataSnapshot,
+    path: PathBuf,
+    page_receipts: Vec<UpbitHistoricalPageReceiptV0>,
+    reason_codes: Vec<String>,
+) -> UpbitHistoricalBackfillResultV0 {
+    UpbitHistoricalBackfillResultV0 {
+        status,
+        provider_id: Some(UPBIT_PROVIDER_ID.to_string()),
+        symbol: Some(config.symbol.clone()),
+        requested_start_timestamp_ms: Some(config.start_timestamp_ms),
+        requested_end_timestamp_ms: Some(config.end_timestamp_ms),
+        actual_start_timestamp_ms: snapshot.actual_start_timestamp_ms,
+        actual_end_timestamp_ms: snapshot.actual_end_timestamp_ms,
+        row_count: snapshot.row_count,
+        page_receipts,
+        snapshot_id: Some(snapshot.snapshot_id.clone()),
+        snapshot_digest: Some(snapshot.content_digest.clone()),
+        local_snapshot_path: Some(path.display().to_string()),
+        reason_codes,
+    }
+}
+
+fn partial_backfill_result(
+    status: UpbitHistoricalBackfillStatusV0,
+    config: &UpbitHistoricalPilotConfigV0,
+    dataset: &HistoricalReplayDataset,
+    page_receipts: Vec<UpbitHistoricalPageReceiptV0>,
+    reason_codes: Vec<String>,
+) -> UpbitHistoricalBackfillResultV0 {
+    UpbitHistoricalBackfillResultV0 {
+        status,
+        provider_id: Some(UPBIT_PROVIDER_ID.to_string()),
+        symbol: Some(config.symbol.clone()),
+        requested_start_timestamp_ms: Some(config.start_timestamp_ms),
+        requested_end_timestamp_ms: Some(config.end_timestamp_ms),
+        actual_start_timestamp_ms: dataset.rows.first().map(|row| row.timestamp_ms),
+        actual_end_timestamp_ms: dataset.rows.last().map(|row| row.timestamp_ms),
+        row_count: dataset.rows.len(),
+        page_receipts,
+        snapshot_id: None,
+        snapshot_digest: None,
+        local_snapshot_path: None,
+        reason_codes,
+    }
+}
+
+fn backfill_result(
+    status: UpbitHistoricalBackfillStatusV0,
+    config: Option<&UpbitHistoricalPilotConfigV0>,
+    reason_codes: Vec<String>,
+) -> UpbitHistoricalBackfillResultV0 {
+    UpbitHistoricalBackfillResultV0 {
+        status,
+        provider_id: config.map(|_| UPBIT_PROVIDER_ID.to_string()),
+        symbol: config.map(|config| config.symbol.clone()),
+        requested_start_timestamp_ms: config.map(|config| config.start_timestamp_ms),
+        requested_end_timestamp_ms: config.map(|config| config.end_timestamp_ms),
+        actual_start_timestamp_ms: None,
+        actual_end_timestamp_ms: None,
+        row_count: 0,
+        page_receipts: vec![],
+        snapshot_id: None,
+        snapshot_digest: None,
+        local_snapshot_path: None,
+        reason_codes,
     }
 }
 
@@ -718,6 +1269,11 @@ mod tests {
             snapshot_output_dir: DEFAULT_SNAPSHOT_OUTPUT_DIR.to_string(),
             network_consent: NetworkConsentV0::ManualLocalSmoke,
             manual_smoke_enabled: true,
+            page_size: 2,
+            target_rows: 4,
+            maximum_pages: 2,
+            stop_when_campaign_sufficient: true,
+            campaign_attempt_enabled: false,
         }
     }
 
@@ -770,5 +1326,51 @@ mod tests {
                 .starts_with(UPBIT_DAILY_CANDLES_ENDPOINT)
         );
         assert!(upbit_daily_candles_url("KRW-BTC&x=1", 1_704_240_000_000, 2).is_none());
+    }
+
+    #[test]
+    fn backfill_config_and_preflight_fail_closed_without_local_consent() {
+        let mut config = config();
+        config.page_size = 0;
+        assert!(config.validate().is_err());
+        assert_eq!(
+            preflight_upbit_historical_backfill_v0(Path::new("config/local/missing.toml"), true)
+                .status,
+            UpbitHistoricalPreflightStatusV0::ConfigurationMissing
+        );
+    }
+
+    #[test]
+    fn page_merge_is_chronological_deduplicated_and_conflicts_fail() {
+        let first = parse_upbit_daily_ohlcv_v0(
+            r#"[
+              {"market":"KRW-BTC","candle_date_time_utc":"2024-01-03T00:00:00","opening_price":3.0,"high_price":4.0,"low_price":2.0,"trade_price":3.5,"candle_acc_trade_volume":1.0},
+              {"market":"KRW-BTC","candle_date_time_utc":"2024-01-02T00:00:00","opening_price":2.0,"high_price":3.0,"low_price":1.0,"trade_price":2.5,"candle_acc_trade_volume":1.0}
+            ]"#,
+            "KRW-BTC",
+        )
+        .unwrap();
+        let second = parse_upbit_daily_ohlcv_v0(
+            r#"[
+              {"market":"KRW-BTC","candle_date_time_utc":"2024-01-02T00:00:00","opening_price":2.0,"high_price":3.0,"low_price":1.0,"trade_price":2.5,"candle_acc_trade_volume":1.0},
+              {"market":"KRW-BTC","candle_date_time_utc":"2024-01-01T00:00:00","opening_price":1.0,"high_price":2.0,"low_price":0.5,"trade_price":1.5,"candle_acc_trade_volume":1.0}
+            ]"#,
+            "KRW-BTC",
+        )
+        .unwrap();
+        let (merged, duplicates) =
+            merge_upbit_historical_pages_v0(&[first.clone(), second], "KRW-BTC").unwrap();
+        assert_eq!(merged.rows.len(), 3);
+        assert_eq!(duplicates, 1);
+        assert!(
+            merged
+                .rows
+                .windows(2)
+                .all(|pair| pair[0].timestamp_ms < pair[1].timestamp_ms)
+        );
+
+        let mut conflicting = first;
+        conflicting.rows[0].close = 99.0;
+        assert!(merge_upbit_historical_pages_v0(&[merged, conflicting], "KRW-BTC").is_err());
     }
 }

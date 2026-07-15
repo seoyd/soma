@@ -26,14 +26,30 @@ pub fn run() -> Result<(), String> {
         if !args.allow_network {
             return Err("historical provider smoke requires --allow-network".to_string());
         }
-        let result = crate::data::run_manual_upbit_historical_smoke_v0(&config, true);
-        println!("historical_provider_smoke_status={:?}", result.status);
+        let campaign_config = crate::model::MomentumLearningCampaignConfigV0::default();
+        let campaign_required_rows =
+            crate::model::assess_momentum_campaign_sufficiency_v0(0, &campaign_config)
+                .map_err(|_| "momentum campaign sufficiency configuration invalid".to_string())?
+                .required_minimum_rows;
+        let result = crate::data::run_manual_upbit_historical_backfill_v0(
+            &config,
+            true,
+            campaign_required_rows,
+        );
+        println!("historical_provider_status={:?}", result.status);
         println!("provider={}", result.provider_id.unwrap_or_default());
         println!("rows={}", result.row_count);
         println!("snapshot_id={}", result.snapshot_id.unwrap_or_default());
+        println!("pages={}", result.page_receipts.len());
         println!(
-            "snapshot_path={}",
-            result.local_snapshot_path.clone().unwrap_or_default()
+            "snapshot_digest_prefix={}",
+            result
+                .snapshot_digest
+                .as_deref()
+                .unwrap_or_default()
+                .chars()
+                .take(12)
+                .collect::<String>()
         );
         println!("reasons={}", result.reason_codes.join("|"));
         if let Some(path) = result.local_snapshot_path {
@@ -42,7 +58,7 @@ pub fn run() -> Result<(), String> {
             )
             .map_err(|_| "local snapshot decode failed".to_string())?;
             let inventory = crate::model::inventory_historical_snapshots_v0(
-                &[snapshot],
+                std::slice::from_ref(&snapshot),
                 &crate::model::HistoricalEvidencePolicyV0::default(),
             )
             .map_err(|_| "historical snapshot inventory failed".to_string())?;
@@ -54,6 +70,13 @@ pub fn run() -> Result<(), String> {
                 "inventory_rejected_snapshots={}",
                 inventory.rejected_snapshots.len()
             );
+            let sufficiency = crate::model::assess_momentum_campaign_sufficiency_v0(
+                snapshot.row_count,
+                &campaign_config,
+            )
+            .map_err(|_| "momentum campaign sufficiency calculation failed".to_string())?;
+            println!("campaign_sufficient={}", sufficiency.sufficient);
+            println!("campaign_possible_windows={}", sufficiency.possible_windows);
         }
         return Ok(());
     }

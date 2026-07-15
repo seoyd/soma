@@ -8,7 +8,7 @@ The selected operation is `GET https://api.upbit.com/v1/candles/days`. Upbit doc
 
 ## Local Configuration And Consent
 
-Copy `config/examples/historical_provider.example.toml` to `config/local/historical_provider.local.toml`. The local configuration is ignored by Git and contains the configured market symbol, bounded UTC range, timeout, retry cap, response-size cap, and local snapshot directory. It contains no credential fields because the quotation operation is public.
+Copy `config/examples/historical_provider.example.toml` to `config/local/historical_provider.local.toml`. The local configuration is ignored by Git and contains the configured market symbol, bounded UTC range, page size, target row count, page limit, timeout, retry cap, response-size cap, and local snapshot directory. It contains no credential fields because the quotation operation is public.
 
 The command is disabled unless both the local configuration sets `network_consent = "manual_local_smoke"` and `manual_smoke_enabled = true`, and the operator passes `--allow-network`.
 
@@ -16,7 +16,7 @@ The command is disabled unless both the local configuration sets `network_consen
 cargo run -- --historical-provider-smoke-config config/local/historical_provider.local.toml --allow-network
 ```
 
-The command prints only a sanitized status, provider ID, row count, snapshot ID/path, and reason codes.
+The command prints only a sanitized status, provider ID, row count, page count, snapshot ID, digest prefix, inventory result, campaign sufficiency, and reason codes. It does not print a local path or raw response.
 
 ## Transport And Data Boundary
 
@@ -26,4 +26,4 @@ The response is parsed into canonical daily OHLCV rows, sorted chronologically, 
 
 ## Local Snapshot And Learning Boundary
 
-Verified snapshots are atomically written below `data/local_snapshots/upbit/`, re-read, and digest-verified. Raw provider payloads are never stored. A successful pilot proves only the bounded acquisition and snapshot path. Snapshot inventory and the existing Momentum campaign remain separate: a campaign starts only when the existing multi-series and chronological sufficiency gates are met.
+The first verified page is atomically written below `data/local_snapshots/upbit/`, re-read, and digest-verified. Raw provider payloads are never stored. If more rows are required, the same endpoint is paged backwards with an exclusive oldest-candle cursor, a configured page limit, repeated-cursor/page detection, and deterministic duplicate handling. A conflicting duplicate rejects the merged result; an identical duplicate is visibly deduplicated. The merged snapshot is written and verified separately. Snapshot inventory and the existing Momentum campaign remain separate: a campaign starts only when the existing chronological sufficiency gates are met.

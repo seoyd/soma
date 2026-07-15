@@ -129,8 +129,11 @@ pub use upbit_historical_pilot::{
     FirstHistoricalHarvestResultV0, FirstHistoricalHarvestStatusV0,
     HistoricalProviderQualificationStatusV0, HistoricalProviderQualificationV0,
     HistoricalProviderSelectionStatusV0, HistoricalProviderSelectionV0, NetworkConsentV0,
-    UpbitDailyOhlcvProviderV0, UpbitHistoricalPilotConfigV0, parse_upbit_daily_ohlcv_v0,
-    qualify_upbit_historical_provider_v0, run_manual_upbit_historical_smoke_v0,
+    UpbitDailyOhlcvProviderV0, UpbitHistoricalBackfillResultV0, UpbitHistoricalBackfillStatusV0,
+    UpbitHistoricalPageReceiptV0, UpbitHistoricalPilotConfigV0, UpbitHistoricalPreflightStatusV0,
+    UpbitHistoricalPreflightV0, merge_upbit_historical_pages_v0, parse_upbit_daily_ohlcv_v0,
+    preflight_upbit_historical_backfill_v0, qualify_upbit_historical_provider_v0,
+    run_manual_upbit_historical_backfill_v0, run_manual_upbit_historical_smoke_v0,
     select_upbit_historical_provider_v0, write_and_verify_local_snapshot_v0,
 };
 pub use validation::{

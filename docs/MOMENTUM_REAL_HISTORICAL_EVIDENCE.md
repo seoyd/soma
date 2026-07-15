@@ -10,6 +10,8 @@ The inventory reports each candidate as `Ready`, `InsufficientRows`, `InvalidChr
 
 The inventory runs before any provider decision. Ready snapshots are grouped by market and symbol, while insufficient, corrupt, mutable, unsafe, unsupported, and synthetic inputs remain visible as rejected evidence.
 
+For a single approved BTC series, campaign sufficiency is computed from the existing campaign configuration: configured history minimum, two purge gaps, train/validation/test rows, step rows, and required evaluated windows. A row target is not evidence of campaign readiness by itself.
+
 ## Provider Gate
 
 When inventory is insufficient, the gate accepts only an enabled, approved, read-only broker provider with daily OHLCV support for a configured market and universe. It does not invent URLs, credentials, endpoints, symbols, or provider responses. If no provider qualifies, it returns `NoApprovedHistoricalProviderConfigured`.
@@ -19,6 +21,8 @@ For a qualifying provider, the existing broker receives one configured daily req
 ## Evidence Pack And Campaigns
 
 Accepted series form a deterministic frozen pack with a digest. Provider calls are outside the pack and never occur during training. Each series uses its own existing walk-forward campaign, frozen encoder, train-only normalization, cold/warm comparison, baselines, drift reporting, and ShadowOnly versions.
+
+The current single-series path reports a per-series outcome only when a real frozen pack and campaign result exist. It cannot establish broad cross-market value, profitability, promotion readiness, or live readiness.
 
 ## Aggregate Verdict
 
