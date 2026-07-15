@@ -23,6 +23,10 @@ pub struct CliArgs {
     pub historical_snapshot_campaign_config: Option<PathBuf>,
     #[arg(long, default_value_t = false)]
     pub momentum_temporal_diagnostics: bool,
+    #[arg(long, default_value_t = false)]
+    pub momentum_cross_market_report: bool,
+    #[arg(long, default_value_t = false)]
+    pub toss_historical_contract_report: bool,
     #[arg(long, default_value = "text", value_parser = ["text", "json"])]
     pub output_format: String,
     #[arg(long, default_value_t = false)]
@@ -31,14 +35,18 @@ pub struct CliArgs {
 
 pub fn run() -> Result<(), String> {
     let args = CliArgs::parse();
+    if args.toss_historical_contract_report {
+        return print_toss_historical_contract_report();
+    }
     if let Some(config) = args.historical_snapshot_campaign_config {
         return run_local_historical_snapshot_campaign(
             &config,
-            args.momentum_temporal_diagnostics,
+            args.momentum_temporal_diagnostics || args.momentum_cross_market_report,
             &args.output_format,
+            args.momentum_cross_market_report,
         );
     }
-    if args.momentum_temporal_diagnostics {
+    if args.momentum_temporal_diagnostics || args.momentum_cross_market_report {
         return Err(
             "temporal diagnostics require a local historical snapshot campaign config".to_string(),
         );
@@ -111,6 +119,7 @@ pub fn run() -> Result<(), String> {
                 &sufficiency,
                 false,
                 "text",
+                false,
             )?;
         }
         return Ok(());
@@ -168,6 +177,7 @@ fn run_local_historical_snapshot_campaign(
     config_path: &Path,
     temporal_diagnostics: bool,
     output_format: &str,
+    cross_market_report: bool,
 ) -> Result<(), String> {
     let config = crate::data::UpbitHistoricalPilotConfigV0::from_toml_path(config_path)
         .map_err(|_| "local provider config unavailable".to_string())?;
@@ -231,6 +241,7 @@ fn run_local_historical_snapshot_campaign(
         &sufficiency,
         temporal_diagnostics,
         output_format,
+        cross_market_report,
     )
 }
 
@@ -241,6 +252,7 @@ fn run_momentum_campaign_if_enabled(
     sufficiency: &crate::model::MomentumCampaignSufficiencyV0,
     temporal_diagnostics: bool,
     output_format: &str,
+    cross_market_report: bool,
 ) -> Result<(), String> {
     let local_config = crate::data::UpbitHistoricalPilotConfigV0::from_toml_path(config_path)
         .map_err(|_| "local provider config unavailable after smoke".to_string())?;
@@ -285,8 +297,62 @@ fn run_momentum_campaign_if_enabled(
                 snapshot.row_count,
                 &pack.digest,
             );
+            let korean = crate::toss::qualify_toss_historical_capability_v0(
+                crate::toss::TossHistoricalCapabilityV0::KoreanEquityDailyOhlcv,
+            );
+            let us = crate::toss::qualify_toss_historical_capability_v0(
+                crate::toss::TossHistoricalCapabilityV0::UsEquityDailyOhlcv,
+            );
+            let qualifications = [&korean, &us];
+            let configured_markets = 1 + qualifications.len();
+            let accepted_markets = 1 + qualifications
+                .iter()
+                .filter(|qualification| {
+                    qualification.status
+                        == crate::toss::TossHistoricalContractStatusV0::SnapshotAccepted
+                })
+                .count();
+            let cross_market_status = if accepted_markets == configured_markets {
+                "complete"
+            } else {
+                "contract_blocked"
+            };
+            let reason_codes = vec![
+                format!(
+                    "toss_kr_{}",
+                    toss_historical_contract_status_code(korean.status)
+                ),
+                format!(
+                    "toss_us_{}",
+                    toss_historical_contract_status_code(us.status)
+                ),
+            ];
             let rendered = match output_format {
+                "json" if cross_market_report => {
+                    let btc = serde_json::from_str::<serde_json::Value>(
+                        &crate::model::momentum_temporal_diagnostic_report_json_v0(&report),
+                    )
+                    .map_err(|_| "temporal report serialization failed".to_string())?;
+                    serde_json::json!({
+                        "report_version": "three-market-momentum-evidence-v1",
+                        "btc": btc,
+                        "korean_equity": korean,
+                        "us_equity": us,
+                        "cross_market_status": cross_market_status,
+                        "configured_markets": configured_markets,
+                        "accepted_markets": accepted_markets,
+                        "reason_codes": reason_codes,
+                    })
+                    .to_string()
+                }
                 "json" => crate::model::momentum_temporal_diagnostic_report_json_v0(&report),
+                "text" if cross_market_report => format!(
+                    "cross_market_status={cross_market_status}\nconfigured_markets={configured_markets}\naccepted_markets={accepted_markets}\nkorean_equity_status={}\nus_equity_status={}\nreason_codes={}\n{}",
+                    toss_historical_contract_status_code(korean.status),
+                    toss_historical_contract_status_code(us.status),
+                    reason_codes.join(","),
+                    crate::model::momentum_temporal_diagnostic_report_text_v0(&report),
+                ),
                 "text" => crate::model::momentum_temporal_diagnostic_report_text_v0(&report),
                 _ => return Err("unsupported temporal diagnostic output format".to_string()),
             };
@@ -342,4 +408,50 @@ fn run_momentum_campaign_if_enabled(
         }
     }
     Ok(())
+}
+
+fn print_toss_historical_contract_report() -> Result<(), String> {
+    let korean = crate::toss::qualify_toss_historical_capability_v0(
+        crate::toss::TossHistoricalCapabilityV0::KoreanEquityDailyOhlcv,
+    );
+    let us = crate::toss::qualify_toss_historical_capability_v0(
+        crate::toss::TossHistoricalCapabilityV0::UsEquityDailyOhlcv,
+    );
+    println!(
+        "{}",
+        serde_json::json!({
+            "report_version": "toss-historical-contract-qualification-v1",
+            "korean_equity": korean,
+            "us_equity": us,
+            "network_calls": 0,
+        })
+    );
+    Ok(())
+}
+
+fn toss_historical_contract_status_code(
+    status: crate::toss::TossHistoricalContractStatusV0,
+) -> &'static str {
+    match status {
+        crate::toss::TossHistoricalContractStatusV0::Qualified => "qualified",
+        crate::toss::TossHistoricalContractStatusV0::ContractIncomplete => "contract_incomplete",
+        crate::toss::TossHistoricalContractStatusV0::RequiresGuessedMapping => {
+            "requires_guessed_mapping"
+        }
+        crate::toss::TossHistoricalContractStatusV0::UnsupportedHistoricalDataset => {
+            "unsupported_historical_dataset"
+        }
+        crate::toss::TossHistoricalContractStatusV0::ConfigurationMissing => {
+            "configuration_missing"
+        }
+        crate::toss::TossHistoricalContractStatusV0::CredentialUnavailable => {
+            "credential_unavailable"
+        }
+        crate::toss::TossHistoricalContractStatusV0::NetworkConsentRequired => {
+            "network_consent_required"
+        }
+        crate::toss::TossHistoricalContractStatusV0::SmokeFailed => "smoke_failed",
+        crate::toss::TossHistoricalContractStatusV0::SnapshotAccepted => "snapshot_accepted",
+        crate::toss::TossHistoricalContractStatusV0::SnapshotRejected => "snapshot_rejected",
+    }
 }

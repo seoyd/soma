@@ -647,6 +647,72 @@ pub enum TossEndpointKind {
     Unknown,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TossHistoricalCapabilityV0 {
+    KoreanEquityDailyOhlcv,
+    UsEquityDailyOhlcv,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TossHistoricalContractStatusV0 {
+    Qualified,
+    ContractIncomplete,
+    RequiresGuessedMapping,
+    UnsupportedHistoricalDataset,
+    ConfigurationMissing,
+    CredentialUnavailable,
+    NetworkConsentRequired,
+    SmokeFailed,
+    SnapshotAccepted,
+    SnapshotRejected,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TossHistoricalContractQualificationV0 {
+    pub capability: TossHistoricalCapabilityV0,
+    pub status: TossHistoricalContractStatusV0,
+    pub contract_version: Option<String>,
+    pub operation_id: Option<String>,
+    pub request_schema_known: bool,
+    pub response_schema_known: bool,
+    pub timestamp_semantics_known: bool,
+    pub adjustment_semantics_known: bool,
+    pub pagination_semantics_known: bool,
+    pub rate_limit_semantics_known: bool,
+    pub authentication_semantics_known: bool,
+    pub read_only_verified: bool,
+    pub reason_codes: Vec<String>,
+}
+
+pub fn qualify_toss_historical_capability_v0(
+    capability: TossHistoricalCapabilityV0,
+) -> TossHistoricalContractQualificationV0 {
+    let contract = TossEndpointContract::candle_read();
+    let incomplete = contract.response_schema_name == "deferred_private_contract"
+        || !contract.allowed_in_manual_readonly_smoke;
+    TossHistoricalContractQualificationV0 {
+        capability,
+        status: if incomplete {
+            TossHistoricalContractStatusV0::ContractIncomplete
+        } else {
+            TossHistoricalContractStatusV0::RequiresGuessedMapping
+        },
+        contract_version: None,
+        operation_id: None,
+        request_schema_known: false,
+        response_schema_known: false,
+        timestamp_semantics_known: false,
+        adjustment_semantics_known: false,
+        pagination_semantics_known: false,
+        rate_limit_semantics_known: false,
+        authentication_semantics_known: false,
+        read_only_verified: contract.read_only && contract.method == TossMethod::Get,
+        reason_codes: vec!["exact_historical_contract_unavailable".to_string()],
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TossEndpointContract {
     pub kind: TossEndpointKind,
@@ -2142,6 +2208,23 @@ mod tests {
         assert!(!TossEndpointContract::candle_read().is_callable_read_only());
         assert!(!TossEndpointContract::account_read().is_callable_read_only());
         assert!(!TossEndpointContract::token_auth().is_callable_read_only());
+    }
+
+    #[test]
+    fn historical_capabilities_fail_closed_without_exact_contract_material() {
+        for capability in [
+            TossHistoricalCapabilityV0::KoreanEquityDailyOhlcv,
+            TossHistoricalCapabilityV0::UsEquityDailyOhlcv,
+        ] {
+            let qualification = qualify_toss_historical_capability_v0(capability);
+            assert_eq!(
+                qualification.status,
+                TossHistoricalContractStatusV0::ContractIncomplete
+            );
+            assert!(qualification.read_only_verified);
+            assert!(!qualification.request_schema_known);
+            assert!(!qualification.response_schema_known);
+        }
     }
 
     #[test]
