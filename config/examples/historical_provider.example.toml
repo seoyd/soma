@@ -1,0 +1,15 @@
+# Copy to config/local/historical_provider.local.toml and set only local values.
+# This public Upbit quotation pilot needs no credentials.
+provider_id = "upbit"
+enabled = false
+market = "BtcCrypto"
+symbol = "KRW-BTC"
+start_timestamp_ms = 1704067200000
+end_timestamp_ms = 1704240000000
+maximum_rows = 2
+timeout_seconds = 10
+max_retries = 1
+maximum_response_bytes = 262144
+snapshot_output_dir = "data/local_snapshots/upbit"
+network_consent = "denied"
+manual_smoke_enabled = false

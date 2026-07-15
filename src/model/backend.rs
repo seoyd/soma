@@ -2,11 +2,12 @@ use super::mamba3::{
     Mamba3SisoErrorV0, Mamba3SisoForwardResultV0, Mamba3SisoStateV0, TinyMamba3SisoV0,
 };
 use super::tiny_tensor::TinyTensor1D;
+use serde::{Deserialize, Serialize};
 
 #[cfg(all(target_os = "macos", feature = "backend-metal"))]
 mod backend_metal;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum Mamba3BackendKind {
     CpuReference,
     Metal,

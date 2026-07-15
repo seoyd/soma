@@ -35,6 +35,7 @@ debug/
 /artifacts/
 /data/local/*.csv
 /data/local_snapshots/
+/config/local/
 /data/historical/sanitized/
 /data/historical/evidence_packs/*.json
 !/data/historical/evidence_packs/*.example.json

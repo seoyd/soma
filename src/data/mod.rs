@@ -26,6 +26,7 @@ pub mod resample;
 pub mod source;
 pub mod symbol;
 pub mod timeframe;
+pub mod upbit_historical_pilot;
 pub mod validation;
 pub mod yfinance_bridge;
 
@@ -124,6 +125,14 @@ pub use resample::{ResampleConfig, ResampleMethod, ResampleResult, Resampler};
 pub use source::{DataSourceKind, EvidenceSourceKind, EvidenceUse, infer_source_kind_from_path};
 pub use symbol::{AssetClass, MarketVenue, SymbolRegistry, SymbolSpec};
 pub use timeframe::TimeframeSpec;
+pub use upbit_historical_pilot::{
+    FirstHistoricalHarvestResultV0, FirstHistoricalHarvestStatusV0,
+    HistoricalProviderQualificationStatusV0, HistoricalProviderQualificationV0,
+    HistoricalProviderSelectionStatusV0, HistoricalProviderSelectionV0, NetworkConsentV0,
+    UpbitDailyOhlcvProviderV0, UpbitHistoricalPilotConfigV0, parse_upbit_daily_ohlcv_v0,
+    qualify_upbit_historical_provider_v0, run_manual_upbit_historical_smoke_v0,
+    select_upbit_historical_provider_v0, write_and_verify_local_snapshot_v0,
+};
 pub use validation::{
     CandleParseError, CandleParseIssue, DataValidationConfig, ValidationStats,
     detect_temporal_issues, validate_candle,

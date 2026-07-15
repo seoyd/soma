@@ -344,7 +344,7 @@ pub struct WarmStartValueEvidenceV0 {
     pub status: WarmStartValueStatusV0,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct CampaignShadowAssessmentV0 {
     pub probability_up: f32,
     pub confidence: f32,

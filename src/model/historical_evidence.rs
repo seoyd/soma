@@ -690,16 +690,16 @@ pub fn run_momentum_series_campaigns_v0(
             );
             let campaign = run_momentum_learning_campaign_v0(&config, &series.snapshots, encoder)
                 .map_err(|_| HistoricalEvidenceErrorV0::CampaignConfigurationRejected)?;
-            MomentumSeriesCampaignResultV0 {
+            Ok(MomentumSeriesCampaignResultV0 {
                 series_id: series.series_id.clone(),
                 symbol: series.symbol.clone(),
                 market: series.market,
                 snapshot_ids: series.snapshot_ids.clone(),
                 campaign,
                 evidence_status: HistoricalSnapshotStatusV0::Ready,
-            }
+            })
         })
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<_>, _>>()?;
     results.sort_by(|left, right| (left.market, &left.symbol).cmp(&(right.market, &right.symbol)));
     Ok(results)
 }
@@ -1174,7 +1174,7 @@ fn aggregate_warm_start(
     let mut warm = 0;
     let mut cold = 0;
     let mut ties = 0;
-    for value in values {
+    for value in &values {
         if value.warm_beats_cold_count > value.cold_beats_warm_count {
             warm += 1;
         } else if value.cold_beats_warm_count > value.warm_beats_cold_count {
