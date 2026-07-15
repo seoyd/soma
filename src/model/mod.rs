@@ -6,6 +6,7 @@ pub mod external_artifact_registry;
 pub mod external_model_research_ops;
 pub mod external_prediction_import_v2;
 pub mod external_signal;
+pub mod historical_evidence;
 pub mod import;
 pub mod learning;
 pub mod learning_campaign;
@@ -84,6 +85,20 @@ pub use external_prediction_import_v2::{
 pub use external_signal::{
     EvaluationMode, ExternalPredictionSignalConfig, ExternalPredictionSignalModel,
     conservative_no_trade_signal,
+};
+pub use historical_evidence::{
+    CrossSeriesMomentumEvidenceV0, CrossSeriesMomentumGateConfigV0, CrossSeriesMomentumVerdictV0,
+    CrossSeriesWarmStartEvidenceV0, CrossSeriesWarmStartVerdictV0, HistoricalAcquisitionStatusV0,
+    HistoricalEvidenceClassV0, HistoricalEvidenceErrorV0, HistoricalEvidencePolicyV0,
+    HistoricalHarvestConfigV0, HistoricalHarvestResultV0, HistoricalProviderGateResultV0,
+    HistoricalProviderGateStatusV0, HistoricalSeriesInventoryV0, HistoricalSnapshotInventoryV0,
+    HistoricalSnapshotStatusV0, MomentumHistoricalEvidencePackV0,
+    MomentumHistoricalEvidenceReportV0, MomentumHistoricalSeriesV0, MomentumSeriesCampaignResultV0,
+    RejectedSnapshotEvidenceV0, aggregate_cross_series_momentum_evidence_v0,
+    build_momentum_historical_evidence_report_v0, freeze_momentum_historical_evidence_pack_v0,
+    harvest_historical_snapshots_v0, inventory_historical_snapshots_v0,
+    run_momentum_series_campaigns_v0, select_approved_historical_provider_v0,
+    verify_momentum_historical_evidence_pack_v0,
 };
 pub use import::{
     prediction_frame_from_csv_string, prediction_frame_from_rows, prediction_frame_to_csv_string,

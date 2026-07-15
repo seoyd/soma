@@ -27,3 +27,9 @@ Every accepted path seals a deterministic shadow-only version with campaign/wind
 ## Official Conformance
 
 The encoder is an experimental internal reference. Official Mamba numerical conformance remains blocked until a supported oracle environment is available.
+
+## Historical Evidence Gate
+
+Campaign input is first classified from immutable snapshots. Mock snapshots and unmarked local replay data are test-only and do not count as market evidence. Approved read-only provider snapshots, or explicitly owner-marked sanitized local snapshots, are grouped by market and symbol into a frozen evidence pack before any per-series campaign runs.
+
+When the pack has fewer than the configured number of ready series, the cross-series result remains insufficient. If no qualifying provider is registered for the configured universe, the result explicitly reports that no approved historical provider is configured; it does not fetch an arbitrary endpoint or substitute a fixture.
