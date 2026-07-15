@@ -218,6 +218,14 @@ fn run_momentum_campaign_if_enabled(
     if !local_config.campaign_attempt_enabled || !sufficiency.sufficient {
         return Ok(());
     }
+    let inventory = crate::model::inventory_historical_snapshots_v0(
+        std::slice::from_ref(snapshot),
+        &crate::model::HistoricalEvidencePolicyV0::default(),
+    )
+    .map_err(|_| "historical snapshot inventory failed".to_string())?;
+    if inventory.accepted_series.is_empty() {
+        return Err("historical evidence inventory has no accepted series".to_string());
+    }
     let (_, pack) = crate::model::freeze_momentum_historical_evidence_pack_v0(
         std::slice::from_ref(snapshot),
         &crate::model::HistoricalEvidencePolicyV0::default(),
