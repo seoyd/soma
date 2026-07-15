@@ -333,15 +333,22 @@ fn run_momentum_campaign_if_enabled(
                         &crate::model::momentum_temporal_diagnostic_report_json_v0(&report),
                     )
                     .map_err(|_| "temporal report serialization failed".to_string())?;
+                    let cross_market_evidence = build_cross_market_evidence_v0(&btc, &korean, &us);
+                    let report_digest = cross_market_evidence["report_digest"]
+                        .as_str()
+                        .unwrap_or_default()
+                        .to_string();
+                    let permissions = btc["permissions"].clone();
                     serde_json::json!({
                         "report_version": "three-market-momentum-evidence-v1",
                         "btc": btc,
                         "korean_equity": korean,
                         "us_equity": us,
+                        "cross_market_evidence": cross_market_evidence,
                         "cross_market_status": cross_market_status,
-                        "configured_markets": configured_markets,
-                        "accepted_markets": accepted_markets,
+                        "permissions": permissions,
                         "reason_codes": reason_codes,
+                        "report_digest": report_digest,
                     })
                     .to_string()
                 }
@@ -454,4 +461,134 @@ fn toss_historical_contract_status_code(
         crate::toss::TossHistoricalContractStatusV0::SnapshotAccepted => "snapshot_accepted",
         crate::toss::TossHistoricalContractStatusV0::SnapshotRejected => "snapshot_rejected",
     }
+}
+
+fn build_cross_market_evidence_v0(
+    btc: &serde_json::Value,
+    korean: &crate::toss::TossHistoricalContractQualificationV0,
+    us: &crate::toss::TossHistoricalContractQualificationV0,
+) -> serde_json::Value {
+    let aggregate = &btc["aggregate"];
+    let number = |field: &str| {
+        aggregate[field]
+            .as_u64()
+            .and_then(|value| usize::try_from(value).ok())
+            .unwrap_or(0)
+    };
+    let btc_windows = btc["reproduction"]["total_windows"].as_u64().unwrap_or(0);
+    let btc_no_signal_windows = btc["reproduction"]["no_signal_windows"]
+        .as_u64()
+        .unwrap_or(0);
+    let btc_rows = btc["evidence"]["row_count"].as_u64().unwrap_or(0);
+    let btc_representation_breach = number("representation_shift_windows") > 0;
+    let qualifications = [korean, us];
+    let configured_markets = 1 + qualifications.len();
+    let contract_qualified_markets = qualifications
+        .iter()
+        .filter(|qualification| {
+            matches!(
+                qualification.status,
+                crate::toss::TossHistoricalContractStatusV0::Qualified
+                    | crate::toss::TossHistoricalContractStatusV0::SnapshotAccepted
+            )
+        })
+        .count();
+    let acquired_markets = qualifications
+        .iter()
+        .filter(|qualification| {
+            qualification.status == crate::toss::TossHistoricalContractStatusV0::SnapshotAccepted
+        })
+        .count();
+    let accepted_markets = 1 + acquired_markets;
+    let status = if accepted_markets < 2 {
+        "insufficient_markets"
+    } else {
+        "pending_multi_market_evaluation"
+    };
+    let btc_report_digest = btc["report_digest"].as_str().unwrap_or_default();
+    let report_digest = stable_cross_market_report_digest(&[
+        btc_report_digest,
+        toss_historical_contract_status_code(korean.status),
+        toss_historical_contract_status_code(us.status),
+        status,
+    ]);
+    let blocked_row =
+        |market: &str, qualification: &crate::toss::TossHistoricalContractQualificationV0| {
+            serde_json::json!({
+                "provider": "toss",
+                "market": market,
+                "contract_status": toss_historical_contract_status_code(qualification.status),
+                "snapshot_accepted": false,
+                "row_count": 0,
+                "valid_windows": 0,
+                "no_signal_windows": 0,
+                "selected_checkpoint_windows": 0,
+                "in_support_windows": 0,
+                "out_of_support_windows": 0,
+                "dominant_earliest_shift_stage": null,
+                "dominant_root_cause": null,
+                "representation_breach_count": 0,
+                "warm_start_status": null,
+                "operational_abstentions": 0,
+                "accepted_predictive_versions": 0,
+                "per_series_verdict": "contract_blocked",
+            })
+        };
+    serde_json::json!({
+        "configured_markets": configured_markets,
+        "contract_qualified_markets": contract_qualified_markets,
+        "acquired_markets": acquired_markets,
+        "accepted_markets": accepted_markets,
+        "evaluated_markets": 1,
+        "total_series": configured_markets,
+        "total_windows": btc_windows,
+        "no_signal_windows": btc_no_signal_windows,
+        "in_support_windows": number("in_support_windows"),
+        "out_of_support_windows": number("out_of_support_windows"),
+        "frozen_representation_shift_markets": btc_representation_breach as usize,
+        "feature_shift_markets": (number("normalized_feature_shift_windows") > 0) as usize,
+        "sequence_shift_markets": (number("sequence_shift_windows") > 0) as usize,
+        "logit_shift_markets": (number("logit_shift_windows") > 0) as usize,
+        "probability_shift_markets": (number("probability_shift_windows") > 0) as usize,
+        "stable_markets": 0,
+        "warm_lock_in_markets": (number("warm_lock_in_windows") > 0) as usize,
+        "abstention_count": number("operational_abstentions"),
+        "accepted_predictive_versions": number("accepted_predictive_versions"),
+        "status": status,
+        "markets": [
+            {
+                "provider": "upbit",
+                "market": "btc_crypto",
+                "contract_status": "not_applicable",
+                "snapshot_accepted": true,
+                "row_count": btc_rows,
+                "valid_windows": btc_windows,
+                "no_signal_windows": btc["reproduction"]["no_signal_windows"],
+                "selected_checkpoint_windows": btc["reproduction"]["selected_checkpoint_windows"],
+                "in_support_windows": number("in_support_windows"),
+                "out_of_support_windows": number("out_of_support_windows"),
+                "dominant_earliest_shift_stage": btc["shift"]["earliest_stage"],
+                "dominant_root_cause": btc["shift"]["root_cause"],
+                "representation_breach_count": number("representation_shift_windows"),
+                "warm_start_status": btc["warm_start"]["status"],
+                "operational_abstentions": number("operational_abstentions"),
+                "accepted_predictive_versions": number("accepted_predictive_versions"),
+                "per_series_verdict": btc["final_verdict"],
+            },
+            blocked_row("korean_equity", korean),
+            blocked_row("us_equity", us),
+        ],
+        "report_digest": report_digest,
+    })
+}
+
+fn stable_cross_market_report_digest(parts: &[&str]) -> String {
+    let mut hash = 0xcbf29ce484222325_u64;
+    for part in parts {
+        for byte in part.as_bytes().iter().chain(std::iter::once(&0)) {
+            hash ^= u64::from(*byte);
+            hash = hash.wrapping_mul(0x100000001b3);
+        }
+    }
+    format!("{hash:016x}")
 }
