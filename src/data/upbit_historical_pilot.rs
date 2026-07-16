@@ -1318,6 +1318,254 @@ fn upbit_http_failure_v0(status: Option<u16>) -> Option<ProviderFetchFailure> {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProspectiveBlindAcquisitionStopReasonV0 {
+    AwaitingNetworkConsent,
+    NoFinalizedDailyBoundary,
+    ProviderUnavailable,
+    RateLimited,
+    PermissionDenied,
+    InvalidProviderResponse,
+    NoAdmissibleFinalizedRow,
+    RowAdmitted,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProspectiveBlindAcquisitionReceiptV0 {
+    pub challenge_id: String,
+    pub request_attempted: bool,
+    pub request_count: usize,
+    pub response_status_class: Option<String>,
+    pub normalized_row_count: usize,
+    pub finalized_row_count: usize,
+    pub admitted_row_count: usize,
+    pub rejected_open_row_count: usize,
+    pub rejected_cutoff_row_count: usize,
+    pub rejected_duplicate_row_count: usize,
+    pub stop_reason: ProspectiveBlindAcquisitionStopReasonV0,
+    pub receipt_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ProspectiveBlindAcquisitionResultV0 {
+    pub receipt: ProspectiveBlindAcquisitionReceiptV0,
+    pub admitted_rows: Vec<(u64, String)>,
+}
+
+fn prospective_receipt_digest_v0(receipt: &ProspectiveBlindAcquisitionReceiptV0) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+        receipt.challenge_id,
+        receipt.request_attempted,
+        receipt.request_count,
+        receipt.response_status_class.as_deref().unwrap_or_default(),
+        receipt.normalized_row_count,
+        receipt.finalized_row_count,
+        receipt.admitted_row_count,
+        receipt.rejected_open_row_count,
+        receipt.rejected_cutoff_row_count,
+        receipt.rejected_duplicate_row_count,
+        format!("{:?}", receipt.stop_reason),
+    ))
+}
+
+pub fn verify_prospective_blind_acquisition_receipt_v0(
+    receipt: &ProspectiveBlindAcquisitionReceiptV0,
+) -> bool {
+    receipt.request_count <= 1
+        && (!receipt.request_attempted || receipt.request_count == 1)
+        && receipt.admitted_row_count <= receipt.finalized_row_count
+        && receipt.receipt_digest == prospective_receipt_digest_v0(receipt)
+}
+
+fn prospective_blind_receipt_v0(
+    challenge_id: &str,
+    request_attempted: bool,
+    request_count: usize,
+    response_status_class: Option<String>,
+    normalized_row_count: usize,
+    finalized_row_count: usize,
+    admitted_row_count: usize,
+    rejected_open_row_count: usize,
+    rejected_cutoff_row_count: usize,
+    rejected_duplicate_row_count: usize,
+    stop_reason: ProspectiveBlindAcquisitionStopReasonV0,
+) -> ProspectiveBlindAcquisitionReceiptV0 {
+    let mut receipt = ProspectiveBlindAcquisitionReceiptV0 {
+        challenge_id: challenge_id.to_string(),
+        request_attempted,
+        request_count,
+        response_status_class,
+        normalized_row_count,
+        finalized_row_count,
+        admitted_row_count,
+        rejected_open_row_count,
+        rejected_cutoff_row_count,
+        rejected_duplicate_row_count,
+        stop_reason,
+        receipt_digest: String::new(),
+    };
+    receipt.receipt_digest = prospective_receipt_digest_v0(&receipt);
+    receipt
+}
+
+fn canonical_prospective_row_digest_v0(row: &HistoricalOhlcvRow) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{}:{}:{}:{}:{}:{}",
+        row.symbol,
+        row.timestamp_ms,
+        row.open.to_bits(),
+        row.high.to_bits(),
+        row.low.to_bits(),
+        row.close.to_bits(),
+        row.volume.to_bits(),
+        row.trade_value.map(f64::to_bits).unwrap_or_default(),
+    ))
+}
+
+pub fn acquire_one_blind_upbit_daily_row_v0(
+    config_path: &Path,
+    challenge_id: &str,
+    cutoff_exclusive_timestamp_ms: u64,
+    existing_timestamps: &BTreeSet<u64>,
+    allow_network: bool,
+) -> ProspectiveBlindAcquisitionResultV0 {
+    let blocked = |reason| ProspectiveBlindAcquisitionResultV0 {
+        receipt: prospective_blind_receipt_v0(
+            challenge_id,
+            false,
+            0,
+            None,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            reason,
+        ),
+        admitted_rows: vec![],
+    };
+    if !allow_network {
+        return blocked(ProspectiveBlindAcquisitionStopReasonV0::AwaitingNetworkConsent);
+    }
+    let preflight = preflight_upbit_historical_backfill_v0(config_path, true);
+    if preflight.status != UpbitHistoricalPreflightStatusV0::Ready {
+        return blocked(ProspectiveBlindAcquisitionStopReasonV0::AwaitingNetworkConsent);
+    }
+    let mut config = match UpbitHistoricalPilotConfigV0::from_toml_path(config_path) {
+        Ok(config) if config.validate().is_ok() => config,
+        _ => return blocked(ProspectiveBlindAcquisitionStopReasonV0::AwaitingNetworkConsent),
+    };
+    const DAILY_MS: u64 = 86_400_000;
+    let finality_boundary = current_time_ms() / DAILY_MS * DAILY_MS;
+    if finality_boundary <= cutoff_exclusive_timestamp_ms.saturating_add(1) {
+        return blocked(ProspectiveBlindAcquisitionStopReasonV0::NoFinalizedDailyBoundary);
+    }
+    config.start_timestamp_ms = cutoff_exclusive_timestamp_ms.saturating_add(1);
+    config.end_timestamp_ms = finality_boundary;
+    config.max_retries = 0;
+    let request = ReadOnlyProviderRequest {
+        request_id: format!(
+            "prospective-daily-{}",
+            stable_hash_string(&format!("{}:{}", challenge_id, finality_boundary))
+        ),
+        request_key: format!("prospective-daily:{}:{}", config.symbol, finality_boundary),
+        provider_id: UPBIT_PROVIDER_ID.to_string(),
+        dataset_kind: DatasetKind::DailyOhlcv,
+        market_scope: AcquisitionMarketScope::BtcCrypto,
+        symbols: vec![config.symbol.clone()],
+        lookback: DataLookback {
+            bars: 1,
+            start_timestamp_ms: Some(config.start_timestamp_ms),
+            end_timestamp_ms: Some(finality_boundary),
+        },
+        cadence: "1d".to_string(),
+        max_staleness_ms: u64::MAX,
+        reason_codes: vec![],
+    };
+    let response = UpbitDailyOhlcvProviderV0::new(config).fetch_readonly(&request);
+    let response = match response {
+        Ok(response) => response,
+        Err(error) => {
+            let reason = match error {
+                ProviderFetchFailure::RateLimited => {
+                    ProspectiveBlindAcquisitionStopReasonV0::RateLimited
+                }
+                ProviderFetchFailure::PermissionDenied => {
+                    ProspectiveBlindAcquisitionStopReasonV0::PermissionDenied
+                }
+                ProviderFetchFailure::InvalidResponse => {
+                    ProspectiveBlindAcquisitionStopReasonV0::InvalidProviderResponse
+                }
+                ProviderFetchFailure::Unavailable | ProviderFetchFailure::TimedOut => {
+                    ProspectiveBlindAcquisitionStopReasonV0::ProviderUnavailable
+                }
+            };
+            return ProspectiveBlindAcquisitionResultV0 {
+                receipt: prospective_blind_receipt_v0(
+                    challenge_id,
+                    true,
+                    1,
+                    Some("failure".to_string()),
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    reason,
+                ),
+                admitted_rows: vec![],
+            };
+        }
+    };
+    let mut finalized = 0usize;
+    let mut rejected_open = 0usize;
+    let mut rejected_cutoff = 0usize;
+    let mut rejected_duplicate = 0usize;
+    let mut admitted_rows = Vec::new();
+    for row in response.normalized_dataset.rows {
+        if row.timestamp_ms <= cutoff_exclusive_timestamp_ms {
+            rejected_cutoff += 1;
+        } else if existing_timestamps.contains(&row.timestamp_ms) {
+            rejected_duplicate += 1;
+        } else if daily_bar_finality_v0(row.timestamp_ms, response.fetched_at_ms)
+            != DailyBarFinalityStatusV0::Finalized
+        {
+            rejected_open += 1;
+        } else {
+            finalized += 1;
+            admitted_rows.push((row.timestamp_ms, canonical_prospective_row_digest_v0(&row)));
+        }
+    }
+    admitted_rows.truncate(1);
+    let stop_reason = if admitted_rows.is_empty() {
+        ProspectiveBlindAcquisitionStopReasonV0::NoAdmissibleFinalizedRow
+    } else {
+        ProspectiveBlindAcquisitionStopReasonV0::RowAdmitted
+    };
+    ProspectiveBlindAcquisitionResultV0 {
+        receipt: prospective_blind_receipt_v0(
+            challenge_id,
+            true,
+            1,
+            Some("success".to_string()),
+            finalized
+                .saturating_add(rejected_open)
+                .saturating_add(rejected_cutoff)
+                .saturating_add(rejected_duplicate),
+            finalized,
+            admitted_rows.len(),
+            rejected_open,
+            rejected_cutoff,
+            rejected_duplicate,
+            stop_reason,
+        ),
+        admitted_rows,
+    }
+}
+
 pub fn run_manual_upbit_historical_smoke_v0(
     config_path: &Path,
     allow_network: bool,
@@ -2628,6 +2876,27 @@ fn current_time_ms() -> u64 {
 mod tests {
     use super::*;
     use crate::data::{SnapshotProvenance, SnapshotQualitySummary, SnapshotSourceType};
+
+    #[test]
+    fn prospective_blind_acquisition_requires_network_gate_without_transport() {
+        let result = acquire_one_blind_upbit_daily_row_v0(
+            Path::new("config/local/not-present.toml"),
+            "challenge",
+            1,
+            &BTreeSet::new(),
+            false,
+        );
+        assert!(!result.receipt.request_attempted);
+        assert_eq!(result.receipt.request_count, 0);
+        assert_eq!(
+            result.receipt.stop_reason,
+            ProspectiveBlindAcquisitionStopReasonV0::AwaitingNetworkConsent
+        );
+        assert!(verify_prospective_blind_acquisition_receipt_v0(
+            &result.receipt
+        ));
+        assert!(result.admitted_rows.is_empty());
+    }
 
     fn config() -> UpbitHistoricalPilotConfigV0 {
         UpbitHistoricalPilotConfigV0 {

@@ -17,9 +17,10 @@ use crate::{
     data::{
         AcquisitionMarketScope, AcquisitionMode, AgentDataIntent, ConfiguredUniverse,
         DataAcquisitionBroker, DataLookback, DataPriority, DataSnapshot, DatasetKind,
-        ProviderCapabilities, ReadOnlyMarketDataProvider, ReadOnlyProviderRegistry,
-        SnapshotSourceType, build_acquisition_plan, historical_replay_dataset_digest_v0,
-        snapshot_id_from_semantic_digest_v1,
+        ProspectiveBlindAcquisitionReceiptV0, ProviderCapabilities, ReadOnlyMarketDataProvider,
+        ReadOnlyProviderRegistry, SnapshotSourceType, build_acquisition_plan,
+        historical_replay_dataset_digest_v0, snapshot_id_from_semantic_digest_v1,
+        verify_prospective_blind_acquisition_receipt_v0,
     },
     league::{AgentKind, HistoricalReplayDataset},
 };
@@ -2931,6 +2932,113 @@ pub enum ProspectiveChallengeInvalidationReasonV0 {
     TechnicalIntegrityFailure,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProspectiveRegistryTransitionReasonV0 {
+    PreRegistrationCommit,
+    FutureRowsUnavailable,
+    FutureRowAdmitted,
+    FirstEventSealed,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProspectiveRegistryTransitionRecordV0 {
+    pub challenge_id: String,
+    pub previous_state: ProspectiveChallengeStatusV0,
+    pub next_state: ProspectiveChallengeStatusV0,
+    pub previous_registry_digest: String,
+    pub next_registry_digest: String,
+    pub capsule_digest: String,
+    pub vault_digest_before: String,
+    pub vault_digest_after: String,
+    pub journal_digest_before: String,
+    pub journal_digest_after: String,
+    pub transition_reason: ProspectiveRegistryTransitionReasonV0,
+    pub evidence_access_occurred: bool,
+    pub labels_accessed: bool,
+    pub transition_digest: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RegistryDigestProvenanceStatusV0 {
+    ValidSingleState,
+    ValidTransitionChain,
+    StaleCommittedReport,
+    StaleLocalRegistry,
+    UnexpectedDigestChange,
+    MissingTransitionRecord,
+    CapsuleMismatch,
+    RegistryCorruption,
+    Ambiguous,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ProspectiveRegistryDigestProvenanceV0 {
+    pub capsule_digest: String,
+    pub initial_sealed_registry_digest: String,
+    pub pre_registration_committed_registry_digest: String,
+    pub current_registry_digest: String,
+    pub transition_record_count: usize,
+    pub transition_chain_valid: bool,
+    pub semantic_state_changes_explain_digest_changes: bool,
+    pub local_state_matches_committed_registration: bool,
+    pub status: RegistryDigestProvenanceStatusV0,
+    pub provenance_digest: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ProspectiveChallengeFreezeFieldV0 {
+    Candidate,
+    Comparators,
+    Cutoff,
+    FeaturePolicy,
+    LabelPolicy,
+    SupportPolicy,
+    CollapsePolicy,
+    EvaluationPolicy,
+    OpeningPolicy,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ProspectiveChallengeFreezeProofV0 {
+    pub candidate_unchanged: bool,
+    pub comparators_unchanged: bool,
+    pub cutoff_unchanged: bool,
+    pub feature_policy_unchanged: bool,
+    pub label_policy_unchanged: bool,
+    pub support_policy_unchanged: bool,
+    pub collapse_policy_unchanged: bool,
+    pub evaluation_policy_unchanged: bool,
+    pub opening_policy_unchanged: bool,
+    pub all_equal: bool,
+    pub mismatch_fields: Vec<ProspectiveChallengeFreezeFieldV0>,
+    pub proof_digest: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProspectiveEvidenceUsageClassV0 {
+    VaultedUnopened,
+    CausalContextForSealedPrediction,
+    UsedForSealedPrediction,
+    AwaitingLabelMaturity,
+    MatureLabelSealed,
+    OpenedForOneTimeEvaluation,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ProspectiveCausalContextBridgeV0 {
+    pub challenge_id: String,
+    pub historical_context_snapshot_id: String,
+    pub historical_context_range_digest: String,
+    pub future_vault_digest: String,
+    pub required_feature_lookback_rows: usize,
+    pub required_sequence_rows: usize,
+    pub context_rows_used: usize,
+    pub future_rows_used: usize,
+    pub latest_input_timestamp_ms: u64,
+    pub target_prediction_timestamp_ms: u64,
+    pub bridge_digest: String,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum ProspectiveComparatorKindV0 {
     FrozenLinear,
@@ -3149,6 +3257,10 @@ pub struct ProspectiveChallengeLocalStateV0 {
     pub vault: ProspectiveEvidenceVaultV0,
     pub journal: ProspectivePredictionJournalV0,
     pub registry: ProspectiveChallengeRegistryV0,
+    #[serde(default)]
+    pub registry_transition_records: Vec<ProspectiveRegistryTransitionRecordV0>,
+    #[serde(default)]
+    pub blind_acquisition_receipts: Vec<ProspectiveBlindAcquisitionReceiptV0>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -3707,6 +3819,12 @@ pub fn prospective_challenge_transition_v0(
             ProspectiveChallengeStatusV0::PreRegistrationCommitted,
             ProspectiveChallengeStatusV0::Accumulating
         ) | (
+            ProspectiveChallengeStatusV0::AwaitingFutureRows,
+            ProspectiveChallengeStatusV0::Accumulating
+        ) | (
+            ProspectiveChallengeStatusV0::PreRegistrationCommitted,
+            ProspectiveChallengeStatusV0::AwaitingMaturity
+        ) | (
             ProspectiveChallengeStatusV0::Accumulating,
             ProspectiveChallengeStatusV0::AwaitingMaturity
         ) | (
@@ -3917,6 +4035,410 @@ fn registry_digest_v0(registry: &ProspectiveChallengeRegistryV0) -> String {
     ))
 }
 
+fn registry_transition_reason_label_v0(
+    reason: ProspectiveRegistryTransitionReasonV0,
+) -> &'static str {
+    match reason {
+        ProspectiveRegistryTransitionReasonV0::PreRegistrationCommit => "pre_registration_commit",
+        ProspectiveRegistryTransitionReasonV0::FutureRowsUnavailable => "future_rows_unavailable",
+        ProspectiveRegistryTransitionReasonV0::FutureRowAdmitted => "future_row_admitted",
+        ProspectiveRegistryTransitionReasonV0::FirstEventSealed => "first_event_sealed",
+    }
+}
+
+fn registry_transition_digest_v0(record: &ProspectiveRegistryTransitionRecordV0) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+        record.challenge_id,
+        challenge_status_label_v0(record.previous_state),
+        challenge_status_label_v0(record.next_state),
+        record.previous_registry_digest,
+        record.next_registry_digest,
+        record.capsule_digest,
+        record.vault_digest_before,
+        record.vault_digest_after,
+        record.journal_digest_before,
+        record.journal_digest_after,
+        registry_transition_reason_label_v0(record.transition_reason),
+        record.evidence_access_occurred,
+        record.labels_accessed,
+    ))
+}
+
+fn registry_with_state_v0(
+    state: &ProspectiveChallengeLocalStateV0,
+    status: ProspectiveChallengeStatusV0,
+) -> Result<ProspectiveChallengeRegistryV0, ProspectiveChallengeErrorV0> {
+    let mut registry = state.registry.clone();
+    let entry = registry
+        .challenges
+        .first_mut()
+        .ok_or(ProspectiveChallengeErrorV0::IntegrityMismatch)?;
+    entry.status = status;
+    registry.registry_digest = registry_digest_v0(&registry);
+    Ok(registry)
+}
+
+fn append_registry_transition_record_v0(
+    state: &mut ProspectiveChallengeLocalStateV0,
+    previous_state: ProspectiveChallengeStatusV0,
+    previous_registry_digest: String,
+    vault_digest_before: String,
+    journal_digest_before: String,
+    transition_reason: ProspectiveRegistryTransitionReasonV0,
+    evidence_access_occurred: bool,
+) -> Result<(), ProspectiveChallengeErrorV0> {
+    let entry = state
+        .registry
+        .challenges
+        .first()
+        .ok_or(ProspectiveChallengeErrorV0::IntegrityMismatch)?;
+    let mut record = ProspectiveRegistryTransitionRecordV0 {
+        challenge_id: state.capsule.challenge_id.clone(),
+        previous_state,
+        next_state: entry.status,
+        previous_registry_digest,
+        next_registry_digest: state.registry.registry_digest.clone(),
+        capsule_digest: state.capsule.capsule_digest.clone(),
+        vault_digest_before,
+        vault_digest_after: state.vault.vault_digest.clone(),
+        journal_digest_before,
+        journal_digest_after: state.journal.journal_digest.clone(),
+        transition_reason,
+        evidence_access_occurred,
+        labels_accessed: false,
+        transition_digest: String::new(),
+    };
+    record.transition_digest = registry_transition_digest_v0(&record);
+    if let Some(existing) = state.registry_transition_records.last() {
+        if existing.transition_digest == record.transition_digest {
+            return Ok(());
+        }
+    }
+    state.registry_transition_records.push(record);
+    Ok(())
+}
+
+fn expected_initial_registry_digest_v0(
+    state: &ProspectiveChallengeLocalStateV0,
+) -> Result<String, ProspectiveChallengeErrorV0> {
+    Ok(registry_with_state_v0(state, ProspectiveChallengeStatusV0::Sealed)?.registry_digest)
+}
+
+fn registry_transition_chain_is_valid_v0(
+    state: &ProspectiveChallengeLocalStateV0,
+    initial_registry_digest: &str,
+) -> bool {
+    let Some(entry) = state.registry.challenges.first() else {
+        return false;
+    };
+    let mut previous_state = ProspectiveChallengeStatusV0::Sealed;
+    let mut previous_digest = initial_registry_digest;
+    let mut previous_vault_digest = state
+        .registry_transition_records
+        .first()
+        .map(|record| record.vault_digest_before.clone())
+        .unwrap_or_else(|| state.vault.vault_digest.clone());
+    let mut previous_journal_digest = state
+        .registry_transition_records
+        .first()
+        .map(|record| record.journal_digest_before.clone())
+        .unwrap_or_else(|| state.journal.journal_digest.clone());
+    for record in &state.registry_transition_records {
+        if record.challenge_id != state.capsule.challenge_id
+            || record.capsule_digest != state.capsule.capsule_digest
+            || record.previous_state != previous_state
+            || record.previous_registry_digest != previous_digest
+            || record.vault_digest_before != previous_vault_digest
+            || record.journal_digest_before != previous_journal_digest
+            || record.labels_accessed
+            || record.transition_digest != registry_transition_digest_v0(record)
+            || prospective_challenge_transition_v0(record.previous_state, record.next_state)
+                .is_err()
+        {
+            return false;
+        }
+        previous_state = record.next_state;
+        previous_digest = &record.next_registry_digest;
+        previous_vault_digest = record.vault_digest_after.clone();
+        previous_journal_digest = record.journal_digest_after.clone();
+    }
+    previous_state == entry.status
+        && previous_digest == state.registry.registry_digest
+        && previous_vault_digest == state.vault.vault_digest
+        && previous_journal_digest == state.journal.journal_digest
+}
+
+pub fn build_prospective_challenge_freeze_proof_v0(
+    state: &ProspectiveChallengeLocalStateV0,
+    expected_capsule: &ProspectiveShadowChallengeCapsuleV0,
+) -> ProspectiveChallengeFreezeProofV0 {
+    let capsule = &state.capsule;
+    let candidate_unchanged = capsule.candidate == expected_capsule.candidate;
+    let comparators_unchanged = capsule.comparators == expected_capsule.comparators;
+    let cutoff_unchanged = capsule.prospective_cutoff_exclusive_timestamp_ms
+        == expected_capsule.prospective_cutoff_exclusive_timestamp_ms;
+    let feature_policy_unchanged =
+        capsule.feature_policy_digest == expected_capsule.feature_policy_digest;
+    let label_policy_unchanged =
+        capsule.label_policy_digest == expected_capsule.label_policy_digest;
+    let support_policy_unchanged =
+        capsule.support_policy_digest == expected_capsule.support_policy_digest;
+    let collapse_policy_unchanged = capsule.candidate.collapse_policy_digest
+        == expected_capsule.candidate.collapse_policy_digest;
+    let evaluation_policy_unchanged =
+        capsule.evaluation_policy == expected_capsule.evaluation_policy;
+    let opening_policy_unchanged = capsule.opening_policy == expected_capsule.opening_policy;
+    let mut mismatch_fields = Vec::new();
+    for (matches, field) in [
+        (
+            candidate_unchanged,
+            ProspectiveChallengeFreezeFieldV0::Candidate,
+        ),
+        (
+            comparators_unchanged,
+            ProspectiveChallengeFreezeFieldV0::Comparators,
+        ),
+        (cutoff_unchanged, ProspectiveChallengeFreezeFieldV0::Cutoff),
+        (
+            feature_policy_unchanged,
+            ProspectiveChallengeFreezeFieldV0::FeaturePolicy,
+        ),
+        (
+            label_policy_unchanged,
+            ProspectiveChallengeFreezeFieldV0::LabelPolicy,
+        ),
+        (
+            support_policy_unchanged,
+            ProspectiveChallengeFreezeFieldV0::SupportPolicy,
+        ),
+        (
+            collapse_policy_unchanged,
+            ProspectiveChallengeFreezeFieldV0::CollapsePolicy,
+        ),
+        (
+            evaluation_policy_unchanged,
+            ProspectiveChallengeFreezeFieldV0::EvaluationPolicy,
+        ),
+        (
+            opening_policy_unchanged,
+            ProspectiveChallengeFreezeFieldV0::OpeningPolicy,
+        ),
+    ] {
+        if !matches {
+            mismatch_fields.push(field);
+        }
+    }
+    let all_equal = mismatch_fields.is_empty()
+        && capsule.capsule_digest == expected_capsule.capsule_digest
+        && validate_prospective_shadow_challenge_capsule_v0(capsule).is_ok()
+        && validate_prospective_shadow_challenge_capsule_v0(expected_capsule).is_ok();
+    let proof_digest = stable_hash_string(&format!(
+        "{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+        capsule.capsule_digest,
+        candidate_unchanged,
+        comparators_unchanged,
+        cutoff_unchanged,
+        feature_policy_unchanged,
+        label_policy_unchanged,
+        support_policy_unchanged,
+        collapse_policy_unchanged,
+        evaluation_policy_unchanged,
+        opening_policy_unchanged,
+        mismatch_fields
+            .iter()
+            .map(|field| format!("{field:?}"))
+            .collect::<Vec<_>>()
+            .join(","),
+    ));
+    ProspectiveChallengeFreezeProofV0 {
+        candidate_unchanged,
+        comparators_unchanged,
+        cutoff_unchanged,
+        feature_policy_unchanged,
+        label_policy_unchanged,
+        support_policy_unchanged,
+        collapse_policy_unchanged,
+        evaluation_policy_unchanged,
+        opening_policy_unchanged,
+        all_equal,
+        mismatch_fields,
+        proof_digest,
+    }
+}
+
+pub fn compute_prospective_registry_digest_provenance_v0(
+    state: &ProspectiveChallengeLocalStateV0,
+) -> Result<ProspectiveRegistryDigestProvenanceV0, ProspectiveChallengeErrorV0> {
+    validate_prospective_challenge_local_state_v0(state)?;
+    let initial_sealed_registry_digest = expected_initial_registry_digest_v0(state)?;
+    let current_registry_digest = state.registry.registry_digest.clone();
+    let committed_digest = state
+        .registry_transition_records
+        .iter()
+        .find(|record| {
+            record.previous_state == ProspectiveChallengeStatusV0::Sealed
+                && record.next_state == ProspectiveChallengeStatusV0::PreRegistrationCommitted
+        })
+        .map(|record| record.next_registry_digest.clone())
+        .unwrap_or_default();
+    let local_state_matches_committed_registration =
+        state.registry.challenges.first().is_some_and(|entry| {
+            entry.status == ProspectiveChallengeStatusV0::PreRegistrationCommitted
+                && state.vault.finalized_row_count == 0
+                && state.journal.events.is_empty()
+        });
+    let transition_chain_valid = !state.registry_transition_records.is_empty()
+        && registry_transition_chain_is_valid_v0(state, &initial_sealed_registry_digest);
+    let semantic_state_changes_explain_digest_changes = transition_chain_valid
+        && committed_digest != initial_sealed_registry_digest
+        && current_registry_digest
+            == state
+                .registry_transition_records
+                .last()
+                .map(|record| record.next_registry_digest.clone())
+                .unwrap_or_default();
+    let status = if state.capsule.capsule_digest.is_empty() {
+        RegistryDigestProvenanceStatusV0::CapsuleMismatch
+    } else if state.registry_transition_records.is_empty() {
+        RegistryDigestProvenanceStatusV0::MissingTransitionRecord
+    } else if transition_chain_valid && semantic_state_changes_explain_digest_changes {
+        RegistryDigestProvenanceStatusV0::ValidTransitionChain
+    } else {
+        RegistryDigestProvenanceStatusV0::UnexpectedDigestChange
+    };
+    let provenance_digest = stable_hash_string(&format!(
+        "{}:{}:{}:{}:{}:{}:{}:{}:{}",
+        state.capsule.capsule_digest,
+        initial_sealed_registry_digest,
+        committed_digest,
+        current_registry_digest,
+        state.registry_transition_records.len(),
+        transition_chain_valid,
+        semantic_state_changes_explain_digest_changes,
+        local_state_matches_committed_registration,
+        format!("{status:?}"),
+    ));
+    Ok(ProspectiveRegistryDigestProvenanceV0 {
+        capsule_digest: state.capsule.capsule_digest.clone(),
+        initial_sealed_registry_digest,
+        pre_registration_committed_registry_digest: committed_digest,
+        current_registry_digest,
+        transition_record_count: state.registry_transition_records.len(),
+        transition_chain_valid,
+        semantic_state_changes_explain_digest_changes,
+        local_state_matches_committed_registration,
+        status,
+        provenance_digest,
+    })
+}
+
+pub fn seal_missing_pre_registration_transition_v0(
+    state: &mut ProspectiveChallengeLocalStateV0,
+    expected_capsule: &ProspectiveShadowChallengeCapsuleV0,
+) -> Result<ProspectiveRegistryDigestProvenanceV0, ProspectiveChallengeErrorV0> {
+    validate_prospective_challenge_local_state_v0(state)?;
+    let proof = build_prospective_challenge_freeze_proof_v0(state, expected_capsule);
+    let entry = state
+        .registry
+        .challenges
+        .first()
+        .ok_or(ProspectiveChallengeErrorV0::IntegrityMismatch)?;
+    if !proof.all_equal
+        || entry.status != ProspectiveChallengeStatusV0::PreRegistrationCommitted
+        || !state.vault.finalized_rows.is_empty()
+        || !state.journal.events.is_empty()
+    {
+        return Err(ProspectiveChallengeErrorV0::IntegrityMismatch);
+    }
+    if state.registry_transition_records.is_empty() {
+        let initial_digest = expected_initial_registry_digest_v0(state)?;
+        let current_digest = state.registry.registry_digest.clone();
+        let mut record = ProspectiveRegistryTransitionRecordV0 {
+            challenge_id: state.capsule.challenge_id.clone(),
+            previous_state: ProspectiveChallengeStatusV0::Sealed,
+            next_state: ProspectiveChallengeStatusV0::PreRegistrationCommitted,
+            previous_registry_digest: initial_digest,
+            next_registry_digest: current_digest,
+            capsule_digest: state.capsule.capsule_digest.clone(),
+            vault_digest_before: state.vault.vault_digest.clone(),
+            vault_digest_after: state.vault.vault_digest.clone(),
+            journal_digest_before: state.journal.journal_digest.clone(),
+            journal_digest_after: state.journal.journal_digest.clone(),
+            transition_reason: ProspectiveRegistryTransitionReasonV0::PreRegistrationCommit,
+            evidence_access_occurred: false,
+            labels_accessed: false,
+            transition_digest: String::new(),
+        };
+        record.transition_digest = registry_transition_digest_v0(&record);
+        state.registry_transition_records.push(record);
+    }
+    compute_prospective_registry_digest_provenance_v0(state)
+}
+
+pub fn build_prospective_causal_context_bridge_v0(
+    state: &ProspectiveChallengeLocalStateV0,
+    historical_context_snapshot_id: String,
+    historical_context_range_digest: String,
+    historical_rows_available: usize,
+    future_rows_used: usize,
+    target_prediction_timestamp_ms: u64,
+) -> Result<ProspectiveCausalContextBridgeV0, ProspectiveChallengeErrorV0> {
+    validate_prospective_challenge_local_state_v0(state)?;
+    let required_sequence_rows = state.capsule.prediction_horizon;
+    let required_feature_lookback_rows = required_sequence_rows.saturating_sub(1);
+    let total_required = required_feature_lookback_rows.saturating_add(required_sequence_rows);
+    let context_rows_used = historical_rows_available.min(total_required);
+    if historical_context_snapshot_id.is_empty()
+        || historical_context_range_digest.is_empty()
+        || target_prediction_timestamp_ms <= state.vault.cutoff_exclusive_timestamp_ms
+        || future_rows_used > state.vault.finalized_row_count
+        || context_rows_used.saturating_add(future_rows_used) < total_required
+        || state
+            .vault
+            .finalized_rows
+            .iter()
+            .skip(future_rows_used)
+            .any(|row| row.timestamp_ms <= target_prediction_timestamp_ms)
+    {
+        return Err(ProspectiveChallengeErrorV0::InvalidVault);
+    }
+    let latest_input_timestamp_ms = state
+        .vault
+        .finalized_rows
+        .get(future_rows_used.saturating_sub(1))
+        .map(|row| row.timestamp_ms)
+        .unwrap_or(state.vault.cutoff_exclusive_timestamp_ms);
+    if latest_input_timestamp_ms > target_prediction_timestamp_ms {
+        return Err(ProspectiveChallengeErrorV0::InvalidVault);
+    }
+    let bridge_digest = stable_hash_string(&format!(
+        "{}:{}:{}:{}:{}:{}:{}:{}:{}",
+        state.capsule.challenge_id,
+        historical_context_snapshot_id,
+        historical_context_range_digest,
+        state.vault.vault_digest,
+        required_feature_lookback_rows,
+        required_sequence_rows,
+        context_rows_used,
+        future_rows_used,
+        target_prediction_timestamp_ms,
+    ));
+    Ok(ProspectiveCausalContextBridgeV0 {
+        challenge_id: state.capsule.challenge_id.clone(),
+        historical_context_snapshot_id,
+        historical_context_range_digest,
+        future_vault_digest: state.vault.vault_digest.clone(),
+        required_feature_lookback_rows,
+        required_sequence_rows,
+        context_rows_used,
+        future_rows_used,
+        latest_input_timestamp_ms,
+        target_prediction_timestamp_ms,
+        bridge_digest,
+    })
+}
+
 pub fn new_prospective_challenge_local_state_v0(
     capsule: ProspectiveShadowChallengeCapsuleV0,
 ) -> Result<ProspectiveChallengeLocalStateV0, ProspectiveChallengeErrorV0> {
@@ -3968,7 +4490,36 @@ pub fn new_prospective_challenge_local_state_v0(
         vault,
         journal,
         registry,
+        registry_transition_records: vec![],
+        blind_acquisition_receipts: vec![],
     })
+}
+
+pub fn record_prospective_blind_acquisition_receipt_v0(
+    state: &mut ProspectiveChallengeLocalStateV0,
+    receipt: ProspectiveBlindAcquisitionReceiptV0,
+) -> Result<(), ProspectiveChallengeErrorV0> {
+    validate_prospective_challenge_local_state_v0(state)?;
+    if receipt.challenge_id != state.capsule.challenge_id
+        || receipt.request_count > state.capsule.evidence_policy.maximum_requests
+        || receipt.request_count > 1
+        || receipt.receipt_digest.is_empty()
+        || state
+            .blind_acquisition_receipts
+            .iter()
+            .any(|existing| existing.receipt_digest != receipt.receipt_digest)
+    {
+        return Err(ProspectiveChallengeErrorV0::IntegrityMismatch);
+    }
+    if state
+        .blind_acquisition_receipts
+        .iter()
+        .any(|existing| existing.receipt_digest == receipt.receipt_digest)
+    {
+        return Ok(());
+    }
+    state.blind_acquisition_receipts.push(receipt);
+    Ok(())
 }
 
 pub fn append_prospective_vault_row_v0(
@@ -3981,8 +4532,11 @@ pub fn append_prospective_vault_row_v0(
         .challenges
         .first()
         .ok_or(ProspectiveChallengeErrorV0::InvalidVault)?;
-    if entry.status != ProspectiveChallengeStatusV0::PreRegistrationCommitted
-        || !row.finalized
+    if !matches!(
+        entry.status,
+        ProspectiveChallengeStatusV0::PreRegistrationCommitted
+            | ProspectiveChallengeStatusV0::AwaitingFutureRows
+    ) || !row.finalized
         || row.timestamp_ms <= state.vault.cutoff_exclusive_timestamp_ms
         || state
             .vault
@@ -3993,6 +4547,10 @@ pub fn append_prospective_vault_row_v0(
     {
         return Err(ProspectiveChallengeErrorV0::InvalidVault);
     }
+    let previous_state = entry.status;
+    let previous_registry_digest = state.registry.registry_digest.clone();
+    let previous_vault_digest = state.vault.vault_digest.clone();
+    let previous_journal_digest = state.journal.journal_digest.clone();
     state.vault.finalized_rows.push(row);
     state.vault.first_timestamp_ms = state
         .vault
@@ -4006,7 +4564,28 @@ pub fn append_prospective_vault_row_v0(
         .map(|value| value.timestamp_ms);
     state.vault.finalized_row_count = state.vault.finalized_rows.len();
     state.vault.vault_digest = vault_digest_v0(&state.vault);
+    let entry = state
+        .registry
+        .challenges
+        .first_mut()
+        .ok_or(ProspectiveChallengeErrorV0::InvalidVault)?;
+    if entry.status != ProspectiveChallengeStatusV0::Accumulating {
+        prospective_challenge_transition_v0(
+            entry.status,
+            ProspectiveChallengeStatusV0::Accumulating,
+        )?;
+        entry.status = ProspectiveChallengeStatusV0::Accumulating;
+    }
     sync_registry_digests_v0(state)?;
+    append_registry_transition_record_v0(
+        state,
+        previous_state,
+        previous_registry_digest,
+        previous_vault_digest,
+        previous_journal_digest,
+        ProspectiveRegistryTransitionReasonV0::FutureRowAdmitted,
+        true,
+    )?;
     Ok(())
 }
 
@@ -4037,10 +4616,9 @@ pub fn append_prospective_prediction_event_v0(
                 .map(|comparator| comparator.artifact_digest.clone())
                 .collect::<Vec<_>>()
         || state
-            .journal
-            .events
-            .iter()
-            .any(|existing| existing.event_id == event.event_id)
+            .vault
+            .last_timestamp_ms
+            .is_some_and(|timestamp| timestamp >= event.required_label_maturity_timestamp_ms)
         || event.label_status != ProspectiveLabelStatusV0::AwaitingFutureRows
         || (state.capsule.prediction_policy.support_required
             && event.operational_outcome == ProspectiveShadowOutcomeV0::ShadowPredictionSealed
@@ -4055,13 +4633,56 @@ pub fn append_prospective_prediction_event_v0(
             .cmp(&right.comparator_artifact_digest)
     });
     event.event_digest = event_digest_v0(&event);
+    if let Some(existing) = state
+        .journal
+        .events
+        .iter()
+        .find(|existing| existing.event_id == event.event_id)
+    {
+        return if existing.event_digest == event.event_digest {
+            Ok(())
+        } else {
+            Err(ProspectiveChallengeErrorV0::InvalidJournal)
+        };
+    }
+    if state
+        .journal
+        .events
+        .iter()
+        .any(|existing| existing.prediction_timestamp_ms == event.prediction_timestamp_ms)
+    {
+        return Err(ProspectiveChallengeErrorV0::InvalidJournal);
+    }
+    let previous_state = entry.status;
+    let previous_registry_digest = state.registry.registry_digest.clone();
+    let previous_vault_digest = state.vault.vault_digest.clone();
+    let previous_journal_digest = state.journal.journal_digest.clone();
     state.journal.events.push(event);
     state.journal.events.sort_by(|left, right| {
         left.prediction_timestamp_ms
             .cmp(&right.prediction_timestamp_ms)
     });
     state.journal.journal_digest = journal_digest_v0(&state.journal);
+    let entry = state
+        .registry
+        .challenges
+        .first_mut()
+        .ok_or(ProspectiveChallengeErrorV0::InvalidJournal)?;
+    prospective_challenge_transition_v0(
+        entry.status,
+        ProspectiveChallengeStatusV0::AwaitingMaturity,
+    )?;
+    entry.status = ProspectiveChallengeStatusV0::AwaitingMaturity;
     sync_registry_digests_v0(state)?;
+    append_registry_transition_record_v0(
+        state,
+        previous_state,
+        previous_registry_digest,
+        previous_vault_digest,
+        previous_journal_digest,
+        ProspectiveRegistryTransitionReasonV0::FirstEventSealed,
+        true,
+    )?;
     Ok(())
 }
 
@@ -4069,17 +4690,63 @@ pub fn confirm_prospective_pre_registration_v0(
     state: &mut ProspectiveChallengeLocalStateV0,
 ) -> Result<(), ProspectiveChallengeErrorV0> {
     validate_prospective_challenge_local_state_v0(state)?;
+    let previous_registry_digest = state.registry.registry_digest.clone();
+    let previous_vault_digest = state.vault.vault_digest.clone();
+    let previous_journal_digest = state.journal.journal_digest.clone();
     let entry = state
         .registry
         .challenges
         .first_mut()
         .ok_or(ProspectiveChallengeErrorV0::IntegrityMismatch)?;
+    let previous_state = entry.status;
     prospective_challenge_transition_v0(
         entry.status,
         ProspectiveChallengeStatusV0::PreRegistrationCommitted,
     )?;
     entry.status = ProspectiveChallengeStatusV0::PreRegistrationCommitted;
-    sync_registry_digests_v0(state)
+    sync_registry_digests_v0(state)?;
+    append_registry_transition_record_v0(
+        state,
+        previous_state,
+        previous_registry_digest,
+        previous_vault_digest,
+        previous_journal_digest,
+        ProspectiveRegistryTransitionReasonV0::PreRegistrationCommit,
+        false,
+    )
+}
+
+pub fn mark_prospective_awaiting_future_rows_v0(
+    state: &mut ProspectiveChallengeLocalStateV0,
+) -> Result<(), ProspectiveChallengeErrorV0> {
+    validate_prospective_challenge_local_state_v0(state)?;
+    let previous_registry_digest = state.registry.registry_digest.clone();
+    let previous_vault_digest = state.vault.vault_digest.clone();
+    let previous_journal_digest = state.journal.journal_digest.clone();
+    let entry = state
+        .registry
+        .challenges
+        .first_mut()
+        .ok_or(ProspectiveChallengeErrorV0::IntegrityMismatch)?;
+    if entry.status == ProspectiveChallengeStatusV0::AwaitingFutureRows {
+        return Ok(());
+    }
+    let previous_state = entry.status;
+    prospective_challenge_transition_v0(
+        entry.status,
+        ProspectiveChallengeStatusV0::AwaitingFutureRows,
+    )?;
+    entry.status = ProspectiveChallengeStatusV0::AwaitingFutureRows;
+    sync_registry_digests_v0(state)?;
+    append_registry_transition_record_v0(
+        state,
+        previous_state,
+        previous_registry_digest,
+        previous_vault_digest,
+        previous_journal_digest,
+        ProspectiveRegistryTransitionReasonV0::FutureRowsUnavailable,
+        false,
+    )
 }
 
 pub fn invalidate_prospective_challenge_v0(
@@ -4156,6 +4823,11 @@ pub fn validate_prospective_challenge_local_state_v0(
             .events
             .iter()
             .any(|event| event.event_digest != event_digest_v0(event))
+        || state.blind_acquisition_receipts.len() > 1
+        || state.blind_acquisition_receipts.iter().any(|receipt| {
+            receipt.challenge_id != state.capsule.challenge_id
+                || !verify_prospective_blind_acquisition_receipt_v0(receipt)
+        })
     {
         Err(ProspectiveChallengeErrorV0::IntegrityMismatch)
     } else {
@@ -5217,5 +5889,127 @@ mod tests {
             state
         );
         std::fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn prospective_registry_provenance_explains_the_pre_registration_transition() {
+        let mut state = prospective_test_state();
+        let expected_capsule = state.capsule.clone();
+        assert_eq!(
+            compute_prospective_registry_digest_provenance_v0(&state)
+                .unwrap()
+                .status,
+            RegistryDigestProvenanceStatusV0::MissingTransitionRecord
+        );
+        confirm_prospective_pre_registration_v0(&mut state).unwrap();
+        let proof = build_prospective_challenge_freeze_proof_v0(&state, &expected_capsule);
+        assert!(proof.all_equal);
+        let provenance = compute_prospective_registry_digest_provenance_v0(&state).unwrap();
+        assert_eq!(
+            provenance.status,
+            RegistryDigestProvenanceStatusV0::ValidTransitionChain
+        );
+        assert_ne!(
+            provenance.initial_sealed_registry_digest,
+            provenance.pre_registration_committed_registry_digest
+        );
+        assert_eq!(
+            provenance.current_registry_digest,
+            state.registry.registry_digest
+        );
+        assert_eq!(state.registry_transition_records.len(), 1);
+        assert!(!state.registry_transition_records[0].evidence_access_occurred);
+        assert!(!state.registry_transition_records[0].labels_accessed);
+    }
+
+    #[test]
+    fn prospective_registry_closure_reconstructs_legacy_committed_state_once() {
+        let mut state = prospective_test_state();
+        let expected_capsule = state.capsule.clone();
+        let entry = state.registry.challenges.first_mut().unwrap();
+        entry.status = ProspectiveChallengeStatusV0::PreRegistrationCommitted;
+        state.registry.registry_digest = registry_digest_v0(&state.registry);
+        let first =
+            seal_missing_pre_registration_transition_v0(&mut state, &expected_capsule).unwrap();
+        let second =
+            seal_missing_pre_registration_transition_v0(&mut state, &expected_capsule).unwrap();
+        assert_eq!(
+            first.status,
+            RegistryDigestProvenanceStatusV0::ValidTransitionChain
+        );
+        assert_eq!(first.provenance_digest, second.provenance_digest);
+        assert_eq!(state.registry_transition_records.len(), 1);
+        let mut altered = expected_capsule;
+        altered.candidate.head_bias_bits ^= 1;
+        assert!(!build_prospective_challenge_freeze_proof_v0(&state, &altered).all_equal);
+    }
+
+    #[test]
+    fn prospective_event_append_is_idempotent_and_rejects_backdating() {
+        let mut state = prospective_test_state();
+        confirm_prospective_pre_registration_v0(&mut state).unwrap();
+        append_prospective_vault_row_v0(
+            &mut state,
+            ProspectiveEvidenceRowRefV0 {
+                timestamp_ms: 11,
+                canonical_row_digest: "row-11".to_string(),
+                finalized: true,
+            },
+        )
+        .unwrap();
+        let comparator_artifact_digests = state
+            .capsule
+            .comparators
+            .iter()
+            .map(|comparator| comparator.artifact_digest.clone())
+            .collect::<Vec<_>>();
+        let event = ProspectivePredictionEventV0 {
+            challenge_id: state.capsule.challenge_id.clone(),
+            event_id: "event-11".to_string(),
+            prediction_timestamp_ms: 11,
+            required_label_maturity_timestamp_ms: 12,
+            input_evidence_digest: "input".to_string(),
+            candidate_artifact_digest: state.capsule.candidate.artifact_digest.clone(),
+            comparator_artifact_digests: comparator_artifact_digests.clone(),
+            support_applicability: "applicable".to_string(),
+            support_decision: "in_support".to_string(),
+            candidate_prediction: Some(SealedProbabilityV0 {
+                ieee754_bits: 0.7f32.to_bits(),
+            }),
+            comparator_predictions: comparator_artifact_digests
+                .iter()
+                .map(|digest| SealedComparatorPredictionV0 {
+                    comparator_artifact_digest: digest.clone(),
+                    probability: SealedProbabilityV0 {
+                        ieee754_bits: 0.5f32.to_bits(),
+                    },
+                })
+                .collect(),
+            operational_outcome: ProspectiveShadowOutcomeV0::ShadowPredictionSealed,
+            label_status: ProspectiveLabelStatusV0::AwaitingFutureRows,
+            event_digest: String::new(),
+        };
+        append_prospective_prediction_event_v0(&mut state, event.clone()).unwrap();
+        append_prospective_prediction_event_v0(&mut state, event.clone()).unwrap();
+        assert_eq!(state.journal.events.len(), 1);
+        let mut changed = event;
+        changed.candidate_prediction = Some(SealedProbabilityV0 {
+            ieee754_bits: 0.6f32.to_bits(),
+        });
+        assert_eq!(
+            append_prospective_prediction_event_v0(&mut state, changed),
+            Err(ProspectiveChallengeErrorV0::InvalidJournal)
+        );
+        assert!(
+            build_prospective_causal_context_bridge_v0(
+                &state,
+                "historical-snapshot".to_string(),
+                "historical-range".to_string(),
+                0,
+                1,
+                11,
+            )
+            .is_ok()
+        );
     }
 }

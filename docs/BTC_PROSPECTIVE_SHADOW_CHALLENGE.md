@@ -29,6 +29,11 @@ Code and this sanitized policy are committed before the local registry may be
 marked pre-registered. The local capsule, evidence vault, and prediction
 journal live only in ignored local storage.
 
+The registry distinguishes the original sealed digest from the later committed
+digest. An append-only transition record binds both digests to the unchanged
+capsule, empty vault and journal, reason, and zero evidence/label access.
+Missing or unexplained registry provenance blocks any future-row request.
+
 Future evidence is stored in an append-only vault separate from development
 snapshots and regime packs. A row must be strictly later than the existing
 cutoff, finalized, chronologically ordered, canonical, finite, and unique. It
@@ -41,6 +46,12 @@ bits, operational outcome, maturity timestamp, and event digest before a label
 can mature. Before the one-time opening, ordinary status output shows only
 counts and digests; it hides OHLCV, predictions, labels, returns, and per-event
 errors.
+
+Blind accumulation remains manual. It permits at most one consent-gated Upbit
+daily request, one finalized nonduplicate row, no retry, and no concurrent
+request. A receipt contains only sanitized counts, status class, stop reason,
+and digest. If frozen support execution is unavailable, the system may seal an
+explicit abstention but never invents a probability.
 
 The primary pre-registered metric is Brier score on support-qualified
 prospective events. Frozen Mamba must be compared with both frozen Linear and

@@ -23,6 +23,12 @@ opening requirements before future-row access. Candidate substitution,
 comparator refitting, early label access, vault/journal modification, or a
 second opening permanently invalidates the challenge.
 
+Before any prospective request, the registry must explain its initial sealed
+and committed digests through a deterministic transition record. This closure
+also rechecks the frozen candidate, comparators, cutoff, and policies against
+immutable historical relationships. A registry ambiguity is a hard acquisition
+block, not a reason to recreate or overwrite the challenge.
+
 When an immutable history expands, its full accepted timestamp range is added
 to the usage ledger as diagnostics/development evidence in addition to any
 campaign-specific records. This prevents an uninspected portion of a newly

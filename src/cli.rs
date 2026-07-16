@@ -1,4 +1,5 @@
 use std::{
+    collections::BTreeSet,
     fs,
     path::{Path, PathBuf},
 };
@@ -36,6 +37,8 @@ pub struct CliArgs {
     #[arg(long, default_value_t = false)]
     pub btc_prospective_challenge_confirm_preregistration: bool,
     #[arg(long, default_value_t = false)]
+    pub btc_prospective_registry_close: bool,
+    #[arg(long, default_value_t = false)]
     pub btc_prospective_accumulate: bool,
     #[arg(long, default_value_t = false)]
     pub btc_prospective_evaluate: bool,
@@ -70,6 +73,7 @@ pub fn run() -> Result<(), String> {
             args.btc_prospective_challenge_create,
             args.btc_prospective_challenge_status,
             args.btc_prospective_challenge_confirm_preregistration,
+            args.btc_prospective_registry_close,
             args.btc_prospective_accumulate,
             args.btc_prospective_evaluate,
             args.allow_network,
@@ -82,6 +86,7 @@ pub fn run() -> Result<(), String> {
         || args.btc_prospective_challenge_create
         || args.btc_prospective_challenge_status
         || args.btc_prospective_challenge_confirm_preregistration
+        || args.btc_prospective_registry_close
         || args.btc_prospective_accumulate
         || args.btc_prospective_evaluate
     {
@@ -221,6 +226,7 @@ fn run_local_historical_snapshot_campaign(
     btc_prospective_challenge_create: bool,
     btc_prospective_challenge_status: bool,
     btc_prospective_challenge_confirm_preregistration: bool,
+    btc_prospective_registry_close: bool,
     btc_prospective_accumulate: bool,
     btc_prospective_evaluate: bool,
     allow_network: bool,
@@ -267,6 +273,7 @@ fn run_local_historical_snapshot_campaign(
         btc_prospective_challenge_create,
         btc_prospective_challenge_status,
         btc_prospective_challenge_confirm_preregistration,
+        btc_prospective_registry_close,
         btc_prospective_accumulate,
         btc_prospective_evaluate,
     ]
@@ -285,6 +292,7 @@ fn run_local_historical_snapshot_campaign(
             btc_prospective_challenge_create,
             btc_prospective_challenge_status,
             btc_prospective_challenge_confirm_preregistration,
+            btc_prospective_registry_close,
             btc_prospective_accumulate,
             btc_prospective_evaluate,
             output_format,
@@ -647,6 +655,7 @@ fn run_btc_prospective_challenge_command(
     create: bool,
     status: bool,
     confirm_preregistration: bool,
+    close_registry: bool,
     accumulate: bool,
     evaluate: bool,
     output_format: &str,
@@ -715,11 +724,144 @@ fn run_btc_prospective_challenge_command(
             0,
         );
     }
+    if close_registry {
+        let preparation =
+            crate::model::prepare_btc_prospective_challenge_v0(snapshot, campaign_config)
+                .map_err(|_| "prospective challenge immutable revalidation failed".to_string())?;
+        let provenance = crate::model::seal_missing_pre_registration_transition_v0(
+            &mut state,
+            &preparation.capsule,
+        )
+        .map_err(|_| "registry provenance closure failed".to_string())?;
+        if provenance.status != crate::model::RegistryDigestProvenanceStatusV0::ValidTransitionChain
+        {
+            return Err("registry provenance is not a valid transition chain".to_string());
+        }
+        crate::model::write_prospective_challenge_local_state_v0(&state_path, &state)
+            .map_err(|_| "prospective challenge local state write failed".to_string())?;
+        return render_blind_prospective_status(
+            &state,
+            output_format,
+            "registry_provenance_closed",
+            String::new(),
+            String::new(),
+            0,
+        );
+    }
     if accumulate {
-        let acquisition_status = if allow_network {
-            "blocked_missing_dedicated_prospective_local_consent"
-        } else {
-            "awaiting_explicit_network_consent"
+        let preparation =
+            crate::model::prepare_btc_prospective_challenge_v0(snapshot, campaign_config)
+                .map_err(|_| "prospective challenge immutable revalidation failed".to_string())?;
+        let provenance = crate::model::compute_prospective_registry_digest_provenance_v0(&state)
+            .map_err(|_| "registry provenance verification failed".to_string())?;
+        let freeze =
+            crate::model::build_prospective_challenge_freeze_proof_v0(&state, &preparation.capsule);
+        if provenance.status != crate::model::RegistryDigestProvenanceStatusV0::ValidTransitionChain
+            || !freeze.all_equal
+        {
+            return Err("prospective accumulation requires closed registry provenance".to_string());
+        }
+        let existing_timestamps = state
+            .vault
+            .finalized_rows
+            .iter()
+            .map(|row| row.timestamp_ms)
+            .collect::<BTreeSet<_>>();
+        let acquisition = crate::data::acquire_one_blind_upbit_daily_row_v0(
+            config_path,
+            &state.capsule.challenge_id,
+            state.capsule.prospective_cutoff_exclusive_timestamp_ms,
+            &existing_timestamps,
+            allow_network,
+        );
+        if acquisition.receipt.request_attempted {
+            crate::model::record_prospective_blind_acquisition_receipt_v0(
+                &mut state,
+                acquisition.receipt.clone(),
+            )
+            .map_err(|_| "prospective acquisition receipt rejected".to_string())?;
+        }
+        for (timestamp_ms, canonical_row_digest) in acquisition.admitted_rows {
+            crate::model::append_prospective_vault_row_v0(
+                &mut state,
+                crate::model::ProspectiveEvidenceRowRefV0 {
+                    timestamp_ms,
+                    canonical_row_digest,
+                    finalized: true,
+                },
+            )
+            .map_err(|_| "prospective finalized row rejected".to_string())?;
+            let bridge = crate::model::build_prospective_causal_context_bridge_v0(
+                &state,
+                snapshot.snapshot_id.clone(),
+                snapshot.content_digest.clone(),
+                snapshot.row_count,
+                1,
+                timestamp_ms,
+            );
+            if let Ok(bridge) = bridge {
+                let comparator_artifact_digests = state
+                    .capsule
+                    .comparators
+                    .iter()
+                    .map(|comparator| comparator.artifact_digest.clone())
+                    .collect::<Vec<_>>();
+                let event_id = format!(
+                    "sealed-abstention-{}",
+                    crate::core::stable_hash_string(&format!(
+                        "{}:{}:{}",
+                        state.capsule.challenge_id, timestamp_ms, bridge.bridge_digest
+                    ))
+                );
+                let event = crate::model::ProspectivePredictionEventV0 {
+                    challenge_id: state.capsule.challenge_id.clone(),
+                    event_id,
+                    prediction_timestamp_ms: timestamp_ms,
+                    required_label_maturity_timestamp_ms: timestamp_ms
+                        .saturating_add(state.capsule.prediction_horizon as u64 * 86_400_000),
+                    input_evidence_digest: bridge.bridge_digest,
+                    candidate_artifact_digest: state.capsule.candidate.artifact_digest.clone(),
+                    comparator_artifact_digests,
+                    support_applicability: "unavailable".to_string(),
+                    support_decision: "gate_unavailable".to_string(),
+                    candidate_prediction: None,
+                    comparator_predictions: vec![],
+                    operational_outcome:
+                        crate::model::ProspectiveShadowOutcomeV0::ShadowAbstainSupportUnavailable,
+                    label_status: crate::model::ProspectiveLabelStatusV0::AwaitingFutureRows,
+                    event_digest: String::new(),
+                };
+                crate::model::append_prospective_prediction_event_v0(&mut state, event)
+                    .map_err(|_| "prospective sealed abstention rejected".to_string())?;
+            }
+        }
+        if acquisition.receipt.request_attempted && acquisition.receipt.admitted_row_count == 0 {
+            crate::model::mark_prospective_awaiting_future_rows_v0(&mut state)
+                .map_err(|_| "prospective awaiting-future transition rejected".to_string())?;
+        }
+        crate::model::write_prospective_challenge_local_state_v0(&state_path, &state)
+            .map_err(|_| "prospective challenge local state write failed".to_string())?;
+        let acquisition_status = match acquisition.receipt.stop_reason {
+            crate::data::ProspectiveBlindAcquisitionStopReasonV0::AwaitingNetworkConsent => {
+                "awaiting_explicit_network_consent"
+            }
+            crate::data::ProspectiveBlindAcquisitionStopReasonV0::NoFinalizedDailyBoundary => {
+                "no_finalized_daily_boundary"
+            }
+            crate::data::ProspectiveBlindAcquisitionStopReasonV0::ProviderUnavailable => {
+                "provider_unavailable"
+            }
+            crate::data::ProspectiveBlindAcquisitionStopReasonV0::RateLimited => "rate_limited",
+            crate::data::ProspectiveBlindAcquisitionStopReasonV0::PermissionDenied => {
+                "permission_denied"
+            }
+            crate::data::ProspectiveBlindAcquisitionStopReasonV0::InvalidProviderResponse => {
+                "provider_response_rejected"
+            }
+            crate::data::ProspectiveBlindAcquisitionStopReasonV0::NoAdmissibleFinalizedRow => {
+                "no_admissible_finalized_row"
+            }
+            crate::data::ProspectiveBlindAcquisitionStopReasonV0::RowAdmitted => "row_admitted",
         };
         return render_blind_prospective_status(
             &state,
@@ -727,7 +869,7 @@ fn run_btc_prospective_challenge_command(
             acquisition_status,
             String::new(),
             String::new(),
-            0,
+            acquisition.receipt.request_count,
         );
     }
     if evaluate {
@@ -758,7 +900,17 @@ fn render_blind_prospective_status(
 ) -> Result<(), String> {
     let status = crate::model::blind_prospective_challenge_status_v0(state)
         .map_err(|_| "prospective challenge integrity verification failed".to_string())?;
+    let provenance = crate::model::compute_prospective_registry_digest_provenance_v0(state)
+        .map_err(|_| "prospective registry provenance verification failed".to_string())?;
     let challenge_status = format!("{:?}", status.challenge_status);
+    let provenance_status = format!("{:?}", provenance.status);
+    let provider_calls = provider_calls.max(
+        state
+            .blind_acquisition_receipts
+            .iter()
+            .map(|receipt| receipt.request_count)
+            .sum(),
+    );
     if output_format == "json" {
         println!(
             "{}",
@@ -779,6 +931,14 @@ fn render_blind_prospective_status(
                 "vault_digest": status.vault_digest,
                 "journal_digest": status.journal_digest,
                 "registry_digest": status.registry_digest,
+                "registry_provenance_status": provenance_status,
+                "registry_provenance_digest": provenance.provenance_digest,
+                "registry_transition_record_count": provenance.transition_record_count,
+                "blind_acquisition_receipt_digest": state
+                    .blind_acquisition_receipts
+                    .last()
+                    .map(|receipt| receipt.receipt_digest.clone())
+                    .unwrap_or_default(),
                 "ledger_digest": ledger_digest,
                 "holdout_manifest_digest": holdout_manifest_digest,
             })
@@ -812,6 +972,23 @@ fn render_blind_prospective_status(
         println!("vault_digest={}", status.vault_digest);
         println!("journal_digest={}", status.journal_digest);
         println!("registry_digest={}", status.registry_digest);
+        println!("registry_provenance_status={provenance_status}");
+        println!(
+            "registry_provenance_digest={}",
+            provenance.provenance_digest
+        );
+        println!(
+            "registry_transition_record_count={}",
+            provenance.transition_record_count
+        );
+        println!(
+            "blind_acquisition_receipt_digest={}",
+            state
+                .blind_acquisition_receipts
+                .last()
+                .map(|receipt| receipt.receipt_digest.as_str())
+                .unwrap_or_default()
+        );
         if !ledger_digest.is_empty() {
             println!("ledger_digest={ledger_digest}");
         }
