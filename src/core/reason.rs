@@ -289,6 +289,7 @@ pub enum ReasonCode {
     AcquisitionRequestRejected,
     AcquisitionProviderSelected,
     AcquisitionProviderUnavailable,
+    AcquisitionPermissionDenied,
     AcquisitionBudgetExceeded,
     AcquisitionRateLimited,
     AcquisitionTimedOut,

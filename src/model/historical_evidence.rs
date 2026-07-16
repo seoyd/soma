@@ -1353,6 +1353,7 @@ pub enum BtcHistoricalExpansionStatusV0 {
     ExistingEvidenceOnly,
     BackfillNotAuthorized,
     BackfillPreflightBlocked,
+    BackfillRequestBudgetRejected,
     BackfillFailed,
     ExpandedSnapshotAccepted,
     ExpandedSnapshotRejected,
@@ -1419,7 +1420,7 @@ pub fn build_historical_evidence_usage_ledger_v0(
             )?);
         }
     }
-    if usages.is_empty() && !snapshot.normalized_dataset.rows.is_empty() {
+    if !snapshot.normalized_dataset.rows.is_empty() {
         usages.push(HistoricalEvidenceUsageRecordV0 {
             range: full_snapshot_range(snapshot)?,
             usage_classes: vec![

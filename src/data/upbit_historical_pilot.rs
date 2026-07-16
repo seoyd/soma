@@ -10,6 +10,8 @@ use std::{
     io::Write,
     path::{Component, Path, PathBuf},
     process::Command,
+    thread,
+    time::{Duration, Instant},
 };
 
 use prost::Message;
@@ -294,6 +296,8 @@ pub struct UpbitHistoricalPilotConfigV0 {
     pub stop_when_campaign_sufficient: bool,
     #[serde(default)]
     pub campaign_attempt_enabled: bool,
+    #[serde(default = "default_minimum_inter_request_delay_ms")]
+    pub minimum_inter_request_delay_ms: u64,
 }
 
 impl UpbitHistoricalPilotConfigV0 {
@@ -320,6 +324,8 @@ impl UpbitHistoricalPilotConfigV0 {
                 .is_none_or(|capacity| self.target_rows > capacity)
             || self.timeout_seconds == 0
             || self.maximum_response_bytes == 0
+            || self.minimum_inter_request_delay_ms == 0
+            || self.minimum_inter_request_delay_ms > 60_000
             || !safe_snapshot_output_dir(Path::new(&self.snapshot_output_dir))
         {
             return Err("local provider config is invalid".to_string());
@@ -338,6 +344,190 @@ fn default_target_rows() -> usize {
 
 fn default_maximum_pages() -> usize {
     1
+}
+
+fn default_minimum_inter_request_delay_ms() -> u64 {
+    250
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum BackfillRequestPlanStatusV0 {
+    Ready,
+    ExistingEvidenceSufficient,
+    #[default]
+    RequestBudgetRejected,
+    InvalidConfiguration,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct EthicalExternalRequestBudgetV0 {
+    pub maximum_requests: usize,
+    pub maximum_pages: usize,
+    pub maximum_total_rows: usize,
+    pub maximum_total_response_bytes: usize,
+    pub maximum_wall_clock_seconds: u64,
+    pub minimum_inter_request_delay_ms: u64,
+    pub maximum_transient_retries_per_request: usize,
+    pub stop_on_rate_limit: bool,
+    pub stop_on_permission_error: bool,
+}
+
+impl EthicalExternalRequestBudgetV0 {
+    pub fn validate(&self) -> bool {
+        self.maximum_requests > 0
+            && self.maximum_pages > 0
+            && self.maximum_total_rows > 0
+            && self.maximum_total_response_bytes > 0
+            && self.maximum_wall_clock_seconds > 0
+            && self.minimum_inter_request_delay_ms > 0
+            && self.minimum_inter_request_delay_ms <= 60_000
+            && self.maximum_transient_retries_per_request <= 3
+            && self.stop_on_rate_limit
+            && self.stop_on_permission_error
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BtcRegimeEvidenceRequirementV0 {
+    pub existing_rows: usize,
+    pub minimum_regimes: usize,
+    pub rows_per_regime: usize,
+    pub inter_regime_gap_rows: usize,
+    pub edge_allowance_rows: usize,
+    pub required_total_rows: usize,
+    pub additional_rows_required: usize,
+    pub configured_page_size: usize,
+    pub estimated_minimum_pages: usize,
+    pub configured_maximum_pages: usize,
+    pub configured_maximum_requests: usize,
+    pub plan_status: BackfillRequestPlanStatusV0,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SanitizedUpbitBackfillDryRunV0 {
+    pub endpoint_category: String,
+    pub sequential_only: bool,
+    pub rate_limit_stops_immediately: bool,
+    pub existing_rows: usize,
+    pub required_total_rows: usize,
+    pub additional_rows_required: usize,
+    pub estimated_minimum_requests: usize,
+    pub maximum_permitted_requests: usize,
+    pub page_size: usize,
+    pub minimum_inter_request_delay_ms: u64,
+    pub projected_regime_count: usize,
+    pub plan_status: BackfillRequestPlanStatusV0,
+    pub plan_digest: String,
+}
+
+pub fn ethical_upbit_request_budget_v0(
+    config: &UpbitHistoricalPilotConfigV0,
+) -> EthicalExternalRequestBudgetV0 {
+    EthicalExternalRequestBudgetV0 {
+        maximum_requests: config.maximum_pages,
+        maximum_pages: config.maximum_pages,
+        maximum_total_rows: config.page_size.saturating_mul(config.maximum_pages),
+        maximum_total_response_bytes: config
+            .maximum_response_bytes
+            .saturating_mul(config.maximum_pages),
+        maximum_wall_clock_seconds: config
+            .timeout_seconds
+            .saturating_mul(config.maximum_pages as u64)
+            .saturating_mul(config.max_retries.saturating_add(1) as u64),
+        minimum_inter_request_delay_ms: config.minimum_inter_request_delay_ms,
+        maximum_transient_retries_per_request: config.max_retries,
+        stop_on_rate_limit: true,
+        stop_on_permission_error: true,
+    }
+}
+
+pub fn plan_btc_regime_backfill_v0(
+    existing_rows: usize,
+    minimum_regimes: usize,
+    rows_per_regime: usize,
+    inter_regime_gap_rows: usize,
+    edge_allowance_rows: usize,
+    config: &UpbitHistoricalPilotConfigV0,
+    budget: &EthicalExternalRequestBudgetV0,
+) -> BtcRegimeEvidenceRequirementV0 {
+    let required_total_rows = minimum_regimes
+        .saturating_mul(rows_per_regime)
+        .saturating_add(
+            minimum_regimes
+                .saturating_sub(1)
+                .saturating_mul(inter_regime_gap_rows),
+        )
+        .saturating_add(edge_allowance_rows);
+    let additional_rows_required = required_total_rows.saturating_sub(existing_rows);
+    let estimated_minimum_pages = if additional_rows_required == 0 || config.page_size == 0 {
+        0
+    } else {
+        additional_rows_required.div_ceil(config.page_size)
+    };
+    let plan_status = if config.validate().is_err()
+        || !budget.validate()
+        || minimum_regimes == 0
+        || rows_per_regime == 0
+    {
+        BackfillRequestPlanStatusV0::InvalidConfiguration
+    } else if additional_rows_required == 0 {
+        BackfillRequestPlanStatusV0::ExistingEvidenceSufficient
+    } else if estimated_minimum_pages > config.maximum_pages
+        || estimated_minimum_pages > budget.maximum_pages
+        || estimated_minimum_pages > budget.maximum_requests
+        || additional_rows_required > budget.maximum_total_rows
+    {
+        BackfillRequestPlanStatusV0::RequestBudgetRejected
+    } else {
+        BackfillRequestPlanStatusV0::Ready
+    };
+    BtcRegimeEvidenceRequirementV0 {
+        existing_rows,
+        minimum_regimes,
+        rows_per_regime,
+        inter_regime_gap_rows,
+        edge_allowance_rows,
+        required_total_rows,
+        additional_rows_required,
+        configured_page_size: config.page_size,
+        estimated_minimum_pages,
+        configured_maximum_pages: config.maximum_pages,
+        configured_maximum_requests: budget.maximum_requests,
+        plan_status,
+    }
+}
+
+pub fn sanitized_upbit_backfill_dry_run_v0(
+    requirement: &BtcRegimeEvidenceRequirementV0,
+    budget: &EthicalExternalRequestBudgetV0,
+) -> SanitizedUpbitBackfillDryRunV0 {
+    let material = format!(
+        "{}:{}:{}:{}:{}:{}:{}:{:?}",
+        requirement.existing_rows,
+        requirement.required_total_rows,
+        requirement.additional_rows_required,
+        requirement.estimated_minimum_pages,
+        budget.maximum_requests,
+        requirement.configured_page_size,
+        budget.minimum_inter_request_delay_ms,
+        requirement.plan_status,
+    );
+    SanitizedUpbitBackfillDryRunV0 {
+        endpoint_category: "upbit_public_daily_btc".to_string(),
+        sequential_only: true,
+        rate_limit_stops_immediately: budget.stop_on_rate_limit,
+        existing_rows: requirement.existing_rows,
+        required_total_rows: requirement.required_total_rows,
+        additional_rows_required: requirement.additional_rows_required,
+        estimated_minimum_requests: requirement.estimated_minimum_pages,
+        maximum_permitted_requests: budget.maximum_requests,
+        page_size: requirement.configured_page_size,
+        minimum_inter_request_delay_ms: budget.minimum_inter_request_delay_ms,
+        projected_regime_count: requirement.minimum_regimes,
+        plan_status: requirement.plan_status,
+        plan_digest: stable_hash_string(&material),
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -369,6 +559,10 @@ pub enum UpbitHistoricalBackfillStatusV0 {
     MaximumPagesReachedInsufficient,
     StartBoundaryReached,
     EmptyPageReachedInsufficient,
+    RateLimitedStopped,
+    PermissionDeniedStopped,
+    RequestBudgetRejected,
+    TransientFailureStopped,
     CursorStalled,
     ValidationFailure,
     #[default]
@@ -617,7 +811,6 @@ impl ReadOnlyMarketDataProvider for UpbitDailyOhlcvProviderV0 {
             .args([
                 "--silent",
                 "--show-error",
-                "--fail",
                 "--proto",
                 "=https",
                 "--proto-redir",
@@ -632,6 +825,8 @@ impl ReadOnlyMarketDataProvider for UpbitDailyOhlcvProviderV0 {
                 "GET",
                 "--header",
                 "accept: application/json",
+                "--write-out",
+                "\n%{http_code}",
                 &url,
             ])
             .output()
@@ -639,8 +834,17 @@ impl ReadOnlyMarketDataProvider for UpbitDailyOhlcvProviderV0 {
         if !output.status.success() || output.stdout.len() > self.config.maximum_response_bytes {
             return Err(ProviderFetchFailure::Unavailable);
         }
-        let body =
+        let output =
             String::from_utf8(output.stdout).map_err(|_| ProviderFetchFailure::InvalidResponse)?;
+        let (body, status) = output
+            .rsplit_once('\n')
+            .ok_or(ProviderFetchFailure::InvalidResponse)?;
+        if let Some(failure) = upbit_http_failure_v0(status.trim().parse::<u16>().ok()) {
+            return Err(failure);
+        }
+        if body.len() > self.config.maximum_response_bytes {
+            return Err(ProviderFetchFailure::Unavailable);
+        }
         let dataset = parse_upbit_daily_ohlcv_v0(&body, &self.config.symbol)
             .map_err(|_| ProviderFetchFailure::InvalidResponse)?;
         if dataset
@@ -659,6 +863,15 @@ impl ReadOnlyMarketDataProvider for UpbitDailyOhlcvProviderV0 {
             normalized_dataset: dataset,
             reason_codes: vec![],
         })
+    }
+}
+
+fn upbit_http_failure_v0(status: Option<u16>) -> Option<ProviderFetchFailure> {
+    match status {
+        Some(200..=299) => None,
+        Some(429) => Some(ProviderFetchFailure::RateLimited),
+        Some(401 | 403) => Some(ProviderFetchFailure::PermissionDenied),
+        _ => Some(ProviderFetchFailure::Unavailable),
     }
 }
 
@@ -778,7 +991,21 @@ pub fn run_manual_upbit_historical_backfill_v0(
     allow_network: bool,
     campaign_required_rows: usize,
 ) -> UpbitHistoricalBackfillResultV0 {
-    let config = match UpbitHistoricalPilotConfigV0::from_toml_path(config_path) {
+    run_manual_upbit_historical_backfill_at_end_v0(
+        config_path,
+        allow_network,
+        campaign_required_rows,
+        None,
+    )
+}
+
+pub fn run_manual_upbit_historical_backfill_at_end_v0(
+    config_path: &Path,
+    allow_network: bool,
+    campaign_required_rows: usize,
+    end_exclusive_timestamp_ms: Option<u64>,
+) -> UpbitHistoricalBackfillResultV0 {
+    let mut config = match UpbitHistoricalPilotConfigV0::from_toml_path(config_path) {
         Ok(config) if config.validate().is_ok() => config,
         _ => {
             return backfill_result(
@@ -788,6 +1015,16 @@ pub fn run_manual_upbit_historical_backfill_v0(
             );
         }
     };
+    if let Some(end_timestamp_ms) = end_exclusive_timestamp_ms {
+        if select_backfill_end_cursor_v0(&config, Some(end_timestamp_ms)).is_err() {
+            return backfill_result(
+                UpbitHistoricalBackfillStatusV0::ValidationFailure,
+                Some(&config),
+                vec!["backfill_end_cursor_invalid".to_string()],
+            );
+        }
+        config.end_timestamp_ms = end_timestamp_ms;
+    }
     let preflight = preflight_upbit_historical_backfill_v0(config_path, allow_network);
     if preflight.status != UpbitHistoricalPreflightStatusV0::Ready {
         let status = if preflight.status == UpbitHistoricalPreflightStatusV0::NetworkConsentRequired
@@ -805,31 +1042,36 @@ pub fn run_manual_upbit_historical_backfill_v0(
             vec!["campaign_required_rows_invalid".to_string()],
         );
     }
+    let budget = ethical_upbit_request_budget_v0(&config);
+    if !budget.validate() {
+        return backfill_result(
+            UpbitHistoricalBackfillStatusV0::RequestBudgetRejected,
+            Some(&config),
+            vec!["ethical_request_budget_invalid".to_string()],
+        );
+    }
+    let required_rows = campaign_required_rows.min(config.target_rows);
+    let required_pages = required_rows.div_ceil(config.page_size);
+    if required_pages == 0 || required_pages > budget.maximum_requests {
+        return backfill_result(
+            UpbitHistoricalBackfillStatusV0::RequestBudgetRejected,
+            Some(&config),
+            vec!["ethical_request_budget_rejected".to_string()],
+        );
+    }
+    let execution_started = Instant::now();
 
     let (first_snapshot, first_receipt) =
         match acquire_upbit_page_v0(&config, config.end_timestamp_ms, config.page_size) {
             Ok(value) => value,
             Err(reason) => {
                 return backfill_result(
-                    UpbitHistoricalBackfillStatusV0::RealSmokeFailed,
+                    backfill_status_from_page_failure(&reason),
                     Some(&config),
-                    vec![reason],
+                    vec![page_failure_reason(&reason)],
                 );
             }
         };
-    let first_path = match write_and_verify_local_snapshot_v0(
-        &first_snapshot,
-        Path::new(&config.snapshot_output_dir),
-    ) {
-        Ok(path) => path,
-        Err(reason) => {
-            return backfill_result(
-                UpbitHistoricalBackfillStatusV0::RealSmokeFailed,
-                Some(&config),
-                vec![reason],
-            );
-        }
-    };
     let mut page_receipts = vec![first_receipt];
     let mut pages = vec![first_snapshot.normalized_dataset.clone()];
     let mut cursors = BTreeSet::from([config.end_timestamp_ms]);
@@ -844,24 +1086,38 @@ pub fn run_manual_upbit_historical_backfill_v0(
             );
         }
     };
-    let required_rows = if config.stop_when_campaign_sufficient {
-        campaign_required_rows.min(config.target_rows)
-    } else {
-        config.target_rows
-    };
     if merged.rows.len() >= required_rows {
-        return completed_backfill_result(
-            UpbitHistoricalBackfillStatusV0::RealUpbitSnapshotHarvested,
-            &config,
+        return match write_and_verify_local_snapshot_v0(
             &first_snapshot,
-            first_path,
-            page_receipts,
-            vec!["single_page_target_reached".to_string()],
-        );
+            Path::new(&config.snapshot_output_dir),
+        ) {
+            Ok(path) => completed_backfill_result(
+                UpbitHistoricalBackfillStatusV0::RealUpbitSnapshotHarvested,
+                &config,
+                &first_snapshot,
+                path,
+                page_receipts,
+                vec!["single_page_target_reached".to_string()],
+            ),
+            Err(reason) => backfill_result(
+                UpbitHistoricalBackfillStatusV0::RealSmokeFailed,
+                Some(&config),
+                vec![reason],
+            ),
+        };
     }
 
     let mut stop_status = UpbitHistoricalBackfillStatusV0::MaximumPagesReachedInsufficient;
-    while page_receipts.len() < config.maximum_pages {
+    while page_receipts.len() < required_pages {
+        if execution_started.elapsed().as_secs() >= budget.maximum_wall_clock_seconds {
+            return partial_backfill_result(
+                UpbitHistoricalBackfillStatusV0::TransientFailureStopped,
+                &config,
+                &merged,
+                page_receipts,
+                vec!["ethical_wall_clock_budget_exhausted".to_string()],
+            );
+        }
         let oldest = merged
             .rows
             .first()
@@ -876,15 +1132,16 @@ pub fn run_manual_upbit_historical_backfill_v0(
             stop_status = UpbitHistoricalBackfillStatusV0::CursorStalled;
             break;
         }
+        thread::sleep(Duration::from_millis(budget.minimum_inter_request_delay_ms));
         let (snapshot, receipt) = match acquire_upbit_page_v0(&config, oldest, config.page_size) {
             Ok(value) => value,
             Err(reason) => {
                 return partial_backfill_result(
-                    UpbitHistoricalBackfillStatusV0::RealSmokeFailed,
+                    backfill_status_from_page_failure(&reason),
                     &config,
                     &merged,
                     page_receipts,
-                    vec![reason],
+                    vec![page_failure_reason(&reason)],
                 );
             }
         };
@@ -955,6 +1212,18 @@ pub fn run_manual_upbit_historical_backfill_v0(
         page_receipts,
         vec!["bounded_backfill_stopped_before_target".to_string()],
     )
+}
+
+fn select_backfill_end_cursor_v0(
+    config: &UpbitHistoricalPilotConfigV0,
+    requested_end_exclusive_timestamp_ms: Option<u64>,
+) -> Result<u64, String> {
+    let end_timestamp_ms = requested_end_exclusive_timestamp_ms.unwrap_or(config.end_timestamp_ms);
+    if end_timestamp_ms <= config.start_timestamp_ms || end_timestamp_ms > config.end_timestamp_ms {
+        Err("backfill end cursor invalid".to_string())
+    } else {
+        Ok(end_timestamp_ms)
+    }
 }
 
 pub fn merge_upbit_historical_pages_v0(
@@ -1061,11 +1330,46 @@ pub fn merge_existing_upbit_snapshot_v0(
     Ok((merged, duplicates))
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum UpbitPageAcquireFailureV0 {
+    RateLimited,
+    PermissionDenied,
+    Transient(String),
+}
+
+fn backfill_status_from_page_failure(
+    failure: &UpbitPageAcquireFailureV0,
+) -> UpbitHistoricalBackfillStatusV0 {
+    match failure {
+        UpbitPageAcquireFailureV0::RateLimited => {
+            UpbitHistoricalBackfillStatusV0::RateLimitedStopped
+        }
+        UpbitPageAcquireFailureV0::PermissionDenied => {
+            UpbitHistoricalBackfillStatusV0::PermissionDeniedStopped
+        }
+        UpbitPageAcquireFailureV0::Transient(_) => {
+            UpbitHistoricalBackfillStatusV0::TransientFailureStopped
+        }
+    }
+}
+
+fn page_failure_reason(failure: &UpbitPageAcquireFailureV0) -> String {
+    match failure {
+        UpbitPageAcquireFailureV0::RateLimited => {
+            "upbit_rate_limit_stopped_without_retry".to_string()
+        }
+        UpbitPageAcquireFailureV0::PermissionDenied => {
+            "upbit_permission_denied_stopped_without_retry".to_string()
+        }
+        UpbitPageAcquireFailureV0::Transient(reason) => reason.clone(),
+    }
+}
+
 fn acquire_upbit_page_v0(
     config: &UpbitHistoricalPilotConfigV0,
     end_timestamp_ms: u64,
     page_size: usize,
-) -> Result<(DataSnapshot, UpbitHistoricalPageReceiptV0), String> {
+) -> Result<(DataSnapshot, UpbitHistoricalPageReceiptV0), UpbitPageAcquireFailureV0> {
     let capabilities = UpbitDailyOhlcvProviderV0::new(config.clone()).capabilities();
     let mut registry = ReadOnlyProviderRegistry::default();
     registry.register(capabilities);
@@ -1115,18 +1419,30 @@ fn acquire_upbit_page_v0(
         current_time_ms(),
         Some(&mut provider),
     );
-    let receipt = execution
-        .receipts
-        .into_iter()
-        .next()
-        .ok_or_else(|| "upbit page receipt missing".to_string())?;
+    let receipt = execution.receipts.into_iter().next().ok_or_else(|| {
+        UpbitPageAcquireFailureV0::Transient("upbit_page_receipt_missing".to_string())
+    })?;
     let snapshot = execution.new_snapshots.into_iter().next().ok_or_else(|| {
-        receipt
+        if receipt
             .reason_codes
-            .iter()
-            .map(|reason| format!("{reason:?}"))
-            .collect::<Vec<_>>()
-            .join("|")
+            .contains(&ReasonCode::AcquisitionRateLimited)
+        {
+            UpbitPageAcquireFailureV0::RateLimited
+        } else if receipt
+            .reason_codes
+            .contains(&ReasonCode::AcquisitionPermissionDenied)
+        {
+            UpbitPageAcquireFailureV0::PermissionDenied
+        } else {
+            UpbitPageAcquireFailureV0::Transient(
+                receipt
+                    .reason_codes
+                    .iter()
+                    .map(|reason| format!("{reason:?}"))
+                    .collect::<Vec<_>>()
+                    .join("|"),
+            )
+        }
     })?;
     Ok((
         snapshot.clone(),
@@ -1888,6 +2204,7 @@ mod tests {
             maximum_pages: 2,
             stop_when_campaign_sufficient: true,
             campaign_attempt_enabled: false,
+            minimum_inter_request_delay_ms: 1,
         }
     }
 
@@ -1984,6 +2301,58 @@ mod tests {
                 .starts_with(UPBIT_DAILY_CANDLES_ENDPOINT)
         );
         assert!(upbit_daily_candles_url("KRW-BTC&x=1", 1_704_240_000_000, 2).is_none());
+    }
+
+    #[test]
+    fn http_statuses_fail_closed_without_reclassifying_rate_or_permission_errors() {
+        assert_eq!(upbit_http_failure_v0(Some(200)), None);
+        assert_eq!(
+            upbit_http_failure_v0(Some(429)),
+            Some(ProviderFetchFailure::RateLimited)
+        );
+        assert_eq!(
+            upbit_http_failure_v0(Some(403)),
+            Some(ProviderFetchFailure::PermissionDenied)
+        );
+        assert_eq!(
+            upbit_http_failure_v0(Some(500)),
+            Some(ProviderFetchFailure::Unavailable)
+        );
+    }
+
+    #[test]
+    fn ethical_backfill_plan_is_exact_and_rejects_excess_request_budget() {
+        let config = config();
+        let budget = ethical_upbit_request_budget_v0(&config);
+        let plan = plan_btc_regime_backfill_v0(2, 2, 3, 1, 0, &config, &budget);
+        assert_eq!(plan.required_total_rows, 7);
+        assert_eq!(plan.additional_rows_required, 5);
+        assert_eq!(plan.estimated_minimum_pages, 3);
+        assert_eq!(
+            plan.plan_status,
+            BackfillRequestPlanStatusV0::RequestBudgetRejected
+        );
+
+        let ready = plan_btc_regime_backfill_v0(2, 2, 2, 0, 0, &config, &budget);
+        assert_eq!(ready.additional_rows_required, 2);
+        assert_eq!(ready.estimated_minimum_pages, 1);
+        assert_eq!(ready.plan_status, BackfillRequestPlanStatusV0::Ready);
+        assert!(ethical_upbit_request_budget_v0(&config).validate());
+    }
+
+    #[test]
+    fn backfill_cursor_must_stay_within_the_configured_historical_range() {
+        let config = config();
+        assert_eq!(
+            select_backfill_end_cursor_v0(&config, None).unwrap(),
+            config.end_timestamp_ms
+        );
+        assert_eq!(
+            select_backfill_end_cursor_v0(&config, Some(config.end_timestamp_ms - 1)).unwrap(),
+            config.end_timestamp_ms - 1
+        );
+        assert!(select_backfill_end_cursor_v0(&config, Some(config.start_timestamp_ms)).is_err());
+        assert!(select_backfill_end_cursor_v0(&config, Some(config.end_timestamp_ms + 1)).is_err());
     }
 
     #[test]

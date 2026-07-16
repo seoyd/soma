@@ -10,6 +10,10 @@ only after explicit local network consent, and it creates a new Protobuf V1
 snapshot after deterministic merge, reload, semantic-digest, and identity
 verification. The prior snapshot is never mutated. Conflicting duplicate bars
 are rejected; identical bars are deduplicated; missing days are not invented.
+Before any such call, the runner derives the required chronology coverage and
+minimum whole-page count, validates a bounded request budget, and emits a
+sanitized dry-run digest. It uses one sequential request at a time and stops on
+429 or permission failure without retry.
 
 Every accessed historical range is permanently classified in the deterministic
 usage ledger: training, validation, test, diagnostics, counterfactual, or

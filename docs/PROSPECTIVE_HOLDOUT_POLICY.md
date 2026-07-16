@@ -11,6 +11,11 @@ candidates. The initial manifest is sealed, unopened, and has no label access;
 when no later rows have been collected its status is
 `PolicySealedNoFutureRows`.
 
+When an immutable history expands, its full accepted timestamp range is added
+to the usage ledger as diagnostics/development evidence in addition to any
+campaign-specific records. This prevents an uninspected portion of a newly
+merged snapshot from being misrepresented as a fresh holdout.
+
 Later rows may accumulate until the predeclared row and window requirements are
 met. At that point one frozen holdout pack may be opened once to evaluate one
 preselected model and policy. It must not be reused for redesign.

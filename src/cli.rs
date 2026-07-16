@@ -207,10 +207,21 @@ fn run_local_historical_snapshot_campaign(
         .filter(|path| path.extension().is_some_and(|extension| extension == "pb"))
         .collect::<Vec<_>>();
     snapshot_paths.sort();
-    if snapshot_paths.len() != 1 {
-        return Err("local historical campaign requires exactly one snapshot".to_string());
+    if snapshot_paths.is_empty() {
+        return Err("local historical campaign requires a snapshot".to_string());
     }
-    let snapshot = crate::data::read_local_snapshot_protobuf_v1(&snapshot_paths[0])?;
+    let mut snapshots = snapshot_paths
+        .iter()
+        .map(|path| crate::data::read_local_snapshot_protobuf_v1(path))
+        .collect::<Result<Vec<_>, _>>()?;
+    snapshots.sort_by(|left, right| {
+        historical_snapshot_selection_rank(right)
+            .cmp(&historical_snapshot_selection_rank(left))
+            .then_with(|| right.row_count.cmp(&left.row_count))
+            .then_with(|| left.fetched_at_ms.cmp(&right.fetched_at_ms))
+            .then_with(|| left.snapshot_id.cmp(&right.snapshot_id))
+    });
+    let snapshot = snapshots.remove(0);
     let campaign_config = crate::model::MomentumLearningCampaignConfigV0::default();
     let inventory = crate::model::inventory_historical_snapshots_v0(
         std::slice::from_ref(&snapshot),
@@ -226,6 +237,7 @@ fn run_local_historical_snapshot_campaign(
         return run_btc_multi_regime_evidence_report(
             config_path,
             &snapshot,
+            &snapshots,
             &campaign_config,
             &inventory,
             &sufficiency,
@@ -276,6 +288,7 @@ fn run_local_historical_snapshot_campaign(
 fn run_btc_multi_regime_evidence_report(
     config_path: &Path,
     snapshot: &crate::data::DataSnapshot,
+    local_snapshots: &[crate::data::DataSnapshot],
     campaign_config: &crate::model::MomentumLearningCampaignConfigV0,
     inventory: &crate::model::HistoricalSnapshotInventoryV0,
     sufficiency: &crate::model::MomentumCampaignSufficiencyV0,
@@ -289,6 +302,26 @@ fn run_btc_multi_regime_evidence_report(
     let local_config = crate::data::UpbitHistoricalPilotConfigV0::from_toml_path(config_path)
         .map_err(|_| "local provider config unavailable".to_string())?;
     let preflight = crate::data::preflight_upbit_historical_backfill_v0(config_path, allow_network);
+    let regime_config = crate::model::BtcHistoricalRegimeConfigV0 {
+        minimum_regimes: 2,
+        regime_rows: sufficiency.required_minimum_rows,
+        inter_regime_gap_rows: campaign_config.purge_gap_rows,
+        minimum_campaign_windows_per_regime: campaign_config.minimum_evaluated_windows,
+        segmentation_policy:
+            crate::model::TemporalRegimeSegmentationPolicyV0::EqualLengthChronological,
+    };
+    let request_budget = crate::data::ethical_upbit_request_budget_v0(&local_config);
+    let evidence_requirement = crate::data::plan_btc_regime_backfill_v0(
+        snapshot.row_count,
+        regime_config.minimum_regimes,
+        regime_config.regime_rows,
+        regime_config.inter_regime_gap_rows,
+        0,
+        &local_config,
+        &request_budget,
+    );
+    let dry_run =
+        crate::data::sanitized_upbit_backfill_dry_run_v0(&evidence_requirement, &request_budget);
     let mut expansion_status = if allow_network {
         crate::model::BtcHistoricalExpansionStatusV0::BackfillPreflightBlocked
     } else {
@@ -296,12 +329,57 @@ fn run_btc_multi_regime_evidence_report(
     };
     let mut backfill_rows = 0usize;
     let mut backfill_pages = 0usize;
+    let mut expansion_reason = "not_attempted".to_string();
     let mut evidence_snapshot = snapshot.clone();
-    if allow_network && preflight.status == crate::data::UpbitHistoricalPreflightStatusV0::Ready {
-        let backfill = crate::data::run_manual_upbit_historical_backfill_v0(
+    if allow_network
+        && preflight.status == crate::data::UpbitHistoricalPreflightStatusV0::Ready
+        && evidence_requirement.plan_status
+            == crate::data::BackfillRequestPlanStatusV0::RequestBudgetRejected
+    {
+        expansion_status =
+            crate::model::BtcHistoricalExpansionStatusV0::BackfillRequestBudgetRejected;
+    }
+    let cached_harvest = local_snapshots
+        .iter()
+        .filter(|candidate| {
+            candidate.provider_id == "upbit"
+                && candidate.normalized_dataset.symbol == snapshot.normalized_dataset.symbol
+                && candidate.request_key.starts_with("upbit-daily-page:")
+        })
+        .max_by_key(|candidate| candidate.fetched_at_ms);
+    if let Some(harvested) = cached_harvest {
+        backfill_rows = harvested.row_count;
+        backfill_pages = 1;
+        match crate::data::merge_existing_upbit_snapshot_v0(snapshot, harvested).and_then(
+            |(merged, _)| {
+                crate::data::write_and_verify_local_snapshot_v0(
+                    &merged,
+                    Path::new(&local_config.snapshot_output_dir),
+                )?;
+                Ok(merged)
+            },
+        ) {
+            Ok(merged) => {
+                evidence_snapshot = merged;
+                expansion_status =
+                    crate::model::BtcHistoricalExpansionStatusV0::ExpandedSnapshotAccepted;
+                expansion_reason = "cached_harvest_merged_without_network".to_string();
+            }
+            Err(reason) => {
+                expansion_status =
+                    crate::model::BtcHistoricalExpansionStatusV0::ExpandedSnapshotRejected;
+                expansion_reason = reason;
+            }
+        }
+    } else if allow_network
+        && preflight.status == crate::data::UpbitHistoricalPreflightStatusV0::Ready
+        && evidence_requirement.plan_status == crate::data::BackfillRequestPlanStatusV0::Ready
+    {
+        let backfill = crate::data::run_manual_upbit_historical_backfill_at_end_v0(
             config_path,
             true,
-            sufficiency.required_minimum_rows,
+            evidence_requirement.additional_rows_required,
+            snapshot.actual_start_timestamp_ms,
         );
         backfill_rows = backfill.row_count;
         backfill_pages = backfill.page_receipts.len();
@@ -320,14 +398,17 @@ fn run_btc_multi_regime_evidence_report(
                     evidence_snapshot = merged;
                     expansion_status =
                         crate::model::BtcHistoricalExpansionStatusV0::ExpandedSnapshotAccepted;
+                    expansion_reason = "fresh_harvest_merged".to_string();
                 }
-                Err(_) => {
+                Err(reason) => {
                     expansion_status =
                         crate::model::BtcHistoricalExpansionStatusV0::ExpandedSnapshotRejected;
+                    expansion_reason = reason;
                 }
             }
         } else {
             expansion_status = crate::model::BtcHistoricalExpansionStatusV0::BackfillFailed;
+            expansion_reason = "backfill_did_not_produce_a_verified_snapshot".to_string();
         }
     }
     let (_, pack) = crate::model::freeze_momentum_historical_evidence_pack_v0(
@@ -369,12 +450,8 @@ fn run_btc_multi_regime_evidence_report(
         crate::model::build_historical_evidence_usage_ledger_v0(&evidence_snapshot, &campaigns)
             .map_err(|_| "historical evidence usage ledger failed".to_string())?;
     let regime_config = crate::model::BtcHistoricalRegimeConfigV0 {
-        minimum_regimes: 2,
         regime_rows: active_sufficiency.required_minimum_rows,
-        inter_regime_gap_rows: campaign_config.purge_gap_rows,
-        minimum_campaign_windows_per_regime: campaign_config.minimum_evaluated_windows,
-        segmentation_policy:
-            crate::model::TemporalRegimeSegmentationPolicyV0::EqualLengthChronological,
+        ..regime_config
     };
     let segmentation =
         crate::model::segment_btc_historical_regimes_v0(&evidence_snapshot, &regime_config)
@@ -428,7 +505,33 @@ fn run_btc_multi_regime_evidence_report(
         ledger.maximum_consumed_timestamp_ms
     );
     println!("upbit_preflight={:?}", preflight.status);
+    println!(
+        "backfill_plan_status={:?}",
+        evidence_requirement.plan_status
+    );
+    println!(
+        "backfill_required_total_rows={}",
+        evidence_requirement.required_total_rows
+    );
+    println!(
+        "backfill_additional_rows_required={}",
+        evidence_requirement.additional_rows_required
+    );
+    println!(
+        "backfill_estimated_minimum_requests={}",
+        evidence_requirement.estimated_minimum_pages
+    );
+    println!(
+        "backfill_budget_maximum_requests={}",
+        request_budget.maximum_requests
+    );
+    println!(
+        "backfill_minimum_inter_request_delay_ms={}",
+        request_budget.minimum_inter_request_delay_ms
+    );
+    println!("backfill_dry_run_digest={}", dry_run.plan_digest);
     println!("historical_expansion_status={expansion_status:?}");
+    println!("historical_expansion_reason={expansion_reason}");
     println!("backfill_rows={backfill_rows}");
     println!("backfill_page_receipts={backfill_pages}");
     println!("regime_config_digest={}", regime_config.digest());
@@ -450,6 +553,16 @@ fn run_btc_multi_regime_evidence_report(
     println!("network_calls_after_pack_freeze=0");
     println!("model_campaign_config_digest={}", campaign_config.digest());
     Ok(())
+}
+
+fn historical_snapshot_selection_rank(snapshot: &crate::data::DataSnapshot) -> u8 {
+    if snapshot.request_key.starts_with("upbit-daily-expanded:") {
+        3
+    } else if snapshot.request_key.starts_with("upbit-daily-page:") {
+        1
+    } else {
+        2
+    }
 }
 
 fn run_momentum_campaign_if_enabled(

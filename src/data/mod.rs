@@ -128,18 +128,20 @@ pub use source::{DataSourceKind, EvidenceSourceKind, EvidenceUse, infer_source_k
 pub use symbol::{AssetClass, MarketVenue, SymbolRegistry, SymbolSpec};
 pub use timeframe::TimeframeSpec;
 pub use upbit_historical_pilot::{
+    BackfillRequestPlanStatusV0, BtcRegimeEvidenceRequirementV0, EthicalExternalRequestBudgetV0,
     FirstHistoricalHarvestResultV0, FirstHistoricalHarvestStatusV0,
     HistoricalProviderQualificationStatusV0, HistoricalProviderQualificationV0,
     HistoricalProviderSelectionStatusV0, HistoricalProviderSelectionV0, NetworkConsentV0,
-    SnapshotCodec, SnapshotStorageFormat, UpbitDailyOhlcvProviderV0,
-    UpbitHistoricalBackfillResultV0, UpbitHistoricalBackfillStatusV0, UpbitHistoricalPageReceiptV0,
-    UpbitHistoricalPilotConfigV0, UpbitHistoricalPreflightStatusV0, UpbitHistoricalPreflightV0,
-    merge_existing_upbit_snapshot_v0, merge_upbit_historical_pages_v0,
-    migrate_legacy_json_snapshot_v0, parse_upbit_daily_ohlcv_v0,
-    preflight_upbit_historical_backfill_v0, qualify_upbit_historical_provider_v0,
-    read_local_snapshot_protobuf_v1, run_manual_upbit_historical_backfill_v0,
-    run_manual_upbit_historical_smoke_v0, select_upbit_historical_provider_v0,
-    write_and_verify_local_snapshot_v0,
+    SanitizedUpbitBackfillDryRunV0, SnapshotCodec, SnapshotStorageFormat,
+    UpbitDailyOhlcvProviderV0, UpbitHistoricalBackfillResultV0, UpbitHistoricalBackfillStatusV0,
+    UpbitHistoricalPageReceiptV0, UpbitHistoricalPilotConfigV0, UpbitHistoricalPreflightStatusV0,
+    UpbitHistoricalPreflightV0, ethical_upbit_request_budget_v0, merge_existing_upbit_snapshot_v0,
+    merge_upbit_historical_pages_v0, migrate_legacy_json_snapshot_v0, parse_upbit_daily_ohlcv_v0,
+    plan_btc_regime_backfill_v0, preflight_upbit_historical_backfill_v0,
+    qualify_upbit_historical_provider_v0, read_local_snapshot_protobuf_v1,
+    run_manual_upbit_historical_backfill_at_end_v0, run_manual_upbit_historical_backfill_v0,
+    run_manual_upbit_historical_smoke_v0, sanitized_upbit_backfill_dry_run_v0,
+    select_upbit_historical_provider_v0, write_and_verify_local_snapshot_v0,
 };
 pub use validation::{
     CandleParseError, CandleParseIssue, DataValidationConfig, ValidationStats,

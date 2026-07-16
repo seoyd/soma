@@ -375,6 +375,7 @@ pub struct ReadOnlyProviderResponse {
 pub enum ProviderFetchFailure {
     Unavailable,
     RateLimited,
+    PermissionDenied,
     TimedOut,
     InvalidResponse,
 }
@@ -848,7 +849,11 @@ impl DataAcquisitionBroker {
             attempts += 1;
             match provider.fetch_readonly(request) {
                 Ok(response) => break Ok(response),
-                Err(_) if attempts <= self.acquisition_policy.max_retries => continue,
+                Err(ProviderFetchFailure::Unavailable | ProviderFetchFailure::TimedOut)
+                    if attempts <= self.acquisition_policy.max_retries =>
+                {
+                    continue;
+                }
                 Err(error) => break Err(error),
             }
         };
@@ -857,6 +862,9 @@ impl DataAcquisitionBroker {
             Err(error) => {
                 let reason = match error {
                     ProviderFetchFailure::RateLimited => ReasonCode::AcquisitionRateLimited,
+                    ProviderFetchFailure::PermissionDenied => {
+                        ReasonCode::AcquisitionPermissionDenied
+                    }
                     ProviderFetchFailure::TimedOut => ReasonCode::AcquisitionTimedOut,
                     ProviderFetchFailure::Unavailable | ProviderFetchFailure::InvalidResponse => {
                         ReasonCode::AcquisitionProviderUnavailable
@@ -2031,6 +2039,37 @@ mod tests {
                 .contains(&ReasonCode::AcquisitionTimedOut)
         }));
         assert!(timed_out.new_snapshots.is_empty());
+    }
+
+    #[test]
+    fn rate_limits_and_permission_errors_are_not_retried() {
+        for failure in [
+            ProviderFetchFailure::RateLimited,
+            ProviderFetchFailure::PermissionDenied,
+        ] {
+            let mut registry = ReadOnlyProviderRegistry::default();
+            registry.register(mock_capabilities());
+            let mut policy = AcquisitionPolicy::default();
+            policy.max_retries = 3;
+            let mut broker = DataAcquisitionBroker::new(registry, policy);
+            let mut provider = mock_provider(10);
+            provider.default_failure = Some(failure.clone());
+            let result = execute_autonomous_data_cycle(
+                &input(AcquisitionMode::Mock, 10),
+                &mut broker,
+                Some(&mut provider),
+            );
+            let attempted = result
+                .acquisition_receipts
+                .iter()
+                .filter(|receipt| {
+                    receipt.provider_id.as_deref() == Some("mock-readonly")
+                        && receipt.attempt_count > 0
+                })
+                .collect::<Vec<_>>();
+            assert!(!attempted.is_empty());
+            assert!(attempted.iter().all(|receipt| receipt.attempt_count == 1));
+        }
     }
 
     #[test]
