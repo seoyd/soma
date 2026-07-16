@@ -404,6 +404,11 @@ fn run_btc_cross_regime_diagnostics(
         &regime_config,
         &freeze_proof,
     );
+    let support_aggregate = crate::model::aggregate_btc_cross_regime_support_evidence_v0(
+        &closed,
+        &regime_config,
+        aggregate.status,
+    );
     let ledger = crate::model::build_historical_evidence_usage_ledger_v0(snapshot, &[])
         .map_err(|_| "offline evidence ledger verification failed".to_string())?;
     let holdout = crate::model::seal_prospective_holdout_v0(
@@ -418,6 +423,37 @@ fn run_btc_cross_regime_diagnostics(
     let regime_values = closed
         .iter()
         .map(|result| {
+            let support_traces = result
+                .support_traces
+                .iter()
+                .map(|trace| {
+                    serde_json::json!({
+                        "window_id": trace.envelope.window_id,
+                        "envelope_construction_status": format!("{:?}", trace.envelope.construction_status),
+                        "gate_applicability": format!("{:?}", trace.validation.gate_applicability),
+                        "validation_support_decision": format!("{:?}", trace.validation.support_decision),
+                        "test_support_decision": format!("{:?}", trace.test_support_decision),
+                        "first_breach_metric": trace.validation.first_breach_metric.map(|value| format!("{:?}", value)),
+                        "train_history_audit": {
+                            "fixed_chronological_fold_count": trace.train_history_audit.fixed_chronological_fold_count,
+                            "in_support_fold_count": trace.train_history_audit.in_support_fold_count,
+                            "out_of_support_fold_count": trace.train_history_audit.out_of_support_fold_count,
+                            "insufficient_evidence_fold_count": trace.train_history_audit.insufficient_evidence_fold_count,
+                            "unavailable_fold_count": trace.train_history_audit.unavailable_fold_count,
+                            "first_breach_metric": trace.train_history_audit.first_breach_metric.map(|value| format!("{:?}", value)),
+                            "status": format!("{:?}", trace.train_history_audit.status),
+                            "digest": trace.train_history_audit.digest,
+                        },
+                        "metrics": trace.metrics.iter().map(|metric| serde_json::json!({
+                            "metric_id": format!("{:?}", metric.metric_id),
+                            "measured_value": metric.measured_value,
+                            "configured_threshold": metric.configured_threshold,
+                            "decision": format!("{:?}", metric.decision),
+                            "required": metric.required,
+                        })).collect::<Vec<_>>(),
+                    })
+                })
+                .collect::<Vec<_>>();
             serde_json::json!({
                 "regime_id": result.regime.regime_id,
                 "chronological_rank": result.regime.chronological_rank,
@@ -432,6 +468,15 @@ fn run_btc_cross_regime_diagnostics(
                 "in_support_windows": result.in_support_windows,
                 "out_of_support_windows": result.out_of_support_windows,
                 "support_unavailable_windows": result.support_unavailable_windows,
+                "validation_in_support_windows": result.validation_in_support_windows,
+                "validation_out_of_support_windows": result.validation_out_of_support_windows,
+                "support_insufficient_windows": result.support_insufficient_windows,
+                "support_gate_unavailable_windows": result.support_gate_unavailable_windows,
+                "test_in_support_windows": result.test_in_support_windows,
+                "test_out_of_support_windows": result.test_out_of_support_windows,
+                "dominant_support_outcome": format!("{:?}", result.dominant_support_outcome),
+                "first_breach_metric": result.first_breach_metric,
+                "support_traces": support_traces,
                 "accepted_predictive_versions": result.accepted_predictive_versions,
                 "reason_codes": result.reason_codes,
                 "execution_trace_digest": result.execution_trace.trace_digest,
@@ -452,7 +497,17 @@ fn run_btc_cross_regime_diagnostics(
         "model_freeze_proof_digest": freeze_proof.proof_digest,
         "model_freeze_all_equal": freeze_proof.all_equal,
         "regimes": regime_values,
-        "aggregate_status": format!("{:?}", aggregate.status),
+        "representation_status": format!("{:?}", aggregate.status),
+        "support_status": format!("{:?}", support_aggregate.support_status),
+        "support_aggregate": {
+            "validation_in_support_windows": support_aggregate.validation_in_support_windows,
+            "validation_out_of_support_windows": support_aggregate.validation_out_of_support_windows,
+            "support_insufficient_windows": support_aggregate.support_insufficient_windows,
+            "support_gate_unavailable_windows": support_aggregate.support_gate_unavailable_windows,
+            "test_in_support_windows": support_aggregate.test_in_support_windows,
+            "test_out_of_support_windows": support_aggregate.test_out_of_support_windows,
+            "accepted_predictive_versions": support_aggregate.accepted_predictive_versions,
+        },
         "diagnostic_failure_root_cause": aggregate.diagnostic_failure_root_cause.map(|value| format!("{:?}", value)),
         "cross_regime_report_digest": aggregate.report_digest,
         "usage_ledger_digest": ledger.ledger_digest,
@@ -470,23 +525,60 @@ fn run_btc_cross_regime_diagnostics(
             println!("regime_count={}", closed.len());
             for result in &closed {
                 println!(
-                    "regime={} rank={} execution_health={:?} diagnostic_completeness={:?} model_evidence_outcome={:?} operational_shadow_result={:?} report_digest={}",
+                    "regime={} rank={} execution_health={:?} diagnostic_completeness={:?} model_evidence_outcome={:?} operational_shadow_result={:?} dominant_support_outcome={:?} validation_in_support_windows={} validation_out_of_support_windows={} test_in_support_windows={} test_out_of_support_windows={} support_gate_unavailable_windows={} accepted_predictive_versions={} report_digest={}",
                     result.regime.regime_id,
                     result.regime.chronological_rank,
                     result.execution_health,
                     result.diagnostic_completeness,
                     result.model_evidence_outcome,
                     result.operational_shadow_result,
+                    result.dominant_support_outcome,
+                    result.validation_in_support_windows,
+                    result.validation_out_of_support_windows,
+                    result.test_in_support_windows,
+                    result.test_out_of_support_windows,
+                    result.support_gate_unavailable_windows,
+                    result.accepted_predictive_versions,
                     result.report_digest,
                 );
+                for trace in &result.support_traces {
+                    println!(
+                        "support_window={} envelope={:?} applicability={:?} validation={:?} test={:?} first_breach={:?} train_history_audit={:?} train_history_folds={} train_history_in_support={} train_history_out_of_support={} train_history_first_breach={:?}",
+                        trace.envelope.window_id,
+                        trace.envelope.construction_status,
+                        trace.validation.gate_applicability,
+                        trace.validation.support_decision,
+                        trace.test_support_decision,
+                        trace.validation.first_breach_metric,
+                        trace.train_history_audit.status,
+                        trace.train_history_audit.fixed_chronological_fold_count,
+                        trace.train_history_audit.in_support_fold_count,
+                        trace.train_history_audit.out_of_support_fold_count,
+                        trace.train_history_audit.first_breach_metric,
+                    );
+                    for metric in &trace.metrics {
+                        println!(
+                            "support_metric={:?} measured={:?} threshold={:?} decision={:?} required={}",
+                            metric.metric_id,
+                            metric.measured_value,
+                            metric.configured_threshold,
+                            metric.decision,
+                            metric.required,
+                        );
+                    }
+                }
             }
-            println!("cross_regime_status={:?}", aggregate.status);
-            println!("cross_regime_report_digest={}", aggregate.report_digest);
+            println!("representation_status={:?}", aggregate.status);
+            println!("support_status={:?}", support_aggregate.support_status);
+            println!("support_report_digest={}", support_aggregate.report_digest);
             println!("prospective_holdout_status={:?}", holdout.status);
         }
         _ => return Err("unsupported BTC cross-regime diagnostics output format".to_string()),
     }
-    if aggregate.status == crate::model::BtcCrossRegimeRepresentationStatusV0::DiagnosticFailure {
+    if aggregate.status == crate::model::BtcCrossRegimeRepresentationStatusV0::DiagnosticFailure
+        || support_aggregate.support_status
+            == crate::model::BtcCrossRegimeSupportStatusV0::DiagnosticFailure
+    {
         Err("offline BTC cross-regime diagnostics found a technical failure".to_string())
     } else {
         Ok(())

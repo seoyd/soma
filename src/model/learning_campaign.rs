@@ -492,6 +492,113 @@ pub enum ShadowSupportDecisionV0 {
     SupportGateUnavailable,
     InsufficientEvidence,
     NumericalFailure,
+    NotEvaluated,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SupportEnvelopeConstructionStatusV0 {
+    Ready,
+    InsufficientTrainingSamples,
+    MissingRepresentationData,
+    DimensionMismatch,
+    ConstantDimensionPolicyFailure,
+    NonFiniteInput,
+    NonFiniteStatistics,
+    DigestMismatch,
+    ConstructionFailure,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SupportGateApplicabilityStatusV0 {
+    Applicable,
+    ApplicableWithLimitedDiagnostics,
+    InsufficientValidationSamples,
+    ValidationAuditRejected,
+    RequiredMetricUnavailable,
+    UnsupportedRepresentationShape,
+    NumericalFailure,
+    Unavailable,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SupportMetricIdV0 {
+    ValidationSampleCount,
+    ValidationCoverage,
+    MeanStandardizedShift,
+    MaximumStandardizedShift,
+    MeanLogVarianceRatio,
+    OutOfSupportFraction,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SupportMetricDecisionV0 {
+    Passed,
+    Breached,
+    NotApplicable,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct SupportMetricEvaluationV0 {
+    pub metric_id: SupportMetricIdV0,
+    pub measured_value: Option<f32>,
+    pub configured_threshold: Option<f32>,
+    pub decision: SupportMetricDecisionV0,
+    pub required: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SupportEnvelopeTraceV0 {
+    pub window_id: String,
+    pub candidate_id: String,
+    pub checkpoint_epoch: usize,
+    pub construction_status: SupportEnvelopeConstructionStatusV0,
+    pub sample_count: usize,
+    pub dimension_count: usize,
+    pub means_finite: bool,
+    pub scales_finite: bool,
+    pub constant_dimension_count: usize,
+    pub digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ValidationSupportResultV0 {
+    pub gate_applicability: SupportGateApplicabilityStatusV0,
+    pub support_decision: ShadowSupportDecisionV0,
+    pub first_breach_metric: Option<SupportMetricIdV0>,
+    pub breached_metric_count: usize,
+    pub missing_required_metric_count: usize,
+    pub missing_optional_metric_count: usize,
+    pub result_digest: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TrainHistorySupportAuditStatusV0 {
+    SelfConsistent,
+    ChronologicallyNonstationary,
+    OverRejectingOnTrainingHistory,
+    InsufficientAuditEvidence,
+    NumericalFailure,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct TrainHistorySupportAuditV0 {
+    pub fixed_chronological_fold_count: usize,
+    pub in_support_fold_count: usize,
+    pub out_of_support_fold_count: usize,
+    pub insufficient_evidence_fold_count: usize,
+    pub unavailable_fold_count: usize,
+    pub first_breach_metric: Option<SupportMetricIdV0>,
+    pub status: TrainHistorySupportAuditStatusV0,
+    pub digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct MomentumSupportTraceV0 {
+    pub envelope: SupportEnvelopeTraceV0,
+    pub metrics: Vec<SupportMetricEvaluationV0>,
+    pub validation: ValidationSupportResultV0,
+    pub train_history_audit: TrainHistorySupportAuditV0,
+    pub test_support_decision: ShadowSupportDecisionV0,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum EarliestTemporalShiftStageV0 {
@@ -524,6 +631,9 @@ pub struct TemporalGeneralizationResultV0 {
     pub validation_support_decision: ShadowSupportDecisionV0,
     pub test_support_decision: ShadowSupportDecisionV0,
     pub validation_support_coverage: f32,
+    pub support_envelope_digest: String,
+    pub support_envelope_constant_dimension_count: usize,
+    pub train_history_support_audit: TrainHistorySupportAuditV0,
     pub raw_feature_shift: Option<DistributionShiftMetricBundleV0>,
     pub normalized_feature_shift: Option<DistributionShiftMetricBundleV0>,
     pub sequence_shift: DistributionShiftMetricBundleV0,
@@ -1102,6 +1212,10 @@ pub struct AggregateTemporalGeneralizationEvidenceV0 {
     pub no_signal_windows: usize,
     pub selected_checkpoint_windows: usize,
     pub support_gate_usable_windows: usize,
+    pub validation_in_support_windows: usize,
+    pub validation_out_of_support_windows: usize,
+    pub validation_insufficient_windows: usize,
+    pub validation_gate_unavailable_windows: usize,
     pub in_support_windows: usize,
     pub out_of_support_windows: usize,
     pub support_gate_unavailable_windows: usize,
@@ -1721,7 +1835,7 @@ fn support_decision(
         ShadowSupportDecisionV0::InsufficientEvidence
     } else if validation && 1.0 - metrics.out_of_support_fraction < gate.minimum_validation_coverage
     {
-        ShadowSupportDecisionV0::SupportGateUnavailable
+        ShadowSupportDecisionV0::OutOfSupport
     } else if metrics.mean_absolute_standardized_mean_shift > gate.maximum_mean_standardized_shift
         || metrics.maximum_absolute_standardized_mean_shift
             > gate.maximum_dimension_standardized_shift
@@ -1741,7 +1855,230 @@ fn shadow_support_decision_label_v0(decision: ShadowSupportDecisionV0) -> &'stat
         ShadowSupportDecisionV0::SupportGateUnavailable => "support_gate_unavailable",
         ShadowSupportDecisionV0::InsufficientEvidence => "insufficient_evidence",
         ShadowSupportDecisionV0::NumericalFailure => "numerical_failure",
+        ShadowSupportDecisionV0::NotEvaluated => "not_evaluated",
     }
+}
+
+fn support_gate_applicability_v0(
+    metrics: &DistributionShiftMetricBundleV0,
+    gate: &ShadowSupportGateConfigV0,
+) -> SupportGateApplicabilityStatusV0 {
+    if !metrics.finite {
+        SupportGateApplicabilityStatusV0::NumericalFailure
+    } else if metrics.dimensions == 0
+        || metrics.sample_count_reference == 0
+        || metrics.sample_count_target == 0
+    {
+        SupportGateApplicabilityStatusV0::UnsupportedRepresentationShape
+    } else if metrics.sample_count_reference < gate.minimum_samples
+        || metrics.sample_count_target < gate.minimum_samples
+    {
+        SupportGateApplicabilityStatusV0::InsufficientValidationSamples
+    } else {
+        SupportGateApplicabilityStatusV0::Applicable
+    }
+}
+
+fn support_metric_evaluations_v0(
+    metrics: &DistributionShiftMetricBundleV0,
+    gate: &ShadowSupportGateConfigV0,
+) -> Vec<SupportMetricEvaluationV0> {
+    let lower = |metric_id, measured_value, threshold| SupportMetricEvaluationV0 {
+        metric_id,
+        measured_value: Some(measured_value),
+        configured_threshold: Some(threshold),
+        decision: if measured_value >= threshold {
+            SupportMetricDecisionV0::Passed
+        } else {
+            SupportMetricDecisionV0::Breached
+        },
+        required: true,
+    };
+    let upper = |metric_id, measured_value, threshold| SupportMetricEvaluationV0 {
+        metric_id,
+        measured_value: Some(measured_value),
+        configured_threshold: Some(threshold),
+        decision: if measured_value <= threshold {
+            SupportMetricDecisionV0::Passed
+        } else {
+            SupportMetricDecisionV0::Breached
+        },
+        required: true,
+    };
+    vec![
+        lower(
+            SupportMetricIdV0::ValidationSampleCount,
+            metrics.sample_count_target as f32,
+            gate.minimum_samples as f32,
+        ),
+        lower(
+            SupportMetricIdV0::ValidationCoverage,
+            1.0 - metrics.out_of_support_fraction,
+            gate.minimum_validation_coverage,
+        ),
+        upper(
+            SupportMetricIdV0::MeanStandardizedShift,
+            metrics.mean_absolute_standardized_mean_shift,
+            gate.maximum_mean_standardized_shift,
+        ),
+        upper(
+            SupportMetricIdV0::MaximumStandardizedShift,
+            metrics.maximum_absolute_standardized_mean_shift,
+            gate.maximum_dimension_standardized_shift,
+        ),
+        upper(
+            SupportMetricIdV0::MeanLogVarianceRatio,
+            metrics.mean_absolute_log_variance_ratio,
+            gate.maximum_mean_log_variance_ratio,
+        ),
+        upper(
+            SupportMetricIdV0::OutOfSupportFraction,
+            metrics.out_of_support_fraction,
+            gate.maximum_out_of_support_fraction,
+        ),
+    ]
+}
+
+fn train_history_support_audit_v0(
+    rows: &[Vec<f32>],
+    gate: &ShadowSupportGateConfigV0,
+) -> TrainHistorySupportAuditV0 {
+    let mut split_points = [
+        rows.len() / 2,
+        rows.len().saturating_sub(gate.minimum_samples),
+    ]
+    .into_iter()
+    .filter(|split| *split >= gate.minimum_samples && rows.len() - *split >= gate.minimum_samples)
+    .collect::<Vec<_>>();
+    split_points.sort_unstable();
+    split_points.dedup();
+
+    let mut in_support_fold_count = 0usize;
+    let mut out_of_support_fold_count = 0usize;
+    let mut insufficient_evidence_fold_count = 0usize;
+    let mut unavailable_fold_count = 0usize;
+    let mut first_breach_metric = None;
+    for split in &split_points {
+        let reference = &rows[..*split];
+        let target = &rows[*split..];
+        let decision = DistributionSupportEnvelopeV0::fit(reference, gate)
+            .and_then(|envelope| distribution_shift_metrics_v0(reference, target, &envelope))
+            .map(|metrics| {
+                if first_breach_metric.is_none() {
+                    first_breach_metric = support_metric_evaluations_v0(&metrics, gate)
+                        .into_iter()
+                        .find(|metric| metric.decision == SupportMetricDecisionV0::Breached)
+                        .map(|metric| metric.metric_id);
+                }
+                support_decision(&metrics, gate, false)
+            });
+        match decision {
+            Ok(ShadowSupportDecisionV0::InSupport) => in_support_fold_count += 1,
+            Ok(ShadowSupportDecisionV0::OutOfSupport) => out_of_support_fold_count += 1,
+            Ok(ShadowSupportDecisionV0::InsufficientEvidence) => {
+                insufficient_evidence_fold_count += 1
+            }
+            Ok(_) | Err(_) => unavailable_fold_count += 1,
+        }
+    }
+    let status = if split_points.is_empty() {
+        TrainHistorySupportAuditStatusV0::InsufficientAuditEvidence
+    } else if unavailable_fold_count > 0 {
+        TrainHistorySupportAuditStatusV0::NumericalFailure
+    } else if out_of_support_fold_count == 0 {
+        TrainHistorySupportAuditStatusV0::SelfConsistent
+    } else if out_of_support_fold_count * 2 >= split_points.len() {
+        TrainHistorySupportAuditStatusV0::OverRejectingOnTrainingHistory
+    } else {
+        TrainHistorySupportAuditStatusV0::ChronologicallyNonstationary
+    };
+    let digest = stable_hash_string(&format!(
+        "{}:{}:{}:{}:{}:{:?}:{:?}",
+        split_points.len(),
+        in_support_fold_count,
+        out_of_support_fold_count,
+        insufficient_evidence_fold_count,
+        unavailable_fold_count,
+        first_breach_metric,
+        status,
+    ));
+    TrainHistorySupportAuditV0 {
+        fixed_chronological_fold_count: split_points.len(),
+        in_support_fold_count,
+        out_of_support_fold_count,
+        insufficient_evidence_fold_count,
+        unavailable_fold_count,
+        first_breach_metric,
+        status,
+        digest,
+    }
+}
+
+pub fn momentum_support_traces_v0(
+    campaign: &MomentumLearningCampaignResultV0,
+) -> Vec<MomentumSupportTraceV0> {
+    let mut traces = campaign
+        .collapse_forensics
+        .iter()
+        .filter_map(|forensics| {
+            let temporal = forensics.temporal_generalization.as_ref()?;
+            let checkpoint = forensics.selected_checkpoint.as_ref()?;
+            let metrics = support_metric_evaluations_v0(
+                &temporal.validation_representation_shift,
+                &campaign.support_gate,
+            );
+            let first_breach_metric = metrics
+                .iter()
+                .find(|metric| metric.decision == SupportMetricDecisionV0::Breached)
+                .map(|metric| metric.metric_id);
+            let breached_metric_count = metrics
+                .iter()
+                .filter(|metric| metric.decision == SupportMetricDecisionV0::Breached)
+                .count();
+            let applicability = support_gate_applicability_v0(
+                &temporal.validation_representation_shift,
+                &campaign.support_gate,
+            );
+            let result_digest = stable_hash_string(&format!(
+                "{:?}:{:?}:{:?}:{}:{}",
+                applicability,
+                temporal.validation_support_decision,
+                first_breach_metric,
+                breached_metric_count,
+                temporal.support_envelope_digest,
+            ));
+            Some(MomentumSupportTraceV0 {
+                envelope: SupportEnvelopeTraceV0 {
+                    window_id: forensics.window_id.clone(),
+                    candidate_id: format!("{:?}", checkpoint.candidate),
+                    checkpoint_epoch: checkpoint.epoch,
+                    construction_status: SupportEnvelopeConstructionStatusV0::Ready,
+                    sample_count: temporal
+                        .validation_representation_shift
+                        .sample_count_reference,
+                    dimension_count: temporal.validation_representation_shift.dimensions,
+                    means_finite: temporal.validation_representation_shift.finite,
+                    scales_finite: temporal.validation_representation_shift.finite,
+                    constant_dimension_count: temporal.support_envelope_constant_dimension_count,
+                    digest: temporal.support_envelope_digest.clone(),
+                },
+                metrics,
+                validation: ValidationSupportResultV0 {
+                    gate_applicability: applicability,
+                    support_decision: temporal.validation_support_decision,
+                    first_breach_metric,
+                    breached_metric_count,
+                    missing_required_metric_count: 0,
+                    missing_optional_metric_count: 0,
+                    result_digest,
+                },
+                train_history_audit: temporal.train_history_support_audit.clone(),
+                test_support_decision: temporal.test_support_decision,
+            })
+        })
+        .collect::<Vec<_>>();
+    traces.sort_by(|left, right| left.envelope.window_id.cmp(&right.envelope.window_id));
+    traces
 }
 
 fn flatten_sequence_inputs_v0(examples: &[SequenceExampleV0]) -> Vec<Vec<f32>> {
@@ -2126,6 +2463,13 @@ fn run_momentum_probability_collapse_forensics_with_temporal_inputs_v0(
             .map(|row| row.representation.clone())
             .collect::<Vec<_>>();
         let envelope = DistributionSupportEnvelopeV0::fit(&train_rows, &config.support_gate)?;
+        let train_history_support_audit =
+            train_history_support_audit_v0(&train_rows, &config.support_gate);
+        let support_envelope_constant_dimension_count = envelope
+            .scales
+            .iter()
+            .filter(|scale| **scale <= config.support_gate.comparison_epsilon)
+            .count();
         let validation_shift =
             distribution_shift_metrics_v0(&train_rows, &validation_rows, &envelope)?;
         let test_shift = distribution_shift_metrics_v0(&train_rows, &test_rows, &envelope)?;
@@ -2172,7 +2516,7 @@ fn run_momentum_probability_collapse_forensics_with_temporal_inputs_v0(
         let test_support = if validation_support == ShadowSupportDecisionV0::InSupport {
             support_decision(&test_shift, &config.support_gate, false)
         } else {
-            ShadowSupportDecisionV0::SupportGateUnavailable
+            ShadowSupportDecisionV0::NotEvaluated
         };
         let validation_support_coverage = 1.0 - validation_shift.out_of_support_fraction;
         let decision_digest = stable_hash_string(&format!(
@@ -2212,6 +2556,9 @@ fn run_momentum_probability_collapse_forensics_with_temporal_inputs_v0(
             validation_support_decision: validation_support,
             test_support_decision: test_support,
             validation_support_coverage,
+            support_envelope_digest: envelope.digest.clone(),
+            support_envelope_constant_dimension_count,
+            train_history_support_audit,
             raw_feature_shift,
             normalized_feature_shift,
             sequence_shift,
@@ -2284,7 +2631,8 @@ fn run_momentum_probability_collapse_forensics_with_temporal_inputs_v0(
             campaign_id: config.campaign_id.clone(),
             window_id: window_id.to_string(),
             reason: if temporal_generalization.as_ref().is_some_and(|result| {
-                result.test_support_decision == ShadowSupportDecisionV0::OutOfSupport
+                result.validation_support_decision == ShadowSupportDecisionV0::OutOfSupport
+                    || result.test_support_decision == ShadowSupportDecisionV0::OutOfSupport
             }) {
                 ShadowLearningAbstentionReasonV0::TemporalOutOfSupport
             } else {
@@ -3216,6 +3564,31 @@ fn aggregate_temporal_evidence_v0(
             .iter()
             .filter(|result| {
                 result.validation_support_decision == ShadowSupportDecisionV0::InSupport
+            })
+            .count(),
+        validation_in_support_windows: temporal
+            .iter()
+            .filter(|result| {
+                result.validation_support_decision == ShadowSupportDecisionV0::InSupport
+            })
+            .count(),
+        validation_out_of_support_windows: temporal
+            .iter()
+            .filter(|result| {
+                result.validation_support_decision == ShadowSupportDecisionV0::OutOfSupport
+            })
+            .count(),
+        validation_insufficient_windows: temporal
+            .iter()
+            .filter(|result| {
+                result.validation_support_decision == ShadowSupportDecisionV0::InsufficientEvidence
+            })
+            .count(),
+        validation_gate_unavailable_windows: temporal
+            .iter()
+            .filter(|result| {
+                result.validation_support_decision
+                    == ShadowSupportDecisionV0::SupportGateUnavailable
             })
             .count(),
         in_support_windows: temporal
@@ -4818,6 +5191,48 @@ mod tests {
         assert_eq!(
             support_decision(&metrics, &gate, false),
             ShadowSupportDecisionV0::OutOfSupport
+        );
+    }
+
+    #[test]
+    fn validation_coverage_breach_is_rejection_not_gate_unavailability() {
+        let gate = ShadowSupportGateConfigV0::default();
+        let metrics = DistributionShiftMetricBundleV0 {
+            sample_count_reference: gate.minimum_samples,
+            sample_count_target: gate.minimum_samples,
+            dimensions: 2,
+            mean_absolute_standardized_mean_shift: 0.0,
+            maximum_absolute_standardized_mean_shift: 0.0,
+            mean_absolute_log_variance_ratio: 0.0,
+            maximum_absolute_log_variance_ratio: 0.0,
+            out_of_support_fraction: 0.25,
+            dimensions_out_of_support: 1,
+            finite: true,
+        };
+        assert_eq!(
+            support_gate_applicability_v0(&metrics, &gate),
+            SupportGateApplicabilityStatusV0::Applicable
+        );
+        assert_eq!(
+            support_decision(&metrics, &gate, true),
+            ShadowSupportDecisionV0::OutOfSupport
+        );
+        let trace = support_metric_evaluations_v0(&metrics, &gate);
+        assert_eq!(trace[1].metric_id, SupportMetricIdV0::ValidationCoverage);
+        assert_eq!(trace[1].decision, SupportMetricDecisionV0::Breached);
+    }
+
+    #[test]
+    fn train_history_audit_uses_fixed_label_free_chronological_folds() {
+        let gate = ShadowSupportGateConfigV0::default();
+        let rows = vec![vec![1.0, -1.0]; 10];
+        let audit = train_history_support_audit_v0(&rows, &gate);
+        assert_eq!(audit.fixed_chronological_fold_count, 2);
+        assert_eq!(audit.in_support_fold_count, 2);
+        assert_eq!(audit.out_of_support_fold_count, 0);
+        assert_eq!(
+            audit.status,
+            TrainHistorySupportAuditStatusV0::SelfConsistent
         );
     }
 

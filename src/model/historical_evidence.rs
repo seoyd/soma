@@ -21,10 +21,11 @@ use crate::{
 use super::{
     EarliestTemporalShiftStageV0, FrozenMamba3EncoderV0, MambaRepresentationValueStatusV0,
     ModelDriftStatusV0, MomentumLearningCampaignConfigV0, MomentumLearningCampaignResultV0,
-    MomentumLearningCampaignStatusV0, MomentumTemporalDiagnosticReportV0,
-    ProbabilityCollapseRootCauseV0, SupportGatedMomentumSeriesVerdictV0, WarmStartLockInStatusV0,
+    MomentumLearningCampaignStatusV0, MomentumSupportTraceV0, MomentumTemporalDiagnosticReportV0,
+    ProbabilityCollapseRootCauseV0, SupportEnvelopeConstructionStatusV0,
+    SupportGateApplicabilityStatusV0, SupportGatedMomentumSeriesVerdictV0, WarmStartLockInStatusV0,
     build_momentum_learning_windows_v0, build_momentum_temporal_diagnostic_report_v0,
-    run_momentum_learning_campaign_v0,
+    momentum_support_traces_v0, run_momentum_learning_campaign_v0,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -1624,6 +1625,11 @@ pub struct BtcTemporalRegimeEvidenceResultV0 {
     pub in_support_windows: usize,
     pub out_of_support_windows: usize,
     pub support_unavailable_windows: usize,
+    pub validation_in_support_windows: usize,
+    pub validation_out_of_support_windows: usize,
+    pub validation_insufficient_windows: usize,
+    pub validation_gate_unavailable_windows: usize,
+    pub support_traces: Vec<MomentumSupportTraceV0>,
     pub earliest_shift_stage: EarliestTemporalShiftStageV0,
     pub temporal_root_cause: ProbabilityCollapseRootCauseV0,
     pub frozen_representation_breach_count: usize,
@@ -1760,9 +1766,20 @@ pub struct BtcTemporalRegimeClosedResultV0 {
     pub no_signal_windows: usize,
     pub selected_checkpoint_windows: usize,
     pub test_sealed_windows: usize,
+    pub support_envelope_ready_windows: usize,
+    pub support_gate_applicable_windows: usize,
     pub in_support_windows: usize,
     pub out_of_support_windows: usize,
     pub support_unavailable_windows: usize,
+    pub validation_in_support_windows: usize,
+    pub validation_out_of_support_windows: usize,
+    pub support_insufficient_windows: usize,
+    pub support_gate_unavailable_windows: usize,
+    pub test_in_support_windows: usize,
+    pub test_out_of_support_windows: usize,
+    pub dominant_support_outcome: RegimeDominantSupportOutcomeV0,
+    pub first_breach_metric: Option<String>,
+    pub support_traces: Vec<MomentumSupportTraceV0>,
     pub earliest_shift_stage: Option<EarliestTemporalShiftStageV0>,
     pub temporal_root_cause: Option<ProbabilityCollapseRootCauseV0>,
     pub warm_start_status: WarmStartLockInStatusV0,
@@ -1770,6 +1787,51 @@ pub struct BtcTemporalRegimeClosedResultV0 {
     pub accepted_predictive_versions: usize,
     pub reason_codes: Vec<String>,
     pub execution_trace: RegimeExecutionTraceV0,
+    pub report_digest: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RegimeDominantSupportOutcomeV0 {
+    ValidationInSupport,
+    ValidationOutOfSupport,
+    TestOutOfSupport,
+    SupportGateUnavailable,
+    InsufficientSupportEvidence,
+    NoUsableValidationSignal,
+    Mixed,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum BtcCrossRegimeSupportStatusV0 {
+    RepeatedSupportQualifiedEvidence,
+    SparseSupportQualifiedEvidence,
+    NoSupportQualifiedEvidence,
+    ValidationOutOfSupportAcrossRegimes,
+    SupportGateUnavailableAcrossRegimes,
+    MixedSupportEvidence,
+    PredominantlyNoUsableValidationSignal,
+    InsufficientSupportEvidence,
+    DiagnosticFailure,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BtcCrossRegimeSupportEvidenceV0 {
+    pub configured_regimes: usize,
+    pub technically_completed_regimes: usize,
+    pub total_campaign_windows: usize,
+    pub selected_checkpoint_windows: usize,
+    pub support_envelope_ready_windows: usize,
+    pub support_gate_applicable_windows: usize,
+    pub validation_in_support_windows: usize,
+    pub validation_out_of_support_windows: usize,
+    pub support_insufficient_windows: usize,
+    pub support_gate_unavailable_windows: usize,
+    pub test_in_support_windows: usize,
+    pub test_out_of_support_windows: usize,
+    pub accepted_predictive_versions: usize,
+    pub operational_abstentions: usize,
+    pub support_status: BtcCrossRegimeSupportStatusV0,
+    pub representation_status: BtcCrossRegimeRepresentationStatusV0,
     pub report_digest: String,
 }
 
@@ -1843,6 +1905,7 @@ pub fn run_btc_historical_regime_campaigns_v0(
         evidence.push(regime_evidence_from_report(
             regime,
             &report,
+            momentum_support_traces_v0(&result.campaign),
             campaign_config_digest.clone(),
             encoder_parameter_digest.clone(),
         ));
@@ -1950,7 +2013,46 @@ pub fn close_btc_temporal_regime_result_v0(
     } else {
         RegimeOperationalShadowResultV0::ShadowAbstainInsufficientEvidence
     };
+    let first_breach_metric = result
+        .support_traces
+        .iter()
+        .filter_map(|trace| trace.validation.first_breach_metric)
+        .map(|metric| format!("{metric:?}"))
+        .next();
+    let support_envelope_ready_windows = result
+        .support_traces
+        .iter()
+        .filter(|trace| {
+            trace.envelope.construction_status == SupportEnvelopeConstructionStatusV0::Ready
+        })
+        .count();
+    let support_gate_applicable_windows = result
+        .support_traces
+        .iter()
+        .filter(|trace| {
+            trace.validation.gate_applicability == SupportGateApplicabilityStatusV0::Applicable
+        })
+        .count();
     let no_signal = result.selected_checkpoint_windows == 0;
+    let dominant_support_outcome = if no_signal {
+        RegimeDominantSupportOutcomeV0::NoUsableValidationSignal
+    } else if result.validation_in_support_windows > 0
+        && (result.validation_out_of_support_windows > 0 || result.out_of_support_windows > 0)
+    {
+        RegimeDominantSupportOutcomeV0::Mixed
+    } else if result.validation_out_of_support_windows > 0 {
+        RegimeDominantSupportOutcomeV0::ValidationOutOfSupport
+    } else if result.out_of_support_windows > 0 {
+        RegimeDominantSupportOutcomeV0::TestOutOfSupport
+    } else if result.validation_gate_unavailable_windows > 0 {
+        RegimeDominantSupportOutcomeV0::SupportGateUnavailable
+    } else if result.validation_insufficient_windows > 0 {
+        RegimeDominantSupportOutcomeV0::InsufficientSupportEvidence
+    } else if result.validation_in_support_windows > 0 {
+        RegimeDominantSupportOutcomeV0::ValidationInSupport
+    } else {
+        RegimeDominantSupportOutcomeV0::Mixed
+    };
     let support_abstained = !no_signal
         && operational_shadow_result
             != RegimeOperationalShadowResultV0::ShadowPredictionResearchOnly;
@@ -2041,12 +2143,13 @@ pub fn close_btc_temporal_regime_result_v0(
     reason_codes.sort();
     reason_codes.dedup();
     let report_digest = stable_hash_string(&format!(
-        "{}:{}:{:?}:{:?}:{:?}:{}:{}:{}",
+        "{}:{}:{:?}:{:?}:{:?}:{:?}:{}:{}:{}",
         result.report_digest,
         execution_trace.trace_digest,
         diagnostic_completeness,
         model_evidence_outcome,
         operational_shadow_result,
+        dominant_support_outcome,
         result.selected_checkpoint_windows,
         result.in_support_windows,
         reason_codes.join(":"),
@@ -2063,9 +2166,20 @@ pub fn close_btc_temporal_regime_result_v0(
         test_sealed_windows: result
             .campaign_windows
             .saturating_sub(result.selected_checkpoint_windows),
+        support_envelope_ready_windows,
+        support_gate_applicable_windows,
         in_support_windows: result.in_support_windows,
         out_of_support_windows: result.out_of_support_windows,
         support_unavailable_windows: result.support_unavailable_windows,
+        validation_in_support_windows: result.validation_in_support_windows,
+        validation_out_of_support_windows: result.validation_out_of_support_windows,
+        support_insufficient_windows: result.validation_insufficient_windows,
+        support_gate_unavailable_windows: result.validation_gate_unavailable_windows,
+        test_in_support_windows: result.in_support_windows,
+        test_out_of_support_windows: result.out_of_support_windows,
+        dominant_support_outcome,
+        first_breach_metric,
+        support_traces: result.support_traces.clone(),
         earliest_shift_stage: (!no_signal).then_some(result.earliest_shift_stage),
         temporal_root_cause: (!no_signal).then_some(result.temporal_root_cause),
         warm_start_status: result.warm_start_status,
@@ -2380,6 +2494,92 @@ pub fn aggregate_btc_cross_regime_closed_evidence_v0(
     }
 }
 
+pub fn aggregate_btc_cross_regime_support_evidence_v0(
+    results: &[BtcTemporalRegimeClosedResultV0],
+    config: &BtcHistoricalRegimeConfigV0,
+    representation_status: BtcCrossRegimeRepresentationStatusV0,
+) -> BtcCrossRegimeSupportEvidenceV0 {
+    let sum =
+        |f: fn(&BtcTemporalRegimeClosedResultV0) -> usize| results.iter().map(f).sum::<usize>();
+    let technically_completed_regimes = results
+        .iter()
+        .filter(|result| result.execution_health == RegimeExecutionHealthV0::Completed)
+        .count();
+    let total_campaign_windows = sum(|result| result.campaign_window_count);
+    let selected_checkpoint_windows = sum(|result| result.selected_checkpoint_windows);
+    let support_envelope_ready_windows = sum(|result| result.support_envelope_ready_windows);
+    let support_gate_applicable_windows = sum(|result| result.support_gate_applicable_windows);
+    let validation_in_support_windows = sum(|result| result.validation_in_support_windows);
+    let validation_out_of_support_windows = sum(|result| result.validation_out_of_support_windows);
+    let support_insufficient_windows = sum(|result| result.support_insufficient_windows);
+    let support_gate_unavailable_windows = sum(|result| result.support_gate_unavailable_windows);
+    let test_in_support_windows = sum(|result| result.test_in_support_windows);
+    let test_out_of_support_windows = sum(|result| result.test_out_of_support_windows);
+    let accepted_predictive_versions = sum(|result| result.accepted_predictive_versions);
+    let operational_abstentions = sum(|result| result.abstention_count);
+    let support_status = if technically_completed_regimes != results.len() {
+        BtcCrossRegimeSupportStatusV0::DiagnosticFailure
+    } else if total_campaign_windows > 0
+        && sum(|result| result.no_signal_windows) * 2 >= total_campaign_windows
+    {
+        BtcCrossRegimeSupportStatusV0::PredominantlyNoUsableValidationSignal
+    } else if accepted_predictive_versions >= config.minimum_regimes
+        && test_in_support_windows >= config.minimum_regimes
+    {
+        BtcCrossRegimeSupportStatusV0::RepeatedSupportQualifiedEvidence
+    } else if accepted_predictive_versions > 0 && test_in_support_windows > 0 {
+        BtcCrossRegimeSupportStatusV0::SparseSupportQualifiedEvidence
+    } else if validation_out_of_support_windows > 0
+        && validation_out_of_support_windows >= validation_in_support_windows
+    {
+        BtcCrossRegimeSupportStatusV0::ValidationOutOfSupportAcrossRegimes
+    } else if support_gate_unavailable_windows > 0
+        && support_gate_unavailable_windows >= support_gate_applicable_windows
+    {
+        BtcCrossRegimeSupportStatusV0::SupportGateUnavailableAcrossRegimes
+    } else if support_insufficient_windows > 0 {
+        BtcCrossRegimeSupportStatusV0::InsufficientSupportEvidence
+    } else if validation_in_support_windows > 0 || test_out_of_support_windows > 0 {
+        BtcCrossRegimeSupportStatusV0::MixedSupportEvidence
+    } else {
+        BtcCrossRegimeSupportStatusV0::NoSupportQualifiedEvidence
+    };
+    let report_digest = stable_hash_string(&format!(
+        "{:?}:{:?}:{}:{}:{}:{}:{}:{}",
+        support_status,
+        representation_status,
+        total_campaign_windows,
+        validation_in_support_windows,
+        validation_out_of_support_windows,
+        test_in_support_windows,
+        accepted_predictive_versions,
+        results
+            .iter()
+            .map(|result| result.report_digest.as_str())
+            .collect::<Vec<_>>()
+            .join(":"),
+    ));
+    BtcCrossRegimeSupportEvidenceV0 {
+        configured_regimes: config.minimum_regimes,
+        technically_completed_regimes,
+        total_campaign_windows,
+        selected_checkpoint_windows,
+        support_envelope_ready_windows,
+        support_gate_applicable_windows,
+        validation_in_support_windows,
+        validation_out_of_support_windows,
+        support_insufficient_windows,
+        support_gate_unavailable_windows,
+        test_in_support_windows,
+        test_out_of_support_windows,
+        accepted_predictive_versions,
+        operational_abstentions,
+        support_status,
+        representation_status,
+        report_digest,
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum ProspectiveHoldoutStatusV0 {
     #[default]
@@ -2641,6 +2841,7 @@ fn snapshot_for_regime(
 fn regime_evidence_from_report(
     regime: &BtcHistoricalRegimeV0,
     report: &MomentumTemporalDiagnosticReportV0,
+    support_traces: Vec<MomentumSupportTraceV0>,
     campaign_config_digest: String,
     encoder_parameter_digest: String,
 ) -> BtcTemporalRegimeEvidenceResultV0 {
@@ -2653,6 +2854,11 @@ fn regime_evidence_from_report(
         in_support_windows: report.aggregate.in_support_windows,
         out_of_support_windows: report.aggregate.out_of_support_windows,
         support_unavailable_windows: report.aggregate.support_gate_unavailable_windows,
+        validation_in_support_windows: report.aggregate.validation_in_support_windows,
+        validation_out_of_support_windows: report.aggregate.validation_out_of_support_windows,
+        validation_insufficient_windows: report.aggregate.validation_insufficient_windows,
+        validation_gate_unavailable_windows: report.aggregate.validation_gate_unavailable_windows,
+        support_traces,
         earliest_shift_stage: report.earliest_shift_stage,
         temporal_root_cause: report.temporal_root_cause,
         frozen_representation_breach_count: report.aggregate.representation_shift_windows,
@@ -3136,6 +3342,11 @@ mod tests {
             in_support_windows,
             out_of_support_windows,
             support_unavailable_windows: 0,
+            validation_in_support_windows: 0,
+            validation_out_of_support_windows: 0,
+            validation_insufficient_windows: 0,
+            validation_gate_unavailable_windows: 0,
+            support_traces: vec![],
             earliest_shift_stage: EarliestTemporalShiftStageV0::InsufficientEvidence,
             temporal_root_cause: ProbabilityCollapseRootCauseV0::Unknown,
             frozen_representation_breach_count: 0,
@@ -3252,6 +3463,40 @@ mod tests {
         assert_eq!(
             aggregate.diagnostic_failure_root_cause,
             Some(CrossRegimeDiagnosticFailureRootCauseV0::ModelConfigDigestMismatch)
+        );
+    }
+
+    #[test]
+    fn zero_support_qualified_paths_do_not_aggregate_as_sparse_support() {
+        let config = BtcHistoricalRegimeConfigV0 {
+            minimum_regimes: 2,
+            regime_rows: 8,
+            inter_regime_gap_rows: 0,
+            minimum_campaign_windows_per_regime: 1,
+            segmentation_policy: TemporalRegimeSegmentationPolicyV0::EqualLengthChronological,
+        };
+        let raw = vec![
+            regime_result("older", 0, 1, 0, 0),
+            regime_result("newer", 0, 1, 0, 0),
+        ];
+        let closed = raw
+            .iter()
+            .enumerate()
+            .map(|(rank, result)| {
+                close_btc_temporal_regime_result_v0(
+                    result,
+                    regime_reference(&result.regime_id, rank),
+                )
+            })
+            .collect::<Vec<_>>();
+        let support = aggregate_btc_cross_regime_support_evidence_v0(
+            &closed,
+            &config,
+            BtcCrossRegimeRepresentationStatusV0::SparseInSupportEvidence,
+        );
+        assert_eq!(
+            support.support_status,
+            BtcCrossRegimeSupportStatusV0::NoSupportQualifiedEvidence
         );
     }
 

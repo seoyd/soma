@@ -10,12 +10,22 @@ diagnostic completeness, model-evidence outcome, and operational Shadow result.
 This prevents a negative research outcome from being mistaken for an execution
 error.
 
+Support diagnostics add a separate trace layer: train-only envelope
+construction, gate applicability, deterministic validation metrics, validation
+decision, and test decision. A validation threshold breach is
+`OutOfSupport`; it is not support-gate unavailability. When validation rejects
+a path, its test support result is explicitly `NotEvaluated`.
+
 No usable validation signal is a completed abstention: the checkpoint and test
 paths remain inapplicable, the test stays sealed, no predictive version is
 accepted, and the cross-regime result may be `PredominantlyNoUsableSignal`.
 A support gate that cannot be evaluated is likewise a completed, explicit
 Shadow abstention. Zero accepted predictive versions is a safety and evidence
 result, not a runtime failure.
+
+Cross-regime representation status and support status are independent. Sparse
+support evidence is permitted only when at least one actual support-qualified
+research version exists; a zero-qualified result cannot be labelled sparse.
 
 `DiagnosticFailure` is reserved for an untrustworthy technical result, such as
 a pack or config-digest failure, a missing required metric, a failed report

@@ -38,6 +38,12 @@ causes, warm/cold status, abstentions, and ShadowOnly boundaries. Research-only
 counterfactual results are recorded as consumed evidence and never promote a
 model.
 
+Support traces preserve envelope readiness, gate applicability, required metric
+values and thresholds, first breach, validation decision, and the explicit
+`NotEvaluated` test state after a validation rejection. A deterministic,
+label-free train-history applicability audit is diagnostic-only and cannot
+change model selection or support thresholds.
+
 Cross-regime aggregation consumes sealed reports rather than mutable campaign
 internals. It separates execution health, diagnostic completeness, model
 evidence, and operational Shadow output. A no-signal, OutOfSupport, or
@@ -47,3 +53,8 @@ can be called recurrent only after the configured number of independent
 chronological packs shows that stage without an earlier feature or sequence
 explanation. Sparse, no-signal, mixed, or insufficient regimes remain visible
 and cannot be called cross-market evidence.
+
+The support aggregate is intentionally independent from representation status:
+it reports actual validation and test support counts, true gate failures,
+insufficient evidence, and accepted Shadow-only versions. A stable
+representation result is not proof of recurrent support-qualified prediction.
