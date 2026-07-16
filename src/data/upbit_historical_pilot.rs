@@ -421,6 +421,146 @@ pub struct SanitizedUpbitBackfillDryRunV0 {
     pub plan_digest: String,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum HistoricalConflictForensicsStatusV0 {
+    ConflictArtifactUnavailable,
+    ConflictReproduced,
+    FullPageOverlap,
+    BoundaryOverlapOnly,
+    IncompleteBarMutation,
+    CompletedBarProviderRevision,
+    CursorPlanningBug,
+    TimestampBoundaryBug,
+    CanonicalNormalizationMismatch,
+    ExistingSnapshotDefect,
+    MixedConflictCauses,
+    ConflictRootCauseIdentified,
+    #[default]
+    Unknown,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum HistoricalMergeConflictRootCauseV0 {
+    RequestCursorOverlappedExistingRange,
+    CurrentOrIncompleteDailyBarChanged,
+    ProviderRevisedFinalizedBar,
+    TimestampConversionMismatch,
+    CanonicalNormalizationVersionMismatch,
+    SymbolOrMarketMismatch,
+    ExistingSnapshotCorruption,
+    FetchedPageCorruption,
+    DuplicatePolicyBug,
+    MultipleCauses,
+    #[default]
+    Unknown,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DailyBarFinalityStatusV0 {
+    Finalized,
+    PotentiallyOpen,
+    ContractBoundaryAmbiguous,
+    #[default]
+    InsufficientMetadata,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum StrictHistoricalRequestPlanStatusV0 {
+    ReadyZeroOverlap,
+    ExistingEvidenceAlreadySufficient,
+    InvalidExistingRange,
+    CursorNotStrictlyOlder,
+    ExpectedOverlapNonZero,
+    RequestCountInvalid,
+    RequestBudgetRejected,
+    #[default]
+    ContractSemanticsUnavailable,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum StrictOlderPageExecutionStatusV0 {
+    #[default]
+    NotAttempted,
+    NetworkConsentRequired,
+    PreflightBlocked,
+    RequestExecuted,
+    RateLimitedStopped,
+    PermissionDeniedStopped,
+    TransportFailure,
+    ProviderFailure,
+    ParseFailure,
+    UnexpectedOverlap,
+    ReturnedRangeNotOlder,
+    ValidationFailure,
+    OlderPageAccepted,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum HistoricalConflictFieldV0 {
+    Symbol,
+    Timestamp,
+    Open,
+    High,
+    Low,
+    Close,
+    Volume,
+    TradeValue,
+    MarketScope,
+    DatasetKind,
+    SchemaVersion,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct HistoricalFieldConflictCountV0 {
+    pub field: HistoricalConflictFieldV0,
+    pub count: usize,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct HistoricalDuplicateConflictReportV0 {
+    pub accepted_row_count: usize,
+    pub fetched_row_count: usize,
+    pub overlapping_timestamp_count: usize,
+    pub identical_duplicate_count: usize,
+    pub conflicting_duplicate_count: usize,
+    pub first_conflict_timestamp_class: String,
+    pub first_conflicting_field: Option<HistoricalConflictFieldV0>,
+    pub conflicting_field_counts: Vec<HistoricalFieldConflictCountV0>,
+    pub finalized_conflict_count: usize,
+    pub potentially_open_conflict_count: usize,
+    pub previous_request_cursor_class: String,
+    pub root_cause: HistoricalMergeConflictRootCauseV0,
+    pub forensic_status: HistoricalConflictForensicsStatusV0,
+    pub report_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct HistoricalCursorProofV0 {
+    pub existing_oldest_timestamp: u64,
+    pub requested_exclusive_end: u64,
+    pub expected_relation: String,
+    pub expected_overlap_rows: usize,
+    pub requested_count: usize,
+    pub additional_rows_required: usize,
+    pub provider_count_limit: usize,
+    pub proof_status: StrictHistoricalRequestPlanStatusV0,
+    pub proof_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StrictOlderPageValidationV0 {
+    pub status: StrictOlderPageExecutionStatusV0,
+    pub returned_row_count: usize,
+    pub overlapping_timestamp_count: usize,
+    pub returned_range_relation: String,
+}
+
 pub fn ethical_upbit_request_budget_v0(
     config: &UpbitHistoricalPilotConfigV0,
 ) -> EthicalExternalRequestBudgetV0 {
@@ -527,6 +667,309 @@ pub fn sanitized_upbit_backfill_dry_run_v0(
         projected_regime_count: requirement.minimum_regimes,
         plan_status: requirement.plan_status,
         plan_digest: stable_hash_string(&material),
+    }
+}
+
+pub fn inspect_upbit_duplicate_conflict_v0(
+    accepted: &DataSnapshot,
+    fetched: &DataSnapshot,
+) -> Result<HistoricalDuplicateConflictReportV0, String> {
+    if accepted.normalized_dataset.symbol != fetched.normalized_dataset.symbol
+        || accepted.market_scope != fetched.market_scope
+        || accepted.dataset_kind != fetched.dataset_kind
+    {
+        return Err("upbit conflict artifacts are not comparable".to_string());
+    }
+    let accepted_rows = accepted
+        .normalized_dataset
+        .rows
+        .iter()
+        .map(|row| (row.timestamp_ms, row))
+        .collect::<BTreeMap<_, _>>();
+    let mut fields = BTreeMap::<HistoricalConflictFieldV0, usize>::new();
+    let mut overlap = 0usize;
+    let mut identical = 0usize;
+    let mut conflicting = 0usize;
+    let mut finalized = 0usize;
+    let mut potentially_open = 0usize;
+    let mut first_field = None;
+    for fetched_row in &fetched.normalized_dataset.rows {
+        let Some(accepted_row) = accepted_rows.get(&fetched_row.timestamp_ms) else {
+            continue;
+        };
+        overlap += 1;
+        let differences = canonical_row_differences_v0(accepted_row, fetched_row);
+        if differences.is_empty() {
+            identical += 1;
+            continue;
+        }
+        conflicting += 1;
+        for field in differences {
+            *fields.entry(field).or_default() += 1;
+            if first_field.is_none() {
+                first_field = Some(field);
+            }
+        }
+        let accepted_finality =
+            daily_bar_finality_v0(accepted_row.timestamp_ms, accepted.fetched_at_ms);
+        let fetched_finality =
+            daily_bar_finality_v0(fetched_row.timestamp_ms, fetched.fetched_at_ms);
+        if accepted_finality == DailyBarFinalityStatusV0::Finalized
+            && fetched_finality == DailyBarFinalityStatusV0::Finalized
+        {
+            finalized += 1;
+        } else {
+            potentially_open += 1;
+        }
+    }
+    let existing_oldest = accepted
+        .normalized_dataset
+        .rows
+        .first()
+        .map(|row| row.timestamp_ms)
+        .ok_or_else(|| "accepted snapshot has no rows".to_string())?;
+    let previous_cursor = fetched.requested_lookback.end_timestamp_ms;
+    let cursor_overlapped = previous_cursor.is_some_and(|cursor| cursor > existing_oldest);
+    let root_cause = if conflicting == 0 {
+        HistoricalMergeConflictRootCauseV0::Unknown
+    } else if cursor_overlapped {
+        HistoricalMergeConflictRootCauseV0::RequestCursorOverlappedExistingRange
+    } else if potentially_open > 0 {
+        HistoricalMergeConflictRootCauseV0::CurrentOrIncompleteDailyBarChanged
+    } else {
+        HistoricalMergeConflictRootCauseV0::ProviderRevisedFinalizedBar
+    };
+    let forensic_status = if conflicting == 0 {
+        HistoricalConflictForensicsStatusV0::ConflictReproduced
+    } else if cursor_overlapped {
+        HistoricalConflictForensicsStatusV0::CursorPlanningBug
+    } else if potentially_open > 0 {
+        HistoricalConflictForensicsStatusV0::IncompleteBarMutation
+    } else {
+        HistoricalConflictForensicsStatusV0::CompletedBarProviderRevision
+    };
+    let field_counts = fields
+        .into_iter()
+        .map(|(field, count)| HistoricalFieldConflictCountV0 { field, count })
+        .collect::<Vec<_>>();
+    let cursor_class = if cursor_overlapped {
+        "at_or_after_existing_oldest"
+    } else if previous_cursor == Some(existing_oldest) {
+        "exclusive_existing_oldest"
+    } else {
+        "unavailable_or_older"
+    };
+    let material = format!(
+        "{}:{}:{}:{}:{}:{:?}:{:?}:{}:{}:{}:{:?}:{:?}",
+        accepted.row_count,
+        fetched.row_count,
+        overlap,
+        identical,
+        conflicting,
+        first_field,
+        field_counts,
+        finalized,
+        potentially_open,
+        cursor_class,
+        root_cause,
+        forensic_status,
+    );
+    Ok(HistoricalDuplicateConflictReportV0 {
+        accepted_row_count: accepted.row_count,
+        fetched_row_count: fetched.row_count,
+        overlapping_timestamp_count: overlap,
+        identical_duplicate_count: identical,
+        conflicting_duplicate_count: conflicting,
+        first_conflict_timestamp_class: if conflicting == 0 {
+            "none".to_string()
+        } else {
+            "daily_utc_bucket".to_string()
+        },
+        first_conflicting_field: first_field,
+        conflicting_field_counts: field_counts,
+        finalized_conflict_count: finalized,
+        potentially_open_conflict_count: potentially_open,
+        previous_request_cursor_class: cursor_class.to_string(),
+        root_cause,
+        forensic_status,
+        report_digest: stable_hash_string(&material),
+    })
+}
+
+pub fn build_strict_older_cursor_proof_v0(
+    existing: &DataSnapshot,
+    additional_rows_required: usize,
+    config: &UpbitHistoricalPilotConfigV0,
+) -> HistoricalCursorProofV0 {
+    let existing_oldest_timestamp = existing
+        .normalized_dataset
+        .rows
+        .first()
+        .map(|row| row.timestamp_ms)
+        .unwrap_or_default();
+    let requested_exclusive_end = existing_oldest_timestamp;
+    let provider_count_limit = UPBIT_MAX_CANDLES_PER_REQUEST.min(config.page_size);
+    let requested_count = additional_rows_required.min(provider_count_limit);
+    let proof_status = if existing_oldest_timestamp == 0
+        || existing
+            .normalized_dataset
+            .rows
+            .windows(2)
+            .any(|pair| pair[0].timestamp_ms >= pair[1].timestamp_ms)
+    {
+        StrictHistoricalRequestPlanStatusV0::InvalidExistingRange
+    } else if additional_rows_required == 0 {
+        StrictHistoricalRequestPlanStatusV0::ExistingEvidenceAlreadySufficient
+    } else if requested_exclusive_end <= config.start_timestamp_ms {
+        StrictHistoricalRequestPlanStatusV0::CursorNotStrictlyOlder
+    } else if requested_count == 0 || requested_count != additional_rows_required {
+        StrictHistoricalRequestPlanStatusV0::RequestCountInvalid
+    } else if config.maximum_pages != 1 {
+        StrictHistoricalRequestPlanStatusV0::RequestBudgetRejected
+    } else {
+        StrictHistoricalRequestPlanStatusV0::ReadyZeroOverlap
+    };
+    let material = format!(
+        "{}:{}:{}:{}:{}:{}:{:?}",
+        existing_oldest_timestamp,
+        requested_exclusive_end,
+        additional_rows_required,
+        requested_count,
+        provider_count_limit,
+        0,
+        proof_status,
+    );
+    HistoricalCursorProofV0 {
+        existing_oldest_timestamp,
+        requested_exclusive_end,
+        expected_relation: "all_returned_rows_strictly_older".to_string(),
+        expected_overlap_rows: 0,
+        requested_count,
+        additional_rows_required,
+        provider_count_limit,
+        proof_status,
+        proof_digest: stable_hash_string(&material),
+    }
+}
+
+pub fn validate_strictly_older_upbit_page_v0(
+    existing: &DataSnapshot,
+    fetched: &DataSnapshot,
+    expected_count: usize,
+) -> StrictOlderPageValidationV0 {
+    let Some(existing_oldest) = existing
+        .normalized_dataset
+        .rows
+        .first()
+        .map(|row| row.timestamp_ms)
+    else {
+        return strict_page_validation(
+            StrictOlderPageExecutionStatusV0::ValidationFailure,
+            fetched.row_count,
+            0,
+        );
+    };
+    let overlap = fetched
+        .normalized_dataset
+        .rows
+        .iter()
+        .filter(|row| row.timestamp_ms == existing_oldest)
+        .count();
+    if fetched.row_count != expected_count {
+        return strict_page_validation(
+            StrictOlderPageExecutionStatusV0::ValidationFailure,
+            fetched.row_count,
+            overlap,
+        );
+    }
+    if overlap > 0 {
+        return strict_page_validation(
+            StrictOlderPageExecutionStatusV0::UnexpectedOverlap,
+            fetched.row_count,
+            overlap,
+        );
+    }
+    if fetched
+        .normalized_dataset
+        .rows
+        .iter()
+        .any(|row| row.timestamp_ms >= existing_oldest)
+    {
+        return strict_page_validation(
+            StrictOlderPageExecutionStatusV0::ReturnedRangeNotOlder,
+            fetched.row_count,
+            0,
+        );
+    }
+    strict_page_validation(
+        StrictOlderPageExecutionStatusV0::OlderPageAccepted,
+        fetched.row_count,
+        0,
+    )
+}
+
+fn canonical_row_differences_v0(
+    accepted: &HistoricalOhlcvRow,
+    fetched: &HistoricalOhlcvRow,
+) -> Vec<HistoricalConflictFieldV0> {
+    let mut fields = Vec::new();
+    if accepted.symbol != fetched.symbol {
+        fields.push(HistoricalConflictFieldV0::Symbol);
+    }
+    if accepted.timestamp_ms != fetched.timestamp_ms {
+        fields.push(HistoricalConflictFieldV0::Timestamp);
+    }
+    if accepted.open.to_bits() != fetched.open.to_bits() {
+        fields.push(HistoricalConflictFieldV0::Open);
+    }
+    if accepted.high.to_bits() != fetched.high.to_bits() {
+        fields.push(HistoricalConflictFieldV0::High);
+    }
+    if accepted.low.to_bits() != fetched.low.to_bits() {
+        fields.push(HistoricalConflictFieldV0::Low);
+    }
+    if accepted.close.to_bits() != fetched.close.to_bits() {
+        fields.push(HistoricalConflictFieldV0::Close);
+    }
+    if accepted.volume.to_bits() != fetched.volume.to_bits() {
+        fields.push(HistoricalConflictFieldV0::Volume);
+    }
+    if accepted.trade_value.map(f64::to_bits) != fetched.trade_value.map(f64::to_bits) {
+        fields.push(HistoricalConflictFieldV0::TradeValue);
+    }
+    fields
+}
+
+fn daily_bar_finality_v0(timestamp_ms: u64, acquired_at_ms: u64) -> DailyBarFinalityStatusV0 {
+    const DAILY_MS: u64 = 86_400_000;
+    if timestamp_ms % DAILY_MS != 0 {
+        DailyBarFinalityStatusV0::ContractBoundaryAmbiguous
+    } else if acquired_at_ms >= timestamp_ms.saturating_add(DAILY_MS) {
+        DailyBarFinalityStatusV0::Finalized
+    } else {
+        DailyBarFinalityStatusV0::PotentiallyOpen
+    }
+}
+
+fn strict_page_validation(
+    status: StrictOlderPageExecutionStatusV0,
+    returned_row_count: usize,
+    overlapping_timestamp_count: usize,
+) -> StrictOlderPageValidationV0 {
+    StrictOlderPageValidationV0 {
+        status,
+        returned_row_count,
+        overlapping_timestamp_count,
+        returned_range_relation: match status {
+            StrictOlderPageExecutionStatusV0::OlderPageAccepted => "strictly_older".to_string(),
+            StrictOlderPageExecutionStatusV0::UnexpectedOverlap => {
+                "equal_timestamp_overlap".to_string()
+            }
+            StrictOlderPageExecutionStatusV0::ReturnedRangeNotOlder => {
+                "at_or_after_existing_oldest".to_string()
+            }
+            _ => "invalid".to_string(),
+        },
     }
 }
 
@@ -1050,7 +1493,9 @@ pub fn run_manual_upbit_historical_backfill_at_end_v0(
             vec!["ethical_request_budget_invalid".to_string()],
         );
     }
+    config.max_retries = 0;
     let required_rows = campaign_required_rows.min(config.target_rows);
+    let requested_count = required_rows.min(config.page_size);
     let required_pages = required_rows.div_ceil(config.page_size);
     if required_pages == 0 || required_pages > budget.maximum_requests {
         return backfill_result(
@@ -1062,7 +1507,7 @@ pub fn run_manual_upbit_historical_backfill_at_end_v0(
     let execution_started = Instant::now();
 
     let (first_snapshot, first_receipt) =
-        match acquire_upbit_page_v0(&config, config.end_timestamp_ms, config.page_size) {
+        match acquire_upbit_page_v0(&config, config.end_timestamp_ms, requested_count) {
             Ok(value) => value,
             Err(reason) => {
                 return backfill_result(
@@ -2353,6 +2798,103 @@ mod tests {
         );
         assert!(select_backfill_end_cursor_v0(&config, Some(config.start_timestamp_ms)).is_err());
         assert!(select_backfill_end_cursor_v0(&config, Some(config.end_timestamp_ms + 1)).is_err());
+    }
+
+    #[test]
+    fn duplicate_forensics_identify_cursor_overlap_and_bit_exact_field_difference() {
+        let accepted = local_snapshot(
+            parse_upbit_daily_ohlcv_v0(
+                r#"[
+                  {"market":"KRW-BTC","candle_date_time_utc":"2024-01-01T00:00:00","opening_price":1.0,"high_price":2.0,"low_price":0.5,"trade_price":1.5,"candle_acc_trade_volume":1.0},
+                  {"market":"KRW-BTC","candle_date_time_utc":"2024-01-02T00:00:00","opening_price":2.0,"high_price":3.0,"low_price":1.0,"trade_price":2.5,"candle_acc_trade_volume":1.0}
+                ]"#,
+                "KRW-BTC",
+            )
+            .unwrap(),
+            "unused",
+        );
+        let mut fetched = accepted.clone();
+        fetched.normalized_dataset.rows[0].close = 9.0;
+        fetched.content_digest = dataset_digest(&fetched.normalized_dataset);
+        fetched.snapshot_id =
+            crate::data::snapshot_id_from_semantic_digest_v1(&fetched.content_digest);
+        fetched.requested_lookback.end_timestamp_ms =
+            Some(accepted.normalized_dataset.rows[1].timestamp_ms + 86_400_000);
+        let report = inspect_upbit_duplicate_conflict_v0(&accepted, &fetched).unwrap();
+        assert_eq!(report.overlapping_timestamp_count, 2);
+        assert_eq!(report.identical_duplicate_count, 1);
+        assert_eq!(report.conflicting_duplicate_count, 1);
+        assert_eq!(
+            report.first_conflicting_field,
+            Some(HistoricalConflictFieldV0::Close)
+        );
+        assert_eq!(report.finalized_conflict_count, 1);
+        assert_eq!(
+            report.root_cause,
+            HistoricalMergeConflictRootCauseV0::RequestCursorOverlappedExistingRange
+        );
+    }
+
+    #[test]
+    fn strict_cursor_proof_uses_oldest_row_and_exact_missing_count() {
+        let dataset = parse_upbit_daily_ohlcv_v0(
+            r#"[
+              {"market":"KRW-BTC","candle_date_time_utc":"2024-01-01T00:00:00","opening_price":1.0,"high_price":2.0,"low_price":0.5,"trade_price":1.5,"candle_acc_trade_volume":1.0},
+              {"market":"KRW-BTC","candle_date_time_utc":"2024-01-02T00:00:00","opening_price":2.0,"high_price":3.0,"low_price":1.0,"trade_price":2.5,"candle_acc_trade_volume":1.0}
+            ]"#,
+            "KRW-BTC",
+        )
+        .unwrap();
+        let existing = local_snapshot(dataset, "unused");
+        let mut strict_config = config();
+        strict_config.start_timestamp_ms -= 86_400_000;
+        strict_config.maximum_pages = 1;
+        strict_config.target_rows = 2;
+        let proof = build_strict_older_cursor_proof_v0(&existing, 2, &strict_config);
+        assert_eq!(
+            proof.requested_exclusive_end,
+            existing.normalized_dataset.rows[0].timestamp_ms
+        );
+        assert_eq!(proof.requested_count, 2);
+        assert_eq!(proof.expected_overlap_rows, 0);
+        assert_eq!(
+            proof.proof_status,
+            StrictHistoricalRequestPlanStatusV0::ReadyZeroOverlap
+        );
+    }
+
+    #[test]
+    fn strict_page_validation_accepts_only_non_overlapping_older_rows() {
+        let existing = local_snapshot(
+            parse_upbit_daily_ohlcv_v0(
+                r#"[
+                  {"market":"KRW-BTC","candle_date_time_utc":"2024-01-03T00:00:00","opening_price":3.0,"high_price":4.0,"low_price":2.0,"trade_price":3.5,"candle_acc_trade_volume":1.0},
+                  {"market":"KRW-BTC","candle_date_time_utc":"2024-01-04T00:00:00","opening_price":4.0,"high_price":5.0,"low_price":3.0,"trade_price":4.5,"candle_acc_trade_volume":1.0}
+                ]"#,
+                "KRW-BTC",
+            )
+            .unwrap(),
+            "unused",
+        );
+        let older = local_snapshot(
+            parse_upbit_daily_ohlcv_v0(
+                r#"[
+                  {"market":"KRW-BTC","candle_date_time_utc":"2024-01-01T00:00:00","opening_price":1.0,"high_price":2.0,"low_price":0.5,"trade_price":1.5,"candle_acc_trade_volume":1.0},
+                  {"market":"KRW-BTC","candle_date_time_utc":"2024-01-02T00:00:00","opening_price":2.0,"high_price":3.0,"low_price":1.0,"trade_price":2.5,"candle_acc_trade_volume":1.0}
+                ]"#,
+                "KRW-BTC",
+            )
+            .unwrap(),
+            "unused",
+        );
+        assert_eq!(
+            validate_strictly_older_upbit_page_v0(&existing, &older, 2).status,
+            StrictOlderPageExecutionStatusV0::OlderPageAccepted
+        );
+        assert_eq!(
+            validate_strictly_older_upbit_page_v0(&existing, &existing, 2).status,
+            StrictOlderPageExecutionStatusV0::UnexpectedOverlap
+        );
     }
 
     #[test]

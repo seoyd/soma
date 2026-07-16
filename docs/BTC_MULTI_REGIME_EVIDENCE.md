@@ -15,6 +15,10 @@ minimum whole-page count, validates a bounded request budget, and emits a
 sanitized dry-run digest. It uses one sequential request at a time and stops on
 429 or permission failure without retry.
 
+When a prior page conflicts, it is first inspected offline. A strict replacement
+page is allowed only after a deterministic zero-overlap cursor proof; it must
+append entirely before the accepted history and cannot reconcile duplicates.
+
 Every accessed historical range is permanently classified in the deterministic
 usage ledger: training, validation, test, diagnostics, counterfactual, or
 development eligibility. The ledger contains timestamps and immutable IDs only;

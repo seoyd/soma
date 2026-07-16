@@ -20,6 +20,11 @@ Provider-side retry instructions are not consumed because the bounded endpoint
 client deliberately does not persist response headers; a later protocol change
 must add a validated, capped header contract before it can rely on one.
 
+For strict historical repair, the live policy overrides configured retry
+allowance to zero. It derives the request `to` bound only from the oldest
+accepted canonical timestamp and rejects every response row at or after that
+boundary.
+
 Each accepted page is normalized and verified through the existing acquisition
 broker. Pages are chronology-checked, deduplicated only when identical, and
 merged deterministically. Existing snapshots are never overwritten: a merged

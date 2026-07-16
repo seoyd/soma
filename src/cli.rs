@@ -322,6 +322,30 @@ fn run_btc_multi_regime_evidence_report(
     );
     let dry_run =
         crate::data::sanitized_upbit_backfill_dry_run_v0(&evidence_requirement, &request_budget);
+    let forensic_reference = local_snapshots
+        .iter()
+        .min_by_key(|candidate| candidate.fetched_at_ms)
+        .unwrap_or(snapshot);
+    let conflict_report = local_snapshots
+        .iter()
+        .filter(|candidate| {
+            candidate.provider_id == "upbit"
+                && candidate.normalized_dataset.symbol == snapshot.normalized_dataset.symbol
+                && candidate.request_key.starts_with("upbit-daily-page:")
+        })
+        .filter_map(|candidate| {
+            crate::data::inspect_upbit_duplicate_conflict_v0(forensic_reference, candidate)
+                .ok()
+                .map(|report| (candidate.fetched_at_ms, report))
+        })
+        .filter(|(_, report)| report.conflicting_duplicate_count > 0)
+        .max_by_key(|(fetched_at_ms, _)| *fetched_at_ms)
+        .map(|(_, report)| report);
+    let strict_cursor_proof = crate::data::build_strict_older_cursor_proof_v0(
+        snapshot,
+        evidence_requirement.additional_rows_required,
+        &local_config,
+    );
     let mut expansion_status = if allow_network {
         crate::model::BtcHistoricalExpansionStatusV0::BackfillPreflightBlocked
     } else {
@@ -339,72 +363,54 @@ fn run_btc_multi_regime_evidence_report(
         expansion_status =
             crate::model::BtcHistoricalExpansionStatusV0::BackfillRequestBudgetRejected;
     }
-    let cached_harvest = local_snapshots
-        .iter()
-        .filter(|candidate| {
-            candidate.provider_id == "upbit"
-                && candidate.normalized_dataset.symbol == snapshot.normalized_dataset.symbol
-                && candidate.request_key.starts_with("upbit-daily-page:")
-        })
-        .max_by_key(|candidate| candidate.fetched_at_ms);
-    if let Some(harvested) = cached_harvest {
-        backfill_rows = harvested.row_count;
-        backfill_pages = 1;
-        match crate::data::merge_existing_upbit_snapshot_v0(snapshot, harvested).and_then(
-            |(merged, _)| {
-                crate::data::write_and_verify_local_snapshot_v0(
-                    &merged,
-                    Path::new(&local_config.snapshot_output_dir),
-                )?;
-                Ok(merged)
-            },
-        ) {
-            Ok(merged) => {
-                evidence_snapshot = merged;
-                expansion_status =
-                    crate::model::BtcHistoricalExpansionStatusV0::ExpandedSnapshotAccepted;
-                expansion_reason = "cached_harvest_merged_without_network".to_string();
-            }
-            Err(reason) => {
-                expansion_status =
-                    crate::model::BtcHistoricalExpansionStatusV0::ExpandedSnapshotRejected;
-                expansion_reason = reason;
-            }
-        }
-    } else if allow_network
+    if allow_network
         && preflight.status == crate::data::UpbitHistoricalPreflightStatusV0::Ready
         && evidence_requirement.plan_status == crate::data::BackfillRequestPlanStatusV0::Ready
+        && strict_cursor_proof.proof_status
+            == crate::data::StrictHistoricalRequestPlanStatusV0::ReadyZeroOverlap
     {
         let backfill = crate::data::run_manual_upbit_historical_backfill_at_end_v0(
             config_path,
             true,
-            evidence_requirement.additional_rows_required,
-            snapshot.actual_start_timestamp_ms,
+            strict_cursor_proof.requested_count,
+            Some(strict_cursor_proof.requested_exclusive_end),
         );
         backfill_rows = backfill.row_count;
         backfill_pages = backfill.page_receipts.len();
         if let Some(path) = backfill.local_snapshot_path {
             let harvested = crate::data::read_local_snapshot_protobuf_v1(Path::new(&path))?;
-            match crate::data::merge_existing_upbit_snapshot_v0(snapshot, &harvested).and_then(
-                |(merged, _)| {
-                    crate::data::write_and_verify_local_snapshot_v0(
-                        &merged,
-                        Path::new(&local_config.snapshot_output_dir),
-                    )?;
-                    Ok(merged)
-                },
-            ) {
-                Ok(merged) => {
-                    evidence_snapshot = merged;
-                    expansion_status =
-                        crate::model::BtcHistoricalExpansionStatusV0::ExpandedSnapshotAccepted;
-                    expansion_reason = "fresh_harvest_merged".to_string();
+            let validation = crate::data::validate_strictly_older_upbit_page_v0(
+                snapshot,
+                &harvested,
+                strict_cursor_proof.requested_count,
+            );
+            if validation.status == crate::data::StrictOlderPageExecutionStatusV0::OlderPageAccepted
+            {
+                match crate::data::merge_existing_upbit_snapshot_v0(snapshot, &harvested).and_then(
+                    |(merged, _)| {
+                        crate::data::write_and_verify_local_snapshot_v0(
+                            &merged,
+                            Path::new(&local_config.snapshot_output_dir),
+                        )?;
+                        Ok(merged)
+                    },
+                ) {
+                    Ok(merged) => {
+                        evidence_snapshot = merged;
+                        expansion_status =
+                            crate::model::BtcHistoricalExpansionStatusV0::ExpandedSnapshotAccepted;
+                        expansion_reason = "strict_older_page_merged".to_string();
+                    }
+                    Err(reason) => {
+                        expansion_status =
+                            crate::model::BtcHistoricalExpansionStatusV0::ExpandedSnapshotRejected;
+                        expansion_reason = reason;
+                    }
                 }
-                Err(reason) => {
-                    expansion_status =
-                        crate::model::BtcHistoricalExpansionStatusV0::ExpandedSnapshotRejected;
-                    expansion_reason = reason;
-                }
+            } else {
+                expansion_status =
+                    crate::model::BtcHistoricalExpansionStatusV0::ExpandedSnapshotRejected;
+                expansion_reason = format!("strict_page_rejected:{:?}", validation.status);
             }
         } else {
             expansion_status = crate::model::BtcHistoricalExpansionStatusV0::BackfillFailed;
@@ -505,6 +511,93 @@ fn run_btc_multi_regime_evidence_report(
         ledger.maximum_consumed_timestamp_ms
     );
     println!("upbit_preflight={:?}", preflight.status);
+    println!(
+        "conflict_forensics_status={}",
+        conflict_report
+            .as_ref()
+            .map(|report| format!("{:?}", report.forensic_status))
+            .unwrap_or_else(|| "ConflictArtifactUnavailable".to_string())
+    );
+    println!(
+        "conflict_overlap_count={}",
+        conflict_report
+            .as_ref()
+            .map(|report| report.overlapping_timestamp_count)
+            .unwrap_or_default()
+    );
+    println!(
+        "conflict_count={}",
+        conflict_report
+            .as_ref()
+            .map(|report| report.conflicting_duplicate_count)
+            .unwrap_or_default()
+    );
+    println!(
+        "conflict_identical_count={}",
+        conflict_report
+            .as_ref()
+            .map(|report| report.identical_duplicate_count)
+            .unwrap_or_default()
+    );
+    println!(
+        "conflict_first_field={}",
+        conflict_report
+            .as_ref()
+            .and_then(|report| report.first_conflicting_field)
+            .map(|field| format!("{field:?}"))
+            .unwrap_or_default()
+    );
+    println!(
+        "conflict_finalized_count={}",
+        conflict_report
+            .as_ref()
+            .map(|report| report.finalized_conflict_count)
+            .unwrap_or_default()
+    );
+    println!(
+        "conflict_potentially_open_count={}",
+        conflict_report
+            .as_ref()
+            .map(|report| report.potentially_open_conflict_count)
+            .unwrap_or_default()
+    );
+    println!(
+        "previous_request_cursor_class={}",
+        conflict_report
+            .as_ref()
+            .map(|report| report.previous_request_cursor_class.as_str())
+            .unwrap_or_default()
+    );
+    println!(
+        "conflict_root_cause={}",
+        conflict_report
+            .as_ref()
+            .map(|report| format!("{:?}", report.root_cause))
+            .unwrap_or_else(|| "Unknown".to_string())
+    );
+    println!(
+        "conflict_report_digest={}",
+        conflict_report
+            .as_ref()
+            .map(|report| report.report_digest.as_str())
+            .unwrap_or_default()
+    );
+    println!(
+        "strict_cursor_proof_status={:?}",
+        strict_cursor_proof.proof_status
+    );
+    println!(
+        "strict_cursor_requested_count={}",
+        strict_cursor_proof.requested_count
+    );
+    println!(
+        "strict_cursor_expected_overlap={}",
+        strict_cursor_proof.expected_overlap_rows
+    );
+    println!(
+        "strict_cursor_proof_digest={}",
+        strict_cursor_proof.proof_digest
+    );
     println!(
         "backfill_plan_status={:?}",
         evidence_requirement.plan_status
