@@ -11,6 +11,18 @@ candidates. The initial manifest is sealed, unopened, and has no label access;
 when no later rows have been collected its status is
 `PolicySealedNoFutureRows`.
 
+Prospective rows first enter a separate append-only vault under a sealed
+challenge capsule. They are not merged into historical snapshots, development
+packs, or training inputs. Before one-time opening, the vault and prediction
+journal expose only count and digest status; neither future values, sealed
+probabilities, labels, nor interim quality metrics are displayed.
+
+The challenge freezes one Shadow-only candidate, frozen Linear and Constant
+comparators, feature/label/support/collapse policies, metric policy, and
+opening requirements before future-row access. Candidate substitution,
+comparator refitting, early label access, vault/journal modification, or a
+second opening permanently invalidates the challenge.
+
 When an immutable history expands, its full accepted timestamp range is added
 to the usage ledger as diagnostics/development evidence in addition to any
 campaign-specific records. This prevents an uninspected portion of a newly

@@ -4,7 +4,13 @@
 //! read-only broker. Provider-specific parsing, active voting, and execution
 //! remain outside it.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    fs,
+    path::Path,
+};
+
+use serde::{Deserialize, Serialize};
 
 use crate::{
     core::{ReasonCode, stable_hash_string},
@@ -19,11 +25,13 @@ use crate::{
 };
 
 use super::{
-    EarliestTemporalShiftStageV0, FrozenMamba3EncoderV0, MambaRepresentationValueStatusV0,
-    ModelDriftStatusV0, MomentumLearningCampaignConfigV0, MomentumLearningCampaignResultV0,
-    MomentumLearningCampaignStatusV0, MomentumSupportTraceV0, MomentumTemporalDiagnosticReportV0,
-    ProbabilityCollapseRootCauseV0, SupportEnvelopeConstructionStatusV0,
-    SupportGateApplicabilityStatusV0, SupportGatedMomentumSeriesVerdictV0, WarmStartLockInStatusV0,
+    ConstantProbabilityBaselineV0, EarliestTemporalShiftStageV0, FrozenMamba3EncoderV0,
+    LinearMomentumBaselineV0, MambaRepresentationValueStatusV0, ModelAgentDeploymentStatus,
+    ModelDriftStatusV0, MomentumForensicCandidateV0, MomentumLearningCampaignConfigV0,
+    MomentumLearningCampaignResultV0, MomentumLearningCampaignStatusV0, MomentumSupportTraceV0,
+    MomentumTemporalDiagnosticReportV0, ProbabilityCollapseRootCauseV0, ShadowSupportDecisionV0,
+    SupportEnvelopeConstructionStatusV0, SupportGateApplicabilityStatusV0,
+    SupportGatedMomentumSeriesVerdictV0, WarmStartLockInStatusV0,
     build_momentum_learning_windows_v0, build_momentum_temporal_diagnostic_report_v0,
     momentum_support_traces_v0, run_momentum_learning_campaign_v0,
 };
@@ -2888,6 +2896,1495 @@ fn holdout_manifest_digest(manifest: &ProspectiveHoldoutManifestV0) -> String {
     ))
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProspectiveChallengeStatusV0 {
+    Draft,
+    Validated,
+    Sealed,
+    PreRegistrationCommitted,
+    AwaitingFutureRows,
+    Accumulating,
+    AwaitingMaturity,
+    ReadyForOneTimeEvaluation,
+    OpenedForOneTimeEvaluation,
+    Evaluated,
+    Closed,
+    Invalidated,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProspectiveChallengeInvalidationReasonV0 {
+    CandidateArtifactChanged,
+    CandidateDigestMismatch,
+    ComparatorChanged,
+    FeatureConfigChanged,
+    LabelPolicyChanged,
+    SupportPolicyChanged,
+    CollapsePolicyChanged,
+    MetricPolicyChanged,
+    EvaluationRuleChanged,
+    FutureEvidenceAccessedBeforeSeal,
+    FutureLabelsAccessedEarly,
+    PredictionJournalModified,
+    EvidenceVaultModified,
+    DuplicateEvaluationAttempt,
+    TechnicalIntegrityFailure,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum ProspectiveComparatorKindV0 {
+    FrozenLinear,
+    FrozenTrainingPrevalenceConstant,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProspectiveShadowOutcomeV0 {
+    ShadowPredictionSealed,
+    ShadowAbstainOutOfSupport,
+    ShadowAbstainSupportUnavailable,
+    ShadowAbstainInsufficientHistory,
+    ShadowAbstainNumericalFailure,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProspectiveLabelStatusV0 {
+    AwaitingFutureRows,
+    MatureButSealed,
+    OpenedForOneTimeEvaluation,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProspectiveShadowChallengeVerdictV0 {
+    MambaHelpedProspectively,
+    LinearStrongerProspectively,
+    ConstantBaselineNotBeaten,
+    MixedProspectiveEvidence,
+    PredominantlyAbstained,
+    TemporalSupportFailure,
+    ProbabilityCollapse,
+    InsufficientMatureEvidence,
+    TechnicalEvaluationFailure,
+    ChallengeInvalidated,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FrozenProspectiveMambaCandidateV0 {
+    pub source_campaign_id: String,
+    pub source_regime_id: String,
+    pub source_window_id: String,
+    pub source_candidate_id: String,
+    pub checkpoint_epoch: usize,
+    pub model_version_id: String,
+    pub encoder_digest: String,
+    pub representation_normalizer_digest: String,
+    pub head_digest: String,
+    pub feature_config_digest: String,
+    pub sequence_config_digest: String,
+    pub label_config_digest: String,
+    pub support_policy_digest: String,
+    pub collapse_policy_digest: String,
+    pub backend_policy_digest: String,
+    pub shadow_only: bool,
+    pub head_weight_bits: Vec<u32>,
+    pub head_bias_bits: u32,
+    pub artifact_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FrozenProspectiveComparatorV0 {
+    pub kind: ProspectiveComparatorKindV0,
+    pub source_training_digest: String,
+    pub parameter_digest: String,
+    pub feature_config_digest: String,
+    pub label_config_digest: String,
+    pub parameter_bits: Vec<u32>,
+    pub artifact_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProspectiveEvidencePolicyV0 {
+    pub finalized_daily_rows_only: bool,
+    pub maximum_requests: usize,
+    pub maximum_concurrency: usize,
+    pub retry_count: usize,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProspectivePredictionPolicyV0 {
+    pub support_required: bool,
+    pub hide_probabilities_before_opening: bool,
+    pub hide_labels_before_opening: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProspectiveEvaluationPolicyV0 {
+    pub minimum_finalized_future_rows: usize,
+    pub minimum_mature_events: usize,
+    pub minimum_support_qualified_events: usize,
+    pub minimum_positive_labels: usize,
+    pub minimum_negative_labels_for_auc: usize,
+    pub maximum_technical_failure_count: usize,
+    pub primary_metric: String,
+    pub secondary_metrics: Vec<String>,
+    pub require_brier_improvement_over_linear: bool,
+    pub require_brier_improvement_over_constant: bool,
+    pub require_no_severe_probability_collapse: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct OneTimeOpeningPolicyV0 {
+    pub minimum_mature_events: usize,
+    pub minimum_support_qualified_events: usize,
+    pub explicit_open_flag_required: bool,
+    pub challenge_must_be_sealed: bool,
+    pub capsule_digest_must_match: bool,
+    pub vault_digest_must_match: bool,
+    pub journal_digest_must_match: bool,
+    pub second_open_forbidden: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProspectiveShadowChallengeCapsuleV0 {
+    pub capsule_version: String,
+    pub challenge_id: String,
+    pub series_id: String,
+    pub prospective_cutoff_exclusive_timestamp_ms: u64,
+    pub candidate: FrozenProspectiveMambaCandidateV0,
+    pub comparators: Vec<FrozenProspectiveComparatorV0>,
+    pub support_policy_digest: String,
+    pub feature_policy_digest: String,
+    pub label_policy_digest: String,
+    pub prediction_horizon: usize,
+    pub evidence_policy: ProspectiveEvidencePolicyV0,
+    pub prediction_policy: ProspectivePredictionPolicyV0,
+    pub evaluation_policy: ProspectiveEvaluationPolicyV0,
+    pub opening_policy: OneTimeOpeningPolicyV0,
+    pub status: ProspectiveChallengeStatusV0,
+    pub capsule_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProspectiveEvidenceRowRefV0 {
+    pub timestamp_ms: u64,
+    pub canonical_row_digest: String,
+    pub finalized: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProspectiveEvidenceVaultV0 {
+    pub vault_version: String,
+    pub challenge_id: String,
+    pub series_id: String,
+    pub cutoff_exclusive_timestamp_ms: u64,
+    pub finalized_rows: Vec<ProspectiveEvidenceRowRefV0>,
+    pub first_timestamp_ms: Option<u64>,
+    pub last_timestamp_ms: Option<u64>,
+    pub finalized_row_count: usize,
+    pub labels_derived: bool,
+    pub opened: bool,
+    pub vault_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SealedProbabilityV0 {
+    pub ieee754_bits: u32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SealedComparatorPredictionV0 {
+    pub comparator_artifact_digest: String,
+    pub probability: SealedProbabilityV0,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProspectivePredictionEventV0 {
+    pub challenge_id: String,
+    pub event_id: String,
+    pub prediction_timestamp_ms: u64,
+    pub required_label_maturity_timestamp_ms: u64,
+    pub input_evidence_digest: String,
+    pub candidate_artifact_digest: String,
+    pub comparator_artifact_digests: Vec<String>,
+    pub support_applicability: String,
+    pub support_decision: String,
+    pub candidate_prediction: Option<SealedProbabilityV0>,
+    pub comparator_predictions: Vec<SealedComparatorPredictionV0>,
+    pub operational_outcome: ProspectiveShadowOutcomeV0,
+    pub label_status: ProspectiveLabelStatusV0,
+    pub event_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProspectivePredictionJournalV0 {
+    pub journal_version: String,
+    pub challenge_id: String,
+    pub events: Vec<ProspectivePredictionEventV0>,
+    pub journal_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProspectiveChallengeRegistryEntryV0 {
+    pub challenge_id: String,
+    pub capsule_digest: String,
+    pub candidate_digest: String,
+    pub comparator_digests: Vec<String>,
+    pub cutoff_exclusive_timestamp_ms: u64,
+    pub status: ProspectiveChallengeStatusV0,
+    pub invalidation_reason: Option<ProspectiveChallengeInvalidationReasonV0>,
+    pub vault_digest: String,
+    pub journal_digest: String,
+    pub evaluation_opened: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProspectiveChallengeRegistryV0 {
+    pub registry_version: String,
+    pub challenges: Vec<ProspectiveChallengeRegistryEntryV0>,
+    pub registry_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProspectiveChallengeLocalStateV0 {
+    pub capsule: ProspectiveShadowChallengeCapsuleV0,
+    pub vault: ProspectiveEvidenceVaultV0,
+    pub journal: ProspectivePredictionJournalV0,
+    pub registry: ProspectiveChallengeRegistryV0,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BlindProspectiveChallengeStatusV0 {
+    pub challenge_status: ProspectiveChallengeStatusV0,
+    pub finalized_row_count: usize,
+    pub eligible_prediction_event_count: usize,
+    pub support_qualified_prediction_count: usize,
+    pub abstention_count: usize,
+    pub awaiting_label_maturity_count: usize,
+    pub mature_but_sealed_label_count: usize,
+    pub capsule_digest: String,
+    pub vault_digest: String,
+    pub journal_digest: String,
+    pub registry_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ProspectiveChallengeErrorV0 {
+    CandidateResolutionAmbiguous,
+    CandidateResolutionMissing,
+    InvalidCapsule,
+    InvalidTransition,
+    InvalidVault,
+    InvalidJournal,
+    IntegrityMismatch,
+    EvaluationOpeningForbidden,
+    Storage,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ProspectiveCandidateResolutionV0 {
+    pub candidate: FrozenProspectiveMambaCandidateV0,
+    pub linear: FrozenProspectiveComparatorV0,
+    pub constant: FrozenProspectiveComparatorV0,
+}
+
+fn forensic_candidate_id_v0(candidate: MomentumForensicCandidateV0) -> &'static str {
+    match candidate {
+        MomentumForensicCandidateV0::C0Reference => "c0_reference",
+        MomentumForensicCandidateV0::C1RepresentationNormalized => "c1_representation_normalized",
+        MomentumForensicCandidateV0::C2PrevalenceBias => "c2_prevalence_bias",
+        MomentumForensicCandidateV0::C3Combined => "c3_combined",
+    }
+}
+
+fn support_policy_digest_v0(config: &MomentumLearningCampaignConfigV0) -> String {
+    let gate = &config.support_gate;
+    stable_hash_string(&format!(
+        "{}:{}:{}:{}:{}:{}:{}",
+        gate.minimum_samples,
+        gate.maximum_mean_standardized_shift.to_bits(),
+        gate.maximum_dimension_standardized_shift.to_bits(),
+        gate.maximum_mean_log_variance_ratio.to_bits(),
+        gate.maximum_out_of_support_fraction.to_bits(),
+        gate.minimum_validation_coverage.to_bits(),
+        gate.comparison_epsilon.to_bits(),
+    ))
+}
+
+fn collapse_policy_digest_v0(config: &MomentumLearningCampaignConfigV0) -> String {
+    let policy = &config.collapse_config;
+    stable_hash_string(&format!(
+        "{}:{}:{}:{}:{}:{}:{}:{}:{}",
+        policy.minimum_probability_stddev.to_bits(),
+        policy.minimum_prediction_entropy.to_bits(),
+        policy.maximum_single_side_fraction.to_bits(),
+        policy.low_saturation_threshold.to_bits(),
+        policy.high_saturation_threshold.to_bits(),
+        policy.maximum_saturation_fraction.to_bits(),
+        policy.minimum_unique_probability_bins,
+        policy.comparison_epsilon.to_bits(),
+        policy.minimum_samples,
+    ))
+}
+
+fn sequence_policy_digest_v0(config: &MomentumLearningCampaignConfigV0) -> String {
+    let policy = &config.sequence_config;
+    stable_hash_string(&format!(
+        "{}:{}:{}:{}:{}",
+        policy.sequence_length,
+        policy.prediction_horizon,
+        policy.label_dead_zone.to_bits(),
+        policy.stride,
+        policy.include_neutral_labels,
+    ))
+}
+
+fn backend_policy_digest_v0(config: &MomentumLearningCampaignConfigV0) -> String {
+    let preference = match config.backend_preference {
+        super::BackendPreference::Auto => "auto",
+        super::BackendPreference::Cpu => "cpu",
+        super::BackendPreference::Metal => "metal",
+        super::BackendPreference::Cuda => "cuda",
+    };
+    let fallback = match config.fallback_policy {
+        super::BackendFallbackPolicy::AllowCpuFallback => "allow_cpu_fallback",
+        super::BackendFallbackPolicy::Strict => "strict",
+    };
+    stable_hash_string(&format!("{preference}:{fallback}"))
+}
+
+fn candidate_artifact_digest_v0(candidate: &FrozenProspectiveMambaCandidateV0) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+        candidate.source_campaign_id,
+        candidate.source_regime_id,
+        candidate.source_window_id,
+        candidate.source_candidate_id,
+        candidate.checkpoint_epoch,
+        candidate.model_version_id,
+        candidate.encoder_digest,
+        candidate.representation_normalizer_digest,
+        candidate.head_digest,
+        candidate.feature_config_digest,
+        candidate.sequence_config_digest,
+        candidate.label_config_digest,
+        candidate.support_policy_digest,
+        candidate.collapse_policy_digest,
+        candidate.backend_policy_digest,
+        candidate.shadow_only,
+        candidate
+            .head_weight_bits
+            .iter()
+            .map(u32::to_string)
+            .collect::<Vec<_>>()
+            .join(","),
+        candidate.head_bias_bits,
+    ))
+}
+
+fn comparator_artifact_digest_v0(comparator: &FrozenProspectiveComparatorV0) -> String {
+    let kind = match comparator.kind {
+        ProspectiveComparatorKindV0::FrozenLinear => "frozen_linear",
+        ProspectiveComparatorKindV0::FrozenTrainingPrevalenceConstant => {
+            "frozen_training_prevalence_constant"
+        }
+    };
+    stable_hash_string(&format!(
+        "{}:{}:{}:{}:{}:{}",
+        kind,
+        comparator.source_training_digest,
+        comparator.parameter_digest,
+        comparator.feature_config_digest,
+        comparator.label_config_digest,
+        comparator
+            .parameter_bits
+            .iter()
+            .map(u32::to_string)
+            .collect::<Vec<_>>()
+            .join(","),
+    ))
+}
+
+fn frozen_linear_comparator_v0(
+    linear: &LinearMomentumBaselineV0,
+    source_training_digest: String,
+    feature_config_digest: String,
+    label_config_digest: String,
+) -> FrozenProspectiveComparatorV0 {
+    let mut comparator = FrozenProspectiveComparatorV0 {
+        kind: ProspectiveComparatorKindV0::FrozenLinear,
+        source_training_digest,
+        parameter_digest: linear.head.parameter_digest(),
+        feature_config_digest,
+        label_config_digest,
+        parameter_bits: linear
+            .head
+            .weights
+            .iter()
+            .map(|value| value.to_bits())
+            .chain(std::iter::once(linear.head.bias.to_bits()))
+            .collect(),
+        artifact_digest: String::new(),
+    };
+    comparator.artifact_digest = comparator_artifact_digest_v0(&comparator);
+    comparator
+}
+
+fn frozen_constant_comparator_v0(
+    constant: &ConstantProbabilityBaselineV0,
+    source_training_digest: String,
+    feature_config_digest: String,
+    label_config_digest: String,
+) -> FrozenProspectiveComparatorV0 {
+    let mut comparator = FrozenProspectiveComparatorV0 {
+        kind: ProspectiveComparatorKindV0::FrozenTrainingPrevalenceConstant,
+        source_training_digest,
+        parameter_digest: stable_hash_string(&constant.probability.to_bits().to_string()),
+        feature_config_digest,
+        label_config_digest,
+        parameter_bits: vec![constant.probability.to_bits()],
+        artifact_digest: String::new(),
+    };
+    comparator.artifact_digest = comparator_artifact_digest_v0(&comparator);
+    comparator
+}
+
+pub fn resolve_btc_prospective_candidate_v0(
+    packs: &[(BtcHistoricalRegimeV0, MomentumHistoricalEvidencePackV0)],
+    campaign_config: &MomentumLearningCampaignConfigV0,
+    encoder: &FrozenMamba3EncoderV0,
+) -> Result<ProspectiveCandidateResolutionV0, ProspectiveChallengeErrorV0> {
+    let mut ordered = packs.iter().collect::<Vec<_>>();
+    ordered.sort_by(|left, right| {
+        left.0
+            .start_timestamp_ms
+            .cmp(&right.0.start_timestamp_ms)
+            .then_with(|| left.0.regime_id.cmp(&right.0.regime_id))
+    });
+    let mut resolutions = Vec::new();
+    for (regime, pack) in ordered {
+        let campaign = run_momentum_series_campaigns_v0(pack, campaign_config, encoder)
+            .map_err(|_| ProspectiveChallengeErrorV0::CandidateResolutionMissing)?
+            .into_iter()
+            .next()
+            .ok_or(ProspectiveChallengeErrorV0::CandidateResolutionMissing)?
+            .campaign;
+        for forensic in &campaign.collapse_forensics {
+            let Some(temporal) = &forensic.temporal_generalization else {
+                continue;
+            };
+            if temporal.validation_support_decision != ShadowSupportDecisionV0::InSupport
+                || temporal.test_support_decision != ShadowSupportDecisionV0::InSupport
+            {
+                continue;
+            }
+            let (Some(selected_candidate), Some(checkpoint)) = (
+                forensic.selected_candidate,
+                forensic.selected_checkpoint.as_ref(),
+            ) else {
+                continue;
+            };
+            let selected = forensic
+                .candidate_results
+                .iter()
+                .find(|result| result.candidate == selected_candidate)
+                .ok_or(ProspectiveChallengeErrorV0::CandidateResolutionMissing)?;
+            let window = campaign
+                .windows
+                .iter()
+                .find(|window| window.window.window_id == forensic.window_id)
+                .ok_or(ProspectiveChallengeErrorV0::CandidateResolutionMissing)?;
+            let path = window
+                .paths
+                .iter()
+                .find(|path| path.path == super::MomentumLearningPathV0::Cold)
+                .or_else(|| window.paths.first())
+                .ok_or(ProspectiveChallengeErrorV0::CandidateResolutionMissing)?;
+            let source_training_digest = stable_hash_string(&format!(
+                "{}:{}:{}:{}:{}",
+                pack.digest,
+                path.version.train_range.start,
+                path.version.train_range.end,
+                path.version.validation_range.start,
+                path.version.validation_range.end,
+            ));
+            let source_candidate_id = forensic_candidate_id_v0(selected_candidate).to_string();
+            let head_digest = selected.frozen_head.parameter_digest();
+            let model_version_id = format!(
+                "frozen-prospective-forensic-{}",
+                stable_hash_string(&format!(
+                    "{}:{}:{}:{}:{}",
+                    campaign.campaign_id,
+                    regime.regime_id,
+                    forensic.window_id,
+                    source_candidate_id,
+                    head_digest,
+                ))
+            );
+            let mut candidate = FrozenProspectiveMambaCandidateV0 {
+                source_campaign_id: campaign.campaign_id.clone(),
+                source_regime_id: regime.regime_id.clone(),
+                source_window_id: forensic.window_id.clone(),
+                source_candidate_id,
+                checkpoint_epoch: checkpoint.epoch,
+                model_version_id,
+                encoder_digest: encoder.parameter_digest(),
+                representation_normalizer_digest: forensic.representation_normalizer_digest.clone(),
+                head_digest,
+                feature_config_digest: window.feature_config_digest.clone(),
+                sequence_config_digest: sequence_policy_digest_v0(campaign_config),
+                label_config_digest: sequence_policy_digest_v0(campaign_config),
+                support_policy_digest: support_policy_digest_v0(campaign_config),
+                collapse_policy_digest: collapse_policy_digest_v0(campaign_config),
+                backend_policy_digest: backend_policy_digest_v0(campaign_config),
+                shadow_only: path.version.deployment_status
+                    == ModelAgentDeploymentStatus::ShadowOnly,
+                head_weight_bits: selected
+                    .frozen_head
+                    .weights
+                    .iter()
+                    .map(|value| value.to_bits())
+                    .collect(),
+                head_bias_bits: selected.frozen_head.bias.to_bits(),
+                artifact_digest: String::new(),
+            };
+            candidate.artifact_digest = candidate_artifact_digest_v0(&candidate);
+            if !candidate.shadow_only {
+                return Err(ProspectiveChallengeErrorV0::CandidateResolutionMissing);
+            }
+            let linear = frozen_linear_comparator_v0(
+                &path.frozen_linear_comparator,
+                source_training_digest.clone(),
+                candidate.feature_config_digest.clone(),
+                candidate.label_config_digest.clone(),
+            );
+            let constant = frozen_constant_comparator_v0(
+                &path.frozen_constant_comparator,
+                source_training_digest,
+                candidate.feature_config_digest.clone(),
+                candidate.label_config_digest.clone(),
+            );
+            resolutions.push(ProspectiveCandidateResolutionV0 {
+                candidate,
+                linear,
+                constant,
+            });
+        }
+    }
+    match resolutions.len() {
+        0 => Err(ProspectiveChallengeErrorV0::CandidateResolutionMissing),
+        1 => Ok(resolutions.remove(0)),
+        _ => Err(ProspectiveChallengeErrorV0::CandidateResolutionAmbiguous),
+    }
+}
+
+pub fn prospective_evaluation_policy_from_campaign_v0(
+    config: &MomentumLearningCampaignConfigV0,
+) -> ProspectiveEvaluationPolicyV0 {
+    ProspectiveEvaluationPolicyV0 {
+        minimum_finalized_future_rows: config.sequence_config.sequence_length
+            + config.sequence_config.prediction_horizon
+            + config.minimum_test_samples,
+        minimum_mature_events: config.minimum_test_samples,
+        minimum_support_qualified_events: config.minimum_test_samples,
+        minimum_positive_labels: 1,
+        minimum_negative_labels_for_auc: 1,
+        maximum_technical_failure_count: 0,
+        primary_metric: "brier_score_support_qualified_events".to_string(),
+        secondary_metrics: vec![
+            "reliability".to_string(),
+            "resolution".to_string(),
+            "uncertainty".to_string(),
+            "binary_rank_auc_when_both_classes_exist".to_string(),
+            "high_confidence_error_count".to_string(),
+            "support_qualified_coverage".to_string(),
+            "abstention_rate".to_string(),
+            "test_time_out_of_support_rate".to_string(),
+            "probability_diversity".to_string(),
+            "collapse_status".to_string(),
+        ],
+        require_brier_improvement_over_linear: true,
+        require_brier_improvement_over_constant: true,
+        require_no_severe_probability_collapse: true,
+    }
+}
+
+fn evaluation_policy_digest_v0(policy: &ProspectiveEvaluationPolicyV0) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+        policy.minimum_finalized_future_rows,
+        policy.minimum_mature_events,
+        policy.minimum_support_qualified_events,
+        policy.minimum_positive_labels,
+        policy.minimum_negative_labels_for_auc,
+        policy.maximum_technical_failure_count,
+        policy.primary_metric,
+        policy.secondary_metrics.join(","),
+        policy.require_brier_improvement_over_linear,
+        policy.require_brier_improvement_over_constant,
+        policy.require_no_severe_probability_collapse,
+    ))
+}
+
+fn opening_policy_digest_v0(policy: &OneTimeOpeningPolicyV0) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{}:{}:{}:{}:{}:{}",
+        policy.minimum_mature_events,
+        policy.minimum_support_qualified_events,
+        policy.explicit_open_flag_required,
+        policy.challenge_must_be_sealed,
+        policy.capsule_digest_must_match,
+        policy.vault_digest_must_match,
+        policy.journal_digest_must_match,
+        policy.second_open_forbidden,
+    ))
+}
+
+fn evidence_policy_digest_v0(policy: &ProspectiveEvidencePolicyV0) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{}:{}",
+        policy.finalized_daily_rows_only,
+        policy.maximum_requests,
+        policy.maximum_concurrency,
+        policy.retry_count,
+    ))
+}
+
+fn prediction_policy_digest_v0(policy: &ProspectivePredictionPolicyV0) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{}",
+        policy.support_required,
+        policy.hide_probabilities_before_opening,
+        policy.hide_labels_before_opening,
+    ))
+}
+
+fn capsule_digest_v0(capsule: &ProspectiveShadowChallengeCapsuleV0) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+        capsule.capsule_version,
+        capsule.challenge_id,
+        capsule.series_id,
+        capsule.prospective_cutoff_exclusive_timestamp_ms,
+        capsule.candidate.artifact_digest,
+        capsule
+            .comparators
+            .iter()
+            .map(|comparator| comparator.artifact_digest.as_str())
+            .collect::<Vec<_>>()
+            .join(","),
+        capsule.support_policy_digest,
+        capsule.feature_policy_digest,
+        capsule.label_policy_digest,
+        capsule.prediction_horizon,
+        evidence_policy_digest_v0(&capsule.evidence_policy),
+        prediction_policy_digest_v0(&capsule.prediction_policy),
+        evaluation_policy_digest_v0(&capsule.evaluation_policy),
+        opening_policy_digest_v0(&capsule.opening_policy),
+        "sealed",
+        capsule.capsule_version,
+    ))
+}
+
+pub fn build_prospective_shadow_challenge_capsule_v0(
+    series_id: String,
+    cutoff_exclusive_timestamp_ms: u64,
+    resolution: ProspectiveCandidateResolutionV0,
+    prediction_horizon: usize,
+    evaluation_policy: ProspectiveEvaluationPolicyV0,
+) -> Result<ProspectiveShadowChallengeCapsuleV0, ProspectiveChallengeErrorV0> {
+    if series_id.is_empty()
+        || cutoff_exclusive_timestamp_ms == 0
+        || prediction_horizon == 0
+        || evaluation_policy.minimum_finalized_future_rows == 0
+        || evaluation_policy.minimum_mature_events == 0
+        || evaluation_policy.minimum_support_qualified_events == 0
+        || !resolution.candidate.shadow_only
+    {
+        return Err(ProspectiveChallengeErrorV0::InvalidCapsule);
+    }
+    let mut comparators = vec![resolution.linear, resolution.constant];
+    comparators.sort_by_key(|comparator| comparator.kind);
+    if comparators.len() != 2
+        || comparators[0].kind == comparators[1].kind
+        || comparators
+            .iter()
+            .any(|comparator| comparator.artifact_digest.is_empty())
+    {
+        return Err(ProspectiveChallengeErrorV0::InvalidCapsule);
+    }
+    let challenge_id = format!(
+        "btc-prospective-{}",
+        stable_hash_string(&format!(
+            "{}:{}:{}",
+            series_id, cutoff_exclusive_timestamp_ms, resolution.candidate.artifact_digest
+        ))
+    );
+    let mut capsule = ProspectiveShadowChallengeCapsuleV0 {
+        capsule_version: "prospective-shadow-challenge-v0".to_string(),
+        challenge_id,
+        series_id,
+        prospective_cutoff_exclusive_timestamp_ms: cutoff_exclusive_timestamp_ms,
+        support_policy_digest: resolution.candidate.support_policy_digest.clone(),
+        feature_policy_digest: resolution.candidate.feature_config_digest.clone(),
+        label_policy_digest: resolution.candidate.label_config_digest.clone(),
+        prediction_horizon,
+        candidate: resolution.candidate,
+        comparators,
+        evidence_policy: ProspectiveEvidencePolicyV0 {
+            finalized_daily_rows_only: true,
+            maximum_requests: 1,
+            maximum_concurrency: 1,
+            retry_count: 0,
+        },
+        prediction_policy: ProspectivePredictionPolicyV0 {
+            support_required: true,
+            hide_probabilities_before_opening: true,
+            hide_labels_before_opening: true,
+        },
+        opening_policy: OneTimeOpeningPolicyV0 {
+            minimum_mature_events: evaluation_policy.minimum_mature_events,
+            minimum_support_qualified_events: evaluation_policy.minimum_support_qualified_events,
+            explicit_open_flag_required: true,
+            challenge_must_be_sealed: true,
+            capsule_digest_must_match: true,
+            vault_digest_must_match: true,
+            journal_digest_must_match: true,
+            second_open_forbidden: true,
+        },
+        evaluation_policy,
+        status: ProspectiveChallengeStatusV0::Sealed,
+        capsule_digest: String::new(),
+    };
+    capsule.capsule_digest = capsule_digest_v0(&capsule);
+    validate_prospective_shadow_challenge_capsule_v0(&capsule)?;
+    Ok(capsule)
+}
+
+pub fn validate_prospective_shadow_challenge_capsule_v0(
+    capsule: &ProspectiveShadowChallengeCapsuleV0,
+) -> Result<(), ProspectiveChallengeErrorV0> {
+    if capsule.status != ProspectiveChallengeStatusV0::Sealed
+        || capsule.challenge_id.is_empty()
+        || capsule.series_id.is_empty()
+        || capsule.candidate.artifact_digest != candidate_artifact_digest_v0(&capsule.candidate)
+        || capsule.comparators.len() != 2
+        || capsule.comparators.iter().any(|comparator| {
+            comparator.artifact_digest != comparator_artifact_digest_v0(comparator)
+        })
+        || capsule
+            .comparators
+            .windows(2)
+            .any(|pair| pair[0].kind >= pair[1].kind)
+        || capsule.evidence_policy.maximum_requests != 1
+        || capsule.evidence_policy.maximum_concurrency != 1
+        || capsule.evidence_policy.retry_count != 0
+        || capsule.capsule_digest != capsule_digest_v0(capsule)
+    {
+        Err(ProspectiveChallengeErrorV0::InvalidCapsule)
+    } else {
+        Ok(())
+    }
+}
+
+pub fn prospective_challenge_transition_v0(
+    current: ProspectiveChallengeStatusV0,
+    next: ProspectiveChallengeStatusV0,
+) -> Result<(), ProspectiveChallengeErrorV0> {
+    let permitted = matches!(
+        (current, next),
+        (
+            ProspectiveChallengeStatusV0::Draft,
+            ProspectiveChallengeStatusV0::Validated
+        ) | (
+            ProspectiveChallengeStatusV0::Validated,
+            ProspectiveChallengeStatusV0::Sealed
+        ) | (
+            ProspectiveChallengeStatusV0::Sealed,
+            ProspectiveChallengeStatusV0::PreRegistrationCommitted
+        ) | (
+            ProspectiveChallengeStatusV0::PreRegistrationCommitted,
+            ProspectiveChallengeStatusV0::AwaitingFutureRows
+        ) | (
+            ProspectiveChallengeStatusV0::PreRegistrationCommitted,
+            ProspectiveChallengeStatusV0::Accumulating
+        ) | (
+            ProspectiveChallengeStatusV0::Accumulating,
+            ProspectiveChallengeStatusV0::AwaitingMaturity
+        ) | (
+            ProspectiveChallengeStatusV0::AwaitingMaturity,
+            ProspectiveChallengeStatusV0::ReadyForOneTimeEvaluation
+        ) | (
+            ProspectiveChallengeStatusV0::ReadyForOneTimeEvaluation,
+            ProspectiveChallengeStatusV0::OpenedForOneTimeEvaluation
+        ) | (
+            ProspectiveChallengeStatusV0::OpenedForOneTimeEvaluation,
+            ProspectiveChallengeStatusV0::Evaluated
+        ) | (
+            ProspectiveChallengeStatusV0::Evaluated,
+            ProspectiveChallengeStatusV0::Closed
+        ) | (_, ProspectiveChallengeStatusV0::Invalidated)
+    );
+    if permitted {
+        Ok(())
+    } else {
+        Err(ProspectiveChallengeErrorV0::InvalidTransition)
+    }
+}
+
+fn vault_digest_v0(vault: &ProspectiveEvidenceVaultV0) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+        vault.vault_version,
+        vault.challenge_id,
+        vault.series_id,
+        vault.cutoff_exclusive_timestamp_ms,
+        vault
+            .finalized_rows
+            .iter()
+            .map(|row| format!(
+                "{}:{}:{}",
+                row.timestamp_ms, row.canonical_row_digest, row.finalized
+            ))
+            .collect::<Vec<_>>()
+            .join(","),
+        vault.first_timestamp_ms.unwrap_or_default(),
+        vault.last_timestamp_ms.unwrap_or_default(),
+        vault.finalized_row_count,
+        vault.labels_derived,
+        vault.opened,
+    ))
+}
+
+fn shadow_outcome_label_v0(outcome: ProspectiveShadowOutcomeV0) -> &'static str {
+    match outcome {
+        ProspectiveShadowOutcomeV0::ShadowPredictionSealed => "prediction_sealed",
+        ProspectiveShadowOutcomeV0::ShadowAbstainOutOfSupport => "abstain_out_of_support",
+        ProspectiveShadowOutcomeV0::ShadowAbstainSupportUnavailable => {
+            "abstain_support_unavailable"
+        }
+        ProspectiveShadowOutcomeV0::ShadowAbstainInsufficientHistory => {
+            "abstain_insufficient_history"
+        }
+        ProspectiveShadowOutcomeV0::ShadowAbstainNumericalFailure => "abstain_numerical_failure",
+    }
+}
+
+fn label_status_label_v0(status: ProspectiveLabelStatusV0) -> &'static str {
+    match status {
+        ProspectiveLabelStatusV0::AwaitingFutureRows => "awaiting_future_rows",
+        ProspectiveLabelStatusV0::MatureButSealed => "mature_but_sealed",
+        ProspectiveLabelStatusV0::OpenedForOneTimeEvaluation => "opened_for_one_time_evaluation",
+    }
+}
+
+fn challenge_status_label_v0(status: ProspectiveChallengeStatusV0) -> &'static str {
+    match status {
+        ProspectiveChallengeStatusV0::Draft => "draft",
+        ProspectiveChallengeStatusV0::Validated => "validated",
+        ProspectiveChallengeStatusV0::Sealed => "sealed",
+        ProspectiveChallengeStatusV0::PreRegistrationCommitted => "pre_registration_committed",
+        ProspectiveChallengeStatusV0::AwaitingFutureRows => "awaiting_future_rows",
+        ProspectiveChallengeStatusV0::Accumulating => "accumulating",
+        ProspectiveChallengeStatusV0::AwaitingMaturity => "awaiting_maturity",
+        ProspectiveChallengeStatusV0::ReadyForOneTimeEvaluation => "ready_for_one_time_evaluation",
+        ProspectiveChallengeStatusV0::OpenedForOneTimeEvaluation => {
+            "opened_for_one_time_evaluation"
+        }
+        ProspectiveChallengeStatusV0::Evaluated => "evaluated",
+        ProspectiveChallengeStatusV0::Closed => "closed",
+        ProspectiveChallengeStatusV0::Invalidated => "invalidated",
+    }
+}
+
+fn invalidation_label_v0(reason: Option<ProspectiveChallengeInvalidationReasonV0>) -> &'static str {
+    match reason {
+        None => "none",
+        Some(ProspectiveChallengeInvalidationReasonV0::CandidateArtifactChanged) => {
+            "candidate_artifact_changed"
+        }
+        Some(ProspectiveChallengeInvalidationReasonV0::CandidateDigestMismatch) => {
+            "candidate_digest_mismatch"
+        }
+        Some(ProspectiveChallengeInvalidationReasonV0::ComparatorChanged) => "comparator_changed",
+        Some(ProspectiveChallengeInvalidationReasonV0::FeatureConfigChanged) => {
+            "feature_config_changed"
+        }
+        Some(ProspectiveChallengeInvalidationReasonV0::LabelPolicyChanged) => {
+            "label_policy_changed"
+        }
+        Some(ProspectiveChallengeInvalidationReasonV0::SupportPolicyChanged) => {
+            "support_policy_changed"
+        }
+        Some(ProspectiveChallengeInvalidationReasonV0::CollapsePolicyChanged) => {
+            "collapse_policy_changed"
+        }
+        Some(ProspectiveChallengeInvalidationReasonV0::MetricPolicyChanged) => {
+            "metric_policy_changed"
+        }
+        Some(ProspectiveChallengeInvalidationReasonV0::EvaluationRuleChanged) => {
+            "evaluation_rule_changed"
+        }
+        Some(ProspectiveChallengeInvalidationReasonV0::FutureEvidenceAccessedBeforeSeal) => {
+            "future_evidence_accessed_before_seal"
+        }
+        Some(ProspectiveChallengeInvalidationReasonV0::FutureLabelsAccessedEarly) => {
+            "future_labels_accessed_early"
+        }
+        Some(ProspectiveChallengeInvalidationReasonV0::PredictionJournalModified) => {
+            "prediction_journal_modified"
+        }
+        Some(ProspectiveChallengeInvalidationReasonV0::EvidenceVaultModified) => {
+            "evidence_vault_modified"
+        }
+        Some(ProspectiveChallengeInvalidationReasonV0::DuplicateEvaluationAttempt) => {
+            "duplicate_evaluation_attempt"
+        }
+        Some(ProspectiveChallengeInvalidationReasonV0::TechnicalIntegrityFailure) => {
+            "technical_integrity_failure"
+        }
+    }
+}
+
+fn event_digest_v0(event: &ProspectivePredictionEventV0) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+        event.challenge_id,
+        event.event_id,
+        event.prediction_timestamp_ms,
+        event.required_label_maturity_timestamp_ms,
+        event.input_evidence_digest,
+        event.candidate_artifact_digest,
+        event.comparator_artifact_digests.join(","),
+        event.support_applicability,
+        event.support_decision,
+        event
+            .candidate_prediction
+            .as_ref()
+            .map(|value| value.ieee754_bits)
+            .unwrap_or_default(),
+        event
+            .comparator_predictions
+            .iter()
+            .map(|value| format!(
+                "{}:{}",
+                value.comparator_artifact_digest, value.probability.ieee754_bits
+            ))
+            .collect::<Vec<_>>()
+            .join(","),
+        format!(
+            "{}:{}",
+            shadow_outcome_label_v0(event.operational_outcome),
+            label_status_label_v0(event.label_status)
+        ),
+    ))
+}
+
+fn journal_digest_v0(journal: &ProspectivePredictionJournalV0) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{}",
+        journal.journal_version,
+        journal.challenge_id,
+        journal
+            .events
+            .iter()
+            .map(|event| event.event_digest.as_str())
+            .collect::<Vec<_>>()
+            .join(","),
+    ))
+}
+
+fn registry_digest_v0(registry: &ProspectiveChallengeRegistryV0) -> String {
+    stable_hash_string(&format!(
+        "{}:{}",
+        registry.registry_version,
+        registry
+            .challenges
+            .iter()
+            .map(|entry| format!(
+                "{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+                entry.challenge_id,
+                entry.capsule_digest,
+                entry.candidate_digest,
+                entry.comparator_digests.join(","),
+                entry.cutoff_exclusive_timestamp_ms,
+                challenge_status_label_v0(entry.status),
+                invalidation_label_v0(entry.invalidation_reason),
+                entry.vault_digest,
+                entry.journal_digest,
+                entry.evaluation_opened,
+            ))
+            .collect::<Vec<_>>()
+            .join("|"),
+    ))
+}
+
+pub fn new_prospective_challenge_local_state_v0(
+    capsule: ProspectiveShadowChallengeCapsuleV0,
+) -> Result<ProspectiveChallengeLocalStateV0, ProspectiveChallengeErrorV0> {
+    validate_prospective_shadow_challenge_capsule_v0(&capsule)?;
+    let mut vault = ProspectiveEvidenceVaultV0 {
+        vault_version: "prospective-evidence-vault-v0".to_string(),
+        challenge_id: capsule.challenge_id.clone(),
+        series_id: capsule.series_id.clone(),
+        cutoff_exclusive_timestamp_ms: capsule.prospective_cutoff_exclusive_timestamp_ms,
+        finalized_rows: vec![],
+        first_timestamp_ms: None,
+        last_timestamp_ms: None,
+        finalized_row_count: 0,
+        labels_derived: false,
+        opened: false,
+        vault_digest: String::new(),
+    };
+    vault.vault_digest = vault_digest_v0(&vault);
+    let mut journal = ProspectivePredictionJournalV0 {
+        journal_version: "prospective-prediction-journal-v0".to_string(),
+        challenge_id: capsule.challenge_id.clone(),
+        events: vec![],
+        journal_digest: String::new(),
+    };
+    journal.journal_digest = journal_digest_v0(&journal);
+    let mut registry = ProspectiveChallengeRegistryV0 {
+        registry_version: "prospective-challenge-registry-v0".to_string(),
+        challenges: vec![ProspectiveChallengeRegistryEntryV0 {
+            challenge_id: capsule.challenge_id.clone(),
+            capsule_digest: capsule.capsule_digest.clone(),
+            candidate_digest: capsule.candidate.artifact_digest.clone(),
+            comparator_digests: capsule
+                .comparators
+                .iter()
+                .map(|comparator| comparator.artifact_digest.clone())
+                .collect(),
+            cutoff_exclusive_timestamp_ms: capsule.prospective_cutoff_exclusive_timestamp_ms,
+            status: ProspectiveChallengeStatusV0::Sealed,
+            invalidation_reason: None,
+            vault_digest: vault.vault_digest.clone(),
+            journal_digest: journal.journal_digest.clone(),
+            evaluation_opened: false,
+        }],
+        registry_digest: String::new(),
+    };
+    registry.registry_digest = registry_digest_v0(&registry);
+    Ok(ProspectiveChallengeLocalStateV0 {
+        capsule,
+        vault,
+        journal,
+        registry,
+    })
+}
+
+pub fn append_prospective_vault_row_v0(
+    state: &mut ProspectiveChallengeLocalStateV0,
+    row: ProspectiveEvidenceRowRefV0,
+) -> Result<(), ProspectiveChallengeErrorV0> {
+    validate_prospective_challenge_local_state_v0(state)?;
+    let entry = state
+        .registry
+        .challenges
+        .first()
+        .ok_or(ProspectiveChallengeErrorV0::InvalidVault)?;
+    if entry.status != ProspectiveChallengeStatusV0::PreRegistrationCommitted
+        || !row.finalized
+        || row.timestamp_ms <= state.vault.cutoff_exclusive_timestamp_ms
+        || state
+            .vault
+            .finalized_rows
+            .iter()
+            .any(|existing| existing.timestamp_ms >= row.timestamp_ms)
+        || row.canonical_row_digest.is_empty()
+    {
+        return Err(ProspectiveChallengeErrorV0::InvalidVault);
+    }
+    state.vault.finalized_rows.push(row);
+    state.vault.first_timestamp_ms = state
+        .vault
+        .finalized_rows
+        .first()
+        .map(|value| value.timestamp_ms);
+    state.vault.last_timestamp_ms = state
+        .vault
+        .finalized_rows
+        .last()
+        .map(|value| value.timestamp_ms);
+    state.vault.finalized_row_count = state.vault.finalized_rows.len();
+    state.vault.vault_digest = vault_digest_v0(&state.vault);
+    sync_registry_digests_v0(state)?;
+    Ok(())
+}
+
+pub fn append_prospective_prediction_event_v0(
+    state: &mut ProspectiveChallengeLocalStateV0,
+    mut event: ProspectivePredictionEventV0,
+) -> Result<(), ProspectiveChallengeErrorV0> {
+    validate_prospective_challenge_local_state_v0(state)?;
+    let entry = state
+        .registry
+        .challenges
+        .first()
+        .ok_or(ProspectiveChallengeErrorV0::InvalidJournal)?;
+    if !matches!(
+        entry.status,
+        ProspectiveChallengeStatusV0::PreRegistrationCommitted
+            | ProspectiveChallengeStatusV0::Accumulating
+            | ProspectiveChallengeStatusV0::AwaitingMaturity
+    ) || event.challenge_id != state.capsule.challenge_id
+        || event.prediction_timestamp_ms <= state.vault.cutoff_exclusive_timestamp_ms
+        || event.required_label_maturity_timestamp_ms <= event.prediction_timestamp_ms
+        || event.candidate_artifact_digest != state.capsule.candidate.artifact_digest
+        || event.comparator_artifact_digests
+            != state
+                .capsule
+                .comparators
+                .iter()
+                .map(|comparator| comparator.artifact_digest.clone())
+                .collect::<Vec<_>>()
+        || state
+            .journal
+            .events
+            .iter()
+            .any(|existing| existing.event_id == event.event_id)
+        || event.label_status != ProspectiveLabelStatusV0::AwaitingFutureRows
+        || (state.capsule.prediction_policy.support_required
+            && event.operational_outcome == ProspectiveShadowOutcomeV0::ShadowPredictionSealed
+            && (event.support_applicability != "applicable"
+                || event.support_decision != "in_support"
+                || event.candidate_prediction.is_none()))
+    {
+        return Err(ProspectiveChallengeErrorV0::InvalidJournal);
+    }
+    event.comparator_predictions.sort_by(|left, right| {
+        left.comparator_artifact_digest
+            .cmp(&right.comparator_artifact_digest)
+    });
+    event.event_digest = event_digest_v0(&event);
+    state.journal.events.push(event);
+    state.journal.events.sort_by(|left, right| {
+        left.prediction_timestamp_ms
+            .cmp(&right.prediction_timestamp_ms)
+    });
+    state.journal.journal_digest = journal_digest_v0(&state.journal);
+    sync_registry_digests_v0(state)?;
+    Ok(())
+}
+
+pub fn confirm_prospective_pre_registration_v0(
+    state: &mut ProspectiveChallengeLocalStateV0,
+) -> Result<(), ProspectiveChallengeErrorV0> {
+    validate_prospective_challenge_local_state_v0(state)?;
+    let entry = state
+        .registry
+        .challenges
+        .first_mut()
+        .ok_or(ProspectiveChallengeErrorV0::IntegrityMismatch)?;
+    prospective_challenge_transition_v0(
+        entry.status,
+        ProspectiveChallengeStatusV0::PreRegistrationCommitted,
+    )?;
+    entry.status = ProspectiveChallengeStatusV0::PreRegistrationCommitted;
+    sync_registry_digests_v0(state)
+}
+
+pub fn invalidate_prospective_challenge_v0(
+    state: &mut ProspectiveChallengeLocalStateV0,
+    reason: ProspectiveChallengeInvalidationReasonV0,
+) -> Result<(), ProspectiveChallengeErrorV0> {
+    validate_prospective_challenge_local_state_v0(state)?;
+    let entry = state
+        .registry
+        .challenges
+        .first_mut()
+        .ok_or(ProspectiveChallengeErrorV0::IntegrityMismatch)?;
+    if entry.status == ProspectiveChallengeStatusV0::Invalidated {
+        return Err(ProspectiveChallengeErrorV0::InvalidTransition);
+    }
+    entry.status = ProspectiveChallengeStatusV0::Invalidated;
+    entry.invalidation_reason = Some(reason);
+    sync_registry_digests_v0(state)
+}
+
+fn sync_registry_digests_v0(
+    state: &mut ProspectiveChallengeLocalStateV0,
+) -> Result<(), ProspectiveChallengeErrorV0> {
+    let entry = state
+        .registry
+        .challenges
+        .first_mut()
+        .ok_or(ProspectiveChallengeErrorV0::IntegrityMismatch)?;
+    entry.vault_digest = state.vault.vault_digest.clone();
+    entry.journal_digest = state.journal.journal_digest.clone();
+    state.registry.registry_digest = registry_digest_v0(&state.registry);
+    Ok(())
+}
+
+pub fn validate_prospective_challenge_local_state_v0(
+    state: &ProspectiveChallengeLocalStateV0,
+) -> Result<(), ProspectiveChallengeErrorV0> {
+    validate_prospective_shadow_challenge_capsule_v0(&state.capsule)?;
+    let Some(entry) = state.registry.challenges.first() else {
+        return Err(ProspectiveChallengeErrorV0::IntegrityMismatch);
+    };
+    if state.registry.challenges.len() != 1
+        || state.vault.challenge_id != state.capsule.challenge_id
+        || state.journal.challenge_id != state.capsule.challenge_id
+        || entry.challenge_id != state.capsule.challenge_id
+        || entry.capsule_digest != state.capsule.capsule_digest
+        || entry.candidate_digest != state.capsule.candidate.artifact_digest
+        || entry.comparator_digests
+            != state
+                .capsule
+                .comparators
+                .iter()
+                .map(|comparator| comparator.artifact_digest.clone())
+                .collect::<Vec<_>>()
+        || state.vault.vault_digest != vault_digest_v0(&state.vault)
+        || state.journal.journal_digest != journal_digest_v0(&state.journal)
+        || entry.vault_digest != state.vault.vault_digest
+        || entry.journal_digest != state.journal.journal_digest
+        || state.registry.registry_digest != registry_digest_v0(&state.registry)
+        || state.vault.labels_derived
+        || state.vault.opened != entry.evaluation_opened
+        || (entry.evaluation_opened
+            && entry.status != ProspectiveChallengeStatusV0::OpenedForOneTimeEvaluation)
+        || state
+            .vault
+            .finalized_rows
+            .windows(2)
+            .any(|pair| pair[0].timestamp_ms >= pair[1].timestamp_ms)
+        || state.vault.finalized_rows.iter().any(|row| {
+            !row.finalized || row.timestamp_ms <= state.vault.cutoff_exclusive_timestamp_ms
+        })
+        || state
+            .journal
+            .events
+            .iter()
+            .any(|event| event.event_digest != event_digest_v0(event))
+    {
+        Err(ProspectiveChallengeErrorV0::IntegrityMismatch)
+    } else {
+        Ok(())
+    }
+}
+
+pub fn blind_prospective_challenge_status_v0(
+    state: &ProspectiveChallengeLocalStateV0,
+) -> Result<BlindProspectiveChallengeStatusV0, ProspectiveChallengeErrorV0> {
+    validate_prospective_challenge_local_state_v0(state)?;
+    let entry = state
+        .registry
+        .challenges
+        .first()
+        .ok_or(ProspectiveChallengeErrorV0::IntegrityMismatch)?;
+    Ok(BlindProspectiveChallengeStatusV0 {
+        challenge_status: entry.status,
+        finalized_row_count: state.vault.finalized_row_count,
+        eligible_prediction_event_count: state.journal.events.len(),
+        support_qualified_prediction_count: state
+            .journal
+            .events
+            .iter()
+            .filter(|event| {
+                event.operational_outcome == ProspectiveShadowOutcomeV0::ShadowPredictionSealed
+            })
+            .count(),
+        abstention_count: state
+            .journal
+            .events
+            .iter()
+            .filter(|event| {
+                event.operational_outcome != ProspectiveShadowOutcomeV0::ShadowPredictionSealed
+            })
+            .count(),
+        awaiting_label_maturity_count: state
+            .journal
+            .events
+            .iter()
+            .filter(|event| event.label_status == ProspectiveLabelStatusV0::AwaitingFutureRows)
+            .count(),
+        mature_but_sealed_label_count: state
+            .journal
+            .events
+            .iter()
+            .filter(|event| event.label_status == ProspectiveLabelStatusV0::MatureButSealed)
+            .count(),
+        capsule_digest: state.capsule.capsule_digest.clone(),
+        vault_digest: state.vault.vault_digest.clone(),
+        journal_digest: state.journal.journal_digest.clone(),
+        registry_digest: state.registry.registry_digest.clone(),
+    })
+}
+
+pub fn refresh_prospective_label_maturity_v0(
+    state: &mut ProspectiveChallengeLocalStateV0,
+) -> Result<(), ProspectiveChallengeErrorV0> {
+    validate_prospective_challenge_local_state_v0(state)?;
+    let last_finalized_timestamp = state.vault.last_timestamp_ms;
+    for event in &mut state.journal.events {
+        if event.label_status == ProspectiveLabelStatusV0::AwaitingFutureRows
+            && last_finalized_timestamp
+                .is_some_and(|timestamp| timestamp >= event.required_label_maturity_timestamp_ms)
+        {
+            event.label_status = ProspectiveLabelStatusV0::MatureButSealed;
+            event.event_digest = event_digest_v0(event);
+        }
+    }
+    state.journal.journal_digest = journal_digest_v0(&state.journal);
+    sync_registry_digests_v0(state)
+}
+
+pub fn open_prospective_challenge_once_v0(
+    state: &mut ProspectiveChallengeLocalStateV0,
+    explicit_open_flag: bool,
+) -> Result<(), ProspectiveChallengeErrorV0> {
+    validate_prospective_challenge_local_state_v0(state)?;
+    let mature_events = state
+        .journal
+        .events
+        .iter()
+        .filter(|event| event.label_status == ProspectiveLabelStatusV0::MatureButSealed)
+        .count();
+    let support_events = state
+        .journal
+        .events
+        .iter()
+        .filter(|event| {
+            event.operational_outcome == ProspectiveShadowOutcomeV0::ShadowPredictionSealed
+        })
+        .count();
+    let entry = state
+        .registry
+        .challenges
+        .first_mut()
+        .ok_or(ProspectiveChallengeErrorV0::IntegrityMismatch)?;
+    if !explicit_open_flag
+        || entry.status != ProspectiveChallengeStatusV0::ReadyForOneTimeEvaluation
+        || entry.evaluation_opened
+        || mature_events < state.capsule.opening_policy.minimum_mature_events
+        || support_events
+            < state
+                .capsule
+                .opening_policy
+                .minimum_support_qualified_events
+    {
+        return Err(ProspectiveChallengeErrorV0::EvaluationOpeningForbidden);
+    }
+    entry.status = ProspectiveChallengeStatusV0::OpenedForOneTimeEvaluation;
+    entry.evaluation_opened = true;
+    state.vault.opened = true;
+    for event in &mut state.journal.events {
+        if event.label_status == ProspectiveLabelStatusV0::MatureButSealed {
+            event.label_status = ProspectiveLabelStatusV0::OpenedForOneTimeEvaluation;
+            event.event_digest = event_digest_v0(event);
+        }
+    }
+    state.journal.journal_digest = journal_digest_v0(&state.journal);
+    sync_registry_digests_v0(state)
+}
+
+pub fn write_prospective_challenge_local_state_v0(
+    path: &Path,
+    state: &ProspectiveChallengeLocalStateV0,
+) -> Result<(), ProspectiveChallengeErrorV0> {
+    validate_prospective_challenge_local_state_v0(state)?;
+    let parent = path.parent().ok_or(ProspectiveChallengeErrorV0::Storage)?;
+    fs::create_dir_all(parent).map_err(|_| ProspectiveChallengeErrorV0::Storage)?;
+    let encoded = serde_json::to_vec(state).map_err(|_| ProspectiveChallengeErrorV0::Storage)?;
+    let temporary = path.with_extension("tmp");
+    fs::write(&temporary, encoded).map_err(|_| ProspectiveChallengeErrorV0::Storage)?;
+    fs::rename(&temporary, path).map_err(|_| ProspectiveChallengeErrorV0::Storage)
+}
+
+pub fn read_prospective_challenge_local_state_v0(
+    path: &Path,
+) -> Result<ProspectiveChallengeLocalStateV0, ProspectiveChallengeErrorV0> {
+    let encoded = fs::read(path).map_err(|_| ProspectiveChallengeErrorV0::Storage)?;
+    let state = serde_json::from_slice::<ProspectiveChallengeLocalStateV0>(&encoded)
+        .map_err(|_| ProspectiveChallengeErrorV0::Storage)?;
+    validate_prospective_challenge_local_state_v0(&state)?;
+    Ok(state)
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BtcProspectiveChallengePreparationV0 {
+    pub holdout: ProspectiveHoldoutManifestV0,
+    pub capsule: ProspectiveShadowChallengeCapsuleV0,
+    pub ledger_digest: String,
+    pub regime_pack_count: usize,
+}
+
+pub fn prepare_btc_prospective_challenge_v0(
+    snapshot: &DataSnapshot,
+    campaign_config: &MomentumLearningCampaignConfigV0,
+) -> Result<BtcProspectiveChallengePreparationV0, ProspectiveChallengeErrorV0> {
+    if snapshot.content_digest != historical_replay_dataset_digest_v0(&snapshot.normalized_dataset)
+        || !snapshot_rows_are_valid(snapshot)
+    {
+        return Err(ProspectiveChallengeErrorV0::IntegrityMismatch);
+    }
+    let sufficiency = assess_momentum_campaign_sufficiency_v0(snapshot.row_count, campaign_config)
+        .map_err(|_| ProspectiveChallengeErrorV0::InvalidCapsule)?;
+    if !sufficiency.sufficient {
+        return Err(ProspectiveChallengeErrorV0::CandidateResolutionMissing);
+    }
+    let regime_config = BtcHistoricalRegimeConfigV0 {
+        minimum_regimes: 2,
+        regime_rows: sufficiency.required_minimum_rows,
+        inter_regime_gap_rows: campaign_config.purge_gap_rows,
+        minimum_campaign_windows_per_regime: campaign_config.minimum_evaluated_windows,
+        segmentation_policy: TemporalRegimeSegmentationPolicyV0::EqualLengthChronological,
+    };
+    let segmentation = segment_btc_historical_regimes_v0(snapshot, &regime_config)
+        .map_err(|_| ProspectiveChallengeErrorV0::IntegrityMismatch)?;
+    if segmentation.status != BtcRegimeSegmentationStatusV0::Ready
+        || segmentation.regimes.len() != regime_config.minimum_regimes
+    {
+        return Err(ProspectiveChallengeErrorV0::CandidateResolutionMissing);
+    }
+    let packs = freeze_btc_historical_regime_packs_v0(
+        snapshot,
+        &segmentation,
+        &HistoricalEvidencePolicyV0::default(),
+    )
+    .map_err(|_| ProspectiveChallengeErrorV0::IntegrityMismatch)?;
+    if packs.len() != segmentation.regimes.len()
+        || packs
+            .iter()
+            .any(|(_, pack)| verify_momentum_historical_evidence_pack_v0(pack).is_err())
+    {
+        return Err(ProspectiveChallengeErrorV0::IntegrityMismatch);
+    }
+    let encoder = super::frozen_mamba3_encoder_from_seed_v0(
+        &campaign_config.feature_config,
+        campaign_config.campaign_seed,
+        campaign_config.backend_preference,
+        campaign_config.fallback_policy,
+    )
+    .map_err(|_| ProspectiveChallengeErrorV0::CandidateResolutionMissing)?;
+    let resolution = resolve_btc_prospective_candidate_v0(&packs, campaign_config, &encoder)?;
+    let ledger = build_historical_evidence_usage_ledger_v0(snapshot, &[])
+        .map_err(|_| ProspectiveChallengeErrorV0::IntegrityMismatch)?;
+    let evaluation_policy = prospective_evaluation_policy_from_campaign_v0(campaign_config);
+    let holdout = seal_prospective_holdout_v0(
+        &ledger,
+        &ProspectiveHoldoutPolicyConfigV0 {
+            minimum_future_rows: evaluation_policy.minimum_finalized_future_rows,
+            required_future_windows: campaign_config.minimum_evaluated_windows,
+        },
+        &[],
+    )
+    .map_err(|_| ProspectiveChallengeErrorV0::InvalidCapsule)?;
+    let capsule = build_prospective_shadow_challenge_capsule_v0(
+        ledger.series_id.clone(),
+        holdout.cutoff_exclusive_timestamp_ms,
+        resolution,
+        campaign_config.sequence_config.prediction_horizon,
+        evaluation_policy,
+    )?;
+    Ok(BtcProspectiveChallengePreparationV0 {
+        holdout,
+        capsule,
+        ledger_digest: ledger.ledger_digest,
+        regime_pack_count: packs.len(),
+    })
+}
+
 fn mean(values: &[f32]) -> f32 {
     if values.is_empty() {
         0.0
@@ -3527,5 +5024,198 @@ mod tests {
         assert!(!prospective_holdout_timestamp_is_eligible_v0(
             13, &ledger, &manifest
         ));
+    }
+
+    fn prospective_test_resolution() -> ProspectiveCandidateResolutionV0 {
+        let mut candidate = FrozenProspectiveMambaCandidateV0 {
+            source_campaign_id: "campaign".to_string(),
+            source_regime_id: "regime".to_string(),
+            source_window_id: "window".to_string(),
+            source_candidate_id: "c0_reference".to_string(),
+            checkpoint_epoch: 1,
+            model_version_id: "frozen-version".to_string(),
+            encoder_digest: "encoder".to_string(),
+            representation_normalizer_digest: "normalizer".to_string(),
+            head_digest: "head".to_string(),
+            feature_config_digest: "feature".to_string(),
+            sequence_config_digest: "sequence".to_string(),
+            label_config_digest: "label".to_string(),
+            support_policy_digest: "support".to_string(),
+            collapse_policy_digest: "collapse".to_string(),
+            backend_policy_digest: "backend".to_string(),
+            shadow_only: true,
+            head_weight_bits: vec![0.1f32.to_bits()],
+            head_bias_bits: 0.2f32.to_bits(),
+            artifact_digest: String::new(),
+        };
+        candidate.artifact_digest = candidate_artifact_digest_v0(&candidate);
+        let linear = FrozenProspectiveComparatorV0 {
+            kind: ProspectiveComparatorKindV0::FrozenLinear,
+            source_training_digest: "training".to_string(),
+            parameter_digest: "linear".to_string(),
+            feature_config_digest: "feature".to_string(),
+            label_config_digest: "label".to_string(),
+            parameter_bits: vec![0.3f32.to_bits()],
+            artifact_digest: String::new(),
+        };
+        let constant = FrozenProspectiveComparatorV0 {
+            kind: ProspectiveComparatorKindV0::FrozenTrainingPrevalenceConstant,
+            source_training_digest: "training".to_string(),
+            parameter_digest: "constant".to_string(),
+            feature_config_digest: "feature".to_string(),
+            label_config_digest: "label".to_string(),
+            parameter_bits: vec![0.5f32.to_bits()],
+            artifact_digest: String::new(),
+        };
+        let mut linear = linear;
+        linear.artifact_digest = comparator_artifact_digest_v0(&linear);
+        let mut constant = constant;
+        constant.artifact_digest = comparator_artifact_digest_v0(&constant);
+        ProspectiveCandidateResolutionV0 {
+            candidate,
+            linear,
+            constant,
+        }
+    }
+
+    fn prospective_test_state() -> ProspectiveChallengeLocalStateV0 {
+        let capsule = build_prospective_shadow_challenge_capsule_v0(
+            "BTC".to_string(),
+            10,
+            prospective_test_resolution(),
+            1,
+            ProspectiveEvaluationPolicyV0 {
+                minimum_finalized_future_rows: 4,
+                minimum_mature_events: 2,
+                minimum_support_qualified_events: 2,
+                minimum_positive_labels: 1,
+                minimum_negative_labels_for_auc: 1,
+                maximum_technical_failure_count: 0,
+                primary_metric: "brier".to_string(),
+                secondary_metrics: vec!["auc".to_string()],
+                require_brier_improvement_over_linear: true,
+                require_brier_improvement_over_constant: true,
+                require_no_severe_probability_collapse: true,
+            },
+        )
+        .unwrap();
+        new_prospective_challenge_local_state_v0(capsule).unwrap()
+    }
+
+    #[test]
+    fn prospective_capsule_is_deterministic_and_rejects_mutation() {
+        let first = prospective_test_state();
+        let second = prospective_test_state();
+        assert_eq!(first.capsule.capsule_digest, second.capsule.capsule_digest);
+        assert!(validate_prospective_challenge_local_state_v0(&first).is_ok());
+        let mut changed = first;
+        changed.capsule.candidate.head_bias_bits ^= 1;
+        assert_eq!(
+            validate_prospective_challenge_local_state_v0(&changed),
+            Err(ProspectiveChallengeErrorV0::InvalidCapsule)
+        );
+    }
+
+    #[test]
+    fn prospective_state_machine_and_vault_fail_closed() {
+        assert_eq!(
+            prospective_challenge_transition_v0(
+                ProspectiveChallengeStatusV0::Draft,
+                ProspectiveChallengeStatusV0::Accumulating,
+            ),
+            Err(ProspectiveChallengeErrorV0::InvalidTransition)
+        );
+        let mut state = prospective_test_state();
+        assert!(confirm_prospective_pre_registration_v0(&mut state).is_ok());
+        assert_eq!(
+            append_prospective_vault_row_v0(
+                &mut state,
+                ProspectiveEvidenceRowRefV0 {
+                    timestamp_ms: 10,
+                    canonical_row_digest: "row".to_string(),
+                    finalized: true,
+                },
+            ),
+            Err(ProspectiveChallengeErrorV0::InvalidVault)
+        );
+        append_prospective_vault_row_v0(
+            &mut state,
+            ProspectiveEvidenceRowRefV0 {
+                timestamp_ms: 11,
+                canonical_row_digest: "row-11".to_string(),
+                finalized: true,
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            blind_prospective_challenge_status_v0(&state)
+                .unwrap()
+                .finalized_row_count,
+            1
+        );
+    }
+
+    #[test]
+    fn prospective_prediction_journal_seals_bits_without_label_access() {
+        let mut state = prospective_test_state();
+        confirm_prospective_pre_registration_v0(&mut state).unwrap();
+        let comparator_artifact_digests = state
+            .capsule
+            .comparators
+            .iter()
+            .map(|comparator| comparator.artifact_digest.clone())
+            .collect::<Vec<_>>();
+        let challenge_id = state.capsule.challenge_id.clone();
+        let candidate_artifact_digest = state.capsule.candidate.artifact_digest.clone();
+        let event = ProspectivePredictionEventV0 {
+            challenge_id,
+            event_id: "event-11".to_string(),
+            prediction_timestamp_ms: 11,
+            required_label_maturity_timestamp_ms: 12,
+            input_evidence_digest: "input".to_string(),
+            candidate_artifact_digest,
+            comparator_artifact_digests: comparator_artifact_digests.clone(),
+            support_applicability: "applicable".to_string(),
+            support_decision: "in_support".to_string(),
+            candidate_prediction: Some(SealedProbabilityV0 {
+                ieee754_bits: 0.7f32.to_bits(),
+            }),
+            comparator_predictions: comparator_artifact_digests
+                .iter()
+                .map(|digest| SealedComparatorPredictionV0 {
+                    comparator_artifact_digest: digest.clone(),
+                    probability: SealedProbabilityV0 {
+                        ieee754_bits: 0.5f32.to_bits(),
+                    },
+                })
+                .collect(),
+            operational_outcome: ProspectiveShadowOutcomeV0::ShadowPredictionSealed,
+            label_status: ProspectiveLabelStatusV0::AwaitingFutureRows,
+            event_digest: String::new(),
+        };
+        append_prospective_prediction_event_v0(&mut state, event).unwrap();
+        let blind = blind_prospective_challenge_status_v0(&state).unwrap();
+        assert_eq!(blind.support_qualified_prediction_count, 1);
+        assert_eq!(blind.awaiting_label_maturity_count, 1);
+        assert_eq!(
+            open_prospective_challenge_once_v0(&mut state, false),
+            Err(ProspectiveChallengeErrorV0::EvaluationOpeningForbidden)
+        );
+    }
+
+    #[test]
+    fn prospective_local_state_round_trip_reopens_and_verifies_atomically() {
+        let state = prospective_test_state();
+        let path = std::env::temp_dir().join(format!(
+            "soma-prospective-state-{}.json",
+            state.capsule.capsule_digest
+        ));
+        let _ = std::fs::remove_file(&path);
+        write_prospective_challenge_local_state_v0(&path, &state).unwrap();
+        assert_eq!(
+            read_prospective_challenge_local_state_v0(&path).unwrap(),
+            state
+        );
+        std::fs::remove_file(path).unwrap();
     }
 }

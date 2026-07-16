@@ -731,6 +731,7 @@ pub struct RepresentationNormalizerV0 {
 #[derive(Clone, Debug, PartialEq)]
 pub struct MomentumForensicCandidateResultV0 {
     pub candidate: MomentumForensicCandidateV0,
+    pub frozen_head: LogisticPredictionHeadV0,
     pub validation: EvaluationMetricsV0,
     pub validation_collapse: ProbabilityCollapseMetricsV0,
     pub test: Option<EvaluationMetricsV0>,
@@ -766,6 +767,7 @@ pub struct MomentumProbabilityCollapseForensicsV0 {
     pub candidate_results: Vec<MomentumForensicCandidateResultV0>,
     pub test_partition_opened_once: bool,
     pub selected_checkpoint: Option<CheckpointRefV0>,
+    pub representation_normalizer_digest: String,
     pub abstention: Option<ShadowLearningAbstentionV0>,
     pub temporal_generalization: Option<TemporalGeneralizationResultV0>,
 }
@@ -1139,6 +1141,8 @@ pub struct MomentumLearningPathResultV0 {
     pub validation: PredictionDiagnosticsV0,
     pub test: PredictionDiagnosticsV0,
     pub baselines: BaselineComparisonV0,
+    pub frozen_linear_comparator: LinearMomentumBaselineV0,
+    pub frozen_constant_comparator: ConstantProbabilityBaselineV0,
     pub version: SandboxModelVersionV0,
     pub shadow_assessment: CampaignShadowAssessmentV0,
 }
@@ -1456,6 +1460,27 @@ impl RepresentationNormalizerV0 {
                 })
             })
             .collect()
+    }
+
+    pub fn digest(&self) -> String {
+        stable_hash_string(&format!(
+            "{}:{}:{}",
+            self.means
+                .iter()
+                .map(|value| value.to_bits().to_string())
+                .collect::<Vec<_>>()
+                .join(","),
+            self.scales
+                .iter()
+                .map(|value| value.to_bits().to_string())
+                .collect::<Vec<_>>()
+                .join(","),
+            self.constant_dimension_indices
+                .iter()
+                .map(usize::to_string)
+                .collect::<Vec<_>>()
+                .join(","),
+        ))
     }
 }
 
@@ -2412,6 +2437,7 @@ fn run_momentum_probability_collapse_forensics_with_temporal_inputs_v0(
         let eligible_for_selection = trajectory.selected_checkpoint.is_some();
         candidate_results.push(MomentumForensicCandidateResultV0 {
             candidate: *candidate,
+            frozen_head: head.clone(),
             validation: validation_metrics,
             validation_collapse,
             test: None,
@@ -2654,6 +2680,7 @@ fn run_momentum_probability_collapse_forensics_with_temporal_inputs_v0(
         candidate_results,
         test_partition_opened_once,
         selected_checkpoint,
+        representation_normalizer_digest: normalizer.digest(),
         abstention,
         temporal_generalization,
     })
@@ -4370,6 +4397,8 @@ fn train_path(
         validation: validation_diagnostics,
         test: test_diagnostics,
         baselines,
+        frozen_linear_comparator: linear,
+        frozen_constant_comparator: constant,
         version,
         shadow_assessment,
     })

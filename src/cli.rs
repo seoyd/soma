@@ -30,6 +30,16 @@ pub struct CliArgs {
     #[arg(long, default_value_t = false)]
     pub btc_cross_regime_diagnostics: bool,
     #[arg(long, default_value_t = false)]
+    pub btc_prospective_challenge_create: bool,
+    #[arg(long, default_value_t = false)]
+    pub btc_prospective_challenge_status: bool,
+    #[arg(long, default_value_t = false)]
+    pub btc_prospective_challenge_confirm_preregistration: bool,
+    #[arg(long, default_value_t = false)]
+    pub btc_prospective_accumulate: bool,
+    #[arg(long, default_value_t = false)]
+    pub btc_prospective_evaluate: bool,
+    #[arg(long, default_value_t = false)]
     pub toss_historical_contract_report: bool,
     #[arg(long)]
     pub toss_kr_historical_manifest: Option<PathBuf>,
@@ -57,6 +67,11 @@ pub fn run() -> Result<(), String> {
             args.momentum_cross_market_report,
             args.btc_multi_regime_report,
             args.btc_cross_regime_diagnostics,
+            args.btc_prospective_challenge_create,
+            args.btc_prospective_challenge_status,
+            args.btc_prospective_challenge_confirm_preregistration,
+            args.btc_prospective_accumulate,
+            args.btc_prospective_evaluate,
             args.allow_network,
         );
     }
@@ -64,6 +79,11 @@ pub fn run() -> Result<(), String> {
         || args.momentum_cross_market_report
         || args.btc_multi_regime_report
         || args.btc_cross_regime_diagnostics
+        || args.btc_prospective_challenge_create
+        || args.btc_prospective_challenge_status
+        || args.btc_prospective_challenge_confirm_preregistration
+        || args.btc_prospective_accumulate
+        || args.btc_prospective_evaluate
     {
         return Err(
             "temporal diagnostics require a local historical snapshot campaign config".to_string(),
@@ -198,6 +218,11 @@ fn run_local_historical_snapshot_campaign(
     cross_market_report: bool,
     btc_multi_regime_report: bool,
     btc_cross_regime_diagnostics: bool,
+    btc_prospective_challenge_create: bool,
+    btc_prospective_challenge_status: bool,
+    btc_prospective_challenge_confirm_preregistration: bool,
+    btc_prospective_accumulate: bool,
+    btc_prospective_evaluate: bool,
     allow_network: bool,
 ) -> Result<(), String> {
     let config = crate::data::UpbitHistoricalPilotConfigV0::from_toml_path(config_path)
@@ -238,6 +263,34 @@ fn run_local_historical_snapshot_campaign(
             .map_err(|_| "momentum campaign sufficiency calculation failed".to_string())?;
     let reloaded_digest =
         crate::data::historical_replay_dataset_digest_v0(&snapshot.normalized_dataset);
+    let prospective_action_count = [
+        btc_prospective_challenge_create,
+        btc_prospective_challenge_status,
+        btc_prospective_challenge_confirm_preregistration,
+        btc_prospective_accumulate,
+        btc_prospective_evaluate,
+    ]
+    .into_iter()
+    .filter(|selected| *selected)
+    .count();
+    if prospective_action_count > 1 {
+        return Err("select exactly one BTC prospective challenge action".to_string());
+    }
+    if prospective_action_count == 1 {
+        return run_btc_prospective_challenge_command(
+            config_path,
+            &snapshot,
+            &campaign_config,
+            &sufficiency,
+            btc_prospective_challenge_create,
+            btc_prospective_challenge_status,
+            btc_prospective_challenge_confirm_preregistration,
+            btc_prospective_accumulate,
+            btc_prospective_evaluate,
+            output_format,
+            allow_network,
+        );
+    }
     if btc_multi_regime_report {
         return run_btc_multi_regime_evidence_report(
             config_path,
@@ -583,6 +636,190 @@ fn run_btc_cross_regime_diagnostics(
     } else {
         Ok(())
     }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn run_btc_prospective_challenge_command(
+    config_path: &Path,
+    snapshot: &crate::data::DataSnapshot,
+    campaign_config: &crate::model::MomentumLearningCampaignConfigV0,
+    sufficiency: &crate::model::MomentumCampaignSufficiencyV0,
+    create: bool,
+    status: bool,
+    confirm_preregistration: bool,
+    accumulate: bool,
+    evaluate: bool,
+    output_format: &str,
+    allow_network: bool,
+) -> Result<(), String> {
+    if output_format != "text" && output_format != "json" {
+        return Err("unsupported BTC prospective challenge output format".to_string());
+    }
+    if !sufficiency.sufficient
+        || crate::data::historical_replay_dataset_digest_v0(&snapshot.normalized_dataset)
+            != snapshot.content_digest
+    {
+        return Err(
+            "prospective challenge requires verified sufficient historical evidence".to_string(),
+        );
+    }
+    let state_path = config_path
+        .parent()
+        .ok_or_else(|| "local prospective state directory unavailable".to_string())?
+        .join("prospective_shadow_challenge_v0.json");
+    if create {
+        if state_path.exists() {
+            return Err("local prospective challenge already exists; use status".to_string());
+        }
+        let preparation =
+            crate::model::prepare_btc_prospective_challenge_v0(snapshot, campaign_config).map_err(
+                |error| format!("prospective candidate or capsule resolution failed: {error:?}"),
+            )?;
+        if preparation.holdout.status
+            != crate::model::ProspectiveHoldoutStatusV0::PolicySealedNoFutureRows
+        {
+            return Err("prospective challenge requires an unopened existing cutoff".to_string());
+        }
+        let state = crate::model::new_prospective_challenge_local_state_v0(preparation.capsule)
+            .map_err(|_| "prospective challenge local state construction failed".to_string())?;
+        crate::model::write_prospective_challenge_local_state_v0(&state_path, &state)
+            .map_err(|_| "prospective challenge local state write failed".to_string())?;
+        let reloaded = crate::model::read_prospective_challenge_local_state_v0(&state_path)
+            .map_err(|_| "prospective challenge local state reread failed".to_string())?;
+        if reloaded.capsule.capsule_digest != state.capsule.capsule_digest {
+            return Err("prospective challenge capsule reread digest mismatch".to_string());
+        }
+        return render_blind_prospective_status(
+            &reloaded,
+            output_format,
+            "sealed_awaiting_pre_registration_commit",
+            preparation.ledger_digest,
+            preparation.holdout.manifest_digest,
+            0,
+        );
+    }
+    let mut state = crate::model::read_prospective_challenge_local_state_v0(&state_path)
+        .map_err(|_| "local prospective challenge is unavailable or invalid".to_string())?;
+    if confirm_preregistration {
+        crate::model::confirm_prospective_pre_registration_v0(&mut state).map_err(|_| {
+            "prospective challenge is not eligible for pre-registration confirmation".to_string()
+        })?;
+        crate::model::write_prospective_challenge_local_state_v0(&state_path, &state)
+            .map_err(|_| "prospective challenge local state write failed".to_string())?;
+        return render_blind_prospective_status(
+            &state,
+            output_format,
+            "pre_registration_committed",
+            String::new(),
+            String::new(),
+            0,
+        );
+    }
+    if accumulate {
+        let acquisition_status = if allow_network {
+            "blocked_missing_dedicated_prospective_local_consent"
+        } else {
+            "awaiting_explicit_network_consent"
+        };
+        return render_blind_prospective_status(
+            &state,
+            output_format,
+            acquisition_status,
+            String::new(),
+            String::new(),
+            0,
+        );
+    }
+    if evaluate {
+        return Err(
+            "one-time prospective evaluation requires a later explicit authorization".to_string(),
+        );
+    }
+    if status {
+        return render_blind_prospective_status(
+            &state,
+            output_format,
+            "offline_status",
+            String::new(),
+            String::new(),
+            0,
+        );
+    }
+    Err("prospective challenge action missing".to_string())
+}
+
+fn render_blind_prospective_status(
+    state: &crate::model::ProspectiveChallengeLocalStateV0,
+    output_format: &str,
+    acquisition_status: &str,
+    ledger_digest: String,
+    holdout_manifest_digest: String,
+    provider_calls: usize,
+) -> Result<(), String> {
+    let status = crate::model::blind_prospective_challenge_status_v0(state)
+        .map_err(|_| "prospective challenge integrity verification failed".to_string())?;
+    let challenge_status = format!("{:?}", status.challenge_status);
+    if output_format == "json" {
+        println!(
+            "{}",
+            serde_json::json!({
+                "report_version": "btc-prospective-shadow-challenge-v0",
+                "offline": provider_calls == 0,
+                "provider_calls": provider_calls,
+                "transport_constructions": 0,
+                "acquisition_status": acquisition_status,
+                "challenge_status": challenge_status,
+                "finalized_row_count": status.finalized_row_count,
+                "eligible_prediction_event_count": status.eligible_prediction_event_count,
+                "support_qualified_prediction_count": status.support_qualified_prediction_count,
+                "abstention_count": status.abstention_count,
+                "awaiting_label_maturity_count": status.awaiting_label_maturity_count,
+                "mature_but_sealed_label_count": status.mature_but_sealed_label_count,
+                "capsule_digest": status.capsule_digest,
+                "vault_digest": status.vault_digest,
+                "journal_digest": status.journal_digest,
+                "registry_digest": status.registry_digest,
+                "ledger_digest": ledger_digest,
+                "holdout_manifest_digest": holdout_manifest_digest,
+            })
+        );
+    } else {
+        println!("report_version=btc-prospective-shadow-challenge-v0");
+        println!("offline={}", provider_calls == 0);
+        println!("provider_calls={provider_calls}");
+        println!("transport_constructions=0");
+        println!("acquisition_status={acquisition_status}");
+        println!("challenge_status={challenge_status}");
+        println!("finalized_row_count={}", status.finalized_row_count);
+        println!(
+            "eligible_prediction_event_count={}",
+            status.eligible_prediction_event_count
+        );
+        println!(
+            "support_qualified_prediction_count={}",
+            status.support_qualified_prediction_count
+        );
+        println!("abstention_count={}", status.abstention_count);
+        println!(
+            "awaiting_label_maturity_count={}",
+            status.awaiting_label_maturity_count
+        );
+        println!(
+            "mature_but_sealed_label_count={}",
+            status.mature_but_sealed_label_count
+        );
+        println!("capsule_digest={}", status.capsule_digest);
+        println!("vault_digest={}", status.vault_digest);
+        println!("journal_digest={}", status.journal_digest);
+        println!("registry_digest={}", status.registry_digest);
+        if !ledger_digest.is_empty() {
+            println!("ledger_digest={ledger_digest}");
+        }
+        if !holdout_manifest_digest.is_empty() {
+            println!("holdout_manifest_digest={holdout_manifest_digest}");
+        }
+    }
+    Ok(())
 }
 
 fn run_btc_multi_regime_evidence_report(
