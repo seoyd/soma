@@ -26,6 +26,8 @@ pub struct CliArgs {
     #[arg(long, default_value_t = false)]
     pub momentum_cross_market_report: bool,
     #[arg(long, default_value_t = false)]
+    pub btc_multi_regime_report: bool,
+    #[arg(long, default_value_t = false)]
     pub toss_historical_contract_report: bool,
     #[arg(long)]
     pub toss_kr_historical_manifest: Option<PathBuf>,
@@ -51,9 +53,14 @@ pub fn run() -> Result<(), String> {
             args.momentum_temporal_diagnostics || args.momentum_cross_market_report,
             &args.output_format,
             args.momentum_cross_market_report,
+            args.btc_multi_regime_report,
+            args.allow_network,
         );
     }
-    if args.momentum_temporal_diagnostics || args.momentum_cross_market_report {
+    if args.momentum_temporal_diagnostics
+        || args.momentum_cross_market_report
+        || args.btc_multi_regime_report
+    {
         return Err(
             "temporal diagnostics require a local historical snapshot campaign config".to_string(),
         );
@@ -185,6 +192,8 @@ fn run_local_historical_snapshot_campaign(
     temporal_diagnostics: bool,
     output_format: &str,
     cross_market_report: bool,
+    btc_multi_regime_report: bool,
+    allow_network: bool,
 ) -> Result<(), String> {
     let config = crate::data::UpbitHistoricalPilotConfigV0::from_toml_path(config_path)
         .map_err(|_| "local provider config unavailable".to_string())?;
@@ -213,6 +222,18 @@ fn run_local_historical_snapshot_campaign(
             .map_err(|_| "momentum campaign sufficiency calculation failed".to_string())?;
     let reloaded_digest =
         crate::data::historical_replay_dataset_digest_v0(&snapshot.normalized_dataset);
+    if btc_multi_regime_report {
+        return run_btc_multi_regime_evidence_report(
+            config_path,
+            &snapshot,
+            &campaign_config,
+            &inventory,
+            &sufficiency,
+            reloaded_digest == snapshot.content_digest,
+            output_format,
+            allow_network,
+        );
+    }
     if !temporal_diagnostics {
         println!(
             "inventory_accepted_series={}",
@@ -250,6 +271,185 @@ fn run_local_historical_snapshot_campaign(
         output_format,
         cross_market_report,
     )
+}
+
+fn run_btc_multi_regime_evidence_report(
+    config_path: &Path,
+    snapshot: &crate::data::DataSnapshot,
+    campaign_config: &crate::model::MomentumLearningCampaignConfigV0,
+    inventory: &crate::model::HistoricalSnapshotInventoryV0,
+    sufficiency: &crate::model::MomentumCampaignSufficiencyV0,
+    snapshot_digest_matches: bool,
+    output_format: &str,
+    allow_network: bool,
+) -> Result<(), String> {
+    if output_format != "text" {
+        return Err("BTC multi-regime report supports text output only".to_string());
+    }
+    let local_config = crate::data::UpbitHistoricalPilotConfigV0::from_toml_path(config_path)
+        .map_err(|_| "local provider config unavailable".to_string())?;
+    let preflight = crate::data::preflight_upbit_historical_backfill_v0(config_path, allow_network);
+    let mut expansion_status = if allow_network {
+        crate::model::BtcHistoricalExpansionStatusV0::BackfillPreflightBlocked
+    } else {
+        crate::model::BtcHistoricalExpansionStatusV0::BackfillNotAuthorized
+    };
+    let mut backfill_rows = 0usize;
+    let mut backfill_pages = 0usize;
+    let mut evidence_snapshot = snapshot.clone();
+    if allow_network && preflight.status == crate::data::UpbitHistoricalPreflightStatusV0::Ready {
+        let backfill = crate::data::run_manual_upbit_historical_backfill_v0(
+            config_path,
+            true,
+            sufficiency.required_minimum_rows,
+        );
+        backfill_rows = backfill.row_count;
+        backfill_pages = backfill.page_receipts.len();
+        if let Some(path) = backfill.local_snapshot_path {
+            let harvested = crate::data::read_local_snapshot_protobuf_v1(Path::new(&path))?;
+            match crate::data::merge_existing_upbit_snapshot_v0(snapshot, &harvested).and_then(
+                |(merged, _)| {
+                    crate::data::write_and_verify_local_snapshot_v0(
+                        &merged,
+                        Path::new(&local_config.snapshot_output_dir),
+                    )?;
+                    Ok(merged)
+                },
+            ) {
+                Ok(merged) => {
+                    evidence_snapshot = merged;
+                    expansion_status =
+                        crate::model::BtcHistoricalExpansionStatusV0::ExpandedSnapshotAccepted;
+                }
+                Err(_) => {
+                    expansion_status =
+                        crate::model::BtcHistoricalExpansionStatusV0::ExpandedSnapshotRejected;
+                }
+            }
+        } else {
+            expansion_status = crate::model::BtcHistoricalExpansionStatusV0::BackfillFailed;
+        }
+    }
+    let (_, pack) = crate::model::freeze_momentum_historical_evidence_pack_v0(
+        std::slice::from_ref(&evidence_snapshot),
+        &crate::model::HistoricalEvidencePolicyV0::default(),
+    )
+    .map_err(|_| "historical evidence freeze failed".to_string())?;
+    crate::model::verify_momentum_historical_evidence_pack_v0(&pack)
+        .map_err(|_| "historical evidence pack verification failed".to_string())?;
+    let active_sufficiency = crate::model::assess_momentum_campaign_sufficiency_v0(
+        evidence_snapshot.row_count,
+        campaign_config,
+    )
+    .map_err(|_| "momentum campaign sufficiency calculation failed".to_string())?;
+    let mut campaigns = Vec::new();
+    let mut reproduced_report_digest = None;
+    if local_config.campaign_attempt_enabled && active_sufficiency.sufficient {
+        let encoder = crate::model::frozen_mamba3_encoder_from_seed_v0(
+            &campaign_config.feature_config,
+            campaign_config.campaign_seed,
+            campaign_config.backend_preference,
+            campaign_config.fallback_policy,
+        )
+        .map_err(|_| "frozen momentum encoder unavailable".to_string())?;
+        let results =
+            crate::model::run_momentum_series_campaigns_v0(&pack, campaign_config, &encoder)
+                .map_err(|_| "momentum campaign execution failed".to_string())?;
+        for result in results {
+            let report = crate::model::build_momentum_temporal_diagnostic_report_v0(
+                &result.campaign,
+                evidence_snapshot.row_count,
+                &pack.digest,
+            );
+            reproduced_report_digest = Some(report.report_digest);
+            campaigns.push(result.campaign);
+        }
+    }
+    let ledger =
+        crate::model::build_historical_evidence_usage_ledger_v0(&evidence_snapshot, &campaigns)
+            .map_err(|_| "historical evidence usage ledger failed".to_string())?;
+    let regime_config = crate::model::BtcHistoricalRegimeConfigV0 {
+        minimum_regimes: 2,
+        regime_rows: active_sufficiency.required_minimum_rows,
+        inter_regime_gap_rows: campaign_config.purge_gap_rows,
+        minimum_campaign_windows_per_regime: campaign_config.minimum_evaluated_windows,
+        segmentation_policy:
+            crate::model::TemporalRegimeSegmentationPolicyV0::EqualLengthChronological,
+    };
+    let segmentation =
+        crate::model::segment_btc_historical_regimes_v0(&evidence_snapshot, &regime_config)
+            .map_err(|_| "BTC regime segmentation failed".to_string())?;
+    let packs = crate::model::freeze_btc_historical_regime_packs_v0(
+        &evidence_snapshot,
+        &segmentation,
+        &crate::model::HistoricalEvidencePolicyV0::default(),
+    )
+    .map_err(|_| "BTC regime pack freeze failed".to_string())?;
+    let regime_results = if packs.is_empty() {
+        vec![]
+    } else {
+        let encoder = crate::model::frozen_mamba3_encoder_from_seed_v0(
+            &campaign_config.feature_config,
+            campaign_config.campaign_seed,
+            campaign_config.backend_preference,
+            campaign_config.fallback_policy,
+        )
+        .map_err(|_| "frozen momentum encoder unavailable".to_string())?;
+        crate::model::run_btc_historical_regime_campaigns_v0(&packs, campaign_config, &encoder)
+            .map_err(|_| "BTC regime campaign execution failed".to_string())?
+    };
+    let aggregate =
+        crate::model::aggregate_btc_cross_regime_evidence_v0(&regime_results, &regime_config)
+            .map_err(|_| "BTC cross-regime aggregation failed".to_string())?;
+    let holdout = crate::model::seal_prospective_holdout_v0(
+        &ledger,
+        &crate::model::ProspectiveHoldoutPolicyConfigV0 {
+            minimum_future_rows: regime_config.regime_rows,
+            required_future_windows: regime_config.minimum_campaign_windows_per_regime,
+        },
+        &[],
+    )
+    .map_err(|_| "prospective holdout seal failed".to_string())?;
+    println!("report_version=btc-multi-regime-evidence-v0");
+    println!("original_snapshot_digest_matches={snapshot_digest_matches}");
+    println!(
+        "inventory_accepted_series={}",
+        inventory.accepted_series.len()
+    );
+    println!("original_evidence_pack_verified={}", pack.frozen);
+    println!(
+        "existing_temporal_report_digest={}",
+        reproduced_report_digest.unwrap_or_default()
+    );
+    println!("usage_ledger_digest={}", ledger.ledger_digest);
+    println!("usage_record_count={}", ledger.usages.len());
+    println!(
+        "maximum_consumed_timestamp_ms={}",
+        ledger.maximum_consumed_timestamp_ms
+    );
+    println!("upbit_preflight={:?}", preflight.status);
+    println!("historical_expansion_status={expansion_status:?}");
+    println!("backfill_rows={backfill_rows}");
+    println!("backfill_page_receipts={backfill_pages}");
+    println!("regime_config_digest={}", regime_config.digest());
+    println!("regime_segmentation_status={:?}", segmentation.status);
+    println!("regime_count={}", segmentation.regimes.len());
+    println!("regime_pack_count={}", packs.len());
+    println!("cross_regime_status={:?}", aggregate.status);
+    println!("cross_regime_report_digest={}", aggregate.report_digest);
+    println!(
+        "prospective_holdout_cutoff_ms={}",
+        holdout.cutoff_exclusive_timestamp_ms
+    );
+    println!("prospective_holdout_status={:?}", holdout.status);
+    println!("prospective_holdout_opened={}", holdout.opened);
+    println!(
+        "prospective_holdout_labels_accessed={}",
+        holdout.labels_accessed
+    );
+    println!("network_calls_after_pack_freeze=0");
+    println!("model_campaign_config_digest={}", campaign_config.digest());
+    Ok(())
 }
 
 fn run_momentum_campaign_if_enabled(

@@ -13,14 +13,17 @@ use crate::{
         DataAcquisitionBroker, DataLookback, DataPriority, DataSnapshot, DatasetKind,
         ProviderCapabilities, ReadOnlyMarketDataProvider, ReadOnlyProviderRegistry,
         SnapshotSourceType, build_acquisition_plan, historical_replay_dataset_digest_v0,
+        snapshot_id_from_semantic_digest_v1,
     },
-    league::AgentKind,
+    league::{AgentKind, HistoricalReplayDataset},
 };
 
 use super::{
-    FrozenMamba3EncoderV0, MambaRepresentationValueStatusV0, ModelDriftStatusV0,
-    MomentumLearningCampaignConfigV0, MomentumLearningCampaignResultV0,
-    MomentumLearningCampaignStatusV0, build_momentum_learning_windows_v0,
+    EarliestTemporalShiftStageV0, FrozenMamba3EncoderV0, MambaRepresentationValueStatusV0,
+    ModelDriftStatusV0, MomentumLearningCampaignConfigV0, MomentumLearningCampaignResultV0,
+    MomentumLearningCampaignStatusV0, MomentumTemporalDiagnosticReportV0,
+    ProbabilityCollapseRootCauseV0, SupportGatedMomentumSeriesVerdictV0, WarmStartLockInStatusV0,
+    build_momentum_learning_windows_v0, build_momentum_temporal_diagnostic_report_v0,
     run_momentum_learning_campaign_v0,
 };
 
@@ -1304,6 +1307,805 @@ fn sorted_unique_market(
     values
 }
 
+/// Classification for immutable historical evidence.  These labels are
+/// deliberately conservative: a row that informed any research decision can
+/// never later be represented as a pristine prospective holdout row.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum EvidenceUsageClassV0 {
+    ConsumedForTraining,
+    ConsumedForValidation,
+    ConsumedForTest,
+    ConsumedForDiagnostics,
+    ConsumedCounterfactual,
+    DevelopmentEligible,
+    ProspectiveHoldoutReserved,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct HistoricalTimestampRangeV0 {
+    pub start_timestamp_ms: u64,
+    pub end_timestamp_ms: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct HistoricalEvidenceUsageRecordV0 {
+    pub range: HistoricalTimestampRangeV0,
+    pub usage_classes: Vec<EvidenceUsageClassV0>,
+    pub campaign_ids: Vec<String>,
+    pub model_version_ids: Vec<String>,
+    pub labels_accessed: bool,
+    pub counterfactual_accessed: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct HistoricalEvidenceUsageLedgerV0 {
+    pub ledger_version: String,
+    pub series_id: String,
+    pub source_snapshot_ids: Vec<String>,
+    pub usages: Vec<HistoricalEvidenceUsageRecordV0>,
+    pub maximum_consumed_timestamp_ms: u64,
+    pub ledger_digest: String,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum BtcHistoricalExpansionStatusV0 {
+    #[default]
+    ExistingEvidenceOnly,
+    BackfillNotAuthorized,
+    BackfillPreflightBlocked,
+    BackfillFailed,
+    ExpandedSnapshotAccepted,
+    ExpandedSnapshotRejected,
+    InsufficientHistoricalRows,
+}
+
+pub fn build_historical_evidence_usage_ledger_v0(
+    snapshot: &DataSnapshot,
+    campaigns: &[MomentumLearningCampaignResultV0],
+) -> Result<HistoricalEvidenceUsageLedgerV0, HistoricalEvidenceErrorV0> {
+    if !snapshot_rows_are_valid(snapshot)
+        || snapshot.content_digest
+            != historical_replay_dataset_digest_v0(&snapshot.normalized_dataset)
+    {
+        return Err(HistoricalEvidenceErrorV0::InvalidConfig);
+    }
+    let mut usages = Vec::new();
+    for campaign in campaigns {
+        let model_version_ids = sorted_unique(
+            campaign
+                .generated_versions
+                .iter()
+                .map(|version| version.model_version_id.clone()),
+        );
+        for result in &campaign.windows {
+            usages.push(usage_from_index_range(
+                snapshot,
+                &result.window.train_range,
+                vec![
+                    EvidenceUsageClassV0::ConsumedForTraining,
+                    EvidenceUsageClassV0::DevelopmentEligible,
+                ],
+                &campaign.campaign_id,
+                &model_version_ids,
+                true,
+                false,
+            )?);
+            usages.push(usage_from_index_range(
+                snapshot,
+                &result.window.validation_range,
+                vec![
+                    EvidenceUsageClassV0::ConsumedForValidation,
+                    EvidenceUsageClassV0::ConsumedForDiagnostics,
+                    EvidenceUsageClassV0::DevelopmentEligible,
+                ],
+                &campaign.campaign_id,
+                &model_version_ids,
+                true,
+                false,
+            )?);
+            usages.push(usage_from_index_range(
+                snapshot,
+                &result.window.test_range,
+                vec![
+                    EvidenceUsageClassV0::ConsumedForTest,
+                    EvidenceUsageClassV0::ConsumedForDiagnostics,
+                    EvidenceUsageClassV0::ConsumedCounterfactual,
+                    EvidenceUsageClassV0::DevelopmentEligible,
+                ],
+                &campaign.campaign_id,
+                &model_version_ids,
+                true,
+                true,
+            )?);
+        }
+    }
+    if usages.is_empty() && !snapshot.normalized_dataset.rows.is_empty() {
+        usages.push(HistoricalEvidenceUsageRecordV0 {
+            range: full_snapshot_range(snapshot)?,
+            usage_classes: vec![
+                EvidenceUsageClassV0::ConsumedForDiagnostics,
+                EvidenceUsageClassV0::DevelopmentEligible,
+            ],
+            campaign_ids: vec![],
+            model_version_ids: vec![],
+            labels_accessed: false,
+            counterfactual_accessed: false,
+        });
+    }
+    let usages = normalize_usage_records(usages)?;
+    let maximum_consumed_timestamp_ms = usages
+        .iter()
+        .map(|usage| usage.range.end_timestamp_ms)
+        .max()
+        .ok_or(HistoricalEvidenceErrorV0::InvalidConfig)?;
+    let source_snapshot_ids = vec![snapshot.snapshot_id.clone()];
+    let ledger_digest = stable_hash_string(&usage_ledger_material(
+        &snapshot.normalized_dataset.symbol,
+        &source_snapshot_ids,
+        &usages,
+    ));
+    Ok(HistoricalEvidenceUsageLedgerV0 {
+        ledger_version: "historical-evidence-usage-v0".to_string(),
+        series_id: format!(
+            "{:?}:{}",
+            snapshot.market_scope, snapshot.normalized_dataset.symbol
+        ),
+        source_snapshot_ids,
+        usages,
+        maximum_consumed_timestamp_ms,
+        ledger_digest,
+    })
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TemporalRegimeSegmentationPolicyV0 {
+    EqualLengthChronological,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BtcHistoricalRegimeConfigV0 {
+    pub minimum_regimes: usize,
+    pub regime_rows: usize,
+    pub inter_regime_gap_rows: usize,
+    pub minimum_campaign_windows_per_regime: usize,
+    pub segmentation_policy: TemporalRegimeSegmentationPolicyV0,
+}
+
+impl BtcHistoricalRegimeConfigV0 {
+    pub fn validate(&self) -> Result<(), HistoricalEvidenceErrorV0> {
+        if self.minimum_regimes == 0
+            || self.regime_rows == 0
+            || self.minimum_campaign_windows_per_regime == 0
+        {
+            Err(HistoricalEvidenceErrorV0::InvalidConfig)
+        } else {
+            Ok(())
+        }
+    }
+
+    pub fn digest(&self) -> String {
+        stable_hash_string(&format!(
+            "{:?}:{}:{}:{}:{}",
+            self.segmentation_policy,
+            self.minimum_regimes,
+            self.regime_rows,
+            self.inter_regime_gap_rows,
+            self.minimum_campaign_windows_per_regime,
+        ))
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum BtcRegimeSegmentationStatusV0 {
+    Ready,
+    #[default]
+    InsufficientRows,
+    InvalidChronology,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BtcHistoricalRegimeV0 {
+    pub regime_id: String,
+    pub start_row_index: usize,
+    pub end_row_index_exclusive: usize,
+    pub start_timestamp_ms: u64,
+    pub end_timestamp_ms: u64,
+    pub row_count: usize,
+    pub source_snapshot_id: String,
+    pub usage_class: EvidenceUsageClassV0,
+    pub segmentation_config_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BtcHistoricalRegimeSegmentationV0 {
+    pub status: BtcRegimeSegmentationStatusV0,
+    pub regimes: Vec<BtcHistoricalRegimeV0>,
+    pub incomplete_rows: usize,
+    pub segmentation_config_digest: String,
+}
+
+pub fn segment_btc_historical_regimes_v0(
+    snapshot: &DataSnapshot,
+    config: &BtcHistoricalRegimeConfigV0,
+) -> Result<BtcHistoricalRegimeSegmentationV0, HistoricalEvidenceErrorV0> {
+    config.validate()?;
+    let rows = &snapshot.normalized_dataset.rows;
+    if rows
+        .windows(2)
+        .any(|pair| pair[0].timestamp_ms >= pair[1].timestamp_ms)
+    {
+        return Ok(BtcHistoricalRegimeSegmentationV0 {
+            status: BtcRegimeSegmentationStatusV0::InvalidChronology,
+            regimes: vec![],
+            incomplete_rows: rows.len(),
+            segmentation_config_digest: config.digest(),
+        });
+    }
+    let mut regimes = Vec::new();
+    let mut start = 0usize;
+    while start
+        .checked_add(config.regime_rows)
+        .is_some_and(|end| end <= rows.len())
+    {
+        let end = start + config.regime_rows;
+        let first = &rows[start];
+        let last = &rows[end - 1];
+        regimes.push(BtcHistoricalRegimeV0 {
+            regime_id: format!("btc-regime-{:03}", regimes.len() + 1),
+            start_row_index: start,
+            end_row_index_exclusive: end,
+            start_timestamp_ms: first.timestamp_ms,
+            end_timestamp_ms: last.timestamp_ms,
+            row_count: config.regime_rows,
+            source_snapshot_id: snapshot.snapshot_id.clone(),
+            usage_class: EvidenceUsageClassV0::DevelopmentEligible,
+            segmentation_config_digest: config.digest(),
+        });
+        if end == rows.len() {
+            start = end;
+            break;
+        }
+        start = match end.checked_add(config.inter_regime_gap_rows) {
+            Some(next) if next < rows.len() => next,
+            _ => {
+                start = end;
+                break;
+            }
+        };
+    }
+    let status = if regimes.len() >= config.minimum_regimes {
+        BtcRegimeSegmentationStatusV0::Ready
+    } else {
+        BtcRegimeSegmentationStatusV0::InsufficientRows
+    };
+    Ok(BtcHistoricalRegimeSegmentationV0 {
+        status,
+        incomplete_rows: rows.len().saturating_sub(start),
+        regimes,
+        segmentation_config_digest: config.digest(),
+    })
+}
+
+pub fn freeze_btc_historical_regime_packs_v0(
+    snapshot: &DataSnapshot,
+    segmentation: &BtcHistoricalRegimeSegmentationV0,
+    policy: &HistoricalEvidencePolicyV0,
+) -> Result<Vec<(BtcHistoricalRegimeV0, MomentumHistoricalEvidencePackV0)>, HistoricalEvidenceErrorV0>
+{
+    if segmentation.status != BtcRegimeSegmentationStatusV0::Ready {
+        return Ok(vec![]);
+    }
+    let mut previous_end = 0usize;
+    let mut packs = Vec::new();
+    for regime in &segmentation.regimes {
+        if regime.start_row_index < previous_end
+            || regime.end_row_index_exclusive > snapshot.normalized_dataset.rows.len()
+            || regime.start_row_index >= regime.end_row_index_exclusive
+        {
+            return Err(HistoricalEvidenceErrorV0::InvalidConfig);
+        }
+        previous_end = regime.end_row_index_exclusive;
+        let regime_snapshot = snapshot_for_regime(snapshot, regime)?;
+        let (_, pack) = freeze_momentum_historical_evidence_pack_v0(&[regime_snapshot], policy)?;
+        verify_momentum_historical_evidence_pack_v0(&pack)?;
+        packs.push((regime.clone(), pack));
+    }
+    Ok(packs)
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct BtcTemporalRegimeEvidenceResultV0 {
+    pub regime_id: String,
+    pub row_count: usize,
+    pub campaign_windows: usize,
+    pub no_signal_windows: usize,
+    pub selected_checkpoint_windows: usize,
+    pub in_support_windows: usize,
+    pub out_of_support_windows: usize,
+    pub earliest_shift_stage: EarliestTemporalShiftStageV0,
+    pub temporal_root_cause: ProbabilityCollapseRootCauseV0,
+    pub frozen_representation_breach_count: usize,
+    pub warm_start_status: WarmStartLockInStatusV0,
+    pub abstention_count: usize,
+    pub accepted_predictive_versions: usize,
+    pub final_verdict: SupportGatedMomentumSeriesVerdictV0,
+    pub campaign_config_digest: String,
+    pub encoder_parameter_digest: String,
+    pub report_digest: String,
+}
+
+pub fn run_btc_historical_regime_campaigns_v0(
+    packs: &[(BtcHistoricalRegimeV0, MomentumHistoricalEvidencePackV0)],
+    campaign_config: &MomentumLearningCampaignConfigV0,
+    encoder: &FrozenMamba3EncoderV0,
+) -> Result<Vec<BtcTemporalRegimeEvidenceResultV0>, HistoricalEvidenceErrorV0> {
+    let campaign_config_digest = campaign_config.digest();
+    let encoder_parameter_digest = encoder.parameter_digest();
+    let mut evidence = Vec::new();
+    for (regime, pack) in packs {
+        let results = run_momentum_series_campaigns_v0(pack, campaign_config, encoder)?;
+        let result = results
+            .first()
+            .ok_or(HistoricalEvidenceErrorV0::CampaignConfigurationRejected)?;
+        let report = build_momentum_temporal_diagnostic_report_v0(
+            &result.campaign,
+            regime.row_count,
+            &pack.digest,
+        );
+        evidence.push(regime_evidence_from_report(
+            regime,
+            &report,
+            campaign_config_digest.clone(),
+            encoder_parameter_digest.clone(),
+        ));
+    }
+    evidence.sort_by(|left, right| left.regime_id.cmp(&right.regime_id));
+    Ok(evidence)
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum BtcCrossRegimeRepresentationStatusV0 {
+    RecurrentFrozenRepresentationShift,
+    RecentRegimeSpecificRepresentationShift,
+    HistoricalRegimeSpecificRepresentationShift,
+    MixedShiftStages,
+    PredominantlyNoUsableSignal,
+    SparseInSupportEvidence,
+    StableAcrossAvailableRegimes,
+    InsufficientRegimes,
+    DiagnosticFailure,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BtcCrossRegimeEvidenceV0 {
+    pub total_regimes: usize,
+    pub valid_regimes: usize,
+    pub insufficient_regimes: usize,
+    pub total_windows: usize,
+    pub no_signal_windows: usize,
+    pub in_support_windows: usize,
+    pub out_of_support_windows: usize,
+    pub frozen_representation_shift_regimes: usize,
+    pub feature_shift_regimes: usize,
+    pub sequence_shift_regimes: usize,
+    pub logit_shift_regimes: usize,
+    pub probability_shift_regimes: usize,
+    pub stable_regimes: usize,
+    pub accepted_predictive_versions: usize,
+    pub status: BtcCrossRegimeRepresentationStatusV0,
+    pub report_digest: String,
+}
+
+pub fn aggregate_btc_cross_regime_evidence_v0(
+    results: &[BtcTemporalRegimeEvidenceResultV0],
+    config: &BtcHistoricalRegimeConfigV0,
+) -> Result<BtcCrossRegimeEvidenceV0, HistoricalEvidenceErrorV0> {
+    config.validate()?;
+    let mut ordered = results.to_vec();
+    ordered.sort_by(|left, right| left.regime_id.cmp(&right.regime_id));
+    let valid = ordered
+        .iter()
+        .filter(|result| result.campaign_windows >= config.minimum_campaign_windows_per_regime)
+        .collect::<Vec<_>>();
+    let stage_count = |stage| {
+        valid
+            .iter()
+            .filter(|result| result.earliest_shift_stage == stage)
+            .count()
+    };
+    let frozen = stage_count(EarliestTemporalShiftStageV0::FrozenRepresentations);
+    let feature = stage_count(EarliestTemporalShiftStageV0::RawFeatures)
+        + stage_count(EarliestTemporalShiftStageV0::NormalizedFeatures);
+    let sequence = stage_count(EarliestTemporalShiftStageV0::Sequences);
+    let logit = stage_count(EarliestTemporalShiftStageV0::Logits)
+        + stage_count(EarliestTemporalShiftStageV0::RepresentationScale);
+    let probability = stage_count(EarliestTemporalShiftStageV0::Probabilities)
+        + stage_count(EarliestTemporalShiftStageV0::OutcomesOnly);
+    let stable = valid
+        .iter()
+        .filter(|result| result.in_support_windows > 0 && result.out_of_support_windows == 0)
+        .count();
+    let status = if valid.len() < config.minimum_regimes {
+        BtcCrossRegimeRepresentationStatusV0::InsufficientRegimes
+    } else if frozen >= config.minimum_regimes && feature == 0 && sequence == 0 {
+        BtcCrossRegimeRepresentationStatusV0::RecurrentFrozenRepresentationShift
+    } else if valid.iter().all(|result| result.no_signal_windows > 0)
+        && valid
+            .iter()
+            .map(|result| result.no_signal_windows)
+            .sum::<usize>()
+            * 2
+            >= valid
+                .iter()
+                .map(|result| result.campaign_windows)
+                .sum::<usize>()
+    {
+        BtcCrossRegimeRepresentationStatusV0::PredominantlyNoUsableSignal
+    } else if [frozen, feature, sequence, logit, probability]
+        .iter()
+        .filter(|count| **count > 0)
+        .count()
+        > 1
+    {
+        BtcCrossRegimeRepresentationStatusV0::MixedShiftStages
+    } else if stable == valid.len() {
+        BtcCrossRegimeRepresentationStatusV0::StableAcrossAvailableRegimes
+    } else if valid
+        .iter()
+        .map(|result| result.in_support_windows)
+        .sum::<usize>()
+        == 0
+    {
+        BtcCrossRegimeRepresentationStatusV0::SparseInSupportEvidence
+    } else {
+        BtcCrossRegimeRepresentationStatusV0::DiagnosticFailure
+    };
+    let total_windows = ordered.iter().map(|result| result.campaign_windows).sum();
+    let no_signal_windows = ordered.iter().map(|result| result.no_signal_windows).sum();
+    let in_support_windows = ordered.iter().map(|result| result.in_support_windows).sum();
+    let out_of_support_windows = ordered
+        .iter()
+        .map(|result| result.out_of_support_windows)
+        .sum();
+    let accepted_predictive_versions = ordered
+        .iter()
+        .map(|result| result.accepted_predictive_versions)
+        .sum();
+    let report_digest = stable_hash_string(&format!(
+        "{:?}:{}:{}:{}:{}:{}:{}:{}",
+        status,
+        ordered.len(),
+        valid.len(),
+        total_windows,
+        frozen,
+        feature,
+        sequence,
+        ordered
+            .iter()
+            .map(|result| result.report_digest.as_str())
+            .collect::<Vec<_>>()
+            .join(":"),
+    ));
+    Ok(BtcCrossRegimeEvidenceV0 {
+        total_regimes: ordered.len(),
+        valid_regimes: valid.len(),
+        insufficient_regimes: ordered.len().saturating_sub(valid.len()),
+        total_windows,
+        no_signal_windows,
+        in_support_windows,
+        out_of_support_windows,
+        frozen_representation_shift_regimes: frozen,
+        feature_shift_regimes: feature,
+        sequence_shift_regimes: sequence,
+        logit_shift_regimes: logit,
+        probability_shift_regimes: probability,
+        stable_regimes: stable,
+        accepted_predictive_versions,
+        status,
+        report_digest,
+    })
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum ProspectiveHoldoutStatusV0 {
+    #[default]
+    PolicyNotDefined,
+    PolicySealedNoFutureRows,
+    FutureRowsAccumulating,
+    ReadyForOneTimeEvaluation,
+    OpenedForOneTimeEvaluation,
+    InvalidatedByEarlyAccess,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ProspectiveHoldoutPolicyConfigV0 {
+    pub minimum_future_rows: usize,
+    pub required_future_windows: usize,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ProspectiveHoldoutManifestV0 {
+    pub manifest_version: String,
+    pub series_id: String,
+    pub cutoff_exclusive_timestamp_ms: u64,
+    pub minimum_future_rows: usize,
+    pub required_future_windows: usize,
+    pub policy_config_digest: String,
+    pub status: ProspectiveHoldoutStatusV0,
+    pub opened: bool,
+    pub labels_accessed: bool,
+    pub manifest_digest: String,
+}
+
+pub fn seal_prospective_holdout_v0(
+    ledger: &HistoricalEvidenceUsageLedgerV0,
+    policy: &ProspectiveHoldoutPolicyConfigV0,
+    future_timestamps: &[u64],
+) -> Result<ProspectiveHoldoutManifestV0, HistoricalEvidenceErrorV0> {
+    if policy.minimum_future_rows == 0 || policy.required_future_windows == 0 {
+        return Err(HistoricalEvidenceErrorV0::InvalidConfig);
+    }
+    if future_timestamps
+        .iter()
+        .any(|timestamp| *timestamp <= ledger.maximum_consumed_timestamp_ms)
+    {
+        return Err(HistoricalEvidenceErrorV0::InvalidConfig);
+    }
+    let status = if future_timestamps.is_empty() {
+        ProspectiveHoldoutStatusV0::PolicySealedNoFutureRows
+    } else if future_timestamps.len() < policy.minimum_future_rows {
+        ProspectiveHoldoutStatusV0::FutureRowsAccumulating
+    } else {
+        ProspectiveHoldoutStatusV0::ReadyForOneTimeEvaluation
+    };
+    let policy_config_digest = stable_hash_string(&format!(
+        "{}:{}",
+        policy.minimum_future_rows, policy.required_future_windows
+    ));
+    let mut manifest = ProspectiveHoldoutManifestV0 {
+        manifest_version: "prospective-holdout-v0".to_string(),
+        series_id: ledger.series_id.clone(),
+        cutoff_exclusive_timestamp_ms: ledger.maximum_consumed_timestamp_ms,
+        minimum_future_rows: policy.minimum_future_rows,
+        required_future_windows: policy.required_future_windows,
+        policy_config_digest,
+        status,
+        opened: false,
+        labels_accessed: false,
+        manifest_digest: String::new(),
+    };
+    manifest.manifest_digest = holdout_manifest_digest(&manifest);
+    Ok(manifest)
+}
+
+pub fn record_prospective_holdout_access_v0(
+    manifest: &mut ProspectiveHoldoutManifestV0,
+    opened: bool,
+    labels_accessed: bool,
+    model_selection_access: bool,
+) {
+    manifest.opened |= opened;
+    manifest.labels_accessed |= labels_accessed;
+    if model_selection_access || (labels_accessed && !opened) {
+        manifest.status = ProspectiveHoldoutStatusV0::InvalidatedByEarlyAccess;
+    } else if manifest.opened {
+        manifest.status = ProspectiveHoldoutStatusV0::OpenedForOneTimeEvaluation;
+    }
+    manifest.manifest_digest = holdout_manifest_digest(manifest);
+}
+
+pub fn prospective_holdout_timestamp_is_eligible_v0(
+    timestamp_ms: u64,
+    ledger: &HistoricalEvidenceUsageLedgerV0,
+    manifest: &ProspectiveHoldoutManifestV0,
+) -> bool {
+    timestamp_ms > ledger.maximum_consumed_timestamp_ms
+        && timestamp_ms > manifest.cutoff_exclusive_timestamp_ms
+        && manifest.status != ProspectiveHoldoutStatusV0::InvalidatedByEarlyAccess
+}
+
+fn usage_from_index_range(
+    snapshot: &DataSnapshot,
+    range: &super::IndexRangeV0,
+    usage_classes: Vec<EvidenceUsageClassV0>,
+    campaign_id: &str,
+    model_version_ids: &[String],
+    labels_accessed: bool,
+    counterfactual_accessed: bool,
+) -> Result<HistoricalEvidenceUsageRecordV0, HistoricalEvidenceErrorV0> {
+    if range.start >= range.end || range.end > snapshot.normalized_dataset.rows.len() {
+        return Err(HistoricalEvidenceErrorV0::InvalidConfig);
+    }
+    Ok(HistoricalEvidenceUsageRecordV0 {
+        range: HistoricalTimestampRangeV0 {
+            start_timestamp_ms: snapshot.normalized_dataset.rows[range.start].timestamp_ms,
+            end_timestamp_ms: snapshot.normalized_dataset.rows[range.end - 1].timestamp_ms,
+        },
+        usage_classes,
+        campaign_ids: vec![campaign_id.to_string()],
+        model_version_ids: model_version_ids.to_vec(),
+        labels_accessed,
+        counterfactual_accessed,
+    })
+}
+
+fn full_snapshot_range(
+    snapshot: &DataSnapshot,
+) -> Result<HistoricalTimestampRangeV0, HistoricalEvidenceErrorV0> {
+    Ok(HistoricalTimestampRangeV0 {
+        start_timestamp_ms: snapshot
+            .normalized_dataset
+            .rows
+            .first()
+            .ok_or(HistoricalEvidenceErrorV0::InvalidConfig)?
+            .timestamp_ms,
+        end_timestamp_ms: snapshot
+            .normalized_dataset
+            .rows
+            .last()
+            .ok_or(HistoricalEvidenceErrorV0::InvalidConfig)?
+            .timestamp_ms,
+    })
+}
+
+fn normalize_usage_records(
+    mut usages: Vec<HistoricalEvidenceUsageRecordV0>,
+) -> Result<Vec<HistoricalEvidenceUsageRecordV0>, HistoricalEvidenceErrorV0> {
+    for usage in &mut usages {
+        if usage.range.start_timestamp_ms > usage.range.end_timestamp_ms {
+            return Err(HistoricalEvidenceErrorV0::InvalidConfig);
+        }
+        usage.usage_classes.sort();
+        usage.usage_classes.dedup();
+        usage.campaign_ids.sort();
+        usage.campaign_ids.dedup();
+        usage.model_version_ids.sort();
+        usage.model_version_ids.dedup();
+    }
+    usages.sort_by(|left, right| {
+        (
+            left.range.start_timestamp_ms,
+            left.range.end_timestamp_ms,
+            &left.campaign_ids,
+            &left.model_version_ids,
+        )
+            .cmp(&(
+                right.range.start_timestamp_ms,
+                right.range.end_timestamp_ms,
+                &right.campaign_ids,
+                &right.model_version_ids,
+            ))
+    });
+    let mut normalized: Vec<HistoricalEvidenceUsageRecordV0> = Vec::new();
+    for usage in usages {
+        if let Some(current) = normalized.last_mut()
+            && usage.range.start_timestamp_ms <= current.range.end_timestamp_ms
+        {
+            current.range.end_timestamp_ms = current
+                .range
+                .end_timestamp_ms
+                .max(usage.range.end_timestamp_ms);
+            current.usage_classes.extend(usage.usage_classes);
+            current.usage_classes.sort();
+            current.usage_classes.dedup();
+            current.campaign_ids.extend(usage.campaign_ids);
+            current.campaign_ids.sort();
+            current.campaign_ids.dedup();
+            current.model_version_ids.extend(usage.model_version_ids);
+            current.model_version_ids.sort();
+            current.model_version_ids.dedup();
+            current.labels_accessed |= usage.labels_accessed;
+            current.counterfactual_accessed |= usage.counterfactual_accessed;
+        } else {
+            normalized.push(usage);
+        }
+    }
+    Ok(normalized)
+}
+
+fn usage_ledger_material(
+    symbol: &str,
+    snapshot_ids: &[String],
+    usages: &[HistoricalEvidenceUsageRecordV0],
+) -> String {
+    format!(
+        "{}:{}:{}",
+        symbol,
+        snapshot_ids.join(","),
+        usages
+            .iter()
+            .map(|usage| {
+                format!(
+                    "{}-{}:{:?}:{}:{}:{}:{}",
+                    usage.range.start_timestamp_ms,
+                    usage.range.end_timestamp_ms,
+                    usage.usage_classes,
+                    usage.campaign_ids.join(","),
+                    usage.model_version_ids.join(","),
+                    usage.labels_accessed,
+                    usage.counterfactual_accessed,
+                )
+            })
+            .collect::<Vec<_>>()
+            .join("|"),
+    )
+}
+
+fn snapshot_for_regime(
+    snapshot: &DataSnapshot,
+    regime: &BtcHistoricalRegimeV0,
+) -> Result<DataSnapshot, HistoricalEvidenceErrorV0> {
+    let rows = snapshot.normalized_dataset.rows
+        [regime.start_row_index..regime.end_row_index_exclusive]
+        .to_vec();
+    let dataset = HistoricalReplayDataset {
+        symbol: snapshot.normalized_dataset.symbol.clone(),
+        source: snapshot.normalized_dataset.source.clone(),
+        rows,
+        reason_codes: snapshot.normalized_dataset.reason_codes.clone(),
+    };
+    let digest = historical_replay_dataset_digest_v0(&dataset);
+    let mut regime_snapshot = snapshot.clone();
+    regime_snapshot.snapshot_id = snapshot_id_from_semantic_digest_v1(&digest);
+    regime_snapshot.request_key = format!(
+        "{}:regime:{}",
+        snapshot.request_key, regime.segmentation_config_digest
+    );
+    regime_snapshot.requested_lookback.bars = dataset.rows.len();
+    regime_snapshot.actual_start_timestamp_ms = dataset.rows.first().map(|row| row.timestamp_ms);
+    regime_snapshot.actual_end_timestamp_ms = dataset.rows.last().map(|row| row.timestamp_ms);
+    regime_snapshot.row_count = dataset.rows.len();
+    regime_snapshot.quality_summary.row_count = regime_snapshot.row_count;
+    regime_snapshot.content_digest = digest;
+    regime_snapshot.normalized_dataset = dataset;
+    if !snapshot_rows_are_valid(&regime_snapshot) {
+        return Err(HistoricalEvidenceErrorV0::InvalidConfig);
+    }
+    Ok(regime_snapshot)
+}
+
+fn regime_evidence_from_report(
+    regime: &BtcHistoricalRegimeV0,
+    report: &MomentumTemporalDiagnosticReportV0,
+    campaign_config_digest: String,
+    encoder_parameter_digest: String,
+) -> BtcTemporalRegimeEvidenceResultV0 {
+    BtcTemporalRegimeEvidenceResultV0 {
+        regime_id: regime.regime_id.clone(),
+        row_count: regime.row_count,
+        campaign_windows: report.aggregate.total_windows,
+        no_signal_windows: report.aggregate.no_signal_windows,
+        selected_checkpoint_windows: report.aggregate.selected_checkpoint_windows,
+        in_support_windows: report.aggregate.in_support_windows,
+        out_of_support_windows: report.aggregate.out_of_support_windows,
+        earliest_shift_stage: report.earliest_shift_stage,
+        temporal_root_cause: report.temporal_root_cause,
+        frozen_representation_breach_count: report.aggregate.representation_shift_windows,
+        warm_start_status: report.warm_start_status,
+        abstention_count: report.aggregate.operational_abstentions,
+        accepted_predictive_versions: report.aggregate.accepted_predictive_versions,
+        final_verdict: report.final_verdict,
+        campaign_config_digest,
+        encoder_parameter_digest,
+        report_digest: report.report_digest.clone(),
+    }
+}
+
+fn holdout_manifest_digest(manifest: &ProspectiveHoldoutManifestV0) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{}:{}:{}:{}:{:?}:{}:{}",
+        manifest.manifest_version,
+        manifest.series_id,
+        manifest.cutoff_exclusive_timestamp_ms,
+        manifest.minimum_future_rows,
+        manifest.required_future_windows,
+        manifest.policy_config_digest,
+        manifest.status,
+        manifest.opened,
+        manifest.labels_accessed,
+    ))
+}
+
 fn mean(values: &[f32]) -> f32 {
     if values.is_empty() {
         0.0
@@ -1667,5 +2469,107 @@ mod tests {
                 .unwrap();
         assert!(sufficient.sufficient);
         assert!(sufficient.possible_windows >= sufficient.required_windows);
+    }
+
+    #[test]
+    fn evidence_usage_ledger_is_deterministic_and_seals_all_observed_rows() {
+        let snapshot = snapshot("BTC", SnapshotSourceType::ApprovedReadOnlyProvider, 12);
+        let first = build_historical_evidence_usage_ledger_v0(&snapshot, &[]).unwrap();
+        let second = build_historical_evidence_usage_ledger_v0(&snapshot, &[]).unwrap();
+        assert_eq!(first, second);
+        assert_eq!(first.maximum_consumed_timestamp_ms, 12);
+        assert!(first.usages.iter().all(|usage| {
+            !usage.campaign_ids.iter().any(|value| value.contains('/'))
+                && !usage
+                    .model_version_ids
+                    .iter()
+                    .any(|value| value.contains('/'))
+        }));
+    }
+
+    #[test]
+    fn segmentation_is_equal_length_non_overlapping_and_gap_preserving() {
+        let snapshot = snapshot("BTC", SnapshotSourceType::ApprovedReadOnlyProvider, 12);
+        let config = BtcHistoricalRegimeConfigV0 {
+            minimum_regimes: 3,
+            regime_rows: 3,
+            inter_regime_gap_rows: 1,
+            minimum_campaign_windows_per_regime: 1,
+            segmentation_policy: TemporalRegimeSegmentationPolicyV0::EqualLengthChronological,
+        };
+        let first = segment_btc_historical_regimes_v0(&snapshot, &config).unwrap();
+        let second = segment_btc_historical_regimes_v0(&snapshot, &config).unwrap();
+        assert_eq!(first, second);
+        assert_eq!(first.status, BtcRegimeSegmentationStatusV0::Ready);
+        assert_eq!(first.regimes.len(), 3);
+        assert_eq!(first.regimes[0].end_row_index_exclusive, 3);
+        assert_eq!(first.regimes[1].start_row_index, 4);
+        assert_eq!(first.regimes[2].start_row_index, 8);
+        assert!(
+            first
+                .regimes
+                .windows(2)
+                .all(|pair| pair[0].end_row_index_exclusive <= pair[1].start_row_index)
+        );
+    }
+
+    #[test]
+    fn insufficient_regimes_never_freeze_packs_or_claim_recurrence() {
+        let snapshot = snapshot("BTC", SnapshotSourceType::ApprovedReadOnlyProvider, 5);
+        let config = BtcHistoricalRegimeConfigV0 {
+            minimum_regimes: 2,
+            regime_rows: 3,
+            inter_regime_gap_rows: 0,
+            minimum_campaign_windows_per_regime: 1,
+            segmentation_policy: TemporalRegimeSegmentationPolicyV0::EqualLengthChronological,
+        };
+        let segmentation = segment_btc_historical_regimes_v0(&snapshot, &config).unwrap();
+        assert_eq!(
+            segmentation.status,
+            BtcRegimeSegmentationStatusV0::InsufficientRows
+        );
+        assert!(
+            freeze_btc_historical_regime_packs_v0(
+                &snapshot,
+                &segmentation,
+                &HistoricalEvidencePolicyV0::default(),
+            )
+            .unwrap()
+            .is_empty()
+        );
+        let aggregate = aggregate_btc_cross_regime_evidence_v0(&[], &config).unwrap();
+        assert_eq!(
+            aggregate.status,
+            BtcCrossRegimeRepresentationStatusV0::InsufficientRegimes
+        );
+    }
+
+    #[test]
+    fn prospective_holdout_uses_strictly_later_rows_and_invalidates_early_access() {
+        let snapshot = snapshot("BTC", SnapshotSourceType::ApprovedReadOnlyProvider, 12);
+        let ledger = build_historical_evidence_usage_ledger_v0(&snapshot, &[]).unwrap();
+        let policy = ProspectiveHoldoutPolicyConfigV0 {
+            minimum_future_rows: 4,
+            required_future_windows: 1,
+        };
+        let mut manifest = seal_prospective_holdout_v0(&ledger, &policy, &[]).unwrap();
+        assert_eq!(
+            manifest.status,
+            ProspectiveHoldoutStatusV0::PolicySealedNoFutureRows
+        );
+        assert!(!prospective_holdout_timestamp_is_eligible_v0(
+            12, &ledger, &manifest
+        ));
+        assert!(prospective_holdout_timestamp_is_eligible_v0(
+            13, &ledger, &manifest
+        ));
+        record_prospective_holdout_access_v0(&mut manifest, false, true, true);
+        assert_eq!(
+            manifest.status,
+            ProspectiveHoldoutStatusV0::InvalidatedByEarlyAccess
+        );
+        assert!(!prospective_holdout_timestamp_is_eligible_v0(
+            13, &ledger, &manifest
+        ));
     }
 }

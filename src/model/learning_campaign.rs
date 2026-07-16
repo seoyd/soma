@@ -908,7 +908,7 @@ impl MomentumLearningCampaignConfigV0 {
         Ok(())
     }
 
-    fn digest(&self) -> String {
+    pub fn digest(&self) -> String {
         stable_hash_string(&format!(
             "{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{:?}:{:?}:{}:{}:{}:{:?}:{:?}:{:?}:{:?}:{:?}",
             self.campaign_id,

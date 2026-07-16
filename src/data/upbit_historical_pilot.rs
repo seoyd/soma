@@ -994,6 +994,73 @@ pub fn merge_upbit_historical_pages_v0(
     ))
 }
 
+/// Produces a new immutable snapshot from an already accepted BTC snapshot and
+/// an independently verified bounded Upbit harvest.  It never writes or mutates
+/// either input; callers may persist the returned value through the existing
+/// Protobuf V1 write-and-verify path.
+pub fn merge_existing_upbit_snapshot_v0(
+    existing: &DataSnapshot,
+    harvested: &DataSnapshot,
+) -> Result<(DataSnapshot, usize), String> {
+    if existing.provider_id != UPBIT_PROVIDER_ID
+        || harvested.provider_id != UPBIT_PROVIDER_ID
+        || existing.market_scope != AcquisitionMarketScope::BtcCrypto
+        || harvested.market_scope != AcquisitionMarketScope::BtcCrypto
+        || existing.dataset_kind != DatasetKind::DailyOhlcv
+        || harvested.dataset_kind != DatasetKind::DailyOhlcv
+        || existing.normalized_dataset.symbol != harvested.normalized_dataset.symbol
+        || !existing.read_only
+        || !harvested.read_only
+        || dataset_digest(&existing.normalized_dataset) != existing.content_digest
+        || dataset_digest(&harvested.normalized_dataset) != harvested.content_digest
+    {
+        return Err("upbit immutable snapshot merge rejected".to_string());
+    }
+    let (dataset, duplicates) = merge_upbit_historical_pages_v0(
+        &[
+            existing.normalized_dataset.clone(),
+            harvested.normalized_dataset.clone(),
+        ],
+        &existing.normalized_dataset.symbol,
+    )?;
+    let digest = dataset_digest(&dataset);
+    let mut merged = existing.clone();
+    merged.snapshot_id = super::acquisition::snapshot_id_from_semantic_digest_v1(&digest);
+    merged.request_key = format!(
+        "upbit-daily-expanded:{}:{}:{}",
+        existing.normalized_dataset.symbol, existing.snapshot_id, harvested.snapshot_id
+    );
+    merged.requested_lookback = DataLookback {
+        bars: dataset.rows.len(),
+        start_timestamp_ms: dataset.rows.first().map(|row| row.timestamp_ms),
+        end_timestamp_ms: dataset.rows.last().map(|row| row.timestamp_ms),
+    };
+    merged.actual_start_timestamp_ms = dataset.rows.first().map(|row| row.timestamp_ms);
+    merged.actual_end_timestamp_ms = dataset.rows.last().map(|row| row.timestamp_ms);
+    merged.fetched_at_ms = existing.fetched_at_ms.max(harvested.fetched_at_ms);
+    merged.normalized_at_ms = existing.normalized_at_ms.max(harvested.normalized_at_ms);
+    merged.row_count = dataset.rows.len();
+    merged.quality_summary.row_count = merged.row_count;
+    merged.content_digest = digest;
+    merged.normalized_dataset = dataset;
+    merged.provenance.acquisition_request_id = format!(
+        "upbit-expanded-{}",
+        stable_hash_string(&format!(
+            "{}:{}",
+            existing.snapshot_id, harvested.snapshot_id
+        ))
+    );
+    merged.provenance.fetch_receipt_id = format!(
+        "expanded-{}",
+        stable_hash_string(&format!(
+            "{}:{}",
+            existing.content_digest, harvested.content_digest
+        ))
+    );
+    verify_snapshot_semantic_identity_v1(&merged)?;
+    Ok((merged, duplicates))
+}
+
 fn acquire_upbit_page_v0(
     config: &UpbitHistoricalPilotConfigV0,
     end_timestamp_ms: u64,
@@ -2122,5 +2189,41 @@ mod tests {
         let mut conflicting = first;
         conflicting.rows[0].close = 99.0;
         assert!(merge_upbit_historical_pages_v0(&[merged, conflicting], "KRW-BTC").is_err());
+    }
+
+    #[test]
+    fn existing_snapshot_merge_creates_a_new_verified_identity_without_mutation() {
+        let existing = local_snapshot(
+            parse_upbit_daily_ohlcv_v0(
+                r#"[
+                  {"market":"KRW-BTC","candle_date_time_utc":"2024-01-01T00:00:00","opening_price":1.0,"high_price":2.0,"low_price":0.5,"trade_price":1.5,"candle_acc_trade_volume":1.0},
+                  {"market":"KRW-BTC","candle_date_time_utc":"2024-01-02T00:00:00","opening_price":2.0,"high_price":3.0,"low_price":1.0,"trade_price":2.5,"candle_acc_trade_volume":1.0}
+                ]"#,
+                "KRW-BTC",
+            )
+            .unwrap(),
+            "unused",
+        );
+        let harvested = local_snapshot(
+            parse_upbit_daily_ohlcv_v0(
+                r#"[
+                  {"market":"KRW-BTC","candle_date_time_utc":"2024-01-02T00:00:00","opening_price":2.0,"high_price":3.0,"low_price":1.0,"trade_price":2.5,"candle_acc_trade_volume":1.0},
+                  {"market":"KRW-BTC","candle_date_time_utc":"2024-01-03T00:00:00","opening_price":3.0,"high_price":4.0,"low_price":2.0,"trade_price":3.5,"candle_acc_trade_volume":1.0}
+                ]"#,
+                "KRW-BTC",
+            )
+            .unwrap(),
+            "unused",
+        );
+        let original = existing.clone();
+        let (merged, duplicates) = merge_existing_upbit_snapshot_v0(&existing, &harvested).unwrap();
+        assert_eq!(existing, original);
+        assert_eq!(duplicates, 1);
+        assert_eq!(merged.row_count, 3);
+        assert_ne!(merged.snapshot_id, existing.snapshot_id);
+        assert_eq!(
+            merged.content_digest,
+            dataset_digest(&merged.normalized_dataset)
+        );
     }
 }
