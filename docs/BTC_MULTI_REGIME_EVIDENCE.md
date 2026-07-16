@@ -38,8 +38,12 @@ causes, warm/cold status, abstentions, and ShadowOnly boundaries. Research-only
 counterfactual results are recorded as consumed evidence and never promote a
 model.
 
-Cross-regime aggregation can call frozen-representation risk recurrent only
-after the configured number of independent chronological packs shows that stage
-without an earlier feature or sequence explanation. Sparse, no-signal, mixed,
-or insufficient regimes remain visible and cannot be called cross-market
-evidence.
+Cross-regime aggregation consumes sealed reports rather than mutable campaign
+internals. It separates execution health, diagnostic completeness, model
+evidence, and operational Shadow output. A no-signal, OutOfSupport, or
+support-unavailable abstention is a valid completed outcome; only technical
+untrustworthiness can produce `DiagnosticFailure`. Frozen-representation risk
+can be called recurrent only after the configured number of independent
+chronological packs shows that stage without an earlier feature or sequence
+explanation. Sparse, no-signal, mixed, or insufficient regimes remain visible
+and cannot be called cross-market evidence.

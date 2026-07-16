@@ -1623,6 +1623,7 @@ pub struct BtcTemporalRegimeEvidenceResultV0 {
     pub selected_checkpoint_windows: usize,
     pub in_support_windows: usize,
     pub out_of_support_windows: usize,
+    pub support_unavailable_windows: usize,
     pub earliest_shift_stage: EarliestTemporalShiftStageV0,
     pub temporal_root_cause: ProbabilityCollapseRootCauseV0,
     pub frozen_representation_breach_count: usize,
@@ -1630,8 +1631,194 @@ pub struct BtcTemporalRegimeEvidenceResultV0 {
     pub abstention_count: usize,
     pub accepted_predictive_versions: usize,
     pub final_verdict: SupportGatedMomentumSeriesVerdictV0,
+    pub reason_codes: Vec<String>,
     pub campaign_config_digest: String,
     pub encoder_parameter_digest: String,
+    pub report_digest: String,
+}
+
+/// A redacted, deterministic reference to one sealed chronological regime.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BtcTemporalRegimeRefV0 {
+    pub regime_id: String,
+    pub chronological_rank: usize,
+    pub row_count: usize,
+    pub range_digest: String,
+    pub pack_digest: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RegimeExecutionHealthV0 {
+    Completed,
+    EvidenceLoadFailure,
+    PackVerificationFailure,
+    ConfigDigestMismatch,
+    BackendUnavailable,
+    NumericalFailure,
+    CampaignRuntimeFailure,
+    DiagnosticRuntimeFailure,
+    ReportConstructionFailure,
+    NondeterministicReplay,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RegimeDiagnosticCompletenessV0 {
+    Complete,
+    PartialInsufficientSamples,
+    PartialNoSelectedCheckpoint,
+    PartialSupportGateUnavailable,
+    MissingRequiredMetric,
+    MissingRequiredStatus,
+    InconsistentDiagnosticState,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RegimeModelEvidenceOutcomeV0 {
+    NoUsableValidationSignal,
+    ValidationSignalButOutOfSupport,
+    InSupportUsableSignal,
+    FrozenRepresentationShiftRisk,
+    FeatureShiftRisk,
+    SequenceShiftRisk,
+    LogitShiftRisk,
+    ProbabilityShiftRisk,
+    WarmStartLockInRisk,
+    LinearBaselineStronger,
+    MixedEvidence,
+    InsufficientEvidence,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RegimeOperationalShadowResultV0 {
+    ShadowPredictionResearchOnly,
+    ShadowAbstainNoSignal,
+    ShadowAbstainOutOfSupport,
+    ShadowAbstainSupportUnavailable,
+    ShadowAbstainInsufficientEvidence,
+    ShadowAbstainDiagnosticFailure,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RegimeExecutionStageV0 {
+    PackLoad,
+    PackDigestVerification,
+    RowChronologyVerification,
+    CampaignConfiguration,
+    FeatureExtraction,
+    TrainOnlyNormalization,
+    SequenceConstruction,
+    WindowConstruction,
+    CandidateRegistration,
+    CandidateTraining,
+    CheckpointTrajectory,
+    ValidationSignalGate,
+    CheckpointSelection,
+    TestSealDecision,
+    TestEvaluation,
+    TemporalSupportGate,
+    TemporalShiftDiagnostics,
+    WarmColdDiagnostics,
+    OperationalShadowResult,
+    ModelVersionConstruction,
+    RegimeReportConstruction,
+    RegimeReportDigest,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RegimeExecutionStageStatusV0 {
+    Completed,
+    CompletedNoSignal,
+    CompletedAbstained,
+    NotApplicable,
+    NotExecutedAfterFailure,
+    Failed,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RegimeExecutionStageResultV0 {
+    pub stage: RegimeExecutionStageV0,
+    pub status: RegimeExecutionStageStatusV0,
+    pub reason_codes: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RegimeExecutionTraceV0 {
+    pub regime_id: String,
+    pub stages: Vec<RegimeExecutionStageResultV0>,
+    pub execution_health: RegimeExecutionHealthV0,
+    pub trace_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct BtcTemporalRegimeClosedResultV0 {
+    pub regime: BtcTemporalRegimeRefV0,
+    pub campaign_window_count: usize,
+    pub execution_health: RegimeExecutionHealthV0,
+    pub diagnostic_completeness: RegimeDiagnosticCompletenessV0,
+    pub model_evidence_outcome: RegimeModelEvidenceOutcomeV0,
+    pub operational_shadow_result: RegimeOperationalShadowResultV0,
+    pub no_signal_windows: usize,
+    pub selected_checkpoint_windows: usize,
+    pub test_sealed_windows: usize,
+    pub in_support_windows: usize,
+    pub out_of_support_windows: usize,
+    pub support_unavailable_windows: usize,
+    pub earliest_shift_stage: Option<EarliestTemporalShiftStageV0>,
+    pub temporal_root_cause: Option<ProbabilityCollapseRootCauseV0>,
+    pub warm_start_status: WarmStartLockInStatusV0,
+    pub abstention_count: usize,
+    pub accepted_predictive_versions: usize,
+    pub reason_codes: Vec<String>,
+    pub execution_trace: RegimeExecutionTraceV0,
+    pub report_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RegimeModelDigestV0 {
+    pub regime_id: String,
+    pub campaign_config_digest: String,
+    pub encoder_parameter_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CrossRegimeModelFreezeProofV0 {
+    pub regime_model_digests: Vec<RegimeModelDigestV0>,
+    pub all_equal: bool,
+    pub mismatch_fields: Vec<String>,
+    pub proof_digest: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CrossRegimeDiagnosticFailureRootCauseV0 {
+    ModelConfigDigestMismatch,
+    MissingRequiredMetric,
+    PerRegimeReportDigestFailure,
+    CrossRegimeAggregationInvariantFailure,
+    UnsupportedOutcomeMapping,
+    NondeterministicReplay,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BtcCrossRegimeClosedEvidenceV0 {
+    pub configured_regimes: usize,
+    pub technically_completed_regimes: usize,
+    pub technically_failed_regimes: usize,
+    pub sufficient_regimes: usize,
+    pub total_campaign_windows: usize,
+    pub no_signal_windows: usize,
+    pub selected_checkpoint_windows: usize,
+    pub in_support_windows: usize,
+    pub out_of_support_windows: usize,
+    pub support_unavailable_windows: usize,
+    pub frozen_representation_shift_regimes: usize,
+    pub feature_shift_regimes: usize,
+    pub sequence_shift_regimes: usize,
+    pub logit_shift_regimes: usize,
+    pub probability_shift_regimes: usize,
+    pub accepted_predictive_versions: usize,
+    pub operational_abstentions: usize,
+    pub diagnostic_failure_root_cause: Option<CrossRegimeDiagnosticFailureRootCauseV0>,
+    pub status: BtcCrossRegimeRepresentationStatusV0,
     pub report_digest: String,
 }
 
@@ -1662,6 +1849,249 @@ pub fn run_btc_historical_regime_campaigns_v0(
     }
     evidence.sort_by(|left, right| left.regime_id.cmp(&right.regime_id));
     Ok(evidence)
+}
+
+pub fn build_cross_regime_model_freeze_proof_v0(
+    results: &[BtcTemporalRegimeEvidenceResultV0],
+) -> CrossRegimeModelFreezeProofV0 {
+    let mut regime_model_digests = results
+        .iter()
+        .map(|result| RegimeModelDigestV0 {
+            regime_id: result.regime_id.clone(),
+            campaign_config_digest: result.campaign_config_digest.clone(),
+            encoder_parameter_digest: result.encoder_parameter_digest.clone(),
+        })
+        .collect::<Vec<_>>();
+    regime_model_digests.sort_by(|left, right| left.regime_id.cmp(&right.regime_id));
+    let first = regime_model_digests.first();
+    let mut mismatch_fields = Vec::new();
+    if regime_model_digests.iter().any(|digest| {
+        first.is_some_and(|reference| {
+            digest.campaign_config_digest != reference.campaign_config_digest
+        })
+    }) {
+        mismatch_fields.push("campaign_config_digest".to_string());
+    }
+    if regime_model_digests.iter().any(|digest| {
+        first.is_some_and(|reference| {
+            digest.encoder_parameter_digest != reference.encoder_parameter_digest
+        })
+    }) {
+        mismatch_fields.push("encoder_parameter_digest".to_string());
+    }
+    let all_equal = mismatch_fields.is_empty();
+    let proof_digest = stable_hash_string(&format!(
+        "{}:{}:{}",
+        all_equal,
+        mismatch_fields.join(":"),
+        regime_model_digests
+            .iter()
+            .map(|digest| format!(
+                "{}:{}:{}",
+                digest.regime_id, digest.campaign_config_digest, digest.encoder_parameter_digest
+            ))
+            .collect::<Vec<_>>()
+            .join(":"),
+    ));
+    CrossRegimeModelFreezeProofV0 {
+        regime_model_digests,
+        all_equal,
+        mismatch_fields,
+        proof_digest,
+    }
+}
+
+pub fn close_btc_temporal_regime_result_v0(
+    result: &BtcTemporalRegimeEvidenceResultV0,
+    regime: BtcTemporalRegimeRefV0,
+) -> BtcTemporalRegimeClosedResultV0 {
+    let diagnostic_completeness = if result.selected_checkpoint_windows == 0 {
+        RegimeDiagnosticCompletenessV0::PartialNoSelectedCheckpoint
+    } else if result.support_unavailable_windows > 0 {
+        RegimeDiagnosticCompletenessV0::PartialSupportGateUnavailable
+    } else {
+        RegimeDiagnosticCompletenessV0::Complete
+    };
+    let model_evidence_outcome = match result.final_verdict {
+        SupportGatedMomentumSeriesVerdictV0::NoUsableValidationSignal => {
+            RegimeModelEvidenceOutcomeV0::NoUsableValidationSignal
+        }
+        SupportGatedMomentumSeriesVerdictV0::TemporalOutOfSupportAbstention => {
+            RegimeModelEvidenceOutcomeV0::ValidationSignalButOutOfSupport
+        }
+        SupportGatedMomentumSeriesVerdictV0::FrozenRepresentationShiftRisk => {
+            RegimeModelEvidenceOutcomeV0::FrozenRepresentationShiftRisk
+        }
+        SupportGatedMomentumSeriesVerdictV0::WarmStartLockInRisk => {
+            RegimeModelEvidenceOutcomeV0::WarmStartLockInRisk
+        }
+        SupportGatedMomentumSeriesVerdictV0::InSupportUsableSignalButLinearStrongerOnThisSeries => {
+            RegimeModelEvidenceOutcomeV0::LinearBaselineStronger
+        }
+        SupportGatedMomentumSeriesVerdictV0::InSupportUsableSignalAndMambaHelpedOnThisSeries => {
+            RegimeModelEvidenceOutcomeV0::InSupportUsableSignal
+        }
+        SupportGatedMomentumSeriesVerdictV0::InSupportMixedEvidence => {
+            RegimeModelEvidenceOutcomeV0::MixedEvidence
+        }
+        SupportGatedMomentumSeriesVerdictV0::InsufficientEvidence
+        | SupportGatedMomentumSeriesVerdictV0::CampaignFailed => {
+            RegimeModelEvidenceOutcomeV0::InsufficientEvidence
+        }
+    };
+    let operational_shadow_result = if result.selected_checkpoint_windows == 0 {
+        RegimeOperationalShadowResultV0::ShadowAbstainNoSignal
+    } else if result.support_unavailable_windows > 0 {
+        RegimeOperationalShadowResultV0::ShadowAbstainSupportUnavailable
+    } else if result.out_of_support_windows > 0 {
+        RegimeOperationalShadowResultV0::ShadowAbstainOutOfSupport
+    } else if result.in_support_windows > 0 {
+        RegimeOperationalShadowResultV0::ShadowPredictionResearchOnly
+    } else {
+        RegimeOperationalShadowResultV0::ShadowAbstainInsufficientEvidence
+    };
+    let no_signal = result.selected_checkpoint_windows == 0;
+    let support_abstained = !no_signal
+        && operational_shadow_result
+            != RegimeOperationalShadowResultV0::ShadowPredictionResearchOnly;
+    let stages = [
+        RegimeExecutionStageV0::PackLoad,
+        RegimeExecutionStageV0::PackDigestVerification,
+        RegimeExecutionStageV0::RowChronologyVerification,
+        RegimeExecutionStageV0::CampaignConfiguration,
+        RegimeExecutionStageV0::FeatureExtraction,
+        RegimeExecutionStageV0::TrainOnlyNormalization,
+        RegimeExecutionStageV0::SequenceConstruction,
+        RegimeExecutionStageV0::WindowConstruction,
+        RegimeExecutionStageV0::CandidateRegistration,
+        RegimeExecutionStageV0::CandidateTraining,
+        RegimeExecutionStageV0::CheckpointTrajectory,
+        RegimeExecutionStageV0::ValidationSignalGate,
+        RegimeExecutionStageV0::CheckpointSelection,
+        RegimeExecutionStageV0::TestSealDecision,
+        RegimeExecutionStageV0::TestEvaluation,
+        RegimeExecutionStageV0::TemporalSupportGate,
+        RegimeExecutionStageV0::TemporalShiftDiagnostics,
+        RegimeExecutionStageV0::WarmColdDiagnostics,
+        RegimeExecutionStageV0::OperationalShadowResult,
+        RegimeExecutionStageV0::ModelVersionConstruction,
+        RegimeExecutionStageV0::RegimeReportConstruction,
+        RegimeExecutionStageV0::RegimeReportDigest,
+    ]
+    .into_iter()
+    .map(|stage| {
+        let status = match stage {
+            RegimeExecutionStageV0::ValidationSignalGate if no_signal => {
+                RegimeExecutionStageStatusV0::CompletedNoSignal
+            }
+            RegimeExecutionStageV0::CheckpointSelection
+            | RegimeExecutionStageV0::TestEvaluation
+            | RegimeExecutionStageV0::TemporalSupportGate
+            | RegimeExecutionStageV0::TemporalShiftDiagnostics
+            | RegimeExecutionStageV0::ModelVersionConstruction
+                if no_signal =>
+            {
+                RegimeExecutionStageStatusV0::NotApplicable
+            }
+            RegimeExecutionStageV0::TemporalSupportGate
+            | RegimeExecutionStageV0::OperationalShadowResult
+                if support_abstained =>
+            {
+                RegimeExecutionStageStatusV0::CompletedAbstained
+            }
+            RegimeExecutionStageV0::ModelVersionConstruction if support_abstained => {
+                RegimeExecutionStageStatusV0::NotApplicable
+            }
+            _ => RegimeExecutionStageStatusV0::Completed,
+        };
+        RegimeExecutionStageResultV0 {
+            stage,
+            status,
+            reason_codes: Vec::new(),
+        }
+    })
+    .collect::<Vec<_>>();
+    let trace_digest = stable_hash_string(&format!(
+        "{}:{:?}:{}",
+        result.regime_id,
+        RegimeExecutionHealthV0::Completed,
+        stages
+            .iter()
+            .map(|stage| format!("{:?}:{:?}", stage.stage, stage.status))
+            .collect::<Vec<_>>()
+            .join(":"),
+    ));
+    let execution_trace = RegimeExecutionTraceV0 {
+        regime_id: result.regime_id.clone(),
+        stages,
+        execution_health: RegimeExecutionHealthV0::Completed,
+        trace_digest,
+    };
+    let accepted_predictive_versions = if operational_shadow_result
+        == RegimeOperationalShadowResultV0::ShadowPredictionResearchOnly
+    {
+        result.accepted_predictive_versions
+    } else {
+        0
+    };
+    let mut reason_codes = result.reason_codes.clone();
+    if result.accepted_predictive_versions > accepted_predictive_versions {
+        reason_codes.push("accepted_predictive_version_absent_by_policy".to_string());
+    }
+    reason_codes.sort();
+    reason_codes.dedup();
+    let report_digest = stable_hash_string(&format!(
+        "{}:{}:{:?}:{:?}:{:?}:{}:{}:{}",
+        result.report_digest,
+        execution_trace.trace_digest,
+        diagnostic_completeness,
+        model_evidence_outcome,
+        operational_shadow_result,
+        result.selected_checkpoint_windows,
+        result.in_support_windows,
+        reason_codes.join(":"),
+    ));
+    BtcTemporalRegimeClosedResultV0 {
+        regime,
+        campaign_window_count: result.campaign_windows,
+        execution_health: RegimeExecutionHealthV0::Completed,
+        diagnostic_completeness,
+        model_evidence_outcome,
+        operational_shadow_result,
+        no_signal_windows: result.no_signal_windows,
+        selected_checkpoint_windows: result.selected_checkpoint_windows,
+        test_sealed_windows: result
+            .campaign_windows
+            .saturating_sub(result.selected_checkpoint_windows),
+        in_support_windows: result.in_support_windows,
+        out_of_support_windows: result.out_of_support_windows,
+        support_unavailable_windows: result.support_unavailable_windows,
+        earliest_shift_stage: (!no_signal).then_some(result.earliest_shift_stage),
+        temporal_root_cause: (!no_signal).then_some(result.temporal_root_cause),
+        warm_start_status: result.warm_start_status,
+        abstention_count: result.abstention_count,
+        accepted_predictive_versions,
+        reason_codes,
+        execution_trace,
+        report_digest,
+    }
+}
+
+pub fn validate_btc_temporal_regime_closed_result_v0(
+    result: &BtcTemporalRegimeClosedResultV0,
+) -> Result<(), CrossRegimeDiagnosticFailureRootCauseV0> {
+    if result.selected_checkpoint_windows > result.campaign_window_count
+        || result.in_support_windows > result.selected_checkpoint_windows
+        || result.out_of_support_windows > result.selected_checkpoint_windows
+        || result.support_unavailable_windows > result.selected_checkpoint_windows
+        || result.accepted_predictive_versions > result.in_support_windows
+        || (result.no_signal_windows > 0 && result.selected_checkpoint_windows > 0)
+        || result.execution_trace.stages.len() != 22
+        || result.report_digest.is_empty()
+    {
+        return Err(CrossRegimeDiagnosticFailureRootCauseV0::MissingRequiredMetric);
+    }
+    Ok(())
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -1805,6 +2235,149 @@ pub fn aggregate_btc_cross_regime_evidence_v0(
         status,
         report_digest,
     })
+}
+
+pub fn aggregate_btc_cross_regime_closed_evidence_v0(
+    results: &[BtcTemporalRegimeClosedResultV0],
+    config: &BtcHistoricalRegimeConfigV0,
+    freeze_proof: &CrossRegimeModelFreezeProofV0,
+) -> BtcCrossRegimeClosedEvidenceV0 {
+    let mut ordered = results.to_vec();
+    ordered.sort_by(|left, right| {
+        left.regime
+            .chronological_rank
+            .cmp(&right.regime.chronological_rank)
+            .then_with(|| left.regime.regime_id.cmp(&right.regime.regime_id))
+    });
+    let completed = ordered
+        .iter()
+        .filter(|result| result.execution_health == RegimeExecutionHealthV0::Completed)
+        .collect::<Vec<_>>();
+    let sufficient = completed
+        .iter()
+        .filter(|result| result.campaign_window_count >= config.minimum_campaign_windows_per_regime)
+        .collect::<Vec<_>>();
+    let invalid = ordered
+        .iter()
+        .any(|result| validate_btc_temporal_regime_closed_result_v0(result).is_err());
+    let technical_failure = !freeze_proof.all_equal || invalid || completed.len() != ordered.len();
+    let stage_count = |outcome| {
+        sufficient
+            .iter()
+            .filter(|result| result.model_evidence_outcome == outcome)
+            .count()
+    };
+    let frozen = stage_count(RegimeModelEvidenceOutcomeV0::FrozenRepresentationShiftRisk);
+    let feature = stage_count(RegimeModelEvidenceOutcomeV0::FeatureShiftRisk);
+    let sequence = stage_count(RegimeModelEvidenceOutcomeV0::SequenceShiftRisk);
+    let logit = stage_count(RegimeModelEvidenceOutcomeV0::LogitShiftRisk);
+    let probability = stage_count(RegimeModelEvidenceOutcomeV0::ProbabilityShiftRisk);
+    let total_windows = ordered
+        .iter()
+        .map(|result| result.campaign_window_count)
+        .sum::<usize>();
+    let no_signal_windows = ordered
+        .iter()
+        .map(|result| result.no_signal_windows)
+        .sum::<usize>();
+    let selected_checkpoint_windows = ordered
+        .iter()
+        .map(|result| result.selected_checkpoint_windows)
+        .sum::<usize>();
+    let in_support_windows = ordered
+        .iter()
+        .map(|result| result.in_support_windows)
+        .sum::<usize>();
+    let out_of_support_windows = ordered
+        .iter()
+        .map(|result| result.out_of_support_windows)
+        .sum::<usize>();
+    let support_unavailable_windows = ordered
+        .iter()
+        .map(|result| result.support_unavailable_windows)
+        .sum::<usize>();
+    let accepted_predictive_versions = ordered
+        .iter()
+        .map(|result| result.accepted_predictive_versions)
+        .sum::<usize>();
+    let operational_abstentions = ordered
+        .iter()
+        .map(|result| result.abstention_count)
+        .sum::<usize>();
+    let (status, diagnostic_failure_root_cause) = if technical_failure {
+        (
+            BtcCrossRegimeRepresentationStatusV0::DiagnosticFailure,
+            Some(if !freeze_proof.all_equal {
+                CrossRegimeDiagnosticFailureRootCauseV0::ModelConfigDigestMismatch
+            } else if invalid {
+                CrossRegimeDiagnosticFailureRootCauseV0::MissingRequiredMetric
+            } else {
+                CrossRegimeDiagnosticFailureRootCauseV0::CrossRegimeAggregationInvariantFailure
+            }),
+        )
+    } else if sufficient.len() < config.minimum_regimes {
+        (
+            BtcCrossRegimeRepresentationStatusV0::InsufficientRegimes,
+            None,
+        )
+    } else if frozen >= config.minimum_regimes && feature == 0 && sequence == 0 {
+        (
+            BtcCrossRegimeRepresentationStatusV0::RecurrentFrozenRepresentationShift,
+            None,
+        )
+    } else if frozen + feature + sequence + logit + probability > 1 {
+        (BtcCrossRegimeRepresentationStatusV0::MixedShiftStages, None)
+    } else if total_windows > 0 && no_signal_windows.saturating_mul(2) >= total_windows {
+        (
+            BtcCrossRegimeRepresentationStatusV0::PredominantlyNoUsableSignal,
+            None,
+        )
+    } else if in_support_windows == 0 || support_unavailable_windows > 0 {
+        (
+            BtcCrossRegimeRepresentationStatusV0::SparseInSupportEvidence,
+            None,
+        )
+    } else {
+        (
+            BtcCrossRegimeRepresentationStatusV0::StableAcrossAvailableRegimes,
+            None,
+        )
+    };
+    let report_digest = stable_hash_string(&format!(
+        "{:?}:{:?}:{}:{}:{}:{}",
+        status,
+        diagnostic_failure_root_cause,
+        freeze_proof.proof_digest,
+        total_windows,
+        no_signal_windows,
+        ordered
+            .iter()
+            .map(|result| result.report_digest.as_str())
+            .collect::<Vec<_>>()
+            .join(":"),
+    ));
+    BtcCrossRegimeClosedEvidenceV0 {
+        configured_regimes: config.minimum_regimes,
+        technically_completed_regimes: completed.len(),
+        technically_failed_regimes: ordered.len().saturating_sub(completed.len()),
+        sufficient_regimes: sufficient.len(),
+        total_campaign_windows: total_windows,
+        no_signal_windows,
+        selected_checkpoint_windows,
+        in_support_windows,
+        out_of_support_windows,
+        support_unavailable_windows,
+        frozen_representation_shift_regimes: frozen,
+        feature_shift_regimes: feature,
+        sequence_shift_regimes: sequence,
+        logit_shift_regimes: logit,
+        probability_shift_regimes: probability,
+        accepted_predictive_versions,
+        operational_abstentions,
+        diagnostic_failure_root_cause,
+        status,
+        report_digest,
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -2079,6 +2652,7 @@ fn regime_evidence_from_report(
         selected_checkpoint_windows: report.aggregate.selected_checkpoint_windows,
         in_support_windows: report.aggregate.in_support_windows,
         out_of_support_windows: report.aggregate.out_of_support_windows,
+        support_unavailable_windows: report.aggregate.support_gate_unavailable_windows,
         earliest_shift_stage: report.earliest_shift_stage,
         temporal_root_cause: report.temporal_root_cause,
         frozen_representation_breach_count: report.aggregate.representation_shift_windows,
@@ -2086,6 +2660,7 @@ fn regime_evidence_from_report(
         abstention_count: report.aggregate.operational_abstentions,
         accepted_predictive_versions: report.aggregate.accepted_predictive_versions,
         final_verdict: report.final_verdict,
+        reason_codes: report.reason_codes.clone(),
         campaign_config_digest,
         encoder_parameter_digest,
         report_digest: report.report_digest.clone(),
@@ -2542,6 +3117,141 @@ mod tests {
         assert_eq!(
             aggregate.status,
             BtcCrossRegimeRepresentationStatusV0::InsufficientRegimes
+        );
+    }
+
+    fn regime_result(
+        regime_id: &str,
+        no_signal_windows: usize,
+        selected_checkpoint_windows: usize,
+        in_support_windows: usize,
+        out_of_support_windows: usize,
+    ) -> BtcTemporalRegimeEvidenceResultV0 {
+        BtcTemporalRegimeEvidenceResultV0 {
+            regime_id: regime_id.to_string(),
+            row_count: 8,
+            campaign_windows: 2,
+            no_signal_windows,
+            selected_checkpoint_windows,
+            in_support_windows,
+            out_of_support_windows,
+            support_unavailable_windows: 0,
+            earliest_shift_stage: EarliestTemporalShiftStageV0::InsufficientEvidence,
+            temporal_root_cause: ProbabilityCollapseRootCauseV0::Unknown,
+            frozen_representation_breach_count: 0,
+            warm_start_status: WarmStartLockInStatusV0::WarmAndColdBothNoSignal,
+            abstention_count: no_signal_windows,
+            accepted_predictive_versions: 0,
+            final_verdict: SupportGatedMomentumSeriesVerdictV0::NoUsableValidationSignal,
+            reason_codes: vec!["no_usable_validation_signal".to_string()],
+            campaign_config_digest: "campaign".to_string(),
+            encoder_parameter_digest: "encoder".to_string(),
+            report_digest: format!("report-{regime_id}"),
+        }
+    }
+
+    fn regime_reference(regime_id: &str, rank: usize) -> BtcTemporalRegimeRefV0 {
+        BtcTemporalRegimeRefV0 {
+            regime_id: regime_id.to_string(),
+            chronological_rank: rank,
+            row_count: 8,
+            range_digest: format!("range-{regime_id}"),
+            pack_digest: format!("pack-{regime_id}"),
+        }
+    }
+
+    #[test]
+    fn legacy_fallback_reproduces_diagnostic_failure_for_valid_unmapped_results() {
+        let config = BtcHistoricalRegimeConfigV0 {
+            minimum_regimes: 2,
+            regime_rows: 8,
+            inter_regime_gap_rows: 0,
+            minimum_campaign_windows_per_regime: 1,
+            segmentation_policy: TemporalRegimeSegmentationPolicyV0::EqualLengthChronological,
+        };
+        let first = regime_result("older", 0, 1, 1, 1);
+        let second = regime_result("newer", 0, 1, 0, 1);
+        assert_eq!(
+            aggregate_btc_cross_regime_evidence_v0(&[first, second], &config)
+                .unwrap()
+                .status,
+            BtcCrossRegimeRepresentationStatusV0::DiagnosticFailure
+        );
+    }
+
+    #[test]
+    fn sealed_no_signal_regimes_are_completed_and_aggregate_honestly() {
+        let config = BtcHistoricalRegimeConfigV0 {
+            minimum_regimes: 2,
+            regime_rows: 8,
+            inter_regime_gap_rows: 0,
+            minimum_campaign_windows_per_regime: 1,
+            segmentation_policy: TemporalRegimeSegmentationPolicyV0::EqualLengthChronological,
+        };
+        let raw = vec![
+            regime_result("older", 2, 0, 0, 0),
+            regime_result("newer", 2, 0, 0, 0),
+        ];
+        let proof = build_cross_regime_model_freeze_proof_v0(&raw);
+        let closed = raw
+            .iter()
+            .enumerate()
+            .map(|(rank, result)| {
+                close_btc_temporal_regime_result_v0(
+                    result,
+                    regime_reference(&result.regime_id, rank),
+                )
+            })
+            .collect::<Vec<_>>();
+        assert!(closed.iter().all(|result| {
+            result.execution_health == RegimeExecutionHealthV0::Completed
+                && result.diagnostic_completeness
+                    == RegimeDiagnosticCompletenessV0::PartialNoSelectedCheckpoint
+                && result.model_evidence_outcome
+                    == RegimeModelEvidenceOutcomeV0::NoUsableValidationSignal
+                && result.operational_shadow_result
+                    == RegimeOperationalShadowResultV0::ShadowAbstainNoSignal
+                && validate_btc_temporal_regime_closed_result_v0(result).is_ok()
+        }));
+        let aggregate = aggregate_btc_cross_regime_closed_evidence_v0(&closed, &config, &proof);
+        assert_eq!(
+            aggregate.status,
+            BtcCrossRegimeRepresentationStatusV0::PredominantlyNoUsableSignal
+        );
+        assert!(aggregate.diagnostic_failure_root_cause.is_none());
+    }
+
+    #[test]
+    fn freeze_mismatch_is_a_real_diagnostic_failure() {
+        let config = BtcHistoricalRegimeConfigV0 {
+            minimum_regimes: 2,
+            regime_rows: 8,
+            inter_regime_gap_rows: 0,
+            minimum_campaign_windows_per_regime: 1,
+            segmentation_policy: TemporalRegimeSegmentationPolicyV0::EqualLengthChronological,
+        };
+        let mut second = regime_result("newer", 2, 0, 0, 0);
+        second.campaign_config_digest = "different-campaign".to_string();
+        let raw = vec![regime_result("older", 2, 0, 0, 0), second];
+        let proof = build_cross_regime_model_freeze_proof_v0(&raw);
+        let closed = raw
+            .iter()
+            .enumerate()
+            .map(|(rank, result)| {
+                close_btc_temporal_regime_result_v0(
+                    result,
+                    regime_reference(&result.regime_id, rank),
+                )
+            })
+            .collect::<Vec<_>>();
+        let aggregate = aggregate_btc_cross_regime_closed_evidence_v0(&closed, &config, &proof);
+        assert_eq!(
+            aggregate.status,
+            BtcCrossRegimeRepresentationStatusV0::DiagnosticFailure
+        );
+        assert_eq!(
+            aggregate.diagnostic_failure_root_cause,
+            Some(CrossRegimeDiagnosticFailureRootCauseV0::ModelConfigDigestMismatch)
         );
     }
 

@@ -28,6 +28,8 @@ pub struct CliArgs {
     #[arg(long, default_value_t = false)]
     pub btc_multi_regime_report: bool,
     #[arg(long, default_value_t = false)]
+    pub btc_cross_regime_diagnostics: bool,
+    #[arg(long, default_value_t = false)]
     pub toss_historical_contract_report: bool,
     #[arg(long)]
     pub toss_kr_historical_manifest: Option<PathBuf>,
@@ -54,12 +56,14 @@ pub fn run() -> Result<(), String> {
             &args.output_format,
             args.momentum_cross_market_report,
             args.btc_multi_regime_report,
+            args.btc_cross_regime_diagnostics,
             args.allow_network,
         );
     }
     if args.momentum_temporal_diagnostics
         || args.momentum_cross_market_report
         || args.btc_multi_regime_report
+        || args.btc_cross_regime_diagnostics
     {
         return Err(
             "temporal diagnostics require a local historical snapshot campaign config".to_string(),
@@ -193,6 +197,7 @@ fn run_local_historical_snapshot_campaign(
     output_format: &str,
     cross_market_report: bool,
     btc_multi_regime_report: bool,
+    btc_cross_regime_diagnostics: bool,
     allow_network: bool,
 ) -> Result<(), String> {
     let config = crate::data::UpbitHistoricalPilotConfigV0::from_toml_path(config_path)
@@ -246,6 +251,17 @@ fn run_local_historical_snapshot_campaign(
             allow_network,
         );
     }
+    if btc_cross_regime_diagnostics {
+        if allow_network {
+            return Err("BTC cross-regime diagnostics are offline-only".to_string());
+        }
+        return run_btc_cross_regime_diagnostics(
+            &snapshot,
+            &campaign_config,
+            &sufficiency,
+            output_format,
+        );
+    }
     if !temporal_diagnostics {
         println!(
             "inventory_accepted_series={}",
@@ -283,6 +299,198 @@ fn run_local_historical_snapshot_campaign(
         output_format,
         cross_market_report,
     )
+}
+
+fn run_btc_cross_regime_diagnostics(
+    snapshot: &crate::data::DataSnapshot,
+    campaign_config: &crate::model::MomentumLearningCampaignConfigV0,
+    sufficiency: &crate::model::MomentumCampaignSufficiencyV0,
+    output_format: &str,
+) -> Result<(), String> {
+    let snapshot_digest =
+        crate::data::historical_replay_dataset_digest_v0(&snapshot.normalized_dataset);
+    if snapshot_digest != snapshot.content_digest {
+        return Err("expanded snapshot digest verification failed".to_string());
+    }
+    let inventory = crate::model::inventory_historical_snapshots_v0(
+        std::slice::from_ref(snapshot),
+        &crate::model::HistoricalEvidencePolicyV0::default(),
+    )
+    .map_err(|_| "expanded snapshot inventory verification failed".to_string())?;
+    if inventory.accepted_series.is_empty() || !sufficiency.sufficient {
+        return Err("expanded snapshot is not sufficient for offline regime replay".to_string());
+    }
+    let regime_config = crate::model::BtcHistoricalRegimeConfigV0 {
+        minimum_regimes: 2,
+        regime_rows: sufficiency.required_minimum_rows,
+        inter_regime_gap_rows: campaign_config.purge_gap_rows,
+        minimum_campaign_windows_per_regime: campaign_config.minimum_evaluated_windows,
+        segmentation_policy:
+            crate::model::TemporalRegimeSegmentationPolicyV0::EqualLengthChronological,
+    };
+    let segmentation = crate::model::segment_btc_historical_regimes_v0(snapshot, &regime_config)
+        .map_err(|_| "BTC regime segmentation failed".to_string())?;
+    if segmentation.status != crate::model::BtcRegimeSegmentationStatusV0::Ready
+        || segmentation.regimes.len() != regime_config.minimum_regimes
+    {
+        return Err("offline BTC regime segmentation is incomplete".to_string());
+    }
+    let packs = crate::model::freeze_btc_historical_regime_packs_v0(
+        snapshot,
+        &segmentation,
+        &crate::model::HistoricalEvidencePolicyV0::default(),
+    )
+    .map_err(|_| "BTC regime pack freeze failed".to_string())?;
+    if packs.len() != segmentation.regimes.len() {
+        return Err("offline BTC regime pack count mismatch".to_string());
+    }
+    for (_, pack) in &packs {
+        crate::model::verify_momentum_historical_evidence_pack_v0(pack)
+            .map_err(|_| "BTC regime pack verification failed".to_string())?;
+    }
+    let encoder = crate::model::frozen_mamba3_encoder_from_seed_v0(
+        &campaign_config.feature_config,
+        campaign_config.campaign_seed,
+        campaign_config.backend_preference,
+        campaign_config.fallback_policy,
+    )
+    .map_err(|_| "frozen momentum encoder unavailable".to_string())?;
+    let first =
+        crate::model::run_btc_historical_regime_campaigns_v0(&packs, campaign_config, &encoder)
+            .map_err(|_| "offline BTC regime campaign execution failed".to_string())?;
+    let second =
+        crate::model::run_btc_historical_regime_campaigns_v0(&packs, campaign_config, &encoder)
+            .map_err(|_| "offline BTC regime replay failed".to_string())?;
+    if first != second {
+        return Err("offline BTC regime replay is nondeterministic".to_string());
+    }
+    let freeze_proof = crate::model::build_cross_regime_model_freeze_proof_v0(&first);
+    let mut chronological = packs
+        .iter()
+        .map(|(regime, pack)| (regime, pack))
+        .collect::<Vec<_>>();
+    chronological.sort_by(|(left, _), (right, _)| {
+        left.start_timestamp_ms
+            .cmp(&right.start_timestamp_ms)
+            .then_with(|| left.end_timestamp_ms.cmp(&right.end_timestamp_ms))
+            .then_with(|| left.regime_id.cmp(&right.regime_id))
+    });
+    let closed = chronological
+        .iter()
+        .enumerate()
+        .map(|(rank, (regime, pack))| {
+            let raw = first
+                .iter()
+                .find(|result| result.regime_id == regime.regime_id)
+                .ok_or_else(|| "offline regime report missing".to_string())?;
+            let reference = crate::model::BtcTemporalRegimeRefV0 {
+                regime_id: regime.regime_id.clone(),
+                chronological_rank: rank,
+                row_count: regime.row_count,
+                range_digest: crate::core::stable_hash_string(&format!(
+                    "{}:{}:{}",
+                    regime.start_timestamp_ms, regime.end_timestamp_ms, regime.row_count
+                )),
+                pack_digest: pack.digest.clone(),
+            };
+            let closed = crate::model::close_btc_temporal_regime_result_v0(raw, reference);
+            crate::model::validate_btc_temporal_regime_closed_result_v0(&closed)
+                .map_err(|_| "offline regime report invariant failed".to_string())?;
+            Ok(closed)
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    let aggregate = crate::model::aggregate_btc_cross_regime_closed_evidence_v0(
+        &closed,
+        &regime_config,
+        &freeze_proof,
+    );
+    let ledger = crate::model::build_historical_evidence_usage_ledger_v0(snapshot, &[])
+        .map_err(|_| "offline evidence ledger verification failed".to_string())?;
+    let holdout = crate::model::seal_prospective_holdout_v0(
+        &ledger,
+        &crate::model::ProspectiveHoldoutPolicyConfigV0 {
+            minimum_future_rows: regime_config.regime_rows,
+            required_future_windows: regime_config.minimum_campaign_windows_per_regime,
+        },
+        &[],
+    )
+    .map_err(|_| "offline prospective holdout seal failed".to_string())?;
+    let regime_values = closed
+        .iter()
+        .map(|result| {
+            serde_json::json!({
+                "regime_id": result.regime.regime_id,
+                "chronological_rank": result.regime.chronological_rank,
+                "row_count": result.regime.row_count,
+                "execution_health": format!("{:?}", result.execution_health),
+                "diagnostic_completeness": format!("{:?}", result.diagnostic_completeness),
+                "model_evidence_outcome": format!("{:?}", result.model_evidence_outcome),
+                "operational_shadow_result": format!("{:?}", result.operational_shadow_result),
+                "campaign_window_count": result.campaign_window_count,
+                "no_signal_windows": result.no_signal_windows,
+                "selected_checkpoint_windows": result.selected_checkpoint_windows,
+                "in_support_windows": result.in_support_windows,
+                "out_of_support_windows": result.out_of_support_windows,
+                "support_unavailable_windows": result.support_unavailable_windows,
+                "accepted_predictive_versions": result.accepted_predictive_versions,
+                "reason_codes": result.reason_codes,
+                "execution_trace_digest": result.execution_trace.trace_digest,
+                "report_digest": result.report_digest,
+            })
+        })
+        .collect::<Vec<_>>();
+    let rendered = serde_json::json!({
+        "report_version": "btc-cross-regime-diagnostics-v0",
+        "offline": true,
+        "provider_calls": 0,
+        "provider_calls_after_freeze": 0,
+        "transport_construction_count": 0,
+        "network_consent_reads": 0,
+        "snapshot_digest_verified": true,
+        "segmentation_digest": segmentation.segmentation_config_digest,
+        "regime_count": segmentation.regimes.len(),
+        "model_freeze_proof_digest": freeze_proof.proof_digest,
+        "model_freeze_all_equal": freeze_proof.all_equal,
+        "regimes": regime_values,
+        "aggregate_status": format!("{:?}", aggregate.status),
+        "diagnostic_failure_root_cause": aggregate.diagnostic_failure_root_cause.map(|value| format!("{:?}", value)),
+        "cross_regime_report_digest": aggregate.report_digest,
+        "usage_ledger_digest": ledger.ledger_digest,
+        "maximum_consumed_timestamp_ms": ledger.maximum_consumed_timestamp_ms,
+        "prospective_holdout_status": format!("{:?}", holdout.status),
+        "prospective_holdout_opened": holdout.opened,
+        "prospective_holdout_labels_accessed": holdout.labels_accessed,
+    });
+    match output_format {
+        "json" => println!("{rendered}"),
+        "text" => {
+            println!("report_version=btc-cross-regime-diagnostics-v0");
+            println!("offline=true");
+            println!("provider_calls=0");
+            println!("regime_count={}", closed.len());
+            for result in &closed {
+                println!(
+                    "regime={} rank={} execution_health={:?} diagnostic_completeness={:?} model_evidence_outcome={:?} operational_shadow_result={:?} report_digest={}",
+                    result.regime.regime_id,
+                    result.regime.chronological_rank,
+                    result.execution_health,
+                    result.diagnostic_completeness,
+                    result.model_evidence_outcome,
+                    result.operational_shadow_result,
+                    result.report_digest,
+                );
+            }
+            println!("cross_regime_status={:?}", aggregate.status);
+            println!("cross_regime_report_digest={}", aggregate.report_digest);
+            println!("prospective_holdout_status={:?}", holdout.status);
+        }
+        _ => return Err("unsupported BTC cross-regime diagnostics output format".to_string()),
+    }
+    if aggregate.status == crate::model::BtcCrossRegimeRepresentationStatusV0::DiagnosticFailure {
+        Err("offline BTC cross-regime diagnostics found a technical failure".to_string())
+    } else {
+        Ok(())
+    }
 }
 
 fn run_btc_multi_regime_evidence_report(
