@@ -14,3 +14,7 @@ conclusion.
 Only two independently accepted market classes can support a recurrent
 frozen-representation conclusion. Out-of-support metrics remain research-only.
 All rows remain ShadowOnly with voting, execution, and promotion disabled.
+
+Contract-intake and capability qualification are separate from acquisition.
+A blocked or unavailable manifest produces a visible market row without
+creating synthetic equity evidence.

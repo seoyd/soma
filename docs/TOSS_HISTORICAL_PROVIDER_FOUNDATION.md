@@ -6,7 +6,8 @@ or Korean/US market field mapping. Accordingly, neither Korean-equity nor
 US-equity historical daily OHLCV is qualified by this source tree.
 
 The capability report evaluates Korean and US daily OHLCV independently as
-`ContractIncomplete`. The result is fail-closed: no endpoint path, request
+`ContractMaterialUnavailable` when no local material is present. The result is
+fail-closed: no endpoint path, request
 mapping, credential lookup, transport, parser, snapshot, or smoke request is
 enabled from this status.
 
@@ -15,3 +16,7 @@ adapter, guessed request mapping, credentials, live call, order surface, or
 account operation was added. A future adapter may be added only after a local
 reviewed contract provides the exact capability separately for each market and
 a sanitized fixture proves the neutral mapping offline.
+
+The local intake boundary accepts only a typed, ignored daily-OHLCV manifest.
+It validates read-only transport, required mappings, timestamp, adjustment,
+and pagination semantics before independently qualifying either market.

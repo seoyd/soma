@@ -1,6 +1,8 @@
 use std::collections::{BTreeMap, VecDeque};
 use std::env;
 use std::fmt;
+use std::fs;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 use serde::{Deserialize, Serialize};
@@ -659,6 +661,7 @@ pub enum TossHistoricalCapabilityV0 {
 pub enum TossHistoricalContractStatusV0 {
     Qualified,
     ContractIncomplete,
+    ContractMaterialUnavailable,
     RequiresGuessedMapping,
     UnsupportedHistoricalDataset,
     ConfigurationMissing,
@@ -695,7 +698,7 @@ pub fn qualify_toss_historical_capability_v0(
     TossHistoricalContractQualificationV0 {
         capability,
         status: if incomplete {
-            TossHistoricalContractStatusV0::ContractIncomplete
+            TossHistoricalContractStatusV0::ContractMaterialUnavailable
         } else {
             TossHistoricalContractStatusV0::RequiresGuessedMapping
         },
@@ -709,7 +712,589 @@ pub fn qualify_toss_historical_capability_v0(
         rate_limit_semantics_known: false,
         authentication_semantics_known: false,
         read_only_verified: contract.read_only && contract.method == TossMethod::Get,
-        reason_codes: vec!["exact_historical_contract_unavailable".to_string()],
+        reason_codes: vec!["local_contract_material_unavailable".to_string()],
+    }
+}
+
+const TOSS_HISTORICAL_MANIFEST_VERSION_V1: &str = "toss-historical-manifest-v1";
+const TOSS_KR_MANIFEST_PATH_ENV: &str = "SOMA_TOSS_KR_HISTORICAL_MANIFEST_PATH";
+const TOSS_US_MANIFEST_PATH_ENV: &str = "SOMA_TOSS_US_HISTORICAL_MANIFEST_PATH";
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TossContractIntakeStatusV1 {
+    LocalContractMaterialAvailable,
+    LocalContractMaterialUnavailable,
+    ContractMaterialUnreadable,
+    ContractDisclosureUnknown,
+    ContractRedistributionRestricted,
+    ContractManifestCreated,
+    ContractManifestInvalid,
+    ContractManifestDigestMismatch,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TossContractDisclosureClassV1 {
+    PublicSafeToCommit,
+    LocalConfidentialOnly,
+    RedistributionRestricted,
+    Unknown,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TossHistoricalQualificationStatusV1 {
+    QualifiedStaticContract,
+    QualifiedLocalManifest,
+    ContractIncomplete,
+    ContractMaterialUnavailable,
+    RequiresGuessedMapping,
+    DisclosurePolicyBlocked,
+    UnsupportedHistoricalCapability,
+    NonReadOnlyOperation,
+    ManifestInvalid,
+    ConfigurationMissing,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TossHistoricalReadMethodV1 {
+    Get,
+    PostReadOnly,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TossTimestampRepresentationV1 {
+    DateString,
+    UnixSeconds,
+    UnixMilliseconds,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TossTimestampTimezoneV1 {
+    Utc,
+    ExchangeLocal,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TossPriceAdjustmentV1 {
+    Raw,
+    SplitAdjusted,
+    DividendAdjusted,
+    TotalReturn,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TossPaginationModeV1 {
+    None,
+    Cursor,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TossHistoricalContractManifestV1 {
+    pub manifest_version: String,
+    pub provider_id: String,
+    pub contract_version: String,
+    pub capability: TossHistoricalCapabilityV0,
+    pub disclosure_class: TossContractDisclosureClassV1,
+    pub operation_id: String,
+    pub host: String,
+    pub operation_path: String,
+    pub method: TossHistoricalReadMethodV1,
+    pub content_type: String,
+    pub authentication_required: bool,
+    pub credential_environment_names: Vec<String>,
+    pub symbol_field: String,
+    pub cadence_field: String,
+    pub range_start_field: String,
+    pub range_end_field: String,
+    pub response_rows_path: String,
+    pub response_symbol_field: String,
+    pub response_market_field: String,
+    pub timestamp_field: String,
+    pub timestamp_representation: TossTimestampRepresentationV1,
+    pub timestamp_timezone: TossTimestampTimezoneV1,
+    pub open_field: String,
+    pub high_field: String,
+    pub low_field: String,
+    pub close_field: String,
+    pub volume_field: String,
+    pub adjustment: TossPriceAdjustmentV1,
+    pub pagination_mode: TossPaginationModeV1,
+    pub pagination_cursor_field: Option<String>,
+    pub max_page_size: usize,
+    pub success_code_field: String,
+    pub error_code_field: String,
+    pub error_message_field: String,
+    pub read_only_attestation: bool,
+    pub source_contract_digest: String,
+}
+
+impl TossHistoricalContractManifestV1 {
+    pub fn from_toml_str(text: &str) -> Result<Self, TossContractManifestErrorV1> {
+        toml::from_str(text).map_err(|_| TossContractManifestErrorV1::Unreadable)
+    }
+
+    pub fn from_toml_path(path: &Path) -> Result<Self, TossContractManifestErrorV1> {
+        let text = fs::read_to_string(path).map_err(|_| TossContractManifestErrorV1::Unreadable)?;
+        Self::from_toml_str(&text)
+    }
+
+    pub fn validate(&self) -> Result<(), TossContractManifestErrorV1> {
+        if self.manifest_version != TOSS_HISTORICAL_MANIFEST_VERSION_V1 {
+            return Err(TossContractManifestErrorV1::Invalid("manifest_version"));
+        }
+        if self.provider_id != "toss" {
+            return Err(TossContractManifestErrorV1::Invalid("provider_id"));
+        }
+        if matches!(
+            self.disclosure_class,
+            TossContractDisclosureClassV1::Unknown
+        ) {
+            return Err(TossContractManifestErrorV1::DisclosureUnknown);
+        }
+        if matches!(
+            self.disclosure_class,
+            TossContractDisclosureClassV1::RedistributionRestricted
+        ) {
+            return Err(TossContractManifestErrorV1::RedistributionRestricted);
+        }
+        if !is_https_host(&self.host) {
+            return Err(TossContractManifestErrorV1::Invalid("host"));
+        }
+        if !is_operation_path(&self.operation_path) {
+            return Err(TossContractManifestErrorV1::Invalid("operation_path"));
+        }
+        if self.content_type != "application/json" {
+            return Err(TossContractManifestErrorV1::Invalid("content_type"));
+        }
+        if !self.read_only_attestation {
+            return Err(TossContractManifestErrorV1::NonReadOnlyOperation);
+        }
+        if self.method == TossHistoricalReadMethodV1::PostReadOnly && !self.read_only_attestation {
+            return Err(TossContractManifestErrorV1::NonReadOnlyOperation);
+        }
+        if self.max_page_size == 0 {
+            return Err(TossContractManifestErrorV1::Invalid("max_page_size"));
+        }
+        if self.pagination_mode == TossPaginationModeV1::Cursor
+            && self
+                .pagination_cursor_field
+                .as_deref()
+                .is_none_or(str::is_empty)
+        {
+            return Err(TossContractManifestErrorV1::Invalid(
+                "pagination_cursor_field",
+            ));
+        }
+        for (name, value) in [
+            ("contract_version", self.contract_version.as_str()),
+            ("operation_id", self.operation_id.as_str()),
+            ("symbol_field", self.symbol_field.as_str()),
+            ("cadence_field", self.cadence_field.as_str()),
+            ("range_start_field", self.range_start_field.as_str()),
+            ("range_end_field", self.range_end_field.as_str()),
+            ("response_rows_path", self.response_rows_path.as_str()),
+            ("response_symbol_field", self.response_symbol_field.as_str()),
+            ("response_market_field", self.response_market_field.as_str()),
+            ("timestamp_field", self.timestamp_field.as_str()),
+            ("open_field", self.open_field.as_str()),
+            ("high_field", self.high_field.as_str()),
+            ("low_field", self.low_field.as_str()),
+            ("close_field", self.close_field.as_str()),
+            ("volume_field", self.volume_field.as_str()),
+            ("success_code_field", self.success_code_field.as_str()),
+            ("error_code_field", self.error_code_field.as_str()),
+            ("error_message_field", self.error_message_field.as_str()),
+            (
+                "source_contract_digest",
+                self.source_contract_digest.as_str(),
+            ),
+        ] {
+            if !is_manifest_identifier(value) {
+                return Err(TossContractManifestErrorV1::Invalid(name));
+            }
+        }
+        if self
+            .credential_environment_names
+            .iter()
+            .any(|name| !valid_env_name(name))
+        {
+            return Err(TossContractManifestErrorV1::Invalid(
+                "credential_environment_names",
+            ));
+        }
+        Ok(())
+    }
+
+    pub fn semantic_digest(&self) -> Result<String, TossContractManifestErrorV1> {
+        self.validate()?;
+        let credential_names = self.credential_environment_names.join(",");
+        let max_page_size = self.max_page_size.to_string();
+        let canonical = [
+            self.manifest_version.as_str(),
+            self.provider_id.as_str(),
+            self.contract_version.as_str(),
+            manifest_capability_code(self.capability),
+            manifest_disclosure_code(self.disclosure_class),
+            self.operation_id.as_str(),
+            self.host.as_str(),
+            self.operation_path.as_str(),
+            manifest_method_code(self.method),
+            self.content_type.as_str(),
+            if self.authentication_required {
+                "1"
+            } else {
+                "0"
+            },
+            credential_names.as_str(),
+            self.symbol_field.as_str(),
+            self.cadence_field.as_str(),
+            self.range_start_field.as_str(),
+            self.range_end_field.as_str(),
+            self.response_rows_path.as_str(),
+            self.response_symbol_field.as_str(),
+            self.response_market_field.as_str(),
+            self.timestamp_field.as_str(),
+            manifest_timestamp_representation_code(self.timestamp_representation),
+            manifest_timezone_code(self.timestamp_timezone),
+            self.open_field.as_str(),
+            self.high_field.as_str(),
+            self.low_field.as_str(),
+            self.close_field.as_str(),
+            self.volume_field.as_str(),
+            manifest_adjustment_code(self.adjustment),
+            manifest_pagination_code(self.pagination_mode),
+            self.pagination_cursor_field.as_deref().unwrap_or_default(),
+            max_page_size.as_str(),
+            self.success_code_field.as_str(),
+            self.error_code_field.as_str(),
+            self.error_message_field.as_str(),
+            if self.read_only_attestation { "1" } else { "0" },
+            self.source_contract_digest.as_str(),
+        ];
+        Ok(stable_manifest_digest(&canonical))
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TossHistoricalCapabilityQualificationV1 {
+    pub capability: TossHistoricalCapabilityV0,
+    pub status: TossHistoricalQualificationStatusV1,
+    pub intake_status: TossContractIntakeStatusV1,
+    pub disclosure_class: Option<TossContractDisclosureClassV1>,
+    pub manifest_digest_prefix: Option<String>,
+    pub reason_codes: Vec<String>,
+}
+
+pub fn qualify_toss_historical_manifest_v1(
+    capability: TossHistoricalCapabilityV0,
+    manifest: Option<&TossHistoricalContractManifestV1>,
+) -> TossHistoricalCapabilityQualificationV1 {
+    let Some(manifest) = manifest else {
+        return TossHistoricalCapabilityQualificationV1 {
+            capability,
+            status: TossHistoricalQualificationStatusV1::ContractMaterialUnavailable,
+            intake_status: TossContractIntakeStatusV1::LocalContractMaterialUnavailable,
+            disclosure_class: None,
+            manifest_digest_prefix: None,
+            reason_codes: vec!["local_contract_material_unavailable".to_string()],
+        };
+    };
+    let disclosure_class = Some(manifest.disclosure_class);
+    let digest = manifest
+        .semantic_digest()
+        .ok()
+        .map(|value| value.chars().take(12).collect());
+    let status = match manifest.validate() {
+        Ok(()) if manifest.capability == capability => {
+            TossHistoricalQualificationStatusV1::QualifiedLocalManifest
+        }
+        Ok(()) => TossHistoricalQualificationStatusV1::UnsupportedHistoricalCapability,
+        Err(TossContractManifestErrorV1::DisclosureUnknown)
+        | Err(TossContractManifestErrorV1::RedistributionRestricted) => {
+            TossHistoricalQualificationStatusV1::DisclosurePolicyBlocked
+        }
+        Err(TossContractManifestErrorV1::NonReadOnlyOperation) => {
+            TossHistoricalQualificationStatusV1::NonReadOnlyOperation
+        }
+        Err(_) => TossHistoricalQualificationStatusV1::ManifestInvalid,
+    };
+    let reason_codes = match status {
+        TossHistoricalQualificationStatusV1::QualifiedLocalManifest => {
+            vec!["local_manifest_qualified".to_string()]
+        }
+        TossHistoricalQualificationStatusV1::UnsupportedHistoricalCapability => {
+            vec!["manifest_capability_mismatch".to_string()]
+        }
+        TossHistoricalQualificationStatusV1::DisclosurePolicyBlocked => {
+            vec!["manifest_disclosure_blocked".to_string()]
+        }
+        TossHistoricalQualificationStatusV1::NonReadOnlyOperation => {
+            vec!["manifest_non_read_only".to_string()]
+        }
+        _ => vec!["manifest_invalid".to_string()],
+    };
+    TossHistoricalCapabilityQualificationV1 {
+        capability,
+        status,
+        intake_status: if digest.is_some() {
+            TossContractIntakeStatusV1::ContractManifestCreated
+        } else {
+            TossContractIntakeStatusV1::ContractManifestInvalid
+        },
+        disclosure_class,
+        manifest_digest_prefix: digest,
+        reason_codes,
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TossCapabilitySelectionStatusV1 {
+    Selected,
+    NoQualifiedCapability,
+    FallbackDisabled,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TossHistoricalCapabilitySelectionV1 {
+    pub preferred_capability: TossHistoricalCapabilityV0,
+    pub selected_capability: Option<TossHistoricalCapabilityV0>,
+    pub kr_qualification: TossHistoricalCapabilityQualificationV1,
+    pub us_qualification: TossHistoricalCapabilityQualificationV1,
+    pub selection_status: TossCapabilitySelectionStatusV1,
+    pub reason_codes: Vec<String>,
+}
+
+pub fn select_toss_historical_capability_v1(
+    preferred_capability: TossHistoricalCapabilityV0,
+    allow_us_fallback: bool,
+    kr_qualification: TossHistoricalCapabilityQualificationV1,
+    us_qualification: TossHistoricalCapabilityQualificationV1,
+) -> TossHistoricalCapabilitySelectionV1 {
+    let qualified = |qualification: &TossHistoricalCapabilityQualificationV1| {
+        qualification.status == TossHistoricalQualificationStatusV1::QualifiedLocalManifest
+            || qualification.status == TossHistoricalQualificationStatusV1::QualifiedStaticContract
+    };
+    let preferred = match preferred_capability {
+        TossHistoricalCapabilityV0::KoreanEquityDailyOhlcv => &kr_qualification,
+        TossHistoricalCapabilityV0::UsEquityDailyOhlcv => &us_qualification,
+    };
+    let selected_capability = if qualified(preferred) {
+        Some(preferred_capability)
+    } else if preferred_capability == TossHistoricalCapabilityV0::KoreanEquityDailyOhlcv
+        && allow_us_fallback
+        && qualified(&us_qualification)
+    {
+        Some(TossHistoricalCapabilityV0::UsEquityDailyOhlcv)
+    } else {
+        None
+    };
+    let selection_status = match selected_capability {
+        Some(_) => TossCapabilitySelectionStatusV1::Selected,
+        None if preferred_capability == TossHistoricalCapabilityV0::KoreanEquityDailyOhlcv
+            && !allow_us_fallback
+            && qualified(&us_qualification) =>
+        {
+            TossCapabilitySelectionStatusV1::FallbackDisabled
+        }
+        None => TossCapabilitySelectionStatusV1::NoQualifiedCapability,
+    };
+    let reason_codes = match selected_capability {
+        Some(TossHistoricalCapabilityV0::KoreanEquityDailyOhlcv) => {
+            vec!["kr_preferred_capability_selected".to_string()]
+        }
+        Some(TossHistoricalCapabilityV0::UsEquityDailyOhlcv) => {
+            vec!["explicit_us_fallback_selected".to_string()]
+        }
+        None => vec!["no_qualified_capability_selected".to_string()],
+    };
+    TossHistoricalCapabilitySelectionV1 {
+        preferred_capability,
+        selected_capability,
+        kr_qualification,
+        us_qualification,
+        selection_status,
+        reason_codes,
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum TossContractManifestErrorV1 {
+    Unreadable,
+    DisclosureUnknown,
+    RedistributionRestricted,
+    NonReadOnlyOperation,
+    Invalid(&'static str),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TossContractIntakeResultV1 {
+    pub status: TossContractIntakeStatusV1,
+    pub disclosure_class: Option<TossContractDisclosureClassV1>,
+    pub semantic_digest_prefix: Option<String>,
+    pub capability: Option<TossHistoricalCapabilityV0>,
+}
+
+pub fn inspect_toss_historical_manifest_v1(path: Option<&Path>) -> TossContractIntakeResultV1 {
+    let Some(path) = path else {
+        return TossContractIntakeResultV1 {
+            status: TossContractIntakeStatusV1::LocalContractMaterialUnavailable,
+            disclosure_class: None,
+            semantic_digest_prefix: None,
+            capability: None,
+        };
+    };
+    let manifest = match TossHistoricalContractManifestV1::from_toml_path(path) {
+        Ok(manifest) => manifest,
+        Err(_) => {
+            return TossContractIntakeResultV1 {
+                status: TossContractIntakeStatusV1::ContractMaterialUnreadable,
+                disclosure_class: None,
+                semantic_digest_prefix: None,
+                capability: None,
+            };
+        }
+    };
+    let disclosure_class = manifest.disclosure_class;
+    let capability = manifest.capability;
+    match manifest.validate() {
+        Ok(()) => match manifest.semantic_digest() {
+            Ok(digest) => TossContractIntakeResultV1 {
+                status: TossContractIntakeStatusV1::ContractManifestCreated,
+                disclosure_class: Some(disclosure_class),
+                semantic_digest_prefix: Some(digest.chars().take(12).collect()),
+                capability: Some(capability),
+            },
+            Err(_) => TossContractIntakeResultV1 {
+                status: TossContractIntakeStatusV1::ContractManifestDigestMismatch,
+                disclosure_class: Some(disclosure_class),
+                semantic_digest_prefix: None,
+                capability: Some(capability),
+            },
+        },
+        Err(TossContractManifestErrorV1::DisclosureUnknown) => TossContractIntakeResultV1 {
+            status: TossContractIntakeStatusV1::ContractDisclosureUnknown,
+            disclosure_class: Some(disclosure_class),
+            semantic_digest_prefix: None,
+            capability: Some(capability),
+        },
+        Err(TossContractManifestErrorV1::RedistributionRestricted) => TossContractIntakeResultV1 {
+            status: TossContractIntakeStatusV1::ContractRedistributionRestricted,
+            disclosure_class: Some(disclosure_class),
+            semantic_digest_prefix: None,
+            capability: Some(capability),
+        },
+        Err(_) => TossContractIntakeResultV1 {
+            status: TossContractIntakeStatusV1::ContractManifestInvalid,
+            disclosure_class: Some(disclosure_class),
+            semantic_digest_prefix: None,
+            capability: Some(capability),
+        },
+    }
+}
+
+pub fn toss_historical_manifest_path_from_env(
+    capability: TossHistoricalCapabilityV0,
+) -> Option<PathBuf> {
+    let variable = match capability {
+        TossHistoricalCapabilityV0::KoreanEquityDailyOhlcv => TOSS_KR_MANIFEST_PATH_ENV,
+        TossHistoricalCapabilityV0::UsEquityDailyOhlcv => TOSS_US_MANIFEST_PATH_ENV,
+    };
+    env::var_os(variable).map(PathBuf::from)
+}
+
+fn is_https_host(host: &str) -> bool {
+    host.starts_with("https://")
+        && host.strip_prefix("https://").is_some_and(|value| {
+            !value.is_empty()
+                && !value.contains(['/', '?', '#', '@', ':'])
+                && value
+                    .bytes()
+                    .all(|byte| byte.is_ascii_alphanumeric() || byte == b'.' || byte == b'-')
+        })
+}
+
+fn is_operation_path(path: &str) -> bool {
+    path.starts_with('/')
+        && path.len() > 1
+        && !path.contains("..")
+        && !path.contains(['?', '#', ' ', '\n', '\r'])
+}
+
+fn is_manifest_identifier(value: &str) -> bool {
+    !value.trim().is_empty() && value == value.trim() && !value.contains(['\n', '\r'])
+}
+
+fn stable_manifest_digest(parts: &[&str]) -> String {
+    let mut hash = 0xcbf29ce484222325_u64;
+    for part in parts {
+        for byte in part.as_bytes().iter().chain(std::iter::once(&0)) {
+            hash ^= u64::from(*byte);
+            hash = hash.wrapping_mul(0x100000001b3);
+        }
+    }
+    format!("{hash:016x}")
+}
+
+fn manifest_capability_code(capability: TossHistoricalCapabilityV0) -> &'static str {
+    match capability {
+        TossHistoricalCapabilityV0::KoreanEquityDailyOhlcv => "korean_equity_daily_ohlcv",
+        TossHistoricalCapabilityV0::UsEquityDailyOhlcv => "us_equity_daily_ohlcv",
+    }
+}
+
+fn manifest_disclosure_code(class: TossContractDisclosureClassV1) -> &'static str {
+    match class {
+        TossContractDisclosureClassV1::PublicSafeToCommit => "public_safe_to_commit",
+        TossContractDisclosureClassV1::LocalConfidentialOnly => "local_confidential_only",
+        TossContractDisclosureClassV1::RedistributionRestricted => "redistribution_restricted",
+        TossContractDisclosureClassV1::Unknown => "unknown",
+    }
+}
+
+fn manifest_method_code(method: TossHistoricalReadMethodV1) -> &'static str {
+    match method {
+        TossHistoricalReadMethodV1::Get => "get",
+        TossHistoricalReadMethodV1::PostReadOnly => "post_read_only",
+    }
+}
+
+fn manifest_timestamp_representation_code(value: TossTimestampRepresentationV1) -> &'static str {
+    match value {
+        TossTimestampRepresentationV1::DateString => "date_string",
+        TossTimestampRepresentationV1::UnixSeconds => "unix_seconds",
+        TossTimestampRepresentationV1::UnixMilliseconds => "unix_milliseconds",
+    }
+}
+
+fn manifest_timezone_code(value: TossTimestampTimezoneV1) -> &'static str {
+    match value {
+        TossTimestampTimezoneV1::Utc => "utc",
+        TossTimestampTimezoneV1::ExchangeLocal => "exchange_local",
+    }
+}
+
+fn manifest_adjustment_code(value: TossPriceAdjustmentV1) -> &'static str {
+    match value {
+        TossPriceAdjustmentV1::Raw => "raw",
+        TossPriceAdjustmentV1::SplitAdjusted => "split_adjusted",
+        TossPriceAdjustmentV1::DividendAdjusted => "dividend_adjusted",
+        TossPriceAdjustmentV1::TotalReturn => "total_return",
+    }
+}
+
+fn manifest_pagination_code(value: TossPaginationModeV1) -> &'static str {
+    match value {
+        TossPaginationModeV1::None => "none",
+        TossPaginationModeV1::Cursor => "cursor",
     }
 }
 
@@ -1822,6 +2407,49 @@ mod tests {
 
     const NOW: u64 = 1_800_000_000_000;
 
+    fn historical_manifest(
+        capability: TossHistoricalCapabilityV0,
+    ) -> TossHistoricalContractManifestV1 {
+        TossHistoricalContractManifestV1 {
+            manifest_version: TOSS_HISTORICAL_MANIFEST_VERSION_V1.to_string(),
+            provider_id: "toss".to_string(),
+            contract_version: "test-v1".to_string(),
+            capability,
+            disclosure_class: TossContractDisclosureClassV1::LocalConfidentialOnly,
+            operation_id: "daily_ohlcv".to_string(),
+            host: "https://sandbox.invalid".to_string(),
+            operation_path: "/historical/daily".to_string(),
+            method: TossHistoricalReadMethodV1::Get,
+            content_type: "application/json".to_string(),
+            authentication_required: true,
+            credential_environment_names: vec!["TOSS_TEST_KEY".to_string()],
+            symbol_field: "symbol".to_string(),
+            cadence_field: "cadence".to_string(),
+            range_start_field: "start".to_string(),
+            range_end_field: "end".to_string(),
+            response_rows_path: "data.rows".to_string(),
+            response_symbol_field: "symbol".to_string(),
+            response_market_field: "market".to_string(),
+            timestamp_field: "date".to_string(),
+            timestamp_representation: TossTimestampRepresentationV1::DateString,
+            timestamp_timezone: TossTimestampTimezoneV1::ExchangeLocal,
+            open_field: "open".to_string(),
+            high_field: "high".to_string(),
+            low_field: "low".to_string(),
+            close_field: "close".to_string(),
+            volume_field: "volume".to_string(),
+            adjustment: TossPriceAdjustmentV1::Raw,
+            pagination_mode: TossPaginationModeV1::None,
+            pagination_cursor_field: None,
+            max_page_size: 100,
+            success_code_field: "code".to_string(),
+            error_code_field: "error.code".to_string(),
+            error_message_field: "error.message".to_string(),
+            read_only_attestation: true,
+            source_contract_digest: "test-source-digest".to_string(),
+        }
+    }
+
     fn credentials() -> TossCredentials {
         TossCredentials {
             app_key: "test_app_key_value".to_string(),
@@ -1882,6 +2510,68 @@ mod tests {
             ..TossApiConfig::default()
         };
         assert_eq!(not_read_only.validate(), Err(TossError::ReadOnlyRequired));
+    }
+
+    #[test]
+    fn historical_manifest_is_restricted_deterministic_and_fail_closed() {
+        let manifest = historical_manifest(TossHistoricalCapabilityV0::KoreanEquityDailyOhlcv);
+        assert!(manifest.validate().is_ok());
+        assert_eq!(
+            manifest.semantic_digest(),
+            manifest.clone().semantic_digest(),
+            "formatting is not part of the semantic digest"
+        );
+
+        let mut changed = manifest.clone();
+        changed.operation_id = "other_daily_ohlcv".to_string();
+        assert_ne!(manifest.semantic_digest(), changed.semantic_digest());
+
+        let mut unsafe_host = manifest.clone();
+        unsafe_host.host = "http://sandbox.invalid".to_string();
+        assert_eq!(
+            unsafe_host.validate(),
+            Err(TossContractManifestErrorV1::Invalid("host"))
+        );
+
+        let mut mutable = manifest;
+        mutable.read_only_attestation = false;
+        assert_eq!(
+            mutable.validate(),
+            Err(TossContractManifestErrorV1::NonReadOnlyOperation)
+        );
+    }
+
+    #[test]
+    fn historical_manifest_qualifications_are_independent_and_select_one() {
+        let kr = historical_manifest(TossHistoricalCapabilityV0::KoreanEquityDailyOhlcv);
+        let us = historical_manifest(TossHistoricalCapabilityV0::UsEquityDailyOhlcv);
+        let kr_qualification = qualify_toss_historical_manifest_v1(
+            TossHistoricalCapabilityV0::KoreanEquityDailyOhlcv,
+            Some(&kr),
+        );
+        let us_qualification = qualify_toss_historical_manifest_v1(
+            TossHistoricalCapabilityV0::UsEquityDailyOhlcv,
+            Some(&us),
+        );
+        let selection = select_toss_historical_capability_v1(
+            TossHistoricalCapabilityV0::KoreanEquityDailyOhlcv,
+            false,
+            kr_qualification,
+            us_qualification,
+        );
+        assert_eq!(
+            selection.selected_capability,
+            Some(TossHistoricalCapabilityV0::KoreanEquityDailyOhlcv)
+        );
+
+        let unavailable = qualify_toss_historical_manifest_v1(
+            TossHistoricalCapabilityV0::UsEquityDailyOhlcv,
+            None,
+        );
+        assert_eq!(
+            unavailable.status,
+            TossHistoricalQualificationStatusV1::ContractMaterialUnavailable
+        );
     }
 
     #[test]
@@ -2219,7 +2909,7 @@ mod tests {
             let qualification = qualify_toss_historical_capability_v0(capability);
             assert_eq!(
                 qualification.status,
-                TossHistoricalContractStatusV0::ContractIncomplete
+                TossHistoricalContractStatusV0::ContractMaterialUnavailable
             );
             assert!(qualification.read_only_verified);
             assert!(!qualification.request_schema_known);

@@ -27,6 +27,10 @@ pub struct CliArgs {
     pub momentum_cross_market_report: bool,
     #[arg(long, default_value_t = false)]
     pub toss_historical_contract_report: bool,
+    #[arg(long)]
+    pub toss_kr_historical_manifest: Option<PathBuf>,
+    #[arg(long)]
+    pub toss_us_historical_manifest: Option<PathBuf>,
     #[arg(long, default_value = "text", value_parser = ["text", "json"])]
     pub output_format: String,
     #[arg(long, default_value_t = false)]
@@ -36,7 +40,10 @@ pub struct CliArgs {
 pub fn run() -> Result<(), String> {
     let args = CliArgs::parse();
     if args.toss_historical_contract_report {
-        return print_toss_historical_contract_report();
+        return print_toss_historical_contract_report(
+            args.toss_kr_historical_manifest,
+            args.toss_us_historical_manifest,
+        );
     }
     if let Some(config) = args.historical_snapshot_campaign_config {
         return run_local_historical_snapshot_campaign(
@@ -417,7 +424,42 @@ fn run_momentum_campaign_if_enabled(
     Ok(())
 }
 
-fn print_toss_historical_contract_report() -> Result<(), String> {
+fn print_toss_historical_contract_report(
+    kr_manifest_path: Option<PathBuf>,
+    us_manifest_path: Option<PathBuf>,
+) -> Result<(), String> {
+    let kr_manifest_path = kr_manifest_path.or_else(|| {
+        crate::toss::toss_historical_manifest_path_from_env(
+            crate::toss::TossHistoricalCapabilityV0::KoreanEquityDailyOhlcv,
+        )
+    });
+    let us_manifest_path = us_manifest_path.or_else(|| {
+        crate::toss::toss_historical_manifest_path_from_env(
+            crate::toss::TossHistoricalCapabilityV0::UsEquityDailyOhlcv,
+        )
+    });
+    let kr_intake = crate::toss::inspect_toss_historical_manifest_v1(kr_manifest_path.as_deref());
+    let us_intake = crate::toss::inspect_toss_historical_manifest_v1(us_manifest_path.as_deref());
+    let kr_manifest = kr_manifest_path
+        .as_deref()
+        .and_then(|path| crate::toss::TossHistoricalContractManifestV1::from_toml_path(path).ok());
+    let us_manifest = us_manifest_path
+        .as_deref()
+        .and_then(|path| crate::toss::TossHistoricalContractManifestV1::from_toml_path(path).ok());
+    let kr_qualification = crate::toss::qualify_toss_historical_manifest_v1(
+        crate::toss::TossHistoricalCapabilityV0::KoreanEquityDailyOhlcv,
+        kr_manifest.as_ref(),
+    );
+    let us_qualification = crate::toss::qualify_toss_historical_manifest_v1(
+        crate::toss::TossHistoricalCapabilityV0::UsEquityDailyOhlcv,
+        us_manifest.as_ref(),
+    );
+    let selection = crate::toss::select_toss_historical_capability_v1(
+        crate::toss::TossHistoricalCapabilityV0::KoreanEquityDailyOhlcv,
+        false,
+        kr_qualification,
+        us_qualification,
+    );
     let korean = crate::toss::qualify_toss_historical_capability_v0(
         crate::toss::TossHistoricalCapabilityV0::KoreanEquityDailyOhlcv,
     );
@@ -427,7 +469,10 @@ fn print_toss_historical_contract_report() -> Result<(), String> {
     println!(
         "{}",
         serde_json::json!({
-            "report_version": "toss-historical-contract-qualification-v1",
+            "report_version": "toss-historical-contract-intake-v1",
+            "kr_intake": kr_intake,
+            "us_intake": us_intake,
+            "selection": selection,
             "korean_equity": korean,
             "us_equity": us,
             "network_calls": 0,
@@ -442,6 +487,9 @@ fn toss_historical_contract_status_code(
     match status {
         crate::toss::TossHistoricalContractStatusV0::Qualified => "qualified",
         crate::toss::TossHistoricalContractStatusV0::ContractIncomplete => "contract_incomplete",
+        crate::toss::TossHistoricalContractStatusV0::ContractMaterialUnavailable => {
+            "contract_material_unavailable"
+        }
         crate::toss::TossHistoricalContractStatusV0::RequiresGuessedMapping => {
             "requires_guessed_mapping"
         }
