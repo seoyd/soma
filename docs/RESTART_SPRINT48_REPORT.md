@@ -122,12 +122,13 @@ registry state is Sealed, with an empty vault and journal.
 
 ## 25. Pre-registration commit/push result
 
-Pending the Phase A source-and-policy commit at the time this report is written.
+Phase A was committed as `3169040` and pushed to `origin/main` before any
+future-row inspection, future-label access, or provider request.
 
 ## 26. Post-commit capsule verification
 
-Deferred until the Phase A commit has been pushed; it must compare the local
-sealed capsule digest with this report's registered digest.
+The ignored local state was reopened after the push and verified the same
+capsule digest, `8884354dbb27a619`, before registry confirmation.
 
 ## 27. Future-row availability plan
 
@@ -136,8 +137,9 @@ blind count/dry-run question, never a label or OHLCV display.
 
 ## 28. Ethical request dry run
 
-The initial dry run has request count 0. Any later request is bounded to one,
-one concurrency slot, zero retries, and finalized daily rows only.
+The local accumulation command returned `awaiting_explicit_network_consent`
+with request count 0. Any authorized later request remains bounded to one, one
+concurrency slot, zero retries, and finalized daily rows only.
 
 ## 29. Network-consent result
 
@@ -209,7 +211,8 @@ Not ready: no finalized prospective row, event, or mature label exists.
 
 ## 45. Current challenge status
 
-Sealed and awaiting the pre-registration commit boundary.
+PreRegistrationCommitted, with an empty vault and journal, awaiting future
+rows under the separately authorized acquisition boundary.
 
 ## 46. Network firewall
 
@@ -272,8 +275,10 @@ atomic local round-trip tests; reused default and Metal baselines.
 
 ## 58. Complete final verification
 
-Pending after the Phase A report and commit boundary; it will run default and
-Metal sequentially.
+Formatting, the five prospective contract tests, and the complete default and
+Metal workspace suites passed. Each final suite used one Cargo job and one test
+thread; an initially overlapping Metal start was immediately terminated and
+then rerun only after the default Rust process had exited.
 
 ## 59. Build-cache result
 
@@ -312,7 +317,8 @@ explicit authorization.
 
 ## 66. Commit/push result
 
-Pending the Phase A commit at the time this report is written.
+Phase A commit `3169040` is pushed to `origin/main`; this final verification
+record is intentionally committed and pushed as a separate audit amendment.
 
 ## 67. Next gstack Sprint recommendation
 
