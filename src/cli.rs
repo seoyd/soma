@@ -918,7 +918,7 @@ fn render_blind_prospective_status(
                 "report_version": "btc-prospective-shadow-challenge-v0",
                 "offline": provider_calls == 0,
                 "provider_calls": provider_calls,
-                "transport_constructions": 0,
+                "transport_constructions": provider_calls,
                 "acquisition_status": acquisition_status,
                 "challenge_status": challenge_status,
                 "finalized_row_count": status.finalized_row_count,
@@ -947,7 +947,7 @@ fn render_blind_prospective_status(
         println!("report_version=btc-prospective-shadow-challenge-v0");
         println!("offline={}", provider_calls == 0);
         println!("provider_calls={provider_calls}");
-        println!("transport_constructions=0");
+        println!("transport_constructions={provider_calls}");
         println!("acquisition_status={acquisition_status}");
         println!("challenge_status={challenge_status}");
         println!("finalized_row_count={}", status.finalized_row_count);
