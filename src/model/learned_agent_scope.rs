@@ -2732,6 +2732,105 @@ pub fn map_source_bound_opinions_v1(
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SourceBoundShadowDeliberationV1 {
+    pub deliberation_version: String,
+    pub creation_mode: LearnedAgentOpinionCreationModeV1,
+    pub protocol_registration_digest_v1: String,
+    pub momentum_opinion_id: String,
+    pub risk_opinion_id: String,
+    pub momentum_seal_digest_v1: String,
+    pub risk_seal_digest_v1: String,
+    pub relationship_digest_v1: String,
+    pub round_count: usize,
+    pub retrospective_only: bool,
+    pub contemporaneous_claim: bool,
+    pub chair_observed: bool,
+    pub chair_decision_created: bool,
+    pub reward_created: bool,
+    pub penalty_created: bool,
+    pub speaking_right_changed: bool,
+    pub vote_created: bool,
+    pub execution_created: bool,
+    pub transcript_digest_v1: String,
+}
+pub fn create_source_bound_deliberation_v1(
+    pair: &SourceBoundOpinionScopePairV1,
+    momentum: &(LearnedAgentOpinionEnvelopeV1, LearnedAgentOpinionSealV1),
+    risk: &(LearnedAgentOpinionEnvelopeV1, LearnedAgentOpinionSealV1),
+) -> Result<SourceBoundShadowDeliberationV1, String> {
+    if pair.comparability == SourceBoundScopeComparabilityV1::SourceBoundButScopesNotComparable
+        || !momentum.0.sealed
+        || !risk.0.sealed
+        || momentum.0.opinion_id != pair.momentum_opinion_id
+        || risk.0.opinion_id != pair.risk_opinion_id
+    {
+        return Err("source_bound_deliberation_ineligible".into());
+    }
+    let registration = SourceBoundOpinionProtocolRegistrationV1::pre_registered();
+    registration.validate()?;
+    let mut relationship_bytes = Vec::new();
+    strv(&mut relationship_bytes, &pair.pair_digest_v1);
+    tag(
+        &mut relationship_bytes,
+        if pair.comparability == SourceBoundScopeComparabilityV1::ExactDecisionScopeComparable {
+            1
+        } else {
+            2
+        },
+    );
+    let relationship_digest = stable_hash_string(&hex(&relationship_bytes));
+    let mut value = SourceBoundShadowDeliberationV1 {
+        deliberation_version: registration.deliberation_protocol_version.clone(),
+        creation_mode: LearnedAgentOpinionCreationModeV1::HistoricalRetrospectiveSourceBoundReplay,
+        protocol_registration_digest_v1: registration.policy_digest_v1,
+        momentum_opinion_id: momentum.0.opinion_id.clone(),
+        risk_opinion_id: risk.0.opinion_id.clone(),
+        momentum_seal_digest_v1: momentum.1.seal_digest_v1.clone(),
+        risk_seal_digest_v1: risk.1.seal_digest_v1.clone(),
+        relationship_digest_v1: relationship_digest,
+        round_count: 2,
+        retrospective_only: true,
+        contemporaneous_claim: false,
+        chair_observed: false,
+        chair_decision_created: false,
+        reward_created: false,
+        penalty_created: false,
+        speaking_right_changed: false,
+        vote_created: false,
+        execution_created: false,
+        transcript_digest_v1: String::new(),
+    };
+    let mut bytes = Vec::new();
+    for text in [
+        &value.deliberation_version,
+        &value.protocol_registration_digest_v1,
+        &value.momentum_opinion_id,
+        &value.risk_opinion_id,
+        &value.momentum_seal_digest_v1,
+        &value.risk_seal_digest_v1,
+        &value.relationship_digest_v1,
+    ] {
+        strv(&mut bytes, text);
+    }
+    usizev(&mut bytes, value.round_count);
+    for flag in [
+        value.retrospective_only,
+        value.contemporaneous_claim,
+        value.chair_observed,
+        value.chair_decision_created,
+        value.reward_created,
+        value.penalty_created,
+        value.speaking_right_changed,
+        value.vote_created,
+        value.execution_created,
+    ] {
+        boolv(&mut bytes, flag);
+    }
+    value.transcript_digest_v1 = stable_hash_string(&hex(&bytes));
+    Ok(value)
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SourceBoundShadowDeliberationLedgerV1 {
     pub ledger_version: String,
     pub protocol_registration_digest_v1: String,
