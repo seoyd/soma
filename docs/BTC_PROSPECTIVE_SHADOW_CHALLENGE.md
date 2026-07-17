@@ -68,3 +68,12 @@ or duplicate-opening integrity failure permanently invalidates that challenge.
 All outcomes remain ShadowOnly. They cannot vote, promote, execute, access an
 account, place or cancel orders, or change the Chair, Risk Governor, PaperBroker,
 or active three-agent committee.
+# BTC prospective shadow challenge
+
+## Sprint 52 receipt boundary
+
+The prior one-request receipt remains in the Momentum challenge history.  A
+shared-epoch qualification does not reset that budget or rewrite the registry.
+When its sanitized evidence is insufficient for a root-cause classification,
+the challenge remains offline and awaiting future governance rather than making
+another request.

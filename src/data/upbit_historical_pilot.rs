@@ -1330,6 +1330,105 @@ pub enum ProspectiveBlindAcquisitionStopReasonV0 {
     RowAdmitted,
 }
 
+/// Sanitized reconstruction stages for a completed prospective provider attempt.
+///
+/// Receipts created before this schema intentionally contain only aggregate outcome
+/// fields.  In that case the classifier fails closed instead of inventing a more
+/// specific transport or provider diagnosis.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProspectiveProviderPipelineStageV0 {
+    RequestPlan,
+    ConsentPreflight,
+    TransportConstruction,
+    DnsResolution,
+    TlsHandshake,
+    HttpRequest,
+    HttpStatusValidation,
+    ContentTypeValidation,
+    ResponseSizeValidation,
+    ResponseParsing,
+    ProviderSemanticValidation,
+    CanonicalNormalization,
+    DailyFinalityValidation,
+    CutoffValidation,
+    DuplicateValidation,
+    VaultAdmission,
+    EvidenceInsufficient,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProspectiveProviderRejectionRootCauseV0 {
+    NoActualProviderRequest,
+    RequestContractMismatch,
+    InvalidRequestParameter,
+    InvalidCursorOrTimeBoundary,
+    UnsupportedCount,
+    UnexpectedSymbolOrMarket,
+    HttpAuthenticationFailure,
+    HttpPermissionDenied,
+    HttpRateLimited,
+    HttpClientErrorOther,
+    HttpServerError,
+    DnsFailure,
+    TlsFailure,
+    Timeout,
+    InvalidContentType,
+    OversizedResponse,
+    ParserSchemaMismatch,
+    ProviderSemanticError,
+    EmptyFinalizedRange,
+    OpenCandleOnly,
+    CutoffOrEarlierRowsOnly,
+    DuplicateRowsOnly,
+    UnexpectedFutureRange,
+    CanonicalValidationFailure,
+    VaultAdmissionFailure,
+    LocalImplementationDefect,
+    MultipleCauses,
+    Unknown,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SharedEpochEligibilityV0 {
+    EligibleWithoutCodeChange,
+    EligibleAfterCommittedLocalFix,
+    EligibleAfterDocumentedProviderCooldown,
+    NoFinalizedRowExpectedYet,
+    PermanentlyBlockedByPermission,
+    BlockedByRateLimitPolicy,
+    BlockedByContractUncertainty,
+    BlockedByParserUncertainty,
+    BlockedByIntegrityFailure,
+    BlockedByUnknownCause,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SanitizedProviderStatusClassV0 {
+    NoRequest,
+    Success,
+    FailureWithoutStage,
+    InvalidReceipt,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PriorProspectiveRejectionForensicsV0 {
+    pub receipt_digest: String,
+    pub receipt_version: String,
+    pub request_attempted: bool,
+    pub request_count: usize,
+    pub retry_count: usize,
+    pub first_rejected_stage: ProspectiveProviderPipelineStageV0,
+    pub status_class: SanitizedProviderStatusClassV0,
+    pub parser_invoked: bool,
+    pub normalized_row_count: usize,
+    pub admitted_row_count: usize,
+    pub root_cause: ProspectiveProviderRejectionRootCauseV0,
+    pub eligibility: SharedEpochEligibilityV0,
+    pub sufficient_for_classification: bool,
+    pub reason_codes: Vec<String>,
+    pub forensic_digest: String,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ProspectiveBlindAcquisitionReceiptV0 {
     pub challenge_id: String,
@@ -1376,6 +1475,115 @@ pub fn verify_prospective_blind_acquisition_receipt_v0(
         && (!receipt.request_attempted || receipt.request_count == 1)
         && receipt.admitted_row_count <= receipt.finalized_row_count
         && receipt.receipt_digest == prospective_receipt_digest_v0(receipt)
+}
+
+pub fn classify_prior_prospective_rejection_v0(
+    receipt: &ProspectiveBlindAcquisitionReceiptV0,
+) -> PriorProspectiveRejectionForensicsV0 {
+    let valid = verify_prospective_blind_acquisition_receipt_v0(receipt);
+    let (status_class, first_rejected_stage, root_cause, eligibility, sufficient, reason_codes) =
+        if !valid {
+            (
+                SanitizedProviderStatusClassV0::InvalidReceipt,
+                ProspectiveProviderPipelineStageV0::EvidenceInsufficient,
+                ProspectiveProviderRejectionRootCauseV0::Unknown,
+                SharedEpochEligibilityV0::BlockedByIntegrityFailure,
+                false,
+                vec!["receipt_integrity_invalid".to_string()],
+            )
+        } else if !receipt.request_attempted {
+            (
+                SanitizedProviderStatusClassV0::NoRequest,
+                ProspectiveProviderPipelineStageV0::ConsentPreflight,
+                ProspectiveProviderRejectionRootCauseV0::NoActualProviderRequest,
+                SharedEpochEligibilityV0::BlockedByUnknownCause,
+                false,
+                vec!["no_actual_provider_request".to_string()],
+            )
+        } else if receipt.stop_reason == ProspectiveBlindAcquisitionStopReasonV0::RateLimited {
+            (
+                SanitizedProviderStatusClassV0::FailureWithoutStage,
+                ProspectiveProviderPipelineStageV0::HttpStatusValidation,
+                ProspectiveProviderRejectionRootCauseV0::HttpRateLimited,
+                SharedEpochEligibilityV0::BlockedByRateLimitPolicy,
+                true,
+                vec!["rate_limit_receipt".to_string()],
+            )
+        } else if receipt.stop_reason == ProspectiveBlindAcquisitionStopReasonV0::PermissionDenied {
+            (
+                SanitizedProviderStatusClassV0::FailureWithoutStage,
+                ProspectiveProviderPipelineStageV0::HttpStatusValidation,
+                ProspectiveProviderRejectionRootCauseV0::HttpPermissionDenied,
+                SharedEpochEligibilityV0::PermanentlyBlockedByPermission,
+                true,
+                vec!["permission_denied_receipt".to_string()],
+            )
+        } else if receipt.stop_reason
+            == ProspectiveBlindAcquisitionStopReasonV0::NoAdmissibleFinalizedRow
+            && receipt.normalized_row_count > 0
+            && receipt.rejected_open_row_count == receipt.normalized_row_count
+        {
+            (
+                SanitizedProviderStatusClassV0::Success,
+                ProspectiveProviderPipelineStageV0::DailyFinalityValidation,
+                ProspectiveProviderRejectionRootCauseV0::OpenCandleOnly,
+                SharedEpochEligibilityV0::NoFinalizedRowExpectedYet,
+                true,
+                vec!["open_candle_only".to_string()],
+            )
+        } else {
+            (
+                if receipt.response_status_class.as_deref() == Some("success") {
+                    SanitizedProviderStatusClassV0::Success
+                } else {
+                    SanitizedProviderStatusClassV0::FailureWithoutStage
+                },
+                ProspectiveProviderPipelineStageV0::EvidenceInsufficient,
+                ProspectiveProviderRejectionRootCauseV0::Unknown,
+                SharedEpochEligibilityV0::BlockedByUnknownCause,
+                false,
+                vec!["legacy_receipt_lacks_pipeline_stage".to_string()],
+            )
+        };
+    let mut report = PriorProspectiveRejectionForensicsV0 {
+        receipt_digest: receipt.receipt_digest.clone(),
+        receipt_version: "prospective-blind-acquisition-receipt-v0".to_string(),
+        request_attempted: receipt.request_attempted,
+        request_count: receipt.request_count,
+        retry_count: 0,
+        first_rejected_stage,
+        status_class,
+        parser_invoked: receipt.normalized_row_count > 0,
+        normalized_row_count: receipt.normalized_row_count,
+        admitted_row_count: receipt.admitted_row_count,
+        root_cause,
+        eligibility,
+        sufficient_for_classification: sufficient,
+        reason_codes,
+        forensic_digest: String::new(),
+    };
+    report.forensic_digest = stable_hash_string(&format!(
+        "{:?}{:?}",
+        (
+            &report.receipt_digest,
+            &report.receipt_version,
+            report.request_attempted,
+            report.request_count,
+            report.retry_count,
+            report.first_rejected_stage,
+            report.status_class,
+        ),
+        (
+            report.parser_invoked,
+            report.normalized_row_count,
+            report.admitted_row_count,
+            report.root_cause,
+            report.eligibility,
+            report.sufficient_for_classification,
+            &report.reason_codes,
+        )
+    ));
+    report
 }
 
 fn prospective_blind_receipt_v0(
@@ -2896,6 +3104,39 @@ mod tests {
             &result.receipt
         ));
         assert!(result.admitted_rows.is_empty());
+    }
+
+    #[test]
+    fn legacy_failure_receipt_fails_closed_without_a_pipeline_stage() {
+        let receipt = prospective_blind_receipt_v0(
+            "challenge",
+            true,
+            1,
+            Some("failure".to_string()),
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            ProspectiveBlindAcquisitionStopReasonV0::InvalidProviderResponse,
+        );
+        let first = classify_prior_prospective_rejection_v0(&receipt);
+        let second = classify_prior_prospective_rejection_v0(&receipt);
+        assert_eq!(first, second);
+        assert_eq!(
+            first.first_rejected_stage,
+            ProspectiveProviderPipelineStageV0::EvidenceInsufficient
+        );
+        assert_eq!(
+            first.root_cause,
+            ProspectiveProviderRejectionRootCauseV0::Unknown
+        );
+        assert_eq!(
+            first.eligibility,
+            SharedEpochEligibilityV0::BlockedByUnknownCause
+        );
+        assert!(!first.sufficient_for_classification);
     }
 
     fn config() -> UpbitHistoricalPilotConfigV0 {

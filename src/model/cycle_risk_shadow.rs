@@ -8,7 +8,13 @@ use std::{fs, path::Path};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{core::stable_hash_string, data::DataSnapshot};
+use crate::{
+    core::stable_hash_string,
+    data::{
+        DataSnapshot, PriorProspectiveRejectionForensicsV0,
+        ProspectiveProviderRejectionRootCauseV0, SharedEpochEligibilityV0,
+    },
+};
 
 use super::{
     AgentModelRuntimeV0, BackendFallbackPolicy, BackendPreference, BinaryRankAucStatusV0,
@@ -70,12 +76,18 @@ pub enum CycleRiskProspectiveVerdictV0 {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SharedAcquisitionEpochStatusV0 {
     Draft,
+    QualificationBlocked,
+    Qualified,
     Validated,
     Sealed,
     AwaitingExplicitAuthorization,
     ReadyForOneRequest,
     RequestAttempted,
+    AttemptedNoAdmission,
     EvidenceAdmitted,
+    RowAdmitted,
+    FanOutCompleted,
+    Exhausted,
     NoFinalizedEvidence,
     ProviderRejected,
     Closed,
@@ -259,6 +271,10 @@ pub struct SharedProspectiveAcquisitionEpochV0 {
     pub epoch_id: String,
     pub provider_id: String,
     pub series_id: String,
+    pub operation_id: String,
+    pub previous_receipt_digest: String,
+    pub rejection_root_cause: ProspectiveProviderRejectionRootCauseV0,
+    pub eligibility: SharedEpochEligibilityV0,
     pub eligible_challenges: Vec<EligibleProspectiveChallengeRefV0>,
     pub maximum_provider_requests: usize,
     pub maximum_concurrency: usize,
@@ -269,6 +285,7 @@ pub struct SharedProspectiveAcquisitionEpochV0 {
     pub prior_rejection_status: PriorProspectiveProviderRejectionStatusV0,
     pub epoch_status: SharedAcquisitionEpochStatusV0,
     pub policy_digest: String,
+    pub epoch_digest: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -1796,6 +1813,7 @@ pub fn write_cycle_risk_prospective_local_state_v0(
     path: &Path,
     state: &CycleRiskProspectiveLocalStateV0,
 ) -> Result<(), CycleRiskProspectiveErrorV0> {
+    validate_cycle_risk_prospective_local_state_v0(state)?;
     let parent = path.parent().ok_or(CycleRiskProspectiveErrorV0::Storage)?;
     fs::create_dir_all(parent).map_err(|_| CycleRiskProspectiveErrorV0::Storage)?;
     let encoded = serde_json::to_vec(state).map_err(|_| CycleRiskProspectiveErrorV0::Storage)?;
@@ -1810,14 +1828,8 @@ pub fn read_cycle_risk_prospective_local_state_v0(
     let state: CycleRiskProspectiveLocalStateV0 =
         serde_json::from_slice(&fs::read(path).map_err(|_| CycleRiskProspectiveErrorV0::Storage)?)
             .map_err(|_| CycleRiskProspectiveErrorV0::Storage)?;
-    if state.registry.entries.first().is_some_and(|e| {
-        e.status == CycleRiskProspectiveChallengeStatusV0::PreRegistrationCommitted
-    }) {
-        Ok(state)
-    } else {
-        validate_cycle_risk_prospective_local_state_v0(&state)?;
-        Ok(state)
-    }
+    validate_cycle_risk_prospective_local_state_v0(&state)?;
+    Ok(state)
 }
 
 pub fn build_shared_prospective_acquisition_epoch_v0(
@@ -1858,17 +1870,42 @@ pub fn build_shared_prospective_acquisition_epoch_v0(
             momentum.capsule_digest, risk_ref.capsule_digest, prior_rejection_status as u8
         ))
     );
-    let status =
-        if prior_rejection_status == PriorProspectiveProviderRejectionStatusV0::Unclassified {
-            SharedAcquisitionEpochStatusV0::Sealed
-        } else {
-            SharedAcquisitionEpochStatusV0::AwaitingExplicitAuthorization
-        };
+    let (rejection_root_cause, eligibility, status) = match prior_rejection_status {
+        PriorProspectiveProviderRejectionStatusV0::ClassifiedNoFinalizedRow => (
+            ProspectiveProviderRejectionRootCauseV0::OpenCandleOnly,
+            SharedEpochEligibilityV0::NoFinalizedRowExpectedYet,
+            SharedAcquisitionEpochStatusV0::Sealed,
+        ),
+        PriorProspectiveProviderRejectionStatusV0::ClassifiedProviderPermissionFailure => (
+            ProspectiveProviderRejectionRootCauseV0::HttpPermissionDenied,
+            SharedEpochEligibilityV0::PermanentlyBlockedByPermission,
+            SharedAcquisitionEpochStatusV0::QualificationBlocked,
+        ),
+        PriorProspectiveProviderRejectionStatusV0::ClassifiedRateLimit => (
+            ProspectiveProviderRejectionRootCauseV0::HttpRateLimited,
+            SharedEpochEligibilityV0::BlockedByRateLimitPolicy,
+            SharedAcquisitionEpochStatusV0::QualificationBlocked,
+        ),
+        PriorProspectiveProviderRejectionStatusV0::ClassifiedTransportFailure => (
+            ProspectiveProviderRejectionRootCauseV0::Timeout,
+            SharedEpochEligibilityV0::EligibleWithoutCodeChange,
+            SharedAcquisitionEpochStatusV0::Qualified,
+        ),
+        _ => (
+            ProspectiveProviderRejectionRootCauseV0::Unknown,
+            SharedEpochEligibilityV0::BlockedByUnknownCause,
+            SharedAcquisitionEpochStatusV0::QualificationBlocked,
+        ),
+    };
     let mut epoch = SharedProspectiveAcquisitionEpochV0 {
         epoch_version: "shared-prospective-acquisition-epoch-v0".to_string(),
         epoch_id,
         provider_id: "upbit".to_string(),
         series_id: risk_ref.series_id.clone(),
+        operation_id: "daily_ohlcv_one_finalized_row".to_string(),
+        previous_receipt_digest: String::new(),
+        rejection_root_cause,
+        eligibility,
         eligible_challenges: vec![momentum, risk_ref],
         maximum_provider_requests: 1,
         maximum_concurrency: 1,
@@ -1879,6 +1916,7 @@ pub fn build_shared_prospective_acquisition_epoch_v0(
         prior_rejection_status,
         epoch_status: status,
         policy_digest: String::new(),
+        epoch_digest: String::new(),
     };
     epoch.policy_digest = stable_hash_string(&format!(
         "{:?}",
@@ -1886,10 +1924,108 @@ pub fn build_shared_prospective_acquisition_epoch_v0(
             &epoch.epoch_id,
             &epoch.provider_id,
             &epoch.series_id,
+            &epoch.operation_id,
+            &epoch.previous_receipt_digest,
+            epoch.rejection_root_cause,
+            epoch.eligibility,
             &epoch.eligible_challenges,
             &epoch.challenge_fanout_policy,
             epoch.prior_rejection_status,
             epoch.epoch_status
+        )
+    ));
+    epoch.epoch_digest = stable_hash_string(&format!(
+        "{:?}{:?}{:?}",
+        (
+            &epoch.epoch_version,
+            &epoch.epoch_id,
+            &epoch.provider_id,
+            &epoch.series_id,
+            &epoch.operation_id,
+            &epoch.previous_receipt_digest,
+        ),
+        (
+            epoch.rejection_root_cause,
+            epoch.eligibility,
+            &epoch.eligible_challenges,
+            epoch.maximum_provider_requests,
+            epoch.maximum_concurrency,
+            epoch.maximum_retries,
+        ),
+        (
+            epoch.finalized_rows_only,
+            epoch.append_only,
+            &epoch.challenge_fanout_policy,
+            epoch.prior_rejection_status,
+            epoch.epoch_status,
+            &epoch.policy_digest,
+        )
+    ));
+    Ok(epoch)
+}
+
+pub fn qualify_shared_prospective_acquisition_epoch_v0(
+    momentum: EligibleProspectiveChallengeRefV0,
+    risk: &CycleRiskProspectiveLocalStateV0,
+    forensics: &PriorProspectiveRejectionForensicsV0,
+) -> Result<SharedProspectiveAcquisitionEpochV0, CycleRiskProspectiveErrorV0> {
+    if forensics.receipt_digest.is_empty()
+        || forensics.request_count != 1
+        || forensics.retry_count != 0
+    {
+        return Err(CycleRiskProspectiveErrorV0::InvalidState);
+    }
+    let prior_status = match forensics.eligibility {
+        SharedEpochEligibilityV0::NoFinalizedRowExpectedYet => {
+            PriorProspectiveProviderRejectionStatusV0::ClassifiedNoFinalizedRow
+        }
+        SharedEpochEligibilityV0::PermanentlyBlockedByPermission => {
+            PriorProspectiveProviderRejectionStatusV0::ClassifiedProviderPermissionFailure
+        }
+        SharedEpochEligibilityV0::BlockedByRateLimitPolicy => {
+            PriorProspectiveProviderRejectionStatusV0::ClassifiedRateLimit
+        }
+        SharedEpochEligibilityV0::EligibleWithoutCodeChange => {
+            PriorProspectiveProviderRejectionStatusV0::ClassifiedSafeRetryableUnderNewEpoch
+        }
+        _ => PriorProspectiveProviderRejectionStatusV0::Unclassified,
+    };
+    let mut epoch = build_shared_prospective_acquisition_epoch_v0(momentum, risk, prior_status)?;
+    epoch.previous_receipt_digest = forensics.receipt_digest.clone();
+    epoch.rejection_root_cause = forensics.root_cause;
+    epoch.eligibility = forensics.eligibility;
+    epoch.epoch_status = match forensics.eligibility {
+        SharedEpochEligibilityV0::EligibleWithoutCodeChange
+        | SharedEpochEligibilityV0::EligibleAfterCommittedLocalFix
+        | SharedEpochEligibilityV0::EligibleAfterDocumentedProviderCooldown => {
+            SharedAcquisitionEpochStatusV0::Sealed
+        }
+        _ => SharedAcquisitionEpochStatusV0::QualificationBlocked,
+    };
+    epoch.policy_digest = stable_hash_string(&format!(
+        "{:?}",
+        (
+            &epoch.epoch_id,
+            &epoch.provider_id,
+            &epoch.series_id,
+            &epoch.operation_id,
+            &epoch.previous_receipt_digest,
+            epoch.rejection_root_cause,
+            epoch.eligibility,
+            &epoch.eligible_challenges,
+            epoch.epoch_status,
+        )
+    ));
+    epoch.epoch_digest = stable_hash_string(&format!(
+        "{:?}",
+        (
+            &epoch.epoch_id,
+            &epoch.previous_receipt_digest,
+            epoch.rejection_root_cause,
+            epoch.eligibility,
+            &epoch.eligible_challenges,
+            &epoch.policy_digest,
+            epoch.epoch_status,
         )
     ));
     Ok(epoch)
@@ -2006,7 +2142,10 @@ mod tests {
             PriorProspectiveProviderRejectionStatusV0::Unclassified,
         )
         .unwrap();
-        assert_eq!(epoch.epoch_status, SharedAcquisitionEpochStatusV0::Sealed);
+        assert_eq!(
+            epoch.epoch_status,
+            SharedAcquisitionEpochStatusV0::QualificationBlocked
+        );
         assert_eq!(epoch.maximum_provider_requests, 1);
         assert_eq!(epoch.maximum_concurrency, 1);
         assert_eq!(epoch.maximum_retries, 0);

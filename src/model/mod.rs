@@ -53,9 +53,9 @@ pub use cycle_risk_shadow::{
     SharedProspectiveAcquisitionEpochV0, build_shared_prospective_acquisition_epoch_v0,
     commit_cycle_risk_pre_registration_v0, cycle_risk_agent_independence_proof_v0,
     new_cycle_risk_prospective_local_state_v0, prepare_cycle_risk_prospective_tournament_v0,
-    read_cycle_risk_prospective_local_state_v0, resolve_cycle_risk_tournament_participants_v0,
-    run_cycle_risk_shadow_v0, validate_cycle_risk_prospective_capsule_v0,
-    write_cycle_risk_prospective_local_state_v0,
+    qualify_shared_prospective_acquisition_epoch_v0, read_cycle_risk_prospective_local_state_v0,
+    resolve_cycle_risk_tournament_participants_v0, run_cycle_risk_shadow_v0,
+    validate_cycle_risk_prospective_capsule_v0, write_cycle_risk_prospective_local_state_v0,
 };
 pub use escalation::{
     ModelEscalationDecision, ModelEscalationGate, ModelEscalationGateConfig,
