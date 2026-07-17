@@ -4,6 +4,10 @@
 //! its labels, features, normalizers, encoder seed, heads, versions, and journal;
 //! it never participates in the three-member committee or any trading path.
 
+use std::{fs, path::Path};
+
+use serde::{Deserialize, Serialize};
+
 use crate::{core::stable_hash_string, data::DataSnapshot};
 
 use super::{
@@ -18,6 +22,266 @@ use super::{
 
 pub const CYCLE_RISK_SHADOW_AGENT_ID_V0: &str = "cycle_risk_skeptic_shadow_v0";
 pub const MOMENTUM_AGENT_ID_V0: &str = "momentum_shadow_v0";
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CycleRiskProspectiveChallengeStatusV0 {
+    Draft,
+    Validated,
+    Sealed,
+    PreRegistrationCommitted,
+    AwaitingSharedAcquisitionEpoch,
+    FutureRowsAccumulating,
+    AwaitingLabelMaturity,
+    ReadyForOneTimeEvaluation,
+    OpenedForOneTimeEvaluation,
+    Evaluated,
+    Closed,
+    Invalidated,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum CycleRiskTournamentRoleV0 {
+    HistoricalChampion,
+    ExperimentalChallenger,
+    MinimumBenchmark,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum CycleRiskCandidateKindV0 {
+    LinearRisk,
+    FrozenMambaRisk,
+    TrainingPrevalenceConstant,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CycleRiskProspectiveVerdictV0 {
+    LinearRiskStrongerProspectively,
+    MambaRiskStrongerProspectively,
+    BothBeatConstantMixed,
+    ConstantBaselineNotBeaten,
+    PredominantlyAbstained,
+    ExcessiveHighConfidenceFalseNegatives,
+    ProbabilityCollapse,
+    InsufficientMatureEvidence,
+    TechnicalEvaluationFailure,
+    ChallengeInvalidated,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SharedAcquisitionEpochStatusV0 {
+    Draft,
+    Validated,
+    Sealed,
+    AwaitingExplicitAuthorization,
+    ReadyForOneRequest,
+    RequestAttempted,
+    EvidenceAdmitted,
+    NoFinalizedEvidence,
+    ProviderRejected,
+    Closed,
+    Invalidated,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PriorProspectiveProviderRejectionStatusV0 {
+    ClassifiedNoFinalizedRow,
+    ClassifiedRequestRangeRejected,
+    ClassifiedContractMismatch,
+    ClassifiedProviderPermissionFailure,
+    ClassifiedRateLimit,
+    ClassifiedMalformedResponse,
+    ClassifiedTransportFailure,
+    ClassifiedSafeRetryableUnderNewEpoch,
+    Unclassified,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FrozenCycleRiskTournamentParticipantV0 {
+    pub agent_id: String,
+    pub participant_role: CycleRiskTournamentRoleV0,
+    pub candidate_kind: CycleRiskCandidateKindV0,
+    pub source_campaign_id: String,
+    pub source_regime_ids: Vec<String>,
+    pub source_window_ids: Vec<String>,
+    pub model_version_id: String,
+    pub parameter_digest: String,
+    pub encoder_digest: Option<String>,
+    pub representation_normalizer_digest: Option<String>,
+    pub feature_normalizer_digest: String,
+    pub feature_config_digest: String,
+    pub label_config_digest: String,
+    pub training_config_digest: String,
+    pub support_policy_digest: String,
+    pub collapse_policy_digest: String,
+    pub error_audit_policy_digest: String,
+    pub deployment_status: String,
+    pub mathematical_status: String,
+    pub artifact_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CycleRiskProspectiveEvidencePolicyV0 {
+    pub finalized_daily_rows_only: bool,
+    pub accepts_shared_acquisition_epochs: bool,
+    pub maximum_requests: usize,
+    pub maximum_concurrency: usize,
+    pub maximum_retries: usize,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CycleRiskProspectiveEvaluationPolicyV0 {
+    pub minimum_finalized_future_rows: usize,
+    pub minimum_mature_events: usize,
+    pub minimum_support_qualified_events: usize,
+    pub minimum_downside_events: usize,
+    pub minimum_non_events: usize,
+    pub maximum_technical_failures: usize,
+    pub primary_metric: String,
+    pub secondary_metrics: Vec<String>,
+    pub false_negative_safe_probability_bits: u32,
+    pub maximum_high_confidence_false_negatives: usize,
+    pub false_negative_rate_minimum_events: usize,
+    pub maximum_high_confidence_false_negative_rate_bits: u32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CycleRiskProspectiveVerdictPolicyV0 {
+    pub require_resolution: bool,
+    pub require_no_collapse: bool,
+    pub require_identical_event_timestamps: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CycleRiskOneTimeOpeningPolicyV0 {
+    pub explicit_open_flag_required: bool,
+    pub second_open_forbidden: bool,
+    pub challenge_must_be_sealed: bool,
+    pub minimum_mature_events: usize,
+    pub minimum_support_qualified_events: usize,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CycleRiskProspectiveTournamentCapsuleV0 {
+    pub capsule_version: String,
+    pub challenge_id: String,
+    pub agent_id: String,
+    pub series_id: String,
+    pub cutoff_exclusive_timestamp_ms: u64,
+    pub historical_champion: FrozenCycleRiskTournamentParticipantV0,
+    pub experimental_challenger: FrozenCycleRiskTournamentParticipantV0,
+    pub minimum_benchmark: FrozenCycleRiskTournamentParticipantV0,
+    pub feature_policy_digest: String,
+    pub label_policy_digest: String,
+    pub support_policy_digest: String,
+    pub collapse_policy_digest: String,
+    pub error_audit_policy_digest: String,
+    pub prediction_horizon: usize,
+    pub evidence_policy: CycleRiskProspectiveEvidencePolicyV0,
+    pub evaluation_policy: CycleRiskProspectiveEvaluationPolicyV0,
+    pub verdict_policy: CycleRiskProspectiveVerdictPolicyV0,
+    pub opening_policy: CycleRiskOneTimeOpeningPolicyV0,
+    pub status: CycleRiskProspectiveChallengeStatusV0,
+    pub capsule_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CycleRiskProspectiveEvidenceVaultV0 {
+    pub vault_version: String,
+    pub challenge_id: String,
+    pub row_count: usize,
+    pub labels_derived: bool,
+    pub opened: bool,
+    pub vault_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CycleRiskProspectivePredictionJournalV0 {
+    pub journal_version: String,
+    pub challenge_id: String,
+    pub event_count: usize,
+    pub labels_accessed: bool,
+    pub evaluation_performed: bool,
+    pub journal_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CycleRiskProspectiveRegistryEntryV0 {
+    pub challenge_id: String,
+    pub capsule_digest: String,
+    pub r1_digest: String,
+    pub r2_digest: String,
+    pub r0_digest: String,
+    pub cutoff_exclusive_timestamp_ms: u64,
+    pub status: CycleRiskProspectiveChallengeStatusV0,
+    pub vault_digest: String,
+    pub journal_digest: String,
+    pub evaluation_opened: bool,
+    pub invalidated: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CycleRiskProspectiveChallengeRegistryV0 {
+    pub registry_version: String,
+    pub entries: Vec<CycleRiskProspectiveRegistryEntryV0>,
+    pub registry_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CycleRiskProspectiveLocalStateV0 {
+    pub capsule: CycleRiskProspectiveTournamentCapsuleV0,
+    pub vault: CycleRiskProspectiveEvidenceVaultV0,
+    pub journal: CycleRiskProspectivePredictionJournalV0,
+    pub registry: CycleRiskProspectiveChallengeRegistryV0,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct EligibleProspectiveChallengeRefV0 {
+    pub challenge_id: String,
+    pub agent_id: String,
+    pub capsule_digest: String,
+    pub series_id: String,
+    pub cutoff_exclusive_timestamp_ms: u64,
+    pub pre_registered: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ChallengeFanoutPolicyV0 {
+    pub independently_validate_each_challenge: bool,
+    pub raw_evidence_only: bool,
+    pub forbid_shared_features: bool,
+    pub forbid_shared_predictions: bool,
+    pub forbid_shared_support_decisions: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SharedProspectiveAcquisitionEpochV0 {
+    pub epoch_version: String,
+    pub epoch_id: String,
+    pub provider_id: String,
+    pub series_id: String,
+    pub eligible_challenges: Vec<EligibleProspectiveChallengeRefV0>,
+    pub maximum_provider_requests: usize,
+    pub maximum_concurrency: usize,
+    pub maximum_retries: usize,
+    pub finalized_rows_only: bool,
+    pub append_only: bool,
+    pub challenge_fanout_policy: ChallengeFanoutPolicyV0,
+    pub prior_rejection_status: PriorProspectiveProviderRejectionStatusV0,
+    pub epoch_status: SharedAcquisitionEpochStatusV0,
+    pub policy_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum CycleRiskProspectiveErrorV0 {
+    InvalidEvidence,
+    ChampionResolutionAmbiguous,
+    ChallengerResolutionAmbiguous,
+    BenchmarkResolutionAmbiguous,
+    InvalidCapsule,
+    InvalidState,
+    Storage,
+    PolicyMutation,
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LearnedAgentIndependenceProofV0 {
@@ -1128,6 +1392,509 @@ fn quantile(values: &[f32], q: f32) -> f32 {
     v[((v.len() - 1) as f32 * q).round() as usize]
 }
 
+fn digest_participant_v0(value: &FrozenCycleRiskTournamentParticipantV0) -> String {
+    stable_hash_string(&format!(
+        "{:?}:{:?}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+        value.participant_role,
+        value.candidate_kind,
+        value.agent_id,
+        value.source_campaign_id,
+        value.source_regime_ids.join(","),
+        value.source_window_ids.join(","),
+        value.model_version_id,
+        value.parameter_digest,
+        value.encoder_digest.clone().unwrap_or_default(),
+        value
+            .representation_normalizer_digest
+            .clone()
+            .unwrap_or_default(),
+        value.feature_normalizer_digest,
+        value.feature_config_digest,
+        value.label_config_digest,
+        value.training_config_digest,
+        value.support_policy_digest,
+        value.collapse_policy_digest,
+        value.error_audit_policy_digest,
+    ))
+}
+
+fn digest_registry_v0(entries: &[CycleRiskProspectiveRegistryEntryV0]) -> String {
+    stable_hash_string(&format!("cycle-risk-registry-v0:{:?}", entries))
+}
+
+fn digest_vault_v0(
+    challenge_id: &str,
+    row_count: usize,
+    labels_derived: bool,
+    opened: bool,
+) -> String {
+    stable_hash_string(&format!(
+        "cycle-risk-vault-v0:{challenge_id}:{row_count}:{labels_derived}:{opened}"
+    ))
+}
+
+fn digest_journal_v0(
+    challenge_id: &str,
+    event_count: usize,
+    labels_accessed: bool,
+    evaluation_performed: bool,
+) -> String {
+    stable_hash_string(&format!(
+        "cycle-risk-journal-v0:{challenge_id}:{event_count}:{labels_accessed}:{evaluation_performed}"
+    ))
+}
+
+pub fn resolve_cycle_risk_tournament_participants_v0(
+    report: &CycleRiskShadowReportV0,
+    config: &CycleRiskShadowConfigV0,
+) -> Result<
+    (
+        FrozenCycleRiskTournamentParticipantV0,
+        FrozenCycleRiskTournamentParticipantV0,
+        FrozenCycleRiskTournamentParticipantV0,
+    ),
+    CycleRiskProspectiveErrorV0,
+> {
+    if report.agent_id != CYCLE_RISK_SHADOW_AGENT_ID_V0
+        || report.regimes.len() != 2
+        || report.aggregate_verdict != CycleRiskShadowVerdictV0::LinearBaselineStronger
+    {
+        return Err(CycleRiskProspectiveErrorV0::ChampionResolutionAmbiguous);
+    }
+    let mut regimes = report.regimes.iter().collect::<Vec<_>>();
+    regimes.sort_by(|a, b| a.regime_id.cmp(&b.regime_id));
+    let feature = config.feature.digest();
+    let label = config.label.digest();
+    let training = config.digest();
+    let support = stable_hash_string("cycle-risk-shadow-only-support-v0");
+    let collapse = stable_hash_string("cycle-risk-probability-collapse-v0");
+    let audit = stable_hash_string(&format!(
+        "{}:{}",
+        config.false_negative_safe_probability.to_bits(),
+        config.maximum_high_confidence_false_negatives
+    ));
+    let make = |kind: CycleRiskCandidateKindV0,
+                role: CycleRiskTournamentRoleV0,
+                selected: Vec<&CycleRiskRegimeResultV0>| {
+        let parameters = selected
+            .iter()
+            .map(|r| match kind {
+                CycleRiskCandidateKindV0::LinearRisk => r.checkpoint.r1.brier.to_bits(),
+                CycleRiskCandidateKindV0::FrozenMambaRisk => r.checkpoint.r2.brier.to_bits(),
+                CycleRiskCandidateKindV0::TrainingPrevalenceConstant => {
+                    r.checkpoint.r0.mean_probability.to_bits()
+                }
+            })
+            .map(|value| value.to_string())
+            .collect::<Vec<_>>()
+            .join(",");
+        let campaign = stable_hash_string(&format!(
+            "{}:{}:{}",
+            report.snapshot_digest, report.ledger_digest, parameters
+        ));
+        let mut item = FrozenCycleRiskTournamentParticipantV0 {
+            agent_id: report.agent_id.clone(),
+            participant_role: role,
+            candidate_kind: kind,
+            source_campaign_id: format!("cycle-risk-historical-{}", campaign),
+            source_regime_ids: selected.iter().map(|r| r.regime_id.clone()).collect(),
+            source_window_ids: selected
+                .iter()
+                .map(|r| format!("{}-sealed-test", r.regime_id))
+                .collect(),
+            model_version_id: format!(
+                "cycle-risk-shadow-v0/{}",
+                stable_hash_string(&format!("{:?}:{}", kind, parameters))
+            ),
+            parameter_digest: stable_hash_string(&parameters),
+            encoder_digest: (kind == CycleRiskCandidateKindV0::FrozenMambaRisk)
+                .then(|| stable_hash_string(&format!("{}:mamba", config.digest()))),
+            representation_normalizer_digest: (kind == CycleRiskCandidateKindV0::FrozenMambaRisk)
+                .then(|| stable_hash_string(&format!("{}:representation", feature))),
+            feature_normalizer_digest: stable_hash_string(&format!(
+                "{}:feature-normalizer",
+                feature
+            )),
+            feature_config_digest: feature.clone(),
+            label_config_digest: label.clone(),
+            training_config_digest: training.clone(),
+            support_policy_digest: support.clone(),
+            collapse_policy_digest: collapse.clone(),
+            error_audit_policy_digest: audit.clone(),
+            deployment_status: "ShadowOnly".to_string(),
+            mathematical_status: if kind == CycleRiskCandidateKindV0::FrozenMambaRisk {
+                "ExperimentalInternalReference".to_string()
+            } else {
+                "DeterministicLogisticReference".to_string()
+            },
+            artifact_digest: String::new(),
+        };
+        item.artifact_digest = digest_participant_v0(&item);
+        item
+    };
+    let champion = make(
+        CycleRiskCandidateKindV0::LinearRisk,
+        CycleRiskTournamentRoleV0::HistoricalChampion,
+        regimes.clone(),
+    );
+    let newer = regimes
+        .iter()
+        .filter(|r| r.verdict == CycleRiskShadowVerdictV0::PositiveEvidence)
+        .copied()
+        .collect::<Vec<_>>();
+    if newer.len() != 1 {
+        return Err(CycleRiskProspectiveErrorV0::ChallengerResolutionAmbiguous);
+    }
+    let challenger = make(
+        CycleRiskCandidateKindV0::FrozenMambaRisk,
+        CycleRiskTournamentRoleV0::ExperimentalChallenger,
+        newer,
+    );
+    let benchmark = make(
+        CycleRiskCandidateKindV0::TrainingPrevalenceConstant,
+        CycleRiskTournamentRoleV0::MinimumBenchmark,
+        regimes,
+    );
+    Ok((champion, challenger, benchmark))
+}
+
+fn capsule_digest_risk_v0(capsule: &CycleRiskProspectiveTournamentCapsuleV0) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+        capsule.capsule_version,
+        capsule.challenge_id,
+        capsule.agent_id,
+        capsule.series_id,
+        capsule.cutoff_exclusive_timestamp_ms,
+        capsule.historical_champion.artifact_digest,
+        capsule.experimental_challenger.artifact_digest,
+        capsule.minimum_benchmark.artifact_digest,
+        capsule.feature_policy_digest,
+        capsule.label_policy_digest,
+        capsule.support_policy_digest,
+        capsule.collapse_policy_digest,
+        capsule.error_audit_policy_digest,
+        capsule.prediction_horizon,
+    ))
+}
+
+pub fn prepare_cycle_risk_prospective_tournament_v0(
+    snapshot: &DataSnapshot,
+    report: &CycleRiskShadowReportV0,
+    config: &CycleRiskShadowConfigV0,
+) -> Result<CycleRiskProspectiveTournamentCapsuleV0, CycleRiskProspectiveErrorV0> {
+    if snapshot.content_digest
+        != crate::data::historical_replay_dataset_digest_v0(&snapshot.normalized_dataset)
+        || snapshot.normalized_dataset.rows.is_empty()
+    {
+        return Err(CycleRiskProspectiveErrorV0::InvalidEvidence);
+    }
+    let (champion, challenger, benchmark) =
+        resolve_cycle_risk_tournament_participants_v0(report, config)?;
+    let cutoff = snapshot
+        .normalized_dataset
+        .rows
+        .iter()
+        .map(|r| r.timestamp_ms)
+        .max()
+        .ok_or(CycleRiskProspectiveErrorV0::InvalidEvidence)?;
+    let evidence = CycleRiskProspectiveEvidencePolicyV0 {
+        finalized_daily_rows_only: true,
+        accepts_shared_acquisition_epochs: true,
+        maximum_requests: 1,
+        maximum_concurrency: 1,
+        maximum_retries: 0,
+    };
+    let evaluation = CycleRiskProspectiveEvaluationPolicyV0 {
+        minimum_finalized_future_rows: config.sequence_length + config.label.horizon_rows + 8,
+        minimum_mature_events: 8,
+        minimum_support_qualified_events: 8,
+        minimum_downside_events: 1,
+        minimum_non_events: 1,
+        maximum_technical_failures: 0,
+        primary_metric: "brier_score_support_qualified_events".to_string(),
+        secondary_metrics: vec![
+            "reliability".to_string(),
+            "resolution".to_string(),
+            "uncertainty".to_string(),
+            "guarded_rank_auc".to_string(),
+            "coverage".to_string(),
+            "abstention_rate".to_string(),
+            "downside_event_prevalence".to_string(),
+            "high_confidence_false_positives".to_string(),
+            "probability_mean_stddev".to_string(),
+            "entropy".to_string(),
+            "unique_probability_bins".to_string(),
+            "collapse_status".to_string(),
+            "technical_failure_count".to_string(),
+        ],
+        false_negative_safe_probability_bits: config.false_negative_safe_probability.to_bits(),
+        maximum_high_confidence_false_negatives: config.maximum_high_confidence_false_negatives,
+        false_negative_rate_minimum_events: 8,
+        maximum_high_confidence_false_negative_rate_bits: 0.0f32.to_bits(),
+    };
+    let challenge_id = format!(
+        "cycle-risk-prospective-{}",
+        stable_hash_string(&format!(
+            "{}:{}:{}",
+            snapshot.snapshot_id, cutoff, champion.artifact_digest
+        ))
+    );
+    let mut capsule = CycleRiskProspectiveTournamentCapsuleV0 {
+        capsule_version: "cycle-risk-prospective-tournament-v0".to_string(),
+        challenge_id,
+        agent_id: report.agent_id.clone(),
+        series_id: snapshot.normalized_dataset.symbol.clone(),
+        cutoff_exclusive_timestamp_ms: cutoff,
+        feature_policy_digest: config.feature.digest(),
+        label_policy_digest: config.label.digest(),
+        support_policy_digest: champion.support_policy_digest.clone(),
+        collapse_policy_digest: champion.collapse_policy_digest.clone(),
+        error_audit_policy_digest: champion.error_audit_policy_digest.clone(),
+        prediction_horizon: config.label.horizon_rows,
+        historical_champion: champion,
+        experimental_challenger: challenger,
+        minimum_benchmark: benchmark,
+        evidence_policy: evidence,
+        evaluation_policy: evaluation.clone(),
+        verdict_policy: CycleRiskProspectiveVerdictPolicyV0 {
+            require_resolution: true,
+            require_no_collapse: true,
+            require_identical_event_timestamps: true,
+        },
+        opening_policy: CycleRiskOneTimeOpeningPolicyV0 {
+            explicit_open_flag_required: true,
+            second_open_forbidden: true,
+            challenge_must_be_sealed: true,
+            minimum_mature_events: evaluation.minimum_mature_events,
+            minimum_support_qualified_events: evaluation.minimum_support_qualified_events,
+        },
+        status: CycleRiskProspectiveChallengeStatusV0::Sealed,
+        capsule_digest: String::new(),
+    };
+    capsule.capsule_digest = capsule_digest_risk_v0(&capsule);
+    validate_cycle_risk_prospective_capsule_v0(&capsule)?;
+    Ok(capsule)
+}
+
+pub fn validate_cycle_risk_prospective_capsule_v0(
+    c: &CycleRiskProspectiveTournamentCapsuleV0,
+) -> Result<(), CycleRiskProspectiveErrorV0> {
+    let roles = [
+        &c.historical_champion,
+        &c.experimental_challenger,
+        &c.minimum_benchmark,
+    ];
+    if c.status != CycleRiskProspectiveChallengeStatusV0::Sealed
+        || c.agent_id != CYCLE_RISK_SHADOW_AGENT_ID_V0
+        || c.cutoff_exclusive_timestamp_ms == 0
+        || c.evidence_policy.maximum_requests != 1
+        || c.evidence_policy.maximum_concurrency != 1
+        || c.evidence_policy.maximum_retries != 0
+        || c.historical_champion.participant_role != CycleRiskTournamentRoleV0::HistoricalChampion
+        || c.experimental_challenger.participant_role
+            != CycleRiskTournamentRoleV0::ExperimentalChallenger
+        || c.minimum_benchmark.participant_role != CycleRiskTournamentRoleV0::MinimumBenchmark
+        || roles
+            .iter()
+            .any(|p| p.artifact_digest != digest_participant_v0(p))
+        || c.capsule_digest != capsule_digest_risk_v0(c)
+    {
+        Err(CycleRiskProspectiveErrorV0::InvalidCapsule)
+    } else {
+        Ok(())
+    }
+}
+
+pub fn new_cycle_risk_prospective_local_state_v0(
+    capsule: CycleRiskProspectiveTournamentCapsuleV0,
+) -> Result<CycleRiskProspectiveLocalStateV0, CycleRiskProspectiveErrorV0> {
+    validate_cycle_risk_prospective_capsule_v0(&capsule)?;
+    let id = capsule.challenge_id.clone();
+    let vault = CycleRiskProspectiveEvidenceVaultV0 {
+        vault_version: "cycle-risk-prospective-vault-v0".to_string(),
+        challenge_id: id.clone(),
+        row_count: 0,
+        labels_derived: false,
+        opened: false,
+        vault_digest: digest_vault_v0(&id, 0, false, false),
+    };
+    let journal = CycleRiskProspectivePredictionJournalV0 {
+        journal_version: "cycle-risk-prospective-journal-v0".to_string(),
+        challenge_id: id.clone(),
+        event_count: 0,
+        labels_accessed: false,
+        evaluation_performed: false,
+        journal_digest: digest_journal_v0(&id, 0, false, false),
+    };
+    let entry = CycleRiskProspectiveRegistryEntryV0 {
+        challenge_id: id.clone(),
+        capsule_digest: capsule.capsule_digest.clone(),
+        r1_digest: capsule.historical_champion.artifact_digest.clone(),
+        r2_digest: capsule.experimental_challenger.artifact_digest.clone(),
+        r0_digest: capsule.minimum_benchmark.artifact_digest.clone(),
+        cutoff_exclusive_timestamp_ms: capsule.cutoff_exclusive_timestamp_ms,
+        status: CycleRiskProspectiveChallengeStatusV0::Sealed,
+        vault_digest: vault.vault_digest.clone(),
+        journal_digest: journal.journal_digest.clone(),
+        evaluation_opened: false,
+        invalidated: false,
+    };
+    let registry = CycleRiskProspectiveChallengeRegistryV0 {
+        registry_version: "cycle-risk-prospective-registry-v0".to_string(),
+        registry_digest: digest_registry_v0(std::slice::from_ref(&entry)),
+        entries: vec![entry],
+    };
+    Ok(CycleRiskProspectiveLocalStateV0 {
+        capsule,
+        vault,
+        journal,
+        registry,
+    })
+}
+
+pub fn validate_cycle_risk_prospective_local_state_v0(
+    state: &CycleRiskProspectiveLocalStateV0,
+) -> Result<(), CycleRiskProspectiveErrorV0> {
+    validate_cycle_risk_prospective_capsule_v0(&state.capsule)?;
+    if state.vault.row_count != 0
+        || state.vault.labels_derived
+        || state.vault.opened
+        || state.journal.event_count != 0
+        || state.journal.labels_accessed
+        || state.journal.evaluation_performed
+        || state.registry.entries.len() != 1
+        || state.vault.vault_digest != digest_vault_v0(&state.capsule.challenge_id, 0, false, false)
+        || state.journal.journal_digest
+            != digest_journal_v0(&state.capsule.challenge_id, 0, false, false)
+        || state.registry.registry_digest != digest_registry_v0(&state.registry.entries)
+    {
+        Err(CycleRiskProspectiveErrorV0::InvalidState)
+    } else {
+        Ok(())
+    }
+}
+
+pub fn commit_cycle_risk_pre_registration_v0(
+    state: &mut CycleRiskProspectiveLocalStateV0,
+) -> Result<(), CycleRiskProspectiveErrorV0> {
+    validate_cycle_risk_prospective_local_state_v0(state)?;
+    let entry = state
+        .registry
+        .entries
+        .first_mut()
+        .ok_or(CycleRiskProspectiveErrorV0::InvalidState)?;
+    if entry.status != CycleRiskProspectiveChallengeStatusV0::Sealed {
+        return Err(CycleRiskProspectiveErrorV0::InvalidState);
+    }
+    entry.status = CycleRiskProspectiveChallengeStatusV0::PreRegistrationCommitted;
+    state.registry.registry_digest = digest_registry_v0(&state.registry.entries);
+    Ok(())
+}
+
+pub fn write_cycle_risk_prospective_local_state_v0(
+    path: &Path,
+    state: &CycleRiskProspectiveLocalStateV0,
+) -> Result<(), CycleRiskProspectiveErrorV0> {
+    let parent = path.parent().ok_or(CycleRiskProspectiveErrorV0::Storage)?;
+    fs::create_dir_all(parent).map_err(|_| CycleRiskProspectiveErrorV0::Storage)?;
+    let encoded = serde_json::to_vec(state).map_err(|_| CycleRiskProspectiveErrorV0::Storage)?;
+    let temp = path.with_extension("tmp");
+    fs::write(&temp, encoded).map_err(|_| CycleRiskProspectiveErrorV0::Storage)?;
+    fs::rename(temp, path).map_err(|_| CycleRiskProspectiveErrorV0::Storage)
+}
+
+pub fn read_cycle_risk_prospective_local_state_v0(
+    path: &Path,
+) -> Result<CycleRiskProspectiveLocalStateV0, CycleRiskProspectiveErrorV0> {
+    let state: CycleRiskProspectiveLocalStateV0 =
+        serde_json::from_slice(&fs::read(path).map_err(|_| CycleRiskProspectiveErrorV0::Storage)?)
+            .map_err(|_| CycleRiskProspectiveErrorV0::Storage)?;
+    if state.registry.entries.first().is_some_and(|e| {
+        e.status == CycleRiskProspectiveChallengeStatusV0::PreRegistrationCommitted
+    }) {
+        Ok(state)
+    } else {
+        validate_cycle_risk_prospective_local_state_v0(&state)?;
+        Ok(state)
+    }
+}
+
+pub fn build_shared_prospective_acquisition_epoch_v0(
+    momentum: EligibleProspectiveChallengeRefV0,
+    risk: &CycleRiskProspectiveLocalStateV0,
+    prior_rejection_status: PriorProspectiveProviderRejectionStatusV0,
+) -> Result<SharedProspectiveAcquisitionEpochV0, CycleRiskProspectiveErrorV0> {
+    let entry = risk
+        .registry
+        .entries
+        .first()
+        .ok_or(CycleRiskProspectiveErrorV0::InvalidState)?;
+    if entry.status != CycleRiskProspectiveChallengeStatusV0::PreRegistrationCommitted {
+        return Err(CycleRiskProspectiveErrorV0::InvalidState);
+    }
+    let risk_ref = EligibleProspectiveChallengeRefV0 {
+        challenge_id: risk.capsule.challenge_id.clone(),
+        agent_id: risk.capsule.agent_id.clone(),
+        capsule_digest: risk.capsule.capsule_digest.clone(),
+        series_id: risk.capsule.series_id.clone(),
+        cutoff_exclusive_timestamp_ms: risk.capsule.cutoff_exclusive_timestamp_ms,
+        pre_registered: true,
+    };
+    if !momentum.pre_registered || momentum.series_id != risk_ref.series_id {
+        return Err(CycleRiskProspectiveErrorV0::InvalidState);
+    }
+    let policy = ChallengeFanoutPolicyV0 {
+        independently_validate_each_challenge: true,
+        raw_evidence_only: true,
+        forbid_shared_features: true,
+        forbid_shared_predictions: true,
+        forbid_shared_support_decisions: true,
+    };
+    let epoch_id = format!(
+        "shared-btc-acquisition-{}",
+        stable_hash_string(&format!(
+            "{}:{}:{}",
+            momentum.capsule_digest, risk_ref.capsule_digest, prior_rejection_status as u8
+        ))
+    );
+    let status =
+        if prior_rejection_status == PriorProspectiveProviderRejectionStatusV0::Unclassified {
+            SharedAcquisitionEpochStatusV0::Sealed
+        } else {
+            SharedAcquisitionEpochStatusV0::AwaitingExplicitAuthorization
+        };
+    let mut epoch = SharedProspectiveAcquisitionEpochV0 {
+        epoch_version: "shared-prospective-acquisition-epoch-v0".to_string(),
+        epoch_id,
+        provider_id: "upbit".to_string(),
+        series_id: risk_ref.series_id.clone(),
+        eligible_challenges: vec![momentum, risk_ref],
+        maximum_provider_requests: 1,
+        maximum_concurrency: 1,
+        maximum_retries: 0,
+        finalized_rows_only: true,
+        append_only: true,
+        challenge_fanout_policy: policy,
+        prior_rejection_status,
+        epoch_status: status,
+        policy_digest: String::new(),
+    };
+    epoch.policy_digest = stable_hash_string(&format!(
+        "{:?}",
+        (
+            &epoch.epoch_id,
+            &epoch.provider_id,
+            &epoch.series_id,
+            &epoch.eligible_challenges,
+            &epoch.challenge_fanout_policy,
+            epoch.prior_rejection_status,
+            epoch.epoch_status
+        )
+    ));
+    Ok(epoch)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1210,5 +1977,41 @@ mod tests {
         assert_eq!(a.active_committee_member_count, 3);
         assert_eq!(a.network_requests, 0);
         assert!(a.regimes.iter().all(|r| r.checkpoint.test_sealed_once));
+    }
+
+    #[test]
+    fn prospective_tournament_is_sealed_empty_and_shared_epoch_is_offline() {
+        let input = snapshot();
+        let config = CycleRiskShadowConfigV0::default();
+        let mut report = run_cycle_risk_shadow_v0(&input, &config).unwrap();
+        report.aggregate_verdict = CycleRiskShadowVerdictV0::LinearBaselineStronger;
+        report.regimes.first_mut().unwrap().verdict =
+            CycleRiskShadowVerdictV0::LinearBaselineStronger;
+        report.regimes.last_mut().unwrap().verdict = CycleRiskShadowVerdictV0::PositiveEvidence;
+        let capsule =
+            prepare_cycle_risk_prospective_tournament_v0(&input, &report, &config).unwrap();
+        validate_cycle_risk_prospective_capsule_v0(&capsule).unwrap();
+        let mut state = new_cycle_risk_prospective_local_state_v0(capsule).unwrap();
+        commit_cycle_risk_pre_registration_v0(&mut state).unwrap();
+        let epoch = build_shared_prospective_acquisition_epoch_v0(
+            EligibleProspectiveChallengeRefV0 {
+                challenge_id: "momentum-registered".to_string(),
+                agent_id: MOMENTUM_AGENT_ID_V0.to_string(),
+                capsule_digest: "momentum-capsule".to_string(),
+                series_id: state.capsule.series_id.clone(),
+                cutoff_exclusive_timestamp_ms: state.capsule.cutoff_exclusive_timestamp_ms,
+                pre_registered: true,
+            },
+            &state,
+            PriorProspectiveProviderRejectionStatusV0::Unclassified,
+        )
+        .unwrap();
+        assert_eq!(epoch.epoch_status, SharedAcquisitionEpochStatusV0::Sealed);
+        assert_eq!(epoch.maximum_provider_requests, 1);
+        assert_eq!(epoch.maximum_concurrency, 1);
+        assert_eq!(epoch.maximum_retries, 0);
+        assert!(epoch.challenge_fanout_policy.raw_evidence_only);
+        assert_eq!(state.vault.row_count, 0);
+        assert_eq!(state.journal.event_count, 0);
     }
 }

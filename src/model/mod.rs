@@ -36,13 +36,26 @@ pub use backend::{
 pub use calibration::{CalibrationReport, build_calibration_report};
 pub use comparison::{ModelComparisonReport, compare_walk_forward_reports};
 pub use cycle_risk_shadow::{
-    CYCLE_RISK_SHADOW_AGENT_ID_V0, CycleRiskCheckpointV0, CycleRiskErrorV0,
-    CycleRiskEvidenceUsageClassV0, CycleRiskFeatureConfigV0, CycleRiskFeatureDiagnosticsV0,
-    CycleRiskMetricSetV0, CycleRiskNormalizerV0, CycleRiskRegimeResultV0,
+    CYCLE_RISK_SHADOW_AGENT_ID_V0, CycleRiskCandidateKindV0, CycleRiskCheckpointV0,
+    CycleRiskErrorV0, CycleRiskEvidenceUsageClassV0, CycleRiskFeatureConfigV0,
+    CycleRiskFeatureDiagnosticsV0, CycleRiskMetricSetV0, CycleRiskNormalizerV0,
+    CycleRiskOneTimeOpeningPolicyV0, CycleRiskProspectiveChallengeRegistryV0,
+    CycleRiskProspectiveChallengeStatusV0, CycleRiskProspectiveErrorV0,
+    CycleRiskProspectiveEvaluationPolicyV0, CycleRiskProspectiveEvidencePolicyV0,
+    CycleRiskProspectiveEvidenceVaultV0, CycleRiskProspectiveLocalStateV0,
+    CycleRiskProspectivePredictionJournalV0, CycleRiskProspectiveTournamentCapsuleV0,
+    CycleRiskProspectiveVerdictPolicyV0, CycleRiskProspectiveVerdictV0, CycleRiskRegimeResultV0,
     CycleRiskRepresentationNormalizerV0, CycleRiskShadowAssessmentV0, CycleRiskShadowConfigV0,
     CycleRiskShadowJournalV0, CycleRiskShadowReportV0, CycleRiskShadowVerdictV0,
-    DownsideRiskLabelConfigV0, LearnedAgentIndependenceProofV0,
-    cycle_risk_agent_independence_proof_v0, run_cycle_risk_shadow_v0,
+    CycleRiskTournamentRoleV0, DownsideRiskLabelConfigV0, EligibleProspectiveChallengeRefV0,
+    FrozenCycleRiskTournamentParticipantV0, LearnedAgentIndependenceProofV0,
+    PriorProspectiveProviderRejectionStatusV0, SharedAcquisitionEpochStatusV0,
+    SharedProspectiveAcquisitionEpochV0, build_shared_prospective_acquisition_epoch_v0,
+    commit_cycle_risk_pre_registration_v0, cycle_risk_agent_independence_proof_v0,
+    new_cycle_risk_prospective_local_state_v0, prepare_cycle_risk_prospective_tournament_v0,
+    read_cycle_risk_prospective_local_state_v0, resolve_cycle_risk_tournament_participants_v0,
+    run_cycle_risk_shadow_v0, validate_cycle_risk_prospective_capsule_v0,
+    write_cycle_risk_prospective_local_state_v0,
 };
 pub use escalation::{
     ModelEscalationDecision, ModelEscalationGate, ModelEscalationGateConfig,
