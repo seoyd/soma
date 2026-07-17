@@ -10,6 +10,7 @@ pub mod external_signal;
 pub mod historical_evidence;
 pub mod import;
 pub mod learned_agent_opinion;
+pub mod learned_agent_scope;
 pub mod learning;
 pub mod learning_campaign;
 pub mod mamba3;
@@ -185,6 +186,13 @@ pub use learned_agent_opinion::{
     classify_pairwise_agent_opinions_v0, new_shadow_deliberation_ledger_v0,
     replay_btc_shadow_deliberations_v0, replay_shadow_deliberation_v0,
     validate_learned_agent_opinion_v0, verify_learned_agent_opinion_seal_v0,
+};
+pub use learned_agent_scope::{
+    AggregateDeliberationCompositionStatusV0, AggregateRelationshipSummaryV0,
+    CanonicalLearnedAgentScopePairV0, CanonicalRawObservationScopeV0, CanonicalScopeLineageProofV0,
+    CanonicalScopeLineageStatusV0, LearnedAgentOpinionScopeAttestationV0,
+    LearnedAgentScopeComparabilityV0, LearnedAgentScopeMappingRegistryV0, ScopeAlignmentReportV0,
+    ScopeMappingRegistryStatusV0, canonical_scope_lineage_proof_v0, replay_btc_scope_alignment_v0,
 };
 pub use learning::{
     AgentModelRuntimeV0, BaselineComparisonV0, CalibrationBucketV0, ChronologicalSplitConfigV0,

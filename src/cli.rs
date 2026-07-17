@@ -35,6 +35,8 @@ pub struct CliArgs {
     #[arg(long, default_value_t = false)]
     pub learned_agent_shadow_deliberation: bool,
     #[arg(long, default_value_t = false)]
+    pub learned_agent_scope_alignment: bool,
+    #[arg(long, default_value_t = false)]
     pub btc_prospective_challenge_create: bool,
     #[arg(long, default_value_t = false)]
     pub btc_prospective_challenge_status: bool,
@@ -76,6 +78,7 @@ pub fn run() -> Result<(), String> {
             args.btc_cross_regime_diagnostics,
             args.btc_cycle_risk_shadow_report,
             args.learned_agent_shadow_deliberation,
+            args.learned_agent_scope_alignment,
             args.btc_prospective_challenge_create,
             args.btc_prospective_challenge_status,
             args.btc_prospective_challenge_confirm_preregistration,
@@ -91,6 +94,7 @@ pub fn run() -> Result<(), String> {
         || args.btc_cross_regime_diagnostics
         || args.btc_cycle_risk_shadow_report
         || args.learned_agent_shadow_deliberation
+        || args.learned_agent_scope_alignment
         || args.btc_prospective_challenge_create
         || args.btc_prospective_challenge_status
         || args.btc_prospective_challenge_confirm_preregistration
@@ -233,6 +237,7 @@ fn run_local_historical_snapshot_campaign(
     btc_cross_regime_diagnostics: bool,
     btc_cycle_risk_shadow_report: bool,
     learned_agent_shadow_deliberation: bool,
+    learned_agent_scope_alignment: bool,
     btc_prospective_challenge_create: bool,
     btc_prospective_challenge_status: bool,
     btc_prospective_challenge_confirm_preregistration: bool,
@@ -416,6 +421,76 @@ fn run_local_historical_snapshot_campaign(
                 );
             }
             println!("ledger_digest={}", ledger.ledger_digest);
+            println!("chair_observed=false");
+            println!("vote_created=false");
+            println!("execution_created=false");
+        }
+        return Ok(());
+    }
+    if learned_agent_scope_alignment {
+        if allow_network {
+            return Err("learned-agent scope alignment is offline-only".to_string());
+        }
+        let first = crate::model::replay_btc_scope_alignment_v0(&snapshot, &campaign_config)
+            .map_err(|_| "offline learned-agent scope alignment failed".to_string())?;
+        let second = crate::model::replay_btc_scope_alignment_v0(&snapshot, &campaign_config)
+            .map_err(|_| "offline learned-agent scope alignment replay failed".to_string())?;
+        if first != second {
+            return Err("learned-agent scope alignment is nondeterministic".to_string());
+        }
+        if output_format == "json" {
+            println!(
+                "{}",
+                serde_json::json!({
+                    "report_version": first.report_version,
+                    "offline": true,
+                    "provider_calls": 0,
+                    "transport_constructions": 0,
+                    "network_consent_reads": 0,
+                    "mapping_status": format!("{:?}", first.registry.mapping_status),
+                    "canonical_scope_count": first.registry.canonical_scopes.len(),
+                    "mapped_scope_count": first.aggregate.mapped_scope_count,
+                    "unmatched_scope_count": first.aggregate.unmatched_scope_count,
+                    "ambiguous_scope_count": first.registry.ambiguous_opinion_ids.len(),
+                    "composition_status": format!("{:?}", first.aggregate.composition_status),
+                    "relationship_summary": format!("{:?}", first.aggregate.relationship_summary),
+                    "registry_digest": first.registry.registry_digest,
+                    "aggregate_digest": first.aggregate.aggregate_digest,
+                    "chair_observed": false,
+                    "vote_created": false,
+                    "execution_created": false,
+                })
+            );
+        } else {
+            println!("report_version={}", first.report_version);
+            println!("offline=true");
+            println!("provider_calls=0");
+            println!("transport_constructions=0");
+            println!("network_consent_reads=0");
+            println!("mapping_status={:?}", first.registry.mapping_status);
+            println!(
+                "canonical_scope_count={}",
+                first.registry.canonical_scopes.len()
+            );
+            println!("mapped_scope_count={}", first.aggregate.mapped_scope_count);
+            println!(
+                "unmatched_scope_count={}",
+                first.aggregate.unmatched_scope_count
+            );
+            println!(
+                "ambiguous_scope_count={}",
+                first.registry.ambiguous_opinion_ids.len()
+            );
+            println!(
+                "composition_status={:?}",
+                first.aggregate.composition_status
+            );
+            println!(
+                "relationship_summary={:?}",
+                first.aggregate.relationship_summary
+            );
+            println!("registry_digest={}", first.registry.registry_digest);
+            println!("aggregate_digest={}", first.aggregate.aggregate_digest);
             println!("chair_observed=false");
             println!("vote_created=false");
             println!("execution_created=false");

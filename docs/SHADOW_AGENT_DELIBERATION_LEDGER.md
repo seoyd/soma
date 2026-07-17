@@ -15,6 +15,11 @@ Older and newer regimes replay independently. A historical aggregate is only
 created when every included Momentum regime has a corresponding Cycle/Risk
 regime; an incomplete aggregate scope is rejected rather than inferred.
 
+Scope attestations are external immutable references. Canonical row identity,
+effective-anchor identity, and forecast horizon are checked before a pair is
+eligible for aggregate composition; opinion, seal, argument, and transcript
+digests are never rewritten to add this information.
+
 The ledger keeps deterministic typed opinion and relationship indexes and only
 appends unique valid transcripts. It preserves primary-opinion immutability and
 produces an ineligible future-Chair packet only; it creates no Chair
