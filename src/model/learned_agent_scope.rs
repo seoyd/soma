@@ -3063,6 +3063,343 @@ fn refresh_source_bound_ledger_digest_v1(ledger: &mut SourceBoundShadowDeliberat
     ledger.ledger_digest_v1 = stable_hash_string(&hex(&bytes));
 }
 
+// Sprint 57 Phase A: these types deliberately contain only immutable input
+// identities and structural policy.  They do not execute either model.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum JointScopeSelectionPolicyV1 {
+    MaximumEqualLengthChronologicalScopes,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum JointScopeGapPolicyV1 {
+    RegisteredHistoricalIsolationGap,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum JointScopeRemainderPolicyV1 {
+    ExcludeTrailingRemainder,
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ParticipantMinimumRowsV1 {
+    pub agent_id: String,
+    pub objective: LearnedAgentObjectiveV0,
+    pub required_rows: usize,
+    pub config_digest: String,
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct EffectiveAnchorComparabilityPolicyV1 {
+    pub minimum_shared_anchor_count: usize,
+    pub minimum_shared_anchor_fraction_bits: u32,
+    pub require_nonempty_train_overlap: bool,
+    pub require_nonempty_validation_overlap: bool,
+    pub require_nonempty_test_overlap: bool,
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct JointReplayAuthorityPolicyV1 {
+    pub advisory_only: bool,
+    pub chair_forbidden: bool,
+    pub vote_forbidden: bool,
+    pub reward_forbidden: bool,
+    pub penalty_forbidden: bool,
+    pub promotion_forbidden: bool,
+    pub execution_forbidden: bool,
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct JointCanonicalScopeReplayRegistrationV1 {
+    pub registration_version: String,
+    pub replay_protocol_version: String,
+    pub source_bound_opinion_protocol_digest: String,
+    pub canonical_encoding_version: String,
+    pub source_snapshot_id: String,
+    pub source_snapshot_digest: String,
+    pub provider_id: String,
+    pub series_id: String,
+    pub participant_agent_ids: Vec<String>,
+    pub participant_objectives: Vec<LearnedAgentObjectiveV0>,
+    pub participant_config_digests: Vec<String>,
+    pub requested_scope_count: usize,
+    pub scope_selection_policy: JointScopeSelectionPolicyV1,
+    pub gap_policy: JointScopeGapPolicyV1,
+    pub remainder_policy: JointScopeRemainderPolicyV1,
+    pub minimum_required_rows_by_participant: Vec<ParticipantMinimumRowsV1>,
+    pub joint_minimum_scope_rows: usize,
+    pub retrospective_only: bool,
+    pub result_dependent_scope_selection_forbidden: bool,
+    pub scope_intersection_of_existing_results_forbidden: bool,
+    pub model_config_changes_forbidden: bool,
+    pub performance_confirmation_claims_forbidden: bool,
+    pub authority_policy: JointReplayAuthorityPolicyV1,
+    pub anchor_comparability_policy: EffectiveAnchorComparabilityPolicyV1,
+    pub registration_digest_v1: String,
+}
+fn joint_registration_digest_v1(value: &JointCanonicalScopeReplayRegistrationV1) -> String {
+    let mut bytes = Vec::new();
+    strv(&mut bytes, "joint-canonical-scope-replay-registration-v1");
+    for x in [
+        &value.source_bound_opinion_protocol_digest,
+        &value.source_snapshot_id,
+        &value.source_snapshot_digest,
+        &value.provider_id,
+        &value.series_id,
+    ] {
+        strv(&mut bytes, x);
+    }
+    strings(&mut bytes, &value.participant_agent_ids);
+    strings(&mut bytes, &value.participant_config_digests);
+    usizev(&mut bytes, value.requested_scope_count);
+    usizev(&mut bytes, value.joint_minimum_scope_rows);
+    for p in &value.minimum_required_rows_by_participant {
+        strv(&mut bytes, &p.agent_id);
+        tag(&mut bytes, objective_tag_v1(p.objective));
+        usizev(&mut bytes, p.required_rows);
+        strv(&mut bytes, &p.config_digest);
+    }
+    for b in [
+        value.retrospective_only,
+        value.result_dependent_scope_selection_forbidden,
+        value.scope_intersection_of_existing_results_forbidden,
+        value.model_config_changes_forbidden,
+        value.performance_confirmation_claims_forbidden,
+        value.authority_policy.advisory_only,
+        value.authority_policy.chair_forbidden,
+        value.authority_policy.vote_forbidden,
+        value.authority_policy.reward_forbidden,
+        value.authority_policy.penalty_forbidden,
+        value.authority_policy.promotion_forbidden,
+        value.authority_policy.execution_forbidden,
+        value
+            .anchor_comparability_policy
+            .require_nonempty_train_overlap,
+        value
+            .anchor_comparability_policy
+            .require_nonempty_validation_overlap,
+        value
+            .anchor_comparability_policy
+            .require_nonempty_test_overlap,
+    ] {
+        boolv(&mut bytes, b);
+    }
+    usizev(
+        &mut bytes,
+        value
+            .anchor_comparability_policy
+            .minimum_shared_anchor_count,
+    );
+    u64v(
+        &mut bytes,
+        value
+            .anchor_comparability_policy
+            .minimum_shared_anchor_fraction_bits as u64,
+    );
+    stable_hash_string(&hex(&bytes))
+}
+pub fn joint_canonical_scope_registration_v1(
+    snapshot: &DataSnapshot,
+    campaign: &MomentumLearningCampaignConfigV0,
+) -> Result<JointCanonicalScopeReplayRegistrationV1, String> {
+    campaign
+        .validate()
+        .map_err(|_| "joint_momentum_config_invalid")?;
+    let risk = CycleRiskShadowConfigV0::default();
+    risk.validate().map_err(|_| "joint_risk_config_invalid")?;
+    let momentum = assess_momentum_campaign_sufficiency_v0(usize::MAX / 4, campaign)
+        .map_err(|_| "joint_momentum_requirement_invalid")?
+        .required_minimum_rows;
+    let risk_rows =
+        risk.feature.drawdown_lookback + 1 + risk.sequence_length + risk.label.horizon_rows + 48;
+    let mut minimums = vec![
+        ParticipantMinimumRowsV1 {
+            agent_id: campaign.agent_id.clone(),
+            objective: LearnedAgentObjectiveV0::DirectionalMomentum,
+            required_rows: momentum,
+            config_digest: campaign.digest(),
+        },
+        ParticipantMinimumRowsV1 {
+            agent_id: CYCLE_RISK_SHADOW_AGENT_ID_V0.into(),
+            objective: LearnedAgentObjectiveV0::DownsideRisk,
+            required_rows: risk_rows,
+            config_digest: risk.digest(),
+        },
+    ];
+    minimums.sort_by(|a, b| a.agent_id.cmp(&b.agent_id));
+    let mut value = JointCanonicalScopeReplayRegistrationV1 {
+        registration_version: "joint-canonical-scope-replay-registration-v1".into(),
+        replay_protocol_version: "retrospective-joint-scope-development-replay-v1".into(),
+        source_bound_opinion_protocol_digest:
+            SourceBoundOpinionProtocolRegistrationV1::pre_registered().policy_digest_v1,
+        canonical_encoding_version: "canonical-semantic-encoding-v1".into(),
+        source_snapshot_id: snapshot.snapshot_id.clone(),
+        source_snapshot_digest: snapshot.content_digest.clone(),
+        provider_id: snapshot.normalized_dataset.source.clone(),
+        series_id: snapshot.normalized_dataset.symbol.clone(),
+        participant_agent_ids: minimums.iter().map(|x| x.agent_id.clone()).collect(),
+        participant_objectives: minimums.iter().map(|x| x.objective).collect(),
+        participant_config_digests: minimums.iter().map(|x| x.config_digest.clone()).collect(),
+        requested_scope_count: 2,
+        scope_selection_policy: JointScopeSelectionPolicyV1::MaximumEqualLengthChronologicalScopes,
+        gap_policy: JointScopeGapPolicyV1::RegisteredHistoricalIsolationGap,
+        remainder_policy: JointScopeRemainderPolicyV1::ExcludeTrailingRemainder,
+        minimum_required_rows_by_participant: minimums,
+        joint_minimum_scope_rows: momentum.max(risk_rows),
+        retrospective_only: true,
+        result_dependent_scope_selection_forbidden: true,
+        scope_intersection_of_existing_results_forbidden: true,
+        model_config_changes_forbidden: true,
+        performance_confirmation_claims_forbidden: true,
+        authority_policy: JointReplayAuthorityPolicyV1 {
+            advisory_only: true,
+            chair_forbidden: true,
+            vote_forbidden: true,
+            reward_forbidden: true,
+            penalty_forbidden: true,
+            promotion_forbidden: true,
+            execution_forbidden: true,
+        },
+        anchor_comparability_policy: EffectiveAnchorComparabilityPolicyV1 {
+            minimum_shared_anchor_count: 0,
+            minimum_shared_anchor_fraction_bits: 0,
+            require_nonempty_train_overlap: false,
+            require_nonempty_validation_overlap: false,
+            require_nonempty_test_overlap: false,
+        },
+        registration_digest_v1: String::new(),
+    };
+    value.registration_digest_v1 = joint_registration_digest_v1(&value);
+    Ok(value)
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CanonicalRangeV1 {
+    pub start_index: usize,
+    pub end_index_exclusive: usize,
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct JointScopeSelectionProofV1 {
+    pub registration_digest_v1: String,
+    pub source_snapshot_digest: String,
+    pub total_source_rows: usize,
+    pub requested_scope_count: usize,
+    pub joint_minimum_scope_rows: usize,
+    pub inter_scope_gap_rows: usize,
+    pub calculated_scope_rows: usize,
+    pub excluded_remainder_rows: usize,
+    pub scope_ranges: Vec<CanonicalRangeV1>,
+    pub non_overlapping: bool,
+    pub chronology_valid: bool,
+    pub all_scopes_meet_minimum: bool,
+    pub result_independent: bool,
+    pub all_invariants_pass: bool,
+    pub proof_digest_v1: String,
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct JointCanonicalHistoricalScopeV1 {
+    pub scope_version: String,
+    pub registration_digest_v1: String,
+    pub joint_scope_id: String,
+    pub chronological_rank: usize,
+    pub source_snapshot_id: String,
+    pub source_snapshot_digest: String,
+    pub range_start_index: usize,
+    pub range_end_index_exclusive: usize,
+    pub canonical_raw_scope: CanonicalRawObservationScopeV1,
+    pub information_cutoff_timestamp: u64,
+    pub row_count: usize,
+    pub selection_proof_digest_v1: String,
+    pub scope_digest_v1: String,
+}
+pub fn issue_joint_canonical_scopes_v1(
+    snapshot: &DataSnapshot,
+    registration: &JointCanonicalScopeReplayRegistrationV1,
+) -> Result<
+    (
+        JointScopeSelectionProofV1,
+        Vec<JointCanonicalHistoricalScopeV1>,
+    ),
+    String,
+> {
+    if registration.registration_digest_v1 != joint_registration_digest_v1(registration)
+        || registration.source_snapshot_id != snapshot.snapshot_id
+        || registration.source_snapshot_digest != snapshot.content_digest
+    {
+        return Err("joint_registration_mismatch".into());
+    }
+    let gap = 0usize;
+    let count = registration.requested_scope_count;
+    let available = snapshot
+        .normalized_dataset
+        .rows
+        .len()
+        .saturating_sub(gap.saturating_mul(count.saturating_sub(1)));
+    let length = available / count;
+    let ranges = (length >= registration.joint_minimum_scope_rows)
+        .then(|| {
+            (0..count)
+                .map(|rank| {
+                    let start = rank * (length + gap);
+                    CanonicalRangeV1 {
+                        start_index: start,
+                        end_index_exclusive: start + length,
+                    }
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    let mut proof = JointScopeSelectionProofV1 {
+        registration_digest_v1: registration.registration_digest_v1.clone(),
+        source_snapshot_digest: snapshot.content_digest.clone(),
+        total_source_rows: snapshot.normalized_dataset.rows.len(),
+        requested_scope_count: count,
+        joint_minimum_scope_rows: registration.joint_minimum_scope_rows,
+        inter_scope_gap_rows: gap,
+        calculated_scope_rows: length,
+        excluded_remainder_rows: available.saturating_sub(length * count),
+        scope_ranges: ranges.clone(),
+        non_overlapping: true,
+        chronology_valid: true,
+        all_scopes_meet_minimum: ranges.len() == count,
+        result_independent: true,
+        all_invariants_pass: ranges.len() == count,
+        proof_digest_v1: String::new(),
+    };
+    proof.proof_digest_v1 = stable_hash_string(&format!(
+        "{}:{}:{}:{}",
+        proof.registration_digest_v1,
+        proof.total_source_rows,
+        proof.calculated_scope_rows,
+        proof.excluded_remainder_rows
+    ));
+    let scopes = ranges
+        .into_iter()
+        .enumerate()
+        .map(|(rank, range)| {
+            let raw = canonical_raw_scope_v1(
+                snapshot,
+                range.start_index,
+                range.end_index_exclusive,
+                &registration.registration_digest_v1,
+            )?;
+            let digest = stable_hash_string(&format!(
+                "{}:{}:{}",
+                proof.proof_digest_v1, rank, raw.scope_digest_v1
+            ));
+            Ok(JointCanonicalHistoricalScopeV1 {
+                scope_version: "joint-canonical-historical-scope-v1".into(),
+                registration_digest_v1: registration.registration_digest_v1.clone(),
+                joint_scope_id: format!("joint-scope-{rank}"),
+                chronological_rank: rank,
+                source_snapshot_id: snapshot.snapshot_id.clone(),
+                source_snapshot_digest: snapshot.content_digest.clone(),
+                range_start_index: range.start_index,
+                range_end_index_exclusive: range.end_index_exclusive,
+                information_cutoff_timestamp: raw.information_cutoff_timestamp,
+                row_count: raw.row_count,
+                canonical_raw_scope: raw,
+                selection_proof_digest_v1: proof.proof_digest_v1.clone(),
+                scope_digest_v1: digest,
+            })
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    Ok((proof, scopes))
+}
+
 pub fn source_bound_shadow_ledger_record_v1(
     ledger: &SourceBoundShadowDeliberationLedgerV1,
 ) -> Result<SourceBoundShadowLedgerRecordV1, String> {
