@@ -6,6 +6,7 @@ use super::{
     BtcTemporalRegimeClosedResultV0, CYCLE_RISK_SHADOW_AGENT_ID_V0, CycleRiskShadowReportV0,
     MOMENTUM_AGENT_ID_V0,
 };
+use crate::data::DataSnapshot;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LearnedAgentObjectiveV0 {
@@ -510,6 +511,66 @@ pub fn replay_shadow_deliberation_v0(
         chair_packet: packet,
         quality: ShadowDeliberationQualityStatusV0::MostlyAbstained,
     })
+}
+
+pub fn replay_btc_shadow_deliberations_v0(
+    snapshot: &DataSnapshot,
+    campaign_config: &super::MomentumLearningCampaignConfigV0,
+) -> Result<Vec<ShadowDeliberationReplayV0>, String> {
+    let sufficiency =
+        super::assess_momentum_campaign_sufficiency_v0(snapshot.row_count, campaign_config)
+            .map_err(|_| "momentum_sufficiency_invalid".to_string())?;
+    let config = super::BtcHistoricalRegimeConfigV0 {
+        minimum_regimes: 2,
+        regime_rows: sufficiency.required_minimum_rows,
+        inter_regime_gap_rows: campaign_config.purge_gap_rows,
+        minimum_campaign_windows_per_regime: campaign_config.minimum_evaluated_windows,
+        segmentation_policy: super::TemporalRegimeSegmentationPolicyV0::EqualLengthChronological,
+    };
+    let segmentation = super::segment_btc_historical_regimes_v0(snapshot, &config)
+        .map_err(|_| "regime_segmentation_failed".to_string())?;
+    let packs = super::freeze_btc_historical_regime_packs_v0(
+        snapshot,
+        &segmentation,
+        &super::HistoricalEvidencePolicyV0::default(),
+    )
+    .map_err(|_| "regime_pack_freeze_failed".to_string())?;
+    let encoder = super::frozen_mamba3_encoder_from_seed_v0(
+        &campaign_config.feature_config,
+        campaign_config.campaign_seed,
+        campaign_config.backend_preference,
+        campaign_config.fallback_policy,
+    )
+    .map_err(|_| "momentum_encoder_unavailable".to_string())?;
+    let raw = super::run_btc_historical_regime_campaigns_v0(&packs, campaign_config, &encoder)
+        .map_err(|_| "momentum_regime_replay_failed".to_string())?;
+    let mut closed = Vec::new();
+    for (rank, (regime, pack)) in packs.iter().enumerate() {
+        let result = raw
+            .iter()
+            .find(|item| item.regime_id == regime.regime_id)
+            .ok_or_else(|| "missing_momentum_regime".to_string())?;
+        let reference = super::BtcTemporalRegimeRefV0 {
+            regime_id: regime.regime_id.clone(),
+            chronological_rank: rank,
+            row_count: regime.row_count,
+            range_digest: stable_hash_string(&format!(
+                "{}:{}:{}",
+                regime.start_timestamp_ms, regime.end_timestamp_ms, regime.row_count
+            )),
+            pack_digest: pack.digest.clone(),
+        };
+        closed.push(super::close_btc_temporal_regime_result_v0(
+            result, reference,
+        ));
+    }
+    let risk =
+        super::run_cycle_risk_shadow_v0(snapshot, &super::CycleRiskShadowConfigV0::default())
+            .map_err(|_| "cycle_risk_shadow_replay_failed".to_string())?;
+    closed
+        .iter()
+        .map(|item| replay_shadow_deliberation_v0(item, &risk))
+        .collect()
 }
 fn argument(
     opinion: &LearnedAgentOpinionEnvelopeV0,

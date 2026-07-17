@@ -33,6 +33,8 @@ pub struct CliArgs {
     #[arg(long, default_value_t = false)]
     pub btc_cycle_risk_shadow_report: bool,
     #[arg(long, default_value_t = false)]
+    pub learned_agent_shadow_deliberation: bool,
+    #[arg(long, default_value_t = false)]
     pub btc_prospective_challenge_create: bool,
     #[arg(long, default_value_t = false)]
     pub btc_prospective_challenge_status: bool,
@@ -73,6 +75,7 @@ pub fn run() -> Result<(), String> {
             args.btc_multi_regime_report,
             args.btc_cross_regime_diagnostics,
             args.btc_cycle_risk_shadow_report,
+            args.learned_agent_shadow_deliberation,
             args.btc_prospective_challenge_create,
             args.btc_prospective_challenge_status,
             args.btc_prospective_challenge_confirm_preregistration,
@@ -87,6 +90,7 @@ pub fn run() -> Result<(), String> {
         || args.btc_multi_regime_report
         || args.btc_cross_regime_diagnostics
         || args.btc_cycle_risk_shadow_report
+        || args.learned_agent_shadow_deliberation
         || args.btc_prospective_challenge_create
         || args.btc_prospective_challenge_status
         || args.btc_prospective_challenge_confirm_preregistration
@@ -228,6 +232,7 @@ fn run_local_historical_snapshot_campaign(
     btc_multi_regime_report: bool,
     btc_cross_regime_diagnostics: bool,
     btc_cycle_risk_shadow_report: bool,
+    learned_agent_shadow_deliberation: bool,
     btc_prospective_challenge_create: bool,
     btc_prospective_challenge_status: bool,
     btc_prospective_challenge_confirm_preregistration: bool,
@@ -373,6 +378,41 @@ fn run_local_historical_snapshot_campaign(
                     regime.checkpoint.r2.probability_collapse,
                 );
             }
+        }
+        return Ok(());
+    }
+    if learned_agent_shadow_deliberation {
+        if allow_network {
+            return Err("learned-agent shadow deliberation is offline-only".to_string());
+        }
+        let first = crate::model::replay_btc_shadow_deliberations_v0(&snapshot, &campaign_config)
+            .map_err(|_| "offline learned-agent shadow deliberation failed".to_string())?;
+        let second = crate::model::replay_btc_shadow_deliberations_v0(&snapshot, &campaign_config)
+            .map_err(|_| "offline learned-agent shadow deliberation replay failed".to_string())?;
+        if first != second {
+            return Err("learned-agent shadow deliberation is nondeterministic".to_string());
+        }
+        if output_format == "json" {
+            println!(
+                "{}",
+                serde_json::json!({"report_version":"learned-agent-shadow-deliberation-v0","offline":true,"provider_calls":0,"transport_constructions":0,"network_consent_reads":0,"deliberation_count":first.len(),"relationships":first.iter().map(|value| format!("{:?}", value.relationship.relationship)).collect::<Vec<_>>(),"transcript_digests":first.iter().map(|value| value.transcript.transcript_digest.clone()).collect::<Vec<_>>(),"chair_observed":false,"vote_created":false,"execution_created":false})
+            );
+        } else {
+            println!("report_version=learned-agent-shadow-deliberation-v0");
+            println!("offline=true");
+            println!("provider_calls=0");
+            println!("transport_constructions=0");
+            println!("network_consent_reads=0");
+            println!("deliberation_count={}", first.len());
+            for value in &first {
+                println!(
+                    "relationship={:?} transcript_digest={}",
+                    value.relationship.relationship, value.transcript.transcript_digest
+                );
+            }
+            println!("chair_observed=false");
+            println!("vote_created=false");
+            println!("execution_created=false");
         }
         return Ok(());
     }

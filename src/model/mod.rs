@@ -179,7 +179,8 @@ pub use learned_agent_opinion::{
     LearnedAgentOpinionSealV0, OpinionAuthorityV0, OpinionEvidenceConfidenceV0,
     OpinionEvidenceScopeV0, OpinionSupportStatusV0, PairwiseAgentOpinionRelationshipV0,
     ShadowDeliberationLedgerV0, ShadowDeliberationQualityStatusV0, ShadowDeliberationReplayV0,
-    ShadowLearnedAgentDeliberationV0, append_shadow_deliberation_v0, replay_shadow_deliberation_v0,
+    ShadowLearnedAgentDeliberationV0, append_shadow_deliberation_v0,
+    replay_btc_shadow_deliberations_v0, replay_shadow_deliberation_v0,
 };
 pub use learning::{
     AgentModelRuntimeV0, BaselineComparisonV0, CalibrationBucketV0, ChronologicalSplitConfigV0,
