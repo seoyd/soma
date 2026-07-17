@@ -1,6 +1,7 @@
 pub mod backend;
 pub mod calibration;
 pub mod comparison;
+pub mod cycle_risk_shadow;
 pub mod escalation;
 pub mod external_artifact_registry;
 pub mod external_model_research_ops;
@@ -34,6 +35,15 @@ pub use backend::{
 };
 pub use calibration::{CalibrationReport, build_calibration_report};
 pub use comparison::{ModelComparisonReport, compare_walk_forward_reports};
+pub use cycle_risk_shadow::{
+    CYCLE_RISK_SHADOW_AGENT_ID_V0, CycleRiskCheckpointV0, CycleRiskErrorV0,
+    CycleRiskEvidenceUsageClassV0, CycleRiskFeatureConfigV0, CycleRiskFeatureDiagnosticsV0,
+    CycleRiskMetricSetV0, CycleRiskNormalizerV0, CycleRiskRegimeResultV0,
+    CycleRiskRepresentationNormalizerV0, CycleRiskShadowAssessmentV0, CycleRiskShadowConfigV0,
+    CycleRiskShadowJournalV0, CycleRiskShadowReportV0, CycleRiskShadowVerdictV0,
+    DownsideRiskLabelConfigV0, LearnedAgentIndependenceProofV0,
+    cycle_risk_agent_independence_proof_v0, run_cycle_risk_shadow_v0,
+};
 pub use escalation::{
     ModelEscalationDecision, ModelEscalationGate, ModelEscalationGateConfig,
     ModelEscalationGateResult,

@@ -31,6 +31,8 @@ pub struct CliArgs {
     #[arg(long, default_value_t = false)]
     pub btc_cross_regime_diagnostics: bool,
     #[arg(long, default_value_t = false)]
+    pub btc_cycle_risk_shadow_report: bool,
+    #[arg(long, default_value_t = false)]
     pub btc_prospective_challenge_create: bool,
     #[arg(long, default_value_t = false)]
     pub btc_prospective_challenge_status: bool,
@@ -70,6 +72,7 @@ pub fn run() -> Result<(), String> {
             args.momentum_cross_market_report,
             args.btc_multi_regime_report,
             args.btc_cross_regime_diagnostics,
+            args.btc_cycle_risk_shadow_report,
             args.btc_prospective_challenge_create,
             args.btc_prospective_challenge_status,
             args.btc_prospective_challenge_confirm_preregistration,
@@ -83,6 +86,7 @@ pub fn run() -> Result<(), String> {
         || args.momentum_cross_market_report
         || args.btc_multi_regime_report
         || args.btc_cross_regime_diagnostics
+        || args.btc_cycle_risk_shadow_report
         || args.btc_prospective_challenge_create
         || args.btc_prospective_challenge_status
         || args.btc_prospective_challenge_confirm_preregistration
@@ -223,6 +227,7 @@ fn run_local_historical_snapshot_campaign(
     cross_market_report: bool,
     btc_multi_regime_report: bool,
     btc_cross_regime_diagnostics: bool,
+    btc_cycle_risk_shadow_report: bool,
     btc_prospective_challenge_create: bool,
     btc_prospective_challenge_status: bool,
     btc_prospective_challenge_confirm_preregistration: bool,
@@ -322,6 +327,54 @@ fn run_local_historical_snapshot_campaign(
             &sufficiency,
             output_format,
         );
+    }
+    if btc_cycle_risk_shadow_report {
+        if allow_network {
+            return Err("BTC cycle/risk shadow report is offline-only".to_string());
+        }
+        let report = crate::model::run_cycle_risk_shadow_v0(
+            &snapshot,
+            &crate::model::CycleRiskShadowConfigV0::default(),
+        )
+        .map_err(|_| "offline BTC cycle/risk shadow execution failed".to_string())?;
+        if output_format == "json" {
+            println!(
+                "cycle_risk_shadow_snapshot_id={} cycle_risk_shadow_snapshot_digest={} cycle_risk_shadow_journal_digest={} cycle_risk_shadow_verdict={:?}",
+                report.snapshot_id,
+                report.snapshot_digest,
+                report.journal.digest,
+                report.aggregate_verdict
+            );
+        } else {
+            println!("cycle_risk_shadow_agent={}", report.agent_id);
+            println!("cycle_risk_shadow_snapshot_id={}", report.snapshot_id);
+            println!(
+                "cycle_risk_shadow_snapshot_digest={}",
+                report.snapshot_digest
+            );
+            println!("cycle_risk_shadow_regimes={}", report.regimes.len());
+            println!("cycle_risk_shadow_verdict={:?}", report.aggregate_verdict);
+            println!(
+                "cycle_risk_shadow_network_requests={}",
+                report.network_requests
+            );
+            println!("cycle_risk_shadow_journal_digest={}", report.journal.digest);
+            for regime in &report.regimes {
+                println!(
+                    "cycle_risk_shadow_regime={} verdict={:?} threshold={:.8} r0_brier={:.8} r1_brier={:.8} r2_brier={:.8} r2_auc={:?} r2_false_negatives={} r2_collapse={}",
+                    regime.regime_id,
+                    regime.verdict,
+                    regime.checkpoint.threshold,
+                    regime.checkpoint.r0.brier,
+                    regime.checkpoint.r1.brier,
+                    regime.checkpoint.r2.brier,
+                    regime.checkpoint.r2.rank_auc,
+                    regime.checkpoint.r2.high_confidence_false_negatives,
+                    regime.checkpoint.r2.probability_collapse,
+                );
+            }
+        }
+        return Ok(());
     }
     if !temporal_diagnostics {
         println!(
