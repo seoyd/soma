@@ -1,5 +1,7 @@
 //! Offline, external scope attestations for immutable learned-agent opinions.
 
+use std::{fs, path::Path};
+
 use crate::{core::stable_hash_string, data::DataSnapshot};
 
 use super::{
@@ -2050,7 +2052,13 @@ pub struct LearnedAgentSourceResultReferenceV1 {
     pub source_model_version_id: Option<String>,
     pub source_model_artifact_digest: String,
     pub canonical_raw_scope_digest_v1: String,
+    /// Ordered, canonical row identities retained with the reference so a
+    /// later retrospective mapper can prove overlap instead of guessing from
+    /// a scope name or digest prefix.
+    pub canonical_raw_row_identity_digests_v1: Vec<String>,
+    pub information_cutoff_timestamp: u64,
     pub effective_anchor_scope_digest_v1: String,
+    pub effective_anchor_digests_v1: Vec<String>,
     pub forecast_scope_digest_v1: String,
     pub reference_digest_v1: String,
 }
@@ -2216,6 +2224,9 @@ fn source_reference_digest_v1(value: &LearnedAgentSourceResultReferenceV1) -> St
     ] {
         strv(&mut bytes, text);
     }
+    strings(&mut bytes, &value.canonical_raw_row_identity_digests_v1);
+    u64v(&mut bytes, value.information_cutoff_timestamp);
+    strings(&mut bytes, &value.effective_anchor_digests_v1);
     tag(
         &mut bytes,
         match value.source_result_kind {
@@ -2236,6 +2247,8 @@ pub fn create_source_bound_opinion_v1(
     registration.validate()?;
     if !membership.all_invariants_pass
         || membership.result_digest_v1 != source.source_result_digest_v1
+        || source.canonical_raw_row_identity_digests_v1.is_empty()
+        || source.effective_anchor_digests_v1.is_empty()
         || source.reference_digest_v1 != source_reference_digest_v1(&source)
     {
         return Err("source_bound_membership_invalid".into());
@@ -2344,7 +2357,18 @@ pub fn replay_source_bound_cycle_risk_opinions_v1(
                 .clone()
                 .unwrap_or_else(|| result.frozen_pack_digest.clone()),
             canonical_raw_scope_digest_v1: identity.canonical_scope_digest_v1.clone(),
+            canonical_raw_row_identity_digests_v1: canonical_raw_scope_v1(
+                snapshot,
+                candidate.start_row_index,
+                candidate.end_row_index_exclusive,
+                &risk_config_digest_v1(&config),
+            )?
+            .row_identity_digests,
+            information_cutoff_timestamp: snapshot.normalized_dataset.rows
+                [candidate.end_row_index_exclusive - 1]
+                .timestamp_ms,
             effective_anchor_scope_digest_v1: anchors.scope_digest_v1,
+            effective_anchor_digests_v1: anchors.all_anchor_digests,
             forecast_scope_digest_v1: strings_digest_v1(
                 "risk-forecast-scope-v1",
                 &[config.label.horizon_rows.to_string(), config.label.digest()],
@@ -2509,7 +2533,10 @@ pub fn replay_source_bound_momentum_opinions_v1(
             source_model_version_id: None,
             source_model_artifact_digest: result.encoder_parameter_digest.clone(),
             canonical_raw_scope_digest_v1: scope.scope_digest_v1,
+            canonical_raw_row_identity_digests_v1: scope.row_identity_digests,
+            information_cutoff_timestamp: scope.information_cutoff_timestamp,
             effective_anchor_scope_digest_v1: anchors.scope_digest_v1,
+            effective_anchor_digests_v1: anchors.all_anchor_digests,
             forecast_scope_digest_v1: strings_digest_v1(
                 "momentum-forecast-scope-v1",
                 &[
@@ -2586,6 +2613,7 @@ pub enum SourceBoundRawScopeAlignmentV1 {
 pub enum SourceBoundAnchorAlignmentV1 {
     ExactSameAnchors,
     SameRawScopeDifferentAnchors,
+    PartialOverlapAnchors,
     DisjointAnchors,
     Invalid,
 }
@@ -2633,43 +2661,139 @@ pub fn map_source_bound_opinions_v1(
         if !momentum_opinion.sealed || !momentum_seal.sealed_before_cross_agent_reveal {
             return Err("unsealed_momentum_source_bound_opinion".into());
         }
-        let candidates = risk
+        if momentum_opinion
+            .source_result
+            .canonical_raw_row_identity_digests_v1
+            .is_empty()
+            || momentum_opinion
+                .source_result
+                .effective_anchor_digests_v1
+                .is_empty()
+        {
+            return Err("momentum_source_bound_scope_identity_missing".into());
+        }
+        let mut candidates = risk
             .iter()
-            .filter(|(risk_opinion, risk_seal)| {
-                risk_opinion.sealed
-                    && risk_seal.sealed_before_cross_agent_reveal
-                    && risk_opinion.source_result.canonical_raw_scope_digest_v1
-                        == momentum_opinion.source_result.canonical_raw_scope_digest_v1
+            .filter_map(|(risk_opinion, risk_seal)| {
+                if !risk_opinion.sealed
+                    || !risk_seal.sealed_before_cross_agent_reveal
+                    || used_risk.contains(&risk_opinion.opinion_id)
+                    || risk_opinion.source_result.source_snapshot_digest
+                        != momentum_opinion.source_result.source_snapshot_digest
+                    || risk_opinion
+                        .source_result
+                        .canonical_raw_row_identity_digests_v1
+                        .is_empty()
+                    || risk_opinion
+                        .source_result
+                        .effective_anchor_digests_v1
+                        .is_empty()
+                {
+                    return None;
+                }
+                let overlap = momentum_opinion
+                    .source_result
+                    .canonical_raw_row_identity_digests_v1
+                    .iter()
+                    .filter(|row| {
+                        risk_opinion
+                            .source_result
+                            .canonical_raw_row_identity_digests_v1
+                            .contains(*row)
+                    })
+                    .count();
+                (overlap > 0).then_some((overlap, risk_opinion))
             })
             .collect::<Vec<_>>();
-        if candidates.len() != 1 {
+        candidates.sort_by(|left, right| {
+            right
+                .0
+                .cmp(&left.0)
+                .then_with(|| left.1.opinion_id.cmp(&right.1.opinion_id))
+        });
+        let Some((best_overlap, risk_opinion)) = candidates.first() else {
+            unmatched_momentum.push(momentum_opinion.opinion_id.clone());
+            continue;
+        };
+        if candidates
+            .iter()
+            .filter(|(overlap, _)| overlap == best_overlap)
+            .count()
+            != 1
+        {
             unmatched_momentum.push(momentum_opinion.opinion_id.clone());
             continue;
         }
-        let (risk_opinion, _) = candidates[0];
         used_risk.push(risk_opinion.opinion_id.clone());
-        let anchors_equal = momentum_opinion
+        let raw_rows_equal = momentum_opinion
             .source_result
-            .effective_anchor_scope_digest_v1
-            == risk_opinion.source_result.effective_anchor_scope_digest_v1;
-        let raw = SourceBoundRawScopeAlignmentV1::ExactSameCanonicalRows;
+            .canonical_raw_row_identity_digests_v1
+            == risk_opinion
+                .source_result
+                .canonical_raw_row_identity_digests_v1;
+        let raw = if momentum_opinion.source_result.information_cutoff_timestamp
+            != risk_opinion.source_result.information_cutoff_timestamp
+        {
+            SourceBoundRawScopeAlignmentV1::DifferentInformationCutoff
+        } else if raw_rows_equal {
+            SourceBoundRawScopeAlignmentV1::ExactSameCanonicalRows
+        } else {
+            SourceBoundRawScopeAlignmentV1::PartialOverlap
+        };
+        let anchors_equal = momentum_opinion.source_result.effective_anchor_digests_v1
+            == risk_opinion.source_result.effective_anchor_digests_v1;
+        let anchor_overlap = momentum_opinion
+            .source_result
+            .effective_anchor_digests_v1
+            .iter()
+            .filter(|anchor| {
+                risk_opinion
+                    .source_result
+                    .effective_anchor_digests_v1
+                    .contains(*anchor)
+            })
+            .count();
         let anchor = if anchors_equal {
             SourceBoundAnchorAlignmentV1::ExactSameAnchors
+        } else if anchor_overlap > 0 {
+            SourceBoundAnchorAlignmentV1::PartialOverlapAnchors
         } else {
-            SourceBoundAnchorAlignmentV1::SameRawScopeDifferentAnchors
+            SourceBoundAnchorAlignmentV1::DisjointAnchors
         };
-        let comparability = if anchors_equal
+        let comparability = if raw == SourceBoundRawScopeAlignmentV1::ExactSameCanonicalRows
+            && anchors_equal
             && momentum_opinion.source_result.forecast_scope_digest_v1
                 == risk_opinion.source_result.forecast_scope_digest_v1
         {
             SourceBoundScopeComparabilityV1::ExactDecisionScopeComparable
-        } else {
+        } else if raw == SourceBoundRawScopeAlignmentV1::ExactSameCanonicalRows {
             SourceBoundScopeComparabilityV1::RegimeSummaryComparableWithCaveats
+        } else {
+            SourceBoundScopeComparabilityV1::SourceBoundButScopesNotComparable
         };
         let mut bytes = Vec::new();
         strv(&mut bytes, &momentum_opinion.opinion_id);
         strv(&mut bytes, &risk_opinion.opinion_id);
-        tag(&mut bytes, if anchors_equal { 1 } else { 2 });
+        tag(
+            &mut bytes,
+            match raw {
+                SourceBoundRawScopeAlignmentV1::ExactSameCanonicalRows => 1,
+                SourceBoundRawScopeAlignmentV1::PartialOverlap => 2,
+                SourceBoundRawScopeAlignmentV1::DifferentInformationCutoff => 3,
+                SourceBoundRawScopeAlignmentV1::Disjoint => 4,
+                SourceBoundRawScopeAlignmentV1::Invalid => 5,
+            },
+        );
+        tag(
+            &mut bytes,
+            match anchor {
+                SourceBoundAnchorAlignmentV1::ExactSameAnchors => 1,
+                SourceBoundAnchorAlignmentV1::SameRawScopeDifferentAnchors => 2,
+                SourceBoundAnchorAlignmentV1::PartialOverlapAnchors => 3,
+                SourceBoundAnchorAlignmentV1::DisjointAnchors => 4,
+                SourceBoundAnchorAlignmentV1::Invalid => 5,
+            },
+        );
         let digest = stable_hash_string(&hex(&bytes));
         if comparability != SourceBoundScopeComparabilityV1::ExactDecisionScopeComparable {
             non_comparable.push(format!("pair-{digest}"));
@@ -2696,6 +2820,8 @@ pub fn map_source_bound_opinions_v1(
         SourceBoundMappingStatusV1::SourceBoundButScopesNotComparable
     } else if !unmatched_momentum.is_empty() || !unmatched_risk.is_empty() {
         SourceBoundMappingStatusV1::PartiallyMapped
+    } else if non_comparable.len() == pairs.len() {
+        SourceBoundMappingStatusV1::SourceBoundButScopesNotComparable
     } else if non_comparable.is_empty() {
         SourceBoundMappingStatusV1::FullyMapped
     } else {
@@ -2740,6 +2866,7 @@ pub struct SourceBoundShadowDeliberationV1 {
     pub risk_opinion_id: String,
     pub momentum_seal_digest_v1: String,
     pub risk_seal_digest_v1: String,
+    pub relationship: AgentOpinionRelationshipV0,
     pub relationship_digest_v1: String,
     pub round_count: usize,
     pub retrospective_only: bool,
@@ -2768,6 +2895,10 @@ pub fn create_source_bound_deliberation_v1(
     }
     let registration = SourceBoundOpinionProtocolRegistrationV1::pre_registered();
     registration.validate()?;
+    // V1 opinions are historical abstentions by construction.  Record the
+    // actual relationship explicitly instead of reducing it to an opaque
+    // digest or pretending there is a directional winner.
+    let relationship = AgentOpinionRelationshipV0::BothAbstained;
     let mut relationship_bytes = Vec::new();
     strv(&mut relationship_bytes, &pair.pair_digest_v1);
     tag(
@@ -2778,6 +2909,7 @@ pub fn create_source_bound_deliberation_v1(
             2
         },
     );
+    tag(&mut relationship_bytes, 7);
     let relationship_digest = stable_hash_string(&hex(&relationship_bytes));
     let mut value = SourceBoundShadowDeliberationV1 {
         deliberation_version: registration.deliberation_protocol_version.clone(),
@@ -2787,6 +2919,7 @@ pub fn create_source_bound_deliberation_v1(
         risk_opinion_id: risk.0.opinion_id.clone(),
         momentum_seal_digest_v1: momentum.1.seal_digest_v1.clone(),
         risk_seal_digest_v1: risk.1.seal_digest_v1.clone(),
+        relationship,
         relationship_digest_v1: relationship_digest,
         round_count: 2,
         retrospective_only: true,
@@ -2839,6 +2972,24 @@ pub struct SourceBoundShadowDeliberationLedgerV1 {
     pub scope_mapping_registry_digest_v1: String,
     pub legacy_v0_reference_digest: String,
     pub ledger_digest_v1: String,
+}
+/// The persistable, redacted form of the V1 ledger.  It retains only sealed
+/// identifiers and digests; it deliberately does not serialize raw rows,
+/// forecasts, probabilities, or action payloads.
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct SourceBoundShadowLedgerRecordV1 {
+    pub ledger_version: String,
+    pub protocol_registration_digest_v1: String,
+    pub scope_mapping_registry_digest_v1: String,
+    pub legacy_v0_reference_digest: String,
+    pub opinions: Vec<SourceBoundLedgerOpinionRecordV1>,
+    pub ledger_digest_v1: String,
+}
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct SourceBoundLedgerOpinionRecordV1 {
+    pub opinion_id: String,
+    pub opinion_digest_v1: String,
+    pub seal_digest_v1: String,
 }
 pub fn new_source_bound_shadow_ledger_v1(
     registration: &SourceBoundOpinionProtocolRegistrationV1,
@@ -2912,6 +3063,109 @@ fn refresh_source_bound_ledger_digest_v1(ledger: &mut SourceBoundShadowDeliberat
     ledger.ledger_digest_v1 = stable_hash_string(&hex(&bytes));
 }
 
+pub fn source_bound_shadow_ledger_record_v1(
+    ledger: &SourceBoundShadowDeliberationLedgerV1,
+) -> Result<SourceBoundShadowLedgerRecordV1, String> {
+    if ledger.opinions.len() != ledger.opinion_seals.len()
+        || ledger
+            .opinions
+            .iter()
+            .zip(&ledger.opinion_seals)
+            .any(|(opinion, seal)| opinion.opinion_id != seal.opinion_id)
+    {
+        return Err("source_bound_ledger_record_invalid".into());
+    }
+    let record = SourceBoundShadowLedgerRecordV1 {
+        ledger_version: ledger.ledger_version.clone(),
+        protocol_registration_digest_v1: ledger.protocol_registration_digest_v1.clone(),
+        scope_mapping_registry_digest_v1: ledger.scope_mapping_registry_digest_v1.clone(),
+        legacy_v0_reference_digest: ledger.legacy_v0_reference_digest.clone(),
+        opinions: ledger
+            .opinions
+            .iter()
+            .zip(&ledger.opinion_seals)
+            .map(|(opinion, seal)| SourceBoundLedgerOpinionRecordV1 {
+                opinion_id: opinion.opinion_id.clone(),
+                opinion_digest_v1: opinion.opinion_digest_v1.clone(),
+                seal_digest_v1: seal.seal_digest_v1.clone(),
+            })
+            .collect(),
+        ledger_digest_v1: ledger.ledger_digest_v1.clone(),
+    };
+    validate_source_bound_shadow_ledger_record_v1(&record)?;
+    Ok(record)
+}
+
+pub fn validate_source_bound_shadow_ledger_record_v1(
+    record: &SourceBoundShadowLedgerRecordV1,
+) -> Result<(), String> {
+    if record.ledger_version != "source-bound-shadow-ledger-v1"
+        || record.protocol_registration_digest_v1
+            != SourceBoundOpinionProtocolRegistrationV1::pre_registered().policy_digest_v1
+        || record
+            .opinions
+            .windows(2)
+            .any(|pair| pair[0].opinion_id >= pair[1].opinion_id)
+        || record.opinions.iter().any(|entry| {
+            entry.opinion_id.is_empty()
+                || entry.opinion_digest_v1.is_empty()
+                || entry.seal_digest_v1.is_empty()
+        })
+    {
+        return Err("source_bound_ledger_record_invalid".into());
+    }
+    let mut bytes = Vec::new();
+    strv(&mut bytes, &record.ledger_version);
+    strv(&mut bytes, &record.protocol_registration_digest_v1);
+    strv(&mut bytes, &record.scope_mapping_registry_digest_v1);
+    strv(&mut bytes, &record.legacy_v0_reference_digest);
+    strings(
+        &mut bytes,
+        &record
+            .opinions
+            .iter()
+            .map(|entry| entry.opinion_digest_v1.clone())
+            .collect::<Vec<_>>(),
+    );
+    strings(
+        &mut bytes,
+        &record
+            .opinions
+            .iter()
+            .map(|entry| entry.seal_digest_v1.clone())
+            .collect::<Vec<_>>(),
+    );
+    (record.ledger_digest_v1 == stable_hash_string(&hex(&bytes)))
+        .then_some(())
+        .ok_or_else(|| "source_bound_ledger_record_digest_invalid".into())
+}
+
+pub fn write_source_bound_shadow_ledger_record_v1(
+    path: &Path,
+    ledger: &SourceBoundShadowDeliberationLedgerV1,
+) -> Result<(), String> {
+    let record = source_bound_shadow_ledger_record_v1(ledger)?;
+    let parent = path
+        .parent()
+        .ok_or_else(|| "source_bound_ledger_record_path_invalid".to_string())?;
+    fs::create_dir_all(parent).map_err(|_| "source_bound_ledger_record_storage".to_string())?;
+    let encoded = serde_json::to_vec(&record)
+        .map_err(|_| "source_bound_ledger_record_storage".to_string())?;
+    let temporary = path.with_extension("tmp");
+    fs::write(&temporary, encoded).map_err(|_| "source_bound_ledger_record_storage".to_string())?;
+    fs::rename(&temporary, path).map_err(|_| "source_bound_ledger_record_storage".to_string())
+}
+
+pub fn read_source_bound_shadow_ledger_record_v1(
+    path: &Path,
+) -> Result<SourceBoundShadowLedgerRecordV1, String> {
+    let encoded = fs::read(path).map_err(|_| "source_bound_ledger_record_storage".to_string())?;
+    let record = serde_json::from_slice(&encoded)
+        .map_err(|_| "source_bound_ledger_record_storage".to_string())?;
+    validate_source_bound_shadow_ledger_record_v1(&record)?;
+    Ok(record)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2933,6 +3187,78 @@ mod tests {
             scope_kind: CanonicalObservationScopeKindV0::HistoricalRegimePack,
             scope_digest: rows.into(),
         }
+    }
+
+    fn source_bound_test_opinion(
+        agent_id: &str,
+        objective: LearnedAgentObjectiveV0,
+        result_digest: &str,
+        rows: &[&str],
+        anchors: &[&str],
+        cutoff: u64,
+    ) -> (LearnedAgentOpinionEnvelopeV1, LearnedAgentOpinionSealV1) {
+        let registration = SourceBoundOpinionProtocolRegistrationV1::pre_registered();
+        let mut source = LearnedAgentSourceResultReferenceV1 {
+            agent_id: agent_id.into(),
+            objective,
+            source_snapshot_id: "snapshot".into(),
+            source_snapshot_digest: "snapshot-digest".into(),
+            source_result_kind: match objective {
+                LearnedAgentObjectiveV0::DirectionalMomentum => {
+                    SourceResultKindV1::MomentumHistoricalRegimeResult
+                }
+                LearnedAgentObjectiveV0::DownsideRisk => {
+                    SourceResultKindV1::CycleRiskHistoricalRegimeResult
+                }
+            },
+            source_result_digest_v1: result_digest.into(),
+            source_checkpoint_digest_v1: format!("checkpoint-{result_digest}"),
+            source_frozen_pack_digest: format!("pack-{result_digest}"),
+            source_model_version_id: None,
+            source_model_artifact_digest: format!("model-{result_digest}"),
+            canonical_raw_scope_digest_v1: format!("scope-{result_digest}"),
+            canonical_raw_row_identity_digests_v1: rows
+                .iter()
+                .map(|value| (*value).into())
+                .collect(),
+            information_cutoff_timestamp: cutoff,
+            effective_anchor_scope_digest_v1: format!("anchors-{result_digest}"),
+            effective_anchor_digests_v1: anchors.iter().map(|value| (*value).into()).collect(),
+            forecast_scope_digest_v1: "forecast".into(),
+            reference_digest_v1: String::new(),
+        };
+        source.reference_digest_v1 = source_reference_digest_v1(&source);
+        let membership = SourceResultMembershipProofV1 {
+            result_digest_v1: source.source_result_digest_v1.clone(),
+            parent_report_digest: "report".into(),
+            immutable_member: true,
+            snapshot_matches: true,
+            pack_matches: true,
+            scope_matches: true,
+            anchors_match: true,
+            objective_matches: true,
+            agent_matches: true,
+            all_invariants_pass: true,
+            proof_digest_v1: "proof".into(),
+        };
+        let mut opinion = create_source_bound_opinion_v1(
+            source,
+            &membership,
+            cutoff,
+            "test-doctrine",
+            &registration,
+        )
+        .unwrap();
+        let seal = source_bound_seal_v1(
+            &opinion.opinion_id,
+            &opinion.opinion_digest_v1,
+            &opinion.source_result,
+            &registration,
+            &opinion.authority,
+        )
+        .unwrap();
+        opinion.sealed = true;
+        (opinion, seal)
     }
     #[test]
     fn scope_identity_changes_when_row_content_or_order_changes() {
@@ -3002,5 +3328,69 @@ mod tests {
             verdict_tag_v1(crate::model::CycleRiskShadowVerdictV0::PositiveEvidence),
             verdict_tag_v1(crate::model::CycleRiskShadowVerdictV0::ProbabilityCollapse)
         );
+    }
+
+    #[test]
+    fn source_bound_mapping_records_partial_rows_without_making_them_comparable() {
+        let momentum = vec![source_bound_test_opinion(
+            "momentum",
+            LearnedAgentObjectiveV0::DirectionalMomentum,
+            "momentum-result",
+            &["row-1", "row-2", "row-3"],
+            &["momentum-anchor"],
+            3,
+        )];
+        let risk = vec![source_bound_test_opinion(
+            "risk",
+            LearnedAgentObjectiveV0::DownsideRisk,
+            "risk-result",
+            &["row-2", "row-3", "row-4"],
+            &["risk-anchor"],
+            4,
+        )];
+        let mapping = map_source_bound_opinions_v1(&momentum, &risk).unwrap();
+        assert_eq!(mapping.scope_pairs.len(), 1);
+        assert_eq!(
+            mapping.scope_pairs[0].raw_scope_alignment,
+            SourceBoundRawScopeAlignmentV1::DifferentInformationCutoff
+        );
+        assert_eq!(
+            mapping.scope_pairs[0].anchor_alignment,
+            SourceBoundAnchorAlignmentV1::DisjointAnchors
+        );
+        assert_eq!(
+            mapping.scope_pairs[0].comparability,
+            SourceBoundScopeComparabilityV1::SourceBoundButScopesNotComparable
+        );
+        assert_eq!(
+            mapping.mapping_status,
+            SourceBoundMappingStatusV1::SourceBoundButScopesNotComparable
+        );
+    }
+
+    #[test]
+    fn source_bound_ledger_record_round_trips_after_atomic_rename() {
+        let registration = SourceBoundOpinionProtocolRegistrationV1::pre_registered();
+        let mut ledger = new_source_bound_shadow_ledger_v1(&registration, "legacy".into()).unwrap();
+        let (opinion, seal) = source_bound_test_opinion(
+            "momentum",
+            LearnedAgentObjectiveV0::DirectionalMomentum,
+            "stored-result",
+            &["row-1"],
+            &["anchor-1"],
+            1,
+        );
+        append_source_bound_opinion_v1(&mut ledger, opinion, seal).unwrap();
+        let path = std::env::temp_dir().join(format!(
+            "soma-source-bound-ledger-{}.json",
+            ledger.ledger_digest_v1
+        ));
+        let _ = std::fs::remove_file(&path);
+        write_source_bound_shadow_ledger_record_v1(&path, &ledger).unwrap();
+        assert_eq!(
+            read_source_bound_shadow_ledger_record_v1(&path).unwrap(),
+            source_bound_shadow_ledger_record_v1(&ledger).unwrap()
+        );
+        std::fs::remove_file(path).unwrap();
     }
 }
