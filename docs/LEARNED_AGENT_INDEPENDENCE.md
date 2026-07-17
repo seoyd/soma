@@ -11,3 +11,5 @@ Momentum and Cycle/Risk primary opinions are independently created and sealed
 before reveal. The common protocol preserves their separate objectives and
 prevents shared authority, feature dependencies, prediction dependencies,
 normalizers, model parameters, or post-reveal mutation of primary opinions.
+The deliberation proof additionally requires no network, transport, consent
+read, or change to the three-member committee boundary.

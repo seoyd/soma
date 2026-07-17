@@ -392,10 +392,15 @@ fn run_local_historical_snapshot_campaign(
         if first != second {
             return Err("learned-agent shadow deliberation is nondeterministic".to_string());
         }
+        let mut ledger = crate::model::new_shadow_deliberation_ledger_v0();
+        for replay in &first {
+            crate::model::append_shadow_deliberation_v0(&mut ledger, replay)
+                .map_err(|_| "learned-agent shadow ledger append failed".to_string())?;
+        }
         if output_format == "json" {
             println!(
                 "{}",
-                serde_json::json!({"report_version":"learned-agent-shadow-deliberation-v0","offline":true,"provider_calls":0,"transport_constructions":0,"network_consent_reads":0,"deliberation_count":first.len(),"relationships":first.iter().map(|value| format!("{:?}", value.relationship.relationship)).collect::<Vec<_>>(),"transcript_digests":first.iter().map(|value| value.transcript.transcript_digest.clone()).collect::<Vec<_>>(),"chair_observed":false,"vote_created":false,"execution_created":false})
+                serde_json::json!({"report_version":"learned-agent-shadow-deliberation-v0","offline":true,"provider_calls":0,"transport_constructions":0,"network_consent_reads":0,"deliberation_count":first.len(),"relationships":first.iter().map(|value| format!("{:?}", value.relationship.relationship)).collect::<Vec<_>>(),"transcript_digests":first.iter().map(|value| value.transcript.transcript_digest.clone()).collect::<Vec<_>>(),"ledger_digest":ledger.ledger_digest,"chair_observed":false,"vote_created":false,"execution_created":false})
             );
         } else {
             println!("report_version=learned-agent-shadow-deliberation-v0");
@@ -410,6 +415,7 @@ fn run_local_historical_snapshot_campaign(
                     value.relationship.relationship, value.transcript.transcript_digest
                 );
             }
+            println!("ledger_digest={}", ledger.ledger_digest);
             println!("chair_observed=false");
             println!("vote_created=false");
             println!("execution_created=false");

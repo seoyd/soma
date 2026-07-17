@@ -177,10 +177,14 @@ pub use learned_agent_opinion::{
     FutureChairShadowObservationPacketV0, LearnedAgentArgumentKindV0, LearnedAgentArgumentV0,
     LearnedAgentObjectiveV0, LearnedAgentOpinionEnvelopeV0, LearnedAgentOpinionPayloadV0,
     LearnedAgentOpinionSealV0, OpinionAuthorityV0, OpinionEvidenceConfidenceV0,
-    OpinionEvidenceScopeV0, OpinionSupportStatusV0, PairwiseAgentOpinionRelationshipV0,
-    ShadowDeliberationLedgerV0, ShadowDeliberationQualityStatusV0, ShadowDeliberationReplayV0,
-    ShadowLearnedAgentDeliberationV0, append_shadow_deliberation_v0,
+    OpinionEvidenceScopeV0, OpinionInvalidationConditionV0, OpinionInvalidationKindV0,
+    OpinionSupportStatusV0, OpinionUncertaintyKindV0, OpinionUncertaintyV0,
+    PairwiseAgentOpinionRelationshipV0, SealedObjectiveSpecificProbabilityV0,
+    SealedProbabilityVisibilityV0, ShadowDeliberationLedgerV0, ShadowDeliberationQualityStatusV0,
+    ShadowDeliberationReplayV0, ShadowLearnedAgentDeliberationV0, append_shadow_deliberation_v0,
+    classify_pairwise_agent_opinions_v0, new_shadow_deliberation_ledger_v0,
     replay_btc_shadow_deliberations_v0, replay_shadow_deliberation_v0,
+    validate_learned_agent_opinion_v0, verify_learned_agent_opinion_seal_v0,
 };
 pub use learning::{
     AgentModelRuntimeV0, BaselineComparisonV0, CalibrationBucketV0, ChronologicalSplitConfigV0,
