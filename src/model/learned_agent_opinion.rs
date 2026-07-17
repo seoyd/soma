@@ -4,7 +4,8 @@ use crate::core::stable_hash_string;
 
 use super::cycle_risk_shadow::MOMENTUM_AGENT_ID_V0;
 use super::{
-    BtcTemporalRegimeClosedResultV0, CYCLE_RISK_SHADOW_AGENT_ID_V0, CycleRiskShadowReportV0,
+    BtcTemporalRegimeClosedResultV0, CYCLE_RISK_SHADOW_AGENT_ID_V0, CycleRiskRegimeResultV0,
+    CycleRiskShadowReportV0,
 };
 use crate::data::DataSnapshot;
 
@@ -437,6 +438,14 @@ fn seal(opinion: &mut LearnedAgentOpinionEnvelopeV0) -> LearnedAgentOpinionSealV
     ));
     seal
 }
+
+/// Re-seals an owned, reconstructed immutable opinion for external provenance
+/// comparison.  It is intentionally not an authority or persistence API.
+pub fn seal_for_provenance_v0(
+    opinion: &mut LearnedAgentOpinionEnvelopeV0,
+) -> LearnedAgentOpinionSealV0 {
+    seal(opinion)
+}
 pub fn validate_learned_agent_opinion_v0(
     opinion: &LearnedAgentOpinionEnvelopeV0,
 ) -> Result<(), String> {
@@ -711,6 +720,30 @@ fn abstain_risk(
         sealed: false,
         opinion_digest: String::new(),
     }
+}
+
+/// Immutable compatibility adapter used by external provenance audits.
+///
+/// The legacy opinion protocol keys its public evidence fields from the
+/// supplied deliberation context.  A regime is nevertheless supplied here so
+/// callers cannot accidentally audit a result that is not part of the report.
+/// No model execution or mutation occurs in this adapter.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CycleRiskOpinionAdapterContextV0 {
+    pub legacy_regime_id: String,
+}
+
+pub fn reconstruct_cycle_risk_opinion_from_regime_v0(
+    report: &CycleRiskShadowReportV0,
+    regime: &CycleRiskRegimeResultV0,
+    context: &CycleRiskOpinionAdapterContextV0,
+) -> Result<LearnedAgentOpinionEnvelopeV0, String> {
+    if regime.source_snapshot_id != report.snapshot_id
+        || !report.regimes.iter().any(|candidate| candidate == regime)
+    {
+        return Err("risk_regime_not_immutable_member_of_report".into());
+    }
+    Ok(abstain_risk(report, &context.legacy_regime_id))
 }
 pub fn replay_shadow_deliberation_v0(
     momentum_regime: &BtcTemporalRegimeClosedResultV0,

@@ -431,9 +431,9 @@ fn run_local_historical_snapshot_campaign(
         if allow_network {
             return Err("learned-agent scope alignment is offline-only".to_string());
         }
-        let first = crate::model::replay_btc_scope_alignment_v0(&snapshot, &campaign_config)
+        let first = crate::model::replay_btc_scope_alignment_v1(&snapshot, &campaign_config)
             .map_err(|_| "offline learned-agent scope alignment failed".to_string())?;
-        let second = crate::model::replay_btc_scope_alignment_v0(&snapshot, &campaign_config)
+        let second = crate::model::replay_btc_scope_alignment_v1(&snapshot, &campaign_config)
             .map_err(|_| "offline learned-agent scope alignment replay failed".to_string())?;
         if first != second {
             return Err("learned-agent scope alignment is nondeterministic".to_string());
@@ -447,15 +447,20 @@ fn run_local_historical_snapshot_campaign(
                     "provider_calls": 0,
                     "transport_constructions": 0,
                     "network_consent_reads": 0,
-                    "mapping_status": format!("{:?}", first.registry.mapping_status),
-                    "canonical_scope_count": first.registry.canonical_scopes.len(),
-                    "mapped_scope_count": first.aggregate.mapped_scope_count,
-                    "unmatched_scope_count": first.aggregate.unmatched_scope_count,
-                    "ambiguous_scope_count": first.registry.ambiguous_opinion_ids.len(),
-                    "composition_status": format!("{:?}", first.aggregate.composition_status),
-                    "relationship_summary": format!("{:?}", first.aggregate.relationship_summary),
-                    "registry_digest": first.registry.registry_digest,
-                    "aggregate_digest": first.aggregate.aggregate_digest,
+                    "legacy_report_version": first.legacy.report_version,
+                    "legacy_mapping_status": format!("{:?}", first.legacy.registry.mapping_status),
+                    "legacy_registry_digest": first.legacy.registry.registry_digest,
+                    "risk_range_plan_digest": first.range_plan.plan_digest,
+                    "risk_range_count": first.range_plan.ranges.len(),
+                    "risk_provenance_status": format!("{:?}", first.provenance.status),
+                    "risk_result_identity_count": first.provenance.result_identities.len(),
+                    "risk_witness_count": first.provenance.witnesses.len(),
+                    "risk_unmatched_opinion_count": first.provenance.unmatched_opinion_ids.len(),
+                    "risk_multiple_match_count": first.provenance.multiply_matched_opinion_ids.len(),
+                    "risk_provenance_registry_digest_v1": first.provenance.registry_digest_v1,
+                    "risk_anchor_scope_count": first.risk_anchor_scopes.len(),
+                    "risk_anchor_counts": first.risk_anchor_scopes.iter().map(|value| value.effective_anchor_count).collect::<Vec<_>>(),
+                    "report_digest_v1": first.report_digest_v1,
                     "chair_observed": false,
                     "vote_created": false,
                     "execution_created": false,
@@ -467,30 +472,37 @@ fn run_local_historical_snapshot_campaign(
             println!("provider_calls=0");
             println!("transport_constructions=0");
             println!("network_consent_reads=0");
-            println!("mapping_status={:?}", first.registry.mapping_status);
+            println!("legacy_report_version={}", first.legacy.report_version);
             println!(
-                "canonical_scope_count={}",
-                first.registry.canonical_scopes.len()
-            );
-            println!("mapped_scope_count={}", first.aggregate.mapped_scope_count);
-            println!(
-                "unmatched_scope_count={}",
-                first.aggregate.unmatched_scope_count
+                "legacy_mapping_status={:?}",
+                first.legacy.registry.mapping_status
             );
             println!(
-                "ambiguous_scope_count={}",
-                first.registry.ambiguous_opinion_ids.len()
+                "legacy_registry_digest={}",
+                first.legacy.registry.registry_digest
+            );
+            println!("risk_range_plan_digest={}", first.range_plan.plan_digest);
+            println!("risk_range_count={}", first.range_plan.ranges.len());
+            println!("risk_provenance_status={:?}", first.provenance.status);
+            println!(
+                "risk_result_identity_count={}",
+                first.provenance.result_identities.len()
+            );
+            println!("risk_witness_count={}", first.provenance.witnesses.len());
+            println!(
+                "risk_unmatched_opinion_count={}",
+                first.provenance.unmatched_opinion_ids.len()
             );
             println!(
-                "composition_status={:?}",
-                first.aggregate.composition_status
+                "risk_multiple_match_count={}",
+                first.provenance.multiply_matched_opinion_ids.len()
             );
             println!(
-                "relationship_summary={:?}",
-                first.aggregate.relationship_summary
+                "risk_provenance_registry_digest_v1={}",
+                first.provenance.registry_digest_v1
             );
-            println!("registry_digest={}", first.registry.registry_digest);
-            println!("aggregate_digest={}", first.aggregate.aggregate_digest);
+            println!("risk_anchor_scope_count={}", first.risk_anchor_scopes.len());
+            println!("report_digest_v1={}", first.report_digest_v1);
             println!("chair_observed=false");
             println!("vote_created=false");
             println!("execution_created=false");

@@ -3,11 +3,12 @@
 use crate::{core::stable_hash_string, data::DataSnapshot};
 
 use super::{
-    AgentOpinionRelationshipV0, BtcHistoricalRegimeConfigV0, CycleRiskShadowConfigV0,
-    LearnedAgentObjectiveV0, MomentumLearningCampaignConfigV0, TemporalRegimeSegmentationPolicyV0,
+    AgentOpinionRelationshipV0, BtcHistoricalRegimeConfigV0, CYCLE_RISK_SHADOW_AGENT_ID_V0,
+    CycleRiskOpinionAdapterContextV0, CycleRiskShadowConfigV0, LearnedAgentObjectiveV0,
+    MomentumLearningCampaignConfigV0, TemporalRegimeSegmentationPolicyV0,
     append_shadow_deliberation_v0, assess_momentum_campaign_sufficiency_v0,
-    new_shadow_deliberation_ledger_v0, replay_btc_shadow_deliberations_v0,
-    segment_btc_historical_regimes_v0,
+    new_shadow_deliberation_ledger_v0, reconstruct_cycle_risk_opinion_from_regime_v0,
+    replay_btc_shadow_deliberations_v0, segment_btc_historical_regimes_v0,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -684,6 +685,7 @@ pub fn replay_btc_scope_alignment_v0(
         ));
         attestations.push(unresolved);
     }
+    let momentum_scope_count = momentum_raw.len();
     let mut scopes = momentum_raw;
     scopes.extend(risk_raw);
     scopes.sort_by(|left, right| left.scope_digest.cmp(&right.scope_digest));
@@ -709,7 +711,7 @@ pub fn replay_btc_scope_alignment_v0(
     };
     let relationships = replays
         .iter()
-        .take(momentum_raw.len())
+        .take(momentum_scope_count)
         .map(|replay| replay.relationship.relationship)
         .collect::<Vec<_>>();
     let both_abstained_count = relationships
@@ -744,7 +746,7 @@ pub fn replay_btc_scope_alignment_v0(
         aggregate.composition_status,
     ));
     let mut ledger = new_shadow_deliberation_ledger_v0();
-    for replay in replays.iter().take(momentum_raw.len()) {
+    for replay in replays.iter().take(momentum_scope_count) {
         append_shadow_deliberation_v0(&mut ledger, replay)
             .map_err(|_| "existing_shadow_ledger_integrity_failed")?;
     }
@@ -758,7 +760,7 @@ pub fn replay_btc_scope_alignment_v0(
         aggregate,
         existing_transcript_digests: replays
             .iter()
-            .take(momentum_raw.len())
+            .take(momentum_scope_count)
             .map(|replay| replay.transcript.transcript_digest.clone())
             .collect(),
         existing_ledger_digest: ledger.ledger_digest,
@@ -770,6 +772,1065 @@ pub fn replay_btc_scope_alignment_v0(
         &value.existing_transcript_digests,
     ));
     Ok(value)
+}
+
+// V1 deliberately lives beside the V0 report.  It is an external audit layer:
+// it never feeds a model, rewrites a legacy digest, or changes a partition.
+pub trait CanonicalSemanticEncodeV1 {
+    fn encode_canonical_v1(&self, out: &mut Vec<u8>);
+}
+
+pub fn canonical_semantic_digest_v1<T: CanonicalSemanticEncodeV1>(value: &T) -> String {
+    let mut bytes = Vec::new();
+    value.encode_canonical_v1(&mut bytes);
+    stable_hash_string(&hex(&bytes))
+}
+
+fn hex(bytes: &[u8]) -> String {
+    const DIGITS: &[u8; 16] = b"0123456789abcdef";
+    let mut value = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        value.push(DIGITS[(byte >> 4) as usize] as char);
+        value.push(DIGITS[(byte & 15) as usize] as char);
+    }
+    value
+}
+fn tag(out: &mut Vec<u8>, value: u8) {
+    out.push(value);
+}
+fn u64v(out: &mut Vec<u8>, value: u64) {
+    out.extend_from_slice(&value.to_be_bytes());
+}
+fn usizev(out: &mut Vec<u8>, value: usize) {
+    u64v(out, value as u64);
+}
+fn boolv(out: &mut Vec<u8>, value: bool) {
+    tag(out, u8::from(value));
+}
+fn strv(out: &mut Vec<u8>, value: &str) {
+    usizev(out, value.len());
+    out.extend_from_slice(value.as_bytes());
+}
+fn f32v(out: &mut Vec<u8>, value: f32) {
+    u64v(out, value.to_bits() as u64);
+}
+fn opt_strv(out: &mut Vec<u8>, value: Option<&str>) {
+    match value {
+        Some(v) => {
+            tag(out, 1);
+            strv(out, v);
+        }
+        None => tag(out, 0),
+    }
+}
+fn opt_f32v(out: &mut Vec<u8>, value: Option<f32>) {
+    match value {
+        Some(v) => {
+            tag(out, 1);
+            f32v(out, v);
+        }
+        None => tag(out, 0),
+    }
+}
+fn strings(out: &mut Vec<u8>, values: &[String]) {
+    usizev(out, values.len());
+    for value in values {
+        strv(out, value);
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LegacyScopeReferenceV1 {
+    pub legacy_protocol_version: String,
+    pub legacy_scope_digest: Option<String>,
+    pub legacy_attestation_digest: Option<String>,
+    pub legacy_registry_digest: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CanonicalHistoricalRowIdentityV1 {
+    pub provider_id: String,
+    pub series_id: String,
+    pub timestamp_ms: u64,
+    pub open_bits: u64,
+    pub high_bits: u64,
+    pub low_bits: u64,
+    pub close_bits: u64,
+    pub volume_bits: u64,
+    pub trade_value_bits: Option<u64>,
+    pub row_digest_v1: String,
+}
+impl CanonicalSemanticEncodeV1 for CanonicalHistoricalRowIdentityV1 {
+    fn encode_canonical_v1(&self, out: &mut Vec<u8>) {
+        strv(out, "canonical-historical-row-v1");
+        strv(out, &self.provider_id);
+        strv(out, &self.series_id);
+        u64v(out, self.timestamp_ms);
+        u64v(out, self.open_bits);
+        u64v(out, self.high_bits);
+        u64v(out, self.low_bits);
+        u64v(out, self.close_bits);
+        u64v(out, self.volume_bits);
+        match self.trade_value_bits {
+            Some(value) => {
+                tag(out, 1);
+                u64v(out, value);
+            }
+            None => tag(out, 0),
+        }
+    }
+}
+fn row_identity_v1(
+    snapshot: &DataSnapshot,
+    row: &crate::league::HistoricalOhlcvRow,
+) -> Result<CanonicalHistoricalRowIdentityV1, String> {
+    if ![row.open, row.high, row.low, row.close, row.volume]
+        .iter()
+        .all(|value| value.is_finite())
+        || row.trade_value.is_some_and(|value| !value.is_finite())
+    {
+        return Err("non_finite_canonical_row".into());
+    }
+    let mut value = CanonicalHistoricalRowIdentityV1 {
+        provider_id: snapshot.normalized_dataset.source.clone(),
+        series_id: row.symbol.clone(),
+        timestamp_ms: row.timestamp_ms,
+        open_bits: row.open.to_bits(),
+        high_bits: row.high.to_bits(),
+        low_bits: row.low.to_bits(),
+        close_bits: row.close.to_bits(),
+        volume_bits: row.volume.to_bits(),
+        trade_value_bits: row.trade_value.map(f64::to_bits),
+        row_digest_v1: String::new(),
+    };
+    value.row_digest_v1 = canonical_semantic_digest_v1(&value);
+    Ok(value)
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CanonicalRawObservationScopeV1 {
+    pub scope_version: String,
+    pub provider_id: String,
+    pub series_id: String,
+    pub source_snapshot_id: String,
+    pub source_snapshot_semantic_digest: String,
+    pub range_start_index: usize,
+    pub range_end_index_exclusive: usize,
+    pub row_identity_digests: Vec<String>,
+    pub canonical_row_set_digest_v1: String,
+    pub canonical_row_order_digest_v1: String,
+    pub row_count: usize,
+    pub first_timestamp: u64,
+    pub last_timestamp: u64,
+    pub information_cutoff_timestamp: u64,
+    pub segmentation_policy_digest: String,
+    pub scope_digest_v1: String,
+}
+impl CanonicalSemanticEncodeV1 for CanonicalRawObservationScopeV1 {
+    fn encode_canonical_v1(&self, out: &mut Vec<u8>) {
+        strv(out, &self.scope_version);
+        strv(out, &self.provider_id);
+        strv(out, &self.series_id);
+        strv(out, &self.source_snapshot_id);
+        strv(out, &self.source_snapshot_semantic_digest);
+        usizev(out, self.range_start_index);
+        usizev(out, self.range_end_index_exclusive);
+        strings(out, &self.row_identity_digests);
+        strv(out, &self.canonical_row_set_digest_v1);
+        strv(out, &self.canonical_row_order_digest_v1);
+        usizev(out, self.row_count);
+        u64v(out, self.first_timestamp);
+        u64v(out, self.last_timestamp);
+        u64v(out, self.information_cutoff_timestamp);
+        strv(out, &self.segmentation_policy_digest);
+    }
+}
+pub fn canonical_raw_scope_v1(
+    snapshot: &DataSnapshot,
+    start: usize,
+    end: usize,
+    policy: &str,
+) -> Result<CanonicalRawObservationScopeV1, String> {
+    let rows = snapshot
+        .normalized_dataset
+        .rows
+        .get(start..end)
+        .ok_or("invalid_v1_scope_range")?;
+    if rows.is_empty()
+        || rows
+            .windows(2)
+            .any(|pair| pair[0].timestamp_ms >= pair[1].timestamp_ms)
+    {
+        return Err("invalid_v1_scope_rows".into());
+    }
+    let identities = rows
+        .iter()
+        .map(|row| row_identity_v1(snapshot, row))
+        .collect::<Result<Vec<_>, _>>()?;
+    let order = identities
+        .iter()
+        .map(|value| value.row_digest_v1.clone())
+        .collect::<Vec<_>>();
+    let mut set = order.clone();
+    set.sort();
+    if set.windows(2).any(|pair| pair[0] == pair[1]) {
+        return Err("duplicate_v1_canonical_row".into());
+    }
+    let mut value = CanonicalRawObservationScopeV1 {
+        scope_version: "canonical-raw-observation-scope-v1".into(),
+        provider_id: snapshot.normalized_dataset.source.clone(),
+        series_id: snapshot.normalized_dataset.symbol.clone(),
+        source_snapshot_id: snapshot.snapshot_id.clone(),
+        source_snapshot_semantic_digest: snapshot.content_digest.clone(),
+        range_start_index: start,
+        range_end_index_exclusive: end,
+        row_identity_digests: order.clone(),
+        canonical_row_set_digest_v1: strings_digest_v1("row-set-v1", &set),
+        canonical_row_order_digest_v1: strings_digest_v1("row-order-v1", &order),
+        row_count: rows.len(),
+        first_timestamp: rows[0].timestamp_ms,
+        last_timestamp: rows[rows.len() - 1].timestamp_ms,
+        information_cutoff_timestamp: rows[rows.len() - 1].timestamp_ms,
+        segmentation_policy_digest: policy.into(),
+        scope_digest_v1: String::new(),
+    };
+    value.scope_digest_v1 = canonical_semantic_digest_v1(&value);
+    Ok(value)
+}
+fn strings_digest_v1(domain: &str, values: &[String]) -> String {
+    let mut bytes = Vec::new();
+    strv(&mut bytes, domain);
+    strings(&mut bytes, values);
+    stable_hash_string(&hex(&bytes))
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CycleRiskHistoricalRangeCandidateV0 {
+    pub candidate_range_id: String,
+    pub start_row_index: usize,
+    pub end_row_index_exclusive: usize,
+    pub row_count: usize,
+    pub canonical_scope_digest_v1: String,
+    pub expected_frozen_pack_digest: String,
+    pub range_digest: String,
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CycleRiskHistoricalRangePlanV0 {
+    pub source_snapshot_id: String,
+    pub source_snapshot_digest: String,
+    pub config_digest: String,
+    pub ranges: Vec<CycleRiskHistoricalRangeCandidateV0>,
+    pub plan_digest: String,
+}
+fn risk_config_digest_v1(config: &CycleRiskShadowConfigV0) -> String {
+    let mut bytes = Vec::new();
+    strv(&mut bytes, "cycle-risk-config-v1");
+    usizev(&mut bytes, config.feature.short_lookback);
+    usizev(&mut bytes, config.feature.long_lookback);
+    usizev(&mut bytes, config.feature.drawdown_lookback);
+    f32v(&mut bytes, config.feature.epsilon);
+    usizev(&mut bytes, config.label.horizon_rows);
+    strv(&mut bytes, &config.label.threshold_policy);
+    f32v(&mut bytes, config.label.training_quantile);
+    usizev(&mut bytes, config.label.minimum_training_anchors);
+    usizev(&mut bytes, config.label.minimum_positive_labels);
+    usizev(&mut bytes, config.label.minimum_negative_labels);
+    usizev(&mut bytes, config.label.purge_gap_rows);
+    f32v(&mut bytes, config.label.epsilon);
+    usizev(&mut bytes, config.sequence_length);
+    f32v(&mut bytes, config.train_fraction);
+    f32v(&mut bytes, config.validation_fraction);
+    u64v(&mut bytes, config.seed);
+    f32v(&mut bytes, config.false_negative_safe_probability);
+    usizev(&mut bytes, config.maximum_high_confidence_false_negatives);
+    stable_hash_string(&hex(&bytes))
+}
+pub fn cycle_risk_historical_range_plan_v0(
+    snapshot: &DataSnapshot,
+    config: &CycleRiskShadowConfigV0,
+) -> Result<CycleRiskHistoricalRangePlanV0, String> {
+    config
+        .validate()
+        .map_err(|_| "risk_range_plan_invalid_config")?;
+    let snapshot_digest =
+        crate::data::historical_replay_dataset_digest_v0(&snapshot.normalized_dataset);
+    if snapshot_digest != snapshot.content_digest {
+        return Err("risk_range_plan_snapshot_digest_mismatch".into());
+    }
+    let mid = snapshot.normalized_dataset.rows.len() / 2;
+    let mut ranges = Vec::new();
+    for (start, end) in [(0usize, mid), (mid, snapshot.normalized_dataset.rows.len())] {
+        let scope = canonical_raw_scope_v1(snapshot, start, end, &risk_config_digest_v1(config))?;
+        let pack = stable_hash_string(&format!(
+            "cycle-risk-pack-v0:{}:{}:{}:{}",
+            snapshot.snapshot_id, start, end, snapshot_digest
+        ));
+        let mut bytes = Vec::new();
+        strv(&mut bytes, "cycle-risk-range-candidate-v1");
+        usizev(&mut bytes, start);
+        usizev(&mut bytes, end);
+        strv(&mut bytes, &scope.scope_digest_v1);
+        strv(&mut bytes, &pack);
+        let range_digest = stable_hash_string(&hex(&bytes));
+        ranges.push(CycleRiskHistoricalRangeCandidateV0 {
+            candidate_range_id: format!("risk-range-{}", range_digest),
+            start_row_index: start,
+            end_row_index_exclusive: end,
+            row_count: end - start,
+            canonical_scope_digest_v1: scope.scope_digest_v1,
+            expected_frozen_pack_digest: pack,
+            range_digest,
+        });
+    }
+    let mut bytes = Vec::new();
+    strv(&mut bytes, "cycle-risk-range-plan-v1");
+    strv(&mut bytes, &snapshot.snapshot_id);
+    strv(&mut bytes, &snapshot_digest);
+    strv(&mut bytes, &risk_config_digest_v1(config));
+    strings(
+        &mut bytes,
+        &ranges
+            .iter()
+            .map(|value| value.range_digest.clone())
+            .collect::<Vec<_>>(),
+    );
+    Ok(CycleRiskHistoricalRangePlanV0 {
+        source_snapshot_id: snapshot.snapshot_id.clone(),
+        source_snapshot_digest: snapshot_digest,
+        config_digest: risk_config_digest_v1(config),
+        ranges,
+        plan_digest: stable_hash_string(&hex(&bytes)),
+    })
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CycleRiskRangeResolutionStatusV0 {
+    VerifiedUniqueMatch,
+    NoMatchingRange,
+    MultipleMatchingRanges,
+    SnapshotMismatch,
+    PackDigestMismatch,
+    InvalidRangePlan,
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CycleRiskRangeResolutionV1 {
+    pub status: CycleRiskRangeResolutionStatusV0,
+    pub candidate_scope_digest_v1: Option<String>,
+    pub candidate_range_id: Option<String>,
+}
+fn resolve_risk_range(
+    plan: &CycleRiskHistoricalRangePlanV0,
+    result: &super::CycleRiskRegimeResultV0,
+) -> CycleRiskRangeResolutionV1 {
+    if result.source_snapshot_id != plan.source_snapshot_id {
+        return CycleRiskRangeResolutionV1 {
+            status: CycleRiskRangeResolutionStatusV0::SnapshotMismatch,
+            candidate_scope_digest_v1: None,
+            candidate_range_id: None,
+        };
+    }
+    let matches = plan
+        .ranges
+        .iter()
+        .filter(|value| value.expected_frozen_pack_digest == result.frozen_pack_digest)
+        .collect::<Vec<_>>();
+    match matches.as_slice() {
+        [value] => CycleRiskRangeResolutionV1 {
+            status: CycleRiskRangeResolutionStatusV0::VerifiedUniqueMatch,
+            candidate_scope_digest_v1: Some(value.canonical_scope_digest_v1.clone()),
+            candidate_range_id: Some(value.candidate_range_id.clone()),
+        },
+        [] => CycleRiskRangeResolutionV1 {
+            status: CycleRiskRangeResolutionStatusV0::NoMatchingRange,
+            candidate_scope_digest_v1: None,
+            candidate_range_id: None,
+        },
+        _ => CycleRiskRangeResolutionV1 {
+            status: CycleRiskRangeResolutionStatusV0::MultipleMatchingRanges,
+            candidate_scope_digest_v1: None,
+            candidate_range_id: None,
+        },
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CycleRiskRegimeResultIdentityV1 {
+    pub agent_id: String,
+    pub source_snapshot_id: String,
+    pub source_snapshot_digest: String,
+    pub frozen_pack_digest: String,
+    pub canonical_scope_digest_v1: String,
+    pub config_digest: String,
+    pub feature_config_digest: String,
+    pub label_config_digest: String,
+    pub sequence_policy_digest: String,
+    pub checkpoint_identity_digest: String,
+    pub verdict_tag: String,
+    pub accepted_model_version_id: Option<String>,
+    pub result_digest_v1: String,
+}
+fn metric_identity_v1(metric: &super::CycleRiskMetricSetV0, out: &mut Vec<u8>) {
+    f32v(out, metric.brier);
+    f32v(out, metric.calibration_reliability);
+    f32v(out, metric.resolution);
+    f32v(out, metric.uncertainty);
+    opt_f32v(out, metric.rank_auc);
+    f32v(out, metric.prevalence);
+    f32v(out, metric.mean_probability);
+    f32v(out, metric.probability_stddev);
+    f32v(out, metric.coverage);
+    usizev(out, metric.abstain_count);
+    usizev(out, metric.high_confidence_false_negatives);
+    usizev(out, metric.high_confidence_false_positives);
+    boolv(out, metric.probability_collapse);
+}
+fn verdict_tag_v1(value: super::CycleRiskShadowVerdictV0) -> &'static str {
+    match value {
+        super::CycleRiskShadowVerdictV0::PositiveEvidence => "positive_evidence",
+        super::CycleRiskShadowVerdictV0::LinearBaselineStronger => "linear_baseline_stronger",
+        super::CycleRiskShadowVerdictV0::ConstantBaselineStronger => "constant_baseline_stronger",
+        super::CycleRiskShadowVerdictV0::ProbabilityCollapse => "probability_collapse",
+        super::CycleRiskShadowVerdictV0::HighConfidenceFalseNegative => {
+            "high_confidence_false_negative"
+        }
+        super::CycleRiskShadowVerdictV0::InsufficientEvents => "insufficient_events",
+        super::CycleRiskShadowVerdictV0::ShadowOnly => "shadow_only",
+    }
+}
+fn risk_result_identity_v1(
+    report: &super::CycleRiskShadowReportV0,
+    result: &super::CycleRiskRegimeResultV0,
+    config: &CycleRiskShadowConfigV0,
+    resolution: &CycleRiskRangeResolutionV1,
+) -> Option<CycleRiskRegimeResultIdentityV1> {
+    let scope = resolution.candidate_scope_digest_v1.clone()?;
+    let mut checkpoint = Vec::new();
+    strv(&mut checkpoint, "cycle-risk-checkpoint-v1");
+    f32v(&mut checkpoint, result.checkpoint.threshold);
+    metric_identity_v1(&result.checkpoint.r0, &mut checkpoint);
+    metric_identity_v1(&result.checkpoint.r1, &mut checkpoint);
+    metric_identity_v1(&result.checkpoint.r2, &mut checkpoint);
+    metric_identity_v1(&result.checkpoint.train, &mut checkpoint);
+    metric_identity_v1(&result.checkpoint.validation, &mut checkpoint);
+    metric_identity_v1(&result.checkpoint.test, &mut checkpoint);
+    boolv(&mut checkpoint, result.checkpoint.test_sealed_once);
+    opt_strv(
+        &mut checkpoint,
+        result.checkpoint.accepted_model_version.as_deref(),
+    );
+    let checkpoint_identity_digest = stable_hash_string(&hex(&checkpoint));
+    let mut bytes = Vec::new();
+    strv(&mut bytes, "cycle-risk-regime-result-v1");
+    strv(&mut bytes, &report.agent_id);
+    strv(&mut bytes, &report.snapshot_id);
+    strv(&mut bytes, &report.snapshot_digest);
+    strv(&mut bytes, &result.frozen_pack_digest);
+    strv(&mut bytes, &scope);
+    strv(&mut bytes, &risk_config_digest_v1(config));
+    strv(&mut bytes, &config.feature.digest());
+    strv(&mut bytes, &config.label.digest());
+    usizev(&mut bytes, config.sequence_length);
+    strv(&mut bytes, &checkpoint_identity_digest);
+    strv(&mut bytes, verdict_tag_v1(result.verdict));
+    opt_strv(
+        &mut bytes,
+        result.checkpoint.accepted_model_version.as_deref(),
+    );
+    Some(CycleRiskRegimeResultIdentityV1 {
+        agent_id: report.agent_id.clone(),
+        source_snapshot_id: report.snapshot_id.clone(),
+        source_snapshot_digest: report.snapshot_digest.clone(),
+        frozen_pack_digest: result.frozen_pack_digest.clone(),
+        canonical_scope_digest_v1: scope,
+        config_digest: risk_config_digest_v1(config),
+        feature_config_digest: config.feature.digest(),
+        label_config_digest: config.label.digest(),
+        sequence_policy_digest: strings_digest_v1(
+            "risk-sequence-policy-v1",
+            &[config.sequence_length.to_string()],
+        ),
+        checkpoint_identity_digest,
+        verdict_tag: verdict_tag_v1(result.verdict).into(),
+        accepted_model_version_id: result.checkpoint.accepted_model_version.clone(),
+        result_digest_v1: stable_hash_string(&hex(&bytes)),
+    })
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum HistoricalPartitionV1 {
+    Train,
+    Validation,
+    Test,
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct EffectiveAnchorIdentityV1 {
+    pub anchor_timestamp: u64,
+    pub anchor_row_identity_digest: String,
+    pub partition: HistoricalPartitionV1,
+    pub input_start_timestamp: u64,
+    pub input_end_timestamp: u64,
+    pub required_label_end_timestamp: u64,
+    pub anchor_digest: String,
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AgentEffectiveAnchorScopeV1 {
+    pub agent_id: String,
+    pub objective: LearnedAgentObjectiveV0,
+    pub canonical_raw_scope_digest_v1: String,
+    pub train_anchor_digests: Vec<String>,
+    pub validation_anchor_digests: Vec<String>,
+    pub test_anchor_digests: Vec<String>,
+    pub all_anchor_digests: Vec<String>,
+    pub train_anchor_set_digest: String,
+    pub validation_anchor_set_digest: String,
+    pub test_anchor_set_digest: String,
+    pub all_anchor_set_digest: String,
+    pub all_anchor_order_digest: String,
+    pub effective_anchor_count: usize,
+    pub scope_digest_v1: String,
+}
+fn anchor(
+    scope: &CanonicalRawObservationScopeV1,
+    rows: &[crate::league::HistoricalOhlcvRow],
+    anchor_index: usize,
+    input_start: usize,
+    label_end: usize,
+    partition: HistoricalPartitionV1,
+) -> EffectiveAnchorIdentityV1 {
+    let tag_value = match partition {
+        HistoricalPartitionV1::Train => 1,
+        HistoricalPartitionV1::Validation => 2,
+        HistoricalPartitionV1::Test => 3,
+    };
+    let mut bytes = Vec::new();
+    strv(&mut bytes, "effective-anchor-v1");
+    strv(&mut bytes, &scope.row_identity_digests[anchor_index]);
+    tag(&mut bytes, tag_value);
+    u64v(&mut bytes, rows[input_start].timestamp_ms);
+    u64v(&mut bytes, rows[anchor_index].timestamp_ms);
+    u64v(&mut bytes, rows[label_end].timestamp_ms);
+    let digest = stable_hash_string(&hex(&bytes));
+    EffectiveAnchorIdentityV1 {
+        anchor_timestamp: rows[anchor_index].timestamp_ms,
+        anchor_row_identity_digest: scope.row_identity_digests[anchor_index].clone(),
+        partition,
+        input_start_timestamp: rows[input_start].timestamp_ms,
+        input_end_timestamp: rows[anchor_index].timestamp_ms,
+        required_label_end_timestamp: rows[label_end].timestamp_ms,
+        anchor_digest: digest,
+    }
+}
+fn anchor_scope(
+    agent: &str,
+    objective: LearnedAgentObjectiveV0,
+    scope: &CanonicalRawObservationScopeV1,
+    anchors: Vec<EffectiveAnchorIdentityV1>,
+) -> AgentEffectiveAnchorScopeV1 {
+    let mut train = Vec::new();
+    let mut validation = Vec::new();
+    let mut test = Vec::new();
+    for anchor in anchors {
+        match anchor.partition {
+            HistoricalPartitionV1::Train => train.push(anchor.anchor_digest),
+            HistoricalPartitionV1::Validation => validation.push(anchor.anchor_digest),
+            HistoricalPartitionV1::Test => test.push(anchor.anchor_digest),
+        }
+    }
+    let all = train
+        .iter()
+        .chain(&validation)
+        .chain(&test)
+        .cloned()
+        .collect::<Vec<_>>();
+    let set = |values: &[String]| {
+        let mut value = values.to_vec();
+        value.sort();
+        value.dedup();
+        strings_digest_v1("anchor-set-v1", &value)
+    };
+    let mut bytes = Vec::new();
+    strv(&mut bytes, "effective-anchor-scope-v1");
+    strv(&mut bytes, agent);
+    tag(
+        &mut bytes,
+        match objective {
+            LearnedAgentObjectiveV0::DirectionalMomentum => 1,
+            LearnedAgentObjectiveV0::DownsideRisk => 2,
+        },
+    );
+    strv(&mut bytes, &scope.scope_digest_v1);
+    strings(&mut bytes, &all);
+    AgentEffectiveAnchorScopeV1 {
+        agent_id: agent.into(),
+        objective,
+        canonical_raw_scope_digest_v1: scope.scope_digest_v1.clone(),
+        train_anchor_set_digest: set(&train),
+        validation_anchor_set_digest: set(&validation),
+        test_anchor_set_digest: set(&test),
+        all_anchor_set_digest: set(&all),
+        all_anchor_order_digest: strings_digest_v1("anchor-order-v1", &all),
+        effective_anchor_count: all.len(),
+        scope_digest_v1: stable_hash_string(&hex(&bytes)),
+        train_anchor_digests: train,
+        validation_anchor_digests: validation,
+        test_anchor_digests: test,
+        all_anchor_digests: all,
+    }
+}
+fn risk_anchor_scope_v1(
+    snapshot: &DataSnapshot,
+    candidate: &CycleRiskHistoricalRangeCandidateV0,
+    config: &CycleRiskShadowConfigV0,
+) -> Result<AgentEffectiveAnchorScopeV1, String> {
+    let scope = canonical_raw_scope_v1(
+        snapshot,
+        candidate.start_row_index,
+        candidate.end_row_index_exclusive,
+        &risk_config_digest_v1(config),
+    )?;
+    let rows = &snapshot.normalized_dataset.rows
+        [candidate.start_row_index..candidate.end_row_index_exclusive];
+    let history = config.feature.drawdown_lookback + 1;
+    if rows.len() <= history {
+        return Err("risk_anchor_history_invalid".into());
+    }
+    let features = rows.len() - history;
+    let train_end = (features as f32 * config.train_fraction).floor() as usize;
+    let validation_end =
+        train_end + (features as f32 * config.validation_fraction).floor() as usize;
+    let gap = config.label.purge_gap_rows + config.sequence_length;
+    let partitions = [
+        (0, train_end, HistoricalPartitionV1::Train),
+        (
+            train_end.saturating_add(gap),
+            validation_end,
+            HistoricalPartitionV1::Validation,
+        ),
+        (
+            validation_end.saturating_add(gap),
+            features,
+            HistoricalPartitionV1::Test,
+        ),
+    ];
+    let mut anchors = Vec::new();
+    for (start, end, partition) in partitions {
+        if start >= end {
+            continue;
+        }
+        for feature_end in start.saturating_add(config.sequence_length.saturating_sub(1))..end {
+            let raw_anchor = history + feature_end;
+            let raw_start = history + feature_end + 1 - config.sequence_length;
+            let label = raw_anchor + config.label.horizon_rows;
+            if label < rows.len() {
+                anchors.push(anchor(
+                    &scope, rows, raw_anchor, raw_start, label, partition,
+                ));
+            }
+        }
+    }
+    Ok(anchor_scope(
+        CYCLE_RISK_SHADOW_AGENT_ID_V0,
+        LearnedAgentObjectiveV0::DownsideRisk,
+        &scope,
+        anchors,
+    ))
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CycleRiskOpinionWitnessStatusV0 {
+    VerifiedUniqueSource,
+    NoMatchingSource,
+    MultipleMatchingSources,
+    OpinionSealInvalid,
+    ResultIdentityInvalid,
+    SnapshotMismatch,
+    PackMismatch,
+    AdapterReconstructionMismatch,
+    TechnicalFailure,
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CycleRiskOpinionProvenanceWitnessV0 {
+    pub witness_version: String,
+    pub opinion_id: String,
+    pub opinion_digest: String,
+    pub seal_digest: String,
+    pub candidate_result_digest_v1: String,
+    pub candidate_scope_digest_v1: String,
+    pub reconstructed_opinion_digest: String,
+    pub reconstructed_matches_existing: bool,
+    pub source_snapshot_matches: bool,
+    pub pack_identity_matches: bool,
+    pub objective_matches: bool,
+    pub agent_matches: bool,
+    pub witness_status: CycleRiskOpinionWitnessStatusV0,
+    pub reason_codes: Vec<String>,
+    pub witness_digest_v1: String,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CycleRiskProvenanceRegistryStatusV0 {
+    FullyVerified,
+    PartiallyVerified,
+    Ambiguous,
+    Empty,
+    Invalid,
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CycleRiskOpinionProvenanceRegistryV0 {
+    pub registry_version: String,
+    pub range_plan_digest: String,
+    pub result_identities: Vec<CycleRiskRegimeResultIdentityV1>,
+    pub witnesses: Vec<CycleRiskOpinionProvenanceWitnessV0>,
+    pub unmatched_opinion_ids: Vec<String>,
+    pub multiply_matched_opinion_ids: Vec<String>,
+    pub status: CycleRiskProvenanceRegistryStatusV0,
+    pub registry_digest_v1: String,
+}
+fn witness_registry_v1(
+    report: &super::CycleRiskShadowReportV0,
+    plan: &CycleRiskHistoricalRangePlanV0,
+    identities: &[CycleRiskRegimeResultIdentityV1],
+    existing: &[super::ShadowDeliberationReplayV0],
+) -> CycleRiskOpinionProvenanceRegistryV0 {
+    let mut witnesses = Vec::new();
+    let mut unmatched = Vec::new();
+    let mut multiple = Vec::new();
+    for replay in existing {
+        if replay.risk.opinion_id == "risk-opinion-historical-aggregate" {
+            continue;
+        }
+        let matches = report
+            .regimes
+            .iter()
+            .filter_map(|result| {
+                let identity = identities
+                    .iter()
+                    .find(|value| value.frozen_pack_digest == result.frozen_pack_digest)?;
+                let context = CycleRiskOpinionAdapterContextV0 {
+                    legacy_regime_id: replay
+                        .risk
+                        .temporal_scope
+                        .regime_id
+                        .clone()
+                        .unwrap_or_default(),
+                };
+                let reconstructed =
+                    reconstruct_cycle_risk_opinion_from_regime_v0(report, result, &context).ok()?;
+                let mut reconstructed = reconstructed;
+                let seal = super::learned_agent_opinion::seal_for_provenance_v0(&mut reconstructed);
+                let matches = reconstructed.opinion_digest == replay.risk.opinion_digest
+                    && seal.seal_digest == replay.risk_seal.seal_digest;
+                Some((identity, reconstructed, matches))
+            })
+            .collect::<Vec<_>>();
+        let matching = matches.iter().filter(|(_, _, value)| *value).count();
+        let status = if super::verify_learned_agent_opinion_seal_v0(&replay.risk, &replay.risk_seal)
+            .is_err()
+        {
+            CycleRiskOpinionWitnessStatusV0::OpinionSealInvalid
+        } else if matching == 1 {
+            CycleRiskOpinionWitnessStatusV0::VerifiedUniqueSource
+        } else if matching == 0 {
+            CycleRiskOpinionWitnessStatusV0::NoMatchingSource
+        } else {
+            CycleRiskOpinionWitnessStatusV0::MultipleMatchingSources
+        };
+        if matching == 0 {
+            unmatched.push(replay.risk.opinion_id.clone());
+        }
+        if matching > 1 {
+            multiple.push(replay.risk.opinion_id.clone());
+        }
+        for (identity, reconstructed, matched) in matches {
+            let mut bytes = Vec::new();
+            strv(&mut bytes, "risk-opinion-witness-v1");
+            strv(&mut bytes, &replay.risk.opinion_digest);
+            strv(&mut bytes, &identity.result_digest_v1);
+            boolv(&mut bytes, matched);
+            let reason = match status {
+                CycleRiskOpinionWitnessStatusV0::VerifiedUniqueSource => {
+                    "unique_reconstructed_result"
+                }
+                CycleRiskOpinionWitnessStatusV0::MultipleMatchingSources => {
+                    "multiple_reconstructed_results"
+                }
+                CycleRiskOpinionWitnessStatusV0::NoMatchingSource => "no_reconstructed_result",
+                _ => "witness_invalid",
+            }
+            .to_string();
+            witnesses.push(CycleRiskOpinionProvenanceWitnessV0 {
+                witness_version: "cycle-risk-opinion-provenance-witness-v1".into(),
+                opinion_id: replay.risk.opinion_id.clone(),
+                opinion_digest: replay.risk.opinion_digest.clone(),
+                seal_digest: replay.risk_seal.seal_digest.clone(),
+                candidate_result_digest_v1: identity.result_digest_v1.clone(),
+                candidate_scope_digest_v1: identity.canonical_scope_digest_v1.clone(),
+                reconstructed_opinion_digest: reconstructed.opinion_digest,
+                reconstructed_matches_existing: matched,
+                source_snapshot_matches: report.snapshot_id == identity.source_snapshot_id,
+                pack_identity_matches: plan
+                    .ranges
+                    .iter()
+                    .any(|range| range.expected_frozen_pack_digest == identity.frozen_pack_digest),
+                objective_matches: replay.risk.objective == LearnedAgentObjectiveV0::DownsideRisk,
+                agent_matches: replay.risk.agent_id == CYCLE_RISK_SHADOW_AGENT_ID_V0,
+                witness_status: status,
+                reason_codes: vec![reason],
+                witness_digest_v1: stable_hash_string(&hex(&bytes)),
+            });
+        }
+    }
+    witnesses.sort_by(|left, right| left.witness_digest_v1.cmp(&right.witness_digest_v1));
+    unmatched.sort();
+    unmatched.dedup();
+    multiple.sort();
+    multiple.dedup();
+    let status = if witnesses.is_empty() {
+        CycleRiskProvenanceRegistryStatusV0::Empty
+    } else if !multiple.is_empty() {
+        CycleRiskProvenanceRegistryStatusV0::Ambiguous
+    } else if unmatched.is_empty() {
+        CycleRiskProvenanceRegistryStatusV0::FullyVerified
+    } else {
+        CycleRiskProvenanceRegistryStatusV0::PartiallyVerified
+    };
+    let digest = strings_digest_v1(
+        "risk-provenance-registry-v1",
+        &witnesses
+            .iter()
+            .map(|value| value.witness_digest_v1.clone())
+            .collect::<Vec<_>>(),
+    );
+    CycleRiskOpinionProvenanceRegistryV0 {
+        registry_version: "cycle-risk-opinion-provenance-registry-v1".into(),
+        range_plan_digest: plan.plan_digest.clone(),
+        result_identities: identities.to_vec(),
+        witnesses,
+        unmatched_opinion_ids: unmatched,
+        multiply_matched_opinion_ids: multiple,
+        status,
+        registry_digest_v1: digest,
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ScopeAlignmentReportV1 {
+    pub report_version: String,
+    pub offline: bool,
+    pub provider_calls: usize,
+    pub transport_constructions: usize,
+    pub network_consent_reads: usize,
+    pub legacy: ScopeAlignmentReportV0,
+    pub range_plan: CycleRiskHistoricalRangePlanV0,
+    pub provenance: CycleRiskOpinionProvenanceRegistryV0,
+    pub risk_anchor_scopes: Vec<AgentEffectiveAnchorScopeV1>,
+    pub report_digest_v1: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum OpinionScopeAttestationStatusV1 {
+    Verified,
+    LegacyOpinionValidButSourceUnresolved,
+    SourceWitnessMismatch,
+    RawScopeMismatch,
+    AnchorScopeInvalid,
+    ForecastScopeInvalid,
+    AgentMismatch,
+    ObjectiveMismatch,
+    TechnicalFailure,
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LearnedAgentOpinionScopeAttestationV1 {
+    pub attestation_version: String,
+    pub opinion_id: String,
+    pub opinion_digest: String,
+    pub seal_digest: String,
+    pub agent_id: String,
+    pub objective: LearnedAgentObjectiveV0,
+    pub source_result_digest_v1: String,
+    pub canonical_raw_scope_digest_v1: String,
+    pub effective_anchor_scope_digest_v1: String,
+    pub forecast_scope_digest_v1: String,
+    pub provenance_witness_digest_v1: String,
+    pub attestation_status: OpinionScopeAttestationStatusV1,
+    pub reason_codes: Vec<String>,
+    pub attestation_digest_v1: String,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LearnedAgentRawScopeAlignmentV1 {
+    ExactSameCanonicalRows,
+    CertifiedEquivalentCanonicalRows,
+    MomentumStrictSubsetOfRisk,
+    RiskStrictSubsetOfMomentum,
+    PartialOverlap,
+    SameRangeDifferentRows,
+    DifferentInformationCutoff,
+    Disjoint,
+    Ambiguous,
+    Invalid,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LearnedAgentAnchorAlignmentV1 {
+    ExactSameAnchors,
+    SameRawScopeDifferentAnchors,
+    MomentumAnchorsStrictSubset,
+    RiskAnchorsStrictSubset,
+    PartialAnchorOverlap,
+    DisjointAnchors,
+    Unknown,
+    Invalid,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ObjectiveHorizonAlignmentV1 {
+    SameHorizonDifferentObjective,
+    DifferentHorizonCompatibleForRegimeSummary,
+    DifferentHorizonNotComparable,
+    MissingHorizonIdentity,
+    Invalid,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LearnedAgentScopeComparabilityV1 {
+    ExactDecisionScopeComparable,
+    RegimeSummaryComparableWithCaveats,
+    SharedLineageButNotComparable,
+    PartialOverlapNotComparable,
+    DifferentCutoffNotComparable,
+    AmbiguousNotComparable,
+    Invalid,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ScopeMappingRegistryStatusV1 {
+    FullyMapped,
+    FullyMappedWithCaveats,
+    PartiallyMapped,
+    ProvenanceVerifiedButScopesNotComparable,
+    Ambiguous,
+    Empty,
+    Invalid,
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CanonicalLearnedAgentScopePairV1 {
+    pub pair_id: String,
+    pub momentum_opinion_id: String,
+    pub risk_opinion_id: String,
+    pub momentum_attestation_digest_v1: String,
+    pub risk_attestation_digest_v1: String,
+    pub raw_scope_alignment: LearnedAgentRawScopeAlignmentV1,
+    pub anchor_alignment: LearnedAgentAnchorAlignmentV1,
+    pub horizon_alignment: ObjectiveHorizonAlignmentV1,
+    pub comparability: LearnedAgentScopeComparabilityV1,
+    pub caveat_codes: Vec<String>,
+    pub pair_digest_v1: String,
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LearnedAgentScopeMappingRegistryV1 {
+    pub registry_version: String,
+    pub momentum_attestations: Vec<LearnedAgentOpinionScopeAttestationV1>,
+    pub risk_attestations: Vec<LearnedAgentOpinionScopeAttestationV1>,
+    pub scope_pairs: Vec<CanonicalLearnedAgentScopePairV1>,
+    pub unmatched_momentum_opinion_ids: Vec<String>,
+    pub unmatched_risk_opinion_ids: Vec<String>,
+    pub ambiguous_opinion_ids: Vec<String>,
+    pub mapping_status: ScopeMappingRegistryStatusV1,
+    pub legacy_v0_registry_digest: String,
+    pub registry_digest_v1: String,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AggregateCompositionStatusV1 {
+    FullyComposed,
+    FullyComposedWithScopeCaveats,
+    PartiallyMappedNotComposable,
+    AmbiguousNotComposable,
+    EmptyNotComposable,
+    Invalid,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AggregateRelationshipSummaryV1 {
+    AllScopesBothAbstained,
+    MostlyAbstained,
+    TensionObserved,
+    OrthogonalAcrossScopes,
+    MixedRelationships,
+    IncomparableEvidence,
+    InsufficientMappedScopes,
+    TechnicalFailure,
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CrossScopeShadowDeliberationAggregateV1 {
+    pub aggregate_version: String,
+    pub mapping_registry_digest_v1: String,
+    pub included_deliberation_ids: Vec<String>,
+    pub included_scope_pair_ids: Vec<String>,
+    pub mapped_scope_count: usize,
+    pub unmatched_scope_count: usize,
+    pub both_abstained_count: usize,
+    pub momentum_abstained_count: usize,
+    pub risk_abstained_count: usize,
+    pub compatible_count: usize,
+    pub orthogonal_count: usize,
+    pub tension_count: usize,
+    pub incomparable_count: usize,
+    pub relationship_summary: AggregateRelationshipSummaryV1,
+    pub composition_status: AggregateCompositionStatusV1,
+    pub no_winner_selected: bool,
+    pub no_action_selected: bool,
+    pub chair_observed: bool,
+    pub reward_created: bool,
+    pub penalty_created: bool,
+    pub vote_created: bool,
+    pub execution_created: bool,
+    pub aggregate_digest_v1: String,
+}
+pub fn replay_btc_scope_alignment_v1(
+    snapshot: &DataSnapshot,
+    campaign: &MomentumLearningCampaignConfigV0,
+) -> Result<ScopeAlignmentReportV1, String> {
+    let legacy = replay_btc_scope_alignment_v0(snapshot, campaign)?;
+    let config = CycleRiskShadowConfigV0::default();
+    let plan = cycle_risk_historical_range_plan_v0(snapshot, &config)?;
+    let risk = super::run_cycle_risk_shadow_v0(snapshot, &config)
+        .map_err(|_| "risk_provenance_replay_failed")?;
+    let identities = risk
+        .regimes
+        .iter()
+        .filter_map(|result| {
+            let resolution = resolve_risk_range(&plan, result);
+            risk_result_identity_v1(&risk, result, &config, &resolution)
+        })
+        .collect::<Vec<_>>();
+    if identities.len() != risk.regimes.len() {
+        return Err("risk_result_range_resolution_failed".into());
+    }
+    let replays = super::replay_btc_shadow_deliberations_v0(snapshot, campaign)?;
+    let provenance = witness_registry_v1(&risk, &plan, &identities, &replays);
+    let risk_anchor_scopes = plan
+        .ranges
+        .iter()
+        .map(|candidate| risk_anchor_scope_v1(snapshot, candidate, &config))
+        .collect::<Result<Vec<_>, _>>()?;
+    let mut bytes = Vec::new();
+    strv(&mut bytes, "learned-agent-scope-alignment-v1");
+    strv(&mut bytes, &legacy.report_digest);
+    strv(&mut bytes, &plan.plan_digest);
+    strv(&mut bytes, &provenance.registry_digest_v1);
+    strings(
+        &mut bytes,
+        &risk_anchor_scopes
+            .iter()
+            .map(|scope| scope.scope_digest_v1.clone())
+            .collect::<Vec<_>>(),
+    );
+    Ok(ScopeAlignmentReportV1 {
+        report_version: "learned-agent-scope-alignment-v1".into(),
+        offline: true,
+        provider_calls: 0,
+        transport_constructions: 0,
+        network_consent_reads: 0,
+        legacy,
+        range_plan: plan,
+        provenance,
+        risk_anchor_scopes,
+        report_digest_v1: stable_hash_string(&hex(&bytes)),
+    })
 }
 
 #[cfg(test)]
@@ -824,6 +1885,43 @@ mod tests {
         assert_eq!(
             changed_rows.lineage_status,
             CanonicalScopeLineageStatusV0::DifferentRows
+        );
+    }
+
+    #[test]
+    fn v1_canonical_row_identity_uses_exact_bits_and_optional_tag() {
+        let base = CanonicalHistoricalRowIdentityV1 {
+            provider_id: "provider".into(),
+            series_id: "series".into(),
+            timestamp_ms: 7,
+            open_bits: 1.0f64.to_bits(),
+            high_bits: 2.0f64.to_bits(),
+            low_bits: 0.5f64.to_bits(),
+            close_bits: 1.5f64.to_bits(),
+            volume_bits: 9.0f64.to_bits(),
+            trade_value_bits: None,
+            row_digest_v1: String::new(),
+        };
+        let mut changed = base.clone();
+        changed.trade_value_bits = Some(0);
+        assert_eq!(
+            canonical_semantic_digest_v1(&base),
+            canonical_semantic_digest_v1(&base)
+        );
+        assert_ne!(
+            canonical_semantic_digest_v1(&base),
+            canonical_semantic_digest_v1(&changed)
+        );
+    }
+
+    #[test]
+    fn v1_encoder_preserves_vector_order_and_enum_tags() {
+        let ordered = strings_digest_v1("test", &["a".into(), "b".into()]);
+        let reordered = strings_digest_v1("test", &["b".into(), "a".into()]);
+        assert_ne!(ordered, reordered);
+        assert_ne!(
+            verdict_tag_v1(crate::model::CycleRiskShadowVerdictV0::PositiveEvidence),
+            verdict_tag_v1(crate::model::CycleRiskShadowVerdictV0::ProbabilityCollapse)
         );
     }
 }
