@@ -3,13 +3,16 @@
 use crate::{core::stable_hash_string, data::DataSnapshot};
 
 use super::{
-    AgentOpinionRelationshipV0, BtcHistoricalRegimeConfigV0, CYCLE_RISK_SHADOW_AGENT_ID_V0,
-    CycleRiskOpinionAdapterContextV0, CycleRiskShadowConfigV0, LearnedAgentObjectiveV0,
-    MomentumCandleV0, MomentumLearningCampaignConfigV0, TemporalRegimeSegmentationPolicyV0,
+    AgentOpinionRelationshipV0, BtcHistoricalRegimeConfigV0, BtcTemporalRegimeRefV0,
+    CYCLE_RISK_SHADOW_AGENT_ID_V0, CycleRiskOpinionAdapterContextV0, CycleRiskShadowConfigV0,
+    HistoricalEvidencePolicyV0, LearnedAgentObjectiveV0, MomentumCandleV0,
+    MomentumLearningCampaignConfigV0, TemporalRegimeSegmentationPolicyV0,
     append_shadow_deliberation_v0, assess_momentum_campaign_sufficiency_v0,
     build_momentum_features_v0, build_momentum_learning_windows_v0,
-    build_momentum_sequence_examples_v0, new_shadow_deliberation_ledger_v0,
-    reconstruct_cycle_risk_opinion_from_regime_v0, replay_btc_shadow_deliberations_v0,
+    build_momentum_sequence_examples_v0, close_btc_temporal_regime_result_v0,
+    freeze_btc_historical_regime_packs_v0, frozen_mamba3_encoder_from_seed_v0,
+    new_shadow_deliberation_ledger_v0, reconstruct_cycle_risk_opinion_from_regime_v0,
+    replay_btc_shadow_deliberations_v0, run_btc_historical_regime_campaigns_v0,
     segment_btc_historical_regimes_v0,
 };
 
@@ -2393,6 +2396,160 @@ pub fn replay_source_bound_cycle_risk_opinions_v1(
             &proof,
             snapshot.normalized_dataset.rows[candidate.end_row_index_exclusive - 1].timestamp_ms,
             "cycle-risk-historical-shadow",
+            &registration,
+        )?;
+        let seal = source_bound_seal_v1(
+            &opinion.opinion_id,
+            &opinion.opinion_digest_v1,
+            &opinion.source_result,
+            &registration,
+            &opinion.authority,
+        )?;
+        opinion.sealed = true;
+        output.push((opinion, seal));
+    }
+    Ok(output)
+}
+
+pub fn replay_source_bound_momentum_opinions_v1(
+    snapshot: &DataSnapshot,
+    campaign: &MomentumLearningCampaignConfigV0,
+) -> Result<Vec<(LearnedAgentOpinionEnvelopeV1, LearnedAgentOpinionSealV1)>, String> {
+    let registration = SourceBoundOpinionProtocolRegistrationV1::pre_registered();
+    registration.validate()?;
+    let sufficiency = assess_momentum_campaign_sufficiency_v0(snapshot.row_count, campaign)
+        .map_err(|_| "momentum_sufficiency_invalid")?;
+    let segmentation = segment_btc_historical_regimes_v0(
+        snapshot,
+        &BtcHistoricalRegimeConfigV0 {
+            minimum_regimes: 2,
+            regime_rows: sufficiency.required_minimum_rows,
+            inter_regime_gap_rows: campaign.purge_gap_rows,
+            minimum_campaign_windows_per_regime: campaign.minimum_evaluated_windows,
+            segmentation_policy: TemporalRegimeSegmentationPolicyV0::EqualLengthChronological,
+        },
+    )
+    .map_err(|_| "momentum_segmentation_invalid")?;
+    let packs = freeze_btc_historical_regime_packs_v0(
+        snapshot,
+        &segmentation,
+        &HistoricalEvidencePolicyV0::default(),
+    )
+    .map_err(|_| "momentum_pack_invalid")?;
+    let encoder = frozen_mamba3_encoder_from_seed_v0(
+        &campaign.feature_config,
+        campaign.campaign_seed,
+        campaign.backend_preference,
+        campaign.fallback_policy,
+    )
+    .map_err(|_| "momentum_encoder_invalid")?;
+    let raw = run_btc_historical_regime_campaigns_v0(&packs, campaign, &encoder)
+        .map_err(|_| "momentum_campaign_invalid")?;
+    let mut output = Vec::new();
+    for (rank, (regime, pack)) in packs.iter().enumerate() {
+        let result = raw
+            .iter()
+            .find(|value| value.regime_id == regime.regime_id)
+            .ok_or("momentum_result_missing")?;
+        let closed = close_btc_temporal_regime_result_v0(
+            result,
+            BtcTemporalRegimeRefV0 {
+                regime_id: regime.regime_id.clone(),
+                chronological_rank: rank,
+                row_count: regime.row_count,
+                range_digest: stable_hash_string(&format!(
+                    "{}:{}:{}",
+                    regime.start_timestamp_ms, regime.end_timestamp_ms, regime.row_count
+                )),
+                pack_digest: pack.digest.clone(),
+            },
+        );
+        let anchors = momentum_anchor_scope_v1(
+            snapshot,
+            regime.start_row_index,
+            regime.end_row_index_exclusive,
+            campaign,
+        )?;
+        let scope = canonical_raw_scope_v1(
+            snapshot,
+            regime.start_row_index,
+            regime.end_row_index_exclusive,
+            &segmentation.segmentation_config_digest,
+        )?;
+        let checkpoint = strings_digest_v1(
+            "momentum-closed-checkpoint-v1",
+            &[
+                closed.report_digest.clone(),
+                closed.execution_trace.trace_digest.clone(),
+                closed.accepted_predictive_versions.to_string(),
+            ],
+        );
+        let result_digest = strings_digest_v1(
+            "momentum-regime-result-v1",
+            &[
+                snapshot.snapshot_id.clone(),
+                snapshot.content_digest.clone(),
+                pack.digest.clone(),
+                scope.scope_digest_v1.clone(),
+                anchors.scope_digest_v1.clone(),
+                campaign.digest(),
+                checkpoint.clone(),
+                closed.report_digest.clone(),
+            ],
+        );
+        let mut source = LearnedAgentSourceResultReferenceV1 {
+            agent_id: campaign.agent_id.clone(),
+            objective: LearnedAgentObjectiveV0::DirectionalMomentum,
+            source_snapshot_id: snapshot.snapshot_id.clone(),
+            source_snapshot_digest: snapshot.content_digest.clone(),
+            source_result_kind: SourceResultKindV1::MomentumHistoricalRegimeResult,
+            source_result_digest_v1: result_digest,
+            source_checkpoint_digest_v1: checkpoint,
+            source_frozen_pack_digest: pack.digest.clone(),
+            source_model_version_id: None,
+            source_model_artifact_digest: result.encoder_parameter_digest.clone(),
+            canonical_raw_scope_digest_v1: scope.scope_digest_v1,
+            effective_anchor_scope_digest_v1: anchors.scope_digest_v1,
+            forecast_scope_digest_v1: strings_digest_v1(
+                "momentum-forecast-scope-v1",
+                &[
+                    campaign.sequence_config.prediction_horizon.to_string(),
+                    campaign
+                        .sequence_config
+                        .label_dead_zone
+                        .to_bits()
+                        .to_string(),
+                ],
+            ),
+            reference_digest_v1: String::new(),
+        };
+        source.reference_digest_v1 = source_reference_digest_v1(&source);
+        let mut proof = SourceResultMembershipProofV1 {
+            result_digest_v1: source.source_result_digest_v1.clone(),
+            parent_report_digest: closed.report_digest.clone(),
+            immutable_member: true,
+            snapshot_matches: true,
+            pack_matches: closed.regime.pack_digest == source.source_frozen_pack_digest,
+            scope_matches: true,
+            anchors_match: true,
+            objective_matches: true,
+            agent_matches: true,
+            all_invariants_pass: true,
+            proof_digest_v1: String::new(),
+        };
+        proof.proof_digest_v1 = strings_digest_v1(
+            "momentum-membership-proof-v1",
+            &[
+                proof.result_digest_v1.clone(),
+                proof.parent_report_digest.clone(),
+                source.reference_digest_v1.clone(),
+            ],
+        );
+        let mut opinion = create_source_bound_opinion_v1(
+            source,
+            &proof,
+            regime.end_timestamp_ms,
+            "momentum-historical-shadow",
             &registration,
         )?;
         let seal = source_bound_seal_v1(
