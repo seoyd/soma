@@ -2565,6 +2565,172 @@ pub fn replay_source_bound_momentum_opinions_v1(
     Ok(output)
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SourceBoundMappingStatusV1 {
+    FullyMapped,
+    FullyMappedWithCaveats,
+    SourceBoundButScopesNotComparable,
+    PartiallyMapped,
+    Empty,
+    Invalid,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SourceBoundRawScopeAlignmentV1 {
+    ExactSameCanonicalRows,
+    PartialOverlap,
+    DifferentInformationCutoff,
+    Disjoint,
+    Invalid,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SourceBoundAnchorAlignmentV1 {
+    ExactSameAnchors,
+    SameRawScopeDifferentAnchors,
+    DisjointAnchors,
+    Invalid,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SourceBoundScopeComparabilityV1 {
+    ExactDecisionScopeComparable,
+    RegimeSummaryComparableWithCaveats,
+    SourceBoundButScopesNotComparable,
+    Invalid,
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SourceBoundOpinionScopePairV1 {
+    pub pair_id: String,
+    pub momentum_opinion_id: String,
+    pub risk_opinion_id: String,
+    pub raw_scope_alignment: SourceBoundRawScopeAlignmentV1,
+    pub anchor_alignment: SourceBoundAnchorAlignmentV1,
+    pub comparability: SourceBoundScopeComparabilityV1,
+    pub pair_digest_v1: String,
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SourceBoundOpinionScopeMappingRegistryV1 {
+    pub registry_version: String,
+    pub protocol_registration_digest_v1: String,
+    pub momentum_opinion_ids: Vec<String>,
+    pub risk_opinion_ids: Vec<String>,
+    pub scope_pairs: Vec<SourceBoundOpinionScopePairV1>,
+    pub unmatched_momentum_opinion_ids: Vec<String>,
+    pub unmatched_risk_opinion_ids: Vec<String>,
+    pub non_comparable_pair_ids: Vec<String>,
+    pub mapping_status: SourceBoundMappingStatusV1,
+    pub registry_digest_v1: String,
+}
+pub fn map_source_bound_opinions_v1(
+    momentum: &[(LearnedAgentOpinionEnvelopeV1, LearnedAgentOpinionSealV1)],
+    risk: &[(LearnedAgentOpinionEnvelopeV1, LearnedAgentOpinionSealV1)],
+) -> Result<SourceBoundOpinionScopeMappingRegistryV1, String> {
+    let registration = SourceBoundOpinionProtocolRegistrationV1::pre_registered();
+    registration.validate()?;
+    let mut pairs = Vec::new();
+    let mut used_risk = Vec::new();
+    let mut unmatched_momentum = Vec::new();
+    let mut non_comparable = Vec::new();
+    for (momentum_opinion, momentum_seal) in momentum {
+        if !momentum_opinion.sealed || !momentum_seal.sealed_before_cross_agent_reveal {
+            return Err("unsealed_momentum_source_bound_opinion".into());
+        }
+        let candidates = risk
+            .iter()
+            .filter(|(risk_opinion, risk_seal)| {
+                risk_opinion.sealed
+                    && risk_seal.sealed_before_cross_agent_reveal
+                    && risk_opinion.source_result.canonical_raw_scope_digest_v1
+                        == momentum_opinion.source_result.canonical_raw_scope_digest_v1
+            })
+            .collect::<Vec<_>>();
+        if candidates.len() != 1 {
+            unmatched_momentum.push(momentum_opinion.opinion_id.clone());
+            continue;
+        }
+        let (risk_opinion, _) = candidates[0];
+        used_risk.push(risk_opinion.opinion_id.clone());
+        let anchors_equal = momentum_opinion
+            .source_result
+            .effective_anchor_scope_digest_v1
+            == risk_opinion.source_result.effective_anchor_scope_digest_v1;
+        let raw = SourceBoundRawScopeAlignmentV1::ExactSameCanonicalRows;
+        let anchor = if anchors_equal {
+            SourceBoundAnchorAlignmentV1::ExactSameAnchors
+        } else {
+            SourceBoundAnchorAlignmentV1::SameRawScopeDifferentAnchors
+        };
+        let comparability = if anchors_equal
+            && momentum_opinion.source_result.forecast_scope_digest_v1
+                == risk_opinion.source_result.forecast_scope_digest_v1
+        {
+            SourceBoundScopeComparabilityV1::ExactDecisionScopeComparable
+        } else {
+            SourceBoundScopeComparabilityV1::RegimeSummaryComparableWithCaveats
+        };
+        let mut bytes = Vec::new();
+        strv(&mut bytes, &momentum_opinion.opinion_id);
+        strv(&mut bytes, &risk_opinion.opinion_id);
+        tag(&mut bytes, if anchors_equal { 1 } else { 2 });
+        let digest = stable_hash_string(&hex(&bytes));
+        if comparability != SourceBoundScopeComparabilityV1::ExactDecisionScopeComparable {
+            non_comparable.push(format!("pair-{digest}"));
+        }
+        pairs.push(SourceBoundOpinionScopePairV1 {
+            pair_id: format!("pair-{digest}"),
+            momentum_opinion_id: momentum_opinion.opinion_id.clone(),
+            risk_opinion_id: risk_opinion.opinion_id.clone(),
+            raw_scope_alignment: raw,
+            anchor_alignment: anchor,
+            comparability,
+            pair_digest_v1: digest,
+        });
+    }
+    let mut unmatched_risk = risk
+        .iter()
+        .filter(|(opinion, _)| !used_risk.contains(&opinion.opinion_id))
+        .map(|(opinion, _)| opinion.opinion_id.clone())
+        .collect::<Vec<_>>();
+    unmatched_risk.sort();
+    let status = if momentum.is_empty() || risk.is_empty() {
+        SourceBoundMappingStatusV1::Empty
+    } else if pairs.is_empty() {
+        SourceBoundMappingStatusV1::SourceBoundButScopesNotComparable
+    } else if !unmatched_momentum.is_empty() || !unmatched_risk.is_empty() {
+        SourceBoundMappingStatusV1::PartiallyMapped
+    } else if non_comparable.is_empty() {
+        SourceBoundMappingStatusV1::FullyMapped
+    } else {
+        SourceBoundMappingStatusV1::FullyMappedWithCaveats
+    };
+    let mut bytes = Vec::new();
+    strings(
+        &mut bytes,
+        &pairs
+            .iter()
+            .map(|pair| pair.pair_digest_v1.clone())
+            .collect::<Vec<_>>(),
+    );
+    strings(&mut bytes, &unmatched_momentum);
+    strings(&mut bytes, &unmatched_risk);
+    Ok(SourceBoundOpinionScopeMappingRegistryV1 {
+        registry_version: "source-bound-opinion-scope-mapping-v1".into(),
+        protocol_registration_digest_v1: registration.policy_digest_v1,
+        momentum_opinion_ids: momentum
+            .iter()
+            .map(|(opinion, _)| opinion.opinion_id.clone())
+            .collect(),
+        risk_opinion_ids: risk
+            .iter()
+            .map(|(opinion, _)| opinion.opinion_id.clone())
+            .collect(),
+        scope_pairs: pairs,
+        unmatched_momentum_opinion_ids: unmatched_momentum,
+        unmatched_risk_opinion_ids: unmatched_risk,
+        non_comparable_pair_ids: non_comparable,
+        mapping_status: status,
+        registry_digest_v1: stable_hash_string(&hex(&bytes)),
+    })
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SourceBoundShadowDeliberationLedgerV1 {
     pub ledger_version: String,
