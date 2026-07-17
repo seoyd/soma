@@ -2102,6 +2102,147 @@ pub fn source_bound_seal_v1(
     Ok(value)
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct OpinionTemporalScopeV1 {
+    pub source_information_cutoff_timestamp: u64,
+    pub forecast_horizon_digest_v1: String,
+    pub prospective: bool,
+    pub contemporaneous_claim: bool,
+    pub scope_digest_v1: String,
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LearnedAgentOpinionEnvelopeV1 {
+    pub protocol_version: String,
+    pub opinion_id: String,
+    pub creation_mode: LearnedAgentOpinionCreationModeV1,
+    pub protocol_registration_digest_v1: String,
+    pub agent_id: String,
+    pub objective: LearnedAgentObjectiveV0,
+    pub doctrine_id: String,
+    pub source_result: LearnedAgentSourceResultReferenceV1,
+    pub source_membership_proof_digest_v1: String,
+    pub temporal_scope: OpinionTemporalScopeV1,
+    pub reason_codes: Vec<String>,
+    pub authority: OpinionAuthorityV1,
+    pub sealed: bool,
+    pub opinion_digest_v1: String,
+}
+fn objective_tag_v1(value: LearnedAgentObjectiveV0) -> u8 {
+    match value {
+        LearnedAgentObjectiveV0::DirectionalMomentum => 1,
+        LearnedAgentObjectiveV0::DownsideRisk => 2,
+    }
+}
+fn source_reference_digest_v1(value: &LearnedAgentSourceResultReferenceV1) -> String {
+    let mut bytes = Vec::new();
+    strv(&mut bytes, "learned-agent-source-result-reference-v1");
+    strv(&mut bytes, &value.agent_id);
+    tag(&mut bytes, objective_tag_v1(value.objective));
+    for text in [
+        &value.source_snapshot_id,
+        &value.source_snapshot_digest,
+        &value.source_result_digest_v1,
+        &value.source_checkpoint_digest_v1,
+        &value.source_frozen_pack_digest,
+        &value.source_model_artifact_digest,
+        &value.canonical_raw_scope_digest_v1,
+        &value.effective_anchor_scope_digest_v1,
+        &value.forecast_scope_digest_v1,
+    ] {
+        strv(&mut bytes, text);
+    }
+    tag(
+        &mut bytes,
+        match value.source_result_kind {
+            SourceResultKindV1::MomentumHistoricalRegimeResult => 1,
+            SourceResultKindV1::CycleRiskHistoricalRegimeResult => 2,
+        },
+    );
+    opt_strv(&mut bytes, value.source_model_version_id.as_deref());
+    stable_hash_string(&hex(&bytes))
+}
+pub fn create_source_bound_opinion_v1(
+    source: LearnedAgentSourceResultReferenceV1,
+    membership: &SourceResultMembershipProofV1,
+    cutoff: u64,
+    doctrine_id: &str,
+    registration: &SourceBoundOpinionProtocolRegistrationV1,
+) -> Result<LearnedAgentOpinionEnvelopeV1, String> {
+    registration.validate()?;
+    if !membership.all_invariants_pass
+        || membership.result_digest_v1 != source.source_result_digest_v1
+        || source.reference_digest_v1 != source_reference_digest_v1(&source)
+    {
+        return Err("source_bound_membership_invalid".into());
+    }
+    let mut temporal = OpinionTemporalScopeV1 {
+        source_information_cutoff_timestamp: cutoff,
+        forecast_horizon_digest_v1: source.forecast_scope_digest_v1.clone(),
+        prospective: false,
+        contemporaneous_claim: false,
+        scope_digest_v1: String::new(),
+    };
+    let mut temporal_bytes = Vec::new();
+    u64v(&mut temporal_bytes, cutoff);
+    strv(&mut temporal_bytes, &temporal.forecast_horizon_digest_v1);
+    boolv(&mut temporal_bytes, false);
+    boolv(&mut temporal_bytes, false);
+    temporal.scope_digest_v1 = stable_hash_string(&hex(&temporal_bytes));
+    let authority = OpinionAuthorityV1::historical_advisory_only();
+    let mut id_bytes = Vec::new();
+    strv(&mut id_bytes, "source-bound-opinion-v1");
+    strv(&mut id_bytes, &registration.policy_digest_v1);
+    strv(&mut id_bytes, &source.agent_id);
+    tag(&mut id_bytes, objective_tag_v1(source.objective));
+    for value in [
+        &source.source_result_digest_v1,
+        &source.canonical_raw_scope_digest_v1,
+        &source.effective_anchor_scope_digest_v1,
+        &source.forecast_scope_digest_v1,
+        &source.source_model_artifact_digest,
+    ] {
+        strv(&mut id_bytes, value);
+    }
+    let opinion_id = format!(
+        "source-bound-opinion-{}",
+        stable_hash_string(&hex(&id_bytes))
+    );
+    let mut value = LearnedAgentOpinionEnvelopeV1 {
+        protocol_version: registration.opinion_protocol_version.clone(),
+        opinion_id,
+        creation_mode: LearnedAgentOpinionCreationModeV1::HistoricalRetrospectiveSourceBoundReplay,
+        protocol_registration_digest_v1: registration.policy_digest_v1.clone(),
+        agent_id: source.agent_id.clone(),
+        objective: source.objective,
+        doctrine_id: doctrine_id.into(),
+        source_result: source,
+        source_membership_proof_digest_v1: membership.proof_digest_v1.clone(),
+        temporal_scope: temporal,
+        reason_codes: vec!["historical_retrospective_source_bound_abstention".into()],
+        authority,
+        sealed: false,
+        opinion_digest_v1: String::new(),
+    };
+    let mut bytes = Vec::new();
+    for text in [
+        &value.protocol_version,
+        &value.opinion_id,
+        &value.protocol_registration_digest_v1,
+        &value.agent_id,
+        &value.doctrine_id,
+        &value.source_result.reference_digest_v1,
+        &value.source_membership_proof_digest_v1,
+        &value.temporal_scope.scope_digest_v1,
+    ] {
+        strv(&mut bytes, text);
+    }
+    tag(&mut bytes, objective_tag_v1(value.objective));
+    strings(&mut bytes, &value.reason_codes);
+    strv(&mut bytes, &authority_digest_v1(&value.authority));
+    value.opinion_digest_v1 = stable_hash_string(&hex(&bytes));
+    Ok(value)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
