@@ -172,6 +172,15 @@ pub use historical_evidence::{
 pub use import::{
     prediction_frame_from_csv_string, prediction_frame_from_rows, prediction_frame_to_csv_string,
 };
+pub use learned_agent_opinion::{
+    AgentOpinionRelationshipV0, CrossAgentOpinionIndependenceProofV0,
+    FutureChairShadowObservationPacketV0, LearnedAgentArgumentKindV0, LearnedAgentArgumentV0,
+    LearnedAgentObjectiveV0, LearnedAgentOpinionEnvelopeV0, LearnedAgentOpinionPayloadV0,
+    LearnedAgentOpinionSealV0, OpinionAuthorityV0, OpinionEvidenceConfidenceV0,
+    OpinionEvidenceScopeV0, OpinionSupportStatusV0, PairwiseAgentOpinionRelationshipV0,
+    ShadowDeliberationQualityStatusV0, ShadowDeliberationReplayV0,
+    ShadowLearnedAgentDeliberationV0, replay_shadow_deliberation_v0,
+};
 pub use learning::{
     AgentModelRuntimeV0, BaselineComparisonV0, CalibrationBucketV0, ChronologicalSplitConfigV0,
     ChronologicalSplitsV0, ConstantProbabilityBaselineV0, EncodedSequenceV0,
