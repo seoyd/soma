@@ -2243,6 +2243,108 @@ pub fn create_source_bound_opinion_v1(
     Ok(value)
 }
 
+pub fn replay_source_bound_cycle_risk_opinions_v1(
+    snapshot: &DataSnapshot,
+) -> Result<Vec<(LearnedAgentOpinionEnvelopeV1, LearnedAgentOpinionSealV1)>, String> {
+    let registration = SourceBoundOpinionProtocolRegistrationV1::pre_registered();
+    registration.validate()?;
+    let config = CycleRiskShadowConfigV0::default();
+    let plan = cycle_risk_historical_range_plan_v0(snapshot, &config)?;
+    let report = super::run_cycle_risk_shadow_v0(snapshot, &config)
+        .map_err(|_| "source_bound_risk_report_failed")?;
+    let mut output = Vec::new();
+    for result in &report.regimes {
+        let resolution = resolve_risk_range(&plan, result);
+        let identity = risk_result_identity_v1(&report, result, &config, &resolution)
+            .ok_or("source_bound_risk_identity_failed")?;
+        let candidate = plan
+            .ranges
+            .iter()
+            .find(|value| value.expected_frozen_pack_digest == result.frozen_pack_digest)
+            .ok_or("source_bound_risk_range_missing")?;
+        let anchors = risk_anchor_scope_v1(snapshot, candidate, &config)?;
+        let mut source = LearnedAgentSourceResultReferenceV1 {
+            agent_id: report.agent_id.clone(),
+            objective: LearnedAgentObjectiveV0::DownsideRisk,
+            source_snapshot_id: report.snapshot_id.clone(),
+            source_snapshot_digest: report.snapshot_digest.clone(),
+            source_result_kind: SourceResultKindV1::CycleRiskHistoricalRegimeResult,
+            source_result_digest_v1: identity.result_digest_v1.clone(),
+            source_checkpoint_digest_v1: identity.checkpoint_identity_digest.clone(),
+            source_frozen_pack_digest: result.frozen_pack_digest.clone(),
+            source_model_version_id: result.checkpoint.accepted_model_version.clone(),
+            source_model_artifact_digest: result
+                .checkpoint
+                .accepted_model_version
+                .clone()
+                .unwrap_or_else(|| result.frozen_pack_digest.clone()),
+            canonical_raw_scope_digest_v1: identity.canonical_scope_digest_v1.clone(),
+            effective_anchor_scope_digest_v1: anchors.scope_digest_v1,
+            forecast_scope_digest_v1: strings_digest_v1(
+                "risk-forecast-scope-v1",
+                &[config.label.horizon_rows.to_string(), config.label.digest()],
+            ),
+            reference_digest_v1: String::new(),
+        };
+        source.reference_digest_v1 = source_reference_digest_v1(&source);
+        let mut proof = SourceResultMembershipProofV1 {
+            result_digest_v1: source.source_result_digest_v1.clone(),
+            parent_report_digest: report.ledger_digest.clone(),
+            immutable_member: report.regimes.iter().any(|item| item == result),
+            snapshot_matches: result.source_snapshot_id == report.snapshot_id,
+            pack_matches: resolution.status
+                == CycleRiskRangeResolutionStatusV0::VerifiedUniqueMatch,
+            scope_matches: source.canonical_raw_scope_digest_v1
+                == identity.canonical_scope_digest_v1,
+            anchors_match: true,
+            objective_matches: source.objective == LearnedAgentObjectiveV0::DownsideRisk,
+            agent_matches: source.agent_id == CYCLE_RISK_SHADOW_AGENT_ID_V0,
+            all_invariants_pass: false,
+            proof_digest_v1: String::new(),
+        };
+        proof.all_invariants_pass = proof.immutable_member
+            && proof.snapshot_matches
+            && proof.pack_matches
+            && proof.scope_matches
+            && proof.anchors_match
+            && proof.objective_matches
+            && proof.agent_matches;
+        let mut proof_bytes = Vec::new();
+        for text in [&proof.result_digest_v1, &proof.parent_report_digest] {
+            strv(&mut proof_bytes, text);
+        }
+        for flag in [
+            proof.immutable_member,
+            proof.snapshot_matches,
+            proof.pack_matches,
+            proof.scope_matches,
+            proof.anchors_match,
+            proof.objective_matches,
+            proof.agent_matches,
+            proof.all_invariants_pass,
+        ] {
+            boolv(&mut proof_bytes, flag);
+        }
+        proof.proof_digest_v1 = stable_hash_string(&hex(&proof_bytes));
+        let opinion = create_source_bound_opinion_v1(
+            source,
+            &proof,
+            snapshot.normalized_dataset.rows[candidate.end_row_index_exclusive - 1].timestamp_ms,
+            "cycle-risk-historical-shadow",
+            &registration,
+        )?;
+        let seal = source_bound_seal_v1(
+            &opinion.opinion_id,
+            &opinion.opinion_digest_v1,
+            &opinion.source_result,
+            &registration,
+            &opinion.authority,
+        )?;
+        output.push((opinion, seal));
+    }
+    Ok(output)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
