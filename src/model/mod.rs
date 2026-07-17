@@ -9,6 +9,7 @@ pub mod external_prediction_import_v2;
 pub mod external_signal;
 pub mod historical_evidence;
 pub mod import;
+pub mod learned_agent_opinion;
 pub mod learning;
 pub mod learning_campaign;
 pub mod mamba3;
