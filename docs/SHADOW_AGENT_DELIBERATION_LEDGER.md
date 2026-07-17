@@ -11,6 +11,10 @@ one structured response per agent. Arguments contain a claim, evidence and
 uncertainty references, and an optional requested resolution; they cannot alter
 their sealed primary opinion.
 
+Older and newer regimes replay independently. A historical aggregate is only
+created when every included Momentum regime has a corresponding Cycle/Risk
+regime; an incomplete aggregate scope is rejected rather than inferred.
+
 The ledger keeps deterministic typed opinion and relationship indexes and only
 appends unique valid transcripts. It preserves primary-opinion immutability and
 produces an ineligible future-Chair packet only; it creates no Chair

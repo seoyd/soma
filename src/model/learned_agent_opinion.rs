@@ -716,8 +716,18 @@ pub fn replay_shadow_deliberation_v0(
     momentum_regime: &BtcTemporalRegimeClosedResultV0,
     risk_report: &CycleRiskShadowReportV0,
 ) -> Result<ShadowDeliberationReplayV0, String> {
-    let mut momentum = abstain_momentum(momentum_regime);
-    let mut risk = abstain_risk(risk_report, &momentum_regime.regime.regime_id);
+    replay_opinion_pair_v0(
+        abstain_momentum(momentum_regime),
+        abstain_risk(risk_report, &momentum_regime.regime.regime_id),
+        risk_report,
+    )
+}
+
+fn replay_opinion_pair_v0(
+    mut momentum: LearnedAgentOpinionEnvelopeV0,
+    mut risk: LearnedAgentOpinionEnvelopeV0,
+    risk_report: &CycleRiskShadowReportV0,
+) -> Result<ShadowDeliberationReplayV0, String> {
     let momentum_seal = seal(&mut momentum);
     let risk_seal = seal(&mut risk);
     let relationship =
@@ -800,6 +810,47 @@ pub fn replay_shadow_deliberation_v0(
     })
 }
 
+fn replay_aggregate_shadow_deliberation_v0(
+    closed: &[BtcTemporalRegimeClosedResultV0],
+    risk_report: &CycleRiskShadowReportV0,
+) -> Result<ShadowDeliberationReplayV0, String> {
+    if closed.len() < 2
+        || closed.iter().any(|value| {
+            !risk_report
+                .regimes
+                .iter()
+                .any(|risk| risk.regime_id == value.regime.regime_id)
+        })
+    {
+        return Err("invalid_aggregate_shadow_deliberation_scope".into());
+    }
+    let aggregate_digest = digest(
+        &closed
+            .iter()
+            .map(|value| &value.report_digest)
+            .collect::<Vec<_>>(),
+    );
+    let mut momentum = abstain_momentum(&closed[0]);
+    momentum.opinion_id = "momentum-opinion-historical-aggregate".into();
+    momentum.source_evidence_id = "historical-aggregate".into();
+    momentum.source_evidence_digest = aggregate_digest.clone();
+    momentum.source_model_artifact_digest = aggregate_digest.clone();
+    momentum.temporal_scope.regime_id = None;
+    momentum
+        .reason_codes
+        .push("historical_aggregate_scope".into());
+
+    let mut risk = abstain_risk(risk_report, &closed[0].regime.regime_id);
+    risk.opinion_id = "risk-opinion-historical-aggregate".into();
+    risk.source_evidence_id = "historical-aggregate".into();
+    risk.source_evidence_digest = risk_report.ledger_digest.clone();
+    risk.source_model_artifact_digest = risk_report.ledger_digest.clone();
+    risk.source_model_version_id = None;
+    risk.temporal_scope.regime_id = None;
+    risk.reason_codes.push("historical_aggregate_scope".into());
+    replay_opinion_pair_v0(momentum, risk, risk_report)
+}
+
 pub fn replay_btc_shadow_deliberations_v0(
     snapshot: &DataSnapshot,
     campaign_config: &super::MomentumLearningCampaignConfigV0,
@@ -854,10 +905,14 @@ pub fn replay_btc_shadow_deliberations_v0(
     let risk =
         super::run_cycle_risk_shadow_v0(snapshot, &super::CycleRiskShadowConfigV0::default())
             .map_err(|_| "cycle_risk_shadow_replay_failed".to_string())?;
-    closed
+    let mut replays = closed
         .iter()
         .map(|item| replay_shadow_deliberation_v0(item, &risk))
-        .collect()
+        .collect::<Result<Vec<_>, _>>()?;
+    if let Ok(aggregate) = replay_aggregate_shadow_deliberation_v0(&closed, &risk) {
+        replays.push(aggregate);
+    }
+    Ok(replays)
 }
 fn argument(
     opinion: &LearnedAgentOpinionEnvelopeV0,
