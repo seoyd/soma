@@ -251,6 +251,53 @@ pub struct ShadowDeliberationReplayV0 {
     pub chair_packet: FutureChairShadowObservationPacketV0,
     pub quality: ShadowDeliberationQualityStatusV0,
 }
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ShadowDeliberationLedgerV0 {
+    pub ledger_version: String,
+    pub deliberations: Vec<ShadowLearnedAgentDeliberationV0>,
+    pub opinion_ids: Vec<String>,
+    pub relationship_ids: Vec<String>,
+    pub ledger_digest: String,
+}
+
+pub fn append_shadow_deliberation_v0(
+    ledger: &mut ShadowDeliberationLedgerV0,
+    replay: &ShadowDeliberationReplayV0,
+) -> Result<(), String> {
+    if replay.transcript.round_count != 2
+        || replay.transcript.chair_observed
+        || replay.transcript.vote_created
+        || replay.transcript.execution_created
+        || !replay.independence.all_invariants_pass
+        || ledger
+            .deliberations
+            .iter()
+            .any(|existing| existing.deliberation_id == replay.transcript.deliberation_id)
+    {
+        return Err("invalid_or_duplicate_shadow_deliberation".to_string());
+    }
+    ledger.deliberations.push(replay.transcript.clone());
+    ledger
+        .deliberations
+        .sort_by(|left, right| left.deliberation_id.cmp(&right.deliberation_id));
+    ledger
+        .opinion_ids
+        .extend(replay.transcript.primary_opinion_ids.clone());
+    ledger.opinion_ids.sort();
+    ledger.opinion_ids.dedup();
+    ledger
+        .relationship_ids
+        .push(replay.relationship.relationship_id.clone());
+    ledger.relationship_ids.sort();
+    ledger.relationship_ids.dedup();
+    ledger.ledger_digest = digest(&(
+        &ledger.ledger_version,
+        &ledger.deliberations,
+        &ledger.opinion_ids,
+        &ledger.relationship_ids,
+    ));
+    Ok(())
+}
 
 fn authority() -> OpinionAuthorityV0 {
     OpinionAuthorityV0 {
