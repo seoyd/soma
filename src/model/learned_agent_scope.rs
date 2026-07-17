@@ -1833,6 +1833,275 @@ pub fn replay_btc_scope_alignment_v1(
     })
 }
 
+/// Immutable Phase-A policy.  This is deliberately separate from legacy V0
+/// artifacts and is the only policy accepted by source-bound V1 constructors.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SourceBoundOpinionProtocolRegistrationV1 {
+    pub registration_version: String,
+    pub opinion_protocol_version: String,
+    pub seal_protocol_version: String,
+    pub deliberation_protocol_version: String,
+    pub canonical_encoding_version: String,
+    pub exact_source_result_required: bool,
+    pub canonical_raw_scope_required: bool,
+    pub effective_anchor_scope_required: bool,
+    pub forecast_scope_required: bool,
+    pub source_model_artifact_required: bool,
+    pub caller_supplied_regime_alias_forbidden: bool,
+    pub aggregate_report_as_primary_source_forbidden: bool,
+    pub legacy_opinion_upgrade_forbidden: bool,
+    pub legacy_digest_rewrite_forbidden: bool,
+    pub retrospective_creation_mode_only: bool,
+    pub opinion_seal_before_reveal_required: bool,
+    pub exact_two_rounds_required: bool,
+    pub advisory_only_required: bool,
+    pub chair_eligibility_forbidden: bool,
+    pub vote_eligibility_forbidden: bool,
+    pub reward_eligibility_forbidden: bool,
+    pub penalty_eligibility_forbidden: bool,
+    pub promotion_eligibility_forbidden: bool,
+    pub execution_eligibility_forbidden: bool,
+    pub policy_digest_v1: String,
+}
+impl SourceBoundOpinionProtocolRegistrationV1 {
+    pub fn pre_registered() -> Self {
+        let mut value = Self {
+            registration_version: "source-bound-opinion-registration-v1".into(),
+            opinion_protocol_version: "learned-agent-opinion-v1".into(),
+            seal_protocol_version: "learned-agent-opinion-seal-v1".into(),
+            deliberation_protocol_version: "source-bound-shadow-deliberation-v1".into(),
+            canonical_encoding_version: "canonical-semantic-encoding-v1".into(),
+            exact_source_result_required: true,
+            canonical_raw_scope_required: true,
+            effective_anchor_scope_required: true,
+            forecast_scope_required: true,
+            source_model_artifact_required: true,
+            caller_supplied_regime_alias_forbidden: true,
+            aggregate_report_as_primary_source_forbidden: true,
+            legacy_opinion_upgrade_forbidden: true,
+            legacy_digest_rewrite_forbidden: true,
+            retrospective_creation_mode_only: true,
+            opinion_seal_before_reveal_required: true,
+            exact_two_rounds_required: true,
+            advisory_only_required: true,
+            chair_eligibility_forbidden: true,
+            vote_eligibility_forbidden: true,
+            reward_eligibility_forbidden: true,
+            penalty_eligibility_forbidden: true,
+            promotion_eligibility_forbidden: true,
+            execution_eligibility_forbidden: true,
+            policy_digest_v1: String::new(),
+        };
+        value.policy_digest_v1 = source_bound_registration_digest_v1(&value);
+        value
+    }
+    pub fn validate(&self) -> Result<(), String> {
+        let flags = [
+            self.exact_source_result_required,
+            self.canonical_raw_scope_required,
+            self.effective_anchor_scope_required,
+            self.forecast_scope_required,
+            self.source_model_artifact_required,
+            self.caller_supplied_regime_alias_forbidden,
+            self.aggregate_report_as_primary_source_forbidden,
+            self.legacy_opinion_upgrade_forbidden,
+            self.legacy_digest_rewrite_forbidden,
+            self.retrospective_creation_mode_only,
+            self.opinion_seal_before_reveal_required,
+            self.exact_two_rounds_required,
+            self.advisory_only_required,
+            self.chair_eligibility_forbidden,
+            self.vote_eligibility_forbidden,
+            self.reward_eligibility_forbidden,
+            self.penalty_eligibility_forbidden,
+            self.promotion_eligibility_forbidden,
+            self.execution_eligibility_forbidden,
+        ];
+        if flags.iter().any(|value| !value)
+            || self.policy_digest_v1 != source_bound_registration_digest_v1(self)
+        {
+            return Err("invalid_source_bound_opinion_registration".into());
+        }
+        Ok(())
+    }
+}
+fn source_bound_registration_digest_v1(value: &SourceBoundOpinionProtocolRegistrationV1) -> String {
+    let mut bytes = Vec::new();
+    strv(&mut bytes, "source-bound-opinion-registration-v1");
+    for version in [
+        &value.registration_version,
+        &value.opinion_protocol_version,
+        &value.seal_protocol_version,
+        &value.deliberation_protocol_version,
+        &value.canonical_encoding_version,
+    ] {
+        strv(&mut bytes, version);
+    }
+    for flag in [
+        value.exact_source_result_required,
+        value.canonical_raw_scope_required,
+        value.effective_anchor_scope_required,
+        value.forecast_scope_required,
+        value.source_model_artifact_required,
+        value.caller_supplied_regime_alias_forbidden,
+        value.aggregate_report_as_primary_source_forbidden,
+        value.legacy_opinion_upgrade_forbidden,
+        value.legacy_digest_rewrite_forbidden,
+        value.retrospective_creation_mode_only,
+        value.opinion_seal_before_reveal_required,
+        value.exact_two_rounds_required,
+        value.advisory_only_required,
+        value.chair_eligibility_forbidden,
+        value.vote_eligibility_forbidden,
+        value.reward_eligibility_forbidden,
+        value.penalty_eligibility_forbidden,
+        value.promotion_eligibility_forbidden,
+        value.execution_eligibility_forbidden,
+    ] {
+        boolv(&mut bytes, flag);
+    }
+    stable_hash_string(&hex(&bytes))
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LearnedAgentOpinionCreationModeV1 {
+    HistoricalRetrospectiveSourceBoundReplay,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SourceResultKindV1 {
+    MomentumHistoricalRegimeResult,
+    CycleRiskHistoricalRegimeResult,
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LearnedAgentSourceResultReferenceV1 {
+    pub agent_id: String,
+    pub objective: LearnedAgentObjectiveV0,
+    pub source_snapshot_id: String,
+    pub source_snapshot_digest: String,
+    pub source_result_kind: SourceResultKindV1,
+    pub source_result_digest_v1: String,
+    pub source_checkpoint_digest_v1: String,
+    pub source_frozen_pack_digest: String,
+    pub source_model_version_id: Option<String>,
+    pub source_model_artifact_digest: String,
+    pub canonical_raw_scope_digest_v1: String,
+    pub effective_anchor_scope_digest_v1: String,
+    pub forecast_scope_digest_v1: String,
+    pub reference_digest_v1: String,
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SourceResultMembershipProofV1 {
+    pub result_digest_v1: String,
+    pub parent_report_digest: String,
+    pub immutable_member: bool,
+    pub snapshot_matches: bool,
+    pub pack_matches: bool,
+    pub scope_matches: bool,
+    pub anchors_match: bool,
+    pub objective_matches: bool,
+    pub agent_matches: bool,
+    pub all_invariants_pass: bool,
+    pub proof_digest_v1: String,
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct OpinionAuthorityV1 {
+    pub advisory_only: bool,
+    pub eligible_to_vote: bool,
+    pub eligible_to_reach_chair: bool,
+    pub eligible_for_reward: bool,
+    pub eligible_for_penalty: bool,
+    pub eligible_for_speaking_right_change: bool,
+    pub eligible_for_promotion: bool,
+    pub eligible_to_execute: bool,
+}
+impl OpinionAuthorityV1 {
+    pub fn historical_advisory_only() -> Self {
+        Self {
+            advisory_only: true,
+            eligible_to_vote: false,
+            eligible_to_reach_chair: false,
+            eligible_for_reward: false,
+            eligible_for_penalty: false,
+            eligible_for_speaking_right_change: false,
+            eligible_for_promotion: false,
+            eligible_to_execute: false,
+        }
+    }
+}
+fn authority_digest_v1(value: &OpinionAuthorityV1) -> String {
+    let mut bytes = Vec::new();
+    for flag in [
+        value.advisory_only,
+        value.eligible_to_vote,
+        value.eligible_to_reach_chair,
+        value.eligible_for_reward,
+        value.eligible_for_penalty,
+        value.eligible_for_speaking_right_change,
+        value.eligible_for_promotion,
+        value.eligible_to_execute,
+    ] {
+        boolv(&mut bytes, flag);
+    }
+    stable_hash_string(&hex(&bytes))
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LearnedAgentOpinionSealV1 {
+    pub seal_version: String,
+    pub opinion_id: String,
+    pub opinion_digest_v1: String,
+    pub source_result_digest_v1: String,
+    pub canonical_raw_scope_digest_v1: String,
+    pub effective_anchor_scope_digest_v1: String,
+    pub forecast_scope_digest_v1: String,
+    pub protocol_registration_digest_v1: String,
+    pub authority_digest_v1: String,
+    pub sealed_before_cross_agent_reveal: bool,
+    pub seal_digest_v1: String,
+}
+pub fn source_bound_seal_v1(
+    opinion_id: &str,
+    opinion_digest: &str,
+    source: &LearnedAgentSourceResultReferenceV1,
+    registration: &SourceBoundOpinionProtocolRegistrationV1,
+    authority: &OpinionAuthorityV1,
+) -> Result<LearnedAgentOpinionSealV1, String> {
+    registration.validate()?;
+    if authority != &OpinionAuthorityV1::historical_advisory_only() {
+        return Err("source_bound_authority_violation".into());
+    }
+    let mut value = LearnedAgentOpinionSealV1 {
+        seal_version: registration.seal_protocol_version.clone(),
+        opinion_id: opinion_id.into(),
+        opinion_digest_v1: opinion_digest.into(),
+        source_result_digest_v1: source.source_result_digest_v1.clone(),
+        canonical_raw_scope_digest_v1: source.canonical_raw_scope_digest_v1.clone(),
+        effective_anchor_scope_digest_v1: source.effective_anchor_scope_digest_v1.clone(),
+        forecast_scope_digest_v1: source.forecast_scope_digest_v1.clone(),
+        protocol_registration_digest_v1: registration.policy_digest_v1.clone(),
+        authority_digest_v1: authority_digest_v1(authority),
+        sealed_before_cross_agent_reveal: true,
+        seal_digest_v1: String::new(),
+    };
+    let mut bytes = Vec::new();
+    for item in [
+        &value.seal_version,
+        &value.opinion_id,
+        &value.opinion_digest_v1,
+        &value.source_result_digest_v1,
+        &value.canonical_raw_scope_digest_v1,
+        &value.effective_anchor_scope_digest_v1,
+        &value.forecast_scope_digest_v1,
+        &value.protocol_registration_digest_v1,
+        &value.authority_digest_v1,
+    ] {
+        strv(&mut bytes, item);
+    }
+    boolv(&mut bytes, value.sealed_before_cross_agent_reveal);
+    value.seal_digest_v1 = stable_hash_string(&hex(&bytes));
+    Ok(value)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -201,6 +201,10 @@ pub use learned_agent_scope::{
     ScopeMappingRegistryStatusV0, canonical_raw_scope_v1, canonical_scope_lineage_proof_v0,
     canonical_semantic_digest_v1, cycle_risk_historical_range_plan_v0,
     replay_btc_scope_alignment_v0, replay_btc_scope_alignment_v1,
+    LearnedAgentOpinionCreationModeV1, LearnedAgentOpinionSealV1,
+    LearnedAgentSourceResultReferenceV1, OpinionAuthorityV1,
+    SourceBoundOpinionProtocolRegistrationV1, SourceResultKindV1,
+    SourceResultMembershipProofV1, source_bound_seal_v1,
 };
 pub use learning::{
     AgentModelRuntimeV0, BaselineComparisonV0, CalibrationBucketV0, ChronologicalSplitConfigV0,
