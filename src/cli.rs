@@ -438,6 +438,30 @@ fn run_local_historical_snapshot_campaign(
         if first != second {
             return Err("learned-agent scope alignment is nondeterministic".to_string());
         }
+        let registration = crate::model::SourceBoundOpinionProtocolRegistrationV1::pre_registered();
+        registration
+            .validate()
+            .map_err(|_| "source-bound registration invalid".to_string())?;
+        let momentum =
+            crate::model::replay_source_bound_momentum_opinions_v1(&snapshot, &campaign_config)
+                .map_err(|_| "source-bound momentum replay failed".to_string())?;
+        let risk = crate::model::replay_source_bound_cycle_risk_opinions_v1(&snapshot)
+            .map_err(|_| "source-bound risk replay failed".to_string())?;
+        let mapping = crate::model::map_source_bound_opinions_v1(&momentum, &risk)
+            .map_err(|_| "source-bound mapping failed".to_string())?;
+        let mut ledger = crate::model::new_source_bound_shadow_ledger_v1(
+            &registration,
+            first.legacy.registry.registry_digest.clone(),
+        )
+        .map_err(|_| "source-bound ledger initialization failed".to_string())?;
+        for (opinion, seal) in momentum.iter().chain(risk.iter()) {
+            crate::model::append_source_bound_opinion_v1(
+                &mut ledger,
+                opinion.clone(),
+                seal.clone(),
+            )
+            .map_err(|_| "source-bound ledger append failed".to_string())?;
+        }
         if output_format == "json" {
             println!(
                 "{}",
@@ -461,6 +485,12 @@ fn run_local_historical_snapshot_campaign(
                     "risk_anchor_scope_count": first.risk_anchor_scopes.len(),
                     "risk_anchor_counts": first.risk_anchor_scopes.iter().map(|value| value.effective_anchor_count).collect::<Vec<_>>(),
                     "report_digest_v1": first.report_digest_v1,
+                    "source_bound_registration_digest_v1": registration.policy_digest_v1,
+                    "source_bound_momentum_opinion_count": momentum.len(),
+                    "source_bound_risk_opinion_count": risk.len(),
+                    "source_bound_mapping_status": format!("{:?}", mapping.mapping_status),
+                    "source_bound_mapping_digest_v1": mapping.registry_digest_v1,
+                    "source_bound_ledger_digest_v1": ledger.ledger_digest_v1,
                     "chair_observed": false,
                     "vote_created": false,
                     "execution_created": false,
@@ -503,6 +533,18 @@ fn run_local_historical_snapshot_campaign(
             );
             println!("risk_anchor_scope_count={}", first.risk_anchor_scopes.len());
             println!("report_digest_v1={}", first.report_digest_v1);
+            println!(
+                "source_bound_registration_digest_v1={}",
+                registration.policy_digest_v1
+            );
+            println!("source_bound_momentum_opinion_count={}", momentum.len());
+            println!("source_bound_risk_opinion_count={}", risk.len());
+            println!("source_bound_mapping_status={:?}", mapping.mapping_status);
+            println!(
+                "source_bound_mapping_digest_v1={}",
+                mapping.registry_digest_v1
+            );
+            println!("source_bound_ledger_digest_v1={}", ledger.ledger_digest_v1);
             println!("chair_observed=false");
             println!("vote_created=false");
             println!("execution_created=false");
