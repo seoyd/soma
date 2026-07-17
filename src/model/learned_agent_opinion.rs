@@ -2,9 +2,9 @@
 
 use crate::core::stable_hash_string;
 
+use super::cycle_risk_shadow::MOMENTUM_AGENT_ID_V0;
 use super::{
     BtcTemporalRegimeClosedResultV0, CYCLE_RISK_SHADOW_AGENT_ID_V0, CycleRiskShadowReportV0,
-    MOMENTUM_AGENT_ID_V0,
 };
 use crate::data::DataSnapshot;
 
