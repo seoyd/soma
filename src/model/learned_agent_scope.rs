@@ -5,10 +5,12 @@ use crate::{core::stable_hash_string, data::DataSnapshot};
 use super::{
     AgentOpinionRelationshipV0, BtcHistoricalRegimeConfigV0, CYCLE_RISK_SHADOW_AGENT_ID_V0,
     CycleRiskOpinionAdapterContextV0, CycleRiskShadowConfigV0, LearnedAgentObjectiveV0,
-    MomentumLearningCampaignConfigV0, TemporalRegimeSegmentationPolicyV0,
+    MomentumCandleV0, MomentumLearningCampaignConfigV0, TemporalRegimeSegmentationPolicyV0,
     append_shadow_deliberation_v0, assess_momentum_campaign_sufficiency_v0,
-    new_shadow_deliberation_ledger_v0, reconstruct_cycle_risk_opinion_from_regime_v0,
-    replay_btc_shadow_deliberations_v0, segment_btc_historical_regimes_v0,
+    build_momentum_features_v0, build_momentum_learning_windows_v0,
+    build_momentum_sequence_examples_v0, new_shadow_deliberation_ledger_v0,
+    reconstruct_cycle_risk_opinion_from_regime_v0, replay_btc_shadow_deliberations_v0,
+    segment_btc_historical_regimes_v0,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -1431,6 +1433,66 @@ fn risk_anchor_scope_v1(
     Ok(anchor_scope(
         CYCLE_RISK_SHADOW_AGENT_ID_V0,
         LearnedAgentObjectiveV0::DownsideRisk,
+        &scope,
+        anchors,
+    ))
+}
+
+pub fn momentum_anchor_scope_v1(
+    snapshot: &DataSnapshot,
+    start: usize,
+    end: usize,
+    campaign: &MomentumLearningCampaignConfigV0,
+) -> Result<AgentEffectiveAnchorScopeV1, String> {
+    let scope = canonical_raw_scope_v1(snapshot, start, end, &campaign.digest())?;
+    let rows = &snapshot.normalized_dataset.rows[start..end];
+    let candles = rows
+        .iter()
+        .map(|row| MomentumCandleV0 {
+            timestamp: row.timestamp_ms as i64,
+            open: row.open as f32,
+            high: row.high as f32,
+            low: row.low as f32,
+            close: row.close as f32,
+            volume: row.volume as f32,
+        })
+        .collect::<Vec<_>>();
+    let features = build_momentum_features_v0(&candles, &campaign.feature_config)
+        .map_err(|_| "momentum_anchor_features_invalid")?;
+    let snapshot_ids = vec![snapshot.snapshot_id.clone()];
+    let examples = build_momentum_sequence_examples_v0(
+        &candles,
+        &features,
+        &campaign.sequence_config,
+        &snapshot_ids,
+    )
+    .map_err(|_| "momentum_anchor_examples_invalid")?;
+    let windows = build_momentum_learning_windows_v0(campaign, rows.len(), &snapshot_ids)
+        .map_err(|_| "momentum_anchor_windows_invalid")?;
+    let mut anchors = Vec::new();
+    for window in windows {
+        for (range, partition) in [
+            (&window.train_range, HistoricalPartitionV1::Train),
+            (&window.validation_range, HistoricalPartitionV1::Validation),
+            (&window.test_range, HistoricalPartitionV1::Test),
+        ] {
+            for example in examples.iter().filter(|value| {
+                value.sequence_start >= range.start && value.label_index < range.end
+            }) {
+                anchors.push(anchor(
+                    &scope,
+                    rows,
+                    example.sequence_end,
+                    example.sequence_start,
+                    example.label_index,
+                    partition,
+                ));
+            }
+        }
+    }
+    Ok(anchor_scope(
+        &campaign.agent_id,
+        LearnedAgentObjectiveV0::DirectionalMomentum,
         &scope,
         anchors,
     ))

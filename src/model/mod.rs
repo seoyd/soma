@@ -204,7 +204,7 @@ pub use learned_agent_scope::{
     SourceBoundOpinionProtocolRegistrationV1, SourceBoundShadowDeliberationLedgerV1,
     SourceResultKindV1, SourceResultMembershipProofV1, append_source_bound_opinion_v1,
     canonical_raw_scope_v1, canonical_scope_lineage_proof_v0, canonical_semantic_digest_v1,
-    create_source_bound_opinion_v1, cycle_risk_historical_range_plan_v0,
+    create_source_bound_opinion_v1, cycle_risk_historical_range_plan_v0, momentum_anchor_scope_v1,
     new_source_bound_shadow_ledger_v1, replay_btc_scope_alignment_v0,
     replay_btc_scope_alignment_v1, replay_source_bound_cycle_risk_opinions_v1,
     source_bound_seal_v1,
