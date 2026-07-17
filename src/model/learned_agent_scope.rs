@@ -2326,7 +2326,7 @@ pub fn replay_source_bound_cycle_risk_opinions_v1(
             boolv(&mut proof_bytes, flag);
         }
         proof.proof_digest_v1 = stable_hash_string(&hex(&proof_bytes));
-        let opinion = create_source_bound_opinion_v1(
+        let mut opinion = create_source_bound_opinion_v1(
             source,
             &proof,
             snapshot.normalized_dataset.rows[candidate.end_row_index_exclusive - 1].timestamp_ms,
@@ -2340,9 +2340,92 @@ pub fn replay_source_bound_cycle_risk_opinions_v1(
             &registration,
             &opinion.authority,
         )?;
+        opinion.sealed = true;
         output.push((opinion, seal));
     }
     Ok(output)
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SourceBoundShadowDeliberationLedgerV1 {
+    pub ledger_version: String,
+    pub protocol_registration_digest_v1: String,
+    pub opinions: Vec<LearnedAgentOpinionEnvelopeV1>,
+    pub opinion_seals: Vec<LearnedAgentOpinionSealV1>,
+    pub scope_mapping_registry_digest_v1: String,
+    pub legacy_v0_reference_digest: String,
+    pub ledger_digest_v1: String,
+}
+pub fn new_source_bound_shadow_ledger_v1(
+    registration: &SourceBoundOpinionProtocolRegistrationV1,
+    legacy_v0_reference_digest: String,
+) -> Result<SourceBoundShadowDeliberationLedgerV1, String> {
+    registration.validate()?;
+    let mut ledger = SourceBoundShadowDeliberationLedgerV1 {
+        ledger_version: "source-bound-shadow-ledger-v1".into(),
+        protocol_registration_digest_v1: registration.policy_digest_v1.clone(),
+        opinions: vec![],
+        opinion_seals: vec![],
+        scope_mapping_registry_digest_v1: String::new(),
+        legacy_v0_reference_digest,
+        ledger_digest_v1: String::new(),
+    };
+    refresh_source_bound_ledger_digest_v1(&mut ledger);
+    Ok(ledger)
+}
+pub fn append_source_bound_opinion_v1(
+    ledger: &mut SourceBoundShadowDeliberationLedgerV1,
+    opinion: LearnedAgentOpinionEnvelopeV1,
+    seal: LearnedAgentOpinionSealV1,
+) -> Result<(), String> {
+    if !opinion.sealed
+        || opinion.opinion_id != seal.opinion_id
+        || opinion.opinion_digest_v1 != seal.opinion_digest_v1
+        || ledger
+            .opinions
+            .iter()
+            .any(|value| value.opinion_id == opinion.opinion_id)
+        || ledger
+            .opinion_seals
+            .iter()
+            .any(|value| value.seal_digest_v1 == seal.seal_digest_v1)
+    {
+        return Err("source_bound_ledger_duplicate_or_invalid_opinion".into());
+    }
+    ledger.opinions.push(opinion);
+    ledger.opinion_seals.push(seal);
+    ledger
+        .opinions
+        .sort_by(|left, right| left.opinion_id.cmp(&right.opinion_id));
+    ledger
+        .opinion_seals
+        .sort_by(|left, right| left.opinion_id.cmp(&right.opinion_id));
+    refresh_source_bound_ledger_digest_v1(ledger);
+    Ok(())
+}
+fn refresh_source_bound_ledger_digest_v1(ledger: &mut SourceBoundShadowDeliberationLedgerV1) {
+    let mut bytes = Vec::new();
+    strv(&mut bytes, &ledger.ledger_version);
+    strv(&mut bytes, &ledger.protocol_registration_digest_v1);
+    strv(&mut bytes, &ledger.scope_mapping_registry_digest_v1);
+    strv(&mut bytes, &ledger.legacy_v0_reference_digest);
+    strings(
+        &mut bytes,
+        &ledger
+            .opinions
+            .iter()
+            .map(|value| value.opinion_digest_v1.clone())
+            .collect::<Vec<_>>(),
+    );
+    strings(
+        &mut bytes,
+        &ledger
+            .opinion_seals
+            .iter()
+            .map(|value| value.seal_digest_v1.clone())
+            .collect::<Vec<_>>(),
+    );
+    ledger.ledger_digest_v1 = stable_hash_string(&hex(&bytes));
 }
 
 #[cfg(test)]
