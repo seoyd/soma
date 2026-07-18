@@ -14,3 +14,18 @@ actions. A technical failure maps to `NotEvaluatedTechnicalFailure` and
 The legacy V1 replay remains a historical record. V2 reproduces it for forensic
 comparison without changing its committed status, then uses the first failed V2
 stage to classify the root cause before a corrected replay is considered.
+
+## Sprint 59 owner-evidence materialization
+
+The owner-local immutable replay ran twice in text form with byte-identical
+sanitized output, and the JSON report agreed on every reported scope, stage,
+root-cause, count, and digest field. Both registered scopes reproduced the legacy
+classification below; no provider, transport, credential, or authority path ran.
+
+| Scope | First failed stage | Root cause | Trace digest | Forensic digest |
+| --- | --- | --- | --- | --- |
+| `joint-scope-0` | `DerivedSnapshotIdentity` | `DerivedSnapshotIdentityMismatch` | `8cae91d151205036` | `00eb6bb55c61a6d5` |
+| `joint-scope-1` | `DerivedSnapshotIdentity` | `DerivedSnapshotIdentityMismatch` | `e242ac69277b9379` | `c9c94273acff43b5` |
+
+This is a legacy-adapter identity classification, not a claim that the V2 child
+snapshot is invalid. The corrected V2 replay is recorded separately.
