@@ -4737,6 +4737,8 @@ pub struct JointScopeReplayAggregateV2 {
     pub relationship_count: usize,
     pub deliberation_count: usize,
     pub transcript_digests: Vec<String>,
+    pub relationships: Vec<JointScopeRelationshipV2>,
+    pub deliberations: Vec<JointScopeDeliberationV2>,
     pub full_aggregate_composed: bool,
     pub aggregate_digest_v2: String,
 }
@@ -4748,6 +4750,32 @@ pub struct JointScopeReplayLedgerV2 {
     pub participant_result_digests: Vec<String>,
     pub deliberation_transcript_digests: Vec<String>,
     pub ledger_digest_v2: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum JointScopeRelationshipV2 {
+    BothAbstained,
+    MomentumAbstained,
+    RiskAbstained,
+    Tension,
+    Orthogonal,
+    Incomparable,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct JointScopeDeliberationV2 {
+    pub deliberation_version: String,
+    pub joint_scope_id: String,
+    pub mapping_pair_digest_v1: String,
+    pub relationship: JointScopeRelationshipV2,
+    pub round_count: usize,
+    pub retrospective_only: bool,
+    pub chair_observed: bool,
+    pub vote_created: bool,
+    pub reward_created: bool,
+    pub penalty_created: bool,
+    pub execution_created: bool,
+    pub transcript_digest_v2: String,
 }
 
 fn momentum_model_outcome_v2(
@@ -5650,6 +5678,8 @@ pub fn aggregate_joint_scope_replays_v2(
     let mut risk_abstained_count = 0usize;
     let mut technical_failure_scope_count = 0usize;
     let mut incomparable_count = 0usize;
+    let mut tension_count = 0usize;
+    let mut orthogonal_count = 0usize;
     let mut deliberations = Vec::new();
     for result in &ordered {
         if result.momentum.execution_trace.execution_health
@@ -5691,20 +5721,55 @@ pub fn aggregate_joint_scope_replays_v2(
             incomparable_count += 1;
             continue;
         };
-        match create_source_bound_deliberation_v1(pair, momentum, risk) {
-            Ok(deliberation) => deliberations.push(deliberation),
-            Err(_) => incomparable_count += 1,
+        let momentum_abstains = !matches!(
+            result.momentum.execution_trace.operational_shadow_result,
+            JointParticipantOperationalShadowResultV2::ShadowPredictionResearchOnly
+        );
+        let risk_abstains = !matches!(
+            result.risk.execution_trace.operational_shadow_result,
+            JointParticipantOperationalShadowResultV2::ShadowPredictionResearchOnly
+        );
+        let relationship = match (momentum_abstains, risk_abstains) {
+            (true, true) => JointScopeRelationshipV2::BothAbstained,
+            (true, false) => JointScopeRelationshipV2::MomentumAbstained,
+            (false, true) => JointScopeRelationshipV2::RiskAbstained,
+            (false, false) => JointScopeRelationshipV2::Orthogonal,
+        };
+        if relationship == JointScopeRelationshipV2::Orthogonal {
+            orthogonal_count += 1;
         }
+        let transcript_digest_v2 = joint_v2_digest(&[
+            result.joint_scope_id.clone(),
+            pair.pair_digest_v1.clone(),
+            format!("{relationship:?}"),
+            "round_count=2".into(),
+            "retrospective_only=true".into(),
+            "authority=false".into(),
+        ]);
+        deliberations.push(JointScopeDeliberationV2 {
+            deliberation_version: "joint-scope-deliberation-v2".into(),
+            joint_scope_id: result.joint_scope_id.clone(),
+            mapping_pair_digest_v1: pair.pair_digest_v1.clone(),
+            relationship,
+            round_count: 2,
+            retrospective_only: true,
+            chair_observed: false,
+            vote_created: false,
+            reward_created: false,
+            penalty_created: false,
+            execution_created: false,
+            transcript_digest_v2,
+        });
     }
-    deliberations.sort_by(|left, right| {
-        left.momentum_opinion_id
-            .cmp(&right.momentum_opinion_id)
-            .then_with(|| left.risk_opinion_id.cmp(&right.risk_opinion_id))
-    });
+    deliberations.sort_by(|left, right| left.joint_scope_id.cmp(&right.joint_scope_id));
     let completed_pair_count = deliberations.len();
     let transcript_digests = deliberations
         .iter()
-        .map(|value| value.transcript_digest_v1.clone())
+        .map(|value| value.transcript_digest_v2.clone())
+        .collect::<Vec<_>>();
+    let relationships = deliberations
+        .iter()
+        .map(|value| value.relationship)
         .collect::<Vec<_>>();
     let full_aggregate_composed = ordered.len() == registration.joint_scope_ids.len()
         && completed_pair_count == registration.joint_scope_ids.len()
@@ -5717,12 +5782,14 @@ pub fn aggregate_joint_scope_replays_v2(
         both_abstained_count,
         momentum_abstained_count,
         risk_abstained_count,
-        tension_count: 0,
-        orthogonal_count: 0,
+        tension_count,
+        orthogonal_count,
         incomparable_count,
         relationship_count: completed_pair_count,
         deliberation_count: completed_pair_count,
         transcript_digests: transcript_digests.clone(),
+        relationships: relationships.clone(),
+        deliberations: deliberations.clone(),
         full_aggregate_composed,
         aggregate_digest_v2: String::new(),
     };
@@ -5739,6 +5806,12 @@ pub fn aggregate_joint_scope_replays_v2(
         aggregate.relationship_count.to_string(),
         aggregate.deliberation_count.to_string(),
         aggregate.transcript_digests.join(":"),
+        aggregate
+            .relationships
+            .iter()
+            .map(|value| format!("{value:?}"))
+            .collect::<Vec<_>>()
+            .join(":"),
         aggregate.full_aggregate_composed.to_string(),
     ]);
     let mut participant_result_digests = ordered
@@ -6326,5 +6399,119 @@ mod tests {
             );
             assert!(replay.momentum.opinion_id.is_none());
         }
+    }
+
+    #[test]
+    fn v2_aggregate_records_two_actionless_rounds_for_completed_abstentions() {
+        let snapshot = joint_snapshot(304);
+        let campaign = MomentumLearningCampaignConfigV0::default();
+        let registration = joint_canonical_scope_registration_v2(&snapshot, &campaign).unwrap();
+        let scopes =
+            validate_joint_canonical_scope_registration_v2(&snapshot, &campaign, &registration)
+                .unwrap();
+        let results = scopes
+            .iter()
+            .enumerate()
+            .map(|(index, scope)| {
+                let momentum_pair = source_bound_test_opinion(
+                    "momentum",
+                    LearnedAgentObjectiveV0::DirectionalMomentum,
+                    &format!("momentum-{index}"),
+                    &["row-1", "row-2"],
+                    &["momentum-anchor"],
+                    scope.information_cutoff_timestamp,
+                );
+                let risk_pair = source_bound_test_opinion(
+                    "risk",
+                    LearnedAgentObjectiveV0::DownsideRisk,
+                    &format!("risk-{index}"),
+                    &["row-1", "row-2"],
+                    &["risk-anchor"],
+                    scope.information_cutoff_timestamp,
+                );
+                let mut momentum_trace = new_execution_trace_v2(
+                    scope,
+                    "momentum".into(),
+                    LearnedAgentObjectiveV0::DirectionalMomentum,
+                );
+                momentum_trace.execution_health = JointParticipantExecutionHealthV2::Completed;
+                momentum_trace.model_evidence_outcome =
+                    JointParticipantModelEvidenceOutcomeV2::NoUsableValidationSignal;
+                momentum_trace.operational_shadow_result =
+                    JointParticipantOperationalShadowResultV2::ShadowAbstainNoSignal;
+                finish_execution_trace_v2(&mut momentum_trace);
+                let mut risk_trace = new_execution_trace_v2(
+                    scope,
+                    "risk".into(),
+                    LearnedAgentObjectiveV0::DownsideRisk,
+                );
+                risk_trace.execution_health = JointParticipantExecutionHealthV2::Completed;
+                risk_trace.model_evidence_outcome =
+                    JointParticipantModelEvidenceOutcomeV2::NoUsableValidationSignal;
+                risk_trace.operational_shadow_result =
+                    JointParticipantOperationalShadowResultV2::ShadowAbstainNoSignal;
+                finish_execution_trace_v2(&mut risk_trace);
+                let mut momentum = JointScopeParticipantReplayResultV2 {
+                    joint_scope_id: scope.joint_scope_id.clone(),
+                    joint_scope_digest: scope.scope_digest_v1.clone(),
+                    participant_agent_id: "momentum".into(),
+                    objective: LearnedAgentObjectiveV0::DirectionalMomentum,
+                    execution_trace: momentum_trace,
+                    completed_result_digest: Some(format!("momentum-{index}")),
+                    anchor_scope_digest: Some("momentum-anchor-scope".into()),
+                    anchor_status: JointAnchorAuditStatusV2::CompleteWithoutSelectedCheckpoint,
+                    opinion_id: Some(momentum_pair.0.opinion_id.clone()),
+                    seal_digest: Some(momentum_pair.1.seal_digest_v1.clone()),
+                    sealed_opinion: Some(momentum_pair),
+                    result_digest_v2: String::new(),
+                };
+                momentum.result_digest_v2 = participant_result_digest_v2(&momentum);
+                let mut risk = JointScopeParticipantReplayResultV2 {
+                    joint_scope_id: scope.joint_scope_id.clone(),
+                    joint_scope_digest: scope.scope_digest_v1.clone(),
+                    participant_agent_id: "risk".into(),
+                    objective: LearnedAgentObjectiveV0::DownsideRisk,
+                    execution_trace: risk_trace,
+                    completed_result_digest: Some(format!("risk-{index}")),
+                    anchor_scope_digest: Some("risk-anchor-scope".into()),
+                    anchor_status: JointAnchorAuditStatusV2::Complete,
+                    opinion_id: Some(risk_pair.0.opinion_id.clone()),
+                    seal_digest: Some(risk_pair.1.seal_digest_v1.clone()),
+                    sealed_opinion: Some(risk_pair),
+                    result_digest_v2: String::new(),
+                };
+                risk.result_digest_v2 = participant_result_digest_v2(&risk);
+                JointScopeReplayResultV2 {
+                    replay_version: "joint-canonical-scope-replay-v2".into(),
+                    registration_digest_v2: registration.registration_digest_v2.clone(),
+                    joint_scope_id: scope.joint_scope_id.clone(),
+                    joint_scope_digest: scope.scope_digest_v1.clone(),
+                    derived_snapshot_id: format!("child-{index}"),
+                    derivation_digest_v2: format!("derivation-{index}"),
+                    evidence_policy_digest_v2: format!("policy-{index}"),
+                    momentum,
+                    risk,
+                    pair_eligible: true,
+                    result_digest_v2: format!("replay-{index}"),
+                }
+            })
+            .collect::<Vec<_>>();
+        let (aggregate, ledger) =
+            aggregate_joint_scope_replays_v2(&registration, &results).unwrap();
+        assert!(aggregate.full_aggregate_composed);
+        assert_eq!(aggregate.completed_pair_count, 2);
+        assert_eq!(
+            aggregate.relationships,
+            vec![JointScopeRelationshipV2::BothAbstained; 2]
+        );
+        assert!(aggregate.deliberations.iter().all(|value| {
+            value.round_count == 2
+                && !value.chair_observed
+                && !value.vote_created
+                && !value.reward_created
+                && !value.penalty_created
+                && !value.execution_created
+        }));
+        validate_joint_scope_replay_ledger_v2(&ledger).unwrap();
     }
 }
