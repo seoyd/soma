@@ -60,6 +60,10 @@ pub struct CliArgs {
     #[arg(long, default_value_t = false)]
     pub acquire_one_upbit_prospective_candle: bool,
     #[arg(long, default_value_t = false)]
+    pub register_prospective_outcome_opening: bool,
+    #[arg(long, default_value_t = false)]
+    pub prospective_event_maturity_preflight: bool,
+    #[arg(long, default_value_t = false)]
     pub dry_run: bool,
     #[arg(long, default_value_t = false)]
     pub execute: bool,
@@ -97,7 +101,24 @@ pub fn run() -> Result<(), String> {
             args.toss_us_historical_manifest,
         );
     }
+    if args.register_prospective_outcome_opening && args.prospective_event_maturity_preflight {
+        return Err("select exactly one prospective outcome-opening action".to_string());
+    }
     if let Some(config) = args.historical_snapshot_campaign_config {
+        if args.register_prospective_outcome_opening {
+            return run_prospective_outcome_opening_registration(
+                &config,
+                &args.output_format,
+                args.allow_network,
+            );
+        }
+        if args.prospective_event_maturity_preflight {
+            return run_prospective_event_maturity_preflight(
+                &config,
+                &args.output_format,
+                args.allow_network,
+            );
+        }
         return run_local_historical_snapshot_campaign(
             &config,
             args.momentum_temporal_diagnostics || args.momentum_cross_market_report,
@@ -149,6 +170,8 @@ pub fn run() -> Result<(), String> {
         || args.learned_reward_eligibility
         || args.prospective_external_row_admission
         || args.acquire_one_upbit_prospective_candle
+        || args.register_prospective_outcome_opening
+        || args.prospective_event_maturity_preflight
         || args.btc_prospective_challenge_create
         || args.btc_prospective_challenge_status
         || args.btc_prospective_challenge_confirm_preregistration
@@ -2947,6 +2970,542 @@ fn current_utc_timestamp_ms() -> u64 {
         .unwrap_or_default()
 }
 
+struct ProspectiveOpeningContextV0 {
+    registration: crate::model::ProspectiveOneTimeOpeningRegistrationV0,
+    plans: Vec<crate::model::ProspectiveEventMaturityPlanV0>,
+    event_integrity_valid: bool,
+    challenge_valid: bool,
+    expected_series_id: String,
+    label_open_count: usize,
+}
+
+#[derive(Serialize)]
+struct ProspectiveOpeningRegistrationReportV0 {
+    report_version: &'static str,
+    offline: bool,
+    opening_registration_digest: String,
+    opening_registration_reopened_and_verified: bool,
+    event_count: usize,
+    event_integrity_valid: bool,
+    required_outcome_row_count: usize,
+    maximum_future_requests: usize,
+    maximum_concurrency: usize,
+    maximum_retries: usize,
+    maximum_response_rows: usize,
+    explicit_opening_authorization_required: bool,
+    network_execution_allowed_this_sprint: bool,
+    label_access_allowed_this_sprint: bool,
+    reward_application_allowed: bool,
+    provider_calls: usize,
+    transport_constructions: usize,
+    network_consent_reads: usize,
+    credential_reads: usize,
+    outcome_row_reads: usize,
+    prospective_label_reads: usize,
+    metric_computations: usize,
+    reward_candidate_count: usize,
+    reward_apply_count: usize,
+    authority_action_count: usize,
+    sprint65_artifacts_unchanged: bool,
+}
+
+#[derive(Serialize)]
+struct ProspectiveEventMaturityPreflightReportV0 {
+    report_version: &'static str,
+    offline: bool,
+    opening_registration_digest: String,
+    opening_registration_reopened_and_verified: bool,
+    event_count: usize,
+    event_integrity_valid: bool,
+    momentum_required_outcome_row_count: usize,
+    risk_required_outcome_row_count: usize,
+    required_outcome_row_count: usize,
+    momentum_time_boundary_reached: bool,
+    risk_time_boundary_reached: bool,
+    momentum_opening_readiness: String,
+    risk_opening_readiness: String,
+    outcome_evidence_status: String,
+    opening_readiness: String,
+    label_open_count: usize,
+    reward_eligibility: String,
+    provider_calls: usize,
+    transport_constructions: usize,
+    network_consent_reads: usize,
+    credential_reads: usize,
+    outcome_row_reads: usize,
+    prospective_label_reads: usize,
+    metric_computations: usize,
+    reward_candidate_count: usize,
+    reward_apply_count: usize,
+    penalties_applied: usize,
+    chair_observed: bool,
+    chair_decisions_created: usize,
+    votes_created: usize,
+    voice_changes: usize,
+    cooldowns_started: usize,
+    promotions_created: usize,
+    quarantines_created: usize,
+    risk_handoffs: usize,
+    executions_created: usize,
+    sprint65_artifacts_unchanged: bool,
+}
+
+fn prospective_opening_artifact_bytes(local_dir: &Path) -> Result<Vec<Vec<u8>>, String> {
+    [
+        "prospective_shadow_challenge_v0.json",
+        "cycle_risk_prospective_local_state_v0.json",
+        "prospective_external_row_admission_registration_v0.json",
+        "prospective_external_row_capsule_v0.json",
+        "prospective_public_export_acquisition_registration_v0.json",
+        "prospective_public_export_acquisition_receipt_v0.json",
+        "prospective_network_export_capsule_v0.json",
+    ]
+    .iter()
+    .map(|name| {
+        fs::read(local_dir.join(name))
+            .map_err(|_| "prospective maturity immutable artifact unavailable".to_string())
+    })
+    .collect()
+}
+
+fn prospective_opening_context_v0(local_dir: &Path) -> Result<ProspectiveOpeningContextV0, String> {
+    let momentum = crate::model::read_prospective_challenge_local_state_v0(
+        &local_dir.join("prospective_shadow_challenge_v0.json"),
+    )
+    .map_err(|_| "prospective maturity Momentum journal unavailable")?;
+    let risk = crate::model::read_cycle_risk_prospective_local_state_v0(
+        &local_dir.join("cycle_risk_prospective_local_state_v0.json"),
+    )
+    .map_err(|_| "prospective maturity Cycle/Risk journal unavailable")?;
+    let admission_registration = crate::model::read_prospective_external_admission_registration_v0(
+        &local_dir.join("prospective_external_row_admission_registration_v0.json"),
+    )
+    .map_err(|_| "prospective maturity admission registration unavailable")?;
+    let external_capsule = crate::model::read_prospective_external_row_capsule_v0(
+        &local_dir.join("prospective_external_row_capsule_v0.json"),
+    )
+    .map_err(|_| "prospective maturity admitted evidence unavailable")?;
+    let public_registration =
+        crate::data::read_prospective_public_export_acquisition_registration_v0(
+            &local_dir.join("prospective_public_export_acquisition_registration_v0.json"),
+        )?;
+    crate::data::validate_prospective_public_export_acquisition_registration_v0(
+        &public_registration,
+    )?;
+    let receipt = crate::data::read_prospective_public_export_acquisition_receipt_v0(
+        &local_dir.join("prospective_public_export_acquisition_receipt_v0.json"),
+    )?;
+    let network_capsule = crate::data::read_prospective_network_export_capsule_v0(
+        &local_dir.join("prospective_network_export_capsule_v0.json"),
+    )?;
+    if !crate::data::verify_prospective_public_export_acquisition_receipt_v0(&receipt)
+        || !crate::data::verify_prospective_network_export_capsule_v0(&network_capsule)
+        || !receipt.request_attempted
+        || receipt.request_count != 1
+        || receipt.retry_count != 0
+        || receipt.registration_digest != public_registration.registration_digest
+        || receipt.capsule_digest.as_deref() != Some(network_capsule.capsule_digest.as_str())
+        || network_capsule.acquisition_registration_digest
+            != public_registration.registration_digest
+        || network_capsule.acquisition_receipt_digest != receipt.receipt_digest
+        || external_capsule.source_export_digest != network_capsule.capsule_digest
+        || crate::data::convert_prospective_network_export_to_external_row_capsule_v0(
+            &network_capsule,
+            &admission_registration,
+        )? != external_capsule
+    {
+        return Err("prospective maturity Sprint 65 acquisition chain invalid".into());
+    }
+    let audit = crate::model::audit_sealed_prospective_events_v0(
+        &admission_registration,
+        &external_capsule,
+        &momentum,
+        &risk,
+    )?;
+    let outcome_source_policy_digest = crate::core::stable_hash_string(&format!(
+        "prospective-one-time-outcome-source-v0:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+        public_registration.registration_digest,
+        public_registration.provider_id,
+        public_registration.endpoint_origin,
+        public_registration.endpoint_path,
+        public_registration.configured_market,
+        public_registration.cadence,
+        public_registration.maximum_requests,
+        public_registration.maximum_concurrency,
+        public_registration.retry_count,
+    ));
+    let finalization_policy_digest = crate::core::stable_hash_string(
+        "prospective-one-time-outcome-finalization-v0:utc-daily:exclusive-to:complete:contiguous:no-duplicates:no-extra-later-rows",
+    );
+    let metric_policy_digests = vec![
+        crate::core::stable_hash_string(&format!(
+            "prospective-opening-metric-policy-v0:{:?}",
+            momentum.capsule.evaluation_policy
+        )),
+        crate::core::stable_hash_string(&format!(
+            "prospective-opening-metric-policy-v0:{:?}",
+            risk.capsule.evaluation_policy
+        )),
+    ];
+    let (registration, plans) = crate::model::pre_register_prospective_one_time_opening_v0(
+        &audit.momentum_event,
+        &audit.risk_event,
+        momentum.capsule.prediction_horizon,
+        risk.capsule.prediction_horizon,
+        &momentum.capsule.label_policy_digest,
+        &risk.capsule.label_policy_digest,
+        &outcome_source_policy_digest,
+        &finalization_policy_digest,
+        metric_policy_digests,
+    )?;
+    let challenge_valid = momentum
+        .registry
+        .challenges
+        .first()
+        .is_some_and(|entry| !entry.evaluation_opened)
+        && risk
+            .registry
+            .entries
+            .first()
+            .is_some_and(|entry| !entry.evaluation_opened && !entry.invalidated);
+    let label_open_count = momentum
+        .journal
+        .events
+        .iter()
+        .filter(|event| {
+            event.label_status == crate::model::ProspectiveLabelStatusV0::OpenedForOneTimeEvaluation
+        })
+        .count()
+        + usize::from(risk.vault.opened || risk.journal.evaluation_performed);
+    Ok(ProspectiveOpeningContextV0 {
+        registration,
+        plans,
+        event_integrity_valid: true,
+        challenge_valid,
+        expected_series_id: admission_registration.canonical_series_id,
+        label_open_count,
+    })
+}
+
+fn print_prospective_opening_registration_report(
+    report: &ProspectiveOpeningRegistrationReportV0,
+    output_format: &str,
+) -> Result<(), String> {
+    match output_format {
+        "json" => println!(
+            "{}",
+            serde_json::to_string(report)
+                .map_err(|_| "prospective opening registration report serialization failed")?
+        ),
+        "text" => {
+            println!("report_version={}", report.report_version);
+            println!("offline={}", report.offline);
+            println!(
+                "opening_registration_digest={}",
+                report.opening_registration_digest
+            );
+            println!(
+                "opening_registration_reopened_and_verified={}",
+                report.opening_registration_reopened_and_verified
+            );
+            println!("event_count={}", report.event_count);
+            println!("event_integrity_valid={}", report.event_integrity_valid);
+            println!(
+                "required_outcome_row_count={}",
+                report.required_outcome_row_count
+            );
+            println!("maximum_future_requests={}", report.maximum_future_requests);
+            println!("maximum_concurrency={}", report.maximum_concurrency);
+            println!("maximum_retries={}", report.maximum_retries);
+            println!("maximum_response_rows={}", report.maximum_response_rows);
+            println!(
+                "explicit_opening_authorization_required={}",
+                report.explicit_opening_authorization_required
+            );
+            println!(
+                "network_execution_allowed_this_sprint={}",
+                report.network_execution_allowed_this_sprint
+            );
+            println!(
+                "label_access_allowed_this_sprint={}",
+                report.label_access_allowed_this_sprint
+            );
+            println!(
+                "reward_application_allowed={}",
+                report.reward_application_allowed
+            );
+            println!("provider_calls={}", report.provider_calls);
+            println!("transport_constructions={}", report.transport_constructions);
+            println!("network_consent_reads={}", report.network_consent_reads);
+            println!("credential_reads={}", report.credential_reads);
+            println!("outcome_row_reads={}", report.outcome_row_reads);
+            println!("prospective_label_reads={}", report.prospective_label_reads);
+            println!("metric_computations={}", report.metric_computations);
+            println!("reward_candidate_count={}", report.reward_candidate_count);
+            println!("reward_apply_count={}", report.reward_apply_count);
+            println!("authority_action_count={}", report.authority_action_count);
+            println!(
+                "sprint65_artifacts_unchanged={}",
+                report.sprint65_artifacts_unchanged
+            );
+        }
+        _ => return Err("unsupported prospective opening registration output format".into()),
+    }
+    Ok(())
+}
+
+fn print_prospective_event_maturity_preflight_report(
+    report: &ProspectiveEventMaturityPreflightReportV0,
+    output_format: &str,
+) -> Result<(), String> {
+    match output_format {
+        "json" => println!(
+            "{}",
+            serde_json::to_string(report)
+                .map_err(|_| "prospective maturity preflight report serialization failed")?
+        ),
+        "text" => {
+            println!("report_version={}", report.report_version);
+            println!("offline={}", report.offline);
+            println!(
+                "opening_registration_digest={}",
+                report.opening_registration_digest
+            );
+            println!(
+                "opening_registration_reopened_and_verified={}",
+                report.opening_registration_reopened_and_verified
+            );
+            println!("event_count={}", report.event_count);
+            println!("event_integrity_valid={}", report.event_integrity_valid);
+            println!(
+                "momentum_required_outcome_row_count={}",
+                report.momentum_required_outcome_row_count
+            );
+            println!(
+                "risk_required_outcome_row_count={}",
+                report.risk_required_outcome_row_count
+            );
+            println!(
+                "required_outcome_row_count={}",
+                report.required_outcome_row_count
+            );
+            println!(
+                "momentum_time_boundary_reached={}",
+                report.momentum_time_boundary_reached
+            );
+            println!(
+                "risk_time_boundary_reached={}",
+                report.risk_time_boundary_reached
+            );
+            println!(
+                "momentum_opening_readiness={}",
+                report.momentum_opening_readiness
+            );
+            println!("risk_opening_readiness={}", report.risk_opening_readiness);
+            println!("outcome_evidence_status={}", report.outcome_evidence_status);
+            println!("opening_readiness={}", report.opening_readiness);
+            println!("label_open_count={}", report.label_open_count);
+            println!("reward_eligibility={}", report.reward_eligibility);
+            println!("provider_calls={}", report.provider_calls);
+            println!("transport_constructions={}", report.transport_constructions);
+            println!("network_consent_reads={}", report.network_consent_reads);
+            println!("credential_reads={}", report.credential_reads);
+            println!("outcome_row_reads={}", report.outcome_row_reads);
+            println!("prospective_label_reads={}", report.prospective_label_reads);
+            println!("metric_computations={}", report.metric_computations);
+            println!("reward_candidate_count={}", report.reward_candidate_count);
+            println!("reward_apply_count={}", report.reward_apply_count);
+            println!("penalties_applied={}", report.penalties_applied);
+            println!("chair_observed={}", report.chair_observed);
+            println!("chair_decisions_created={}", report.chair_decisions_created);
+            println!("votes_created={}", report.votes_created);
+            println!("voice_changes={}", report.voice_changes);
+            println!("cooldowns_started={}", report.cooldowns_started);
+            println!("promotions_created={}", report.promotions_created);
+            println!("quarantines_created={}", report.quarantines_created);
+            println!("risk_handoffs={}", report.risk_handoffs);
+            println!("executions_created={}", report.executions_created);
+            println!(
+                "sprint65_artifacts_unchanged={}",
+                report.sprint65_artifacts_unchanged
+            );
+        }
+        _ => return Err("unsupported prospective maturity preflight output format".into()),
+    }
+    Ok(())
+}
+
+fn run_prospective_outcome_opening_registration(
+    config_path: &Path,
+    output_format: &str,
+    allow_network: bool,
+) -> Result<(), String> {
+    if allow_network {
+        return Err("prospective outcome opening registration is offline-only".into());
+    }
+    let local_dir = config_path
+        .parent()
+        .ok_or("prospective opening registration directory unavailable")?;
+    let before = prospective_opening_artifact_bytes(local_dir)?;
+    let context = prospective_opening_context_v0(local_dir)?;
+    let path = local_dir.join("prospective_one_time_opening_registration_v0.json");
+    let registration = if path.is_file() {
+        let existing = crate::model::read_prospective_one_time_opening_registration_v0(&path)?;
+        crate::model::validate_prospective_one_time_opening_registration_v0(
+            &existing,
+            &context.plans,
+        )?;
+        if existing != context.registration {
+            return Err("prospective opening registration mismatch".into());
+        }
+        existing
+    } else {
+        crate::model::write_prospective_one_time_opening_registration_v0(
+            &path,
+            &context.registration,
+            &context.plans,
+        )?;
+        crate::model::read_prospective_one_time_opening_registration_v0(&path)?
+    };
+    crate::model::validate_prospective_one_time_opening_registration_v0(
+        &registration,
+        &context.plans,
+    )?;
+    if registration != context.registration
+        || before != prospective_opening_artifact_bytes(local_dir)?
+    {
+        return Err("prospective opening registration immutable artifact mismatch".into());
+    }
+    print_prospective_opening_registration_report(
+        &ProspectiveOpeningRegistrationReportV0 {
+            report_version: "prospective-one-time-opening-registration-v0",
+            offline: true,
+            opening_registration_digest: registration.registration_digest,
+            opening_registration_reopened_and_verified: true,
+            event_count: context.plans.len(),
+            event_integrity_valid: context.event_integrity_valid,
+            required_outcome_row_count: registration.maximum_response_rows,
+            maximum_future_requests: registration.maximum_future_requests,
+            maximum_concurrency: registration.maximum_concurrency,
+            maximum_retries: registration.maximum_retries,
+            maximum_response_rows: registration.maximum_response_rows,
+            explicit_opening_authorization_required: registration
+                .explicit_opening_authorization_required,
+            network_execution_allowed_this_sprint: registration
+                .network_execution_allowed_this_sprint,
+            label_access_allowed_this_sprint: registration.label_access_allowed_this_sprint,
+            reward_application_allowed: registration.reward_application_allowed,
+            provider_calls: 0,
+            transport_constructions: 0,
+            network_consent_reads: 0,
+            credential_reads: 0,
+            outcome_row_reads: 0,
+            prospective_label_reads: 0,
+            metric_computations: 0,
+            reward_candidate_count: 0,
+            reward_apply_count: 0,
+            authority_action_count: 0,
+            sprint65_artifacts_unchanged: true,
+        },
+        output_format,
+    )
+}
+
+fn run_prospective_event_maturity_preflight(
+    config_path: &Path,
+    output_format: &str,
+    allow_network: bool,
+) -> Result<(), String> {
+    if allow_network {
+        return Err("prospective event maturity preflight is offline-only".into());
+    }
+    let local_dir = config_path
+        .parent()
+        .ok_or("prospective maturity preflight directory unavailable")?;
+    let before = prospective_opening_artifact_bytes(local_dir)?;
+    let context = prospective_opening_context_v0(local_dir)?;
+    let registration = crate::model::read_prospective_one_time_opening_registration_v0(
+        &local_dir.join("prospective_one_time_opening_registration_v0.json"),
+    )?;
+    crate::model::validate_prospective_one_time_opening_registration_v0(
+        &registration,
+        &context.plans,
+    )?;
+    if registration != context.registration {
+        return Err("prospective maturity opening registration mismatch".into());
+    }
+    let evidence = crate::model::assess_prospective_outcome_evidence_v0(
+        &context.plans,
+        &context.expected_series_id,
+        &[],
+    );
+    let observed_timestamp = current_utc_timestamp_ms();
+    let readiness = context
+        .plans
+        .iter()
+        .map(|plan| {
+            crate::model::prospective_opening_readiness_v0(
+                plan,
+                observed_timestamp,
+                evidence.status,
+                context.event_integrity_valid,
+                context.challenge_valid,
+                context.label_open_count,
+            )
+        })
+        .collect::<Vec<_>>();
+    let opening_readiness = crate::model::aggregate_prospective_opening_readiness_v0(&readiness);
+    if before != prospective_opening_artifact_bytes(local_dir)? {
+        return Err("prospective maturity preflight immutable artifact mismatch".into());
+    }
+    print_prospective_event_maturity_preflight_report(
+        &ProspectiveEventMaturityPreflightReportV0 {
+            report_version: "prospective-event-maturity-preflight-v0",
+            offline: true,
+            opening_registration_digest: registration.registration_digest,
+            opening_registration_reopened_and_verified: true,
+            event_count: context.plans.len(),
+            event_integrity_valid: context.event_integrity_valid,
+            momentum_required_outcome_row_count: context.plans[0].required_finalized_row_count,
+            risk_required_outcome_row_count: context.plans[1].required_finalized_row_count,
+            required_outcome_row_count: evidence.required_finalized_row_count,
+            momentum_time_boundary_reached: observed_timestamp
+                >= context.plans[0].maturity_timestamp,
+            risk_time_boundary_reached: observed_timestamp >= context.plans[1].maturity_timestamp,
+            momentum_opening_readiness: format!("{:?}", readiness[0]),
+            risk_opening_readiness: format!("{:?}", readiness[1]),
+            outcome_evidence_status: format!("{:?}", evidence.status),
+            opening_readiness: format!("{opening_readiness:?}"),
+            label_open_count: context.label_open_count,
+            reward_eligibility: format!(
+                "{:?}",
+                crate::model::external_admission_reward_eligibility_status_v0(context.plans.len())
+            ),
+            provider_calls: 0,
+            transport_constructions: 0,
+            network_consent_reads: 0,
+            credential_reads: 0,
+            outcome_row_reads: 0,
+            prospective_label_reads: 0,
+            metric_computations: 0,
+            reward_candidate_count: 0,
+            reward_apply_count: 0,
+            penalties_applied: 0,
+            chair_observed: false,
+            chair_decisions_created: 0,
+            votes_created: 0,
+            voice_changes: 0,
+            cooldowns_started: 0,
+            promotions_created: 0,
+            quarantines_created: 0,
+            risk_handoffs: 0,
+            executions_created: 0,
+            sprint65_artifacts_unchanged: true,
+        },
+        output_format,
+    )
+}
+
 #[allow(clippy::too_many_arguments)]
 fn run_learned_reward_eligibility_report(
     config_path: &Path,
@@ -4340,5 +4899,56 @@ mod tests {
             json["registration_reopened_and_verified"].as_bool(),
             Some(true)
         );
+    }
+
+    #[test]
+    fn prospective_maturity_preflight_text_and_json_share_zero_counter_fields() {
+        let report = ProspectiveEventMaturityPreflightReportV0 {
+            report_version: "prospective-event-maturity-preflight-v0",
+            offline: true,
+            opening_registration_digest: "registration".into(),
+            opening_registration_reopened_and_verified: true,
+            event_count: 2,
+            event_integrity_valid: true,
+            momentum_required_outcome_row_count: 1,
+            risk_required_outcome_row_count: 4,
+            required_outcome_row_count: 4,
+            momentum_time_boundary_reached: false,
+            risk_time_boundary_reached: false,
+            momentum_opening_readiness: "AwaitingTimeMaturity".into(),
+            risk_opening_readiness: "AwaitingTimeMaturity".into(),
+            outcome_evidence_status: "NoOutcomeRows".into(),
+            opening_readiness: "AwaitingTimeMaturity".into(),
+            label_open_count: 0,
+            reward_eligibility: "IneligibleAwaitingMaturity".into(),
+            provider_calls: 0,
+            transport_constructions: 0,
+            network_consent_reads: 0,
+            credential_reads: 0,
+            outcome_row_reads: 0,
+            prospective_label_reads: 0,
+            metric_computations: 0,
+            reward_candidate_count: 0,
+            reward_apply_count: 0,
+            penalties_applied: 0,
+            chair_observed: false,
+            chair_decisions_created: 0,
+            votes_created: 0,
+            voice_changes: 0,
+            cooldowns_started: 0,
+            promotions_created: 0,
+            quarantines_created: 0,
+            risk_handoffs: 0,
+            executions_created: 0,
+            sprint65_artifacts_unchanged: true,
+        };
+        let json = serde_json::to_value(&report).unwrap();
+        assert_eq!(json["event_count"].as_u64(), Some(2));
+        assert_eq!(json["required_outcome_row_count"].as_u64(), Some(4));
+        assert_eq!(json["provider_calls"].as_u64(), Some(0));
+        assert_eq!(json["prospective_label_reads"].as_u64(), Some(0));
+        assert_eq!(json["metric_computations"].as_u64(), Some(0));
+        assert_eq!(json["executions_created"].as_u64(), Some(0));
+        assert_eq!(json["sprint65_artifacts_unchanged"].as_bool(), Some(true));
     }
 }

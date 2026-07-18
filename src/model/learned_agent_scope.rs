@@ -9913,6 +9913,816 @@ pub fn append_external_admission_to_local_stores_v0(
     Ok(())
 }
 
+const PROSPECTIVE_OUTCOME_ROW_INTERVAL_MS_V0: u64 = 86_400_000;
+pub const MAXIMUM_PROSPECTIVE_OUTCOME_RESPONSE_ROWS_V0: usize = 31;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProspectiveOpeningReadinessV0 {
+    AwaitingTimeMaturity,
+    TimeMatureOutcomeRowsMissing,
+    OutcomeRowsPresentButUnverified,
+    ReadyForExplicitOpening,
+    AlreadyOpened,
+    IntegrityInvalid,
+    ChallengeInvalid,
+    TechnicalFailure,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProspectiveOutcomeEvidenceStatusV0 {
+    NoOutcomeRows,
+    PartialOutcomeRows,
+    CompleteUnverified,
+    CompleteVerified,
+    DuplicateRows,
+    MissingRequiredTimestamp,
+    NonFinalizedRow,
+    WrongSeries,
+    ChronologyInvalid,
+    IntegrityInvalid,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProspectiveEventMaturityPlanV0 {
+    pub plan_version: String,
+    pub event_id: String,
+    pub event_digest: String,
+    pub agent_id: String,
+    pub objective: LearnedAgentObjectiveV0,
+    pub prediction_timestamp: u64,
+    pub maturity_timestamp: u64,
+    pub horizon_digest: String,
+    pub required_outcome_start_timestamp: u64,
+    pub required_outcome_end_timestamp: u64,
+    pub required_finalized_row_count: usize,
+    pub label_policy_digest: String,
+    pub source_policy_digest: String,
+    pub plan_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProspectiveOneTimeOpeningRegistrationV0 {
+    pub registration_version: String,
+    pub momentum_event_digest: String,
+    pub risk_event_digest: String,
+    pub maturity_plan_digests: Vec<String>,
+    pub shared_raw_evidence_digest: String,
+    pub outcome_source_policy_digest: String,
+    pub finalization_policy_digest: String,
+    pub label_policy_digests: Vec<String>,
+    pub metric_policy_digests: Vec<String>,
+    pub maximum_future_requests: usize,
+    pub maximum_concurrency: usize,
+    pub maximum_retries: usize,
+    pub maximum_response_rows: usize,
+    pub explicit_opening_authorization_required: bool,
+    pub one_time_opening_required: bool,
+    pub early_opening_forbidden: bool,
+    pub duplicate_opening_forbidden: bool,
+    pub interim_metrics_forbidden: bool,
+    pub network_execution_allowed_this_sprint: bool,
+    pub label_access_allowed_this_sprint: bool,
+    pub reward_application_allowed: bool,
+    pub registration_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProspectiveOpeningAuthorizationV0 {
+    pub authorization_version: String,
+    pub opening_registration_digest: String,
+    pub authorized_event_digests: Vec<String>,
+    pub authorized_outcome_evidence_digest: String,
+    pub explicit_owner_authorization: bool,
+    pub one_time_only: bool,
+    pub label_open_count_before: usize,
+    pub authorization_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ProspectiveOutcomeEvidenceRowV0 {
+    pub series_id: String,
+    pub timestamp: u64,
+    pub canonical_row_digest: String,
+    pub finalized: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ProspectiveOutcomeEvidenceAssessmentV0 {
+    pub status: ProspectiveOutcomeEvidenceStatusV0,
+    pub required_finalized_row_count: usize,
+    pub observed_row_count: usize,
+    pub evidence_digest: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ProspectiveSealedEventAuditV0 {
+    pub shared_raw_evidence_digest: String,
+    pub momentum_event: LearnedProspectiveEventV0,
+    pub risk_event: LearnedProspectiveEventV0,
+}
+
+fn prospective_event_maturity_plan_digest_v0(plan: &ProspectiveEventMaturityPlanV0) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{}:{}:{:?}:{}:{}:{}:{}:{}:{}:{}:{}",
+        plan.plan_version,
+        plan.event_id,
+        plan.event_digest,
+        plan.agent_id,
+        plan.objective,
+        plan.prediction_timestamp,
+        plan.maturity_timestamp,
+        plan.horizon_digest,
+        plan.required_outcome_start_timestamp,
+        plan.required_outcome_end_timestamp,
+        plan.required_finalized_row_count,
+        plan.label_policy_digest,
+        plan.source_policy_digest,
+    ))
+}
+
+fn prospective_one_time_opening_registration_digest_v0(
+    registration: &ProspectiveOneTimeOpeningRegistrationV0,
+) -> String {
+    stable_hash_string(
+        &[
+            registration.registration_version.clone(),
+            registration.momentum_event_digest.clone(),
+            registration.risk_event_digest.clone(),
+            registration.maturity_plan_digests.join(","),
+            registration.shared_raw_evidence_digest.clone(),
+            registration.outcome_source_policy_digest.clone(),
+            registration.finalization_policy_digest.clone(),
+            registration.label_policy_digests.join(","),
+            registration.metric_policy_digests.join(","),
+            registration.maximum_future_requests.to_string(),
+            registration.maximum_concurrency.to_string(),
+            registration.maximum_retries.to_string(),
+            registration.maximum_response_rows.to_string(),
+            registration
+                .explicit_opening_authorization_required
+                .to_string(),
+            registration.one_time_opening_required.to_string(),
+            registration.early_opening_forbidden.to_string(),
+            registration.duplicate_opening_forbidden.to_string(),
+            registration.interim_metrics_forbidden.to_string(),
+            registration
+                .network_execution_allowed_this_sprint
+                .to_string(),
+            registration.label_access_allowed_this_sprint.to_string(),
+            registration.reward_application_allowed.to_string(),
+        ]
+        .join(":"),
+    )
+}
+
+fn prospective_opening_authorization_digest_v0(
+    authorization: &ProspectiveOpeningAuthorizationV0,
+) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{:?}:{}:{}:{}:{}",
+        authorization.authorization_version,
+        authorization.opening_registration_digest,
+        authorization.authorized_event_digests,
+        authorization.authorized_outcome_evidence_digest,
+        authorization.explicit_owner_authorization,
+        authorization.one_time_only,
+        authorization.label_open_count_before,
+    ))
+}
+
+fn sealed_external_event_horizon_rows_v0(
+    event: &LearnedProspectiveEventV0,
+    expected_agent_id: &str,
+    expected_objective: LearnedAgentObjectiveV0,
+) -> Result<usize, String> {
+    if event.event_version != "learned-prospective-event-v0"
+        || event.agent_id != expected_agent_id
+        || event.objective != expected_objective
+        || event.event_digest != learned_prospective_event_digest_v0(event)
+        || event.event_id.is_empty()
+        || event.challenge_digest.is_empty()
+        || event.shared_raw_evidence_digest.is_empty()
+        || event.frozen_model_artifact_digests.is_empty()
+        || event.input_digest != event.shared_raw_evidence_digest
+        || event.support_status_digest.is_empty()
+        || event.prediction_timestamp == 0
+        || event.maturity_timestamp <= event.prediction_timestamp
+        || !event.probability_bits_sealed
+        || event.label_accessed
+    {
+        return Err("prospective_sealed_event_integrity_invalid".into());
+    }
+    let interval = event.maturity_timestamp - event.prediction_timestamp;
+    if interval % PROSPECTIVE_OUTCOME_ROW_INTERVAL_MS_V0 != 0 {
+        return Err("prospective_sealed_event_horizon_invalid".into());
+    }
+    let row_count = (interval / PROSPECTIVE_OUTCOME_ROW_INTERVAL_MS_V0) as usize;
+    if row_count == 0
+        || event.horizon_digest
+            != stable_hash_string(&format!(
+                "external-prospective-horizon-v0:{expected_objective:?}:{row_count}"
+            ))
+    {
+        return Err("prospective_sealed_event_horizon_invalid".into());
+    }
+    Ok(row_count)
+}
+
+pub fn derive_prospective_event_maturity_plan_v0(
+    event: &LearnedProspectiveEventV0,
+    sealed_horizon_rows: usize,
+    label_policy_digest: &str,
+    source_policy_digest: &str,
+) -> Result<ProspectiveEventMaturityPlanV0, String> {
+    let (expected_agent_id, expected_objective) = match event.objective {
+        LearnedAgentObjectiveV0::DirectionalMomentum => (
+            MOMENTUM_AGENT_ID_V0,
+            LearnedAgentObjectiveV0::DirectionalMomentum,
+        ),
+        LearnedAgentObjectiveV0::DownsideRisk => (
+            CYCLE_RISK_SHADOW_AGENT_ID_V0,
+            LearnedAgentObjectiveV0::DownsideRisk,
+        ),
+    };
+    let derived_horizon_rows =
+        sealed_external_event_horizon_rows_v0(event, expected_agent_id, expected_objective)?;
+    if sealed_horizon_rows == 0
+        || sealed_horizon_rows != derived_horizon_rows
+        || label_policy_digest.is_empty()
+        || source_policy_digest.is_empty()
+    {
+        return Err("prospective_maturity_plan_contract_invalid".into());
+    }
+    let required_outcome_start_timestamp = event
+        .prediction_timestamp
+        .checked_add(PROSPECTIVE_OUTCOME_ROW_INTERVAL_MS_V0)
+        .ok_or("prospective_maturity_plan_range_invalid")?;
+    let required_outcome_end_timestamp = required_outcome_start_timestamp
+        .checked_add(
+            (sealed_horizon_rows.saturating_sub(1) as u64)
+                .saturating_mul(PROSPECTIVE_OUTCOME_ROW_INTERVAL_MS_V0),
+        )
+        .ok_or("prospective_maturity_plan_range_invalid")?;
+    if required_outcome_end_timestamp != event.maturity_timestamp {
+        return Err("prospective_maturity_plan_range_invalid".into());
+    }
+    let mut plan = ProspectiveEventMaturityPlanV0 {
+        plan_version: "prospective-event-maturity-plan-v0".into(),
+        event_id: event.event_id.clone(),
+        event_digest: event.event_digest.clone(),
+        agent_id: event.agent_id.clone(),
+        objective: event.objective,
+        prediction_timestamp: event.prediction_timestamp,
+        maturity_timestamp: event.maturity_timestamp,
+        horizon_digest: event.horizon_digest.clone(),
+        required_outcome_start_timestamp,
+        required_outcome_end_timestamp,
+        required_finalized_row_count: sealed_horizon_rows,
+        label_policy_digest: label_policy_digest.into(),
+        source_policy_digest: source_policy_digest.into(),
+        plan_digest: String::new(),
+    };
+    plan.plan_digest = prospective_event_maturity_plan_digest_v0(&plan);
+    Ok(plan)
+}
+
+pub fn validate_prospective_event_maturity_plan_v0(
+    plan: &ProspectiveEventMaturityPlanV0,
+) -> Result<(), String> {
+    if plan.plan_version != "prospective-event-maturity-plan-v0"
+        || plan.event_id.is_empty()
+        || plan.event_digest.is_empty()
+        || plan.agent_id.is_empty()
+        || plan.prediction_timestamp == 0
+        || plan.maturity_timestamp <= plan.prediction_timestamp
+        || plan.horizon_digest.is_empty()
+        || plan.required_outcome_start_timestamp
+            != plan
+                .prediction_timestamp
+                .saturating_add(PROSPECTIVE_OUTCOME_ROW_INTERVAL_MS_V0)
+        || plan.required_finalized_row_count == 0
+        || plan.required_outcome_end_timestamp != plan.maturity_timestamp
+        || plan.required_outcome_end_timestamp
+            != plan.required_outcome_start_timestamp.saturating_add(
+                (plan.required_finalized_row_count.saturating_sub(1) as u64)
+                    .saturating_mul(PROSPECTIVE_OUTCOME_ROW_INTERVAL_MS_V0),
+            )
+        || plan.label_policy_digest.is_empty()
+        || plan.source_policy_digest.is_empty()
+        || plan.plan_digest != prospective_event_maturity_plan_digest_v0(plan)
+    {
+        Err("prospective_maturity_plan_invalid".into())
+    } else {
+        Ok(())
+    }
+}
+
+fn prospective_outcome_required_timestamps_v0(
+    plans: &[ProspectiveEventMaturityPlanV0],
+) -> Result<BTreeSet<u64>, String> {
+    if plans.len() != 2 {
+        return Err("prospective_maturity_plan_count_invalid".into());
+    }
+    let mut timestamps = BTreeSet::new();
+    for plan in plans {
+        validate_prospective_event_maturity_plan_v0(plan)?;
+        for offset in 0..plan.required_finalized_row_count {
+            timestamps.insert(
+                plan.required_outcome_start_timestamp
+                    .saturating_add(offset as u64 * PROSPECTIVE_OUTCOME_ROW_INTERVAL_MS_V0),
+            );
+        }
+    }
+    if timestamps.is_empty() || timestamps.len() > MAXIMUM_PROSPECTIVE_OUTCOME_RESPONSE_ROWS_V0 {
+        return Err("prospective_outcome_request_range_invalid".into());
+    }
+    Ok(timestamps)
+}
+
+pub fn prospective_outcome_request_row_count_v0(
+    plans: &[ProspectiveEventMaturityPlanV0],
+) -> Result<usize, String> {
+    Ok(prospective_outcome_required_timestamps_v0(plans)?.len())
+}
+
+pub fn pre_register_prospective_one_time_opening_v0(
+    momentum_event: &LearnedProspectiveEventV0,
+    risk_event: &LearnedProspectiveEventV0,
+    momentum_horizon_rows: usize,
+    risk_horizon_rows: usize,
+    momentum_label_policy_digest: &str,
+    risk_label_policy_digest: &str,
+    outcome_source_policy_digest: &str,
+    finalization_policy_digest: &str,
+    metric_policy_digests: Vec<String>,
+) -> Result<
+    (
+        ProspectiveOneTimeOpeningRegistrationV0,
+        Vec<ProspectiveEventMaturityPlanV0>,
+    ),
+    String,
+> {
+    let momentum_plan = derive_prospective_event_maturity_plan_v0(
+        momentum_event,
+        momentum_horizon_rows,
+        momentum_label_policy_digest,
+        outcome_source_policy_digest,
+    )?;
+    let risk_plan = derive_prospective_event_maturity_plan_v0(
+        risk_event,
+        risk_horizon_rows,
+        risk_label_policy_digest,
+        outcome_source_policy_digest,
+    )?;
+    if momentum_plan.objective != LearnedAgentObjectiveV0::DirectionalMomentum
+        || risk_plan.objective != LearnedAgentObjectiveV0::DownsideRisk
+        || momentum_event.shared_raw_evidence_digest != risk_event.shared_raw_evidence_digest
+        || finalization_policy_digest.is_empty()
+        || metric_policy_digests.len() != 2
+        || metric_policy_digests.iter().any(String::is_empty)
+    {
+        return Err("prospective_opening_registration_contract_invalid".into());
+    }
+    let plans = vec![momentum_plan, risk_plan];
+    let maximum_response_rows = prospective_outcome_request_row_count_v0(&plans)?;
+    let mut registration = ProspectiveOneTimeOpeningRegistrationV0 {
+        registration_version: "prospective-one-time-opening-registration-v0".into(),
+        momentum_event_digest: momentum_event.event_digest.clone(),
+        risk_event_digest: risk_event.event_digest.clone(),
+        maturity_plan_digests: plans.iter().map(|plan| plan.plan_digest.clone()).collect(),
+        shared_raw_evidence_digest: momentum_event.shared_raw_evidence_digest.clone(),
+        outcome_source_policy_digest: outcome_source_policy_digest.into(),
+        finalization_policy_digest: finalization_policy_digest.into(),
+        label_policy_digests: vec![
+            momentum_label_policy_digest.into(),
+            risk_label_policy_digest.into(),
+        ],
+        metric_policy_digests,
+        maximum_future_requests: 1,
+        maximum_concurrency: 1,
+        maximum_retries: 0,
+        maximum_response_rows,
+        explicit_opening_authorization_required: true,
+        one_time_opening_required: true,
+        early_opening_forbidden: true,
+        duplicate_opening_forbidden: true,
+        interim_metrics_forbidden: true,
+        network_execution_allowed_this_sprint: false,
+        label_access_allowed_this_sprint: false,
+        reward_application_allowed: false,
+        registration_digest: String::new(),
+    };
+    registration.registration_digest =
+        prospective_one_time_opening_registration_digest_v0(&registration);
+    validate_prospective_one_time_opening_registration_v0(&registration, &plans)?;
+    Ok((registration, plans))
+}
+
+pub fn validate_prospective_one_time_opening_registration_v0(
+    registration: &ProspectiveOneTimeOpeningRegistrationV0,
+    plans: &[ProspectiveEventMaturityPlanV0],
+) -> Result<(), String> {
+    let expected_rows = prospective_outcome_request_row_count_v0(plans)?;
+    let plan_digests = plans
+        .iter()
+        .map(|plan| plan.plan_digest.clone())
+        .collect::<Vec<_>>();
+    if registration.registration_version != "prospective-one-time-opening-registration-v0"
+        || registration.momentum_event_digest.is_empty()
+        || registration.risk_event_digest.is_empty()
+        || registration.momentum_event_digest == registration.risk_event_digest
+        || registration.maturity_plan_digests != plan_digests
+        || registration.shared_raw_evidence_digest.is_empty()
+        || registration.outcome_source_policy_digest.is_empty()
+        || registration.finalization_policy_digest.is_empty()
+        || registration.label_policy_digests.len() != 2
+        || registration
+            .label_policy_digests
+            .iter()
+            .any(String::is_empty)
+        || registration.metric_policy_digests.len() != 2
+        || registration
+            .metric_policy_digests
+            .iter()
+            .any(String::is_empty)
+        || registration.maximum_future_requests != 1
+        || registration.maximum_concurrency != 1
+        || registration.maximum_retries != 0
+        || registration.maximum_response_rows != expected_rows
+        || registration.maximum_response_rows == 0
+        || registration.maximum_response_rows > MAXIMUM_PROSPECTIVE_OUTCOME_RESPONSE_ROWS_V0
+        || !registration.explicit_opening_authorization_required
+        || !registration.one_time_opening_required
+        || !registration.early_opening_forbidden
+        || !registration.duplicate_opening_forbidden
+        || !registration.interim_metrics_forbidden
+        || registration.network_execution_allowed_this_sprint
+        || registration.label_access_allowed_this_sprint
+        || registration.reward_application_allowed
+        || registration.registration_digest
+            != prospective_one_time_opening_registration_digest_v0(registration)
+    {
+        Err("prospective_opening_registration_invalid".into())
+    } else {
+        Ok(())
+    }
+}
+
+pub fn write_prospective_one_time_opening_registration_v0(
+    path: &Path,
+    registration: &ProspectiveOneTimeOpeningRegistrationV0,
+    plans: &[ProspectiveEventMaturityPlanV0],
+) -> Result<(), String> {
+    validate_prospective_one_time_opening_registration_v0(registration, plans)?;
+    let parent = path
+        .parent()
+        .ok_or("prospective_opening_registration_storage_unavailable")?;
+    fs::create_dir_all(parent)
+        .map_err(|_| "prospective_opening_registration_storage_unavailable")?;
+    let encoded = serde_json::to_vec(registration)
+        .map_err(|_| "prospective_opening_registration_serialization_failed")?;
+    let temporary = path.with_extension("tmp");
+    fs::write(&temporary, encoded)
+        .map_err(|_| "prospective_opening_registration_storage_failed")?;
+    fs::rename(temporary, path)
+        .map_err(|_| "prospective_opening_registration_storage_failed".to_string())
+}
+
+pub fn read_prospective_one_time_opening_registration_v0(
+    path: &Path,
+) -> Result<ProspectiveOneTimeOpeningRegistrationV0, String> {
+    serde_json::from_slice(
+        &fs::read(path).map_err(|_| "prospective_opening_registration_unavailable")?,
+    )
+    .map_err(|_| "prospective_opening_registration_invalid".into())
+}
+
+pub fn assess_prospective_outcome_evidence_v0(
+    plans: &[ProspectiveEventMaturityPlanV0],
+    expected_series_id: &str,
+    rows: &[ProspectiveOutcomeEvidenceRowV0],
+) -> ProspectiveOutcomeEvidenceAssessmentV0 {
+    let required_timestamps = match prospective_outcome_required_timestamps_v0(plans) {
+        Ok(value) => value,
+        Err(_) => {
+            return ProspectiveOutcomeEvidenceAssessmentV0 {
+                status: ProspectiveOutcomeEvidenceStatusV0::IntegrityInvalid,
+                required_finalized_row_count: 0,
+                observed_row_count: rows.len(),
+                evidence_digest: None,
+            };
+        }
+    };
+    let required_finalized_row_count = required_timestamps.len();
+    if rows.is_empty() {
+        return ProspectiveOutcomeEvidenceAssessmentV0 {
+            status: ProspectiveOutcomeEvidenceStatusV0::NoOutcomeRows,
+            required_finalized_row_count,
+            observed_row_count: 0,
+            evidence_digest: None,
+        };
+    }
+    if rows.iter().any(|row| row.series_id != expected_series_id) {
+        return ProspectiveOutcomeEvidenceAssessmentV0 {
+            status: ProspectiveOutcomeEvidenceStatusV0::WrongSeries,
+            required_finalized_row_count,
+            observed_row_count: rows.len(),
+            evidence_digest: None,
+        };
+    }
+    if rows.iter().any(|row| !row.finalized) {
+        return ProspectiveOutcomeEvidenceAssessmentV0 {
+            status: ProspectiveOutcomeEvidenceStatusV0::NonFinalizedRow,
+            required_finalized_row_count,
+            observed_row_count: rows.len(),
+            evidence_digest: None,
+        };
+    }
+    let mut observed = BTreeSet::new();
+    let mut previous_timestamp = None;
+    for row in rows {
+        if previous_timestamp.is_some_and(|previous| row.timestamp < previous) {
+            return ProspectiveOutcomeEvidenceAssessmentV0 {
+                status: ProspectiveOutcomeEvidenceStatusV0::ChronologyInvalid,
+                required_finalized_row_count,
+                observed_row_count: rows.len(),
+                evidence_digest: None,
+            };
+        }
+        previous_timestamp = Some(row.timestamp);
+        if !observed.insert(row.timestamp) {
+            return ProspectiveOutcomeEvidenceAssessmentV0 {
+                status: ProspectiveOutcomeEvidenceStatusV0::DuplicateRows,
+                required_finalized_row_count,
+                observed_row_count: rows.len(),
+                evidence_digest: None,
+            };
+        }
+        if !required_timestamps.contains(&row.timestamp) {
+            return ProspectiveOutcomeEvidenceAssessmentV0 {
+                status: ProspectiveOutcomeEvidenceStatusV0::ChronologyInvalid,
+                required_finalized_row_count,
+                observed_row_count: rows.len(),
+                evidence_digest: None,
+            };
+        }
+    }
+    if observed != required_timestamps {
+        let expected_prefix = required_timestamps
+            .iter()
+            .take(observed.len())
+            .copied()
+            .collect::<BTreeSet<_>>();
+        return ProspectiveOutcomeEvidenceAssessmentV0 {
+            status: if observed == expected_prefix {
+                ProspectiveOutcomeEvidenceStatusV0::PartialOutcomeRows
+            } else {
+                ProspectiveOutcomeEvidenceStatusV0::MissingRequiredTimestamp
+            },
+            required_finalized_row_count,
+            observed_row_count: rows.len(),
+            evidence_digest: None,
+        };
+    }
+    if rows.iter().any(|row| row.canonical_row_digest.is_empty()) {
+        return ProspectiveOutcomeEvidenceAssessmentV0 {
+            status: ProspectiveOutcomeEvidenceStatusV0::CompleteUnverified,
+            required_finalized_row_count,
+            observed_row_count: rows.len(),
+            evidence_digest: None,
+        };
+    }
+    ProspectiveOutcomeEvidenceAssessmentV0 {
+        status: ProspectiveOutcomeEvidenceStatusV0::CompleteVerified,
+        required_finalized_row_count,
+        observed_row_count: rows.len(),
+        evidence_digest: Some(stable_hash_string(&format!(
+            "prospective-outcome-evidence-v0:{}:{:?}",
+            expected_series_id,
+            rows.iter()
+                .map(|row| (&row.timestamp, &row.canonical_row_digest))
+                .collect::<Vec<_>>(),
+        ))),
+    }
+}
+
+pub fn prospective_opening_readiness_v0(
+    plan: &ProspectiveEventMaturityPlanV0,
+    observed_timestamp: u64,
+    evidence_status: ProspectiveOutcomeEvidenceStatusV0,
+    event_integrity_valid: bool,
+    challenge_valid: bool,
+    label_open_count: usize,
+) -> ProspectiveOpeningReadinessV0 {
+    if validate_prospective_event_maturity_plan_v0(plan).is_err() || !event_integrity_valid {
+        return ProspectiveOpeningReadinessV0::IntegrityInvalid;
+    }
+    if !challenge_valid {
+        return ProspectiveOpeningReadinessV0::ChallengeInvalid;
+    }
+    if label_open_count > 0 {
+        return ProspectiveOpeningReadinessV0::AlreadyOpened;
+    }
+    if observed_timestamp < plan.maturity_timestamp {
+        return ProspectiveOpeningReadinessV0::AwaitingTimeMaturity;
+    }
+    match evidence_status {
+        ProspectiveOutcomeEvidenceStatusV0::NoOutcomeRows
+        | ProspectiveOutcomeEvidenceStatusV0::PartialOutcomeRows
+        | ProspectiveOutcomeEvidenceStatusV0::MissingRequiredTimestamp => {
+            ProspectiveOpeningReadinessV0::TimeMatureOutcomeRowsMissing
+        }
+        ProspectiveOutcomeEvidenceStatusV0::CompleteUnverified => {
+            ProspectiveOpeningReadinessV0::OutcomeRowsPresentButUnverified
+        }
+        ProspectiveOutcomeEvidenceStatusV0::CompleteVerified => {
+            ProspectiveOpeningReadinessV0::ReadyForExplicitOpening
+        }
+        ProspectiveOutcomeEvidenceStatusV0::DuplicateRows
+        | ProspectiveOutcomeEvidenceStatusV0::NonFinalizedRow
+        | ProspectiveOutcomeEvidenceStatusV0::WrongSeries
+        | ProspectiveOutcomeEvidenceStatusV0::ChronologyInvalid
+        | ProspectiveOutcomeEvidenceStatusV0::IntegrityInvalid => {
+            ProspectiveOpeningReadinessV0::IntegrityInvalid
+        }
+    }
+}
+
+pub fn aggregate_prospective_opening_readiness_v0(
+    readiness: &[ProspectiveOpeningReadinessV0],
+) -> ProspectiveOpeningReadinessV0 {
+    if readiness.len() != 2 {
+        return ProspectiveOpeningReadinessV0::TechnicalFailure;
+    }
+    for status in readiness {
+        if matches!(
+            status,
+            ProspectiveOpeningReadinessV0::IntegrityInvalid
+                | ProspectiveOpeningReadinessV0::ChallengeInvalid
+                | ProspectiveOpeningReadinessV0::AlreadyOpened
+        ) {
+            return *status;
+        }
+    }
+    if readiness
+        .iter()
+        .any(|status| *status == ProspectiveOpeningReadinessV0::AwaitingTimeMaturity)
+    {
+        return ProspectiveOpeningReadinessV0::AwaitingTimeMaturity;
+    }
+    if readiness
+        .iter()
+        .any(|status| *status == ProspectiveOpeningReadinessV0::OutcomeRowsPresentButUnverified)
+    {
+        return ProspectiveOpeningReadinessV0::OutcomeRowsPresentButUnverified;
+    }
+    if readiness
+        .iter()
+        .any(|status| *status == ProspectiveOpeningReadinessV0::TimeMatureOutcomeRowsMissing)
+    {
+        return ProspectiveOpeningReadinessV0::TimeMatureOutcomeRowsMissing;
+    }
+    if readiness
+        .iter()
+        .all(|status| *status == ProspectiveOpeningReadinessV0::ReadyForExplicitOpening)
+    {
+        ProspectiveOpeningReadinessV0::ReadyForExplicitOpening
+    } else {
+        ProspectiveOpeningReadinessV0::TechnicalFailure
+    }
+}
+
+pub fn validate_prospective_opening_authorization_v0(
+    authorization: &ProspectiveOpeningAuthorizationV0,
+    registration: &ProspectiveOneTimeOpeningRegistrationV0,
+    readiness: ProspectiveOpeningReadinessV0,
+    outcome_evidence_digest: &str,
+    label_open_count: usize,
+) -> Result<(), String> {
+    let mut expected_events = vec![
+        registration.momentum_event_digest.clone(),
+        registration.risk_event_digest.clone(),
+    ];
+    expected_events.sort();
+    let mut authorized_events = authorization.authorized_event_digests.clone();
+    authorized_events.sort();
+    if readiness != ProspectiveOpeningReadinessV0::ReadyForExplicitOpening
+        || label_open_count != 0
+        || authorization.authorization_version != "prospective-opening-authorization-v0"
+        || authorization.opening_registration_digest != registration.registration_digest
+        || authorized_events != expected_events
+        || authorization.authorized_outcome_evidence_digest != outcome_evidence_digest
+        || authorization.authorized_outcome_evidence_digest.is_empty()
+        || !authorization.explicit_owner_authorization
+        || !authorization.one_time_only
+        || authorization.label_open_count_before != 0
+        || authorization.authorization_digest
+            != prospective_opening_authorization_digest_v0(authorization)
+    {
+        Err("prospective_opening_authorization_invalid".into())
+    } else {
+        Ok(())
+    }
+}
+
+pub fn audit_sealed_prospective_events_v0(
+    admission_registration: &ProspectiveExternalAdmissionRegistrationV0,
+    external_capsule: &ProspectiveExternalRowCapsuleV0,
+    momentum: &ProspectiveChallengeLocalStateV0,
+    risk: &CycleRiskProspectiveLocalStateV0,
+) -> Result<ProspectiveSealedEventAuditV0, String> {
+    validate_prospective_challenge_local_state_v0(momentum)
+        .map_err(|_| "prospective_maturity_momentum_journal_invalid")?;
+    validate_cycle_risk_prospective_local_state_v0(risk)
+        .map_err(|_| "prospective_maturity_risk_journal_invalid")?;
+    validate_prospective_external_admission_registration_v0(
+        admission_registration,
+        momentum,
+        &risk.capsule,
+    )?;
+    let shared = build_shared_prospective_raw_evidence_v0(
+        admission_registration,
+        external_capsule,
+        ProspectiveRowAdmissionStatusV0::Admitted,
+    )?;
+    let momentum_validation = validate_momentum_shared_prospective_reference_v0(
+        admission_registration,
+        momentum,
+        &shared,
+    );
+    let risk_validation =
+        validate_risk_shared_prospective_reference_v0(admission_registration, risk, &shared);
+    if !momentum_validation.independently_valid || !risk_validation.independently_valid {
+        return Err("prospective_maturity_shared_reference_invalid".into());
+    }
+    let momentum_event = seal_external_prospective_event_v0(
+        &momentum_validation,
+        &shared,
+        momentum,
+        risk,
+        ProspectiveOperationalOutcomeV0::ShadowAbstentionSupportUnavailable,
+        Some("frozen_external_inference_support_unavailable".into()),
+    )?;
+    let risk_event = seal_external_prospective_event_v0(
+        &risk_validation,
+        &shared,
+        momentum,
+        risk,
+        ProspectiveOperationalOutcomeV0::ShadowAbstentionSupportUnavailable,
+        Some("frozen_external_inference_support_unavailable".into()),
+    )?;
+    let momentum_journal_event = momentum
+        .journal
+        .events
+        .first()
+        .ok_or("prospective_maturity_momentum_event_missing")?;
+    if momentum.journal.events.len() != 1
+        || momentum.vault.finalized_rows.len() != 1
+        || momentum.vault.finalized_rows[0].timestamp_ms != shared.timestamp
+        || momentum.vault.finalized_rows[0].canonical_row_digest != shared.canonical_row_digest
+        || !momentum.vault.finalized_rows[0].finalized
+        || momentum_journal_event.event_id != momentum_event.event_id
+        || momentum_journal_event.prediction_timestamp_ms != momentum_event.prediction_timestamp
+        || momentum_journal_event.required_label_maturity_timestamp_ms
+            != momentum_event.maturity_timestamp
+        || momentum_journal_event.input_evidence_digest != shared.reference_digest
+        || momentum_journal_event.candidate_artifact_digest
+            != momentum.capsule.candidate.artifact_digest
+        || momentum_journal_event.comparator_artifact_digests
+            != momentum
+                .capsule
+                .comparators
+                .iter()
+                .map(|value| value.artifact_digest.clone())
+                .collect::<Vec<_>>()
+        || momentum_journal_event.operational_outcome
+            != ProspectiveShadowOutcomeV0::ShadowAbstainSupportUnavailable
+        || momentum_journal_event.label_status != ProspectiveLabelStatusV0::AwaitingFutureRows
+        || momentum.vault.labels_derived
+        || momentum.vault.opened
+    {
+        return Err("prospective_maturity_momentum_event_invalid".into());
+    }
+    if risk.vault.row_count != 1
+        || risk.journal.event_count != 1
+        || risk.vault.admitted_row_timestamps != vec![shared.timestamp]
+        || risk.vault.admitted_row_digests != vec![shared.canonical_row_digest.clone()]
+        || risk.journal.sealed_event_timestamps != vec![risk_event.prediction_timestamp]
+        || risk.journal.sealed_event_digests != vec![risk_event.event_digest.clone()]
+        || risk.vault.labels_derived
+        || risk.vault.opened
+        || risk.journal.labels_accessed
+        || risk.journal.evaluation_performed
+    {
+        return Err("prospective_maturity_risk_event_invalid".into());
+    }
+    Ok(ProspectiveSealedEventAuditV0 {
+        shared_raw_evidence_digest: shared.reference_digest,
+        momentum_event,
+        risk_event,
+    })
+}
+
 #[cfg(test)]
 pub(crate) fn chair_shadow_test_observation_report_for_owner_review_v0()
 -> ChairShadowObservationReportV0 {
@@ -11814,5 +12624,276 @@ mod tests {
         assert_eq!(report.active_committee_count, 3);
         assert!(report.packet.authority.advisory_only);
         assert!(!report.packet.authority.execution_allowed);
+    }
+
+    fn prospective_maturity_event(
+        objective: LearnedAgentObjectiveV0,
+        prediction_timestamp: u64,
+        horizon_rows: usize,
+    ) -> LearnedProspectiveEventV0 {
+        let agent_id = match objective {
+            LearnedAgentObjectiveV0::DirectionalMomentum => MOMENTUM_AGENT_ID_V0,
+            LearnedAgentObjectiveV0::DownsideRisk => CYCLE_RISK_SHADOW_AGENT_ID_V0,
+        };
+        let mut event = LearnedProspectiveEventV0 {
+            event_version: "learned-prospective-event-v0".into(),
+            event_id: format!("event-{agent_id}-{horizon_rows}"),
+            agent_id: agent_id.into(),
+            objective,
+            challenge_digest: format!("challenge-{agent_id}"),
+            shared_raw_evidence_digest: "shared-evidence".into(),
+            frozen_model_artifact_digests: vec![format!("artifact-{agent_id}")],
+            input_digest: "shared-evidence".into(),
+            support_status_digest: "support".into(),
+            operational_outcome:
+                ProspectiveOperationalOutcomeV0::ShadowAbstentionSupportUnavailable,
+            abstention_reason: Some("frozen_support_unavailable".into()),
+            prediction_timestamp,
+            maturity_timestamp: prediction_timestamp
+                + horizon_rows as u64 * PROSPECTIVE_OUTCOME_ROW_INTERVAL_MS_V0,
+            horizon_digest: stable_hash_string(&format!(
+                "external-prospective-horizon-v0:{objective:?}:{horizon_rows}"
+            )),
+            probability_bits_sealed: true,
+            label_accessed: false,
+            event_digest: String::new(),
+        };
+        event.event_digest = learned_prospective_event_digest_v0(&event);
+        event
+    }
+
+    fn prospective_maturity_fixture() -> (
+        LearnedProspectiveEventV0,
+        LearnedProspectiveEventV0,
+        Vec<ProspectiveEventMaturityPlanV0>,
+        ProspectiveOneTimeOpeningRegistrationV0,
+    ) {
+        let momentum = prospective_maturity_event(
+            LearnedAgentObjectiveV0::DirectionalMomentum,
+            1_800_000_000_000,
+            1,
+        );
+        let risk =
+            prospective_maturity_event(LearnedAgentObjectiveV0::DownsideRisk, 1_800_000_000_000, 4);
+        let (registration, plans) = pre_register_prospective_one_time_opening_v0(
+            &momentum,
+            &risk,
+            1,
+            4,
+            "momentum-label",
+            "risk-label",
+            "credential-free-public-btc-daily",
+            "finalized-contiguous-utc-daily",
+            vec!["momentum-metric".into(), "risk-metric".into()],
+        )
+        .unwrap();
+        (momentum, risk, plans, registration)
+    }
+
+    #[test]
+    fn prospective_maturity_plans_are_objective_specific_and_horizon_derived() {
+        let (_, _, plans, registration) = prospective_maturity_fixture();
+        assert_eq!(plans.len(), 2);
+        assert_eq!(plans[0].required_finalized_row_count, 1);
+        assert_eq!(plans[1].required_finalized_row_count, 4);
+        assert_ne!(plans[0].horizon_digest, plans[1].horizon_digest);
+        assert_eq!(registration.maximum_response_rows, 4);
+        assert!(
+            validate_prospective_one_time_opening_registration_v0(&registration, &plans).is_ok()
+        );
+    }
+
+    #[test]
+    fn prospective_maturity_plan_rejects_wrong_horizon_and_event_mutation() {
+        let (momentum, _, _, _) = prospective_maturity_fixture();
+        assert!(
+            derive_prospective_event_maturity_plan_v0(&momentum, 2, "momentum-label", "source")
+                .is_err()
+        );
+        let mut changed = momentum;
+        changed.maturity_timestamp += PROSPECTIVE_OUTCOME_ROW_INTERVAL_MS_V0;
+        assert!(
+            derive_prospective_event_maturity_plan_v0(&changed, 1, "momentum-label", "source")
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn prospective_maturity_registration_rejects_excessive_union() {
+        let momentum = prospective_maturity_event(
+            LearnedAgentObjectiveV0::DirectionalMomentum,
+            1_800_000_000_000,
+            1,
+        );
+        let risk = prospective_maturity_event(
+            LearnedAgentObjectiveV0::DownsideRisk,
+            1_800_000_000_000,
+            MAXIMUM_PROSPECTIVE_OUTCOME_RESPONSE_ROWS_V0 + 1,
+        );
+        assert!(
+            pre_register_prospective_one_time_opening_v0(
+                &momentum,
+                &risk,
+                1,
+                MAXIMUM_PROSPECTIVE_OUTCOME_RESPONSE_ROWS_V0 + 1,
+                "momentum-label",
+                "risk-label",
+                "source",
+                "finalization",
+                vec!["momentum-metric".into(), "risk-metric".into()],
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn prospective_maturity_evidence_requires_exact_finalized_union() {
+        let (_, _, plans, _) = prospective_maturity_fixture();
+        let empty = assess_prospective_outcome_evidence_v0(&plans, "KRW:BTC", &[]);
+        assert_eq!(
+            empty.status,
+            ProspectiveOutcomeEvidenceStatusV0::NoOutcomeRows
+        );
+        let partial_rows = vec![ProspectiveOutcomeEvidenceRowV0 {
+            series_id: "KRW:BTC".into(),
+            timestamp: plans[0].required_outcome_start_timestamp,
+            canonical_row_digest: "row-1".into(),
+            finalized: true,
+        }];
+        let partial = assess_prospective_outcome_evidence_v0(&plans, "KRW:BTC", &partial_rows);
+        assert_eq!(
+            partial.status,
+            ProspectiveOutcomeEvidenceStatusV0::PartialOutcomeRows
+        );
+        let missing_rows = vec![
+            partial_rows[0].clone(),
+            ProspectiveOutcomeEvidenceRowV0 {
+                series_id: "KRW:BTC".into(),
+                timestamp: plans[1].required_outcome_start_timestamp
+                    + 2 * PROSPECTIVE_OUTCOME_ROW_INTERVAL_MS_V0,
+                canonical_row_digest: "row-3".into(),
+                finalized: true,
+            },
+        ];
+        assert_eq!(
+            assess_prospective_outcome_evidence_v0(&plans, "KRW:BTC", &missing_rows).status,
+            ProspectiveOutcomeEvidenceStatusV0::MissingRequiredTimestamp
+        );
+        let mut non_finalized = partial_rows.clone();
+        non_finalized[0].finalized = false;
+        assert_eq!(
+            assess_prospective_outcome_evidence_v0(&plans, "KRW:BTC", &non_finalized).status,
+            ProspectiveOutcomeEvidenceStatusV0::NonFinalizedRow
+        );
+        let mut duplicate = partial_rows.clone();
+        duplicate.push(partial_rows[0].clone());
+        assert_eq!(
+            assess_prospective_outcome_evidence_v0(&plans, "KRW:BTC", &duplicate).status,
+            ProspectiveOutcomeEvidenceStatusV0::DuplicateRows
+        );
+        let mut complete = (0..plans[1].required_finalized_row_count)
+            .map(|offset| ProspectiveOutcomeEvidenceRowV0 {
+                series_id: "KRW:BTC".into(),
+                timestamp: plans[1].required_outcome_start_timestamp
+                    + offset as u64 * PROSPECTIVE_OUTCOME_ROW_INTERVAL_MS_V0,
+                canonical_row_digest: format!("row-{offset}"),
+                finalized: true,
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            assess_prospective_outcome_evidence_v0(&plans, "KRW:BTC", &complete).status,
+            ProspectiveOutcomeEvidenceStatusV0::CompleteVerified
+        );
+        complete.push(ProspectiveOutcomeEvidenceRowV0 {
+            series_id: "KRW:BTC".into(),
+            timestamp: plans[1].required_outcome_end_timestamp
+                + PROSPECTIVE_OUTCOME_ROW_INTERVAL_MS_V0,
+            canonical_row_digest: "extra".into(),
+            finalized: true,
+        });
+        assert_eq!(
+            assess_prospective_outcome_evidence_v0(&plans, "KRW:BTC", &complete).status,
+            ProspectiveOutcomeEvidenceStatusV0::ChronologyInvalid
+        );
+    }
+
+    #[test]
+    fn prospective_maturity_readiness_stays_closed_without_time_and_authorization() {
+        let (_, _, plans, registration) = prospective_maturity_fixture();
+        let before = prospective_opening_readiness_v0(
+            &plans[0],
+            plans[0].maturity_timestamp - 1,
+            ProspectiveOutcomeEvidenceStatusV0::CompleteVerified,
+            true,
+            true,
+            0,
+        );
+        assert_eq!(before, ProspectiveOpeningReadinessV0::AwaitingTimeMaturity);
+        let missing = prospective_opening_readiness_v0(
+            &plans[0],
+            plans[0].maturity_timestamp,
+            ProspectiveOutcomeEvidenceStatusV0::NoOutcomeRows,
+            true,
+            true,
+            0,
+        );
+        assert_eq!(
+            missing,
+            ProspectiveOpeningReadinessV0::TimeMatureOutcomeRowsMissing
+        );
+        let authorization = ProspectiveOpeningAuthorizationV0 {
+            authorization_version: "prospective-opening-authorization-v0".into(),
+            opening_registration_digest: registration.registration_digest.clone(),
+            authorized_event_digests: vec![
+                registration.momentum_event_digest.clone(),
+                registration.risk_event_digest.clone(),
+            ],
+            authorized_outcome_evidence_digest: "evidence".into(),
+            explicit_owner_authorization: true,
+            one_time_only: true,
+            label_open_count_before: 0,
+            authorization_digest: String::new(),
+        };
+        let mut authorization = authorization;
+        authorization.authorization_digest =
+            prospective_opening_authorization_digest_v0(&authorization);
+        assert!(
+            validate_prospective_opening_authorization_v0(
+                &authorization,
+                &registration,
+                missing,
+                "evidence",
+                0,
+            )
+            .is_err()
+        );
+        assert!(
+            validate_prospective_opening_authorization_v0(
+                &authorization,
+                &registration,
+                ProspectiveOpeningReadinessV0::ReadyForExplicitOpening,
+                "evidence",
+                1,
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn prospective_maturity_preflight_values_are_deterministic_and_authority_free() {
+        let (_, _, plans, registration) = prospective_maturity_fixture();
+        let first = assess_prospective_outcome_evidence_v0(&plans, "KRW:BTC", &[]);
+        let second = assess_prospective_outcome_evidence_v0(&plans, "KRW:BTC", &[]);
+        assert_eq!(first, second);
+        assert_eq!(
+            aggregate_prospective_opening_readiness_v0(&[
+                ProspectiveOpeningReadinessV0::TimeMatureOutcomeRowsMissing,
+                ProspectiveOpeningReadinessV0::AwaitingTimeMaturity,
+            ]),
+            ProspectiveOpeningReadinessV0::AwaitingTimeMaturity
+        );
+        assert!(!registration.network_execution_allowed_this_sprint);
+        assert!(!registration.label_access_allowed_this_sprint);
+        assert!(!registration.reward_application_allowed);
     }
 }

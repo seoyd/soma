@@ -6613,4 +6613,108 @@ mod tests {
             .is_ok()
         );
     }
+
+    fn prospective_maturity_audit_fixture() -> (
+        ProspectiveChallengeLocalStateV0,
+        crate::model::CycleRiskProspectiveLocalStateV0,
+        crate::model::ProspectiveExternalAdmissionRegistrationV0,
+        crate::model::ProspectiveExternalRowCapsuleV0,
+    ) {
+        let (mut momentum, risk_capsule, registration, shared) = admitted_external_reference();
+        confirm_prospective_pre_registration_v0(&mut momentum).unwrap();
+        let mut risk =
+            crate::model::new_cycle_risk_prospective_local_state_v0(risk_capsule).unwrap();
+        crate::model::commit_cycle_risk_pre_registration_v0(&mut risk).unwrap();
+        let momentum_validation = crate::model::validate_momentum_shared_prospective_reference_v0(
+            &registration,
+            &momentum,
+            &shared,
+        );
+        let risk_validation = crate::model::validate_risk_shared_prospective_reference_v0(
+            &registration,
+            &risk,
+            &shared,
+        );
+        let momentum_event = crate::model::seal_external_prospective_event_v0(
+            &momentum_validation,
+            &shared,
+            &momentum,
+            &risk,
+            crate::model::ProspectiveOperationalOutcomeV0::ShadowAbstentionSupportUnavailable,
+            Some("frozen_external_inference_support_unavailable".into()),
+        )
+        .unwrap();
+        let risk_event = crate::model::seal_external_prospective_event_v0(
+            &risk_validation,
+            &shared,
+            &momentum,
+            &risk,
+            crate::model::ProspectiveOperationalOutcomeV0::ShadowAbstentionSupportUnavailable,
+            Some("frozen_external_inference_support_unavailable".into()),
+        )
+        .unwrap();
+        crate::model::append_external_admission_to_local_stores_v0(
+            &mut momentum,
+            &mut risk,
+            &shared,
+            Some(&momentum_event),
+            Some(&risk_event),
+        )
+        .unwrap();
+        (
+            momentum,
+            risk,
+            registration.clone(),
+            external_row_capsule(&registration),
+        )
+    }
+
+    #[test]
+    fn prospective_maturity_audit_reconstructs_both_sealed_events_without_mutation() {
+        let (momentum, risk, registration, capsule) = prospective_maturity_audit_fixture();
+        let before = (momentum.clone(), risk.clone());
+        let audit = crate::model::audit_sealed_prospective_events_v0(
+            &registration,
+            &capsule,
+            &momentum,
+            &risk,
+        )
+        .unwrap();
+        assert_eq!(
+            audit.momentum_event.prediction_timestamp,
+            audit.risk_event.prediction_timestamp
+        );
+        assert_ne!(
+            audit.momentum_event.horizon_digest,
+            audit.risk_event.horizon_digest
+        );
+        assert_eq!(before, (momentum, risk));
+    }
+
+    #[test]
+    fn prospective_maturity_audit_rejects_journal_and_shared_reference_mutation() {
+        let (momentum, risk, registration, capsule) = prospective_maturity_audit_fixture();
+        let mut journal_mutation = momentum.clone();
+        journal_mutation.journal.events[0].event_id.push('x');
+        assert!(
+            crate::model::audit_sealed_prospective_events_v0(
+                &registration,
+                &capsule,
+                &journal_mutation,
+                &risk,
+            )
+            .is_err()
+        );
+        let mut shared_reference_mutation = capsule;
+        shared_reference_mutation.source_export_digest.push('x');
+        assert!(
+            crate::model::audit_sealed_prospective_events_v0(
+                &registration,
+                &shared_reference_mutation,
+                &momentum,
+                &risk,
+            )
+            .is_err()
+        );
+    }
 }

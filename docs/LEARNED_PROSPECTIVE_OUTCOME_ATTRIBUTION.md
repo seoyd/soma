@@ -54,3 +54,17 @@ Both preserve the following explicit abstention classifications:
 The status is derived from ledger evidence, never hard-coded for the current
 state. With no registered prospective events it is
 `IneligibleNoProspectiveOutcomes`.
+
+## Maturity preflight boundary
+
+Before any future attribution input is acquired, the separate one-time opening
+registration freezes each sealed event's maturity plan and the union of the
+required finalized BTC daily rows. A preflight may verify journal, vault,
+admission, and registration digests, but it does not read an outcome row or
+invoke attribution, metric, reward, penalty, Chair, voice, cooldown, promotion,
+quarantine, handoff, vote, or execution logic.
+
+Future attribution remains unavailable until both event plans are time-mature,
+the exact source-bound rows verify, and a distinct explicit one-time owner
+authorization verifies with a zero prior label-open count. This does not change
+the existing reward registration or make a reward candidate eligible.

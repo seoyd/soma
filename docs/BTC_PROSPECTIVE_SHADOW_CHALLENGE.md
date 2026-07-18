@@ -115,3 +115,18 @@ does not invent a probability.
 The local vault and journal remain append-only and store only the canonical row
 digest and sealed event identity. Labels remain unopened, the event remains
 awaiting maturity, and no reward candidate or application is produced.
+
+## Sprint 66 maturity preflight
+
+The sealed Momentum and Cycle/Risk events now have separate immutable maturity
+plans. Each plan derives its future daily range from the event's sealed horizon
+and frozen objective policy; dates, row counts, and readiness are not embedded
+in production configuration. The opening registration binds both plan digests,
+their union response count, the credential-free BTC daily source, finality,
+label, and metric policies.
+
+This registration permits one future request with zero retries, but the Sprint
+66 preflight cannot execute it. The preflight is read-only and treats the
+absence of registered outcome evidence as a successful closed state. Time
+maturity alone never exposes a label or establishes correctness, performance,
+reward eligibility, voting, promotion, or execution readiness.
