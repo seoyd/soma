@@ -34,3 +34,16 @@ one retrospective two-round actionless deliberation; it did not select a winner
 or action. The full aggregate was not composed because the second scope did not
 form a technically completed pair. Network counters remained zero and all Chair,
 vote, and execution flags remained false.
+
+## Sprint 60 V3 registration
+
+V3 binds the immutable V2 registration `e6c593d714bbabda`, the exact two scope
+identities, participant configuration digests, a field-level Momentum
+closed-result audit policy, the closure correction policy, and the two
+pre-closure result freezes. The V3 registration digest is `f3432d1552d45c70`.
+
+The registration was issued only after the closure audit identified a stale
+cross-window validator condition. It requires unchanged scope ranges and
+participant configurations, unchanged pre-closure results, Scope 0
+non-regression, and no result-dependent model changes. It creates no authority
+and performs no provider, transport, network-consent, or credential operation.

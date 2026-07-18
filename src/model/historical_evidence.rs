@@ -2208,7 +2208,6 @@ pub fn validate_btc_temporal_regime_closed_result_v0(
         || result.out_of_support_windows > result.selected_checkpoint_windows
         || result.support_unavailable_windows > result.selected_checkpoint_windows
         || result.accepted_predictive_versions > result.in_support_windows
-        || (result.no_signal_windows > 0 && result.selected_checkpoint_windows > 0)
         || result.execution_trace.stages.len() != 22
         || result.report_digest.is_empty()
     {
@@ -5538,6 +5537,15 @@ mod tests {
             range_digest: format!("range-{regime_id}"),
             pack_digest: format!("pack-{regime_id}"),
         }
+    }
+
+    #[test]
+    fn closed_result_allows_mixed_no_signal_and_selected_checkpoint_windows() {
+        let raw = regime_result("mixed-window-counts", 1, 1, 1, 0);
+        let closed = close_btc_temporal_regime_result_v0(&raw, regime_reference(&raw.regime_id, 0));
+        assert_eq!(closed.no_signal_windows, 1);
+        assert_eq!(closed.selected_checkpoint_windows, 1);
+        assert!(validate_btc_temporal_regime_closed_result_v0(&closed).is_ok());
     }
 
     #[test]

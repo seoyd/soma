@@ -43,6 +43,12 @@ pub struct CliArgs {
     #[arg(long, default_value_t = false)]
     pub joint_canonical_scope_replay_v2: bool,
     #[arg(long, default_value_t = false)]
+    pub joint_momentum_closure_forensics_v3: bool,
+    #[arg(long, default_value_t = false)]
+    pub joint_canonical_scope_registration_v3: bool,
+    #[arg(long, default_value_t = false)]
+    pub joint_canonical_scope_replay_v3: bool,
+    #[arg(long, default_value_t = false)]
     pub btc_prospective_challenge_create: bool,
     #[arg(long, default_value_t = false)]
     pub btc_prospective_challenge_status: bool,
@@ -88,6 +94,9 @@ pub fn run() -> Result<(), String> {
             args.joint_canonical_scope_replay,
             args.joint_momentum_failure_forensics,
             args.joint_canonical_scope_replay_v2,
+            args.joint_momentum_closure_forensics_v3,
+            args.joint_canonical_scope_registration_v3,
+            args.joint_canonical_scope_replay_v3,
             args.btc_prospective_challenge_create,
             args.btc_prospective_challenge_status,
             args.btc_prospective_challenge_confirm_preregistration,
@@ -107,6 +116,9 @@ pub fn run() -> Result<(), String> {
         || args.joint_canonical_scope_replay
         || args.joint_momentum_failure_forensics
         || args.joint_canonical_scope_replay_v2
+        || args.joint_momentum_closure_forensics_v3
+        || args.joint_canonical_scope_registration_v3
+        || args.joint_canonical_scope_replay_v3
         || args.btc_prospective_challenge_create
         || args.btc_prospective_challenge_status
         || args.btc_prospective_challenge_confirm_preregistration
@@ -253,6 +265,9 @@ fn run_local_historical_snapshot_campaign(
     joint_canonical_scope_replay: bool,
     joint_momentum_failure_forensics: bool,
     joint_canonical_scope_replay_v2: bool,
+    joint_momentum_closure_forensics_v3: bool,
+    joint_canonical_scope_registration_v3: bool,
+    joint_canonical_scope_replay_v3: bool,
     btc_prospective_challenge_create: bool,
     btc_prospective_challenge_status: bool,
     btc_prospective_challenge_confirm_preregistration: bool,
@@ -672,6 +687,456 @@ fn run_local_historical_snapshot_campaign(
             println!("credential_reads=0");
             println!("chair_observed=false");
             println!("vote_created=false");
+            println!("execution_created=false");
+        }
+        return Ok(());
+    }
+    if joint_momentum_closure_forensics_v3 {
+        if allow_network {
+            return Err("joint Momentum closure forensics is offline-only".to_string());
+        }
+        let registration =
+            crate::model::joint_canonical_scope_registration_v2(&snapshot, &campaign_config)
+                .map_err(|error| format!("joint V3 closure registration failed: {error}"))?;
+        let scopes = crate::model::validate_joint_canonical_scope_registration_v2(
+            &snapshot,
+            &campaign_config,
+            &registration,
+        )
+        .map_err(|error| format!("joint V3 closure registration verification failed: {error}"))?;
+        let mut audits = Vec::new();
+        for scope in &scopes {
+            let first = crate::model::audit_joint_scope_momentum_closure_v3(
+                &snapshot,
+                scope,
+                &registration,
+                &campaign_config,
+            )
+            .map_err(|error| format!("joint V3 closure audit failed: {error}"))?;
+            let second = crate::model::audit_joint_scope_momentum_closure_v3(
+                &snapshot,
+                scope,
+                &registration,
+                &campaign_config,
+            )
+            .map_err(|error| format!("joint V3 closure audit replay failed: {error}"))?;
+            if first != second {
+                return Err("joint V3 closure audit is nondeterministic".to_string());
+            }
+            audits.push(first);
+        }
+        if output_format == "json" {
+            println!(
+                "{}",
+                serde_json::json!({
+                    "report_version":"joint-momentum-closure-forensic-v3",
+                    "offline":true,
+                    "parent_registration_digest_v1":registration.parent_registration_digest_v1,
+                    "registration_digest_v2":registration.registration_digest_v2,
+                    "scope_ids":audits.iter().map(|audit| audit.joint_scope_id.clone()).collect::<Vec<_>>(),
+                    "audit_digests":audits.iter().map(|audit| audit.audit_digest_v3.clone()).collect::<Vec<_>>(),
+                    "preclosure_digests":audits.iter().map(|audit| audit.preclosure.preclosure_digest_v3.clone()).collect::<Vec<_>>(),
+                    "open_result_digests":audits.iter().map(|audit| audit.open_result_digest.clone()).collect::<Vec<_>>(),
+                    "closed_result_digests":audits.iter().map(|audit| audit.closed_result_digest.clone()).collect::<Vec<_>>(),
+                    "preclosure_campaign_window_counts":audits.iter().map(|audit| audit.preclosure.campaign_window_count).collect::<Vec<_>>(),
+                    "preclosure_final_verdicts":audits.iter().map(|audit| audit.preclosure.final_verdict.clone()).collect::<Vec<_>>(),
+                    "preclosure_no_signal_window_counts":audits.iter().map(|audit| audit.preclosure.no_signal_window_count).collect::<Vec<_>>(),
+                    "preclosure_selected_checkpoint_counts":audits.iter().map(|audit| audit.preclosure.selected_checkpoint_count).collect::<Vec<_>>(),
+                    "preclosure_support_counts":audits.iter().map(|audit| audit.preclosure.support_counts.clone()).collect::<Vec<_>>(),
+                    "first_failed_invariants":audits.iter().map(|audit| audit.first_failed_invariant.map(|value| format!("{value:?}"))).collect::<Vec<_>>(),
+                    "failure_classes":audits.iter().map(|audit| format!("{:?}", audit.failure_class)).collect::<Vec<_>>(),
+                    "validator_errors":audits.iter().map(|audit| audit.validator_error.clone()).collect::<Vec<_>>(),
+                    "all_invariants_pass":audits.iter().map(|audit| audit.all_invariants_pass).collect::<Vec<_>>(),
+                    "provider_calls":0,"transport_constructions":0,"network_consent_reads":0,"credential_reads":0,
+                    "chair_observed":false,"vote_created":false,"execution_created":false
+                })
+            );
+        } else {
+            println!("report_version=joint-momentum-closure-forensic-v3");
+            println!("offline=true");
+            println!(
+                "parent_registration_digest_v1={}",
+                registration.parent_registration_digest_v1
+            );
+            println!(
+                "registration_digest_v2={}",
+                registration.registration_digest_v2
+            );
+            println!("scope_count={}", audits.len());
+            for audit in &audits {
+                println!("scope_id={}", audit.joint_scope_id);
+                println!("open_result_digest={}", audit.open_result_digest);
+                println!("closed_result_digest={}", audit.closed_result_digest);
+                println!("regime_reference_digest={}", audit.regime_reference_digest);
+                println!(
+                    "preclosure_digest_v3={}",
+                    audit.preclosure.preclosure_digest_v3
+                );
+                println!(
+                    "preclosure_campaign_window_count={}",
+                    audit.preclosure.campaign_window_count
+                );
+                println!(
+                    "preclosure_final_verdict={}",
+                    audit.preclosure.final_verdict
+                );
+                println!(
+                    "preclosure_no_signal_window_count={}",
+                    audit.preclosure.no_signal_window_count
+                );
+                println!(
+                    "preclosure_selected_checkpoint_count={}",
+                    audit.preclosure.selected_checkpoint_count
+                );
+                println!(
+                    "preclosure_support_counts={}",
+                    audit
+                        .preclosure
+                        .support_counts
+                        .iter()
+                        .map(ToString::to_string)
+                        .collect::<Vec<_>>()
+                        .join(":")
+                );
+                println!("first_failed_invariant={:?}", audit.first_failed_invariant);
+                println!("failure_class={:?}", audit.failure_class);
+                println!(
+                    "validator_error={}",
+                    audit.validator_error.as_deref().unwrap_or("")
+                );
+                if let Some(failed) = audit.invariant_results.iter().find(|value| !value.passed) {
+                    println!("expected_semantic_value={}", failed.expected_semantic_value);
+                    println!("actual_semantic_value={}", failed.actual_semantic_value);
+                    println!("reason_code={}", failed.reason_code);
+                }
+                println!("all_invariants_pass={}", audit.all_invariants_pass);
+                println!("audit_digest_v3={}", audit.audit_digest_v3);
+            }
+            println!("provider_calls=0");
+            println!("transport_constructions=0");
+            println!("network_consent_reads=0");
+            println!("credential_reads=0");
+            println!("chair_observed=false");
+            println!("vote_created=false");
+            println!("execution_created=false");
+        }
+        return Ok(());
+    }
+    if joint_canonical_scope_registration_v3 || joint_canonical_scope_replay_v3 {
+        if allow_network {
+            return Err("joint canonical scope replay V3 is offline-only".to_string());
+        }
+        let parent_registration =
+            crate::model::joint_canonical_scope_registration_v2(&snapshot, &campaign_config)
+                .map_err(|error| format!("joint V3 parent registration failed: {error}"))?;
+        let scopes = crate::model::validate_joint_canonical_scope_registration_v2(
+            &snapshot,
+            &campaign_config,
+            &parent_registration,
+        )
+        .map_err(|error| format!("joint V3 parent registration verification failed: {error}"))?;
+        let mut audits = Vec::new();
+        for scope in &scopes {
+            let first = crate::model::audit_joint_scope_momentum_closure_v3(
+                &snapshot,
+                scope,
+                &parent_registration,
+                &campaign_config,
+            )
+            .map_err(|error| format!("joint V3 registration audit failed: {error}"))?;
+            let second = crate::model::audit_joint_scope_momentum_closure_v3(
+                &snapshot,
+                scope,
+                &parent_registration,
+                &campaign_config,
+            )
+            .map_err(|error| format!("joint V3 registration audit replay failed: {error}"))?;
+            if first != second {
+                return Err("joint V3 registration audit is nondeterministic".to_string());
+            }
+            audits.push(first);
+        }
+        let registration = crate::model::joint_canonical_scope_registration_v3(
+            &snapshot,
+            &campaign_config,
+            &audits,
+        )
+        .map_err(|error| format!("joint V3 registration failed: {error}"))?;
+        crate::model::validate_joint_canonical_scope_registration_v3(
+            &snapshot,
+            &campaign_config,
+            &registration,
+        )
+        .map_err(|error| format!("joint V3 registration verification failed: {error}"))?;
+        if joint_canonical_scope_registration_v3 {
+            if output_format == "json" {
+                println!(
+                    "{}",
+                    serde_json::json!({
+                        "report_version":"joint-canonical-scope-registration-v3",
+                        "offline":true,
+                        "parent_registration_digest_v2":registration.parent_registration_digest_v2,
+                        "registration_digest_v3":registration.registration_digest_v3,
+                        "scope_ids":registration.joint_scope_ids,
+                        "scope_digests":registration.joint_scope_digests,
+                        "preclosure_result_digests":registration.preclosure_result_digests,
+                        "correction_failure_class":format!("{:?}", registration.correction_failure_class),
+                        "scope_ranges_unchanged":registration.scope_ranges_unchanged,
+                        "participant_configs_unchanged":registration.participant_configs_unchanged,
+                        "preclosure_results_unchanged":registration.preclosure_results_unchanged,
+                        "scope0_non_regression_required":registration.scope0_non_regression_required,
+                        "result_dependent_model_changes_forbidden":registration.result_dependent_model_changes_forbidden,
+                        "provider_calls":0,"transport_constructions":0,"network_consent_reads":0,"credential_reads":0,
+                        "active_committee_count":3,"chair_observed":false,"chair_decision_created":false,
+                        "reward_created":false,"penalty_created":false,"speaking_right_changed":false,
+                        "vote_created":false,"promotion_created":false,"execution_created":false
+                    })
+                );
+            } else {
+                println!("report_version=joint-canonical-scope-registration-v3");
+                println!("offline=true");
+                println!(
+                    "parent_registration_digest_v2={}",
+                    registration.parent_registration_digest_v2
+                );
+                println!(
+                    "registration_digest_v3={}",
+                    registration.registration_digest_v3
+                );
+                println!("scope_ids={}", registration.joint_scope_ids.join(":"));
+                println!(
+                    "scope_digests={}",
+                    registration.joint_scope_digests.join(":")
+                );
+                println!(
+                    "preclosure_result_digests={}",
+                    registration.preclosure_result_digests.join(":")
+                );
+                println!(
+                    "correction_failure_class={:?}",
+                    registration.correction_failure_class
+                );
+                println!(
+                    "scope_ranges_unchanged={}",
+                    registration.scope_ranges_unchanged
+                );
+                println!(
+                    "participant_configs_unchanged={}",
+                    registration.participant_configs_unchanged
+                );
+                println!(
+                    "preclosure_results_unchanged={}",
+                    registration.preclosure_results_unchanged
+                );
+                println!(
+                    "scope0_non_regression_required={}",
+                    registration.scope0_non_regression_required
+                );
+                println!(
+                    "result_dependent_model_changes_forbidden={}",
+                    registration.result_dependent_model_changes_forbidden
+                );
+                println!("provider_calls=0");
+                println!("transport_constructions=0");
+                println!("network_consent_reads=0");
+                println!("credential_reads=0");
+                println!("active_committee_count=3");
+                println!("chair_observed=false");
+                println!("chair_decision_created=false");
+                println!("reward_created=false");
+                println!("penalty_created=false");
+                println!("speaking_right_changed=false");
+                println!("vote_created=false");
+                println!("promotion_created=false");
+                println!("execution_created=false");
+            }
+            return Ok(());
+        }
+        let mut results = Vec::new();
+        for scope in &scopes {
+            results.push(
+                crate::model::replay_joint_scope_results_v3(
+                    &snapshot,
+                    scope,
+                    &registration,
+                    &campaign_config,
+                )
+                .map_err(|error| format!("joint V3 scope replay failed: {error}"))?,
+            );
+        }
+        let mut replay_repeat = Vec::new();
+        for scope in &scopes {
+            replay_repeat.push(
+                crate::model::replay_joint_scope_results_v3(
+                    &snapshot,
+                    scope,
+                    &registration,
+                    &campaign_config,
+                )
+                .map_err(|error| format!("joint V3 scope replay repeat failed: {error}"))?,
+            );
+        }
+        if results != replay_repeat {
+            return Err("joint V3 scope replay is nondeterministic".to_string());
+        }
+        let (aggregate, ledger) =
+            crate::model::aggregate_joint_scope_replays_v3(&registration, &results)
+                .map_err(|error| format!("joint V3 aggregate failed: {error}"))?;
+        crate::model::validate_joint_scope_replay_ledger_v3(&ledger)
+            .map_err(|error| format!("joint V3 ledger verification failed: {error}"))?;
+        if output_format == "json" {
+            println!(
+                "{}",
+                serde_json::json!({
+                    "report_version":"joint-canonical-scope-replay-v3","offline":true,
+                    "parent_registration_digest_v2":registration.parent_registration_digest_v2,
+                    "registration_digest_v3":registration.registration_digest_v3,
+                    "scope_ids":results.iter().map(|result| result.joint_scope_id.clone()).collect::<Vec<_>>(),
+                    "scope_digests":results.iter().map(|result| result.joint_scope_digest.clone()).collect::<Vec<_>>(),
+                    "preclosure_digests_v3":results.iter().map(|result| result.preclosure_digest_v3.clone()).collect::<Vec<_>>(),
+                    "closure_audit_digests_v3":results.iter().map(|result| result.closure_audit_digest_v3.clone()).collect::<Vec<_>>(),
+                    "momentum_execution_health":results.iter().map(|result| format!("{:?}", result.replay_result_v2.momentum.execution_trace.execution_health)).collect::<Vec<_>>(),
+                    "momentum_model_outcomes":results.iter().map(|result| format!("{:?}", result.replay_result_v2.momentum.execution_trace.model_evidence_outcome)).collect::<Vec<_>>(),
+                    "momentum_operational_results":results.iter().map(|result| format!("{:?}", result.replay_result_v2.momentum.execution_trace.operational_shadow_result)).collect::<Vec<_>>(),
+                    "momentum_anchor_statuses":results.iter().map(|result| format!("{:?}", result.replay_result_v2.momentum.anchor_status)).collect::<Vec<_>>(),
+                    "risk_execution_health":results.iter().map(|result| format!("{:?}", result.replay_result_v2.risk.execution_trace.execution_health)).collect::<Vec<_>>(),
+                    "risk_model_outcomes":results.iter().map(|result| format!("{:?}", result.replay_result_v2.risk.execution_trace.model_evidence_outcome)).collect::<Vec<_>>(),
+                    "risk_operational_results":results.iter().map(|result| format!("{:?}", result.replay_result_v2.risk.execution_trace.operational_shadow_result)).collect::<Vec<_>>(),
+                    "opinion_count":results.iter().flat_map(|result| [&result.replay_result_v2.momentum, &result.replay_result_v2.risk]).filter(|result| result.opinion_id.is_some()).count(),
+                    "pair_count":aggregate.replay_aggregate_v2.completed_pair_count,
+                    "deliberation_count":aggregate.replay_aggregate_v2.deliberation_count,
+                    "aggregate_composed":aggregate.replay_aggregate_v2.full_aggregate_composed,
+                    "aggregate_digest_v3":aggregate.aggregate_digest_v3,
+                    "ledger_digest_v3":ledger.ledger_digest_v3,
+                    "replay_deterministic":true,
+                    "provider_calls":0,"transport_constructions":0,"network_consent_reads":0,"credential_reads":0,
+                    "active_committee_count":3,"chair_observed":false,"chair_decision_created":false,
+                    "reward_created":false,"penalty_created":false,"speaking_right_changed":false,
+                    "vote_created":false,"promotion_created":false,"execution_created":false
+                })
+            );
+        } else {
+            println!("report_version=joint-canonical-scope-replay-v3");
+            println!("offline=true");
+            println!(
+                "parent_registration_digest_v2={}",
+                registration.parent_registration_digest_v2
+            );
+            println!(
+                "registration_digest_v3={}",
+                registration.registration_digest_v3
+            );
+            println!("scope_count={}", results.len());
+            for result in &results {
+                println!(
+                    "scope_id={} scope_digest={}",
+                    result.joint_scope_id, result.joint_scope_digest
+                );
+                println!("preclosure_digest_v3={}", result.preclosure_digest_v3);
+                println!("closure_audit_digest_v3={}", result.closure_audit_digest_v3);
+                println!(
+                    "momentum_execution_health={:?}",
+                    result
+                        .replay_result_v2
+                        .momentum
+                        .execution_trace
+                        .execution_health
+                );
+                println!(
+                    "momentum_model_outcome={:?}",
+                    result
+                        .replay_result_v2
+                        .momentum
+                        .execution_trace
+                        .model_evidence_outcome
+                );
+                println!(
+                    "momentum_operational_result={:?}",
+                    result
+                        .replay_result_v2
+                        .momentum
+                        .execution_trace
+                        .operational_shadow_result
+                );
+                println!(
+                    "momentum_anchor_status={:?}",
+                    result.replay_result_v2.momentum.anchor_status
+                );
+                println!(
+                    "risk_execution_health={:?}",
+                    result
+                        .replay_result_v2
+                        .risk
+                        .execution_trace
+                        .execution_health
+                );
+                println!(
+                    "risk_model_outcome={:?}",
+                    result
+                        .replay_result_v2
+                        .risk
+                        .execution_trace
+                        .model_evidence_outcome
+                );
+                println!(
+                    "risk_operational_result={:?}",
+                    result
+                        .replay_result_v2
+                        .risk
+                        .execution_trace
+                        .operational_shadow_result
+                );
+                println!(
+                    "momentum_trace_digest={}",
+                    result
+                        .replay_result_v2
+                        .momentum
+                        .execution_trace
+                        .trace_digest_v2
+                );
+                println!(
+                    "risk_trace_digest={}",
+                    result.replay_result_v2.risk.execution_trace.trace_digest_v2
+                );
+            }
+            println!(
+                "opinion_count={}",
+                results
+                    .iter()
+                    .flat_map(|result| [
+                        &result.replay_result_v2.momentum,
+                        &result.replay_result_v2.risk
+                    ])
+                    .filter(|result| result.opinion_id.is_some())
+                    .count()
+            );
+            println!(
+                "pair_count={}",
+                aggregate.replay_aggregate_v2.completed_pair_count
+            );
+            println!(
+                "deliberation_count={}",
+                aggregate.replay_aggregate_v2.deliberation_count
+            );
+            println!(
+                "aggregate_composed={}",
+                aggregate.replay_aggregate_v2.full_aggregate_composed
+            );
+            println!("aggregate_digest_v3={}", aggregate.aggregate_digest_v3);
+            println!("ledger_digest_v3={}", ledger.ledger_digest_v3);
+            println!("replay_deterministic=true");
+            println!("provider_calls=0");
+            println!("transport_constructions=0");
+            println!("network_consent_reads=0");
+            println!("credential_reads=0");
+            println!("active_committee_count=3");
+            println!("chair_observed=false");
+            println!("chair_decision_created=false");
+            println!("reward_created=false");
+            println!("penalty_created=false");
+            println!("speaking_right_changed=false");
+            println!("vote_created=false");
+            println!("promotion_created=false");
             println!("execution_created=false");
         }
         return Ok(());

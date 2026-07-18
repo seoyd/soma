@@ -4778,6 +4778,1165 @@ pub struct JointScopeDeliberationV2 {
     pub transcript_digest_v2: String,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MomentumClosureInvariantV3 {
+    RegimeIdentity,
+    RegimeRowCount,
+    CampaignWindowCount,
+    ExecutionHealth,
+    DiagnosticCompleteness,
+    ModelEvidenceOutcome,
+    OperationalShadowResult,
+    NoSignalWindowCount,
+    SelectedCheckpointCount,
+    SelectedCheckpointRange,
+    TestSealCount,
+    SupportEnvelopeCount,
+    SupportApplicabilityCount,
+    ValidationSupportCounts,
+    TestSupportCounts,
+    SupportCountBounds,
+    DominantSupportOutcome,
+    FirstBreachMetric,
+    TemporalRootCause,
+    WarmStartStatus,
+    AbstentionCount,
+    AcceptedVersionCount,
+    AcceptedVersionBound,
+    NoSignalCheckpointExclusivity,
+    ReasonCodeConsistency,
+    ExecutionTraceConsistency,
+    ExecutionTraceStageCount,
+    ReportDigest,
+    ReportDigestPresent,
+    ValidatorContract,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct MomentumClosureInvariantResultV3 {
+    pub invariant: MomentumClosureInvariantV3,
+    pub passed: bool,
+    pub expected_semantic_value: String,
+    pub actual_semantic_value: String,
+    pub reason_code: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MomentumClosureFailureClassV3 {
+    NoFailure,
+    BuilderFieldMismatch,
+    WrapperRegimeReferenceMismatch,
+    VerdictMappingMismatch,
+    SupportInvariantMismatch,
+    DiagnosticInvariantMismatch,
+    ExecutionTraceMismatch,
+    ReportDigestMismatch,
+    StaleValidatorContract,
+    MultipleMismatches,
+    Unknown,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct MomentumPreClosureEvidenceV3 {
+    pub campaign_report_digest: String,
+    pub campaign_window_count: usize,
+    pub final_verdict: String,
+    pub no_signal_window_count: usize,
+    pub selected_checkpoint_count: usize,
+    pub support_counts: Vec<usize>,
+    pub encoder_digest: String,
+    pub pack_digest: String,
+    pub derived_snapshot_digest: String,
+    pub preclosure_digest_v3: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct MomentumClosedResultContractAuditV3 {
+    pub audit_version: String,
+    pub joint_scope_id: String,
+    pub open_result_digest: String,
+    pub closed_result_digest: String,
+    pub regime_reference_digest: String,
+    pub preclosure: MomentumPreClosureEvidenceV3,
+    pub invariant_results: Vec<MomentumClosureInvariantResultV3>,
+    pub first_failed_invariant: Option<MomentumClosureInvariantV3>,
+    pub validator_error: Option<String>,
+    pub failure_class: MomentumClosureFailureClassV3,
+    pub all_invariants_pass: bool,
+    pub audit_digest_v3: String,
+}
+
+fn joint_v3_digest(parts: &[String]) -> String {
+    let mut bytes = Vec::new();
+    strv(&mut bytes, "joint-canonical-scope-replay-v3");
+    strings(&mut bytes, parts);
+    stable_hash_string(&hex(&bytes))
+}
+
+fn push_closure_invariant_v3(
+    results: &mut Vec<MomentumClosureInvariantResultV3>,
+    invariant: MomentumClosureInvariantV3,
+    expected_semantic_value: String,
+    actual_semantic_value: String,
+) {
+    let passed = expected_semantic_value == actual_semantic_value;
+    results.push(MomentumClosureInvariantResultV3 {
+        invariant,
+        passed,
+        expected_semantic_value,
+        actual_semantic_value,
+        reason_code: if passed {
+            "closure_invariant_passed".into()
+        } else {
+            format!("closure_invariant_failed_{invariant:?}")
+        },
+    });
+}
+
+fn closure_model_evidence_outcome_v3(
+    result: &super::BtcTemporalRegimeEvidenceResultV0,
+) -> super::RegimeModelEvidenceOutcomeV0 {
+    match result.final_verdict {
+        super::SupportGatedMomentumSeriesVerdictV0::NoUsableValidationSignal => {
+            super::RegimeModelEvidenceOutcomeV0::NoUsableValidationSignal
+        }
+        super::SupportGatedMomentumSeriesVerdictV0::TemporalOutOfSupportAbstention => {
+            super::RegimeModelEvidenceOutcomeV0::ValidationSignalButOutOfSupport
+        }
+        super::SupportGatedMomentumSeriesVerdictV0::FrozenRepresentationShiftRisk => {
+            super::RegimeModelEvidenceOutcomeV0::FrozenRepresentationShiftRisk
+        }
+        super::SupportGatedMomentumSeriesVerdictV0::WarmStartLockInRisk => {
+            super::RegimeModelEvidenceOutcomeV0::WarmStartLockInRisk
+        }
+        super::SupportGatedMomentumSeriesVerdictV0::InSupportUsableSignalButLinearStrongerOnThisSeries => {
+            super::RegimeModelEvidenceOutcomeV0::LinearBaselineStronger
+        }
+        super::SupportGatedMomentumSeriesVerdictV0::InSupportUsableSignalAndMambaHelpedOnThisSeries => {
+            super::RegimeModelEvidenceOutcomeV0::InSupportUsableSignal
+        }
+        super::SupportGatedMomentumSeriesVerdictV0::InSupportMixedEvidence => {
+            super::RegimeModelEvidenceOutcomeV0::MixedEvidence
+        }
+        super::SupportGatedMomentumSeriesVerdictV0::InsufficientEvidence
+        | super::SupportGatedMomentumSeriesVerdictV0::CampaignFailed => {
+            super::RegimeModelEvidenceOutcomeV0::InsufficientEvidence
+        }
+    }
+}
+
+fn closure_operational_shadow_result_v3(
+    result: &super::BtcTemporalRegimeEvidenceResultV0,
+) -> super::RegimeOperationalShadowResultV0 {
+    if result.selected_checkpoint_windows == 0 {
+        super::RegimeOperationalShadowResultV0::ShadowAbstainNoSignal
+    } else if result.support_unavailable_windows > 0 {
+        super::RegimeOperationalShadowResultV0::ShadowAbstainSupportUnavailable
+    } else if result.out_of_support_windows > 0 {
+        super::RegimeOperationalShadowResultV0::ShadowAbstainOutOfSupport
+    } else if result.in_support_windows > 0 {
+        super::RegimeOperationalShadowResultV0::ShadowPredictionResearchOnly
+    } else {
+        super::RegimeOperationalShadowResultV0::ShadowAbstainInsufficientEvidence
+    }
+}
+
+fn closure_dominant_support_outcome_v3(
+    result: &super::BtcTemporalRegimeEvidenceResultV0,
+) -> super::RegimeDominantSupportOutcomeV0 {
+    if result.selected_checkpoint_windows == 0 {
+        super::RegimeDominantSupportOutcomeV0::NoUsableValidationSignal
+    } else if result.validation_in_support_windows > 0
+        && (result.validation_out_of_support_windows > 0 || result.out_of_support_windows > 0)
+    {
+        super::RegimeDominantSupportOutcomeV0::Mixed
+    } else if result.validation_out_of_support_windows > 0 {
+        super::RegimeDominantSupportOutcomeV0::ValidationOutOfSupport
+    } else if result.out_of_support_windows > 0 {
+        super::RegimeDominantSupportOutcomeV0::TestOutOfSupport
+    } else if result.validation_gate_unavailable_windows > 0 {
+        super::RegimeDominantSupportOutcomeV0::SupportGateUnavailable
+    } else if result.validation_insufficient_windows > 0 {
+        super::RegimeDominantSupportOutcomeV0::InsufficientSupportEvidence
+    } else if result.validation_in_support_windows > 0 {
+        super::RegimeDominantSupportOutcomeV0::ValidationInSupport
+    } else {
+        super::RegimeDominantSupportOutcomeV0::Mixed
+    }
+}
+
+fn closure_expected_trace_v3(
+    result: &super::BtcTemporalRegimeEvidenceResultV0,
+    operational_shadow_result: super::RegimeOperationalShadowResultV0,
+) -> (Vec<super::RegimeExecutionStageResultV0>, String) {
+    let no_signal = result.selected_checkpoint_windows == 0;
+    let support_abstained = !no_signal
+        && operational_shadow_result
+            != super::RegimeOperationalShadowResultV0::ShadowPredictionResearchOnly;
+    let stages = [
+        super::RegimeExecutionStageV0::PackLoad,
+        super::RegimeExecutionStageV0::PackDigestVerification,
+        super::RegimeExecutionStageV0::RowChronologyVerification,
+        super::RegimeExecutionStageV0::CampaignConfiguration,
+        super::RegimeExecutionStageV0::FeatureExtraction,
+        super::RegimeExecutionStageV0::TrainOnlyNormalization,
+        super::RegimeExecutionStageV0::SequenceConstruction,
+        super::RegimeExecutionStageV0::WindowConstruction,
+        super::RegimeExecutionStageV0::CandidateRegistration,
+        super::RegimeExecutionStageV0::CandidateTraining,
+        super::RegimeExecutionStageV0::CheckpointTrajectory,
+        super::RegimeExecutionStageV0::ValidationSignalGate,
+        super::RegimeExecutionStageV0::CheckpointSelection,
+        super::RegimeExecutionStageV0::TestSealDecision,
+        super::RegimeExecutionStageV0::TestEvaluation,
+        super::RegimeExecutionStageV0::TemporalSupportGate,
+        super::RegimeExecutionStageV0::TemporalShiftDiagnostics,
+        super::RegimeExecutionStageV0::WarmColdDiagnostics,
+        super::RegimeExecutionStageV0::OperationalShadowResult,
+        super::RegimeExecutionStageV0::ModelVersionConstruction,
+        super::RegimeExecutionStageV0::RegimeReportConstruction,
+        super::RegimeExecutionStageV0::RegimeReportDigest,
+    ]
+    .into_iter()
+    .map(|stage| {
+        let status = match stage {
+            super::RegimeExecutionStageV0::ValidationSignalGate if no_signal => {
+                super::RegimeExecutionStageStatusV0::CompletedNoSignal
+            }
+            super::RegimeExecutionStageV0::CheckpointSelection
+            | super::RegimeExecutionStageV0::TestEvaluation
+            | super::RegimeExecutionStageV0::TemporalSupportGate
+            | super::RegimeExecutionStageV0::TemporalShiftDiagnostics
+            | super::RegimeExecutionStageV0::ModelVersionConstruction
+                if no_signal =>
+            {
+                super::RegimeExecutionStageStatusV0::NotApplicable
+            }
+            super::RegimeExecutionStageV0::TemporalSupportGate
+            | super::RegimeExecutionStageV0::OperationalShadowResult
+                if support_abstained =>
+            {
+                super::RegimeExecutionStageStatusV0::CompletedAbstained
+            }
+            super::RegimeExecutionStageV0::ModelVersionConstruction if support_abstained => {
+                super::RegimeExecutionStageStatusV0::NotApplicable
+            }
+            _ => super::RegimeExecutionStageStatusV0::Completed,
+        };
+        super::RegimeExecutionStageResultV0 {
+            stage,
+            status,
+            reason_codes: Vec::new(),
+        }
+    })
+    .collect::<Vec<_>>();
+    let digest = stable_hash_string(&format!(
+        "{}:{:?}:{}",
+        result.regime_id,
+        super::RegimeExecutionHealthV0::Completed,
+        stages
+            .iter()
+            .map(|stage| format!("{:?}:{:?}", stage.stage, stage.status))
+            .collect::<Vec<_>>()
+            .join(":"),
+    ));
+    (stages, digest)
+}
+
+fn classify_closure_failure_v3(
+    failed: &[MomentumClosureInvariantV3],
+) -> MomentumClosureFailureClassV3 {
+    let semantic_failed = failed
+        .iter()
+        .copied()
+        .filter(|invariant| *invariant != MomentumClosureInvariantV3::ValidatorContract)
+        .collect::<Vec<_>>();
+    if semantic_failed.is_empty() {
+        return if failed.is_empty() {
+            MomentumClosureFailureClassV3::NoFailure
+        } else {
+            MomentumClosureFailureClassV3::StaleValidatorContract
+        };
+    }
+    if semantic_failed.len() > 1 {
+        return MomentumClosureFailureClassV3::MultipleMismatches;
+    }
+    match semantic_failed[0] {
+        MomentumClosureInvariantV3::RegimeIdentity | MomentumClosureInvariantV3::RegimeRowCount => {
+            MomentumClosureFailureClassV3::WrapperRegimeReferenceMismatch
+        }
+        MomentumClosureInvariantV3::ModelEvidenceOutcome
+        | MomentumClosureInvariantV3::OperationalShadowResult => {
+            MomentumClosureFailureClassV3::VerdictMappingMismatch
+        }
+        MomentumClosureInvariantV3::SupportEnvelopeCount
+        | MomentumClosureInvariantV3::SupportApplicabilityCount
+        | MomentumClosureInvariantV3::ValidationSupportCounts
+        | MomentumClosureInvariantV3::TestSupportCounts
+        | MomentumClosureInvariantV3::SupportCountBounds
+        | MomentumClosureInvariantV3::DominantSupportOutcome => {
+            MomentumClosureFailureClassV3::SupportInvariantMismatch
+        }
+        MomentumClosureInvariantV3::DiagnosticCompleteness
+        | MomentumClosureInvariantV3::FirstBreachMetric
+        | MomentumClosureInvariantV3::TemporalRootCause
+        | MomentumClosureInvariantV3::WarmStartStatus
+        | MomentumClosureInvariantV3::AbstentionCount
+        | MomentumClosureInvariantV3::ReasonCodeConsistency => {
+            MomentumClosureFailureClassV3::DiagnosticInvariantMismatch
+        }
+        MomentumClosureInvariantV3::ExecutionTraceConsistency => {
+            MomentumClosureFailureClassV3::ExecutionTraceMismatch
+        }
+        MomentumClosureInvariantV3::ExecutionTraceStageCount => {
+            MomentumClosureFailureClassV3::ExecutionTraceMismatch
+        }
+        MomentumClosureInvariantV3::ReportDigest
+        | MomentumClosureInvariantV3::ReportDigestPresent => {
+            MomentumClosureFailureClassV3::ReportDigestMismatch
+        }
+        MomentumClosureInvariantV3::ValidatorContract => {
+            MomentumClosureFailureClassV3::StaleValidatorContract
+        }
+        MomentumClosureInvariantV3::CampaignWindowCount
+        | MomentumClosureInvariantV3::ExecutionHealth
+        | MomentumClosureInvariantV3::NoSignalWindowCount
+        | MomentumClosureInvariantV3::SelectedCheckpointCount
+        | MomentumClosureInvariantV3::SelectedCheckpointRange
+        | MomentumClosureInvariantV3::TestSealCount
+        | MomentumClosureInvariantV3::AcceptedVersionCount
+        | MomentumClosureInvariantV3::AcceptedVersionBound => {
+            MomentumClosureFailureClassV3::BuilderFieldMismatch
+        }
+        MomentumClosureInvariantV3::NoSignalCheckpointExclusivity => {
+            MomentumClosureFailureClassV3::StaleValidatorContract
+        }
+    }
+}
+
+pub fn audit_momentum_closed_result_contract_v3(
+    joint_scope_id: &str,
+    result: &super::BtcTemporalRegimeEvidenceResultV0,
+    regime: &BtcTemporalRegimeRefV0,
+    closed: &super::BtcTemporalRegimeClosedResultV0,
+    encoder_digest: String,
+    pack_digest: String,
+    derived_snapshot_digest: String,
+) -> MomentumClosedResultContractAuditV3 {
+    let diagnostic_completeness = if result.selected_checkpoint_windows == 0 {
+        super::RegimeDiagnosticCompletenessV0::PartialNoSelectedCheckpoint
+    } else if result.support_unavailable_windows > 0 {
+        super::RegimeDiagnosticCompletenessV0::PartialSupportGateUnavailable
+    } else {
+        super::RegimeDiagnosticCompletenessV0::Complete
+    };
+    let model_evidence_outcome = closure_model_evidence_outcome_v3(result);
+    let operational_shadow_result = closure_operational_shadow_result_v3(result);
+    let dominant_support_outcome = closure_dominant_support_outcome_v3(result);
+    let first_breach_metric = result
+        .support_traces
+        .iter()
+        .filter_map(|trace| trace.validation.first_breach_metric)
+        .map(|metric| format!("{metric:?}"))
+        .next();
+    let support_envelope_ready_windows = result
+        .support_traces
+        .iter()
+        .filter(|trace| {
+            trace.envelope.construction_status == super::SupportEnvelopeConstructionStatusV0::Ready
+        })
+        .count();
+    let support_gate_applicable_windows = result
+        .support_traces
+        .iter()
+        .filter(|trace| {
+            trace.validation.gate_applicability
+                == super::SupportGateApplicabilityStatusV0::Applicable
+        })
+        .count();
+    let expected_accepted_versions = if operational_shadow_result
+        == super::RegimeOperationalShadowResultV0::ShadowPredictionResearchOnly
+    {
+        result.accepted_predictive_versions
+    } else {
+        0
+    };
+    let mut expected_reason_codes = result.reason_codes.clone();
+    if result.accepted_predictive_versions > expected_accepted_versions {
+        expected_reason_codes.push("accepted_predictive_version_absent_by_policy".into());
+    }
+    expected_reason_codes.sort();
+    expected_reason_codes.dedup();
+    let (expected_stages, expected_trace_digest) =
+        closure_expected_trace_v3(result, operational_shadow_result);
+    let expected_report_digest = stable_hash_string(&format!(
+        "{}:{}:{:?}:{:?}:{:?}:{:?}:{}:{}:{}",
+        result.report_digest,
+        expected_trace_digest,
+        diagnostic_completeness,
+        model_evidence_outcome,
+        operational_shadow_result,
+        dominant_support_outcome,
+        result.selected_checkpoint_windows,
+        result.in_support_windows,
+        expected_reason_codes.join(":"),
+    ));
+    let validator_error = match super::validate_btc_temporal_regime_closed_result_v0(closed) {
+        Ok(()) => None,
+        Err(error) => Some(format!("{error:?}")),
+    };
+    let mut invariant_results = Vec::new();
+    push_closure_invariant_v3(
+        &mut invariant_results,
+        MomentumClosureInvariantV3::SelectedCheckpointRange,
+        "true".into(),
+        (closed.selected_checkpoint_windows <= closed.campaign_window_count).to_string(),
+    );
+    push_closure_invariant_v3(
+        &mut invariant_results,
+        MomentumClosureInvariantV3::SupportCountBounds,
+        "true".into(),
+        (closed.in_support_windows <= closed.selected_checkpoint_windows
+            && closed.out_of_support_windows <= closed.selected_checkpoint_windows
+            && closed.support_unavailable_windows <= closed.selected_checkpoint_windows)
+            .to_string(),
+    );
+    push_closure_invariant_v3(
+        &mut invariant_results,
+        MomentumClosureInvariantV3::AcceptedVersionBound,
+        "true".into(),
+        (closed.accepted_predictive_versions <= closed.in_support_windows).to_string(),
+    );
+    push_closure_invariant_v3(
+        &mut invariant_results,
+        MomentumClosureInvariantV3::NoSignalCheckpointExclusivity,
+        "mixed_window_counts_permitted".into(),
+        if closed.no_signal_windows > 0
+            && closed.selected_checkpoint_windows > 0
+            && validator_error.is_some()
+        {
+            "rejected_by_legacy_validator".into()
+        } else {
+            "mixed_window_counts_permitted".into()
+        },
+    );
+    push_closure_invariant_v3(
+        &mut invariant_results,
+        MomentumClosureInvariantV3::ExecutionTraceStageCount,
+        "22".into(),
+        closed.execution_trace.stages.len().to_string(),
+    );
+    push_closure_invariant_v3(
+        &mut invariant_results,
+        MomentumClosureInvariantV3::ReportDigestPresent,
+        "true".into(),
+        (!closed.report_digest.is_empty()).to_string(),
+    );
+    push_closure_invariant_v3(
+        &mut invariant_results,
+        MomentumClosureInvariantV3::RegimeIdentity,
+        format!(
+            "{}:{}:{}:{}",
+            regime.regime_id, regime.chronological_rank, regime.range_digest, regime.pack_digest
+        ),
+        format!(
+            "{}:{}:{}:{}",
+            closed.regime.regime_id,
+            closed.regime.chronological_rank,
+            closed.regime.range_digest,
+            closed.regime.pack_digest
+        ),
+    );
+    push_closure_invariant_v3(
+        &mut invariant_results,
+        MomentumClosureInvariantV3::RegimeRowCount,
+        regime.row_count.to_string(),
+        closed.regime.row_count.to_string(),
+    );
+    push_closure_invariant_v3(
+        &mut invariant_results,
+        MomentumClosureInvariantV3::CampaignWindowCount,
+        result.campaign_windows.to_string(),
+        closed.campaign_window_count.to_string(),
+    );
+    push_closure_invariant_v3(
+        &mut invariant_results,
+        MomentumClosureInvariantV3::ExecutionHealth,
+        format!("{:?}", super::RegimeExecutionHealthV0::Completed),
+        format!("{:?}", closed.execution_health),
+    );
+    push_closure_invariant_v3(
+        &mut invariant_results,
+        MomentumClosureInvariantV3::DiagnosticCompleteness,
+        format!("{diagnostic_completeness:?}"),
+        format!("{:?}", closed.diagnostic_completeness),
+    );
+    push_closure_invariant_v3(
+        &mut invariant_results,
+        MomentumClosureInvariantV3::ModelEvidenceOutcome,
+        format!("{model_evidence_outcome:?}"),
+        format!("{:?}", closed.model_evidence_outcome),
+    );
+    push_closure_invariant_v3(
+        &mut invariant_results,
+        MomentumClosureInvariantV3::OperationalShadowResult,
+        format!("{operational_shadow_result:?}"),
+        format!("{:?}", closed.operational_shadow_result),
+    );
+    push_closure_invariant_v3(
+        &mut invariant_results,
+        MomentumClosureInvariantV3::NoSignalWindowCount,
+        result.no_signal_windows.to_string(),
+        closed.no_signal_windows.to_string(),
+    );
+    push_closure_invariant_v3(
+        &mut invariant_results,
+        MomentumClosureInvariantV3::SelectedCheckpointCount,
+        result.selected_checkpoint_windows.to_string(),
+        closed.selected_checkpoint_windows.to_string(),
+    );
+    push_closure_invariant_v3(
+        &mut invariant_results,
+        MomentumClosureInvariantV3::TestSealCount,
+        result
+            .campaign_windows
+            .saturating_sub(result.selected_checkpoint_windows)
+            .to_string(),
+        closed.test_sealed_windows.to_string(),
+    );
+    push_closure_invariant_v3(
+        &mut invariant_results,
+        MomentumClosureInvariantV3::SupportEnvelopeCount,
+        support_envelope_ready_windows.to_string(),
+        closed.support_envelope_ready_windows.to_string(),
+    );
+    push_closure_invariant_v3(
+        &mut invariant_results,
+        MomentumClosureInvariantV3::SupportApplicabilityCount,
+        support_gate_applicable_windows.to_string(),
+        closed.support_gate_applicable_windows.to_string(),
+    );
+    push_closure_invariant_v3(
+        &mut invariant_results,
+        MomentumClosureInvariantV3::ValidationSupportCounts,
+        format!(
+            "{}:{}:{}:{}",
+            result.validation_in_support_windows,
+            result.validation_out_of_support_windows,
+            result.validation_insufficient_windows,
+            result.validation_gate_unavailable_windows
+        ),
+        format!(
+            "{}:{}:{}:{}",
+            closed.validation_in_support_windows,
+            closed.validation_out_of_support_windows,
+            closed.support_insufficient_windows,
+            closed.support_gate_unavailable_windows
+        ),
+    );
+    push_closure_invariant_v3(
+        &mut invariant_results,
+        MomentumClosureInvariantV3::TestSupportCounts,
+        format!(
+            "{}:{}",
+            result.in_support_windows, result.out_of_support_windows
+        ),
+        format!(
+            "{}:{}",
+            closed.test_in_support_windows, closed.test_out_of_support_windows
+        ),
+    );
+    push_closure_invariant_v3(
+        &mut invariant_results,
+        MomentumClosureInvariantV3::DominantSupportOutcome,
+        format!("{dominant_support_outcome:?}"),
+        format!("{:?}", closed.dominant_support_outcome),
+    );
+    push_closure_invariant_v3(
+        &mut invariant_results,
+        MomentumClosureInvariantV3::FirstBreachMetric,
+        format!("{first_breach_metric:?}"),
+        format!("{:?}", closed.first_breach_metric),
+    );
+    push_closure_invariant_v3(
+        &mut invariant_results,
+        MomentumClosureInvariantV3::TemporalRootCause,
+        format!(
+            "{:?}:{:?}",
+            (result.selected_checkpoint_windows > 0).then_some(result.earliest_shift_stage),
+            (result.selected_checkpoint_windows > 0).then_some(result.temporal_root_cause)
+        ),
+        format!(
+            "{:?}:{:?}",
+            closed.earliest_shift_stage, closed.temporal_root_cause
+        ),
+    );
+    push_closure_invariant_v3(
+        &mut invariant_results,
+        MomentumClosureInvariantV3::WarmStartStatus,
+        format!("{:?}", result.warm_start_status),
+        format!("{:?}", closed.warm_start_status),
+    );
+    push_closure_invariant_v3(
+        &mut invariant_results,
+        MomentumClosureInvariantV3::AbstentionCount,
+        result.abstention_count.to_string(),
+        closed.abstention_count.to_string(),
+    );
+    push_closure_invariant_v3(
+        &mut invariant_results,
+        MomentumClosureInvariantV3::AcceptedVersionCount,
+        expected_accepted_versions.to_string(),
+        closed.accepted_predictive_versions.to_string(),
+    );
+    push_closure_invariant_v3(
+        &mut invariant_results,
+        MomentumClosureInvariantV3::ReasonCodeConsistency,
+        expected_reason_codes.join(":"),
+        closed.reason_codes.join(":"),
+    );
+    push_closure_invariant_v3(
+        &mut invariant_results,
+        MomentumClosureInvariantV3::ExecutionTraceConsistency,
+        format!(
+            "{}:{:?}:{:?}:{}",
+            result.regime_id,
+            super::RegimeExecutionHealthV0::Completed,
+            expected_stages,
+            expected_trace_digest
+        ),
+        format!(
+            "{}:{:?}:{:?}:{}",
+            closed.execution_trace.regime_id,
+            closed.execution_trace.execution_health,
+            closed.execution_trace.stages,
+            closed.execution_trace.trace_digest
+        ),
+    );
+    push_closure_invariant_v3(
+        &mut invariant_results,
+        MomentumClosureInvariantV3::ReportDigest,
+        expected_report_digest,
+        closed.report_digest.clone(),
+    );
+    push_closure_invariant_v3(
+        &mut invariant_results,
+        MomentumClosureInvariantV3::ValidatorContract,
+        "Valid".into(),
+        validator_error.clone().unwrap_or_else(|| "Valid".into()),
+    );
+    let failed = invariant_results
+        .iter()
+        .filter(|result| !result.passed)
+        .map(|result| result.invariant)
+        .collect::<Vec<_>>();
+    let first_failed_invariant = failed.first().copied();
+    let failure_class = classify_closure_failure_v3(&failed);
+    let preclosure = MomentumPreClosureEvidenceV3 {
+        campaign_report_digest: result.report_digest.clone(),
+        campaign_window_count: result.campaign_windows,
+        final_verdict: format!("{:?}", result.final_verdict),
+        no_signal_window_count: result.no_signal_windows,
+        selected_checkpoint_count: result.selected_checkpoint_windows,
+        support_counts: vec![
+            result.in_support_windows,
+            result.out_of_support_windows,
+            result.support_unavailable_windows,
+            result.validation_in_support_windows,
+            result.validation_out_of_support_windows,
+            result.validation_insufficient_windows,
+            result.validation_gate_unavailable_windows,
+        ],
+        encoder_digest,
+        pack_digest,
+        derived_snapshot_digest,
+        preclosure_digest_v3: String::new(),
+    };
+    let mut audit = MomentumClosedResultContractAuditV3 {
+        audit_version: "momentum-closed-result-contract-audit-v3".into(),
+        joint_scope_id: joint_scope_id.into(),
+        open_result_digest: result.report_digest.clone(),
+        closed_result_digest: closed.report_digest.clone(),
+        regime_reference_digest: stable_hash_string(&format!("{regime:?}")),
+        preclosure,
+        invariant_results,
+        first_failed_invariant,
+        validator_error,
+        failure_class,
+        all_invariants_pass: failed.is_empty(),
+        audit_digest_v3: String::new(),
+    };
+    audit.preclosure.preclosure_digest_v3 = joint_v3_digest(&[
+        audit.preclosure.campaign_report_digest.clone(),
+        audit.preclosure.campaign_window_count.to_string(),
+        audit.preclosure.final_verdict.clone(),
+        audit.preclosure.no_signal_window_count.to_string(),
+        audit.preclosure.selected_checkpoint_count.to_string(),
+        audit
+            .preclosure
+            .support_counts
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>()
+            .join(":"),
+        audit.preclosure.encoder_digest.clone(),
+        audit.preclosure.pack_digest.clone(),
+        audit.preclosure.derived_snapshot_digest.clone(),
+    ]);
+    audit.audit_digest_v3 = joint_v3_digest(&[
+        audit.audit_version.clone(),
+        audit.joint_scope_id.clone(),
+        audit.open_result_digest.clone(),
+        audit.closed_result_digest.clone(),
+        audit.regime_reference_digest.clone(),
+        audit.preclosure.preclosure_digest_v3.clone(),
+        audit
+            .invariant_results
+            .iter()
+            .map(|value| {
+                format!(
+                    "{:?}:{}:{}:{}:{}",
+                    value.invariant,
+                    value.passed,
+                    value.expected_semantic_value,
+                    value.actual_semantic_value,
+                    value.reason_code
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(":"),
+        format!("{:?}", audit.first_failed_invariant),
+        audit.validator_error.clone().unwrap_or_default(),
+        format!("{:?}", audit.failure_class),
+        audit.all_invariants_pass.to_string(),
+    ]);
+    audit
+}
+
+pub fn audit_joint_scope_momentum_closure_v3(
+    snapshot: &DataSnapshot,
+    scope: &JointCanonicalHistoricalScopeV1,
+    registration: &JointCanonicalScopeReplayRegistrationV2,
+    campaign: &MomentumLearningCampaignConfigV0,
+) -> Result<MomentumClosedResultContractAuditV3, String> {
+    let registered_scopes =
+        validate_joint_canonical_scope_registration_v2(snapshot, campaign, registration)?;
+    if !registered_scopes
+        .iter()
+        .any(|registered| registered == scope)
+    {
+        return Err("joint_v3_closure_audit_scope_not_registered".into());
+    }
+    let derived = derive_joint_scope_snapshot_v2(snapshot, scope)?;
+    let policy = joint_scope_derived_evidence_policy_v2(&derived)?;
+    let (_, pack) = joint_scope_momentum_pack_v2(&derived, &policy)?;
+    let encoder = frozen_mamba3_encoder_from_seed_v0(
+        &campaign.feature_config,
+        campaign.campaign_seed,
+        campaign.backend_preference,
+        campaign.fallback_policy,
+    )
+    .map_err(|error| format!("joint_v3_closure_audit_encoder_{error:?}"))?;
+    let regime = BtcHistoricalRegimeV0 {
+        regime_id: scope.joint_scope_id.clone(),
+        start_row_index: 0,
+        end_row_index_exclusive: derived.derived_snapshot.row_count,
+        start_timestamp_ms: derived
+            .derived_snapshot
+            .actual_start_timestamp_ms
+            .ok_or("joint_v3_closure_audit_scope_start_missing")?,
+        end_timestamp_ms: derived
+            .derived_snapshot
+            .actual_end_timestamp_ms
+            .ok_or("joint_v3_closure_audit_scope_end_missing")?,
+        row_count: derived.derived_snapshot.row_count,
+        source_snapshot_id: derived.derived_snapshot.snapshot_id.clone(),
+        usage_class: EvidenceUsageClassV0::DevelopmentEligible,
+        segmentation_config_digest: registration.registration_digest_v2.clone(),
+    };
+    let mut results = run_btc_historical_regime_campaigns_v0(
+        &[(regime.clone(), pack.clone())],
+        campaign,
+        &encoder,
+    )
+    .map_err(|error| format!("joint_v3_closure_audit_campaign_{error:?}"))?;
+    if results.len() != 1 {
+        return Err(format!(
+            "joint_v3_closure_audit_campaign_result_count={}",
+            results.len()
+        ));
+    }
+    let result = results.remove(0);
+    let regime_reference = BtcTemporalRegimeRefV0 {
+        regime_id: regime.regime_id,
+        chronological_rank: scope.chronological_rank,
+        row_count: regime.row_count,
+        range_digest: scope.scope_digest_v1.clone(),
+        pack_digest: pack.digest.clone(),
+    };
+    let closed = close_btc_temporal_regime_result_v0(&result, regime_reference.clone());
+    Ok(audit_momentum_closed_result_contract_v3(
+        &scope.joint_scope_id,
+        &result,
+        &regime_reference,
+        &closed,
+        encoder.parameter_digest(),
+        pack.digest,
+        derived.derived_snapshot.content_digest,
+    ))
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct JointCanonicalScopeReplayRegistrationV3 {
+    pub registration_version: String,
+    pub parent_registration_digest_v2: String,
+    pub parent_registration_v2: JointCanonicalScopeReplayRegistrationV2,
+    pub joint_scope_ids: Vec<String>,
+    pub joint_scope_digests: Vec<String>,
+    pub momentum_campaign_config_digest: String,
+    pub risk_config_digest: String,
+    pub closure_audit_policy_digest: String,
+    pub correction_failure_class: MomentumClosureFailureClassV3,
+    pub corrected_closure_policy_digest: String,
+    pub preclosure_result_digests: Vec<String>,
+    pub scope_ranges_unchanged: bool,
+    pub participant_configs_unchanged: bool,
+    pub preclosure_results_unchanged: bool,
+    pub scope0_non_regression_required: bool,
+    pub result_dependent_model_changes_forbidden: bool,
+    pub authority_policy_digest: String,
+    pub registration_digest_v3: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct JointScopeReplayResultV3 {
+    pub replay_version: String,
+    pub registration_digest_v3: String,
+    pub joint_scope_id: String,
+    pub joint_scope_digest: String,
+    pub preclosure_digest_v3: String,
+    pub closure_audit_digest_v3: String,
+    pub parent_result_digest_v2: String,
+    pub replay_result_v2: JointScopeReplayResultV2,
+    pub result_digest_v3: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct JointScopeReplayAggregateV3 {
+    pub aggregate_version: String,
+    pub registration_digest_v3: String,
+    pub closure_audit_digests_v3: Vec<String>,
+    pub parent_aggregate_digest_v2: String,
+    pub replay_aggregate_v2: JointScopeReplayAggregateV2,
+    pub aggregate_digest_v3: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct JointScopeReplayLedgerV3 {
+    pub ledger_version: String,
+    pub registration_digest_v3: String,
+    pub replay_result_digests_v3: Vec<String>,
+    pub deliberation_transcript_digests: Vec<String>,
+    pub ledger_digest_v3: String,
+}
+
+fn joint_v3_policy_digest(label: &str, parts: &[&str]) -> String {
+    let mut values = vec![label.to_string()];
+    values.extend(parts.iter().map(|part| (*part).to_string()));
+    joint_v3_digest(&values)
+}
+
+fn joint_v3_registration_digest(value: &JointCanonicalScopeReplayRegistrationV3) -> String {
+    let mut values = vec![
+        value.registration_version.clone(),
+        value.parent_registration_digest_v2.clone(),
+        value.momentum_campaign_config_digest.clone(),
+        value.risk_config_digest.clone(),
+        value.closure_audit_policy_digest.clone(),
+        format!("{:?}", value.correction_failure_class),
+        value.corrected_closure_policy_digest.clone(),
+        value.authority_policy_digest.clone(),
+    ];
+    values.extend(value.joint_scope_ids.clone());
+    values.extend(value.joint_scope_digests.clone());
+    values.extend(value.preclosure_result_digests.clone());
+    values.extend([
+        value.scope_ranges_unchanged.to_string(),
+        value.participant_configs_unchanged.to_string(),
+        value.preclosure_results_unchanged.to_string(),
+        value.scope0_non_regression_required.to_string(),
+        value.result_dependent_model_changes_forbidden.to_string(),
+    ]);
+    joint_v3_digest(&values)
+}
+
+fn v3_correction_class_from_audits(
+    audits: &[MomentumClosedResultContractAuditV3],
+) -> Result<MomentumClosureFailureClassV3, String> {
+    let mixed_window_contracts = audits
+        .iter()
+        .filter(|audit| {
+            audit.all_invariants_pass
+                && audit.validator_error.is_none()
+                && audit.preclosure.no_signal_window_count > 0
+                && audit.preclosure.selected_checkpoint_count > 0
+        })
+        .count();
+    if mixed_window_contracts != 1 {
+        return Err("joint_v3_correction_class_unproven".into());
+    }
+    Ok(MomentumClosureFailureClassV3::StaleValidatorContract)
+}
+
+pub fn joint_canonical_scope_registration_v3(
+    snapshot: &DataSnapshot,
+    campaign: &MomentumLearningCampaignConfigV0,
+    audits: &[MomentumClosedResultContractAuditV3],
+) -> Result<JointCanonicalScopeReplayRegistrationV3, String> {
+    let parent = joint_canonical_scope_registration_v2(snapshot, campaign)?;
+    let scopes = validate_joint_canonical_scope_registration_v2(snapshot, campaign, &parent)?;
+    if audits.len() != scopes.len()
+        || audits.iter().any(|audit| {
+            !audit.all_invariants_pass
+                || audit.validator_error.is_some()
+                || audit.preclosure.preclosure_digest_v3.is_empty()
+        })
+        || audits
+            .iter()
+            .map(|audit| audit.joint_scope_id.clone())
+            .collect::<Vec<_>>()
+            != scopes
+                .iter()
+                .map(|scope| scope.joint_scope_id.clone())
+                .collect::<Vec<_>>()
+    {
+        return Err("joint_v3_registration_audit_invalid".into());
+    }
+    let correction_failure_class = v3_correction_class_from_audits(audits)?;
+    let mut value = JointCanonicalScopeReplayRegistrationV3 {
+        registration_version: "joint-canonical-scope-replay-registration-v3".into(),
+        parent_registration_digest_v2: parent.registration_digest_v2.clone(),
+        parent_registration_v2: parent.clone(),
+        joint_scope_ids: scopes
+            .iter()
+            .map(|scope| scope.joint_scope_id.clone())
+            .collect(),
+        joint_scope_digests: scopes
+            .iter()
+            .map(|scope| scope.scope_digest_v1.clone())
+            .collect(),
+        momentum_campaign_config_digest: campaign.digest(),
+        risk_config_digest: CycleRiskShadowConfigV0::default().digest(),
+        closure_audit_policy_digest: joint_v3_policy_digest(
+            "momentum-closed-result-contract-audit-policy-v3",
+            &[
+                "field-level-builder-audit",
+                "typed-validator-provenance",
+                "deterministic-audit-replay",
+                "no-raw-market-or-model-output",
+            ],
+        ),
+        correction_failure_class,
+        corrected_closure_policy_digest: joint_v3_policy_digest(
+            "momentum-closed-result-validator-policy-v3",
+            &[
+                "per-window-counts-may-coexist",
+                "checkpoint-and-support-bounds-retained",
+                "execution-trace-and-report-digest-retained",
+                "no-model-or-scope-change",
+            ],
+        ),
+        preclosure_result_digests: audits
+            .iter()
+            .map(|audit| audit.preclosure.preclosure_digest_v3.clone())
+            .collect(),
+        scope_ranges_unchanged: true,
+        participant_configs_unchanged: true,
+        preclosure_results_unchanged: true,
+        scope0_non_regression_required: true,
+        result_dependent_model_changes_forbidden: true,
+        authority_policy_digest: joint_v3_policy_digest(
+            "joint-authority-policy-v3",
+            &[
+                "advisory-only",
+                "chair-vote-reward-penalty-promotion-execution-forbidden",
+            ],
+        ),
+        registration_digest_v3: String::new(),
+    };
+    value.registration_digest_v3 = joint_v3_registration_digest(&value);
+    Ok(value)
+}
+
+pub fn validate_joint_canonical_scope_registration_v3(
+    snapshot: &DataSnapshot,
+    campaign: &MomentumLearningCampaignConfigV0,
+    registration: &JointCanonicalScopeReplayRegistrationV3,
+) -> Result<Vec<JointCanonicalHistoricalScopeV1>, String> {
+    if registration.registration_version != "joint-canonical-scope-replay-registration-v3"
+        || registration.registration_digest_v3 != joint_v3_registration_digest(registration)
+        || !registration.scope_ranges_unchanged
+        || !registration.participant_configs_unchanged
+        || !registration.preclosure_results_unchanged
+        || !registration.scope0_non_regression_required
+        || !registration.result_dependent_model_changes_forbidden
+        || registration.correction_failure_class == MomentumClosureFailureClassV3::Unknown
+        || registration.momentum_campaign_config_digest != campaign.digest()
+        || registration.risk_config_digest != CycleRiskShadowConfigV0::default().digest()
+    {
+        return Err("joint_v3_registration_invalid".into());
+    }
+    let parent = joint_canonical_scope_registration_v2(snapshot, campaign)?;
+    let scopes = validate_joint_canonical_scope_registration_v2(snapshot, campaign, &parent)?;
+    if registration.parent_registration_digest_v2 != parent.registration_digest_v2
+        || registration.parent_registration_v2 != parent
+        || registration.joint_scope_ids
+            != scopes
+                .iter()
+                .map(|scope| scope.joint_scope_id.clone())
+                .collect::<Vec<_>>()
+        || registration.joint_scope_digests
+            != scopes
+                .iter()
+                .map(|scope| scope.scope_digest_v1.clone())
+                .collect::<Vec<_>>()
+        || registration.preclosure_result_digests.len() != scopes.len()
+    {
+        return Err("joint_v3_scope_reuse_mismatch".into());
+    }
+    Ok(scopes)
+}
+
+pub fn replay_joint_scope_results_v3(
+    snapshot: &DataSnapshot,
+    scope: &JointCanonicalHistoricalScopeV1,
+    registration: &JointCanonicalScopeReplayRegistrationV3,
+    campaign: &MomentumLearningCampaignConfigV0,
+) -> Result<JointScopeReplayResultV3, String> {
+    let scopes = validate_joint_canonical_scope_registration_v3(snapshot, campaign, registration)?;
+    let scope_index = scopes
+        .iter()
+        .position(|registered| registered == scope)
+        .ok_or("joint_v3_scope_not_registered")?;
+    let parent = joint_canonical_scope_registration_v2(snapshot, campaign)?;
+    let audit = audit_joint_scope_momentum_closure_v3(snapshot, scope, &parent, campaign)?;
+    if !audit.all_invariants_pass
+        || audit.validator_error.is_some()
+        || audit.preclosure.preclosure_digest_v3
+            != registration.preclosure_result_digests[scope_index]
+    {
+        return Err("joint_v3_preclosure_freeze_or_closure_invalid".into());
+    }
+    let replay_result_v2 = replay_joint_scope_results_v2(snapshot, scope, &parent, campaign)?;
+    let result_digest_v3 = joint_v3_digest(&[
+        registration.registration_digest_v3.clone(),
+        scope.joint_scope_id.clone(),
+        scope.scope_digest_v1.clone(),
+        audit.preclosure.preclosure_digest_v3.clone(),
+        audit.audit_digest_v3.clone(),
+        replay_result_v2.result_digest_v2.clone(),
+    ]);
+    Ok(JointScopeReplayResultV3 {
+        replay_version: "joint-canonical-scope-replay-v3".into(),
+        registration_digest_v3: registration.registration_digest_v3.clone(),
+        joint_scope_id: scope.joint_scope_id.clone(),
+        joint_scope_digest: scope.scope_digest_v1.clone(),
+        preclosure_digest_v3: audit.preclosure.preclosure_digest_v3,
+        closure_audit_digest_v3: audit.audit_digest_v3,
+        parent_result_digest_v2: replay_result_v2.result_digest_v2.clone(),
+        replay_result_v2,
+        result_digest_v3,
+    })
+}
+
+pub fn aggregate_joint_scope_replays_v3(
+    registration: &JointCanonicalScopeReplayRegistrationV3,
+    results: &[JointScopeReplayResultV3],
+) -> Result<(JointScopeReplayAggregateV3, JointScopeReplayLedgerV3), String> {
+    if registration.registration_digest_v3 != joint_v3_registration_digest(registration)
+        || results.len() != registration.joint_scope_ids.len()
+        || results.iter().any(|result| {
+            result.registration_digest_v3 != registration.registration_digest_v3
+                || !registration
+                    .joint_scope_ids
+                    .contains(&result.joint_scope_id)
+                || !registration
+                    .joint_scope_digests
+                    .contains(&result.joint_scope_digest)
+        })
+    {
+        return Err("joint_v3_aggregate_input_invalid".into());
+    }
+    let parent_results = results
+        .iter()
+        .map(|result| result.replay_result_v2.clone())
+        .collect::<Vec<_>>();
+    let (replay_aggregate_v2, _) =
+        aggregate_joint_scope_replays_v2(&registration.parent_registration_v2, &parent_results)?;
+    let closure_audit_digests_v3 = results
+        .iter()
+        .map(|result| result.closure_audit_digest_v3.clone())
+        .collect::<Vec<_>>();
+    let mut aggregate = JointScopeReplayAggregateV3 {
+        aggregate_version: "joint-scope-relationship-only-aggregate-v3".into(),
+        registration_digest_v3: registration.registration_digest_v3.clone(),
+        closure_audit_digests_v3,
+        parent_aggregate_digest_v2: replay_aggregate_v2.aggregate_digest_v2.clone(),
+        replay_aggregate_v2,
+        aggregate_digest_v3: String::new(),
+    };
+    aggregate.aggregate_digest_v3 = joint_v3_digest(&[
+        aggregate.aggregate_version.clone(),
+        aggregate.registration_digest_v3.clone(),
+        aggregate.closure_audit_digests_v3.join(":"),
+        aggregate.parent_aggregate_digest_v2.clone(),
+    ]);
+    let mut replay_result_digests_v3 = results
+        .iter()
+        .map(|result| result.result_digest_v3.clone())
+        .collect::<Vec<_>>();
+    replay_result_digests_v3.sort();
+    let mut deliberation_transcript_digests =
+        aggregate.replay_aggregate_v2.transcript_digests.clone();
+    deliberation_transcript_digests.sort();
+    let mut ledger = JointScopeReplayLedgerV3 {
+        ledger_version: "joint-scope-replay-ledger-v3".into(),
+        registration_digest_v3: registration.registration_digest_v3.clone(),
+        replay_result_digests_v3,
+        deliberation_transcript_digests,
+        ledger_digest_v3: String::new(),
+    };
+    ledger.ledger_digest_v3 = joint_v3_digest(&[
+        ledger.ledger_version.clone(),
+        ledger.registration_digest_v3.clone(),
+        ledger.replay_result_digests_v3.join(":"),
+        ledger.deliberation_transcript_digests.join(":"),
+    ]);
+    validate_joint_scope_replay_ledger_v3(&ledger)?;
+    Ok((aggregate, ledger))
+}
+
+pub fn validate_joint_scope_replay_ledger_v3(
+    ledger: &JointScopeReplayLedgerV3,
+) -> Result<(), String> {
+    if ledger.ledger_version != "joint-scope-replay-ledger-v3"
+        || ledger
+            .replay_result_digests_v3
+            .windows(2)
+            .any(|pair| pair[0] > pair[1])
+        || ledger.ledger_digest_v3
+            != joint_v3_digest(&[
+                ledger.ledger_version.clone(),
+                ledger.registration_digest_v3.clone(),
+                ledger.replay_result_digests_v3.join(":"),
+                ledger.deliberation_transcript_digests.join(":"),
+            ])
+    {
+        return Err("joint_v3_replay_ledger_invalid".into());
+    }
+    Ok(())
+}
+
 fn momentum_model_outcome_v2(
     result: &super::BtcTemporalRegimeEvidenceResultV0,
 ) -> JointParticipantModelEvidenceOutcomeV2 {
@@ -5295,13 +6454,21 @@ pub fn replay_joint_scope_results_v2(
                                         match super::validate_btc_temporal_regime_closed_result_v0(
                                             &closed,
                                         ) {
-                                            Err(_) => {
+                                            Err(error) => {
+                                                let reason_code = match error {
+                                                    super::CrossRegimeDiagnosticFailureRootCauseV0::ModelConfigDigestMismatch => "joint_v2_result_closure_model_config_digest_mismatch",
+                                                    super::CrossRegimeDiagnosticFailureRootCauseV0::MissingRequiredMetric => "joint_v2_result_closure_missing_required_metric",
+                                                    super::CrossRegimeDiagnosticFailureRootCauseV0::PerRegimeReportDigestFailure => "joint_v2_result_closure_report_digest_failure",
+                                                    super::CrossRegimeDiagnosticFailureRootCauseV0::CrossRegimeAggregationInvariantFailure => "joint_v2_result_closure_aggregation_invariant_failure",
+                                                    super::CrossRegimeDiagnosticFailureRootCauseV0::UnsupportedOutcomeMapping => "joint_v2_result_closure_unsupported_outcome_mapping",
+                                                    super::CrossRegimeDiagnosticFailureRootCauseV0::NondeterministicReplay => "joint_v2_result_closure_nondeterministic_replay",
+                                                };
                                                 record_execution_stage_v2(
                                                     &mut momentum_trace,
                                                     JointParticipantExecutionStageV2::ResultClosure,
                                                     JointExecutionStageStatusV2::Failed,
-                                                    Some("joint_v2_result_closure_failed"),
-                                                    vec![],
+                                                    Some(reason_code),
+                                                    vec![format!("closure_error={error:?}")],
                                                     None,
                                                 );
                                                 momentum_health = JointParticipantExecutionHealthV2::ResultClosureFailure;
@@ -6007,7 +7174,73 @@ mod tests {
             SnapshotQualitySummary, SnapshotSourceType,
         },
         league::{HistoricalOhlcvRow, HistoricalReplayDataset},
+        model::historical_evidence::{
+            BtcTemporalRegimeEvidenceResultV0, BtcTemporalRegimeRefV0, RegimeModelEvidenceOutcomeV0,
+        },
+        model::learning_campaign::{
+            EarliestTemporalShiftStageV0, ProbabilityCollapseRootCauseV0,
+            SupportGatedMomentumSeriesVerdictV0, WarmStartLockInStatusV0,
+        },
     };
+
+    fn v3_audit_fixture() -> (
+        BtcTemporalRegimeEvidenceResultV0,
+        BtcTemporalRegimeRefV0,
+        crate::model::historical_evidence::BtcTemporalRegimeClosedResultV0,
+    ) {
+        let result = BtcTemporalRegimeEvidenceResultV0 {
+            regime_id: "joint-scope-control".into(),
+            row_count: 8,
+            campaign_windows: 2,
+            no_signal_windows: 1,
+            selected_checkpoint_windows: 1,
+            in_support_windows: 1,
+            out_of_support_windows: 0,
+            support_unavailable_windows: 0,
+            validation_in_support_windows: 1,
+            validation_out_of_support_windows: 0,
+            validation_insufficient_windows: 0,
+            validation_gate_unavailable_windows: 0,
+            support_traces: vec![],
+            earliest_shift_stage: EarliestTemporalShiftStageV0::InsufficientEvidence,
+            temporal_root_cause: ProbabilityCollapseRootCauseV0::Unknown,
+            frozen_representation_breach_count: 0,
+            warm_start_status: WarmStartLockInStatusV0::WarmAndColdBothNoSignal,
+            abstention_count: 1,
+            accepted_predictive_versions: 0,
+            final_verdict:
+                SupportGatedMomentumSeriesVerdictV0::InSupportUsableSignalButLinearStrongerOnThisSeries,
+            reason_codes: vec!["baseline_stronger".into()],
+            campaign_config_digest: "campaign".into(),
+            encoder_parameter_digest: "encoder".into(),
+            report_digest: "open-report".into(),
+        };
+        let regime = BtcTemporalRegimeRefV0 {
+            regime_id: result.regime_id.clone(),
+            chronological_rank: 0,
+            row_count: result.row_count,
+            range_digest: "range".into(),
+            pack_digest: "pack".into(),
+        };
+        let closed = close_btc_temporal_regime_result_v0(&result, regime.clone());
+        (result, regime, closed)
+    }
+
+    fn v3_audit(
+        result: &BtcTemporalRegimeEvidenceResultV0,
+        regime: &BtcTemporalRegimeRefV0,
+        closed: &crate::model::historical_evidence::BtcTemporalRegimeClosedResultV0,
+    ) -> MomentumClosedResultContractAuditV3 {
+        audit_momentum_closed_result_contract_v3(
+            "joint-scope-control",
+            result,
+            regime,
+            closed,
+            "encoder".into(),
+            "pack".into(),
+            "derived".into(),
+        )
+    }
 
     fn scope(snapshot_id: &str, rows: &str, cutoff: u64) -> CanonicalRawObservationScopeV0 {
         CanonicalRawObservationScopeV0 {
@@ -6514,5 +7747,131 @@ mod tests {
                 && !value.execution_created
         }));
         validate_joint_scope_replay_ledger_v2(&ledger).unwrap();
+    }
+
+    #[test]
+    fn v3_scope0_closure_audit_is_deterministic_and_preserves_preclosure_values() {
+        let (result, regime, closed) = v3_audit_fixture();
+        let first = v3_audit(&result, &regime, &closed);
+        let second = v3_audit(&result, &regime, &closed);
+        assert_eq!(first, second);
+        assert!(first.all_invariants_pass);
+        assert_eq!(
+            first.failure_class,
+            MomentumClosureFailureClassV3::NoFailure
+        );
+        assert!(first.validator_error.is_none());
+        assert_eq!(
+            first.preclosure.campaign_report_digest,
+            result.report_digest
+        );
+        assert_eq!(
+            first.preclosure.no_signal_window_count,
+            result.no_signal_windows
+        );
+        assert_eq!(
+            first.preclosure.selected_checkpoint_count,
+            result.selected_checkpoint_windows
+        );
+    }
+
+    #[test]
+    fn v3_closure_audit_reports_field_digest_and_outcome_mutations() {
+        let (result, regime, closed) = v3_audit_fixture();
+        let mut changed_regime = closed.clone();
+        changed_regime.regime.row_count += 1;
+        assert_eq!(
+            v3_audit(&result, &regime, &changed_regime).first_failed_invariant,
+            Some(MomentumClosureInvariantV3::RegimeRowCount)
+        );
+        let mut changed_digest = closed.clone();
+        changed_digest.report_digest.push('x');
+        assert_eq!(
+            v3_audit(&result, &regime, &changed_digest).first_failed_invariant,
+            Some(MomentumClosureInvariantV3::ReportDigest)
+        );
+        let mut changed_outcome = closed;
+        changed_outcome.model_evidence_outcome = RegimeModelEvidenceOutcomeV0::InsufficientEvidence;
+        assert_eq!(
+            v3_audit(&result, &regime, &changed_outcome).first_failed_invariant,
+            Some(MomentumClosureInvariantV3::ModelEvidenceOutcome)
+        );
+    }
+
+    #[test]
+    fn v3_closure_audit_preserves_typed_validator_error_for_invalid_closure() {
+        let (result, regime, mut closed) = v3_audit_fixture();
+        closed.selected_checkpoint_windows = closed.campaign_window_count + 1;
+        let audit = v3_audit(&result, &regime, &closed);
+        assert_eq!(
+            audit.first_failed_invariant,
+            Some(MomentumClosureInvariantV3::SelectedCheckpointRange)
+        );
+        assert_eq!(
+            audit.validator_error.as_deref(),
+            Some("MissingRequiredMetric")
+        );
+        assert_eq!(
+            audit.failure_class,
+            MomentumClosureFailureClassV3::MultipleMismatches
+        );
+    }
+
+    #[test]
+    fn v3_registration_binds_parent_scopes_configs_and_preclosure_freeze() {
+        let snapshot = joint_snapshot(304);
+        let campaign = MomentumLearningCampaignConfigV0::default();
+        let parent = joint_canonical_scope_registration_v2(&snapshot, &campaign).unwrap();
+        let scopes =
+            validate_joint_canonical_scope_registration_v2(&snapshot, &campaign, &parent).unwrap();
+        let audits = scopes
+            .iter()
+            .enumerate()
+            .map(|(index, scope)| MomentumClosedResultContractAuditV3 {
+                audit_version: "test".into(),
+                joint_scope_id: scope.joint_scope_id.clone(),
+                open_result_digest: format!("open-{index}"),
+                closed_result_digest: format!("closed-{index}"),
+                regime_reference_digest: format!("regime-{index}"),
+                preclosure: MomentumPreClosureEvidenceV3 {
+                    campaign_report_digest: format!("report-{index}"),
+                    campaign_window_count: 2,
+                    final_verdict: "test".into(),
+                    no_signal_window_count: if index == 1 { 1 } else { 0 },
+                    selected_checkpoint_count: 1,
+                    support_counts: vec![1, 0, 0, 1, 0, 0, 0],
+                    encoder_digest: format!("encoder-{index}"),
+                    pack_digest: format!("pack-{index}"),
+                    derived_snapshot_digest: format!("derived-{index}"),
+                    preclosure_digest_v3: format!("preclosure-{index}"),
+                },
+                invariant_results: vec![],
+                first_failed_invariant: None,
+                validator_error: None,
+                failure_class: MomentumClosureFailureClassV3::NoFailure,
+                all_invariants_pass: true,
+                audit_digest_v3: format!("audit-{index}"),
+            })
+            .collect::<Vec<_>>();
+        let registration =
+            joint_canonical_scope_registration_v3(&snapshot, &campaign, &audits).unwrap();
+        assert_eq!(
+            registration.parent_registration_digest_v2,
+            parent.registration_digest_v2
+        );
+        assert_eq!(
+            registration.correction_failure_class,
+            MomentumClosureFailureClassV3::StaleValidatorContract
+        );
+        assert!(registration.scope_ranges_unchanged);
+        assert!(registration.participant_configs_unchanged);
+        assert!(registration.preclosure_results_unchanged);
+        assert!(registration.scope0_non_regression_required);
+        assert!(registration.result_dependent_model_changes_forbidden);
+        assert_eq!(
+            validate_joint_canonical_scope_registration_v3(&snapshot, &campaign, &registration)
+                .unwrap(),
+            scopes
+        );
     }
 }
