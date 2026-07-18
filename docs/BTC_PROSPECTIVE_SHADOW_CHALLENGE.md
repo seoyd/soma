@@ -5,6 +5,15 @@ informed model development, diagnostics, and the support-gate architecture. It
 cannot establish a pristine final result. The next allowed question is a
 pre-registered comparison on rows strictly later than the sealed cutoff.
 
+## Pre-label external events
+
+One independently admitted credential-free external row can create a shared
+pre-label reference. Frozen Momentum and Cycle/Risk contracts validate it
+separately and may seal explicit abstentions when frozen support is unavailable.
+Neither path opens labels, reveals probabilities, computes outcomes or metrics,
+re-trains, changes thresholds, or creates a reward, penalty, Chair, vote, or
+execution action.
+
 The challenge resolves exactly one support-qualified Shadow-only candidate by
 sealed relationships, not by a list index, newest file, training loss, or a
 retroactive test choice. Resolution requires validation InSupport, test

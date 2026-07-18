@@ -1774,6 +1774,1013 @@ pub fn acquire_one_blind_upbit_daily_row_v0(
     }
 }
 
+// This protocol is intentionally separate from the older blind-acquisition
+// receipt.  It has one public read-only request budget and never updates the
+// historical backfill machinery or its receipts.
+const PROSPECTIVE_PUBLIC_EXPORT_REGISTRATION_VERSION_V0: &str =
+    "prospective-public-export-acquisition-registration-v0";
+const PROSPECTIVE_PUBLIC_EXPORT_RECEIPT_VERSION_V0: &str =
+    "prospective-public-export-acquisition-receipt-v0";
+const PROSPECTIVE_NETWORK_EXPORT_CAPSULE_VERSION_V0: &str = "prospective-network-export-capsule-v0";
+const PROSPECTIVE_PUBLIC_EXPORT_MAX_TIMEOUT_SECONDS_V0: u64 = 60;
+const PROSPECTIVE_PUBLIC_EXPORT_MAX_RESPONSE_BYTES_V0: usize = 1_048_576;
+const DAILY_INTERVAL_MS_V0: u64 = 86_400_000;
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProspectivePublicExportAcquisitionRegistrationV0 {
+    pub registration_version: String,
+    pub provider_id: String,
+    pub endpoint_origin: String,
+    pub endpoint_path: String,
+    pub configured_market: String,
+    pub cadence: String,
+    pub maximum_requests: usize,
+    pub maximum_concurrency: usize,
+    pub retry_count: usize,
+    pub response_candle_count: usize,
+    pub timeout_seconds: u64,
+    pub maximum_response_bytes: usize,
+    pub public_read_only: bool,
+    pub credential_free: bool,
+    pub api_key_free: bool,
+    pub authorization_header_forbidden: bool,
+    pub cookies_forbidden: bool,
+    pub legacy_blind_receipt_immutable: bool,
+    pub legacy_request_registry_immutable: bool,
+    pub registration_digest: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProspectivePublicExportAcquisitionOutcomeV0 {
+    CapsuleCreated,
+    RequestCompletedNoCandle,
+    RequestRejectedByProvider,
+    RequestTimedOutNoRetry,
+    ResponseTooLarge,
+    InvalidContentType,
+    InvalidJson,
+    InvalidResponseShape,
+    ReturnedMultipleCandles,
+    RegistrationMismatch,
+    ConsentMissing,
+    RequestBudgetExhausted,
+    TechnicalFailure,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProspectivePublicExportAcquisitionReceiptV0 {
+    pub receipt_version: String,
+    pub registration_digest: String,
+    pub request_attempted: bool,
+    pub request_count: usize,
+    pub retry_count: usize,
+    pub request_fingerprint: String,
+    pub request_to_utc: String,
+    pub http_status_class: Option<String>,
+    pub response_body_digest: Option<String>,
+    pub returned_item_count: usize,
+    pub outcome: ProspectivePublicExportAcquisitionOutcomeV0,
+    pub capsule_digest: Option<String>,
+    pub legacy_receipt_unchanged: bool,
+    pub receipt_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProspectiveNetworkExportCapsuleV0 {
+    pub capsule_version: String,
+    pub acquisition_registration_digest: String,
+    pub acquisition_receipt_digest: String,
+    pub provider_id: String,
+    pub market: String,
+    pub cadence: String,
+    pub request_to_utc: String,
+    pub canonical_row: crate::model::CanonicalHistoricalRowIdentityV1,
+    pub source_response_digest: String,
+    pub source_class: crate::model::ProspectiveExternalSourceClassV0,
+    pub finalized: bool,
+    pub read_only: bool,
+    pub sanitized: bool,
+    pub credential_free: bool,
+    pub acquired_without_model_output_access: bool,
+    pub acquired_without_label_access: bool,
+    pub capsule_digest: String,
+    #[serde(skip)]
+    pub raw_response: Vec<u8>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ProspectivePublicExportRequestPlanV0 {
+    pub request_to_utc: String,
+    pub request_to_timestamp_ms: u64,
+    pub request_fingerprint: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ProspectivePublicHttpResponseV0 {
+    pub status: u16,
+    pub content_type: Option<String>,
+    pub body: Vec<u8>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ProspectivePublicHttpFailureV0 {
+    TimedOut,
+    Technical,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ProspectivePublicExportAcquisitionResultV0 {
+    pub receipt: ProspectivePublicExportAcquisitionReceiptV0,
+    pub capsule: Option<ProspectiveNetworkExportCapsuleV0>,
+}
+
+fn prospective_public_export_registration_digest_v0(
+    registration: &ProspectivePublicExportAcquisitionRegistrationV0,
+) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+        registration.registration_version,
+        registration.provider_id,
+        registration.endpoint_origin,
+        registration.endpoint_path,
+        registration.configured_market,
+        registration.cadence,
+        registration.maximum_requests,
+        registration.maximum_concurrency,
+        registration.retry_count,
+        registration.response_candle_count,
+        registration.timeout_seconds,
+        registration.maximum_response_bytes,
+        registration.public_read_only,
+        registration.credential_free,
+        registration.api_key_free,
+        registration.authorization_header_forbidden,
+        registration.cookies_forbidden,
+        registration.legacy_blind_receipt_immutable,
+        registration.legacy_request_registry_immutable,
+    ))
+}
+
+fn prospective_public_export_receipt_digest_v0(
+    receipt: &ProspectivePublicExportAcquisitionReceiptV0,
+) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{}:{}:{}:{}:{}:{}:{:?}:{}:{}",
+        receipt.receipt_version,
+        receipt.registration_digest,
+        receipt.request_attempted,
+        receipt.request_count,
+        receipt.retry_count,
+        receipt.request_fingerprint,
+        receipt.request_to_utc,
+        receipt.http_status_class.as_deref().unwrap_or_default(),
+        receipt.outcome,
+        receipt.response_body_digest.as_deref().unwrap_or_default(),
+        receipt.returned_item_count,
+    ))
+}
+
+fn prospective_network_export_capsule_digest_v0(
+    capsule: &ProspectiveNetworkExportCapsuleV0,
+) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{}:{}:{}:{}:{:?}:{}:{:?}:{}:{}:{}:{}:{}:{}:{}",
+        capsule.capsule_version,
+        capsule.acquisition_registration_digest,
+        capsule.acquisition_receipt_digest,
+        capsule.provider_id,
+        capsule.market,
+        capsule.cadence,
+        capsule.canonical_row,
+        capsule.request_to_utc,
+        capsule.source_class,
+        capsule.source_response_digest,
+        capsule.finalized,
+        capsule.read_only,
+        capsule.sanitized,
+        capsule.credential_free,
+        capsule.acquired_without_model_output_access,
+        capsule.acquired_without_label_access,
+    ))
+}
+
+fn digest_bytes_v0(bytes: &[u8]) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut encoded = String::with_capacity(bytes.len().saturating_mul(2));
+    for byte in bytes {
+        encoded.push(HEX[(byte >> 4) as usize] as char);
+        encoded.push(HEX[(byte & 0x0f) as usize] as char);
+    }
+    stable_hash_string(&encoded)
+}
+
+pub fn pre_register_prospective_public_export_acquisition_v0(
+    config: &UpbitHistoricalPilotConfigV0,
+) -> Result<ProspectivePublicExportAcquisitionRegistrationV0, String> {
+    config.validate()?;
+    if config.provider_id != UPBIT_PROVIDER_ID || !valid_market_symbol(&config.symbol) {
+        return Err("prospective_public_export_configuration_invalid".into());
+    }
+    let timeout_seconds = config
+        .timeout_seconds
+        .min(PROSPECTIVE_PUBLIC_EXPORT_MAX_TIMEOUT_SECONDS_V0);
+    let maximum_response_bytes = config
+        .maximum_response_bytes
+        .min(PROSPECTIVE_PUBLIC_EXPORT_MAX_RESPONSE_BYTES_V0);
+    if timeout_seconds == 0 || maximum_response_bytes == 0 {
+        return Err("prospective_public_export_configuration_invalid".into());
+    }
+    let mut registration = ProspectivePublicExportAcquisitionRegistrationV0 {
+        registration_version: PROSPECTIVE_PUBLIC_EXPORT_REGISTRATION_VERSION_V0.into(),
+        provider_id: UPBIT_PROVIDER_ID.into(),
+        endpoint_origin: "https://api.upbit.com".into(),
+        endpoint_path: "/v1/candles/days".into(),
+        configured_market: config.symbol.clone(),
+        cadence: "1d".into(),
+        maximum_requests: 1,
+        maximum_concurrency: 1,
+        retry_count: 0,
+        response_candle_count: 1,
+        timeout_seconds,
+        maximum_response_bytes,
+        public_read_only: true,
+        credential_free: true,
+        api_key_free: true,
+        authorization_header_forbidden: true,
+        cookies_forbidden: true,
+        legacy_blind_receipt_immutable: true,
+        legacy_request_registry_immutable: true,
+        registration_digest: String::new(),
+    };
+    registration.registration_digest =
+        prospective_public_export_registration_digest_v0(&registration);
+    validate_prospective_public_export_acquisition_registration_v0(&registration)?;
+    Ok(registration)
+}
+
+pub fn validate_prospective_public_export_acquisition_registration_v0(
+    registration: &ProspectivePublicExportAcquisitionRegistrationV0,
+) -> Result<(), String> {
+    if registration.registration_version != PROSPECTIVE_PUBLIC_EXPORT_REGISTRATION_VERSION_V0
+        || registration.provider_id != UPBIT_PROVIDER_ID
+        || registration.endpoint_origin != "https://api.upbit.com"
+        || registration.endpoint_path != "/v1/candles/days"
+        || !valid_market_symbol(&registration.configured_market)
+        || registration.cadence != "1d"
+        || registration.maximum_requests != 1
+        || registration.maximum_concurrency != 1
+        || registration.retry_count != 0
+        || registration.response_candle_count != 1
+        || registration.timeout_seconds == 0
+        || registration.timeout_seconds > PROSPECTIVE_PUBLIC_EXPORT_MAX_TIMEOUT_SECONDS_V0
+        || registration.maximum_response_bytes == 0
+        || registration.maximum_response_bytes > PROSPECTIVE_PUBLIC_EXPORT_MAX_RESPONSE_BYTES_V0
+        || !registration.public_read_only
+        || !registration.credential_free
+        || !registration.api_key_free
+        || !registration.authorization_header_forbidden
+        || !registration.cookies_forbidden
+        || !registration.legacy_blind_receipt_immutable
+        || !registration.legacy_request_registry_immutable
+        || registration.registration_digest
+            != prospective_public_export_registration_digest_v0(registration)
+    {
+        Err("prospective_public_export_registration_invalid".into())
+    } else {
+        Ok(())
+    }
+}
+
+pub fn write_prospective_public_export_acquisition_registration_v0(
+    path: &Path,
+    registration: &ProspectivePublicExportAcquisitionRegistrationV0,
+) -> Result<(), String> {
+    validate_prospective_public_export_acquisition_registration_v0(registration)?;
+    let parent = path
+        .parent()
+        .ok_or("prospective_public_export_registration_storage_unavailable")?;
+    fs::create_dir_all(parent)
+        .map_err(|_| "prospective_public_export_registration_storage_unavailable")?;
+    let encoded = serde_json::to_vec(registration)
+        .map_err(|_| "prospective_public_export_registration_serialization_failed")?;
+    let temporary = path.with_extension("tmp");
+    fs::write(&temporary, encoded)
+        .map_err(|_| "prospective_public_export_registration_storage_failed")?;
+    fs::rename(temporary, path)
+        .map_err(|_| "prospective_public_export_registration_storage_failed".to_string())
+}
+
+pub fn read_prospective_public_export_acquisition_registration_v0(
+    path: &Path,
+) -> Result<ProspectivePublicExportAcquisitionRegistrationV0, String> {
+    serde_json::from_slice(
+        &fs::read(path).map_err(|_| "prospective_public_export_registration_unavailable")?,
+    )
+    .map_err(|_| "prospective_public_export_registration_invalid".into())
+}
+
+pub fn write_prospective_public_export_acquisition_receipt_v0(
+    path: &Path,
+    receipt: &ProspectivePublicExportAcquisitionReceiptV0,
+) -> Result<(), String> {
+    if !verify_prospective_public_export_acquisition_receipt_v0(receipt) {
+        return Err("prospective_public_export_receipt_invalid".into());
+    }
+    let parent = path
+        .parent()
+        .ok_or("prospective_public_export_receipt_storage_unavailable")?;
+    fs::create_dir_all(parent)
+        .map_err(|_| "prospective_public_export_receipt_storage_unavailable")?;
+    let encoded = serde_json::to_vec(receipt)
+        .map_err(|_| "prospective_public_export_receipt_serialization_failed")?;
+    let temporary = path.with_extension("tmp");
+    fs::write(&temporary, encoded)
+        .map_err(|_| "prospective_public_export_receipt_storage_failed")?;
+    fs::rename(temporary, path)
+        .map_err(|_| "prospective_public_export_receipt_storage_failed".to_string())
+}
+
+pub fn read_prospective_public_export_acquisition_receipt_v0(
+    path: &Path,
+) -> Result<ProspectivePublicExportAcquisitionReceiptV0, String> {
+    serde_json::from_slice(
+        &fs::read(path).map_err(|_| "prospective_public_export_receipt_unavailable")?,
+    )
+    .map_err(|_| "prospective_public_export_receipt_invalid".into())
+}
+
+pub fn write_prospective_network_export_capsule_v0(
+    path: &Path,
+    capsule: &ProspectiveNetworkExportCapsuleV0,
+) -> Result<(), String> {
+    if !verify_prospective_network_export_capsule_v0(capsule) {
+        return Err("prospective_network_export_capsule_invalid".into());
+    }
+    let parent = path
+        .parent()
+        .ok_or("prospective_network_export_capsule_storage_unavailable")?;
+    fs::create_dir_all(parent)
+        .map_err(|_| "prospective_network_export_capsule_storage_unavailable")?;
+    let encoded = serde_json::to_vec(capsule)
+        .map_err(|_| "prospective_network_export_capsule_serialization_failed")?;
+    let temporary = path.with_extension("tmp");
+    fs::write(&temporary, encoded)
+        .map_err(|_| "prospective_network_export_capsule_storage_failed")?;
+    fs::rename(temporary, path)
+        .map_err(|_| "prospective_network_export_capsule_storage_failed".to_string())
+}
+
+pub fn read_prospective_network_export_capsule_v0(
+    path: &Path,
+) -> Result<ProspectiveNetworkExportCapsuleV0, String> {
+    serde_json::from_slice(
+        &fs::read(path).map_err(|_| "prospective_network_export_capsule_unavailable")?,
+    )
+    .map_err(|_| "prospective_network_export_capsule_invalid".into())
+}
+
+pub fn verify_prospective_public_export_acquisition_receipt_v0(
+    receipt: &ProspectivePublicExportAcquisitionReceiptV0,
+) -> bool {
+    receipt.receipt_version == PROSPECTIVE_PUBLIC_EXPORT_RECEIPT_VERSION_V0
+        && receipt.request_count <= 1
+        && receipt.retry_count == 0
+        && (!receipt.request_attempted || receipt.request_count == 1)
+        && (receipt.request_attempted || receipt.request_count == 0)
+        && receipt.legacy_receipt_unchanged
+        && receipt.receipt_digest == prospective_public_export_receipt_digest_v0(receipt)
+}
+
+pub fn verify_prospective_network_export_capsule_v0(
+    capsule: &ProspectiveNetworkExportCapsuleV0,
+) -> bool {
+    capsule.capsule_version == PROSPECTIVE_NETWORK_EXPORT_CAPSULE_VERSION_V0
+        && capsule.provider_id == UPBIT_PROVIDER_ID
+        && valid_market_symbol(&capsule.market)
+        && capsule.cadence == "1d"
+        && capsule.source_class
+            == crate::model::ProspectiveExternalSourceClassV0::ApprovedCredentialFreeProviderExport
+        && capsule.finalized
+        && capsule.read_only
+        && capsule.sanitized
+        && capsule.credential_free
+        && capsule.acquired_without_model_output_access
+        && capsule.acquired_without_label_access
+        && !capsule.source_response_digest.is_empty()
+        && capsule.canonical_row.row_digest_v1
+            == crate::model::canonical_semantic_digest_v1(&capsule.canonical_row)
+        && capsule.capsule_digest == prospective_network_export_capsule_digest_v0(capsule)
+}
+
+pub fn prospective_public_export_request_plan_v0(
+    registration: &ProspectivePublicExportAcquisitionRegistrationV0,
+    current_timestamp_ms: u64,
+) -> Result<ProspectivePublicExportRequestPlanV0, String> {
+    validate_prospective_public_export_acquisition_registration_v0(registration)?;
+    let request_to_timestamp_ms =
+        current_timestamp_ms / DAILY_INTERVAL_MS_V0 * DAILY_INTERVAL_MS_V0;
+    let request_to_utc = format_utc_timestamp(request_to_timestamp_ms)
+        .ok_or("prospective_public_export_request_boundary_invalid")?;
+    if parse_upbit_utc_timestamp_ms(&request_to_utc)? != request_to_timestamp_ms
+        || request_to_timestamp_ms > current_timestamp_ms
+        || request_to_timestamp_ms % DAILY_INTERVAL_MS_V0 != 0
+    {
+        return Err("prospective_public_export_request_boundary_invalid".into());
+    }
+    let request_fingerprint = stable_hash_string(&format!(
+        "{}:{}:{}:{}:{}",
+        registration.registration_digest,
+        registration.provider_id,
+        registration.configured_market,
+        registration.cadence,
+        request_to_utc,
+    ));
+    Ok(ProspectivePublicExportRequestPlanV0 {
+        request_to_utc,
+        request_to_timestamp_ms,
+        request_fingerprint,
+    })
+}
+
+fn prospective_public_export_receipt_v0(
+    registration: &ProspectivePublicExportAcquisitionRegistrationV0,
+    plan: Option<&ProspectivePublicExportRequestPlanV0>,
+    request_attempted: bool,
+    http_status_class: Option<String>,
+    response_body_digest: Option<String>,
+    returned_item_count: usize,
+    outcome: ProspectivePublicExportAcquisitionOutcomeV0,
+    capsule_digest: Option<String>,
+    legacy_receipt_unchanged: bool,
+) -> ProspectivePublicExportAcquisitionReceiptV0 {
+    let mut receipt = ProspectivePublicExportAcquisitionReceiptV0 {
+        receipt_version: PROSPECTIVE_PUBLIC_EXPORT_RECEIPT_VERSION_V0.into(),
+        registration_digest: registration.registration_digest.clone(),
+        request_attempted,
+        request_count: usize::from(request_attempted),
+        retry_count: 0,
+        request_fingerprint: plan
+            .map(|value| value.request_fingerprint.clone())
+            .unwrap_or_default(),
+        request_to_utc: plan
+            .map(|value| value.request_to_utc.clone())
+            .unwrap_or_default(),
+        http_status_class,
+        response_body_digest,
+        returned_item_count,
+        outcome,
+        capsule_digest,
+        legacy_receipt_unchanged,
+        receipt_digest: String::new(),
+    };
+    receipt.receipt_digest = prospective_public_export_receipt_digest_v0(&receipt);
+    receipt
+}
+
+fn http_status_class_v0(status: u16) -> String {
+    format!("{}xx", status / 100)
+}
+
+#[derive(Clone, Deserialize)]
+struct UpbitProspectiveDailyCandleV0 {
+    market: String,
+    candle_date_time_utc: String,
+    opening_price: f64,
+    high_price: f64,
+    low_price: f64,
+    trade_price: f64,
+    candle_acc_trade_volume: f64,
+    candle_acc_trade_price: f64,
+    timestamp: u64,
+}
+
+fn create_prospective_network_export_capsule_v0(
+    registration: &ProspectivePublicExportAcquisitionRegistrationV0,
+    receipt_digest: &str,
+    plan: &ProspectivePublicExportRequestPlanV0,
+    response_digest: &str,
+    raw_response: Vec<u8>,
+    candle: UpbitProspectiveDailyCandleV0,
+) -> Result<ProspectiveNetworkExportCapsuleV0, ProspectivePublicExportAcquisitionOutcomeV0> {
+    if candle.market != registration.configured_market {
+        return Err(ProspectivePublicExportAcquisitionOutcomeV0::InvalidResponseShape);
+    }
+    let timestamp_ms = parse_upbit_utc_timestamp_ms(&candle.candle_date_time_utc)
+        .map_err(|_| ProspectivePublicExportAcquisitionOutcomeV0::InvalidResponseShape)?;
+    let candle_end = timestamp_ms
+        .checked_add(DAILY_INTERVAL_MS_V0)
+        .ok_or(ProspectivePublicExportAcquisitionOutcomeV0::InvalidResponseShape)?;
+    if candle_end > plan.request_to_timestamp_ms
+        || candle.timestamp < timestamp_ms
+        || candle.timestamp >= candle_end
+        || ![
+            candle.opening_price,
+            candle.high_price,
+            candle.low_price,
+            candle.trade_price,
+            candle.candle_acc_trade_volume,
+            candle.candle_acc_trade_price,
+        ]
+        .iter()
+        .all(|value| value.is_finite())
+        || candle.opening_price <= 0.0
+        || candle.high_price <= 0.0
+        || candle.low_price <= 0.0
+        || candle.trade_price <= 0.0
+        || candle.candle_acc_trade_volume < 0.0
+        || candle.candle_acc_trade_price < 0.0
+        || candle.high_price < candle.opening_price.max(candle.trade_price)
+        || candle.low_price > candle.opening_price.min(candle.trade_price)
+        || candle.high_price < candle.low_price
+    {
+        return Err(ProspectivePublicExportAcquisitionOutcomeV0::InvalidResponseShape);
+    }
+    let mut canonical_row = crate::model::CanonicalHistoricalRowIdentityV1 {
+        provider_id: UPBIT_PROVIDER_ID.into(),
+        series_id: registration.configured_market.clone(),
+        timestamp_ms,
+        open_bits: candle.opening_price.to_bits(),
+        high_bits: candle.high_price.to_bits(),
+        low_bits: candle.low_price.to_bits(),
+        close_bits: candle.trade_price.to_bits(),
+        volume_bits: candle.candle_acc_trade_volume.to_bits(),
+        trade_value_bits: Some(candle.candle_acc_trade_price.to_bits()),
+        row_digest_v1: String::new(),
+    };
+    canonical_row.row_digest_v1 = crate::model::canonical_semantic_digest_v1(&canonical_row);
+    let mut capsule = ProspectiveNetworkExportCapsuleV0 {
+        capsule_version: PROSPECTIVE_NETWORK_EXPORT_CAPSULE_VERSION_V0.into(),
+        acquisition_registration_digest: registration.registration_digest.clone(),
+        acquisition_receipt_digest: receipt_digest.into(),
+        provider_id: UPBIT_PROVIDER_ID.into(),
+        market: registration.configured_market.clone(),
+        cadence: registration.cadence.clone(),
+        request_to_utc: plan.request_to_utc.clone(),
+        canonical_row,
+        source_response_digest: response_digest.into(),
+        source_class:
+            crate::model::ProspectiveExternalSourceClassV0::ApprovedCredentialFreeProviderExport,
+        finalized: true,
+        read_only: true,
+        sanitized: true,
+        credential_free: true,
+        acquired_without_model_output_access: true,
+        acquired_without_label_access: true,
+        capsule_digest: String::new(),
+        raw_response,
+    };
+    capsule.capsule_digest = prospective_network_export_capsule_digest_v0(&capsule);
+    Ok(capsule)
+}
+
+pub fn execute_prospective_public_export_acquisition_v0<F>(
+    registration: &ProspectivePublicExportAcquisitionRegistrationV0,
+    registration_reopened_and_verified: bool,
+    existing_receipt: Option<&ProspectivePublicExportAcquisitionReceiptV0>,
+    allow_network: bool,
+    confirm_single_public_candle_request: bool,
+    current_timestamp_ms: u64,
+    transport: F,
+) -> ProspectivePublicExportAcquisitionResultV0
+where
+    F: FnOnce(
+        &ProspectivePublicExportRequestPlanV0,
+    ) -> Result<ProspectivePublicHttpResponseV0, ProspectivePublicHttpFailureV0>,
+{
+    let plan = prospective_public_export_request_plan_v0(registration, current_timestamp_ms).ok();
+    if plan.is_none() || !registration_reopened_and_verified {
+        return ProspectivePublicExportAcquisitionResultV0 {
+            receipt: prospective_public_export_receipt_v0(
+                registration,
+                plan.as_ref(),
+                false,
+                None,
+                None,
+                0,
+                ProspectivePublicExportAcquisitionOutcomeV0::RegistrationMismatch,
+                None,
+                true,
+            ),
+            capsule: None,
+        };
+    }
+    let plan = plan.expect("checked above");
+    if existing_receipt.is_some_and(|receipt| {
+        !verify_prospective_public_export_acquisition_receipt_v0(receipt)
+            || receipt.registration_digest != registration.registration_digest
+            || receipt.request_attempted
+    }) {
+        return ProspectivePublicExportAcquisitionResultV0 {
+            receipt: prospective_public_export_receipt_v0(
+                registration,
+                Some(&plan),
+                false,
+                None,
+                None,
+                0,
+                ProspectivePublicExportAcquisitionOutcomeV0::RequestBudgetExhausted,
+                None,
+                true,
+            ),
+            capsule: None,
+        };
+    }
+    if !allow_network || !confirm_single_public_candle_request {
+        return ProspectivePublicExportAcquisitionResultV0 {
+            receipt: prospective_public_export_receipt_v0(
+                registration,
+                Some(&plan),
+                false,
+                None,
+                None,
+                0,
+                ProspectivePublicExportAcquisitionOutcomeV0::ConsentMissing,
+                None,
+                true,
+            ),
+            capsule: None,
+        };
+    }
+    let response = match transport(&plan) {
+        Ok(response) => response,
+        Err(ProspectivePublicHttpFailureV0::TimedOut) => {
+            return ProspectivePublicExportAcquisitionResultV0 {
+                receipt: prospective_public_export_receipt_v0(
+                    registration,
+                    Some(&plan),
+                    true,
+                    None,
+                    None,
+                    0,
+                    ProspectivePublicExportAcquisitionOutcomeV0::RequestTimedOutNoRetry,
+                    None,
+                    true,
+                ),
+                capsule: None,
+            };
+        }
+        Err(ProspectivePublicHttpFailureV0::Technical) => {
+            return ProspectivePublicExportAcquisitionResultV0 {
+                receipt: prospective_public_export_receipt_v0(
+                    registration,
+                    Some(&plan),
+                    true,
+                    None,
+                    None,
+                    0,
+                    ProspectivePublicExportAcquisitionOutcomeV0::TechnicalFailure,
+                    None,
+                    true,
+                ),
+                capsule: None,
+            };
+        }
+    };
+    let status_class = Some(http_status_class_v0(response.status));
+    let response_digest = digest_bytes_v0(&response.body);
+    if response.body.len() > registration.maximum_response_bytes {
+        return ProspectivePublicExportAcquisitionResultV0 {
+            receipt: prospective_public_export_receipt_v0(
+                registration,
+                Some(&plan),
+                true,
+                status_class,
+                Some(response_digest),
+                0,
+                ProspectivePublicExportAcquisitionOutcomeV0::ResponseTooLarge,
+                None,
+                true,
+            ),
+            capsule: None,
+        };
+    }
+    if response.status != 200 {
+        return ProspectivePublicExportAcquisitionResultV0 {
+            receipt: prospective_public_export_receipt_v0(
+                registration,
+                Some(&plan),
+                true,
+                status_class,
+                Some(response_digest),
+                0,
+                ProspectivePublicExportAcquisitionOutcomeV0::RequestRejectedByProvider,
+                None,
+                true,
+            ),
+            capsule: None,
+        };
+    }
+    if !response.content_type.as_deref().is_some_and(|value| {
+        value
+            .split(';')
+            .next()
+            .is_some_and(|mime| mime.trim().eq_ignore_ascii_case("application/json"))
+    }) {
+        return ProspectivePublicExportAcquisitionResultV0 {
+            receipt: prospective_public_export_receipt_v0(
+                registration,
+                Some(&plan),
+                true,
+                status_class,
+                Some(response_digest),
+                0,
+                ProspectivePublicExportAcquisitionOutcomeV0::InvalidContentType,
+                None,
+                true,
+            ),
+            capsule: None,
+        };
+    }
+    let value: serde_json::Value = match serde_json::from_slice(&response.body) {
+        Ok(value) => value,
+        Err(_) => {
+            return ProspectivePublicExportAcquisitionResultV0 {
+                receipt: prospective_public_export_receipt_v0(
+                    registration,
+                    Some(&plan),
+                    true,
+                    status_class,
+                    Some(response_digest),
+                    0,
+                    ProspectivePublicExportAcquisitionOutcomeV0::InvalidJson,
+                    None,
+                    true,
+                ),
+                capsule: None,
+            };
+        }
+    };
+    let returned_item_count = match value.as_array() {
+        Some(candles) => candles.len(),
+        None => {
+            return ProspectivePublicExportAcquisitionResultV0 {
+                receipt: prospective_public_export_receipt_v0(
+                    registration,
+                    Some(&plan),
+                    true,
+                    status_class,
+                    Some(response_digest),
+                    0,
+                    ProspectivePublicExportAcquisitionOutcomeV0::InvalidResponseShape,
+                    None,
+                    true,
+                ),
+                capsule: None,
+            };
+        }
+    };
+    if returned_item_count == 0 {
+        return ProspectivePublicExportAcquisitionResultV0 {
+            receipt: prospective_public_export_receipt_v0(
+                registration,
+                Some(&plan),
+                true,
+                status_class,
+                Some(response_digest),
+                0,
+                ProspectivePublicExportAcquisitionOutcomeV0::RequestCompletedNoCandle,
+                None,
+                true,
+            ),
+            capsule: None,
+        };
+    }
+    if returned_item_count != registration.response_candle_count {
+        return ProspectivePublicExportAcquisitionResultV0 {
+            receipt: prospective_public_export_receipt_v0(
+                registration,
+                Some(&plan),
+                true,
+                status_class,
+                Some(response_digest),
+                returned_item_count,
+                ProspectivePublicExportAcquisitionOutcomeV0::ReturnedMultipleCandles,
+                None,
+                true,
+            ),
+            capsule: None,
+        };
+    }
+    let candle = match serde_json::from_value::<UpbitProspectiveDailyCandleV0>(
+        value
+            .as_array()
+            .and_then(|values| values.first())
+            .cloned()
+            .expect("one item checked above"),
+    ) {
+        Ok(candle) => candle,
+        Err(_) => {
+            return ProspectivePublicExportAcquisitionResultV0 {
+                receipt: prospective_public_export_receipt_v0(
+                    registration,
+                    Some(&plan),
+                    true,
+                    status_class,
+                    Some(response_digest),
+                    returned_item_count,
+                    ProspectivePublicExportAcquisitionOutcomeV0::InvalidResponseShape,
+                    None,
+                    true,
+                ),
+                capsule: None,
+            };
+        }
+    };
+    let provisional_receipt = prospective_public_export_receipt_v0(
+        registration,
+        Some(&plan),
+        true,
+        status_class,
+        Some(response_digest.clone()),
+        returned_item_count,
+        ProspectivePublicExportAcquisitionOutcomeV0::CapsuleCreated,
+        None,
+        true,
+    );
+    let capsule = match create_prospective_network_export_capsule_v0(
+        registration,
+        &provisional_receipt.receipt_digest,
+        &plan,
+        &response_digest,
+        response.body.clone(),
+        candle.clone(),
+    ) {
+        Ok(capsule) => capsule,
+        Err(outcome) => {
+            return ProspectivePublicExportAcquisitionResultV0 {
+                receipt: prospective_public_export_receipt_v0(
+                    registration,
+                    Some(&plan),
+                    true,
+                    provisional_receipt.http_status_class,
+                    provisional_receipt.response_body_digest,
+                    returned_item_count,
+                    outcome,
+                    None,
+                    true,
+                ),
+                capsule: None,
+            };
+        }
+    };
+    let receipt = prospective_public_export_receipt_v0(
+        registration,
+        Some(&plan),
+        true,
+        provisional_receipt.http_status_class,
+        provisional_receipt.response_body_digest,
+        returned_item_count,
+        ProspectivePublicExportAcquisitionOutcomeV0::CapsuleCreated,
+        Some(capsule.capsule_digest.clone()),
+        true,
+    );
+    // The receipt digest is part of the capsule identity.  Build it once more
+    // after the capsule digest is known, then seal the capsule against it.
+    let capsule = create_prospective_network_export_capsule_v0(
+        registration,
+        &receipt.receipt_digest,
+        &plan,
+        receipt.response_body_digest.as_deref().unwrap_or_default(),
+        response.body.clone(),
+        candle,
+    )
+    .expect("validated response remains valid");
+    let receipt = prospective_public_export_receipt_v0(
+        registration,
+        Some(&plan),
+        true,
+        receipt.http_status_class,
+        receipt.response_body_digest,
+        returned_item_count,
+        ProspectivePublicExportAcquisitionOutcomeV0::CapsuleCreated,
+        Some(capsule.capsule_digest.clone()),
+        true,
+    );
+    ProspectivePublicExportAcquisitionResultV0 {
+        receipt,
+        capsule: Some(capsule),
+    }
+}
+
+fn prospective_public_export_url_v0(
+    registration: &ProspectivePublicExportAcquisitionRegistrationV0,
+    plan: &ProspectivePublicExportRequestPlanV0,
+) -> Result<String, String> {
+    validate_prospective_public_export_acquisition_registration_v0(registration)?;
+    if parse_upbit_utc_timestamp_ms(&plan.request_to_utc)? != plan.request_to_timestamp_ms
+        || plan.request_to_timestamp_ms % DAILY_INTERVAL_MS_V0 != 0
+        || plan.request_to_utc.is_empty()
+    {
+        return Err("prospective_public_export_request_boundary_invalid".into());
+    }
+    let encoded_to = plan.request_to_utc.replace(':', "%3A");
+    Ok(format!(
+        "{}{}?market={}&to={encoded_to}&count=1",
+        registration.endpoint_origin, registration.endpoint_path, registration.configured_market
+    ))
+}
+
+pub fn fetch_one_prospective_public_export_v0(
+    registration: &ProspectivePublicExportAcquisitionRegistrationV0,
+    plan: &ProspectivePublicExportRequestPlanV0,
+) -> Result<ProspectivePublicHttpResponseV0, ProspectivePublicHttpFailureV0> {
+    let url = prospective_public_export_url_v0(registration, plan)
+        .map_err(|_| ProspectivePublicHttpFailureV0::Technical)?;
+    let output = Command::new("curl")
+        .args([
+            "--disable",
+            "--silent",
+            "--show-error",
+            "--proto",
+            "=https",
+            "--proto-redir",
+            "=https",
+            "--max-redirs",
+            "0",
+            "--connect-timeout",
+            &registration.timeout_seconds.to_string(),
+            "--max-time",
+            &registration.timeout_seconds.to_string(),
+            "--max-filesize",
+            &registration.maximum_response_bytes.to_string(),
+            "--request",
+            "GET",
+            "--header",
+            "accept: application/json",
+            "--write-out",
+            "\n%{http_code}\n%{content_type}",
+            &url,
+        ])
+        .output()
+        .map_err(|_| ProspectivePublicHttpFailureV0::Technical)?;
+    if !output.status.success() {
+        return if output.status.code() == Some(28) {
+            Err(ProspectivePublicHttpFailureV0::TimedOut)
+        } else {
+            Err(ProspectivePublicHttpFailureV0::Technical)
+        };
+    }
+    let output =
+        String::from_utf8(output.stdout).map_err(|_| ProspectivePublicHttpFailureV0::Technical)?;
+    let (body_and_status, content_type) = output
+        .rsplit_once('\n')
+        .ok_or(ProspectivePublicHttpFailureV0::Technical)?;
+    let (body, status) = body_and_status
+        .rsplit_once('\n')
+        .ok_or(ProspectivePublicHttpFailureV0::Technical)?;
+    let status = status
+        .trim()
+        .parse::<u16>()
+        .map_err(|_| ProspectivePublicHttpFailureV0::Technical)?;
+    Ok(ProspectivePublicHttpResponseV0 {
+        status,
+        content_type: (!content_type.trim().is_empty()).then(|| content_type.trim().into()),
+        body: body.as_bytes().to_vec(),
+    })
+}
+
+pub fn convert_prospective_network_export_to_external_row_capsule_v0(
+    network_capsule: &ProspectiveNetworkExportCapsuleV0,
+    admission_registration: &crate::model::ProspectiveExternalAdmissionRegistrationV0,
+) -> Result<crate::model::ProspectiveExternalRowCapsuleV0, String> {
+    if !verify_prospective_network_export_capsule_v0(network_capsule)
+        || network_capsule.market != admission_registration.symbol
+        || network_capsule.cadence != admission_registration.cadence
+    {
+        return Err("prospective_network_export_admission_mapping_invalid".into());
+    }
+    let mut row = network_capsule.canonical_row.clone();
+    row.provider_id = admission_registration.canonical_provider_id.clone();
+    row.series_id = admission_registration.canonical_series_id.clone();
+    row.row_digest_v1 = crate::model::canonical_semantic_digest_v1(&row);
+    Ok(crate::model::seal_prospective_external_row_capsule_v0(
+        crate::model::ProspectiveExternalRowCapsuleV0 {
+            capsule_version: "prospective-external-row-capsule-v0".into(),
+            provider_id: admission_registration.canonical_provider_id.clone(),
+            market: admission_registration.market.clone(),
+            symbol: admission_registration.symbol.clone(),
+            cadence: admission_registration.cadence.clone(),
+            row,
+            source_export_digest: network_capsule.capsule_digest.clone(),
+            source_class: network_capsule.source_class,
+            finalized: true,
+            read_only: true,
+            sanitized: true,
+            credential_free: true,
+            acquired_without_model_output_access: true,
+            acquired_without_label_access: true,
+            candidate_row_count: 1,
+            contains_unexplained_later_rows: false,
+            used_in_consumed_evidence: false,
+            contains_label_or_outcome: false,
+            model_configuration_digest: admission_registration
+                .frozen_model_configuration_digest
+                .clone(),
+            capsule_digest: String::new(),
+        },
+    ))
+}
+
 pub fn run_manual_upbit_historical_smoke_v0(
     config_path: &Path,
     allow_network: bool,
@@ -3646,5 +4653,263 @@ mod tests {
             merged.content_digest,
             dataset_digest(&merged.normalized_dataset)
         );
+    }
+
+    fn prospective_registration() -> ProspectivePublicExportAcquisitionRegistrationV0 {
+        pre_register_prospective_public_export_acquisition_v0(&config()).unwrap()
+    }
+
+    fn prospective_response(body: &str) -> ProspectivePublicHttpResponseV0 {
+        ProspectivePublicHttpResponseV0 {
+            status: 200,
+            content_type: Some("application/json; charset=utf-8".into()),
+            body: body.as_bytes().to_vec(),
+        }
+    }
+
+    fn valid_prospective_body() -> &'static str {
+        r#"[{"market":"KRW-BTC","candle_date_time_utc":"2024-01-02T00:00:00","opening_price":10.0,"high_price":12.0,"low_price":9.0,"trade_price":11.0,"candle_acc_trade_volume":5.0,"candle_acc_trade_price":50.0,"timestamp":1704153600100}]"#
+    }
+
+    fn prospective_now() -> u64 {
+        1_704_240_123_456
+    }
+
+    #[test]
+    fn public_export_dry_run_plan_uses_one_url_encoded_utc_boundary_without_auth() {
+        let registration = prospective_registration();
+        let plan =
+            prospective_public_export_request_plan_v0(&registration, prospective_now()).unwrap();
+        assert_eq!(plan.request_to_utc, "2024-01-03T00:00:00Z");
+        let url = prospective_public_export_url_v0(&registration, &plan).unwrap();
+        assert!(url.starts_with("https://api.upbit.com/v1/candles/days?market=KRW-BTC"));
+        assert!(url.contains("to=2024-01-03T00%3A00%3A00Z&count=1"));
+        assert!(!url.contains("authorization"));
+        assert!(
+            prospective_public_export_url_v0(
+                &registration,
+                &ProspectivePublicExportRequestPlanV0 {
+                    request_to_utc: String::new(),
+                    request_to_timestamp_ms: plan.request_to_timestamp_ms,
+                    request_fingerprint: plan.request_fingerprint,
+                },
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn public_export_missing_or_unverified_consent_never_constructs_transport() {
+        let registration = prospective_registration();
+        let mut calls = 0;
+        let missing = execute_prospective_public_export_acquisition_v0(
+            &registration,
+            true,
+            None,
+            true,
+            false,
+            prospective_now(),
+            |_| {
+                calls += 1;
+                Ok(prospective_response(valid_prospective_body()))
+            },
+        );
+        assert_eq!(calls, 0);
+        assert_eq!(
+            missing.receipt.outcome,
+            ProspectivePublicExportAcquisitionOutcomeV0::ConsentMissing
+        );
+        let unverified = execute_prospective_public_export_acquisition_v0(
+            &registration,
+            false,
+            None,
+            true,
+            true,
+            prospective_now(),
+            |_| {
+                calls += 1;
+                Ok(prospective_response(valid_prospective_body()))
+            },
+        );
+        assert_eq!(calls, 0);
+        assert_eq!(
+            unverified.receipt.outcome,
+            ProspectivePublicExportAcquisitionOutcomeV0::RegistrationMismatch
+        );
+    }
+
+    #[test]
+    fn public_export_one_attempt_budget_is_consumed_by_timeout_429_and_5xx_without_retry() {
+        let registration = prospective_registration();
+        let timeout = execute_prospective_public_export_acquisition_v0(
+            &registration,
+            true,
+            None,
+            true,
+            true,
+            prospective_now(),
+            |_| Err(ProspectivePublicHttpFailureV0::TimedOut),
+        );
+        assert_eq!(timeout.receipt.request_count, 1);
+        assert_eq!(timeout.receipt.retry_count, 0);
+        assert_eq!(
+            timeout.receipt.outcome,
+            ProspectivePublicExportAcquisitionOutcomeV0::RequestTimedOutNoRetry
+        );
+        let mut budget_calls = 0;
+        let exhausted = execute_prospective_public_export_acquisition_v0(
+            &registration,
+            true,
+            Some(&timeout.receipt),
+            true,
+            true,
+            prospective_now(),
+            |_| {
+                budget_calls += 1;
+                Ok(prospective_response(valid_prospective_body()))
+            },
+        );
+        assert_eq!(budget_calls, 0);
+        assert_eq!(
+            exhausted.receipt.outcome,
+            ProspectivePublicExportAcquisitionOutcomeV0::RequestBudgetExhausted
+        );
+        for status in [429, 500] {
+            let rejected = execute_prospective_public_export_acquisition_v0(
+                &registration,
+                true,
+                None,
+                true,
+                true,
+                prospective_now(),
+                |_| {
+                    Ok(ProspectivePublicHttpResponseV0 {
+                        status,
+                        content_type: Some("application/json".into()),
+                        body: b"[]".to_vec(),
+                    })
+                },
+            );
+            assert_eq!(rejected.receipt.request_count, 1);
+            assert_eq!(rejected.receipt.retry_count, 0);
+            assert_eq!(
+                rejected.receipt.outcome,
+                ProspectivePublicExportAcquisitionOutcomeV0::RequestRejectedByProvider
+            );
+        }
+    }
+
+    #[test]
+    fn public_export_rejects_response_shape_finality_and_ohlcv_failures() {
+        let registration = prospective_registration();
+        let cases = [
+            (
+                "[]",
+                ProspectivePublicExportAcquisitionOutcomeV0::RequestCompletedNoCandle,
+            ),
+            (
+                r#"[{"market":"KRW-BTC"},{"market":"KRW-BTC"}]"#,
+                ProspectivePublicExportAcquisitionOutcomeV0::ReturnedMultipleCandles,
+            ),
+            (
+                "{",
+                ProspectivePublicExportAcquisitionOutcomeV0::InvalidJson,
+            ),
+            (
+                r#"[{"market":"KRW-ETH","candle_date_time_utc":"2024-01-02T00:00:00","opening_price":10.0,"high_price":12.0,"low_price":9.0,"trade_price":11.0,"candle_acc_trade_volume":5.0,"candle_acc_trade_price":50.0,"timestamp":1704153600100}]"#,
+                ProspectivePublicExportAcquisitionOutcomeV0::InvalidResponseShape,
+            ),
+            (
+                r#"[{"market":"KRW-BTC","candle_date_time_utc":"2024-01-03T00:00:00","opening_price":10.0,"high_price":12.0,"low_price":9.0,"trade_price":11.0,"candle_acc_trade_volume":5.0,"candle_acc_trade_price":50.0,"timestamp":1704240000100}]"#,
+                ProspectivePublicExportAcquisitionOutcomeV0::InvalidResponseShape,
+            ),
+            (
+                r#"[{"market":"KRW-BTC","candle_date_time_utc":"2024-01-02T00:00:00+09:00","opening_price":10.0,"high_price":12.0,"low_price":9.0,"trade_price":11.0,"candle_acc_trade_volume":5.0,"candle_acc_trade_price":50.0,"timestamp":1704153600100}]"#,
+                ProspectivePublicExportAcquisitionOutcomeV0::InvalidResponseShape,
+            ),
+            (
+                r#"[{"market":"KRW-BTC","candle_date_time_utc":"2024-01-02T00:00:00","opening_price":10.0,"high_price":8.0,"low_price":9.0,"trade_price":11.0,"candle_acc_trade_volume":-1.0,"candle_acc_trade_price":50.0,"timestamp":1704153600100}]"#,
+                ProspectivePublicExportAcquisitionOutcomeV0::InvalidResponseShape,
+            ),
+        ];
+        for (body, expected) in cases {
+            let result = execute_prospective_public_export_acquisition_v0(
+                &registration,
+                true,
+                None,
+                true,
+                true,
+                prospective_now(),
+                |_| Ok(prospective_response(body)),
+            );
+            assert_eq!(result.receipt.request_count, 1);
+            assert_eq!(result.receipt.outcome, expected);
+            assert!(result.capsule.is_none());
+        }
+        let wrong_content_type = execute_prospective_public_export_acquisition_v0(
+            &registration,
+            true,
+            None,
+            true,
+            true,
+            prospective_now(),
+            |_| {
+                Ok(ProspectivePublicHttpResponseV0 {
+                    status: 200,
+                    content_type: Some("text/plain".into()),
+                    body: valid_prospective_body().as_bytes().to_vec(),
+                })
+            },
+        );
+        assert_eq!(
+            wrong_content_type.receipt.outcome,
+            ProspectivePublicExportAcquisitionOutcomeV0::InvalidContentType
+        );
+    }
+
+    #[test]
+    fn public_export_valid_response_seals_one_deterministic_credential_free_capsule() {
+        let registration = prospective_registration();
+        let first = execute_prospective_public_export_acquisition_v0(
+            &registration,
+            true,
+            None,
+            true,
+            true,
+            prospective_now(),
+            |_| Ok(prospective_response(valid_prospective_body())),
+        );
+        let second = execute_prospective_public_export_acquisition_v0(
+            &registration,
+            true,
+            None,
+            true,
+            true,
+            prospective_now(),
+            |_| Ok(prospective_response(valid_prospective_body())),
+        );
+        assert_eq!(
+            first.receipt.outcome,
+            ProspectivePublicExportAcquisitionOutcomeV0::CapsuleCreated
+        );
+        assert!(verify_prospective_public_export_acquisition_receipt_v0(
+            &first.receipt
+        ));
+        let capsule = first.capsule.as_ref().unwrap();
+        assert!(verify_prospective_network_export_capsule_v0(capsule));
+        assert_eq!(capsule.raw_response, valid_prospective_body().as_bytes());
+        assert_eq!(
+            capsule.acquisition_receipt_digest,
+            first.receipt.receipt_digest
+        );
+        assert_eq!(
+            first.receipt.response_body_digest,
+            second.receipt.response_body_digest
+        );
+        assert_eq!(
+            capsule.capsule_digest,
+            second.capsule.unwrap().capsule_digest
+        );
+        assert!(first.receipt.legacy_receipt_unchanged);
     }
 }

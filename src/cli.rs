@@ -58,6 +58,14 @@ pub struct CliArgs {
     #[arg(long, default_value_t = false)]
     pub prospective_external_row_admission: bool,
     #[arg(long, default_value_t = false)]
+    pub acquire_one_upbit_prospective_candle: bool,
+    #[arg(long, default_value_t = false)]
+    pub dry_run: bool,
+    #[arg(long, default_value_t = false)]
+    pub execute: bool,
+    #[arg(long, default_value_t = false)]
+    pub confirm_single_public_candle_request: bool,
+    #[arg(long, default_value_t = false)]
     pub btc_prospective_challenge_create: bool,
     #[arg(long, default_value_t = false)]
     pub btc_prospective_challenge_status: bool,
@@ -110,6 +118,10 @@ pub fn run() -> Result<(), String> {
             args.chair_shadow_owner_advisory_review,
             args.learned_reward_eligibility,
             args.prospective_external_row_admission,
+            args.acquire_one_upbit_prospective_candle,
+            args.dry_run,
+            args.execute,
+            args.confirm_single_public_candle_request,
             args.btc_prospective_challenge_create,
             args.btc_prospective_challenge_status,
             args.btc_prospective_challenge_confirm_preregistration,
@@ -136,6 +148,7 @@ pub fn run() -> Result<(), String> {
         || args.chair_shadow_owner_advisory_review
         || args.learned_reward_eligibility
         || args.prospective_external_row_admission
+        || args.acquire_one_upbit_prospective_candle
         || args.btc_prospective_challenge_create
         || args.btc_prospective_challenge_status
         || args.btc_prospective_challenge_confirm_preregistration
@@ -289,6 +302,10 @@ fn run_local_historical_snapshot_campaign(
     chair_shadow_owner_advisory_review: bool,
     learned_reward_eligibility: bool,
     prospective_external_row_admission: bool,
+    acquire_one_upbit_prospective_candle: bool,
+    dry_run: bool,
+    execute: bool,
+    confirm_single_public_candle_request: bool,
     btc_prospective_challenge_create: bool,
     btc_prospective_challenge_status: bool,
     btc_prospective_challenge_confirm_preregistration: bool,
@@ -370,6 +387,17 @@ fn run_local_historical_snapshot_campaign(
             return Err("learned reward eligibility report is offline-only".to_string());
         }
         return run_learned_reward_eligibility_report(config_path, &snapshot, output_format);
+    }
+    if acquire_one_upbit_prospective_candle {
+        return run_one_upbit_prospective_public_export(
+            config_path,
+            &snapshot,
+            output_format,
+            dry_run,
+            execute,
+            allow_network,
+            confirm_single_public_candle_request,
+        );
     }
     if prospective_external_row_admission {
         if allow_network {
@@ -2043,6 +2071,116 @@ struct ProspectiveExternalAdmissionReportV0 {
     execution_count: usize,
 }
 
+#[derive(Serialize)]
+struct ProspectivePublicExportReportV0 {
+    report_version: &'static str,
+    mode: &'static str,
+    registration_digest: String,
+    registration_reopened_and_verified: bool,
+    request_fingerprint: String,
+    request_to_utc: String,
+    explicit_single_request_consent: bool,
+    request_attempted: bool,
+    request_count: usize,
+    retry_count: usize,
+    http_status_class: Option<String>,
+    returned_item_count: usize,
+    acquisition_outcome: String,
+    acquisition_receipt_digest: Option<String>,
+    network_capsule_created: bool,
+    network_capsule_digest: Option<String>,
+    admission_status: String,
+    shared_raw_evidence_reference_count: usize,
+    momentum_event_count: usize,
+    risk_event_count: usize,
+    maturity_status: String,
+    reward_eligibility: String,
+    prospective_label_reads: usize,
+    mature_outcomes: usize,
+    interim_metrics: usize,
+    reward_candidate_count: usize,
+    reward_apply_count: usize,
+    network_request_count: usize,
+    authority_action_count: usize,
+    legacy_blind_receipt_unchanged: bool,
+    legacy_request_registry_unchanged: bool,
+}
+
+fn print_prospective_public_export_report(
+    report: &ProspectivePublicExportReportV0,
+    output_format: &str,
+) -> Result<(), String> {
+    match output_format {
+        "json" => println!(
+            "{}",
+            serde_json::to_string(report)
+                .map_err(|_| "prospective public export report serialization failed")?
+        ),
+        "text" => {
+            println!("report_version={}", report.report_version);
+            println!("mode={}", report.mode);
+            println!("registration_digest={}", report.registration_digest);
+            println!(
+                "registration_reopened_and_verified={}",
+                report.registration_reopened_and_verified
+            );
+            println!("request_fingerprint={}", report.request_fingerprint);
+            println!("request_to_utc={}", report.request_to_utc);
+            println!(
+                "explicit_single_request_consent={}",
+                report.explicit_single_request_consent
+            );
+            println!("request_attempted={}", report.request_attempted);
+            println!("request_count={}", report.request_count);
+            println!("retry_count={}", report.retry_count);
+            println!(
+                "http_status_class={}",
+                report.http_status_class.as_deref().unwrap_or_default()
+            );
+            println!("returned_item_count={}", report.returned_item_count);
+            println!("acquisition_outcome={}", report.acquisition_outcome);
+            println!(
+                "acquisition_receipt_digest={}",
+                report
+                    .acquisition_receipt_digest
+                    .as_deref()
+                    .unwrap_or_default()
+            );
+            println!("network_capsule_created={}", report.network_capsule_created);
+            println!(
+                "network_capsule_digest={}",
+                report.network_capsule_digest.as_deref().unwrap_or_default()
+            );
+            println!("admission_status={}", report.admission_status);
+            println!(
+                "shared_raw_evidence_reference_count={}",
+                report.shared_raw_evidence_reference_count
+            );
+            println!("momentum_event_count={}", report.momentum_event_count);
+            println!("risk_event_count={}", report.risk_event_count);
+            println!("maturity_status={}", report.maturity_status);
+            println!("reward_eligibility={}", report.reward_eligibility);
+            println!("prospective_label_reads={}", report.prospective_label_reads);
+            println!("mature_outcomes={}", report.mature_outcomes);
+            println!("interim_metrics={}", report.interim_metrics);
+            println!("reward_candidate_count={}", report.reward_candidate_count);
+            println!("reward_apply_count={}", report.reward_apply_count);
+            println!("network_request_count={}", report.network_request_count);
+            println!("authority_action_count={}", report.authority_action_count);
+            println!(
+                "legacy_blind_receipt_unchanged={}",
+                report.legacy_blind_receipt_unchanged
+            );
+            println!(
+                "legacy_request_registry_unchanged={}",
+                report.legacy_request_registry_unchanged
+            );
+        }
+        _ => return Err("unsupported prospective public export output format".into()),
+    }
+    Ok(())
+}
+
 fn print_prospective_external_admission_report(
     report: &ProspectiveExternalAdmissionReportV0,
     output_format: &str,
@@ -2179,9 +2317,14 @@ fn run_prospective_external_row_admission_report(
     snapshot: &crate::data::DataSnapshot,
     output_format: &str,
 ) -> Result<(), String> {
-    if output_format != "text" && output_format != "json" {
-        return Err("unsupported prospective external admission output format".into());
-    }
+    let report = build_prospective_external_row_admission_report(config_path, snapshot)?;
+    print_prospective_external_admission_report(&report, output_format)
+}
+
+fn build_prospective_external_row_admission_report(
+    config_path: &Path,
+    snapshot: &crate::data::DataSnapshot,
+) -> Result<ProspectiveExternalAdmissionReportV0, String> {
     let local_dir = config_path
         .parent()
         .ok_or("local prospective external admission directory unavailable")?;
@@ -2261,21 +2404,18 @@ fn run_prospective_external_row_admission_report(
     };
     let intake_path = local_dir.join("prospective_external_row_capsule_v0.json");
     if !intake_path.is_file() {
-        return print_prospective_external_admission_report(
-            &prospective_external_admission_report_v0(
-                &registration,
-                compatibility,
-                "AwaitingQualifiedExternalRow".into(),
-                "NoQualifiedExternalCapsuleDiscovered",
-                crate::model::ProspectiveRowAdmissionStatusV0::AwaitingQualifiedExternalRow,
-                None,
-                false,
-                false,
-                momentum.journal.events.len(),
-                persisted_risk_event_count,
-            ),
-            output_format,
-        );
+        return Ok(prospective_external_admission_report_v0(
+            &registration,
+            compatibility,
+            "AwaitingQualifiedExternalRow".into(),
+            "NoQualifiedExternalCapsuleDiscovered",
+            crate::model::ProspectiveRowAdmissionStatusV0::AwaitingQualifiedExternalRow,
+            None,
+            false,
+            false,
+            momentum.journal.events.len(),
+            persisted_risk_event_count,
+        ));
     }
     let capsule = crate::model::read_prospective_external_row_capsule_v0(&intake_path)?;
     let mut existing_timestamps = momentum
@@ -2322,24 +2462,21 @@ fn run_prospective_external_row_admission_report(
         &context,
     );
     if admission_status != crate::model::ProspectiveRowAdmissionStatusV0::Admitted {
-        return print_prospective_external_admission_report(
-            &prospective_external_admission_report_v0(
-                &registration,
-                compatibility,
-                format!("{:?}", capsule.source_class),
-                "QualifiedCapsuleRejected",
-                admission_status,
-                None,
-                false,
-                false,
-                momentum.journal.events.len(),
-                existing_risk
-                    .as_ref()
-                    .map(|state| state.journal.event_count)
-                    .unwrap_or(0),
-            ),
-            output_format,
-        );
+        return Ok(prospective_external_admission_report_v0(
+            &registration,
+            compatibility,
+            format!("{:?}", capsule.source_class),
+            "QualifiedCapsuleRejected",
+            admission_status,
+            None,
+            false,
+            false,
+            momentum.journal.events.len(),
+            existing_risk
+                .as_ref()
+                .map(|state| state.journal.event_count)
+                .unwrap_or(0),
+        ));
     }
     let shared = crate::model::build_shared_prospective_raw_evidence_v0(
         &registration,
@@ -2412,21 +2549,366 @@ fn run_prospective_external_row_admission_report(
         crate::model::read_cycle_risk_prospective_local_state_v0(&risk_state_path)
             .map_err(|_| "prospective external admission risk local reread failed")?;
     }
-    print_prospective_external_admission_report(
-        &prospective_external_admission_report_v0(
+    Ok(prospective_external_admission_report_v0(
+        &registration,
+        compatibility,
+        format!("{:?}", capsule.source_class),
+        "QualifiedCapsuleValidated",
+        admission_status,
+        Some(&shared),
+        momentum_validation.independently_valid,
+        risk_validation.independently_valid,
+        updated_momentum.journal.events.len(),
+        risk.journal.event_count,
+    ))
+}
+
+fn reopen_external_admission_registration_for_public_export(
+    config_path: &Path,
+    snapshot: &crate::data::DataSnapshot,
+) -> Result<
+    (
+        crate::model::ProspectiveExternalAdmissionRegistrationV0,
+        Vec<crate::data::ProspectiveBlindAcquisitionReceiptV0>,
+    ),
+    String,
+> {
+    let local_dir = config_path
+        .parent()
+        .ok_or("local prospective public export directory unavailable")?;
+    let momentum_path = local_dir.join("prospective_shadow_challenge_v0.json");
+    let momentum = crate::model::read_prospective_challenge_local_state_v0(&momentum_path)
+        .map_err(|_| "local prospective public export momentum state unavailable")?;
+    let risk_config = crate::model::CycleRiskShadowConfigV0::default();
+    let risk_report = crate::model::run_cycle_risk_shadow_v0(snapshot, &risk_config)
+        .map_err(|_| "offline Cycle/Risk prospective contract unavailable")?;
+    let risk_capsule = crate::model::prepare_cycle_risk_prospective_tournament_v0(
+        snapshot,
+        &risk_report,
+        &risk_config,
+    )
+    .map_err(|_| "offline Cycle/Risk prospective contract unavailable")?;
+    if !matches!(
+        crate::model::audit_external_admission_compatibility_v0(&momentum, &risk_capsule),
+        crate::model::ExternalAdmissionCompatibilityV0::PermittedWithExternalAdmissionRegistration
+            | crate::model::ExternalAdmissionCompatibilityV0::PermittedByExistingContracts
+    ) {
+        return Err("prospective public export admission contract incompatible".into());
+    }
+    let maximum_consumed_timestamp = snapshot
+        .normalized_dataset
+        .rows
+        .iter()
+        .map(|row| row.timestamp_ms)
+        .max()
+        .ok_or("prospective public export snapshot empty")?;
+    let expected = crate::model::pre_register_prospective_external_row_admission_v0(
+        &momentum,
+        &risk_capsule,
+        maximum_consumed_timestamp,
+    )?;
+    let registration_path =
+        local_dir.join("prospective_external_row_admission_registration_v0.json");
+    let registration =
+        crate::model::read_prospective_external_admission_registration_v0(&registration_path)
+            .map_err(|_| "prospective public export admission registration unavailable")?;
+    crate::model::validate_prospective_external_admission_registration_v0(
+        &registration,
+        &momentum,
+        &risk_capsule,
+    )?;
+    if registration != expected {
+        return Err("prospective public export admission registration mismatch".into());
+    }
+    Ok((registration, momentum.blind_acquisition_receipts.clone()))
+}
+
+fn write_ignored_local_bytes(path: &Path, bytes: &[u8]) -> Result<(), String> {
+    let parent = path
+        .parent()
+        .ok_or("prospective public export local storage unavailable")?;
+    fs::create_dir_all(parent)
+        .map_err(|_| "prospective public export local storage unavailable")?;
+    let temporary = path.with_extension("tmp");
+    fs::write(&temporary, bytes).map_err(|_| "prospective public export local storage failed")?;
+    fs::rename(temporary, path)
+        .map_err(|_| "prospective public export local storage failed".to_string())
+}
+
+fn public_export_report_v0(
+    mode: &'static str,
+    registration: &crate::data::ProspectivePublicExportAcquisitionRegistrationV0,
+    registration_reopened_and_verified: bool,
+    receipt: Option<&crate::data::ProspectivePublicExportAcquisitionReceiptV0>,
+    capsule: Option<&crate::data::ProspectiveNetworkExportCapsuleV0>,
+    admission: Option<&ProspectiveExternalAdmissionReportV0>,
+    legacy_blind_receipt_unchanged: bool,
+) -> ProspectivePublicExportReportV0 {
+    let receipt = receipt.cloned();
+    let admission_status = admission
+        .map(|value| value.admission_status.clone())
+        .unwrap_or_else(|| "NotAttempted".into());
+    ProspectivePublicExportReportV0 {
+        report_version: "prospective-public-export-acquisition-v0",
+        mode,
+        registration_digest: registration.registration_digest.clone(),
+        registration_reopened_and_verified,
+        request_fingerprint: receipt
+            .as_ref()
+            .map(|value| value.request_fingerprint.clone())
+            .unwrap_or_default(),
+        request_to_utc: receipt
+            .as_ref()
+            .map(|value| value.request_to_utc.clone())
+            .unwrap_or_default(),
+        explicit_single_request_consent: receipt
+            .as_ref()
+            .is_some_and(|value| value.request_attempted),
+        request_attempted: receipt
+            .as_ref()
+            .is_some_and(|value| value.request_attempted),
+        request_count: receipt.as_ref().map_or(0, |value| value.request_count),
+        retry_count: receipt.as_ref().map_or(0, |value| value.retry_count),
+        http_status_class: receipt
+            .as_ref()
+            .and_then(|value| value.http_status_class.clone()),
+        returned_item_count: receipt
+            .as_ref()
+            .map_or(0, |value| value.returned_item_count),
+        acquisition_outcome: receipt
+            .as_ref()
+            .map(|value| format!("{:?}", value.outcome))
+            .unwrap_or_else(|| "DryRunReady".into()),
+        acquisition_receipt_digest: receipt.as_ref().map(|value| value.receipt_digest.clone()),
+        network_capsule_created: capsule.is_some(),
+        network_capsule_digest: capsule.map(|value| value.capsule_digest.clone()),
+        admission_status,
+        shared_raw_evidence_reference_count: admission
+            .map(|value| value.shared_raw_evidence_reference_count)
+            .unwrap_or(0),
+        momentum_event_count: admission
+            .map(|value| value.momentum_event_count)
+            .unwrap_or(0),
+        risk_event_count: admission.map(|value| value.risk_event_count).unwrap_or(0),
+        maturity_status: admission
+            .map(|value| value.maturity_status.clone())
+            .unwrap_or_else(|| "NoSealedEvents".into()),
+        reward_eligibility: admission
+            .map(|value| value.reward_eligibility.clone())
+            .unwrap_or_else(|| "IneligibleMinimumSamples".into()),
+        prospective_label_reads: 0,
+        mature_outcomes: 0,
+        interim_metrics: 0,
+        reward_candidate_count: 0,
+        reward_apply_count: 0,
+        network_request_count: receipt.as_ref().map_or(0, |value| value.request_count),
+        authority_action_count: 0,
+        legacy_blind_receipt_unchanged,
+        legacy_request_registry_unchanged: legacy_blind_receipt_unchanged,
+    }
+}
+
+fn run_one_upbit_prospective_public_export(
+    config_path: &Path,
+    snapshot: &crate::data::DataSnapshot,
+    output_format: &str,
+    dry_run: bool,
+    execute: bool,
+    allow_network: bool,
+    confirm_single_public_candle_request: bool,
+) -> Result<(), String> {
+    if output_format != "text" && output_format != "json" {
+        return Err("unsupported prospective public export output format".into());
+    }
+    if dry_run == execute {
+        return Err("select exactly one prospective public export mode".into());
+    }
+    let config = crate::data::UpbitHistoricalPilotConfigV0::from_toml_path(config_path)
+        .map_err(|_| "local provider config unavailable")?;
+    config.validate()?;
+    let local_dir = config_path
+        .parent()
+        .ok_or("local prospective public export directory unavailable")?;
+    let (admission_registration, old_blind_receipts) =
+        reopen_external_admission_registration_for_public_export(config_path, snapshot)?;
+    let expected_registration =
+        crate::data::pre_register_prospective_public_export_acquisition_v0(&config)?;
+    let registration_path =
+        local_dir.join("prospective_public_export_acquisition_registration_v0.json");
+    if dry_run {
+        let registration = if registration_path.is_file() {
+            let existing = crate::data::read_prospective_public_export_acquisition_registration_v0(
+                &registration_path,
+            )?;
+            crate::data::validate_prospective_public_export_acquisition_registration_v0(&existing)?;
+            if existing != expected_registration {
+                return Err("prospective public export registration mismatch".into());
+            }
+            existing
+        } else {
+            crate::data::write_prospective_public_export_acquisition_registration_v0(
+                &registration_path,
+                &expected_registration,
+            )?;
+            crate::data::read_prospective_public_export_acquisition_registration_v0(
+                &registration_path,
+            )?
+        };
+        crate::data::validate_prospective_public_export_acquisition_registration_v0(&registration)?;
+        if registration != expected_registration {
+            return Err("prospective public export registration reread mismatch".into());
+        }
+        let plan = crate::data::prospective_public_export_request_plan_v0(
             &registration,
-            compatibility,
-            format!("{:?}", capsule.source_class),
-            "QualifiedCapsuleValidated",
-            admission_status,
-            Some(&shared),
-            momentum_validation.independently_valid,
-            risk_validation.independently_valid,
-            updated_momentum.journal.events.len(),
-            risk.journal.event_count,
+            current_utc_timestamp_ms(),
+        )?;
+        let dry_receipt = crate::data::ProspectivePublicExportAcquisitionReceiptV0 {
+            receipt_version: "prospective-public-export-acquisition-receipt-v0".into(),
+            registration_digest: registration.registration_digest.clone(),
+            request_attempted: false,
+            request_count: 0,
+            retry_count: 0,
+            request_fingerprint: plan.request_fingerprint,
+            request_to_utc: plan.request_to_utc,
+            http_status_class: None,
+            response_body_digest: None,
+            returned_item_count: 0,
+            outcome: crate::data::ProspectivePublicExportAcquisitionOutcomeV0::ConsentMissing,
+            capsule_digest: None,
+            legacy_receipt_unchanged: true,
+            receipt_digest: String::new(),
+        };
+        let mut report = public_export_report_v0(
+            "dry-run",
+            &registration,
+            true,
+            Some(&dry_receipt),
+            None,
+            None,
+            true,
+        );
+        report.acquisition_outcome = "DryRunReady".into();
+        report.acquisition_receipt_digest = None;
+        return print_prospective_public_export_report(&report, output_format);
+    }
+    let (registration, registration_verified) = if registration_path.is_file() {
+        match crate::data::read_prospective_public_export_acquisition_registration_v0(
+            &registration_path,
+        ) {
+            Ok(existing)
+                if crate::data::validate_prospective_public_export_acquisition_registration_v0(
+                    &existing,
+                )
+                .is_ok()
+                    && existing == expected_registration =>
+            {
+                (existing, true)
+            }
+            _ => (expected_registration.clone(), false),
+        }
+    } else {
+        (expected_registration.clone(), false)
+    };
+    let receipt_path = local_dir.join("prospective_public_export_acquisition_receipt_v0.json");
+    let (existing_receipt, receipt_storage_valid) = if receipt_path.is_file() {
+        match crate::data::read_prospective_public_export_acquisition_receipt_v0(&receipt_path) {
+            Ok(receipt)
+                if crate::data::verify_prospective_public_export_acquisition_receipt_v0(
+                    &receipt,
+                ) =>
+            {
+                (Some(receipt), true)
+            }
+            _ => (None, false),
+        }
+    } else {
+        (None, true)
+    };
+    let registration_verified = registration_verified && receipt_storage_valid;
+    let intake_path = local_dir.join("prospective_external_row_capsule_v0.json");
+    if registration_verified && !intake_path.is_file() {
+        // A single response can be admitted only into an empty, pre-registered
+        // Sprint 64 intake.  Refusing before transport preserves the one-call budget.
+    } else if registration_verified && intake_path.is_file() {
+        return Err("prospective public export intake already exists; no request attempted".into());
+    }
+    let acquisition = crate::data::execute_prospective_public_export_acquisition_v0(
+        &registration,
+        registration_verified,
+        existing_receipt.as_ref(),
+        allow_network,
+        confirm_single_public_candle_request,
+        current_utc_timestamp_ms(),
+        |plan| crate::data::fetch_one_prospective_public_export_v0(&registration, plan),
+    );
+    if acquisition.receipt.request_attempted {
+        crate::data::write_prospective_public_export_acquisition_receipt_v0(
+            &receipt_path,
+            &acquisition.receipt,
+        )?;
+        let reread =
+            crate::data::read_prospective_public_export_acquisition_receipt_v0(&receipt_path)?;
+        if reread != acquisition.receipt
+            || !crate::data::verify_prospective_public_export_acquisition_receipt_v0(&reread)
+        {
+            return Err("prospective public export receipt reread mismatch".into());
+        }
+    }
+    let mut admission = None;
+    if let Some(network_capsule) = acquisition.capsule.as_ref() {
+        let raw_response_path = local_dir.join("prospective_public_export_response_v0.json");
+        write_ignored_local_bytes(&raw_response_path, &network_capsule.raw_response)?;
+        let network_capsule_path = local_dir.join("prospective_network_export_capsule_v0.json");
+        crate::data::write_prospective_network_export_capsule_v0(
+            &network_capsule_path,
+            network_capsule,
+        )?;
+        let reread_network =
+            crate::data::read_prospective_network_export_capsule_v0(&network_capsule_path)?;
+        if !crate::data::verify_prospective_network_export_capsule_v0(&reread_network) {
+            return Err("prospective network export capsule reread mismatch".into());
+        }
+        let intake = crate::data::convert_prospective_network_export_to_external_row_capsule_v0(
+            &reread_network,
+            &admission_registration,
+        )?;
+        write_ignored_local_bytes(
+            &intake_path,
+            &serde_json::to_vec(&intake)
+                .map_err(|_| "prospective external intake serialization failed")?,
+        )?;
+        admission = Some(build_prospective_external_row_admission_report(
+            config_path,
+            snapshot,
+        )?);
+    }
+    let momentum_path = local_dir.join("prospective_shadow_challenge_v0.json");
+    let reread_momentum = crate::model::read_prospective_challenge_local_state_v0(&momentum_path)
+        .map_err(|_| "prospective public export momentum reread unavailable")?;
+    let legacy_blind_receipt_unchanged =
+        reread_momentum.blind_acquisition_receipts == old_blind_receipts;
+    if !legacy_blind_receipt_unchanged {
+        return Err("legacy blind acquisition receipt changed".into());
+    }
+    print_prospective_public_export_report(
+        &public_export_report_v0(
+            "execute",
+            &registration,
+            registration_verified,
+            Some(&acquisition.receipt),
+            acquisition.capsule.as_ref(),
+            admission.as_ref(),
+            legacy_blind_receipt_unchanged,
         ),
         output_format,
     )
+}
+
+fn current_utc_timestamp_ms() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|duration| duration.as_millis() as u64)
+        .unwrap_or_default()
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -3775,6 +4257,52 @@ mod tests {
         assert_eq!(
             json["execution_count"].as_u64(),
             Some(report.execution_count as u64)
+        );
+    }
+
+    #[test]
+    fn prospective_public_export_status_keeps_network_authority_and_label_counters_explicit() {
+        let report = ProspectivePublicExportReportV0 {
+            report_version: "prospective-public-export-acquisition-v0",
+            mode: "dry-run",
+            registration_digest: "registration".into(),
+            registration_reopened_and_verified: true,
+            request_fingerprint: "fingerprint".into(),
+            request_to_utc: "2024-01-03T00:00:00Z".into(),
+            explicit_single_request_consent: false,
+            request_attempted: false,
+            request_count: 0,
+            retry_count: 0,
+            http_status_class: None,
+            returned_item_count: 0,
+            acquisition_outcome: "DryRunReady".into(),
+            acquisition_receipt_digest: None,
+            network_capsule_created: false,
+            network_capsule_digest: None,
+            admission_status: "NotAttempted".into(),
+            shared_raw_evidence_reference_count: 0,
+            momentum_event_count: 0,
+            risk_event_count: 0,
+            maturity_status: "NoSealedEvents".into(),
+            reward_eligibility: "IneligibleMinimumSamples".into(),
+            prospective_label_reads: 0,
+            mature_outcomes: 0,
+            interim_metrics: 0,
+            reward_candidate_count: 0,
+            reward_apply_count: 0,
+            network_request_count: 0,
+            authority_action_count: 0,
+            legacy_blind_receipt_unchanged: true,
+            legacy_request_registry_unchanged: true,
+        };
+        let json = serde_json::to_value(&report).unwrap();
+        assert_eq!(json["request_count"].as_u64(), Some(0));
+        assert_eq!(json["network_request_count"].as_u64(), Some(0));
+        assert_eq!(json["prospective_label_reads"].as_u64(), Some(0));
+        assert_eq!(json["authority_action_count"].as_u64(), Some(0));
+        assert_eq!(
+            json["registration_reopened_and_verified"].as_bool(),
+            Some(true)
         );
     }
 }

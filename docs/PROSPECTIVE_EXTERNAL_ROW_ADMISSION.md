@@ -5,6 +5,16 @@ future BTC daily row to pre-label Shadow events. It does not perform a provider
 request, construct a transport, read a credential or consent setting, access a
 label, retrain a model, alter a frozen artifact, or grant authority.
 
+## Credential-free public export input
+
+An independently registered public daily-candle export may supply one local
+external capsule. The HTTP client is destroyed before this module reads that
+capsule. Admission therefore remains offline and continues to require the
+same frozen cutoffs, canonical identity, finality, duplicate rejection,
+label isolation, shared-reference construction, and independent event seals.
+The wrapper cannot alter the existing admission registration, old acquisition
+receipt, request registry, or frozen model artifacts.
+
 ## Contract audit and registration
 
 Before opening any candidate capsule, the command validates both sealed
