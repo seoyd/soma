@@ -2825,6 +2825,42 @@ fn run_one_upbit_prospective_public_export(
         (None, true)
     };
     let registration_verified = registration_verified && receipt_storage_valid;
+    if let Some(receipt) = existing_receipt
+        .as_ref()
+        .filter(|receipt| receipt.request_attempted)
+    {
+        let network_capsule_path = local_dir.join("prospective_network_export_capsule_v0.json");
+        let network_capsule =
+            crate::data::read_prospective_network_export_capsule_v0(&network_capsule_path)
+                .map_err(
+                    |_| "prospective public export capsule unavailable after recorded request",
+                )?;
+        if !crate::data::verify_prospective_network_export_capsule_v0(&network_capsule) {
+            return Err("prospective public export capsule invalid after recorded request".into());
+        }
+        let admission = build_prospective_external_row_admission_report(config_path, snapshot)?;
+        let momentum_path = local_dir.join("prospective_shadow_challenge_v0.json");
+        let reread_momentum =
+            crate::model::read_prospective_challenge_local_state_v0(&momentum_path)
+                .map_err(|_| "prospective public export momentum reread unavailable")?;
+        let legacy_blind_receipt_unchanged =
+            reread_momentum.blind_acquisition_receipts == old_blind_receipts;
+        if !legacy_blind_receipt_unchanged {
+            return Err("legacy blind acquisition receipt changed".into());
+        }
+        return print_prospective_public_export_report(
+            &public_export_report_v0(
+                "execute-status",
+                &registration,
+                registration_verified,
+                Some(receipt),
+                Some(&network_capsule),
+                Some(&admission),
+                legacy_blind_receipt_unchanged,
+            ),
+            output_format,
+        );
+    }
     let intake_path = local_dir.join("prospective_external_row_capsule_v0.json");
     if registration_verified && !intake_path.is_file() {
         // A single response can be admitted only into an empty, pre-registered
