@@ -37,6 +37,8 @@ pub struct CliArgs {
     #[arg(long, default_value_t = false)]
     pub learned_agent_scope_alignment: bool,
     #[arg(long, default_value_t = false)]
+    pub joint_canonical_scope_replay: bool,
+    #[arg(long, default_value_t = false)]
     pub btc_prospective_challenge_create: bool,
     #[arg(long, default_value_t = false)]
     pub btc_prospective_challenge_status: bool,
@@ -79,6 +81,7 @@ pub fn run() -> Result<(), String> {
             args.btc_cycle_risk_shadow_report,
             args.learned_agent_shadow_deliberation,
             args.learned_agent_scope_alignment,
+            args.joint_canonical_scope_replay,
             args.btc_prospective_challenge_create,
             args.btc_prospective_challenge_status,
             args.btc_prospective_challenge_confirm_preregistration,
@@ -95,6 +98,7 @@ pub fn run() -> Result<(), String> {
         || args.btc_cycle_risk_shadow_report
         || args.learned_agent_shadow_deliberation
         || args.learned_agent_scope_alignment
+        || args.joint_canonical_scope_replay
         || args.btc_prospective_challenge_create
         || args.btc_prospective_challenge_status
         || args.btc_prospective_challenge_confirm_preregistration
@@ -238,6 +242,7 @@ fn run_local_historical_snapshot_campaign(
     btc_cycle_risk_shadow_report: bool,
     learned_agent_shadow_deliberation: bool,
     learned_agent_scope_alignment: bool,
+    joint_canonical_scope_replay: bool,
     btc_prospective_challenge_create: bool,
     btc_prospective_challenge_status: bool,
     btc_prospective_challenge_confirm_preregistration: bool,
@@ -421,6 +426,88 @@ fn run_local_historical_snapshot_campaign(
                 );
             }
             println!("ledger_digest={}", ledger.ledger_digest);
+            println!("chair_observed=false");
+            println!("vote_created=false");
+            println!("execution_created=false");
+        }
+        return Ok(());
+    }
+    if joint_canonical_scope_replay {
+        if allow_network {
+            return Err("joint canonical scope replay is offline-only".to_string());
+        }
+        let registration =
+            crate::model::joint_canonical_scope_registration_v1(&snapshot, &campaign_config)
+                .map_err(|_| "joint canonical scope registration failed".to_string())?;
+        let (proof, scopes) =
+            crate::model::issue_joint_canonical_scopes_v1(&snapshot, &registration)
+                .map_err(|_| "joint canonical scope selection failed".to_string())?;
+        let results = if proof.all_invariants_pass {
+            scopes
+                .iter()
+                .map(|scope| {
+                    crate::model::replay_joint_scope_results_v1(&snapshot, scope, &campaign_config)
+                        .map_err(|error| format!("joint canonical scope replay failed: {error}"))
+                })
+                .collect::<Result<Vec<_>, _>>()?
+        } else {
+            vec![]
+        };
+        if output_format == "json" {
+            println!(
+                "{}",
+                serde_json::json!({
+                    "report_version":"joint-canonical-scope-replay-v1", "offline":true,
+                    "registration_digest_v1":registration.registration_digest_v1,
+                    "joint_minimum_scope_rows":registration.joint_minimum_scope_rows,
+                    "feasible":proof.all_invariants_pass,
+                    "joint_scope_count":scopes.len(),
+                    "joint_scope_ids":scopes.iter().map(|scope|scope.joint_scope_id.clone()).collect::<Vec<_>>(),
+                    "joint_scope_digests":scopes.iter().map(|scope|scope.scope_digest_v1.clone()).collect::<Vec<_>>(),
+                    "participant_result_count":results.len() * 2,
+                    "momentum_statuses":results.iter().map(|result|format!("{:?}", result.momentum_status)).collect::<Vec<_>>(),
+                    "risk_statuses":results.iter().map(|result|format!("{:?}", result.risk_status)).collect::<Vec<_>>(),
+                    "provider_calls":0,"transport_constructions":0,"network_consent_reads":0,
+                    "chair_observed":false,"vote_created":false,"execution_created":false
+                })
+            );
+        } else {
+            println!("report_version=joint-canonical-scope-replay-v1");
+            println!("offline=true");
+            println!(
+                "registration_digest_v1={}",
+                registration.registration_digest_v1
+            );
+            println!(
+                "joint_minimum_scope_rows={}",
+                registration.joint_minimum_scope_rows
+            );
+            println!("feasible={}", proof.all_invariants_pass);
+            println!("joint_scope_count={}", scopes.len());
+            println!("participant_result_count={}", results.len() * 2);
+            println!(
+                "momentum_completed_count={}",
+                results
+                    .iter()
+                    .filter(|result| matches!(
+                        result.momentum_status,
+                        crate::model::JointScopeParticipantReplayStatusV1::Completed
+                    ))
+                    .count()
+            );
+            println!(
+                "risk_completed_count={}",
+                results
+                    .iter()
+                    .filter(|result| matches!(
+                        result.risk_status,
+                        crate::model::JointScopeParticipantReplayStatusV1::Completed
+                    ))
+                    .count()
+            );
+            println!("provider_calls=0");
+            println!("transport_constructions=0");
+            println!("network_consent_reads=0");
             println!("chair_observed=false");
             println!("vote_created=false");
             println!("execution_created=false");

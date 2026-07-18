@@ -5,16 +5,17 @@ use std::{fs, path::Path};
 use crate::{core::stable_hash_string, data::DataSnapshot};
 
 use super::{
-    AgentOpinionRelationshipV0, BtcHistoricalRegimeConfigV0, BtcTemporalRegimeRefV0,
-    CYCLE_RISK_SHADOW_AGENT_ID_V0, CycleRiskOpinionAdapterContextV0, CycleRiskShadowConfigV0,
-    HistoricalEvidencePolicyV0, LearnedAgentObjectiveV0, MomentumCandleV0,
-    MomentumLearningCampaignConfigV0, TemporalRegimeSegmentationPolicyV0,
-    append_shadow_deliberation_v0, assess_momentum_campaign_sufficiency_v0,
-    build_momentum_features_v0, build_momentum_learning_windows_v0,
-    build_momentum_sequence_examples_v0, close_btc_temporal_regime_result_v0,
-    freeze_btc_historical_regime_packs_v0, frozen_mamba3_encoder_from_seed_v0,
-    new_shadow_deliberation_ledger_v0, reconstruct_cycle_risk_opinion_from_regime_v0,
-    replay_btc_shadow_deliberations_v0, run_btc_historical_regime_campaigns_v0,
+    AgentOpinionRelationshipV0, BtcHistoricalRegimeConfigV0, BtcHistoricalRegimeV0,
+    BtcTemporalRegimeRefV0, CYCLE_RISK_SHADOW_AGENT_ID_V0, CycleRiskOpinionAdapterContextV0,
+    CycleRiskShadowConfigV0, EvidenceUsageClassV0, HistoricalEvidencePolicyV0,
+    LearnedAgentObjectiveV0, MomentumCandleV0, MomentumLearningCampaignConfigV0,
+    TemporalRegimeSegmentationPolicyV0, append_shadow_deliberation_v0,
+    assess_momentum_campaign_sufficiency_v0, build_momentum_features_v0,
+    build_momentum_learning_windows_v0, build_momentum_sequence_examples_v0,
+    close_btc_temporal_regime_result_v0, freeze_btc_historical_regime_packs_v0,
+    frozen_mamba3_encoder_from_seed_v0, new_shadow_deliberation_ledger_v0,
+    reconstruct_cycle_risk_opinion_from_regime_v0, replay_btc_shadow_deliberations_v0,
+    run_btc_historical_regime_campaigns_v0, run_cycle_risk_shadow_regime_v0,
     segment_btc_historical_regimes_v0,
 };
 
@@ -2033,6 +2034,7 @@ fn source_bound_registration_digest_v1(value: &SourceBoundOpinionProtocolRegistr
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LearnedAgentOpinionCreationModeV1 {
     HistoricalRetrospectiveSourceBoundReplay,
+    RetrospectiveJointScopeDevelopmentReplay,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SourceResultKindV1 {
@@ -2319,6 +2321,39 @@ pub fn create_source_bound_opinion_v1(
     strv(&mut bytes, &authority_digest_v1(&value.authority));
     value.opinion_digest_v1 = stable_hash_string(&hex(&bytes));
     Ok(value)
+}
+
+pub fn create_joint_scope_source_bound_opinion_v1(
+    source: LearnedAgentSourceResultReferenceV1,
+    membership: &SourceResultMembershipProofV1,
+    cutoff: u64,
+    joint_scope_id: &str,
+    registration: &SourceBoundOpinionProtocolRegistrationV1,
+) -> Result<LearnedAgentOpinionEnvelopeV1, String> {
+    let mut opinion = create_source_bound_opinion_v1(
+        source,
+        membership,
+        cutoff,
+        "retrospective-joint-scope-development",
+        registration,
+    )?;
+    opinion.creation_mode =
+        LearnedAgentOpinionCreationModeV1::RetrospectiveJointScopeDevelopmentReplay;
+    opinion.reason_codes = vec!["retrospective_joint_scope_development_abstention".into()];
+    opinion.opinion_id = format!(
+        "joint-source-bound-opinion-{}",
+        stable_hash_string(&format!(
+            "{}:{}:{}",
+            joint_scope_id,
+            opinion.source_result.reference_digest_v1,
+            registration.policy_digest_v1
+        ))
+    );
+    opinion.opinion_digest_v1 = stable_hash_string(&format!(
+        "{}:{}:{:?}",
+        opinion.opinion_id, opinion.source_membership_proof_digest_v1, opinion.creation_mode
+    ));
+    Ok(opinion)
 }
 
 pub fn replay_source_bound_cycle_risk_opinions_v1(
@@ -3200,9 +3235,21 @@ pub fn joint_canonical_scope_registration_v1(
         .map_err(|_| "joint_momentum_config_invalid")?;
     let risk = CycleRiskShadowConfigV0::default();
     risk.validate().map_err(|_| "joint_risk_config_invalid")?;
-    let momentum = assess_momentum_campaign_sufficiency_v0(usize::MAX / 4, campaign)
-        .map_err(|_| "joint_momentum_requirement_invalid")?
-        .required_minimum_rows;
+    let first_momentum_window = campaign
+        .train_rows
+        .checked_add(campaign.purge_gap_rows)
+        .and_then(|value| value.checked_add(campaign.validation_rows))
+        .and_then(|value| value.checked_add(campaign.purge_gap_rows))
+        .and_then(|value| value.checked_add(campaign.test_rows))
+        .ok_or("joint_momentum_requirement_invalid")?;
+    let momentum = campaign.minimum_history_rows.max(
+        first_momentum_window.saturating_add(
+            campaign
+                .minimum_evaluated_windows
+                .saturating_sub(1)
+                .saturating_mul(campaign.step_rows),
+        ),
+    );
     let risk_rows =
         risk.feature.drawdown_lookback + 1 + risk.sequence_length + risk.label.horizon_rows + 48;
     let mut minimums = vec![
@@ -3398,6 +3445,155 @@ pub fn issue_joint_canonical_scopes_v1(
         })
         .collect::<Result<Vec<_>, String>>()?;
     Ok((proof, scopes))
+}
+
+fn replay_local_joint_scope_snapshot_v1(
+    snapshot: &DataSnapshot,
+    scope: &JointCanonicalHistoricalScopeV1,
+) -> DataSnapshot {
+    let mut local = snapshot.clone();
+    local.normalized_dataset.rows = snapshot.normalized_dataset.rows
+        [scope.range_start_index..scope.range_end_index_exclusive]
+        .to_vec();
+    local.row_count = local.normalized_dataset.rows.len();
+    local.actual_start_timestamp_ms = local
+        .normalized_dataset
+        .rows
+        .first()
+        .map(|row| row.timestamp_ms);
+    local.actual_end_timestamp_ms = local
+        .normalized_dataset
+        .rows
+        .last()
+        .map(|row| row.timestamp_ms);
+    local.content_digest =
+        crate::data::historical_replay_dataset_digest_v0(&local.normalized_dataset);
+    local
+}
+
+fn replay_local_joint_momentum_pack_v1(
+    snapshot: &DataSnapshot,
+    scope: &JointCanonicalHistoricalScopeV1,
+) -> Result<
+    (
+        BtcHistoricalRegimeV0,
+        super::MomentumHistoricalEvidencePackV0,
+    ),
+    String,
+> {
+    let local = replay_local_joint_scope_snapshot_v1(snapshot, scope);
+    let (_, pack) = super::freeze_momentum_historical_evidence_pack_v0(
+        &[local.clone()],
+        &HistoricalEvidencePolicyV0::default(),
+    )
+    .map_err(|_| "joint_momentum_pack_invalid")?;
+    Ok((
+        BtcHistoricalRegimeV0 {
+            regime_id: scope.joint_scope_id.clone(),
+            start_row_index: 0,
+            end_row_index_exclusive: local.row_count,
+            start_timestamp_ms: local
+                .actual_start_timestamp_ms
+                .ok_or("joint_scope_start_missing")?,
+            end_timestamp_ms: local
+                .actual_end_timestamp_ms
+                .ok_or("joint_scope_end_missing")?,
+            row_count: local.row_count,
+            source_snapshot_id: local.snapshot_id,
+            usage_class: EvidenceUsageClassV0::DevelopmentEligible,
+            segmentation_config_digest: scope.registration_digest_v1.clone(),
+        },
+        pack,
+    ))
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum JointScopeParticipantReplayStatusV1 {
+    Completed,
+    NoUsableValidationSignal,
+    InsufficientHistory,
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct JointScopeReplayResultV1 {
+    pub joint_scope_id: String,
+    pub joint_scope_digest_v1: String,
+    pub momentum_result_digest_v1: String,
+    pub risk_result_digest_v1: String,
+    pub momentum_anchor_scope_digest_v1: String,
+    pub risk_anchor_scope_digest_v1: String,
+    pub momentum_status: JointScopeParticipantReplayStatusV1,
+    pub risk_status: JointScopeParticipantReplayStatusV1,
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct JointScopeOpinionPairV1 {
+    pub joint_scope_id: String,
+    pub momentum: (LearnedAgentOpinionEnvelopeV1, LearnedAgentOpinionSealV1),
+    pub risk: (LearnedAgentOpinionEnvelopeV1, LearnedAgentOpinionSealV1),
+}
+pub fn replay_joint_scope_results_v1(
+    snapshot: &DataSnapshot,
+    scope: &JointCanonicalHistoricalScopeV1,
+    campaign: &MomentumLearningCampaignConfigV0,
+) -> Result<JointScopeReplayResultV1, String> {
+    let local = replay_local_joint_scope_snapshot_v1(snapshot, scope);
+    let pack = replay_local_joint_momentum_pack_v1(snapshot, scope)?;
+    let encoder = frozen_mamba3_encoder_from_seed_v0(
+        &campaign.feature_config,
+        campaign.campaign_seed,
+        campaign.backend_preference,
+        campaign.fallback_policy,
+    )
+    .map_err(|_| "joint_momentum_encoder_invalid")?;
+    let momentum = run_btc_historical_regime_campaigns_v0(&[pack], campaign, &encoder)
+        .ok()
+        .and_then(|mut values| values.pop());
+    let risk = CycleRiskShadowConfigV0::default();
+    let risk_result = run_cycle_risk_shadow_regime_v0(&local, &scope.joint_scope_id, &risk).ok();
+    let momentum_anchors = momentum_anchor_scope_v1(&local, 0, local.row_count, campaign).ok();
+    let risk_pack_digest = risk_result
+        .as_ref()
+        .map(|result| result.frozen_pack_digest.clone())
+        .unwrap_or_default();
+    let candidate = CycleRiskHistoricalRangeCandidateV0 {
+        candidate_range_id: scope.joint_scope_id.clone(),
+        start_row_index: 0,
+        end_row_index_exclusive: local.row_count,
+        row_count: local.row_count,
+        canonical_scope_digest_v1: scope.canonical_raw_scope.scope_digest_v1.clone(),
+        expected_frozen_pack_digest: risk_pack_digest,
+        range_digest: scope.scope_digest_v1.clone(),
+    };
+    let risk_anchors = risk_anchor_scope_v1(&local, &candidate, &risk).ok();
+    Ok(JointScopeReplayResultV1 {
+        joint_scope_id: scope.joint_scope_id.clone(),
+        joint_scope_digest_v1: scope.scope_digest_v1.clone(),
+        momentum_result_digest_v1: momentum
+            .as_ref()
+            .map(|result| result.report_digest.clone())
+            .unwrap_or_default(),
+        risk_result_digest_v1: risk_result
+            .as_ref()
+            .map(|result| stable_hash_string(&format!("{:?}", result)))
+            .unwrap_or_default(),
+        momentum_anchor_scope_digest_v1: momentum_anchors
+            .as_ref()
+            .map(|value| value.scope_digest_v1.clone())
+            .unwrap_or_default(),
+        risk_anchor_scope_digest_v1: risk_anchors
+            .as_ref()
+            .map(|value| value.scope_digest_v1.clone())
+            .unwrap_or_default(),
+        momentum_status: if momentum.is_some() && momentum_anchors.is_some() {
+            JointScopeParticipantReplayStatusV1::Completed
+        } else {
+            JointScopeParticipantReplayStatusV1::NoUsableValidationSignal
+        },
+        risk_status: if risk_result.is_some() && risk_anchors.is_some() {
+            JointScopeParticipantReplayStatusV1::Completed
+        } else {
+            JointScopeParticipantReplayStatusV1::InsufficientHistory
+        },
+    })
 }
 
 pub fn source_bound_shadow_ledger_record_v1(

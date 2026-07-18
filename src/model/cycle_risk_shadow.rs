@@ -789,6 +789,29 @@ fn minimum_rows(config: &CycleRiskShadowConfigV0) -> usize {
     config.feature.minimum_history() + config.sequence_length + config.label.horizon_rows + 48
 }
 
+pub fn run_cycle_risk_shadow_regime_v0(
+    snapshot: &DataSnapshot,
+    regime_id: &str,
+    config: &CycleRiskShadowConfigV0,
+) -> Result<CycleRiskRegimeResultV0, CycleRiskErrorV0> {
+    config.validate()?;
+    let rows = &snapshot.normalized_dataset.rows;
+    if rows.len() < minimum_rows(config)
+        || rows
+            .windows(2)
+            .any(|pair| pair[0].timestamp_ms >= pair[1].timestamp_ms)
+        || crate::data::historical_replay_dataset_digest_v0(&snapshot.normalized_dataset)
+            != snapshot.content_digest
+    {
+        return Err(CycleRiskErrorV0::InvalidEvidence);
+    }
+    let pack_digest = stable_hash_string(&format!(
+        "cycle-risk-joint-pack-v1:{}:{}:{}",
+        snapshot.snapshot_id, regime_id, snapshot.content_digest
+    ));
+    run_regime(rows, regime_id, &snapshot.snapshot_id, &pack_digest, config)
+}
+
 fn run_regime(
     rows: &[crate::league::HistoricalOhlcvRow],
     name: &str,
