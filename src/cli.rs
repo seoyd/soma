@@ -985,34 +985,56 @@ fn run_local_historical_snapshot_campaign(
         crate::model::validate_joint_scope_replay_ledger_v3(&ledger)
             .map_err(|error| format!("joint V3 ledger verification failed: {error}"))?;
         if output_format == "json" {
+            let scope_values = serde_json::json!({
+                "ids":results.iter().map(|result| result.joint_scope_id.clone()).collect::<Vec<_>>(),
+                "digests":results.iter().map(|result| result.joint_scope_digest.clone()).collect::<Vec<_>>(),
+                "preclosure_digests_v3":results.iter().map(|result| result.preclosure_digest_v3.clone()).collect::<Vec<_>>(),
+                "closure_audit_digests_v3":results.iter().map(|result| result.closure_audit_digest_v3.clone()).collect::<Vec<_>>()
+            });
+            let momentum_values = serde_json::json!({
+                "execution_health":results.iter().map(|result| format!("{:?}", result.replay_result_v2.momentum.execution_trace.execution_health)).collect::<Vec<_>>(),
+                "model_outcomes":results.iter().map(|result| format!("{:?}", result.replay_result_v2.momentum.execution_trace.model_evidence_outcome)).collect::<Vec<_>>(),
+                "operational_results":results.iter().map(|result| format!("{:?}", result.replay_result_v2.momentum.execution_trace.operational_shadow_result)).collect::<Vec<_>>(),
+                "anchor_statuses":results.iter().map(|result| format!("{:?}", result.replay_result_v2.momentum.anchor_status)).collect::<Vec<_>>(),
+                "opinion_digests":results.iter().map(|result| result.replay_result_v2.momentum.sealed_opinion.as_ref().map(|pair| pair.0.opinion_digest_v1.clone())).collect::<Vec<_>>(),
+                "seal_digests":results.iter().map(|result| result.replay_result_v2.momentum.seal_digest.clone()).collect::<Vec<_>>()
+            });
+            let risk_values = serde_json::json!({
+                "execution_health":results.iter().map(|result| format!("{:?}", result.replay_result_v2.risk.execution_trace.execution_health)).collect::<Vec<_>>(),
+                "model_outcomes":results.iter().map(|result| format!("{:?}", result.replay_result_v2.risk.execution_trace.model_evidence_outcome)).collect::<Vec<_>>(),
+                "operational_results":results.iter().map(|result| format!("{:?}", result.replay_result_v2.risk.execution_trace.operational_shadow_result)).collect::<Vec<_>>(),
+                "opinion_digests":results.iter().map(|result| result.replay_result_v2.risk.sealed_opinion.as_ref().map(|pair| pair.0.opinion_digest_v1.clone())).collect::<Vec<_>>(),
+                "seal_digests":results.iter().map(|result| result.replay_result_v2.risk.seal_digest.clone()).collect::<Vec<_>>()
+            });
+            let aggregate_values = serde_json::json!({
+                "pair_eligible":results.iter().map(|result| result.replay_result_v2.pair_eligible).collect::<Vec<_>>(),
+                "opinion_count":results.iter().flat_map(|result| [&result.replay_result_v2.momentum, &result.replay_result_v2.risk]).filter(|result| result.opinion_id.is_some()).count(),
+                "pair_count":aggregate.replay_aggregate_v2.completed_pair_count,
+                "deliberation_count":aggregate.replay_aggregate_v2.deliberation_count,
+                "composed":aggregate.replay_aggregate_v2.full_aggregate_composed,
+                "relationships":aggregate.replay_aggregate_v2.relationships.iter().map(|value| format!("{value:?}")).collect::<Vec<_>>(),
+                "transcript_digests":aggregate.replay_aggregate_v2.transcript_digests,
+                "aggregate_digest_v3":aggregate.aggregate_digest_v3,
+                "ledger_digest_v3":ledger.ledger_digest_v3
+            });
             println!(
                 "{}",
                 serde_json::json!({
-                    "report_version":"joint-canonical-scope-replay-v3","offline":true,
+                    "report_version":"joint-canonical-scope-replay-v3",
+                    "offline":true,
                     "parent_registration_digest_v2":registration.parent_registration_digest_v2,
                     "registration_digest_v3":registration.registration_digest_v3,
-                    "scope_ids":results.iter().map(|result| result.joint_scope_id.clone()).collect::<Vec<_>>(),
-                    "scope_digests":results.iter().map(|result| result.joint_scope_digest.clone()).collect::<Vec<_>>(),
-                    "preclosure_digests_v3":results.iter().map(|result| result.preclosure_digest_v3.clone()).collect::<Vec<_>>(),
-                    "closure_audit_digests_v3":results.iter().map(|result| result.closure_audit_digest_v3.clone()).collect::<Vec<_>>(),
-                    "momentum_execution_health":results.iter().map(|result| format!("{:?}", result.replay_result_v2.momentum.execution_trace.execution_health)).collect::<Vec<_>>(),
-                    "momentum_model_outcomes":results.iter().map(|result| format!("{:?}", result.replay_result_v2.momentum.execution_trace.model_evidence_outcome)).collect::<Vec<_>>(),
-                    "momentum_operational_results":results.iter().map(|result| format!("{:?}", result.replay_result_v2.momentum.execution_trace.operational_shadow_result)).collect::<Vec<_>>(),
-                    "momentum_anchor_statuses":results.iter().map(|result| format!("{:?}", result.replay_result_v2.momentum.anchor_status)).collect::<Vec<_>>(),
-                    "risk_execution_health":results.iter().map(|result| format!("{:?}", result.replay_result_v2.risk.execution_trace.execution_health)).collect::<Vec<_>>(),
-                    "risk_model_outcomes":results.iter().map(|result| format!("{:?}", result.replay_result_v2.risk.execution_trace.model_evidence_outcome)).collect::<Vec<_>>(),
-                    "risk_operational_results":results.iter().map(|result| format!("{:?}", result.replay_result_v2.risk.execution_trace.operational_shadow_result)).collect::<Vec<_>>(),
-                    "opinion_count":results.iter().flat_map(|result| [&result.replay_result_v2.momentum, &result.replay_result_v2.risk]).filter(|result| result.opinion_id.is_some()).count(),
-                    "pair_count":aggregate.replay_aggregate_v2.completed_pair_count,
-                    "deliberation_count":aggregate.replay_aggregate_v2.deliberation_count,
-                    "aggregate_composed":aggregate.replay_aggregate_v2.full_aggregate_composed,
-                    "aggregate_digest_v3":aggregate.aggregate_digest_v3,
-                    "ledger_digest_v3":ledger.ledger_digest_v3,
+                    "scope":scope_values,
+                    "momentum":momentum_values,
+                    "risk":risk_values,
+                    "aggregate":aggregate_values,
                     "replay_deterministic":true,
-                    "provider_calls":0,"transport_constructions":0,"network_consent_reads":0,"credential_reads":0,
-                    "active_committee_count":3,"chair_observed":false,"chair_decision_created":false,
-                    "reward_created":false,"penalty_created":false,"speaking_right_changed":false,
-                    "vote_created":false,"promotion_created":false,"execution_created":false
+                    "authority":{
+                        "provider_calls":0,"transport_constructions":0,"network_consent_reads":0,"credential_reads":0,
+                        "active_committee_count":3,"chair_observed":false,"chair_decision_created":false,
+                        "reward_created":false,"penalty_created":false,"speaking_right_changed":false,
+                        "vote_created":false,"promotion_created":false,"execution_created":false
+                    }
                 })
             );
         } else {
@@ -1063,6 +1085,25 @@ fn run_local_historical_snapshot_campaign(
                     result.replay_result_v2.momentum.anchor_status
                 );
                 println!(
+                    "momentum_opinion_digest={}",
+                    result
+                        .replay_result_v2
+                        .momentum
+                        .sealed_opinion
+                        .as_ref()
+                        .map(|pair| pair.0.opinion_digest_v1.as_str())
+                        .unwrap_or("")
+                );
+                println!(
+                    "momentum_seal_digest={}",
+                    result
+                        .replay_result_v2
+                        .momentum
+                        .seal_digest
+                        .as_deref()
+                        .unwrap_or("")
+                );
+                println!(
                     "risk_execution_health={:?}",
                     result
                         .replay_result_v2
@@ -1086,6 +1127,26 @@ fn run_local_historical_snapshot_campaign(
                         .execution_trace
                         .operational_shadow_result
                 );
+                println!(
+                    "risk_opinion_digest={}",
+                    result
+                        .replay_result_v2
+                        .risk
+                        .sealed_opinion
+                        .as_ref()
+                        .map(|pair| pair.0.opinion_digest_v1.as_str())
+                        .unwrap_or("")
+                );
+                println!(
+                    "risk_seal_digest={}",
+                    result
+                        .replay_result_v2
+                        .risk
+                        .seal_digest
+                        .as_deref()
+                        .unwrap_or("")
+                );
+                println!("pair_eligible={}", result.replay_result_v2.pair_eligible);
                 println!(
                     "momentum_trace_digest={}",
                     result
@@ -1121,6 +1182,20 @@ fn run_local_historical_snapshot_campaign(
             println!(
                 "aggregate_composed={}",
                 aggregate.replay_aggregate_v2.full_aggregate_composed
+            );
+            println!(
+                "relationships={}",
+                aggregate
+                    .replay_aggregate_v2
+                    .relationships
+                    .iter()
+                    .map(|value| format!("{value:?}"))
+                    .collect::<Vec<_>>()
+                    .join(":")
+            );
+            println!(
+                "transcript_digests={}",
+                aggregate.replay_aggregate_v2.transcript_digests.join(":")
             );
             println!("aggregate_digest_v3={}", aggregate.aggregate_digest_v3);
             println!("ledger_digest_v3={}", ledger.ledger_digest_v3);

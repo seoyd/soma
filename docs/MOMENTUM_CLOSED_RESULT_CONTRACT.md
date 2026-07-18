@@ -73,3 +73,17 @@ unchanged pre-closure results, Scope 0 non-regression, and no result-dependent
 model change. It remains offline and advisory-only: all provider, transport,
 network-consent, and credential counters are zero; no Chair, vote, reward,
 penalty, promotion, or execution authority is created.
+
+## Corrected V3 replay
+
+The corrected replay reopened the registration and replayed both exact scopes
+twice. The text reports were byte-identical. The Scope 0 pre-closure digest,
+completed execution health, `BaselineStronger` outcome, abstaining operational
+result, anchor status, sealed opinion digest, and sealed risk counterpart stayed
+stable. Its two no-signal/checkpoint counts remain `0` and `2`, so the removed
+cross-window condition is not applicable to the control scope.
+
+Scope 1 retained pre-closure digest `bc840c1a4f5cfe00` and completed closure with
+the immutable campaign verdict mapped to `ValidationSignalOutOfSupport` and
+`ShadowAbstainOutOfSupport`. It materialized anchors and a sealed source-bound
+abstention opinion without creating a predictive version, action, or authority.

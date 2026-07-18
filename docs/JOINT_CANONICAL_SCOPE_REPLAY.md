@@ -47,3 +47,20 @@ cross-window validator condition. It requires unchanged scope ranges and
 participant configurations, unchanged pre-closure results, Scope 0
 non-regression, and no result-dependent model changes. It creates no authority
 and performs no provider, transport, network-consent, or credential operation.
+
+## Sprint 60 corrected V3 result
+
+The reopened V3 registration replayed the two exact scopes twice with
+byte-identical text output. The V3 aggregate digest was `eba16aa68b7d84b2` and
+the V3 ledger digest was `1850657f464e149b`. JSON agreed semantically with the
+text report.
+
+| Scope | Momentum | Momentum anchor | Cycle/Risk | Pair relationship |
+| --- | --- | --- | --- | --- |
+| `joint-scope-0` | `Completed` / `BaselineStronger` / `ShadowAbstainInsufficientEvidence` | `Complete` | `Completed` / `BaselineStronger` / `ShadowAbstainInsufficientEvidence` | `BothAbstained` |
+| `joint-scope-1` | `Completed` / `ValidationSignalOutOfSupport` / `ShadowAbstainOutOfSupport` | `Complete` | `Completed` / `UsableValidationSignal` / `ShadowPredictionResearchOnly` | `MomentumAbstained` |
+
+Both scopes formed independently sealed, source-bound pairs. The replay produced
+four opinions, two pairs, and two retrospective two-round actionless
+deliberations. The relationship-only aggregate was composed; it selected no
+winner, action, Chair decision, vote, reward, penalty, promotion, or execution.
