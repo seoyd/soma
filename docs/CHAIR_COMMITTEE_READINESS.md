@@ -1,30 +1,36 @@
-# Chair and Committee Readiness
+# Chair Committee Readiness: Observation Boundary
 
-Sprint 59 separates readiness for the Chair and the Trinity committee so the repo can explain *why* the paper-only loop is considered stable enough for review.
+## Current status
 
-## Chair readiness
+The active committee remains three historical, advisory-only participants. The
+shadow observation inbox does not make the committee decision-ready. It is a
+sanitized retrospective view of completed learned deliberations, with all
+Chair, vote, reward, speaking-right, risk-handoff, and execution authority
+disabled.
 
-Chair readiness requires:
+## What is observable
 
-1. selected-speaker trace
-2. filtered-speaker trace
-3. weighted score
-4. uncertainty / disagreement evidence
-5. groupthink warning field availability
-6. explicit risk handoff
-7. veto respected
-8. no-bypass proof
+- completed V3 registration, aggregate, and ledger identities;
+- source-bound opinion and seal references;
+- two-round retrospective deliberation transcript references;
+- relationship categories, abstention counts, scope caveats, and uncertainty
+  categories.
 
-If risk handoff is missing or bypass is detected, readiness is blocked.
+## What remains unavailable
 
-## Trinity readiness
+- no `ChairEngine` evaluation;
+- no `InvestorVote`, `ChairInput`, `SignalOutput`, `TradeProposal`, or
+  `ChairOutput` adapter;
+- no speaker selection, council score, decision, or size multiplier;
+- no reward, penalty, speaking-right change, risk handoff, broker call, order,
+  or execution;
+- no prospective, live, profitability, voting, or decision-readiness claim.
 
-Trinity readiness requires the exact three active personas:
+## Readiness interpretation
 
-1. `trend_breakout_fast`
-2. `defensive_value_risk`
-3. `cycle_regime_guard`
-
-The review blocks if one is missing or if any extra active persona appears. The report also checks vote-cycle visibility, committee work evidence, candidate generation, operational-loop presence, and reason-code output.
-
-The result still means **paper-only committee monitoring**. It does not justify six/twelve/eighteen persona expansion, runtime LLM judgment, or live deployment.
+The only readiness established here is observation-readiness for verified,
+historical development artifacts. The firewall proof and zero counters show
+that consuming this view leaves the existing committee and all external action
+paths unchanged. Any future decision-capable work would require a separately
+specified authority model and independent prospective evidence; neither is
+implemented by this boundary.

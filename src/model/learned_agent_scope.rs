@@ -2,6 +2,8 @@
 
 use std::{fs, path::Path};
 
+use serde::{Deserialize, Serialize};
+
 use crate::{
     core::stable_hash_string,
     data::{
@@ -7164,6 +7166,896 @@ pub fn read_source_bound_shadow_ledger_record_v1(
     Ok(record)
 }
 
+/// A deliberately narrow, retrospective-only representation of the V3 replay.
+///
+/// This module intentionally does not depend on Chair runtime types. The packet is
+/// therefore not adaptable to a vote, Chair input, signal, proposal, or output.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChairObservationEvidenceClassV0 {
+    RetrospectiveDevelopmentOnly,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ChairShadowObservationAuthorityV0 {
+    pub advisory_only: bool,
+    pub observation_only: bool,
+    pub chair_decision_allowed: bool,
+    pub vote_allowed: bool,
+    pub speaker_selection_allowed: bool,
+    pub reward_or_penalty_allowed: bool,
+    pub speaking_right_change_allowed: bool,
+    pub risk_handoff_allowed: bool,
+    pub execution_allowed: bool,
+}
+
+impl ChairShadowObservationAuthorityV0 {
+    pub fn retrospective_observation_only() -> Self {
+        Self {
+            advisory_only: true,
+            observation_only: true,
+            chair_decision_allowed: false,
+            vote_allowed: false,
+            speaker_selection_allowed: false,
+            reward_or_penalty_allowed: false,
+            speaking_right_change_allowed: false,
+            risk_handoff_allowed: false,
+            execution_allowed: false,
+        }
+    }
+
+    fn is_exact_retrospective_observation_only(&self) -> bool {
+        self == &Self::retrospective_observation_only()
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ChairShadowObservationPacketV0 {
+    pub packet_version: String,
+    pub source_replay_version: String,
+    pub source_registration_digest: String,
+    pub source_ledger_digest: String,
+    pub source_aggregate_digest: String,
+    pub opinion_ids: Vec<String>,
+    pub opinion_seal_digests: Vec<String>,
+    pub relationship_digests: Vec<String>,
+    pub transcript_digests: Vec<String>,
+    pub evidence_class: ChairObservationEvidenceClassV0,
+    pub retrospective_only: bool,
+    pub prospective: bool,
+    pub authority: ChairShadowObservationAuthorityV0,
+    pub packet_digest: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChairObservationReceiptStatusV0 {
+    AcceptedRetrospectiveObservationOnly,
+    InvalidRegistration,
+    InvalidLedger,
+    InvalidAggregate,
+    InvalidOpinionSeal,
+    InvalidTranscript,
+    AuthorityViolation,
+    ProspectiveClaimForbidden,
+    DuplicatePacket,
+    TechnicalFailure,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChairObservedRelationshipCategoryV0 {
+    BothAbstained,
+    MomentumAbstained,
+    RiskAbstained,
+    Tension,
+    Orthogonal,
+    Incomparable,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ChairObservedRelationshipCountV0 {
+    pub category: ChairObservedRelationshipCategoryV0,
+    pub count: usize,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChairObservationUncertaintyCategoryV0 {
+    RetrospectiveDevelopmentOnly,
+    AbstentionObserved,
+    NoDecisionAuthority,
+    NoExecutionAuthority,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ChairObservationUncertaintyV0 {
+    pub category: ChairObservationUncertaintyCategoryV0,
+    pub present: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ChairShadowObservationReceiptV0 {
+    pub receipt_version: String,
+    pub packet_digest: String,
+    pub status: ChairObservationReceiptStatusV0,
+    pub observed_agent_ids: Vec<String>,
+    pub observed_objectives: Vec<String>,
+    pub observed_scope_count: usize,
+    pub observed_opinion_count: usize,
+    pub observed_abstention_count: usize,
+    pub relationship_summary: Vec<ChairObservedRelationshipCountV0>,
+    pub scope_caveats: Vec<String>,
+    pub uncertainty_flags: Vec<ChairObservationUncertaintyV0>,
+    pub source_aggregate_digest: String,
+    pub source_ledger_digest: String,
+    pub chair_runtime_invocations: usize,
+    pub chair_decisions_created: usize,
+    pub votes_created: usize,
+    pub rewards_created: usize,
+    pub penalties_created: usize,
+    pub speaking_right_changes: usize,
+    pub risk_handoffs: usize,
+    pub executions_created: usize,
+    pub receipt_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ChairShadowObservationInboxV0 {
+    pub inbox_version: String,
+    pub packets: Vec<ChairShadowObservationPacketV0>,
+    pub accepted_packet_ids: Vec<String>,
+    pub rejected_packet_ids: Vec<String>,
+    pub chair_runtime_invocations: usize,
+    pub chair_decisions_created: usize,
+    pub votes_created: usize,
+    pub rewards_created: usize,
+    pub penalties_created: usize,
+    pub speaking_right_changes: usize,
+    pub risk_handoffs: usize,
+    pub executions_created: usize,
+    pub inbox_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ChairShadowDecisionFirewallProofV0 {
+    pub packet_cannot_become_vote: bool,
+    pub packet_cannot_become_chair_input: bool,
+    pub chair_engine_not_invoked: bool,
+    pub speaker_selection_not_invoked: bool,
+    pub council_score_not_computed: bool,
+    pub decision_not_created: bool,
+    pub size_multiplier_not_created: bool,
+    pub risk_handoff_not_created: bool,
+    pub execution_not_created: bool,
+    pub all_invariants_pass: bool,
+    pub proof_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ChairShadowObservationStorageV0 {
+    pub storage_version: String,
+    pub inbox: ChairShadowObservationInboxV0,
+    pub receipts: Vec<ChairShadowObservationReceiptV0>,
+    pub firewall_proofs: Vec<ChairShadowDecisionFirewallProofV0>,
+    pub storage_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ChairShadowObservationReportV0 {
+    pub report_version: String,
+    pub offline: bool,
+    pub active_committee_count: usize,
+    pub packet: ChairShadowObservationPacketV0,
+    pub inbox: ChairShadowObservationInboxV0,
+    pub receipt: ChairShadowObservationReceiptV0,
+    pub firewall_proof: ChairShadowDecisionFirewallProofV0,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ChairShadowObservationEvidenceV0 {
+    registration: JointCanonicalScopeReplayRegistrationV3,
+    results: Vec<JointScopeReplayResultV3>,
+    aggregate: JointScopeReplayAggregateV3,
+    ledger: JointScopeReplayLedgerV3,
+}
+
+fn chair_relationship_category_v0(
+    relationship: JointScopeRelationshipV2,
+) -> ChairObservedRelationshipCategoryV0 {
+    match relationship {
+        JointScopeRelationshipV2::BothAbstained => {
+            ChairObservedRelationshipCategoryV0::BothAbstained
+        }
+        JointScopeRelationshipV2::MomentumAbstained => {
+            ChairObservedRelationshipCategoryV0::MomentumAbstained
+        }
+        JointScopeRelationshipV2::RiskAbstained => {
+            ChairObservedRelationshipCategoryV0::RiskAbstained
+        }
+        JointScopeRelationshipV2::Tension => ChairObservedRelationshipCategoryV0::Tension,
+        JointScopeRelationshipV2::Orthogonal => ChairObservedRelationshipCategoryV0::Orthogonal,
+        JointScopeRelationshipV2::Incomparable => ChairObservedRelationshipCategoryV0::Incomparable,
+    }
+}
+
+fn chair_relationship_digest_v0(value: &JointScopeDeliberationV2) -> String {
+    joint_v3_digest(&[
+        "chair-shadow-observed-relationship-v0".into(),
+        value.joint_scope_id.clone(),
+        value.mapping_pair_digest_v1.clone(),
+        format!("{:?}", value.relationship),
+        value.transcript_digest_v2.clone(),
+    ])
+}
+
+fn chair_packet_digest_v0(value: &ChairShadowObservationPacketV0) -> String {
+    joint_v3_digest(&[
+        value.packet_version.clone(),
+        value.source_replay_version.clone(),
+        value.source_registration_digest.clone(),
+        value.source_ledger_digest.clone(),
+        value.source_aggregate_digest.clone(),
+        value.opinion_ids.join(":"),
+        value.opinion_seal_digests.join(":"),
+        value.relationship_digests.join(":"),
+        value.transcript_digests.join(":"),
+        format!("{:?}", value.evidence_class),
+        value.retrospective_only.to_string(),
+        value.prospective.to_string(),
+        value.authority.advisory_only.to_string(),
+        value.authority.observation_only.to_string(),
+        value.authority.chair_decision_allowed.to_string(),
+        value.authority.vote_allowed.to_string(),
+        value.authority.speaker_selection_allowed.to_string(),
+        value.authority.reward_or_penalty_allowed.to_string(),
+        value.authority.speaking_right_change_allowed.to_string(),
+        value.authority.risk_handoff_allowed.to_string(),
+        value.authority.execution_allowed.to_string(),
+    ])
+}
+
+fn chair_inbox_digest_v0(value: &ChairShadowObservationInboxV0) -> String {
+    joint_v3_digest(&[
+        value.inbox_version.clone(),
+        value
+            .packets
+            .iter()
+            .map(|packet| packet.packet_digest.clone())
+            .collect::<Vec<_>>()
+            .join(":"),
+        value.accepted_packet_ids.join(":"),
+        value.rejected_packet_ids.join(":"),
+        value.chair_runtime_invocations.to_string(),
+        value.chair_decisions_created.to_string(),
+        value.votes_created.to_string(),
+        value.rewards_created.to_string(),
+        value.penalties_created.to_string(),
+        value.speaking_right_changes.to_string(),
+        value.risk_handoffs.to_string(),
+        value.executions_created.to_string(),
+    ])
+}
+
+fn chair_receipt_digest_v0(value: &ChairShadowObservationReceiptV0) -> String {
+    joint_v3_digest(&[
+        value.receipt_version.clone(),
+        value.packet_digest.clone(),
+        format!("{:?}", value.status),
+        value.observed_agent_ids.join(":"),
+        value.observed_objectives.join(":"),
+        value.observed_scope_count.to_string(),
+        value.observed_opinion_count.to_string(),
+        value.observed_abstention_count.to_string(),
+        value
+            .relationship_summary
+            .iter()
+            .map(|item| format!("{:?}:{}", item.category, item.count))
+            .collect::<Vec<_>>()
+            .join(":"),
+        value.scope_caveats.join(":"),
+        value
+            .uncertainty_flags
+            .iter()
+            .map(|item| format!("{:?}:{}", item.category, item.present))
+            .collect::<Vec<_>>()
+            .join(":"),
+        value.source_aggregate_digest.clone(),
+        value.source_ledger_digest.clone(),
+        value.chair_runtime_invocations.to_string(),
+        value.chair_decisions_created.to_string(),
+        value.votes_created.to_string(),
+        value.rewards_created.to_string(),
+        value.penalties_created.to_string(),
+        value.speaking_right_changes.to_string(),
+        value.risk_handoffs.to_string(),
+        value.executions_created.to_string(),
+    ])
+}
+
+fn chair_firewall_proof_v0() -> ChairShadowDecisionFirewallProofV0 {
+    let mut proof = ChairShadowDecisionFirewallProofV0 {
+        packet_cannot_become_vote: true,
+        packet_cannot_become_chair_input: true,
+        chair_engine_not_invoked: true,
+        speaker_selection_not_invoked: true,
+        council_score_not_computed: true,
+        decision_not_created: true,
+        size_multiplier_not_created: true,
+        risk_handoff_not_created: true,
+        execution_not_created: true,
+        all_invariants_pass: true,
+        proof_digest: String::new(),
+    };
+    proof.proof_digest = joint_v3_digest(&[
+        "chair-shadow-decision-firewall-proof-v0".into(),
+        proof.packet_cannot_become_vote.to_string(),
+        proof.packet_cannot_become_chair_input.to_string(),
+        proof.chair_engine_not_invoked.to_string(),
+        proof.speaker_selection_not_invoked.to_string(),
+        proof.council_score_not_computed.to_string(),
+        proof.decision_not_created.to_string(),
+        proof.size_multiplier_not_created.to_string(),
+        proof.risk_handoff_not_created.to_string(),
+        proof.execution_not_created.to_string(),
+        proof.all_invariants_pass.to_string(),
+    ]);
+    proof
+}
+
+fn chair_storage_digest_v0(value: &ChairShadowObservationStorageV0) -> String {
+    joint_v3_digest(&[
+        value.storage_version.clone(),
+        value.inbox.inbox_digest.clone(),
+        value
+            .receipts
+            .iter()
+            .map(|receipt| receipt.receipt_digest.clone())
+            .collect::<Vec<_>>()
+            .join(":"),
+        value
+            .firewall_proofs
+            .iter()
+            .map(|proof| proof.proof_digest.clone())
+            .collect::<Vec<_>>()
+            .join(":"),
+    ])
+}
+
+pub fn new_chair_shadow_observation_inbox_v0() -> ChairShadowObservationInboxV0 {
+    let mut inbox = ChairShadowObservationInboxV0 {
+        inbox_version: "chair-shadow-observation-inbox-v0".into(),
+        packets: vec![],
+        accepted_packet_ids: vec![],
+        rejected_packet_ids: vec![],
+        chair_runtime_invocations: 0,
+        chair_decisions_created: 0,
+        votes_created: 0,
+        rewards_created: 0,
+        penalties_created: 0,
+        speaking_right_changes: 0,
+        risk_handoffs: 0,
+        executions_created: 0,
+        inbox_digest: String::new(),
+    };
+    inbox.inbox_digest = chair_inbox_digest_v0(&inbox);
+    inbox
+}
+
+fn chair_source_bindings_v0(
+    evidence: &ChairShadowObservationEvidenceV0,
+) -> Result<Vec<(String, String, String, String, bool)>, String> {
+    let registration = SourceBoundOpinionProtocolRegistrationV1::pre_registered();
+    let mut bindings = Vec::new();
+    for result in &evidence.results {
+        for participant in [
+            &result.replay_result_v2.momentum,
+            &result.replay_result_v2.risk,
+        ] {
+            let (opinion, seal) = participant
+                .sealed_opinion
+                .as_ref()
+                .ok_or("chair_shadow_observation_missing_sealed_opinion")?;
+            let expected_seal = source_bound_seal_v1(
+                &opinion.opinion_id,
+                &opinion.opinion_digest_v1,
+                &opinion.source_result,
+                &registration,
+                &opinion.authority,
+            )?;
+            if participant.opinion_id.as_deref() != Some(opinion.opinion_id.as_str())
+                || participant.seal_digest.as_deref() != Some(seal.seal_digest_v1.as_str())
+                || !opinion.sealed
+                || opinion.temporal_scope.prospective
+                || opinion.temporal_scope.contemporaneous_claim
+                || opinion.authority != OpinionAuthorityV1::historical_advisory_only()
+                || seal != &expected_seal
+            {
+                return Err("chair_shadow_observation_opinion_or_seal_invalid".into());
+            }
+            let abstained = !matches!(
+                participant.execution_trace.operational_shadow_result,
+                JointParticipantOperationalShadowResultV2::ShadowPredictionResearchOnly
+            );
+            bindings.push((
+                opinion.opinion_id.clone(),
+                seal.seal_digest_v1.clone(),
+                opinion.agent_id.clone(),
+                format!("{:?}", opinion.objective),
+                abstained,
+            ));
+        }
+    }
+    bindings.sort_by(|left, right| left.0.cmp(&right.0));
+    if bindings.windows(2).any(|pair| pair[0].0 == pair[1].0) {
+        return Err("chair_shadow_observation_duplicate_opinion".into());
+    }
+    Ok(bindings)
+}
+
+fn chair_transcripts_are_valid_v0(evidence: &ChairShadowObservationEvidenceV0) -> bool {
+    let aggregate = &evidence.aggregate.replay_aggregate_v2;
+    aggregate.deliberations.len() == evidence.results.len()
+        && aggregate.transcript_digests.len() == aggregate.deliberations.len()
+        && aggregate
+            .deliberations
+            .iter()
+            .zip(&aggregate.transcript_digests)
+            .all(|(deliberation, digest)| {
+                deliberation.deliberation_version == "joint-scope-deliberation-v2"
+                    && deliberation.round_count == 2
+                    && deliberation.retrospective_only
+                    && !deliberation.chair_observed
+                    && !deliberation.vote_created
+                    && !deliberation.reward_created
+                    && !deliberation.penalty_created
+                    && !deliberation.execution_created
+                    && deliberation.transcript_digest_v2 == *digest
+            })
+        && aggregate
+            .deliberations
+            .windows(2)
+            .all(|pair| pair[0].joint_scope_id < pair[1].joint_scope_id)
+}
+
+fn chair_evidence_validation_status_v0(
+    evidence: &ChairShadowObservationEvidenceV0,
+) -> Result<(), ChairObservationReceiptStatusV0> {
+    if evidence.registration.registration_version != "joint-canonical-scope-replay-registration-v3"
+        || evidence.registration.registration_digest_v3
+            != joint_v3_registration_digest(&evidence.registration)
+    {
+        return Err(ChairObservationReceiptStatusV0::InvalidRegistration);
+    }
+    let (expected_aggregate, expected_ledger) =
+        aggregate_joint_scope_replays_v3(&evidence.registration, &evidence.results)
+            .map_err(|_| ChairObservationReceiptStatusV0::InvalidAggregate)?;
+    if evidence.aggregate != expected_aggregate {
+        return Err(ChairObservationReceiptStatusV0::InvalidAggregate);
+    }
+    if validate_joint_scope_replay_ledger_v3(&evidence.ledger).is_err()
+        || evidence.ledger != expected_ledger
+    {
+        return Err(ChairObservationReceiptStatusV0::InvalidLedger);
+    }
+    if chair_source_bindings_v0(evidence).is_err() {
+        return Err(ChairObservationReceiptStatusV0::InvalidOpinionSeal);
+    }
+    if !chair_transcripts_are_valid_v0(evidence) {
+        return Err(ChairObservationReceiptStatusV0::InvalidTranscript);
+    }
+    Ok(())
+}
+
+pub fn chair_shadow_observation_evidence_v0(
+    registration: JointCanonicalScopeReplayRegistrationV3,
+    results: Vec<JointScopeReplayResultV3>,
+    aggregate: JointScopeReplayAggregateV3,
+    ledger: JointScopeReplayLedgerV3,
+) -> Result<ChairShadowObservationEvidenceV0, String> {
+    let evidence = ChairShadowObservationEvidenceV0 {
+        registration,
+        results,
+        aggregate,
+        ledger,
+    };
+    chair_evidence_validation_status_v0(&evidence)
+        .map_err(|status| format!("chair_shadow_observation_evidence_{status:?}"))?;
+    Ok(evidence)
+}
+
+pub fn chair_shadow_observation_packet_v0(
+    evidence: &ChairShadowObservationEvidenceV0,
+) -> Result<ChairShadowObservationPacketV0, String> {
+    chair_evidence_validation_status_v0(evidence)
+        .map_err(|status| format!("chair_shadow_observation_packet_{status:?}"))?;
+    let bindings = chair_source_bindings_v0(evidence)?;
+    let mut relationship_digests = evidence
+        .aggregate
+        .replay_aggregate_v2
+        .deliberations
+        .iter()
+        .map(chair_relationship_digest_v0)
+        .collect::<Vec<_>>();
+    relationship_digests.sort();
+    let mut transcript_digests = evidence.ledger.deliberation_transcript_digests.clone();
+    transcript_digests.sort();
+    let mut packet = ChairShadowObservationPacketV0 {
+        packet_version: "chair-shadow-observation-packet-v0".into(),
+        source_replay_version: "joint-canonical-scope-replay-v3".into(),
+        source_registration_digest: evidence.registration.registration_digest_v3.clone(),
+        source_ledger_digest: evidence.ledger.ledger_digest_v3.clone(),
+        source_aggregate_digest: evidence.aggregate.aggregate_digest_v3.clone(),
+        opinion_ids: bindings.iter().map(|binding| binding.0.clone()).collect(),
+        opinion_seal_digests: bindings.iter().map(|binding| binding.1.clone()).collect(),
+        relationship_digests,
+        transcript_digests,
+        evidence_class: ChairObservationEvidenceClassV0::RetrospectiveDevelopmentOnly,
+        retrospective_only: true,
+        prospective: false,
+        authority: ChairShadowObservationAuthorityV0::retrospective_observation_only(),
+        packet_digest: String::new(),
+    };
+    packet.packet_digest = chair_packet_digest_v0(&packet);
+    Ok(packet)
+}
+
+fn chair_receipt_v0(
+    packet: &ChairShadowObservationPacketV0,
+    evidence: &ChairShadowObservationEvidenceV0,
+    status: ChairObservationReceiptStatusV0,
+) -> ChairShadowObservationReceiptV0 {
+    let bindings = chair_source_bindings_v0(evidence).unwrap_or_default();
+    let mut observed_agent_ids = bindings
+        .iter()
+        .map(|binding| binding.2.clone())
+        .collect::<Vec<_>>();
+    observed_agent_ids.sort();
+    observed_agent_ids.dedup();
+    let mut observed_objectives = bindings
+        .iter()
+        .map(|binding| binding.3.clone())
+        .collect::<Vec<_>>();
+    observed_objectives.sort();
+    observed_objectives.dedup();
+    let relationships = &evidence.aggregate.replay_aggregate_v2.relationships;
+    let relationship_summary = [
+        ChairObservedRelationshipCategoryV0::BothAbstained,
+        ChairObservedRelationshipCategoryV0::MomentumAbstained,
+        ChairObservedRelationshipCategoryV0::RiskAbstained,
+        ChairObservedRelationshipCategoryV0::Tension,
+        ChairObservedRelationshipCategoryV0::Orthogonal,
+        ChairObservedRelationshipCategoryV0::Incomparable,
+    ]
+    .into_iter()
+    .filter_map(|category| {
+        let count = relationships
+            .iter()
+            .filter(|relationship| chair_relationship_category_v0(**relationship) == category)
+            .count();
+        (count > 0).then_some(ChairObservedRelationshipCountV0 { category, count })
+    })
+    .collect::<Vec<_>>();
+    let scope_caveats = evidence
+        .aggregate
+        .replay_aggregate_v2
+        .deliberations
+        .iter()
+        .map(|deliberation| {
+            format!(
+                "{}:{:?}:retrospective-two-round-observation-only",
+                deliberation.joint_scope_id, deliberation.relationship
+            )
+        })
+        .collect::<Vec<_>>();
+    let observed_abstention_count = bindings.iter().filter(|binding| binding.4).count();
+    let mut receipt = ChairShadowObservationReceiptV0 {
+        receipt_version: "chair-shadow-observation-receipt-v0".into(),
+        packet_digest: packet.packet_digest.clone(),
+        status,
+        observed_agent_ids,
+        observed_objectives,
+        observed_scope_count: evidence.results.len(),
+        observed_opinion_count: bindings.len(),
+        observed_abstention_count,
+        relationship_summary,
+        scope_caveats,
+        uncertainty_flags: vec![
+            ChairObservationUncertaintyV0 {
+                category: ChairObservationUncertaintyCategoryV0::RetrospectiveDevelopmentOnly,
+                present: true,
+            },
+            ChairObservationUncertaintyV0 {
+                category: ChairObservationUncertaintyCategoryV0::AbstentionObserved,
+                present: observed_abstention_count > 0,
+            },
+            ChairObservationUncertaintyV0 {
+                category: ChairObservationUncertaintyCategoryV0::NoDecisionAuthority,
+                present: true,
+            },
+            ChairObservationUncertaintyV0 {
+                category: ChairObservationUncertaintyCategoryV0::NoExecutionAuthority,
+                present: true,
+            },
+        ],
+        source_aggregate_digest: evidence.aggregate.aggregate_digest_v3.clone(),
+        source_ledger_digest: evidence.ledger.ledger_digest_v3.clone(),
+        chair_runtime_invocations: 0,
+        chair_decisions_created: 0,
+        votes_created: 0,
+        rewards_created: 0,
+        penalties_created: 0,
+        speaking_right_changes: 0,
+        risk_handoffs: 0,
+        executions_created: 0,
+        receipt_digest: String::new(),
+    };
+    receipt.receipt_digest = chair_receipt_digest_v0(&receipt);
+    receipt
+}
+
+fn chair_packet_validation_status_v0(
+    packet: &ChairShadowObservationPacketV0,
+    evidence: &ChairShadowObservationEvidenceV0,
+) -> Result<(), ChairObservationReceiptStatusV0> {
+    chair_evidence_validation_status_v0(evidence)?;
+    if packet.prospective || !packet.retrospective_only {
+        return Err(ChairObservationReceiptStatusV0::ProspectiveClaimForbidden);
+    }
+    if !packet.authority.is_exact_retrospective_observation_only() {
+        return Err(ChairObservationReceiptStatusV0::AuthorityViolation);
+    }
+    let expected = chair_shadow_observation_packet_v0(evidence)
+        .map_err(|_| ChairObservationReceiptStatusV0::TechnicalFailure)?;
+    if packet.packet_version != expected.packet_version
+        || packet.source_replay_version != expected.source_replay_version
+        || packet.source_registration_digest != expected.source_registration_digest
+    {
+        return Err(ChairObservationReceiptStatusV0::InvalidRegistration);
+    }
+    if packet.source_ledger_digest != expected.source_ledger_digest {
+        return Err(ChairObservationReceiptStatusV0::InvalidLedger);
+    }
+    if packet.source_aggregate_digest != expected.source_aggregate_digest {
+        return Err(ChairObservationReceiptStatusV0::InvalidAggregate);
+    }
+    if packet.opinion_ids != expected.opinion_ids
+        || packet.opinion_seal_digests != expected.opinion_seal_digests
+    {
+        return Err(ChairObservationReceiptStatusV0::InvalidOpinionSeal);
+    }
+    if packet.relationship_digests != expected.relationship_digests
+        || packet.transcript_digests != expected.transcript_digests
+    {
+        return Err(ChairObservationReceiptStatusV0::InvalidTranscript);
+    }
+    if packet.evidence_class != expected.evidence_class
+        || packet.packet_digest != chair_packet_digest_v0(packet)
+        || packet.packet_digest != expected.packet_digest
+    {
+        return Err(ChairObservationReceiptStatusV0::TechnicalFailure);
+    }
+    Ok(())
+}
+
+pub fn intake_chair_shadow_observation_packet_v0(
+    inbox: &mut ChairShadowObservationInboxV0,
+    packet: &ChairShadowObservationPacketV0,
+    evidence: &ChairShadowObservationEvidenceV0,
+) -> ChairShadowObservationReceiptV0 {
+    let action_counters_clear = inbox.chair_runtime_invocations == 0
+        && inbox.chair_decisions_created == 0
+        && inbox.votes_created == 0
+        && inbox.rewards_created == 0
+        && inbox.penalties_created == 0
+        && inbox.speaking_right_changes == 0
+        && inbox.risk_handoffs == 0
+        && inbox.executions_created == 0;
+    let status = if !action_counters_clear || inbox.inbox_digest != chair_inbox_digest_v0(inbox) {
+        ChairObservationReceiptStatusV0::TechnicalFailure
+    } else if inbox
+        .packets
+        .iter()
+        .any(|existing| existing.packet_digest == packet.packet_digest)
+        || inbox
+            .rejected_packet_ids
+            .iter()
+            .any(|existing| existing == &packet.packet_digest)
+    {
+        ChairObservationReceiptStatusV0::DuplicatePacket
+    } else {
+        match chair_packet_validation_status_v0(packet, evidence) {
+            Ok(()) => ChairObservationReceiptStatusV0::AcceptedRetrospectiveObservationOnly,
+            Err(status) => status,
+        }
+    };
+    if status == ChairObservationReceiptStatusV0::AcceptedRetrospectiveObservationOnly {
+        inbox.packets.push(packet.clone());
+        inbox.accepted_packet_ids.push(packet.packet_digest.clone());
+    } else if !inbox
+        .rejected_packet_ids
+        .iter()
+        .any(|existing| existing == &packet.packet_digest)
+    {
+        inbox.rejected_packet_ids.push(packet.packet_digest.clone());
+    }
+    inbox.inbox_digest = chair_inbox_digest_v0(inbox);
+    chair_receipt_v0(packet, evidence, status)
+}
+
+pub fn observe_chair_shadow_observation_v0(
+    evidence: &ChairShadowObservationEvidenceV0,
+) -> Result<ChairShadowObservationReportV0, String> {
+    let packet = chair_shadow_observation_packet_v0(evidence)?;
+    let mut inbox = new_chair_shadow_observation_inbox_v0();
+    let receipt = intake_chair_shadow_observation_packet_v0(&mut inbox, &packet, evidence);
+    if receipt.status != ChairObservationReceiptStatusV0::AcceptedRetrospectiveObservationOnly {
+        return Err(format!(
+            "chair_shadow_observation_intake_{:?}",
+            receipt.status
+        ));
+    }
+    Ok(ChairShadowObservationReportV0 {
+        report_version: "chair-shadow-observation-report-v0".into(),
+        offline: true,
+        active_committee_count: 3,
+        packet,
+        inbox,
+        receipt,
+        firewall_proof: chair_firewall_proof_v0(),
+    })
+}
+
+fn chair_receipt_is_valid_v0(value: &ChairShadowObservationReceiptV0) -> bool {
+    value.receipt_version == "chair-shadow-observation-receipt-v0"
+        && value.chair_runtime_invocations == 0
+        && value.chair_decisions_created == 0
+        && value.votes_created == 0
+        && value.rewards_created == 0
+        && value.penalties_created == 0
+        && value.speaking_right_changes == 0
+        && value.risk_handoffs == 0
+        && value.executions_created == 0
+        && value.receipt_digest == chair_receipt_digest_v0(value)
+}
+
+fn chair_inbox_is_valid_v0(value: &ChairShadowObservationInboxV0) -> bool {
+    value.inbox_version == "chair-shadow-observation-inbox-v0"
+        && value.chair_runtime_invocations == 0
+        && value.chair_decisions_created == 0
+        && value.votes_created == 0
+        && value.rewards_created == 0
+        && value.penalties_created == 0
+        && value.speaking_right_changes == 0
+        && value.risk_handoffs == 0
+        && value.executions_created == 0
+        && value
+            .packets
+            .iter()
+            .all(|packet| packet.packet_digest == chair_packet_digest_v0(packet))
+        && value.accepted_packet_ids
+            == value
+                .packets
+                .iter()
+                .map(|packet| packet.packet_digest.clone())
+                .collect::<Vec<_>>()
+        && value.inbox_digest == chair_inbox_digest_v0(value)
+}
+
+pub fn validate_chair_shadow_observation_storage_v0(
+    storage: &ChairShadowObservationStorageV0,
+) -> Result<(), String> {
+    if storage.storage_version != "chair-shadow-observation-storage-v0"
+        || !chair_inbox_is_valid_v0(&storage.inbox)
+        || storage.receipts.len() != storage.inbox.packets.len()
+        || storage.firewall_proofs.len() != storage.inbox.packets.len()
+        || storage
+            .receipts
+            .iter()
+            .zip(&storage.inbox.packets)
+            .any(|(receipt, packet)| {
+                !chair_receipt_is_valid_v0(receipt)
+                    || receipt.status
+                        != ChairObservationReceiptStatusV0::AcceptedRetrospectiveObservationOnly
+                    || receipt.packet_digest != packet.packet_digest
+            })
+        || storage
+            .firewall_proofs
+            .iter()
+            .any(|proof| proof != &chair_firewall_proof_v0())
+        || storage.storage_digest != chair_storage_digest_v0(storage)
+    {
+        return Err("chair_shadow_observation_storage_invalid".into());
+    }
+    Ok(())
+}
+
+fn new_chair_shadow_observation_storage_v0() -> ChairShadowObservationStorageV0 {
+    let mut storage = ChairShadowObservationStorageV0 {
+        storage_version: "chair-shadow-observation-storage-v0".into(),
+        inbox: new_chair_shadow_observation_inbox_v0(),
+        receipts: vec![],
+        firewall_proofs: vec![],
+        storage_digest: String::new(),
+    };
+    storage.storage_digest = chair_storage_digest_v0(&storage);
+    storage
+}
+
+fn write_chair_shadow_observation_storage_v0(
+    path: &Path,
+    storage: &ChairShadowObservationStorageV0,
+) -> Result<(), String> {
+    validate_chair_shadow_observation_storage_v0(storage)?;
+    let parent = path
+        .parent()
+        .ok_or_else(|| "chair_shadow_observation_storage_path_invalid".to_string())?;
+    fs::create_dir_all(parent).map_err(|_| "chair_shadow_observation_storage_write".to_string())?;
+    let encoded = serde_json::to_vec(storage)
+        .map_err(|_| "chair_shadow_observation_storage_write".to_string())?;
+    let temporary = path.with_extension("tmp");
+    fs::write(&temporary, encoded)
+        .map_err(|_| "chair_shadow_observation_storage_write".to_string())?;
+    fs::rename(&temporary, path).map_err(|_| "chair_shadow_observation_storage_write".to_string())
+}
+
+pub fn read_chair_shadow_observation_storage_v0(
+    path: &Path,
+) -> Result<ChairShadowObservationStorageV0, String> {
+    let encoded =
+        fs::read(path).map_err(|_| "chair_shadow_observation_storage_read".to_string())?;
+    let storage = serde_json::from_slice(&encoded)
+        .map_err(|_| "chair_shadow_observation_storage_read".to_string())?;
+    validate_chair_shadow_observation_storage_v0(&storage)?;
+    Ok(storage)
+}
+
+pub fn append_chair_shadow_observation_storage_v0(
+    path: &Path,
+    report: &ChairShadowObservationReportV0,
+) -> Result<ChairShadowObservationStorageV0, String> {
+    if !report.offline
+        || report.active_committee_count != 3
+        || !chair_inbox_is_valid_v0(&report.inbox)
+        || !chair_receipt_is_valid_v0(&report.receipt)
+        || report.receipt.status
+            != ChairObservationReceiptStatusV0::AcceptedRetrospectiveObservationOnly
+        || report.receipt.packet_digest != report.packet.packet_digest
+        || report.firewall_proof != chair_firewall_proof_v0()
+    {
+        return Err("chair_shadow_observation_storage_report_invalid".into());
+    }
+    let mut storage = if path.exists() {
+        read_chair_shadow_observation_storage_v0(path)?
+    } else {
+        new_chair_shadow_observation_storage_v0()
+    };
+    if let Some(index) = storage
+        .inbox
+        .packets
+        .iter()
+        .position(|packet| packet.packet_digest == report.packet.packet_digest)
+    {
+        if storage.receipts.get(index) == Some(&report.receipt)
+            && storage.firewall_proofs.get(index) == Some(&report.firewall_proof)
+        {
+            return Ok(storage);
+        }
+        return Err("chair_shadow_observation_storage_duplicate_conflict".into());
+    }
+    storage.inbox.packets.push(report.packet.clone());
+    storage
+        .inbox
+        .accepted_packet_ids
+        .push(report.packet.packet_digest.clone());
+    storage.inbox.inbox_digest = chair_inbox_digest_v0(&storage.inbox);
+    storage.receipts.push(report.receipt.clone());
+    storage.firewall_proofs.push(report.firewall_proof.clone());
+    storage.storage_digest = chair_storage_digest_v0(&storage);
+    write_chair_shadow_observation_storage_v0(path, &storage)?;
+    let reopened = read_chair_shadow_observation_storage_v0(path)?;
+    if reopened != storage {
+        return Err("chair_shadow_observation_storage_reopen_mismatch".into());
+    }
+    Ok(reopened)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -7873,5 +8765,452 @@ mod tests {
                 .unwrap(),
             scopes
         );
+    }
+
+    fn chair_shadow_test_participant(
+        scope: &JointCanonicalHistoricalScopeV1,
+        index: usize,
+        agent_id: &str,
+        objective: LearnedAgentObjectiveV0,
+        operational_result: JointParticipantOperationalShadowResultV2,
+    ) -> JointScopeParticipantReplayResultV2 {
+        let result_digest = format!("{agent_id}-chair-{index}");
+        let pair = source_bound_test_opinion(
+            agent_id,
+            objective,
+            &result_digest,
+            &["row-1", "row-2"],
+            &["anchor-1"],
+            scope.information_cutoff_timestamp,
+        );
+        let mut trace = new_execution_trace_v2(scope, agent_id.into(), objective);
+        trace.execution_health = JointParticipantExecutionHealthV2::Completed;
+        trace.model_evidence_outcome = if matches!(
+            operational_result,
+            JointParticipantOperationalShadowResultV2::ShadowPredictionResearchOnly
+        ) {
+            JointParticipantModelEvidenceOutcomeV2::UsableValidationSignal
+        } else {
+            JointParticipantModelEvidenceOutcomeV2::NoUsableValidationSignal
+        };
+        trace.operational_shadow_result = operational_result;
+        finish_execution_trace_v2(&mut trace);
+        let mut participant = JointScopeParticipantReplayResultV2 {
+            joint_scope_id: scope.joint_scope_id.clone(),
+            joint_scope_digest: scope.scope_digest_v1.clone(),
+            participant_agent_id: agent_id.into(),
+            objective,
+            execution_trace: trace,
+            completed_result_digest: Some(result_digest),
+            anchor_scope_digest: Some(format!("{agent_id}-anchor-scope")),
+            anchor_status: JointAnchorAuditStatusV2::Complete,
+            opinion_id: Some(pair.0.opinion_id.clone()),
+            seal_digest: Some(pair.1.seal_digest_v1.clone()),
+            sealed_opinion: Some(pair),
+            result_digest_v2: String::new(),
+        };
+        participant.result_digest_v2 = participant_result_digest_v2(&participant);
+        participant
+    }
+
+    fn chair_shadow_test_evidence() -> ChairShadowObservationEvidenceV0 {
+        let snapshot = joint_snapshot(304);
+        let campaign = MomentumLearningCampaignConfigV0::default();
+        let parent = joint_canonical_scope_registration_v2(&snapshot, &campaign).unwrap();
+        let scopes =
+            validate_joint_canonical_scope_registration_v2(&snapshot, &campaign, &parent).unwrap();
+        let audits = scopes
+            .iter()
+            .enumerate()
+            .map(|(index, scope)| MomentumClosedResultContractAuditV3 {
+                audit_version: "chair-shadow-test-audit-v3".into(),
+                joint_scope_id: scope.joint_scope_id.clone(),
+                open_result_digest: format!("open-{index}"),
+                closed_result_digest: format!("closed-{index}"),
+                regime_reference_digest: format!("regime-{index}"),
+                preclosure: MomentumPreClosureEvidenceV3 {
+                    campaign_report_digest: format!("report-{index}"),
+                    campaign_window_count: 2,
+                    final_verdict: "test".into(),
+                    no_signal_window_count: if index == 1 { 1 } else { 0 },
+                    selected_checkpoint_count: 1,
+                    support_counts: vec![1, 0, 0, 1, 0, 0, 0],
+                    encoder_digest: format!("encoder-{index}"),
+                    pack_digest: format!("pack-{index}"),
+                    derived_snapshot_digest: format!("derived-{index}"),
+                    preclosure_digest_v3: format!("preclosure-{index}"),
+                },
+                invariant_results: vec![],
+                first_failed_invariant: None,
+                validator_error: None,
+                failure_class: MomentumClosureFailureClassV3::NoFailure,
+                all_invariants_pass: true,
+                audit_digest_v3: format!("audit-{index}"),
+            })
+            .collect::<Vec<_>>();
+        let registration =
+            joint_canonical_scope_registration_v3(&snapshot, &campaign, &audits).unwrap();
+        let results = scopes
+            .iter()
+            .enumerate()
+            .map(|(index, scope)| {
+                let momentum = chair_shadow_test_participant(
+                    scope,
+                    index,
+                    "momentum",
+                    LearnedAgentObjectiveV0::DirectionalMomentum,
+                    JointParticipantOperationalShadowResultV2::ShadowAbstainNoSignal,
+                );
+                let risk = chair_shadow_test_participant(
+                    scope,
+                    index,
+                    "risk",
+                    LearnedAgentObjectiveV0::DownsideRisk,
+                    if index == 0 {
+                        JointParticipantOperationalShadowResultV2::ShadowAbstainNoSignal
+                    } else {
+                        JointParticipantOperationalShadowResultV2::ShadowPredictionResearchOnly
+                    },
+                );
+                let replay_result_v2 = JointScopeReplayResultV2 {
+                    replay_version: "joint-canonical-scope-replay-v2".into(),
+                    registration_digest_v2: parent.registration_digest_v2.clone(),
+                    joint_scope_id: scope.joint_scope_id.clone(),
+                    joint_scope_digest: scope.scope_digest_v1.clone(),
+                    derived_snapshot_id: format!("child-{index}"),
+                    derivation_digest_v2: format!("derivation-{index}"),
+                    evidence_policy_digest_v2: format!("policy-{index}"),
+                    momentum,
+                    risk,
+                    pair_eligible: true,
+                    result_digest_v2: format!("replay-{index}"),
+                };
+                JointScopeReplayResultV3 {
+                    replay_version: "joint-canonical-scope-replay-v3".into(),
+                    registration_digest_v3: registration.registration_digest_v3.clone(),
+                    joint_scope_id: scope.joint_scope_id.clone(),
+                    joint_scope_digest: scope.scope_digest_v1.clone(),
+                    preclosure_digest_v3: registration.preclosure_result_digests[index].clone(),
+                    closure_audit_digest_v3: audits[index].audit_digest_v3.clone(),
+                    parent_result_digest_v2: replay_result_v2.result_digest_v2.clone(),
+                    replay_result_v2,
+                    result_digest_v3: format!("chair-shadow-result-{index}"),
+                }
+            })
+            .collect::<Vec<_>>();
+        let (aggregate, ledger) =
+            aggregate_joint_scope_replays_v3(&registration, &results).unwrap();
+        chair_shadow_observation_evidence_v0(registration, results, aggregate, ledger).unwrap()
+    }
+
+    fn chair_shadow_test_packet() -> (
+        ChairShadowObservationEvidenceV0,
+        ChairShadowObservationPacketV0,
+    ) {
+        let evidence = chair_shadow_test_evidence();
+        let packet = chair_shadow_observation_packet_v0(&evidence).unwrap();
+        (evidence, packet)
+    }
+
+    #[test]
+    fn chair_shadow_packet_is_deterministic_and_retrospective_only() {
+        let evidence = chair_shadow_test_evidence();
+        assert_eq!(
+            chair_shadow_observation_packet_v0(&evidence).unwrap(),
+            chair_shadow_observation_packet_v0(&evidence).unwrap()
+        );
+    }
+
+    #[test]
+    fn chair_shadow_intake_accepts_verified_v3_source() {
+        let (evidence, packet) = chair_shadow_test_packet();
+        let mut inbox = new_chair_shadow_observation_inbox_v0();
+        assert_eq!(
+            intake_chair_shadow_observation_packet_v0(&mut inbox, &packet, &evidence).status,
+            ChairObservationReceiptStatusV0::AcceptedRetrospectiveObservationOnly
+        );
+    }
+
+    #[test]
+    fn chair_shadow_rejects_altered_registration() {
+        let (mut evidence, packet) = chair_shadow_test_packet();
+        evidence.registration.registration_digest_v3.push('x');
+        assert_eq!(
+            intake_chair_shadow_observation_packet_v0(
+                &mut new_chair_shadow_observation_inbox_v0(),
+                &packet,
+                &evidence
+            )
+            .status,
+            ChairObservationReceiptStatusV0::InvalidRegistration
+        );
+    }
+
+    #[test]
+    fn chair_shadow_rejects_altered_ledger() {
+        let (mut evidence, packet) = chair_shadow_test_packet();
+        evidence.ledger.ledger_digest_v3.push('x');
+        assert_eq!(
+            intake_chair_shadow_observation_packet_v0(
+                &mut new_chair_shadow_observation_inbox_v0(),
+                &packet,
+                &evidence
+            )
+            .status,
+            ChairObservationReceiptStatusV0::InvalidLedger
+        );
+    }
+
+    #[test]
+    fn chair_shadow_rejects_altered_aggregate() {
+        let (mut evidence, packet) = chair_shadow_test_packet();
+        evidence.aggregate.aggregate_digest_v3.push('x');
+        assert_eq!(
+            intake_chair_shadow_observation_packet_v0(
+                &mut new_chair_shadow_observation_inbox_v0(),
+                &packet,
+                &evidence
+            )
+            .status,
+            ChairObservationReceiptStatusV0::InvalidAggregate
+        );
+    }
+
+    #[test]
+    fn chair_shadow_rejects_invalid_opinion_seal_reference() {
+        let (evidence, mut packet) = chair_shadow_test_packet();
+        packet.opinion_seal_digests[0].push('x');
+        packet.packet_digest = chair_packet_digest_v0(&packet);
+        assert_eq!(
+            intake_chair_shadow_observation_packet_v0(
+                &mut new_chair_shadow_observation_inbox_v0(),
+                &packet,
+                &evidence
+            )
+            .status,
+            ChairObservationReceiptStatusV0::InvalidOpinionSeal
+        );
+    }
+
+    #[test]
+    fn chair_shadow_rejects_invalid_transcript_reference() {
+        let (evidence, mut packet) = chair_shadow_test_packet();
+        packet.transcript_digests[0].push('x');
+        packet.packet_digest = chair_packet_digest_v0(&packet);
+        assert_eq!(
+            intake_chair_shadow_observation_packet_v0(
+                &mut new_chair_shadow_observation_inbox_v0(),
+                &packet,
+                &evidence
+            )
+            .status,
+            ChairObservationReceiptStatusV0::InvalidTranscript
+        );
+    }
+
+    #[test]
+    fn chair_shadow_rejects_prospective_claims() {
+        let (evidence, mut packet) = chair_shadow_test_packet();
+        packet.prospective = true;
+        packet.packet_digest = chair_packet_digest_v0(&packet);
+        assert_eq!(
+            intake_chair_shadow_observation_packet_v0(
+                &mut new_chair_shadow_observation_inbox_v0(),
+                &packet,
+                &evidence
+            )
+            .status,
+            ChairObservationReceiptStatusV0::ProspectiveClaimForbidden
+        );
+    }
+
+    #[test]
+    fn chair_shadow_rejects_decision_authority() {
+        let (evidence, mut packet) = chair_shadow_test_packet();
+        packet.authority.vote_allowed = true;
+        packet.packet_digest = chair_packet_digest_v0(&packet);
+        assert_eq!(
+            intake_chair_shadow_observation_packet_v0(
+                &mut new_chair_shadow_observation_inbox_v0(),
+                &packet,
+                &evidence
+            )
+            .status,
+            ChairObservationReceiptStatusV0::AuthorityViolation
+        );
+    }
+
+    #[test]
+    fn chair_shadow_duplicate_packet_fails_closed() {
+        let (evidence, packet) = chair_shadow_test_packet();
+        let mut inbox = new_chair_shadow_observation_inbox_v0();
+        intake_chair_shadow_observation_packet_v0(&mut inbox, &packet, &evidence);
+        assert_eq!(
+            intake_chair_shadow_observation_packet_v0(&mut inbox, &packet, &evidence).status,
+            ChairObservationReceiptStatusV0::DuplicatePacket
+        );
+    }
+
+    #[test]
+    fn chair_shadow_report_has_no_chair_runtime_invocation() {
+        let report = observe_chair_shadow_observation_v0(&chair_shadow_test_evidence()).unwrap();
+        assert_eq!(report.inbox.chair_runtime_invocations, 0);
+    }
+
+    #[test]
+    fn chair_shadow_report_has_no_chair_decision() {
+        let report = observe_chair_shadow_observation_v0(&chair_shadow_test_evidence()).unwrap();
+        assert_eq!(report.inbox.chair_decisions_created, 0);
+    }
+
+    #[test]
+    fn chair_shadow_report_has_no_votes() {
+        let report = observe_chair_shadow_observation_v0(&chair_shadow_test_evidence()).unwrap();
+        assert_eq!(report.inbox.votes_created, 0);
+    }
+
+    #[test]
+    fn chair_shadow_report_has_no_rewards_or_penalties() {
+        let report = observe_chair_shadow_observation_v0(&chair_shadow_test_evidence()).unwrap();
+        assert_eq!(
+            (report.inbox.rewards_created, report.inbox.penalties_created),
+            (0, 0)
+        );
+    }
+
+    #[test]
+    fn chair_shadow_report_has_no_speaking_right_changes() {
+        let report = observe_chair_shadow_observation_v0(&chair_shadow_test_evidence()).unwrap();
+        assert_eq!(report.inbox.speaking_right_changes, 0);
+    }
+
+    #[test]
+    fn chair_shadow_report_has_no_risk_handoff_or_execution() {
+        let report = observe_chair_shadow_observation_v0(&chair_shadow_test_evidence()).unwrap();
+        assert_eq!(
+            (report.inbox.risk_handoffs, report.inbox.executions_created),
+            (0, 0)
+        );
+    }
+
+    #[test]
+    fn chair_shadow_firewall_proof_is_complete() {
+        let report = observe_chair_shadow_observation_v0(&chair_shadow_test_evidence()).unwrap();
+        assert!(report.firewall_proof.all_invariants_pass);
+        assert!(report.firewall_proof.packet_cannot_become_vote);
+        assert!(report.firewall_proof.packet_cannot_become_chair_input);
+    }
+
+    #[test]
+    fn chair_shadow_receipt_reports_two_scopes_four_opinions_and_three_abstentions() {
+        let report = observe_chair_shadow_observation_v0(&chair_shadow_test_evidence()).unwrap();
+        assert_eq!(report.receipt.observed_scope_count, 2);
+        assert_eq!(report.receipt.observed_opinion_count, 4);
+        assert_eq!(report.receipt.observed_abstention_count, 3);
+    }
+
+    #[test]
+    fn chair_shadow_receipt_reports_relationship_categories_from_source() {
+        let report = observe_chair_shadow_observation_v0(&chair_shadow_test_evidence()).unwrap();
+        assert_eq!(
+            report.receipt.relationship_summary,
+            vec![
+                ChairObservedRelationshipCountV0 {
+                    category: ChairObservedRelationshipCategoryV0::BothAbstained,
+                    count: 1,
+                },
+                ChairObservedRelationshipCountV0 {
+                    category: ChairObservedRelationshipCategoryV0::MomentumAbstained,
+                    count: 1,
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn chair_shadow_receipt_is_deterministic() {
+        let evidence = chair_shadow_test_evidence();
+        assert_eq!(
+            observe_chair_shadow_observation_v0(&evidence).unwrap(),
+            observe_chair_shadow_observation_v0(&evidence).unwrap()
+        );
+    }
+
+    #[test]
+    fn chair_shadow_receipt_contains_only_sanitized_wire_fields() {
+        let report = observe_chair_shadow_observation_v0(&chair_shadow_test_evidence()).unwrap();
+        let encoded = serde_json::to_string(&report).unwrap();
+        assert!(!encoded.contains("\"probability\":"));
+        assert!(!encoded.contains("\"council_score\":"));
+        assert!(!encoded.contains("\"size_multiplier\":"));
+    }
+
+    #[test]
+    fn chair_shadow_storage_reopens_and_validates() {
+        let report = observe_chair_shadow_observation_v0(&chair_shadow_test_evidence()).unwrap();
+        let path = std::env::temp_dir().join(format!(
+            "chair-shadow-observation-{}-reopen.json",
+            std::process::id()
+        ));
+        let stored = append_chair_shadow_observation_storage_v0(&path, &report).unwrap();
+        assert_eq!(
+            read_chair_shadow_observation_storage_v0(&path).unwrap(),
+            stored
+        );
+        std::fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn chair_shadow_storage_digest_is_path_independent() {
+        let report = observe_chair_shadow_observation_v0(&chair_shadow_test_evidence()).unwrap();
+        let base = std::env::temp_dir();
+        let left = base.join(format!(
+            "chair-shadow-observation-{}-left.json",
+            std::process::id()
+        ));
+        let right = base.join(format!(
+            "chair-shadow-observation-{}-right.json",
+            std::process::id()
+        ));
+        let left_storage = append_chair_shadow_observation_storage_v0(&left, &report).unwrap();
+        let right_storage = append_chair_shadow_observation_storage_v0(&right, &report).unwrap();
+        assert_eq!(left_storage.storage_digest, right_storage.storage_digest);
+        std::fs::remove_file(left).unwrap();
+        std::fs::remove_file(right).unwrap();
+    }
+
+    #[test]
+    fn chair_shadow_storage_is_idempotent_for_the_same_packet() {
+        let report = observe_chair_shadow_observation_v0(&chair_shadow_test_evidence()).unwrap();
+        let path = std::env::temp_dir().join(format!(
+            "chair-shadow-observation-{}-idempotent.json",
+            std::process::id()
+        ));
+        let first = append_chair_shadow_observation_storage_v0(&path, &report).unwrap();
+        let second = append_chair_shadow_observation_storage_v0(&path, &report).unwrap();
+        assert_eq!(first, second);
+        std::fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn chair_shadow_storage_rejects_tampered_digest() {
+        let report = observe_chair_shadow_observation_v0(&chair_shadow_test_evidence()).unwrap();
+        let path = std::env::temp_dir().join(format!(
+            "chair-shadow-observation-{}-tamper.json",
+            std::process::id()
+        ));
+        append_chair_shadow_observation_storage_v0(&path, &report).unwrap();
+        let mut storage = read_chair_shadow_observation_storage_v0(&path).unwrap();
+        storage.storage_digest.push('x');
+        assert!(validate_chair_shadow_observation_storage_v0(&storage).is_err());
+        std::fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn chair_shadow_active_committee_count_is_fixed_and_authority_is_disabled() {
+        let report = observe_chair_shadow_observation_v0(&chair_shadow_test_evidence()).unwrap();
+        assert_eq!(report.active_committee_count, 3);
+        assert!(report.packet.authority.advisory_only);
+        assert!(!report.packet.authority.execution_allowed);
     }
 }

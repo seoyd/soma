@@ -49,6 +49,8 @@ pub struct CliArgs {
     #[arg(long, default_value_t = false)]
     pub joint_canonical_scope_replay_v3: bool,
     #[arg(long, default_value_t = false)]
+    pub chair_shadow_observation_inbox: bool,
+    #[arg(long, default_value_t = false)]
     pub btc_prospective_challenge_create: bool,
     #[arg(long, default_value_t = false)]
     pub btc_prospective_challenge_status: bool,
@@ -97,6 +99,7 @@ pub fn run() -> Result<(), String> {
             args.joint_momentum_closure_forensics_v3,
             args.joint_canonical_scope_registration_v3,
             args.joint_canonical_scope_replay_v3,
+            args.chair_shadow_observation_inbox,
             args.btc_prospective_challenge_create,
             args.btc_prospective_challenge_status,
             args.btc_prospective_challenge_confirm_preregistration,
@@ -119,6 +122,7 @@ pub fn run() -> Result<(), String> {
         || args.joint_momentum_closure_forensics_v3
         || args.joint_canonical_scope_registration_v3
         || args.joint_canonical_scope_replay_v3
+        || args.chair_shadow_observation_inbox
         || args.btc_prospective_challenge_create
         || args.btc_prospective_challenge_status
         || args.btc_prospective_challenge_confirm_preregistration
@@ -268,6 +272,7 @@ fn run_local_historical_snapshot_campaign(
     joint_momentum_closure_forensics_v3: bool,
     joint_canonical_scope_registration_v3: bool,
     joint_canonical_scope_replay_v3: bool,
+    chair_shadow_observation_inbox: bool,
     btc_prospective_challenge_create: bool,
     btc_prospective_challenge_status: bool,
     btc_prospective_challenge_confirm_preregistration: bool,
@@ -822,7 +827,10 @@ fn run_local_historical_snapshot_campaign(
         }
         return Ok(());
     }
-    if joint_canonical_scope_registration_v3 || joint_canonical_scope_replay_v3 {
+    if joint_canonical_scope_registration_v3
+        || joint_canonical_scope_replay_v3
+        || chair_shadow_observation_inbox
+    {
         if allow_network {
             return Err("joint canonical scope replay V3 is offline-only".to_string());
         }
@@ -984,6 +992,92 @@ fn run_local_historical_snapshot_campaign(
                 .map_err(|error| format!("joint V3 aggregate failed: {error}"))?;
         crate::model::validate_joint_scope_replay_ledger_v3(&ledger)
             .map_err(|error| format!("joint V3 ledger verification failed: {error}"))?;
+        if chair_shadow_observation_inbox {
+            let evidence = crate::model::chair_shadow_observation_evidence_v0(
+                registration.clone(),
+                results.clone(),
+                aggregate.clone(),
+                ledger.clone(),
+            )
+            .map_err(|error| format!("chair shadow observation evidence failed: {error}"))?;
+            let first = crate::model::observe_chair_shadow_observation_v0(&evidence)
+                .map_err(|error| format!("chair shadow observation failed: {error}"))?;
+            let second = crate::model::observe_chair_shadow_observation_v0(&evidence)
+                .map_err(|error| format!("chair shadow observation replay failed: {error}"))?;
+            if first != second {
+                return Err("chair shadow observation is nondeterministic".to_string());
+            }
+            let storage = crate::model::append_chair_shadow_observation_storage_v0(
+                Path::new("target/chair-shadow-observation-inbox-v0.json"),
+                &first,
+            )
+            .map_err(|error| format!("chair shadow observation storage failed: {error}"))?;
+            if output_format == "json" {
+                println!(
+                    "{}",
+                    serde_json::json!({
+                        "report_version":"chair-shadow-observation-inbox-v0",
+                        "offline":true,
+                        "observation":first,
+                        "storage_digest":storage.storage_digest,
+                        "storage_reopen_verified":true,
+                        "provider_calls":0,"transport_constructions":0,
+                        "network_consent_reads":0,"credential_reads":0,
+                        "active_committee_count":3
+                    })
+                );
+            } else {
+                println!("report_version=chair-shadow-observation-inbox-v0");
+                println!("offline=true");
+                println!("packet_status={:?}", first.receipt.status);
+                println!("evidence_class={:?}", first.packet.evidence_class);
+                println!("scope_count={}", first.receipt.observed_scope_count);
+                println!("opinion_count={}", first.receipt.observed_opinion_count);
+                println!(
+                    "abstention_count={}",
+                    first.receipt.observed_abstention_count
+                );
+                println!(
+                    "relationship_summary={}",
+                    first
+                        .receipt
+                        .relationship_summary
+                        .iter()
+                        .map(|item| format!("{:?}:{}", item.category, item.count))
+                        .collect::<Vec<_>>()
+                        .join(":")
+                );
+                println!(
+                    "uncertainty_flags={}",
+                    first
+                        .receipt
+                        .uncertainty_flags
+                        .iter()
+                        .map(|item| format!("{:?}:{}", item.category, item.present))
+                        .collect::<Vec<_>>()
+                        .join(":")
+                );
+                println!("inbox_digest={}", first.inbox.inbox_digest);
+                println!("receipt_digest={}", first.receipt.receipt_digest);
+                println!("firewall_digest={}", first.firewall_proof.proof_digest);
+                println!("storage_digest={}", storage.storage_digest);
+                println!("storage_reopen_verified=true");
+                println!("chair_runtime_invocations=0");
+                println!("chair_decisions_created=0");
+                println!("votes_created=0");
+                println!("rewards_created=0");
+                println!("penalties_created=0");
+                println!("speaking_right_changes=0");
+                println!("risk_handoffs=0");
+                println!("executions_created=0");
+                println!("provider_calls=0");
+                println!("transport_constructions=0");
+                println!("network_consent_reads=0");
+                println!("credential_reads=0");
+                println!("active_committee_count=3");
+            }
+            return Ok(());
+        }
         if output_format == "json" {
             let scope_values = serde_json::json!({
                 "ids":results.iter().map(|result| result.joint_scope_id.clone()).collect::<Vec<_>>(),
