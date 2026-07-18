@@ -166,8 +166,8 @@ readiness.
 
 ## 32. Commit/push result
 
-The V3 registration commit was pushed. The final result/report commit is pushed
-after final verification.
+The V3 registration commit and the final result/report commit were both pushed
+after their respective verification steps.
 
 ## 33. Next Sprint recommendation
 
