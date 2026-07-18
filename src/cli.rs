@@ -51,6 +51,8 @@ pub struct CliArgs {
     #[arg(long, default_value_t = false)]
     pub chair_shadow_observation_inbox: bool,
     #[arg(long, default_value_t = false)]
+    pub chair_shadow_owner_advisory_review: bool,
+    #[arg(long, default_value_t = false)]
     pub btc_prospective_challenge_create: bool,
     #[arg(long, default_value_t = false)]
     pub btc_prospective_challenge_status: bool,
@@ -100,6 +102,7 @@ pub fn run() -> Result<(), String> {
             args.joint_canonical_scope_registration_v3,
             args.joint_canonical_scope_replay_v3,
             args.chair_shadow_observation_inbox,
+            args.chair_shadow_owner_advisory_review,
             args.btc_prospective_challenge_create,
             args.btc_prospective_challenge_status,
             args.btc_prospective_challenge_confirm_preregistration,
@@ -123,6 +126,7 @@ pub fn run() -> Result<(), String> {
         || args.joint_canonical_scope_registration_v3
         || args.joint_canonical_scope_replay_v3
         || args.chair_shadow_observation_inbox
+        || args.chair_shadow_owner_advisory_review
         || args.btc_prospective_challenge_create
         || args.btc_prospective_challenge_status
         || args.btc_prospective_challenge_confirm_preregistration
@@ -273,6 +277,7 @@ fn run_local_historical_snapshot_campaign(
     joint_canonical_scope_registration_v3: bool,
     joint_canonical_scope_replay_v3: bool,
     chair_shadow_observation_inbox: bool,
+    chair_shadow_owner_advisory_review: bool,
     btc_prospective_challenge_create: bool,
     btc_prospective_challenge_status: bool,
     btc_prospective_challenge_confirm_preregistration: bool,
@@ -830,6 +835,7 @@ fn run_local_historical_snapshot_campaign(
     if joint_canonical_scope_registration_v3
         || joint_canonical_scope_replay_v3
         || chair_shadow_observation_inbox
+        || chair_shadow_owner_advisory_review
     {
         if allow_network {
             return Err("joint canonical scope replay V3 is offline-only".to_string());
@@ -992,7 +998,7 @@ fn run_local_historical_snapshot_campaign(
                 .map_err(|error| format!("joint V3 aggregate failed: {error}"))?;
         crate::model::validate_joint_scope_replay_ledger_v3(&ledger)
             .map_err(|error| format!("joint V3 ledger verification failed: {error}"))?;
-        if chair_shadow_observation_inbox {
+        if chair_shadow_observation_inbox || chair_shadow_owner_advisory_review {
             let evidence = crate::model::chair_shadow_observation_evidence_v0(
                 registration.clone(),
                 results.clone(),
@@ -1006,6 +1012,140 @@ fn run_local_historical_snapshot_campaign(
                 .map_err(|error| format!("chair shadow observation replay failed: {error}"))?;
             if first != second {
                 return Err("chair shadow observation is nondeterministic".to_string());
+            }
+            if chair_shadow_owner_advisory_review {
+                let firewall = crate::owner::owner_advisory_decision_firewall_proof_v0();
+                if !firewall.all_invariants_pass {
+                    return Err("owner advisory decision firewall failed".to_string());
+                }
+                let ledger_path =
+                    Path::new("target/chair-shadow-owner-advisory-review-ledger-v0.json");
+                let mut reviews = Vec::new();
+                let mut ledger = None;
+                for owner_input in crate::owner::chair_shadow_owner_advisory_fixture_inputs_v0() {
+                    let review_input = crate::owner::chair_shadow_owner_advisory_review_input_v0(
+                        &first,
+                        owner_input,
+                    );
+                    let review =
+                        crate::owner::review_chair_shadow_owner_advisory_v0(&first, &review_input);
+                    let replay =
+                        crate::owner::review_chair_shadow_owner_advisory_v0(&first, &review_input);
+                    if review != replay {
+                        return Err("owner advisory review is nondeterministic".to_string());
+                    }
+                    ledger = Some(
+                        crate::owner::append_chair_shadow_owner_review_ledger_v0(
+                            ledger_path,
+                            &review,
+                        )
+                        .map_err(|error| {
+                            format!("owner advisory review storage failed: {error}")
+                        })?,
+                    );
+                    reviews.push(review);
+                }
+                let ledger =
+                    ledger.ok_or_else(|| "owner advisory fixtures unavailable".to_string())?;
+                let reopened = crate::owner::read_chair_shadow_owner_review_ledger_v0(ledger_path)
+                    .map_err(|error| {
+                        format!("owner advisory review storage reopen failed: {error}")
+                    })?;
+                if reopened != ledger {
+                    return Err("owner advisory review storage reopen mismatch".to_string());
+                }
+                if output_format == "json" {
+                    let review_output = reviews
+                        .iter()
+                        .map(|review| {
+                            serde_json::json!({
+                                "owner_input_fingerprint":review.owner_input_fingerprint,
+                                "owner_policy_allowed":review.owner_policy_allowed,
+                                "owner_policy_diagnostic_only":review.owner_policy_diagnostic_only,
+                                "status":format!("{:?}", review.status),
+                                "reason_codes":review.reason_codes,
+                                "explanation":review.explanation,
+                                "review_digest":review.review_digest,
+                                "changed_observation":review.changed_observation,
+                                "changed_model":review.changed_model,
+                                "changed_decision":review.changed_decision,
+                                "changed_risk_policy":review.changed_risk_policy,
+                                "vote_created":review.vote_created,
+                                "reward_created":review.reward_created,
+                                "penalty_created":review.penalty_created,
+                                "speaking_right_changed":review.speaking_right_changed,
+                                "risk_handoff_created":review.risk_handoff_created,
+                                "paper_action_created":review.paper_action_created,
+                                "execution_created":review.execution_created
+                            })
+                        })
+                        .collect::<Vec<_>>();
+                    println!(
+                        "{}",
+                        serde_json::json!({
+                            "report_version":"chair-shadow-owner-advisory-review-v0",
+                            "offline":true,
+                            "fixture_inputs_only":true,
+                            "reviews":review_output,
+                            "ledger_digest":ledger.ledger_digest,
+                            "firewall_digest":firewall.proof_digest,
+                            "ledger_reopen_verified":true,
+                            "provider_calls":0,"transport_constructions":0,
+                            "network_consent_reads":0,"credential_reads":0,
+                            "active_committee_count":first.active_committee_count,
+                            "chair_engine_invocations":0,"owner_trade_review_invocations":0,
+                            "risk_governor_invocations":0,"paper_broker_invocations":0,
+                            "votes_created":0,"rewards_created":0,"penalties_created":0,
+                            "speaking_right_changes":0,"paper_actions_created":0,"executions_created":0
+                        })
+                    );
+                } else {
+                    println!("report_version=chair-shadow-owner-advisory-review-v0");
+                    println!("offline=true");
+                    println!("fixture_inputs_only=true");
+                    for review in &reviews {
+                        println!("owner_input_fingerprint={}", review.owner_input_fingerprint);
+                        println!("owner_policy_allowed={}", review.owner_policy_allowed);
+                        println!(
+                            "owner_policy_diagnostic_only={}",
+                            review.owner_policy_diagnostic_only
+                        );
+                        println!("status={:?}", review.status);
+                        println!("reason_codes={}", review.reason_codes.join(":"));
+                        println!("explanation={}", review.explanation);
+                        println!("review_digest={}", review.review_digest);
+                        println!("changed_observation={}", review.changed_observation);
+                        println!("changed_model={}", review.changed_model);
+                        println!("changed_decision={}", review.changed_decision);
+                        println!("changed_risk_policy={}", review.changed_risk_policy);
+                        println!("vote_created={}", review.vote_created);
+                        println!("reward_created={}", review.reward_created);
+                        println!("penalty_created={}", review.penalty_created);
+                        println!("speaking_right_changed={}", review.speaking_right_changed);
+                        println!("risk_handoff_created={}", review.risk_handoff_created);
+                        println!("paper_action_created={}", review.paper_action_created);
+                        println!("execution_created={}", review.execution_created);
+                    }
+                    println!("ledger_digest={}", ledger.ledger_digest);
+                    println!("firewall_digest={}", firewall.proof_digest);
+                    println!("ledger_reopen_verified=true");
+                    println!("provider_calls=0");
+                    println!("transport_constructions=0");
+                    println!("network_consent_reads=0");
+                    println!("credential_reads=0");
+                    println!("active_committee_count={}", first.active_committee_count);
+                    println!("chair_engine_invocations=0");
+                    println!("owner_trade_review_invocations=0");
+                    println!("risk_governor_invocations=0");
+                    println!("paper_broker_invocations=0");
+                    println!("votes_created=0");
+                    println!("rewards_created=0");
+                    println!("penalties_created=0");
+                    println!("speaking_right_changes=0");
+                    println!("paper_actions_created=0");
+                    println!("executions_created=0");
+                }
+                return Ok(());
             }
             let storage = crate::model::append_chair_shadow_observation_storage_v0(
                 Path::new("target/chair-shadow-observation-inbox-v0.json"),

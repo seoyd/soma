@@ -249,10 +249,11 @@ pub use learned_agent_scope::{
     replay_btc_scope_alignment_v1, replay_joint_scope_results_v1, replay_joint_scope_results_v2,
     replay_joint_scope_results_v3, replay_source_bound_cycle_risk_opinions_v1,
     replay_source_bound_momentum_opinions_v1, source_bound_seal_v1,
-    source_bound_shadow_ledger_record_v1, validate_chair_shadow_observation_storage_v0,
-    validate_joint_canonical_scope_registration_v2, validate_joint_canonical_scope_registration_v3,
-    validate_joint_scope_replay_ledger_v2, validate_joint_scope_replay_ledger_v3,
-    validate_source_bound_shadow_ledger_record_v1, write_source_bound_shadow_ledger_record_v1,
+    source_bound_shadow_ledger_record_v1, validate_chair_shadow_observation_report_v0,
+    validate_chair_shadow_observation_storage_v0, validate_joint_canonical_scope_registration_v2,
+    validate_joint_canonical_scope_registration_v3, validate_joint_scope_replay_ledger_v2,
+    validate_joint_scope_replay_ledger_v3, validate_source_bound_shadow_ledger_record_v1,
+    write_source_bound_shadow_ledger_record_v1,
 };
 pub use learning::{
     AgentModelRuntimeV0, BaselineComparisonV0, CalibrationBucketV0, ChronologicalSplitConfigV0,

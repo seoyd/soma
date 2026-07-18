@@ -7902,6 +7902,33 @@ pub fn observe_chair_shadow_observation_v0(
     })
 }
 
+/// Verifies a completed Shadow observation report without creating any new
+/// Chair, risk, or execution state. Consumers outside this module use this
+/// read-only boundary instead of reconstructing receipt or inbox digests.
+pub fn validate_chair_shadow_observation_report_v0(
+    report: &ChairShadowObservationReportV0,
+) -> Result<(), String> {
+    let expected_firewall = chair_firewall_proof_v0();
+    if report.report_version != "chair-shadow-observation-report-v0"
+        || !report.offline
+        || report.active_committee_count != 3
+        || report.packet.packet_digest != chair_packet_digest_v0(&report.packet)
+        || !chair_inbox_is_valid_v0(&report.inbox)
+        || report.inbox.packets.len() != 1
+        || report.inbox.packets.first() != Some(&report.packet)
+        || !chair_receipt_is_valid_v0(&report.receipt)
+        || report.receipt.status
+            != ChairObservationReceiptStatusV0::AcceptedRetrospectiveObservationOnly
+        || report.receipt.packet_digest != report.packet.packet_digest
+        || report.receipt.source_aggregate_digest != report.packet.source_aggregate_digest
+        || report.receipt.source_ledger_digest != report.packet.source_ledger_digest
+        || report.firewall_proof != expected_firewall
+    {
+        return Err("chair_shadow_observation_report_invalid".into());
+    }
+    Ok(())
+}
+
 fn chair_receipt_is_valid_v0(value: &ChairShadowObservationReceiptV0) -> bool {
     value.receipt_version == "chair-shadow-observation-receipt-v0"
         && value.chair_runtime_invocations == 0
@@ -8054,6 +8081,12 @@ pub fn append_chair_shadow_observation_storage_v0(
         return Err("chair_shadow_observation_storage_reopen_mismatch".into());
     }
     Ok(reopened)
+}
+
+#[cfg(test)]
+pub(crate) fn chair_shadow_test_observation_report_for_owner_review_v0()
+-> ChairShadowObservationReportV0 {
+    tests::chair_shadow_test_observation_report_for_owner_review_v0()
 }
 
 #[cfg(test)]
@@ -8901,6 +8934,11 @@ mod tests {
         let (aggregate, ledger) =
             aggregate_joint_scope_replays_v3(&registration, &results).unwrap();
         chair_shadow_observation_evidence_v0(registration, results, aggregate, ledger).unwrap()
+    }
+
+    pub(super) fn chair_shadow_test_observation_report_for_owner_review_v0()
+    -> ChairShadowObservationReportV0 {
+        observe_chair_shadow_observation_v0(&chair_shadow_test_evidence()).unwrap()
     }
 
     fn chair_shadow_test_packet() -> (

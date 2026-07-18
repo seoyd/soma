@@ -94,3 +94,23 @@ The owner learning report reuses these stable reason templates for rejected
 paper requests. Cooldown-clear and sandbox-promotion intent receive explicit
 rejection reasons. Rendering an explanation cannot approve the original
 request or trigger a later action.
+
+## Chair Shadow review receipt
+
+This section applies only to `ChairShadowOwnerAdvisoryReviewV0`. It is not the
+decision flow above: it accepts only a verified retrospective Shadow observation
+and has no decision, vote, Risk Governor, paper-broker, reward, penalty,
+speaking-right, or execution authority.
+
+The review reuses `validate_owner_input` unchanged. It binds the owner input
+fingerprint to the observation packet, receipt, and firewall digests; it never
+interprets free-form text. Existing owner reason-code names are retained, and
+the review adds only the required observation-boundary codes. Codes are sorted
+and deduplicated before the receipt digest is calculated.
+
+Each Shadow status has fixed explanation text. Reanalysis and evidence requests
+need separately governed replay or evidence paths; risk tightening is recorded
+without policy mutation; paper confirmation has no candidate or independent
+risk approval in this observation path. Invalid receipts and unknown or blocked
+inputs fail closed. Rendered Shadow output excludes owner identity, local paths,
+raw notes, OHLCV, model values, probabilities, and trade actions.
