@@ -53,6 +53,8 @@ pub struct CliArgs {
     #[arg(long, default_value_t = false)]
     pub chair_shadow_owner_advisory_review: bool,
     #[arg(long, default_value_t = false)]
+    pub learned_reward_eligibility: bool,
+    #[arg(long, default_value_t = false)]
     pub btc_prospective_challenge_create: bool,
     #[arg(long, default_value_t = false)]
     pub btc_prospective_challenge_status: bool,
@@ -103,6 +105,7 @@ pub fn run() -> Result<(), String> {
             args.joint_canonical_scope_replay_v3,
             args.chair_shadow_observation_inbox,
             args.chair_shadow_owner_advisory_review,
+            args.learned_reward_eligibility,
             args.btc_prospective_challenge_create,
             args.btc_prospective_challenge_status,
             args.btc_prospective_challenge_confirm_preregistration,
@@ -127,6 +130,7 @@ pub fn run() -> Result<(), String> {
         || args.joint_canonical_scope_replay_v3
         || args.chair_shadow_observation_inbox
         || args.chair_shadow_owner_advisory_review
+        || args.learned_reward_eligibility
         || args.btc_prospective_challenge_create
         || args.btc_prospective_challenge_status
         || args.btc_prospective_challenge_confirm_preregistration
@@ -278,6 +282,7 @@ fn run_local_historical_snapshot_campaign(
     joint_canonical_scope_replay_v3: bool,
     chair_shadow_observation_inbox: bool,
     chair_shadow_owner_advisory_review: bool,
+    learned_reward_eligibility: bool,
     btc_prospective_challenge_create: bool,
     btc_prospective_challenge_status: bool,
     btc_prospective_challenge_confirm_preregistration: bool,
@@ -353,6 +358,12 @@ fn run_local_historical_snapshot_campaign(
             output_format,
             allow_network,
         );
+    }
+    if learned_reward_eligibility {
+        if allow_network {
+            return Err("learned reward eligibility report is offline-only".to_string());
+        }
+        return run_learned_reward_eligibility_report(config_path, &snapshot, output_format);
     }
     if btc_multi_regime_report {
         return run_btc_multi_regime_evidence_report(
@@ -1980,6 +1991,180 @@ fn run_btc_cross_regime_diagnostics(
 }
 
 #[allow(clippy::too_many_arguments)]
+fn run_learned_reward_eligibility_report(
+    config_path: &Path,
+    snapshot: &crate::data::DataSnapshot,
+    output_format: &str,
+) -> Result<(), String> {
+    let state_path = config_path
+        .parent()
+        .ok_or("local learned reward state unavailable")?
+        .join("prospective_shadow_challenge_v0.json");
+    let momentum = crate::model::read_prospective_challenge_local_state_v0(&state_path)
+        .map_err(|_| "local learned reward state unavailable".to_string())?;
+    let risk_config = crate::model::CycleRiskShadowConfigV0::default();
+    let risk_report = crate::model::run_cycle_risk_shadow_v0(snapshot, &risk_config)
+        .map_err(|_| "offline Cycle/Risk prospective contract unavailable".to_string())?;
+    let risk = crate::model::prepare_cycle_risk_prospective_tournament_v0(
+        snapshot,
+        &risk_report,
+        &risk_config,
+    )
+    .map_err(|_| "offline Cycle/Risk prospective contract unavailable".to_string())?;
+    let momentum_horizon = crate::core::stable_hash_string(&format!(
+        "momentum-horizon-v0:{}:{}",
+        momentum.capsule.prediction_horizon, momentum.capsule.label_policy_digest
+    ));
+    let risk_horizon = crate::core::stable_hash_string(&format!(
+        "cycle-risk-horizon-v0:{}:{}",
+        risk.prediction_horizon, risk.label_policy_digest
+    ));
+    let momentum_contract = crate::model::new_learned_prospective_contract_v0(
+        crate::model::LearnedAgentObjectiveV0::DirectionalMomentum,
+        momentum.capsule.capsule_digest.clone(),
+        momentum.capsule.candidate.artifact_digest.clone(),
+        momentum_horizon,
+        momentum.capsule.prospective_cutoff_exclusive_timestamp_ms,
+    )?;
+    let risk_contract = crate::model::new_learned_prospective_contract_v0(
+        crate::model::LearnedAgentObjectiveV0::DownsideRisk,
+        risk.capsule_digest.clone(),
+        risk.historical_champion.artifact_digest.clone(),
+        risk_horizon,
+        risk.cutoff_exclusive_timestamp_ms,
+    )?;
+    let gate = crate::model::new_learned_reward_sample_gate_v0(
+        momentum
+            .capsule
+            .evaluation_policy
+            .minimum_mature_events
+            .max(risk.evaluation_policy.minimum_mature_events),
+        momentum
+            .capsule
+            .evaluation_policy
+            .minimum_support_qualified_events
+            .max(risk.evaluation_policy.minimum_support_qualified_events),
+        risk_report.regimes.len(),
+    )?;
+    let registration = crate::model::pre_register_learned_reward_eligibility_v0(
+        &crate::model::LearnedRewardEligibilityRegistrationInputV0 {
+            momentum: momentum_contract,
+            cycle_risk: risk_contract,
+            attribution_policy_digest: crate::core::stable_hash_string(
+                "learned-prospective-attribution-policy-v0",
+            ),
+            maturity_policy_digest: crate::core::stable_hash_string(&format!(
+                "learned-outcome-maturity-policy-v0:{}:{}:{}:{}",
+                momentum.capsule.opening_policy.minimum_mature_events,
+                momentum
+                    .capsule
+                    .opening_policy
+                    .minimum_support_qualified_events,
+                risk.opening_policy.minimum_mature_events,
+                risk.opening_policy.minimum_support_qualified_events,
+            )),
+            sample_gate_policy_digest: gate.gate_digest.clone(),
+            objective_mapping_policy_digest: crate::core::stable_hash_string(
+                "learned-objective-mapping-policy-v0",
+            ),
+            integrity_policy_digest: crate::core::stable_hash_string(
+                "learned-prospective-integrity-policy-v0",
+            ),
+        },
+    )?;
+    let ledger = crate::model::new_learned_prospective_outcome_ledger_v0(&registration)?;
+    let momentum_eligibility = crate::model::derive_learned_reward_eligibility_v0(
+        &registration,
+        &gate,
+        &ledger,
+        crate::model::LearnedAgentObjectiveV0::DirectionalMomentum,
+    )?;
+    let risk_eligibility = crate::model::derive_learned_reward_eligibility_v0(
+        &registration,
+        &gate,
+        &ledger,
+        crate::model::LearnedAgentObjectiveV0::DownsideRisk,
+    )?;
+    let status = format!("{:?}", momentum_eligibility.eligibility_status);
+    if momentum_eligibility.eligibility_status != risk_eligibility.eligibility_status {
+        return Err("learned reward eligibility objective status mismatch".to_string());
+    }
+    if output_format == "json" {
+        println!(
+            "{}",
+            serde_json::json!({
+                "report_version": "learned-reward-eligibility-v0",
+                "offline": true,
+                "registration_digest": registration.registration_digest,
+                "momentum_challenge_status": format!("{:?}", momentum.capsule.status),
+                "momentum_registry_status": format!("{:?}", momentum.registry.challenges[0].status),
+                "risk_tournament_status": format!("{:?}", risk.status),
+                "prospective_event_count": ledger.event_attributions.len(),
+                "mature_outcome_count": ledger.matured_outcomes.len(),
+                "reward_candidate_count": ledger.reward_candidate_count,
+                "reward_apply_count": ledger.reward_apply_count,
+                "minimum_mature_events": gate.minimum_mature_events,
+                "minimum_support_qualified_events": gate.minimum_support_qualified_events,
+                "minimum_regime_coverage": gate.minimum_regime_coverage,
+                "eligibility": status,
+                "ledger_digest": ledger.ledger_digest,
+                "provider_calls": 0,
+                "transport_constructions": 0,
+                "network_consent_reads": 0,
+                "credential_reads": 0,
+                "label_reads": 0,
+                "chair_decision_count": 0,
+                "reward_applied_count": 0,
+                "penalty_applied_count": 0,
+                "voice_mutation_count": 0,
+                "cooldown_mutation_count": 0,
+                "promotion_mutation_count": 0,
+                "quarantine_mutation_count": 0,
+                "execution_count": 0
+            })
+        );
+    } else {
+        println!("report_version=learned-reward-eligibility-v0");
+        println!("offline=true");
+        println!("registration_digest={}", registration.registration_digest);
+        println!("momentum_challenge_status={:?}", momentum.capsule.status);
+        println!(
+            "momentum_registry_status={:?}",
+            momentum.registry.challenges[0].status
+        );
+        println!("risk_tournament_status={:?}", risk.status);
+        println!(
+            "prospective_event_count={}",
+            ledger.event_attributions.len()
+        );
+        println!("mature_outcome_count={}", ledger.matured_outcomes.len());
+        println!("reward_candidate_count={}", ledger.reward_candidate_count);
+        println!("reward_apply_count={}", ledger.reward_apply_count);
+        println!("minimum_mature_events={}", gate.minimum_mature_events);
+        println!(
+            "minimum_support_qualified_events={}",
+            gate.minimum_support_qualified_events
+        );
+        println!("minimum_regime_coverage={}", gate.minimum_regime_coverage);
+        println!("eligibility={status}");
+        println!("ledger_digest={}", ledger.ledger_digest);
+        println!("provider_calls=0");
+        println!("transport_constructions=0");
+        println!("network_consent_reads=0");
+        println!("credential_reads=0");
+        println!("label_reads=0");
+        println!("chair_decision_count=0");
+        println!("reward_applied_count=0");
+        println!("penalty_applied_count=0");
+        println!("voice_mutation_count=0");
+        println!("cooldown_mutation_count=0");
+        println!("promotion_mutation_count=0");
+        println!("quarantine_mutation_count=0");
+        println!("execution_count=0");
+    }
+    Ok(())
+}
+
 fn run_btc_prospective_challenge_command(
     config_path: &Path,
     snapshot: &crate::data::DataSnapshot,
