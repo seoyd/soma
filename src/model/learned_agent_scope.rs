@@ -2,7 +2,12 @@
 
 use std::{fs, path::Path};
 
-use crate::{core::stable_hash_string, data::DataSnapshot};
+use crate::{
+    core::stable_hash_string,
+    data::{
+        DataSnapshot, historical_replay_dataset_digest_v0, snapshot_id_from_semantic_digest_v1,
+    },
+};
 
 use super::{
     AgentOpinionRelationshipV0, BtcHistoricalRegimeConfigV0, BtcHistoricalRegimeV0,
@@ -2239,6 +2244,25 @@ fn source_reference_digest_v1(value: &LearnedAgentSourceResultReferenceV1) -> St
     opt_strv(&mut bytes, value.source_model_version_id.as_deref());
     stable_hash_string(&hex(&bytes))
 }
+fn opinion_envelope_digest_v1(value: &LearnedAgentOpinionEnvelopeV1) -> String {
+    let mut bytes = Vec::new();
+    for text in [
+        &value.protocol_version,
+        &value.opinion_id,
+        &value.protocol_registration_digest_v1,
+        &value.agent_id,
+        &value.doctrine_id,
+        &value.source_result.reference_digest_v1,
+        &value.source_membership_proof_digest_v1,
+        &value.temporal_scope.scope_digest_v1,
+    ] {
+        strv(&mut bytes, text);
+    }
+    tag(&mut bytes, objective_tag_v1(value.objective));
+    strings(&mut bytes, &value.reason_codes);
+    strv(&mut bytes, &authority_digest_v1(&value.authority));
+    stable_hash_string(&hex(&bytes))
+}
 pub fn create_source_bound_opinion_v1(
     source: LearnedAgentSourceResultReferenceV1,
     membership: &SourceResultMembershipProofV1,
@@ -2303,23 +2327,7 @@ pub fn create_source_bound_opinion_v1(
         sealed: false,
         opinion_digest_v1: String::new(),
     };
-    let mut bytes = Vec::new();
-    for text in [
-        &value.protocol_version,
-        &value.opinion_id,
-        &value.protocol_registration_digest_v1,
-        &value.agent_id,
-        &value.doctrine_id,
-        &value.source_result.reference_digest_v1,
-        &value.source_membership_proof_digest_v1,
-        &value.temporal_scope.scope_digest_v1,
-    ] {
-        strv(&mut bytes, text);
-    }
-    tag(&mut bytes, objective_tag_v1(value.objective));
-    strings(&mut bytes, &value.reason_codes);
-    strv(&mut bytes, &authority_digest_v1(&value.authority));
-    value.opinion_digest_v1 = stable_hash_string(&hex(&bytes));
+    value.opinion_digest_v1 = opinion_envelope_digest_v1(&value);
     Ok(value)
 }
 
@@ -2328,6 +2336,7 @@ pub fn create_joint_scope_source_bound_opinion_v1(
     membership: &SourceResultMembershipProofV1,
     cutoff: u64,
     joint_scope_id: &str,
+    reason_code: &str,
     registration: &SourceBoundOpinionProtocolRegistrationV1,
 ) -> Result<LearnedAgentOpinionEnvelopeV1, String> {
     let mut opinion = create_source_bound_opinion_v1(
@@ -2339,7 +2348,7 @@ pub fn create_joint_scope_source_bound_opinion_v1(
     )?;
     opinion.creation_mode =
         LearnedAgentOpinionCreationModeV1::RetrospectiveJointScopeDevelopmentReplay;
-    opinion.reason_codes = vec!["retrospective_joint_scope_development_abstention".into()];
+    opinion.reason_codes = vec![reason_code.into()];
     opinion.opinion_id = format!(
         "joint-source-bound-opinion-{}",
         stable_hash_string(&format!(
@@ -2349,10 +2358,7 @@ pub fn create_joint_scope_source_bound_opinion_v1(
             registration.policy_digest_v1
         ))
     );
-    opinion.opinion_digest_v1 = stable_hash_string(&format!(
-        "{}:{}:{:?}",
-        opinion.opinion_id, opinion.source_membership_proof_digest_v1, opinion.creation_mode
-    ));
+    opinion.opinion_digest_v1 = opinion_envelope_digest_v1(&opinion);
     Ok(opinion)
 }
 
@@ -3596,6 +3602,2224 @@ pub fn replay_joint_scope_results_v1(
     })
 }
 
+// Sprint 58 deliberately keeps the Sprint 57 V1 replay above intact.  V2
+// records a separate forensic and replay protocol so legacy output is not
+// reinterpreted or rewritten.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum JointParticipantExecutionHealthV2 {
+    Completed,
+    ParentSnapshotInvalid,
+    JointScopeInvalid,
+    DerivedSnapshotConstructionFailure,
+    DerivedSnapshotSemanticFailure,
+    EvidencePolicyFailure,
+    InventoryRejected,
+    NoAcceptedSeries,
+    PackConstructionFailure,
+    PackVerificationFailure,
+    EncoderConstructionFailure,
+    CampaignConfigurationFailure,
+    CampaignRuntimeFailure,
+    CampaignOutputMissing,
+    AnchorMaterializationFailure,
+    ResultClosureFailure,
+    NondeterministicReplay,
+    TechnicalFailure,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum JointParticipantModelEvidenceOutcomeV2 {
+    UsableValidationSignal,
+    NoUsableValidationSignal,
+    ValidationSignalOutOfSupport,
+    InsufficientEvidence,
+    ProbabilityCollapse,
+    RepresentationShiftRisk,
+    BaselineStronger,
+    NotEvaluatedTechnicalFailure,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum JointParticipantOperationalShadowResultV2 {
+    ShadowPredictionResearchOnly,
+    ShadowAbstainNoSignal,
+    ShadowAbstainOutOfSupport,
+    ShadowAbstainInsufficientEvidence,
+    ShadowAbstainTechnicalFailure,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum JointAnchorAuditStatusV2 {
+    Complete,
+    CompleteWithoutSelectedCheckpoint,
+    NoValidExamples,
+    FeatureConstructionFailure,
+    SequenceConstructionFailure,
+    WindowConstructionFailure,
+    PartitionIdentityFailure,
+    TechnicalFailure,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum JointParticipantExecutionStageV2 {
+    ParentSnapshotVerification,
+    JointScopeVerification,
+    DerivedSnapshotConstruction,
+    DerivedSnapshotIdentity,
+    DerivedSnapshotSemanticVerification,
+    EvidencePolicyConstruction,
+    SnapshotInventoryClassification,
+    EvidencePackConstruction,
+    EvidencePackVerification,
+    EncoderConstruction,
+    FeatureExtraction,
+    SequenceConstruction,
+    WindowConstruction,
+    CampaignExecution,
+    ValidationSignalGate,
+    CheckpointSelection,
+    TemporalDiagnostics,
+    ResultClosure,
+    AnchorMaterialization,
+    SourceBoundOpinionConstruction,
+    OpinionSeal,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum JointExecutionStageStatusV2 {
+    Completed,
+    CompletedNoSignal,
+    CompletedAbstained,
+    NotApplicable,
+    NotExecutedAfterFailure,
+    Failed,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct JointExecutionStageResultV2 {
+    pub stage: JointParticipantExecutionStageV2,
+    pub status: JointExecutionStageStatusV2,
+    pub sanitized_error_code: Option<String>,
+    pub reason_codes: Vec<String>,
+    pub artifact_digest: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct JointParticipantExecutionTraceV2 {
+    pub trace_version: String,
+    pub joint_scope_id: String,
+    pub participant_agent_id: String,
+    pub objective: LearnedAgentObjectiveV0,
+    pub stages: Vec<JointExecutionStageResultV2>,
+    pub first_failed_stage: Option<JointParticipantExecutionStageV2>,
+    pub execution_health: JointParticipantExecutionHealthV2,
+    pub model_evidence_outcome: JointParticipantModelEvidenceOutcomeV2,
+    pub operational_shadow_result: JointParticipantOperationalShadowResultV2,
+    pub trace_digest_v2: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct JointScopeSnapshotDerivationProofV2 {
+    pub parent_verified: bool,
+    pub exact_registered_row_subset: bool,
+    pub provider_preserved: bool,
+    pub series_preserved: bool,
+    pub chronology_valid: bool,
+    pub derived_row_count_consistent: bool,
+    pub quality_row_count_consistent: bool,
+    pub symbol_metadata_consistent: bool,
+    pub timestamp_metadata_consistent: bool,
+    pub content_digest_consistent: bool,
+    pub snapshot_identity_consistent: bool,
+    pub read_only_preserved: bool,
+    pub sanitized_preserved: bool,
+    pub credential_free_preserved: bool,
+    pub immutable_reason_preserved: bool,
+    pub all_invariants_pass: bool,
+    pub proof_digest_v2: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct JointScopeSnapshotLineageV2 {
+    pub parent_snapshot_id: String,
+    pub parent_snapshot_digest: String,
+    pub derived_snapshot_id: String,
+    pub derived_snapshot_digest: String,
+    pub joint_scope_id: String,
+    pub joint_scope_digest: String,
+    pub lineage_digest_v2: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct JointScopeDerivedSnapshotV2 {
+    pub derivation_version: String,
+    pub parent_snapshot_id: String,
+    pub parent_snapshot_digest: String,
+    pub joint_scope_id: String,
+    pub joint_scope_digest: String,
+    pub derived_snapshot: DataSnapshot,
+    pub derivation_proof: JointScopeSnapshotDerivationProofV2,
+    pub lineage: JointScopeSnapshotLineageV2,
+    pub derivation_digest_v2: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct JointScopeDerivedEvidencePolicyV2 {
+    pub parent_snapshot_id: String,
+    pub derived_snapshot_id: String,
+    pub derivation_proof_digest: String,
+    pub exact_child_authorized: bool,
+    pub wildcard_authorization: bool,
+    pub policy_digest_v2: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct JointCanonicalScopeReplayRegistrationV2 {
+    pub registration_version: String,
+    pub parent_registration_digest_v1: String,
+    pub source_bound_opinion_protocol_digest: String,
+    pub canonical_encoding_version: String,
+    pub joint_scope_ids: Vec<String>,
+    pub joint_scope_digests: Vec<String>,
+    pub derived_snapshot_policy_digest: String,
+    pub derived_evidence_policy_digest: String,
+    pub execution_trace_policy_digest: String,
+    pub participant_status_policy_digest: String,
+    pub completed_no_signal_opinion_policy_digest: String,
+    pub scope_ranges_unchanged: bool,
+    pub scope_selection_unchanged: bool,
+    pub participant_configs_unchanged: bool,
+    pub result_dependent_changes_forbidden: bool,
+    pub authority_policy_digest: String,
+    pub registration_digest_v2: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum JointMomentumRootCauseV2 {
+    DerivedSnapshotMetadataMismatch,
+    DerivedSnapshotIdentityMismatch,
+    DerivedEvidenceApprovalMissing,
+    InventoryRejectedExpectedChild,
+    EmptyAcceptedSeries,
+    PackInvariantFailure,
+    CampaignConfigurationFailure,
+    CampaignRuntimeFailure,
+    GenuineCompletedNoUsableValidationSignal,
+    AnchorAuditFailureAfterCompletedCampaign,
+    MultipleCauses,
+    Unknown,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Sprint57MomentumOutcomeInterpretationV2 {
+    pub sprint57_registration_digest: String,
+    pub joint_scope_id: String,
+    pub legacy_reported_status: String,
+    pub forensic_root_cause: JointMomentumRootCauseV2,
+    pub corrected_execution_health: JointParticipantExecutionHealthV2,
+    pub corrected_model_outcome: JointParticipantModelEvidenceOutcomeV2,
+    pub sprint57_artifact_mutated: bool,
+    pub interpretation_digest_v2: String,
+}
+
+fn joint_v2_digest(parts: &[String]) -> String {
+    let mut bytes = Vec::new();
+    strv(&mut bytes, "joint-canonical-scope-replay-v2");
+    strings(&mut bytes, parts);
+    stable_hash_string(&hex(&bytes))
+}
+
+fn joint_v2_policy_digest(label: &str, parts: &[&str]) -> String {
+    let mut values = vec![label.to_string()];
+    values.extend(parts.iter().map(|part| (*part).to_string()));
+    joint_v2_digest(&values)
+}
+
+fn joint_v2_registration_digest(value: &JointCanonicalScopeReplayRegistrationV2) -> String {
+    let mut values = vec![
+        value.registration_version.clone(),
+        value.parent_registration_digest_v1.clone(),
+        value.source_bound_opinion_protocol_digest.clone(),
+        value.canonical_encoding_version.clone(),
+        value.derived_snapshot_policy_digest.clone(),
+        value.derived_evidence_policy_digest.clone(),
+        value.execution_trace_policy_digest.clone(),
+        value.participant_status_policy_digest.clone(),
+        value.completed_no_signal_opinion_policy_digest.clone(),
+        value.authority_policy_digest.clone(),
+    ];
+    values.extend(value.joint_scope_ids.clone());
+    values.extend(value.joint_scope_digests.clone());
+    values.extend([
+        value.scope_ranges_unchanged.to_string(),
+        value.scope_selection_unchanged.to_string(),
+        value.participant_configs_unchanged.to_string(),
+        value.result_dependent_changes_forbidden.to_string(),
+    ]);
+    joint_v2_digest(&values)
+}
+
+pub fn joint_canonical_scope_registration_v2(
+    snapshot: &DataSnapshot,
+    campaign: &MomentumLearningCampaignConfigV0,
+) -> Result<JointCanonicalScopeReplayRegistrationV2, String> {
+    let parent = joint_canonical_scope_registration_v1(snapshot, campaign)?;
+    let (proof, scopes) = issue_joint_canonical_scopes_v1(snapshot, &parent)?;
+    if !proof.all_invariants_pass || scopes.len() != parent.requested_scope_count {
+        return Err("joint_v2_scope_registration_unavailable".into());
+    }
+    let scope_ids = scopes
+        .iter()
+        .map(|scope| scope.joint_scope_id.clone())
+        .collect::<Vec<_>>();
+    let scope_digests = scopes
+        .iter()
+        .map(|scope| scope.scope_digest_v1.clone())
+        .collect::<Vec<_>>();
+    let mut value = JointCanonicalScopeReplayRegistrationV2 {
+        registration_version: "joint-canonical-scope-replay-registration-v2".into(),
+        parent_registration_digest_v1: parent.registration_digest_v1,
+        source_bound_opinion_protocol_digest:
+            SourceBoundOpinionProtocolRegistrationV1::pre_registered().policy_digest_v1,
+        canonical_encoding_version: "canonical-semantic-encoding-v1".into(),
+        joint_scope_ids: scope_ids,
+        joint_scope_digests: scope_digests,
+        derived_snapshot_policy_digest: joint_v2_policy_digest(
+            "derived-snapshot-policy-v2",
+            &[
+                "child-semantic-identity",
+                "coupled-metadata",
+                "parent-lineage",
+            ],
+        ),
+        derived_evidence_policy_digest: joint_v2_policy_digest(
+            "derived-evidence-policy-v2",
+            &[
+                "exact-child-only",
+                "wildcard-forbidden",
+                "global-policy-unchanged",
+            ],
+        ),
+        execution_trace_policy_digest: joint_v2_policy_digest(
+            "execution-trace-policy-v2",
+            &[
+                "typed-stage-results",
+                "no-error-swallowing",
+                "sanitized-errors",
+            ],
+        ),
+        participant_status_policy_digest: joint_v2_policy_digest(
+            "participant-status-policy-v2",
+            &[
+                "execution-model-anchor-separated",
+                "technical-failure-not-no-signal",
+            ],
+        ),
+        completed_no_signal_opinion_policy_digest: joint_v2_policy_digest(
+            "completed-no-signal-opinion-policy-v2",
+            &["completed-only", "source-bound-abstain", "authority-false"],
+        ),
+        scope_ranges_unchanged: true,
+        scope_selection_unchanged: true,
+        participant_configs_unchanged: true,
+        result_dependent_changes_forbidden: true,
+        authority_policy_digest: joint_v2_policy_digest(
+            "joint-authority-policy-v2",
+            &[
+                "advisory-only",
+                "chair-vote-reward-penalty-promotion-execution-forbidden",
+            ],
+        ),
+        registration_digest_v2: String::new(),
+    };
+    value.registration_digest_v2 = joint_v2_registration_digest(&value);
+    Ok(value)
+}
+
+pub fn validate_joint_canonical_scope_registration_v2(
+    snapshot: &DataSnapshot,
+    campaign: &MomentumLearningCampaignConfigV0,
+    registration: &JointCanonicalScopeReplayRegistrationV2,
+) -> Result<Vec<JointCanonicalHistoricalScopeV1>, String> {
+    if registration.registration_version != "joint-canonical-scope-replay-registration-v2"
+        || registration.registration_digest_v2 != joint_v2_registration_digest(registration)
+        || !registration.scope_ranges_unchanged
+        || !registration.scope_selection_unchanged
+        || !registration.participant_configs_unchanged
+        || !registration.result_dependent_changes_forbidden
+    {
+        return Err("joint_v2_registration_invalid".into());
+    }
+    let parent = joint_canonical_scope_registration_v1(snapshot, campaign)?;
+    let (proof, scopes) = issue_joint_canonical_scopes_v1(snapshot, &parent)?;
+    if !proof.all_invariants_pass
+        || parent.registration_digest_v1 != registration.parent_registration_digest_v1
+        || scopes
+            .iter()
+            .map(|scope| scope.joint_scope_id.clone())
+            .collect::<Vec<_>>()
+            != registration.joint_scope_ids
+        || scopes
+            .iter()
+            .map(|scope| scope.scope_digest_v1.clone())
+            .collect::<Vec<_>>()
+            != registration.joint_scope_digests
+    {
+        return Err("joint_v2_scope_reuse_mismatch".into());
+    }
+    Ok(scopes)
+}
+
+fn derived_snapshot_proof_digest_v2(value: &JointScopeSnapshotDerivationProofV2) -> String {
+    joint_v2_digest(&[
+        value.parent_verified.to_string(),
+        value.exact_registered_row_subset.to_string(),
+        value.provider_preserved.to_string(),
+        value.series_preserved.to_string(),
+        value.chronology_valid.to_string(),
+        value.derived_row_count_consistent.to_string(),
+        value.quality_row_count_consistent.to_string(),
+        value.symbol_metadata_consistent.to_string(),
+        value.timestamp_metadata_consistent.to_string(),
+        value.content_digest_consistent.to_string(),
+        value.snapshot_identity_consistent.to_string(),
+        value.read_only_preserved.to_string(),
+        value.sanitized_preserved.to_string(),
+        value.credential_free_preserved.to_string(),
+        value.immutable_reason_preserved.to_string(),
+    ])
+}
+
+fn v2_scope_matches_snapshot(
+    snapshot: &DataSnapshot,
+    scope: &JointCanonicalHistoricalScopeV1,
+) -> Result<(), String> {
+    if scope.source_snapshot_id != snapshot.snapshot_id
+        || scope.source_snapshot_digest != snapshot.content_digest
+        || scope.range_start_index >= scope.range_end_index_exclusive
+        || scope.range_end_index_exclusive > snapshot.normalized_dataset.rows.len()
+        || scope.row_count != scope.range_end_index_exclusive - scope.range_start_index
+    {
+        return Err("joint_scope_snapshot_mismatch".into());
+    }
+    let raw = canonical_raw_scope_v1(
+        snapshot,
+        scope.range_start_index,
+        scope.range_end_index_exclusive,
+        &scope.registration_digest_v1,
+    )?;
+    if raw != scope.canonical_raw_scope
+        || raw.information_cutoff_timestamp != scope.information_cutoff_timestamp
+    {
+        return Err("joint_scope_raw_identity_mismatch".into());
+    }
+    Ok(())
+}
+
+pub fn derive_joint_scope_snapshot_v2(
+    snapshot: &DataSnapshot,
+    scope: &JointCanonicalHistoricalScopeV1,
+) -> Result<JointScopeDerivedSnapshotV2, String> {
+    v2_scope_matches_snapshot(snapshot, scope)?;
+    let parent_digest = historical_replay_dataset_digest_v0(&snapshot.normalized_dataset);
+    let parent_verified = parent_digest == snapshot.content_digest
+        && snapshot.snapshot_id == snapshot_id_from_semantic_digest_v1(&parent_digest)
+        && snapshot.row_count == snapshot.normalized_dataset.rows.len()
+        && snapshot.quality_summary.row_count == snapshot.row_count
+        && snapshot.symbols == vec![snapshot.normalized_dataset.symbol.clone()]
+        && snapshot.actual_start_timestamp_ms
+            == snapshot
+                .normalized_dataset
+                .rows
+                .first()
+                .map(|row| row.timestamp_ms)
+        && snapshot.actual_end_timestamp_ms
+            == snapshot
+                .normalized_dataset
+                .rows
+                .last()
+                .map(|row| row.timestamp_ms);
+    if !parent_verified {
+        return Err("joint_parent_snapshot_semantic_invalid".into());
+    }
+
+    let rows = snapshot.normalized_dataset.rows
+        [scope.range_start_index..scope.range_end_index_exclusive]
+        .to_vec();
+    let first = rows.first().map(|row| row.timestamp_ms);
+    let last = rows.last().map(|row| row.timestamp_ms);
+    let mut derived = snapshot.clone();
+    derived.normalized_dataset.rows = rows;
+    derived.row_count = derived.normalized_dataset.rows.len();
+    derived.quality_summary.row_count = derived.row_count;
+    derived.requested_lookback.bars = derived.row_count;
+    derived.requested_lookback.start_timestamp_ms = first;
+    derived.requested_lookback.end_timestamp_ms = last;
+    derived.actual_start_timestamp_ms = first;
+    derived.actual_end_timestamp_ms = last;
+    derived.content_digest = historical_replay_dataset_digest_v0(&derived.normalized_dataset);
+    derived.snapshot_id = snapshot_id_from_semantic_digest_v1(&derived.content_digest);
+    derived.request_key = format!(
+        "joint-derived-v2-{}",
+        stable_hash_string(&format!(
+            "{}:{}:{}",
+            snapshot.snapshot_id, scope.joint_scope_id, scope.scope_digest_v1
+        ))
+    );
+    derived.provenance.acquisition_request_id = derived.request_key.clone();
+
+    let chronology_valid = derived
+        .normalized_dataset
+        .rows
+        .windows(2)
+        .all(|pair| pair[0].timestamp_ms < pair[1].timestamp_ms);
+    let immutable_reason_preserved = snapshot
+        .reason_codes
+        .iter()
+        .any(|code| matches!(code, crate::core::ReasonCode::DataSnapshotImmutable))
+        && derived.reason_codes == snapshot.reason_codes;
+    let mut proof = JointScopeSnapshotDerivationProofV2 {
+        parent_verified,
+        exact_registered_row_subset: derived.normalized_dataset.rows
+            == snapshot.normalized_dataset.rows
+                [scope.range_start_index..scope.range_end_index_exclusive],
+        provider_preserved: derived.provider_id == snapshot.provider_id
+            && derived.provenance.provider_id == snapshot.provenance.provider_id,
+        series_preserved: derived.normalized_dataset.symbol == snapshot.normalized_dataset.symbol,
+        chronology_valid,
+        derived_row_count_consistent: derived.row_count == derived.normalized_dataset.rows.len(),
+        quality_row_count_consistent: derived.quality_summary.row_count == derived.row_count
+            && derived.quality_summary.accepted == snapshot.quality_summary.accepted,
+        symbol_metadata_consistent: derived.symbols
+            == vec![derived.normalized_dataset.symbol.clone()],
+        timestamp_metadata_consistent: derived.actual_start_timestamp_ms == first
+            && derived.actual_end_timestamp_ms == last,
+        content_digest_consistent: derived.content_digest
+            == historical_replay_dataset_digest_v0(&derived.normalized_dataset),
+        snapshot_identity_consistent: derived.snapshot_id
+            == snapshot_id_from_semantic_digest_v1(&derived.content_digest),
+        read_only_preserved: derived.read_only == snapshot.read_only && derived.read_only,
+        sanitized_preserved: derived.sanitized == snapshot.sanitized
+            && derived.provenance.sanitized == snapshot.provenance.sanitized
+            && derived.sanitized,
+        credential_free_preserved: derived.provenance.credential_free
+            == snapshot.provenance.credential_free
+            && derived.provenance.credential_free,
+        immutable_reason_preserved,
+        all_invariants_pass: false,
+        proof_digest_v2: String::new(),
+    };
+    proof.all_invariants_pass = proof.parent_verified
+        && proof.exact_registered_row_subset
+        && proof.provider_preserved
+        && proof.series_preserved
+        && proof.chronology_valid
+        && proof.derived_row_count_consistent
+        && proof.quality_row_count_consistent
+        && proof.symbol_metadata_consistent
+        && proof.timestamp_metadata_consistent
+        && proof.content_digest_consistent
+        && proof.snapshot_identity_consistent
+        && proof.read_only_preserved
+        && proof.sanitized_preserved
+        && proof.credential_free_preserved
+        && proof.immutable_reason_preserved;
+    proof.proof_digest_v2 = derived_snapshot_proof_digest_v2(&proof);
+    if !proof.all_invariants_pass {
+        return Err("joint_derived_snapshot_invariant_failed".into());
+    }
+    let lineage = JointScopeSnapshotLineageV2 {
+        parent_snapshot_id: snapshot.snapshot_id.clone(),
+        parent_snapshot_digest: snapshot.content_digest.clone(),
+        derived_snapshot_id: derived.snapshot_id.clone(),
+        derived_snapshot_digest: derived.content_digest.clone(),
+        joint_scope_id: scope.joint_scope_id.clone(),
+        joint_scope_digest: scope.scope_digest_v1.clone(),
+        lineage_digest_v2: joint_v2_digest(&[
+            snapshot.snapshot_id.clone(),
+            snapshot.content_digest.clone(),
+            derived.snapshot_id.clone(),
+            derived.content_digest.clone(),
+            scope.joint_scope_id.clone(),
+            scope.scope_digest_v1.clone(),
+        ]),
+    };
+    let derivation_digest_v2 = joint_v2_digest(&[
+        "joint-scope-derived-snapshot-v2".into(),
+        proof.proof_digest_v2.clone(),
+        lineage.lineage_digest_v2.clone(),
+    ]);
+    Ok(JointScopeDerivedSnapshotV2 {
+        derivation_version: "joint-scope-derived-snapshot-v2".into(),
+        parent_snapshot_id: snapshot.snapshot_id.clone(),
+        parent_snapshot_digest: snapshot.content_digest.clone(),
+        joint_scope_id: scope.joint_scope_id.clone(),
+        joint_scope_digest: scope.scope_digest_v1.clone(),
+        derived_snapshot: derived,
+        derivation_proof: proof,
+        lineage,
+        derivation_digest_v2,
+    })
+}
+
+pub fn joint_scope_derived_evidence_policy_v2(
+    value: &JointScopeDerivedSnapshotV2,
+) -> Result<JointScopeDerivedEvidencePolicyV2, String> {
+    if !value.derivation_proof.all_invariants_pass
+        || value.parent_snapshot_id.is_empty()
+        || value.derived_snapshot.snapshot_id.is_empty()
+    {
+        return Err("joint_derived_evidence_policy_invalid".into());
+    }
+    let mut policy = JointScopeDerivedEvidencePolicyV2 {
+        parent_snapshot_id: value.parent_snapshot_id.clone(),
+        derived_snapshot_id: value.derived_snapshot.snapshot_id.clone(),
+        derivation_proof_digest: value.derivation_proof.proof_digest_v2.clone(),
+        exact_child_authorized: true,
+        wildcard_authorization: false,
+        policy_digest_v2: String::new(),
+    };
+    policy.policy_digest_v2 = joint_v2_digest(&[
+        policy.parent_snapshot_id.clone(),
+        policy.derived_snapshot_id.clone(),
+        policy.derivation_proof_digest.clone(),
+        policy.exact_child_authorized.to_string(),
+        policy.wildcard_authorization.to_string(),
+    ]);
+    Ok(policy)
+}
+
+fn execution_trace_digest_v2(value: &JointParticipantExecutionTraceV2) -> String {
+    let mut parts = vec![
+        value.trace_version.clone(),
+        value.joint_scope_id.clone(),
+        value.participant_agent_id.clone(),
+        format!("{:?}", value.objective),
+        format!("{:?}", value.execution_health),
+        format!("{:?}", value.model_evidence_outcome),
+        format!("{:?}", value.operational_shadow_result),
+    ];
+    parts.extend(value.stages.iter().map(|stage| {
+        format!(
+            "{:?}:{:?}:{}:{}:{}",
+            stage.stage,
+            stage.status,
+            stage.sanitized_error_code.clone().unwrap_or_default(),
+            stage.reason_codes.join(","),
+            stage.artifact_digest.clone().unwrap_or_default(),
+        )
+    }));
+    joint_v2_digest(&parts)
+}
+
+fn new_execution_trace_v2(
+    scope: &JointCanonicalHistoricalScopeV1,
+    participant_agent_id: String,
+    objective: LearnedAgentObjectiveV0,
+) -> JointParticipantExecutionTraceV2 {
+    JointParticipantExecutionTraceV2 {
+        trace_version: "joint-participant-execution-trace-v2".into(),
+        joint_scope_id: scope.joint_scope_id.clone(),
+        participant_agent_id,
+        objective,
+        stages: vec![],
+        first_failed_stage: None,
+        execution_health: JointParticipantExecutionHealthV2::TechnicalFailure,
+        model_evidence_outcome:
+            JointParticipantModelEvidenceOutcomeV2::NotEvaluatedTechnicalFailure,
+        operational_shadow_result:
+            JointParticipantOperationalShadowResultV2::ShadowAbstainTechnicalFailure,
+        trace_digest_v2: String::new(),
+    }
+}
+
+fn record_execution_stage_v2(
+    trace: &mut JointParticipantExecutionTraceV2,
+    stage: JointParticipantExecutionStageV2,
+    status: JointExecutionStageStatusV2,
+    sanitized_error_code: Option<&str>,
+    reason_codes: Vec<String>,
+    artifact_digest: Option<String>,
+) {
+    if status == JointExecutionStageStatusV2::Failed && trace.first_failed_stage.is_none() {
+        trace.first_failed_stage = Some(stage);
+    }
+    trace.stages.push(JointExecutionStageResultV2 {
+        stage,
+        status,
+        sanitized_error_code: sanitized_error_code.map(str::to_string),
+        reason_codes,
+        artifact_digest,
+    });
+}
+
+fn finish_execution_trace_v2(trace: &mut JointParticipantExecutionTraceV2) {
+    trace.trace_digest_v2 = execution_trace_digest_v2(trace);
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct JointMomentumForensicReportV2 {
+    pub report_version: String,
+    pub joint_scope_id: String,
+    pub derived_snapshot_id: String,
+    pub derived_snapshot_digest: String,
+    pub quality_summary_consistent: bool,
+    pub accepted_series_count: usize,
+    pub rejected_snapshot_count: usize,
+    pub pack_series_count: usize,
+    pub campaign_invocation_status: String,
+    pub anchor_invocation_status: String,
+    pub execution_trace: JointParticipantExecutionTraceV2,
+    pub root_cause: JointMomentumRootCauseV2,
+    pub forensic_digest_v2: String,
+}
+
+fn legacy_scope_snapshot_integrity_v2(
+    snapshot: &DataSnapshot,
+    scope: &JointCanonicalHistoricalScopeV1,
+) -> Result<(DataSnapshot, bool, bool), String> {
+    v2_scope_matches_snapshot(snapshot, scope)?;
+    let legacy = replay_local_joint_scope_snapshot_v1(snapshot, scope);
+    let quality_consistent = legacy.quality_summary.row_count == legacy.row_count
+        && legacy.quality_summary.accepted == snapshot.quality_summary.accepted;
+    let semantic_identity_consistent =
+        legacy.snapshot_id == snapshot_id_from_semantic_digest_v1(&legacy.content_digest);
+    Ok((legacy, quality_consistent, semantic_identity_consistent))
+}
+
+pub fn forensic_joint_momentum_scope_v2(
+    snapshot: &DataSnapshot,
+    scope: &JointCanonicalHistoricalScopeV1,
+    campaign: &MomentumLearningCampaignConfigV0,
+) -> Result<JointMomentumForensicReportV2, String> {
+    let mut trace = new_execution_trace_v2(
+        scope,
+        campaign.agent_id.clone(),
+        LearnedAgentObjectiveV0::DirectionalMomentum,
+    );
+    let parent_valid = historical_replay_dataset_digest_v0(&snapshot.normalized_dataset)
+        == snapshot.content_digest
+        && snapshot.row_count == snapshot.normalized_dataset.rows.len()
+        && snapshot.quality_summary.row_count == snapshot.row_count;
+    record_execution_stage_v2(
+        &mut trace,
+        JointParticipantExecutionStageV2::ParentSnapshotVerification,
+        if parent_valid {
+            JointExecutionStageStatusV2::Completed
+        } else {
+            JointExecutionStageStatusV2::Failed
+        },
+        (!parent_valid).then_some("parent_snapshot_semantic_invalid"),
+        vec![format!("parent_verified={parent_valid}")],
+        Some(snapshot.content_digest.clone()),
+    );
+    if !parent_valid {
+        trace.execution_health = JointParticipantExecutionHealthV2::ParentSnapshotInvalid;
+        finish_execution_trace_v2(&mut trace);
+        return Ok(forensic_report_v2(
+            scope,
+            snapshot.snapshot_id.clone(),
+            snapshot.content_digest.clone(),
+            false,
+            0,
+            0,
+            0,
+            "not_executed_after_parent_failure".into(),
+            "not_executed_after_parent_failure".into(),
+            trace,
+            JointMomentumRootCauseV2::Unknown,
+        ));
+    }
+    let scope_valid = v2_scope_matches_snapshot(snapshot, scope).is_ok();
+    record_execution_stage_v2(
+        &mut trace,
+        JointParticipantExecutionStageV2::JointScopeVerification,
+        if scope_valid {
+            JointExecutionStageStatusV2::Completed
+        } else {
+            JointExecutionStageStatusV2::Failed
+        },
+        (!scope_valid).then_some("joint_scope_raw_identity_mismatch"),
+        vec![format!("scope_verified={scope_valid}")],
+        Some(scope.scope_digest_v1.clone()),
+    );
+    if !scope_valid {
+        trace.execution_health = JointParticipantExecutionHealthV2::JointScopeInvalid;
+        finish_execution_trace_v2(&mut trace);
+        return Ok(forensic_report_v2(
+            scope,
+            snapshot.snapshot_id.clone(),
+            snapshot.content_digest.clone(),
+            false,
+            0,
+            0,
+            0,
+            "not_executed_after_scope_failure".into(),
+            "not_executed_after_scope_failure".into(),
+            trace,
+            JointMomentumRootCauseV2::Unknown,
+        ));
+    }
+    let (legacy, quality_summary_consistent, identity_consistent) =
+        legacy_scope_snapshot_integrity_v2(snapshot, scope)?;
+    record_execution_stage_v2(
+        &mut trace,
+        JointParticipantExecutionStageV2::DerivedSnapshotConstruction,
+        JointExecutionStageStatusV2::Completed,
+        None,
+        vec!["legacy_subset_constructed=true".into()],
+        Some(legacy.content_digest.clone()),
+    );
+    record_execution_stage_v2(
+        &mut trace,
+        JointParticipantExecutionStageV2::DerivedSnapshotIdentity,
+        if identity_consistent {
+            JointExecutionStageStatusV2::Completed
+        } else {
+            JointExecutionStageStatusV2::Failed
+        },
+        (!identity_consistent).then_some("legacy_child_impersonates_parent_snapshot"),
+        vec![format!(
+            "semantic_identity_consistent={identity_consistent}"
+        )],
+        Some(legacy.snapshot_id.clone()),
+    );
+    record_execution_stage_v2(
+        &mut trace,
+        JointParticipantExecutionStageV2::DerivedSnapshotSemanticVerification,
+        if quality_summary_consistent {
+            JointExecutionStageStatusV2::Completed
+        } else {
+            JointExecutionStageStatusV2::Failed
+        },
+        (!quality_summary_consistent).then_some("legacy_quality_row_count_mismatch"),
+        vec![format!(
+            "quality_summary_consistent={quality_summary_consistent}"
+        )],
+        Some(legacy.content_digest.clone()),
+    );
+
+    let policy = HistoricalEvidencePolicyV0::default();
+    let inventory =
+        super::inventory_historical_snapshots_v0(std::slice::from_ref(&legacy), &policy)
+            .map_err(|_| "forensic_inventory_construction_failed".to_string())?;
+    let accepted_series_count = inventory.accepted_series.len();
+    let rejected_snapshot_count = inventory.rejected_snapshots.len();
+    record_execution_stage_v2(
+        &mut trace,
+        JointParticipantExecutionStageV2::SnapshotInventoryClassification,
+        if accepted_series_count == 1 {
+            JointExecutionStageStatusV2::Completed
+        } else {
+            JointExecutionStageStatusV2::Failed
+        },
+        (accepted_series_count != 1).then_some("legacy_inventory_expected_child_not_accepted"),
+        vec![
+            format!("accepted_series_count={accepted_series_count}"),
+            format!("rejected_snapshot_count={rejected_snapshot_count}"),
+        ],
+        Some(stable_hash_string(&format!("{:?}", inventory))),
+    );
+    let (pack_series_count, campaign_invocation_status, anchor_invocation_status, later_root) =
+        match super::freeze_momentum_historical_evidence_pack_v0(
+            std::slice::from_ref(&legacy),
+            &policy,
+        ) {
+            Err(error) => {
+                record_execution_stage_v2(
+                    &mut trace,
+                    JointParticipantExecutionStageV2::EvidencePackConstruction,
+                    JointExecutionStageStatusV2::Failed,
+                    Some("legacy_pack_construction_failed"),
+                    vec![format!("error={error:?}")],
+                    None,
+                );
+                (
+                    0,
+                    "pack_construction_failed".into(),
+                    "not_executed",
+                    JointMomentumRootCauseV2::PackInvariantFailure,
+                )
+            }
+            Ok((_, pack)) => {
+                let pack_series_count = pack.series.len();
+                let pack_valid = super::verify_momentum_historical_evidence_pack_v0(&pack).is_ok();
+                record_execution_stage_v2(
+                    &mut trace,
+                    JointParticipantExecutionStageV2::EvidencePackConstruction,
+                    if pack_series_count == 1 {
+                        JointExecutionStageStatusV2::Completed
+                    } else {
+                        JointExecutionStageStatusV2::Failed
+                    },
+                    (pack_series_count != 1).then_some("legacy_pack_expected_series_missing"),
+                    vec![format!("pack_series_count={pack_series_count}")],
+                    Some(pack.digest.clone()),
+                );
+                record_execution_stage_v2(
+                    &mut trace,
+                    JointParticipantExecutionStageV2::EvidencePackVerification,
+                    if pack_valid {
+                        JointExecutionStageStatusV2::Completed
+                    } else {
+                        JointExecutionStageStatusV2::Failed
+                    },
+                    (!pack_valid).then_some("legacy_pack_verification_failed"),
+                    vec![format!("pack_valid={pack_valid}")],
+                    Some(pack.digest.clone()),
+                );
+                if pack_series_count != 1 || !pack_valid {
+                    (
+                        pack_series_count,
+                        "not_invoked_empty_or_invalid_pack".into(),
+                        "not_executed",
+                        if pack_series_count == 0 {
+                            JointMomentumRootCauseV2::EmptyAcceptedSeries
+                        } else {
+                            JointMomentumRootCauseV2::PackInvariantFailure
+                        },
+                    )
+                } else {
+                    match frozen_mamba3_encoder_from_seed_v0(
+                        &campaign.feature_config,
+                        campaign.campaign_seed,
+                        campaign.backend_preference,
+                        campaign.fallback_policy,
+                    ) {
+                        Err(_) => {
+                            record_execution_stage_v2(
+                                &mut trace,
+                                JointParticipantExecutionStageV2::EncoderConstruction,
+                                JointExecutionStageStatusV2::Failed,
+                                Some("legacy_encoder_construction_failed"),
+                                vec![],
+                                None,
+                            );
+                            (
+                                pack_series_count,
+                                "not_invoked_encoder_failure".into(),
+                                "not_executed",
+                                JointMomentumRootCauseV2::CampaignRuntimeFailure,
+                            )
+                        }
+                        Ok(encoder) => {
+                            record_execution_stage_v2(
+                                &mut trace,
+                                JointParticipantExecutionStageV2::EncoderConstruction,
+                                JointExecutionStageStatusV2::Completed,
+                                None,
+                                vec![],
+                                Some(encoder.parameter_digest()),
+                            );
+                            let regime = BtcHistoricalRegimeV0 {
+                                regime_id: scope.joint_scope_id.clone(),
+                                start_row_index: 0,
+                                end_row_index_exclusive: legacy.row_count,
+                                start_timestamp_ms: legacy
+                                    .actual_start_timestamp_ms
+                                    .unwrap_or_default(),
+                                end_timestamp_ms: legacy
+                                    .actual_end_timestamp_ms
+                                    .unwrap_or_default(),
+                                row_count: legacy.row_count,
+                                source_snapshot_id: legacy.snapshot_id.clone(),
+                                usage_class: EvidenceUsageClassV0::DevelopmentEligible,
+                                segmentation_config_digest: scope.registration_digest_v1.clone(),
+                            };
+                            match run_btc_historical_regime_campaigns_v0(
+                                &[(regime, pack)],
+                                campaign,
+                                &encoder,
+                            ) {
+                                Err(error) => {
+                                    record_execution_stage_v2(
+                                        &mut trace,
+                                        JointParticipantExecutionStageV2::CampaignExecution,
+                                        JointExecutionStageStatusV2::Failed,
+                                        Some("legacy_campaign_invocation_failed"),
+                                        vec![format!("error={error:?}")],
+                                        None,
+                                    );
+                                    (
+                                        pack_series_count,
+                                        "campaign_error".into(),
+                                        "not_executed",
+                                        JointMomentumRootCauseV2::CampaignConfigurationFailure,
+                                    )
+                                }
+                                Ok(mut results) => {
+                                    let Some(result) = results.pop() else {
+                                        record_execution_stage_v2(
+                                            &mut trace,
+                                            JointParticipantExecutionStageV2::CampaignExecution,
+                                            JointExecutionStageStatusV2::Failed,
+                                            Some("legacy_campaign_output_missing"),
+                                            vec![],
+                                            None,
+                                        );
+                                        return Ok(forensic_report_v2(
+                                            scope,
+                                            legacy.snapshot_id,
+                                            legacy.content_digest,
+                                            quality_summary_consistent,
+                                            accepted_series_count,
+                                            rejected_snapshot_count,
+                                            pack_series_count,
+                                            "campaign_output_missing".into(),
+                                            "not_executed".into(),
+                                            trace,
+                                            JointMomentumRootCauseV2::CampaignConfigurationFailure,
+                                        ));
+                                    };
+                                    record_execution_stage_v2(
+                                        &mut trace,
+                                        JointParticipantExecutionStageV2::CampaignExecution,
+                                        JointExecutionStageStatusV2::Completed,
+                                        None,
+                                        vec![format!("report_digest={}", result.report_digest)],
+                                        Some(result.report_digest.clone()),
+                                    );
+                                    match momentum_anchor_scope_v1(
+                                        &legacy,
+                                        0,
+                                        legacy.row_count,
+                                        campaign,
+                                    ) {
+                                        Ok(anchor) => {
+                                            record_execution_stage_v2(&mut trace, JointParticipantExecutionStageV2::AnchorMaterialization, JointExecutionStageStatusV2::Completed, None, vec![format!("anchor_count={}", anchor.effective_anchor_count)], Some(anchor.scope_digest_v1));
+                                            (pack_series_count, "completed".into(), "completed".into(), JointMomentumRootCauseV2::GenuineCompletedNoUsableValidationSignal)
+                                        }
+                                        Err(_) => {
+                                            record_execution_stage_v2(&mut trace, JointParticipantExecutionStageV2::AnchorMaterialization, JointExecutionStageStatusV2::Failed, Some("legacy_anchor_materialization_failed"), vec![], None);
+                                            (pack_series_count, "completed".into(), "anchor_error".into(), JointMomentumRootCauseV2::AnchorAuditFailureAfterCompletedCampaign)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+    trace.execution_health = if !identity_consistent {
+        JointParticipantExecutionHealthV2::DerivedSnapshotSemanticFailure
+    } else if accepted_series_count == 0 {
+        JointParticipantExecutionHealthV2::NoAcceptedSeries
+    } else {
+        match later_root {
+            JointMomentumRootCauseV2::PackInvariantFailure => {
+                JointParticipantExecutionHealthV2::PackVerificationFailure
+            }
+            JointMomentumRootCauseV2::CampaignConfigurationFailure => {
+                JointParticipantExecutionHealthV2::CampaignConfigurationFailure
+            }
+            JointMomentumRootCauseV2::CampaignRuntimeFailure => {
+                JointParticipantExecutionHealthV2::EncoderConstructionFailure
+            }
+            _ => JointParticipantExecutionHealthV2::Completed,
+        }
+    };
+    if trace.execution_health == JointParticipantExecutionHealthV2::Completed {
+        trace.model_evidence_outcome =
+            JointParticipantModelEvidenceOutcomeV2::NoUsableValidationSignal;
+        trace.operational_shadow_result =
+            JointParticipantOperationalShadowResultV2::ShadowAbstainNoSignal;
+    }
+    finish_execution_trace_v2(&mut trace);
+    let root_cause = if !identity_consistent {
+        JointMomentumRootCauseV2::DerivedSnapshotIdentityMismatch
+    } else if accepted_series_count == 0 {
+        JointMomentumRootCauseV2::DerivedEvidenceApprovalMissing
+    } else {
+        later_root
+    };
+    Ok(forensic_report_v2(
+        scope,
+        legacy.snapshot_id,
+        legacy.content_digest,
+        quality_summary_consistent,
+        accepted_series_count,
+        rejected_snapshot_count,
+        pack_series_count,
+        campaign_invocation_status,
+        anchor_invocation_status.into(),
+        trace,
+        root_cause,
+    ))
+}
+
+fn forensic_report_v2(
+    scope: &JointCanonicalHistoricalScopeV1,
+    derived_snapshot_id: String,
+    derived_snapshot_digest: String,
+    quality_summary_consistent: bool,
+    accepted_series_count: usize,
+    rejected_snapshot_count: usize,
+    pack_series_count: usize,
+    campaign_invocation_status: String,
+    anchor_invocation_status: String,
+    execution_trace: JointParticipantExecutionTraceV2,
+    root_cause: JointMomentumRootCauseV2,
+) -> JointMomentumForensicReportV2 {
+    let forensic_digest_v2 = joint_v2_digest(&[
+        scope.joint_scope_id.clone(),
+        derived_snapshot_id.clone(),
+        derived_snapshot_digest.clone(),
+        quality_summary_consistent.to_string(),
+        accepted_series_count.to_string(),
+        rejected_snapshot_count.to_string(),
+        pack_series_count.to_string(),
+        campaign_invocation_status.clone(),
+        anchor_invocation_status.clone(),
+        format!("{:?}", root_cause),
+        execution_trace.trace_digest_v2.clone(),
+    ]);
+    JointMomentumForensicReportV2 {
+        report_version: "joint-momentum-failure-forensic-v2".into(),
+        joint_scope_id: scope.joint_scope_id.clone(),
+        derived_snapshot_id,
+        derived_snapshot_digest,
+        quality_summary_consistent,
+        accepted_series_count,
+        rejected_snapshot_count,
+        pack_series_count,
+        campaign_invocation_status,
+        anchor_invocation_status,
+        execution_trace,
+        root_cause,
+        forensic_digest_v2,
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct JointScopeParticipantReplayResultV2 {
+    pub joint_scope_id: String,
+    pub joint_scope_digest: String,
+    pub participant_agent_id: String,
+    pub objective: LearnedAgentObjectiveV0,
+    pub execution_trace: JointParticipantExecutionTraceV2,
+    pub completed_result_digest: Option<String>,
+    pub anchor_scope_digest: Option<String>,
+    pub anchor_status: JointAnchorAuditStatusV2,
+    pub opinion_id: Option<String>,
+    pub seal_digest: Option<String>,
+    pub sealed_opinion: Option<(LearnedAgentOpinionEnvelopeV1, LearnedAgentOpinionSealV1)>,
+    pub result_digest_v2: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct JointScopeReplayResultV2 {
+    pub replay_version: String,
+    pub registration_digest_v2: String,
+    pub joint_scope_id: String,
+    pub joint_scope_digest: String,
+    pub derived_snapshot_id: String,
+    pub derivation_digest_v2: String,
+    pub evidence_policy_digest_v2: String,
+    pub momentum: JointScopeParticipantReplayResultV2,
+    pub risk: JointScopeParticipantReplayResultV2,
+    pub pair_eligible: bool,
+    pub result_digest_v2: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct JointScopeReplayAggregateV2 {
+    pub aggregate_version: String,
+    pub registration_digest_v2: String,
+    pub completed_pair_count: usize,
+    pub technical_failure_scope_count: usize,
+    pub both_abstained_count: usize,
+    pub momentum_abstained_count: usize,
+    pub risk_abstained_count: usize,
+    pub tension_count: usize,
+    pub orthogonal_count: usize,
+    pub incomparable_count: usize,
+    pub relationship_count: usize,
+    pub deliberation_count: usize,
+    pub transcript_digests: Vec<String>,
+    pub full_aggregate_composed: bool,
+    pub aggregate_digest_v2: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct JointScopeReplayLedgerV2 {
+    pub ledger_version: String,
+    pub registration_digest_v2: String,
+    pub participant_result_digests: Vec<String>,
+    pub deliberation_transcript_digests: Vec<String>,
+    pub ledger_digest_v2: String,
+}
+
+fn momentum_model_outcome_v2(
+    result: &super::BtcTemporalRegimeEvidenceResultV0,
+) -> JointParticipantModelEvidenceOutcomeV2 {
+    match result.final_verdict {
+        super::SupportGatedMomentumSeriesVerdictV0::NoUsableValidationSignal => {
+            JointParticipantModelEvidenceOutcomeV2::NoUsableValidationSignal
+        }
+        super::SupportGatedMomentumSeriesVerdictV0::TemporalOutOfSupportAbstention => {
+            JointParticipantModelEvidenceOutcomeV2::ValidationSignalOutOfSupport
+        }
+        super::SupportGatedMomentumSeriesVerdictV0::FrozenRepresentationShiftRisk
+        | super::SupportGatedMomentumSeriesVerdictV0::WarmStartLockInRisk => {
+            JointParticipantModelEvidenceOutcomeV2::RepresentationShiftRisk
+        }
+        super::SupportGatedMomentumSeriesVerdictV0::InSupportUsableSignalButLinearStrongerOnThisSeries => {
+            JointParticipantModelEvidenceOutcomeV2::BaselineStronger
+        }
+        super::SupportGatedMomentumSeriesVerdictV0::InSupportUsableSignalAndMambaHelpedOnThisSeries
+        | super::SupportGatedMomentumSeriesVerdictV0::InSupportMixedEvidence => {
+            JointParticipantModelEvidenceOutcomeV2::UsableValidationSignal
+        }
+        super::SupportGatedMomentumSeriesVerdictV0::InsufficientEvidence
+        | super::SupportGatedMomentumSeriesVerdictV0::CampaignFailed => {
+            JointParticipantModelEvidenceOutcomeV2::InsufficientEvidence
+        }
+    }
+}
+
+fn operational_shadow_result_v2(
+    health: JointParticipantExecutionHealthV2,
+    outcome: JointParticipantModelEvidenceOutcomeV2,
+) -> JointParticipantOperationalShadowResultV2 {
+    if health != JointParticipantExecutionHealthV2::Completed {
+        return JointParticipantOperationalShadowResultV2::ShadowAbstainTechnicalFailure;
+    }
+    match outcome {
+        JointParticipantModelEvidenceOutcomeV2::UsableValidationSignal => {
+            JointParticipantOperationalShadowResultV2::ShadowPredictionResearchOnly
+        }
+        JointParticipantModelEvidenceOutcomeV2::NoUsableValidationSignal
+        | JointParticipantModelEvidenceOutcomeV2::ProbabilityCollapse => {
+            JointParticipantOperationalShadowResultV2::ShadowAbstainNoSignal
+        }
+        JointParticipantModelEvidenceOutcomeV2::ValidationSignalOutOfSupport
+        | JointParticipantModelEvidenceOutcomeV2::RepresentationShiftRisk => {
+            JointParticipantOperationalShadowResultV2::ShadowAbstainOutOfSupport
+        }
+        JointParticipantModelEvidenceOutcomeV2::InsufficientEvidence
+        | JointParticipantModelEvidenceOutcomeV2::BaselineStronger => {
+            JointParticipantOperationalShadowResultV2::ShadowAbstainInsufficientEvidence
+        }
+        JointParticipantModelEvidenceOutcomeV2::NotEvaluatedTechnicalFailure => {
+            JointParticipantOperationalShadowResultV2::ShadowAbstainTechnicalFailure
+        }
+    }
+}
+
+pub fn joint_scope_momentum_pack_v2(
+    derived: &JointScopeDerivedSnapshotV2,
+    policy: &JointScopeDerivedEvidencePolicyV2,
+) -> Result<
+    (
+        super::HistoricalSnapshotInventoryV0,
+        super::MomentumHistoricalEvidencePackV0,
+    ),
+    String,
+> {
+    if !policy.exact_child_authorized
+        || policy.wildcard_authorization
+        || policy.derived_snapshot_id != derived.derived_snapshot.snapshot_id
+        || policy.derivation_proof_digest != derived.derivation_proof.proof_digest_v2
+    {
+        return Err("joint_exact_child_evidence_policy_invalid".into());
+    }
+    let mut historical_policy = HistoricalEvidencePolicyV0::default();
+    historical_policy
+        .owner_sanitized_snapshot_ids
+        .insert(derived.derived_snapshot.snapshot_id.clone());
+    let inventory = super::inventory_historical_snapshots_v0(
+        std::slice::from_ref(&derived.derived_snapshot),
+        &historical_policy,
+    )
+    .map_err(|error| format!("joint_inventory_error_{error:?}"))?;
+    if inventory.accepted_series.len() != 1
+        || inventory
+            .rejected_snapshots
+            .iter()
+            .any(|rejected| rejected.snapshot_id == derived.derived_snapshot.snapshot_id)
+    {
+        return Err("joint_expected_child_inventory_rejected".into());
+    }
+    let (_, pack) = super::freeze_momentum_historical_evidence_pack_v0(
+        std::slice::from_ref(&derived.derived_snapshot),
+        &historical_policy,
+    )
+    .map_err(|error| format!("joint_pack_construction_error_{error:?}"))?;
+    if pack.series.len() != 1
+        || pack.created_from_snapshot_ids != vec![derived.derived_snapshot.snapshot_id.clone()]
+        || pack.series[0].symbol != derived.derived_snapshot.normalized_dataset.symbol
+        || pack.series[0].snapshots.len() != 1
+        || pack.series[0].snapshots[0].row_count != derived.derived_snapshot.row_count
+    {
+        return Err("joint_pack_invariant_invalid".into());
+    }
+    super::verify_momentum_historical_evidence_pack_v0(&pack)
+        .map_err(|error| format!("joint_pack_verification_error_{error:?}"))?;
+    Ok((inventory, pack))
+}
+
+fn participant_result_digest_v2(value: &JointScopeParticipantReplayResultV2) -> String {
+    joint_v2_digest(&[
+        value.joint_scope_id.clone(),
+        value.joint_scope_digest.clone(),
+        value.participant_agent_id.clone(),
+        format!("{:?}", value.objective),
+        value.execution_trace.trace_digest_v2.clone(),
+        value.completed_result_digest.clone().unwrap_or_default(),
+        value.anchor_scope_digest.clone().unwrap_or_default(),
+        format!("{:?}", value.anchor_status),
+        value.opinion_id.clone().unwrap_or_default(),
+        value.seal_digest.clone().unwrap_or_default(),
+    ])
+}
+
+fn make_joint_scope_opinion_v2(
+    agent_id: String,
+    objective: LearnedAgentObjectiveV0,
+    source_snapshot: &DataSnapshot,
+    scope: &JointCanonicalHistoricalScopeV1,
+    result_kind: SourceResultKindV1,
+    result_digest: String,
+    checkpoint_digest: String,
+    pack_digest: String,
+    model_version: Option<String>,
+    model_artifact_digest: String,
+    anchors: &AgentEffectiveAnchorScopeV1,
+    forecast_scope_digest: String,
+    reason_code: &str,
+) -> Result<(LearnedAgentOpinionEnvelopeV1, LearnedAgentOpinionSealV1), String> {
+    let mut source = LearnedAgentSourceResultReferenceV1 {
+        agent_id,
+        objective,
+        source_snapshot_id: source_snapshot.snapshot_id.clone(),
+        source_snapshot_digest: source_snapshot.content_digest.clone(),
+        source_result_kind: result_kind,
+        source_result_digest_v1: result_digest.clone(),
+        source_checkpoint_digest_v1: checkpoint_digest,
+        source_frozen_pack_digest: pack_digest,
+        source_model_version_id: model_version,
+        source_model_artifact_digest: model_artifact_digest,
+        canonical_raw_scope_digest_v1: scope.canonical_raw_scope.scope_digest_v1.clone(),
+        canonical_raw_row_identity_digests_v1: scope
+            .canonical_raw_scope
+            .row_identity_digests
+            .clone(),
+        information_cutoff_timestamp: scope.information_cutoff_timestamp,
+        effective_anchor_scope_digest_v1: anchors.scope_digest_v1.clone(),
+        effective_anchor_digests_v1: anchors.all_anchor_digests.clone(),
+        forecast_scope_digest_v1: forecast_scope_digest,
+        reference_digest_v1: String::new(),
+    };
+    source.reference_digest_v1 = source_reference_digest_v1(&source);
+    let mut membership = SourceResultMembershipProofV1 {
+        result_digest_v1: result_digest,
+        parent_report_digest: source_snapshot.content_digest.clone(),
+        immutable_member: true,
+        snapshot_matches: true,
+        pack_matches: true,
+        scope_matches: true,
+        anchors_match: !anchors.all_anchor_digests.is_empty(),
+        objective_matches: true,
+        agent_matches: true,
+        all_invariants_pass: !anchors.all_anchor_digests.is_empty(),
+        proof_digest_v1: String::new(),
+    };
+    membership.proof_digest_v1 = strings_digest_v1(
+        "joint-v2-membership-proof",
+        &[
+            membership.result_digest_v1.clone(),
+            membership.parent_report_digest.clone(),
+            source.reference_digest_v1.clone(),
+        ],
+    );
+    let registration = SourceBoundOpinionProtocolRegistrationV1::pre_registered();
+    let mut opinion = create_joint_scope_source_bound_opinion_v1(
+        source,
+        &membership,
+        scope.information_cutoff_timestamp,
+        &scope.joint_scope_id,
+        reason_code,
+        &registration,
+    )?;
+    let seal = source_bound_seal_v1(
+        &opinion.opinion_id,
+        &opinion.opinion_digest_v1,
+        &opinion.source_result,
+        &registration,
+        &opinion.authority,
+    )?;
+    opinion.sealed = true;
+    Ok((opinion, seal))
+}
+
+pub fn replay_joint_scope_results_v2(
+    snapshot: &DataSnapshot,
+    scope: &JointCanonicalHistoricalScopeV1,
+    registration: &JointCanonicalScopeReplayRegistrationV2,
+    campaign: &MomentumLearningCampaignConfigV0,
+) -> Result<JointScopeReplayResultV2, String> {
+    let registered_scopes =
+        validate_joint_canonical_scope_registration_v2(snapshot, campaign, registration)?;
+    if !registered_scopes
+        .iter()
+        .any(|registered| registered == scope)
+    {
+        return Err("joint_v2_scope_not_registered".into());
+    }
+    let derived = derive_joint_scope_snapshot_v2(snapshot, scope)?;
+    let evidence_policy = joint_scope_derived_evidence_policy_v2(&derived)?;
+
+    let mut momentum_trace = new_execution_trace_v2(
+        scope,
+        campaign.agent_id.clone(),
+        LearnedAgentObjectiveV0::DirectionalMomentum,
+    );
+    for (stage, digest) in [
+        (
+            JointParticipantExecutionStageV2::ParentSnapshotVerification,
+            snapshot.content_digest.clone(),
+        ),
+        (
+            JointParticipantExecutionStageV2::JointScopeVerification,
+            scope.scope_digest_v1.clone(),
+        ),
+        (
+            JointParticipantExecutionStageV2::DerivedSnapshotConstruction,
+            derived.derivation_digest_v2.clone(),
+        ),
+        (
+            JointParticipantExecutionStageV2::DerivedSnapshotIdentity,
+            derived.derived_snapshot.snapshot_id.clone(),
+        ),
+        (
+            JointParticipantExecutionStageV2::DerivedSnapshotSemanticVerification,
+            derived.derivation_proof.proof_digest_v2.clone(),
+        ),
+        (
+            JointParticipantExecutionStageV2::EvidencePolicyConstruction,
+            evidence_policy.policy_digest_v2.clone(),
+        ),
+    ] {
+        record_execution_stage_v2(
+            &mut momentum_trace,
+            stage,
+            JointExecutionStageStatusV2::Completed,
+            None,
+            vec![],
+            Some(digest),
+        );
+    }
+
+    let mut historical_policy = HistoricalEvidencePolicyV0::default();
+    historical_policy
+        .owner_sanitized_snapshot_ids
+        .insert(derived.derived_snapshot.snapshot_id.clone());
+    let inventory = super::inventory_historical_snapshots_v0(
+        std::slice::from_ref(&derived.derived_snapshot),
+        &historical_policy,
+    )
+    .map_err(|error| format!("joint_v2_inventory_error_{error:?}"))?;
+    let accepted_child = inventory.accepted_series.len() == 1
+        && inventory
+            .rejected_snapshots
+            .iter()
+            .all(|rejected| rejected.snapshot_id != derived.derived_snapshot.snapshot_id);
+    record_execution_stage_v2(
+        &mut momentum_trace,
+        JointParticipantExecutionStageV2::SnapshotInventoryClassification,
+        if accepted_child {
+            JointExecutionStageStatusV2::Completed
+        } else {
+            JointExecutionStageStatusV2::Failed
+        },
+        (!accepted_child).then_some("joint_expected_child_inventory_rejected"),
+        vec![
+            format!("accepted_series_count={}", inventory.accepted_series.len()),
+            format!(
+                "rejected_snapshot_count={}",
+                inventory.rejected_snapshots.len()
+            ),
+        ],
+        Some(stable_hash_string(&format!("{:?}", inventory))),
+    );
+
+    let mut momentum_result_digest = None;
+    let mut momentum_anchor_digest = None;
+    let mut momentum_anchor_status = JointAnchorAuditStatusV2::TechnicalFailure;
+    let mut momentum_opinion = None;
+    let mut momentum_health = if accepted_child {
+        JointParticipantExecutionHealthV2::TechnicalFailure
+    } else if inventory.accepted_series.is_empty() {
+        JointParticipantExecutionHealthV2::NoAcceptedSeries
+    } else {
+        JointParticipantExecutionHealthV2::InventoryRejected
+    };
+    let mut momentum_outcome = JointParticipantModelEvidenceOutcomeV2::NotEvaluatedTechnicalFailure;
+
+    if accepted_child {
+        match super::freeze_momentum_historical_evidence_pack_v0(
+            std::slice::from_ref(&derived.derived_snapshot),
+            &historical_policy,
+        ) {
+            Err(error) => {
+                record_execution_stage_v2(
+                    &mut momentum_trace,
+                    JointParticipantExecutionStageV2::EvidencePackConstruction,
+                    JointExecutionStageStatusV2::Failed,
+                    Some("joint_v2_pack_construction_failed"),
+                    vec![format!("error={error:?}")],
+                    None,
+                );
+                momentum_health = JointParticipantExecutionHealthV2::PackConstructionFailure;
+            }
+            Ok((_, pack)) => {
+                let pack_valid = pack.series.len() == 1
+                    && pack.created_from_snapshot_ids
+                        == vec![derived.derived_snapshot.snapshot_id.clone()]
+                    && pack.series[0].snapshots.len() == 1
+                    && pack.series[0].snapshots[0].row_count == derived.derived_snapshot.row_count;
+                record_execution_stage_v2(
+                    &mut momentum_trace,
+                    JointParticipantExecutionStageV2::EvidencePackConstruction,
+                    if pack_valid {
+                        JointExecutionStageStatusV2::Completed
+                    } else {
+                        JointExecutionStageStatusV2::Failed
+                    },
+                    (!pack_valid).then_some("joint_v2_pack_invariant_invalid"),
+                    vec![format!("pack_series_count={}", pack.series.len())],
+                    Some(pack.digest.clone()),
+                );
+                match super::verify_momentum_historical_evidence_pack_v0(&pack) {
+                    Err(error) => {
+                        record_execution_stage_v2(
+                            &mut momentum_trace,
+                            JointParticipantExecutionStageV2::EvidencePackVerification,
+                            JointExecutionStageStatusV2::Failed,
+                            Some("joint_v2_pack_verification_failed"),
+                            vec![format!("error={error:?}")],
+                            Some(pack.digest.clone()),
+                        );
+                        momentum_health =
+                            JointParticipantExecutionHealthV2::PackVerificationFailure;
+                    }
+                    Ok(()) if !pack_valid => {
+                        record_execution_stage_v2(
+                            &mut momentum_trace,
+                            JointParticipantExecutionStageV2::EvidencePackVerification,
+                            JointExecutionStageStatusV2::Failed,
+                            Some("joint_v2_pack_invariant_invalid"),
+                            vec![],
+                            Some(pack.digest.clone()),
+                        );
+                        momentum_health =
+                            JointParticipantExecutionHealthV2::PackVerificationFailure;
+                    }
+                    Ok(()) => {
+                        record_execution_stage_v2(
+                            &mut momentum_trace,
+                            JointParticipantExecutionStageV2::EvidencePackVerification,
+                            JointExecutionStageStatusV2::Completed,
+                            None,
+                            vec![],
+                            Some(pack.digest.clone()),
+                        );
+                        match frozen_mamba3_encoder_from_seed_v0(
+                            &campaign.feature_config,
+                            campaign.campaign_seed,
+                            campaign.backend_preference,
+                            campaign.fallback_policy,
+                        ) {
+                            Err(_) => {
+                                record_execution_stage_v2(
+                                    &mut momentum_trace,
+                                    JointParticipantExecutionStageV2::EncoderConstruction,
+                                    JointExecutionStageStatusV2::Failed,
+                                    Some("joint_v2_encoder_construction_failed"),
+                                    vec![],
+                                    None,
+                                );
+                                momentum_health =
+                                    JointParticipantExecutionHealthV2::EncoderConstructionFailure;
+                            }
+                            Ok(encoder) => {
+                                record_execution_stage_v2(
+                                    &mut momentum_trace,
+                                    JointParticipantExecutionStageV2::EncoderConstruction,
+                                    JointExecutionStageStatusV2::Completed,
+                                    None,
+                                    vec![],
+                                    Some(encoder.parameter_digest()),
+                                );
+                                let regime = BtcHistoricalRegimeV0 {
+                                    regime_id: scope.joint_scope_id.clone(),
+                                    start_row_index: 0,
+                                    end_row_index_exclusive: derived.derived_snapshot.row_count,
+                                    start_timestamp_ms: derived
+                                        .derived_snapshot
+                                        .actual_start_timestamp_ms
+                                        .ok_or("joint_v2_scope_start_missing")?,
+                                    end_timestamp_ms: derived
+                                        .derived_snapshot
+                                        .actual_end_timestamp_ms
+                                        .ok_or("joint_v2_scope_end_missing")?,
+                                    row_count: derived.derived_snapshot.row_count,
+                                    source_snapshot_id: derived
+                                        .derived_snapshot
+                                        .snapshot_id
+                                        .clone(),
+                                    usage_class: EvidenceUsageClassV0::DevelopmentEligible,
+                                    segmentation_config_digest: registration
+                                        .registration_digest_v2
+                                        .clone(),
+                                };
+                                match run_btc_historical_regime_campaigns_v0(
+                                    &[(regime.clone(), pack.clone())],
+                                    campaign,
+                                    &encoder,
+                                ) {
+                                    Err(error) => {
+                                        record_execution_stage_v2(
+                                            &mut momentum_trace,
+                                            JointParticipantExecutionStageV2::CampaignExecution,
+                                            JointExecutionStageStatusV2::Failed,
+                                            Some("joint_v2_campaign_configuration_failed"),
+                                            vec![format!("error={error:?}")],
+                                            None,
+                                        );
+                                        momentum_health = JointParticipantExecutionHealthV2::CampaignConfigurationFailure;
+                                    }
+                                    Ok(results) if results.len() != 1 => {
+                                        record_execution_stage_v2(
+                                            &mut momentum_trace,
+                                            JointParticipantExecutionStageV2::CampaignExecution,
+                                            JointExecutionStageStatusV2::Failed,
+                                            Some("joint_v2_campaign_output_missing"),
+                                            vec![format!("result_count={}", results.len())],
+                                            None,
+                                        );
+                                        momentum_health = JointParticipantExecutionHealthV2::CampaignOutputMissing;
+                                    }
+                                    Ok(mut results) => {
+                                        let result = results.remove(0);
+                                        momentum_result_digest = Some(result.report_digest.clone());
+                                        momentum_health =
+                                            JointParticipantExecutionHealthV2::Completed;
+                                        momentum_outcome = momentum_model_outcome_v2(&result);
+                                        record_execution_stage_v2(
+                                            &mut momentum_trace,
+                                            JointParticipantExecutionStageV2::CampaignExecution,
+                                            if momentum_outcome == JointParticipantModelEvidenceOutcomeV2::NoUsableValidationSignal {
+                                                JointExecutionStageStatusV2::CompletedNoSignal
+                                            } else {
+                                                JointExecutionStageStatusV2::Completed
+                                            },
+                                            None,
+                                            vec![format!("campaign_windows={}", result.campaign_windows)],
+                                            Some(result.report_digest.clone()),
+                                        );
+                                        record_execution_stage_v2(
+                                            &mut momentum_trace,
+                                            JointParticipantExecutionStageV2::ValidationSignalGate,
+                                            if momentum_outcome == JointParticipantModelEvidenceOutcomeV2::NoUsableValidationSignal {
+                                                JointExecutionStageStatusV2::CompletedNoSignal
+                                            } else {
+                                                JointExecutionStageStatusV2::Completed
+                                            },
+                                            None,
+                                            vec![format!("no_signal_windows={}", result.no_signal_windows)],
+                                            Some(result.report_digest.clone()),
+                                        );
+                                        record_execution_stage_v2(
+                                            &mut momentum_trace,
+                                            JointParticipantExecutionStageV2::CheckpointSelection,
+                                            if result.selected_checkpoint_windows == 0 {
+                                                JointExecutionStageStatusV2::CompletedNoSignal
+                                            } else {
+                                                JointExecutionStageStatusV2::Completed
+                                            },
+                                            None,
+                                            vec![format!(
+                                                "selected_checkpoint_windows={}",
+                                                result.selected_checkpoint_windows
+                                            )],
+                                            Some(result.report_digest.clone()),
+                                        );
+                                        record_execution_stage_v2(
+                                            &mut momentum_trace,
+                                            JointParticipantExecutionStageV2::TemporalDiagnostics,
+                                            JointExecutionStageStatusV2::Completed,
+                                            None,
+                                            vec![],
+                                            Some(result.report_digest.clone()),
+                                        );
+                                        let closed = close_btc_temporal_regime_result_v0(
+                                            &result,
+                                            BtcTemporalRegimeRefV0 {
+                                                regime_id: regime.regime_id,
+                                                chronological_rank: scope.chronological_rank,
+                                                row_count: regime.row_count,
+                                                range_digest: scope.scope_digest_v1.clone(),
+                                                pack_digest: pack.digest.clone(),
+                                            },
+                                        );
+                                        match super::validate_btc_temporal_regime_closed_result_v0(
+                                            &closed,
+                                        ) {
+                                            Err(_) => {
+                                                record_execution_stage_v2(
+                                                    &mut momentum_trace,
+                                                    JointParticipantExecutionStageV2::ResultClosure,
+                                                    JointExecutionStageStatusV2::Failed,
+                                                    Some("joint_v2_result_closure_failed"),
+                                                    vec![],
+                                                    None,
+                                                );
+                                                momentum_health = JointParticipantExecutionHealthV2::ResultClosureFailure;
+                                                momentum_outcome = JointParticipantModelEvidenceOutcomeV2::NotEvaluatedTechnicalFailure;
+                                            }
+                                            Ok(()) => {
+                                                record_execution_stage_v2(
+                                                    &mut momentum_trace,
+                                                    JointParticipantExecutionStageV2::ResultClosure,
+                                                    JointExecutionStageStatusV2::Completed,
+                                                    None,
+                                                    vec![],
+                                                    Some(closed.report_digest),
+                                                );
+                                                match momentum_anchor_scope_v1(
+                                                    &derived.derived_snapshot,
+                                                    0,
+                                                    derived.derived_snapshot.row_count,
+                                                    campaign,
+                                                ) {
+                                                    Err(error) => {
+                                                        let status = if error.contains("features") {
+                                                            JointAnchorAuditStatusV2::FeatureConstructionFailure
+                                                        } else if error.contains("examples") {
+                                                            JointAnchorAuditStatusV2::SequenceConstructionFailure
+                                                        } else if error.contains("windows") {
+                                                            JointAnchorAuditStatusV2::WindowConstructionFailure
+                                                        } else {
+                                                            JointAnchorAuditStatusV2::TechnicalFailure
+                                                        };
+                                                        momentum_anchor_status = status;
+                                                        record_execution_stage_v2(&mut momentum_trace, JointParticipantExecutionStageV2::AnchorMaterialization, JointExecutionStageStatusV2::Failed, Some("joint_v2_momentum_anchor_failed"), vec![error], None);
+                                                    }
+                                                    Ok(anchors) => {
+                                                        momentum_anchor_status = if result
+                                                            .selected_checkpoint_windows
+                                                            == 0
+                                                        {
+                                                            JointAnchorAuditStatusV2::CompleteWithoutSelectedCheckpoint
+                                                        } else if anchors.effective_anchor_count
+                                                            == 0
+                                                        {
+                                                            JointAnchorAuditStatusV2::NoValidExamples
+                                                        } else {
+                                                            JointAnchorAuditStatusV2::Complete
+                                                        };
+                                                        momentum_anchor_digest =
+                                                            Some(anchors.scope_digest_v1.clone());
+                                                        record_execution_stage_v2(&mut momentum_trace, JointParticipantExecutionStageV2::AnchorMaterialization, if anchors.effective_anchor_count == 0 { JointExecutionStageStatusV2::CompletedAbstained } else { JointExecutionStageStatusV2::Completed }, None, vec![format!("anchor_count={}", anchors.effective_anchor_count)], Some(anchors.scope_digest_v1.clone()));
+                                                        if anchors.effective_anchor_count > 0 {
+                                                            match make_joint_scope_opinion_v2(campaign.agent_id.clone(), LearnedAgentObjectiveV0::DirectionalMomentum, &derived.derived_snapshot, scope, SourceResultKindV1::MomentumHistoricalRegimeResult, result.report_digest.clone(), stable_hash_string(&format!("momentum-checkpoint:{}", result.report_digest)), pack.digest.clone(), None, encoder.parameter_digest(), &anchors, strings_digest_v1("joint-v2-momentum-forecast", &[campaign.sequence_config.prediction_horizon.to_string(), campaign.sequence_config.label_dead_zone.to_bits().to_string()]), if momentum_outcome == JointParticipantModelEvidenceOutcomeV2::NoUsableValidationSignal { "completed_no_usable_validation_signal" } else { "completed_retrospective_joint_scope_result" }) {
+                                                                Err(error) => record_execution_stage_v2(&mut momentum_trace, JointParticipantExecutionStageV2::SourceBoundOpinionConstruction, JointExecutionStageStatusV2::Failed, Some("joint_v2_momentum_opinion_failed"), vec![error], None),
+                                                                Ok(pair) => {
+                                                                    record_execution_stage_v2(&mut momentum_trace, JointParticipantExecutionStageV2::SourceBoundOpinionConstruction, JointExecutionStageStatusV2::Completed, None, vec![], Some(pair.0.opinion_digest_v1.clone()));
+                                                                    record_execution_stage_v2(&mut momentum_trace, JointParticipantExecutionStageV2::OpinionSeal, JointExecutionStageStatusV2::Completed, None, vec![], Some(pair.1.seal_digest_v1.clone()));
+                                                                    momentum_opinion = Some(pair);
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    momentum_trace.execution_health = momentum_health;
+    momentum_trace.model_evidence_outcome = momentum_outcome;
+    momentum_trace.operational_shadow_result =
+        operational_shadow_result_v2(momentum_health, momentum_outcome);
+    finish_execution_trace_v2(&mut momentum_trace);
+    let mut momentum = JointScopeParticipantReplayResultV2 {
+        joint_scope_id: scope.joint_scope_id.clone(),
+        joint_scope_digest: scope.scope_digest_v1.clone(),
+        participant_agent_id: campaign.agent_id.clone(),
+        objective: LearnedAgentObjectiveV0::DirectionalMomentum,
+        execution_trace: momentum_trace,
+        completed_result_digest: momentum_result_digest,
+        anchor_scope_digest: momentum_anchor_digest,
+        anchor_status: momentum_anchor_status,
+        opinion_id: momentum_opinion
+            .as_ref()
+            .map(|pair| pair.0.opinion_id.clone()),
+        seal_digest: momentum_opinion
+            .as_ref()
+            .map(|pair| pair.1.seal_digest_v1.clone()),
+        sealed_opinion: momentum_opinion,
+        result_digest_v2: String::new(),
+    };
+    momentum.result_digest_v2 = participant_result_digest_v2(&momentum);
+
+    let mut risk_trace = new_execution_trace_v2(
+        scope,
+        CYCLE_RISK_SHADOW_AGENT_ID_V0.into(),
+        LearnedAgentObjectiveV0::DownsideRisk,
+    );
+    for (stage, digest) in [
+        (
+            JointParticipantExecutionStageV2::ParentSnapshotVerification,
+            snapshot.content_digest.clone(),
+        ),
+        (
+            JointParticipantExecutionStageV2::JointScopeVerification,
+            scope.scope_digest_v1.clone(),
+        ),
+        (
+            JointParticipantExecutionStageV2::DerivedSnapshotConstruction,
+            derived.derivation_digest_v2.clone(),
+        ),
+        (
+            JointParticipantExecutionStageV2::DerivedSnapshotIdentity,
+            derived.derived_snapshot.snapshot_id.clone(),
+        ),
+        (
+            JointParticipantExecutionStageV2::DerivedSnapshotSemanticVerification,
+            derived.derivation_proof.proof_digest_v2.clone(),
+        ),
+    ] {
+        record_execution_stage_v2(
+            &mut risk_trace,
+            stage,
+            JointExecutionStageStatusV2::Completed,
+            None,
+            vec![],
+            Some(digest),
+        );
+    }
+    let risk_config = CycleRiskShadowConfigV0::default();
+    let risk_health;
+    let risk_outcome;
+    let mut risk_result_digest = None;
+    let mut risk_anchor_digest = None;
+    let mut risk_anchor_status = JointAnchorAuditStatusV2::TechnicalFailure;
+    let mut risk_opinion = None;
+    match run_cycle_risk_shadow_regime_v0(
+        &derived.derived_snapshot,
+        &scope.joint_scope_id,
+        &risk_config,
+    ) {
+        Err(error) => {
+            record_execution_stage_v2(
+                &mut risk_trace,
+                JointParticipantExecutionStageV2::CampaignExecution,
+                JointExecutionStageStatusV2::Failed,
+                Some("joint_v2_risk_campaign_failed"),
+                vec![format!("error={error:?}")],
+                None,
+            );
+            risk_health = JointParticipantExecutionHealthV2::CampaignRuntimeFailure;
+        }
+        Ok(result) => {
+            let digest = stable_hash_string(&format!("{:?}", result));
+            risk_result_digest = Some(digest.clone());
+            risk_health = JointParticipantExecutionHealthV2::Completed;
+            risk_outcome = match result.verdict {
+                super::CycleRiskShadowVerdictV0::PositiveEvidence => {
+                    JointParticipantModelEvidenceOutcomeV2::UsableValidationSignal
+                }
+                super::CycleRiskShadowVerdictV0::InsufficientEvents
+                | super::CycleRiskShadowVerdictV0::ShadowOnly => {
+                    JointParticipantModelEvidenceOutcomeV2::NoUsableValidationSignal
+                }
+                super::CycleRiskShadowVerdictV0::ProbabilityCollapse => {
+                    JointParticipantModelEvidenceOutcomeV2::ProbabilityCollapse
+                }
+                super::CycleRiskShadowVerdictV0::LinearBaselineStronger
+                | super::CycleRiskShadowVerdictV0::ConstantBaselineStronger => {
+                    JointParticipantModelEvidenceOutcomeV2::BaselineStronger
+                }
+                super::CycleRiskShadowVerdictV0::HighConfidenceFalseNegative => {
+                    JointParticipantModelEvidenceOutcomeV2::ValidationSignalOutOfSupport
+                }
+            };
+            record_execution_stage_v2(
+                &mut risk_trace,
+                JointParticipantExecutionStageV2::CampaignExecution,
+                if risk_outcome == JointParticipantModelEvidenceOutcomeV2::NoUsableValidationSignal
+                {
+                    JointExecutionStageStatusV2::CompletedNoSignal
+                } else {
+                    JointExecutionStageStatusV2::Completed
+                },
+                None,
+                vec![],
+                Some(digest.clone()),
+            );
+            let candidate = CycleRiskHistoricalRangeCandidateV0 {
+                candidate_range_id: scope.joint_scope_id.clone(),
+                start_row_index: 0,
+                end_row_index_exclusive: derived.derived_snapshot.row_count,
+                row_count: derived.derived_snapshot.row_count,
+                canonical_scope_digest_v1: scope.canonical_raw_scope.scope_digest_v1.clone(),
+                expected_frozen_pack_digest: result.frozen_pack_digest.clone(),
+                range_digest: scope.scope_digest_v1.clone(),
+            };
+            match risk_anchor_scope_v1(&derived.derived_snapshot, &candidate, &risk_config) {
+                Err(error) => {
+                    risk_anchor_status = JointAnchorAuditStatusV2::TechnicalFailure;
+                    record_execution_stage_v2(
+                        &mut risk_trace,
+                        JointParticipantExecutionStageV2::AnchorMaterialization,
+                        JointExecutionStageStatusV2::Failed,
+                        Some("joint_v2_risk_anchor_failed"),
+                        vec![error],
+                        None,
+                    );
+                }
+                Ok(anchors) => {
+                    risk_anchor_status = if anchors.effective_anchor_count == 0 {
+                        JointAnchorAuditStatusV2::NoValidExamples
+                    } else {
+                        JointAnchorAuditStatusV2::Complete
+                    };
+                    risk_anchor_digest = Some(anchors.scope_digest_v1.clone());
+                    record_execution_stage_v2(
+                        &mut risk_trace,
+                        JointParticipantExecutionStageV2::AnchorMaterialization,
+                        if anchors.effective_anchor_count == 0 {
+                            JointExecutionStageStatusV2::CompletedAbstained
+                        } else {
+                            JointExecutionStageStatusV2::Completed
+                        },
+                        None,
+                        vec![format!("anchor_count={}", anchors.effective_anchor_count)],
+                        Some(anchors.scope_digest_v1.clone()),
+                    );
+                    if anchors.effective_anchor_count > 0 {
+                        match make_joint_scope_opinion_v2(
+                            CYCLE_RISK_SHADOW_AGENT_ID_V0.into(),
+                            LearnedAgentObjectiveV0::DownsideRisk,
+                            &derived.derived_snapshot,
+                            scope,
+                            SourceResultKindV1::CycleRiskHistoricalRegimeResult,
+                            digest,
+                            stable_hash_string(&format!(
+                                "risk-checkpoint:{}",
+                                result.frozen_pack_digest
+                            )),
+                            result.frozen_pack_digest.clone(),
+                            result.checkpoint.accepted_model_version.clone(),
+                            result
+                                .checkpoint
+                                .accepted_model_version
+                                .clone()
+                                .unwrap_or_else(|| result.frozen_pack_digest.clone()),
+                            &anchors,
+                            strings_digest_v1(
+                                "joint-v2-risk-forecast",
+                                &[
+                                    risk_config.label.horizon_rows.to_string(),
+                                    risk_config.label.digest(),
+                                ],
+                            ),
+                            if risk_outcome
+                                == JointParticipantModelEvidenceOutcomeV2::NoUsableValidationSignal
+                            {
+                                "completed_no_usable_validation_signal"
+                            } else {
+                                "completed_retrospective_joint_scope_result"
+                            },
+                        ) {
+                            Err(error) => record_execution_stage_v2(
+                                &mut risk_trace,
+                                JointParticipantExecutionStageV2::SourceBoundOpinionConstruction,
+                                JointExecutionStageStatusV2::Failed,
+                                Some("joint_v2_risk_opinion_failed"),
+                                vec![error],
+                                None,
+                            ),
+                            Ok(pair) => {
+                                record_execution_stage_v2(&mut risk_trace, JointParticipantExecutionStageV2::SourceBoundOpinionConstruction, JointExecutionStageStatusV2::Completed, None, vec![], Some(pair.0.opinion_digest_v1.clone()));
+                                record_execution_stage_v2(
+                                    &mut risk_trace,
+                                    JointParticipantExecutionStageV2::OpinionSeal,
+                                    JointExecutionStageStatusV2::Completed,
+                                    None,
+                                    vec![],
+                                    Some(pair.1.seal_digest_v1.clone()),
+                                );
+                                risk_opinion = Some(pair);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    risk_trace.execution_health = risk_health;
+    risk_trace.model_evidence_outcome = risk_outcome;
+    risk_trace.operational_shadow_result = operational_shadow_result_v2(risk_health, risk_outcome);
+    finish_execution_trace_v2(&mut risk_trace);
+    let mut risk = JointScopeParticipantReplayResultV2 {
+        joint_scope_id: scope.joint_scope_id.clone(),
+        joint_scope_digest: scope.scope_digest_v1.clone(),
+        participant_agent_id: CYCLE_RISK_SHADOW_AGENT_ID_V0.into(),
+        objective: LearnedAgentObjectiveV0::DownsideRisk,
+        execution_trace: risk_trace,
+        completed_result_digest: risk_result_digest,
+        anchor_scope_digest: risk_anchor_digest,
+        anchor_status: risk_anchor_status,
+        opinion_id: risk_opinion.as_ref().map(|pair| pair.0.opinion_id.clone()),
+        seal_digest: risk_opinion
+            .as_ref()
+            .map(|pair| pair.1.seal_digest_v1.clone()),
+        sealed_opinion: risk_opinion,
+        result_digest_v2: String::new(),
+    };
+    risk.result_digest_v2 = participant_result_digest_v2(&risk);
+    let pair_eligible = momentum.execution_trace.execution_health
+        == JointParticipantExecutionHealthV2::Completed
+        && risk.execution_trace.execution_health == JointParticipantExecutionHealthV2::Completed
+        && momentum.sealed_opinion.is_some()
+        && risk.sealed_opinion.is_some()
+        && momentum.sealed_opinion.as_ref().is_some_and(|pair| {
+            pair.0.source_result.canonical_raw_row_identity_digests_v1
+                == scope.canonical_raw_scope.row_identity_digests
+        })
+        && risk.sealed_opinion.as_ref().is_some_and(|pair| {
+            pair.0.source_result.canonical_raw_row_identity_digests_v1
+                == scope.canonical_raw_scope.row_identity_digests
+        });
+    let result_digest_v2 = joint_v2_digest(&[
+        registration.registration_digest_v2.clone(),
+        scope.joint_scope_id.clone(),
+        scope.scope_digest_v1.clone(),
+        derived.derived_snapshot.snapshot_id.clone(),
+        evidence_policy.policy_digest_v2.clone(),
+        momentum.result_digest_v2.clone(),
+        risk.result_digest_v2.clone(),
+        pair_eligible.to_string(),
+    ]);
+    Ok(JointScopeReplayResultV2 {
+        replay_version: "joint-canonical-scope-replay-v2".into(),
+        registration_digest_v2: registration.registration_digest_v2.clone(),
+        joint_scope_id: scope.joint_scope_id.clone(),
+        joint_scope_digest: scope.scope_digest_v1.clone(),
+        derived_snapshot_id: derived.derived_snapshot.snapshot_id,
+        derivation_digest_v2: derived.derivation_digest_v2,
+        evidence_policy_digest_v2: evidence_policy.policy_digest_v2,
+        momentum,
+        risk,
+        pair_eligible,
+        result_digest_v2,
+    })
+}
+
+pub fn aggregate_joint_scope_replays_v2(
+    registration: &JointCanonicalScopeReplayRegistrationV2,
+    results: &[JointScopeReplayResultV2],
+) -> Result<(JointScopeReplayAggregateV2, JointScopeReplayLedgerV2), String> {
+    if registration.registration_digest_v2 != joint_v2_registration_digest(registration)
+        || results.iter().any(|result| {
+            result.registration_digest_v2 != registration.registration_digest_v2
+                || !registration
+                    .joint_scope_ids
+                    .contains(&result.joint_scope_id)
+                || !registration
+                    .joint_scope_digests
+                    .contains(&result.joint_scope_digest)
+        })
+    {
+        return Err("joint_v2_aggregate_registration_mismatch".into());
+    }
+    let mut ordered = results.to_vec();
+    ordered.sort_by(|left, right| left.joint_scope_id.cmp(&right.joint_scope_id));
+    let mut both_abstained_count = 0usize;
+    let mut momentum_abstained_count = 0usize;
+    let mut risk_abstained_count = 0usize;
+    let mut technical_failure_scope_count = 0usize;
+    let mut incomparable_count = 0usize;
+    let mut deliberations = Vec::new();
+    for result in &ordered {
+        if result.momentum.execution_trace.execution_health
+            != JointParticipantExecutionHealthV2::Completed
+            || result.risk.execution_trace.execution_health
+                != JointParticipantExecutionHealthV2::Completed
+        {
+            technical_failure_scope_count += 1;
+            continue;
+        }
+        match (
+            result.momentum.execution_trace.operational_shadow_result,
+            result.risk.execution_trace.operational_shadow_result,
+        ) {
+            (
+                JointParticipantOperationalShadowResultV2::ShadowAbstainNoSignal,
+                JointParticipantOperationalShadowResultV2::ShadowAbstainNoSignal,
+            ) => both_abstained_count += 1,
+            (JointParticipantOperationalShadowResultV2::ShadowAbstainNoSignal, _) => {
+                momentum_abstained_count += 1
+            }
+            (_, JointParticipantOperationalShadowResultV2::ShadowAbstainNoSignal) => {
+                risk_abstained_count += 1
+            }
+            _ => {}
+        }
+        let (Some(momentum), Some(risk)) = (
+            result.momentum.sealed_opinion.as_ref(),
+            result.risk.sealed_opinion.as_ref(),
+        ) else {
+            incomparable_count += 1;
+            continue;
+        };
+        let mapping = map_source_bound_opinions_v1(
+            std::slice::from_ref(momentum),
+            std::slice::from_ref(risk),
+        )?;
+        let Some(pair) = mapping.scope_pairs.first() else {
+            incomparable_count += 1;
+            continue;
+        };
+        match create_source_bound_deliberation_v1(pair, momentum, risk) {
+            Ok(deliberation) => deliberations.push(deliberation),
+            Err(_) => incomparable_count += 1,
+        }
+    }
+    deliberations.sort_by(|left, right| {
+        left.momentum_opinion_id
+            .cmp(&right.momentum_opinion_id)
+            .then_with(|| left.risk_opinion_id.cmp(&right.risk_opinion_id))
+    });
+    let completed_pair_count = deliberations.len();
+    let transcript_digests = deliberations
+        .iter()
+        .map(|value| value.transcript_digest_v1.clone())
+        .collect::<Vec<_>>();
+    let full_aggregate_composed = ordered.len() == registration.joint_scope_ids.len()
+        && completed_pair_count == registration.joint_scope_ids.len()
+        && technical_failure_scope_count == 0;
+    let mut aggregate = JointScopeReplayAggregateV2 {
+        aggregate_version: "joint-scope-relationship-only-aggregate-v2".into(),
+        registration_digest_v2: registration.registration_digest_v2.clone(),
+        completed_pair_count,
+        technical_failure_scope_count,
+        both_abstained_count,
+        momentum_abstained_count,
+        risk_abstained_count,
+        tension_count: 0,
+        orthogonal_count: 0,
+        incomparable_count,
+        relationship_count: completed_pair_count,
+        deliberation_count: completed_pair_count,
+        transcript_digests: transcript_digests.clone(),
+        full_aggregate_composed,
+        aggregate_digest_v2: String::new(),
+    };
+    aggregate.aggregate_digest_v2 = joint_v2_digest(&[
+        aggregate.registration_digest_v2.clone(),
+        aggregate.completed_pair_count.to_string(),
+        aggregate.technical_failure_scope_count.to_string(),
+        aggregate.both_abstained_count.to_string(),
+        aggregate.momentum_abstained_count.to_string(),
+        aggregate.risk_abstained_count.to_string(),
+        aggregate.tension_count.to_string(),
+        aggregate.orthogonal_count.to_string(),
+        aggregate.incomparable_count.to_string(),
+        aggregate.relationship_count.to_string(),
+        aggregate.deliberation_count.to_string(),
+        aggregate.transcript_digests.join(":"),
+        aggregate.full_aggregate_composed.to_string(),
+    ]);
+    let mut participant_result_digests = ordered
+        .iter()
+        .flat_map(|result| {
+            [
+                result.momentum.result_digest_v2.clone(),
+                result.risk.result_digest_v2.clone(),
+            ]
+        })
+        .collect::<Vec<_>>();
+    participant_result_digests.sort();
+    let mut ledger = JointScopeReplayLedgerV2 {
+        ledger_version: "joint-scope-replay-ledger-v2".into(),
+        registration_digest_v2: registration.registration_digest_v2.clone(),
+        participant_result_digests,
+        deliberation_transcript_digests: transcript_digests,
+        ledger_digest_v2: String::new(),
+    };
+    ledger.ledger_digest_v2 = joint_v2_digest(&[
+        ledger.ledger_version.clone(),
+        ledger.registration_digest_v2.clone(),
+        ledger.participant_result_digests.join(":"),
+        ledger.deliberation_transcript_digests.join(":"),
+    ]);
+    Ok((aggregate, ledger))
+}
+
+pub fn validate_joint_scope_replay_ledger_v2(
+    ledger: &JointScopeReplayLedgerV2,
+) -> Result<(), String> {
+    if ledger.ledger_version != "joint-scope-replay-ledger-v2"
+        || ledger
+            .participant_result_digests
+            .windows(2)
+            .any(|pair| pair[0] > pair[1])
+        || ledger.ledger_digest_v2
+            != joint_v2_digest(&[
+                ledger.ledger_version.clone(),
+                ledger.registration_digest_v2.clone(),
+                ledger.participant_result_digests.join(":"),
+                ledger.deliberation_transcript_digests.join(":"),
+            ])
+    {
+        return Err("joint_v2_replay_ledger_invalid".into());
+    }
+    Ok(())
+}
+
+pub fn interpret_sprint57_momentum_outcome_v2(
+    scope: &JointCanonicalHistoricalScopeV1,
+    forensic: &JointMomentumForensicReportV2,
+    corrected: &JointScopeParticipantReplayResultV2,
+) -> Result<Sprint57MomentumOutcomeInterpretationV2, String> {
+    if scope.joint_scope_id != forensic.joint_scope_id
+        || scope.joint_scope_id != corrected.joint_scope_id
+    {
+        return Err("sprint57_interpretation_scope_mismatch".into());
+    }
+    let mut value = Sprint57MomentumOutcomeInterpretationV2 {
+        sprint57_registration_digest: scope.registration_digest_v1.clone(),
+        joint_scope_id: scope.joint_scope_id.clone(),
+        legacy_reported_status: "LegacyCollapsedOutcome".into(),
+        forensic_root_cause: forensic.root_cause,
+        corrected_execution_health: corrected.execution_trace.execution_health,
+        corrected_model_outcome: corrected.execution_trace.model_evidence_outcome,
+        sprint57_artifact_mutated: false,
+        interpretation_digest_v2: String::new(),
+    };
+    value.interpretation_digest_v2 = joint_v2_digest(&[
+        value.sprint57_registration_digest.clone(),
+        value.joint_scope_id.clone(),
+        value.legacy_reported_status.clone(),
+        format!("{:?}", value.forensic_root_cause),
+        format!("{:?}", value.corrected_execution_health),
+        format!("{:?}", value.corrected_model_outcome),
+        value.sprint57_artifact_mutated.to_string(),
+    ]);
+    Ok(value)
+}
+
 pub fn source_bound_shadow_ledger_record_v1(
     ledger: &SourceBoundShadowDeliberationLedgerV1,
 ) -> Result<SourceBoundShadowLedgerRecordV1, String> {
@@ -3702,6 +5926,14 @@ pub fn read_source_bound_shadow_ledger_record_v1(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{
+        core::ReasonCode,
+        data::{
+            AcquisitionMarketScope, DataLookback, DatasetKind, SnapshotProvenance,
+            SnapshotQualitySummary, SnapshotSourceType,
+        },
+        league::{HistoricalOhlcvRow, HistoricalReplayDataset},
+    };
 
     fn scope(snapshot_id: &str, rows: &str, cutoff: u64) -> CanonicalRawObservationScopeV0 {
         CanonicalRawObservationScopeV0 {
@@ -3719,6 +5951,70 @@ mod tests {
             information_cutoff_timestamp: cutoff,
             scope_kind: CanonicalObservationScopeKindV0::HistoricalRegimePack,
             scope_digest: rows.into(),
+        }
+    }
+
+    fn joint_snapshot(rows: usize) -> DataSnapshot {
+        let normalized_dataset = HistoricalReplayDataset {
+            symbol: "BTC-KRW".into(),
+            source: "approved-sanitized-history".into(),
+            rows: (0..rows)
+                .map(|index| {
+                    let close = 100.0 + index as f64 * 0.12 + (index % 11) as f64 * 0.03;
+                    HistoricalOhlcvRow {
+                        symbol: "BTC-KRW".into(),
+                        timestamp_ms: 1_700_000_000_000 + index as u64 * 60_000,
+                        open: close - 0.05,
+                        high: close + 0.15,
+                        low: close - 0.2,
+                        close,
+                        volume: 1_000.0 + (index % 17) as f64,
+                        trade_value: None,
+                    }
+                })
+                .collect(),
+            reason_codes: vec![],
+        };
+        let content_digest = historical_replay_dataset_digest_v0(&normalized_dataset);
+        let first = normalized_dataset.rows.first().unwrap().timestamp_ms;
+        let last = normalized_dataset.rows.last().unwrap().timestamp_ms;
+        DataSnapshot {
+            snapshot_id: snapshot_id_from_semantic_digest_v1(&content_digest),
+            request_key: "btc-approved-history".into(),
+            provider_id: "approved-provider".into(),
+            dataset_kind: DatasetKind::DailyOhlcv,
+            market_scope: AcquisitionMarketScope::BtcCrypto,
+            symbols: vec!["BTC-KRW".into()],
+            requested_lookback: DataLookback {
+                bars: rows,
+                start_timestamp_ms: Some(first),
+                end_timestamp_ms: Some(last),
+            },
+            actual_start_timestamp_ms: Some(first),
+            actual_end_timestamp_ms: Some(last),
+            fetched_at_ms: last,
+            normalized_at_ms: last,
+            schema_version: 1,
+            row_count: rows,
+            quality_summary: SnapshotQualitySummary {
+                accepted: true,
+                row_count: rows,
+                reason_codes: vec![],
+            },
+            content_digest,
+            sanitized: true,
+            read_only: true,
+            normalized_dataset,
+            provenance: SnapshotProvenance {
+                provider_id: "approved-provider".into(),
+                acquisition_request_id: "btc-approved-history".into(),
+                fetch_receipt_id: "approved-receipt".into(),
+                source_type: SnapshotSourceType::ApprovedReadOnlyProvider,
+                sanitized: true,
+                credential_free: true,
+                reason_codes: vec![],
+            },
+            reason_codes: vec![ReasonCode::DataSnapshotImmutable],
         }
     }
 
@@ -3925,5 +6221,110 @@ mod tests {
             source_bound_shadow_ledger_record_v1(&ledger).unwrap()
         );
         std::fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn v2_registration_reuses_the_exact_v1_scope_identities() {
+        let snapshot = joint_snapshot(304);
+        let campaign = MomentumLearningCampaignConfigV0::default();
+        let v1 = joint_canonical_scope_registration_v1(&snapshot, &campaign).unwrap();
+        let (_, v1_scopes) = issue_joint_canonical_scopes_v1(&snapshot, &v1).unwrap();
+        let v2 = joint_canonical_scope_registration_v2(&snapshot, &campaign).unwrap();
+        let v2_scopes =
+            validate_joint_canonical_scope_registration_v2(&snapshot, &campaign, &v2).unwrap();
+        assert_eq!(v2.parent_registration_digest_v1, v1.registration_digest_v1);
+        assert_eq!(v2_scopes, v1_scopes);
+        assert!(v2.scope_ranges_unchanged);
+        assert!(v2.scope_selection_unchanged);
+        assert!(v2.participant_configs_unchanged);
+        assert!(v2.result_dependent_changes_forbidden);
+    }
+
+    #[test]
+    fn v2_derived_snapshot_preserves_coupled_metadata_and_exact_child_policy() {
+        let snapshot = joint_snapshot(304);
+        let campaign = MomentumLearningCampaignConfigV0::default();
+        let registration = joint_canonical_scope_registration_v1(&snapshot, &campaign).unwrap();
+        let (_, scopes) = issue_joint_canonical_scopes_v1(&snapshot, &registration).unwrap();
+        let derived = derive_joint_scope_snapshot_v2(&snapshot, &scopes[0]).unwrap();
+        let repeated = derive_joint_scope_snapshot_v2(&snapshot, &scopes[0]).unwrap();
+        assert_eq!(derived, repeated);
+        assert_ne!(derived.derived_snapshot.snapshot_id, snapshot.snapshot_id);
+        assert_eq!(
+            derived.derived_snapshot.snapshot_id,
+            snapshot_id_from_semantic_digest_v1(&derived.derived_snapshot.content_digest)
+        );
+        assert_eq!(
+            derived.derived_snapshot.quality_summary.row_count,
+            derived.derived_snapshot.row_count
+        );
+        assert!(derived.derivation_proof.all_invariants_pass);
+        let policy = joint_scope_derived_evidence_policy_v2(&derived).unwrap();
+        assert!(policy.exact_child_authorized);
+        assert!(!policy.wildcard_authorization);
+        let (inventory, pack) = joint_scope_momentum_pack_v2(&derived, &policy).unwrap();
+        assert_eq!(inventory.accepted_series.len(), 1);
+        assert_eq!(pack.series.len(), 1);
+        let mut unverified = derived.clone();
+        unverified.derived_snapshot.snapshot_id = "arbitrary-child".into();
+        assert!(joint_scope_momentum_pack_v2(&unverified, &policy).is_err());
+    }
+
+    #[test]
+    fn v2_ledger_rejects_nondeterministic_order() {
+        let mut ledger = JointScopeReplayLedgerV2 {
+            ledger_version: "joint-scope-replay-ledger-v2".into(),
+            registration_digest_v2: "registration".into(),
+            participant_result_digests: vec!["a".into(), "b".into()],
+            deliberation_transcript_digests: vec![],
+            ledger_digest_v2: String::new(),
+        };
+        ledger.ledger_digest_v2 = joint_v2_digest(&[
+            ledger.ledger_version.clone(),
+            ledger.registration_digest_v2.clone(),
+            ledger.participant_result_digests.join(":"),
+            ledger.deliberation_transcript_digests.join(":"),
+        ]);
+        validate_joint_scope_replay_ledger_v2(&ledger).unwrap();
+        ledger.participant_result_digests.reverse();
+        assert!(validate_joint_scope_replay_ledger_v2(&ledger).is_err());
+    }
+
+    #[test]
+    fn v2_forensics_and_replay_keep_technical_health_separate_from_model_outcome() {
+        let snapshot = joint_snapshot(304);
+        let campaign = MomentumLearningCampaignConfigV0::default();
+        let parent = joint_canonical_scope_registration_v1(&snapshot, &campaign).unwrap();
+        let (_, scopes) = issue_joint_canonical_scopes_v1(&snapshot, &parent).unwrap();
+        let first = forensic_joint_momentum_scope_v2(&snapshot, &scopes[0], &campaign).unwrap();
+        let second = forensic_joint_momentum_scope_v2(&snapshot, &scopes[0], &campaign).unwrap();
+        assert_eq!(first, second);
+        assert_eq!(
+            first.root_cause,
+            JointMomentumRootCauseV2::DerivedSnapshotIdentityMismatch
+        );
+        assert_eq!(
+            first.execution_trace.first_failed_stage,
+            Some(JointParticipantExecutionStageV2::DerivedSnapshotIdentity)
+        );
+        let registration = joint_canonical_scope_registration_v2(&snapshot, &campaign).unwrap();
+        let replay =
+            replay_joint_scope_results_v2(&snapshot, &scopes[0], &registration, &campaign).unwrap();
+        assert_ne!(replay.derived_snapshot_id, snapshot.snapshot_id);
+        assert!(!replay.momentum.execution_trace.trace_digest_v2.is_empty());
+        assert!(!replay.risk.execution_trace.trace_digest_v2.is_empty());
+        if replay.momentum.execution_trace.execution_health
+            != JointParticipantExecutionHealthV2::Completed
+        {
+            assert_eq!(
+                replay.momentum.execution_trace.model_evidence_outcome,
+                JointParticipantModelEvidenceOutcomeV2::NotEvaluatedTechnicalFailure
+            );
+            assert_eq!(
+                replay.momentum.execution_trace.operational_shadow_result,
+                JointParticipantOperationalShadowResultV2::ShadowAbstainTechnicalFailure
+            );
+            assert!(replay.momentum.opinion_id.is_none());
+        }
     }
 }
