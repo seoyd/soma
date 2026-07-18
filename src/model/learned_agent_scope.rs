@@ -5457,6 +5457,7 @@ pub fn replay_joint_scope_results_v2(
                 None,
             );
             risk_health = JointParticipantExecutionHealthV2::CampaignRuntimeFailure;
+            risk_outcome = JointParticipantModelEvidenceOutcomeV2::NotEvaluatedTechnicalFailure;
         }
         Ok(result) => {
             let digest = stable_hash_string(&format!("{:?}", result));
