@@ -165,3 +165,18 @@ A cooldown action adds `CooldownStarted` through the existing bounded penalty
 transition. During later replay decisions the agent abstains, so Chair cannot
 select it as an active speaker. `CooldownTicked` and `CooldownExpired` are
 post-episode transitions and are not part of the decision-time Chair action.
+
+## Prospective Learned-Agent Bridge
+
+The learned-agent prospective bridge is a registration and candidate boundary,
+not an application path. It may later adapt mature, independently attributed
+outcomes to the existing bounded `compute_chair_reward_penalty` inputs; it does
+not add a second survival score or a new reward formula.
+
+At this boundary, all current prospective counts may remain zero. No code path
+calls `apply_chair_reward_penalty`, `apply_paper_feedback_cycle`, voice update,
+tier update, cooldown, promotion, demotion, or quarantine functions. Owner
+advisory records, including the prior observation-only review, are excluded
+from reward attribution. Any future application needs a separately authorized
+Chair episode after candidate computation and its normal immutable audit,
+replay, and Risk Governor checks.

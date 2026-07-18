@@ -1,6 +1,7 @@
 //! Offline, advisory-only learned-agent opinion sealing and two-round replay.
 
 use crate::core::stable_hash_string;
+use serde::{Deserialize, Serialize};
 
 use super::cycle_risk_shadow::MOMENTUM_AGENT_ID_V0;
 use super::{
@@ -9,7 +10,7 @@ use super::{
 };
 use crate::data::DataSnapshot;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum LearnedAgentObjectiveV0 {
     DirectionalMomentum,
     DownsideRisk,

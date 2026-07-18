@@ -1,6 +1,6 @@
 //! Offline, external scope attestations for immutable learned-agent opinions.
 
-use std::{fs, path::Path};
+use std::{collections::BTreeSet, fs, path::Path};
 
 use serde::{Deserialize, Serialize};
 
@@ -11,6 +11,7 @@ use crate::{
     },
 };
 
+use super::cycle_risk_shadow::MOMENTUM_AGENT_ID_V0;
 use super::{
     AgentOpinionRelationshipV0, BtcHistoricalRegimeConfigV0, BtcHistoricalRegimeV0,
     BtcTemporalRegimeRefV0, CYCLE_RISK_SHADOW_AGENT_ID_V0, CycleRiskOpinionAdapterContextV0,
@@ -8083,6 +8084,885 @@ pub fn append_chair_shadow_observation_storage_v0(
     Ok(reopened)
 }
 
+/// The sealed, objective-specific contract that a future learned-agent event must
+/// satisfy before it can be considered by the reward bridge.  It deliberately
+/// contains only identities and pre-registered policy references: no label,
+/// probability, owner note, or Chair state can enter through this boundary.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LearnedProspectiveContractV0 {
+    pub objective: LearnedAgentObjectiveV0,
+    pub agent_id: String,
+    pub challenge_digest: String,
+    pub model_artifact_digest: String,
+    pub prediction_horizon_digest: String,
+    pub cutoff_exclusive_timestamp: u64,
+    pub sealed_shadow_only: bool,
+    pub contract_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LearnedRewardSampleGateV0 {
+    pub minimum_mature_events: usize,
+    pub minimum_support_qualified_events: usize,
+    pub minimum_regime_coverage: usize,
+    pub maximum_integrity_failures: usize,
+    pub gate_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LearnedRewardEligibilityRegistrationInputV0 {
+    pub momentum: LearnedProspectiveContractV0,
+    pub cycle_risk: LearnedProspectiveContractV0,
+    pub attribution_policy_digest: String,
+    pub maturity_policy_digest: String,
+    pub sample_gate_policy_digest: String,
+    pub objective_mapping_policy_digest: String,
+    pub integrity_policy_digest: String,
+}
+
+/// Immutable Phase-A registration.  This object intentionally has no route to
+/// `apply_chair_reward_penalty`, voice state, tiers, cooldowns, or execution.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LearnedRewardEligibilityRegistrationV0 {
+    pub registration_version: String,
+    pub momentum_challenge_digest: String,
+    pub risk_tournament_digest: String,
+    pub attribution_policy_digest: String,
+    pub maturity_policy_digest: String,
+    pub sample_gate_policy_digest: String,
+    pub objective_mapping_policy_digest: String,
+    pub integrity_policy_digest: String,
+    pub retrospective_evidence_forbidden: bool,
+    pub owner_input_forbidden: bool,
+    pub interim_metrics_forbidden: bool,
+    pub one_time_opening_required: bool,
+    pub finalized_outcome_required: bool,
+    pub reward_application_forbidden: bool,
+    pub voice_mutation_forbidden: bool,
+    pub cooldown_mutation_forbidden: bool,
+    pub promotion_mutation_forbidden: bool,
+    pub registration_digest: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LearnedOutcomeMaturityStatusV0 {
+    AwaitingMaturity,
+    MatureUnopened,
+    MatureOpenedOnce,
+    OpenedEarlyInvalid,
+    DuplicateOpeningInvalid,
+    IntegrityInvalid,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LearnedOutcomeOpeningRequestV0 {
+    pub event_timestamp: u64,
+    pub maturity_timestamp: u64,
+    pub observed_timestamp: u64,
+    pub required_finalized_rows_present: bool,
+    pub event_identity_matches: bool,
+    pub challenge_valid: bool,
+    pub explicit_authorization: bool,
+    pub already_opened: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LearnedProspectiveEventAttributionV0 {
+    pub attribution_version: String,
+    pub event_id: String,
+    pub event_digest: String,
+    pub agent_id: String,
+    pub objective: LearnedAgentObjectiveV0,
+    pub opinion_id: String,
+    pub opinion_digest: String,
+    pub opinion_seal_digest: String,
+    pub challenge_digest: String,
+    pub model_artifact_digest: String,
+    pub raw_evidence_digest: String,
+    pub event_timestamp: u64,
+    pub maturity_timestamp: u64,
+    pub prediction_horizon_digest: String,
+    pub support_status_digest: String,
+    pub attribution_digest: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LearnedAbstentionAttributionV0 {
+    JustifiedCapitalProtection,
+    CorrectUncertainty,
+    MissedMaterialOpportunity,
+    FailedToWarnMaterialRisk,
+    NeutralUninformative,
+    NotYetEvaluable,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MomentumProspectiveOutcomeV0 {
+    pub directional_label_correct: bool,
+    pub support_qualified_brier_improved: bool,
+    pub calibration_improved: bool,
+    pub high_confidence_error: bool,
+    pub baseline_beaten: bool,
+    pub abstention: LearnedAbstentionAttributionV0,
+    pub probability_collapse: bool,
+    pub support_qualified: bool,
+    pub regime_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CycleRiskProspectiveOutcomeV0 {
+    pub downside_label_correct: bool,
+    pub support_qualified_brier_improved: bool,
+    pub calibration_improved: bool,
+    pub high_confidence_false_negative: bool,
+    pub correct_elevated_risk_warning: bool,
+    pub false_permanent_alarm: bool,
+    pub abstention: LearnedAbstentionAttributionV0,
+    pub probability_collapse: bool,
+    pub support_qualified: bool,
+    pub regime_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LearnedProspectiveOutcomePayloadV0 {
+    Momentum(MomentumProspectiveOutcomeV0),
+    CycleRisk(CycleRiskProspectiveOutcomeV0),
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LearnedRewardEligibilityStatusV0 {
+    EligibleForCandidateComputation,
+    IneligibleNoProspectiveOutcomes,
+    IneligibleAwaitingMaturity,
+    IneligibleMinimumSamples,
+    IneligibleInsufficientRegimeCoverage,
+    IneligibleEarlyLabelAccess,
+    IneligibleIntegrityFailure,
+    IneligibleChallengeInvalidated,
+    IneligibleUnsupportedObjective,
+    IneligibleRetrospectiveEvidence,
+    IneligibleOwnerInfluence,
+    IneligibleDuplicateOpening,
+    TechnicalFailure,
+}
+
+fn learned_contract_digest_v0(contract: &LearnedProspectiveContractV0) -> String {
+    digest(&(
+        "learned-prospective-contract-v0",
+        contract.objective,
+        &contract.agent_id,
+        &contract.challenge_digest,
+        &contract.model_artifact_digest,
+        &contract.prediction_horizon_digest,
+        contract.cutoff_exclusive_timestamp,
+        contract.sealed_shadow_only,
+    ))
+}
+
+fn learned_reward_gate_digest_v0(gate: &LearnedRewardSampleGateV0) -> String {
+    digest(&(
+        "learned-reward-sample-gate-v0",
+        gate.minimum_mature_events,
+        gate.minimum_support_qualified_events,
+        gate.minimum_regime_coverage,
+        gate.maximum_integrity_failures,
+    ))
+}
+
+pub fn new_learned_prospective_contract_v0(
+    objective: LearnedAgentObjectiveV0,
+    challenge_digest: String,
+    model_artifact_digest: String,
+    prediction_horizon_digest: String,
+    cutoff_exclusive_timestamp: u64,
+) -> Result<LearnedProspectiveContractV0, String> {
+    let agent_id = match objective {
+        LearnedAgentObjectiveV0::DirectionalMomentum => MOMENTUM_AGENT_ID_V0,
+        LearnedAgentObjectiveV0::DownsideRisk => CYCLE_RISK_SHADOW_AGENT_ID_V0,
+    };
+    let mut contract = LearnedProspectiveContractV0 {
+        objective,
+        agent_id: agent_id.into(),
+        challenge_digest,
+        model_artifact_digest,
+        prediction_horizon_digest,
+        cutoff_exclusive_timestamp,
+        sealed_shadow_only: true,
+        contract_digest: String::new(),
+    };
+    contract.contract_digest = learned_contract_digest_v0(&contract);
+    validate_learned_prospective_contract_v0(&contract)?;
+    Ok(contract)
+}
+
+pub fn new_learned_reward_sample_gate_v0(
+    minimum_mature_events: usize,
+    minimum_support_qualified_events: usize,
+    minimum_regime_coverage: usize,
+) -> Result<LearnedRewardSampleGateV0, String> {
+    let mut gate = LearnedRewardSampleGateV0 {
+        minimum_mature_events,
+        minimum_support_qualified_events,
+        minimum_regime_coverage,
+        maximum_integrity_failures: 0,
+        gate_digest: String::new(),
+    };
+    gate.gate_digest = learned_reward_gate_digest_v0(&gate);
+    validate_learned_reward_sample_gate_v0(&gate)?;
+    Ok(gate)
+}
+
+fn learned_reward_registration_digest_v0(
+    registration: &LearnedRewardEligibilityRegistrationV0,
+) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+        registration.registration_version,
+        registration.momentum_challenge_digest,
+        registration.risk_tournament_digest,
+        registration.attribution_policy_digest,
+        registration.maturity_policy_digest,
+        registration.sample_gate_policy_digest,
+        registration.objective_mapping_policy_digest,
+        registration.integrity_policy_digest,
+        registration.retrospective_evidence_forbidden,
+        registration.owner_input_forbidden,
+        registration.interim_metrics_forbidden,
+        registration.one_time_opening_required,
+        registration.finalized_outcome_required,
+        registration.reward_application_forbidden,
+        registration.voice_mutation_forbidden,
+        registration.cooldown_mutation_forbidden,
+        registration.promotion_mutation_forbidden,
+    ))
+}
+
+fn learned_attribution_digest_v0(event: &LearnedProspectiveEventAttributionV0) -> String {
+    stable_hash_string(&format!(
+        "{:?}:{}:{}:{}:{:?}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+        event.attribution_version,
+        event.event_id,
+        event.event_digest,
+        event.agent_id,
+        event.objective,
+        event.opinion_id,
+        event.opinion_digest,
+        event.opinion_seal_digest,
+        event.challenge_digest,
+        event.model_artifact_digest,
+        event.raw_evidence_digest,
+        event.event_timestamp,
+        event.maturity_timestamp,
+        event.prediction_horizon_digest,
+        event.support_status_digest,
+    ))
+}
+
+pub fn validate_learned_prospective_contract_v0(
+    contract: &LearnedProspectiveContractV0,
+) -> Result<(), String> {
+    let expected_agent = match contract.objective {
+        LearnedAgentObjectiveV0::DirectionalMomentum => MOMENTUM_AGENT_ID_V0,
+        LearnedAgentObjectiveV0::DownsideRisk => CYCLE_RISK_SHADOW_AGENT_ID_V0,
+    };
+    if contract.agent_id != expected_agent
+        || !contract.sealed_shadow_only
+        || contract.cutoff_exclusive_timestamp == 0
+        || [
+            &contract.challenge_digest,
+            &contract.model_artifact_digest,
+            &contract.prediction_horizon_digest,
+        ]
+        .iter()
+        .any(|value| value.is_empty())
+        || contract.contract_digest != learned_contract_digest_v0(contract)
+    {
+        Err("learned_prospective_contract_invalid".into())
+    } else {
+        Ok(())
+    }
+}
+
+pub fn validate_learned_reward_sample_gate_v0(
+    gate: &LearnedRewardSampleGateV0,
+) -> Result<(), String> {
+    if gate.minimum_mature_events == 0
+        || gate.minimum_support_qualified_events == 0
+        || gate.minimum_regime_coverage == 0
+        || gate.maximum_integrity_failures != 0
+        || gate.gate_digest != learned_reward_gate_digest_v0(gate)
+    {
+        Err("learned_reward_sample_gate_invalid".into())
+    } else {
+        Ok(())
+    }
+}
+
+pub fn pre_register_learned_reward_eligibility_v0(
+    input: &LearnedRewardEligibilityRegistrationInputV0,
+) -> Result<LearnedRewardEligibilityRegistrationV0, String> {
+    validate_learned_prospective_contract_v0(&input.momentum)?;
+    validate_learned_prospective_contract_v0(&input.cycle_risk)?;
+    if input.momentum.objective != LearnedAgentObjectiveV0::DirectionalMomentum
+        || input.cycle_risk.objective != LearnedAgentObjectiveV0::DownsideRisk
+        || [
+            &input.attribution_policy_digest,
+            &input.maturity_policy_digest,
+            &input.sample_gate_policy_digest,
+            &input.objective_mapping_policy_digest,
+            &input.integrity_policy_digest,
+        ]
+        .iter()
+        .any(|value| value.is_empty())
+    {
+        return Err("learned_reward_registration_input_invalid".into());
+    }
+    let mut registration = LearnedRewardEligibilityRegistrationV0 {
+        registration_version: "learned-reward-eligibility-registration-v0".into(),
+        momentum_challenge_digest: input.momentum.challenge_digest.clone(),
+        risk_tournament_digest: input.cycle_risk.challenge_digest.clone(),
+        attribution_policy_digest: input.attribution_policy_digest.clone(),
+        maturity_policy_digest: input.maturity_policy_digest.clone(),
+        sample_gate_policy_digest: input.sample_gate_policy_digest.clone(),
+        objective_mapping_policy_digest: input.objective_mapping_policy_digest.clone(),
+        integrity_policy_digest: input.integrity_policy_digest.clone(),
+        retrospective_evidence_forbidden: true,
+        owner_input_forbidden: true,
+        interim_metrics_forbidden: true,
+        one_time_opening_required: true,
+        finalized_outcome_required: true,
+        reward_application_forbidden: true,
+        voice_mutation_forbidden: true,
+        cooldown_mutation_forbidden: true,
+        promotion_mutation_forbidden: true,
+        registration_digest: String::new(),
+    };
+    registration.registration_digest = learned_reward_registration_digest_v0(&registration);
+    validate_learned_reward_eligibility_registration_v0(&registration)?;
+    Ok(registration)
+}
+
+pub fn validate_learned_reward_eligibility_registration_v0(
+    registration: &LearnedRewardEligibilityRegistrationV0,
+) -> Result<(), String> {
+    if registration.registration_version != "learned-reward-eligibility-registration-v0"
+        || [
+            &registration.momentum_challenge_digest,
+            &registration.risk_tournament_digest,
+            &registration.attribution_policy_digest,
+            &registration.maturity_policy_digest,
+            &registration.sample_gate_policy_digest,
+            &registration.objective_mapping_policy_digest,
+            &registration.integrity_policy_digest,
+        ]
+        .iter()
+        .any(|value| value.is_empty())
+        || !registration.retrospective_evidence_forbidden
+        || !registration.owner_input_forbidden
+        || !registration.interim_metrics_forbidden
+        || !registration.one_time_opening_required
+        || !registration.finalized_outcome_required
+        || !registration.reward_application_forbidden
+        || !registration.voice_mutation_forbidden
+        || !registration.cooldown_mutation_forbidden
+        || !registration.promotion_mutation_forbidden
+        || registration.registration_digest != learned_reward_registration_digest_v0(registration)
+    {
+        Err("learned_reward_registration_invalid".into())
+    } else {
+        Ok(())
+    }
+}
+
+pub fn learned_outcome_maturity_status_v0(
+    request: &LearnedOutcomeOpeningRequestV0,
+) -> LearnedOutcomeMaturityStatusV0 {
+    if !request.required_finalized_rows_present
+        || !request.event_identity_matches
+        || !request.challenge_valid
+        || !request.explicit_authorization
+        || request.event_timestamp == 0
+        || request.maturity_timestamp <= request.event_timestamp
+    {
+        LearnedOutcomeMaturityStatusV0::IntegrityInvalid
+    } else if request.already_opened {
+        LearnedOutcomeMaturityStatusV0::DuplicateOpeningInvalid
+    } else if request.observed_timestamp < request.maturity_timestamp {
+        LearnedOutcomeMaturityStatusV0::OpenedEarlyInvalid
+    } else if request.observed_timestamp == request.maturity_timestamp {
+        LearnedOutcomeMaturityStatusV0::MatureUnopened
+    } else {
+        LearnedOutcomeMaturityStatusV0::MatureOpenedOnce
+    }
+}
+
+pub fn validate_learned_prospective_event_attribution_v0(
+    event: &LearnedProspectiveEventAttributionV0,
+    contract: &LearnedProspectiveContractV0,
+    known_event_ids: &BTreeSet<String>,
+) -> Result<(), String> {
+    validate_learned_prospective_contract_v0(contract)?;
+    if event.attribution_version != "learned-prospective-event-attribution-v0"
+        || known_event_ids.contains(&event.event_id)
+        || event.agent_id != contract.agent_id
+        || event.objective != contract.objective
+        || event.challenge_digest != contract.challenge_digest
+        || event.model_artifact_digest != contract.model_artifact_digest
+        || event.prediction_horizon_digest != contract.prediction_horizon_digest
+        || event.event_timestamp <= contract.cutoff_exclusive_timestamp
+        || event.maturity_timestamp <= event.event_timestamp
+        || [
+            &event.event_id,
+            &event.event_digest,
+            &event.opinion_id,
+            &event.opinion_digest,
+            &event.opinion_seal_digest,
+            &event.raw_evidence_digest,
+            &event.support_status_digest,
+        ]
+        .iter()
+        .any(|value| value.is_empty())
+        || event.attribution_digest != learned_attribution_digest_v0(event)
+    {
+        Err("learned_prospective_event_attribution_invalid".into())
+    } else {
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LearnedProspectiveOutcomeRecordV0 {
+    pub record_version: String,
+    pub event_id: String,
+    pub attribution_digest: String,
+    pub agent_id: String,
+    pub objective: LearnedAgentObjectiveV0,
+    pub payload: LearnedProspectiveOutcomePayloadV0,
+    pub maturity_status: LearnedOutcomeMaturityStatusV0,
+    pub challenge_valid: bool,
+    pub integrity_valid: bool,
+    pub retrospective_evidence: bool,
+    pub owner_influence: bool,
+    pub outcome_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LearnedRewardEligibilityRecordV0 {
+    pub record_version: String,
+    pub registration_digest: String,
+    pub agent_id: String,
+    pub objective: LearnedAgentObjectiveV0,
+    pub prospective_event_count: usize,
+    pub mature_outcome_count: usize,
+    pub support_qualified_count: usize,
+    pub regime_coverage_count: usize,
+    pub eligibility_status: LearnedRewardEligibilityStatusV0,
+    pub eligibility_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LearnedProspectiveOutcomeLedgerV0 {
+    pub ledger_version: String,
+    pub registration_digest: String,
+    pub event_attributions: Vec<LearnedProspectiveEventAttributionV0>,
+    pub matured_outcomes: Vec<LearnedProspectiveOutcomeRecordV0>,
+    pub eligibility_records: Vec<LearnedRewardEligibilityRecordV0>,
+    pub label_open_count: usize,
+    pub reward_candidate_count: usize,
+    pub reward_apply_count: usize,
+    pub ledger_digest: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum LearnedRewardSignalV0 {
+    CalibratedProspectiveAccuracy,
+    CorrectRiskWarning,
+    JustifiedCapitalProtection,
+    UsefulIndependentContribution,
+    DoctrineConsistentAbstention,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum LearnedPenaltySignalV0 {
+    HighConfidenceProspectiveError,
+    HighConfidenceRiskFalseNegative,
+    ProbabilityCollapse,
+    RepeatedOutOfSupportAssertion,
+    DoctrineViolation,
+    CorrelatedNonIndependentContribution,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LearnedRewardInputCandidateV0 {
+    pub candidate_version: String,
+    pub agent_id: String,
+    pub objective: LearnedAgentObjectiveV0,
+    pub prospective_outcome_ledger_digest: String,
+    pub eligibility_record_digest: String,
+    pub typed_reward_signals: Vec<LearnedRewardSignalV0>,
+    pub typed_penalty_signals: Vec<LearnedPenaltySignalV0>,
+    pub eligible_for_existing_reward_compute: bool,
+    pub eligible_for_application: bool,
+    pub candidate_digest: String,
+}
+
+fn learned_outcome_digest_v0(record: &LearnedProspectiveOutcomeRecordV0) -> String {
+    digest(&(
+        &record.record_version,
+        &record.event_id,
+        &record.attribution_digest,
+        &record.agent_id,
+        record.objective,
+        &record.payload,
+        record.maturity_status,
+        record.challenge_valid,
+        record.integrity_valid,
+        record.retrospective_evidence,
+        record.owner_influence,
+    ))
+}
+
+fn learned_eligibility_digest_v0(record: &LearnedRewardEligibilityRecordV0) -> String {
+    digest(&(
+        &record.record_version,
+        &record.registration_digest,
+        &record.agent_id,
+        record.objective,
+        record.prospective_event_count,
+        record.mature_outcome_count,
+        record.support_qualified_count,
+        record.regime_coverage_count,
+        record.eligibility_status,
+    ))
+}
+
+fn learned_outcome_ledger_digest_v0(ledger: &LearnedProspectiveOutcomeLedgerV0) -> String {
+    digest(&(
+        &ledger.ledger_version,
+        &ledger.registration_digest,
+        &ledger.event_attributions,
+        &ledger.matured_outcomes,
+        &ledger.eligibility_records,
+        ledger.label_open_count,
+        ledger.reward_candidate_count,
+        ledger.reward_apply_count,
+    ))
+}
+
+fn learned_reward_candidate_digest_v0(candidate: &LearnedRewardInputCandidateV0) -> String {
+    digest(&(
+        &candidate.candidate_version,
+        &candidate.agent_id,
+        candidate.objective,
+        &candidate.prospective_outcome_ledger_digest,
+        &candidate.eligibility_record_digest,
+        &candidate.typed_reward_signals,
+        &candidate.typed_penalty_signals,
+        candidate.eligible_for_existing_reward_compute,
+        candidate.eligible_for_application,
+    ))
+}
+
+pub fn new_learned_prospective_outcome_ledger_v0(
+    registration: &LearnedRewardEligibilityRegistrationV0,
+) -> Result<LearnedProspectiveOutcomeLedgerV0, String> {
+    validate_learned_reward_eligibility_registration_v0(registration)?;
+    let mut ledger = LearnedProspectiveOutcomeLedgerV0 {
+        ledger_version: "learned-prospective-outcome-ledger-v0".into(),
+        registration_digest: registration.registration_digest.clone(),
+        event_attributions: vec![],
+        matured_outcomes: vec![],
+        eligibility_records: vec![],
+        label_open_count: 0,
+        reward_candidate_count: 0,
+        reward_apply_count: 0,
+        ledger_digest: String::new(),
+    };
+    ledger.ledger_digest = learned_outcome_ledger_digest_v0(&ledger);
+    Ok(ledger)
+}
+
+pub fn validate_learned_prospective_outcome_ledger_v0(
+    ledger: &LearnedProspectiveOutcomeLedgerV0,
+    registration: &LearnedRewardEligibilityRegistrationV0,
+) -> Result<(), String> {
+    validate_learned_reward_eligibility_registration_v0(registration)?;
+    let event_ids = ledger
+        .event_attributions
+        .iter()
+        .map(|event| event.event_id.clone())
+        .collect::<BTreeSet<_>>();
+    if ledger.ledger_version != "learned-prospective-outcome-ledger-v0"
+        || ledger.registration_digest != registration.registration_digest
+        || event_ids.len() != ledger.event_attributions.len()
+        || ledger.matured_outcomes.iter().any(|record| {
+            !event_ids.contains(&record.event_id)
+                || record.outcome_digest != learned_outcome_digest_v0(record)
+        })
+        || ledger
+            .eligibility_records
+            .iter()
+            .any(|record| record.eligibility_digest != learned_eligibility_digest_v0(record))
+        || ledger.reward_apply_count != 0
+        || ledger.ledger_digest != learned_outcome_ledger_digest_v0(ledger)
+    {
+        Err("learned_prospective_outcome_ledger_invalid".into())
+    } else {
+        Ok(())
+    }
+}
+
+pub fn append_learned_prospective_event_attribution_v0(
+    ledger: &mut LearnedProspectiveOutcomeLedgerV0,
+    registration: &LearnedRewardEligibilityRegistrationV0,
+    event: LearnedProspectiveEventAttributionV0,
+    contract: &LearnedProspectiveContractV0,
+) -> Result<(), String> {
+    validate_learned_prospective_outcome_ledger_v0(ledger, registration)?;
+    let known = ledger
+        .event_attributions
+        .iter()
+        .map(|existing| existing.event_id.clone())
+        .collect::<BTreeSet<_>>();
+    validate_learned_prospective_event_attribution_v0(&event, contract, &known)?;
+    ledger.event_attributions.push(event);
+    ledger
+        .event_attributions
+        .sort_by(|left, right| left.event_id.cmp(&right.event_id));
+    ledger.ledger_digest = learned_outcome_ledger_digest_v0(ledger);
+    Ok(())
+}
+
+fn outcome_payload_matches_objective_v0(
+    objective: LearnedAgentObjectiveV0,
+    payload: &LearnedProspectiveOutcomePayloadV0,
+) -> bool {
+    matches!(
+        (objective, payload),
+        (
+            LearnedAgentObjectiveV0::DirectionalMomentum,
+            LearnedProspectiveOutcomePayloadV0::Momentum(_)
+        ) | (
+            LearnedAgentObjectiveV0::DownsideRisk,
+            LearnedProspectiveOutcomePayloadV0::CycleRisk(_)
+        )
+    )
+}
+
+pub fn append_learned_matured_outcome_v0(
+    ledger: &mut LearnedProspectiveOutcomeLedgerV0,
+    registration: &LearnedRewardEligibilityRegistrationV0,
+    mut record: LearnedProspectiveOutcomeRecordV0,
+) -> Result<(), String> {
+    validate_learned_prospective_outcome_ledger_v0(ledger, registration)?;
+    let event = ledger
+        .event_attributions
+        .iter()
+        .find(|event| event.event_id == record.event_id)
+        .ok_or("learned_matured_outcome_event_missing")?;
+    if ledger.label_open_count != 0
+        || ledger
+            .matured_outcomes
+            .iter()
+            .any(|existing| existing.event_id == record.event_id)
+        || event.attribution_digest != record.attribution_digest
+        || event.agent_id != record.agent_id
+        || event.objective != record.objective
+        || record.maturity_status != LearnedOutcomeMaturityStatusV0::MatureOpenedOnce
+        || !outcome_payload_matches_objective_v0(record.objective, &record.payload)
+        || !record.challenge_valid
+        || !record.integrity_valid
+        || record.retrospective_evidence
+        || record.owner_influence
+    {
+        return Err("learned_matured_outcome_invalid_or_duplicate_opening".into());
+    }
+    record.record_version = "learned-prospective-outcome-record-v0".into();
+    record.outcome_digest = learned_outcome_digest_v0(&record);
+    ledger.matured_outcomes.push(record);
+    ledger.label_open_count = 1;
+    ledger.ledger_digest = learned_outcome_ledger_digest_v0(ledger);
+    Ok(())
+}
+
+fn outcome_support_and_regime_v0(record: &LearnedProspectiveOutcomeRecordV0) -> (bool, String) {
+    match &record.payload {
+        LearnedProspectiveOutcomePayloadV0::Momentum(outcome) => {
+            (outcome.support_qualified, outcome.regime_digest.clone())
+        }
+        LearnedProspectiveOutcomePayloadV0::CycleRisk(outcome) => {
+            (outcome.support_qualified, outcome.regime_digest.clone())
+        }
+    }
+}
+
+pub fn derive_learned_reward_eligibility_v0(
+    registration: &LearnedRewardEligibilityRegistrationV0,
+    gate: &LearnedRewardSampleGateV0,
+    ledger: &LearnedProspectiveOutcomeLedgerV0,
+    objective: LearnedAgentObjectiveV0,
+) -> Result<LearnedRewardEligibilityRecordV0, String> {
+    validate_learned_reward_eligibility_registration_v0(registration)?;
+    validate_learned_reward_sample_gate_v0(gate)?;
+    validate_learned_prospective_outcome_ledger_v0(ledger, registration)?;
+    let agent_id = match objective {
+        LearnedAgentObjectiveV0::DirectionalMomentum => MOMENTUM_AGENT_ID_V0,
+        LearnedAgentObjectiveV0::DownsideRisk => CYCLE_RISK_SHADOW_AGENT_ID_V0,
+    };
+    let events = ledger
+        .event_attributions
+        .iter()
+        .filter(|event| event.objective == objective)
+        .collect::<Vec<_>>();
+    let outcomes = ledger
+        .matured_outcomes
+        .iter()
+        .filter(|outcome| outcome.objective == objective)
+        .collect::<Vec<_>>();
+    let (support_qualified_count, regime_coverage_count) = outcomes.iter().fold(
+        (0usize, BTreeSet::new()),
+        |(support_count, mut regimes), outcome| {
+            let (support, regime) = outcome_support_and_regime_v0(outcome);
+            if support {
+                regimes.insert(regime);
+            }
+            (support_count + usize::from(support), regimes)
+        },
+    );
+    let eligibility_status = if events.is_empty() {
+        LearnedRewardEligibilityStatusV0::IneligibleNoProspectiveOutcomes
+    } else if outcomes.iter().any(|outcome| {
+        outcome.maturity_status == LearnedOutcomeMaturityStatusV0::OpenedEarlyInvalid
+    }) {
+        LearnedRewardEligibilityStatusV0::IneligibleEarlyLabelAccess
+    } else if outcomes.iter().any(|outcome| {
+        outcome.maturity_status == LearnedOutcomeMaturityStatusV0::DuplicateOpeningInvalid
+    }) {
+        LearnedRewardEligibilityStatusV0::IneligibleDuplicateOpening
+    } else if outcomes
+        .iter()
+        .any(|outcome| outcome.retrospective_evidence)
+    {
+        LearnedRewardEligibilityStatusV0::IneligibleRetrospectiveEvidence
+    } else if outcomes.iter().any(|outcome| outcome.owner_influence) {
+        LearnedRewardEligibilityStatusV0::IneligibleOwnerInfluence
+    } else if outcomes.iter().any(|outcome| !outcome.challenge_valid) {
+        LearnedRewardEligibilityStatusV0::IneligibleChallengeInvalidated
+    } else if outcomes.iter().any(|outcome| {
+        !outcome.integrity_valid
+            || outcome.maturity_status == LearnedOutcomeMaturityStatusV0::IntegrityInvalid
+    }) {
+        LearnedRewardEligibilityStatusV0::IneligibleIntegrityFailure
+    } else if outcomes
+        .iter()
+        .any(|outcome| !outcome_payload_matches_objective_v0(objective, &outcome.payload))
+    {
+        LearnedRewardEligibilityStatusV0::IneligibleUnsupportedObjective
+    } else if outcomes.len() < events.len() {
+        LearnedRewardEligibilityStatusV0::IneligibleAwaitingMaturity
+    } else if outcomes.len() < gate.minimum_mature_events
+        || support_qualified_count < gate.minimum_support_qualified_events
+    {
+        LearnedRewardEligibilityStatusV0::IneligibleMinimumSamples
+    } else if regime_coverage_count.len() < gate.minimum_regime_coverage {
+        LearnedRewardEligibilityStatusV0::IneligibleInsufficientRegimeCoverage
+    } else {
+        LearnedRewardEligibilityStatusV0::EligibleForCandidateComputation
+    };
+    let mut record = LearnedRewardEligibilityRecordV0 {
+        record_version: "learned-reward-eligibility-record-v0".into(),
+        registration_digest: registration.registration_digest.clone(),
+        agent_id: agent_id.into(),
+        objective,
+        prospective_event_count: events.len(),
+        mature_outcome_count: outcomes.len(),
+        support_qualified_count,
+        regime_coverage_count: regime_coverage_count.len(),
+        eligibility_status,
+        eligibility_digest: String::new(),
+    };
+    record.eligibility_digest = learned_eligibility_digest_v0(&record);
+    Ok(record)
+}
+
+pub fn learned_reward_input_candidate_v0(
+    eligibility: &LearnedRewardEligibilityRecordV0,
+    ledger: &LearnedProspectiveOutcomeLedgerV0,
+) -> Result<LearnedRewardInputCandidateV0, String> {
+    if eligibility.eligibility_digest != learned_eligibility_digest_v0(eligibility)
+        || eligibility.eligibility_status
+            != LearnedRewardEligibilityStatusV0::EligibleForCandidateComputation
+    {
+        return Err("learned_reward_candidate_ineligible".into());
+    }
+    let mut rewards = BTreeSet::new();
+    let mut penalties = BTreeSet::new();
+    for outcome in ledger
+        .matured_outcomes
+        .iter()
+        .filter(|outcome| outcome.objective == eligibility.objective)
+    {
+        match &outcome.payload {
+            LearnedProspectiveOutcomePayloadV0::Momentum(value) => {
+                if value.directional_label_correct && value.support_qualified_brier_improved {
+                    rewards.insert(LearnedRewardSignalV0::CalibratedProspectiveAccuracy);
+                }
+                if value.baseline_beaten && value.support_qualified {
+                    rewards.insert(LearnedRewardSignalV0::UsefulIndependentContribution);
+                }
+                if matches!(
+                    value.abstention,
+                    LearnedAbstentionAttributionV0::JustifiedCapitalProtection
+                ) {
+                    rewards.insert(LearnedRewardSignalV0::JustifiedCapitalProtection);
+                    rewards.insert(LearnedRewardSignalV0::DoctrineConsistentAbstention);
+                }
+                if value.high_confidence_error {
+                    penalties.insert(LearnedPenaltySignalV0::HighConfidenceProspectiveError);
+                }
+                if value.probability_collapse {
+                    penalties.insert(LearnedPenaltySignalV0::ProbabilityCollapse);
+                }
+            }
+            LearnedProspectiveOutcomePayloadV0::CycleRisk(value) => {
+                if value.downside_label_correct && value.support_qualified_brier_improved {
+                    rewards.insert(LearnedRewardSignalV0::CalibratedProspectiveAccuracy);
+                }
+                if value.correct_elevated_risk_warning {
+                    rewards.insert(LearnedRewardSignalV0::CorrectRiskWarning);
+                }
+                if matches!(
+                    value.abstention,
+                    LearnedAbstentionAttributionV0::JustifiedCapitalProtection
+                ) {
+                    rewards.insert(LearnedRewardSignalV0::JustifiedCapitalProtection);
+                    rewards.insert(LearnedRewardSignalV0::DoctrineConsistentAbstention);
+                }
+                if value.high_confidence_false_negative {
+                    penalties.insert(LearnedPenaltySignalV0::HighConfidenceRiskFalseNegative);
+                }
+                if value.probability_collapse {
+                    penalties.insert(LearnedPenaltySignalV0::ProbabilityCollapse);
+                }
+            }
+        }
+    }
+    let mut candidate = LearnedRewardInputCandidateV0 {
+        candidate_version: "learned-reward-input-candidate-v0".into(),
+        agent_id: eligibility.agent_id.clone(),
+        objective: eligibility.objective,
+        prospective_outcome_ledger_digest: ledger.ledger_digest.clone(),
+        eligibility_record_digest: eligibility.eligibility_digest.clone(),
+        typed_reward_signals: rewards.into_iter().collect(),
+        typed_penalty_signals: penalties.into_iter().collect(),
+        eligible_for_existing_reward_compute: true,
+        eligible_for_application: false,
+        candidate_digest: String::new(),
+    };
+    candidate.candidate_digest = learned_reward_candidate_digest_v0(&candidate);
+    Ok(candidate)
+}
+
 #[cfg(test)]
 pub(crate) fn chair_shadow_test_observation_report_for_owner_review_v0()
 -> ChairShadowObservationReportV0 {
@@ -8320,6 +9200,740 @@ mod tests {
         .unwrap();
         opinion.sealed = true;
         (opinion, seal)
+    }
+
+    fn reward_contract(
+        objective: LearnedAgentObjectiveV0,
+        challenge: &str,
+    ) -> LearnedProspectiveContractV0 {
+        let mut contract = LearnedProspectiveContractV0 {
+            objective,
+            agent_id: match objective {
+                LearnedAgentObjectiveV0::DirectionalMomentum => MOMENTUM_AGENT_ID_V0.into(),
+                LearnedAgentObjectiveV0::DownsideRisk => CYCLE_RISK_SHADOW_AGENT_ID_V0.into(),
+            },
+            challenge_digest: challenge.into(),
+            model_artifact_digest: format!("model-{challenge}"),
+            prediction_horizon_digest: format!("horizon-{challenge}"),
+            cutoff_exclusive_timestamp: 100,
+            sealed_shadow_only: true,
+            contract_digest: String::new(),
+        };
+        contract.contract_digest = learned_contract_digest_v0(&contract);
+        contract
+    }
+
+    fn reward_gate() -> LearnedRewardSampleGateV0 {
+        let mut gate = LearnedRewardSampleGateV0 {
+            minimum_mature_events: 1,
+            minimum_support_qualified_events: 1,
+            minimum_regime_coverage: 1,
+            maximum_integrity_failures: 0,
+            gate_digest: String::new(),
+        };
+        gate.gate_digest = learned_reward_gate_digest_v0(&gate);
+        gate
+    }
+
+    fn reward_registration() -> LearnedRewardEligibilityRegistrationV0 {
+        pre_register_learned_reward_eligibility_v0(&LearnedRewardEligibilityRegistrationInputV0 {
+            momentum: reward_contract(LearnedAgentObjectiveV0::DirectionalMomentum, "momentum"),
+            cycle_risk: reward_contract(LearnedAgentObjectiveV0::DownsideRisk, "risk"),
+            attribution_policy_digest: "attribution".into(),
+            maturity_policy_digest: "maturity".into(),
+            sample_gate_policy_digest: reward_gate().gate_digest,
+            objective_mapping_policy_digest: "mapping".into(),
+            integrity_policy_digest: "integrity".into(),
+        })
+        .unwrap()
+    }
+
+    fn reward_event(
+        contract: &LearnedProspectiveContractV0,
+    ) -> LearnedProspectiveEventAttributionV0 {
+        let mut event = LearnedProspectiveEventAttributionV0 {
+            attribution_version: "learned-prospective-event-attribution-v0".into(),
+            event_id: "prospective-event-1".into(),
+            event_digest: "event".into(),
+            agent_id: contract.agent_id.clone(),
+            objective: contract.objective,
+            opinion_id: "sealed-opinion".into(),
+            opinion_digest: "opinion".into(),
+            opinion_seal_digest: "seal".into(),
+            challenge_digest: contract.challenge_digest.clone(),
+            model_artifact_digest: contract.model_artifact_digest.clone(),
+            raw_evidence_digest: "raw-evidence".into(),
+            event_timestamp: 101,
+            maturity_timestamp: 102,
+            prediction_horizon_digest: contract.prediction_horizon_digest.clone(),
+            support_status_digest: "support".into(),
+            attribution_digest: String::new(),
+        };
+        event.attribution_digest = learned_attribution_digest_v0(&event);
+        event
+    }
+
+    #[test]
+    fn learned_reward_registration_is_immutable_and_mutation_forbidden() {
+        let registration = reward_registration();
+        assert!(validate_learned_reward_eligibility_registration_v0(&registration).is_ok());
+        assert!(registration.retrospective_evidence_forbidden);
+        assert!(registration.owner_input_forbidden);
+        assert!(registration.reward_application_forbidden);
+        assert!(registration.voice_mutation_forbidden);
+        assert!(registration.cooldown_mutation_forbidden);
+        assert!(registration.promotion_mutation_forbidden);
+    }
+
+    #[test]
+    fn learned_reward_registration_rejects_changed_boolean() {
+        let mut registration = reward_registration();
+        registration.owner_input_forbidden = false;
+        assert!(validate_learned_reward_eligibility_registration_v0(&registration).is_err());
+    }
+
+    #[test]
+    fn learned_contract_requires_exact_agent_and_sealed_status() {
+        let mut contract =
+            reward_contract(LearnedAgentObjectiveV0::DirectionalMomentum, "momentum");
+        contract.agent_id = CYCLE_RISK_SHADOW_AGENT_ID_V0.into();
+        assert!(validate_learned_prospective_contract_v0(&contract).is_err());
+        let mut contract =
+            reward_contract(LearnedAgentObjectiveV0::DirectionalMomentum, "momentum");
+        contract.sealed_shadow_only = false;
+        assert!(validate_learned_prospective_contract_v0(&contract).is_err());
+    }
+
+    #[test]
+    fn learned_reward_sample_gate_is_derived_and_nonzero() {
+        assert!(validate_learned_reward_sample_gate_v0(&reward_gate()).is_ok());
+        let mut gate = reward_gate();
+        gate.minimum_mature_events = 0;
+        assert!(validate_learned_reward_sample_gate_v0(&gate).is_err());
+    }
+
+    #[test]
+    fn prospective_attribution_requires_sealed_opinion_and_exact_contract() {
+        let contract = reward_contract(LearnedAgentObjectiveV0::DirectionalMomentum, "momentum");
+        let event = reward_event(&contract);
+        assert!(
+            validate_learned_prospective_event_attribution_v0(&event, &contract, &BTreeSet::new())
+                .is_ok()
+        );
+        let mut unsealed = event.clone();
+        unsealed.opinion_seal_digest.clear();
+        unsealed.attribution_digest = learned_attribution_digest_v0(&unsealed);
+        assert!(
+            validate_learned_prospective_event_attribution_v0(
+                &unsealed,
+                &contract,
+                &BTreeSet::new()
+            )
+            .is_err()
+        );
+        let risk = reward_contract(LearnedAgentObjectiveV0::DownsideRisk, "risk");
+        assert!(
+            validate_learned_prospective_event_attribution_v0(&event, &risk, &BTreeSet::new())
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn prospective_attribution_rejects_duplicate_and_retroactive_event() {
+        let contract = reward_contract(LearnedAgentObjectiveV0::DirectionalMomentum, "momentum");
+        let event = reward_event(&contract);
+        let ids = BTreeSet::from([event.event_id.clone()]);
+        assert!(
+            validate_learned_prospective_event_attribution_v0(&event, &contract, &ids).is_err()
+        );
+        let mut retroactive = event.clone();
+        retroactive.event_timestamp = 100;
+        retroactive.attribution_digest = learned_attribution_digest_v0(&retroactive);
+        assert!(
+            validate_learned_prospective_event_attribution_v0(
+                &retroactive,
+                &contract,
+                &BTreeSet::new()
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn outcome_opening_requires_maturity_identity_and_authorization() {
+        let base = LearnedOutcomeOpeningRequestV0 {
+            event_timestamp: 101,
+            maturity_timestamp: 102,
+            observed_timestamp: 103,
+            required_finalized_rows_present: true,
+            event_identity_matches: true,
+            challenge_valid: true,
+            explicit_authorization: true,
+            already_opened: false,
+        };
+        assert_eq!(
+            learned_outcome_maturity_status_v0(&base),
+            LearnedOutcomeMaturityStatusV0::MatureOpenedOnce
+        );
+        let mut early = base.clone();
+        early.observed_timestamp = 101;
+        assert_eq!(
+            learned_outcome_maturity_status_v0(&early),
+            LearnedOutcomeMaturityStatusV0::OpenedEarlyInvalid
+        );
+        let mut duplicate = base.clone();
+        duplicate.already_opened = true;
+        assert_eq!(
+            learned_outcome_maturity_status_v0(&duplicate),
+            LearnedOutcomeMaturityStatusV0::DuplicateOpeningInvalid
+        );
+        let mut no_auth = base;
+        no_auth.explicit_authorization = false;
+        assert_eq!(
+            learned_outcome_maturity_status_v0(&no_auth),
+            LearnedOutcomeMaturityStatusV0::IntegrityInvalid
+        );
+    }
+
+    fn momentum_outcome_record(
+        event: &LearnedProspectiveEventAttributionV0,
+    ) -> LearnedProspectiveOutcomeRecordV0 {
+        LearnedProspectiveOutcomeRecordV0 {
+            record_version: String::new(),
+            event_id: event.event_id.clone(),
+            attribution_digest: event.attribution_digest.clone(),
+            agent_id: event.agent_id.clone(),
+            objective: event.objective,
+            payload: LearnedProspectiveOutcomePayloadV0::Momentum(MomentumProspectiveOutcomeV0 {
+                directional_label_correct: true,
+                support_qualified_brier_improved: true,
+                calibration_improved: true,
+                high_confidence_error: false,
+                baseline_beaten: true,
+                abstention: LearnedAbstentionAttributionV0::JustifiedCapitalProtection,
+                probability_collapse: false,
+                support_qualified: true,
+                regime_digest: "regime-a".into(),
+            }),
+            maturity_status: LearnedOutcomeMaturityStatusV0::MatureOpenedOnce,
+            challenge_valid: true,
+            integrity_valid: true,
+            retrospective_evidence: false,
+            owner_influence: false,
+            outcome_digest: String::new(),
+        }
+    }
+
+    fn opened_momentum_ledger() -> (
+        LearnedRewardEligibilityRegistrationV0,
+        LearnedRewardSampleGateV0,
+        LearnedProspectiveOutcomeLedgerV0,
+    ) {
+        let registration = reward_registration();
+        let gate = reward_gate();
+        let contract = reward_contract(LearnedAgentObjectiveV0::DirectionalMomentum, "momentum");
+        let event = reward_event(&contract);
+        let mut ledger = new_learned_prospective_outcome_ledger_v0(&registration).unwrap();
+        append_learned_prospective_event_attribution_v0(
+            &mut ledger,
+            &registration,
+            event.clone(),
+            &contract,
+        )
+        .unwrap();
+        append_learned_matured_outcome_v0(
+            &mut ledger,
+            &registration,
+            momentum_outcome_record(&event),
+        )
+        .unwrap();
+        (registration, gate, ledger)
+    }
+
+    fn replace_outcome_for_status(
+        ledger: &mut LearnedProspectiveOutcomeLedgerV0,
+        change: impl FnOnce(&mut LearnedProspectiveOutcomeRecordV0),
+    ) {
+        change(ledger.matured_outcomes.first_mut().unwrap());
+        let outcome = ledger.matured_outcomes.first_mut().unwrap();
+        outcome.outcome_digest = learned_outcome_digest_v0(outcome);
+        ledger.ledger_digest = learned_outcome_ledger_digest_v0(ledger);
+    }
+
+    #[test]
+    fn current_empty_ledger_derives_no_prospective_outcomes() {
+        let registration = reward_registration();
+        let eligibility = derive_learned_reward_eligibility_v0(
+            &registration,
+            &reward_gate(),
+            &new_learned_prospective_outcome_ledger_v0(&registration).unwrap(),
+            LearnedAgentObjectiveV0::DirectionalMomentum,
+        )
+        .unwrap();
+        assert_eq!(
+            eligibility.eligibility_status,
+            LearnedRewardEligibilityStatusV0::IneligibleNoProspectiveOutcomes
+        );
+    }
+
+    #[test]
+    fn prospective_event_without_opened_label_awaits_maturity() {
+        let registration = reward_registration();
+        let contract = reward_contract(LearnedAgentObjectiveV0::DirectionalMomentum, "momentum");
+        let mut ledger = new_learned_prospective_outcome_ledger_v0(&registration).unwrap();
+        append_learned_prospective_event_attribution_v0(
+            &mut ledger,
+            &registration,
+            reward_event(&contract),
+            &contract,
+        )
+        .unwrap();
+        let eligibility = derive_learned_reward_eligibility_v0(
+            &registration,
+            &reward_gate(),
+            &ledger,
+            LearnedAgentObjectiveV0::DirectionalMomentum,
+        )
+        .unwrap();
+        assert_eq!(
+            eligibility.eligibility_status,
+            LearnedRewardEligibilityStatusV0::IneligibleAwaitingMaturity
+        );
+    }
+
+    #[test]
+    fn mature_eligible_fixture_produces_compute_only_candidate() {
+        let (registration, gate, ledger) = opened_momentum_ledger();
+        let eligibility = derive_learned_reward_eligibility_v0(
+            &registration,
+            &gate,
+            &ledger,
+            LearnedAgentObjectiveV0::DirectionalMomentum,
+        )
+        .unwrap();
+        assert_eq!(
+            eligibility.eligibility_status,
+            LearnedRewardEligibilityStatusV0::EligibleForCandidateComputation
+        );
+        let candidate = learned_reward_input_candidate_v0(&eligibility, &ledger).unwrap();
+        assert!(candidate.eligible_for_existing_reward_compute);
+        assert!(!candidate.eligible_for_application);
+        assert_eq!(ledger.reward_candidate_count, 0);
+        assert_eq!(ledger.reward_apply_count, 0);
+    }
+
+    #[test]
+    fn objective_payloads_cannot_swap() {
+        let (registration, _, mut ledger) = opened_momentum_ledger();
+        replace_outcome_for_status(&mut ledger, |outcome| {
+            outcome.payload =
+                LearnedProspectiveOutcomePayloadV0::CycleRisk(CycleRiskProspectiveOutcomeV0 {
+                    downside_label_correct: true,
+                    support_qualified_brier_improved: true,
+                    calibration_improved: true,
+                    high_confidence_false_negative: false,
+                    correct_elevated_risk_warning: true,
+                    false_permanent_alarm: false,
+                    abstention: LearnedAbstentionAttributionV0::CorrectUncertainty,
+                    probability_collapse: false,
+                    support_qualified: true,
+                    regime_digest: "regime-a".into(),
+                });
+        });
+        let eligibility = derive_learned_reward_eligibility_v0(
+            &registration,
+            &reward_gate(),
+            &ledger,
+            LearnedAgentObjectiveV0::DirectionalMomentum,
+        )
+        .unwrap();
+        assert_eq!(
+            eligibility.eligibility_status,
+            LearnedRewardEligibilityStatusV0::IneligibleUnsupportedObjective
+        );
+    }
+
+    #[test]
+    fn duplicate_opening_is_rejected_without_mutating_ledger() {
+        let (registration, _, mut ledger) = opened_momentum_ledger();
+        let before = ledger.clone();
+        let event = ledger.event_attributions.first().unwrap().clone();
+        assert!(
+            append_learned_matured_outcome_v0(
+                &mut ledger,
+                &registration,
+                momentum_outcome_record(&event),
+            )
+            .is_err()
+        );
+        assert_eq!(ledger, before);
+    }
+
+    #[test]
+    fn ledger_reopens_deterministically_after_append() {
+        let (registration, _, ledger) = opened_momentum_ledger();
+        assert!(validate_learned_prospective_outcome_ledger_v0(&ledger, &registration).is_ok());
+        let reopened = ledger.clone();
+        assert_eq!(reopened.ledger_digest, ledger.ledger_digest);
+    }
+
+    #[test]
+    fn retrospective_owner_and_integrity_evidence_are_ineligible() {
+        let (registration, gate, mut ledger) = opened_momentum_ledger();
+        replace_outcome_for_status(&mut ledger, |outcome| outcome.retrospective_evidence = true);
+        assert_eq!(
+            derive_learned_reward_eligibility_v0(
+                &registration,
+                &gate,
+                &ledger,
+                LearnedAgentObjectiveV0::DirectionalMomentum,
+            )
+            .unwrap()
+            .eligibility_status,
+            LearnedRewardEligibilityStatusV0::IneligibleRetrospectiveEvidence
+        );
+        replace_outcome_for_status(&mut ledger, |outcome| {
+            outcome.retrospective_evidence = false;
+            outcome.owner_influence = true;
+        });
+        assert_eq!(
+            derive_learned_reward_eligibility_v0(
+                &registration,
+                &gate,
+                &ledger,
+                LearnedAgentObjectiveV0::DirectionalMomentum,
+            )
+            .unwrap()
+            .eligibility_status,
+            LearnedRewardEligibilityStatusV0::IneligibleOwnerInfluence
+        );
+        replace_outcome_for_status(&mut ledger, |outcome| {
+            outcome.owner_influence = false;
+            outcome.integrity_valid = false;
+        });
+        assert_eq!(
+            derive_learned_reward_eligibility_v0(
+                &registration,
+                &gate,
+                &ledger,
+                LearnedAgentObjectiveV0::DirectionalMomentum,
+            )
+            .unwrap()
+            .eligibility_status,
+            LearnedRewardEligibilityStatusV0::IneligibleIntegrityFailure
+        );
+    }
+
+    #[test]
+    fn early_and_duplicate_statuses_are_never_eligible() {
+        let (registration, gate, mut ledger) = opened_momentum_ledger();
+        replace_outcome_for_status(&mut ledger, |outcome| {
+            outcome.maturity_status = LearnedOutcomeMaturityStatusV0::OpenedEarlyInvalid;
+        });
+        assert_eq!(
+            derive_learned_reward_eligibility_v0(
+                &registration,
+                &gate,
+                &ledger,
+                LearnedAgentObjectiveV0::DirectionalMomentum,
+            )
+            .unwrap()
+            .eligibility_status,
+            LearnedRewardEligibilityStatusV0::IneligibleEarlyLabelAccess
+        );
+        replace_outcome_for_status(&mut ledger, |outcome| {
+            outcome.maturity_status = LearnedOutcomeMaturityStatusV0::DuplicateOpeningInvalid;
+        });
+        assert_eq!(
+            derive_learned_reward_eligibility_v0(
+                &registration,
+                &gate,
+                &ledger,
+                LearnedAgentObjectiveV0::DirectionalMomentum,
+            )
+            .unwrap()
+            .eligibility_status,
+            LearnedRewardEligibilityStatusV0::IneligibleDuplicateOpening
+        );
+    }
+
+    #[test]
+    fn sample_and_regime_gates_are_derived_not_hard_coded() {
+        let (registration, _, ledger) = opened_momentum_ledger();
+        let mut samples = reward_gate();
+        samples.minimum_mature_events = 2;
+        samples.gate_digest = learned_reward_gate_digest_v0(&samples);
+        assert_eq!(
+            derive_learned_reward_eligibility_v0(
+                &registration,
+                &samples,
+                &ledger,
+                LearnedAgentObjectiveV0::DirectionalMomentum,
+            )
+            .unwrap()
+            .eligibility_status,
+            LearnedRewardEligibilityStatusV0::IneligibleMinimumSamples
+        );
+        let mut regimes = reward_gate();
+        regimes.minimum_regime_coverage = 2;
+        regimes.gate_digest = learned_reward_gate_digest_v0(&regimes);
+        assert_eq!(
+            derive_learned_reward_eligibility_v0(
+                &registration,
+                &regimes,
+                &ledger,
+                LearnedAgentObjectiveV0::DirectionalMomentum,
+            )
+            .unwrap()
+            .eligibility_status,
+            LearnedRewardEligibilityStatusV0::IneligibleInsufficientRegimeCoverage
+        );
+    }
+
+    #[test]
+    fn candidate_carries_typed_reward_signals_without_application() {
+        let (registration, gate, ledger) = opened_momentum_ledger();
+        let eligibility = derive_learned_reward_eligibility_v0(
+            &registration,
+            &gate,
+            &ledger,
+            LearnedAgentObjectiveV0::DirectionalMomentum,
+        )
+        .unwrap();
+        let candidate = learned_reward_input_candidate_v0(&eligibility, &ledger).unwrap();
+        assert!(
+            candidate
+                .typed_reward_signals
+                .contains(&LearnedRewardSignalV0::CalibratedProspectiveAccuracy)
+        );
+        assert!(
+            candidate
+                .typed_reward_signals
+                .contains(&LearnedRewardSignalV0::JustifiedCapitalProtection)
+        );
+        assert!(!candidate.eligible_for_application);
+    }
+
+    #[test]
+    fn direct_matured_outcome_append_rejects_owner_or_retroactive_flags() {
+        let registration = reward_registration();
+        let contract = reward_contract(LearnedAgentObjectiveV0::DirectionalMomentum, "momentum");
+        let event = reward_event(&contract);
+        let mut ledger = new_learned_prospective_outcome_ledger_v0(&registration).unwrap();
+        append_learned_prospective_event_attribution_v0(
+            &mut ledger,
+            &registration,
+            event.clone(),
+            &contract,
+        )
+        .unwrap();
+        let mut record = momentum_outcome_record(&event);
+        record.owner_influence = true;
+        assert!(append_learned_matured_outcome_v0(&mut ledger, &registration, record).is_err());
+        assert_eq!(ledger.label_open_count, 0);
+        assert_eq!(ledger.reward_apply_count, 0);
+    }
+
+    #[test]
+    fn registration_digest_is_deterministic_for_same_contracts() {
+        assert_eq!(
+            reward_registration().registration_digest,
+            reward_registration().registration_digest
+        );
+    }
+
+    #[test]
+    fn attribution_digest_detects_event_tampering() {
+        let contract = reward_contract(LearnedAgentObjectiveV0::DirectionalMomentum, "momentum");
+        let mut event = reward_event(&contract);
+        event.raw_evidence_digest = "changed".into();
+        assert!(
+            validate_learned_prospective_event_attribution_v0(&event, &contract, &BTreeSet::new(),)
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn challenge_invalidation_is_derived_as_ineligible() {
+        let (registration, gate, mut ledger) = opened_momentum_ledger();
+        replace_outcome_for_status(&mut ledger, |outcome| outcome.challenge_valid = false);
+        assert_eq!(
+            derive_learned_reward_eligibility_v0(
+                &registration,
+                &gate,
+                &ledger,
+                LearnedAgentObjectiveV0::DirectionalMomentum,
+            )
+            .unwrap()
+            .eligibility_status,
+            LearnedRewardEligibilityStatusV0::IneligibleChallengeInvalidated
+        );
+    }
+
+    #[test]
+    fn momentum_high_confidence_loss_becomes_typed_penalty() {
+        let (registration, gate, mut ledger) = opened_momentum_ledger();
+        replace_outcome_for_status(&mut ledger, |outcome| {
+            let LearnedProspectiveOutcomePayloadV0::Momentum(value) = &mut outcome.payload else {
+                panic!("fixture must remain momentum");
+            };
+            value.high_confidence_error = true;
+        });
+        let eligibility = derive_learned_reward_eligibility_v0(
+            &registration,
+            &gate,
+            &ledger,
+            LearnedAgentObjectiveV0::DirectionalMomentum,
+        )
+        .unwrap();
+        let candidate = learned_reward_input_candidate_v0(&eligibility, &ledger).unwrap();
+        assert!(
+            candidate
+                .typed_penalty_signals
+                .contains(&LearnedPenaltySignalV0::HighConfidenceProspectiveError)
+        );
+    }
+
+    #[test]
+    fn momentum_probability_collapse_becomes_typed_penalty() {
+        let (registration, gate, mut ledger) = opened_momentum_ledger();
+        replace_outcome_for_status(&mut ledger, |outcome| {
+            let LearnedProspectiveOutcomePayloadV0::Momentum(value) = &mut outcome.payload else {
+                panic!("fixture must remain momentum");
+            };
+            value.probability_collapse = true;
+        });
+        let eligibility = derive_learned_reward_eligibility_v0(
+            &registration,
+            &gate,
+            &ledger,
+            LearnedAgentObjectiveV0::DirectionalMomentum,
+        )
+        .unwrap();
+        let candidate = learned_reward_input_candidate_v0(&eligibility, &ledger).unwrap();
+        assert!(
+            candidate
+                .typed_penalty_signals
+                .contains(&LearnedPenaltySignalV0::ProbabilityCollapse)
+        );
+    }
+
+    #[test]
+    fn candidate_cannot_be_created_from_insufficient_samples() {
+        let registration = reward_registration();
+        let gate = reward_gate();
+        let ledger = new_learned_prospective_outcome_ledger_v0(&registration).unwrap();
+        let eligibility = derive_learned_reward_eligibility_v0(
+            &registration,
+            &gate,
+            &ledger,
+            LearnedAgentObjectiveV0::DirectionalMomentum,
+        )
+        .unwrap();
+        assert!(learned_reward_input_candidate_v0(&eligibility, &ledger).is_err());
+    }
+
+    #[test]
+    fn all_abstention_classifications_remain_objective_local() {
+        let values = [
+            LearnedAbstentionAttributionV0::JustifiedCapitalProtection,
+            LearnedAbstentionAttributionV0::CorrectUncertainty,
+            LearnedAbstentionAttributionV0::MissedMaterialOpportunity,
+            LearnedAbstentionAttributionV0::FailedToWarnMaterialRisk,
+            LearnedAbstentionAttributionV0::NeutralUninformative,
+            LearnedAbstentionAttributionV0::NotYetEvaluable,
+        ];
+        assert_eq!(values.len(), 6);
+        assert_ne!(values[0], values[5]);
+    }
+
+    #[test]
+    fn cycle_risk_false_negative_is_a_distinct_penalty_signal() {
+        let registration = reward_registration();
+        let contract = reward_contract(LearnedAgentObjectiveV0::DownsideRisk, "risk");
+        let mut event = reward_event(&contract);
+        event.event_id = "risk-event".into();
+        event.event_digest = "risk-event-digest".into();
+        event.attribution_digest = learned_attribution_digest_v0(&event);
+        let mut ledger = new_learned_prospective_outcome_ledger_v0(&registration).unwrap();
+        append_learned_prospective_event_attribution_v0(
+            &mut ledger,
+            &registration,
+            event.clone(),
+            &contract,
+        )
+        .unwrap();
+        append_learned_matured_outcome_v0(
+            &mut ledger,
+            &registration,
+            LearnedProspectiveOutcomeRecordV0 {
+                record_version: String::new(),
+                event_id: event.event_id.clone(),
+                attribution_digest: event.attribution_digest.clone(),
+                agent_id: event.agent_id.clone(),
+                objective: LearnedAgentObjectiveV0::DownsideRisk,
+                payload: LearnedProspectiveOutcomePayloadV0::CycleRisk(
+                    CycleRiskProspectiveOutcomeV0 {
+                        downside_label_correct: false,
+                        support_qualified_brier_improved: false,
+                        calibration_improved: false,
+                        high_confidence_false_negative: true,
+                        correct_elevated_risk_warning: false,
+                        false_permanent_alarm: false,
+                        abstention: LearnedAbstentionAttributionV0::FailedToWarnMaterialRisk,
+                        probability_collapse: false,
+                        support_qualified: true,
+                        regime_digest: "risk-regime".into(),
+                    },
+                ),
+                maturity_status: LearnedOutcomeMaturityStatusV0::MatureOpenedOnce,
+                challenge_valid: true,
+                integrity_valid: true,
+                retrospective_evidence: false,
+                owner_influence: false,
+                outcome_digest: String::new(),
+            },
+        )
+        .unwrap();
+        let eligibility = derive_learned_reward_eligibility_v0(
+            &registration,
+            &reward_gate(),
+            &ledger,
+            LearnedAgentObjectiveV0::DownsideRisk,
+        )
+        .unwrap();
+        let candidate = learned_reward_input_candidate_v0(&eligibility, &ledger).unwrap();
+        assert!(
+            candidate
+                .typed_penalty_signals
+                .contains(&LearnedPenaltySignalV0::HighConfidenceRiskFalseNegative)
+        );
+    }
+
+    #[test]
+    fn ledger_never_records_reward_application_in_this_bridge() {
+        let (registration, _, ledger) = opened_momentum_ledger();
+        assert!(validate_learned_prospective_outcome_ledger_v0(&ledger, &registration).is_ok());
+        assert_eq!(ledger.reward_apply_count, 0);
+        assert_eq!(ledger.reward_candidate_count, 0);
+    }
+
+    #[test]
+    fn mature_unopened_status_is_not_an_outcome_record() {
+        let request = LearnedOutcomeOpeningRequestV0 {
+            event_timestamp: 101,
+            maturity_timestamp: 102,
+            observed_timestamp: 102,
+            required_finalized_rows_present: true,
+            event_identity_matches: true,
+            challenge_valid: true,
+            explicit_authorization: true,
+            already_opened: false,
+        };
+        assert_eq!(
+            learned_outcome_maturity_status_v0(&request),
+            LearnedOutcomeMaturityStatusV0::MatureUnopened
+        );
     }
     #[test]
     fn scope_identity_changes_when_row_content_or_order_changes() {
