@@ -5,6 +5,7 @@ use std::{
 };
 
 use clap::Parser;
+use serde::Serialize;
 
 use crate::{
     ChairEngine, MarketSnapshot, MockSignalEngine, PaperBroker, Regime, RiskGovernor, RiskSnapshot,
@@ -54,6 +55,8 @@ pub struct CliArgs {
     pub chair_shadow_owner_advisory_review: bool,
     #[arg(long, default_value_t = false)]
     pub learned_reward_eligibility: bool,
+    #[arg(long, default_value_t = false)]
+    pub prospective_external_row_admission: bool,
     #[arg(long, default_value_t = false)]
     pub btc_prospective_challenge_create: bool,
     #[arg(long, default_value_t = false)]
@@ -106,6 +109,7 @@ pub fn run() -> Result<(), String> {
             args.chair_shadow_observation_inbox,
             args.chair_shadow_owner_advisory_review,
             args.learned_reward_eligibility,
+            args.prospective_external_row_admission,
             args.btc_prospective_challenge_create,
             args.btc_prospective_challenge_status,
             args.btc_prospective_challenge_confirm_preregistration,
@@ -131,6 +135,7 @@ pub fn run() -> Result<(), String> {
         || args.chair_shadow_observation_inbox
         || args.chair_shadow_owner_advisory_review
         || args.learned_reward_eligibility
+        || args.prospective_external_row_admission
         || args.btc_prospective_challenge_create
         || args.btc_prospective_challenge_status
         || args.btc_prospective_challenge_confirm_preregistration
@@ -283,6 +288,7 @@ fn run_local_historical_snapshot_campaign(
     chair_shadow_observation_inbox: bool,
     chair_shadow_owner_advisory_review: bool,
     learned_reward_eligibility: bool,
+    prospective_external_row_admission: bool,
     btc_prospective_challenge_create: bool,
     btc_prospective_challenge_status: bool,
     btc_prospective_challenge_confirm_preregistration: bool,
@@ -364,6 +370,16 @@ fn run_local_historical_snapshot_campaign(
             return Err("learned reward eligibility report is offline-only".to_string());
         }
         return run_learned_reward_eligibility_report(config_path, &snapshot, output_format);
+    }
+    if prospective_external_row_admission {
+        if allow_network {
+            return Err("prospective external row admission is offline-only".to_string());
+        }
+        return run_prospective_external_row_admission_report(
+            config_path,
+            &snapshot,
+            output_format,
+        );
     }
     if btc_multi_regime_report {
         return run_btc_multi_regime_evidence_report(
@@ -1990,6 +2006,429 @@ fn run_btc_cross_regime_diagnostics(
     }
 }
 
+#[derive(Serialize)]
+struct ProspectiveExternalAdmissionReportV0 {
+    report_version: &'static str,
+    offline: bool,
+    compatibility: String,
+    registration_digest: String,
+    source_classification: String,
+    candidate_input_status: String,
+    admission_status: String,
+    admitted_row_count: usize,
+    shared_raw_evidence_reference_count: usize,
+    shared_raw_evidence_digest: Option<String>,
+    momentum_independently_valid: bool,
+    risk_independently_valid: bool,
+    momentum_event_count: usize,
+    risk_event_count: usize,
+    momentum_abstention_count: usize,
+    risk_abstention_count: usize,
+    maturity_status: String,
+    reward_eligibility: String,
+    reward_candidate_count: usize,
+    reward_apply_count: usize,
+    provider_calls: usize,
+    transport_constructions: usize,
+    network_consent_reads: usize,
+    credential_reads: usize,
+    label_reads: usize,
+    chair_decision_count: usize,
+    reward_applied_count: usize,
+    penalty_applied_count: usize,
+    voice_mutation_count: usize,
+    cooldown_mutation_count: usize,
+    promotion_mutation_count: usize,
+    quarantine_mutation_count: usize,
+    execution_count: usize,
+}
+
+fn print_prospective_external_admission_report(
+    report: &ProspectiveExternalAdmissionReportV0,
+    output_format: &str,
+) -> Result<(), String> {
+    match output_format {
+        "json" => println!(
+            "{}",
+            serde_json::to_string(report)
+                .map_err(|_| "prospective external admission report serialization failed")?
+        ),
+        "text" => {
+            println!("report_version={}", report.report_version);
+            println!("offline={}", report.offline);
+            println!("compatibility={}", report.compatibility);
+            println!("registration_digest={}", report.registration_digest);
+            println!("source_classification={}", report.source_classification);
+            println!("candidate_input_status={}", report.candidate_input_status);
+            println!("admission_status={}", report.admission_status);
+            println!("admitted_row_count={}", report.admitted_row_count);
+            println!(
+                "shared_raw_evidence_reference_count={}",
+                report.shared_raw_evidence_reference_count
+            );
+            println!(
+                "shared_raw_evidence_digest={}",
+                report
+                    .shared_raw_evidence_digest
+                    .as_deref()
+                    .unwrap_or_default()
+            );
+            println!(
+                "momentum_independently_valid={}",
+                report.momentum_independently_valid
+            );
+            println!(
+                "risk_independently_valid={}",
+                report.risk_independently_valid
+            );
+            println!("momentum_event_count={}", report.momentum_event_count);
+            println!("risk_event_count={}", report.risk_event_count);
+            println!(
+                "momentum_abstention_count={}",
+                report.momentum_abstention_count
+            );
+            println!("risk_abstention_count={}", report.risk_abstention_count);
+            println!("maturity_status={}", report.maturity_status);
+            println!("reward_eligibility={}", report.reward_eligibility);
+            println!("reward_candidate_count={}", report.reward_candidate_count);
+            println!("reward_apply_count={}", report.reward_apply_count);
+            println!("provider_calls={}", report.provider_calls);
+            println!("transport_constructions={}", report.transport_constructions);
+            println!("network_consent_reads={}", report.network_consent_reads);
+            println!("credential_reads={}", report.credential_reads);
+            println!("label_reads={}", report.label_reads);
+            println!("chair_decision_count={}", report.chair_decision_count);
+            println!("reward_applied_count={}", report.reward_applied_count);
+            println!("penalty_applied_count={}", report.penalty_applied_count);
+            println!("voice_mutation_count={}", report.voice_mutation_count);
+            println!("cooldown_mutation_count={}", report.cooldown_mutation_count);
+            println!(
+                "promotion_mutation_count={}",
+                report.promotion_mutation_count
+            );
+            println!(
+                "quarantine_mutation_count={}",
+                report.quarantine_mutation_count
+            );
+            println!("execution_count={}", report.execution_count);
+        }
+        _ => return Err("unsupported prospective external admission output format".into()),
+    }
+    Ok(())
+}
+
+fn prospective_external_admission_report_v0(
+    registration: &crate::model::ProspectiveExternalAdmissionRegistrationV0,
+    compatibility: crate::model::ExternalAdmissionCompatibilityV0,
+    source_classification: String,
+    candidate_input_status: &str,
+    admission_status: crate::model::ProspectiveRowAdmissionStatusV0,
+    shared: Option<&crate::model::SharedProspectiveRawEvidenceV0>,
+    momentum_valid: bool,
+    risk_valid: bool,
+    momentum_events: usize,
+    risk_events: usize,
+) -> ProspectiveExternalAdmissionReportV0 {
+    let sealed_events = momentum_events.saturating_add(risk_events);
+    ProspectiveExternalAdmissionReportV0 {
+        report_version: "prospective-external-row-admission-v0",
+        offline: true,
+        compatibility: format!("{compatibility:?}"),
+        registration_digest: registration.registration_digest.clone(),
+        source_classification,
+        candidate_input_status: candidate_input_status.into(),
+        admission_status: format!("{admission_status:?}"),
+        admitted_row_count: usize::from(shared.is_some()),
+        shared_raw_evidence_reference_count: usize::from(shared.is_some()),
+        shared_raw_evidence_digest: shared.map(|value| value.reference_digest.clone()),
+        momentum_independently_valid: momentum_valid,
+        risk_independently_valid: risk_valid,
+        momentum_event_count: momentum_events,
+        risk_event_count: risk_events,
+        momentum_abstention_count: momentum_events,
+        risk_abstention_count: risk_events,
+        maturity_status: if sealed_events == 0 {
+            "NoSealedEvents".into()
+        } else {
+            "AwaitingMaturity".into()
+        },
+        reward_eligibility: format!(
+            "{:?}",
+            crate::model::external_admission_reward_eligibility_status_v0(sealed_events)
+        ),
+        reward_candidate_count: 0,
+        reward_apply_count: 0,
+        provider_calls: 0,
+        transport_constructions: 0,
+        network_consent_reads: 0,
+        credential_reads: 0,
+        label_reads: 0,
+        chair_decision_count: 0,
+        reward_applied_count: 0,
+        penalty_applied_count: 0,
+        voice_mutation_count: 0,
+        cooldown_mutation_count: 0,
+        promotion_mutation_count: 0,
+        quarantine_mutation_count: 0,
+        execution_count: 0,
+    }
+}
+
+fn run_prospective_external_row_admission_report(
+    config_path: &Path,
+    snapshot: &crate::data::DataSnapshot,
+    output_format: &str,
+) -> Result<(), String> {
+    if output_format != "text" && output_format != "json" {
+        return Err("unsupported prospective external admission output format".into());
+    }
+    let local_dir = config_path
+        .parent()
+        .ok_or("local prospective external admission directory unavailable")?;
+    let momentum_path = local_dir.join("prospective_shadow_challenge_v0.json");
+    let momentum = crate::model::read_prospective_challenge_local_state_v0(&momentum_path)
+        .map_err(|_| "local prospective external admission momentum state unavailable")?;
+    let risk_config = crate::model::CycleRiskShadowConfigV0::default();
+    let risk_report = crate::model::run_cycle_risk_shadow_v0(snapshot, &risk_config)
+        .map_err(|_| "offline Cycle/Risk prospective contract unavailable")?;
+    let risk_capsule = crate::model::prepare_cycle_risk_prospective_tournament_v0(
+        snapshot,
+        &risk_report,
+        &risk_config,
+    )
+    .map_err(|_| "offline Cycle/Risk prospective contract unavailable")?;
+    let compatibility =
+        crate::model::audit_external_admission_compatibility_v0(&momentum, &risk_capsule);
+    if !matches!(
+        compatibility,
+        crate::model::ExternalAdmissionCompatibilityV0::PermittedWithExternalAdmissionRegistration
+            | crate::model::ExternalAdmissionCompatibilityV0::PermittedByExistingContracts
+    ) {
+        return Err(format!(
+            "prospective external admission contract incompatible: {compatibility:?}"
+        ));
+    }
+    let maximum_consumed_timestamp = snapshot
+        .normalized_dataset
+        .rows
+        .iter()
+        .map(|row| row.timestamp_ms)
+        .max()
+        .ok_or("prospective external admission snapshot empty")?;
+    let expected_registration = crate::model::pre_register_prospective_external_row_admission_v0(
+        &momentum,
+        &risk_capsule,
+        maximum_consumed_timestamp,
+    )?;
+    let registration_path =
+        local_dir.join("prospective_external_row_admission_registration_v0.json");
+    let registration = if registration_path.exists() {
+        let existing =
+            crate::model::read_prospective_external_admission_registration_v0(&registration_path)?;
+        crate::model::validate_prospective_external_admission_registration_v0(
+            &existing,
+            &momentum,
+            &risk_capsule,
+        )?;
+        if existing != expected_registration {
+            return Err("prospective external admission registration mismatch".into());
+        }
+        existing
+    } else {
+        crate::model::write_prospective_external_admission_registration_v0(
+            &registration_path,
+            &expected_registration,
+            &momentum,
+            &risk_capsule,
+        )?;
+        let reopened =
+            crate::model::read_prospective_external_admission_registration_v0(&registration_path)?;
+        crate::model::validate_prospective_external_admission_registration_v0(
+            &reopened,
+            &momentum,
+            &risk_capsule,
+        )?;
+        reopened
+    };
+    let risk_state_path = local_dir.join("cycle_risk_prospective_local_state_v0.json");
+    let persisted_risk_event_count = if risk_state_path.is_file() {
+        crate::model::read_cycle_risk_prospective_local_state_v0(&risk_state_path)
+            .map_err(|_| "local prospective external admission risk state unavailable")?
+            .journal
+            .event_count
+    } else {
+        0
+    };
+    let intake_path = local_dir.join("prospective_external_row_capsule_v0.json");
+    if !intake_path.is_file() {
+        return print_prospective_external_admission_report(
+            &prospective_external_admission_report_v0(
+                &registration,
+                compatibility,
+                "AwaitingQualifiedExternalRow".into(),
+                "NoQualifiedExternalCapsuleDiscovered",
+                crate::model::ProspectiveRowAdmissionStatusV0::AwaitingQualifiedExternalRow,
+                None,
+                false,
+                false,
+                momentum.journal.events.len(),
+                persisted_risk_event_count,
+            ),
+            output_format,
+        );
+    }
+    let capsule = crate::model::read_prospective_external_row_capsule_v0(&intake_path)?;
+    let mut existing_timestamps = momentum
+        .vault
+        .finalized_rows
+        .iter()
+        .map(|row| row.timestamp_ms)
+        .collect::<BTreeSet<_>>();
+    let mut existing_digests = momentum
+        .vault
+        .finalized_rows
+        .iter()
+        .map(|row| row.canonical_row_digest.clone())
+        .collect::<BTreeSet<_>>();
+    let mut latest_admitted_timestamp = momentum.vault.last_timestamp_ms;
+    let existing_risk = if risk_state_path.is_file() {
+        let state = crate::model::read_cycle_risk_prospective_local_state_v0(&risk_state_path)
+            .map_err(|_| "local prospective external admission risk state unavailable")?;
+        if state.capsule.capsule_digest != risk_capsule.capsule_digest {
+            return Err("local prospective external admission risk contract mismatch".into());
+        }
+        for timestamp in &state.vault.admitted_row_timestamps {
+            existing_timestamps.insert(*timestamp);
+            latest_admitted_timestamp =
+                Some(latest_admitted_timestamp.unwrap_or(0).max(*timestamp));
+        }
+        for digest in &state.vault.admitted_row_digests {
+            existing_digests.insert(digest.clone());
+        }
+        Some(state)
+    } else {
+        None
+    };
+    let context = crate::model::ProspectiveExternalAdmissionContextV0 {
+        existing_row_timestamps: existing_timestamps,
+        existing_canonical_row_digests: existing_digests,
+        latest_admitted_timestamp,
+    };
+    let admission_status = crate::model::prospective_external_row_admission_status_v0(
+        &registration,
+        &momentum,
+        &risk_capsule,
+        &capsule,
+        &context,
+    );
+    if admission_status != crate::model::ProspectiveRowAdmissionStatusV0::Admitted {
+        return print_prospective_external_admission_report(
+            &prospective_external_admission_report_v0(
+                &registration,
+                compatibility,
+                format!("{:?}", capsule.source_class),
+                "QualifiedCapsuleRejected",
+                admission_status,
+                None,
+                false,
+                false,
+                momentum.journal.events.len(),
+                existing_risk
+                    .as_ref()
+                    .map(|state| state.journal.event_count)
+                    .unwrap_or(0),
+            ),
+            output_format,
+        );
+    }
+    let shared = crate::model::build_shared_prospective_raw_evidence_v0(
+        &registration,
+        &capsule,
+        admission_status,
+    )?;
+    let mut risk = match existing_risk {
+        Some(state) => state,
+        None => {
+            let mut state =
+                crate::model::new_cycle_risk_prospective_local_state_v0(risk_capsule.clone())
+                    .map_err(|_| "prospective external admission risk local state unavailable")?;
+            crate::model::commit_cycle_risk_pre_registration_v0(&mut state)
+                .map_err(|_| "prospective external admission risk pre-registration failed")?;
+            state
+        }
+    };
+    let momentum_validation = crate::model::validate_momentum_shared_prospective_reference_v0(
+        &registration,
+        &momentum,
+        &shared,
+    );
+    let risk_validation =
+        crate::model::validate_risk_shared_prospective_reference_v0(&registration, &risk, &shared);
+    let momentum_event = momentum_validation
+        .independently_valid
+        .then(|| {
+            crate::model::seal_external_prospective_event_v0(
+                &momentum_validation,
+                &shared,
+                &momentum,
+                &risk,
+                crate::model::ProspectiveOperationalOutcomeV0::ShadowAbstentionSupportUnavailable,
+                Some("frozen_external_inference_support_unavailable".into()),
+            )
+        })
+        .transpose()?;
+    let risk_event = risk_validation
+        .independently_valid
+        .then(|| {
+            crate::model::seal_external_prospective_event_v0(
+                &risk_validation,
+                &shared,
+                &momentum,
+                &risk,
+                crate::model::ProspectiveOperationalOutcomeV0::ShadowAbstentionSupportUnavailable,
+                Some("frozen_external_inference_support_unavailable".into()),
+            )
+        })
+        .transpose()?;
+    let mut updated_momentum = momentum.clone();
+    if momentum_event.is_some() || risk_event.is_some() {
+        crate::model::append_external_admission_to_local_stores_v0(
+            &mut updated_momentum,
+            &mut risk,
+            &shared,
+            momentum_event.as_ref(),
+            risk_event.as_ref(),
+        )?;
+    }
+    if momentum_event.is_some() {
+        crate::model::write_prospective_challenge_local_state_v0(&momentum_path, &updated_momentum)
+            .map_err(|_| "prospective external admission momentum local write failed")?;
+        crate::model::read_prospective_challenge_local_state_v0(&momentum_path)
+            .map_err(|_| "prospective external admission momentum local reread failed")?;
+    }
+    if risk_event.is_some() {
+        crate::model::write_cycle_risk_prospective_local_state_v0(&risk_state_path, &risk)
+            .map_err(|_| "prospective external admission risk local write failed")?;
+        crate::model::read_cycle_risk_prospective_local_state_v0(&risk_state_path)
+            .map_err(|_| "prospective external admission risk local reread failed")?;
+    }
+    print_prospective_external_admission_report(
+        &prospective_external_admission_report_v0(
+            &registration,
+            compatibility,
+            format!("{:?}", capsule.source_class),
+            "QualifiedCapsuleValidated",
+            admission_status,
+            Some(&shared),
+            momentum_validation.independently_valid,
+            risk_validation.independently_valid,
+            updated_momentum.journal.events.len(),
+            risk.journal.event_count,
+        ),
+        output_format,
+    )
+}
+
 #[allow(clippy::too_many_arguments)]
 fn run_learned_reward_eligibility_report(
     config_path: &Path,
@@ -3277,4 +3716,65 @@ fn stable_cross_market_report_digest(parts: &[&str]) -> String {
         }
     }
     format!("{hash:016x}")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn prospective_external_admission_text_and_json_use_the_same_public_fields() {
+        let report = ProspectiveExternalAdmissionReportV0 {
+            report_version: "prospective-external-row-admission-v0",
+            offline: true,
+            compatibility: "PermittedWithExternalAdmissionRegistration".into(),
+            registration_digest: "registration".into(),
+            source_classification: "AwaitingQualifiedExternalRow".into(),
+            candidate_input_status: "NoQualifiedExternalCapsuleDiscovered".into(),
+            admission_status: "AwaitingQualifiedExternalRow".into(),
+            admitted_row_count: 0,
+            shared_raw_evidence_reference_count: 0,
+            shared_raw_evidence_digest: None,
+            momentum_independently_valid: false,
+            risk_independently_valid: false,
+            momentum_event_count: 0,
+            risk_event_count: 0,
+            momentum_abstention_count: 0,
+            risk_abstention_count: 0,
+            maturity_status: "NoSealedEvents".into(),
+            reward_eligibility: "IneligibleNoProspectiveOutcomes".into(),
+            reward_candidate_count: 0,
+            reward_apply_count: 0,
+            provider_calls: 0,
+            transport_constructions: 0,
+            network_consent_reads: 0,
+            credential_reads: 0,
+            label_reads: 0,
+            chair_decision_count: 0,
+            reward_applied_count: 0,
+            penalty_applied_count: 0,
+            voice_mutation_count: 0,
+            cooldown_mutation_count: 0,
+            promotion_mutation_count: 0,
+            quarantine_mutation_count: 0,
+            execution_count: 0,
+        };
+        let json = serde_json::to_value(&report).unwrap();
+        assert_eq!(
+            json["admission_status"].as_str(),
+            Some(report.admission_status.as_str())
+        );
+        assert_eq!(
+            json["registration_digest"].as_str(),
+            Some(report.registration_digest.as_str())
+        );
+        assert_eq!(
+            json["provider_calls"].as_u64(),
+            Some(report.provider_calls as u64)
+        );
+        assert_eq!(
+            json["execution_count"].as_u64(),
+            Some(report.execution_count as u64)
+        );
+    }
 }

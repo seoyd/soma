@@ -4,7 +4,7 @@
 //! its labels, features, normalizers, encoder seed, heads, versions, and journal;
 //! it never participates in the three-member committee or any trading path.
 
-use std::{fs, path::Path};
+use std::{collections::BTreeSet, fs, path::Path};
 
 use serde::{Deserialize, Serialize};
 
@@ -201,6 +201,10 @@ pub struct CycleRiskProspectiveEvidenceVaultV0 {
     pub vault_version: String,
     pub challenge_id: String,
     pub row_count: usize,
+    #[serde(default)]
+    pub admitted_row_timestamps: Vec<u64>,
+    #[serde(default)]
+    pub admitted_row_digests: Vec<String>,
     pub labels_derived: bool,
     pub opened: bool,
     pub vault_digest: String,
@@ -211,6 +215,10 @@ pub struct CycleRiskProspectivePredictionJournalV0 {
     pub journal_version: String,
     pub challenge_id: String,
     pub event_count: usize,
+    #[serde(default)]
+    pub sealed_event_timestamps: Vec<u64>,
+    #[serde(default)]
+    pub sealed_event_digests: Vec<String>,
     pub labels_accessed: bool,
     pub evaluation_performed: bool,
     pub journal_digest: String,
@@ -1462,25 +1470,42 @@ fn digest_registry_v0(entries: &[CycleRiskProspectiveRegistryEntryV0]) -> String
     stable_hash_string(&format!("cycle-risk-registry-v0:{:?}", entries))
 }
 
-fn digest_vault_v0(
-    challenge_id: &str,
-    row_count: usize,
-    labels_derived: bool,
-    opened: bool,
-) -> String {
+fn digest_vault_v0(vault: &CycleRiskProspectiveEvidenceVaultV0) -> String {
+    if vault.admitted_row_timestamps.is_empty() && vault.admitted_row_digests.is_empty() {
+        return stable_hash_string(&format!(
+            "cycle-risk-vault-v0:{}:{}:{}:{}",
+            vault.challenge_id, vault.row_count, vault.labels_derived, vault.opened,
+        ));
+    }
     stable_hash_string(&format!(
-        "cycle-risk-vault-v0:{challenge_id}:{row_count}:{labels_derived}:{opened}"
+        "cycle-risk-vault-v0:{}:{}:{:?}:{:?}:{}:{}",
+        vault.challenge_id,
+        vault.row_count,
+        vault.admitted_row_timestamps,
+        vault.admitted_row_digests,
+        vault.labels_derived,
+        vault.opened,
     ))
 }
 
-fn digest_journal_v0(
-    challenge_id: &str,
-    event_count: usize,
-    labels_accessed: bool,
-    evaluation_performed: bool,
-) -> String {
+fn digest_journal_v0(journal: &CycleRiskProspectivePredictionJournalV0) -> String {
+    if journal.sealed_event_timestamps.is_empty() && journal.sealed_event_digests.is_empty() {
+        return stable_hash_string(&format!(
+            "cycle-risk-journal-v0:{}:{}:{}:{}",
+            journal.challenge_id,
+            journal.event_count,
+            journal.labels_accessed,
+            journal.evaluation_performed,
+        ));
+    }
     stable_hash_string(&format!(
-        "cycle-risk-journal-v0:{challenge_id}:{event_count}:{labels_accessed}:{evaluation_performed}"
+        "cycle-risk-journal-v0:{}:{}:{:?}:{:?}:{}:{}",
+        journal.challenge_id,
+        journal.event_count,
+        journal.sealed_event_timestamps,
+        journal.sealed_event_digests,
+        journal.labels_accessed,
+        journal.evaluation_performed,
     ))
 }
 
@@ -1755,18 +1780,26 @@ pub fn new_cycle_risk_prospective_local_state_v0(
         vault_version: "cycle-risk-prospective-vault-v0".to_string(),
         challenge_id: id.clone(),
         row_count: 0,
+        admitted_row_timestamps: vec![],
+        admitted_row_digests: vec![],
         labels_derived: false,
         opened: false,
-        vault_digest: digest_vault_v0(&id, 0, false, false),
+        vault_digest: String::new(),
     };
+    let mut vault = vault;
+    vault.vault_digest = digest_vault_v0(&vault);
     let journal = CycleRiskProspectivePredictionJournalV0 {
         journal_version: "cycle-risk-prospective-journal-v0".to_string(),
         challenge_id: id.clone(),
         event_count: 0,
+        sealed_event_timestamps: vec![],
+        sealed_event_digests: vec![],
         labels_accessed: false,
         evaluation_performed: false,
-        journal_digest: digest_journal_v0(&id, 0, false, false),
+        journal_digest: String::new(),
     };
+    let mut journal = journal;
+    journal.journal_digest = digest_journal_v0(&journal);
     let entry = CycleRiskProspectiveRegistryEntryV0 {
         challenge_id: id.clone(),
         capsule_digest: capsule.capsule_digest.clone(),
@@ -1797,16 +1830,73 @@ pub fn validate_cycle_risk_prospective_local_state_v0(
     state: &CycleRiskProspectiveLocalStateV0,
 ) -> Result<(), CycleRiskProspectiveErrorV0> {
     validate_cycle_risk_prospective_capsule_v0(&state.capsule)?;
-    if state.vault.row_count != 0
+    let Some(entry) = state.registry.entries.first() else {
+        return Err(CycleRiskProspectiveErrorV0::InvalidState);
+    };
+    if state.vault.challenge_id != state.capsule.challenge_id
+        || state.journal.challenge_id != state.capsule.challenge_id
+        || state.vault.row_count != state.vault.admitted_row_timestamps.len()
+        || state.vault.row_count != state.vault.admitted_row_digests.len()
+        || state.journal.event_count != state.journal.sealed_event_timestamps.len()
+        || state.journal.event_count != state.journal.sealed_event_digests.len()
+        || state
+            .vault
+            .admitted_row_timestamps
+            .windows(2)
+            .any(|pair| pair[0] >= pair[1])
+        || state
+            .journal
+            .sealed_event_timestamps
+            .windows(2)
+            .any(|pair| pair[0] >= pair[1])
+        || state
+            .vault
+            .admitted_row_digests
+            .iter()
+            .collect::<BTreeSet<_>>()
+            .len()
+            != state.vault.admitted_row_digests.len()
+        || state
+            .journal
+            .sealed_event_digests
+            .iter()
+            .collect::<BTreeSet<_>>()
+            .len()
+            != state.journal.sealed_event_digests.len()
+        || state
+            .vault
+            .admitted_row_timestamps
+            .iter()
+            .any(|timestamp| *timestamp <= state.capsule.cutoff_exclusive_timestamp_ms)
+        || state
+            .journal
+            .sealed_event_timestamps
+            .iter()
+            .any(|timestamp| *timestamp <= state.capsule.cutoff_exclusive_timestamp_ms)
         || state.vault.labels_derived
         || state.vault.opened
-        || state.journal.event_count != 0
         || state.journal.labels_accessed
         || state.journal.evaluation_performed
         || state.registry.entries.len() != 1
-        || state.vault.vault_digest != digest_vault_v0(&state.capsule.challenge_id, 0, false, false)
-        || state.journal.journal_digest
-            != digest_journal_v0(&state.capsule.challenge_id, 0, false, false)
+        || entry.challenge_id != state.capsule.challenge_id
+        || entry.capsule_digest != state.capsule.capsule_digest
+        || entry.r1_digest != state.capsule.historical_champion.artifact_digest
+        || entry.r2_digest != state.capsule.experimental_challenger.artifact_digest
+        || entry.r0_digest != state.capsule.minimum_benchmark.artifact_digest
+        || entry.cutoff_exclusive_timestamp_ms != state.capsule.cutoff_exclusive_timestamp_ms
+        || entry.vault_digest != state.vault.vault_digest
+        || entry.journal_digest != state.journal.journal_digest
+        || entry.evaluation_opened
+        || entry.invalidated
+        || !matches!(
+            entry.status,
+            CycleRiskProspectiveChallengeStatusV0::Sealed
+                | CycleRiskProspectiveChallengeStatusV0::PreRegistrationCommitted
+                | CycleRiskProspectiveChallengeStatusV0::FutureRowsAccumulating
+                | CycleRiskProspectiveChallengeStatusV0::AwaitingLabelMaturity
+        )
+        || state.vault.vault_digest != digest_vault_v0(&state.vault)
+        || state.journal.journal_digest != digest_journal_v0(&state.journal)
         || state.registry.registry_digest != digest_registry_v0(&state.registry.entries)
     {
         Err(CycleRiskProspectiveErrorV0::InvalidState)
@@ -1829,6 +1919,78 @@ pub fn commit_cycle_risk_pre_registration_v0(
     }
     entry.status = CycleRiskProspectiveChallengeStatusV0::PreRegistrationCommitted;
     state.registry.registry_digest = digest_registry_v0(&state.registry.entries);
+    Ok(())
+}
+
+fn sync_cycle_risk_local_digests_v0(
+    state: &mut CycleRiskProspectiveLocalStateV0,
+) -> Result<(), CycleRiskProspectiveErrorV0> {
+    state.vault.vault_digest = digest_vault_v0(&state.vault);
+    state.journal.journal_digest = digest_journal_v0(&state.journal);
+    let entry = state
+        .registry
+        .entries
+        .first_mut()
+        .ok_or(CycleRiskProspectiveErrorV0::InvalidState)?;
+    entry.vault_digest = state.vault.vault_digest.clone();
+    entry.journal_digest = state.journal.journal_digest.clone();
+    state.registry.registry_digest = digest_registry_v0(&state.registry.entries);
+    Ok(())
+}
+
+/// Appends only opaque external-row and sealed-event identities.  The Risk
+/// vault/journal never receive labels, probabilities, support decisions, or
+/// model output through this path.
+pub fn append_cycle_risk_external_row_and_event_v0(
+    state: &mut CycleRiskProspectiveLocalStateV0,
+    timestamp_ms: u64,
+    canonical_row_digest: String,
+    sealed_event_digest: String,
+) -> Result<(), CycleRiskProspectiveErrorV0> {
+    validate_cycle_risk_prospective_local_state_v0(state)?;
+    if timestamp_ms <= state.capsule.cutoff_exclusive_timestamp_ms
+        || canonical_row_digest.is_empty()
+        || sealed_event_digest.is_empty()
+    {
+        return Err(CycleRiskProspectiveErrorV0::InvalidState);
+    }
+    if state.vault.admitted_row_digests == vec![canonical_row_digest.clone()]
+        && state.journal.sealed_event_digests == vec![sealed_event_digest.clone()]
+        && state.vault.admitted_row_timestamps == vec![timestamp_ms]
+        && state.journal.sealed_event_timestamps == vec![timestamp_ms]
+    {
+        return Ok(());
+    }
+    if state.vault.row_count != 0
+        || state.journal.event_count != 0
+        || state
+            .vault
+            .admitted_row_timestamps
+            .iter()
+            .any(|existing| *existing >= timestamp_ms)
+        || state
+            .vault
+            .admitted_row_digests
+            .iter()
+            .any(|existing| existing == &canonical_row_digest)
+        || !matches!(
+            state.registry.entries.first().map(|entry| entry.status),
+            Some(CycleRiskProspectiveChallengeStatusV0::PreRegistrationCommitted)
+        )
+    {
+        return Err(CycleRiskProspectiveErrorV0::InvalidState);
+    }
+    let mut next = state.clone();
+    next.vault.admitted_row_timestamps.push(timestamp_ms);
+    next.vault.admitted_row_digests.push(canonical_row_digest);
+    next.vault.row_count = next.vault.admitted_row_digests.len();
+    next.journal.sealed_event_timestamps.push(timestamp_ms);
+    next.journal.sealed_event_digests.push(sealed_event_digest);
+    next.journal.event_count = next.journal.sealed_event_digests.len();
+    next.registry.entries[0].status = CycleRiskProspectiveChallengeStatusV0::AwaitingLabelMaturity;
+    sync_cycle_risk_local_digests_v0(&mut next)?;
+    validate_cycle_risk_prospective_local_state_v0(&next)?;
+    *state = next;
     Ok(())
 }
 

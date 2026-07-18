@@ -5782,6 +5782,599 @@ mod tests {
         new_prospective_challenge_local_state_v0(capsule).unwrap()
     }
 
+    fn external_admission_fixture() -> (
+        ProspectiveChallengeLocalStateV0,
+        crate::model::CycleRiskProspectiveTournamentCapsuleV0,
+    ) {
+        static FIXTURE: std::sync::OnceLock<(
+            ProspectiveChallengeLocalStateV0,
+            crate::model::CycleRiskProspectiveTournamentCapsuleV0,
+        )> = std::sync::OnceLock::new();
+        FIXTURE
+            .get_or_init(|| {
+                let input = snapshot("BTC", SnapshotSourceType::ApprovedReadOnlyProvider, 280);
+                let risk_config = crate::model::CycleRiskShadowConfigV0::default();
+                let mut risk_report = crate::model::run_cycle_risk_shadow_v0(&input, &risk_config)
+                    .expect("fixture Cycle/Risk report");
+                risk_report.aggregate_verdict =
+                    crate::model::CycleRiskShadowVerdictV0::LinearBaselineStronger;
+                risk_report
+                    .regimes
+                    .first_mut()
+                    .expect("first risk regime")
+                    .verdict = crate::model::CycleRiskShadowVerdictV0::LinearBaselineStronger;
+                risk_report
+                    .regimes
+                    .last_mut()
+                    .expect("last risk regime")
+                    .verdict = crate::model::CycleRiskShadowVerdictV0::PositiveEvidence;
+                let risk = crate::model::prepare_cycle_risk_prospective_tournament_v0(
+                    &input,
+                    &risk_report,
+                    &risk_config,
+                )
+                .expect("fixture Cycle/Risk capsule");
+                (prospective_test_state(), risk)
+            })
+            .clone()
+    }
+
+    fn external_admission_registration() -> (
+        ProspectiveChallengeLocalStateV0,
+        crate::model::CycleRiskProspectiveTournamentCapsuleV0,
+        crate::model::ProspectiveExternalAdmissionRegistrationV0,
+    ) {
+        let (momentum, risk) = external_admission_fixture();
+        let registration = crate::model::pre_register_prospective_external_row_admission_v0(
+            &momentum,
+            &risk,
+            risk.cutoff_exclusive_timestamp_ms,
+        )
+        .expect("fixture registration");
+        (momentum, risk, registration)
+    }
+
+    fn external_row_capsule(
+        registration: &crate::model::ProspectiveExternalAdmissionRegistrationV0,
+    ) -> crate::model::ProspectiveExternalRowCapsuleV0 {
+        let mut row = crate::model::CanonicalHistoricalRowIdentityV1 {
+            provider_id: registration.canonical_provider_id.clone(),
+            series_id: registration.canonical_series_id.clone(),
+            timestamp_ms: registration.maximum_consumed_evidence_timestamp + 1,
+            open_bits: 100.0f64.to_bits(),
+            high_bits: 102.0f64.to_bits(),
+            low_bits: 99.0f64.to_bits(),
+            close_bits: 101.0f64.to_bits(),
+            volume_bits: 1_000.0f64.to_bits(),
+            trade_value_bits: None,
+            row_digest_v1: String::new(),
+        };
+        row.row_digest_v1 = crate::model::canonical_semantic_digest_v1(&row);
+        crate::model::seal_prospective_external_row_capsule_v0(
+            crate::model::ProspectiveExternalRowCapsuleV0 {
+                capsule_version: "prospective-external-row-capsule-v0".into(),
+                provider_id: registration.canonical_provider_id.clone(),
+                market: registration.market.clone(),
+                symbol: registration.symbol.clone(),
+                cadence: registration.cadence.clone(),
+                row,
+                source_export_digest: "verified-external-export".into(),
+                source_class:
+                    crate::model::ProspectiveExternalSourceClassV0::VerifiedIndependentCanonicalExport,
+                finalized: true,
+                read_only: true,
+                sanitized: true,
+                credential_free: true,
+                acquired_without_model_output_access: true,
+                acquired_without_label_access: true,
+                candidate_row_count: 1,
+                contains_unexplained_later_rows: false,
+                used_in_consumed_evidence: false,
+                contains_label_or_outcome: false,
+                model_configuration_digest: registration.frozen_model_configuration_digest.clone(),
+                capsule_digest: String::new(),
+            },
+        )
+    }
+
+    fn external_admission_context() -> crate::model::ProspectiveExternalAdmissionContextV0 {
+        crate::model::ProspectiveExternalAdmissionContextV0 {
+            existing_row_timestamps: BTreeSet::new(),
+            existing_canonical_row_digests: BTreeSet::new(),
+            latest_admitted_timestamp: None,
+        }
+    }
+
+    fn admitted_external_reference() -> (
+        ProspectiveChallengeLocalStateV0,
+        crate::model::CycleRiskProspectiveTournamentCapsuleV0,
+        crate::model::ProspectiveExternalAdmissionRegistrationV0,
+        crate::model::SharedProspectiveRawEvidenceV0,
+    ) {
+        let (momentum, risk, registration) = external_admission_registration();
+        let capsule = external_row_capsule(&registration);
+        assert_eq!(
+            crate::model::prospective_external_row_admission_status_v0(
+                &registration,
+                &momentum,
+                &risk,
+                &capsule,
+                &external_admission_context(),
+            ),
+            crate::model::ProspectiveRowAdmissionStatusV0::Admitted
+        );
+        let shared = crate::model::build_shared_prospective_raw_evidence_v0(
+            &registration,
+            &capsule,
+            crate::model::ProspectiveRowAdmissionStatusV0::Admitted,
+        )
+        .expect("admitted shared reference");
+        (momentum, risk, registration, shared)
+    }
+
+    fn independently_valid_external_events() -> (
+        ProspectiveChallengeLocalStateV0,
+        crate::model::CycleRiskProspectiveLocalStateV0,
+        crate::model::SharedProspectiveRawEvidenceV0,
+        crate::model::LearnedProspectiveEventV0,
+        crate::model::LearnedProspectiveEventV0,
+    ) {
+        let (mut momentum, risk_capsule, registration, shared) = admitted_external_reference();
+        confirm_prospective_pre_registration_v0(&mut momentum).expect("Momentum pre-registration");
+        let mut risk = crate::model::new_cycle_risk_prospective_local_state_v0(risk_capsule)
+            .expect("Risk local state");
+        crate::model::commit_cycle_risk_pre_registration_v0(&mut risk)
+            .expect("Risk pre-registration");
+        let momentum_validation = crate::model::validate_momentum_shared_prospective_reference_v0(
+            &registration,
+            &momentum,
+            &shared,
+        );
+        let risk_validation = crate::model::validate_risk_shared_prospective_reference_v0(
+            &registration,
+            &risk,
+            &shared,
+        );
+        assert!(momentum_validation.independently_valid);
+        assert!(risk_validation.independently_valid);
+        let momentum_event = crate::model::seal_external_prospective_event_v0(
+            &momentum_validation,
+            &shared,
+            &momentum,
+            &risk,
+            crate::model::ProspectiveOperationalOutcomeV0::ShadowAbstentionSupportUnavailable,
+            Some("frozen_external_inference_support_unavailable".into()),
+        )
+        .expect("Momentum event");
+        let risk_event = crate::model::seal_external_prospective_event_v0(
+            &risk_validation,
+            &shared,
+            &momentum,
+            &risk,
+            crate::model::ProspectiveOperationalOutcomeV0::ShadowAbstentionSupportUnavailable,
+            Some("frozen_external_inference_support_unavailable".into()),
+        )
+        .expect("Risk event");
+        (momentum, risk, shared, momentum_event, risk_event)
+    }
+
+    #[test]
+    fn external_admission_registers_before_candidate_construction() {
+        let (momentum, risk, registration) = external_admission_registration();
+        assert!(
+            crate::model::validate_prospective_external_admission_registration_v0(
+                &registration,
+                &momentum,
+                &risk
+            )
+            .is_ok()
+        );
+        assert!(
+            !external_row_capsule(&registration)
+                .capsule_digest
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn external_admission_incompatible_contract_blocks_mutation() {
+        let (mut momentum, risk, _) = external_admission_registration();
+        momentum.capsule.evidence_policy.maximum_requests = 2;
+        assert_eq!(
+            crate::model::audit_external_admission_compatibility_v0(&momentum, &risk),
+            crate::model::ExternalAdmissionCompatibilityV0::ForbiddenByMomentumContract
+        );
+    }
+
+    #[test]
+    fn external_admission_valid_post_cutoff_row_is_accepted() {
+        let (momentum, risk, registration) = external_admission_registration();
+        assert_eq!(
+            crate::model::prospective_external_row_admission_status_v0(
+                &registration,
+                &momentum,
+                &risk,
+                &external_row_capsule(&registration),
+                &external_admission_context(),
+            ),
+            crate::model::ProspectiveRowAdmissionStatusV0::Admitted
+        );
+    }
+
+    #[test]
+    fn external_admission_equal_cutoff_is_rejected() {
+        let (momentum, risk, registration) = external_admission_registration();
+        let mut capsule = external_row_capsule(&registration);
+        capsule.row.timestamp_ms = registration.maximum_consumed_evidence_timestamp;
+        capsule.row.row_digest_v1 = crate::model::canonical_semantic_digest_v1(&capsule.row);
+        capsule = crate::model::seal_prospective_external_row_capsule_v0(capsule);
+        assert_eq!(
+            crate::model::prospective_external_row_admission_status_v0(
+                &registration,
+                &momentum,
+                &risk,
+                &capsule,
+                &external_admission_context(),
+            ),
+            crate::model::ProspectiveRowAdmissionStatusV0::BeforeOrAtCutoff
+        );
+    }
+
+    #[test]
+    fn external_admission_historical_or_consumed_evidence_is_rejected() {
+        let (momentum, risk, registration) = external_admission_registration();
+        let mut capsule = external_row_capsule(&registration);
+        capsule.used_in_consumed_evidence = true;
+        capsule = crate::model::seal_prospective_external_row_capsule_v0(capsule);
+        assert_eq!(
+            crate::model::prospective_external_row_admission_status_v0(
+                &registration,
+                &momentum,
+                &risk,
+                &capsule,
+                &external_admission_context(),
+            ),
+            crate::model::ProspectiveRowAdmissionStatusV0::HistoricalEvidenceReuse
+        );
+    }
+
+    #[test]
+    fn external_admission_mutable_evidence_is_rejected() {
+        let (momentum, risk, registration) = external_admission_registration();
+        let mut capsule = external_row_capsule(&registration);
+        capsule.read_only = false;
+        capsule = crate::model::seal_prospective_external_row_capsule_v0(capsule);
+        assert_eq!(
+            crate::model::prospective_external_row_admission_status_v0(
+                &registration,
+                &momentum,
+                &risk,
+                &capsule,
+                &external_admission_context(),
+            ),
+            crate::model::ProspectiveRowAdmissionStatusV0::CredentialOrUnsafeContent
+        );
+    }
+
+    #[test]
+    fn external_admission_unverified_source_is_rejected() {
+        let (momentum, risk, registration) = external_admission_registration();
+        let mut capsule = external_row_capsule(&registration);
+        capsule.source_class =
+            crate::model::ProspectiveExternalSourceClassV0::UnverifiedOwnerSuppliedRow;
+        capsule = crate::model::seal_prospective_external_row_capsule_v0(capsule);
+        assert_eq!(
+            crate::model::prospective_external_row_admission_status_v0(
+                &registration,
+                &momentum,
+                &risk,
+                &capsule,
+                &external_admission_context(),
+            ),
+            crate::model::ProspectiveRowAdmissionStatusV0::UnverifiedSource
+        );
+    }
+
+    #[test]
+    fn external_admission_credential_content_is_rejected() {
+        let (momentum, risk, registration) = external_admission_registration();
+        let mut capsule = external_row_capsule(&registration);
+        capsule.credential_free = false;
+        capsule = crate::model::seal_prospective_external_row_capsule_v0(capsule);
+        assert_eq!(
+            crate::model::prospective_external_row_admission_status_v0(
+                &registration,
+                &momentum,
+                &risk,
+                &capsule,
+                &external_admission_context(),
+            ),
+            crate::model::ProspectiveRowAdmissionStatusV0::CredentialOrUnsafeContent
+        );
+    }
+
+    #[test]
+    fn external_admission_duplicate_row_is_rejected() {
+        let (momentum, risk, registration) = external_admission_registration();
+        let capsule = external_row_capsule(&registration);
+        let context = crate::model::ProspectiveExternalAdmissionContextV0 {
+            existing_row_timestamps: BTreeSet::from([capsule.row.timestamp_ms]),
+            existing_canonical_row_digests: BTreeSet::new(),
+            latest_admitted_timestamp: None,
+        };
+        assert_eq!(
+            crate::model::prospective_external_row_admission_status_v0(
+                &registration,
+                &momentum,
+                &risk,
+                &capsule,
+                &context,
+            ),
+            crate::model::ProspectiveRowAdmissionStatusV0::DuplicateRow
+        );
+    }
+
+    #[test]
+    fn external_admission_multi_row_capsule_is_rejected() {
+        let (momentum, risk, registration) = external_admission_registration();
+        let mut capsule = external_row_capsule(&registration);
+        capsule.candidate_row_count = 2;
+        capsule = crate::model::seal_prospective_external_row_capsule_v0(capsule);
+        assert_eq!(
+            crate::model::prospective_external_row_admission_status_v0(
+                &registration,
+                &momentum,
+                &risk,
+                &capsule,
+                &external_admission_context(),
+            ),
+            crate::model::ProspectiveRowAdmissionStatusV0::TechnicalFailure
+        );
+    }
+
+    #[test]
+    fn external_admission_later_row_already_present_is_rejected() {
+        let (momentum, risk, registration) = external_admission_registration();
+        let capsule = external_row_capsule(&registration);
+        let context = crate::model::ProspectiveExternalAdmissionContextV0 {
+            existing_row_timestamps: BTreeSet::new(),
+            existing_canonical_row_digests: BTreeSet::new(),
+            latest_admitted_timestamp: Some(capsule.row.timestamp_ms + 1),
+        };
+        assert_eq!(
+            crate::model::prospective_external_row_admission_status_v0(
+                &registration,
+                &momentum,
+                &risk,
+                &capsule,
+                &context,
+            ),
+            crate::model::ProspectiveRowAdmissionStatusV0::LaterRowAlreadyPresent
+        );
+    }
+
+    #[test]
+    fn external_admission_shared_reference_excludes_model_output() {
+        let (_, _, _, shared) = admitted_external_reference();
+        let encoded = serde_json::to_string(&shared).unwrap();
+        assert!(!encoded.contains("probability"));
+        assert!(!encoded.contains("label_value"));
+        assert!(!shared.label_accessed);
+    }
+
+    #[test]
+    fn external_admission_momentum_and_risk_validate_independently() {
+        let (mut momentum, risk_capsule, registration, shared) = admitted_external_reference();
+        confirm_prospective_pre_registration_v0(&mut momentum).unwrap();
+        let mut risk =
+            crate::model::new_cycle_risk_prospective_local_state_v0(risk_capsule).unwrap();
+        crate::model::commit_cycle_risk_pre_registration_v0(&mut risk).unwrap();
+        assert!(
+            crate::model::validate_momentum_shared_prospective_reference_v0(
+                &registration,
+                &momentum,
+                &shared
+            )
+            .independently_valid
+        );
+        assert!(
+            crate::model::validate_risk_shared_prospective_reference_v0(
+                &registration,
+                &risk,
+                &shared
+            )
+            .independently_valid
+        );
+    }
+
+    #[test]
+    fn external_admission_risk_failure_preserves_momentum_validation() {
+        let (mut momentum, risk_capsule, registration, shared) = admitted_external_reference();
+        confirm_prospective_pre_registration_v0(&mut momentum).unwrap();
+        let mut risk =
+            crate::model::new_cycle_risk_prospective_local_state_v0(risk_capsule).unwrap();
+        crate::model::commit_cycle_risk_pre_registration_v0(&mut risk).unwrap();
+        risk.capsule.prediction_horizon = 0;
+        assert!(
+            crate::model::validate_momentum_shared_prospective_reference_v0(
+                &registration,
+                &momentum,
+                &shared
+            )
+            .independently_valid
+        );
+        assert!(
+            !crate::model::validate_risk_shared_prospective_reference_v0(
+                &registration,
+                &risk,
+                &shared
+            )
+            .independently_valid
+        );
+    }
+
+    #[test]
+    fn external_admission_event_is_pre_label_only() {
+        let (_, _, shared, momentum_event, _) = independently_valid_external_events();
+        assert!(!shared.label_accessed);
+        assert!(!momentum_event.label_accessed);
+        assert!(momentum_event.maturity_timestamp > momentum_event.prediction_timestamp);
+    }
+
+    #[test]
+    fn external_admission_event_hides_probability_bits() {
+        let (_, _, _, momentum_event, _) = independently_valid_external_events();
+        let encoded = serde_json::to_string(&momentum_event).unwrap();
+        assert!(!encoded.contains("candidate_prediction"));
+        assert!(!encoded.contains("ieee754"));
+    }
+
+    #[test]
+    fn external_admission_abstention_requires_reason_without_probability() {
+        let (momentum, risk, registration, shared) = admitted_external_reference();
+        let validation = crate::model::validate_momentum_shared_prospective_reference_v0(
+            &registration,
+            &momentum,
+            &shared,
+        );
+        assert!(
+            crate::model::seal_external_prospective_event_v0(
+                &validation,
+                &shared,
+                &momentum,
+                &crate::model::new_cycle_risk_prospective_local_state_v0(risk).unwrap(),
+                crate::model::ProspectiveOperationalOutcomeV0::ShadowAbstentionSupportUnavailable,
+                None,
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn external_admission_duplicate_event_is_idempotent() {
+        let (mut momentum, mut risk, shared, momentum_event, risk_event) =
+            independently_valid_external_events();
+        crate::model::append_external_admission_to_local_stores_v0(
+            &mut momentum,
+            &mut risk,
+            &shared,
+            Some(&momentum_event),
+            Some(&risk_event),
+        )
+        .unwrap();
+        crate::model::append_external_admission_to_local_stores_v0(
+            &mut momentum,
+            &mut risk,
+            &shared,
+            Some(&momentum_event),
+            Some(&risk_event),
+        )
+        .unwrap();
+        assert_eq!(momentum.journal.events.len(), 1);
+        assert_eq!(risk.journal.event_count, 1);
+    }
+
+    #[test]
+    fn external_admission_risk_journal_reopens_validly() {
+        let (mut momentum, mut risk, shared, momentum_event, risk_event) =
+            independently_valid_external_events();
+        crate::model::append_external_admission_to_local_stores_v0(
+            &mut momentum,
+            &mut risk,
+            &shared,
+            Some(&momentum_event),
+            Some(&risk_event),
+        )
+        .unwrap();
+        let path = std::env::temp_dir().join("soma-risk-external-admission-test.json");
+        crate::model::write_cycle_risk_prospective_local_state_v0(&path, &risk).unwrap();
+        assert!(crate::model::read_cycle_risk_prospective_local_state_v0(&path).is_ok());
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn external_admission_append_never_opens_labels() {
+        let (mut momentum, mut risk, shared, momentum_event, risk_event) =
+            independently_valid_external_events();
+        crate::model::append_external_admission_to_local_stores_v0(
+            &mut momentum,
+            &mut risk,
+            &shared,
+            Some(&momentum_event),
+            Some(&risk_event),
+        )
+        .unwrap();
+        assert!(!momentum.vault.labels_derived);
+        assert!(!risk.vault.labels_derived);
+        assert!(!risk.journal.labels_accessed);
+    }
+
+    #[test]
+    fn external_admission_reward_candidates_stay_zero() {
+        assert_eq!(
+            crate::model::external_admission_reward_eligibility_status_v0(0),
+            crate::model::LearnedRewardEligibilityStatusV0::IneligibleNoProspectiveOutcomes
+        );
+        assert_eq!(
+            crate::model::external_admission_reward_eligibility_status_v0(1),
+            crate::model::LearnedRewardEligibilityStatusV0::IneligibleAwaitingMaturity
+        );
+    }
+
+    #[test]
+    fn external_admission_prior_receipts_remain_unchanged() {
+        let (momentum, _, _, _, _) = independently_valid_external_events();
+        assert!(momentum.blind_acquisition_receipts.is_empty());
+    }
+
+    #[test]
+    fn external_admission_network_counters_are_contractually_zero() {
+        let (_, _, registration) = external_admission_registration();
+        assert!(registration.zero_network_required);
+    }
+
+    #[test]
+    fn external_admission_authority_counters_are_contractually_zero() {
+        let (_, _, registration) = external_admission_registration();
+        assert!(registration.zero_reward_required);
+        assert!(registration.zero_authority_required);
+    }
+
+    #[test]
+    fn external_admission_artifact_digests_stay_frozen() {
+        let (momentum, risk, _, _) = admitted_external_reference();
+        let momentum_digest = momentum.capsule.capsule_digest.clone();
+        let risk_digest = risk.capsule_digest.clone();
+        let _ = external_admission_context();
+        assert_eq!(momentum_digest, momentum.capsule.capsule_digest);
+        assert_eq!(risk_digest, risk.capsule_digest);
+    }
+
+    #[test]
+    fn external_admission_has_no_runtime_instruction_dependency() {
+        let (_, _, registration) = external_admission_registration();
+        assert_eq!(
+            registration.registration_version,
+            "prospective-external-row-admission-registration-v0"
+        );
+    }
+
+    #[test]
+    fn external_admission_storage_scope_is_local_and_append_only() {
+        let (mut momentum, mut risk, shared, momentum_event, risk_event) =
+            independently_valid_external_events();
+        crate::model::append_external_admission_to_local_stores_v0(
+            &mut momentum,
+            &mut risk,
+            &shared,
+            Some(&momentum_event),
+            Some(&risk_event),
+        )
+        .unwrap();
+        assert_eq!(momentum.vault.finalized_row_count, 1);
+        assert_eq!(risk.vault.row_count, 1);
+    }
+
     #[test]
     fn prospective_capsule_is_deterministic_and_rejects_mutation() {
         let first = prospective_test_state();

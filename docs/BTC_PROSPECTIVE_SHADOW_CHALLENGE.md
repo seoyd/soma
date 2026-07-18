@@ -77,3 +77,32 @@ shared-epoch qualification does not reset that budget or rewrite the registry.
 When its sanitized evidence is insufficient for a root-cause classification,
 the challenge remains offline and awaiting future governance rather than making
 another request.
+
+## Sprint 64 offline external-row admission
+
+An independently acquired, credential-free external capsule may be considered
+only after the sealed Momentum and Cycle/Risk contracts have been audited and a
+digest-bound offline admission registration has been persisted and reopened.
+The registration fixes both challenge digests, both cutoffs, the consumed
+history boundary, canonical BTC daily identity, accepted source classes,
+frozen model configuration, pre-label isolation, and the zero-network,
+zero-reward, zero-authority limits.
+
+The external capsule contains exactly one sanitized, read-only finalized row
+identity plus source metadata and digests. It is rejected for an unverified or
+credential-bearing source, historical reuse, any label or model-output access,
+more than one candidate, unexplained later rows, invalid canonical OHLCV
+relationships, a non-BTC-daily identity, duplicate identity, or a timestamp at
+or before the greatest sealed/consumed cutoff.
+
+Only a redacted shared raw-evidence reference crosses the two independent
+validation boundaries. It carries digests, identity metadata, timestamp, and
+cutoff checks; it never carries feature vectors, support decisions,
+probabilities, labels, metrics, or raw prices. Momentum independently verifies
+its sealed candidate/comparators and policy. A valid side seals an explicit
+pre-label abstention when frozen external inference support is unavailable; it
+does not invent a probability.
+
+The local vault and journal remain append-only and store only the canonical row
+digest and sealed event identity. Labels remain unopened, the event remains
+awaiting maturity, and no reward candidate or application is produced.

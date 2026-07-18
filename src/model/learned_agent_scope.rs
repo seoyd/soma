@@ -15,16 +15,22 @@ use super::cycle_risk_shadow::MOMENTUM_AGENT_ID_V0;
 use super::{
     AgentOpinionRelationshipV0, BtcHistoricalRegimeConfigV0, BtcHistoricalRegimeV0,
     BtcTemporalRegimeRefV0, CYCLE_RISK_SHADOW_AGENT_ID_V0, CycleRiskOpinionAdapterContextV0,
-    CycleRiskShadowConfigV0, EvidenceUsageClassV0, HistoricalEvidencePolicyV0,
-    LearnedAgentObjectiveV0, MomentumCandleV0, MomentumLearningCampaignConfigV0,
-    TemporalRegimeSegmentationPolicyV0, append_shadow_deliberation_v0,
+    CycleRiskProspectiveChallengeStatusV0, CycleRiskProspectiveLocalStateV0,
+    CycleRiskProspectiveTournamentCapsuleV0, CycleRiskShadowConfigV0, EvidenceUsageClassV0,
+    HistoricalEvidencePolicyV0, LearnedAgentObjectiveV0, MomentumCandleV0,
+    MomentumLearningCampaignConfigV0, ProspectiveChallengeLocalStateV0,
+    ProspectiveChallengeStatusV0, ProspectiveEvidenceRowRefV0, ProspectiveLabelStatusV0,
+    ProspectivePredictionEventV0, ProspectiveShadowOutcomeV0, TemporalRegimeSegmentationPolicyV0,
+    append_cycle_risk_external_row_and_event_v0, append_prospective_prediction_event_v0,
+    append_prospective_vault_row_v0, append_shadow_deliberation_v0,
     assess_momentum_campaign_sufficiency_v0, build_momentum_features_v0,
     build_momentum_learning_windows_v0, build_momentum_sequence_examples_v0,
     close_btc_temporal_regime_result_v0, freeze_btc_historical_regime_packs_v0,
     frozen_mamba3_encoder_from_seed_v0, new_shadow_deliberation_ledger_v0,
     reconstruct_cycle_risk_opinion_from_regime_v0, replay_btc_shadow_deliberations_v0,
     run_btc_historical_regime_campaigns_v0, run_cycle_risk_shadow_regime_v0,
-    segment_btc_historical_regimes_v0,
+    segment_btc_historical_regimes_v0, validate_cycle_risk_prospective_capsule_v0,
+    validate_cycle_risk_prospective_local_state_v0, validate_prospective_challenge_local_state_v0,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -863,7 +869,7 @@ pub struct LegacyScopeReferenceV1 {
     pub legacy_registry_digest: Option<String>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CanonicalHistoricalRowIdentityV1 {
     pub provider_id: String,
     pub series_id: String,
@@ -8961,6 +8967,950 @@ pub fn learned_reward_input_candidate_v0(
     };
     candidate.candidate_digest = learned_reward_candidate_digest_v0(&candidate);
     Ok(candidate)
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ExternalAdmissionCompatibilityV0 {
+    PermittedByExistingContracts,
+    PermittedWithExternalAdmissionRegistration,
+    ForbiddenByMomentumContract,
+    ForbiddenByRiskContract,
+    ConflictingContracts,
+    TechnicalFailure,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum ProspectiveExternalSourceClassV0 {
+    ApprovedCredentialFreeProviderExport,
+    VerifiedIndependentCanonicalExport,
+    UnverifiedOwnerSuppliedRow,
+    HistoricalOrConsumedEvidence,
+    SyntheticFixture,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProspectiveRowAdmissionStatusV0 {
+    Admitted,
+    AwaitingQualifiedExternalRow,
+    ContractIncompatible,
+    BeforeOrAtCutoff,
+    NotFinalized,
+    InvalidCanonicalRow,
+    DuplicateRow,
+    LaterRowAlreadyPresent,
+    HistoricalEvidenceReuse,
+    UnverifiedSource,
+    CredentialOrUnsafeContent,
+    LabelLeakageDetected,
+    RegistrationMismatch,
+    TechnicalFailure,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProspectiveOperationalOutcomeV0 {
+    ShadowPredictionSealed,
+    ShadowAbstentionOutOfSupport,
+    ShadowAbstentionSupportUnavailable,
+    ShadowAbstentionTechnicalFailure,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProspectiveExternalRowCapsuleV0 {
+    pub capsule_version: String,
+    pub provider_id: String,
+    pub market: String,
+    pub symbol: String,
+    pub cadence: String,
+    pub row: CanonicalHistoricalRowIdentityV1,
+    pub source_export_digest: String,
+    pub source_class: ProspectiveExternalSourceClassV0,
+    pub finalized: bool,
+    pub read_only: bool,
+    pub sanitized: bool,
+    pub credential_free: bool,
+    pub acquired_without_model_output_access: bool,
+    pub acquired_without_label_access: bool,
+    pub candidate_row_count: usize,
+    pub contains_unexplained_later_rows: bool,
+    pub used_in_consumed_evidence: bool,
+    pub contains_label_or_outcome: bool,
+    pub model_configuration_digest: String,
+    pub capsule_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProspectiveExternalAdmissionRegistrationV0 {
+    pub registration_version: String,
+    pub momentum_challenge_digest: String,
+    pub risk_tournament_digest: String,
+    pub momentum_cutoff_timestamp: u64,
+    pub risk_cutoff_timestamp: u64,
+    pub maximum_consumed_evidence_timestamp: u64,
+    pub canonical_provider_id: String,
+    pub market: String,
+    pub symbol: String,
+    pub canonical_series_id: String,
+    pub cadence: String,
+    pub accepted_source_classes: Vec<ProspectiveExternalSourceClassV0>,
+    pub frozen_model_configuration_digest: String,
+    pub pre_label_isolation_required: bool,
+    pub shared_raw_evidence_only: bool,
+    pub zero_network_required: bool,
+    pub zero_reward_required: bool,
+    pub zero_authority_required: bool,
+    pub registration_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ProspectiveExternalAdmissionContextV0 {
+    pub existing_row_timestamps: BTreeSet<u64>,
+    pub existing_canonical_row_digests: BTreeSet<String>,
+    pub latest_admitted_timestamp: Option<u64>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SharedProspectiveRawEvidenceV0 {
+    pub reference_version: String,
+    pub admission_registration_digest: String,
+    pub external_capsule_digest: String,
+    pub canonical_row_digest: String,
+    pub timestamp: u64,
+    pub provider_id: String,
+    pub symbol: String,
+    pub momentum_cutoff_verified: bool,
+    pub risk_cutoff_verified: bool,
+    pub eligible_for_momentum_validation: bool,
+    pub eligible_for_risk_validation: bool,
+    pub label_accessed: bool,
+    pub reference_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProspectiveExternalChallengeValidationV0 {
+    pub validation_version: String,
+    pub agent_id: String,
+    pub objective: LearnedAgentObjectiveV0,
+    pub challenge_digest: String,
+    pub shared_raw_evidence_digest: String,
+    pub independently_valid: bool,
+    pub label_accessed: bool,
+    pub validation_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LearnedProspectiveEventV0 {
+    pub event_version: String,
+    pub event_id: String,
+    pub agent_id: String,
+    pub objective: LearnedAgentObjectiveV0,
+    pub challenge_digest: String,
+    pub shared_raw_evidence_digest: String,
+    pub frozen_model_artifact_digests: Vec<String>,
+    pub input_digest: String,
+    pub support_status_digest: String,
+    pub operational_outcome: ProspectiveOperationalOutcomeV0,
+    pub abstention_reason: Option<String>,
+    pub prediction_timestamp: u64,
+    pub maturity_timestamp: u64,
+    pub horizon_digest: String,
+    pub probability_bits_sealed: bool,
+    pub label_accessed: bool,
+    pub event_digest: String,
+}
+
+fn external_admission_registration_digest_v0(
+    registration: &ProspectiveExternalAdmissionRegistrationV0,
+) -> String {
+    stable_hash_string(&format!(
+        "{:?}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{:?}:{}:{}:{}:{}:{}:{}",
+        registration.registration_version,
+        registration.momentum_challenge_digest,
+        registration.risk_tournament_digest,
+        registration.momentum_cutoff_timestamp,
+        registration.risk_cutoff_timestamp,
+        registration.maximum_consumed_evidence_timestamp,
+        registration.canonical_provider_id,
+        registration.market,
+        registration.symbol,
+        registration.canonical_series_id,
+        registration.cadence,
+        registration.accepted_source_classes,
+        registration.frozen_model_configuration_digest,
+        registration.pre_label_isolation_required,
+        registration.shared_raw_evidence_only,
+        registration.zero_network_required,
+        registration.zero_reward_required,
+        registration.zero_authority_required,
+    ))
+}
+
+fn external_row_capsule_digest_v0(capsule: &ProspectiveExternalRowCapsuleV0) -> String {
+    stable_hash_string(&format!(
+        "{:?}:{}:{}:{}:{}:{:?}:{}:{:?}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+        capsule.capsule_version,
+        capsule.provider_id,
+        capsule.market,
+        capsule.symbol,
+        capsule.cadence,
+        capsule.row,
+        capsule.source_export_digest,
+        capsule.source_class,
+        capsule.finalized,
+        capsule.read_only,
+        capsule.sanitized,
+        capsule.credential_free,
+        capsule.acquired_without_model_output_access,
+        capsule.acquired_without_label_access,
+        capsule.candidate_row_count,
+        capsule.contains_unexplained_later_rows,
+        capsule.used_in_consumed_evidence,
+        capsule.contains_label_or_outcome,
+        capsule.model_configuration_digest,
+    ))
+}
+
+/// Finalizes the opaque capsule digest without opening labels or interpreting
+/// the row. Admission still performs all contract and canonical-row checks.
+pub fn seal_prospective_external_row_capsule_v0(
+    mut capsule: ProspectiveExternalRowCapsuleV0,
+) -> ProspectiveExternalRowCapsuleV0 {
+    capsule.capsule_digest = external_row_capsule_digest_v0(&capsule);
+    capsule
+}
+
+fn shared_raw_evidence_digest_v0(reference: &SharedProspectiveRawEvidenceV0) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+        reference.reference_version,
+        reference.admission_registration_digest,
+        reference.external_capsule_digest,
+        reference.canonical_row_digest,
+        reference.timestamp,
+        reference.provider_id,
+        reference.symbol,
+        reference.momentum_cutoff_verified,
+        reference.risk_cutoff_verified,
+        reference.eligible_for_momentum_validation,
+        reference.eligible_for_risk_validation,
+        reference.label_accessed,
+    ))
+}
+
+fn external_challenge_validation_digest_v0(
+    validation: &ProspectiveExternalChallengeValidationV0,
+) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{:?}:{}:{}:{}:{}",
+        validation.validation_version,
+        validation.agent_id,
+        validation.objective,
+        validation.challenge_digest,
+        validation.shared_raw_evidence_digest,
+        validation.independently_valid,
+        validation.label_accessed,
+    ))
+}
+
+fn learned_prospective_event_digest_v0(event: &LearnedProspectiveEventV0) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{}:{:?}:{}:{}:{:?}:{}:{}:{:?}:{:?}:{}:{}:{}:{}:{}",
+        event.event_version,
+        event.event_id,
+        event.agent_id,
+        event.objective,
+        event.challenge_digest,
+        event.shared_raw_evidence_digest,
+        event.frozen_model_artifact_digests,
+        event.input_digest,
+        event.support_status_digest,
+        event.operational_outcome,
+        event.abstention_reason,
+        event.prediction_timestamp,
+        event.maturity_timestamp,
+        event.horizon_digest,
+        event.probability_bits_sealed,
+        event.label_accessed,
+    ))
+}
+
+fn prospective_external_model_configuration_digest_v0(
+    momentum: &ProspectiveChallengeLocalStateV0,
+    risk: &CycleRiskProspectiveTournamentCapsuleV0,
+) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+        momentum.capsule.candidate.artifact_digest,
+        momentum.capsule.feature_policy_digest,
+        momentum.capsule.label_policy_digest,
+        momentum.capsule.support_policy_digest,
+        risk.historical_champion.artifact_digest,
+        risk.experimental_challenger.artifact_digest,
+        risk.minimum_benchmark.artifact_digest,
+        risk.feature_policy_digest,
+        risk.label_policy_digest,
+        risk.support_policy_digest,
+        risk.collapse_policy_digest,
+        risk.error_audit_policy_digest,
+    ))
+}
+
+pub fn audit_external_admission_compatibility_v0(
+    momentum: &ProspectiveChallengeLocalStateV0,
+    risk: &CycleRiskProspectiveTournamentCapsuleV0,
+) -> ExternalAdmissionCompatibilityV0 {
+    if validate_prospective_challenge_local_state_v0(momentum).is_err() {
+        return ExternalAdmissionCompatibilityV0::ForbiddenByMomentumContract;
+    }
+    if validate_cycle_risk_prospective_capsule_v0(risk).is_err() {
+        return ExternalAdmissionCompatibilityV0::ForbiddenByRiskContract;
+    }
+    let canonical_momentum_series = momentum
+        .capsule
+        .series_id
+        .rsplit_once(':')
+        .map(|(_, series)| series)
+        .unwrap_or(&momentum.capsule.series_id);
+    let canonical_risk_series = risk
+        .series_id
+        .rsplit_once(':')
+        .map(|(_, series)| series)
+        .unwrap_or(&risk.series_id);
+    if canonical_momentum_series != canonical_risk_series
+        || momentum.capsule.prospective_cutoff_exclusive_timestamp_ms == 0
+        || risk.cutoff_exclusive_timestamp_ms == 0
+    {
+        return ExternalAdmissionCompatibilityV0::ConflictingContracts;
+    }
+    if !momentum.capsule.evidence_policy.finalized_daily_rows_only
+        || momentum.capsule.evidence_policy.maximum_requests != 1
+        || momentum.capsule.evidence_policy.maximum_concurrency != 1
+        || momentum.capsule.evidence_policy.retry_count != 0
+        || !momentum
+            .capsule
+            .prediction_policy
+            .hide_labels_before_opening
+        || !momentum
+            .capsule
+            .prediction_policy
+            .hide_probabilities_before_opening
+    {
+        return ExternalAdmissionCompatibilityV0::ForbiddenByMomentumContract;
+    }
+    if !risk.evidence_policy.finalized_daily_rows_only
+        || !risk.evidence_policy.accepts_shared_acquisition_epochs
+        || risk.evidence_policy.maximum_requests != 1
+        || risk.evidence_policy.maximum_concurrency != 1
+        || risk.evidence_policy.maximum_retries != 0
+    {
+        return ExternalAdmissionCompatibilityV0::ForbiddenByRiskContract;
+    }
+    ExternalAdmissionCompatibilityV0::PermittedWithExternalAdmissionRegistration
+}
+
+pub fn pre_register_prospective_external_row_admission_v0(
+    momentum: &ProspectiveChallengeLocalStateV0,
+    risk: &CycleRiskProspectiveTournamentCapsuleV0,
+    maximum_consumed_evidence_timestamp: u64,
+) -> Result<ProspectiveExternalAdmissionRegistrationV0, String> {
+    if audit_external_admission_compatibility_v0(momentum, risk)
+        != ExternalAdmissionCompatibilityV0::PermittedWithExternalAdmissionRegistration
+    {
+        return Err("prospective_external_admission_contract_incompatible".into());
+    }
+    let canonical_series_id = momentum.capsule.series_id.clone();
+    let (market, symbol) = canonical_series_id
+        .split_once(':')
+        .map(|(market, symbol)| (market.to_string(), symbol.to_string()))
+        .or_else(|| {
+            canonical_series_id.split_once('-').map(|(left, right)| {
+                if left.eq_ignore_ascii_case("BTC") {
+                    (right.to_string(), left.to_string())
+                } else {
+                    (left.to_string(), right.to_string())
+                }
+            })
+        })
+        .unwrap_or_else(|| ("spot".into(), canonical_series_id.clone()));
+    let mut registration = ProspectiveExternalAdmissionRegistrationV0 {
+        registration_version: "prospective-external-row-admission-registration-v0".into(),
+        momentum_challenge_digest: momentum.capsule.capsule_digest.clone(),
+        risk_tournament_digest: risk.capsule_digest.clone(),
+        momentum_cutoff_timestamp: momentum.capsule.prospective_cutoff_exclusive_timestamp_ms,
+        risk_cutoff_timestamp: risk.cutoff_exclusive_timestamp_ms,
+        maximum_consumed_evidence_timestamp,
+        canonical_provider_id: "approved-credential-free-external-export-v0".into(),
+        market,
+        symbol,
+        canonical_series_id,
+        cadence: "1d".into(),
+        accepted_source_classes: vec![
+            ProspectiveExternalSourceClassV0::ApprovedCredentialFreeProviderExport,
+            ProspectiveExternalSourceClassV0::VerifiedIndependentCanonicalExport,
+        ],
+        frozen_model_configuration_digest: prospective_external_model_configuration_digest_v0(
+            momentum, risk,
+        ),
+        pre_label_isolation_required: true,
+        shared_raw_evidence_only: true,
+        zero_network_required: true,
+        zero_reward_required: true,
+        zero_authority_required: true,
+        registration_digest: String::new(),
+    };
+    registration.registration_digest = external_admission_registration_digest_v0(&registration);
+    validate_prospective_external_admission_registration_v0(&registration, momentum, risk)?;
+    Ok(registration)
+}
+
+pub fn validate_prospective_external_admission_registration_v0(
+    registration: &ProspectiveExternalAdmissionRegistrationV0,
+    momentum: &ProspectiveChallengeLocalStateV0,
+    risk: &CycleRiskProspectiveTournamentCapsuleV0,
+) -> Result<(), String> {
+    let compatibility = audit_external_admission_compatibility_v0(momentum, risk);
+    let expected_model_digest = prospective_external_model_configuration_digest_v0(momentum, risk);
+    let expected_sources = vec![
+        ProspectiveExternalSourceClassV0::ApprovedCredentialFreeProviderExport,
+        ProspectiveExternalSourceClassV0::VerifiedIndependentCanonicalExport,
+    ];
+    if compatibility != ExternalAdmissionCompatibilityV0::PermittedWithExternalAdmissionRegistration
+        || registration.registration_version != "prospective-external-row-admission-registration-v0"
+        || registration.momentum_challenge_digest != momentum.capsule.capsule_digest
+        || registration.risk_tournament_digest != risk.capsule_digest
+        || registration.momentum_cutoff_timestamp
+            != momentum.capsule.prospective_cutoff_exclusive_timestamp_ms
+        || registration.risk_cutoff_timestamp != risk.cutoff_exclusive_timestamp_ms
+        || registration.maximum_consumed_evidence_timestamp
+            < registration
+                .momentum_cutoff_timestamp
+                .max(registration.risk_cutoff_timestamp)
+        || registration.canonical_provider_id.is_empty()
+        || registration.market.is_empty()
+        || registration.symbol.is_empty()
+        || registration.canonical_series_id != momentum.capsule.series_id
+        || registration.cadence != "1d"
+        || registration.accepted_source_classes != expected_sources
+        || registration.frozen_model_configuration_digest != expected_model_digest
+        || !registration.pre_label_isolation_required
+        || !registration.shared_raw_evidence_only
+        || !registration.zero_network_required
+        || !registration.zero_reward_required
+        || !registration.zero_authority_required
+        || registration.registration_digest
+            != external_admission_registration_digest_v0(registration)
+    {
+        Err("prospective_external_admission_registration_invalid".into())
+    } else {
+        Ok(())
+    }
+}
+
+pub fn write_prospective_external_admission_registration_v0(
+    path: &Path,
+    registration: &ProspectiveExternalAdmissionRegistrationV0,
+    momentum: &ProspectiveChallengeLocalStateV0,
+    risk: &CycleRiskProspectiveTournamentCapsuleV0,
+) -> Result<(), String> {
+    validate_prospective_external_admission_registration_v0(registration, momentum, risk)?;
+    let parent = path
+        .parent()
+        .ok_or("external_admission_registration_storage_unavailable")?;
+    fs::create_dir_all(parent)
+        .map_err(|_| "external_admission_registration_storage_unavailable")?;
+    let encoded = serde_json::to_vec(registration)
+        .map_err(|_| "external_admission_registration_serialization_failed")?;
+    let temp = path.with_extension("tmp");
+    fs::write(&temp, encoded).map_err(|_| "external_admission_registration_storage_failed")?;
+    fs::rename(temp, path).map_err(|_| "external_admission_registration_storage_failed".to_string())
+}
+
+pub fn read_prospective_external_admission_registration_v0(
+    path: &Path,
+) -> Result<ProspectiveExternalAdmissionRegistrationV0, String> {
+    serde_json::from_slice(
+        &fs::read(path).map_err(|_| "external_admission_registration_unavailable")?,
+    )
+    .map_err(|_| "external_admission_registration_invalid".into())
+}
+
+pub fn read_prospective_external_row_capsule_v0(
+    path: &Path,
+) -> Result<ProspectiveExternalRowCapsuleV0, String> {
+    serde_json::from_slice(&fs::read(path).map_err(|_| "external_row_capsule_unavailable")?)
+        .map_err(|_| "external_row_capsule_invalid".into())
+}
+
+fn canonical_external_row_is_valid_v0(row: &CanonicalHistoricalRowIdentityV1) -> bool {
+    let open = f64::from_bits(row.open_bits);
+    let high = f64::from_bits(row.high_bits);
+    let low = f64::from_bits(row.low_bits);
+    let close = f64::from_bits(row.close_bits);
+    let volume = f64::from_bits(row.volume_bits);
+    row.timestamp_ms != 0
+        && [open, high, low, close, volume]
+            .iter()
+            .all(|value| value.is_finite())
+        && row
+            .trade_value_bits
+            .is_none_or(|bits| f64::from_bits(bits).is_finite())
+        && open > 0.0
+        && high > 0.0
+        && low > 0.0
+        && close > 0.0
+        && low <= open.min(close)
+        && high >= open.max(close)
+        && high >= low
+        && volume >= 0.0
+        && row.row_digest_v1 == canonical_semantic_digest_v1(row)
+}
+
+pub fn prospective_external_row_admission_status_v0(
+    registration: &ProspectiveExternalAdmissionRegistrationV0,
+    momentum: &ProspectiveChallengeLocalStateV0,
+    risk: &CycleRiskProspectiveTournamentCapsuleV0,
+    capsule: &ProspectiveExternalRowCapsuleV0,
+    context: &ProspectiveExternalAdmissionContextV0,
+) -> ProspectiveRowAdmissionStatusV0 {
+    if validate_prospective_external_admission_registration_v0(registration, momentum, risk)
+        .is_err()
+    {
+        return ProspectiveRowAdmissionStatusV0::RegistrationMismatch;
+    }
+    if capsule.capsule_version != "prospective-external-row-capsule-v0"
+        || capsule.capsule_digest != external_row_capsule_digest_v0(capsule)
+    {
+        return ProspectiveRowAdmissionStatusV0::TechnicalFailure;
+    }
+    if !registration
+        .accepted_source_classes
+        .contains(&capsule.source_class)
+    {
+        return if capsule.source_class
+            == ProspectiveExternalSourceClassV0::HistoricalOrConsumedEvidence
+        {
+            ProspectiveRowAdmissionStatusV0::HistoricalEvidenceReuse
+        } else {
+            ProspectiveRowAdmissionStatusV0::UnverifiedSource
+        };
+    }
+    if !capsule.read_only || !capsule.sanitized || !capsule.credential_free {
+        return ProspectiveRowAdmissionStatusV0::CredentialOrUnsafeContent;
+    }
+    if !capsule.finalized {
+        return ProspectiveRowAdmissionStatusV0::NotFinalized;
+    }
+    if capsule.candidate_row_count != 1 || capsule.contains_unexplained_later_rows {
+        return ProspectiveRowAdmissionStatusV0::TechnicalFailure;
+    }
+    if capsule.used_in_consumed_evidence {
+        return ProspectiveRowAdmissionStatusV0::HistoricalEvidenceReuse;
+    }
+    if capsule.contains_label_or_outcome
+        || !capsule.acquired_without_model_output_access
+        || !capsule.acquired_without_label_access
+    {
+        return ProspectiveRowAdmissionStatusV0::LabelLeakageDetected;
+    }
+    if capsule.provider_id != registration.canonical_provider_id
+        || capsule.market != registration.market
+        || capsule.symbol != registration.symbol
+        || capsule.cadence != registration.cadence
+        || capsule.row.provider_id != capsule.provider_id
+        || capsule.row.series_id != registration.canonical_series_id
+        || capsule.model_configuration_digest != registration.frozen_model_configuration_digest
+        || !canonical_external_row_is_valid_v0(&capsule.row)
+    {
+        return ProspectiveRowAdmissionStatusV0::InvalidCanonicalRow;
+    }
+    let cutoff = registration
+        .momentum_cutoff_timestamp
+        .max(registration.risk_cutoff_timestamp)
+        .max(registration.maximum_consumed_evidence_timestamp);
+    if capsule.row.timestamp_ms <= cutoff {
+        return ProspectiveRowAdmissionStatusV0::BeforeOrAtCutoff;
+    }
+    if context
+        .existing_row_timestamps
+        .contains(&capsule.row.timestamp_ms)
+        || context
+            .existing_canonical_row_digests
+            .contains(&capsule.row.row_digest_v1)
+    {
+        return ProspectiveRowAdmissionStatusV0::DuplicateRow;
+    }
+    if context
+        .latest_admitted_timestamp
+        .is_some_and(|latest| latest > capsule.row.timestamp_ms)
+    {
+        return ProspectiveRowAdmissionStatusV0::LaterRowAlreadyPresent;
+    }
+    ProspectiveRowAdmissionStatusV0::Admitted
+}
+
+pub fn build_shared_prospective_raw_evidence_v0(
+    registration: &ProspectiveExternalAdmissionRegistrationV0,
+    capsule: &ProspectiveExternalRowCapsuleV0,
+    admission_status: ProspectiveRowAdmissionStatusV0,
+) -> Result<SharedProspectiveRawEvidenceV0, String> {
+    if admission_status != ProspectiveRowAdmissionStatusV0::Admitted
+        || capsule.row.timestamp_ms <= registration.momentum_cutoff_timestamp
+        || capsule.row.timestamp_ms <= registration.risk_cutoff_timestamp
+        || capsule.row.timestamp_ms <= registration.maximum_consumed_evidence_timestamp
+        || capsule.capsule_digest != external_row_capsule_digest_v0(capsule)
+    {
+        return Err("shared_prospective_raw_evidence_not_admissible".into());
+    }
+    let mut reference = SharedProspectiveRawEvidenceV0 {
+        reference_version: "shared-prospective-raw-evidence-v0".into(),
+        admission_registration_digest: registration.registration_digest.clone(),
+        external_capsule_digest: capsule.capsule_digest.clone(),
+        canonical_row_digest: capsule.row.row_digest_v1.clone(),
+        timestamp: capsule.row.timestamp_ms,
+        provider_id: capsule.provider_id.clone(),
+        symbol: capsule.symbol.clone(),
+        momentum_cutoff_verified: true,
+        risk_cutoff_verified: true,
+        eligible_for_momentum_validation: true,
+        eligible_for_risk_validation: true,
+        label_accessed: false,
+        reference_digest: String::new(),
+    };
+    reference.reference_digest = shared_raw_evidence_digest_v0(&reference);
+    Ok(reference)
+}
+
+fn new_external_challenge_validation_v0(
+    agent_id: &str,
+    objective: LearnedAgentObjectiveV0,
+    challenge_digest: String,
+    shared: &SharedProspectiveRawEvidenceV0,
+    independently_valid: bool,
+) -> ProspectiveExternalChallengeValidationV0 {
+    let mut validation = ProspectiveExternalChallengeValidationV0 {
+        validation_version: "prospective-external-challenge-validation-v0".into(),
+        agent_id: agent_id.into(),
+        objective,
+        challenge_digest,
+        shared_raw_evidence_digest: shared.reference_digest.clone(),
+        independently_valid,
+        label_accessed: false,
+        validation_digest: String::new(),
+    };
+    validation.validation_digest = external_challenge_validation_digest_v0(&validation);
+    validation
+}
+
+pub fn validate_momentum_shared_prospective_reference_v0(
+    registration: &ProspectiveExternalAdmissionRegistrationV0,
+    momentum: &ProspectiveChallengeLocalStateV0,
+    shared: &SharedProspectiveRawEvidenceV0,
+) -> ProspectiveExternalChallengeValidationV0 {
+    let valid = validate_prospective_challenge_local_state_v0(momentum).is_ok()
+        && registration.momentum_challenge_digest == momentum.capsule.capsule_digest
+        && momentum.capsule.status == ProspectiveChallengeStatusV0::Sealed
+        && momentum.capsule.candidate.shadow_only
+        && momentum.capsule.comparators.len() == 2
+        && momentum.capsule.prediction_horizon > 0
+        && shared.admission_registration_digest == registration.registration_digest
+        && shared.timestamp > momentum.capsule.prospective_cutoff_exclusive_timestamp_ms
+        && shared.momentum_cutoff_verified
+        && shared.eligible_for_momentum_validation
+        && !shared.label_accessed;
+    new_external_challenge_validation_v0(
+        MOMENTUM_AGENT_ID_V0,
+        LearnedAgentObjectiveV0::DirectionalMomentum,
+        momentum.capsule.capsule_digest.clone(),
+        shared,
+        valid,
+    )
+}
+
+pub fn validate_risk_shared_prospective_reference_v0(
+    registration: &ProspectiveExternalAdmissionRegistrationV0,
+    risk: &CycleRiskProspectiveLocalStateV0,
+    shared: &SharedProspectiveRawEvidenceV0,
+) -> ProspectiveExternalChallengeValidationV0 {
+    let valid = validate_cycle_risk_prospective_local_state_v0(risk).is_ok()
+        && registration.risk_tournament_digest == risk.capsule.capsule_digest
+        && risk.capsule.status == CycleRiskProspectiveChallengeStatusV0::Sealed
+        && risk.capsule.historical_champion.artifact_digest
+            != risk.capsule.experimental_challenger.artifact_digest
+        && risk.capsule.experimental_challenger.artifact_digest
+            != risk.capsule.minimum_benchmark.artifact_digest
+        && risk.capsule.prediction_horizon > 0
+        && shared.admission_registration_digest == registration.registration_digest
+        && shared.timestamp > risk.capsule.cutoff_exclusive_timestamp_ms
+        && shared.risk_cutoff_verified
+        && shared.eligible_for_risk_validation
+        && !shared.label_accessed;
+    new_external_challenge_validation_v0(
+        CYCLE_RISK_SHADOW_AGENT_ID_V0,
+        LearnedAgentObjectiveV0::DownsideRisk,
+        risk.capsule.capsule_digest.clone(),
+        shared,
+        valid,
+    )
+}
+
+fn external_event_artifacts_v0(
+    objective: LearnedAgentObjectiveV0,
+    momentum: &ProspectiveChallengeLocalStateV0,
+    risk: &CycleRiskProspectiveLocalStateV0,
+) -> (String, Vec<String>, usize) {
+    match objective {
+        LearnedAgentObjectiveV0::DirectionalMomentum => (
+            momentum.capsule.capsule_digest.clone(),
+            std::iter::once(momentum.capsule.candidate.artifact_digest.clone())
+                .chain(
+                    momentum
+                        .capsule
+                        .comparators
+                        .iter()
+                        .map(|value| value.artifact_digest.clone()),
+                )
+                .collect(),
+            momentum.capsule.prediction_horizon,
+        ),
+        LearnedAgentObjectiveV0::DownsideRisk => (
+            risk.capsule.capsule_digest.clone(),
+            vec![
+                risk.capsule.historical_champion.artifact_digest.clone(),
+                risk.capsule.experimental_challenger.artifact_digest.clone(),
+                risk.capsule.minimum_benchmark.artifact_digest.clone(),
+            ],
+            risk.capsule.prediction_horizon,
+        ),
+    }
+}
+
+pub fn seal_external_prospective_event_v0(
+    validation: &ProspectiveExternalChallengeValidationV0,
+    shared: &SharedProspectiveRawEvidenceV0,
+    momentum: &ProspectiveChallengeLocalStateV0,
+    risk: &CycleRiskProspectiveLocalStateV0,
+    operational_outcome: ProspectiveOperationalOutcomeV0,
+    abstention_reason: Option<String>,
+) -> Result<LearnedProspectiveEventV0, String> {
+    if !validation.independently_valid
+        || validation.label_accessed
+        || validation.shared_raw_evidence_digest != shared.reference_digest
+        || shared.label_accessed
+        || (operational_outcome == ProspectiveOperationalOutcomeV0::ShadowPredictionSealed
+            && abstention_reason.is_some())
+        || (operational_outcome != ProspectiveOperationalOutcomeV0::ShadowPredictionSealed
+            && abstention_reason.as_deref().is_none_or(str::is_empty))
+    {
+        return Err("external_prospective_event_sealing_invalid".into());
+    }
+    let expected_agent = match validation.objective {
+        LearnedAgentObjectiveV0::DirectionalMomentum => MOMENTUM_AGENT_ID_V0,
+        LearnedAgentObjectiveV0::DownsideRisk => CYCLE_RISK_SHADOW_AGENT_ID_V0,
+    };
+    let (challenge_digest, mut artifacts, horizon_rows) =
+        external_event_artifacts_v0(validation.objective, momentum, risk);
+    if validation.agent_id != expected_agent
+        || validation.challenge_digest != challenge_digest
+        || horizon_rows == 0
+    {
+        return Err("external_prospective_event_contract_mismatch".into());
+    }
+    artifacts.sort();
+    let horizon_digest = stable_hash_string(&format!(
+        "external-prospective-horizon-v0:{:?}:{}",
+        validation.objective, horizon_rows
+    ));
+    let event_id = format!(
+        "external-prospective-event-{}",
+        stable_hash_string(&format!(
+            "{}:{}:{:?}:{}",
+            validation.validation_digest,
+            shared.reference_digest,
+            validation.objective,
+            horizon_digest
+        ))
+    );
+    let mut event = LearnedProspectiveEventV0 {
+        event_version: "learned-prospective-event-v0".into(),
+        event_id,
+        agent_id: expected_agent.into(),
+        objective: validation.objective,
+        challenge_digest,
+        shared_raw_evidence_digest: shared.reference_digest.clone(),
+        frozen_model_artifact_digests: artifacts,
+        input_digest: shared.reference_digest.clone(),
+        support_status_digest: stable_hash_string(&format!(
+            "external-prospective-support-v0:{:?}:{:?}",
+            validation.objective, operational_outcome
+        )),
+        operational_outcome,
+        abstention_reason,
+        prediction_timestamp: shared.timestamp,
+        maturity_timestamp: shared
+            .timestamp
+            .saturating_add(horizon_rows as u64 * 86_400_000),
+        horizon_digest,
+        probability_bits_sealed: true,
+        label_accessed: false,
+        event_digest: String::new(),
+    };
+    if event.maturity_timestamp <= event.prediction_timestamp {
+        return Err("external_prospective_event_maturity_invalid".into());
+    }
+    event.event_digest = learned_prospective_event_digest_v0(&event);
+    Ok(event)
+}
+
+pub fn external_admission_reward_eligibility_status_v0(
+    sealed_event_count: usize,
+) -> LearnedRewardEligibilityStatusV0 {
+    if sealed_event_count == 0 {
+        LearnedRewardEligibilityStatusV0::IneligibleNoProspectiveOutcomes
+    } else {
+        LearnedRewardEligibilityStatusV0::IneligibleAwaitingMaturity
+    }
+}
+
+fn momentum_external_event_already_persisted_v0(
+    state: &ProspectiveChallengeLocalStateV0,
+    shared: &SharedProspectiveRawEvidenceV0,
+    event: &LearnedProspectiveEventV0,
+) -> bool {
+    state.vault.finalized_rows.len() == 1
+        && state.vault.finalized_rows[0].timestamp_ms == shared.timestamp
+        && state.vault.finalized_rows[0].canonical_row_digest == shared.canonical_row_digest
+        && state.journal.events.len() == 1
+        && state.journal.events[0].event_id == event.event_id
+        && state.journal.events[0].input_evidence_digest == shared.reference_digest
+        && state.journal.events[0].prediction_timestamp_ms == event.prediction_timestamp
+}
+
+fn prospective_outcome_for_local_journal_v0(
+    outcome: ProspectiveOperationalOutcomeV0,
+) -> Result<ProspectiveShadowOutcomeV0, String> {
+    match outcome {
+        ProspectiveOperationalOutcomeV0::ShadowPredictionSealed => {
+            Err("external_prospective_prediction_bits_not_available".into())
+        }
+        ProspectiveOperationalOutcomeV0::ShadowAbstentionOutOfSupport => {
+            Ok(ProspectiveShadowOutcomeV0::ShadowAbstainOutOfSupport)
+        }
+        ProspectiveOperationalOutcomeV0::ShadowAbstentionSupportUnavailable => {
+            Ok(ProspectiveShadowOutcomeV0::ShadowAbstainSupportUnavailable)
+        }
+        ProspectiveOperationalOutcomeV0::ShadowAbstentionTechnicalFailure => {
+            Ok(ProspectiveShadowOutcomeV0::ShadowAbstainNumericalFailure)
+        }
+    }
+}
+
+fn validate_persistable_external_event_v0(
+    event: &LearnedProspectiveEventV0,
+    shared: &SharedProspectiveRawEvidenceV0,
+    expected_objective: LearnedAgentObjectiveV0,
+    expected_challenge_digest: &str,
+) -> Result<(), String> {
+    if event.objective != expected_objective
+        || event.challenge_digest != expected_challenge_digest
+        || event.shared_raw_evidence_digest != shared.reference_digest
+        || event.input_digest != shared.reference_digest
+        || event.prediction_timestamp != shared.timestamp
+        || event.maturity_timestamp <= event.prediction_timestamp
+        || !event.probability_bits_sealed
+        || event.label_accessed
+        || event.event_digest != learned_prospective_event_digest_v0(event)
+        || event.operational_outcome == ProspectiveOperationalOutcomeV0::ShadowPredictionSealed
+        || event.abstention_reason.as_deref().is_none_or(str::is_empty)
+    {
+        Err("external_prospective_event_not_persistable".into())
+    } else {
+        Ok(())
+    }
+}
+
+/// Atomically fans one already-admitted raw row out into the independent local
+/// journals. Only redacted evidence and event digests are persisted; each
+/// agent must be validated and sealed independently before it can participate.
+pub fn append_external_admission_to_local_stores_v0(
+    momentum: &mut ProspectiveChallengeLocalStateV0,
+    risk: &mut CycleRiskProspectiveLocalStateV0,
+    shared: &SharedProspectiveRawEvidenceV0,
+    momentum_event: Option<&LearnedProspectiveEventV0>,
+    risk_event: Option<&LearnedProspectiveEventV0>,
+) -> Result<(), String> {
+    if shared.label_accessed
+        || shared.reference_digest != shared_raw_evidence_digest_v0(shared)
+        || (momentum_event.is_none() && risk_event.is_none())
+    {
+        return Err("external_prospective_local_append_invalid".into());
+    }
+    let mut next_momentum = momentum.clone();
+    let mut next_risk = risk.clone();
+    if let Some(event) = momentum_event {
+        validate_persistable_external_event_v0(
+            event,
+            shared,
+            LearnedAgentObjectiveV0::DirectionalMomentum,
+            &next_momentum.capsule.capsule_digest,
+        )?;
+        if !momentum_external_event_already_persisted_v0(&next_momentum, shared, event) {
+            append_prospective_vault_row_v0(
+                &mut next_momentum,
+                ProspectiveEvidenceRowRefV0 {
+                    timestamp_ms: shared.timestamp,
+                    canonical_row_digest: shared.canonical_row_digest.clone(),
+                    finalized: true,
+                },
+            )
+            .map_err(|_| "external_prospective_momentum_vault_append_failed")?;
+            let local_event = ProspectivePredictionEventV0 {
+                challenge_id: next_momentum.capsule.challenge_id.clone(),
+                event_id: event.event_id.clone(),
+                prediction_timestamp_ms: event.prediction_timestamp,
+                required_label_maturity_timestamp_ms: event.maturity_timestamp,
+                input_evidence_digest: shared.reference_digest.clone(),
+                candidate_artifact_digest: next_momentum.capsule.candidate.artifact_digest.clone(),
+                comparator_artifact_digests: next_momentum
+                    .capsule
+                    .comparators
+                    .iter()
+                    .map(|value| value.artifact_digest.clone())
+                    .collect(),
+                support_applicability: "unavailable".into(),
+                support_decision: "abstain".into(),
+                candidate_prediction: None,
+                comparator_predictions: vec![],
+                operational_outcome: prospective_outcome_for_local_journal_v0(
+                    event.operational_outcome,
+                )?,
+                label_status: ProspectiveLabelStatusV0::AwaitingFutureRows,
+                event_digest: String::new(),
+            };
+            append_prospective_prediction_event_v0(&mut next_momentum, local_event)
+                .map_err(|_| "external_prospective_momentum_event_append_failed")?;
+        }
+    }
+    if let Some(event) = risk_event {
+        validate_persistable_external_event_v0(
+            event,
+            shared,
+            LearnedAgentObjectiveV0::DownsideRisk,
+            &next_risk.capsule.capsule_digest,
+        )?;
+        append_cycle_risk_external_row_and_event_v0(
+            &mut next_risk,
+            shared.timestamp,
+            shared.canonical_row_digest.clone(),
+            event.event_digest.clone(),
+        )
+        .map_err(|_| "external_prospective_risk_journal_append_failed")?;
+    }
+    validate_prospective_challenge_local_state_v0(&next_momentum)
+        .map_err(|_| "external_prospective_momentum_post_append_invalid")?;
+    validate_cycle_risk_prospective_local_state_v0(&next_risk)
+        .map_err(|_| "external_prospective_risk_post_append_invalid")?;
+    *momentum = next_momentum;
+    *risk = next_risk;
+    Ok(())
 }
 
 #[cfg(test)]
