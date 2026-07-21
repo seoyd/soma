@@ -3552,7 +3552,12 @@ struct ProspectiveOutcomeAcquisitionReportV0 {
     required_timestamps: Vec<u64>,
     required_row_count: usize,
     request_to_utc: String,
+    request_row_count: usize,
     request_count: usize,
+    retry_count: usize,
+    http_status_class: Option<String>,
+    returned_row_count: usize,
+    verified_row_count: usize,
     provider_id: String,
     market: String,
     cadence: String,
@@ -3562,7 +3567,12 @@ struct ProspectiveOutcomeAcquisitionReportV0 {
     plan_digest: String,
     request_fingerprint: Option<String>,
     prior_request_attempted: bool,
+    receipt_created: bool,
+    receipt_present: bool,
     outcome_evidence_present: bool,
+    outcome_capsule_created: bool,
+    outcome_capsule_present: bool,
+    evidence_status: String,
     receipt_digest: Option<String>,
     outcome_capsule_digest: Option<String>,
     opening_readiness: String,
@@ -3592,6 +3602,70 @@ struct ProspectiveOutcomeAcquisitionReportV0 {
     risk_handoffs: usize,
     executions_created: usize,
     protected_artifacts_unchanged: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct ProspectiveOutcomeReceiptReplayV0 {
+    plan_digest: String,
+    request_fingerprint: Option<String>,
+    acquisition_status: crate::data::ProspectiveOutcomeAcquisitionStatusV0,
+    request_count: usize,
+    retry_count: usize,
+    http_status_class: Option<String>,
+    returned_row_count: usize,
+    verified_row_count: usize,
+}
+
+fn prospective_outcome_receipt_replay_v0(
+    plan: &crate::data::ProspectiveOutcomeAcquisitionPlanV0,
+    status_mode: bool,
+    fallback_status: crate::data::ProspectiveOutcomeAcquisitionStatusV0,
+    receipt: Option<&crate::data::ProspectiveOutcomeAcquisitionReceiptV0>,
+) -> Result<ProspectiveOutcomeReceiptReplayV0, String> {
+    let request_fingerprint = if let Some(receipt) = receipt {
+        Some(receipt.request_fingerprint.clone())
+    } else if status_mode {
+        None
+    } else {
+        Some(crate::data::prospective_outcome_request_fingerprint_v0(
+            plan,
+        )?)
+    };
+    Ok(ProspectiveOutcomeReceiptReplayV0 {
+        plan_digest: receipt
+            .map(|value| value.plan_digest.clone())
+            .unwrap_or_else(|| plan.plan_digest.clone()),
+        request_fingerprint,
+        acquisition_status: receipt.map(|value| value.status).unwrap_or(fallback_status),
+        request_count: receipt.map(|value| value.request_count).unwrap_or_default(),
+        retry_count: receipt.map(|value| value.retry_count).unwrap_or_default(),
+        http_status_class: receipt.and_then(|value| value.http_status_class.clone()),
+        returned_row_count: receipt
+            .map(|value| value.returned_row_count)
+            .unwrap_or_default(),
+        verified_row_count: receipt
+            .map(|value| value.verified_row_count)
+            .unwrap_or_default(),
+    })
+}
+
+fn prospective_outcome_stored_result_chain_valid_v0(
+    receipt: Option<&crate::data::ProspectiveOutcomeAcquisitionReceiptV0>,
+    capsule: Option<&crate::data::ProspectiveOutcomeEvidenceCapsuleV0>,
+) -> bool {
+    match (receipt, capsule) {
+        (None, None) => true,
+        (Some(receipt), None) => receipt.outcome_capsule_digest.is_none(),
+        (None, Some(_)) => false,
+        (Some(receipt), Some(capsule)) => {
+            receipt.status == crate::data::ProspectiveOutcomeAcquisitionStatusV0::EvidenceAcquired
+                && receipt.outcome_capsule_digest.as_deref()
+                    == Some(capsule.capsule_digest.as_str())
+                && capsule.acquisition_receipt_digest == receipt.receipt_digest
+                && receipt.returned_row_count == capsule.canonical_rows.len()
+                && receipt.verified_row_count == capsule.canonical_rows.len()
+        }
+    }
 }
 
 fn prospective_outcome_acquisition_protected_bytes(
@@ -3700,7 +3774,15 @@ fn print_prospective_outcome_acquisition_report(
             );
             println!("required_row_count={}", report.required_row_count);
             println!("request_to_utc={}", report.request_to_utc);
+            println!("request_row_count={}", report.request_row_count);
             println!("request_count={}", report.request_count);
+            println!("retry_count={}", report.retry_count);
+            println!(
+                "http_status_class={}",
+                report.http_status_class.as_deref().unwrap_or_default()
+            );
+            println!("returned_row_count={}", report.returned_row_count);
+            println!("verified_row_count={}", report.verified_row_count);
             println!("provider_id={}", report.provider_id);
             println!("market={}", report.market);
             println!("cadence={}", report.cadence);
@@ -3713,10 +3795,15 @@ fn print_prospective_outcome_acquisition_report(
                 report.request_fingerprint.as_deref().unwrap_or_default()
             );
             println!("prior_request_attempted={}", report.prior_request_attempted);
+            println!("receipt_created={}", report.receipt_created);
+            println!("receipt_present={}", report.receipt_present);
             println!(
                 "outcome_evidence_present={}",
                 report.outcome_evidence_present
             );
+            println!("outcome_capsule_created={}", report.outcome_capsule_created);
+            println!("outcome_capsule_present={}", report.outcome_capsule_present);
+            println!("evidence_status={}", report.evidence_status);
             println!(
                 "receipt_digest={}",
                 report.receipt_digest.as_deref().unwrap_or_default()
@@ -3835,12 +3922,10 @@ fn run_prospective_outcome_acquisition(
             &context.expected_series_id,
         )?;
     }
-    if existing_capsule.as_ref().is_some_and(|capsule| {
-        existing_receipt.as_ref().is_none_or(|receipt| {
-            receipt.outcome_capsule_digest.as_deref() != Some(capsule.capsule_digest.as_str())
-                || capsule.acquisition_receipt_digest != receipt.receipt_digest
-        })
-    }) {
+    if !prospective_outcome_stored_result_chain_valid_v0(
+        existing_receipt.as_ref(),
+        existing_capsule.as_ref(),
+    ) {
         return Err("prospective outcome stored evidence chain invalid".into());
     }
     let observed_timestamp = current_utc_timestamp_ms();
@@ -3864,11 +3949,9 @@ fn run_prospective_outcome_acquisition(
         &context.public_registration,
         readiness,
     )?;
-    let request_fingerprint = (!status_mode)
-        .then(|| crate::data::prospective_outcome_request_fingerprint_v0(&plan))
-        .transpose()?;
     let mut acquisition_status = prospective_outcome_status_from_readiness(readiness);
     let mut attempted_this_run = false;
+    let mut capsule_created_this_run = false;
     let mut receipt = existing_receipt.clone();
     let mut capsule = existing_capsule.clone();
     if execute {
@@ -3893,7 +3976,8 @@ fn run_prospective_outcome_acquisition(
                 &receipt_path,
                 &new_receipt,
             )?;
-            receipt = Some(new_receipt);
+            receipt =
+                Some(crate::data::read_prospective_outcome_acquisition_receipt_v0(&receipt_path)?);
         }
         if let Some(raw_response) = result.raw_response {
             let temporary = raw_response_path.with_extension("tmp");
@@ -3907,9 +3991,29 @@ fn run_prospective_outcome_acquisition(
                 &capsule_path,
                 &new_capsule,
             )?;
-            capsule = Some(new_capsule);
+            capsule = Some(crate::data::read_prospective_outcome_evidence_capsule_v0(
+                &capsule_path,
+            )?);
+            capsule_created_this_run = true;
         }
     }
+    if let Some(stored_capsule) = capsule.as_ref() {
+        crate::data::validate_prospective_outcome_evidence_capsule_for_plan_v0(
+            stored_capsule,
+            &request_contract_plan,
+            &context.expected_series_id,
+        )?;
+    }
+    if !prospective_outcome_stored_result_chain_valid_v0(receipt.as_ref(), capsule.as_ref()) {
+        return Err("prospective outcome stored evidence chain invalid".into());
+    }
+    let receipt_replay = prospective_outcome_receipt_replay_v0(
+        &plan,
+        status_mode,
+        acquisition_status,
+        receipt.as_ref(),
+    )?;
+    acquisition_status = receipt_replay.acquisition_status;
     let protected_artifacts_unchanged =
         protected_before == prospective_outcome_acquisition_protected_bytes(local_dir)?;
     if !protected_artifacts_unchanged {
@@ -3933,17 +4037,31 @@ fn run_prospective_outcome_acquisition(
             required_timestamps: plan.required_timestamps,
             required_row_count: plan.required_row_count,
             request_to_utc: plan.request_to_utc,
-            request_count: plan.request_count,
+            request_row_count: plan.request_count,
+            request_count: receipt_replay.request_count,
+            retry_count: receipt_replay.retry_count,
+            http_status_class: receipt_replay.http_status_class,
+            returned_row_count: receipt_replay.returned_row_count,
+            verified_row_count: receipt_replay.verified_row_count,
             provider_id: plan.provider_id,
             market: plan.market,
             cadence: plan.cadence,
             maximum_requests: plan.maximum_requests,
             maximum_retries: plan.maximum_retries,
             maximum_concurrency: plan.maximum_concurrency,
-            plan_digest: plan.plan_digest,
-            request_fingerprint,
+            plan_digest: receipt_replay.plan_digest,
+            request_fingerprint: receipt_replay.request_fingerprint,
             prior_request_attempted: existing_receipt.is_some(),
+            receipt_created: attempted_this_run,
+            receipt_present: receipt.is_some(),
             outcome_evidence_present: capsule.is_some(),
+            outcome_capsule_created: capsule_created_this_run,
+            outcome_capsule_present: capsule.is_some(),
+            evidence_status: if capsule.is_some() {
+                "CompleteVerified".into()
+            } else {
+                "NoOutcomeRows".into()
+            },
             receipt_digest: receipt.as_ref().map(|value| value.receipt_digest.clone()),
             outcome_capsule_digest: capsule.as_ref().map(|value| value.capsule_digest.clone()),
             opening_readiness: if capsule.is_some() {
@@ -5434,5 +5552,130 @@ mod tests {
         assert_eq!(json["metric_computations"].as_u64(), Some(0));
         assert_eq!(json["executions_created"].as_u64(), Some(0));
         assert_eq!(json["sprint65_artifacts_unchanged"].as_bool(), Some(true));
+    }
+
+    #[test]
+    fn prospective_outcome_status_replays_persisted_receipt_fields_without_network() {
+        let plan = crate::data::ProspectiveOutcomeAcquisitionPlanV0 {
+            plan_version: "prospective-outcome-acquisition-plan-v0".into(),
+            opening_registration_digest: "registration".into(),
+            momentum_event_digest: "momentum".into(),
+            risk_event_digest: "risk".into(),
+            required_timestamps: vec![1, 2, 3, 4],
+            required_row_count: 4,
+            request_to_utc: "2026-07-22T00:00:00Z".into(),
+            request_count: 4,
+            provider_id: "upbit".into(),
+            market: "KRW-BTC".into(),
+            cadence: "1d".into(),
+            maximum_requests: 1,
+            maximum_retries: 0,
+            maximum_concurrency: 1,
+            readiness: crate::model::ProspectiveOutcomeRequestReadinessV0::RequestAlreadyAttempted,
+            plan_digest: "current-plan".into(),
+        };
+        let receipt = crate::data::ProspectiveOutcomeAcquisitionReceiptV0 {
+            receipt_version: "prospective-outcome-acquisition-receipt-v0".into(),
+            opening_registration_digest: "registration".into(),
+            plan_digest: "request-plan".into(),
+            request_fingerprint: "request-fingerprint".into(),
+            request_attempted: true,
+            request_count: 1,
+            retry_count: 0,
+            readiness_before_request:
+                crate::model::ProspectiveOutcomeRequestReadinessV0::ReadyForExplicitRequest,
+            status: crate::data::ProspectiveOutcomeAcquisitionStatusV0::EvidenceAcquired,
+            http_status_class: Some("2xx".into()),
+            returned_row_count: 4,
+            verified_row_count: 4,
+            outcome_capsule_digest: Some("capsule".into()),
+            receipt_digest: "receipt".into(),
+        };
+
+        let replay = prospective_outcome_receipt_replay_v0(
+            &plan,
+            true,
+            crate::data::ProspectiveOutcomeAcquisitionStatusV0::RequestBudgetExhausted,
+            Some(&receipt),
+        )
+        .unwrap();
+
+        assert_eq!(replay.plan_digest, receipt.plan_digest);
+        assert_eq!(
+            replay.request_fingerprint.as_deref(),
+            Some(receipt.request_fingerprint.as_str())
+        );
+        assert_eq!(replay.acquisition_status, receipt.status);
+        assert_eq!(replay.request_count, 1);
+        assert_eq!(replay.retry_count, 0);
+        assert_eq!(replay.http_status_class.as_deref(), Some("2xx"));
+        assert_eq!(replay.returned_row_count, 4);
+        assert_eq!(replay.verified_row_count, 4);
+        assert_eq!(plan.request_count, 4);
+        let row = crate::model::CanonicalHistoricalRowIdentityV1 {
+            provider_id: "upbit".into(),
+            series_id: "BtcCrypto:KRW-BTC".into(),
+            timestamp_ms: 1,
+            open_bits: 1.0_f64.to_bits(),
+            high_bits: 1.0_f64.to_bits(),
+            low_bits: 1.0_f64.to_bits(),
+            close_bits: 1.0_f64.to_bits(),
+            volume_bits: 0.0_f64.to_bits(),
+            trade_value_bits: Some(0.0_f64.to_bits()),
+            row_digest_v1: "row".into(),
+        };
+        let capsule = crate::data::ProspectiveOutcomeEvidenceCapsuleV0 {
+            capsule_version: "prospective-outcome-evidence-capsule-v0".into(),
+            opening_registration_digest: "registration".into(),
+            acquisition_receipt_digest: "receipt".into(),
+            provider_id: "upbit".into(),
+            market: "KRW-BTC".into(),
+            cadence: "1d".into(),
+            canonical_rows: vec![row; 4],
+            canonical_row_digests: vec!["row".into(); 4],
+            first_timestamp: 1,
+            last_timestamp: 4,
+            complete_registered_range: true,
+            finalized: true,
+            read_only: true,
+            sanitized: true,
+            credential_free: true,
+            labels_opened: false,
+            capsule_digest: "capsule".into(),
+        };
+        assert!(prospective_outcome_stored_result_chain_valid_v0(
+            Some(&receipt),
+            Some(&capsule)
+        ));
+        assert!(!prospective_outcome_stored_result_chain_valid_v0(
+            Some(&receipt),
+            None
+        ));
+        assert!(!prospective_outcome_stored_result_chain_valid_v0(
+            None,
+            Some(&capsule)
+        ));
+        let mut mismatched_capsule_digest = capsule.clone();
+        mismatched_capsule_digest.capsule_digest = "other-capsule".into();
+        assert!(!prospective_outcome_stored_result_chain_valid_v0(
+            Some(&receipt),
+            Some(&mismatched_capsule_digest)
+        ));
+        let mut mismatched_capsule = capsule;
+        mismatched_capsule.acquisition_receipt_digest = "other-receipt".into();
+        assert!(!prospective_outcome_stored_result_chain_valid_v0(
+            Some(&receipt),
+            Some(&mismatched_capsule)
+        ));
+        let mut failed_receipt = receipt;
+        failed_receipt.status = crate::data::ProspectiveOutcomeAcquisitionStatusV0::TimeoutNoRetry;
+        failed_receipt.http_status_class = None;
+        failed_receipt.returned_row_count = 0;
+        failed_receipt.verified_row_count = 0;
+        failed_receipt.outcome_capsule_digest = None;
+        assert!(prospective_outcome_stored_result_chain_valid_v0(
+            Some(&failed_receipt),
+            None
+        ));
     }
 }

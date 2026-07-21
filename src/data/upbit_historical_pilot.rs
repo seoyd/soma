@@ -3053,6 +3053,28 @@ fn prospective_outcome_evidence_capsule_digest_v0(
 pub fn verify_prospective_outcome_acquisition_receipt_v0(
     receipt: &ProspectiveOutcomeAcquisitionReceiptV0,
 ) -> bool {
+    let result_shape_valid = match receipt.status {
+        ProspectiveOutcomeAcquisitionStatusV0::EvidenceAcquired => {
+            receipt.returned_row_count > 0
+                && receipt.verified_row_count == receipt.returned_row_count
+                && receipt.outcome_capsule_digest.is_some()
+        }
+        ProspectiveOutcomeAcquisitionStatusV0::ProviderRejected
+        | ProspectiveOutcomeAcquisitionStatusV0::TimeoutNoRetry
+        | ProspectiveOutcomeAcquisitionStatusV0::InvalidResponse
+        | ProspectiveOutcomeAcquisitionStatusV0::MissingRequiredRows
+        | ProspectiveOutcomeAcquisitionStatusV0::ExtraRowsReturned
+        | ProspectiveOutcomeAcquisitionStatusV0::DuplicateRows
+        | ProspectiveOutcomeAcquisitionStatusV0::NonFinalizedRows
+        | ProspectiveOutcomeAcquisitionStatusV0::IntegrityFailure
+        | ProspectiveOutcomeAcquisitionStatusV0::TechnicalFailure => {
+            receipt.verified_row_count == 0 && receipt.outcome_capsule_digest.is_none()
+        }
+        ProspectiveOutcomeAcquisitionStatusV0::NotAttemptedNotMature
+        | ProspectiveOutcomeAcquisitionStatusV0::ReadyNotAttempted
+        | ProspectiveOutcomeAcquisitionStatusV0::PartialRequestForbidden
+        | ProspectiveOutcomeAcquisitionStatusV0::RequestBudgetExhausted => false,
+    };
     receipt.receipt_version == PROSPECTIVE_OUTCOME_ACQUISITION_RECEIPT_VERSION_V0
         && !receipt.opening_registration_digest.is_empty()
         && !receipt.plan_digest.is_empty()
@@ -3062,13 +3084,7 @@ pub fn verify_prospective_outcome_acquisition_receipt_v0(
         && receipt.retry_count == 0
         && receipt.readiness_before_request
             == crate::model::ProspectiveOutcomeRequestReadinessV0::ReadyForExplicitRequest
-        && !matches!(
-            receipt.status,
-            ProspectiveOutcomeAcquisitionStatusV0::NotAttemptedNotMature
-                | ProspectiveOutcomeAcquisitionStatusV0::ReadyNotAttempted
-                | ProspectiveOutcomeAcquisitionStatusV0::PartialRequestForbidden
-                | ProspectiveOutcomeAcquisitionStatusV0::RequestBudgetExhausted
-        )
+        && result_shape_valid
         && receipt.verified_row_count <= receipt.returned_row_count
         && receipt.receipt_digest == prospective_outcome_acquisition_receipt_digest_v0(receipt)
 }
@@ -6037,6 +6053,18 @@ mod tests {
         assert_eq!(receipt.request_count, 1);
         assert_eq!(receipt.retry_count, 0);
         assert!(verify_prospective_outcome_acquisition_receipt_v0(receipt));
+        let mut success_without_capsule = receipt.clone();
+        success_without_capsule.outcome_capsule_digest = None;
+        assert!(!verify_prospective_outcome_acquisition_receipt_v0(
+            &success_without_capsule
+        ));
+        let mut success_without_verified_rows = receipt.clone();
+        success_without_verified_rows.verified_row_count = 0;
+        success_without_verified_rows.receipt_digest =
+            prospective_outcome_acquisition_receipt_digest_v0(&success_without_verified_rows);
+        assert!(!verify_prospective_outcome_acquisition_receipt_v0(
+            &success_without_verified_rows
+        ));
         let mut used_plan = plan.clone();
         used_plan.readiness =
             crate::model::ProspectiveOutcomeRequestReadinessV0::RequestAlreadyAttempted;
