@@ -34,6 +34,19 @@ zero prior label opens, explicit owner authorization, and one-time-only
 authorization. This Sprint defines and validates that authorization shape but
 does not create one.
 
+## Acquisition finality boundary
+
+The outcome executor distinguishes an event's last required candle timestamp
+from the time that candle becomes finalized. Request readiness is reached only
+at the UTC midnight immediately after each plan's final required timestamp.
+This boundary is derived from the immutable plans and is also the fixed
+exclusive `to` value; it never follows the current date.
+
+The two timestamp sets are acquired only as one exact union. A Momentum-only
+row, a Cycle/Risk subset, multiple requests, a missing timestamp, or a larger
+response remains forbidden. Successful acquisition may make the evidence ready
+for a later explicit opening, but it does not itself open either event.
+
 ## Offline preflight
 
 The preflight reopens and validates the sealed journals, vaults, admission
