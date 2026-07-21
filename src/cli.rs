@@ -66,9 +66,13 @@ pub struct CliArgs {
     #[arg(long, default_value_t = false)]
     pub prospective_outcome_acquisition: bool,
     #[arg(long, default_value_t = false)]
+    pub agent_private_learning_sessions: bool,
+    #[arg(long, default_value_t = false)]
     pub status: bool,
     #[arg(long, default_value_t = false)]
     pub dry_run: bool,
+    #[arg(long, default_value_t = false)]
+    pub execute_local: bool,
     #[arg(long, default_value_t = false)]
     pub execute: bool,
     #[arg(long, default_value_t = false)]
@@ -101,6 +105,18 @@ pub struct CliArgs {
 
 pub fn run() -> Result<(), String> {
     let args = CliArgs::parse();
+    if args.agent_private_learning_sessions {
+        return run_agent_private_learning_sessions_cli_v0(
+            &args.output_format,
+            args.status,
+            args.dry_run,
+            args.execute_local,
+            args.allow_network,
+        );
+    }
+    if args.execute_local {
+        return Err("--execute-local requires --agent-private-learning-sessions".to_string());
+    }
     if (args.status || args.confirm_one_time_outcome_request)
         && !args.prospective_outcome_acquisition
     {
@@ -327,6 +343,117 @@ pub fn run() -> Result<(), String> {
         println!("paper_order: {}", order.order_id);
     } else {
         println!("paper_order: none");
+    }
+    Ok(())
+}
+
+fn run_agent_private_learning_sessions_cli_v0(
+    output_format: &str,
+    status: bool,
+    dry_run: bool,
+    execute_local: bool,
+    allow_network: bool,
+) -> Result<(), String> {
+    if usize::from(status) + usize::from(dry_run) + usize::from(execute_local) != 1 {
+        return Err(
+            "select exactly one private learning mode: --status, --dry-run, or --execute-local"
+                .to_string(),
+        );
+    }
+    if allow_network {
+        return Err("agent-private learning sessions are offline-only".to_string());
+    }
+    let evidence_root = Path::new("data/local_snapshots");
+    let snapshots = crate::model::load_local_learning_snapshots_v0(evidence_root)?;
+    let cutoff = snapshots
+        .iter()
+        .filter_map(|snapshot| snapshot.actual_end_timestamp_ms)
+        .max()
+        .unwrap_or(1);
+    let inputs = crate::model::build_agent_private_learning_inputs_v0(&snapshots, cutoff)?;
+    let mode = if status {
+        crate::model::AgentPrivateLearningRunModeV0::Status
+    } else if dry_run {
+        crate::model::AgentPrivateLearningRunModeV0::DryRun
+    } else {
+        crate::model::AgentPrivateLearningRunModeV0::ExecuteLocal
+    };
+    let mut report = crate::model::run_agent_private_learning_sessions_v0(&inputs, mode);
+    if execute_local {
+        crate::model::persist_agent_private_learning_report_v0(
+            &mut report,
+            crate::model::default_private_learning_root_v0(),
+        );
+    }
+    let summaries = crate::model::public_session_summaries_v0(&report);
+    if output_format == "json" {
+        println!(
+            "{}",
+            serde_json::json!({
+                "mode": format!("{:?}", report.mode),
+                "capability_registry_digest": report.capability_registry.registry_digest,
+                "sessions": summaries,
+                "active_state_unchanged": report.active_state_unchanged,
+                "duplicate_artifact_count": report.duplicate_artifact_count,
+                "storage_failure_count": report.storage_failure_count,
+                "authority_counters": {
+                    "network_requests": report.safety_counters.network_requests,
+                    "credential_reads": report.safety_counters.credential_reads,
+                    "prospective_artifact_mutations": report.safety_counters.prospective_artifact_mutations,
+                    "prospective_label_reads": report.safety_counters.prospective_label_reads,
+                    "chair_decisions": report.safety_counters.chair_decisions,
+                    "votes": report.safety_counters.votes,
+                    "rewards": report.safety_counters.rewards,
+                    "penalties": report.safety_counters.penalties,
+                    "voice_changes": report.safety_counters.voice_changes,
+                    "executions": report.safety_counters.executions,
+                },
+                "report_digest": report.report_digest,
+            })
+        );
+    } else {
+        println!("mode={:?}", report.mode);
+        println!(
+            "capability_registry_digest={}",
+            report.capability_registry.registry_digest
+        );
+        for summary in summaries {
+            println!(
+                "agent={};intent_digest={};view_digest={};session_digest={};trainer={:?};sources={};status={:?};candidate_present={};candidate_digest={}",
+                summary.agent_id,
+                summary.intent_digest,
+                summary.data_view_digest,
+                summary.session_digest,
+                summary.trainer_kind,
+                summary.source_count,
+                summary.session_status,
+                summary.candidate_present,
+                summary.candidate_digest.unwrap_or_default(),
+            );
+        }
+        println!("active_state_unchanged={}", report.active_state_unchanged);
+        println!(
+            "network_requests={}",
+            report.safety_counters.network_requests
+        );
+        println!(
+            "prospective_artifact_mutations={}",
+            report.safety_counters.prospective_artifact_mutations
+        );
+        println!(
+            "prospective_label_reads={}",
+            report.safety_counters.prospective_label_reads
+        );
+        println!("chair_decisions={}", report.safety_counters.chair_decisions);
+        println!("votes={}", report.safety_counters.votes);
+        println!("rewards={}", report.safety_counters.rewards);
+        println!("executions={}", report.safety_counters.executions);
+        println!("duplicate_artifacts={}", report.duplicate_artifact_count);
+        println!("storage_failures={}", report.storage_failure_count);
+        println!("report_digest={}", report.report_digest);
+    }
+    if report.storage_failure_count > 0 {
+        return Err("one or more private learning artifacts failed verification".to_string());
     }
     Ok(())
 }
