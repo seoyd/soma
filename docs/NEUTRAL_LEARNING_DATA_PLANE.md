@@ -35,6 +35,15 @@ and fetch duration are excluded. Existing `requested_by_agents`,
 `required_by_agents`, `agent_request_mapping`, and deduplicated-request counts
 remain authoritative.
 
+Snapshot replay first uses the exact semantic request key. A non-exact fallback
+is admitted only when the snapshot carries explicit compatibility metadata for
+cadence, adjustment semantics, normalized source schema, requested cutoff,
+staleness contract, and row finality. Dataset kind, market, sorted symbols, and
+the complete lookback must also match. The fallback additionally revalidates
+chronology, finite OHLCV values, accepted quality and row counts, sanitized
+read-only provenance, and the content digest. Legacy snapshots without this
+metadata remain available to exact-key replay but fail closed as fallbacks.
+
 ## Visibility and independent views
 
 Four explicit classes are enforced:

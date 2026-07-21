@@ -11028,6 +11028,7 @@ mod tests {
             content_digest,
             sanitized: true,
             read_only: true,
+            compatibility: None,
             normalized_dataset,
             provenance: SnapshotProvenance {
                 provider_id: "approved-provider".into(),

@@ -372,6 +372,7 @@ pub struct ReadOnlyProviderResponse {
     pub provider_id: String,
     pub fetched_at_ms: u64,
     pub content_type: String,
+    pub all_rows_finalized: bool,
     pub normalized_dataset: HistoricalReplayDataset,
     pub reported_content_bytes: usize,
     pub reason_codes: Vec<ReasonCode>,
@@ -620,6 +621,23 @@ pub struct SnapshotQualitySummary {
     pub reason_codes: Vec<ReasonCode>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SnapshotAdjustmentSemanticsV1 {
+    Unadjusted,
+    Adjusted,
+    NotApplicable,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SnapshotCompatibilityV1 {
+    pub cadence: String,
+    pub adjustment_semantics: SnapshotAdjustmentSemanticsV1,
+    pub source_schema: String,
+    pub requested_cutoff_timestamp_ms: Option<u64>,
+    pub maximum_staleness_ms: u64,
+    pub all_rows_finalized: bool,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DataSnapshot {
     pub snapshot_id: String,
@@ -639,6 +657,8 @@ pub struct DataSnapshot {
     pub content_digest: String,
     pub sanitized: bool,
     pub read_only: bool,
+    #[serde(default)]
+    pub compatibility: Option<SnapshotCompatibilityV1>,
     pub normalized_dataset: HistoricalReplayDataset,
     pub provenance: SnapshotProvenance,
     pub reason_codes: Vec<ReasonCode>,
@@ -678,20 +698,7 @@ impl InMemorySnapshotStore {
     fn find_latest_compatible(&self, request: &ReadOnlyProviderRequest) -> Option<DataSnapshot> {
         self.snapshots
             .values()
-            .filter(|snapshot| {
-                snapshot.dataset_kind == request.dataset_kind
-                    && snapshot.market_scope == request.market_scope
-                    && snapshot.symbols == request.symbols
-                    && snapshot.requested_lookback.bars == request.lookback.bars
-                    && snapshot.requested_lookback.start_timestamp_ms
-                        == request.lookback.start_timestamp_ms
-                    && snapshot.actual_end_timestamp_ms.is_some_and(|actual_end| {
-                        request
-                            .lookback
-                            .end_timestamp_ms
-                            .is_none_or(|requested_end| actual_end <= requested_end)
-                    })
-            })
+            .filter(|snapshot| snapshot_is_compatible_fallback(snapshot, request))
             .max_by_key(|snapshot| snapshot.fetched_at_ms)
             .cloned()
     }
@@ -703,6 +710,78 @@ impl InMemorySnapshotStore {
 
     fn verify_snapshot(&self, snapshot: &DataSnapshot) -> bool {
         snapshot.content_digest == snapshot_digest(&snapshot.normalized_dataset)
+    }
+}
+
+fn snapshot_is_compatible_fallback(
+    snapshot: &DataSnapshot,
+    request: &ReadOnlyProviderRequest,
+) -> bool {
+    let Some(compatibility) = snapshot.compatibility.as_ref() else {
+        return false;
+    };
+    snapshot.dataset_kind == request.dataset_kind
+        && snapshot.market_scope == request.market_scope
+        && snapshot.symbols == request.symbols
+        && snapshot.requested_lookback == request.lookback
+        && compatibility.cadence == request.cadence
+        && compatibility.adjustment_semantics == adjustment_semantics_v1(request.dataset_kind)
+        && compatibility.source_schema == "application/x-soma-normalized-dataset"
+        && compatibility.requested_cutoff_timestamp_ms == request.lookback.end_timestamp_ms
+        && compatibility.maximum_staleness_ms == request.max_staleness_ms
+        && compatibility.all_rows_finalized
+        && snapshot.schema_version == 1
+        && snapshot.quality_summary.accepted
+        && snapshot.row_count == snapshot.normalized_dataset.rows.len()
+        && snapshot.quality_summary.row_count == snapshot.row_count
+        && snapshot.sanitized
+        && snapshot.read_only
+        && snapshot.provenance.provider_id == snapshot.provider_id
+        && snapshot.provenance.sanitized
+        && snapshot.provenance.credential_free
+        && snapshot.provenance.source_type != SnapshotSourceType::LocalSnapshotReplay
+        && snapshot.actual_start_timestamp_ms
+            == snapshot
+                .normalized_dataset
+                .rows
+                .first()
+                .map(|row| row.timestamp_ms)
+        && snapshot.actual_end_timestamp_ms
+            == snapshot
+                .normalized_dataset
+                .rows
+                .last()
+                .map(|row| row.timestamp_ms)
+        && snapshot.actual_end_timestamp_ms.is_some_and(|actual_end| {
+            request
+                .lookback
+                .end_timestamp_ms
+                .is_some_and(|requested_end| actual_end <= requested_end)
+        })
+        && snapshot
+            .normalized_dataset
+            .rows
+            .iter()
+            .all(|row| row.symbol == snapshot.normalized_dataset.symbol)
+        && validate_normalized_dataset(&snapshot.normalized_dataset).is_ok()
+        && snapshot.content_digest == snapshot_digest(&snapshot.normalized_dataset)
+}
+
+fn adjustment_semantics_v1(dataset_kind: DatasetKind) -> SnapshotAdjustmentSemanticsV1 {
+    match dataset_kind {
+        DatasetKind::DailyOhlcv | DatasetKind::CryptoDailyOhlcv => {
+            SnapshotAdjustmentSemanticsV1::Unadjusted
+        }
+        DatasetKind::AdjustedDailyOhlcv => SnapshotAdjustmentSemanticsV1::Adjusted,
+        DatasetKind::CorporateActions
+        | DatasetKind::QuarterlyFundamentals
+        | DatasetKind::ValuationMetrics
+        | DatasetKind::MarketIndexDaily
+        | DatasetKind::MarketBreadthDaily
+        | DatasetKind::VolatilityDaily
+        | DatasetKind::LiquidityDaily
+        | DatasetKind::MacroSeries
+        | DatasetKind::Unknown => SnapshotAdjustmentSemanticsV1::NotApplicable,
     }
 }
 
@@ -1055,6 +1134,7 @@ fn snapshot_from_response(
     if response.request_id != request.request_id
         || response.provider_id != request.provider_id
         || response.content_type != "application/x-soma-normalized-dataset"
+        || !response.all_rows_finalized
     {
         return Err(ReasonCode::DataSnapshotUnsafeContentRejected);
     }
@@ -1095,6 +1175,14 @@ fn snapshot_from_response(
         content_digest: digest,
         sanitized: true,
         read_only: true,
+        compatibility: Some(SnapshotCompatibilityV1 {
+            cadence: request.cadence.clone(),
+            adjustment_semantics: adjustment_semantics_v1(request.dataset_kind),
+            source_schema: response.content_type,
+            requested_cutoff_timestamp_ms: request.lookback.end_timestamp_ms,
+            maximum_staleness_ms: request.max_staleness_ms,
+            all_rows_finalized: response.all_rows_finalized,
+        }),
         normalized_dataset: response.normalized_dataset,
         provenance: SnapshotProvenance {
             provider_id: request.provider_id.clone(),
@@ -3178,6 +3266,7 @@ mod tests {
                 provider_id: String::new(),
                 fetched_at_ms: now_ms,
                 content_type: "application/x-soma-normalized-dataset".to_string(),
+                all_rows_finalized: true,
                 normalized_dataset: mock_dataset(),
                 reported_content_bytes: 512,
                 reason_codes: vec![],
@@ -3185,6 +3274,38 @@ mod tests {
             default_failure: None,
             requests: Vec::new(),
         }
+    }
+
+    fn fallback_request(request_key: &str) -> ReadOnlyProviderRequest {
+        ReadOnlyProviderRequest {
+            request_id: format!("request-{request_key}"),
+            request_key: request_key.to_string(),
+            provider_id: "mock-readonly".to_string(),
+            dataset_kind: DatasetKind::DailyOhlcv,
+            market_scope: AcquisitionMarketScope::UsStocks,
+            symbols: vec!["AAA".to_string()],
+            lookback: DataLookback {
+                bars: 2,
+                start_timestamp_ms: None,
+                end_timestamp_ms: Some(10),
+            },
+            cadence: "1d".to_string(),
+            max_staleness_ms: 20,
+            reason_codes: vec![],
+        }
+    }
+
+    fn fallback_snapshot(request: &ReadOnlyProviderRequest, fetched_at_ms: u64) -> DataSnapshot {
+        let mut provider = mock_provider(fetched_at_ms);
+        let response = provider.fetch_readonly(request).unwrap();
+        snapshot_from_response(
+            request,
+            response,
+            AcquisitionMode::Mock,
+            fetched_at_ms,
+            1_024,
+        )
+        .unwrap()
     }
 
     fn input(mode: AcquisitionMode, now_ms: u64) -> AutonomousDataCycleInput {
@@ -3763,31 +3884,108 @@ mod tests {
     }
 
     #[test]
-    fn replay_uses_last_known_good_only_within_tolerance() {
-        let mut registry = ReadOnlyProviderRegistry::default();
-        registry.register(mock_capabilities());
-        let mut policy = AcquisitionPolicy::default();
-        policy.stale_data_policy = StaleDataPolicy::UseLastKnownGoodWithinTolerance;
-        policy.last_known_good_tolerance_ms = 100;
-        let mut broker = DataAcquisitionBroker::new(registry, policy);
-        let mut provider = mock_provider(10);
-        let mut stale_input = input(AcquisitionMode::Mock, 10);
-        for policy in &mut stale_input.agent_data_policies {
-            policy.max_staleness_ms = 20;
-        }
-        let initial = execute_autonomous_data_cycle(&stale_input, &mut broker, Some(&mut provider));
-        assert!(!initial.new_snapshots.is_empty());
-        stale_input.acquisition_mode = AcquisitionMode::LocalSnapshotReplay;
-        stale_input.now_ms = 50;
-        let replay = execute_autonomous_data_cycle(&stale_input, &mut broker, None);
-        assert!(!replay.reused_snapshots.is_empty());
-        stale_input.now_ms = 1_000;
-        let rejected = execute_autonomous_data_cycle(&stale_input, &mut broker, None);
-        assert!(rejected.acquisition_receipts.iter().any(|receipt| {
-            receipt
+    fn exact_request_key_reuse_does_not_require_fallback_metadata() {
+        let request = fallback_request("exact-key");
+        let mut snapshot = fallback_snapshot(&request, 10);
+        snapshot.compatibility = None;
+        let mut broker = DataAcquisitionBroker::new(
+            ReadOnlyProviderRegistry::default(),
+            AcquisitionPolicy::default(),
+        );
+        broker.snapshot_store.put(snapshot).unwrap();
+        let mut result = BrokerExecutionResult::default();
+        broker.replay_snapshot(&request, 10, &mut result);
+        assert_eq!(result.reused_snapshots.len(), 1);
+        assert_eq!(
+            result.receipts[0].status,
+            AcquisitionReceiptStatus::ReusedSnapshot
+        );
+    }
+
+    #[test]
+    fn compatible_daily_fallback_requires_explicit_semantics() {
+        let source = fallback_request("source-key");
+        let target = fallback_request("target-key");
+        let snapshot = fallback_snapshot(&source, 10);
+        let mut store = InMemorySnapshotStore::default();
+        store.put(snapshot.clone()).unwrap();
+        assert_eq!(store.find_latest_compatible(&target), Some(snapshot));
+    }
+
+    #[test]
+    fn compatible_fallback_rejects_different_cadence() {
+        let source = fallback_request("source-key");
+        let mut target = fallback_request("target-key");
+        target.cadence = "1h".to_string();
+        let mut store = InMemorySnapshotStore::default();
+        store.put(fallback_snapshot(&source, 10)).unwrap();
+        assert!(store.find_latest_compatible(&target).is_none());
+    }
+
+    #[test]
+    fn compatible_fallback_rejects_different_dataset() {
+        let source = fallback_request("source-key");
+        let mut target = fallback_request("target-key");
+        target.dataset_kind = DatasetKind::AdjustedDailyOhlcv;
+        let mut store = InMemorySnapshotStore::default();
+        store.put(fallback_snapshot(&source, 10)).unwrap();
+        assert!(store.find_latest_compatible(&target).is_none());
+    }
+
+    #[test]
+    fn compatible_fallback_rejects_different_cutoff() {
+        let source = fallback_request("source-key");
+        let mut target = fallback_request("target-key");
+        target.lookback.end_timestamp_ms = Some(11);
+        let mut store = InMemorySnapshotStore::default();
+        store.put(fallback_snapshot(&source, 10)).unwrap();
+        assert!(store.find_latest_compatible(&target).is_none());
+    }
+
+    #[test]
+    fn compatible_fallback_is_rejected_when_stale() {
+        let source = fallback_request("source-key");
+        let target = fallback_request("target-key");
+        let mut broker = DataAcquisitionBroker::new(
+            ReadOnlyProviderRegistry::default(),
+            AcquisitionPolicy::default(),
+        );
+        broker
+            .snapshot_store
+            .put(fallback_snapshot(&source, 10))
+            .unwrap();
+        let mut result = BrokerExecutionResult::default();
+        broker.replay_snapshot(&target, 1_000, &mut result);
+        assert!(result.reused_snapshots.is_empty());
+        assert!(
+            result.receipts[0]
                 .reason_codes
                 .contains(&ReasonCode::EvidenceStaleRejected)
-        }));
+        );
+    }
+
+    #[test]
+    fn compatible_fallback_rejects_failed_quality() {
+        let source = fallback_request("source-key");
+        let target = fallback_request("target-key");
+        let mut snapshot = fallback_snapshot(&source, 10);
+        snapshot.quality_summary.accepted = false;
+        let mut store = InMemorySnapshotStore::default();
+        store.put(snapshot).unwrap();
+        assert!(store.find_latest_compatible(&target).is_none());
+    }
+
+    #[test]
+    fn compatible_fallback_rejects_digest_corruption() {
+        let source = fallback_request("source-key");
+        let target = fallback_request("target-key");
+        let mut snapshot = fallback_snapshot(&source, 10);
+        snapshot.content_digest = "corrupted".to_string();
+        let mut store = InMemorySnapshotStore::default();
+        store
+            .snapshots
+            .insert(snapshot.snapshot_id.clone(), snapshot);
+        assert!(store.find_latest_compatible(&target).is_none());
     }
 
     #[test]
