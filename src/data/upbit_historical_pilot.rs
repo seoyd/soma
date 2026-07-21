@@ -2739,6 +2739,908 @@ pub fn fetch_one_prospective_public_export_v0(
     })
 }
 
+const PROSPECTIVE_OUTCOME_ACQUISITION_PLAN_VERSION_V0: &str =
+    "prospective-outcome-acquisition-plan-v0";
+const PROSPECTIVE_OUTCOME_ACQUISITION_RECEIPT_VERSION_V0: &str =
+    "prospective-outcome-acquisition-receipt-v0";
+const PROSPECTIVE_OUTCOME_EVIDENCE_CAPSULE_VERSION_V0: &str =
+    "prospective-outcome-evidence-capsule-v0";
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProspectiveOutcomeAcquisitionPlanV0 {
+    pub plan_version: String,
+    pub opening_registration_digest: String,
+    pub momentum_event_digest: String,
+    pub risk_event_digest: String,
+    pub required_timestamps: Vec<u64>,
+    pub required_row_count: usize,
+    pub request_to_utc: String,
+    pub request_count: usize,
+    pub provider_id: String,
+    pub market: String,
+    pub cadence: String,
+    pub maximum_requests: usize,
+    pub maximum_retries: usize,
+    pub maximum_concurrency: usize,
+    pub readiness: crate::model::ProspectiveOutcomeRequestReadinessV0,
+    pub plan_digest: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProspectiveOutcomeAcquisitionStatusV0 {
+    NotAttemptedNotMature,
+    ReadyNotAttempted,
+    EvidenceAcquired,
+    PartialRequestForbidden,
+    RequestBudgetExhausted,
+    ProviderRejected,
+    TimeoutNoRetry,
+    InvalidResponse,
+    MissingRequiredRows,
+    ExtraRowsReturned,
+    DuplicateRows,
+    NonFinalizedRows,
+    IntegrityFailure,
+    TechnicalFailure,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProspectiveOutcomeAcquisitionReceiptV0 {
+    pub receipt_version: String,
+    pub opening_registration_digest: String,
+    pub plan_digest: String,
+    pub request_fingerprint: String,
+    pub request_attempted: bool,
+    pub request_count: usize,
+    pub retry_count: usize,
+    pub readiness_before_request: crate::model::ProspectiveOutcomeRequestReadinessV0,
+    pub status: ProspectiveOutcomeAcquisitionStatusV0,
+    pub http_status_class: Option<String>,
+    pub returned_row_count: usize,
+    pub verified_row_count: usize,
+    pub outcome_capsule_digest: Option<String>,
+    pub receipt_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProspectiveOutcomeEvidenceCapsuleV0 {
+    pub capsule_version: String,
+    pub opening_registration_digest: String,
+    pub acquisition_receipt_digest: String,
+    pub provider_id: String,
+    pub market: String,
+    pub cadence: String,
+    pub canonical_rows: Vec<crate::model::CanonicalHistoricalRowIdentityV1>,
+    pub canonical_row_digests: Vec<String>,
+    pub first_timestamp: u64,
+    pub last_timestamp: u64,
+    pub complete_registered_range: bool,
+    pub finalized: bool,
+    pub read_only: bool,
+    pub sanitized: bool,
+    pub credential_free: bool,
+    pub labels_opened: bool,
+    pub capsule_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ProspectiveOutcomeAcquisitionResultV0 {
+    pub status: ProspectiveOutcomeAcquisitionStatusV0,
+    pub receipt: Option<ProspectiveOutcomeAcquisitionReceiptV0>,
+    pub capsule: Option<ProspectiveOutcomeEvidenceCapsuleV0>,
+    pub raw_response: Option<Vec<u8>>,
+}
+
+fn prospective_outcome_source_policy_digest_v0(
+    registration: &ProspectivePublicExportAcquisitionRegistrationV0,
+) -> Result<String, String> {
+    validate_prospective_public_export_acquisition_registration_v0(registration)?;
+    Ok(stable_hash_string(&format!(
+        "prospective-one-time-outcome-source-v0:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+        registration.registration_digest,
+        registration.provider_id,
+        registration.endpoint_origin,
+        registration.endpoint_path,
+        registration.configured_market,
+        registration.cadence,
+        registration.maximum_requests,
+        registration.maximum_concurrency,
+        registration.retry_count,
+    )))
+}
+
+fn prospective_outcome_acquisition_plan_digest_v0(
+    plan: &ProspectiveOutcomeAcquisitionPlanV0,
+) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{}:{}:{:?}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{:?}",
+        plan.plan_version,
+        plan.opening_registration_digest,
+        plan.momentum_event_digest,
+        plan.risk_event_digest,
+        plan.required_timestamps,
+        plan.required_row_count,
+        plan.request_to_utc,
+        plan.request_count,
+        plan.provider_id,
+        plan.market,
+        plan.cadence,
+        plan.maximum_requests,
+        plan.maximum_retries,
+        plan.maximum_concurrency,
+        plan.readiness,
+    ))
+}
+
+pub fn prospective_outcome_request_fingerprint_v0(
+    plan: &ProspectiveOutcomeAcquisitionPlanV0,
+) -> Result<String, String> {
+    validate_prospective_outcome_acquisition_plan_v0(plan)?;
+    Ok(stable_hash_string(&format!(
+        "prospective-outcome-request-v0:{}:{}:{}:{}:{}:{}",
+        plan.plan_digest,
+        plan.provider_id,
+        plan.market,
+        plan.cadence,
+        plan.request_to_utc,
+        plan.request_count,
+    )))
+}
+
+pub fn build_prospective_outcome_acquisition_plan_v0(
+    opening_registration: &crate::model::ProspectiveOneTimeOpeningRegistrationV0,
+    maturity_plans: &[crate::model::ProspectiveEventMaturityPlanV0],
+    public_registration: &ProspectivePublicExportAcquisitionRegistrationV0,
+    readiness: crate::model::ProspectiveOutcomeRequestReadinessV0,
+) -> Result<ProspectiveOutcomeAcquisitionPlanV0, String> {
+    crate::model::validate_prospective_one_time_opening_registration_v0(
+        opening_registration,
+        maturity_plans,
+    )?;
+    validate_prospective_public_export_acquisition_registration_v0(public_registration)?;
+    if opening_registration.outcome_source_policy_digest
+        != prospective_outcome_source_policy_digest_v0(public_registration)?
+    {
+        return Err("prospective_outcome_source_registration_mismatch".into());
+    }
+    let required_timestamps =
+        crate::model::prospective_outcome_required_timestamp_set_v0(maturity_plans)?;
+    let required_row_count = required_timestamps.len();
+    if required_row_count != opening_registration.maximum_response_rows {
+        return Err("prospective_outcome_registered_union_mismatch".into());
+    }
+    let exclusive_timestamp = required_timestamps
+        .last()
+        .copied()
+        .and_then(|value| value.checked_add(DAILY_INTERVAL_MS_V0))
+        .ok_or("prospective_outcome_request_boundary_invalid")?;
+    let request_to_utc = format_utc_timestamp(exclusive_timestamp)
+        .ok_or("prospective_outcome_request_boundary_invalid")?;
+    let mut plan = ProspectiveOutcomeAcquisitionPlanV0 {
+        plan_version: PROSPECTIVE_OUTCOME_ACQUISITION_PLAN_VERSION_V0.into(),
+        opening_registration_digest: opening_registration.registration_digest.clone(),
+        momentum_event_digest: opening_registration.momentum_event_digest.clone(),
+        risk_event_digest: opening_registration.risk_event_digest.clone(),
+        required_timestamps,
+        required_row_count,
+        request_to_utc,
+        request_count: required_row_count,
+        provider_id: public_registration.provider_id.clone(),
+        market: public_registration.configured_market.clone(),
+        cadence: public_registration.cadence.clone(),
+        maximum_requests: opening_registration.maximum_future_requests,
+        maximum_retries: opening_registration.maximum_retries,
+        maximum_concurrency: opening_registration.maximum_concurrency,
+        readiness,
+        plan_digest: String::new(),
+    };
+    plan.plan_digest = prospective_outcome_acquisition_plan_digest_v0(&plan);
+    validate_prospective_outcome_acquisition_plan_v0(&plan)?;
+    Ok(plan)
+}
+
+pub fn validate_prospective_outcome_acquisition_plan_v0(
+    plan: &ProspectiveOutcomeAcquisitionPlanV0,
+) -> Result<(), String> {
+    let timestamps = plan
+        .required_timestamps
+        .iter()
+        .copied()
+        .collect::<BTreeSet<_>>();
+    let exclusive_timestamp = plan
+        .required_timestamps
+        .last()
+        .copied()
+        .and_then(|value| value.checked_add(DAILY_INTERVAL_MS_V0));
+    if plan.plan_version != PROSPECTIVE_OUTCOME_ACQUISITION_PLAN_VERSION_V0
+        || plan.opening_registration_digest.is_empty()
+        || plan.momentum_event_digest.is_empty()
+        || plan.risk_event_digest.is_empty()
+        || plan.momentum_event_digest == plan.risk_event_digest
+        || plan.required_timestamps.is_empty()
+        || timestamps.len() != plan.required_timestamps.len()
+        || !plan.required_timestamps.windows(2).all(|pair| {
+            pair[1]
+                .checked_sub(pair[0])
+                .is_some_and(|delta| delta == DAILY_INTERVAL_MS_V0)
+        })
+        || plan
+            .required_timestamps
+            .iter()
+            .any(|timestamp| timestamp % DAILY_INTERVAL_MS_V0 != 0)
+        || plan.required_row_count != plan.required_timestamps.len()
+        || plan.request_count != plan.required_row_count
+        || plan.maximum_requests != 1
+        || plan.maximum_retries != 0
+        || plan.maximum_concurrency != 1
+        || plan.provider_id != UPBIT_PROVIDER_ID
+        || !valid_market_symbol(&plan.market)
+        || plan.cadence != "1d"
+        || exclusive_timestamp
+            .and_then(format_utc_timestamp)
+            .as_deref()
+            != Some(plan.request_to_utc.as_str())
+        || parse_upbit_utc_timestamp_ms(&plan.request_to_utc).ok() != exclusive_timestamp
+        || plan.plan_digest != prospective_outcome_acquisition_plan_digest_v0(plan)
+    {
+        Err("prospective_outcome_acquisition_plan_invalid".into())
+    } else {
+        Ok(())
+    }
+}
+
+pub fn validate_prospective_outcome_request_selection_v0(
+    plan: &ProspectiveOutcomeAcquisitionPlanV0,
+    requested_timestamps: &[u64],
+    requested_count: usize,
+) -> Result<(), ProspectiveOutcomeAcquisitionStatusV0> {
+    validate_prospective_outcome_acquisition_plan_v0(plan)
+        .map_err(|_| ProspectiveOutcomeAcquisitionStatusV0::IntegrityFailure)?;
+    if requested_count != plan.required_row_count
+        || requested_timestamps != plan.required_timestamps
+    {
+        Err(ProspectiveOutcomeAcquisitionStatusV0::PartialRequestForbidden)
+    } else {
+        Ok(())
+    }
+}
+
+fn prospective_outcome_acquisition_receipt_digest_v0(
+    receipt: &ProspectiveOutcomeAcquisitionReceiptV0,
+) -> String {
+    // The capsule digest is deliberately excluded to avoid a circular receipt/capsule identity.
+    stable_hash_string(&format!(
+        "{}:{}:{}:{}:{}:{}:{}:{:?}:{:?}:{}:{}:{}",
+        receipt.receipt_version,
+        receipt.opening_registration_digest,
+        receipt.plan_digest,
+        receipt.request_fingerprint,
+        receipt.request_attempted,
+        receipt.request_count,
+        receipt.retry_count,
+        receipt.readiness_before_request,
+        receipt.status,
+        receipt.http_status_class.as_deref().unwrap_or_default(),
+        receipt.returned_row_count,
+        receipt.verified_row_count,
+    ))
+}
+
+fn prospective_outcome_evidence_capsule_digest_v0(
+    capsule: &ProspectiveOutcomeEvidenceCapsuleV0,
+) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{}:{}:{}:{}:{:?}:{:?}:{}:{}:{}:{}:{}:{}:{}:{}",
+        capsule.capsule_version,
+        capsule.opening_registration_digest,
+        capsule.acquisition_receipt_digest,
+        capsule.provider_id,
+        capsule.market,
+        capsule.cadence,
+        capsule.canonical_rows,
+        capsule.canonical_row_digests,
+        capsule.first_timestamp,
+        capsule.last_timestamp,
+        capsule.complete_registered_range,
+        capsule.finalized,
+        capsule.read_only,
+        capsule.sanitized,
+        capsule.credential_free,
+        capsule.labels_opened,
+    ))
+}
+
+pub fn verify_prospective_outcome_acquisition_receipt_v0(
+    receipt: &ProspectiveOutcomeAcquisitionReceiptV0,
+) -> bool {
+    receipt.receipt_version == PROSPECTIVE_OUTCOME_ACQUISITION_RECEIPT_VERSION_V0
+        && !receipt.opening_registration_digest.is_empty()
+        && !receipt.plan_digest.is_empty()
+        && !receipt.request_fingerprint.is_empty()
+        && receipt.request_attempted
+        && receipt.request_count == 1
+        && receipt.retry_count == 0
+        && receipt.readiness_before_request
+            == crate::model::ProspectiveOutcomeRequestReadinessV0::ReadyForExplicitRequest
+        && !matches!(
+            receipt.status,
+            ProspectiveOutcomeAcquisitionStatusV0::NotAttemptedNotMature
+                | ProspectiveOutcomeAcquisitionStatusV0::ReadyNotAttempted
+                | ProspectiveOutcomeAcquisitionStatusV0::PartialRequestForbidden
+                | ProspectiveOutcomeAcquisitionStatusV0::RequestBudgetExhausted
+        )
+        && receipt.verified_row_count <= receipt.returned_row_count
+        && receipt.receipt_digest == prospective_outcome_acquisition_receipt_digest_v0(receipt)
+}
+
+pub fn verify_prospective_outcome_evidence_capsule_v0(
+    capsule: &ProspectiveOutcomeEvidenceCapsuleV0,
+) -> bool {
+    capsule.capsule_version == PROSPECTIVE_OUTCOME_EVIDENCE_CAPSULE_VERSION_V0
+        && !capsule.opening_registration_digest.is_empty()
+        && !capsule.acquisition_receipt_digest.is_empty()
+        && capsule.provider_id == UPBIT_PROVIDER_ID
+        && valid_market_symbol(&capsule.market)
+        && capsule.cadence == "1d"
+        && !capsule.canonical_rows.is_empty()
+        && capsule.canonical_rows.len() == capsule.canonical_row_digests.len()
+        && capsule
+            .canonical_rows
+            .windows(2)
+            .all(|pair| pair[0].timestamp_ms < pair[1].timestamp_ms)
+        && capsule.first_timestamp
+            == capsule
+                .canonical_rows
+                .first()
+                .map(|row| row.timestamp_ms)
+                .unwrap_or_default()
+        && capsule.last_timestamp
+            == capsule
+                .canonical_rows
+                .last()
+                .map(|row| row.timestamp_ms)
+                .unwrap_or_default()
+        && capsule
+            .canonical_rows
+            .iter()
+            .zip(&capsule.canonical_row_digests)
+            .all(|(row, digest)| {
+                row.provider_id == capsule.provider_id
+                    && row.row_digest_v1 == crate::model::canonical_semantic_digest_v1(row)
+                    && digest == &row.row_digest_v1
+            })
+        && capsule.complete_registered_range
+        && capsule.finalized
+        && capsule.read_only
+        && capsule.sanitized
+        && capsule.credential_free
+        && !capsule.labels_opened
+        && capsule.capsule_digest == prospective_outcome_evidence_capsule_digest_v0(capsule)
+}
+
+pub fn validate_prospective_outcome_evidence_capsule_for_plan_v0(
+    capsule: &ProspectiveOutcomeEvidenceCapsuleV0,
+    plan: &ProspectiveOutcomeAcquisitionPlanV0,
+    expected_series_id: &str,
+) -> Result<(), String> {
+    validate_prospective_outcome_acquisition_plan_v0(plan)?;
+    if !verify_prospective_outcome_evidence_capsule_v0(capsule)
+        || expected_series_id.is_empty()
+        || capsule.opening_registration_digest != plan.opening_registration_digest
+        || capsule.provider_id != plan.provider_id
+        || capsule.market != plan.market
+        || capsule.cadence != plan.cadence
+        || capsule.canonical_rows.len() != plan.required_row_count
+        || capsule
+            .canonical_rows
+            .iter()
+            .map(|row| row.timestamp_ms)
+            .ne(plan.required_timestamps.iter().copied())
+        || capsule
+            .canonical_rows
+            .iter()
+            .any(|row| row.series_id != expected_series_id)
+    {
+        Err("prospective_outcome_evidence_capsule_plan_mismatch".into())
+    } else {
+        Ok(())
+    }
+}
+
+pub fn write_prospective_outcome_acquisition_receipt_v0(
+    path: &Path,
+    receipt: &ProspectiveOutcomeAcquisitionReceiptV0,
+) -> Result<(), String> {
+    if !verify_prospective_outcome_acquisition_receipt_v0(receipt) {
+        return Err("prospective_outcome_acquisition_receipt_invalid".into());
+    }
+    let encoded = serde_json::to_vec(receipt)
+        .map_err(|_| "prospective_outcome_acquisition_receipt_serialization_failed")?;
+    let temporary = path.with_extension("tmp");
+    fs::write(&temporary, encoded)
+        .map_err(|_| "prospective_outcome_acquisition_receipt_storage_failed")?;
+    fs::rename(temporary, path)
+        .map_err(|_| "prospective_outcome_acquisition_receipt_storage_failed".to_string())
+}
+
+pub fn read_prospective_outcome_acquisition_receipt_v0(
+    path: &Path,
+) -> Result<ProspectiveOutcomeAcquisitionReceiptV0, String> {
+    let receipt: ProspectiveOutcomeAcquisitionReceiptV0 = serde_json::from_slice(
+        &fs::read(path).map_err(|_| "prospective_outcome_acquisition_receipt_unavailable")?,
+    )
+    .map_err(|_| "prospective_outcome_acquisition_receipt_invalid")?;
+    verify_prospective_outcome_acquisition_receipt_v0(&receipt)
+        .then_some(receipt)
+        .ok_or_else(|| "prospective_outcome_acquisition_receipt_invalid".into())
+}
+
+pub fn write_prospective_outcome_evidence_capsule_v0(
+    path: &Path,
+    capsule: &ProspectiveOutcomeEvidenceCapsuleV0,
+) -> Result<(), String> {
+    if !verify_prospective_outcome_evidence_capsule_v0(capsule) {
+        return Err("prospective_outcome_evidence_capsule_invalid".into());
+    }
+    let encoded = serde_json::to_vec(capsule)
+        .map_err(|_| "prospective_outcome_evidence_capsule_serialization_failed")?;
+    let temporary = path.with_extension("tmp");
+    fs::write(&temporary, encoded)
+        .map_err(|_| "prospective_outcome_evidence_capsule_storage_failed")?;
+    fs::rename(temporary, path)
+        .map_err(|_| "prospective_outcome_evidence_capsule_storage_failed".to_string())
+}
+
+pub fn read_prospective_outcome_evidence_capsule_v0(
+    path: &Path,
+) -> Result<ProspectiveOutcomeEvidenceCapsuleV0, String> {
+    let capsule: ProspectiveOutcomeEvidenceCapsuleV0 = serde_json::from_slice(
+        &fs::read(path).map_err(|_| "prospective_outcome_evidence_capsule_unavailable")?,
+    )
+    .map_err(|_| "prospective_outcome_evidence_capsule_invalid")?;
+    verify_prospective_outcome_evidence_capsule_v0(&capsule)
+        .then_some(capsule)
+        .ok_or_else(|| "prospective_outcome_evidence_capsule_invalid".into())
+}
+
+fn prospective_outcome_receipt_v0(
+    plan: &ProspectiveOutcomeAcquisitionPlanV0,
+    status: ProspectiveOutcomeAcquisitionStatusV0,
+    http_status_class: Option<String>,
+    returned_row_count: usize,
+    verified_row_count: usize,
+    outcome_capsule_digest: Option<String>,
+) -> ProspectiveOutcomeAcquisitionReceiptV0 {
+    let mut receipt = ProspectiveOutcomeAcquisitionReceiptV0 {
+        receipt_version: PROSPECTIVE_OUTCOME_ACQUISITION_RECEIPT_VERSION_V0.into(),
+        opening_registration_digest: plan.opening_registration_digest.clone(),
+        plan_digest: plan.plan_digest.clone(),
+        request_fingerprint: prospective_outcome_request_fingerprint_v0(plan)
+            .expect("validated outcome acquisition plan"),
+        request_attempted: true,
+        request_count: 1,
+        retry_count: 0,
+        readiness_before_request: plan.readiness,
+        status,
+        http_status_class,
+        returned_row_count,
+        verified_row_count,
+        outcome_capsule_digest,
+        receipt_digest: String::new(),
+    };
+    receipt.receipt_digest = prospective_outcome_acquisition_receipt_digest_v0(&receipt);
+    receipt
+}
+
+fn outcome_result_without_attempt_v0(
+    status: ProspectiveOutcomeAcquisitionStatusV0,
+) -> ProspectiveOutcomeAcquisitionResultV0 {
+    ProspectiveOutcomeAcquisitionResultV0 {
+        status,
+        receipt: None,
+        capsule: None,
+        raw_response: None,
+    }
+}
+
+fn outcome_result_after_attempt_v0(
+    plan: &ProspectiveOutcomeAcquisitionPlanV0,
+    status: ProspectiveOutcomeAcquisitionStatusV0,
+    http_status_class: Option<String>,
+    returned_row_count: usize,
+    verified_row_count: usize,
+    raw_response: Option<Vec<u8>>,
+) -> ProspectiveOutcomeAcquisitionResultV0 {
+    ProspectiveOutcomeAcquisitionResultV0 {
+        status,
+        receipt: Some(prospective_outcome_receipt_v0(
+            plan,
+            status,
+            http_status_class,
+            returned_row_count,
+            verified_row_count,
+            None,
+        )),
+        capsule: None,
+        raw_response,
+    }
+}
+
+fn validate_outcome_candles_v0(
+    plan: &ProspectiveOutcomeAcquisitionPlanV0,
+    expected_series_id: &str,
+    body: &[u8],
+) -> Result<
+    Vec<crate::model::CanonicalHistoricalRowIdentityV1>,
+    (ProspectiveOutcomeAcquisitionStatusV0, usize),
+> {
+    let candles: Vec<UpbitProspectiveDailyCandleV0> = serde_json::from_slice(body)
+        .map_err(|_| (ProspectiveOutcomeAcquisitionStatusV0::InvalidResponse, 0))?;
+    let returned_count = candles.len();
+    let mut observed = BTreeSet::new();
+    let mut normalized = Vec::with_capacity(returned_count);
+    for candle in candles {
+        let timestamp_ms =
+            parse_upbit_utc_timestamp_ms(&candle.candle_date_time_utc).map_err(|_| {
+                (
+                    ProspectiveOutcomeAcquisitionStatusV0::InvalidResponse,
+                    returned_count,
+                )
+            })?;
+        if !observed.insert(timestamp_ms) {
+            return Err((
+                ProspectiveOutcomeAcquisitionStatusV0::DuplicateRows,
+                returned_count,
+            ));
+        }
+        if candle.market != plan.market {
+            return Err((
+                ProspectiveOutcomeAcquisitionStatusV0::InvalidResponse,
+                returned_count,
+            ));
+        }
+        if !plan.required_timestamps.contains(&timestamp_ms) {
+            return Err((
+                ProspectiveOutcomeAcquisitionStatusV0::ExtraRowsReturned,
+                returned_count,
+            ));
+        }
+        let candle_end = timestamp_ms.checked_add(DAILY_INTERVAL_MS_V0).ok_or((
+            ProspectiveOutcomeAcquisitionStatusV0::InvalidResponse,
+            returned_count,
+        ))?;
+        let request_to = parse_upbit_utc_timestamp_ms(&plan.request_to_utc).map_err(|_| {
+            (
+                ProspectiveOutcomeAcquisitionStatusV0::IntegrityFailure,
+                returned_count,
+            )
+        })?;
+        if candle_end > request_to || candle.timestamp >= candle_end {
+            return Err((
+                ProspectiveOutcomeAcquisitionStatusV0::NonFinalizedRows,
+                returned_count,
+            ));
+        }
+        if candle.timestamp < timestamp_ms
+            || ![
+                candle.opening_price,
+                candle.high_price,
+                candle.low_price,
+                candle.trade_price,
+                candle.candle_acc_trade_volume,
+                candle.candle_acc_trade_price,
+            ]
+            .iter()
+            .all(|value| value.is_finite())
+            || candle.opening_price <= 0.0
+            || candle.high_price <= 0.0
+            || candle.low_price <= 0.0
+            || candle.trade_price <= 0.0
+            || candle.candle_acc_trade_volume < 0.0
+            || candle.candle_acc_trade_price < 0.0
+            || candle.high_price < candle.opening_price.max(candle.trade_price)
+            || candle.low_price > candle.opening_price.min(candle.trade_price)
+            || candle.high_price < candle.low_price
+        {
+            return Err((
+                ProspectiveOutcomeAcquisitionStatusV0::InvalidResponse,
+                returned_count,
+            ));
+        }
+        let mut row = crate::model::CanonicalHistoricalRowIdentityV1 {
+            provider_id: plan.provider_id.clone(),
+            series_id: expected_series_id.into(),
+            timestamp_ms,
+            open_bits: candle.opening_price.to_bits(),
+            high_bits: candle.high_price.to_bits(),
+            low_bits: candle.low_price.to_bits(),
+            close_bits: candle.trade_price.to_bits(),
+            volume_bits: candle.candle_acc_trade_volume.to_bits(),
+            trade_value_bits: Some(candle.candle_acc_trade_price.to_bits()),
+            row_digest_v1: String::new(),
+        };
+        row.row_digest_v1 = crate::model::canonical_semantic_digest_v1(&row);
+        normalized.push(row);
+    }
+    if returned_count < plan.required_row_count {
+        return Err((
+            ProspectiveOutcomeAcquisitionStatusV0::MissingRequiredRows,
+            returned_count,
+        ));
+    }
+    if returned_count > plan.required_row_count {
+        return Err((
+            ProspectiveOutcomeAcquisitionStatusV0::ExtraRowsReturned,
+            returned_count,
+        ));
+    }
+    if observed != plan.required_timestamps.iter().copied().collect() {
+        return Err((
+            ProspectiveOutcomeAcquisitionStatusV0::MissingRequiredRows,
+            returned_count,
+        ));
+    }
+    normalized.sort_by_key(|row| row.timestamp_ms);
+    Ok(normalized)
+}
+
+pub fn execute_prospective_outcome_acquisition_v0<F>(
+    plan: &ProspectiveOutcomeAcquisitionPlanV0,
+    existing_receipt: Option<&ProspectiveOutcomeAcquisitionReceiptV0>,
+    existing_capsule: Option<&ProspectiveOutcomeEvidenceCapsuleV0>,
+    expected_series_id: &str,
+    allow_network: bool,
+    confirm_one_time_outcome_request: bool,
+    transport: F,
+) -> ProspectiveOutcomeAcquisitionResultV0
+where
+    F: FnOnce(
+        &ProspectiveOutcomeAcquisitionPlanV0,
+    ) -> Result<ProspectivePublicHttpResponseV0, ProspectivePublicHttpFailureV0>,
+{
+    if validate_prospective_outcome_acquisition_plan_v0(plan).is_err()
+        || expected_series_id.is_empty()
+    {
+        return outcome_result_without_attempt_v0(
+            ProspectiveOutcomeAcquisitionStatusV0::IntegrityFailure,
+        );
+    }
+    if existing_receipt.is_some_and(|receipt| {
+        !verify_prospective_outcome_acquisition_receipt_v0(receipt)
+            || receipt.opening_registration_digest != plan.opening_registration_digest
+    }) || existing_capsule.is_some_and(|capsule| {
+        !verify_prospective_outcome_evidence_capsule_v0(capsule)
+            || capsule.opening_registration_digest != plan.opening_registration_digest
+    }) {
+        return outcome_result_without_attempt_v0(
+            ProspectiveOutcomeAcquisitionStatusV0::IntegrityFailure,
+        );
+    }
+    if existing_capsule.is_some_and(|capsule| {
+        capsule.opening_registration_digest == plan.opening_registration_digest
+    }) || plan.readiness
+        == crate::model::ProspectiveOutcomeRequestReadinessV0::OutcomeEvidenceAlreadyPresent
+    {
+        return outcome_result_without_attempt_v0(
+            ProspectiveOutcomeAcquisitionStatusV0::EvidenceAcquired,
+        );
+    }
+    if existing_receipt.is_some()
+        || plan.readiness
+            == crate::model::ProspectiveOutcomeRequestReadinessV0::RequestAlreadyAttempted
+    {
+        return outcome_result_without_attempt_v0(
+            ProspectiveOutcomeAcquisitionStatusV0::RequestBudgetExhausted,
+        );
+    }
+    if plan.readiness != crate::model::ProspectiveOutcomeRequestReadinessV0::ReadyForExplicitRequest
+    {
+        return outcome_result_without_attempt_v0(
+            ProspectiveOutcomeAcquisitionStatusV0::NotAttemptedNotMature,
+        );
+    }
+    if !allow_network || !confirm_one_time_outcome_request {
+        return outcome_result_without_attempt_v0(
+            ProspectiveOutcomeAcquisitionStatusV0::ReadyNotAttempted,
+        );
+    }
+    let response = match transport(plan) {
+        Ok(response) => response,
+        Err(ProspectivePublicHttpFailureV0::TimedOut) => {
+            return outcome_result_after_attempt_v0(
+                plan,
+                ProspectiveOutcomeAcquisitionStatusV0::TimeoutNoRetry,
+                None,
+                0,
+                0,
+                None,
+            );
+        }
+        Err(ProspectivePublicHttpFailureV0::Technical) => {
+            return outcome_result_after_attempt_v0(
+                plan,
+                ProspectiveOutcomeAcquisitionStatusV0::TechnicalFailure,
+                None,
+                0,
+                0,
+                None,
+            );
+        }
+    };
+    let http_status_class = Some(http_status_class_v0(response.status));
+    if response.status != 200 {
+        return outcome_result_after_attempt_v0(
+            plan,
+            ProspectiveOutcomeAcquisitionStatusV0::ProviderRejected,
+            http_status_class,
+            0,
+            0,
+            Some(response.body),
+        );
+    }
+    if response.body.len() > PROSPECTIVE_PUBLIC_EXPORT_MAX_RESPONSE_BYTES_V0 {
+        return outcome_result_after_attempt_v0(
+            plan,
+            ProspectiveOutcomeAcquisitionStatusV0::InvalidResponse,
+            http_status_class,
+            0,
+            0,
+            None,
+        );
+    }
+    if !response.content_type.as_deref().is_some_and(|value| {
+        value
+            .split(';')
+            .next()
+            .is_some_and(|mime| mime.trim().eq_ignore_ascii_case("application/json"))
+    }) {
+        return outcome_result_after_attempt_v0(
+            plan,
+            ProspectiveOutcomeAcquisitionStatusV0::InvalidResponse,
+            http_status_class,
+            0,
+            0,
+            Some(response.body),
+        );
+    }
+    let rows = match validate_outcome_candles_v0(plan, expected_series_id, &response.body) {
+        Ok(rows) => rows,
+        Err((status, returned_count)) => {
+            return outcome_result_after_attempt_v0(
+                plan,
+                status,
+                http_status_class,
+                returned_count,
+                0,
+                Some(response.body),
+            );
+        }
+    };
+    let provisional_receipt = prospective_outcome_receipt_v0(
+        plan,
+        ProspectiveOutcomeAcquisitionStatusV0::EvidenceAcquired,
+        http_status_class.clone(),
+        rows.len(),
+        rows.len(),
+        None,
+    );
+    let mut capsule = ProspectiveOutcomeEvidenceCapsuleV0 {
+        capsule_version: PROSPECTIVE_OUTCOME_EVIDENCE_CAPSULE_VERSION_V0.into(),
+        opening_registration_digest: plan.opening_registration_digest.clone(),
+        acquisition_receipt_digest: provisional_receipt.receipt_digest.clone(),
+        provider_id: plan.provider_id.clone(),
+        market: plan.market.clone(),
+        cadence: plan.cadence.clone(),
+        canonical_row_digests: rows.iter().map(|row| row.row_digest_v1.clone()).collect(),
+        first_timestamp: rows.first().map(|row| row.timestamp_ms).unwrap_or_default(),
+        last_timestamp: rows.last().map(|row| row.timestamp_ms).unwrap_or_default(),
+        canonical_rows: rows,
+        complete_registered_range: true,
+        finalized: true,
+        read_only: true,
+        sanitized: true,
+        credential_free: true,
+        labels_opened: false,
+        capsule_digest: String::new(),
+    };
+    capsule.capsule_digest = prospective_outcome_evidence_capsule_digest_v0(&capsule);
+    let receipt = prospective_outcome_receipt_v0(
+        plan,
+        ProspectiveOutcomeAcquisitionStatusV0::EvidenceAcquired,
+        http_status_class,
+        capsule.canonical_rows.len(),
+        capsule.canonical_rows.len(),
+        Some(capsule.capsule_digest.clone()),
+    );
+    debug_assert_eq!(receipt.receipt_digest, capsule.acquisition_receipt_digest);
+    ProspectiveOutcomeAcquisitionResultV0 {
+        status: ProspectiveOutcomeAcquisitionStatusV0::EvidenceAcquired,
+        receipt: Some(receipt),
+        capsule: Some(capsule),
+        raw_response: Some(response.body),
+    }
+}
+
+fn prospective_outcome_acquisition_url_v0(
+    public_registration: &ProspectivePublicExportAcquisitionRegistrationV0,
+    plan: &ProspectiveOutcomeAcquisitionPlanV0,
+) -> Result<String, String> {
+    validate_prospective_public_export_acquisition_registration_v0(public_registration)?;
+    validate_prospective_outcome_acquisition_plan_v0(plan)?;
+    if plan.provider_id != public_registration.provider_id
+        || plan.market != public_registration.configured_market
+        || plan.cadence != public_registration.cadence
+    {
+        return Err("prospective_outcome_request_source_mismatch".into());
+    }
+    let encoded_to = plan.request_to_utc.replace(':', "%3A");
+    Ok(format!(
+        "{}{}?market={}&to={encoded_to}&count={}",
+        public_registration.endpoint_origin,
+        public_registration.endpoint_path,
+        plan.market,
+        plan.request_count,
+    ))
+}
+
+pub fn fetch_prospective_outcome_acquisition_v0(
+    public_registration: &ProspectivePublicExportAcquisitionRegistrationV0,
+    plan: &ProspectiveOutcomeAcquisitionPlanV0,
+) -> Result<ProspectivePublicHttpResponseV0, ProspectivePublicHttpFailureV0> {
+    let url = prospective_outcome_acquisition_url_v0(public_registration, plan)
+        .map_err(|_| ProspectivePublicHttpFailureV0::Technical)?;
+    let output = Command::new("curl")
+        .args([
+            "--disable",
+            "--silent",
+            "--show-error",
+            "--proto",
+            "=https",
+            "--proto-redir",
+            "=https",
+            "--max-redirs",
+            "0",
+            "--connect-timeout",
+            &public_registration.timeout_seconds.to_string(),
+            "--max-time",
+            &public_registration.timeout_seconds.to_string(),
+            "--max-filesize",
+            &public_registration.maximum_response_bytes.to_string(),
+            "--request",
+            "GET",
+            "--header",
+            "accept: application/json",
+            "--write-out",
+            "\n%{http_code}\n%{content_type}",
+            &url,
+        ])
+        .output()
+        .map_err(|_| ProspectivePublicHttpFailureV0::Technical)?;
+    if !output.status.success() {
+        return if output.status.code() == Some(28) {
+            Err(ProspectivePublicHttpFailureV0::TimedOut)
+        } else {
+            Err(ProspectivePublicHttpFailureV0::Technical)
+        };
+    }
+    let output =
+        String::from_utf8(output.stdout).map_err(|_| ProspectivePublicHttpFailureV0::Technical)?;
+    let (body_and_status, content_type) = output
+        .rsplit_once('\n')
+        .ok_or(ProspectivePublicHttpFailureV0::Technical)?;
+    let (body, status) = body_and_status
+        .rsplit_once('\n')
+        .ok_or(ProspectivePublicHttpFailureV0::Technical)?;
+    Ok(ProspectivePublicHttpResponseV0 {
+        status: status
+            .trim()
+            .parse()
+            .map_err(|_| ProspectivePublicHttpFailureV0::Technical)?,
+        content_type: (!content_type.trim().is_empty()).then(|| content_type.trim().into()),
+        body: body.as_bytes().to_vec(),
+    })
+}
+
 pub fn convert_prospective_network_export_to_external_row_capsule_v0(
     network_capsule: &ProspectiveNetworkExportCapsuleV0,
     admission_registration: &crate::model::ProspectiveExternalAdmissionRegistrationV0,
@@ -4911,5 +5813,422 @@ mod tests {
             second.capsule.unwrap().capsule_digest
         );
         assert!(first.receipt.legacy_receipt_unchanged);
+    }
+
+    fn outcome_plan(
+        readiness: crate::model::ProspectiveOutcomeRequestReadinessV0,
+    ) -> (
+        ProspectivePublicExportAcquisitionRegistrationV0,
+        ProspectiveOutcomeAcquisitionPlanV0,
+    ) {
+        let public_registration = prospective_registration();
+        let source_digest =
+            prospective_outcome_source_policy_digest_v0(&public_registration).unwrap();
+        let (opening_registration, maturity_plans) =
+            crate::model::learned_agent_scope::prospective_outcome_acquisition_test_registration_v0(
+                &source_digest,
+            );
+        let plan = build_prospective_outcome_acquisition_plan_v0(
+            &opening_registration,
+            &maturity_plans,
+            &public_registration,
+            readiness,
+        )
+        .unwrap();
+        (public_registration, plan)
+    }
+
+    fn outcome_candle(timestamp_ms: u64, last_trade_timestamp: u64) -> serde_json::Value {
+        serde_json::json!({
+            "market": "KRW-BTC",
+            "candle_date_time_utc": format_utc_timestamp(timestamp_ms).unwrap(),
+            "opening_price": 10.0,
+            "high_price": 12.0,
+            "low_price": 9.0,
+            "trade_price": 11.0,
+            "candle_acc_trade_volume": 5.0,
+            "candle_acc_trade_price": 50.0,
+            "timestamp": last_trade_timestamp,
+        })
+    }
+
+    fn valid_outcome_body(plan: &ProspectiveOutcomeAcquisitionPlanV0) -> Vec<u8> {
+        serde_json::to_vec(
+            &plan
+                .required_timestamps
+                .iter()
+                .rev()
+                .map(|timestamp| outcome_candle(*timestamp, *timestamp + 1_000))
+                .collect::<Vec<_>>(),
+        )
+        .unwrap()
+    }
+
+    fn outcome_response(body: Vec<u8>) -> ProspectivePublicHttpResponseV0 {
+        ProspectivePublicHttpResponseV0 {
+            status: 200,
+            content_type: Some("application/json".into()),
+            body,
+        }
+    }
+
+    #[test]
+    fn outcome_plan_requires_registered_contract_and_derives_exact_union_boundary() {
+        let public_registration = prospective_registration();
+        let source_digest =
+            prospective_outcome_source_policy_digest_v0(&public_registration).unwrap();
+        let (opening_registration, maturity_plans) =
+            crate::model::learned_agent_scope::prospective_outcome_acquisition_test_registration_v0(
+                &source_digest,
+            );
+        let plan = build_prospective_outcome_acquisition_plan_v0(
+            &opening_registration,
+            &maturity_plans,
+            &public_registration,
+            crate::model::ProspectiveOutcomeRequestReadinessV0::AwaitingRiskTimeMaturity,
+        )
+        .unwrap();
+        assert_eq!(plan.required_row_count, 4);
+        assert_eq!(plan.request_count, plan.required_row_count);
+        assert_eq!(plan.request_to_utc, "2024-01-06T00:00:00Z");
+        assert_eq!(plan.maximum_requests, 1);
+        assert_eq!(plan.maximum_retries, 0);
+        assert_eq!(plan.maximum_concurrency, 1);
+        let mut invalid_registration = opening_registration.clone();
+        invalid_registration.maximum_response_rows -= 1;
+        assert!(
+            build_prospective_outcome_acquisition_plan_v0(
+                &invalid_registration,
+                &maturity_plans,
+                &public_registration,
+                plan.readiness,
+            )
+            .is_err()
+        );
+        let mut changed_plan = maturity_plans.clone();
+        changed_plan[1].required_outcome_end_timestamp += DAILY_INTERVAL_MS_V0;
+        assert!(
+            build_prospective_outcome_acquisition_plan_v0(
+                &opening_registration,
+                &changed_plan,
+                &public_registration,
+                plan.readiness,
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn outcome_plan_rejects_partial_separate_and_moving_boundary_requests() {
+        let (_, plan) = outcome_plan(
+            crate::model::ProspectiveOutcomeRequestReadinessV0::ReadyForExplicitRequest,
+        );
+        assert!(
+            validate_prospective_outcome_request_selection_v0(
+                &plan,
+                &plan.required_timestamps,
+                plan.required_row_count,
+            )
+            .is_ok()
+        );
+        assert_eq!(
+            validate_prospective_outcome_request_selection_v0(
+                &plan,
+                &plan.required_timestamps[..1],
+                1,
+            ),
+            Err(ProspectiveOutcomeAcquisitionStatusV0::PartialRequestForbidden)
+        );
+        assert_eq!(
+            validate_prospective_outcome_request_selection_v0(
+                &plan,
+                &plan.required_timestamps,
+                plan.required_row_count - 1,
+            ),
+            Err(ProspectiveOutcomeAcquisitionStatusV0::PartialRequestForbidden)
+        );
+        let mut moving_boundary = plan.clone();
+        moving_boundary.request_to_utc = "2024-01-07T00:00:00Z".into();
+        moving_boundary.plan_digest =
+            prospective_outcome_acquisition_plan_digest_v0(&moving_boundary);
+        assert!(validate_prospective_outcome_acquisition_plan_v0(&moving_boundary).is_err());
+    }
+
+    #[test]
+    fn outcome_status_and_dry_run_are_deterministic_and_construct_no_transport() {
+        let (_, plan) = outcome_plan(
+            crate::model::ProspectiveOutcomeRequestReadinessV0::AwaitingRiskTimeMaturity,
+        );
+        let second = plan.clone();
+        assert_eq!(plan, second);
+        assert_eq!(
+            prospective_outcome_request_fingerprint_v0(&plan).unwrap(),
+            prospective_outcome_request_fingerprint_v0(&second).unwrap()
+        );
+        let mut calls = 0;
+        let blocked = execute_prospective_outcome_acquisition_v0(
+            &plan,
+            None,
+            None,
+            "BtcCrypto:KRW-BTC",
+            true,
+            true,
+            |_| {
+                calls += 1;
+                Ok(outcome_response(valid_outcome_body(&plan)))
+            },
+        );
+        assert_eq!(calls, 0);
+        assert_eq!(
+            blocked.status,
+            ProspectiveOutcomeAcquisitionStatusV0::NotAttemptedNotMature
+        );
+        assert!(blocked.receipt.is_none());
+    }
+
+    #[test]
+    fn outcome_execute_requires_both_consent_flags_before_transport() {
+        let (_, plan) = outcome_plan(
+            crate::model::ProspectiveOutcomeRequestReadinessV0::ReadyForExplicitRequest,
+        );
+        for (allow_network, confirm) in [(false, true), (true, false)] {
+            let mut calls = 0;
+            let result = execute_prospective_outcome_acquisition_v0(
+                &plan,
+                None,
+                None,
+                "BtcCrypto:KRW-BTC",
+                allow_network,
+                confirm,
+                |_| {
+                    calls += 1;
+                    Ok(outcome_response(valid_outcome_body(&plan)))
+                },
+            );
+            assert_eq!(calls, 0);
+            assert_eq!(
+                result.status,
+                ProspectiveOutcomeAcquisitionStatusV0::ReadyNotAttempted
+            );
+            assert!(result.receipt.is_none());
+        }
+    }
+
+    #[test]
+    fn outcome_one_request_consumes_budget_on_success_and_failure_without_retry() {
+        let (_, plan) = outcome_plan(
+            crate::model::ProspectiveOutcomeRequestReadinessV0::ReadyForExplicitRequest,
+        );
+        let mut success_calls = 0;
+        let success = execute_prospective_outcome_acquisition_v0(
+            &plan,
+            None,
+            None,
+            "BtcCrypto:KRW-BTC",
+            true,
+            true,
+            |_| {
+                success_calls += 1;
+                Ok(outcome_response(valid_outcome_body(&plan)))
+            },
+        );
+        assert_eq!(success_calls, 1);
+        let receipt = success.receipt.as_ref().unwrap();
+        assert_eq!(receipt.request_count, 1);
+        assert_eq!(receipt.retry_count, 0);
+        assert!(verify_prospective_outcome_acquisition_receipt_v0(receipt));
+        let mut used_plan = plan.clone();
+        used_plan.readiness =
+            crate::model::ProspectiveOutcomeRequestReadinessV0::RequestAlreadyAttempted;
+        used_plan.plan_digest = prospective_outcome_acquisition_plan_digest_v0(&used_plan);
+        let mut repeated_calls = 0;
+        let repeated = execute_prospective_outcome_acquisition_v0(
+            &used_plan,
+            Some(receipt),
+            None,
+            "BtcCrypto:KRW-BTC",
+            true,
+            true,
+            |_| {
+                repeated_calls += 1;
+                Ok(outcome_response(valid_outcome_body(&plan)))
+            },
+        );
+        assert_eq!(repeated_calls, 0);
+        assert_eq!(
+            repeated.status,
+            ProspectiveOutcomeAcquisitionStatusV0::RequestBudgetExhausted
+        );
+        for failure in [
+            ProspectivePublicHttpFailureV0::TimedOut,
+            ProspectivePublicHttpFailureV0::Technical,
+        ] {
+            let failed = execute_prospective_outcome_acquisition_v0(
+                &plan,
+                None,
+                None,
+                "BtcCrypto:KRW-BTC",
+                true,
+                true,
+                |_| Err(failure),
+            );
+            assert_eq!(failed.receipt.as_ref().unwrap().request_count, 1);
+            assert_eq!(failed.receipt.as_ref().unwrap().retry_count, 0);
+        }
+    }
+
+    #[test]
+    fn outcome_exact_timestamp_set_accepts_newest_first_and_opens_no_labels() {
+        let (public_registration, plan) = outcome_plan(
+            crate::model::ProspectiveOutcomeRequestReadinessV0::ReadyForExplicitRequest,
+        );
+        let url = prospective_outcome_acquisition_url_v0(&public_registration, &plan).unwrap();
+        assert!(url.contains("to=2024-01-06T00%3A00%3A00Z&count=4"));
+        assert!(!url.to_ascii_lowercase().contains("authorization"));
+        let result = execute_prospective_outcome_acquisition_v0(
+            &plan,
+            None,
+            None,
+            "BtcCrypto:KRW-BTC",
+            true,
+            true,
+            |_| Ok(outcome_response(valid_outcome_body(&plan))),
+        );
+        assert_eq!(
+            result.status,
+            ProspectiveOutcomeAcquisitionStatusV0::EvidenceAcquired
+        );
+        let capsule = result.capsule.as_ref().unwrap();
+        assert!(verify_prospective_outcome_evidence_capsule_v0(capsule));
+        assert!(
+            validate_prospective_outcome_evidence_capsule_for_plan_v0(
+                capsule,
+                &plan,
+                "BtcCrypto:KRW-BTC",
+            )
+            .is_ok()
+        );
+        assert_eq!(
+            capsule
+                .canonical_rows
+                .iter()
+                .map(|row| row.timestamp_ms)
+                .collect::<Vec<_>>(),
+            plan.required_timestamps
+        );
+        assert!(capsule.complete_registered_range);
+        assert!(!capsule.labels_opened);
+    }
+
+    #[test]
+    fn outcome_response_rejects_missing_duplicate_extra_nonfinalized_and_invalid_rows() {
+        let (_, plan) = outcome_plan(
+            crate::model::ProspectiveOutcomeRequestReadinessV0::ReadyForExplicitRequest,
+        );
+        let valid_values = plan
+            .required_timestamps
+            .iter()
+            .map(|timestamp| outcome_candle(*timestamp, *timestamp + 1_000))
+            .collect::<Vec<_>>();
+        let cases = [
+            (
+                valid_values[..3].to_vec(),
+                ProspectiveOutcomeAcquisitionStatusV0::MissingRequiredRows,
+            ),
+            (
+                vec![
+                    valid_values[0].clone(),
+                    valid_values[0].clone(),
+                    valid_values[2].clone(),
+                    valid_values[3].clone(),
+                ],
+                ProspectiveOutcomeAcquisitionStatusV0::DuplicateRows,
+            ),
+            (
+                {
+                    let mut values = valid_values.clone();
+                    let timestamp = plan.required_timestamps[3] + DAILY_INTERVAL_MS_V0;
+                    values.push(outcome_candle(timestamp, timestamp + 1_000));
+                    values
+                },
+                ProspectiveOutcomeAcquisitionStatusV0::ExtraRowsReturned,
+            ),
+            (
+                {
+                    let mut values = valid_values.clone();
+                    let timestamp = plan.required_timestamps[3];
+                    values[3] = outcome_candle(timestamp, timestamp + DAILY_INTERVAL_MS_V0);
+                    values
+                },
+                ProspectiveOutcomeAcquisitionStatusV0::NonFinalizedRows,
+            ),
+            (
+                {
+                    let mut values = valid_values.clone();
+                    values[0]["high_price"] = serde_json::json!(8.0);
+                    values
+                },
+                ProspectiveOutcomeAcquisitionStatusV0::InvalidResponse,
+            ),
+        ];
+        for (values, expected) in cases {
+            let result = execute_prospective_outcome_acquisition_v0(
+                &plan,
+                None,
+                None,
+                "BtcCrypto:KRW-BTC",
+                true,
+                true,
+                |_| Ok(outcome_response(serde_json::to_vec(&values).unwrap())),
+            );
+            assert_eq!(result.status, expected);
+            assert_eq!(result.receipt.as_ref().unwrap().request_count, 1);
+            assert_eq!(result.receipt.as_ref().unwrap().retry_count, 0);
+            assert!(result.capsule.is_none());
+        }
+    }
+
+    #[test]
+    fn outcome_receipt_and_capsule_round_trip_without_opening_state() {
+        let (_, plan) = outcome_plan(
+            crate::model::ProspectiveOutcomeRequestReadinessV0::ReadyForExplicitRequest,
+        );
+        let result = execute_prospective_outcome_acquisition_v0(
+            &plan,
+            None,
+            None,
+            "BtcCrypto:KRW-BTC",
+            true,
+            true,
+            |_| Ok(outcome_response(valid_outcome_body(&plan))),
+        );
+        let receipt_path = std::env::temp_dir().join(format!(
+            "prospective-outcome-receipt-{}.json",
+            std::process::id()
+        ));
+        let capsule_path = std::env::temp_dir().join(format!(
+            "prospective-outcome-capsule-{}.json",
+            std::process::id()
+        ));
+        write_prospective_outcome_acquisition_receipt_v0(
+            &receipt_path,
+            result.receipt.as_ref().unwrap(),
+        )
+        .unwrap();
+        write_prospective_outcome_evidence_capsule_v0(
+            &capsule_path,
+            result.capsule.as_ref().unwrap(),
+        )
+        .unwrap();
+        assert_eq!(
+            read_prospective_outcome_acquisition_receipt_v0(&receipt_path).unwrap(),
+            *result.receipt.as_ref().unwrap()
+        );
+        assert_eq!(
+            read_prospective_outcome_evidence_capsule_v0(&capsule_path).unwrap(),
+            *result.capsule.as_ref().unwrap()
+        );
+        std::fs::remove_file(receipt_path).unwrap();
+        std::fs::remove_file(capsule_path).unwrap();
     }
 }

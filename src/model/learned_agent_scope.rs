@@ -9929,6 +9929,19 @@ pub enum ProspectiveOpeningReadinessV0 {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProspectiveOutcomeRequestReadinessV0 {
+    AwaitingMomentumTimeMaturity,
+    AwaitingRiskTimeMaturity,
+    AwaitingBothTimeMaturities,
+    ReadyForExplicitRequest,
+    RequestAlreadyAttempted,
+    OutcomeEvidenceAlreadyPresent,
+    RegistrationInvalid,
+    EventIntegrityInvalid,
+    TechnicalFailure,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ProspectiveOutcomeEvidenceStatusV0 {
     NoOutcomeRows,
     PartialOutcomeRows,
@@ -10239,10 +10252,76 @@ fn prospective_outcome_required_timestamps_v0(
     Ok(timestamps)
 }
 
+pub fn prospective_outcome_required_timestamp_set_v0(
+    plans: &[ProspectiveEventMaturityPlanV0],
+) -> Result<Vec<u64>, String> {
+    Ok(prospective_outcome_required_timestamps_v0(plans)?
+        .into_iter()
+        .collect())
+}
+
 pub fn prospective_outcome_request_row_count_v0(
     plans: &[ProspectiveEventMaturityPlanV0],
 ) -> Result<usize, String> {
     Ok(prospective_outcome_required_timestamps_v0(plans)?.len())
+}
+
+pub fn prospective_outcome_request_readiness_v0(
+    registration: &ProspectiveOneTimeOpeningRegistrationV0,
+    plans: &[ProspectiveEventMaturityPlanV0],
+    observed_timestamp: u64,
+    event_integrity_valid: bool,
+    prior_request_attempted: bool,
+    outcome_evidence_present: bool,
+) -> ProspectiveOutcomeRequestReadinessV0 {
+    if validate_prospective_one_time_opening_registration_v0(registration, plans).is_err() {
+        return ProspectiveOutcomeRequestReadinessV0::RegistrationInvalid;
+    }
+    if !event_integrity_valid {
+        return ProspectiveOutcomeRequestReadinessV0::EventIntegrityInvalid;
+    }
+    if outcome_evidence_present {
+        return ProspectiveOutcomeRequestReadinessV0::OutcomeEvidenceAlreadyPresent;
+    }
+    if prior_request_attempted {
+        return ProspectiveOutcomeRequestReadinessV0::RequestAlreadyAttempted;
+    }
+    let mut momentum_boundary_reached = None;
+    let mut risk_boundary_reached = None;
+    for plan in plans {
+        let finalization_boundary = match plan
+            .required_outcome_end_timestamp
+            .checked_add(PROSPECTIVE_OUTCOME_ROW_INTERVAL_MS_V0)
+        {
+            Some(value) => value,
+            None => return ProspectiveOutcomeRequestReadinessV0::TechnicalFailure,
+        };
+        match plan.objective {
+            LearnedAgentObjectiveV0::DirectionalMomentum => {
+                if momentum_boundary_reached.is_some() {
+                    return ProspectiveOutcomeRequestReadinessV0::TechnicalFailure;
+                }
+                momentum_boundary_reached = Some(observed_timestamp >= finalization_boundary);
+            }
+            LearnedAgentObjectiveV0::DownsideRisk => {
+                if risk_boundary_reached.is_some() {
+                    return ProspectiveOutcomeRequestReadinessV0::TechnicalFailure;
+                }
+                risk_boundary_reached = Some(observed_timestamp >= finalization_boundary);
+            }
+        }
+    }
+    match (momentum_boundary_reached, risk_boundary_reached) {
+        (Some(true), Some(true)) => ProspectiveOutcomeRequestReadinessV0::ReadyForExplicitRequest,
+        (Some(false), Some(true)) => {
+            ProspectiveOutcomeRequestReadinessV0::AwaitingMomentumTimeMaturity
+        }
+        (Some(true), Some(false)) => ProspectiveOutcomeRequestReadinessV0::AwaitingRiskTimeMaturity,
+        (Some(false), Some(false)) => {
+            ProspectiveOutcomeRequestReadinessV0::AwaitingBothTimeMaturities
+        }
+        _ => ProspectiveOutcomeRequestReadinessV0::TechnicalFailure,
+    }
 }
 
 pub fn pre_register_prospective_one_time_opening_v0(
@@ -10327,11 +10406,21 @@ pub fn validate_prospective_one_time_opening_registration_v0(
         .iter()
         .map(|plan| plan.plan_digest.clone())
         .collect::<Vec<_>>();
+    let momentum_event_digest = plans
+        .iter()
+        .find(|plan| plan.objective == LearnedAgentObjectiveV0::DirectionalMomentum)
+        .map(|plan| plan.event_digest.as_str());
+    let risk_event_digest = plans
+        .iter()
+        .find(|plan| plan.objective == LearnedAgentObjectiveV0::DownsideRisk)
+        .map(|plan| plan.event_digest.as_str());
     if registration.registration_version != "prospective-one-time-opening-registration-v0"
         || registration.momentum_event_digest.is_empty()
         || registration.risk_event_digest.is_empty()
         || registration.momentum_event_digest == registration.risk_event_digest
         || registration.maturity_plan_digests != plan_digests
+        || momentum_event_digest != Some(registration.momentum_event_digest.as_str())
+        || risk_event_digest != Some(registration.risk_event_digest.as_str())
         || registration.shared_raw_evidence_digest.is_empty()
         || registration.outcome_source_policy_digest.is_empty()
         || registration.finalization_policy_digest.is_empty()
@@ -10721,6 +10810,69 @@ pub fn audit_sealed_prospective_events_v0(
         momentum_event,
         risk_event,
     })
+}
+
+#[cfg(test)]
+pub(crate) fn prospective_outcome_acquisition_test_registration_v0(
+    outcome_source_policy_digest: &str,
+) -> (
+    ProspectiveOneTimeOpeningRegistrationV0,
+    Vec<ProspectiveEventMaturityPlanV0>,
+) {
+    fn event(
+        objective: LearnedAgentObjectiveV0,
+        agent_id: &str,
+        horizon_rows: usize,
+    ) -> LearnedProspectiveEventV0 {
+        let prediction_timestamp = 1_704_067_200_000;
+        let mut event = LearnedProspectiveEventV0 {
+            event_version: "learned-prospective-event-v0".into(),
+            event_id: format!("outcome-acquisition-{agent_id}"),
+            agent_id: agent_id.into(),
+            objective,
+            challenge_digest: format!("challenge-{agent_id}"),
+            shared_raw_evidence_digest: "shared-evidence".into(),
+            frozen_model_artifact_digests: vec![format!("artifact-{agent_id}")],
+            input_digest: "shared-evidence".into(),
+            support_status_digest: "support".into(),
+            operational_outcome:
+                ProspectiveOperationalOutcomeV0::ShadowAbstentionSupportUnavailable,
+            abstention_reason: Some("frozen_support_unavailable".into()),
+            prediction_timestamp,
+            maturity_timestamp: prediction_timestamp
+                + horizon_rows as u64 * PROSPECTIVE_OUTCOME_ROW_INTERVAL_MS_V0,
+            horizon_digest: stable_hash_string(&format!(
+                "external-prospective-horizon-v0:{objective:?}:{horizon_rows}"
+            )),
+            probability_bits_sealed: true,
+            label_accessed: false,
+            event_digest: String::new(),
+        };
+        event.event_digest = learned_prospective_event_digest_v0(&event);
+        event
+    }
+    let momentum = event(
+        LearnedAgentObjectiveV0::DirectionalMomentum,
+        MOMENTUM_AGENT_ID_V0,
+        1,
+    );
+    let risk = event(
+        LearnedAgentObjectiveV0::DownsideRisk,
+        CYCLE_RISK_SHADOW_AGENT_ID_V0,
+        4,
+    );
+    pre_register_prospective_one_time_opening_v0(
+        &momentum,
+        &risk,
+        1,
+        4,
+        "momentum-label",
+        "risk-label",
+        outcome_source_policy_digest,
+        "finalized-contiguous-utc-daily",
+        vec!["momentum-metric".into(), "risk-metric".into()],
+    )
+    .unwrap()
 }
 
 #[cfg(test)]
@@ -12876,6 +13028,101 @@ mod tests {
                 1,
             )
             .is_err()
+        );
+    }
+
+    #[test]
+    fn prospective_outcome_request_readiness_uses_both_finalized_row_boundaries() {
+        let (_, _, plans, registration) = prospective_maturity_fixture();
+        let momentum_boundary =
+            plans[0].required_outcome_end_timestamp + PROSPECTIVE_OUTCOME_ROW_INTERVAL_MS_V0;
+        let risk_boundary =
+            plans[1].required_outcome_end_timestamp + PROSPECTIVE_OUTCOME_ROW_INTERVAL_MS_V0;
+        assert_eq!(
+            prospective_outcome_request_readiness_v0(
+                &registration,
+                &plans,
+                momentum_boundary - 1,
+                true,
+                false,
+                false,
+            ),
+            ProspectiveOutcomeRequestReadinessV0::AwaitingBothTimeMaturities
+        );
+        assert_eq!(
+            prospective_outcome_request_readiness_v0(
+                &registration,
+                &plans,
+                momentum_boundary,
+                true,
+                false,
+                false,
+            ),
+            ProspectiveOutcomeRequestReadinessV0::AwaitingRiskTimeMaturity
+        );
+        assert_eq!(
+            prospective_outcome_request_readiness_v0(
+                &registration,
+                &plans,
+                risk_boundary,
+                true,
+                false,
+                false,
+            ),
+            ProspectiveOutcomeRequestReadinessV0::ReadyForExplicitRequest
+        );
+    }
+
+    #[test]
+    fn prospective_outcome_request_readiness_fails_closed_on_integrity_and_budget_state() {
+        let (_, _, plans, registration) = prospective_maturity_fixture();
+        let ready_at =
+            plans[1].required_outcome_end_timestamp + PROSPECTIVE_OUTCOME_ROW_INTERVAL_MS_V0;
+        assert_eq!(
+            prospective_outcome_request_readiness_v0(
+                &registration,
+                &plans,
+                ready_at,
+                false,
+                false,
+                false,
+            ),
+            ProspectiveOutcomeRequestReadinessV0::EventIntegrityInvalid
+        );
+        let mut changed_plan = plans.clone();
+        changed_plan[1].required_outcome_end_timestamp += PROSPECTIVE_OUTCOME_ROW_INTERVAL_MS_V0;
+        assert_eq!(
+            prospective_outcome_request_readiness_v0(
+                &registration,
+                &changed_plan,
+                ready_at,
+                true,
+                false,
+                false,
+            ),
+            ProspectiveOutcomeRequestReadinessV0::RegistrationInvalid
+        );
+        assert_eq!(
+            prospective_outcome_request_readiness_v0(
+                &registration,
+                &plans,
+                ready_at,
+                true,
+                true,
+                false,
+            ),
+            ProspectiveOutcomeRequestReadinessV0::RequestAlreadyAttempted
+        );
+        assert_eq!(
+            prospective_outcome_request_readiness_v0(
+                &registration,
+                &plans,
+                ready_at,
+                true,
+                true,
+                true,
+            ),
+            ProspectiveOutcomeRequestReadinessV0::OutcomeEvidenceAlreadyPresent
         );
     }
 
