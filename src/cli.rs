@@ -419,12 +419,14 @@ fn run_agent_private_learning_sessions_cli_v0(
         );
         for summary in summaries {
             println!(
-                "agent={};intent_digest={};view_digest={};session_digest={};trainer={:?};sources={};status={:?};candidate_present={};candidate_digest={}",
+                "agent={};intent_digest={};view_digest={};projection_digest={};session_digest={};trainer={:?};view_resolution={:?};sources={};status={:?};candidate_present={};candidate_digest={}",
                 summary.agent_id,
                 summary.intent_digest,
                 summary.data_view_digest,
+                summary.trainer_projection_digest.unwrap_or_default(),
                 summary.session_digest,
                 summary.trainer_kind,
+                summary.view_resolution_status,
                 summary.source_count,
                 summary.session_status,
                 summary.candidate_present,

@@ -19,11 +19,21 @@ The trainer registry is explicit:
 
 ## Evidence and leakage boundary
 
-Evidence resolution compares the view's complete source-digest set with the
-provided immutable snapshots. Dataset authorization, ownership, cutoff,
-chronology, duplicate timestamps, finite OHLCV values, quality acceptance,
-sanitization, read-only provenance, and semantic content digests are checked
-again before materialization.
+Session input is now either a verified persisted neutral-plane view or a view
+planned from the canonical agent policy and the complete resolved request set.
+The prior largest-row-count snapshot shortcut and its replacement one-dataset
+policy are not used. Required and optional dataset contracts, allowed markets,
+symbols, cadence, lookback, cutoff, staleness, all four policy digests, complete
+source identities, private namespace, and training ledger remain bound to the
+session identity.
+
+Evidence resolution uses semantic request identity. It verifies market, symbol,
+cadence, lookback, cutoff, finality, quality, authorization, ownership,
+chronology, duplicate timestamps, finite values, read-only provenance, and
+content digests. Missing required evidence blocks only that agent; missing
+optional evidence is explicit and never replaced. A unique newer equivalent
+artifact resolves deterministically, while an unresolved identity tie fails
+closed.
 
 Shared canonical raw evidence may be referenced by multiple agents. Derived
 features, labels, normalizers, examples, errors, and trainer state remain in the
@@ -36,6 +46,20 @@ normalizer fit range equals training exactly. Validation parameter updates,
 test checkpoint selections, prospective row reads, and prospective label reads
 must all remain zero. The existing trainers retain their stricter label-horizon
 and purge rules.
+
+## Trainer input projection
+
+The complete view is projected explicitly instead of flattening heterogeneous
+artifacts. Momentum consumes one supported chronological price series. The
+Cycle/Risk adapter consumes one market-index series, matching its existing
+single-series contract. Other authorized evidence stays bound to the source
+view as referenced-but-unconsumed until a real adapter exists. Different
+symbols, markets, cadences, and dataset kinds are never concatenated into a
+synthetic price sequence. Value/Quality still has no projection or trainer.
+
+The projection records the source view, consumed and referenced digests,
+primary series, policy identity, and semantic projection identity. It is stored
+as a manually defined Protobuf artifact and reopened before acceptance.
 
 ## Candidate safety contract
 
@@ -56,8 +80,12 @@ not the hash of encoded bytes.
 Writes use a temporary file, flush, `sync_all`, temporary reopen and semantic
 verification, atomic rename, then final reopen and verification. A repeated
 identical write is explicitly reported as a duplicate instead of overwriting
-the artifact. The ignored namespace is `state/learning_data`, divided into
-agent-owned session, dataset, candidate, and journal locations.
+the artifact. Hardened capability registries, projections, and journals use
+digest-addressed paths. Preliminary session and candidate artifacts and their
+legacy journal/registry paths remain byte-identical retrospective records and
+are superseded for future input binding. The ignored namespace is
+`state/learning_data`, divided into agent-owned session, projection, dataset,
+candidate, and journal locations.
 
 ## CLI
 

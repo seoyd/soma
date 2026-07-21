@@ -5,7 +5,7 @@
 //! reward, prospective-evaluation, network, or execution authority.
 
 use std::{
-    collections::BTreeSet,
+    collections::{BTreeMap, BTreeSet},
     fs::{self, File},
     io::{Read, Write},
     path::{Path, PathBuf},
@@ -15,19 +15,20 @@ use prost::Message;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    core::{ReasonCode, stable_hash_string},
+    core::stable_hash_string,
     data::{
-        AcquisitionMarketScope, AgentDataIntent, AgentDataPolicy, AgentLearningDataViewV0,
-        AgentLearningIntentV0, DataLookback, DataPriority, DataSnapshot, DatasetKind,
-        EvidenceDecisionGate, LearningDataArtifactRefV0, LearningDataPlaneSafetyCountersV0,
-        LearningDataVisibilityV0, build_agent_learning_data_view_v0,
-        create_agent_learning_intent_v0, derive_agent_private_learning_state_v0,
-        historical_replay_dataset_digest_v0, read_local_snapshot_protobuf_v1,
-        snapshot_id_from_semantic_digest_v1, validate_agent_learning_data_view_v0,
+        AcquisitionMarketScope, AcquisitionMode, AcquisitionPolicy, AgentDataPolicy,
+        AgentLearningDataViewV0, AgentLearningIntentV0, ConfiguredUniverse, DataLookback,
+        DataSnapshot, DatasetKind, EvidenceDecisionGate, LearningDataArtifactRefV0,
+        LearningDataPlaneSafetyCountersV0, LearningDataVisibilityV0, ReadOnlyProviderRegistry,
+        ReadOnlyProviderRequest, SnapshotAdjustmentSemanticsV1, SnapshotSourceType,
+        build_agent_learning_data_view_v0, build_learning_acquisition_plan_v0,
+        default_agent_data_policies, derive_active_agent_learning_intents_v0,
+        derive_agent_private_learning_state_v0, historical_replay_dataset_digest_v0,
+        read_local_snapshot_protobuf_v1, validate_agent_learning_data_view_v0,
+        validate_agent_learning_intent_v0,
     },
-    league::{
-        AgentKind, HistoricalOhlcvRow, HistoricalReplayDataset, canonical_current_agent_states,
-    },
+    league::{AgentKind, HistoricalOhlcvRow, canonical_current_agent_states},
 };
 
 use super::{
@@ -38,10 +39,12 @@ use super::{
 };
 
 const SESSION_VERSION_V0: &str = "agent-private-learning-session-v0";
+const SESSION_VERSION_V1: &str = "agent-private-learning-session-v1";
 const DATASET_VERSION_V0: &str = "agent-private-dataset-manifest-v0";
 const CANDIDATE_VERSION_V0: &str = "agent-sandbox-learning-candidate-v0";
 const JOURNAL_VERSION_V0: &str = "agent-private-learning-journal-v0";
 const REGISTRY_VERSION_V0: &str = "agent-trainer-capability-registry-v0";
+const PROJECTION_VERSION_V0: &str = "agent-trainer-input-projection-v0";
 const ARTIFACT_MAGIC_V0: &[u8] = b"SOMA-AGENT-PRIVATE-LEARNING-PB-V0";
 const ARTIFACT_SCHEMA_V0: &str = "soma.agent_private_learning.v0";
 const DEFAULT_PRIVATE_LEARNING_ROOT_V0: &str = "state/learning_data";
@@ -84,6 +87,17 @@ pub enum AgentLearningSessionStatusV0 {
     TechnicalFailure,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum AgentViewResolutionStatusV0 {
+    Complete,
+    MissingRequiredEvidence,
+    OptionalEvidenceUnavailable,
+    AmbiguousEquivalentArtifacts,
+    UnauthorizedArtifact,
+    CutoffLeakage,
+    IntegrityFailure,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AgentPrivateLearningSessionV0 {
     pub session_version: String,
@@ -94,14 +108,38 @@ pub struct AgentPrivateLearningSessionV0 {
     pub data_view_digest: String,
     pub trainer_capability_digest: String,
     pub information_cutoff_ms: u64,
+    pub required_dataset_kinds: Vec<DatasetKind>,
+    pub optional_dataset_kinds: Vec<DatasetKind>,
+    pub allowed_markets: Vec<AcquisitionMarketScope>,
+    pub symbols: Vec<String>,
+    pub cadence: String,
+    pub lookback: DataLookback,
+    pub maximum_staleness_ms: u64,
     pub source_artifact_digests: Vec<String>,
+    pub source_policy_digest: String,
     pub feature_policy_digest: String,
     pub label_policy_digest: String,
     pub curriculum_policy_digest: String,
     pub private_namespace_digest: String,
+    pub training_ledger_digest: String,
+    pub trainer_projection_digest: Option<String>,
     pub parent_model_version: Option<String>,
     pub session_status: AgentLearningSessionStatusV0,
     pub session_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AgentTrainerInputProjectionV0 {
+    pub projection_version: String,
+    pub agent_id: String,
+    pub trainer_kind: AgentTrainerKindV0,
+    pub source_view_digest: String,
+    pub consumed_artifact_digests: Vec<String>,
+    pub referenced_but_unconsumed_artifact_digests: Vec<String>,
+    pub primary_series_digest: Option<String>,
+    pub auxiliary_series_digests: Vec<String>,
+    pub projection_policy_digest: String,
+    pub projection_digest: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -184,15 +222,19 @@ pub struct AgentPrivateLearningArtifactV0 {
 #[derive(Clone, Debug, PartialEq)]
 pub struct AgentPrivateLearningSessionInputV0 {
     pub intent: AgentLearningIntentV0,
+    pub policy: AgentDataPolicy,
     pub view: AgentLearningDataViewV0,
     pub artifacts: Vec<AgentPrivateLearningArtifactV0>,
+    pub resolution_status: AgentViewResolutionStatusV0,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AgentPrivateLearningSessionResultV0 {
     pub session: AgentPrivateLearningSessionV0,
     pub trainer_kind: AgentTrainerKindV0,
+    pub view_resolution_status: AgentViewResolutionStatusV0,
     pub source_count: usize,
+    pub trainer_projection: Option<AgentTrainerInputProjectionV0>,
     pub dataset_manifest: Option<AgentPrivateDatasetManifestV0>,
     pub candidate: Option<AgentSandboxLearningCandidateV0>,
     pub journal: AgentLearningSessionJournalV0,
@@ -219,6 +261,8 @@ pub struct AgentPrivateLearningPublicSummaryV0 {
     pub data_view_digest: String,
     pub session_digest: String,
     pub trainer_kind: AgentTrainerKindV0,
+    pub view_resolution_status: AgentViewResolutionStatusV0,
+    pub trainer_projection_digest: Option<String>,
     pub source_count: usize,
     pub session_status: AgentLearningSessionStatusV0,
     pub candidate_present: bool,
@@ -269,12 +313,7 @@ pub fn agent_trainer_capability_registry_v0() -> AgentTrainerCapabilityRegistryV
         capability(
             "cycle_risk_skeptic",
             AgentTrainerKindV0::CycleRiskIndependentShadow,
-            vec![
-                DatasetKind::DailyOhlcv,
-                DatasetKind::CryptoDailyOhlcv,
-                DatasetKind::MarketIndexDaily,
-                DatasetKind::VolatilityDaily,
-            ],
+            vec![DatasetKind::MarketIndexDaily],
             true,
         ),
     ];
@@ -315,126 +354,321 @@ pub fn build_agent_private_learning_inputs_v0(
     if information_cutoff_ms == 0 {
         return Err("private learning cutoff must be positive".to_string());
     }
-    let registry = agent_trainer_capability_registry_v0();
-    let mut inputs = Vec::new();
-    for state in canonical_current_agent_states() {
-        let capability = registry
-            .capabilities
-            .iter()
-            .find(|capability| capability.agent_id == state.agent_id)
-            .ok_or_else(|| "agent trainer capability missing".to_string())?;
-        let selected = snapshots
-            .iter()
-            .filter(|snapshot| {
-                capability
-                    .supported_dataset_kinds
-                    .contains(&snapshot.dataset_kind)
-                    && snapshot
-                        .actual_end_timestamp_ms
-                        .is_some_and(|end| end <= information_cutoff_ms)
-            })
-            .max_by(|left, right| {
-                left.row_count
-                    .cmp(&right.row_count)
-                    .then_with(|| right.content_digest.cmp(&left.content_digest))
-            });
-        inputs.push(build_session_input_v0(
-            state.agent_id.as_str(),
-            state.kind,
-            capability,
-            selected,
-            information_cutoff_ms,
-        )?);
-    }
+    let policies = default_agent_data_policies();
+    let configured_universe = configured_universe_from_snapshots_v0(snapshots);
+    let intents = derive_active_agent_learning_intents_v0(
+        &canonical_current_agent_states(),
+        &configured_universe,
+        &policies,
+        information_cutoff_ms,
+    )?;
+    let mut inputs = intents
+        .iter()
+        .map(|intent| {
+            let policy = policies
+                .iter()
+                .find(|policy| policy.agent_kind == intent.agent_kind)
+                .ok_or_else(|| "canonical agent learning policy unavailable".to_string())?;
+            build_session_input_v0(intent, policy, snapshots)
+        })
+        .collect::<Result<Vec<_>, String>>()?;
     inputs.sort_by(|left, right| left.intent.agent_id.cmp(&right.intent.agent_id));
     Ok(inputs)
 }
 
 fn build_session_input_v0(
-    agent_id: &str,
-    agent_kind: AgentKind,
-    capability: &AgentTrainerCapabilityV0,
-    snapshot: Option<&DataSnapshot>,
-    information_cutoff_ms: u64,
+    intent: &AgentLearningIntentV0,
+    policy: &AgentDataPolicy,
+    snapshots: &[DataSnapshot],
 ) -> Result<AgentPrivateLearningSessionInputV0, String> {
-    let dataset_kind = snapshot
-        .map(|snapshot| snapshot.dataset_kind)
-        .or_else(|| capability.supported_dataset_kinds.first().copied())
-        .ok_or_else(|| "trainer capability has no dataset contract".to_string())?;
-    let market_scope = snapshot
-        .map(|snapshot| snapshot.market_scope)
-        .unwrap_or(AcquisitionMarketScope::UsStocks);
-    let symbols = snapshot
-        .map(|snapshot| snapshot.symbols.clone())
-        .unwrap_or_else(|| vec![format!("{agent_id}-offline")]);
-    let bars = snapshot.map_or(1, |snapshot| snapshot.row_count.max(1));
-    let policy = AgentDataPolicy {
-        agent_kind,
-        allowed_markets: vec![
-            AcquisitionMarketScope::UsStocks,
-            AcquisitionMarketScope::KoreanStocks,
-            AcquisitionMarketScope::BtcCrypto,
-        ],
-        allowed_dataset_kinds: capability.supported_dataset_kinds.clone(),
-        required_dataset_kinds: vec![dataset_kind],
-        optional_dataset_kinds: vec![],
-        default_lookback: DataLookback {
-            bars,
-            start_timestamp_ms: snapshot.and_then(|snapshot| snapshot.actual_start_timestamp_ms),
-            end_timestamp_ms: Some(information_cutoff_ms),
-        },
-        max_staleness_ms: u64::MAX,
-        request_budget: 1,
-        abstain_when_required_missing: true,
-        reason_codes: vec![ReasonCode::AgentDataPolicyApplied],
-    };
-    let data_intent = AgentDataIntent {
-        agent_id: agent_id.to_string(),
-        agent_kind,
-        market_scope,
-        symbols,
-        required_datasets: vec![dataset_kind],
-        optional_datasets: vec![],
-        lookback: policy.default_lookback.clone(),
-        target_cadence: "1d".to_string(),
-        max_staleness_ms: policy.max_staleness_ms,
-        priority: DataPriority::Required,
-        reason_codes: vec![ReasonCode::AgentDataPolicyApplied],
-    };
-    let intent = create_agent_learning_intent_v0(
-        &crate::data::LearningDataCallerV0::Agent(agent_id.to_string()),
-        &data_intent,
-        &policy,
-        information_cutoff_ms,
+    validate_agent_learning_intent_v0(intent, policy)?;
+    let plan = build_learning_acquisition_plan_v0(
+        std::slice::from_ref(intent),
+        std::slice::from_ref(policy),
+        &ReadOnlyProviderRegistry::default(),
+        AcquisitionMode::LocalSnapshotReplay,
+        &AcquisitionPolicy::default(),
     )?;
-    let artifacts = snapshot
-        .map(|snapshot| AgentPrivateLearningArtifactV0 {
-            artifact_ref: LearningDataArtifactRefV0 {
-                artifact_digest: snapshot.content_digest.clone(),
-                dataset_kind: snapshot.dataset_kind,
-                visibility: LearningDataVisibilityV0::SharedCanonicalRaw,
-                owner_agent_id: None,
-                maximum_event_timestamp_ms: snapshot.actual_end_timestamp_ms.unwrap_or_default(),
-            },
-            snapshot: snapshot.clone(),
-        })
-        .into_iter()
-        .collect::<Vec<_>>();
+    let mut artifacts = Vec::new();
+    let mut resolution_status = AgentViewResolutionStatusV0::Complete;
+    let mut optional_missing = false;
+    for planned in &plan.planned_requests {
+        let required = planned.required_by_agents.contains(&intent.agent_id);
+        match resolve_snapshot_for_request_v0(&planned.request, snapshots) {
+            Ok(Some(snapshot)) => artifacts.push(AgentPrivateLearningArtifactV0 {
+                artifact_ref: LearningDataArtifactRefV0 {
+                    artifact_digest: snapshot.content_digest.clone(),
+                    dataset_kind: snapshot.dataset_kind,
+                    visibility: LearningDataVisibilityV0::SharedCanonicalRaw,
+                    owner_agent_id: None,
+                    maximum_event_timestamp_ms: snapshot
+                        .actual_end_timestamp_ms
+                        .unwrap_or_default(),
+                },
+                snapshot,
+            }),
+            Ok(None) if required => {
+                resolution_status = AgentViewResolutionStatusV0::MissingRequiredEvidence;
+            }
+            Ok(None) => optional_missing = true,
+            Err(status) => resolution_status = status,
+        }
+    }
+    if plan.rejected_requests.iter().any(|rejected| {
+        rejected.agent_ids.contains(&intent.agent_id)
+            && intent.required_datasets.contains(&rejected.dataset_kind)
+    }) {
+        resolution_status = AgentViewResolutionStatusV0::MissingRequiredEvidence;
+    }
+    artifacts.sort_by(|left, right| {
+        left.artifact_ref
+            .dataset_kind
+            .cmp(&right.artifact_ref.dataset_kind)
+            .then_with(|| {
+                left.artifact_ref
+                    .artifact_digest
+                    .cmp(&right.artifact_ref.artifact_digest)
+            })
+    });
     let artifact_refs = artifacts
         .iter()
         .map(|artifact| artifact.artifact_ref.clone())
         .collect::<Vec<_>>();
     let view = build_agent_learning_data_view_v0(
-        &intent,
-        &policy,
+        intent,
+        policy,
         &artifact_refs,
         &derive_agent_private_learning_state_v0(&intent),
     )?;
+    if resolution_status == AgentViewResolutionStatusV0::Complete {
+        resolution_status = if view.decision_gate != EvidenceDecisionGate::Ready {
+            AgentViewResolutionStatusV0::MissingRequiredEvidence
+        } else if optional_missing
+            || intent
+                .optional_datasets
+                .iter()
+                .any(|kind| !view.visible_dataset_kinds.contains(kind))
+        {
+            AgentViewResolutionStatusV0::OptionalEvidenceUnavailable
+        } else {
+            AgentViewResolutionStatusV0::Complete
+        };
+    }
     Ok(AgentPrivateLearningSessionInputV0 {
-        intent,
+        intent: intent.clone(),
+        policy: policy.clone(),
         view,
         artifacts,
+        resolution_status,
     })
+}
+
+pub fn build_agent_private_learning_input_from_persisted_view_v0(
+    intent: &AgentLearningIntentV0,
+    policy: &AgentDataPolicy,
+    view: &AgentLearningDataViewV0,
+    snapshots: &[DataSnapshot],
+) -> Result<AgentPrivateLearningSessionInputV0, String> {
+    validate_agent_learning_intent_v0(intent, policy)?;
+    validate_agent_learning_data_view_v0(view)?;
+    if intent.agent_id != view.agent_id
+        || intent.information_cutoff_ms != view.information_cutoff_ms
+        || intent.feature_policy_digest != view.feature_policy_digest
+        || intent.label_policy_digest != view.label_policy_digest
+        || intent.curriculum_policy_digest != view.curriculum_policy_digest
+    {
+        return Err("persisted learning view binding rejected".to_string());
+    }
+    let mut artifacts = view
+        .source_artifact_digests
+        .iter()
+        .map(|digest| {
+            let snapshot = snapshots
+                .iter()
+                .find(|snapshot| snapshot.content_digest == *digest)
+                .ok_or_else(|| "persisted learning view source unavailable".to_string())?;
+            Ok(AgentPrivateLearningArtifactV0 {
+                artifact_ref: LearningDataArtifactRefV0 {
+                    artifact_digest: digest.clone(),
+                    dataset_kind: snapshot.dataset_kind,
+                    visibility: LearningDataVisibilityV0::SharedCanonicalRaw,
+                    owner_agent_id: None,
+                    maximum_event_timestamp_ms: snapshot
+                        .actual_end_timestamp_ms
+                        .unwrap_or_default(),
+                },
+                snapshot: snapshot.clone(),
+            })
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    artifacts.sort_by(|left, right| {
+        left.artifact_ref
+            .artifact_digest
+            .cmp(&right.artifact_ref.artifact_digest)
+    });
+    let optional_missing = intent
+        .optional_datasets
+        .iter()
+        .any(|kind| !view.visible_dataset_kinds.contains(kind));
+    Ok(AgentPrivateLearningSessionInputV0 {
+        intent: intent.clone(),
+        policy: policy.clone(),
+        view: view.clone(),
+        artifacts,
+        resolution_status: if view.decision_gate != EvidenceDecisionGate::Ready {
+            AgentViewResolutionStatusV0::MissingRequiredEvidence
+        } else if optional_missing {
+            AgentViewResolutionStatusV0::OptionalEvidenceUnavailable
+        } else {
+            AgentViewResolutionStatusV0::Complete
+        },
+    })
+}
+
+fn configured_universe_from_snapshots_v0(snapshots: &[DataSnapshot]) -> ConfiguredUniverse {
+    let mut symbols_by_market = BTreeMap::<AcquisitionMarketScope, Vec<String>>::new();
+    for snapshot in snapshots {
+        symbols_by_market
+            .entry(snapshot.market_scope)
+            .or_default()
+            .extend(snapshot.symbols.clone());
+    }
+    for symbols in symbols_by_market.values_mut() {
+        symbols.sort();
+        symbols.dedup();
+    }
+    ConfiguredUniverse { symbols_by_market }
+}
+
+fn resolve_snapshot_for_request_v0(
+    request: &ReadOnlyProviderRequest,
+    snapshots: &[DataSnapshot],
+) -> Result<Option<DataSnapshot>, AgentViewResolutionStatusV0> {
+    let mut candidates = Vec::new();
+    let mut rejected_status = None;
+    for snapshot in snapshots {
+        if snapshot.dataset_kind != request.dataset_kind
+            || snapshot.market_scope != request.market_scope
+            || stabilized_strings_v0(&snapshot.symbols) != request.symbols
+        {
+            continue;
+        }
+        match validate_snapshot_for_request_v0(snapshot, request) {
+            Ok(true) => candidates.push(snapshot),
+            Ok(false) => {}
+            Err(status) => rejected_status = Some(status),
+        }
+    }
+    if candidates.is_empty() {
+        return rejected_status.map_or(Ok(None), Err);
+    }
+    candidates.sort_by(|left, right| {
+        right
+            .fetched_at_ms
+            .cmp(&left.fetched_at_ms)
+            .then_with(|| right.row_count.cmp(&left.row_count))
+            .then_with(|| left.content_digest.cmp(&right.content_digest))
+    });
+    let selected = candidates[0];
+    if candidates.iter().skip(1).any(|candidate| {
+        candidate.fetched_at_ms == selected.fetched_at_ms
+            && candidate.row_count == selected.row_count
+            && candidate.content_digest != selected.content_digest
+    }) {
+        return Err(AgentViewResolutionStatusV0::AmbiguousEquivalentArtifacts);
+    }
+    Ok(Some(selected.clone()))
+}
+
+fn validate_snapshot_for_request_v0(
+    snapshot: &DataSnapshot,
+    request: &ReadOnlyProviderRequest,
+) -> Result<bool, AgentViewResolutionStatusV0> {
+    let exact_request = snapshot.request_key == request.request_key
+        && snapshot.requested_lookback == request.lookback;
+    let compatible_request = snapshot
+        .compatibility
+        .as_ref()
+        .is_some_and(|compatibility| {
+            snapshot.requested_lookback == request.lookback
+                && compatibility.cadence == request.cadence
+                && compatibility.adjustment_semantics
+                    == expected_adjustment_semantics_v0(request.dataset_kind)
+                && compatibility.source_schema == "application/x-soma-normalized-dataset"
+                && compatibility.requested_cutoff_timestamp_ms == request.lookback.end_timestamp_ms
+                && compatibility.maximum_staleness_ms == request.max_staleness_ms
+                && compatibility.all_rows_finalized
+        });
+    if !exact_request && !compatible_request {
+        return Ok(false);
+    }
+    let digest = historical_replay_dataset_digest_v0(&snapshot.normalized_dataset);
+    if snapshot.schema_version != 1
+        || snapshot.content_digest != digest
+        || snapshot.row_count != snapshot.normalized_dataset.rows.len()
+        || snapshot.quality_summary.row_count != snapshot.row_count
+        || !snapshot.quality_summary.accepted
+        || !snapshot.sanitized
+        || !snapshot.read_only
+        || !snapshot.provenance.sanitized
+        || !snapshot.provenance.credential_free
+        || snapshot.provenance.provider_id != snapshot.provider_id
+        || snapshot.provenance.source_type == SnapshotSourceType::LocalSnapshotReplay
+        || snapshot.normalized_dataset.rows.is_empty()
+        || snapshot.actual_start_timestamp_ms
+            != snapshot
+                .normalized_dataset
+                .rows
+                .first()
+                .map(|row| row.timestamp_ms)
+        || snapshot.actual_end_timestamp_ms
+            != snapshot
+                .normalized_dataset
+                .rows
+                .last()
+                .map(|row| row.timestamp_ms)
+        || snapshot
+            .normalized_dataset
+            .rows
+            .windows(2)
+            .any(|pair| pair[0].timestamp_ms >= pair[1].timestamp_ms)
+        || snapshot.normalized_dataset.rows.iter().any(|row| {
+            row.symbol != snapshot.normalized_dataset.symbol || !finite_valid_row_v0(row)
+        })
+    {
+        return Err(AgentViewResolutionStatusV0::IntegrityFailure);
+    }
+    let Some(actual_end) = snapshot.actual_end_timestamp_ms else {
+        return Err(AgentViewResolutionStatusV0::IntegrityFailure);
+    };
+    if actual_end > request.lookback.end_timestamp_ms.unwrap_or_default() {
+        return Err(AgentViewResolutionStatusV0::CutoffLeakage);
+    }
+    if request
+        .lookback
+        .end_timestamp_ms
+        .is_some_and(|cutoff| cutoff.saturating_sub(actual_end) > request.max_staleness_ms)
+    {
+        return Ok(false);
+    }
+    Ok(true)
+}
+
+fn expected_adjustment_semantics_v0(kind: DatasetKind) -> SnapshotAdjustmentSemanticsV1 {
+    match kind {
+        DatasetKind::DailyOhlcv | DatasetKind::CryptoDailyOhlcv => {
+            SnapshotAdjustmentSemanticsV1::Unadjusted
+        }
+        DatasetKind::AdjustedDailyOhlcv => SnapshotAdjustmentSemanticsV1::Adjusted,
+        _ => SnapshotAdjustmentSemanticsV1::NotApplicable,
+    }
+}
+
+fn stabilized_strings_v0(values: &[String]) -> Vec<String> {
+    let mut values = values.to_vec();
+    values.sort();
+    values.dedup();
+    values
 }
 
 pub fn run_agent_private_learning_sessions_v0(
@@ -478,15 +712,33 @@ fn run_one_session_v0(
     let mut session = registered_session_v0(input, capability);
     let mut dataset_manifest = None;
     let mut candidate = None;
+    let mut trainer_projection = None;
     let mut sanitized_error_code = None;
 
     if !capability.supports_training {
         session.session_status = AgentLearningSessionStatusV0::TrainerUnavailable;
     } else if mode == AgentPrivateLearningRunModeV0::Status {
         session.session_status = AgentLearningSessionStatusV0::Registered;
+    } else if !matches!(
+        input.resolution_status,
+        AgentViewResolutionStatusV0::Complete
+            | AgentViewResolutionStatusV0::OptionalEvidenceUnavailable
+    ) {
+        session.session_status = resolution_session_status_v0(input.resolution_status);
+        sanitized_error_code = Some(resolution_error_code_v0(input.resolution_status).to_string());
     } else {
-        match materialize_private_dataset_v0(input, capability.trainer_kind, &session.session_id) {
-            Ok(materialized) => {
+        match build_trainer_projection_v0(input, capability.trainer_kind).and_then(|projection| {
+            materialize_private_dataset_v0(
+                input,
+                capability.trainer_kind,
+                &session.session_id,
+                &projection,
+            )
+            .map(|materialized| (projection, materialized))
+        }) {
+            Ok((projection, materialized)) => {
+                session.trainer_projection_digest = Some(projection.projection_digest.clone());
+                trainer_projection = Some(projection);
                 dataset_manifest = Some(materialized.manifest);
                 session.session_status = AgentLearningSessionStatusV0::DatasetReady;
                 if mode == AgentPrivateLearningRunModeV0::ExecuteLocal {
@@ -544,8 +796,10 @@ fn run_one_session_v0(
     let journal = journal_v0(&session, dataset_manifest.as_ref(), candidate.as_ref());
     AgentPrivateLearningSessionResultV0 {
         trainer_kind: capability.trainer_kind,
+        view_resolution_status: input.resolution_status,
         source_count: session.source_artifact_digests.len(),
         session,
+        trainer_projection,
         dataset_manifest,
         candidate,
         journal,
@@ -564,8 +818,10 @@ fn technical_result_v0(
     let journal = journal_v0(&session, None, None);
     AgentPrivateLearningSessionResultV0 {
         trainer_kind,
+        view_resolution_status: input.resolution_status,
         source_count: input.view.source_artifact_digests.len(),
         session,
+        trainer_projection: None,
         dataset_manifest: None,
         candidate: None,
         journal,
@@ -588,7 +844,7 @@ fn registered_session_v0(
         ))
     );
     let mut session = AgentPrivateLearningSessionV0 {
-        session_version: SESSION_VERSION_V0.to_string(),
+        session_version: SESSION_VERSION_V1.to_string(),
         session_id,
         agent_id: input.intent.agent_id.clone(),
         agent_kind: input.intent.agent_kind,
@@ -596,11 +852,21 @@ fn registered_session_v0(
         data_view_digest: input.view.view_digest.clone(),
         trainer_capability_digest: capability.capability_digest.clone(),
         information_cutoff_ms: input.view.information_cutoff_ms,
+        required_dataset_kinds: input.intent.required_datasets.clone(),
+        optional_dataset_kinds: input.intent.optional_datasets.clone(),
+        allowed_markets: input.policy.allowed_markets.clone(),
+        symbols: input.intent.symbols.clone(),
+        cadence: input.intent.cadence.clone(),
+        lookback: input.intent.lookback.clone(),
+        maximum_staleness_ms: input.intent.maximum_staleness_ms,
         source_artifact_digests: input.view.source_artifact_digests.clone(),
+        source_policy_digest: input.intent.source_policy_digest.clone(),
         feature_policy_digest: input.view.feature_policy_digest.clone(),
         label_policy_digest: input.view.label_policy_digest.clone(),
         curriculum_policy_digest: input.view.curriculum_policy_digest.clone(),
         private_namespace_digest: input.view.private_namespace_digest.clone(),
+        training_ledger_digest: input.view.training_ledger_digest.clone(),
+        trainer_projection_digest: None,
         parent_model_version: None,
         session_status: AgentLearningSessionStatusV0::Registered,
         session_digest: String::new(),
@@ -609,16 +875,120 @@ fn registered_session_v0(
     session
 }
 
+fn build_trainer_projection_v0(
+    input: &AgentPrivateLearningSessionInputV0,
+    trainer_kind: AgentTrainerKindV0,
+) -> Result<AgentTrainerInputProjectionV0, EvidenceResolutionErrorV0> {
+    if input.view.view_digest.is_empty()
+        || input.view.source_artifact_digests.len() != input.artifacts.len()
+        || input.artifacts.iter().any(|artifact| {
+            !input
+                .view
+                .source_artifact_digests
+                .contains(&artifact.artifact_ref.artifact_digest)
+        })
+    {
+        return Err(EvidenceResolutionErrorV0::SourceDigest);
+    }
+    let primary_kinds: &[DatasetKind] = match trainer_kind {
+        AgentTrainerKindV0::MomentumFrozenMambaHead => &[
+            DatasetKind::DailyOhlcv,
+            DatasetKind::AdjustedDailyOhlcv,
+            DatasetKind::CryptoDailyOhlcv,
+        ],
+        AgentTrainerKindV0::CycleRiskIndependentShadow => &[DatasetKind::MarketIndexDaily],
+        AgentTrainerKindV0::ValueQualityUnavailable => {
+            return Err(EvidenceResolutionErrorV0::Insufficient);
+        }
+    };
+    let mut eligible = input
+        .artifacts
+        .iter()
+        .filter(|artifact| primary_kinds.contains(&artifact.snapshot.dataset_kind))
+        .collect::<Vec<_>>();
+    eligible.sort_by(|left, right| {
+        let left_required = input
+            .intent
+            .required_datasets
+            .contains(&left.snapshot.dataset_kind);
+        let right_required = input
+            .intent
+            .required_datasets
+            .contains(&right.snapshot.dataset_kind);
+        right_required
+            .cmp(&left_required)
+            .then_with(|| {
+                primary_kinds
+                    .iter()
+                    .position(|kind| *kind == left.snapshot.dataset_kind)
+                    .cmp(
+                        &primary_kinds
+                            .iter()
+                            .position(|kind| *kind == right.snapshot.dataset_kind),
+                    )
+            })
+            .then_with(|| {
+                left.artifact_ref
+                    .artifact_digest
+                    .cmp(&right.artifact_ref.artifact_digest)
+            })
+    });
+    let primary = eligible
+        .first()
+        .ok_or(EvidenceResolutionErrorV0::Insufficient)?;
+    let consumed_artifact_digests = vec![primary.artifact_ref.artifact_digest.clone()];
+    let referenced_but_unconsumed_artifact_digests = input
+        .view
+        .source_artifact_digests
+        .iter()
+        .filter(|digest| !consumed_artifact_digests.contains(digest))
+        .cloned()
+        .collect::<Vec<_>>();
+    let projection_policy_digest = stable_hash_string(&format!(
+        "SOMA-AGENT-TRAINER-PROJECTION-POLICY-V0:{:?}:{:?}:single-primary:no-concatenation",
+        trainer_kind, primary_kinds
+    ));
+    let mut projection = AgentTrainerInputProjectionV0 {
+        projection_version: PROJECTION_VERSION_V0.to_string(),
+        agent_id: input.intent.agent_id.clone(),
+        trainer_kind,
+        source_view_digest: input.view.view_digest.clone(),
+        consumed_artifact_digests,
+        referenced_but_unconsumed_artifact_digests,
+        primary_series_digest: Some(primary.snapshot.content_digest.clone()),
+        auxiliary_series_digests: vec![],
+        projection_policy_digest,
+        projection_digest: String::new(),
+    };
+    projection.projection_digest = projection_digest_v0(&projection);
+    Ok(projection)
+}
+
 fn materialize_private_dataset_v0(
     input: &AgentPrivateLearningSessionInputV0,
     trainer_kind: AgentTrainerKindV0,
     session_id: &str,
+    projection: &AgentTrainerInputProjectionV0,
 ) -> Result<MaterializedPrivateDatasetV0, EvidenceResolutionErrorV0> {
     validate_agent_learning_data_view_v0(&input.view)
         .map_err(|_| EvidenceResolutionErrorV0::UnsafeEvidence)?;
+    validate_agent_learning_intent_v0(&input.intent, &input.policy)
+        .map_err(|_| EvidenceResolutionErrorV0::UnsafeEvidence)?;
     if input.intent.agent_id != input.view.agent_id
-        || input.intent.intent_digest.is_empty()
+        || input.intent.agent_kind != input.policy.agent_kind
+        || input.intent.information_cutoff_ms != input.view.information_cutoff_ms
+        || input.intent.feature_policy_digest != input.view.feature_policy_digest
+        || input.intent.label_policy_digest != input.view.label_policy_digest
+        || input.intent.curriculum_policy_digest != input.view.curriculum_policy_digest
+        || derive_agent_private_learning_state_v0(&input.intent).private_namespace_digest
+            != input.view.private_namespace_digest
+        || derive_agent_private_learning_state_v0(&input.intent).training_ledger_digest
+            != input.view.training_ledger_digest
         || input.view.decision_gate != EvidenceDecisionGate::Ready
+        || projection.source_view_digest != input.view.view_digest
+        || projection.agent_id != input.intent.agent_id
+        || projection.trainer_kind != trainer_kind
+        || projection.projection_digest != projection_digest_v0(projection)
     {
         return Err(EvidenceResolutionErrorV0::Insufficient);
     }
@@ -639,10 +1009,8 @@ fn materialize_private_dataset_v0(
     {
         return Err(EvidenceResolutionErrorV0::SourceDigest);
     }
-    let mut rows = Vec::<HistoricalOhlcvRow>::new();
     let mut source_digests = Vec::new();
     let mut dataset_kinds = Vec::new();
-    let mut symbol = None::<String>;
     for artifact in &input.artifacts {
         let reference = &artifact.artifact_ref;
         let snapshot = &artifact.snapshot;
@@ -660,6 +1028,9 @@ fn materialize_private_dataset_v0(
                 .view
                 .visible_dataset_kinds
                 .contains(&snapshot.dataset_kind)
+            || !input.intent.market_scopes.contains(&snapshot.market_scope)
+            || stabilized_strings_v0(&snapshot.symbols) != input.intent.symbols
+            || snapshot.requested_lookback != input.intent.lookback
         {
             return Err(EvidenceResolutionErrorV0::UnauthorizedDataset);
         }
@@ -670,8 +1041,12 @@ fn materialize_private_dataset_v0(
         if !snapshot.read_only
             || !snapshot.sanitized
             || !snapshot.quality_summary.accepted
+            || snapshot.row_count != snapshot.normalized_dataset.rows.len()
+            || snapshot.quality_summary.row_count != snapshot.row_count
             || !snapshot.provenance.sanitized
             || !snapshot.provenance.credential_free
+            || snapshot.provenance.provider_id != snapshot.provider_id
+            || snapshot.provenance.source_type == SnapshotSourceType::LocalSnapshotReplay
         {
             return Err(EvidenceResolutionErrorV0::UnsafeEvidence);
         }
@@ -705,68 +1080,37 @@ fn materialize_private_dataset_v0(
         }) {
             return Err(EvidenceResolutionErrorV0::NonFinite);
         }
-        if symbol
-            .as_ref()
-            .is_some_and(|expected| expected != &snapshot.normalized_dataset.symbol)
-        {
-            return Err(EvidenceResolutionErrorV0::UnauthorizedDataset);
-        }
-        symbol = Some(snapshot.normalized_dataset.symbol.clone());
-        rows.extend(snapshot.normalized_dataset.rows.clone());
         source_digests.push(digest);
         dataset_kinds.push(snapshot.dataset_kind);
-    }
-    if rows.is_empty() {
-        return Err(EvidenceResolutionErrorV0::Insufficient);
-    }
-    rows.sort_by_key(|row| row.timestamp_ms);
-    if rows
-        .windows(2)
-        .any(|pair| pair[0].timestamp_ms == pair[1].timestamp_ms)
-    {
-        return Err(EvidenceResolutionErrorV0::Duplicate);
     }
     source_digests.sort();
     dataset_kinds.sort();
     dataset_kinds.dedup();
-    let mut snapshot = input.artifacts[0].snapshot.clone();
-    snapshot.normalized_dataset = HistoricalReplayDataset {
-        symbol: symbol.ok_or(EvidenceResolutionErrorV0::Insufficient)?,
-        source: "agent-private-immutable-historical-evidence".to_string(),
-        rows,
-        reason_codes: vec![],
-    };
-    snapshot.row_count = snapshot.normalized_dataset.rows.len();
-    snapshot.quality_summary.row_count = snapshot.row_count;
-    snapshot.actual_start_timestamp_ms = snapshot
-        .normalized_dataset
-        .rows
-        .first()
-        .map(|row| row.timestamp_ms);
-    snapshot.actual_end_timestamp_ms = snapshot
-        .normalized_dataset
-        .rows
-        .last()
-        .map(|row| row.timestamp_ms);
-    snapshot.requested_lookback = DataLookback {
-        bars: snapshot.row_count,
-        start_timestamp_ms: snapshot.actual_start_timestamp_ms,
-        end_timestamp_ms: Some(input.view.information_cutoff_ms),
-    };
-    snapshot.compatibility = None;
-    snapshot.content_digest = historical_replay_dataset_digest_v0(&snapshot.normalized_dataset);
-    snapshot.snapshot_id = snapshot_id_from_semantic_digest_v1(&snapshot.content_digest);
-    snapshot.request_key = stable_hash_string(&format!(
-        "private-dataset:{}:{}",
-        input.intent.agent_id, input.view.view_digest
-    ));
+    let primary_digest = projection
+        .primary_series_digest
+        .as_ref()
+        .ok_or(EvidenceResolutionErrorV0::Insufficient)?;
+    if projection.consumed_artifact_digests != [primary_digest.clone()]
+        || projection
+            .referenced_but_unconsumed_artifact_digests
+            .iter()
+            .any(|digest| projection.consumed_artifact_digests.contains(digest))
+    {
+        return Err(EvidenceResolutionErrorV0::UnsafeEvidence);
+    }
+    let snapshot = input
+        .artifacts
+        .iter()
+        .find(|artifact| artifact.artifact_ref.artifact_digest == *primary_digest)
+        .map(|artifact| artifact.snapshot.clone())
+        .ok_or(EvidenceResolutionErrorV0::SourceDigest)?;
     let manifest = initial_dataset_manifest_v0(
         input,
         trainer_kind,
         session_id,
         &source_digests,
         &dataset_kinds,
-        snapshot.row_count,
+        snapshot.normalized_dataset.rows.len(),
     )?;
     Ok(MaterializedPrivateDatasetV0 { snapshot, manifest })
 }
@@ -1157,6 +1501,44 @@ fn evidence_error_code_v0(error: EvidenceResolutionErrorV0) -> &'static str {
     }
 }
 
+fn resolution_session_status_v0(
+    status: AgentViewResolutionStatusV0,
+) -> AgentLearningSessionStatusV0 {
+    match status {
+        AgentViewResolutionStatusV0::Complete
+        | AgentViewResolutionStatusV0::OptionalEvidenceUnavailable => {
+            AgentLearningSessionStatusV0::DatasetReady
+        }
+        AgentViewResolutionStatusV0::MissingRequiredEvidence => {
+            AgentLearningSessionStatusV0::InsufficientEvidence
+        }
+        AgentViewResolutionStatusV0::UnauthorizedArtifact => {
+            AgentLearningSessionStatusV0::RejectedUnauthorizedEvidence
+        }
+        AgentViewResolutionStatusV0::CutoffLeakage => {
+            AgentLearningSessionStatusV0::RejectedCutoffLeakage
+        }
+        AgentViewResolutionStatusV0::AmbiguousEquivalentArtifacts
+        | AgentViewResolutionStatusV0::IntegrityFailure => {
+            AgentLearningSessionStatusV0::RejectedSafetyInvariant
+        }
+    }
+}
+
+fn resolution_error_code_v0(status: AgentViewResolutionStatusV0) -> &'static str {
+    match status {
+        AgentViewResolutionStatusV0::Complete => "complete",
+        AgentViewResolutionStatusV0::OptionalEvidenceUnavailable => "optional_evidence_unavailable",
+        AgentViewResolutionStatusV0::MissingRequiredEvidence => "missing_required_evidence",
+        AgentViewResolutionStatusV0::AmbiguousEquivalentArtifacts => {
+            "ambiguous_equivalent_artifacts"
+        }
+        AgentViewResolutionStatusV0::UnauthorizedArtifact => "unauthorized_artifact",
+        AgentViewResolutionStatusV0::CutoffLeakage => "cutoff_leakage",
+        AgentViewResolutionStatusV0::IntegrityFailure => "integrity_failure",
+    }
+}
+
 fn journal_v0(
     session: &AgentPrivateLearningSessionV0,
     manifest: Option<&AgentPrivateDatasetManifestV0>,
@@ -1189,6 +1571,11 @@ pub fn public_session_summaries_v0(
             data_view_digest: result.session.data_view_digest.clone(),
             session_digest: result.session.session_digest.clone(),
             trainer_kind: result.trainer_kind,
+            view_resolution_status: result.view_resolution_status,
+            trainer_projection_digest: result
+                .trainer_projection
+                .as_ref()
+                .map(|projection| projection.projection_digest.clone()),
             source_count: result.source_count,
             session_status: result.session.session_status,
             candidate_present: result.candidate.is_some(),
@@ -1279,6 +1666,12 @@ pub fn persist_agent_private_learning_report_v0(
             write_session_artifact_v0(&result.session, &agent_root.join("sessions")),
             &mut storage,
         );
+        if let Some(projection) = &result.trainer_projection {
+            record_write_result_v0(
+                write_projection_artifact_v0(projection, &agent_root.join("projections")),
+                &mut storage,
+            );
+        }
         if let Some(manifest) = &result.dataset_manifest {
             record_write_result_v0(
                 write_dataset_artifact_v0(manifest, &agent_root.join("datasets")),
@@ -1292,7 +1685,7 @@ pub fn persist_agent_private_learning_report_v0(
             );
         }
         record_write_result_v0(
-            write_journal_artifact_v0(&result.journal, &agent_root),
+            write_journal_artifact_v0(&result.journal, &agent_root.join("journals")),
             &mut storage,
         );
     }
@@ -1323,10 +1716,25 @@ fn write_registry_artifact_v0(
 ) -> Result<AgentPrivateLearningArtifactWriteStatusV0, String> {
     let bytes = encode_capability_registry_protobuf_v0(registry)?;
     atomic_write_verified_v0(
-        &root.join("capability_registry.pb"),
+        &root
+            .join("capability_registries")
+            .join(format!("{}.pb", registry.registry_digest)),
         &bytes,
         &registry.registry_digest,
         |stored| Ok(decode_capability_registry_protobuf_v0(stored)?.registry_digest),
+    )
+}
+
+fn write_projection_artifact_v0(
+    projection: &AgentTrainerInputProjectionV0,
+    directory: &Path,
+) -> Result<AgentPrivateLearningArtifactWriteStatusV0, String> {
+    let bytes = encode_trainer_projection_protobuf_v0(projection)?;
+    atomic_write_verified_v0(
+        &directory.join(format!("{}.pb", projection.projection_digest)),
+        &bytes,
+        &projection.projection_digest,
+        |stored| Ok(decode_trainer_projection_protobuf_v0(stored)?.projection_digest),
     )
 }
 
@@ -1375,7 +1783,7 @@ fn write_journal_artifact_v0(
 ) -> Result<AgentPrivateLearningArtifactWriteStatusV0, String> {
     let bytes = encode_journal_protobuf_v0(journal)?;
     atomic_write_verified_v0(
-        &directory.join("journal.pb"),
+        &directory.join(format!("{}.pb", journal.journal_digest)),
         &bytes,
         &journal.journal_digest,
         |stored| Ok(decode_journal_protobuf_v0(stored)?.journal_digest),
@@ -1448,6 +1856,7 @@ fn safe_agent_component_v0(agent_id: &str) -> bool {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum ArtifactKindV0 {
     Session,
+    Projection,
     Dataset,
     Candidate,
     Journal,
@@ -1458,6 +1867,7 @@ impl ArtifactKindV0 {
     fn wire_name(self) -> &'static str {
         match self {
             Self::Session => "session",
+            Self::Projection => "projection",
             Self::Dataset => "dataset",
             Self::Candidate => "candidate",
             Self::Journal => "journal",
@@ -1528,6 +1938,54 @@ struct SessionProtobufV0 {
     session_status: u32,
     #[prost(string, tag = "16")]
     session_digest: String,
+    #[prost(uint32, repeated, tag = "17")]
+    required_dataset_kinds: Vec<u32>,
+    #[prost(uint32, repeated, tag = "18")]
+    optional_dataset_kinds: Vec<u32>,
+    #[prost(uint32, repeated, tag = "19")]
+    allowed_markets: Vec<u32>,
+    #[prost(string, repeated, tag = "20")]
+    symbols: Vec<String>,
+    #[prost(string, tag = "21")]
+    cadence: String,
+    #[prost(uint64, tag = "22")]
+    lookback_bars: u64,
+    #[prost(uint64, optional, tag = "23")]
+    lookback_start_timestamp_ms: Option<u64>,
+    #[prost(uint64, optional, tag = "24")]
+    lookback_end_timestamp_ms: Option<u64>,
+    #[prost(uint64, tag = "25")]
+    maximum_staleness_ms: u64,
+    #[prost(string, tag = "26")]
+    source_policy_digest: String,
+    #[prost(string, tag = "27")]
+    training_ledger_digest: String,
+    #[prost(string, optional, tag = "28")]
+    trainer_projection_digest: Option<String>,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct TrainerProjectionProtobufV0 {
+    #[prost(string, tag = "1")]
+    projection_version: String,
+    #[prost(string, tag = "2")]
+    agent_id: String,
+    #[prost(uint32, tag = "3")]
+    trainer_kind: u32,
+    #[prost(string, tag = "4")]
+    source_view_digest: String,
+    #[prost(string, repeated, tag = "5")]
+    consumed_artifact_digests: Vec<String>,
+    #[prost(string, repeated, tag = "6")]
+    referenced_but_unconsumed_artifact_digests: Vec<String>,
+    #[prost(string, optional, tag = "7")]
+    primary_series_digest: Option<String>,
+    #[prost(string, repeated, tag = "8")]
+    auxiliary_series_digests: Vec<String>,
+    #[prost(string, tag = "9")]
+    projection_policy_digest: String,
+    #[prost(string, tag = "10")]
+    projection_digest: String,
 }
 
 #[derive(Clone, PartialEq, Message)]
@@ -1733,6 +2191,30 @@ pub fn encode_session_protobuf_v0(
             parent_model_version: session.parent_model_version.clone(),
             session_status: session_status_tag_v0(session.session_status),
             session_digest: session.session_digest.clone(),
+            required_dataset_kinds: session
+                .required_dataset_kinds
+                .iter()
+                .map(|kind| dataset_kind_tag_v0(*kind))
+                .collect::<Result<Vec<_>, _>>()?,
+            optional_dataset_kinds: session
+                .optional_dataset_kinds
+                .iter()
+                .map(|kind| dataset_kind_tag_v0(*kind))
+                .collect::<Result<Vec<_>, _>>()?,
+            allowed_markets: session
+                .allowed_markets
+                .iter()
+                .map(|market| market_scope_tag_v0(*market))
+                .collect::<Result<Vec<_>, _>>()?,
+            symbols: session.symbols.clone(),
+            cadence: session.cadence.clone(),
+            lookback_bars: usize_to_u64_v0(session.lookback.bars)?,
+            lookback_start_timestamp_ms: session.lookback.start_timestamp_ms,
+            lookback_end_timestamp_ms: session.lookback.end_timestamp_ms,
+            maximum_staleness_ms: session.maximum_staleness_ms,
+            source_policy_digest: session.source_policy_digest.clone(),
+            training_ledger_digest: session.training_ledger_digest.clone(),
+            trainer_projection_digest: session.trainer_projection_digest.clone(),
         },
     )
 }
@@ -1750,11 +2232,37 @@ pub fn decode_session_protobuf_v0(bytes: &[u8]) -> Result<AgentPrivateLearningSe
         data_view_digest: value.data_view_digest,
         trainer_capability_digest: value.trainer_capability_digest,
         information_cutoff_ms: value.information_cutoff_ms,
+        required_dataset_kinds: value
+            .required_dataset_kinds
+            .into_iter()
+            .map(dataset_kind_from_tag_v0)
+            .collect::<Result<Vec<_>, _>>()?,
+        optional_dataset_kinds: value
+            .optional_dataset_kinds
+            .into_iter()
+            .map(dataset_kind_from_tag_v0)
+            .collect::<Result<Vec<_>, _>>()?,
+        allowed_markets: value
+            .allowed_markets
+            .into_iter()
+            .map(market_scope_from_tag_v0)
+            .collect::<Result<Vec<_>, _>>()?,
+        symbols: value.symbols,
+        cadence: value.cadence,
+        lookback: DataLookback {
+            bars: u64_to_usize_v0(value.lookback_bars)?,
+            start_timestamp_ms: value.lookback_start_timestamp_ms,
+            end_timestamp_ms: value.lookback_end_timestamp_ms,
+        },
+        maximum_staleness_ms: value.maximum_staleness_ms,
         source_artifact_digests: value.source_artifact_digests,
+        source_policy_digest: value.source_policy_digest,
         feature_policy_digest: value.feature_policy_digest,
         label_policy_digest: value.label_policy_digest,
         curriculum_policy_digest: value.curriculum_policy_digest,
         private_namespace_digest: value.private_namespace_digest,
+        training_ledger_digest: value.training_ledger_digest,
+        trainer_projection_digest: value.trainer_projection_digest,
         parent_model_version: value.parent_model_version,
         session_status: session_status_from_tag_v0(value.session_status)?,
         session_digest: value.session_digest,
@@ -1765,6 +2273,67 @@ pub fn decode_session_protobuf_v0(bytes: &[u8]) -> Result<AgentPrivateLearningSe
         return Err("private learning session identity rejected".to_string());
     }
     Ok(session)
+}
+
+pub fn encode_trainer_projection_protobuf_v0(
+    projection: &AgentTrainerInputProjectionV0,
+) -> Result<Vec<u8>, String> {
+    if projection.projection_version != PROJECTION_VERSION_V0
+        || projection.projection_digest != projection_digest_v0(projection)
+        || projection.source_view_digest.is_empty()
+        || projection.consumed_artifact_digests.len() != 1
+        || projection.primary_series_digest.as_ref() != projection.consumed_artifact_digests.first()
+    {
+        return Err("trainer input projection semantic digest rejected".to_string());
+    }
+    encode_envelope_v0(
+        ArtifactKindV0::Projection,
+        &projection.projection_digest,
+        &TrainerProjectionProtobufV0 {
+            projection_version: projection.projection_version.clone(),
+            agent_id: projection.agent_id.clone(),
+            trainer_kind: trainer_kind_tag_v0(projection.trainer_kind),
+            source_view_digest: projection.source_view_digest.clone(),
+            consumed_artifact_digests: projection.consumed_artifact_digests.clone(),
+            referenced_but_unconsumed_artifact_digests: projection
+                .referenced_but_unconsumed_artifact_digests
+                .clone(),
+            primary_series_digest: projection.primary_series_digest.clone(),
+            auxiliary_series_digests: projection.auxiliary_series_digests.clone(),
+            projection_policy_digest: projection.projection_policy_digest.clone(),
+            projection_digest: projection.projection_digest.clone(),
+        },
+    )
+}
+
+pub fn decode_trainer_projection_protobuf_v0(
+    bytes: &[u8],
+) -> Result<AgentTrainerInputProjectionV0, String> {
+    let envelope = decode_envelope_v0(bytes, ArtifactKindV0::Projection)?;
+    let value = TrainerProjectionProtobufV0::decode(envelope.payload.as_slice())
+        .map_err(|_| "trainer input projection decode failed".to_string())?;
+    let projection = AgentTrainerInputProjectionV0 {
+        projection_version: value.projection_version,
+        agent_id: value.agent_id,
+        trainer_kind: trainer_kind_from_tag_v0(value.trainer_kind)?,
+        source_view_digest: value.source_view_digest,
+        consumed_artifact_digests: value.consumed_artifact_digests,
+        referenced_but_unconsumed_artifact_digests: value
+            .referenced_but_unconsumed_artifact_digests,
+        primary_series_digest: value.primary_series_digest,
+        auxiliary_series_digests: value.auxiliary_series_digests,
+        projection_policy_digest: value.projection_policy_digest,
+        projection_digest: value.projection_digest,
+    };
+    if projection.projection_version != PROJECTION_VERSION_V0
+        || projection.projection_digest != envelope.semantic_digest
+        || projection.projection_digest != projection_digest_v0(&projection)
+        || projection.consumed_artifact_digests.len() != 1
+        || projection.primary_series_digest.as_ref() != projection.consumed_artifact_digests.first()
+    {
+        return Err("trainer input projection identity rejected".to_string());
+    }
+    Ok(projection)
 }
 
 pub fn encode_dataset_manifest_protobuf_v0(
@@ -2128,6 +2697,26 @@ fn trainer_kind_from_tag_v0(value: u32) -> Result<AgentTrainerKindV0, String> {
     }
 }
 
+fn market_scope_tag_v0(market: AcquisitionMarketScope) -> Result<u32, String> {
+    match market {
+        AcquisitionMarketScope::UsStocks => Ok(1),
+        AcquisitionMarketScope::KoreanStocks => Ok(2),
+        AcquisitionMarketScope::BtcCrypto => Ok(3),
+        AcquisitionMarketScope::Unknown => {
+            Err("private learning market scope rejected".to_string())
+        }
+    }
+}
+
+fn market_scope_from_tag_v0(value: u32) -> Result<AcquisitionMarketScope, String> {
+    match value {
+        1 => Ok(AcquisitionMarketScope::UsStocks),
+        2 => Ok(AcquisitionMarketScope::KoreanStocks),
+        3 => Ok(AcquisitionMarketScope::BtcCrypto),
+        _ => Err("private learning market scope rejected".to_string()),
+    }
+}
+
 fn session_status_tag_v0(status: AgentLearningSessionStatusV0) -> u32 {
     match status {
         AgentLearningSessionStatusV0::Registered => 1,
@@ -2233,8 +2822,28 @@ fn registry_digest_v0(registry: &AgentTrainerCapabilityRegistryV0) -> String {
 }
 
 fn session_digest_v0(session: &AgentPrivateLearningSessionV0) -> String {
+    if session.session_version == SESSION_VERSION_V0 {
+        return stable_hash_string(&format!(
+            "{}:{}:{}:{:?}:{}:{}:{}:{}:{:?}:{}:{}:{}:{}:{:?}:{:?}",
+            session.session_version,
+            session.session_id,
+            session.agent_id,
+            session.agent_kind,
+            session.intent_digest,
+            session.data_view_digest,
+            session.trainer_capability_digest,
+            session.information_cutoff_ms,
+            session.source_artifact_digests,
+            session.feature_policy_digest,
+            session.label_policy_digest,
+            session.curriculum_policy_digest,
+            session.private_namespace_digest,
+            session.parent_model_version,
+            session.session_status
+        ));
+    }
     stable_hash_string(&format!(
-        "{}:{}:{}:{:?}:{}:{}:{}:{}:{:?}:{}:{}:{}:{}:{:?}:{:?}",
+        "{}:{}:{}:{:?}:{}:{}:{}:{}:{:?}:{:?}:{:?}:{:?}:{}:{:?}:{}:{:?}:{}:{}:{}:{}:{}:{}:{:?}:{:?}:{:?}",
         session.session_version,
         session.session_id,
         session.agent_id,
@@ -2243,13 +2852,38 @@ fn session_digest_v0(session: &AgentPrivateLearningSessionV0) -> String {
         session.data_view_digest,
         session.trainer_capability_digest,
         session.information_cutoff_ms,
+        session.required_dataset_kinds,
+        session.optional_dataset_kinds,
+        session.allowed_markets,
+        session.symbols,
+        session.cadence,
+        session.lookback,
+        session.maximum_staleness_ms,
         session.source_artifact_digests,
+        session.source_policy_digest,
         session.feature_policy_digest,
         session.label_policy_digest,
         session.curriculum_policy_digest,
         session.private_namespace_digest,
+        session.training_ledger_digest,
+        session.trainer_projection_digest,
         session.parent_model_version,
         session.session_status
+    ))
+}
+
+fn projection_digest_v0(projection: &AgentTrainerInputProjectionV0) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{:?}:{}:{:?}:{:?}:{:?}:{:?}:{}",
+        projection.projection_version,
+        projection.agent_id,
+        projection.trainer_kind,
+        projection.source_view_digest,
+        projection.consumed_artifact_digests,
+        projection.referenced_but_unconsumed_artifact_digests,
+        projection.primary_series_digest,
+        projection.auxiliary_series_digests,
+        projection.projection_policy_digest
     ))
 }
 
@@ -2355,16 +2989,32 @@ mod tests {
     use std::sync::OnceLock;
 
     use super::*;
-    use crate::data::{SnapshotProvenance, SnapshotQualitySummary};
+    use crate::{
+        core::ReasonCode,
+        data::{
+            SnapshotCompatibilityV1, SnapshotProvenance, SnapshotQualitySummary,
+            snapshot_id_from_semantic_digest_v1,
+        },
+        league::HistoricalReplayDataset,
+    };
 
-    fn snapshot(rows: usize) -> DataSnapshot {
+    fn snapshot_for(
+        dataset_kind: DatasetKind,
+        lookback_bars: usize,
+        maximum_staleness_ms: u64,
+        salt: usize,
+    ) -> DataSnapshot {
+        let rows = 360;
         let normalized_dataset = HistoricalReplayDataset {
-            symbol: "BTC-KRW".to_string(),
+            symbol: "SPY".to_string(),
             rows: (0..rows)
                 .map(|index| {
-                    let price = 100.0 + index as f64 * 0.07 + (index % 11) as f64 * 0.8;
+                    let price = 100.0
+                        + salt as f64 * 0.01
+                        + index as f64 * 0.07
+                        + (index % 11) as f64 * 0.8;
                     HistoricalOhlcvRow {
-                        symbol: "BTC-KRW".to_string(),
+                        symbol: "SPY".to_string(),
                         timestamp_ms: index as u64 + 1,
                         open: price,
                         high: price * 1.01,
@@ -2381,14 +3031,14 @@ mod tests {
         let digest = historical_replay_dataset_digest_v0(&normalized_dataset);
         DataSnapshot {
             snapshot_id: snapshot_id_from_semantic_digest_v1(&digest),
-            request_key: "private-learning-test".to_string(),
+            request_key: format!("private-learning-test-{dataset_kind:?}-{lookback_bars}-{salt}"),
             provider_id: "approved-provider".to_string(),
-            dataset_kind: DatasetKind::DailyOhlcv,
-            market_scope: AcquisitionMarketScope::BtcCrypto,
-            symbols: vec!["BTC-KRW".to_string()],
+            dataset_kind,
+            market_scope: AcquisitionMarketScope::UsStocks,
+            symbols: vec!["SPY".to_string()],
             requested_lookback: DataLookback {
-                bars: rows,
-                start_timestamp_ms: Some(1),
+                bars: lookback_bars,
+                start_timestamp_ms: None,
                 end_timestamp_ms: Some(rows as u64),
             },
             actual_start_timestamp_ms: Some(1),
@@ -2405,7 +3055,14 @@ mod tests {
             content_digest: digest,
             sanitized: true,
             read_only: true,
-            compatibility: None,
+            compatibility: Some(SnapshotCompatibilityV1 {
+                cadence: "1d".to_string(),
+                adjustment_semantics: expected_adjustment_semantics_v0(dataset_kind),
+                source_schema: "application/x-soma-normalized-dataset".to_string(),
+                requested_cutoff_timestamp_ms: Some(rows as u64),
+                maximum_staleness_ms,
+                all_rows_finalized: true,
+            }),
             normalized_dataset,
             provenance: SnapshotProvenance {
                 provider_id: "approved-provider".to_string(),
@@ -2420,9 +3077,26 @@ mod tests {
         }
     }
 
+    fn snapshots() -> Vec<DataSnapshot> {
+        vec![
+            snapshot_for(DatasetKind::DailyOhlcv, 90, 86_400_000, 1),
+            snapshot_for(DatasetKind::AdjustedDailyOhlcv, 90, 86_400_000, 2),
+            snapshot_for(DatasetKind::VolatilityDaily, 90, 86_400_000, 3),
+            snapshot_for(DatasetKind::LiquidityDaily, 90, 86_400_000, 4),
+            snapshot_for(DatasetKind::AdjustedDailyOhlcv, 252, 7 * 86_400_000, 5),
+            snapshot_for(DatasetKind::QuarterlyFundamentals, 252, 7 * 86_400_000, 6),
+            snapshot_for(DatasetKind::ValuationMetrics, 252, 7 * 86_400_000, 7),
+            snapshot_for(DatasetKind::CorporateActions, 252, 7 * 86_400_000, 8),
+            snapshot_for(DatasetKind::MarketIndexDaily, 126, 86_400_000, 9),
+            snapshot_for(DatasetKind::VolatilityDaily, 126, 86_400_000, 10),
+            snapshot_for(DatasetKind::MarketBreadthDaily, 126, 86_400_000, 11),
+            snapshot_for(DatasetKind::LiquidityDaily, 126, 86_400_000, 12),
+            snapshot_for(DatasetKind::MacroSeries, 126, 86_400_000, 13),
+        ]
+    }
+
     fn inputs() -> Vec<AgentPrivateLearningSessionInputV0> {
-        let snapshot = snapshot(360);
-        build_agent_private_learning_inputs_v0(&[snapshot], 360).unwrap()
+        build_agent_private_learning_inputs_v0(&snapshots(), 360).unwrap()
     }
 
     fn result_for<'a>(
@@ -2498,6 +3172,239 @@ mod tests {
     }
 
     #[test]
+    fn complete_persisted_view_is_consumed_without_replacement() {
+        let snapshots = snapshots();
+        let planned = inputs()
+            .into_iter()
+            .find(|input| input.intent.agent_id == "momentum_trend_fast")
+            .unwrap();
+        let persisted = build_agent_private_learning_input_from_persisted_view_v0(
+            &planned.intent,
+            &planned.policy,
+            &planned.view,
+            &snapshots,
+        )
+        .unwrap();
+        assert_eq!(persisted.intent.intent_digest, planned.intent.intent_digest);
+        assert_eq!(persisted.view, planned.view);
+        let report = run_agent_private_learning_sessions_v0(
+            &[persisted],
+            AgentPrivateLearningRunModeV0::DryRun,
+        );
+        assert_eq!(
+            report.results[0].session.session_status,
+            AgentLearningSessionStatusV0::DatasetReady
+        );
+        assert_eq!(
+            report.results[0]
+                .trainer_projection
+                .as_ref()
+                .unwrap()
+                .source_view_digest,
+            planned.view.view_digest
+        );
+    }
+
+    #[test]
+    fn incompatible_larger_snapshot_cannot_replace_canonical_request() {
+        let mut snapshots = snapshots();
+        let expected = snapshots
+            .iter()
+            .find(|snapshot| snapshot.dataset_kind == DatasetKind::DailyOhlcv)
+            .unwrap()
+            .content_digest
+            .clone();
+        let mut incompatible = snapshots
+            .iter()
+            .find(|snapshot| snapshot.dataset_kind == DatasetKind::DailyOhlcv)
+            .unwrap()
+            .clone();
+        incompatible.requested_lookback.bars = 10_000;
+        incompatible.row_count = 10_000;
+        snapshots.push(incompatible);
+        let momentum = build_agent_private_learning_inputs_v0(&snapshots, 360)
+            .unwrap()
+            .into_iter()
+            .find(|input| input.intent.agent_id == "momentum_trend_fast")
+            .unwrap();
+        assert!(momentum.view.source_artifact_digests.contains(&expected));
+        assert_eq!(momentum.view.source_artifact_digests.len(), 4);
+    }
+
+    #[test]
+    fn missing_required_dataset_blocks_only_affected_session() {
+        let mut snapshots = snapshots();
+        snapshots.retain(|snapshot| snapshot.dataset_kind != DatasetKind::MarketIndexDaily);
+        let inputs = build_agent_private_learning_inputs_v0(&snapshots, 360).unwrap();
+        let cycle = inputs
+            .iter()
+            .find(|input| input.intent.agent_id == "cycle_risk_skeptic")
+            .unwrap();
+        assert_eq!(
+            cycle.resolution_status,
+            AgentViewResolutionStatusV0::MissingRequiredEvidence
+        );
+        let report =
+            run_agent_private_learning_sessions_v0(&inputs, AgentPrivateLearningRunModeV0::DryRun);
+        assert_eq!(
+            result_for(&report, "cycle_risk_skeptic")
+                .session
+                .session_status,
+            AgentLearningSessionStatusV0::InsufficientEvidence
+        );
+        assert_eq!(
+            result_for(&report, "momentum_trend_fast")
+                .session
+                .session_status,
+            AgentLearningSessionStatusV0::DatasetReady
+        );
+    }
+
+    #[test]
+    fn optional_missing_evidence_is_not_fabricated() {
+        let mut snapshots = snapshots();
+        snapshots.retain(|snapshot| {
+            snapshot.requested_lookback.bars != 90
+                || snapshot.dataset_kind == DatasetKind::DailyOhlcv
+        });
+        let inputs = build_agent_private_learning_inputs_v0(&snapshots, 360).unwrap();
+        let momentum = inputs
+            .iter()
+            .find(|input| input.intent.agent_id == "momentum_trend_fast")
+            .unwrap();
+        assert_eq!(
+            momentum.resolution_status,
+            AgentViewResolutionStatusV0::OptionalEvidenceUnavailable
+        );
+        assert_eq!(momentum.artifacts.len(), 1);
+    }
+
+    #[test]
+    fn semantically_equivalent_artifacts_choose_unique_latest_deterministically() {
+        let mut snapshots = snapshots();
+        let mut latest = snapshots
+            .iter()
+            .find(|snapshot| snapshot.dataset_kind == DatasetKind::DailyOhlcv)
+            .unwrap()
+            .clone();
+        latest.fetched_at_ms += 1;
+        latest.normalized_dataset.rows[0].volume += 1.0;
+        latest.content_digest = historical_replay_dataset_digest_v0(&latest.normalized_dataset);
+        latest.snapshot_id = snapshot_id_from_semantic_digest_v1(&latest.content_digest);
+        let expected = latest.content_digest.clone();
+        snapshots.push(latest);
+        let first = build_agent_private_learning_inputs_v0(&snapshots, 360).unwrap();
+        let second = build_agent_private_learning_inputs_v0(&snapshots, 360).unwrap();
+        let primary = |inputs: &[AgentPrivateLearningSessionInputV0]| {
+            inputs
+                .iter()
+                .find(|input| input.intent.agent_id == "momentum_trend_fast")
+                .unwrap()
+                .artifacts
+                .iter()
+                .find(|artifact| artifact.snapshot.dataset_kind == DatasetKind::DailyOhlcv)
+                .unwrap()
+                .artifact_ref
+                .artifact_digest
+                .clone()
+        };
+        assert_eq!(primary(&first), expected);
+        assert_eq!(primary(&first), primary(&second));
+    }
+
+    #[test]
+    fn unresolved_equivalent_artifact_tie_fails_closed() {
+        let mut snapshots = snapshots();
+        let mut tied = snapshots
+            .iter()
+            .find(|snapshot| snapshot.dataset_kind == DatasetKind::DailyOhlcv)
+            .unwrap()
+            .clone();
+        tied.normalized_dataset.rows[0].volume += 1.0;
+        tied.content_digest = historical_replay_dataset_digest_v0(&tied.normalized_dataset);
+        tied.snapshot_id = snapshot_id_from_semantic_digest_v1(&tied.content_digest);
+        snapshots.push(tied);
+        let momentum = build_agent_private_learning_inputs_v0(&snapshots, 360)
+            .unwrap()
+            .into_iter()
+            .find(|input| input.intent.agent_id == "momentum_trend_fast")
+            .unwrap();
+        assert_eq!(
+            momentum.resolution_status,
+            AgentViewResolutionStatusV0::AmbiguousEquivalentArtifacts
+        );
+    }
+
+    #[test]
+    fn heterogeneous_evidence_is_projected_without_concatenation() {
+        let report = run_agent_private_learning_sessions_v0(
+            &inputs(),
+            AgentPrivateLearningRunModeV0::DryRun,
+        );
+        let momentum = result_for(&report, "momentum_trend_fast");
+        let projection = momentum.trainer_projection.as_ref().unwrap();
+        assert_eq!(projection.consumed_artifact_digests.len(), 1);
+        assert_eq!(
+            projection.referenced_but_unconsumed_artifact_digests.len(),
+            3
+        );
+        assert_eq!(
+            projection.source_view_digest,
+            momentum.session.data_view_digest
+        );
+        assert_eq!(momentum.dataset_manifest.as_ref().unwrap().row_count, 360);
+        let cycle = result_for(&report, "cycle_risk_skeptic");
+        let cycle_projection = cycle.trainer_projection.as_ref().unwrap();
+        let cycle_primary = cycle_projection.primary_series_digest.as_ref().unwrap();
+        assert!(
+            cycle
+                .session
+                .source_artifact_digests
+                .contains(cycle_primary)
+        );
+        assert_eq!(cycle_projection.consumed_artifact_digests.len(), 1);
+    }
+
+    #[test]
+    fn different_symbol_or_cadence_cannot_enter_projection() {
+        let mut symbol_inputs = inputs();
+        let momentum = symbol_inputs
+            .iter_mut()
+            .find(|input| input.intent.agent_id == "momentum_trend_fast")
+            .unwrap();
+        momentum.artifacts[0].snapshot.symbols = vec!["QQQ".to_string()];
+        let symbol_report = run_agent_private_learning_sessions_v0(
+            &symbol_inputs,
+            AgentPrivateLearningRunModeV0::DryRun,
+        );
+        assert!(
+            result_for(&symbol_report, "momentum_trend_fast")
+                .trainer_projection
+                .is_none()
+        );
+
+        let mut cadence_snapshots = snapshots();
+        cadence_snapshots
+            .iter_mut()
+            .find(|snapshot| snapshot.dataset_kind == DatasetKind::DailyOhlcv)
+            .unwrap()
+            .compatibility
+            .as_mut()
+            .unwrap()
+            .cadence = "1h".to_string();
+        let cadence_inputs =
+            build_agent_private_learning_inputs_v0(&cadence_snapshots, 360).unwrap();
+        let cadence_momentum = cadence_inputs
+            .iter()
+            .find(|input| input.intent.agent_id == "momentum_trend_fast")
+            .unwrap();
+        assert_eq!(
+            cadence_momentum.resolution_status,
+            AgentViewResolutionStatusV0::MissingRequiredEvidence
+        );
+    }
+
+    #[test]
     fn source_digest_mutation_rejects_only_that_session() {
         let mut inputs = inputs();
         let momentum = inputs
@@ -2541,16 +3448,24 @@ mod tests {
 
     #[test]
     fn actual_row_beyond_cutoff_rejects() {
-        let mut snapshot = snapshot(360);
+        let mut snapshots = snapshots();
+        let snapshot = snapshots
+            .iter_mut()
+            .find(|snapshot| {
+                snapshot.dataset_kind == DatasetKind::DailyOhlcv
+                    && snapshot.requested_lookback.bars == 90
+            })
+            .unwrap();
         snapshot
             .normalized_dataset
             .rows
             .last_mut()
             .unwrap()
             .timestamp_ms = 361;
+        snapshot.actual_end_timestamp_ms = Some(361);
         snapshot.content_digest = historical_replay_dataset_digest_v0(&snapshot.normalized_dataset);
         snapshot.snapshot_id = snapshot_id_from_semantic_digest_v1(&snapshot.content_digest);
-        let inputs = build_agent_private_learning_inputs_v0(&[snapshot], 360).unwrap();
+        let inputs = build_agent_private_learning_inputs_v0(&snapshots, 360).unwrap();
         let report =
             run_agent_private_learning_sessions_v0(&inputs, AgentPrivateLearningRunModeV0::DryRun);
         assert_eq!(
@@ -2583,28 +3498,42 @@ mod tests {
 
     #[test]
     fn duplicate_timestamp_rejects() {
-        let mut snapshot = snapshot(360);
+        let mut snapshots = snapshots();
+        let snapshot = snapshots
+            .iter_mut()
+            .find(|snapshot| {
+                snapshot.dataset_kind == DatasetKind::DailyOhlcv
+                    && snapshot.requested_lookback.bars == 90
+            })
+            .unwrap();
         snapshot.normalized_dataset.rows[1].timestamp_ms = 1;
         snapshot.content_digest = historical_replay_dataset_digest_v0(&snapshot.normalized_dataset);
         snapshot.snapshot_id = snapshot_id_from_semantic_digest_v1(&snapshot.content_digest);
-        let inputs = build_agent_private_learning_inputs_v0(&[snapshot], 360).unwrap();
+        let inputs = build_agent_private_learning_inputs_v0(&snapshots, 360).unwrap();
         let report =
             run_agent_private_learning_sessions_v0(&inputs, AgentPrivateLearningRunModeV0::DryRun);
         assert_eq!(
             result_for(&report, "momentum_trend_fast")
                 .sanitized_error_code
                 .as_deref(),
-            Some("duplicate_timestamp_rejected")
+            Some("integrity_failure")
         );
     }
 
     #[test]
     fn non_finite_row_rejects() {
-        let mut snapshot = snapshot(360);
+        let mut snapshots = snapshots();
+        let snapshot = snapshots
+            .iter_mut()
+            .find(|snapshot| {
+                snapshot.dataset_kind == DatasetKind::MarketIndexDaily
+                    && snapshot.requested_lookback.bars == 126
+            })
+            .unwrap();
         snapshot.normalized_dataset.rows[10].volume = f64::NAN;
         snapshot.content_digest = historical_replay_dataset_digest_v0(&snapshot.normalized_dataset);
         snapshot.snapshot_id = snapshot_id_from_semantic_digest_v1(&snapshot.content_digest);
-        let inputs = build_agent_private_learning_inputs_v0(&[snapshot], 360).unwrap();
+        let inputs = build_agent_private_learning_inputs_v0(&snapshots, 360).unwrap();
         let report =
             run_agent_private_learning_sessions_v0(&inputs, AgentPrivateLearningRunModeV0::DryRun);
         assert_eq!(
@@ -2762,6 +3691,12 @@ mod tests {
             decode_session_protobuf_v0(&session_bytes).unwrap(),
             momentum.session
         );
+        let projection = momentum.trainer_projection.as_ref().unwrap();
+        let projection_bytes = encode_trainer_projection_protobuf_v0(projection).unwrap();
+        assert_eq!(
+            decode_trainer_projection_protobuf_v0(&projection_bytes).unwrap(),
+            *projection
+        );
         let manifest = momentum.dataset_manifest.as_ref().unwrap();
         let manifest_bytes = encode_dataset_manifest_protobuf_v0(manifest).unwrap();
         assert_eq!(
@@ -2830,6 +3765,30 @@ mod tests {
         assert_eq!(replay.failed_artifact_count, 0);
         assert_eq!(replay.written_artifact_count, 0);
         assert!(replay.duplicate_artifact_count >= 9);
+        fs::remove_dir_all(&root).unwrap();
+    }
+
+    #[test]
+    fn preliminary_artifact_paths_remain_byte_identical() {
+        let root = unique_root("preliminary-preservation");
+        let _ = fs::remove_dir_all(&root);
+        let candidate_path = root
+            .join("momentum_trend_fast")
+            .join("candidates")
+            .join("preliminary.pb");
+        let journal_path = root.join("momentum_trend_fast").join("journal.pb");
+        let registry_path = root.join("capability_registry.pb");
+        fs::create_dir_all(candidate_path.parent().unwrap()).unwrap();
+        let frozen = b"preliminary-retrospective-artifact";
+        fs::write(&candidate_path, frozen).unwrap();
+        fs::write(&journal_path, frozen).unwrap();
+        fs::write(&registry_path, frozen).unwrap();
+        let mut report = execution_report();
+        let storage = persist_agent_private_learning_report_v0(&mut report, &root);
+        assert_eq!(storage.failed_artifact_count, 0);
+        assert_eq!(fs::read(candidate_path).unwrap(), frozen);
+        assert_eq!(fs::read(journal_path).unwrap(), frozen);
+        assert_eq!(fs::read(registry_path).unwrap(), frozen);
         fs::remove_dir_all(&root).unwrap();
     }
 
