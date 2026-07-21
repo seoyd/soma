@@ -1,5 +1,11 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    fs::{self, File},
+    io::{Read, Write},
+    path::{Component, Path, PathBuf},
+};
 
+use prost::Message;
 use serde::{Deserialize, Serialize};
 
 use crate::core::{ReasonCode, Stance, stable_hash_string, stable_reason_codes};
@@ -669,6 +675,27 @@ impl InMemorySnapshotStore {
             .and_then(|snapshot_id| self.get(snapshot_id))
     }
 
+    fn find_latest_compatible(&self, request: &ReadOnlyProviderRequest) -> Option<DataSnapshot> {
+        self.snapshots
+            .values()
+            .filter(|snapshot| {
+                snapshot.dataset_kind == request.dataset_kind
+                    && snapshot.market_scope == request.market_scope
+                    && snapshot.symbols == request.symbols
+                    && snapshot.requested_lookback.bars == request.lookback.bars
+                    && snapshot.requested_lookback.start_timestamp_ms
+                        == request.lookback.start_timestamp_ms
+                    && snapshot.actual_end_timestamp_ms.is_some_and(|actual_end| {
+                        request
+                            .lookback
+                            .end_timestamp_ms
+                            .is_none_or(|requested_end| actual_end <= requested_end)
+                    })
+            })
+            .max_by_key(|snapshot| snapshot.fetched_at_ms)
+            .cloned()
+    }
+
     pub fn verify_digest(&self, snapshot_id: &str) -> bool {
         self.get(snapshot_id)
             .is_some_and(|snapshot| self.verify_snapshot(&snapshot))
@@ -929,7 +956,11 @@ impl DataAcquisitionBroker {
         now_ms: u64,
         result: &mut BrokerExecutionResult,
     ) {
-        let Some(snapshot) = self.snapshot_store.find_latest(&request.request_key) else {
+        let Some(snapshot) = self
+            .snapshot_store
+            .find_latest(&request.request_key)
+            .or_else(|| self.snapshot_store.find_latest_compatible(request))
+        else {
             result.receipts.push(failed_receipt(
                 request,
                 None,
@@ -1245,6 +1276,1369 @@ pub(crate) fn canonical_hash_hex(bytes: &[u8]) -> String {
     format!("{hash:016x}")
 }
 
+const LEARNING_INTENT_VERSION_V0: &str = "agent-learning-intent-v0";
+const LEARNING_VIEW_VERSION_V0: &str = "agent-learning-data-view-v0";
+const LEARNING_ENVELOPE_MAGIC_V0: &str = "SOMA-LEARNING-PB-V0";
+const LEARNING_ENVELOPE_SCHEMA_V0: &str = "soma.agent_learning_data_view.v0";
+const LEARNING_VIEW_ARTIFACT_KIND_V0: &str = "agent-learning-data-view-v0";
+const LEARNING_DATA_NAMESPACE_V0: &str = "state/learning_data";
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LearningDataVisibilityV0 {
+    SharedCanonicalRaw,
+    AgentAuthorizedRaw,
+    AgentPrivateDerived,
+    CommitteeVisibleSummary,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LearningDataCallerV0 {
+    Agent(String),
+    NeutralBroker,
+    Chair,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LearningDataAuthorityActionV0 {
+    CreateIntent,
+    CallBroker,
+    SelectProvider,
+    ModifyView,
+    ChangeCutoff,
+    SelectLabel,
+    ReadPrivateArtifact,
+}
+
+pub fn authorize_learning_data_action_v0(
+    caller: &LearningDataCallerV0,
+    action: LearningDataAuthorityActionV0,
+) -> bool {
+    match caller {
+        LearningDataCallerV0::Agent(agent_id) => {
+            active_learning_agent_id_v0(agent_id)
+                && matches!(
+                    action,
+                    LearningDataAuthorityActionV0::CreateIntent
+                        | LearningDataAuthorityActionV0::ModifyView
+                        | LearningDataAuthorityActionV0::ChangeCutoff
+                        | LearningDataAuthorityActionV0::SelectLabel
+                        | LearningDataAuthorityActionV0::ReadPrivateArtifact
+                )
+        }
+        LearningDataCallerV0::NeutralBroker => matches!(
+            action,
+            LearningDataAuthorityActionV0::CallBroker
+                | LearningDataAuthorityActionV0::SelectProvider
+        ),
+        LearningDataCallerV0::Chair => false,
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AgentLearningIntentV0 {
+    pub intent_version: String,
+    pub agent_id: String,
+    pub agent_kind: AgentKind,
+    pub market_scopes: Vec<AcquisitionMarketScope>,
+    pub symbols: Vec<String>,
+    pub required_datasets: Vec<DatasetKind>,
+    pub optional_datasets: Vec<DatasetKind>,
+    pub cadence: String,
+    pub lookback: DataLookback,
+    pub information_cutoff_ms: u64,
+    pub maximum_staleness_ms: u64,
+    pub source_policy_digest: String,
+    pub feature_policy_digest: String,
+    pub label_policy_digest: String,
+    pub curriculum_policy_digest: String,
+    pub intent_digest: String,
+}
+
+pub fn create_agent_learning_intent_v0(
+    caller: &LearningDataCallerV0,
+    data_intent: &AgentDataIntent,
+    policy: &AgentDataPolicy,
+    information_cutoff_ms: u64,
+) -> Result<AgentLearningIntentV0, String> {
+    if caller != &LearningDataCallerV0::Agent(data_intent.agent_id.clone())
+        || !authorize_learning_data_action_v0(caller, LearningDataAuthorityActionV0::CreateIntent)
+    {
+        return Err("learning intent caller lacks agent authority".into());
+    }
+    let mut intent = AgentLearningIntentV0 {
+        intent_version: LEARNING_INTENT_VERSION_V0.into(),
+        agent_id: data_intent.agent_id.clone(),
+        agent_kind: data_intent.agent_kind,
+        market_scopes: vec![data_intent.market_scope],
+        symbols: data_intent.symbols.clone(),
+        required_datasets: data_intent.required_datasets.clone(),
+        optional_datasets: data_intent.optional_datasets.clone(),
+        cadence: data_intent.target_cadence.clone(),
+        lookback: data_intent.lookback.clone(),
+        information_cutoff_ms,
+        maximum_staleness_ms: data_intent.max_staleness_ms,
+        source_policy_digest: learning_policy_digest_v0("source", policy),
+        feature_policy_digest: learning_policy_digest_v0("feature", policy),
+        label_policy_digest: learning_policy_digest_v0("label", policy),
+        curriculum_policy_digest: learning_policy_digest_v0("curriculum", policy),
+        intent_digest: String::new(),
+    };
+    stabilize_learning_intent_v0(&mut intent);
+    intent.intent_digest = agent_learning_intent_digest_v0(&intent);
+    validate_agent_learning_intent_v0(&intent, policy)?;
+    Ok(intent)
+}
+
+pub fn derive_active_agent_learning_intents_v0(
+    active_agent_states: &[CanonicalAgentState],
+    configured_universe: &ConfiguredUniverse,
+    policies: &[AgentDataPolicy],
+    information_cutoff_ms: u64,
+) -> Result<Vec<AgentLearningIntentV0>, String> {
+    if active_agent_states.len() != 3 {
+        return Err("learning data plane requires exactly three active agents".into());
+    }
+    let mut intents = active_agent_states
+        .iter()
+        .map(|state| {
+            let policy = policies
+                .iter()
+                .find(|policy| policy.agent_kind == state.kind)
+                .ok_or_else(|| "active agent learning policy unavailable".to_string())?;
+            let base = plan_agent_data_intent(
+                state.agent_id.clone(),
+                state.kind,
+                configured_universe,
+                policy,
+                information_cutoff_ms,
+            );
+            create_agent_learning_intent_v0(
+                &LearningDataCallerV0::Agent(state.agent_id.clone()),
+                &base,
+                policy,
+                information_cutoff_ms,
+            )
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    intents.sort_by(|left, right| left.agent_id.cmp(&right.agent_id));
+    if intents
+        .iter()
+        .map(|intent| intent.intent_digest.as_str())
+        .collect::<BTreeSet<_>>()
+        .len()
+        != intents.len()
+    {
+        return Err("active agent learning intents are not independent".into());
+    }
+    Ok(intents)
+}
+
+pub fn validate_agent_learning_intent_v0(
+    intent: &AgentLearningIntentV0,
+    policy: &AgentDataPolicy,
+) -> Result<(), String> {
+    let mut stabilized = intent.clone();
+    stabilize_learning_intent_v0(&mut stabilized);
+    if &stabilized != intent
+        || intent.intent_version != LEARNING_INTENT_VERSION_V0
+        || expected_learning_agent_id_v0(intent.agent_kind) != Some(intent.agent_id.as_str())
+        || policy.agent_kind != intent.agent_kind
+        || intent.market_scopes.is_empty()
+        || intent
+            .market_scopes
+            .iter()
+            .any(|market| *market == AcquisitionMarketScope::Unknown)
+        || intent.symbols.is_empty()
+        || intent.required_datasets.is_empty()
+        || intent
+            .required_datasets
+            .iter()
+            .chain(intent.optional_datasets.iter())
+            .any(|dataset| *dataset == DatasetKind::Unknown || !dataset.is_read_only())
+        || intent
+            .market_scopes
+            .iter()
+            .any(|market| !policy.allowed_markets.contains(market))
+        || intent
+            .required_datasets
+            .iter()
+            .chain(intent.optional_datasets.iter())
+            .any(|dataset| !policy.allowed_dataset_kinds.contains(dataset))
+        || intent.cadence.trim().is_empty()
+        || intent.lookback.bars == 0
+        || intent.information_cutoff_ms == 0
+        || intent
+            .lookback
+            .end_timestamp_ms
+            .is_some_and(|end| end > intent.information_cutoff_ms)
+        || intent.maximum_staleness_ms != policy.max_staleness_ms
+        || intent.source_policy_digest != learning_policy_digest_v0("source", policy)
+        || intent.feature_policy_digest != learning_policy_digest_v0("feature", policy)
+        || intent.label_policy_digest != learning_policy_digest_v0("label", policy)
+        || intent.curriculum_policy_digest != learning_policy_digest_v0("curriculum", policy)
+        || intent.intent_digest != agent_learning_intent_digest_v0(intent)
+    {
+        return Err("agent learning intent validation failed".into());
+    }
+    Ok(())
+}
+
+pub fn build_learning_acquisition_plan_v0(
+    intents: &[AgentLearningIntentV0],
+    policies: &[AgentDataPolicy],
+    provider_registry: &ReadOnlyProviderRegistry,
+    mode: AcquisitionMode,
+    acquisition_policy: &AcquisitionPolicy,
+) -> Result<AcquisitionPlan, String> {
+    if !authorize_learning_data_action_v0(
+        &LearningDataCallerV0::NeutralBroker,
+        LearningDataAuthorityActionV0::CallBroker,
+    ) {
+        return Err("neutral learning broker authority unavailable".into());
+    }
+    let mut acquisition_intents = Vec::new();
+    for intent in intents {
+        let policy = policies
+            .iter()
+            .find(|policy| policy.agent_kind == intent.agent_kind)
+            .ok_or_else(|| "learning broker policy unavailable".to_string())?;
+        validate_agent_learning_intent_v0(intent, policy)?;
+        for market_scope in &intent.market_scopes {
+            acquisition_intents.push(AgentDataIntent {
+                agent_id: intent.agent_id.clone(),
+                agent_kind: intent.agent_kind,
+                market_scope: *market_scope,
+                symbols: intent.symbols.clone(),
+                required_datasets: intent.required_datasets.clone(),
+                optional_datasets: intent.optional_datasets.clone(),
+                lookback: intent.lookback.clone(),
+                target_cadence: intent.cadence.clone(),
+                max_staleness_ms: intent.maximum_staleness_ms,
+                priority: DataPriority::Required,
+                reason_codes: vec![ReasonCode::AgentDataPolicyApplied],
+            });
+        }
+    }
+    Ok(build_acquisition_plan(
+        &acquisition_intents,
+        provider_registry,
+        mode,
+        acquisition_policy,
+    ))
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LearningDataArtifactRefV0 {
+    pub artifact_digest: String,
+    pub dataset_kind: DatasetKind,
+    pub visibility: LearningDataVisibilityV0,
+    pub owner_agent_id: Option<String>,
+    pub maximum_event_timestamp_ms: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AgentPrivateLearningStateV0 {
+    pub agent_id: String,
+    pub private_namespace_digest: String,
+    pub training_ledger_digest: String,
+}
+
+pub fn derive_agent_private_learning_state_v0(
+    intent: &AgentLearningIntentV0,
+) -> AgentPrivateLearningStateV0 {
+    AgentPrivateLearningStateV0 {
+        agent_id: intent.agent_id.clone(),
+        private_namespace_digest: stable_hash_string(&format!(
+            "SOMA-AGENT-PRIVATE-NAMESPACE-V0:{}:{}",
+            intent.agent_id, intent.intent_digest
+        )),
+        training_ledger_digest: stable_hash_string(&format!(
+            "SOMA-AGENT-TRAINING-LEDGER-V0:{}:{}:{}",
+            intent.agent_id, intent.feature_policy_digest, intent.curriculum_policy_digest
+        )),
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AgentLearningDataViewV0 {
+    pub view_version: String,
+    pub agent_id: String,
+    pub source_artifact_digests: Vec<String>,
+    pub visible_dataset_kinds: Vec<DatasetKind>,
+    pub information_cutoff_ms: u64,
+    pub feature_policy_digest: String,
+    pub label_policy_digest: String,
+    pub curriculum_policy_digest: String,
+    pub private_namespace_digest: String,
+    pub training_ledger_digest: String,
+    pub shared_raw_count: usize,
+    pub private_artifact_count: usize,
+    pub missing_required_datasets: Vec<DatasetKind>,
+    pub decision_gate: EvidenceDecisionGate,
+    pub view_digest: String,
+}
+
+pub fn build_agent_learning_data_view_v0(
+    intent: &AgentLearningIntentV0,
+    policy: &AgentDataPolicy,
+    artifacts: &[LearningDataArtifactRefV0],
+    private_state: &AgentPrivateLearningStateV0,
+) -> Result<AgentLearningDataViewV0, String> {
+    validate_agent_learning_intent_v0(intent, policy)?;
+    if private_state.agent_id != intent.agent_id
+        || !valid_learning_digest_v0(&private_state.private_namespace_digest)
+        || !valid_learning_digest_v0(&private_state.training_ledger_digest)
+    {
+        return Err("agent private learning state mismatch".into());
+    }
+    let authorized = intent
+        .required_datasets
+        .iter()
+        .chain(intent.optional_datasets.iter())
+        .copied()
+        .collect::<BTreeSet<_>>();
+    let mut sources = BTreeSet::new();
+    let mut visible = BTreeSet::new();
+    let mut available = BTreeSet::new();
+    let mut shared_raw = BTreeSet::new();
+    let mut private_artifacts = BTreeSet::new();
+    for artifact in artifacts {
+        if !valid_learning_digest_v0(&artifact.artifact_digest) {
+            return Err("learning artifact identity invalid".into());
+        }
+        if artifact.maximum_event_timestamp_ms > intent.information_cutoff_ms {
+            return Err("learning artifact exceeds information cutoff".into());
+        }
+        if !authorized.contains(&artifact.dataset_kind) {
+            return Err("learning artifact dataset is unauthorized".into());
+        }
+        match artifact.visibility {
+            LearningDataVisibilityV0::SharedCanonicalRaw => {
+                if artifact.owner_agent_id.is_some() {
+                    return Err("shared learning artifact has a private owner".into());
+                }
+                sources.insert(artifact.artifact_digest.clone());
+                shared_raw.insert(artifact.artifact_digest.clone());
+                visible.insert(artifact.dataset_kind);
+                available.insert(artifact.dataset_kind);
+            }
+            LearningDataVisibilityV0::AgentAuthorizedRaw => {
+                if artifact.owner_agent_id.as_deref() != Some(intent.agent_id.as_str()) {
+                    return Err("agent-authorized learning artifact crossed agents".into());
+                }
+                sources.insert(artifact.artifact_digest.clone());
+                visible.insert(artifact.dataset_kind);
+                available.insert(artifact.dataset_kind);
+            }
+            LearningDataVisibilityV0::AgentPrivateDerived => {
+                if artifact.owner_agent_id.as_deref() != Some(intent.agent_id.as_str()) {
+                    return Err("private learning artifact crossed agents".into());
+                }
+                private_artifacts.insert(artifact.artifact_digest.clone());
+            }
+            LearningDataVisibilityV0::CommitteeVisibleSummary => {
+                return Err("committee summary cannot enter an agent learning view".into());
+            }
+        }
+    }
+    let missing_required_datasets = intent
+        .required_datasets
+        .iter()
+        .filter(|dataset| !available.contains(dataset))
+        .copied()
+        .collect::<Vec<_>>();
+    let decision_gate = if missing_required_datasets.is_empty() {
+        EvidenceDecisionGate::Ready
+    } else {
+        EvidenceDecisionGate::Abstain
+    };
+    let mut view = AgentLearningDataViewV0 {
+        view_version: LEARNING_VIEW_VERSION_V0.into(),
+        agent_id: intent.agent_id.clone(),
+        source_artifact_digests: sources.into_iter().collect(),
+        visible_dataset_kinds: visible.into_iter().collect(),
+        information_cutoff_ms: intent.information_cutoff_ms,
+        feature_policy_digest: intent.feature_policy_digest.clone(),
+        label_policy_digest: intent.label_policy_digest.clone(),
+        curriculum_policy_digest: intent.curriculum_policy_digest.clone(),
+        private_namespace_digest: private_state.private_namespace_digest.clone(),
+        training_ledger_digest: private_state.training_ledger_digest.clone(),
+        shared_raw_count: shared_raw.len(),
+        private_artifact_count: private_artifacts.len(),
+        missing_required_datasets,
+        decision_gate,
+        view_digest: String::new(),
+    };
+    view.view_digest = agent_learning_data_view_digest_v0(&view);
+    validate_agent_learning_data_view_v0(&view)?;
+    Ok(view)
+}
+
+pub fn validate_agent_learning_data_view_v0(view: &AgentLearningDataViewV0) -> Result<(), String> {
+    let sources = view
+        .source_artifact_digests
+        .iter()
+        .cloned()
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+    let visible = view
+        .visible_dataset_kinds
+        .iter()
+        .copied()
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+    let missing = view
+        .missing_required_datasets
+        .iter()
+        .copied()
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+    if view.view_version != LEARNING_VIEW_VERSION_V0
+        || !active_learning_agent_id_v0(&view.agent_id)
+        || view.source_artifact_digests != sources
+        || view.visible_dataset_kinds != visible
+        || view.missing_required_datasets != missing
+        || view
+            .source_artifact_digests
+            .iter()
+            .any(|digest| !valid_learning_digest_v0(digest))
+        || view
+            .visible_dataset_kinds
+            .iter()
+            .chain(view.missing_required_datasets.iter())
+            .any(|dataset| *dataset == DatasetKind::Unknown)
+        || ![
+            &view.feature_policy_digest,
+            &view.label_policy_digest,
+            &view.curriculum_policy_digest,
+            &view.private_namespace_digest,
+            &view.training_ledger_digest,
+        ]
+        .into_iter()
+        .all(|digest| valid_learning_digest_v0(digest))
+        || view.shared_raw_count > view.source_artifact_digests.len()
+        || (view.missing_required_datasets.is_empty()
+            != (view.decision_gate == EvidenceDecisionGate::Ready))
+        || view.view_digest != agent_learning_data_view_digest_v0(view)
+    {
+        return Err("agent learning data view validation failed".into());
+    }
+    Ok(())
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LearningDataChairFirewallProofV0 {
+    pub chair_cannot_create_intent: bool,
+    pub chair_cannot_call_broker: bool,
+    pub chair_cannot_select_provider: bool,
+    pub chair_cannot_modify_view: bool,
+    pub chair_cannot_change_cutoff: bool,
+    pub chair_cannot_select_label: bool,
+    pub chair_cannot_read_private_artifact: bool,
+    pub all_invariants_pass: bool,
+    pub proof_digest: String,
+}
+
+pub fn learning_data_chair_firewall_proof_v0() -> LearningDataChairFirewallProofV0 {
+    let chair = LearningDataCallerV0::Chair;
+    let mut proof = LearningDataChairFirewallProofV0 {
+        chair_cannot_create_intent: !authorize_learning_data_action_v0(
+            &chair,
+            LearningDataAuthorityActionV0::CreateIntent,
+        ),
+        chair_cannot_call_broker: !authorize_learning_data_action_v0(
+            &chair,
+            LearningDataAuthorityActionV0::CallBroker,
+        ),
+        chair_cannot_select_provider: !authorize_learning_data_action_v0(
+            &chair,
+            LearningDataAuthorityActionV0::SelectProvider,
+        ),
+        chair_cannot_modify_view: !authorize_learning_data_action_v0(
+            &chair,
+            LearningDataAuthorityActionV0::ModifyView,
+        ),
+        chair_cannot_change_cutoff: !authorize_learning_data_action_v0(
+            &chair,
+            LearningDataAuthorityActionV0::ChangeCutoff,
+        ),
+        chair_cannot_select_label: !authorize_learning_data_action_v0(
+            &chair,
+            LearningDataAuthorityActionV0::SelectLabel,
+        ),
+        chair_cannot_read_private_artifact: !authorize_learning_data_action_v0(
+            &chair,
+            LearningDataAuthorityActionV0::ReadPrivateArtifact,
+        ),
+        all_invariants_pass: false,
+        proof_digest: String::new(),
+    };
+    proof.all_invariants_pass = proof.chair_cannot_create_intent
+        && proof.chair_cannot_call_broker
+        && proof.chair_cannot_select_provider
+        && proof.chair_cannot_modify_view
+        && proof.chair_cannot_change_cutoff
+        && proof.chair_cannot_select_label
+        && proof.chair_cannot_read_private_artifact;
+    proof.proof_digest = chair_firewall_proof_digest_v0(&proof);
+    proof
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AgentLearningIndependenceProofV0 {
+    pub agent_ids: Vec<String>,
+    pub distinct_intent_digests: bool,
+    pub distinct_view_digests: bool,
+    pub distinct_feature_policies: bool,
+    pub distinct_label_policies: bool,
+    pub distinct_private_namespaces: bool,
+    pub distinct_training_ledgers: bool,
+    pub shared_raw_does_not_imply_shared_learning: bool,
+    pub private_artifact_isolation: bool,
+    pub chair_data_authority_absent: bool,
+    pub all_invariants_pass: bool,
+    pub proof_digest: String,
+}
+
+pub fn agent_learning_independence_proof_v0(
+    intents: &[AgentLearningIntentV0],
+    views: &[AgentLearningDataViewV0],
+    firewall: &LearningDataChairFirewallProofV0,
+) -> AgentLearningIndependenceProofV0 {
+    let mut agent_ids = intents
+        .iter()
+        .map(|intent| intent.agent_id.clone())
+        .collect::<Vec<_>>();
+    agent_ids.sort();
+    agent_ids.dedup();
+    let matching_agents = agent_ids.len() == 3
+        && views.len() == 3
+        && views
+            .iter()
+            .map(|view| view.agent_id.as_str())
+            .collect::<BTreeSet<_>>()
+            == agent_ids
+                .iter()
+                .map(String::as_str)
+                .collect::<BTreeSet<_>>();
+    let distinct_intent_digests =
+        distinct_count_v0(intents.iter().map(|intent| intent.intent_digest.as_str()))
+            == intents.len();
+    let distinct_view_digests =
+        distinct_count_v0(views.iter().map(|view| view.view_digest.as_str())) == views.len();
+    let distinct_feature_policies =
+        distinct_count_v0(views.iter().map(|view| view.feature_policy_digest.as_str()))
+            == views.len();
+    let distinct_label_policies =
+        distinct_count_v0(views.iter().map(|view| view.label_policy_digest.as_str()))
+            == views.len();
+    let distinct_private_namespaces = distinct_count_v0(
+        views
+            .iter()
+            .map(|view| view.private_namespace_digest.as_str()),
+    ) == views.len();
+    let distinct_training_ledgers = distinct_count_v0(
+        views
+            .iter()
+            .map(|view| view.training_ledger_digest.as_str()),
+    ) == views.len();
+    let shared_source_exists = views.iter().enumerate().any(|(index, left)| {
+        views.iter().skip(index + 1).any(|right| {
+            left.source_artifact_digests
+                .iter()
+                .any(|digest| right.source_artifact_digests.contains(digest))
+        })
+    });
+    let shared_raw_does_not_imply_shared_learning = shared_source_exists
+        && distinct_view_digests
+        && distinct_feature_policies
+        && distinct_label_policies
+        && distinct_private_namespaces
+        && distinct_training_ledgers;
+    let private_artifact_isolation = matching_agents
+        && distinct_private_namespaces
+        && distinct_training_ledgers
+        && views
+            .iter()
+            .all(|view| validate_agent_learning_data_view_v0(view).is_ok());
+    let chair_data_authority_absent = firewall.all_invariants_pass
+        && firewall.proof_digest == chair_firewall_proof_digest_v0(firewall);
+    let mut proof = AgentLearningIndependenceProofV0 {
+        agent_ids,
+        distinct_intent_digests,
+        distinct_view_digests,
+        distinct_feature_policies,
+        distinct_label_policies,
+        distinct_private_namespaces,
+        distinct_training_ledgers,
+        shared_raw_does_not_imply_shared_learning,
+        private_artifact_isolation,
+        chair_data_authority_absent,
+        all_invariants_pass: false,
+        proof_digest: String::new(),
+    };
+    proof.all_invariants_pass = matching_agents
+        && proof.distinct_intent_digests
+        && proof.distinct_view_digests
+        && proof.distinct_feature_policies
+        && proof.distinct_label_policies
+        && proof.distinct_private_namespaces
+        && proof.distinct_training_ledgers
+        && proof.shared_raw_does_not_imply_shared_learning
+        && proof.private_artifact_isolation
+        && proof.chair_data_authority_absent;
+    proof.proof_digest = independence_proof_digest_v0(&proof);
+    proof
+}
+
+fn stabilize_learning_intent_v0(intent: &mut AgentLearningIntentV0) {
+    intent.market_scopes.sort();
+    intent.market_scopes.dedup();
+    intent.symbols.sort();
+    intent.symbols.dedup();
+    intent.required_datasets.sort();
+    intent.required_datasets.dedup();
+    intent.optional_datasets.sort();
+    intent.optional_datasets.dedup();
+    intent
+        .optional_datasets
+        .retain(|dataset| !intent.required_datasets.contains(dataset));
+}
+
+fn learning_policy_digest_v0(domain: &str, policy: &AgentDataPolicy) -> String {
+    let mut material = Vec::new();
+    canonical_string(&mut material, 1, "SOMA-LEARNING-POLICY-V0");
+    canonical_string(&mut material, 2, domain);
+    canonical_u8(&mut material, 3, agent_kind_code_v0(policy.agent_kind));
+    let mut markets = policy.allowed_markets.clone();
+    markets.sort();
+    markets.dedup();
+    for market in markets {
+        canonical_u8(&mut material, 4, market_scope_code_v0(market));
+    }
+    let mut allowed = policy.allowed_dataset_kinds.clone();
+    allowed.sort();
+    allowed.dedup();
+    for dataset in allowed {
+        canonical_u16(&mut material, 5, dataset_kind_code_v0(dataset));
+    }
+    let mut required = policy.required_dataset_kinds.clone();
+    required.sort();
+    required.dedup();
+    for dataset in required {
+        canonical_u16(&mut material, 6, dataset_kind_code_v0(dataset));
+    }
+    let mut optional = policy.optional_dataset_kinds.clone();
+    optional.sort();
+    optional.dedup();
+    for dataset in optional {
+        canonical_u16(&mut material, 7, dataset_kind_code_v0(dataset));
+    }
+    canonical_u64(
+        &mut material,
+        8,
+        u64::try_from(policy.default_lookback.bars).unwrap_or(u64::MAX),
+    );
+    canonical_u64(&mut material, 9, policy.max_staleness_ms);
+    canonical_u64(
+        &mut material,
+        10,
+        u64::try_from(policy.request_budget).unwrap_or(u64::MAX),
+    );
+    canonical_u8(
+        &mut material,
+        11,
+        u8::from(policy.abstain_when_required_missing),
+    );
+    canonical_hash_hex(&material)
+}
+
+fn agent_learning_intent_digest_v0(intent: &AgentLearningIntentV0) -> String {
+    let mut material = Vec::new();
+    canonical_string(&mut material, 1, &intent.intent_version);
+    canonical_string(&mut material, 2, &intent.agent_id);
+    canonical_u8(&mut material, 3, agent_kind_code_v0(intent.agent_kind));
+    for market in &intent.market_scopes {
+        canonical_u8(&mut material, 4, market_scope_code_v0(*market));
+    }
+    for symbol in &intent.symbols {
+        canonical_string(&mut material, 5, symbol);
+    }
+    for dataset in &intent.required_datasets {
+        canonical_u16(&mut material, 6, dataset_kind_code_v0(*dataset));
+    }
+    for dataset in &intent.optional_datasets {
+        canonical_u16(&mut material, 7, dataset_kind_code_v0(*dataset));
+    }
+    canonical_string(&mut material, 8, &intent.cadence);
+    canonical_u64(
+        &mut material,
+        9,
+        u64::try_from(intent.lookback.bars).unwrap_or(u64::MAX),
+    );
+    canonical_u64(
+        &mut material,
+        10,
+        intent.lookback.start_timestamp_ms.unwrap_or_default(),
+    );
+    canonical_u64(
+        &mut material,
+        11,
+        intent.lookback.end_timestamp_ms.unwrap_or_default(),
+    );
+    canonical_u64(&mut material, 12, intent.information_cutoff_ms);
+    canonical_u64(&mut material, 13, intent.maximum_staleness_ms);
+    canonical_string(&mut material, 14, &intent.source_policy_digest);
+    canonical_string(&mut material, 15, &intent.feature_policy_digest);
+    canonical_string(&mut material, 16, &intent.label_policy_digest);
+    canonical_string(&mut material, 17, &intent.curriculum_policy_digest);
+    canonical_hash_hex(&material)
+}
+
+fn agent_learning_data_view_digest_v0(view: &AgentLearningDataViewV0) -> String {
+    let mut material = Vec::new();
+    canonical_string(&mut material, 1, &view.view_version);
+    canonical_string(&mut material, 2, &view.agent_id);
+    for digest in &view.source_artifact_digests {
+        canonical_string(&mut material, 3, digest);
+    }
+    for dataset in &view.visible_dataset_kinds {
+        canonical_u16(&mut material, 4, dataset_kind_code_v0(*dataset));
+    }
+    canonical_u64(&mut material, 5, view.information_cutoff_ms);
+    canonical_string(&mut material, 6, &view.feature_policy_digest);
+    canonical_string(&mut material, 7, &view.label_policy_digest);
+    canonical_string(&mut material, 8, &view.curriculum_policy_digest);
+    canonical_string(&mut material, 9, &view.private_namespace_digest);
+    canonical_string(&mut material, 10, &view.training_ledger_digest);
+    canonical_u64(
+        &mut material,
+        11,
+        u64::try_from(view.shared_raw_count).unwrap_or(u64::MAX),
+    );
+    canonical_u64(
+        &mut material,
+        12,
+        u64::try_from(view.private_artifact_count).unwrap_or(u64::MAX),
+    );
+    for dataset in &view.missing_required_datasets {
+        canonical_u16(&mut material, 13, dataset_kind_code_v0(*dataset));
+    }
+    canonical_u8(
+        &mut material,
+        14,
+        evidence_decision_gate_code_v0(view.decision_gate),
+    );
+    canonical_hash_hex(&material)
+}
+
+fn chair_firewall_proof_digest_v0(proof: &LearningDataChairFirewallProofV0) -> String {
+    stable_hash_string(&format!(
+        "SOMA-LEARNING-CHAIR-FIREWALL-V0:{}:{}:{}:{}:{}:{}:{}:{}",
+        proof.chair_cannot_create_intent,
+        proof.chair_cannot_call_broker,
+        proof.chair_cannot_select_provider,
+        proof.chair_cannot_modify_view,
+        proof.chair_cannot_change_cutoff,
+        proof.chair_cannot_select_label,
+        proof.chair_cannot_read_private_artifact,
+        proof.all_invariants_pass,
+    ))
+}
+
+fn independence_proof_digest_v0(proof: &AgentLearningIndependenceProofV0) -> String {
+    stable_hash_string(&format!(
+        "SOMA-LEARNING-INDEPENDENCE-V0:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+        proof.agent_ids.join("|"),
+        proof.distinct_intent_digests,
+        proof.distinct_view_digests,
+        proof.distinct_feature_policies,
+        proof.distinct_label_policies,
+        proof.distinct_private_namespaces,
+        proof.distinct_training_ledgers,
+        proof.shared_raw_does_not_imply_shared_learning,
+        proof.private_artifact_isolation,
+        proof.chair_data_authority_absent,
+        proof.all_invariants_pass,
+    ))
+}
+
+fn distinct_count_v0<'a>(values: impl Iterator<Item = &'a str>) -> usize {
+    values.collect::<BTreeSet<_>>().len()
+}
+
+fn expected_learning_agent_id_v0(kind: AgentKind) -> Option<&'static str> {
+    match kind {
+        AgentKind::MomentumTrendFast => Some("momentum_trend_fast"),
+        AgentKind::ValueQualityFilter => Some("value_quality_filter"),
+        AgentKind::CycleRiskSkeptic => Some("cycle_risk_skeptic"),
+        AgentKind::Future8AgentPlaceholder => None,
+    }
+}
+
+fn active_learning_agent_id_v0(agent_id: &str) -> bool {
+    [
+        "momentum_trend_fast",
+        "value_quality_filter",
+        "cycle_risk_skeptic",
+    ]
+    .contains(&agent_id)
+}
+
+fn valid_learning_digest_v0(digest: &str) -> bool {
+    digest.len() == 16 && digest.bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
+fn agent_kind_code_v0(kind: AgentKind) -> u8 {
+    match kind {
+        AgentKind::MomentumTrendFast => 1,
+        AgentKind::ValueQualityFilter => 2,
+        AgentKind::CycleRiskSkeptic => 3,
+        AgentKind::Future8AgentPlaceholder => 0,
+    }
+}
+
+fn market_scope_code_v0(scope: AcquisitionMarketScope) -> u8 {
+    match scope {
+        AcquisitionMarketScope::UsStocks => 1,
+        AcquisitionMarketScope::KoreanStocks => 2,
+        AcquisitionMarketScope::BtcCrypto => 3,
+        AcquisitionMarketScope::Unknown => 0,
+    }
+}
+
+fn dataset_kind_code_v0(kind: DatasetKind) -> u16 {
+    match kind {
+        DatasetKind::DailyOhlcv => 1,
+        DatasetKind::AdjustedDailyOhlcv => 2,
+        DatasetKind::CorporateActions => 3,
+        DatasetKind::QuarterlyFundamentals => 4,
+        DatasetKind::ValuationMetrics => 5,
+        DatasetKind::MarketIndexDaily => 6,
+        DatasetKind::MarketBreadthDaily => 7,
+        DatasetKind::VolatilityDaily => 8,
+        DatasetKind::LiquidityDaily => 9,
+        DatasetKind::CryptoDailyOhlcv => 10,
+        DatasetKind::MacroSeries => 11,
+        DatasetKind::Unknown => 0,
+    }
+}
+
+fn dataset_kind_from_code_v0(code: u16) -> Option<DatasetKind> {
+    match code {
+        1 => Some(DatasetKind::DailyOhlcv),
+        2 => Some(DatasetKind::AdjustedDailyOhlcv),
+        3 => Some(DatasetKind::CorporateActions),
+        4 => Some(DatasetKind::QuarterlyFundamentals),
+        5 => Some(DatasetKind::ValuationMetrics),
+        6 => Some(DatasetKind::MarketIndexDaily),
+        7 => Some(DatasetKind::MarketBreadthDaily),
+        8 => Some(DatasetKind::VolatilityDaily),
+        9 => Some(DatasetKind::LiquidityDaily),
+        10 => Some(DatasetKind::CryptoDailyOhlcv),
+        11 => Some(DatasetKind::MacroSeries),
+        _ => None,
+    }
+}
+
+fn evidence_decision_gate_code_v0(gate: EvidenceDecisionGate) -> u8 {
+    match gate {
+        EvidenceDecisionGate::Ready => 1,
+        EvidenceDecisionGate::Abstain => 2,
+        EvidenceDecisionGate::ForceNoTrade => 3,
+    }
+}
+
+fn evidence_decision_gate_from_code_v0(code: u32) -> Option<EvidenceDecisionGate> {
+    match code {
+        1 => Some(EvidenceDecisionGate::Ready),
+        2 => Some(EvidenceDecisionGate::Abstain),
+        3 => Some(EvidenceDecisionGate::ForceNoTrade),
+        _ => None,
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CanonicalLearningArtifactEnvelopeV0 {
+    pub magic: String,
+    pub envelope_version: u32,
+    pub schema_name: String,
+    pub artifact_kind: String,
+    pub semantic_digest: String,
+    pub payload_length: u64,
+    pub payload_digest: String,
+    pub payload: Vec<u8>,
+    pub source_artifact_digests: Vec<String>,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct CanonicalLearningArtifactEnvelopeProtobufV0 {
+    #[prost(string, tag = "1")]
+    magic: String,
+    #[prost(uint32, tag = "2")]
+    envelope_version: u32,
+    #[prost(string, tag = "3")]
+    schema_name: String,
+    #[prost(string, tag = "4")]
+    artifact_kind: String,
+    #[prost(string, tag = "5")]
+    semantic_digest: String,
+    #[prost(uint64, tag = "6")]
+    payload_length: u64,
+    #[prost(string, tag = "7")]
+    payload_digest: String,
+    #[prost(bytes = "vec", tag = "8")]
+    payload: Vec<u8>,
+    #[prost(string, repeated, tag = "9")]
+    source_artifact_digests: Vec<String>,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct AgentLearningDataViewProtobufV0 {
+    #[prost(string, tag = "1")]
+    view_version: String,
+    #[prost(string, tag = "2")]
+    agent_id: String,
+    #[prost(string, repeated, tag = "3")]
+    source_artifact_digests: Vec<String>,
+    #[prost(uint32, repeated, tag = "4")]
+    visible_dataset_kinds: Vec<u32>,
+    #[prost(uint64, tag = "5")]
+    information_cutoff_ms: u64,
+    #[prost(string, tag = "6")]
+    feature_policy_digest: String,
+    #[prost(string, tag = "7")]
+    label_policy_digest: String,
+    #[prost(string, tag = "8")]
+    curriculum_policy_digest: String,
+    #[prost(string, tag = "9")]
+    private_namespace_digest: String,
+    #[prost(string, tag = "10")]
+    training_ledger_digest: String,
+    #[prost(uint64, tag = "11")]
+    shared_raw_count: u64,
+    #[prost(uint64, tag = "12")]
+    private_artifact_count: u64,
+    #[prost(uint32, repeated, tag = "13")]
+    missing_required_datasets: Vec<u32>,
+    #[prost(uint32, tag = "14")]
+    decision_gate: u32,
+    #[prost(string, tag = "15")]
+    view_digest: String,
+}
+
+pub fn encode_agent_learning_data_view_protobuf_v0(
+    view: &AgentLearningDataViewV0,
+) -> Result<Vec<u8>, String> {
+    validate_agent_learning_data_view_v0(view)?;
+    let payload = learning_view_to_protobuf_v0(view)?.encode_to_vec();
+    let envelope = CanonicalLearningArtifactEnvelopeProtobufV0 {
+        magic: LEARNING_ENVELOPE_MAGIC_V0.into(),
+        envelope_version: 0,
+        schema_name: LEARNING_ENVELOPE_SCHEMA_V0.into(),
+        artifact_kind: LEARNING_VIEW_ARTIFACT_KIND_V0.into(),
+        semantic_digest: view.view_digest.clone(),
+        payload_length: u64::try_from(payload.len())
+            .map_err(|_| "learning artifact payload too large".to_string())?,
+        payload_digest: canonical_hash_hex(&payload),
+        payload,
+        source_artifact_digests: view.source_artifact_digests.clone(),
+    };
+    Ok(envelope.encode_to_vec())
+}
+
+pub fn decode_agent_learning_data_view_protobuf_v0(
+    bytes: &[u8],
+) -> Result<(CanonicalLearningArtifactEnvelopeV0, AgentLearningDataViewV0), String> {
+    let envelope = CanonicalLearningArtifactEnvelopeProtobufV0::decode(bytes)
+        .map_err(|_| "learning artifact envelope decode failed".to_string())?;
+    if envelope.magic != LEARNING_ENVELOPE_MAGIC_V0 {
+        return Err("learning artifact magic rejected".into());
+    }
+    if envelope.envelope_version != 0 {
+        return Err("learning artifact major version rejected".into());
+    }
+    if envelope.schema_name != LEARNING_ENVELOPE_SCHEMA_V0 {
+        return Err("learning artifact schema rejected".into());
+    }
+    if envelope.artifact_kind != LEARNING_VIEW_ARTIFACT_KIND_V0 {
+        return Err("learning artifact kind rejected".into());
+    }
+    if usize::try_from(envelope.payload_length).ok() != Some(envelope.payload.len()) {
+        return Err("learning artifact payload length rejected".into());
+    }
+    if envelope.payload_digest != canonical_hash_hex(&envelope.payload) {
+        return Err("learning artifact payload digest rejected".into());
+    }
+    let view = learning_view_from_protobuf_v0(
+        AgentLearningDataViewProtobufV0::decode(envelope.payload.as_slice())
+            .map_err(|_| "learning artifact payload decode failed".to_string())?,
+    )?;
+    validate_agent_learning_data_view_v0(&view)?;
+    if envelope.semantic_digest != view.view_digest {
+        return Err("learning artifact semantic digest rejected".into());
+    }
+    if envelope.source_artifact_digests != view.source_artifact_digests
+        || envelope
+            .source_artifact_digests
+            .iter()
+            .any(|digest| !valid_learning_digest_v0(digest))
+    {
+        return Err("learning artifact source identity rejected".into());
+    }
+    Ok((
+        CanonicalLearningArtifactEnvelopeV0 {
+            magic: envelope.magic,
+            envelope_version: envelope.envelope_version,
+            schema_name: envelope.schema_name,
+            artifact_kind: envelope.artifact_kind,
+            semantic_digest: envelope.semantic_digest,
+            payload_length: envelope.payload_length,
+            payload_digest: envelope.payload_digest,
+            payload: envelope.payload,
+            source_artifact_digests: envelope.source_artifact_digests,
+        },
+        view,
+    ))
+}
+
+pub fn write_and_verify_agent_learning_data_view_v0(
+    view: &AgentLearningDataViewV0,
+    output_dir: &Path,
+) -> Result<PathBuf, String> {
+    if !safe_learning_data_path_v0(output_dir) {
+        return Err("learning data output namespace rejected".into());
+    }
+    fs::create_dir_all(output_dir)
+        .map_err(|_| "learning data output directory unavailable".to_string())?;
+    let path = output_dir.join(format!("agent-view-{}.pb", view.view_digest));
+    write_and_verify_learning_view_at_path_v0(view, &path)?;
+    Ok(path)
+}
+
+pub fn read_and_verify_agent_learning_data_view_v0(
+    path: &Path,
+) -> Result<AgentLearningDataViewV0, String> {
+    if !safe_learning_data_path_v0(path) {
+        return Err("learning data input namespace rejected".into());
+    }
+    let mut file = File::open(path).map_err(|_| "learning data reopen failed".to_string())?;
+    let mut bytes = Vec::new();
+    file.read_to_end(&mut bytes)
+        .map_err(|_| "learning data reopen failed".to_string())?;
+    decode_agent_learning_data_view_protobuf_v0(&bytes).map(|(_, view)| view)
+}
+
+pub fn migrate_legacy_learning_view_json_v0(path: &Path) -> Result<PathBuf, String> {
+    if !safe_learning_data_path_v0(path)
+        || path.extension().is_none_or(|extension| extension != "json")
+    {
+        return Err("legacy learning view path rejected".into());
+    }
+    let original = fs::read(path).map_err(|_| "legacy learning view unavailable".to_string())?;
+    let view: AgentLearningDataViewV0 = serde_json::from_slice(&original)
+        .map_err(|_| "legacy learning view decode failed".to_string())?;
+    validate_agent_learning_data_view_v0(&view)?;
+    let sidecar = path.with_extension("pb");
+    write_and_verify_learning_view_at_path_v0(&view, &sidecar)?;
+    if fs::read(path).map_err(|_| "legacy learning view unavailable".to_string())? != original {
+        return Err("legacy learning view changed during migration".into());
+    }
+    Ok(sidecar)
+}
+
+fn write_and_verify_learning_view_at_path_v0(
+    view: &AgentLearningDataViewV0,
+    path: &Path,
+) -> Result<(), String> {
+    validate_agent_learning_data_view_v0(view)?;
+    if !safe_learning_data_path_v0(path)
+        || path.extension().is_none_or(|extension| extension != "pb")
+    {
+        return Err("learning data storage path rejected".into());
+    }
+    if path.is_file() {
+        return if read_and_verify_agent_learning_data_view_v0(path)? == *view {
+            Ok(())
+        } else {
+            Err("learning data artifact is immutable".into())
+        };
+    }
+    let parent = path
+        .parent()
+        .ok_or_else(|| "learning data parent unavailable".to_string())?;
+    fs::create_dir_all(parent)
+        .map_err(|_| "learning data output directory unavailable".to_string())?;
+    let file_name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .ok_or_else(|| "learning data filename rejected".to_string())?;
+    let temporary = parent.join(format!(".{file_name}.{}.tmp", std::process::id()));
+    let serialized = encode_agent_learning_data_view_protobuf_v0(view)?;
+    let write_result = (|| {
+        let mut file = File::options()
+            .write(true)
+            .create_new(true)
+            .open(&temporary)
+            .map_err(|_| "learning data temporary write failed".to_string())?;
+        file.write_all(&serialized)
+            .map_err(|_| "learning data temporary write failed".to_string())?;
+        file.flush()
+            .map_err(|_| "learning data temporary flush failed".to_string())?;
+        file.sync_all()
+            .map_err(|_| "learning data temporary sync failed".to_string())?;
+        drop(file);
+        if read_and_verify_agent_learning_data_view_v0(&temporary)? != *view {
+            return Err("learning data temporary verification failed".into());
+        }
+        fs::rename(&temporary, path)
+            .map_err(|_| "learning data atomic rename failed".to_string())?;
+        if read_and_verify_agent_learning_data_view_v0(path)? != *view {
+            return Err("learning data final verification failed".into());
+        }
+        Ok(())
+    })();
+    if write_result.is_err() && temporary.is_file() {
+        let _ = fs::remove_file(&temporary);
+    }
+    write_result
+}
+
+fn safe_learning_data_path_v0(path: &Path) -> bool {
+    path.starts_with(LEARNING_DATA_NAMESPACE_V0)
+        && !path.as_os_str().is_empty()
+        && !path.to_string_lossy().contains("prospective")
+        && path.components().all(|component| {
+            !matches!(
+                component,
+                Component::ParentDir | Component::RootDir | Component::Prefix(_)
+            ) && component.as_os_str() != ".env"
+        })
+}
+
+fn learning_view_to_protobuf_v0(
+    view: &AgentLearningDataViewV0,
+) -> Result<AgentLearningDataViewProtobufV0, String> {
+    Ok(AgentLearningDataViewProtobufV0 {
+        view_version: view.view_version.clone(),
+        agent_id: view.agent_id.clone(),
+        source_artifact_digests: view.source_artifact_digests.clone(),
+        visible_dataset_kinds: view
+            .visible_dataset_kinds
+            .iter()
+            .map(|kind| u32::from(dataset_kind_code_v0(*kind)))
+            .collect(),
+        information_cutoff_ms: view.information_cutoff_ms,
+        feature_policy_digest: view.feature_policy_digest.clone(),
+        label_policy_digest: view.label_policy_digest.clone(),
+        curriculum_policy_digest: view.curriculum_policy_digest.clone(),
+        private_namespace_digest: view.private_namespace_digest.clone(),
+        training_ledger_digest: view.training_ledger_digest.clone(),
+        shared_raw_count: u64::try_from(view.shared_raw_count)
+            .map_err(|_| "learning shared raw count overflow".to_string())?,
+        private_artifact_count: u64::try_from(view.private_artifact_count)
+            .map_err(|_| "learning private artifact count overflow".to_string())?,
+        missing_required_datasets: view
+            .missing_required_datasets
+            .iter()
+            .map(|kind| u32::from(dataset_kind_code_v0(*kind)))
+            .collect(),
+        decision_gate: u32::from(evidence_decision_gate_code_v0(view.decision_gate)),
+        view_digest: view.view_digest.clone(),
+    })
+}
+
+fn learning_view_from_protobuf_v0(
+    value: AgentLearningDataViewProtobufV0,
+) -> Result<AgentLearningDataViewV0, String> {
+    Ok(AgentLearningDataViewV0 {
+        view_version: value.view_version,
+        agent_id: value.agent_id,
+        source_artifact_digests: value.source_artifact_digests,
+        visible_dataset_kinds: value
+            .visible_dataset_kinds
+            .into_iter()
+            .map(|code| {
+                u16::try_from(code)
+                    .ok()
+                    .and_then(dataset_kind_from_code_v0)
+                    .ok_or_else(|| "learning view dataset kind rejected".to_string())
+            })
+            .collect::<Result<Vec<_>, _>>()?,
+        information_cutoff_ms: value.information_cutoff_ms,
+        feature_policy_digest: value.feature_policy_digest,
+        label_policy_digest: value.label_policy_digest,
+        curriculum_policy_digest: value.curriculum_policy_digest,
+        private_namespace_digest: value.private_namespace_digest,
+        training_ledger_digest: value.training_ledger_digest,
+        shared_raw_count: usize::try_from(value.shared_raw_count)
+            .map_err(|_| "learning shared raw count rejected".to_string())?,
+        private_artifact_count: usize::try_from(value.private_artifact_count)
+            .map_err(|_| "learning private artifact count rejected".to_string())?,
+        missing_required_datasets: value
+            .missing_required_datasets
+            .into_iter()
+            .map(|code| {
+                u16::try_from(code)
+                    .ok()
+                    .and_then(dataset_kind_from_code_v0)
+                    .ok_or_else(|| "learning missing dataset kind rejected".to_string())
+            })
+            .collect::<Result<Vec<_>, _>>()?,
+        decision_gate: evidence_decision_gate_from_code_v0(value.decision_gate)
+            .ok_or_else(|| "learning decision gate rejected".to_string())?,
+        view_digest: value.view_digest,
+    })
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LearningDataUsageClassificationV0 {
+    ResearchOnlyUnconsumed,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LearningDataProvenanceManifestV0 {
+    pub source_provider_id: String,
+    pub source_type: String,
+    pub acquisition_request_identity: String,
+    pub fetch_timestamp_ms: u64,
+    pub publication_event_timestamp_ms: Option<u64>,
+    pub raw_content_digest: String,
+    pub parser_version: String,
+    pub normalized_artifact_digest: String,
+    pub sanitized: bool,
+    pub credential_free: bool,
+    pub information_cutoff_ms: u64,
+    pub usage_classification: LearningDataUsageClassificationV0,
+    pub manifest_digest: String,
+}
+
+pub fn seal_learning_data_provenance_manifest_v0(
+    mut manifest: LearningDataProvenanceManifestV0,
+) -> Result<LearningDataProvenanceManifestV0, String> {
+    manifest.manifest_digest.clear();
+    if manifest.source_provider_id.trim().is_empty()
+        || manifest.source_type.trim().is_empty()
+        || manifest.acquisition_request_identity.trim().is_empty()
+        || manifest.fetch_timestamp_ms == 0
+        || manifest.parser_version.trim().is_empty()
+        || !valid_learning_digest_v0(&manifest.raw_content_digest)
+        || !valid_learning_digest_v0(&manifest.normalized_artifact_digest)
+        || !manifest.sanitized
+        || !manifest.credential_free
+        || manifest.information_cutoff_ms == 0
+        || manifest
+            .publication_event_timestamp_ms
+            .is_some_and(|timestamp| timestamp > manifest.information_cutoff_ms)
+    {
+        return Err("learning data provenance manifest rejected".into());
+    }
+    manifest.manifest_digest = learning_data_provenance_manifest_digest_v0(&manifest);
+    Ok(manifest)
+}
+
+fn learning_data_provenance_manifest_digest_v0(
+    manifest: &LearningDataProvenanceManifestV0,
+) -> String {
+    stable_hash_string(&format!(
+        "SOMA-LEARNING-PROVENANCE-V0:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{:?}",
+        manifest.source_provider_id,
+        manifest.source_type,
+        manifest.acquisition_request_identity,
+        manifest.fetch_timestamp_ms,
+        manifest.publication_event_timestamp_ms.unwrap_or_default(),
+        manifest.raw_content_digest,
+        manifest.parser_version,
+        manifest.normalized_artifact_digest,
+        manifest.sanitized,
+        manifest.credential_free,
+        manifest.information_cutoff_ms,
+        manifest.usage_classification,
+    ))
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LearningNetworkPilotStatusV0 {
+    ReadyForExplicitRequest,
+    DeferredToProtectProspectiveEvaluation,
+    Rejected,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LearningNetworkPilotInputV0 {
+    pub explicit_network_consent: bool,
+    pub non_overlapping_request_proven: bool,
+    pub provider_approved_read_only: bool,
+    pub credential_scope_approved: bool,
+    pub bounded_response: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LearningDataPlaneSafetyCountersV0 {
+    pub active_committee_count: usize,
+    pub network_requests: usize,
+    pub credential_reads: usize,
+    pub prospective_artifact_mutations: usize,
+    pub prospective_label_reads: usize,
+    pub chair_decisions: usize,
+    pub votes: usize,
+    pub rewards: usize,
+    pub penalties: usize,
+    pub voice_changes: usize,
+    pub executions: usize,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LearningNetworkPilotPlanV0 {
+    pub status: LearningNetworkPilotStatusV0,
+    pub storage_namespace: String,
+    pub usage_classification: LearningDataUsageClassificationV0,
+    pub maximum_requests: usize,
+    pub maximum_concurrency: usize,
+    pub maximum_retries: usize,
+    pub safety_counters: LearningDataPlaneSafetyCountersV0,
+}
+
+pub fn plan_learning_network_pilot_v0(
+    input: &LearningNetworkPilotInputV0,
+) -> LearningNetworkPilotPlanV0 {
+    let status = if !input.non_overlapping_request_proven {
+        LearningNetworkPilotStatusV0::DeferredToProtectProspectiveEvaluation
+    } else if input.explicit_network_consent
+        && input.provider_approved_read_only
+        && input.credential_scope_approved
+        && input.bounded_response
+    {
+        LearningNetworkPilotStatusV0::ReadyForExplicitRequest
+    } else {
+        LearningNetworkPilotStatusV0::Rejected
+    };
+    LearningNetworkPilotPlanV0 {
+        status,
+        storage_namespace: format!("{LEARNING_DATA_NAMESPACE_V0}/network_pilot"),
+        usage_classification: LearningDataUsageClassificationV0::ResearchOnlyUnconsumed,
+        maximum_requests: 1,
+        maximum_concurrency: 1,
+        maximum_retries: 0,
+        safety_counters: LearningDataPlaneSafetyCountersV0 {
+            active_committee_count: 3,
+            network_requests: 0,
+            credential_reads: 0,
+            prospective_artifact_mutations: 0,
+            prospective_label_reads: 0,
+            chair_decisions: 0,
+            votes: 0,
+            rewards: 0,
+            penalties: 0,
+            voice_changes: 0,
+            executions: 0,
+        },
+    }
+}
+
 fn snapshot_digest(dataset: &HistoricalReplayDataset) -> String {
     historical_replay_dataset_digest_v0(dataset)
 }
@@ -1252,13 +2646,17 @@ fn snapshot_digest(dataset: &HistoricalReplayDataset) -> String {
 fn acquisition_request_key(dataset_kind: DatasetKind, intent: &AgentDataIntent) -> String {
     let mut symbols = intent.symbols.clone();
     symbols.sort();
+    symbols.dedup();
     format!(
-        "{:?}:{:?}:{}:{}:{}",
+        "{:?}:{:?}:{}:{}:{}:{}:{}:{}",
         dataset_kind,
         intent.market_scope,
         symbols.join(","),
+        intent.target_cadence,
         intent.lookback.bars,
         intent.lookback.start_timestamp_ms.unwrap_or_default(),
+        intent.lookback.end_timestamp_ms.unwrap_or_default(),
+        intent.max_staleness_ms,
     )
 }
 
@@ -1799,6 +3197,448 @@ mod tests {
             agent_data_policies: default_agent_data_policies(),
             reason_codes: vec![ReasonCode::DeterministicPath],
         }
+    }
+
+    fn learning_intents() -> Vec<AgentLearningIntentV0> {
+        derive_active_agent_learning_intents_v0(
+            &canonical_current_agent_states(),
+            &universe(),
+            &default_agent_data_policies(),
+            100,
+        )
+        .unwrap()
+    }
+
+    fn learning_policy(intent: &AgentLearningIntentV0) -> AgentDataPolicy {
+        default_agent_data_policies()
+            .into_iter()
+            .find(|policy| policy.agent_kind == intent.agent_kind)
+            .unwrap()
+    }
+
+    fn ready_learning_views() -> (Vec<AgentLearningIntentV0>, Vec<AgentLearningDataViewV0>) {
+        let intents = learning_intents();
+        let views = intents
+            .iter()
+            .map(|intent| {
+                let mut datasets = intent.required_datasets.clone();
+                if intent.agent_kind == AgentKind::MomentumTrendFast {
+                    datasets.push(DatasetKind::VolatilityDaily);
+                }
+                datasets.sort();
+                datasets.dedup();
+                let mut artifacts = datasets
+                    .into_iter()
+                    .map(|dataset_kind| LearningDataArtifactRefV0 {
+                        artifact_digest: stable_hash_string(&format!("shared:{dataset_kind:?}")),
+                        dataset_kind,
+                        visibility: LearningDataVisibilityV0::SharedCanonicalRaw,
+                        owner_agent_id: None,
+                        maximum_event_timestamp_ms: 100,
+                    })
+                    .collect::<Vec<_>>();
+                artifacts.push(LearningDataArtifactRefV0 {
+                    artifact_digest: stable_hash_string(&format!(
+                        "private:{}:{:?}",
+                        intent.agent_id, intent.required_datasets[0]
+                    )),
+                    dataset_kind: intent.required_datasets[0],
+                    visibility: LearningDataVisibilityV0::AgentPrivateDerived,
+                    owner_agent_id: Some(intent.agent_id.clone()),
+                    maximum_event_timestamp_ms: 100,
+                });
+                build_agent_learning_data_view_v0(
+                    intent,
+                    &learning_policy(intent),
+                    &artifacts,
+                    &derive_agent_private_learning_state_v0(intent),
+                )
+                .unwrap()
+            })
+            .collect();
+        (intents, views)
+    }
+
+    #[test]
+    fn learning_intents_are_agent_owned_distinct_and_policy_validated() {
+        let intents = learning_intents();
+        assert_eq!(intents.len(), 3);
+        assert_eq!(
+            intents
+                .iter()
+                .map(|intent| intent.intent_digest.as_str())
+                .collect::<BTreeSet<_>>()
+                .len(),
+            3
+        );
+        assert!(intents.iter().all(|intent| {
+            validate_agent_learning_intent_v0(intent, &learning_policy(intent)).is_ok()
+        }));
+
+        let mut invalid = intents[0].clone();
+        invalid.market_scopes = vec![AcquisitionMarketScope::Unknown];
+        assert!(validate_agent_learning_intent_v0(&invalid, &learning_policy(&invalid)).is_err());
+        let base = plan_agent_data_intent(
+            "momentum_trend_fast",
+            AgentKind::MomentumTrendFast,
+            &universe(),
+            &learning_policy(&intents[0]),
+            100,
+        );
+        assert!(
+            create_agent_learning_intent_v0(
+                &LearningDataCallerV0::Chair,
+                &base,
+                &learning_policy(&intents[0]),
+                100,
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn learning_broker_reuses_semantic_dedup_and_preserves_intents() {
+        let policies = default_agent_data_policies();
+        let mut intents = learning_intents();
+        let momentum = intents
+            .iter_mut()
+            .find(|intent| intent.agent_kind == AgentKind::MomentumTrendFast)
+            .unwrap();
+        momentum.required_datasets = vec![DatasetKind::VolatilityDaily];
+        momentum.optional_datasets.clear();
+        stabilize_learning_intent_v0(momentum);
+        momentum.intent_digest = agent_learning_intent_digest_v0(momentum);
+        let momentum_request = momentum.clone();
+        let risk = intents
+            .iter_mut()
+            .find(|intent| intent.agent_kind == AgentKind::CycleRiskSkeptic)
+            .unwrap();
+        risk.market_scopes = momentum_request.market_scopes.clone();
+        risk.symbols = momentum_request.symbols.clone();
+        risk.required_datasets = momentum_request.required_datasets.clone();
+        risk.optional_datasets.clear();
+        risk.cadence = momentum_request.cadence.clone();
+        risk.lookback = momentum_request.lookback.clone();
+        risk.maximum_staleness_ms = momentum_request.maximum_staleness_ms;
+        stabilize_learning_intent_v0(risk);
+        risk.intent_digest = agent_learning_intent_digest_v0(risk);
+        intents.retain(|intent| intent.agent_kind != AgentKind::ValueQualityFilter);
+        let before = intents.clone();
+        let plan = build_learning_acquisition_plan_v0(
+            &intents,
+            &policies,
+            &ReadOnlyProviderRegistry::default(),
+            AcquisitionMode::LocalSnapshotReplay,
+            &AcquisitionPolicy::default(),
+        )
+        .unwrap();
+        assert_eq!(plan.planned_requests.len(), 1);
+        assert_eq!(plan.deduplicated_request_count, 1);
+        assert_eq!(plan.planned_requests[0].requested_by_agents.len(), 2);
+        assert_eq!(intents, before);
+
+        let risk = intents
+            .iter_mut()
+            .find(|intent| intent.agent_kind == AgentKind::CycleRiskSkeptic)
+            .unwrap();
+        risk.cadence = "1h".into();
+        risk.intent_digest = agent_learning_intent_digest_v0(risk);
+        let separate = build_learning_acquisition_plan_v0(
+            &intents,
+            &policies,
+            &ReadOnlyProviderRegistry::default(),
+            AcquisitionMode::LocalSnapshotReplay,
+            &AcquisitionPolicy::default(),
+        )
+        .unwrap();
+        assert_eq!(separate.planned_requests.len(), 2);
+        assert_eq!(separate.deduplicated_request_count, 0);
+    }
+
+    #[test]
+    fn learning_views_fan_out_shared_raw_without_sharing_learning_state() {
+        let (intents, views) = ready_learning_views();
+        assert!(
+            views
+                .iter()
+                .all(|view| view.decision_gate == EvidenceDecisionGate::Ready)
+        );
+        assert_eq!(
+            views
+                .iter()
+                .map(|view| view.view_digest.as_str())
+                .collect::<BTreeSet<_>>()
+                .len(),
+            3
+        );
+        assert_eq!(
+            views
+                .iter()
+                .map(|view| view.private_namespace_digest.as_str())
+                .collect::<BTreeSet<_>>()
+                .len(),
+            3
+        );
+        assert_eq!(
+            views
+                .iter()
+                .map(|view| view.training_ledger_digest.as_str())
+                .collect::<BTreeSet<_>>()
+                .len(),
+            3
+        );
+        let shared_volatility = stable_hash_string("shared:VolatilityDaily");
+        assert_eq!(
+            views
+                .iter()
+                .filter(|view| view.source_artifact_digests.contains(&shared_volatility))
+                .count(),
+            2
+        );
+        let firewall = learning_data_chair_firewall_proof_v0();
+        let proof = agent_learning_independence_proof_v0(&intents, &views, &firewall);
+        assert!(proof.all_invariants_pass);
+        assert!(proof.shared_raw_does_not_imply_shared_learning);
+        assert!(proof.private_artifact_isolation);
+    }
+
+    #[test]
+    fn learning_views_reject_private_crossing_cutoff_leakage_and_unauthorized_data() {
+        let intent = learning_intents().remove(0);
+        let policy = learning_policy(&intent);
+        let private_state = derive_agent_private_learning_state_v0(&intent);
+        let base = LearningDataArtifactRefV0 {
+            artifact_digest: stable_hash_string("private-crossing"),
+            dataset_kind: intent.required_datasets[0],
+            visibility: LearningDataVisibilityV0::AgentPrivateDerived,
+            owner_agent_id: Some("value_quality_filter".into()),
+            maximum_event_timestamp_ms: 100,
+        };
+        assert!(
+            build_agent_learning_data_view_v0(&intent, &policy, &[base.clone()], &private_state)
+                .is_err()
+        );
+        let mut leaked = base.clone();
+        leaked.visibility = LearningDataVisibilityV0::SharedCanonicalRaw;
+        leaked.owner_agent_id = None;
+        leaked.maximum_event_timestamp_ms = 101;
+        assert!(
+            build_agent_learning_data_view_v0(&intent, &policy, &[leaked], &private_state).is_err()
+        );
+        let mut unauthorized = base;
+        unauthorized.visibility = LearningDataVisibilityV0::SharedCanonicalRaw;
+        unauthorized.owner_agent_id = None;
+        unauthorized.dataset_kind = DatasetKind::QuarterlyFundamentals;
+        assert!(
+            build_agent_learning_data_view_v0(&intent, &policy, &[unauthorized], &private_state)
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn missing_required_learning_evidence_abstains_without_fabrication() {
+        let intent = learning_intents().remove(0);
+        let view = build_agent_learning_data_view_v0(
+            &intent,
+            &learning_policy(&intent),
+            &[],
+            &derive_agent_private_learning_state_v0(&intent),
+        )
+        .unwrap();
+        assert_eq!(view.decision_gate, EvidenceDecisionGate::Abstain);
+        assert_eq!(view.missing_required_datasets, intent.required_datasets);
+        assert!(view.source_artifact_digests.is_empty());
+    }
+
+    #[test]
+    fn chair_firewall_denies_every_learning_data_authority() {
+        let proof = learning_data_chair_firewall_proof_v0();
+        assert!(proof.all_invariants_pass);
+        assert!(!authorize_learning_data_action_v0(
+            &LearningDataCallerV0::Chair,
+            LearningDataAuthorityActionV0::CallBroker,
+        ));
+        assert!(authorize_learning_data_action_v0(
+            &LearningDataCallerV0::NeutralBroker,
+            LearningDataAuthorityActionV0::CallBroker,
+        ));
+        assert_eq!(proof.proof_digest, chair_firewall_proof_digest_v0(&proof));
+    }
+
+    #[test]
+    fn learning_view_protobuf_round_trip_and_wire_identity_are_semantic() {
+        let (_, views) = ready_learning_views();
+        let view = &views[0];
+        let encoded = encode_agent_learning_data_view_protobuf_v0(view).unwrap();
+        let (envelope, decoded) = decode_agent_learning_data_view_protobuf_v0(&encoded).unwrap();
+        assert_eq!(&decoded, view);
+        assert_eq!(envelope.semantic_digest, view.view_digest);
+
+        let mut alternate =
+            CanonicalLearningArtifactEnvelopeProtobufV0::decode(encoded.as_slice()).unwrap();
+        alternate.payload.extend_from_slice(&[0xf8, 0x01, 0x01]);
+        alternate.payload_length = alternate.payload.len() as u64;
+        alternate.payload_digest = canonical_hash_hex(&alternate.payload);
+        let alternate_bytes = alternate.encode_to_vec();
+        assert_ne!(encoded, alternate_bytes);
+        let (_, alternate_view) =
+            decode_agent_learning_data_view_protobuf_v0(&alternate_bytes).unwrap();
+        assert_eq!(alternate_view.view_digest, view.view_digest);
+        assert_eq!(alternate_view, *view);
+    }
+
+    #[test]
+    fn learning_view_protobuf_rejects_every_envelope_and_payload_corruption() {
+        let (_, views) = ready_learning_views();
+        let encoded = encode_agent_learning_data_view_protobuf_v0(&views[0]).unwrap();
+        let original =
+            CanonicalLearningArtifactEnvelopeProtobufV0::decode(encoded.as_slice()).unwrap();
+
+        let mut wrong = original.clone();
+        wrong.magic = "wrong".into();
+        assert!(decode_agent_learning_data_view_protobuf_v0(&wrong.encode_to_vec()).is_err());
+        wrong = original.clone();
+        wrong.envelope_version = 1;
+        assert!(decode_agent_learning_data_view_protobuf_v0(&wrong.encode_to_vec()).is_err());
+        wrong = original.clone();
+        wrong.schema_name = "wrong".into();
+        assert!(decode_agent_learning_data_view_protobuf_v0(&wrong.encode_to_vec()).is_err());
+        wrong = original.clone();
+        wrong.payload_length += 1;
+        assert!(decode_agent_learning_data_view_protobuf_v0(&wrong.encode_to_vec()).is_err());
+        wrong = original.clone();
+        wrong.payload_digest = "0000000000000000".into();
+        assert!(decode_agent_learning_data_view_protobuf_v0(&wrong.encode_to_vec()).is_err());
+        wrong = original.clone();
+        wrong.semantic_digest = "0000000000000000".into();
+        assert!(decode_agent_learning_data_view_protobuf_v0(&wrong.encode_to_vec()).is_err());
+        wrong = original.clone();
+        wrong.source_artifact_digests = vec!["invalid".into()];
+        assert!(decode_agent_learning_data_view_protobuf_v0(&wrong.encode_to_vec()).is_err());
+        wrong = original.clone();
+        let mut wrong_agent =
+            AgentLearningDataViewProtobufV0::decode(wrong.payload.as_slice()).unwrap();
+        wrong_agent.agent_id = "chair".into();
+        wrong.payload = wrong_agent.encode_to_vec();
+        wrong.payload_length = wrong.payload.len() as u64;
+        wrong.payload_digest = canonical_hash_hex(&wrong.payload);
+        assert!(decode_agent_learning_data_view_protobuf_v0(&wrong.encode_to_vec()).is_err());
+        wrong = original;
+        wrong.payload = vec![0xff];
+        wrong.payload_length = 1;
+        wrong.payload_digest = canonical_hash_hex(&wrong.payload);
+        assert!(decode_agent_learning_data_view_protobuf_v0(&wrong.encode_to_vec()).is_err());
+    }
+
+    #[test]
+    fn learning_view_atomic_storage_and_json_sidecar_reopen_verified() {
+        let (_, views) = ready_learning_views();
+        let view = &views[0];
+        let output_dir = Path::new(LEARNING_DATA_NAMESPACE_V0)
+            .join(format!("acquisition-test-{}", std::process::id()));
+        if output_dir.is_dir() {
+            fs::remove_dir_all(&output_dir).unwrap();
+        }
+        let path = write_and_verify_agent_learning_data_view_v0(view, &output_dir).unwrap();
+        assert_eq!(
+            read_and_verify_agent_learning_data_view_v0(&path).unwrap(),
+            *view
+        );
+
+        let legacy = output_dir.join("legacy-agent-view.json");
+        let original = serde_json::to_vec(view).unwrap();
+        fs::write(&legacy, &original).unwrap();
+        let sidecar = migrate_legacy_learning_view_json_v0(&legacy).unwrap();
+        assert_eq!(fs::read(&legacy).unwrap(), original);
+        assert_eq!(
+            read_and_verify_agent_learning_data_view_v0(&sidecar).unwrap(),
+            *view
+        );
+        fs::remove_dir_all(&output_dir).unwrap();
+    }
+
+    #[test]
+    fn learning_network_pilot_is_deferred_and_isolated_with_zero_authority() {
+        let protected_paths = [
+            "config/local/prospective_shadow_challenge_v0.json",
+            "config/local/cycle_risk_prospective_local_state_v0.json",
+            "config/local/prospective_external_row_admission_registration_v0.json",
+            "config/local/prospective_external_row_capsule_v0.json",
+            "config/local/prospective_public_export_acquisition_registration_v0.json",
+            "config/local/prospective_public_export_acquisition_receipt_v0.json",
+            "config/local/prospective_network_export_capsule_v0.json",
+            "config/local/prospective_one_time_opening_registration_v0.json",
+        ];
+        let before = protected_paths
+            .iter()
+            .map(fs::read)
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+        let plan = plan_learning_network_pilot_v0(&LearningNetworkPilotInputV0 {
+            explicit_network_consent: false,
+            non_overlapping_request_proven: false,
+            provider_approved_read_only: false,
+            credential_scope_approved: false,
+            bounded_response: true,
+        });
+        assert_eq!(
+            plan.status,
+            LearningNetworkPilotStatusV0::DeferredToProtectProspectiveEvaluation
+        );
+        assert!(safe_learning_data_path_v0(Path::new(
+            &plan.storage_namespace
+        )));
+        assert!(!plan.storage_namespace.contains("prospective"));
+        assert_eq!(
+            (
+                plan.maximum_requests,
+                plan.maximum_concurrency,
+                plan.maximum_retries
+            ),
+            (1, 1, 0)
+        );
+        assert_eq!(plan.safety_counters.active_committee_count, 3);
+        assert_eq!(plan.safety_counters.network_requests, 0);
+        assert_eq!(plan.safety_counters.credential_reads, 0);
+        assert_eq!(plan.safety_counters.prospective_artifact_mutations, 0);
+        assert_eq!(plan.safety_counters.prospective_label_reads, 0);
+        assert_eq!(plan.safety_counters.chair_decisions, 0);
+        assert_eq!(plan.safety_counters.votes, 0);
+        assert_eq!(plan.safety_counters.rewards, 0);
+        assert_eq!(plan.safety_counters.penalties, 0);
+        assert_eq!(plan.safety_counters.voice_changes, 0);
+        assert_eq!(plan.safety_counters.executions, 0);
+        let after = protected_paths
+            .iter()
+            .map(fs::read)
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+        assert_eq!(before, after);
+    }
+
+    #[test]
+    fn learning_internet_manifest_binds_raw_normalized_and_cutoff_identity() {
+        let manifest =
+            seal_learning_data_provenance_manifest_v0(LearningDataProvenanceManifestV0 {
+                source_provider_id: "mock-readonly".into(),
+                source_type: "local-fixture".into(),
+                acquisition_request_identity: stable_hash_string("request"),
+                fetch_timestamp_ms: 100,
+                publication_event_timestamp_ms: Some(90),
+                raw_content_digest: stable_hash_string("raw"),
+                parser_version: "parser-v0".into(),
+                normalized_artifact_digest: stable_hash_string("normalized"),
+                sanitized: true,
+                credential_free: true,
+                information_cutoff_ms: 100,
+                usage_classification: LearningDataUsageClassificationV0::ResearchOnlyUnconsumed,
+                manifest_digest: String::new(),
+            })
+            .unwrap();
+        assert!(valid_learning_digest_v0(&manifest.manifest_digest));
+        let mut leaked = manifest;
+        leaked.publication_event_timestamp_ms = Some(101);
+        assert!(seal_learning_data_provenance_manifest_v0(leaked).is_err());
     }
 
     #[test]

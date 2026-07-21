@@ -21,3 +21,29 @@ rename, and final reopen/decode/verify. Legacy `.json` is read only for an
 explicit migration: validate its shape, recompute semantic digest and ID, write
 a Protobuf sidecar, and leave the legacy file unchanged. New real snapshots are
 never written as JSON.
+
+## Learning-data envelope
+
+Agent learning views use the same storage principles in a separate
+`state/learning_data` namespace. Their manually derived envelope contains a
+fixed magic value, major version, schema name, artifact kind, semantic digest,
+payload length, payload digest, payload, and the referenced source artifact
+digests. The payload has stable field numbers for view identity, agent identity,
+source references, visible dataset kinds, cutoff, policy digests, private
+namespace, training ledger, counts, missing evidence, decision gate, and view
+digest. Removed field numbers must be reserved and never reused.
+
+The decoder rejects wrong magic, unsupported major version, wrong schema or
+kind, malformed payload, length or payload-digest mismatch, semantic-digest
+mismatch, invalid source identity, invalid active-agent identity, unsorted
+semantic collections, and inconsistent abstention state. The semantic digest is
+recalculated from decoded meaning; it does not include Protobuf field ordering,
+unknown fields, local paths, timestamps from the filesystem, compression, JSON
+bytes, or terminal formatting.
+
+Learning-view writes explicitly `flush`, `sync_all`, reopen and decode the
+temporary file, atomically rename it, then reopen and decode the final file.
+Explicit legacy learning-view migration writes a verified `.pb` sidecar beside
+the JSON source and compares the original bytes after migration. Runtime raw
+blobs remain separate from Protobuf provenance and normalized/view references;
+large arbitrary internet content is not embedded as semantic message text.
