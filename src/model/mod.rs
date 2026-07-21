@@ -1,3 +1,4 @@
+pub mod agent_learning_session;
 pub mod backend;
 pub mod calibration;
 pub mod comparison;
@@ -28,6 +29,26 @@ pub mod sequence_spec;
 pub mod threshold;
 pub mod tiny_tensor;
 
+pub use agent_learning_session::{
+    AgentLearningSessionJournalEntryV0, AgentLearningSessionJournalV0,
+    AgentLearningSessionStatusV0, AgentPrivateDatasetManifestV0, AgentPrivateLearningArtifactV0,
+    AgentPrivateLearningPublicSummaryV0, AgentPrivateLearningRunModeV0,
+    AgentPrivateLearningSessionInputV0, AgentPrivateLearningSessionResultV0,
+    AgentPrivateLearningSessionV0, AgentPrivateLearningSessionsReportV0,
+    AgentPrivateLearningStorageReportV0, AgentSandboxLearningCandidateV0,
+    AgentTrainerCapabilityRegistryV0, AgentTrainerCapabilityV0, AgentTrainerInputProjectionV0,
+    AgentTrainerKindV0, AgentViewResolutionStatusV0, agent_trainer_capability_registry_v0,
+    build_agent_private_learning_input_from_persisted_view_v0,
+    build_agent_private_learning_inputs_v0, decode_candidate_protobuf_v0,
+    decode_capability_registry_protobuf_v0, decode_dataset_manifest_protobuf_v0,
+    decode_journal_protobuf_v0, decode_session_protobuf_v0, decode_trainer_projection_protobuf_v0,
+    default_private_learning_root_v0, encode_candidate_protobuf_v0,
+    encode_capability_registry_protobuf_v0, encode_dataset_manifest_protobuf_v0,
+    encode_journal_protobuf_v0, encode_session_protobuf_v0, encode_trainer_projection_protobuf_v0,
+    load_local_learning_snapshots_v0, persist_agent_private_learning_report_v0,
+    public_session_summaries_v0, run_agent_private_learning_sessions_v0,
+    validate_dataset_manifest_v0,
+};
 pub use backend::{
     BackendCapabilities, BackendDeviceInfo, BackendError, BackendFallbackPolicy, BackendOperation,
     BackendOperationSet, BackendPreference, BackendReadiness, BackendReasonCode, BackendSelection,

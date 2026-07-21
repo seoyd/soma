@@ -77,3 +77,24 @@ training, reward, Chair-decision, vote, voice-change, or execution path ran.
 
 The sealed prospective evaluation lane remains byte-frozen. Learning artifacts
 cannot be written into its storage or substituted for its evidence.
+
+## Agent-private session handoff
+
+The neutral plane stops at a validated `AgentLearningDataViewV0`. The offline
+agent-private session layer consumes that immutable view through a narrow
+adapter and re-verifies the complete source-digest set, dataset authorization,
+ownership, cutoff, chronology, duplicates, finite values, quality, provenance,
+and semantic digest. The broker never chooses a feature, label, normalizer,
+trainer result, or candidate.
+
+Private chronological materialization and trainer state are isolated by agent.
+Momentum and Cycle/Risk call their existing independent shadow trainers;
+Value/Quality reports an unavailable trainer rather than borrowing another
+agent's learning policy. Candidate envelopes remain retrospective `ShadowOnly`
+metadata and have no route into active committee, promotion, reward, Chair,
+vote, risk-governor, broker, or execution state.
+
+The session, private dataset manifest, candidate, journal, and trainer registry
+are stored as manually defined Protobuf artifacts in the ignored learning-data
+namespace. Atomic write/reopen verification is independent of the semantic
+identity. The CLI exposes only safe status fields and zero authority counters.
