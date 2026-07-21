@@ -4964,6 +4964,7 @@ mod tests {
             content_digest,
             sanitized: true,
             read_only: true,
+            compatibility: None,
             normalized_dataset: dataset,
             provenance: SnapshotProvenance {
                 provider_id: "local-replay".to_string(),

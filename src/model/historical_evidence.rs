@@ -5133,6 +5133,7 @@ mod tests {
             content_digest: historical_replay_dataset_digest_v0(&dataset),
             sanitized: true,
             read_only: true,
+            compatibility: None,
             normalized_dataset: dataset,
             provenance: SnapshotProvenance {
                 provider_id: "provider".to_string(),
@@ -5186,6 +5187,7 @@ mod tests {
             provider_id: String::new(),
             fetched_at_ms: 10,
             content_type: "application/x-soma-normalized-dataset".to_string(),
+            all_rows_finalized: true,
             reported_content_bytes: serde_json::to_string(&sample.normalized_dataset)
                 .unwrap()
                 .len(),

@@ -141,6 +141,24 @@ struct SnapshotPayloadProtobufV1 {
     provenance: Option<ProvenanceProtobufV1>,
     #[prost(string, repeated, tag = "20")]
     reason_codes: Vec<String>,
+    #[prost(message, optional, tag = "21")]
+    compatibility: Option<SnapshotCompatibilityProtobufV1>,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct SnapshotCompatibilityProtobufV1 {
+    #[prost(string, tag = "1")]
+    cadence: String,
+    #[prost(uint32, tag = "2")]
+    adjustment_semantics: u32,
+    #[prost(string, tag = "3")]
+    source_schema: String,
+    #[prost(uint64, optional, tag = "4")]
+    requested_cutoff_timestamp_ms: Option<u64>,
+    #[prost(uint64, tag = "5")]
+    maximum_staleness_ms: u64,
+    #[prost(bool, tag = "6")]
+    all_rows_finalized: bool,
 }
 
 #[derive(Clone, PartialEq, Message)]
@@ -1302,6 +1320,7 @@ impl ReadOnlyMarketDataProvider for UpbitDailyOhlcvProviderV0 {
             provider_id: UPBIT_PROVIDER_ID.to_string(),
             fetched_at_ms: current_time_ms(),
             content_type: "application/x-soma-normalized-dataset".to_string(),
+            all_rows_finalized: true,
             reported_content_bytes: body.len(),
             normalized_dataset: dataset,
             reason_codes: vec![],
@@ -4307,6 +4326,9 @@ fn merged_snapshot_v0(
         start_timestamp_ms: Some(config.start_timestamp_ms),
         end_timestamp_ms: Some(config.end_timestamp_ms),
     };
+    if let Some(compatibility) = &mut snapshot.compatibility {
+        compatibility.requested_cutoff_timestamp_ms = Some(config.end_timestamp_ms);
+    }
     snapshot.actual_start_timestamp_ms = dataset.rows.first().map(|row| row.timestamp_ms);
     snapshot.actual_end_timestamp_ms = dataset.rows.last().map(|row| row.timestamp_ms);
     snapshot.fetched_at_ms = current_time_ms();
@@ -4671,6 +4693,18 @@ impl SnapshotPayloadProtobufV1 {
                 reason_codes: wire_reason_codes(&snapshot.provenance.reason_codes)?,
             }),
             reason_codes: wire_reason_codes(&snapshot.reason_codes)?,
+            compatibility: snapshot.compatibility.as_ref().map(|compatibility| {
+                SnapshotCompatibilityProtobufV1 {
+                    cadence: compatibility.cadence.clone(),
+                    adjustment_semantics: adjustment_semantics_tag(
+                        compatibility.adjustment_semantics,
+                    ),
+                    source_schema: compatibility.source_schema.clone(),
+                    requested_cutoff_timestamp_ms: compatibility.requested_cutoff_timestamp_ms,
+                    maximum_staleness_ms: compatibility.maximum_staleness_ms,
+                    all_rows_finalized: compatibility.all_rows_finalized,
+                }
+            }),
         })
     }
 
@@ -4716,6 +4750,21 @@ impl SnapshotPayloadProtobufV1 {
             content_digest: self.content_digest,
             sanitized: self.sanitized,
             read_only: self.read_only,
+            compatibility: self
+                .compatibility
+                .map(|compatibility| -> Result<_, String> {
+                    Ok(crate::data::SnapshotCompatibilityV1 {
+                        cadence: compatibility.cadence,
+                        adjustment_semantics: adjustment_semantics_from_tag(
+                            compatibility.adjustment_semantics,
+                        )?,
+                        source_schema: compatibility.source_schema,
+                        requested_cutoff_timestamp_ms: compatibility.requested_cutoff_timestamp_ms,
+                        maximum_staleness_ms: compatibility.maximum_staleness_ms,
+                        all_rows_finalized: compatibility.all_rows_finalized,
+                    })
+                })
+                .transpose()?,
             normalized_dataset: HistoricalReplayDataset {
                 symbol: dataset.symbol,
                 rows: dataset
@@ -4746,6 +4795,25 @@ impl SnapshotPayloadProtobufV1 {
             },
             reason_codes: parse_wire_reason_codes(&self.reason_codes)?,
         })
+    }
+}
+
+fn adjustment_semantics_tag(value: crate::data::SnapshotAdjustmentSemanticsV1) -> u32 {
+    match value {
+        crate::data::SnapshotAdjustmentSemanticsV1::Unadjusted => 1,
+        crate::data::SnapshotAdjustmentSemanticsV1::Adjusted => 2,
+        crate::data::SnapshotAdjustmentSemanticsV1::NotApplicable => 3,
+    }
+}
+
+fn adjustment_semantics_from_tag(
+    value: u32,
+) -> Result<crate::data::SnapshotAdjustmentSemanticsV1, String> {
+    match value {
+        1 => Ok(crate::data::SnapshotAdjustmentSemanticsV1::Unadjusted),
+        2 => Ok(crate::data::SnapshotAdjustmentSemanticsV1::Adjusted),
+        3 => Ok(crate::data::SnapshotAdjustmentSemanticsV1::NotApplicable),
+        _ => Err("protobuf snapshot adjustment semantics rejected".to_string()),
     }
 }
 
@@ -5118,6 +5186,7 @@ mod tests {
             content_digest: digest,
             sanitized: true,
             read_only: true,
+            compatibility: None,
             normalized_dataset: dataset,
             provenance: SnapshotProvenance {
                 provider_id: UPBIT_PROVIDER_ID.to_string(),
@@ -5378,7 +5447,15 @@ mod tests {
             "KRW-BTC",
         )
         .unwrap();
-        let snapshot = local_snapshot(dataset, "unused");
+        let mut snapshot = local_snapshot(dataset, "unused");
+        snapshot.compatibility = Some(crate::data::SnapshotCompatibilityV1 {
+            cadence: "1d".to_string(),
+            adjustment_semantics: crate::data::SnapshotAdjustmentSemanticsV1::Unadjusted,
+            source_schema: "application/x-soma-normalized-dataset".to_string(),
+            requested_cutoff_timestamp_ms: Some(1_704_240_000_000),
+            maximum_staleness_ms: 86_400_000,
+            all_rows_finalized: true,
+        });
         let protobuf = SnapshotCodec::protobuf_v1().encode(&snapshot).unwrap();
         let json = SnapshotCodec::json_legacy_v0().encode(&snapshot).unwrap();
         assert_ne!(protobuf, json);
