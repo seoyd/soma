@@ -68,6 +68,10 @@ pub struct CliArgs {
     #[arg(long, default_value_t = false)]
     pub agent_private_learning_sessions: bool,
     #[arg(long, default_value_t = false)]
+    pub agent_candidate_evidence_audit: bool,
+    #[arg(long, default_value_t = false)]
+    pub register_agent_candidate_evaluation: bool,
+    #[arg(long, default_value_t = false)]
     pub status: bool,
     #[arg(long, default_value_t = false)]
     pub dry_run: bool,
@@ -105,6 +109,19 @@ pub struct CliArgs {
 
 pub fn run() -> Result<(), String> {
     let args = CliArgs::parse();
+    if args.agent_candidate_evidence_audit && args.register_agent_candidate_evaluation {
+        return Err("select exactly one candidate audit or registration command".to_string());
+    }
+    if args.agent_candidate_evidence_audit || args.register_agent_candidate_evaluation {
+        return run_agent_candidate_evaluation_cli_v0(
+            &args.output_format,
+            args.status,
+            args.dry_run,
+            args.execute_local,
+            args.allow_network,
+            args.register_agent_candidate_evaluation,
+        );
+    }
     if args.agent_private_learning_sessions {
         return run_agent_private_learning_sessions_cli_v0(
             &args.output_format,
@@ -115,7 +132,9 @@ pub fn run() -> Result<(), String> {
         );
     }
     if args.execute_local {
-        return Err("--execute-local requires --agent-private-learning-sessions".to_string());
+        return Err(
+            "--execute-local requires an offline learning audit or session command".to_string(),
+        );
     }
     if (args.status || args.confirm_one_time_outcome_request)
         && !args.prospective_outcome_acquisition
@@ -343,6 +362,101 @@ pub fn run() -> Result<(), String> {
         println!("paper_order: {}", order.order_id);
     } else {
         println!("paper_order: none");
+    }
+    Ok(())
+}
+
+fn run_agent_candidate_evaluation_cli_v0(
+    output_format: &str,
+    status: bool,
+    dry_run: bool,
+    execute_local: bool,
+    allow_network: bool,
+    registration_requested: bool,
+) -> Result<(), String> {
+    if usize::from(status) + usize::from(dry_run) + usize::from(execute_local) != 1 {
+        return Err(
+            "select exactly one candidate audit mode: --status, --dry-run, or --execute-local"
+                .to_string(),
+        );
+    }
+    if allow_network {
+        return Err("candidate evidence audit and registration are offline-only".to_string());
+    }
+    let mode = if status {
+        crate::model::AgentPrivateLearningRunModeV0::Status
+    } else if dry_run {
+        crate::model::AgentPrivateLearningRunModeV0::DryRun
+    } else {
+        crate::model::AgentPrivateLearningRunModeV0::ExecuteLocal
+    };
+    let report = crate::model::run_agent_candidate_evaluation_v0(
+        crate::model::default_private_learning_root_v0(),
+        mode,
+        registration_requested,
+        None,
+    );
+    let summaries = crate::model::public_candidate_evaluation_summaries_v0(&report);
+    if output_format == "json" {
+        println!(
+            "{}",
+            serde_json::json!({
+                "mode": format!("{:?}", report.mode),
+                "registration_requested": report.registration_requested,
+                "candidates": summaries,
+                "active_state_unchanged": report.active_state_unchanged,
+                "duplicate_artifact_count": report.duplicate_artifact_count,
+                "storage_failure_count": report.storage_failure_count,
+                "safety_counters": report.safety_counters,
+                "report_digest": report.report_digest,
+            })
+        );
+    } else {
+        println!("mode={:?}", report.mode);
+        println!("registration_requested={registration_requested}");
+        for summary in summaries {
+            println!(
+                "agent={};candidate_digest={};session_digest={};view_digest={};projection_digest={};historical_test_status={:?};evidence_usage_ledger_digest={};identity_audit_digest={};evaluation_cutoff_exclusive_ms={};registration_status={:?};comparator_count={}",
+                summary.agent_id,
+                summary.candidate_digest.unwrap_or_default(),
+                summary.session_digest.unwrap_or_default(),
+                summary.view_digest.unwrap_or_default(),
+                summary.projection_digest.unwrap_or_default(),
+                summary.historical_test_status,
+                summary.evidence_usage_ledger_digest.unwrap_or_default(),
+                summary.identity_audit_digest.unwrap_or_default(),
+                summary.evaluation_cutoff_exclusive_ms.unwrap_or_default(),
+                summary.registration_status,
+                summary.comparator_count,
+            );
+        }
+        println!(
+            "network_requests={}",
+            report.safety_counters.network_requests
+        );
+        println!(
+            "prospective_row_reads={}",
+            report.safety_counters.prospective_row_reads
+        );
+        println!(
+            "prospective_label_reads={}",
+            report.safety_counters.prospective_label_reads
+        );
+        println!(
+            "active_model_changes={}",
+            report.safety_counters.active_model_changes
+        );
+        println!("chair_decisions={}", report.safety_counters.chair_decisions);
+        println!("votes={}", report.safety_counters.votes);
+        println!("rewards={}", report.safety_counters.rewards);
+        println!("promotions={}", report.safety_counters.promotions);
+        println!("executions={}", report.safety_counters.executions);
+        println!("duplicate_artifacts={}", report.duplicate_artifact_count);
+        println!("storage_failures={}", report.storage_failure_count);
+        println!("report_digest={}", report.report_digest);
+    }
+    if report.storage_failure_count > 0 {
+        return Err("one or more candidate audit artifacts failed verification".to_string());
     }
     Ok(())
 }
