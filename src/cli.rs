@@ -5561,10 +5561,10 @@ mod tests {
             opening_registration_digest: "registration".into(),
             momentum_event_digest: "momentum".into(),
             risk_event_digest: "risk".into(),
-            required_timestamps: vec![1],
-            required_row_count: 1,
+            required_timestamps: vec![1, 2, 3, 4],
+            required_row_count: 4,
             request_to_utc: "2026-07-22T00:00:00Z".into(),
-            request_count: 1,
+            request_count: 4,
             provider_id: "upbit".into(),
             market: "KRW-BTC".into(),
             cadence: "1d".into(),
@@ -5611,9 +5611,61 @@ mod tests {
         assert_eq!(replay.http_status_class.as_deref(), Some("2xx"));
         assert_eq!(replay.returned_row_count, 4);
         assert_eq!(replay.verified_row_count, 4);
+        assert_eq!(plan.request_count, 4);
+        let row = crate::model::CanonicalHistoricalRowIdentityV1 {
+            provider_id: "upbit".into(),
+            series_id: "BtcCrypto:KRW-BTC".into(),
+            timestamp_ms: 1,
+            open_bits: 1.0_f64.to_bits(),
+            high_bits: 1.0_f64.to_bits(),
+            low_bits: 1.0_f64.to_bits(),
+            close_bits: 1.0_f64.to_bits(),
+            volume_bits: 0.0_f64.to_bits(),
+            trade_value_bits: Some(0.0_f64.to_bits()),
+            row_digest_v1: "row".into(),
+        };
+        let capsule = crate::data::ProspectiveOutcomeEvidenceCapsuleV0 {
+            capsule_version: "prospective-outcome-evidence-capsule-v0".into(),
+            opening_registration_digest: "registration".into(),
+            acquisition_receipt_digest: "receipt".into(),
+            provider_id: "upbit".into(),
+            market: "KRW-BTC".into(),
+            cadence: "1d".into(),
+            canonical_rows: vec![row; 4],
+            canonical_row_digests: vec!["row".into(); 4],
+            first_timestamp: 1,
+            last_timestamp: 4,
+            complete_registered_range: true,
+            finalized: true,
+            read_only: true,
+            sanitized: true,
+            credential_free: true,
+            labels_opened: false,
+            capsule_digest: "capsule".into(),
+        };
+        assert!(prospective_outcome_stored_result_chain_valid_v0(
+            Some(&receipt),
+            Some(&capsule)
+        ));
         assert!(!prospective_outcome_stored_result_chain_valid_v0(
             Some(&receipt),
             None
+        ));
+        assert!(!prospective_outcome_stored_result_chain_valid_v0(
+            None,
+            Some(&capsule)
+        ));
+        let mut mismatched_capsule_digest = capsule.clone();
+        mismatched_capsule_digest.capsule_digest = "other-capsule".into();
+        assert!(!prospective_outcome_stored_result_chain_valid_v0(
+            Some(&receipt),
+            Some(&mismatched_capsule_digest)
+        ));
+        let mut mismatched_capsule = capsule;
+        mismatched_capsule.acquisition_receipt_digest = "other-receipt".into();
+        assert!(!prospective_outcome_stored_result_chain_valid_v0(
+            Some(&receipt),
+            Some(&mismatched_capsule)
         ));
         let mut failed_receipt = receipt;
         failed_receipt.status = crate::data::ProspectiveOutcomeAcquisitionStatusV0::TimeoutNoRetry;
