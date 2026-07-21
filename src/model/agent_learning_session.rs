@@ -45,6 +45,10 @@ const CANDIDATE_VERSION_V0: &str = "agent-sandbox-learning-candidate-v0";
 const JOURNAL_VERSION_V0: &str = "agent-private-learning-journal-v0";
 const REGISTRY_VERSION_V0: &str = "agent-trainer-capability-registry-v0";
 const PROJECTION_VERSION_V0: &str = "agent-trainer-input-projection-v0";
+const EVIDENCE_LEDGER_VERSION_V0: &str = "candidate-evidence-usage-ledger-v0";
+const IDENTITY_AUDIT_VERSION_V0: &str = "agent-candidate-identity-audit-v0";
+const EVALUATION_REGISTRATION_VERSION_V0: &str = "agent-candidate-evaluation-registration-v0";
+const EVALUATION_JOURNAL_VERSION_V0: &str = "agent-candidate-evaluation-journal-v0";
 const ARTIFACT_MAGIC_V0: &[u8] = b"SOMA-AGENT-PRIVATE-LEARNING-PB-V0";
 const ARTIFACT_SCHEMA_V0: &str = "soma.agent_private_learning.v0";
 const DEFAULT_PRIVATE_LEARNING_ROOT_V0: &str = "state/learning_data";
@@ -140,6 +144,189 @@ pub struct AgentTrainerInputProjectionV0 {
     pub auxiliary_series_digests: Vec<String>,
     pub projection_policy_digest: String,
     pub projection_digest: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CandidateEvidenceUseV0 {
+    IntentBinding,
+    ViewBinding,
+    TrainerProjection,
+    FeatureDerivation,
+    LabelDerivation,
+    NormalizerFit,
+    ParameterTraining,
+    ValidationInference,
+    ValidationMetric,
+    CheckpointSelection,
+    HistoricalTestInference,
+    HistoricalTestMetric,
+    CandidateIdentity,
+    ReportOnly,
+    Unused,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CandidateEvidenceUsageEntryV0 {
+    pub artifact_digest: String,
+    pub range: Option<IndexRangeV0>,
+    pub use_kind: CandidateEvidenceUseV0,
+    pub labels_read: bool,
+    pub parameters_updated: bool,
+    pub checkpoint_selection_influenced: bool,
+    pub candidate_identity_influenced: bool,
+    pub entry_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CandidateEvidenceUsageLedgerV0 {
+    pub ledger_version: String,
+    pub agent_id: String,
+    pub candidate_digest: String,
+    pub session_digest: String,
+    pub entries: Vec<CandidateEvidenceUsageEntryV0>,
+    pub ledger_digest: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CandidateHistoricalTestStatusV0 {
+    FreshAndSealed,
+    ReadForInferenceOnly,
+    MetricsAlreadyComputed,
+    InfluencedCandidateSelection,
+    InfluencedCandidateIdentity,
+    FullyConsumedRetrospectively,
+    LineageAmbiguous,
+    NoCandidate,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AgentCandidateIdentityAuditV0 {
+    pub audit_version: String,
+    pub candidate_digest: String,
+    pub model_identity_inputs: Vec<String>,
+    pub metric_identity_inputs: Vec<String>,
+    pub test_evidence_in_identity: bool,
+    pub historical_test_status: CandidateHistoricalTestStatusV0,
+    pub eligible_for_fresh_historical_test: bool,
+    pub eligible_for_future_evaluation_registration: bool,
+    pub superseded_by_input_binding_hardening: bool,
+    pub audit_digest: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CandidateEvaluationRegistrationStatusV0 {
+    Registered,
+    CandidateUnavailable,
+    CandidateIntegrityInvalid,
+    LineageAmbiguousBlocked,
+    ComparatorUnavailable,
+    PolicyInvalid,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AgentCandidateEvaluationRegistrationV0 {
+    pub registration_version: String,
+    pub agent_id: String,
+    pub candidate_digest: String,
+    pub session_digest: String,
+    pub evidence_usage_ledger_digest: String,
+    pub identity_audit_digest: String,
+    pub evaluation_cutoff_exclusive_ms: u64,
+    pub required_dataset_kinds: Vec<DatasetKind>,
+    pub source_policy_digest: String,
+    pub finality_policy_digest: String,
+    pub label_policy_digest: String,
+    pub metric_policy_digest: String,
+    pub support_policy_digest: String,
+    pub comparator_digests: Vec<String>,
+    pub minimum_future_rows: usize,
+    pub minimum_mature_events: usize,
+    pub maximum_requests: usize,
+    pub maximum_concurrency: usize,
+    pub maximum_retries: usize,
+    pub labels_hidden_until_opening: bool,
+    pub probabilities_hidden_until_opening: bool,
+    pub one_time_opening_required: bool,
+    pub active_promotion_forbidden: bool,
+    pub reward_application_forbidden: bool,
+    pub status: CandidateEvaluationRegistrationStatusV0,
+    pub registration_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AgentCandidateEvaluationRegistrationJournalEntryV0 {
+    pub registration_digest: String,
+    pub status: CandidateEvaluationRegistrationStatusV0,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AgentCandidateEvaluationRegistrationJournalV0 {
+    pub journal_version: String,
+    pub agent_id: String,
+    pub candidate_digest: String,
+    pub entries: Vec<AgentCandidateEvaluationRegistrationJournalEntryV0>,
+    pub journal_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CandidateEvaluationSafetyCountersV0 {
+    pub active_committee_count: usize,
+    pub network_requests: usize,
+    pub credential_reads: usize,
+    pub prospective_row_reads: usize,
+    pub prospective_label_reads: usize,
+    pub prospective_mutations: usize,
+    pub active_model_changes: usize,
+    pub chair_decisions: usize,
+    pub votes: usize,
+    pub rewards: usize,
+    pub penalties: usize,
+    pub voice_changes: usize,
+    pub promotions: usize,
+    pub executions: usize,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AgentCandidateEvaluationResultV0 {
+    pub agent_id: String,
+    pub candidate_digest: Option<String>,
+    pub session_digest: Option<String>,
+    pub view_digest: Option<String>,
+    pub trainer_projection: Option<AgentTrainerInputProjectionV0>,
+    pub evidence_usage_ledger: Option<CandidateEvidenceUsageLedgerV0>,
+    pub identity_audit: Option<AgentCandidateIdentityAuditV0>,
+    pub evaluation_registration: Option<AgentCandidateEvaluationRegistrationV0>,
+    pub registration_journal: Option<AgentCandidateEvaluationRegistrationJournalV0>,
+    pub blocked_status: CandidateEvaluationRegistrationStatusV0,
+    pub sanitized_error_code: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AgentCandidateEvaluationReportV0 {
+    pub report_version: String,
+    pub mode: AgentPrivateLearningRunModeV0,
+    pub registration_requested: bool,
+    pub results: Vec<AgentCandidateEvaluationResultV0>,
+    pub safety_counters: CandidateEvaluationSafetyCountersV0,
+    pub active_state_unchanged: bool,
+    pub duplicate_artifact_count: usize,
+    pub storage_failure_count: usize,
+    pub report_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AgentCandidateEvaluationPublicSummaryV0 {
+    pub agent_id: String,
+    pub candidate_digest: Option<String>,
+    pub session_digest: Option<String>,
+    pub view_digest: Option<String>,
+    pub projection_digest: Option<String>,
+    pub historical_test_status: CandidateHistoricalTestStatusV0,
+    pub evidence_usage_ledger_digest: Option<String>,
+    pub identity_audit_digest: Option<String>,
+    pub evaluation_cutoff_exclusive_ms: Option<u64>,
+    pub registration_status: CandidateEvaluationRegistrationStatusV0,
+    pub comparator_count: usize,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -1587,6 +1774,694 @@ pub fn public_session_summaries_v0(
         .collect()
 }
 
+#[derive(Clone, Debug)]
+struct CandidateLineageArtifactsV0 {
+    trainer_kind: AgentTrainerKindV0,
+    session: AgentPrivateLearningSessionV0,
+    dataset_manifest: AgentPrivateDatasetManifestV0,
+    candidate: AgentSandboxLearningCandidateV0,
+    projection: AgentTrainerInputProjectionV0,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum CandidateLineageLoadErrorV0 {
+    CandidateUnavailable,
+    IntegrityInvalid,
+    Ambiguous,
+}
+
+pub fn run_agent_candidate_evaluation_v0(
+    root: &Path,
+    mode: AgentPrivateLearningRunModeV0,
+    registration_requested: bool,
+    protected_prospective_boundary_ms: Option<u64>,
+) -> AgentCandidateEvaluationReportV0 {
+    let before = stable_hash_string(&format!("{:?}", canonical_current_agent_states()));
+    let registry = agent_trainer_capability_registry_v0();
+    let mut results = registry
+        .capabilities
+        .iter()
+        .map(
+            |capability| match load_candidate_lineage_v0(root, capability) {
+                Ok(lineage) => build_candidate_evaluation_result_v0(
+                    &lineage,
+                    registration_requested,
+                    protected_prospective_boundary_ms,
+                ),
+                Err(error) => unavailable_candidate_evaluation_result_v0(
+                    &capability.agent_id,
+                    error,
+                    registration_requested,
+                ),
+            },
+        )
+        .collect::<Vec<_>>();
+    results.sort_by(|left, right| left.agent_id.cmp(&right.agent_id));
+    let after = stable_hash_string(&format!("{:?}", canonical_current_agent_states()));
+    let mut report = AgentCandidateEvaluationReportV0 {
+        report_version: "agent-candidate-evaluation-report-v0".to_string(),
+        mode,
+        registration_requested,
+        results,
+        safety_counters: zero_candidate_evaluation_safety_counters_v0(),
+        active_state_unchanged: before == after,
+        duplicate_artifact_count: 0,
+        storage_failure_count: 0,
+        report_digest: String::new(),
+    };
+    report.report_digest = candidate_evaluation_report_digest_v0(&report);
+    if mode == AgentPrivateLearningRunModeV0::ExecuteLocal {
+        persist_agent_candidate_evaluation_report_v0(&mut report, root);
+    }
+    report
+}
+
+fn load_candidate_lineage_v0(
+    root: &Path,
+    capability: &AgentTrainerCapabilityV0,
+) -> Result<CandidateLineageArtifactsV0, CandidateLineageLoadErrorV0> {
+    if !safe_agent_component_v0(&capability.agent_id) {
+        return Err(CandidateLineageLoadErrorV0::IntegrityInvalid);
+    }
+    let agent_root = root.join(&capability.agent_id);
+    let candidates = read_direct_protobuf_files_v0(&agent_root.join("candidates"))?
+        .into_iter()
+        .map(|(_, bytes)| {
+            decode_candidate_protobuf_v0(&bytes)
+                .map_err(|_| CandidateLineageLoadErrorV0::IntegrityInvalid)
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    if candidates.is_empty() {
+        return Err(CandidateLineageLoadErrorV0::CandidateUnavailable);
+    }
+    if candidates.len() != 1 {
+        return Err(CandidateLineageLoadErrorV0::Ambiguous);
+    }
+    let candidate = candidates.into_iter().next().unwrap();
+    let sessions = read_direct_protobuf_files_v0(&agent_root.join("sessions"))?
+        .into_iter()
+        .filter_map(|(_, bytes)| decode_session_protobuf_v0(&bytes).ok())
+        .filter(|session| session.session_digest == candidate.session_digest)
+        .collect::<Vec<_>>();
+    if sessions.len() != 1 {
+        return Err(if sessions.is_empty() {
+            CandidateLineageLoadErrorV0::IntegrityInvalid
+        } else {
+            CandidateLineageLoadErrorV0::Ambiguous
+        });
+    }
+    let session = sessions.into_iter().next().unwrap();
+    let manifests = read_direct_protobuf_files_v0(&agent_root.join("datasets"))?
+        .into_iter()
+        .filter_map(|(_, bytes)| decode_dataset_manifest_protobuf_v0(&bytes).ok())
+        .filter(|manifest| manifest.session_id == session.session_id)
+        .collect::<Vec<_>>();
+    if manifests.len() != 1 {
+        return Err(if manifests.is_empty() {
+            CandidateLineageLoadErrorV0::IntegrityInvalid
+        } else {
+            CandidateLineageLoadErrorV0::Ambiguous
+        });
+    }
+    let dataset_manifest = manifests.into_iter().next().unwrap();
+    if candidate.agent_id != capability.agent_id
+        || session.agent_id != capability.agent_id
+        || dataset_manifest.agent_id != capability.agent_id
+        || candidate.data_view_digest != session.data_view_digest
+        || dataset_manifest.data_view_digest != session.data_view_digest
+        || dataset_manifest.source_artifact_digests != session.source_artifact_digests
+        || candidate.candidate_digest != candidate_digest_v0(&candidate)
+        || session.session_digest != session_digest_v0(&session)
+        || dataset_manifest.manifest_digest != dataset_manifest_digest_v0(&dataset_manifest)
+        || validate_candidate_v0(&candidate).is_err()
+        || validate_dataset_manifest_v0(&dataset_manifest).is_err()
+    {
+        return Err(CandidateLineageLoadErrorV0::IntegrityInvalid);
+    }
+    let projection = if let Some(expected) = session.trainer_projection_digest.as_ref() {
+        let projections = read_direct_protobuf_files_v0(&agent_root.join("projections"))?
+            .into_iter()
+            .filter_map(|(_, bytes)| decode_trainer_projection_protobuf_v0(&bytes).ok())
+            .filter(|projection| projection.projection_digest == *expected)
+            .collect::<Vec<_>>();
+        if projections.len() != 1 {
+            return Err(CandidateLineageLoadErrorV0::IntegrityInvalid);
+        }
+        projections.into_iter().next().unwrap()
+    } else {
+        reconstruct_preliminary_projection_v0(capability.trainer_kind, &session, &dataset_manifest)?
+    };
+    Ok(CandidateLineageArtifactsV0 {
+        trainer_kind: capability.trainer_kind,
+        session,
+        dataset_manifest,
+        candidate,
+        projection,
+    })
+}
+
+fn read_direct_protobuf_files_v0(
+    directory: &Path,
+) -> Result<Vec<(PathBuf, Vec<u8>)>, CandidateLineageLoadErrorV0> {
+    if !directory.is_dir() {
+        return Ok(vec![]);
+    }
+    let mut paths = fs::read_dir(directory)
+        .map_err(|_| CandidateLineageLoadErrorV0::IntegrityInvalid)?
+        .filter_map(Result::ok)
+        .map(|entry| entry.path())
+        .filter(|path| path.is_file() && path.extension().is_some_and(|value| value == "pb"))
+        .collect::<Vec<_>>();
+    paths.sort();
+    paths
+        .into_iter()
+        .map(|path| {
+            let bytes =
+                fs::read(&path).map_err(|_| CandidateLineageLoadErrorV0::IntegrityInvalid)?;
+            Ok((path, bytes))
+        })
+        .collect()
+}
+
+fn reconstruct_preliminary_projection_v0(
+    trainer_kind: AgentTrainerKindV0,
+    session: &AgentPrivateLearningSessionV0,
+    manifest: &AgentPrivateDatasetManifestV0,
+) -> Result<AgentTrainerInputProjectionV0, CandidateLineageLoadErrorV0> {
+    if manifest.source_artifact_digests.len() != 1
+        || manifest.source_artifact_digests != session.source_artifact_digests
+    {
+        return Err(CandidateLineageLoadErrorV0::Ambiguous);
+    }
+    let primary = manifest.source_artifact_digests[0].clone();
+    let mut projection = AgentTrainerInputProjectionV0 {
+        projection_version: PROJECTION_VERSION_V0.to_string(),
+        agent_id: session.agent_id.clone(),
+        trainer_kind,
+        source_view_digest: session.data_view_digest.clone(),
+        consumed_artifact_digests: vec![primary.clone()],
+        referenced_but_unconsumed_artifact_digests: vec![],
+        primary_series_digest: Some(primary),
+        auxiliary_series_digests: vec![],
+        projection_policy_digest: stable_hash_string(
+            "SOMA-PRELIMINARY-SINGLE-ARTIFACT-EFFECTIVE-PROJECTION-V0",
+        ),
+        projection_digest: String::new(),
+    };
+    projection.projection_digest = projection_digest_v0(&projection);
+    Ok(projection)
+}
+
+fn build_candidate_evaluation_result_v0(
+    lineage: &CandidateLineageArtifactsV0,
+    registration_requested: bool,
+    protected_prospective_boundary_ms: Option<u64>,
+) -> AgentCandidateEvaluationResultV0 {
+    let ledger = candidate_evidence_usage_ledger_v0(lineage);
+    let audit = agent_candidate_identity_audit_v0(lineage, &ledger);
+    let registration = agent_candidate_evaluation_registration_v0(
+        lineage,
+        &ledger,
+        &audit,
+        protected_prospective_boundary_ms,
+    );
+    let journal =
+        registration_requested.then(|| candidate_evaluation_registration_journal_v0(&registration));
+    AgentCandidateEvaluationResultV0 {
+        agent_id: lineage.session.agent_id.clone(),
+        candidate_digest: Some(lineage.candidate.candidate_digest.clone()),
+        session_digest: Some(lineage.session.session_digest.clone()),
+        view_digest: Some(lineage.session.data_view_digest.clone()),
+        trainer_projection: Some(lineage.projection.clone()),
+        evidence_usage_ledger: Some(ledger),
+        identity_audit: Some(audit),
+        evaluation_registration: registration_requested.then_some(registration.clone()),
+        registration_journal: journal,
+        blocked_status: registration.status,
+        sanitized_error_code: (registration.status
+            != CandidateEvaluationRegistrationStatusV0::Registered)
+            .then(|| registration_status_code_v0(registration.status).to_string()),
+    }
+}
+
+fn unavailable_candidate_evaluation_result_v0(
+    agent_id: &str,
+    error: CandidateLineageLoadErrorV0,
+    _registration_requested: bool,
+) -> AgentCandidateEvaluationResultV0 {
+    let (status, code) = match error {
+        CandidateLineageLoadErrorV0::CandidateUnavailable => (
+            CandidateEvaluationRegistrationStatusV0::CandidateUnavailable,
+            "candidate_unavailable",
+        ),
+        CandidateLineageLoadErrorV0::IntegrityInvalid => (
+            CandidateEvaluationRegistrationStatusV0::CandidateIntegrityInvalid,
+            "candidate_integrity_invalid",
+        ),
+        CandidateLineageLoadErrorV0::Ambiguous => (
+            CandidateEvaluationRegistrationStatusV0::LineageAmbiguousBlocked,
+            "candidate_lineage_ambiguous",
+        ),
+    };
+    AgentCandidateEvaluationResultV0 {
+        agent_id: agent_id.to_string(),
+        candidate_digest: None,
+        session_digest: None,
+        view_digest: None,
+        trainer_projection: None,
+        evidence_usage_ledger: None,
+        identity_audit: None,
+        evaluation_registration: None,
+        registration_journal: None,
+        blocked_status: status,
+        sanitized_error_code: Some(code.to_string()),
+    }
+}
+
+fn candidate_evidence_usage_ledger_v0(
+    lineage: &CandidateLineageArtifactsV0,
+) -> CandidateEvidenceUsageLedgerV0 {
+    let manifest = &lineage.dataset_manifest;
+    let test_range = manifest.sealed_test_range.clone().unwrap_or(IndexRangeV0 {
+        start: manifest.row_count,
+        end: manifest.row_count,
+    });
+    let mut entries = Vec::new();
+    for artifact_digest in &manifest.source_artifact_digests {
+        entries.push(evidence_usage_entry_v0(
+            artifact_digest,
+            None,
+            CandidateEvidenceUseV0::IntentBinding,
+            false,
+            false,
+            false,
+            true,
+        ));
+        entries.push(evidence_usage_entry_v0(
+            artifact_digest,
+            None,
+            CandidateEvidenceUseV0::ViewBinding,
+            false,
+            false,
+            false,
+            true,
+        ));
+        if lineage
+            .projection
+            .consumed_artifact_digests
+            .contains(artifact_digest)
+        {
+            entries.push(evidence_usage_entry_v0(
+                artifact_digest,
+                None,
+                CandidateEvidenceUseV0::TrainerProjection,
+                false,
+                false,
+                false,
+                true,
+            ));
+            for (range, use_kind, labels, updates, selection, identity) in [
+                (
+                    manifest.training_range.clone(),
+                    CandidateEvidenceUseV0::FeatureDerivation,
+                    false,
+                    false,
+                    false,
+                    true,
+                ),
+                (
+                    manifest.training_range.clone(),
+                    CandidateEvidenceUseV0::LabelDerivation,
+                    true,
+                    false,
+                    false,
+                    true,
+                ),
+                (
+                    manifest.normalizer_fit_range.clone(),
+                    CandidateEvidenceUseV0::NormalizerFit,
+                    false,
+                    false,
+                    false,
+                    true,
+                ),
+                (
+                    manifest.training_range.clone(),
+                    CandidateEvidenceUseV0::ParameterTraining,
+                    true,
+                    true,
+                    false,
+                    true,
+                ),
+                (
+                    manifest.validation_range.clone(),
+                    CandidateEvidenceUseV0::FeatureDerivation,
+                    false,
+                    false,
+                    false,
+                    true,
+                ),
+                (
+                    manifest.validation_range.clone(),
+                    CandidateEvidenceUseV0::LabelDerivation,
+                    true,
+                    false,
+                    false,
+                    true,
+                ),
+                (
+                    manifest.validation_range.clone(),
+                    CandidateEvidenceUseV0::ValidationInference,
+                    false,
+                    false,
+                    false,
+                    true,
+                ),
+                (
+                    manifest.validation_range.clone(),
+                    CandidateEvidenceUseV0::ValidationMetric,
+                    true,
+                    false,
+                    false,
+                    true,
+                ),
+                (
+                    manifest.validation_range.clone(),
+                    CandidateEvidenceUseV0::CheckpointSelection,
+                    true,
+                    false,
+                    true,
+                    true,
+                ),
+                (
+                    test_range.clone(),
+                    CandidateEvidenceUseV0::FeatureDerivation,
+                    false,
+                    false,
+                    false,
+                    true,
+                ),
+                (
+                    test_range.clone(),
+                    CandidateEvidenceUseV0::LabelDerivation,
+                    true,
+                    false,
+                    false,
+                    true,
+                ),
+                (
+                    test_range.clone(),
+                    CandidateEvidenceUseV0::HistoricalTestInference,
+                    false,
+                    false,
+                    false,
+                    true,
+                ),
+                (
+                    test_range.clone(),
+                    CandidateEvidenceUseV0::HistoricalTestMetric,
+                    true,
+                    false,
+                    false,
+                    true,
+                ),
+                (
+                    test_range.clone(),
+                    CandidateEvidenceUseV0::CandidateIdentity,
+                    true,
+                    false,
+                    false,
+                    true,
+                ),
+            ] {
+                entries.push(evidence_usage_entry_v0(
+                    artifact_digest,
+                    Some(range),
+                    use_kind,
+                    labels,
+                    updates,
+                    selection,
+                    identity,
+                ));
+            }
+        } else {
+            entries.push(evidence_usage_entry_v0(
+                artifact_digest,
+                None,
+                CandidateEvidenceUseV0::Unused,
+                false,
+                false,
+                false,
+                false,
+            ));
+        }
+    }
+    let mut ledger = CandidateEvidenceUsageLedgerV0 {
+        ledger_version: EVIDENCE_LEDGER_VERSION_V0.to_string(),
+        agent_id: lineage.session.agent_id.clone(),
+        candidate_digest: lineage.candidate.candidate_digest.clone(),
+        session_digest: lineage.session.session_digest.clone(),
+        entries,
+        ledger_digest: String::new(),
+    };
+    ledger.ledger_digest = evidence_usage_ledger_digest_v0(&ledger);
+    ledger
+}
+
+fn evidence_usage_entry_v0(
+    artifact_digest: &str,
+    range: Option<IndexRangeV0>,
+    use_kind: CandidateEvidenceUseV0,
+    labels_read: bool,
+    parameters_updated: bool,
+    checkpoint_selection_influenced: bool,
+    candidate_identity_influenced: bool,
+) -> CandidateEvidenceUsageEntryV0 {
+    let mut entry = CandidateEvidenceUsageEntryV0 {
+        artifact_digest: artifact_digest.to_string(),
+        range,
+        use_kind,
+        labels_read,
+        parameters_updated,
+        checkpoint_selection_influenced,
+        candidate_identity_influenced,
+        entry_digest: String::new(),
+    };
+    entry.entry_digest = evidence_usage_entry_digest_v0(&entry);
+    entry
+}
+
+fn agent_candidate_identity_audit_v0(
+    lineage: &CandidateLineageArtifactsV0,
+    ledger: &CandidateEvidenceUsageLedgerV0,
+) -> AgentCandidateIdentityAuditV0 {
+    let mut model_identity_inputs = vec![
+        lineage.session.session_digest.clone(),
+        lineage.session.data_view_digest.clone(),
+        lineage.projection.projection_digest.clone(),
+        lineage.candidate.model_artifact_digest.clone(),
+        lineage.candidate.normalizer_digest.clone(),
+        lineage.candidate.training_policy_digest.clone(),
+        lineage.candidate.feature_policy_digest.clone(),
+        lineage.candidate.label_policy_digest.clone(),
+    ];
+    model_identity_inputs.extend(lineage.session.source_artifact_digests.clone());
+    model_identity_inputs.sort();
+    model_identity_inputs.dedup();
+    let metric_identity_inputs = (!lineage.candidate.private_metrics_digest.is_empty())
+        .then(|| vec![lineage.candidate.private_metrics_digest.clone()])
+        .unwrap_or_default();
+    let test_metric_recorded = ledger.entries.iter().any(|entry| {
+        entry.use_kind == CandidateEvidenceUseV0::HistoricalTestMetric && entry.labels_read
+    });
+    let test_identity_recorded = ledger.entries.iter().any(|entry| {
+        entry.use_kind == CandidateEvidenceUseV0::CandidateIdentity
+            && entry.candidate_identity_influenced
+    });
+    let historical_test_status = if lineage.dataset_manifest.sealed_test_range.is_none() {
+        CandidateHistoricalTestStatusV0::LineageAmbiguous
+    } else if test_identity_recorded && !metric_identity_inputs.is_empty() {
+        CandidateHistoricalTestStatusV0::InfluencedCandidateIdentity
+    } else if test_metric_recorded {
+        CandidateHistoricalTestStatusV0::MetricsAlreadyComputed
+    } else if ledger
+        .entries
+        .iter()
+        .any(|entry| entry.use_kind == CandidateEvidenceUseV0::HistoricalTestInference)
+    {
+        CandidateHistoricalTestStatusV0::ReadForInferenceOnly
+    } else {
+        CandidateHistoricalTestStatusV0::FreshAndSealed
+    };
+    let full_hardened_policy_binding = lineage.session.session_version == SESSION_VERSION_V1
+        && !lineage.session.source_policy_digest.is_empty()
+        && !lineage.session.required_dataset_kinds.is_empty()
+        && lineage.session.trainer_projection_digest.as_deref()
+            == Some(lineage.projection.projection_digest.as_str());
+    let mut audit = AgentCandidateIdentityAuditV0 {
+        audit_version: IDENTITY_AUDIT_VERSION_V0.to_string(),
+        candidate_digest: lineage.candidate.candidate_digest.clone(),
+        model_identity_inputs,
+        metric_identity_inputs,
+        test_evidence_in_identity: test_identity_recorded,
+        historical_test_status,
+        eligible_for_fresh_historical_test: historical_test_status
+            == CandidateHistoricalTestStatusV0::FreshAndSealed,
+        eligible_for_future_evaluation_registration: historical_test_status
+            != CandidateHistoricalTestStatusV0::LineageAmbiguous
+            && full_hardened_policy_binding,
+        superseded_by_input_binding_hardening: !full_hardened_policy_binding,
+        audit_digest: String::new(),
+    };
+    audit.audit_digest = identity_audit_digest_v0(&audit);
+    audit
+}
+
+fn agent_candidate_evaluation_registration_v0(
+    lineage: &CandidateLineageArtifactsV0,
+    ledger: &CandidateEvidenceUsageLedgerV0,
+    audit: &AgentCandidateIdentityAuditV0,
+    protected_prospective_boundary_ms: Option<u64>,
+) -> AgentCandidateEvaluationRegistrationV0 {
+    let comparators = lineage
+        .candidate
+        .parent_model_version
+        .as_ref()
+        .map(|parent| {
+            vec![stable_hash_string(&format!(
+                "SOMA-FROZEN-PARENT-COMPARATOR-V0:{parent}"
+            ))]
+        })
+        .unwrap_or_default();
+    let policy_valid = audit.eligible_for_future_evaluation_registration
+        && !lineage.session.source_policy_digest.is_empty()
+        && !lineage.session.required_dataset_kinds.is_empty()
+        && !lineage.session.label_policy_digest.is_empty();
+    let status = if validate_candidate_v0(&lineage.candidate).is_err() {
+        CandidateEvaluationRegistrationStatusV0::CandidateIntegrityInvalid
+    } else if audit.historical_test_status == CandidateHistoricalTestStatusV0::LineageAmbiguous {
+        CandidateEvaluationRegistrationStatusV0::LineageAmbiguousBlocked
+    } else if !policy_valid {
+        CandidateEvaluationRegistrationStatusV0::PolicyInvalid
+    } else if comparators.is_empty() {
+        CandidateEvaluationRegistrationStatusV0::ComparatorUnavailable
+    } else {
+        CandidateEvaluationRegistrationStatusV0::Registered
+    };
+    let evaluation_cutoff_exclusive_ms = protected_prospective_boundary_ms
+        .unwrap_or_default()
+        .max(lineage.session.information_cutoff_ms)
+        .max(lineage.dataset_manifest.information_cutoff_ms);
+    let (minimum_future_rows, minimum_mature_events) = match lineage.trainer_kind {
+        AgentTrainerKindV0::MomentumFrozenMambaHead => (64, 32),
+        AgentTrainerKindV0::CycleRiskIndependentShadow => (96, 48),
+        AgentTrainerKindV0::ValueQualityUnavailable => (0, 0),
+    };
+    let mut registration = AgentCandidateEvaluationRegistrationV0 {
+        registration_version: EVALUATION_REGISTRATION_VERSION_V0.to_string(),
+        agent_id: lineage.session.agent_id.clone(),
+        candidate_digest: lineage.candidate.candidate_digest.clone(),
+        session_digest: lineage.session.session_digest.clone(),
+        evidence_usage_ledger_digest: ledger.ledger_digest.clone(),
+        identity_audit_digest: audit.audit_digest.clone(),
+        evaluation_cutoff_exclusive_ms,
+        required_dataset_kinds: lineage.session.required_dataset_kinds.clone(),
+        source_policy_digest: lineage.session.source_policy_digest.clone(),
+        finality_policy_digest: stable_hash_string("SOMA-FUTURE-FINALIZED-EVIDENCE-ONLY-V0"),
+        label_policy_digest: lineage.session.label_policy_digest.clone(),
+        metric_policy_digest: stable_hash_string(
+            "SOMA-FUTURE-CANDIDATE-BRIER-CALIBRATION-METRIC-V0",
+        ),
+        support_policy_digest: stable_hash_string("SOMA-FUTURE-CANDIDATE-MINIMUM-SUPPORT-V0"),
+        comparator_digests: comparators,
+        minimum_future_rows,
+        minimum_mature_events,
+        maximum_requests: 1,
+        maximum_concurrency: 1,
+        maximum_retries: 0,
+        labels_hidden_until_opening: true,
+        probabilities_hidden_until_opening: true,
+        one_time_opening_required: true,
+        active_promotion_forbidden: true,
+        reward_application_forbidden: true,
+        status,
+        registration_digest: String::new(),
+    };
+    registration.registration_digest = evaluation_registration_digest_v0(&registration);
+    registration
+}
+
+fn candidate_evaluation_registration_journal_v0(
+    registration: &AgentCandidateEvaluationRegistrationV0,
+) -> AgentCandidateEvaluationRegistrationJournalV0 {
+    let mut journal = AgentCandidateEvaluationRegistrationJournalV0 {
+        journal_version: EVALUATION_JOURNAL_VERSION_V0.to_string(),
+        agent_id: registration.agent_id.clone(),
+        candidate_digest: registration.candidate_digest.clone(),
+        entries: vec![AgentCandidateEvaluationRegistrationJournalEntryV0 {
+            registration_digest: registration.registration_digest.clone(),
+            status: registration.status,
+        }],
+        journal_digest: String::new(),
+    };
+    journal.journal_digest = evaluation_journal_digest_v0(&journal);
+    journal
+}
+
+pub fn candidate_evaluation_accepts_timestamp_v0(
+    registration: &AgentCandidateEvaluationRegistrationV0,
+    event_timestamp_ms: u64,
+) -> bool {
+    registration.status == CandidateEvaluationRegistrationStatusV0::Registered
+        && event_timestamp_ms > registration.evaluation_cutoff_exclusive_ms
+}
+
+pub fn public_candidate_evaluation_summaries_v0(
+    report: &AgentCandidateEvaluationReportV0,
+) -> Vec<AgentCandidateEvaluationPublicSummaryV0> {
+    report
+        .results
+        .iter()
+        .map(|result| AgentCandidateEvaluationPublicSummaryV0 {
+            agent_id: result.agent_id.clone(),
+            candidate_digest: result.candidate_digest.clone(),
+            session_digest: result.session_digest.clone(),
+            view_digest: result.view_digest.clone(),
+            projection_digest: result
+                .trainer_projection
+                .as_ref()
+                .map(|projection| projection.projection_digest.clone()),
+            historical_test_status: result
+                .identity_audit
+                .as_ref()
+                .map(|audit| audit.historical_test_status)
+                .unwrap_or(CandidateHistoricalTestStatusV0::NoCandidate),
+            evidence_usage_ledger_digest: result
+                .evidence_usage_ledger
+                .as_ref()
+                .map(|ledger| ledger.ledger_digest.clone()),
+            identity_audit_digest: result
+                .identity_audit
+                .as_ref()
+                .map(|audit| audit.audit_digest.clone()),
+            evaluation_cutoff_exclusive_ms: result
+                .evaluation_registration
+                .as_ref()
+                .map(|registration| registration.evaluation_cutoff_exclusive_ms),
+            registration_status: result
+                .evaluation_registration
+                .as_ref()
+                .map(|registration| registration.status)
+                .unwrap_or(result.blocked_status),
+            comparator_count: result
+                .evaluation_registration
+                .as_ref()
+                .map(|registration| registration.comparator_digests.len())
+                .unwrap_or(0),
+        })
+        .collect()
+}
+
 pub fn load_local_learning_snapshots_v0(root: &Path) -> Result<Vec<DataSnapshot>, String> {
     let mut paths = Vec::new();
     collect_protobuf_paths_v0(root, &mut paths)?;
@@ -1693,6 +2568,121 @@ pub fn persist_agent_private_learning_report_v0(
     report.storage_failure_count = storage.failed_artifact_count;
     report.report_digest = report_digest_v0(report);
     storage
+}
+
+pub fn persist_agent_candidate_evaluation_report_v0(
+    report: &mut AgentCandidateEvaluationReportV0,
+    root: &Path,
+) -> AgentPrivateLearningStorageReportV0 {
+    let mut storage = AgentPrivateLearningStorageReportV0 {
+        written_artifact_count: 0,
+        duplicate_artifact_count: 0,
+        failed_artifact_count: 0,
+    };
+    for result in &report.results {
+        if !safe_agent_component_v0(&result.agent_id) {
+            storage.failed_artifact_count += 1;
+            continue;
+        }
+        let evaluation_root = root.join("evaluation").join(&result.agent_id);
+        if let Some(projection) = &result.trainer_projection {
+            record_write_result_v0(
+                write_projection_artifact_v0(projection, &evaluation_root.join("projections")),
+                &mut storage,
+            );
+        }
+        if let Some(ledger) = &result.evidence_usage_ledger {
+            record_write_result_v0(
+                write_evidence_usage_ledger_artifact_v0(
+                    ledger,
+                    &evaluation_root.join("evidence_usage"),
+                ),
+                &mut storage,
+            );
+        }
+        if let Some(audit) = &result.identity_audit {
+            record_write_result_v0(
+                write_identity_audit_artifact_v0(audit, &evaluation_root.join("identity_audits")),
+                &mut storage,
+            );
+        }
+        if let Some(registration) = &result.evaluation_registration {
+            record_write_result_v0(
+                write_evaluation_registration_artifact_v0(
+                    registration,
+                    &evaluation_root.join("registrations"),
+                ),
+                &mut storage,
+            );
+        }
+        if let Some(journal) = &result.registration_journal {
+            record_write_result_v0(
+                write_evaluation_journal_artifact_v0(
+                    journal,
+                    &evaluation_root.join("registration_journals"),
+                ),
+                &mut storage,
+            );
+        }
+    }
+    report.duplicate_artifact_count = storage.duplicate_artifact_count;
+    report.storage_failure_count = storage.failed_artifact_count;
+    report.report_digest = candidate_evaluation_report_digest_v0(report);
+    storage
+}
+
+fn write_evidence_usage_ledger_artifact_v0(
+    ledger: &CandidateEvidenceUsageLedgerV0,
+    directory: &Path,
+) -> Result<AgentPrivateLearningArtifactWriteStatusV0, String> {
+    let bytes = encode_evidence_usage_ledger_protobuf_v0(ledger)?;
+    atomic_write_verified_v0(
+        &directory.join(format!("{}.pb", ledger.ledger_digest)),
+        &bytes,
+        &ledger.ledger_digest,
+        |stored| Ok(decode_evidence_usage_ledger_protobuf_v0(stored)?.ledger_digest),
+    )
+}
+
+fn write_identity_audit_artifact_v0(
+    audit: &AgentCandidateIdentityAuditV0,
+    directory: &Path,
+) -> Result<AgentPrivateLearningArtifactWriteStatusV0, String> {
+    let bytes = encode_candidate_identity_audit_protobuf_v0(audit)?;
+    atomic_write_verified_v0(
+        &directory.join(format!("{}.pb", audit.audit_digest)),
+        &bytes,
+        &audit.audit_digest,
+        |stored| Ok(decode_candidate_identity_audit_protobuf_v0(stored)?.audit_digest),
+    )
+}
+
+fn write_evaluation_registration_artifact_v0(
+    registration: &AgentCandidateEvaluationRegistrationV0,
+    directory: &Path,
+) -> Result<AgentPrivateLearningArtifactWriteStatusV0, String> {
+    let bytes = encode_candidate_evaluation_registration_protobuf_v0(registration)?;
+    atomic_write_verified_v0(
+        &directory.join(format!("{}.pb", registration.registration_digest)),
+        &bytes,
+        &registration.registration_digest,
+        |stored| {
+            Ok(decode_candidate_evaluation_registration_protobuf_v0(stored)?.registration_digest)
+        },
+    )
+}
+
+fn write_evaluation_journal_artifact_v0(
+    journal: &AgentCandidateEvaluationRegistrationJournalV0,
+    directory: &Path,
+) -> Result<AgentPrivateLearningArtifactWriteStatusV0, String> {
+    let bytes = encode_candidate_evaluation_journal_protobuf_v0(journal)?;
+    atomic_write_verified_v0(
+        &directory.join(format!("{}.pb", journal.journal_digest)),
+        &bytes,
+        &journal.journal_digest,
+        |stored| Ok(decode_candidate_evaluation_journal_protobuf_v0(stored)?.journal_digest),
+    )
 }
 
 fn record_write_result_v0(
@@ -1861,6 +2851,10 @@ enum ArtifactKindV0 {
     Candidate,
     Journal,
     Registry,
+    EvidenceUsageLedger,
+    CandidateIdentityAudit,
+    EvaluationRegistration,
+    EvaluationJournal,
 }
 
 impl ArtifactKindV0 {
@@ -1872,6 +2866,10 @@ impl ArtifactKindV0 {
             Self::Candidate => "candidate",
             Self::Journal => "journal",
             Self::Registry => "registry",
+            Self::EvidenceUsageLedger => "evidence-usage-ledger",
+            Self::CandidateIdentityAudit => "candidate-identity-audit",
+            Self::EvaluationRegistration => "candidate-evaluation-registration",
+            Self::EvaluationJournal => "candidate-evaluation-journal",
         }
     }
 }
@@ -1986,6 +2984,144 @@ struct TrainerProjectionProtobufV0 {
     projection_policy_digest: String,
     #[prost(string, tag = "10")]
     projection_digest: String,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct EvidenceUsageEntryProtobufV0 {
+    #[prost(string, tag = "1")]
+    artifact_digest: String,
+    #[prost(message, optional, tag = "2")]
+    range: Option<RangeProtobufV0>,
+    #[prost(uint32, tag = "3")]
+    use_kind: u32,
+    #[prost(bool, tag = "4")]
+    labels_read: bool,
+    #[prost(bool, tag = "5")]
+    parameters_updated: bool,
+    #[prost(bool, tag = "6")]
+    checkpoint_selection_influenced: bool,
+    #[prost(bool, tag = "7")]
+    candidate_identity_influenced: bool,
+    #[prost(string, tag = "8")]
+    entry_digest: String,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct EvidenceUsageLedgerProtobufV0 {
+    #[prost(string, tag = "1")]
+    ledger_version: String,
+    #[prost(string, tag = "2")]
+    agent_id: String,
+    #[prost(string, tag = "3")]
+    candidate_digest: String,
+    #[prost(string, tag = "4")]
+    session_digest: String,
+    #[prost(message, repeated, tag = "5")]
+    entries: Vec<EvidenceUsageEntryProtobufV0>,
+    #[prost(string, tag = "6")]
+    ledger_digest: String,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct CandidateIdentityAuditProtobufV0 {
+    #[prost(string, tag = "1")]
+    audit_version: String,
+    #[prost(string, tag = "2")]
+    candidate_digest: String,
+    #[prost(string, repeated, tag = "3")]
+    model_identity_inputs: Vec<String>,
+    #[prost(string, repeated, tag = "4")]
+    metric_identity_inputs: Vec<String>,
+    #[prost(bool, tag = "5")]
+    test_evidence_in_identity: bool,
+    #[prost(uint32, tag = "6")]
+    historical_test_status: u32,
+    #[prost(bool, tag = "7")]
+    eligible_for_fresh_historical_test: bool,
+    #[prost(bool, tag = "8")]
+    eligible_for_future_evaluation_registration: bool,
+    #[prost(bool, tag = "9")]
+    superseded_by_input_binding_hardening: bool,
+    #[prost(string, tag = "10")]
+    audit_digest: String,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct CandidateEvaluationRegistrationProtobufV0 {
+    #[prost(string, tag = "1")]
+    registration_version: String,
+    #[prost(string, tag = "2")]
+    agent_id: String,
+    #[prost(string, tag = "3")]
+    candidate_digest: String,
+    #[prost(string, tag = "4")]
+    session_digest: String,
+    #[prost(string, tag = "5")]
+    evidence_usage_ledger_digest: String,
+    #[prost(string, tag = "6")]
+    identity_audit_digest: String,
+    #[prost(uint64, tag = "7")]
+    evaluation_cutoff_exclusive_ms: u64,
+    #[prost(uint32, repeated, tag = "8")]
+    required_dataset_kinds: Vec<u32>,
+    #[prost(string, tag = "9")]
+    source_policy_digest: String,
+    #[prost(string, tag = "10")]
+    finality_policy_digest: String,
+    #[prost(string, tag = "11")]
+    label_policy_digest: String,
+    #[prost(string, tag = "12")]
+    metric_policy_digest: String,
+    #[prost(string, tag = "13")]
+    support_policy_digest: String,
+    #[prost(string, repeated, tag = "14")]
+    comparator_digests: Vec<String>,
+    #[prost(uint64, tag = "15")]
+    minimum_future_rows: u64,
+    #[prost(uint64, tag = "16")]
+    minimum_mature_events: u64,
+    #[prost(uint64, tag = "17")]
+    maximum_requests: u64,
+    #[prost(uint64, tag = "18")]
+    maximum_concurrency: u64,
+    #[prost(uint64, tag = "19")]
+    maximum_retries: u64,
+    #[prost(bool, tag = "20")]
+    labels_hidden_until_opening: bool,
+    #[prost(bool, tag = "21")]
+    probabilities_hidden_until_opening: bool,
+    #[prost(bool, tag = "22")]
+    one_time_opening_required: bool,
+    #[prost(bool, tag = "23")]
+    active_promotion_forbidden: bool,
+    #[prost(bool, tag = "24")]
+    reward_application_forbidden: bool,
+    #[prost(uint32, tag = "25")]
+    status: u32,
+    #[prost(string, tag = "26")]
+    registration_digest: String,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct CandidateEvaluationJournalEntryProtobufV0 {
+    #[prost(string, tag = "1")]
+    registration_digest: String,
+    #[prost(uint32, tag = "2")]
+    status: u32,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct CandidateEvaluationJournalProtobufV0 {
+    #[prost(string, tag = "1")]
+    journal_version: String,
+    #[prost(string, tag = "2")]
+    agent_id: String,
+    #[prost(string, tag = "3")]
+    candidate_digest: String,
+    #[prost(message, repeated, tag = "4")]
+    entries: Vec<CandidateEvaluationJournalEntryProtobufV0>,
+    #[prost(string, tag = "5")]
+    journal_digest: String,
 }
 
 #[derive(Clone, PartialEq, Message)]
@@ -2334,6 +3470,302 @@ pub fn decode_trainer_projection_protobuf_v0(
         return Err("trainer input projection identity rejected".to_string());
     }
     Ok(projection)
+}
+
+pub fn encode_evidence_usage_ledger_protobuf_v0(
+    ledger: &CandidateEvidenceUsageLedgerV0,
+) -> Result<Vec<u8>, String> {
+    if ledger.ledger_version != EVIDENCE_LEDGER_VERSION_V0
+        || ledger.entries.is_empty()
+        || ledger.ledger_digest != evidence_usage_ledger_digest_v0(ledger)
+        || ledger
+            .entries
+            .iter()
+            .any(|entry| entry.entry_digest != evidence_usage_entry_digest_v0(entry))
+    {
+        return Err("candidate evidence usage ledger semantic digest rejected".to_string());
+    }
+    encode_envelope_v0(
+        ArtifactKindV0::EvidenceUsageLedger,
+        &ledger.ledger_digest,
+        &EvidenceUsageLedgerProtobufV0 {
+            ledger_version: ledger.ledger_version.clone(),
+            agent_id: ledger.agent_id.clone(),
+            candidate_digest: ledger.candidate_digest.clone(),
+            session_digest: ledger.session_digest.clone(),
+            entries: ledger
+                .entries
+                .iter()
+                .map(|entry| {
+                    Ok(EvidenceUsageEntryProtobufV0 {
+                        artifact_digest: entry.artifact_digest.clone(),
+                        range: entry.range.as_ref().map(range_to_protobuf_v0).transpose()?,
+                        use_kind: evidence_use_kind_tag_v0(entry.use_kind),
+                        labels_read: entry.labels_read,
+                        parameters_updated: entry.parameters_updated,
+                        checkpoint_selection_influenced: entry.checkpoint_selection_influenced,
+                        candidate_identity_influenced: entry.candidate_identity_influenced,
+                        entry_digest: entry.entry_digest.clone(),
+                    })
+                })
+                .collect::<Result<Vec<_>, String>>()?,
+            ledger_digest: ledger.ledger_digest.clone(),
+        },
+    )
+}
+
+pub fn decode_evidence_usage_ledger_protobuf_v0(
+    bytes: &[u8],
+) -> Result<CandidateEvidenceUsageLedgerV0, String> {
+    let envelope = decode_envelope_v0(bytes, ArtifactKindV0::EvidenceUsageLedger)?;
+    let value = EvidenceUsageLedgerProtobufV0::decode(envelope.payload.as_slice())
+        .map_err(|_| "candidate evidence usage ledger decode failed".to_string())?;
+    let ledger = CandidateEvidenceUsageLedgerV0 {
+        ledger_version: value.ledger_version,
+        agent_id: value.agent_id,
+        candidate_digest: value.candidate_digest,
+        session_digest: value.session_digest,
+        entries: value
+            .entries
+            .into_iter()
+            .map(|entry| {
+                Ok(CandidateEvidenceUsageEntryV0 {
+                    artifact_digest: entry.artifact_digest,
+                    range: entry
+                        .range
+                        .map(|range| range_from_protobuf_v0(Some(range)))
+                        .transpose()?,
+                    use_kind: evidence_use_kind_from_tag_v0(entry.use_kind)?,
+                    labels_read: entry.labels_read,
+                    parameters_updated: entry.parameters_updated,
+                    checkpoint_selection_influenced: entry.checkpoint_selection_influenced,
+                    candidate_identity_influenced: entry.candidate_identity_influenced,
+                    entry_digest: entry.entry_digest,
+                })
+            })
+            .collect::<Result<Vec<_>, String>>()?,
+        ledger_digest: value.ledger_digest,
+    };
+    if ledger.ledger_version != EVIDENCE_LEDGER_VERSION_V0
+        || ledger.entries.is_empty()
+        || ledger.ledger_digest != envelope.semantic_digest
+        || ledger.ledger_digest != evidence_usage_ledger_digest_v0(&ledger)
+        || ledger
+            .entries
+            .iter()
+            .any(|entry| entry.entry_digest != evidence_usage_entry_digest_v0(entry))
+    {
+        return Err("candidate evidence usage ledger identity rejected".to_string());
+    }
+    Ok(ledger)
+}
+
+pub fn encode_candidate_identity_audit_protobuf_v0(
+    audit: &AgentCandidateIdentityAuditV0,
+) -> Result<Vec<u8>, String> {
+    if audit.audit_version != IDENTITY_AUDIT_VERSION_V0
+        || audit.audit_digest != identity_audit_digest_v0(audit)
+    {
+        return Err("candidate identity audit semantic digest rejected".to_string());
+    }
+    encode_envelope_v0(
+        ArtifactKindV0::CandidateIdentityAudit,
+        &audit.audit_digest,
+        &CandidateIdentityAuditProtobufV0 {
+            audit_version: audit.audit_version.clone(),
+            candidate_digest: audit.candidate_digest.clone(),
+            model_identity_inputs: audit.model_identity_inputs.clone(),
+            metric_identity_inputs: audit.metric_identity_inputs.clone(),
+            test_evidence_in_identity: audit.test_evidence_in_identity,
+            historical_test_status: historical_test_status_tag_v0(audit.historical_test_status),
+            eligible_for_fresh_historical_test: audit.eligible_for_fresh_historical_test,
+            eligible_for_future_evaluation_registration: audit
+                .eligible_for_future_evaluation_registration,
+            superseded_by_input_binding_hardening: audit.superseded_by_input_binding_hardening,
+            audit_digest: audit.audit_digest.clone(),
+        },
+    )
+}
+
+pub fn decode_candidate_identity_audit_protobuf_v0(
+    bytes: &[u8],
+) -> Result<AgentCandidateIdentityAuditV0, String> {
+    let envelope = decode_envelope_v0(bytes, ArtifactKindV0::CandidateIdentityAudit)?;
+    let value = CandidateIdentityAuditProtobufV0::decode(envelope.payload.as_slice())
+        .map_err(|_| "candidate identity audit decode failed".to_string())?;
+    let audit = AgentCandidateIdentityAuditV0 {
+        audit_version: value.audit_version,
+        candidate_digest: value.candidate_digest,
+        model_identity_inputs: value.model_identity_inputs,
+        metric_identity_inputs: value.metric_identity_inputs,
+        test_evidence_in_identity: value.test_evidence_in_identity,
+        historical_test_status: historical_test_status_from_tag_v0(value.historical_test_status)?,
+        eligible_for_fresh_historical_test: value.eligible_for_fresh_historical_test,
+        eligible_for_future_evaluation_registration: value
+            .eligible_for_future_evaluation_registration,
+        superseded_by_input_binding_hardening: value.superseded_by_input_binding_hardening,
+        audit_digest: value.audit_digest,
+    };
+    if audit.audit_version != IDENTITY_AUDIT_VERSION_V0
+        || audit.audit_digest != envelope.semantic_digest
+        || audit.audit_digest != identity_audit_digest_v0(&audit)
+    {
+        return Err("candidate identity audit identity rejected".to_string());
+    }
+    Ok(audit)
+}
+
+pub fn encode_candidate_evaluation_registration_protobuf_v0(
+    registration: &AgentCandidateEvaluationRegistrationV0,
+) -> Result<Vec<u8>, String> {
+    validate_candidate_evaluation_registration_v0(registration)?;
+    if registration.registration_digest != evaluation_registration_digest_v0(registration) {
+        return Err("candidate evaluation registration semantic digest rejected".to_string());
+    }
+    encode_envelope_v0(
+        ArtifactKindV0::EvaluationRegistration,
+        &registration.registration_digest,
+        &CandidateEvaluationRegistrationProtobufV0 {
+            registration_version: registration.registration_version.clone(),
+            agent_id: registration.agent_id.clone(),
+            candidate_digest: registration.candidate_digest.clone(),
+            session_digest: registration.session_digest.clone(),
+            evidence_usage_ledger_digest: registration.evidence_usage_ledger_digest.clone(),
+            identity_audit_digest: registration.identity_audit_digest.clone(),
+            evaluation_cutoff_exclusive_ms: registration.evaluation_cutoff_exclusive_ms,
+            required_dataset_kinds: registration
+                .required_dataset_kinds
+                .iter()
+                .map(|kind| dataset_kind_tag_v0(*kind))
+                .collect::<Result<Vec<_>, _>>()?,
+            source_policy_digest: registration.source_policy_digest.clone(),
+            finality_policy_digest: registration.finality_policy_digest.clone(),
+            label_policy_digest: registration.label_policy_digest.clone(),
+            metric_policy_digest: registration.metric_policy_digest.clone(),
+            support_policy_digest: registration.support_policy_digest.clone(),
+            comparator_digests: registration.comparator_digests.clone(),
+            minimum_future_rows: usize_to_u64_v0(registration.minimum_future_rows)?,
+            minimum_mature_events: usize_to_u64_v0(registration.minimum_mature_events)?,
+            maximum_requests: usize_to_u64_v0(registration.maximum_requests)?,
+            maximum_concurrency: usize_to_u64_v0(registration.maximum_concurrency)?,
+            maximum_retries: usize_to_u64_v0(registration.maximum_retries)?,
+            labels_hidden_until_opening: registration.labels_hidden_until_opening,
+            probabilities_hidden_until_opening: registration.probabilities_hidden_until_opening,
+            one_time_opening_required: registration.one_time_opening_required,
+            active_promotion_forbidden: registration.active_promotion_forbidden,
+            reward_application_forbidden: registration.reward_application_forbidden,
+            status: registration_status_tag_v0(registration.status),
+            registration_digest: registration.registration_digest.clone(),
+        },
+    )
+}
+
+pub fn decode_candidate_evaluation_registration_protobuf_v0(
+    bytes: &[u8],
+) -> Result<AgentCandidateEvaluationRegistrationV0, String> {
+    let envelope = decode_envelope_v0(bytes, ArtifactKindV0::EvaluationRegistration)?;
+    let value = CandidateEvaluationRegistrationProtobufV0::decode(envelope.payload.as_slice())
+        .map_err(|_| "candidate evaluation registration decode failed".to_string())?;
+    let registration = AgentCandidateEvaluationRegistrationV0 {
+        registration_version: value.registration_version,
+        agent_id: value.agent_id,
+        candidate_digest: value.candidate_digest,
+        session_digest: value.session_digest,
+        evidence_usage_ledger_digest: value.evidence_usage_ledger_digest,
+        identity_audit_digest: value.identity_audit_digest,
+        evaluation_cutoff_exclusive_ms: value.evaluation_cutoff_exclusive_ms,
+        required_dataset_kinds: value
+            .required_dataset_kinds
+            .into_iter()
+            .map(dataset_kind_from_tag_v0)
+            .collect::<Result<Vec<_>, _>>()?,
+        source_policy_digest: value.source_policy_digest,
+        finality_policy_digest: value.finality_policy_digest,
+        label_policy_digest: value.label_policy_digest,
+        metric_policy_digest: value.metric_policy_digest,
+        support_policy_digest: value.support_policy_digest,
+        comparator_digests: value.comparator_digests,
+        minimum_future_rows: u64_to_usize_v0(value.minimum_future_rows)?,
+        minimum_mature_events: u64_to_usize_v0(value.minimum_mature_events)?,
+        maximum_requests: u64_to_usize_v0(value.maximum_requests)?,
+        maximum_concurrency: u64_to_usize_v0(value.maximum_concurrency)?,
+        maximum_retries: u64_to_usize_v0(value.maximum_retries)?,
+        labels_hidden_until_opening: value.labels_hidden_until_opening,
+        probabilities_hidden_until_opening: value.probabilities_hidden_until_opening,
+        one_time_opening_required: value.one_time_opening_required,
+        active_promotion_forbidden: value.active_promotion_forbidden,
+        reward_application_forbidden: value.reward_application_forbidden,
+        status: registration_status_from_tag_v0(value.status)?,
+        registration_digest: value.registration_digest,
+    };
+    validate_candidate_evaluation_registration_v0(&registration)?;
+    if registration.registration_digest != envelope.semantic_digest
+        || registration.registration_digest != evaluation_registration_digest_v0(&registration)
+    {
+        return Err("candidate evaluation registration identity rejected".to_string());
+    }
+    Ok(registration)
+}
+
+pub fn encode_candidate_evaluation_journal_protobuf_v0(
+    journal: &AgentCandidateEvaluationRegistrationJournalV0,
+) -> Result<Vec<u8>, String> {
+    if journal.journal_version != EVALUATION_JOURNAL_VERSION_V0
+        || journal.entries.is_empty()
+        || journal.journal_digest != evaluation_journal_digest_v0(journal)
+    {
+        return Err("candidate evaluation journal semantic digest rejected".to_string());
+    }
+    encode_envelope_v0(
+        ArtifactKindV0::EvaluationJournal,
+        &journal.journal_digest,
+        &CandidateEvaluationJournalProtobufV0 {
+            journal_version: journal.journal_version.clone(),
+            agent_id: journal.agent_id.clone(),
+            candidate_digest: journal.candidate_digest.clone(),
+            entries: journal
+                .entries
+                .iter()
+                .map(|entry| CandidateEvaluationJournalEntryProtobufV0 {
+                    registration_digest: entry.registration_digest.clone(),
+                    status: registration_status_tag_v0(entry.status),
+                })
+                .collect(),
+            journal_digest: journal.journal_digest.clone(),
+        },
+    )
+}
+
+pub fn decode_candidate_evaluation_journal_protobuf_v0(
+    bytes: &[u8],
+) -> Result<AgentCandidateEvaluationRegistrationJournalV0, String> {
+    let envelope = decode_envelope_v0(bytes, ArtifactKindV0::EvaluationJournal)?;
+    let value = CandidateEvaluationJournalProtobufV0::decode(envelope.payload.as_slice())
+        .map_err(|_| "candidate evaluation journal decode failed".to_string())?;
+    let journal = AgentCandidateEvaluationRegistrationJournalV0 {
+        journal_version: value.journal_version,
+        agent_id: value.agent_id,
+        candidate_digest: value.candidate_digest,
+        entries: value
+            .entries
+            .into_iter()
+            .map(|entry| {
+                Ok(AgentCandidateEvaluationRegistrationJournalEntryV0 {
+                    registration_digest: entry.registration_digest,
+                    status: registration_status_from_tag_v0(entry.status)?,
+                })
+            })
+            .collect::<Result<Vec<_>, String>>()?,
+        journal_digest: value.journal_digest,
+    };
+    if journal.journal_version != EVALUATION_JOURNAL_VERSION_V0
+        || journal.entries.is_empty()
+        || journal.journal_digest != envelope.semantic_digest
+        || journal.journal_digest != evaluation_journal_digest_v0(&journal)
+    {
+        return Err("candidate evaluation journal identity rejected".to_string());
+    }
+    Ok(journal)
 }
 
 pub fn encode_dataset_manifest_protobuf_v0(
@@ -2782,6 +4214,177 @@ fn dataset_kind_from_tag_v0(value: u32) -> Result<DatasetKind, String> {
     }
 }
 
+fn evidence_use_kind_tag_v0(kind: CandidateEvidenceUseV0) -> u32 {
+    match kind {
+        CandidateEvidenceUseV0::IntentBinding => 1,
+        CandidateEvidenceUseV0::ViewBinding => 2,
+        CandidateEvidenceUseV0::TrainerProjection => 3,
+        CandidateEvidenceUseV0::FeatureDerivation => 4,
+        CandidateEvidenceUseV0::LabelDerivation => 5,
+        CandidateEvidenceUseV0::NormalizerFit => 6,
+        CandidateEvidenceUseV0::ParameterTraining => 7,
+        CandidateEvidenceUseV0::ValidationInference => 8,
+        CandidateEvidenceUseV0::ValidationMetric => 9,
+        CandidateEvidenceUseV0::CheckpointSelection => 10,
+        CandidateEvidenceUseV0::HistoricalTestInference => 11,
+        CandidateEvidenceUseV0::HistoricalTestMetric => 12,
+        CandidateEvidenceUseV0::CandidateIdentity => 13,
+        CandidateEvidenceUseV0::ReportOnly => 14,
+        CandidateEvidenceUseV0::Unused => 15,
+    }
+}
+
+fn evidence_use_kind_from_tag_v0(value: u32) -> Result<CandidateEvidenceUseV0, String> {
+    match value {
+        1 => Ok(CandidateEvidenceUseV0::IntentBinding),
+        2 => Ok(CandidateEvidenceUseV0::ViewBinding),
+        3 => Ok(CandidateEvidenceUseV0::TrainerProjection),
+        4 => Ok(CandidateEvidenceUseV0::FeatureDerivation),
+        5 => Ok(CandidateEvidenceUseV0::LabelDerivation),
+        6 => Ok(CandidateEvidenceUseV0::NormalizerFit),
+        7 => Ok(CandidateEvidenceUseV0::ParameterTraining),
+        8 => Ok(CandidateEvidenceUseV0::ValidationInference),
+        9 => Ok(CandidateEvidenceUseV0::ValidationMetric),
+        10 => Ok(CandidateEvidenceUseV0::CheckpointSelection),
+        11 => Ok(CandidateEvidenceUseV0::HistoricalTestInference),
+        12 => Ok(CandidateEvidenceUseV0::HistoricalTestMetric),
+        13 => Ok(CandidateEvidenceUseV0::CandidateIdentity),
+        14 => Ok(CandidateEvidenceUseV0::ReportOnly),
+        15 => Ok(CandidateEvidenceUseV0::Unused),
+        _ => Err("candidate evidence use kind rejected".to_string()),
+    }
+}
+
+fn historical_test_status_tag_v0(status: CandidateHistoricalTestStatusV0) -> u32 {
+    match status {
+        CandidateHistoricalTestStatusV0::FreshAndSealed => 1,
+        CandidateHistoricalTestStatusV0::ReadForInferenceOnly => 2,
+        CandidateHistoricalTestStatusV0::MetricsAlreadyComputed => 3,
+        CandidateHistoricalTestStatusV0::InfluencedCandidateSelection => 4,
+        CandidateHistoricalTestStatusV0::InfluencedCandidateIdentity => 5,
+        CandidateHistoricalTestStatusV0::FullyConsumedRetrospectively => 6,
+        CandidateHistoricalTestStatusV0::LineageAmbiguous => 7,
+        CandidateHistoricalTestStatusV0::NoCandidate => 8,
+    }
+}
+
+fn historical_test_status_from_tag_v0(
+    value: u32,
+) -> Result<CandidateHistoricalTestStatusV0, String> {
+    match value {
+        1 => Ok(CandidateHistoricalTestStatusV0::FreshAndSealed),
+        2 => Ok(CandidateHistoricalTestStatusV0::ReadForInferenceOnly),
+        3 => Ok(CandidateHistoricalTestStatusV0::MetricsAlreadyComputed),
+        4 => Ok(CandidateHistoricalTestStatusV0::InfluencedCandidateSelection),
+        5 => Ok(CandidateHistoricalTestStatusV0::InfluencedCandidateIdentity),
+        6 => Ok(CandidateHistoricalTestStatusV0::FullyConsumedRetrospectively),
+        7 => Ok(CandidateHistoricalTestStatusV0::LineageAmbiguous),
+        8 => Ok(CandidateHistoricalTestStatusV0::NoCandidate),
+        _ => Err("candidate historical test status rejected".to_string()),
+    }
+}
+
+fn registration_status_tag_v0(status: CandidateEvaluationRegistrationStatusV0) -> u32 {
+    match status {
+        CandidateEvaluationRegistrationStatusV0::Registered => 1,
+        CandidateEvaluationRegistrationStatusV0::CandidateUnavailable => 2,
+        CandidateEvaluationRegistrationStatusV0::CandidateIntegrityInvalid => 3,
+        CandidateEvaluationRegistrationStatusV0::LineageAmbiguousBlocked => 4,
+        CandidateEvaluationRegistrationStatusV0::ComparatorUnavailable => 5,
+        CandidateEvaluationRegistrationStatusV0::PolicyInvalid => 6,
+    }
+}
+
+fn registration_status_from_tag_v0(
+    value: u32,
+) -> Result<CandidateEvaluationRegistrationStatusV0, String> {
+    match value {
+        1 => Ok(CandidateEvaluationRegistrationStatusV0::Registered),
+        2 => Ok(CandidateEvaluationRegistrationStatusV0::CandidateUnavailable),
+        3 => Ok(CandidateEvaluationRegistrationStatusV0::CandidateIntegrityInvalid),
+        4 => Ok(CandidateEvaluationRegistrationStatusV0::LineageAmbiguousBlocked),
+        5 => Ok(CandidateEvaluationRegistrationStatusV0::ComparatorUnavailable),
+        6 => Ok(CandidateEvaluationRegistrationStatusV0::PolicyInvalid),
+        _ => Err("candidate evaluation registration status rejected".to_string()),
+    }
+}
+
+fn registration_status_code_v0(status: CandidateEvaluationRegistrationStatusV0) -> &'static str {
+    match status {
+        CandidateEvaluationRegistrationStatusV0::Registered => "registered",
+        CandidateEvaluationRegistrationStatusV0::CandidateUnavailable => "candidate_unavailable",
+        CandidateEvaluationRegistrationStatusV0::CandidateIntegrityInvalid => {
+            "candidate_integrity_invalid"
+        }
+        CandidateEvaluationRegistrationStatusV0::LineageAmbiguousBlocked => {
+            "lineage_ambiguous_blocked"
+        }
+        CandidateEvaluationRegistrationStatusV0::ComparatorUnavailable => "comparator_unavailable",
+        CandidateEvaluationRegistrationStatusV0::PolicyInvalid => "policy_invalid",
+    }
+}
+
+fn validate_candidate_evaluation_registration_v0(
+    registration: &AgentCandidateEvaluationRegistrationV0,
+) -> Result<(), String> {
+    let mut required = registration.required_dataset_kinds.clone();
+    required.sort();
+    required.dedup();
+    let mut comparators = registration.comparator_digests.clone();
+    comparators.sort();
+    comparators.dedup();
+    if registration.registration_version != EVALUATION_REGISTRATION_VERSION_V0
+        || registration.agent_id.is_empty()
+        || registration.candidate_digest.is_empty()
+        || registration.session_digest.is_empty()
+        || registration.evidence_usage_ledger_digest.is_empty()
+        || registration.identity_audit_digest.is_empty()
+        || registration.evaluation_cutoff_exclusive_ms == 0
+        || registration.required_dataset_kinds != required
+        || registration.comparator_digests != comparators
+        || registration.finality_policy_digest.is_empty()
+        || registration.label_policy_digest.is_empty()
+        || registration.metric_policy_digest.is_empty()
+        || registration.support_policy_digest.is_empty()
+        || registration.minimum_future_rows == 0
+        || registration.minimum_mature_events == 0
+        || registration.maximum_requests != 1
+        || registration.maximum_concurrency != 1
+        || registration.maximum_retries != 0
+        || !registration.labels_hidden_until_opening
+        || !registration.probabilities_hidden_until_opening
+        || !registration.one_time_opening_required
+        || !registration.active_promotion_forbidden
+        || !registration.reward_application_forbidden
+        || (registration.status == CandidateEvaluationRegistrationStatusV0::Registered
+            && (registration.required_dataset_kinds.is_empty()
+                || registration.source_policy_digest.is_empty()
+                || registration.comparator_digests.is_empty()))
+    {
+        return Err("candidate evaluation registration invariant rejected".to_string());
+    }
+    Ok(())
+}
+
+fn zero_candidate_evaluation_safety_counters_v0() -> CandidateEvaluationSafetyCountersV0 {
+    CandidateEvaluationSafetyCountersV0 {
+        active_committee_count: 3,
+        network_requests: 0,
+        credential_reads: 0,
+        prospective_row_reads: 0,
+        prospective_label_reads: 0,
+        prospective_mutations: 0,
+        active_model_changes: 0,
+        chair_decisions: 0,
+        votes: 0,
+        rewards: 0,
+        penalties: 0,
+        voice_changes: 0,
+        promotions: 0,
+        executions: 0,
+    }
+}
+
 fn zero_safety_counters_v0() -> LearningDataPlaneSafetyCountersV0 {
     LearningDataPlaneSafetyCountersV0 {
         active_committee_count: 3,
@@ -2884,6 +4487,123 @@ fn projection_digest_v0(projection: &AgentTrainerInputProjectionV0) -> String {
         projection.primary_series_digest,
         projection.auxiliary_series_digests,
         projection.projection_policy_digest
+    ))
+}
+
+fn evidence_usage_entry_digest_v0(entry: &CandidateEvidenceUsageEntryV0) -> String {
+    stable_hash_string(&format!(
+        "{}:{:?}:{:?}:{}:{}:{}:{}",
+        entry.artifact_digest,
+        entry.range,
+        entry.use_kind,
+        entry.labels_read,
+        entry.parameters_updated,
+        entry.checkpoint_selection_influenced,
+        entry.candidate_identity_influenced
+    ))
+}
+
+fn evidence_usage_ledger_digest_v0(ledger: &CandidateEvidenceUsageLedgerV0) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{}:{}:{:?}",
+        ledger.ledger_version,
+        ledger.agent_id,
+        ledger.candidate_digest,
+        ledger.session_digest,
+        ledger
+            .entries
+            .iter()
+            .map(|entry| entry.entry_digest.as_str())
+            .collect::<Vec<_>>()
+    ))
+}
+
+fn identity_audit_digest_v0(audit: &AgentCandidateIdentityAuditV0) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{:?}:{:?}:{}:{:?}:{}:{}:{}",
+        audit.audit_version,
+        audit.candidate_digest,
+        audit.model_identity_inputs,
+        audit.metric_identity_inputs,
+        audit.test_evidence_in_identity,
+        audit.historical_test_status,
+        audit.eligible_for_fresh_historical_test,
+        audit.eligible_for_future_evaluation_registration,
+        audit.superseded_by_input_binding_hardening
+    ))
+}
+
+fn evaluation_registration_digest_v0(
+    registration: &AgentCandidateEvaluationRegistrationV0,
+) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{}:{}:{}:{}:{}:{:?}:{}:{}:{}:{}:{}:{:?}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{:?}",
+        registration.registration_version,
+        registration.agent_id,
+        registration.candidate_digest,
+        registration.session_digest,
+        registration.evidence_usage_ledger_digest,
+        registration.identity_audit_digest,
+        registration.evaluation_cutoff_exclusive_ms,
+        registration.required_dataset_kinds,
+        registration.source_policy_digest,
+        registration.finality_policy_digest,
+        registration.label_policy_digest,
+        registration.metric_policy_digest,
+        registration.support_policy_digest,
+        registration.comparator_digests,
+        registration.minimum_future_rows,
+        registration.minimum_mature_events,
+        registration.maximum_requests,
+        registration.maximum_concurrency,
+        registration.maximum_retries,
+        registration.labels_hidden_until_opening,
+        registration.probabilities_hidden_until_opening,
+        registration.one_time_opening_required,
+        registration.active_promotion_forbidden,
+        registration.reward_application_forbidden,
+        registration.status
+    ))
+}
+
+fn evaluation_journal_digest_v0(journal: &AgentCandidateEvaluationRegistrationJournalV0) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{}:{:?}",
+        journal.journal_version, journal.agent_id, journal.candidate_digest, journal.entries
+    ))
+}
+
+fn candidate_evaluation_report_digest_v0(report: &AgentCandidateEvaluationReportV0) -> String {
+    stable_hash_string(&format!(
+        "{}:{:?}:{}:{:?}:{:?}:{}:{}:{}",
+        report.report_version,
+        report.mode,
+        report.registration_requested,
+        report
+            .results
+            .iter()
+            .map(|result| (
+                result.agent_id.as_str(),
+                result.candidate_digest.as_deref(),
+                result
+                    .evidence_usage_ledger
+                    .as_ref()
+                    .map(|ledger| ledger.ledger_digest.as_str()),
+                result
+                    .identity_audit
+                    .as_ref()
+                    .map(|audit| audit.audit_digest.as_str()),
+                result
+                    .evaluation_registration
+                    .as_ref()
+                    .map(|registration| registration.registration_digest.as_str()),
+                result.blocked_status,
+            ))
+            .collect::<Vec<_>>(),
+        report.safety_counters,
+        report.active_state_unchanged,
+        report.duplicate_artifact_count,
+        report.storage_failure_count
     ))
 }
 
@@ -3127,6 +4847,37 @@ mod tests {
             "soma-agent-private-learning-{name}-{}",
             std::process::id()
         ))
+    }
+
+    fn candidate_evaluation_fixture() -> (PathBuf, AgentCandidateEvaluationReportV0) {
+        static FIXTURE: OnceLock<(PathBuf, AgentCandidateEvaluationReportV0)> = OnceLock::new();
+        FIXTURE
+            .get_or_init(|| {
+                let root = unique_root("candidate-evaluation-fixture");
+                let _ = fs::remove_dir_all(&root);
+                let mut sessions = execution_report();
+                let storage = persist_agent_private_learning_report_v0(&mut sessions, &root);
+                assert_eq!(storage.failed_artifact_count, 0);
+                let report = run_agent_candidate_evaluation_v0(
+                    &root,
+                    AgentPrivateLearningRunModeV0::DryRun,
+                    true,
+                    Some(500),
+                );
+                (root, report)
+            })
+            .clone()
+    }
+
+    fn evaluation_result_for<'a>(
+        report: &'a AgentCandidateEvaluationReportV0,
+        agent_id: &str,
+    ) -> &'a AgentCandidateEvaluationResultV0 {
+        report
+            .results
+            .iter()
+            .find(|result| result.agent_id == agent_id)
+            .unwrap()
     }
 
     #[test]
@@ -3833,6 +5584,353 @@ mod tests {
         let second =
             run_agent_private_learning_sessions_v0(&inputs, AgentPrivateLearningRunModeV0::DryRun);
         assert_eq!(first, second);
+    }
+
+    #[test]
+    fn evidence_usage_ledgers_cover_training_normalization_validation_and_test() {
+        let (_, report) = candidate_evaluation_fixture();
+        for agent_id in ["momentum_trend_fast", "cycle_risk_skeptic"] {
+            let ledger = evaluation_result_for(&report, agent_id)
+                .evidence_usage_ledger
+                .as_ref()
+                .unwrap();
+            for required in [
+                CandidateEvidenceUseV0::ParameterTraining,
+                CandidateEvidenceUseV0::NormalizerFit,
+                CandidateEvidenceUseV0::ValidationInference,
+                CandidateEvidenceUseV0::ValidationMetric,
+                CandidateEvidenceUseV0::CheckpointSelection,
+                CandidateEvidenceUseV0::HistoricalTestInference,
+                CandidateEvidenceUseV0::HistoricalTestMetric,
+                CandidateEvidenceUseV0::CandidateIdentity,
+            ] {
+                assert!(
+                    ledger
+                        .entries
+                        .iter()
+                        .any(|entry| entry.use_kind == required)
+                );
+            }
+            assert!(
+                ledger
+                    .entries
+                    .iter()
+                    .all(|entry| { entry.entry_digest == evidence_usage_entry_digest_v0(entry) })
+            );
+        }
+    }
+
+    #[test]
+    fn test_metrics_and_candidate_identity_usage_are_detected_independently() {
+        let (_, report) = candidate_evaluation_fixture();
+        for agent_id in ["momentum_trend_fast", "cycle_risk_skeptic"] {
+            let result = evaluation_result_for(&report, agent_id);
+            let audit = result.identity_audit.as_ref().unwrap();
+            assert_eq!(
+                audit.historical_test_status,
+                CandidateHistoricalTestStatusV0::InfluencedCandidateIdentity
+            );
+            assert!(audit.test_evidence_in_identity);
+            assert!(!audit.eligible_for_fresh_historical_test);
+            assert!(
+                result
+                    .evidence_usage_ledger
+                    .as_ref()
+                    .unwrap()
+                    .entries
+                    .iter()
+                    .any(
+                        |entry| entry.use_kind == CandidateEvidenceUseV0::HistoricalTestMetric
+                            && entry.labels_read
+                    )
+            );
+        }
+    }
+
+    #[test]
+    fn value_has_no_candidate_audit_or_registration() {
+        let (_, report) = candidate_evaluation_fixture();
+        let value = evaluation_result_for(&report, "value_quality_filter");
+        assert_eq!(
+            value.blocked_status,
+            CandidateEvaluationRegistrationStatusV0::CandidateUnavailable
+        );
+        assert!(value.candidate_digest.is_none());
+        assert!(value.evidence_usage_ledger.is_none());
+        assert!(value.evaluation_registration.is_none());
+    }
+
+    #[test]
+    fn preliminary_v0_lineage_is_superseded_and_policy_invalid() {
+        let root = unique_root("legacy-lineage");
+        let _ = fs::remove_dir_all(&root);
+        let sessions = execution_report();
+        for source in sessions
+            .results
+            .iter()
+            .filter(|result| result.candidate.is_some())
+        {
+            let mut session = source.session.clone();
+            let primary_artifact_digest = source
+                .trainer_projection
+                .as_ref()
+                .and_then(|projection| projection.primary_series_digest.clone())
+                .unwrap();
+            session.session_version = SESSION_VERSION_V0.to_string();
+            session.required_dataset_kinds.clear();
+            session.optional_dataset_kinds.clear();
+            session.allowed_markets.clear();
+            session.symbols.clear();
+            session.cadence.clear();
+            session.lookback = DataLookback {
+                bars: 0,
+                start_timestamp_ms: None,
+                end_timestamp_ms: None,
+            };
+            session.maximum_staleness_ms = 0;
+            session.source_artifact_digests = vec![primary_artifact_digest.clone()];
+            session.source_policy_digest.clear();
+            session.training_ledger_digest.clear();
+            session.trainer_projection_digest = None;
+            session.session_digest = session_digest_v0(&session);
+            let mut candidate = source.candidate.clone().unwrap();
+            candidate.session_digest = session.session_digest.clone();
+            candidate.candidate_digest = candidate_digest_v0(&candidate);
+            let mut manifest = source.dataset_manifest.clone().unwrap();
+            manifest.source_artifact_digests = vec![primary_artifact_digest];
+            manifest.manifest_digest = dataset_manifest_digest_v0(&manifest);
+            let agent_root = root.join(&session.agent_id);
+            assert!(write_session_artifact_v0(&session, &agent_root.join("sessions")).is_ok());
+            assert!(write_dataset_artifact_v0(&manifest, &agent_root.join("datasets")).is_ok());
+            assert!(
+                write_candidate_artifact_v0(&candidate, &agent_root.join("candidates")).is_ok()
+            );
+        }
+        let report = run_agent_candidate_evaluation_v0(
+            &root,
+            AgentPrivateLearningRunModeV0::DryRun,
+            true,
+            None,
+        );
+        for agent_id in ["momentum_trend_fast", "cycle_risk_skeptic"] {
+            let result = evaluation_result_for(&report, agent_id);
+            let audit = result.identity_audit.as_ref().unwrap();
+            assert!(audit.superseded_by_input_binding_hardening);
+            assert_eq!(
+                result.evaluation_registration.as_ref().unwrap().status,
+                CandidateEvaluationRegistrationStatusV0::PolicyInvalid
+            );
+        }
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn ambiguous_candidate_selection_fails_closed() {
+        let root = unique_root("ambiguous-candidate-lineage");
+        let _ = fs::remove_dir_all(&root);
+        let mut sessions = execution_report();
+        assert_eq!(
+            persist_agent_private_learning_report_v0(&mut sessions, &root).failed_artifact_count,
+            0
+        );
+        let momentum = result_for(&sessions, "momentum_trend_fast");
+        let source = root
+            .join("momentum_trend_fast")
+            .join("candidates")
+            .join(format!(
+                "{}.pb",
+                momentum.candidate.as_ref().unwrap().candidate_digest
+            ));
+        let duplicate = source.with_file_name("second-candidate.pb");
+        fs::copy(source, duplicate).unwrap();
+        let report = run_agent_candidate_evaluation_v0(
+            &root,
+            AgentPrivateLearningRunModeV0::DryRun,
+            true,
+            None,
+        );
+        assert_eq!(
+            evaluation_result_for(&report, "momentum_trend_fast").blocked_status,
+            CandidateEvaluationRegistrationStatusV0::LineageAmbiguousBlocked
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn future_cutoff_is_strict_and_comparator_set_is_frozen() {
+        let (root, _) = candidate_evaluation_fixture();
+        let capability = agent_trainer_capability_registry_v0()
+            .capabilities
+            .into_iter()
+            .find(|capability| capability.agent_id == "momentum_trend_fast")
+            .unwrap();
+        let mut lineage = load_candidate_lineage_v0(&root, &capability).unwrap();
+        lineage.candidate.parent_model_version = Some("frozen-parent-v0".to_string());
+        lineage.candidate.candidate_digest = candidate_digest_v0(&lineage.candidate);
+        let ledger = candidate_evidence_usage_ledger_v0(&lineage);
+        let audit = agent_candidate_identity_audit_v0(&lineage, &ledger);
+        let first =
+            agent_candidate_evaluation_registration_v0(&lineage, &ledger, &audit, Some(1_000));
+        let second =
+            agent_candidate_evaluation_registration_v0(&lineage, &ledger, &audit, Some(2_000));
+        assert_eq!(
+            first.status,
+            CandidateEvaluationRegistrationStatusV0::Registered
+        );
+        assert_eq!(first.evaluation_cutoff_exclusive_ms, 1_000);
+        assert!(!candidate_evaluation_accepts_timestamp_v0(&first, 1_000));
+        assert!(candidate_evaluation_accepts_timestamp_v0(&first, 1_001));
+        assert_eq!(first.comparator_digests, second.comparator_digests);
+    }
+
+    #[test]
+    fn registration_hides_labels_probabilities_and_calculates_no_future_metric() {
+        let (_, report) = candidate_evaluation_fixture();
+        for registration in report
+            .results
+            .iter()
+            .filter_map(|result| result.evaluation_registration.as_ref())
+        {
+            assert!(registration.labels_hidden_until_opening);
+            assert!(registration.probabilities_hidden_until_opening);
+            assert!(registration.one_time_opening_required);
+            assert!(registration.active_promotion_forbidden);
+            assert!(registration.reward_application_forbidden);
+            assert_eq!(registration.maximum_concurrency, 1);
+            assert_eq!(registration.maximum_retries, 0);
+        }
+        assert_eq!(report.safety_counters.prospective_row_reads, 0);
+        assert_eq!(report.safety_counters.prospective_label_reads, 0);
+        assert_eq!(report.safety_counters.prospective_mutations, 0);
+    }
+
+    #[test]
+    fn candidate_evaluation_protobufs_round_trip_and_corruption_rejects() {
+        let (_, report) = candidate_evaluation_fixture();
+        let result = evaluation_result_for(&report, "momentum_trend_fast");
+        let ledger = result.evidence_usage_ledger.as_ref().unwrap();
+        let audit = result.identity_audit.as_ref().unwrap();
+        let registration = result.evaluation_registration.as_ref().unwrap();
+        let journal = result.registration_journal.as_ref().unwrap();
+        assert_eq!(
+            decode_evidence_usage_ledger_protobuf_v0(
+                &encode_evidence_usage_ledger_protobuf_v0(ledger).unwrap()
+            )
+            .unwrap(),
+            *ledger
+        );
+        assert_eq!(
+            decode_candidate_identity_audit_protobuf_v0(
+                &encode_candidate_identity_audit_protobuf_v0(audit).unwrap()
+            )
+            .unwrap(),
+            *audit
+        );
+        assert_eq!(
+            decode_candidate_evaluation_registration_protobuf_v0(
+                &encode_candidate_evaluation_registration_protobuf_v0(registration).unwrap()
+            )
+            .unwrap(),
+            *registration
+        );
+        let mut bytes = encode_candidate_evaluation_journal_protobuf_v0(journal).unwrap();
+        assert_eq!(
+            decode_candidate_evaluation_journal_protobuf_v0(&bytes).unwrap(),
+            *journal
+        );
+        let last = bytes.len() - 1;
+        bytes[last] ^= 1;
+        assert!(decode_candidate_evaluation_journal_protobuf_v0(&bytes).is_err());
+    }
+
+    #[test]
+    fn evaluation_persistence_reopens_and_duplicate_rejects() {
+        let root = unique_root("evaluation-persistence");
+        let _ = fs::remove_dir_all(&root);
+        let mut sessions = execution_report();
+        assert_eq!(
+            persist_agent_private_learning_report_v0(&mut sessions, &root).failed_artifact_count,
+            0
+        );
+        let first = run_agent_candidate_evaluation_v0(
+            &root,
+            AgentPrivateLearningRunModeV0::ExecuteLocal,
+            true,
+            None,
+        );
+        assert_eq!(first.storage_failure_count, 0);
+        assert!(first.duplicate_artifact_count == 0);
+        let second = run_agent_candidate_evaluation_v0(
+            &root,
+            AgentPrivateLearningRunModeV0::ExecuteLocal,
+            true,
+            None,
+        );
+        assert_eq!(second.storage_failure_count, 0);
+        assert!(second.duplicate_artifact_count >= 10);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn evaluation_namespace_preserves_prospective_sentinel() {
+        let root = unique_root("evaluation-prospective-freeze");
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(&root).unwrap();
+        let sentinel = root.join("sealed-prospective-lane.pb");
+        let frozen = b"sealed-prospective-lane".to_vec();
+        fs::write(&sentinel, &frozen).unwrap();
+        let mut sessions = execution_report();
+        assert_eq!(
+            persist_agent_private_learning_report_v0(&mut sessions, &root.join("learning_data"))
+                .failed_artifact_count,
+            0
+        );
+        let report = run_agent_candidate_evaluation_v0(
+            &root.join("learning_data"),
+            AgentPrivateLearningRunModeV0::ExecuteLocal,
+            true,
+            None,
+        );
+        assert_eq!(report.storage_failure_count, 0);
+        assert_eq!(fs::read(&sentinel).unwrap(), frozen);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn candidate_evaluation_network_authority_and_active_state_remain_zero() {
+        let (_, report) = candidate_evaluation_fixture();
+        let counters = &report.safety_counters;
+        assert_eq!(counters.active_committee_count, 3);
+        assert_eq!(counters.network_requests, 0);
+        assert_eq!(counters.credential_reads, 0);
+        assert_eq!(counters.active_model_changes, 0);
+        assert_eq!(counters.chair_decisions, 0);
+        assert_eq!(counters.votes, 0);
+        assert_eq!(counters.rewards, 0);
+        assert_eq!(counters.penalties, 0);
+        assert_eq!(counters.voice_changes, 0);
+        assert_eq!(counters.promotions, 0);
+        assert_eq!(counters.executions, 0);
+        assert!(report.active_state_unchanged);
+    }
+
+    #[test]
+    fn public_candidate_summary_excludes_rows_labels_metrics_parameters_and_paths() {
+        let (_, report) = candidate_evaluation_fixture();
+        let json =
+            serde_json::to_string(&public_candidate_evaluation_summaries_v0(&report)).unwrap();
+        for forbidden in [
+            "rows",
+            "labels",
+            "private_metrics",
+            "normalizer",
+            "weights",
+            "parameters",
+            "prediction",
+            "path",
+        ] {
+            assert!(!json.contains(forbidden));
+        }
     }
 
     #[test]

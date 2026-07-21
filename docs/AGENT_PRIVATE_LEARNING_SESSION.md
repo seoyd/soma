@@ -106,3 +106,27 @@ The verified local execution produced independent Momentum and Cycle/Risk
 Shadow candidates. Value/Quality remained explicitly unavailable with no
 candidate. Repeating the same execution returned deterministic session and
 candidate identities and duplicate-rejected all existing artifacts.
+
+## Candidate evaluation handoff
+
+Private candidates are handed to evaluation through an additive lineage audit;
+their original envelopes are not rewritten. The handoff verifies exactly one
+candidate, its matching session and dataset manifest, and the trainer projection
+before producing an evidence-usage ledger and candidate-identity audit. A
+preliminary session without the complete hardened policy and projection binding
+is retained as a retrospective record but is ineligible for registration.
+
+Historical training, validation, and test uses are recorded separately. Test
+inference, label access, metric calculation, checkpoint influence, and candidate
+identity influence are not treated as interchangeable. In particular, a test
+metric included in `private_metrics_digest` and then in the candidate digest
+makes that historical test consumed for candidate identity; it cannot be called
+a fresh sealed test.
+
+The safe continuation is a pre-registered evaluation that accepts only evidence
+strictly later than its derived cutoff. Registration does not read future rows,
+open labels or probabilities, calculate a performance metric, retrain a model,
+replace an active model, promote a candidate, apply a reward, or perform a
+network request. Its artifacts live under the separate ignored
+`state/learning_data/evaluation/{agent}` namespace and use the same verified,
+non-overwriting Protobuf write protocol.
