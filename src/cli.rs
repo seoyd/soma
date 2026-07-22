@@ -1,5 +1,6 @@
 use std::{
     collections::BTreeSet,
+    fmt::Write as _,
     fs,
     path::{Path, PathBuf},
 };
@@ -80,6 +81,8 @@ pub struct CliArgs {
     #[arg(long, default_value_t = false)]
     pub agent_canonical_view_gap_v1: bool,
     #[arg(long, default_value_t = false)]
+    pub migrate_persisted_learning_intent_v1: bool,
+    #[arg(long, default_value_t = false)]
     pub status: bool,
     #[arg(long, default_value_t = false)]
     pub dry_run: bool,
@@ -123,6 +126,34 @@ pub struct CliArgs {
 
 pub fn run() -> Result<(), String> {
     let args = CliArgs::parse();
+    if args.migrate_persisted_learning_intent_v1 {
+        if args.execute
+            || args.confirm_single_public_candle_request
+            || args.confirm_one_time_outcome_request
+            || args.confirm_one_time_prospective_opening
+            || args.confirm_one_time_learning_evidence_request
+            || args.confirm_composite_learning_evidence_epoch
+        {
+            return Err(
+                "persisted learning intent migration rejects network authority flags".into(),
+            );
+        }
+        let config = args
+            .historical_snapshot_campaign_config
+            .as_deref()
+            .ok_or_else(|| {
+                "persisted learning intent migration requires a local historical provider config"
+                    .to_string()
+            })?;
+        return run_persisted_learning_intent_migration_cli_v1(
+            config,
+            &args.output_format,
+            args.status,
+            args.dry_run,
+            args.execute_local,
+            args.allow_network,
+        );
+    }
     if args.agent_canonical_view_gap_v1 {
         let config = args
             .historical_snapshot_campaign_config
@@ -477,6 +508,99 @@ struct AgentCanonicalViewGapCliReportV1 {
     evaluation_registrations: Vec<crate::model::AgentCandidateEvaluationPublicSummaryV1>,
     safety_counters: crate::data::LearningEvidenceSafetyCountersV1,
     prospective_storage_writes: usize,
+}
+
+#[derive(Clone, Debug, Serialize)]
+struct MigratedCandidateParticipantCliV1 {
+    participant_id: String,
+    participant_digest: String,
+    model_kind: String,
+    qualification_status: Option<crate::model::ValidationQualificationStatusV1>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+struct MigratedCandidateFamilyCliV1 {
+    agent_id: String,
+    status: crate::model::AgentLearningSessionStatusV1,
+    evidence_status: Option<crate::data::CanonicalViewGapStatusV1>,
+    blocker_code: Option<String>,
+    session_digest: Option<String>,
+    view_digest: Option<String>,
+    projection_digest: Option<String>,
+    family_digest: Option<String>,
+    participants: Vec<MigratedCandidateParticipantCliV1>,
+    winner_selected: bool,
+    historical_test_access_count: usize,
+    eligible_for_active_committee: bool,
+    eligible_for_promotion: bool,
+    eligible_for_reward: bool,
+}
+
+#[derive(Clone, Debug, Serialize)]
+struct MigratedEvaluationRegistrationCliV1 {
+    agent_id: String,
+    status: crate::model::CandidateEvaluationRegistrationStatusV1,
+    blocker_code: Option<String>,
+    registration_digest: Option<String>,
+    exclusion_digest: Option<String>,
+    minimum_accepted_timestamp_ms: Option<u64>,
+    participant_count: usize,
+    historical_test_access_count: usize,
+    maximum_requests: usize,
+    maximum_concurrency: usize,
+    maximum_retries: usize,
+    labels_hidden_until_opening: bool,
+    probabilities_hidden_until_opening: bool,
+    one_time_opening_required: bool,
+    winner_selection_forbidden_before_opening: bool,
+    active_promotion_forbidden: bool,
+    reward_application_forbidden: bool,
+}
+
+#[derive(Clone, Debug, Serialize)]
+struct PersistedRewardEligibilityReplayCliV1 {
+    opening_status: crate::model::ProspectiveOutcomeOpeningStatusV0,
+    opening_attempt_count: usize,
+    opened_event_count: usize,
+    outcome_digests: Vec<String>,
+    attribution_classes: Vec<crate::model::LearnedAbstentionAttributionV0>,
+    eligibility_statuses: Vec<crate::model::LearnedRewardEligibilityStatusV0>,
+    eligibility_digests: Vec<String>,
+    reward_candidate_count: usize,
+    reward_apply_count: usize,
+    penalty_apply_count: usize,
+    voice_mutation_count: usize,
+    authority_action_count: usize,
+    replay_matches_persisted: bool,
+}
+
+#[derive(Clone, Debug, Serialize)]
+struct PersistedLearningIntentMigrationCliReportV1 {
+    report_version: &'static str,
+    mode: String,
+    offline: bool,
+    migration: crate::model::PersistedLearningIntentMigrationReportV1,
+    candidate_families: Vec<MigratedCandidateFamilyCliV1>,
+    evaluation_registrations: Vec<MigratedEvaluationRegistrationCliV1>,
+    reward_eligibility_replay: PersistedRewardEligibilityReplayCliV1,
+    new_network_requests: usize,
+    transport_constructions: usize,
+    new_credential_reads: usize,
+    new_prospective_row_reads: usize,
+    new_prospective_label_openings: usize,
+    new_future_evaluation_reads: usize,
+    historical_test_reads_v1: usize,
+    active_committee_count: usize,
+    active_model_changes: usize,
+    chair_decisions: usize,
+    votes: usize,
+    reward_applications: usize,
+    penalty_applications: usize,
+    voice_changes: usize,
+    cooldowns_started: usize,
+    promotions: usize,
+    quarantines: usize,
+    executions: usize,
 }
 
 fn load_persisted_learning_registrations_v1(
@@ -1211,6 +1335,518 @@ fn run_agent_canonical_view_gap_cli_v1(
         },
         output_format,
     )
+}
+
+fn migrated_candidate_family_cli_v1(
+    result: &crate::model::AgentCandidateFamilyResultV1,
+    evidence_status: Option<crate::data::CanonicalViewGapStatusV1>,
+) -> MigratedCandidateFamilyCliV1 {
+    let participants = result
+        .family
+        .as_ref()
+        .map(|family| {
+            family
+                .participants
+                .iter()
+                .map(|participant| MigratedCandidateParticipantCliV1 {
+                    participant_id: participant.participant_id.clone(),
+                    participant_digest: participant.participant_digest.clone(),
+                    model_kind: participant.model_kind.clone(),
+                    qualification_status: result
+                        .qualification_receipts
+                        .iter()
+                        .find(|receipt| {
+                            receipt.participant_digest == participant.participant_digest
+                        })
+                        .map(|receipt| receipt.qualification_status),
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    MigratedCandidateFamilyCliV1 {
+        agent_id: result.agent_id.clone(),
+        status: result.status,
+        evidence_status,
+        blocker_code: result.sanitized_error_code.clone(),
+        session_digest: result
+            .session
+            .as_ref()
+            .map(|session| session.session_digest.clone()),
+        view_digest: result
+            .session
+            .as_ref()
+            .map(|session| session.view_digest.clone()),
+        projection_digest: result
+            .projection
+            .as_ref()
+            .map(|projection| projection.projection_digest.clone()),
+        family_digest: result
+            .family
+            .as_ref()
+            .map(|family| family.family_digest.clone()),
+        participants,
+        winner_selected: result
+            .family
+            .as_ref()
+            .is_some_and(|family| family.winner_selected),
+        historical_test_access_count: result.usage_ledger.as_ref().map_or(0, |ledger| {
+            ledger.historical_test_row_reads
+                + ledger.historical_test_label_reads
+                + ledger.historical_test_inference_count
+                + ledger.historical_test_metric_count
+                + ledger.historical_test_checkpoint_selection_count
+        }),
+        eligible_for_active_committee: result
+            .family
+            .as_ref()
+            .is_some_and(|family| family.eligible_for_active_committee),
+        eligible_for_promotion: result
+            .family
+            .as_ref()
+            .is_some_and(|family| family.eligible_for_promotion),
+        eligible_for_reward: result
+            .family
+            .as_ref()
+            .is_some_and(|family| family.eligible_for_reward),
+    }
+}
+
+fn migrated_evaluation_registration_cli_v1(
+    result: &crate::model::AgentCandidateEvaluationResultV1,
+) -> MigratedEvaluationRegistrationCliV1 {
+    MigratedEvaluationRegistrationCliV1 {
+        agent_id: result.agent_id.clone(),
+        status: result.status,
+        blocker_code: result.sanitized_error_code.clone(),
+        registration_digest: result
+            .registration
+            .as_ref()
+            .map(|registration| registration.registration_digest.clone()),
+        exclusion_digest: result
+            .exclusion
+            .as_ref()
+            .map(|exclusion| exclusion.exclusion_digest.clone()),
+        minimum_accepted_timestamp_ms: result
+            .registration
+            .as_ref()
+            .map(|registration| registration.minimum_accepted_timestamp_ms),
+        participant_count: result
+            .registration
+            .as_ref()
+            .map_or(0, |registration| registration.participant_digests.len()),
+        historical_test_access_count: 0,
+        maximum_requests: result
+            .registration
+            .as_ref()
+            .map_or(0, |registration| registration.maximum_requests),
+        maximum_concurrency: result
+            .registration
+            .as_ref()
+            .map_or(0, |registration| registration.maximum_concurrency),
+        maximum_retries: result
+            .registration
+            .as_ref()
+            .map_or(0, |registration| registration.maximum_retries),
+        labels_hidden_until_opening: result
+            .registration
+            .as_ref()
+            .is_some_and(|registration| registration.labels_hidden_until_opening),
+        probabilities_hidden_until_opening: result
+            .registration
+            .as_ref()
+            .is_some_and(|registration| registration.probabilities_hidden_until_opening),
+        one_time_opening_required: result
+            .registration
+            .as_ref()
+            .is_some_and(|registration| registration.one_time_opening_required),
+        winner_selection_forbidden_before_opening: result
+            .registration
+            .as_ref()
+            .is_some_and(|registration| registration.winner_selection_forbidden_before_opening),
+        active_promotion_forbidden: result
+            .registration
+            .as_ref()
+            .is_some_and(|registration| registration.active_promotion_forbidden),
+        reward_application_forbidden: result
+            .registration
+            .as_ref()
+            .is_some_and(|registration| registration.reward_application_forbidden),
+    }
+}
+
+fn format_persisted_intent_migration_text_v1(
+    report: &PersistedLearningIntentMigrationCliReportV1,
+) -> String {
+    let mut output = String::new();
+    let migration = &report.migration;
+    let _ = writeln!(output, "report_version={}", report.report_version);
+    let _ = writeln!(output, "mode={}", report.mode);
+    let _ = writeln!(output, "offline={}", report.offline);
+    let _ = writeln!(output, "agent_id={}", migration.agent_id);
+    let _ = writeln!(output, "migration_status={:?}", migration.status);
+    let _ = writeln!(output, "migration_blocker={:?}", migration.blocker);
+    let _ = writeln!(
+        output,
+        "first_failing_invariant={}",
+        migration
+            .first_failing_invariant
+            .as_deref()
+            .unwrap_or_default()
+    );
+    for (name, value) in [
+        ("legacy_session_digest", &migration.legacy_session_digest),
+        ("legacy_intent_digest", &migration.legacy_intent_digest),
+        ("canonical_gap_digest", &migration.canonical_gap_digest),
+        (
+            "composite_registration_digest",
+            &migration.composite_registration_digest,
+        ),
+        (
+            "canonical_snapshot_digest",
+            &migration.canonical_snapshot_digest,
+        ),
+        (
+            "canonical_intent_digest",
+            &migration.canonical_intent_digest,
+        ),
+        ("canonical_view_digest", &migration.canonical_view_digest),
+        (
+            "policy_compatibility_proof_digest",
+            &migration.policy_compatibility_proof_digest,
+        ),
+        ("migration_proof_digest", &migration.migration_proof_digest),
+        (
+            "migration_journal_digest",
+            &migration.migration_journal_digest,
+        ),
+    ] {
+        let _ = writeln!(output, "{name}={}", value.as_deref().unwrap_or_default());
+    }
+    let _ = writeln!(
+        output,
+        "field_provenance_count={}",
+        migration.field_provenance_count
+    );
+    let _ = writeln!(
+        output,
+        "required_evidence_complete={}",
+        migration.required_evidence_complete
+    );
+    let _ = writeln!(
+        output,
+        "optional_evidence_unavailable={}",
+        migration.optional_evidence_unavailable
+    );
+    let _ = writeln!(
+        output,
+        "normal_validator_passed={}",
+        migration.normal_validator_passed
+    );
+    let _ = writeln!(
+        output,
+        "normal_view_builder_passed={}",
+        migration.normal_view_builder_passed
+    );
+    for family in &report.candidate_families {
+        let _ = writeln!(
+            output,
+            "candidate_agent={};status={:?};evidence_status={};blocker_code={};session_digest={};view_digest={};projection_digest={};family_digest={};participant_count={};winner_selected={};historical_test_access_count={};active_eligible={};promotion_eligible={};reward_eligible={}",
+            family.agent_id,
+            family.status,
+            family
+                .evidence_status
+                .map(|status| format!("{status:?}"))
+                .unwrap_or_default(),
+            family.blocker_code.as_deref().unwrap_or_default(),
+            family.session_digest.as_deref().unwrap_or_default(),
+            family.view_digest.as_deref().unwrap_or_default(),
+            family.projection_digest.as_deref().unwrap_or_default(),
+            family.family_digest.as_deref().unwrap_or_default(),
+            family.participants.len(),
+            family.winner_selected,
+            family.historical_test_access_count,
+            family.eligible_for_active_committee,
+            family.eligible_for_promotion,
+            family.eligible_for_reward,
+        );
+        for participant in &family.participants {
+            let _ = writeln!(
+                output,
+                "participant_id={};participant_digest={};model_kind={};qualification_status={}",
+                participant.participant_id,
+                participant.participant_digest,
+                participant.model_kind,
+                participant
+                    .qualification_status
+                    .map(|value| format!("{value:?}"))
+                    .unwrap_or_default(),
+            );
+        }
+    }
+    for registration in &report.evaluation_registrations {
+        let _ = writeln!(
+            output,
+            "evaluation_agent={};status={:?};blocker_code={};registration_digest={};exclusion_digest={};minimum_accepted_timestamp_ms={};participant_count={};historical_test_access_count={};maximum_requests={};maximum_concurrency={};maximum_retries={};labels_hidden={};probabilities_hidden={};one_time_opening_required={};winner_selection_forbidden={};active_promotion_forbidden={};reward_application_forbidden={}",
+            registration.agent_id,
+            registration.status,
+            registration.blocker_code.as_deref().unwrap_or_default(),
+            registration
+                .registration_digest
+                .as_deref()
+                .unwrap_or_default(),
+            registration.exclusion_digest.as_deref().unwrap_or_default(),
+            registration
+                .minimum_accepted_timestamp_ms
+                .unwrap_or_default(),
+            registration.participant_count,
+            registration.historical_test_access_count,
+            registration.maximum_requests,
+            registration.maximum_concurrency,
+            registration.maximum_retries,
+            registration.labels_hidden_until_opening,
+            registration.probabilities_hidden_until_opening,
+            registration.one_time_opening_required,
+            registration.winner_selection_forbidden_before_opening,
+            registration.active_promotion_forbidden,
+            registration.reward_application_forbidden,
+        );
+    }
+    let reward = &report.reward_eligibility_replay;
+    let _ = writeln!(output, "opening_status={:?}", reward.opening_status);
+    let _ = writeln!(
+        output,
+        "opening_attempt_count={}",
+        reward.opening_attempt_count
+    );
+    let _ = writeln!(output, "opened_event_count={}", reward.opened_event_count);
+    let _ = writeln!(output, "outcome_digests={:?}", reward.outcome_digests);
+    let _ = writeln!(
+        output,
+        "attribution_classes={:?}",
+        reward.attribution_classes
+    );
+    let _ = writeln!(
+        output,
+        "eligibility_statuses={:?}",
+        reward.eligibility_statuses
+    );
+    let _ = writeln!(
+        output,
+        "eligibility_digests={:?}",
+        reward.eligibility_digests
+    );
+    let _ = writeln!(
+        output,
+        "reward_candidate_count={}",
+        reward.reward_candidate_count
+    );
+    let _ = writeln!(output, "reward_apply_count={}", reward.reward_apply_count);
+    let _ = writeln!(output, "penalty_apply_count={}", reward.penalty_apply_count);
+    let _ = writeln!(
+        output,
+        "voice_mutation_count={}",
+        reward.voice_mutation_count
+    );
+    let _ = writeln!(
+        output,
+        "authority_action_count={}",
+        reward.authority_action_count
+    );
+    let _ = writeln!(
+        output,
+        "reward_replay_matches_persisted={}",
+        reward.replay_matches_persisted
+    );
+    for (name, value) in [
+        ("new_network_requests", report.new_network_requests),
+        ("transport_constructions", report.transport_constructions),
+        ("new_credential_reads", report.new_credential_reads),
+        (
+            "new_prospective_row_reads",
+            report.new_prospective_row_reads,
+        ),
+        (
+            "new_prospective_label_openings",
+            report.new_prospective_label_openings,
+        ),
+        (
+            "new_future_evaluation_reads",
+            report.new_future_evaluation_reads,
+        ),
+        ("historical_test_reads_v1", report.historical_test_reads_v1),
+        ("active_committee_count", report.active_committee_count),
+        ("active_model_changes", report.active_model_changes),
+        ("chair_decisions", report.chair_decisions),
+        ("votes", report.votes),
+        ("reward_applications", report.reward_applications),
+        ("penalty_applications", report.penalty_applications),
+        ("voice_changes", report.voice_changes),
+        ("cooldowns_started", report.cooldowns_started),
+        ("promotions", report.promotions),
+        ("quarantines", report.quarantines),
+        ("executions", report.executions),
+    ] {
+        let _ = writeln!(output, "{name}={value}");
+    }
+    let _ = writeln!(
+        output,
+        "protected_artifacts_unchanged={}",
+        migration.protected_artifacts_unchanged
+    );
+    let _ = writeln!(
+        output,
+        "active_state_unchanged={}",
+        migration.active_state_unchanged
+    );
+    let _ = writeln!(output, "artifacts_written={}", migration.artifacts_written);
+    let _ = writeln!(
+        output,
+        "duplicate_artifact_count={}",
+        migration.duplicate_artifact_count
+    );
+    let _ = writeln!(
+        output,
+        "storage_failure_count={}",
+        migration.storage_failure_count
+    );
+    let _ = writeln!(output, "report_digest={}", migration.report_digest);
+    output
+}
+
+fn run_persisted_learning_intent_migration_cli_v1(
+    config_path: &Path,
+    output_format: &str,
+    status: bool,
+    dry_run: bool,
+    execute_local: bool,
+    allow_network: bool,
+) -> Result<(), String> {
+    if usize::from(status) + usize::from(dry_run) + usize::from(execute_local) != 1 {
+        return Err("select exactly one persisted intent migration mode".into());
+    }
+    if allow_network {
+        return Err("persisted learning intent migration is offline-only".into());
+    }
+    if output_format != "text" && output_format != "json" {
+        return Err("unsupported persisted intent migration output format".into());
+    }
+    let mode = if status {
+        crate::model::AgentPrivateLearningRunModeV0::Status
+    } else if dry_run {
+        crate::model::AgentPrivateLearningRunModeV0::DryRun
+    } else {
+        crate::model::AgentPrivateLearningRunModeV0::ExecuteLocal
+    };
+    let snapshots =
+        crate::model::load_local_learning_snapshots_v0(Path::new("data/local_snapshots"))?;
+    let root = crate::model::default_private_learning_root_v0();
+    let gap_statuses =
+        crate::model::load_latest_agent_canonical_view_gap_statuses_v1(root).unwrap_or_default();
+    let migration =
+        crate::model::run_persisted_learning_intent_migration_v1(root, &snapshots, mode);
+    let inputs = if execute_local && migration.report.storage_failure_count == 0 {
+        let cutoff = migration
+            .canonical_input
+            .as_ref()
+            .map(|input| input.input.intent.information_cutoff_ms)
+            .unwrap_or_default();
+        crate::model::build_agent_private_learning_inputs_v1(&snapshots, cutoff, root, mode)
+    } else {
+        migration
+            .canonical_input
+            .clone()
+            .into_iter()
+            .collect::<Vec<_>>()
+    };
+    let mut families = crate::model::run_agent_private_learning_candidates_v1(&inputs, mode);
+    if execute_local && migration.report.storage_failure_count == 0 {
+        crate::model::persist_agent_candidate_families_report_v1(&mut families, root);
+    }
+    let reservation = crate::model::load_protected_evaluation_reservation_v1(
+        config_path
+            .parent()
+            .ok_or("persisted intent migration reservation directory unavailable")?,
+    )?;
+    let mut evaluations =
+        crate::model::run_agent_candidate_evaluations_v1(&families, &inputs, &reservation, mode);
+    if execute_local
+        && migration.report.storage_failure_count == 0
+        && families.storage_failure_count == 0
+    {
+        crate::model::persist_agent_candidate_evaluations_report_v1(&mut evaluations, root);
+    }
+    let reward_eligibility_replay = replay_persisted_reward_eligibility_v1(config_path)?;
+    let active_committee_count = migration.report.safety_counters.active_committee_count;
+    let report = PersistedLearningIntentMigrationCliReportV1 {
+        report_version: "persisted-learning-intent-migration-cli-report-v1",
+        mode: if status {
+            "status"
+        } else if dry_run {
+            "dry-run"
+        } else {
+            "execute-local"
+        }
+        .to_string(),
+        offline: true,
+        migration: migration.report,
+        candidate_families: families
+            .results
+            .iter()
+            .map(|result| {
+                migrated_candidate_family_cli_v1(
+                    result,
+                    gap_statuses.get(&result.agent_id).copied(),
+                )
+            })
+            .collect(),
+        evaluation_registrations: evaluations
+            .results
+            .iter()
+            .map(migrated_evaluation_registration_cli_v1)
+            .collect(),
+        reward_eligibility_replay,
+        new_network_requests: 0,
+        transport_constructions: 0,
+        new_credential_reads: 0,
+        new_prospective_row_reads: 0,
+        new_prospective_label_openings: 0,
+        new_future_evaluation_reads: 0,
+        historical_test_reads_v1: families.safety_counters.historical_test_reads_v1
+            + evaluations.safety_counters.historical_test_reads_v1,
+        active_committee_count,
+        active_model_changes: families.safety_counters.active_model_changes
+            + evaluations.safety_counters.active_model_changes,
+        chair_decisions: families.safety_counters.chair_decisions
+            + evaluations.safety_counters.chair_decisions,
+        votes: families.safety_counters.votes + evaluations.safety_counters.votes,
+        reward_applications: families.safety_counters.rewards + evaluations.safety_counters.rewards,
+        penalty_applications: families.safety_counters.penalties
+            + evaluations.safety_counters.penalties,
+        voice_changes: families.safety_counters.voice_changes
+            + evaluations.safety_counters.voice_changes,
+        cooldowns_started: 0,
+        promotions: families.safety_counters.promotions + evaluations.safety_counters.promotions,
+        quarantines: 0,
+        executions: families.safety_counters.executions + evaluations.safety_counters.executions,
+    };
+    if output_format == "json" {
+        println!(
+            "{}",
+            serde_json::to_string(&report)
+                .map_err(|_| "persisted intent migration report encoding failed")?
+        );
+    } else {
+        print!("{}", format_persisted_intent_migration_text_v1(&report));
+    }
+    if report.migration.storage_failure_count > 0
+        || families.storage_failure_count > 0
+        || evaluations.storage_failure_count > 0
+        || !report.migration.protected_artifacts_unchanged
+        || !report.migration.active_state_unchanged
+    {
+        return Err("persisted learning intent migration verification failed".into());
+    }
+    Ok(())
 }
 
 fn run_agent_candidate_family_cli_v1(
@@ -4716,6 +5352,125 @@ fn prospective_opening_protected_bytes_v0(local_dir: &Path) -> Result<Vec<Vec<u8
     Ok(bytes)
 }
 
+fn replay_persisted_reward_eligibility_v1(
+    config_path: &Path,
+) -> Result<PersistedRewardEligibilityReplayCliV1, String> {
+    let local_dir = config_path
+        .parent()
+        .ok_or("reward eligibility replay local directory unavailable")?;
+    let context = prospective_opening_context_v0(local_dir)?;
+    let registration = crate::model::read_prospective_one_time_opening_registration_v0(
+        &local_dir.join("prospective_one_time_opening_registration_v0.json"),
+    )?;
+    crate::model::validate_prospective_one_time_opening_registration_v0(
+        &registration,
+        &context.plans,
+    )?;
+    if registration != context.registration {
+        return Err("reward eligibility replay registration mismatch".into());
+    }
+    let acquisition_plan = crate::data::build_prospective_outcome_acquisition_plan_v0(
+        &registration,
+        &context.plans,
+        &context.public_registration,
+        crate::model::ProspectiveOutcomeRequestReadinessV0::ReadyForExplicitRequest,
+    )?;
+    crate::data::validate_prospective_outcome_evidence_capsule_for_plan_v0(
+        &context.outcome_capsule,
+        &acquisition_plan,
+        &context.expected_series_id,
+    )?;
+    let snapshot = load_selected_historical_snapshot_v0(config_path)?;
+    let risk_config = crate::model::CycleRiskShadowConfigV0::default();
+    let risk_report = crate::model::run_cycle_risk_shadow_v0(&snapshot, &risk_config)
+        .map_err(|_| "reward eligibility replay risk policy rebuild failed")?;
+    let momentum_config = crate::model::MomentumLearningCampaignConfigV0::default();
+    let sequence = &momentum_config.sequence_config;
+    let momentum_label_policy_digest = crate::core::stable_hash_string(&format!(
+        "{}:{}:{}:{}:{}",
+        sequence.sequence_length,
+        sequence.prediction_horizon,
+        sequence.label_dead_zone.to_bits(),
+        sequence.stride,
+        sequence.include_neutral_labels,
+    ));
+    if momentum_label_policy_digest != context.momentum.capsule.label_policy_digest {
+        return Err("reward eligibility replay momentum policy mismatch".into());
+    }
+    let risk_threshold_bits = risk_report
+        .regimes
+        .iter()
+        .map(|regime| regime.checkpoint.threshold.to_bits())
+        .collect::<Vec<_>>();
+    let (momentum_contract, risk_contract, reward_gate, reward_registration) =
+        prospective_opening_reward_contracts_v0(&context, &risk_report)?;
+    let bundle_path = crate::model::default_private_learning_root_v0()
+        .join("prospective_opening_v0/opening-bundle-v0.pb");
+    let persisted = crate::model::read_prospective_outcome_opening_bundle_v0(&bundle_path)?;
+    crate::model::validate_prospective_outcome_opening_bundle_v0(&persisted)?;
+    let authorization = persisted
+        .authorization
+        .as_ref()
+        .ok_or("reward eligibility replay authorization unavailable")?;
+    let input = crate::model::ProspectiveOutcomeOpeningInputV0 {
+        registration: &registration,
+        plans: &context.plans,
+        acquisition_receipt: &context.outcome_receipt,
+        outcome_capsule: &context.outcome_capsule,
+        expected_series_id: &context.expected_series_id,
+        momentum_event: &context.event_audit.momentum_event,
+        risk_event: &context.event_audit.risk_event,
+        prospective_source_row: &context.external_capsule.row,
+        momentum_contract: &momentum_contract,
+        risk_contract: &risk_contract,
+        reward_registration: &reward_registration,
+        reward_gate: &reward_gate,
+        momentum_label_dead_zone_bits: sequence.label_dead_zone.to_bits(),
+        risk_threshold_bits: &risk_threshold_bits,
+        observed_timestamp: current_utc_timestamp_ms(),
+        challenge_valid: context.challenge_valid,
+        opening_attempt_count_before: 0,
+        opened_event_count_before: context.label_open_count,
+    };
+    let replayed =
+        crate::model::derive_prospective_outcome_opening_bundle_v0(&input, Some(authorization));
+    crate::model::validate_prospective_outcome_opening_bundle_v0(&replayed)?;
+    if replayed != persisted {
+        return Err("reward eligibility replay differs from persisted opening".into());
+    }
+    Ok(PersistedRewardEligibilityReplayCliV1 {
+        opening_status: replayed.receipt.status,
+        opening_attempt_count: replayed.receipt.opening_attempt_count,
+        opened_event_count: replayed.receipt.opened_event_count,
+        outcome_digests: replayed
+            .outcomes
+            .iter()
+            .map(|outcome| outcome.outcome_digest.clone())
+            .collect(),
+        attribution_classes: replayed
+            .outcomes
+            .iter()
+            .map(|outcome| outcome.attribution_class)
+            .collect(),
+        eligibility_statuses: replayed
+            .outcomes
+            .iter()
+            .map(|outcome| outcome.eligibility_status)
+            .collect(),
+        eligibility_digests: replayed
+            .outcomes
+            .iter()
+            .map(|outcome| outcome.eligibility_digest.clone())
+            .collect(),
+        reward_candidate_count: replayed.reward_candidate_count,
+        reward_apply_count: replayed.reward_apply_count,
+        penalty_apply_count: replayed.penalty_apply_count,
+        voice_mutation_count: replayed.voice_mutation_count,
+        authority_action_count: replayed.authority_action_count,
+        replay_matches_persisted: true,
+    })
+}
+
 fn run_prospective_outcome_opening_v0(
     config_path: &Path,
     output_format: &str,
@@ -7172,6 +7927,166 @@ fn stable_cross_market_report_digest(parts: &[&str]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn persisted_intent_migration_cli_fixture_v1() -> PersistedLearningIntentMigrationCliReportV1 {
+        PersistedLearningIntentMigrationCliReportV1 {
+            report_version: "persisted-learning-intent-migration-cli-report-v1",
+            mode: "dry-run".to_string(),
+            offline: true,
+            migration: crate::model::PersistedLearningIntentMigrationReportV1 {
+                report_version: "persisted-learning-intent-migration-report-v1".to_string(),
+                mode: crate::model::AgentPrivateLearningRunModeV0::DryRun,
+                agent_id: "momentum_trend_fast".to_string(),
+                blocker:
+                    crate::model::PersistedIntentMigrationBlockerV1::LegacySessionNotSelfDescribing,
+                first_failing_invariant: Some("intent_version".to_string()),
+                status: crate::model::PersistedLearningIntentMigrationStatusV1::Migrated,
+                legacy_session_digest: Some("legacy-session".to_string()),
+                legacy_intent_digest: Some("legacy-intent".to_string()),
+                canonical_gap_digest: Some("gap".to_string()),
+                composite_registration_digest: Some("composite".to_string()),
+                canonical_snapshot_digest: Some("snapshot".to_string()),
+                canonical_intent_digest: Some("intent".to_string()),
+                canonical_view_digest: Some("view".to_string()),
+                policy_compatibility_proof_digest: Some("policy-proof".to_string()),
+                migration_proof_digest: Some("migration-proof".to_string()),
+                migration_journal_digest: Some("journal".to_string()),
+                field_provenance_count: 16,
+                required_evidence_complete: true,
+                optional_evidence_unavailable: true,
+                normal_validator_passed: true,
+                normal_view_builder_passed: true,
+                artifacts_written: 0,
+                duplicate_artifact_count: 0,
+                storage_failure_count: 0,
+                protected_artifacts_unchanged: true,
+                active_state_unchanged: true,
+                safety_counters: crate::model::PersistedIntentMigrationSafetyCountersV1 {
+                    active_committee_count: 3,
+                    network_requests: 0,
+                    transport_constructions: 0,
+                    credential_reads: 0,
+                    prospective_artifact_reads: 0,
+                    prospective_label_reads: 0,
+                    future_evaluation_reads: 0,
+                    active_model_changes: 0,
+                    chair_decisions: 0,
+                    votes: 0,
+                    rewards: 0,
+                    penalties: 0,
+                    voice_changes: 0,
+                    promotions: 0,
+                    executions: 0,
+                },
+                report_digest: "report".to_string(),
+            },
+            candidate_families: Vec::new(),
+            evaluation_registrations: Vec::new(),
+            reward_eligibility_replay: PersistedRewardEligibilityReplayCliV1 {
+                opening_status: crate::model::ProspectiveOutcomeOpeningStatusV0::Opened,
+                opening_attempt_count: 1,
+                opened_event_count: 2,
+                outcome_digests: vec!["outcome-a".to_string(), "outcome-b".to_string()],
+                attribution_classes: vec![
+                    crate::model::LearnedAbstentionAttributionV0::MissedMaterialOpportunity,
+                    crate::model::LearnedAbstentionAttributionV0::CorrectUncertainty,
+                ],
+                eligibility_statuses: vec![
+                    crate::model::LearnedRewardEligibilityStatusV0::IneligibleMinimumSamples,
+                    crate::model::LearnedRewardEligibilityStatusV0::IneligibleMinimumSamples,
+                ],
+                eligibility_digests: vec!["eligibility-a".to_string(), "eligibility-b".to_string()],
+                reward_candidate_count: 0,
+                reward_apply_count: 0,
+                penalty_apply_count: 0,
+                voice_mutation_count: 0,
+                authority_action_count: 0,
+                replay_matches_persisted: true,
+            },
+            new_network_requests: 0,
+            transport_constructions: 0,
+            new_credential_reads: 0,
+            new_prospective_row_reads: 0,
+            new_prospective_label_openings: 0,
+            new_future_evaluation_reads: 0,
+            historical_test_reads_v1: 0,
+            active_committee_count: 3,
+            active_model_changes: 0,
+            chair_decisions: 0,
+            votes: 0,
+            reward_applications: 0,
+            penalty_applications: 0,
+            voice_changes: 0,
+            cooldowns_started: 0,
+            promotions: 0,
+            quarantines: 0,
+            executions: 0,
+        }
+    }
+
+    #[test]
+    fn persisted_intent_migration_text_and_json_public_fields_agree() {
+        let report = persisted_intent_migration_cli_fixture_v1();
+        let text = format_persisted_intent_migration_text_v1(&report);
+        let json = serde_json::to_value(&report).unwrap();
+        for field in [
+            "new_network_requests",
+            "transport_constructions",
+            "new_credential_reads",
+            "new_prospective_row_reads",
+            "new_prospective_label_openings",
+            "new_future_evaluation_reads",
+            "historical_test_reads_v1",
+            "active_committee_count",
+            "active_model_changes",
+            "chair_decisions",
+            "votes",
+            "reward_applications",
+            "penalty_applications",
+            "voice_changes",
+            "cooldowns_started",
+            "promotions",
+            "quarantines",
+            "executions",
+        ] {
+            assert!(text.contains(&format!("{field}={}", json[field])));
+        }
+        for field in [
+            "legacy_session_digest",
+            "legacy_intent_digest",
+            "canonical_gap_digest",
+            "composite_registration_digest",
+            "canonical_snapshot_digest",
+            "canonical_intent_digest",
+            "canonical_view_digest",
+            "policy_compatibility_proof_digest",
+            "migration_proof_digest",
+            "migration_journal_digest",
+        ] {
+            let value = json["migration"][field].as_str().unwrap();
+            assert!(text.contains(&format!("{field}={value}")));
+        }
+        assert!(text.contains("migration_status=Migrated"));
+        assert!(text.contains("migration_blocker=LegacySessionNotSelfDescribing"));
+        assert!(text.contains("opening_attempt_count=1"));
+        assert!(text.contains("opened_event_count=2"));
+        assert!(text.contains("reward_apply_count=0"));
+        assert!(text.contains("penalty_apply_count=0"));
+    }
+
+    #[test]
+    fn persisted_intent_migration_rejects_network_permission_before_io() {
+        let error = run_persisted_learning_intent_migration_cli_v1(
+            Path::new("not-used"),
+            "json",
+            true,
+            false,
+            false,
+            true,
+        )
+        .unwrap_err();
+        assert_eq!(error, "persisted learning intent migration is offline-only");
+    }
 
     #[test]
     fn prospective_external_admission_text_and_json_use_the_same_public_fields() {

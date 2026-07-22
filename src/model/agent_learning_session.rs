@@ -6,7 +6,7 @@
 
 use std::{
     collections::{BTreeMap, BTreeSet},
-    fs::{self, File},
+    fs::{self, File, OpenOptions},
     io::{Read, Write},
     path::{Path, PathBuf},
 };
@@ -17,20 +17,24 @@ use serde::{Deserialize, Serialize};
 use crate::{
     core::stable_hash_string,
     data::{
-        AcquisitionMarketScope, AcquisitionMode, AcquisitionPolicy, AgentDataIntent,
-        AgentDataPolicy, AgentLearningDataViewV0, AgentLearningIntentV0, ConfiguredUniverse,
-        DataLookback, DataPriority, DataSnapshot, DatasetKind, EvidenceDecisionGate,
-        LearningDataArtifactRefV0, LearningDataCallerV0, LearningDataPlaneSafetyCountersV0,
-        LearningDataVisibilityV0, PERSISTED_LEARNING_INTENT_PROJECTION_VERSION_V1,
-        ReadOnlyProviderRegistry, ReadOnlyProviderRequest, SnapshotAdjustmentSemanticsV1,
-        SnapshotSourceType, build_agent_learning_data_view_v0, build_learning_acquisition_plan_v0,
-        create_agent_learning_intent_v0, decode_agent_learning_data_view_protobuf_v0,
-        default_agent_data_policies, derive_active_agent_learning_intents_v0,
-        derive_agent_private_learning_state_v0, encode_agent_learning_data_view_protobuf_v0,
-        historical_replay_dataset_digest_v0, plan_agent_data_intent,
-        read_and_verify_agent_learning_data_view_v0, read_local_snapshot_protobuf_v1,
-        validate_agent_learning_data_view_v0, validate_agent_learning_intent_v0,
-        write_and_verify_agent_learning_data_view_v0,
+        AcquisitionMarketScope, AcquisitionMode, AcquisitionPolicy, AgentCanonicalViewGapReportV1,
+        AgentDataIntent, AgentDataPolicy, AgentLearningDataViewV0, AgentLearningIntentV0,
+        AgentPrivateLearningStateV0, CanonicalViewGapStatusV1,
+        CompositeLearningAcquisitionRegistrationV1, CompositeLearningEpochReceiptV1,
+        CompositeLearningEpochStatusV1, ConfiguredUniverse, DataLookback, DataPriority,
+        DataSnapshot, DatasetKind, EvidenceDecisionGate, LearningDataArtifactRefV0,
+        LearningDataCallerV0, LearningDataPlaneSafetyCountersV0, LearningDataVisibilityV0,
+        PERSISTED_LEARNING_INTENT_PROJECTION_VERSION_V1, ReadOnlyProviderRegistry,
+        ReadOnlyProviderRequest, SnapshotAdjustmentSemanticsV1, SnapshotSourceType,
+        build_agent_learning_data_view_v0, build_learning_acquisition_plan_v0,
+        create_agent_learning_intent_v0, decode_agent_canonical_view_gap_report_protobuf_v1,
+        decode_agent_learning_data_view_protobuf_v0, default_agent_data_policies,
+        derive_active_agent_learning_intents_v0, derive_agent_private_learning_state_v0,
+        encode_agent_learning_data_view_protobuf_v0, historical_replay_dataset_digest_v0,
+        plan_agent_data_intent, read_and_verify_agent_learning_data_view_v0,
+        read_composite_epoch_receipt_v1, read_composite_learning_registration_v1,
+        read_local_snapshot_protobuf_v1, validate_agent_learning_data_view_v0,
+        validate_agent_learning_intent_v0, write_and_verify_agent_learning_data_view_v0,
     },
     league::{AgentKind, HistoricalOhlcvRow, canonical_current_agent_states},
 };
@@ -69,6 +73,12 @@ const EXCLUSION_VERSION_V1: &str = "evaluation-evidence-exclusion-v1";
 const EVALUATION_REGISTRATION_VERSION_V1: &str = "agent-candidate-evaluation-registration-v1";
 const EVALUATION_JOURNAL_VERSION_V1: &str = "agent-candidate-evaluation-journal-v1";
 const DAILY_CADENCE_MS_V1: u64 = 86_400_000;
+const INTENT_MIGRATION_VERSION_V1: &str = "persisted-learning-intent-migration-v1";
+const INTENT_POLICY_PROOF_VERSION_V1: &str = "persisted-intent-policy-compatibility-proof-v1";
+const INTENT_MIGRATION_PROOF_VERSION_V1: &str = "persisted-learning-intent-migration-proof-v1";
+const INTENT_MIGRATION_JOURNAL_VERSION_V1: &str = "persisted-learning-intent-migration-journal-v1";
+const INTENT_FIELD_PROVENANCE_VERSION_V1: &str = "migrated-intent-field-provenance-v1";
+const MOMENTUM_AGENT_ID_V1: &str = "momentum_trend_fast";
 const ARTIFACT_MAGIC_V0: &[u8] = b"SOMA-AGENT-PRIVATE-LEARNING-PB-V0";
 const ARTIFACT_SCHEMA_V0: &str = "soma.agent_private_learning.v0";
 const DEFAULT_PRIVATE_LEARNING_ROOT_V0: &str = "state/learning_data";
@@ -597,6 +607,192 @@ pub struct AgentPrivateLearningInputV1 {
     pub persisted_view_verified: bool,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum PersistedIntentMigrationBlockerV1 {
+    None,
+    LegacySessionNotSelfDescribing,
+    LegacyIntentMetadataIncomplete,
+    PersistedIntentDigestMismatch,
+    PolicyDigestMismatch,
+    CanonicalSnapshotBindingMismatch,
+    ViewDigestMismatch,
+    RequiredEvidenceMismatch,
+    OptionalEvidenceOnlyMisclassified,
+    CutoffMismatch,
+    AmbiguousFieldProvenance,
+    IntegrityFailure,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum MigratedIntentFieldSourceV1 {
+    LegacySession,
+    LegacyIntentProjection,
+    VerifiedAgentPolicy,
+    CanonicalGapReport,
+    CompositeAcquisitionRegistration,
+    CanonicalSnapshot,
+    ExistingPrivateLearningState,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PersistedLearningIntentMigrationStatusV1 {
+    Migrated,
+    AlreadyMigrated,
+    SourceArtifactMissing,
+    SourceIntegrityMismatch,
+    PolicyBindingMismatch,
+    CanonicalIntentInvalid,
+    CanonicalViewInvalid,
+    AmbiguousFieldProvenance,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MigratedIntentFieldProvenanceV1 {
+    pub provenance_version: String,
+    pub field_name: String,
+    pub sources: Vec<MigratedIntentFieldSourceV1>,
+    pub source_artifact_digests: Vec<String>,
+    pub value_digest: String,
+    pub provenance_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PersistedIntentPolicyCompatibilityProofV1 {
+    pub agent_id: String,
+    pub legacy_policy_digest: String,
+    pub current_policy_digest: String,
+    pub required_datasets_equal: bool,
+    pub optional_datasets_equal: bool,
+    pub allowed_markets_equal: bool,
+    pub cadence_equal: bool,
+    pub lookback_equal: bool,
+    pub staleness_equal: bool,
+    pub semantically_compatible: bool,
+    pub proof_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PersistedLearningIntentMigrationProofV1 {
+    pub migration_version: String,
+    pub agent_id: String,
+    pub legacy_session_digest: String,
+    pub legacy_intent_digest: String,
+    pub gap_report_digest: String,
+    pub composite_registration_digest: String,
+    pub merged_snapshot_digest: String,
+    pub policy_compatibility_proof_digest: String,
+    pub field_provenance_digests: Vec<String>,
+    pub canonical_intent_digest: String,
+    pub canonical_view_digest: String,
+    pub information_cutoff_unchanged: bool,
+    pub lookback_unchanged: bool,
+    pub policy_semantics_unchanged: bool,
+    pub evidence_set_unchanged: bool,
+    pub exclusions_unchanged: bool,
+    pub no_field_invented: bool,
+    pub migration_status: PersistedLearningIntentMigrationStatusV1,
+    pub proof_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PersistedLearningIntentMigrationJournalV1 {
+    pub journal_version: String,
+    pub agent_id: String,
+    pub migration_proof_digest: String,
+    pub canonical_intent_digest: String,
+    pub canonical_view_digest: String,
+    pub entry_count: usize,
+    pub network_requests: usize,
+    pub transport_constructions: usize,
+    pub credential_reads: usize,
+    pub prospective_reads: usize,
+    pub active_model_changes: usize,
+    pub status: PersistedLearningIntentMigrationStatusV1,
+    pub journal_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PersistedIntentMigrationSafetyCountersV1 {
+    pub active_committee_count: usize,
+    pub network_requests: usize,
+    pub transport_constructions: usize,
+    pub credential_reads: usize,
+    pub prospective_artifact_reads: usize,
+    pub prospective_label_reads: usize,
+    pub future_evaluation_reads: usize,
+    pub active_model_changes: usize,
+    pub chair_decisions: usize,
+    pub votes: usize,
+    pub rewards: usize,
+    pub penalties: usize,
+    pub voice_changes: usize,
+    pub promotions: usize,
+    pub executions: usize,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PersistedLearningIntentMigrationReportV1 {
+    pub report_version: String,
+    pub mode: AgentPrivateLearningRunModeV0,
+    pub agent_id: String,
+    pub blocker: PersistedIntentMigrationBlockerV1,
+    pub first_failing_invariant: Option<String>,
+    pub status: PersistedLearningIntentMigrationStatusV1,
+    pub legacy_session_digest: Option<String>,
+    pub legacy_intent_digest: Option<String>,
+    pub canonical_gap_digest: Option<String>,
+    pub composite_registration_digest: Option<String>,
+    pub canonical_snapshot_digest: Option<String>,
+    pub canonical_intent_digest: Option<String>,
+    pub canonical_view_digest: Option<String>,
+    pub policy_compatibility_proof_digest: Option<String>,
+    pub migration_proof_digest: Option<String>,
+    pub migration_journal_digest: Option<String>,
+    pub field_provenance_count: usize,
+    pub required_evidence_complete: bool,
+    pub optional_evidence_unavailable: bool,
+    pub normal_validator_passed: bool,
+    pub normal_view_builder_passed: bool,
+    pub artifacts_written: usize,
+    pub duplicate_artifact_count: usize,
+    pub storage_failure_count: usize,
+    pub protected_artifacts_unchanged: bool,
+    pub active_state_unchanged: bool,
+    pub safety_counters: PersistedIntentMigrationSafetyCountersV1,
+    pub report_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct PersistedLearningIntentMigrationExecutionV1 {
+    pub report: PersistedLearningIntentMigrationReportV1,
+    pub canonical_input: Option<AgentPrivateLearningInputV1>,
+}
+
+#[derive(Clone, Debug)]
+struct PersistedIntentMigrationSourcesV1 {
+    legacy_session: AgentPrivateLearningSessionV0,
+    legacy_projection: AgentLearningIntentV0,
+    policy: AgentDataPolicy,
+    acquisition_gap: crate::data::AgentCanonicalViewGapV1,
+    canonical_gap: crate::data::AgentCanonicalViewGapV1,
+    composite_registration: CompositeLearningAcquisitionRegistrationV1,
+    epoch_receipt: CompositeLearningEpochReceiptV1,
+    canonical_snapshot: DataSnapshot,
+}
+
+#[derive(Clone, Debug)]
+struct DerivedPersistedIntentMigrationV1 {
+    blocker: PersistedIntentMigrationBlockerV1,
+    first_failing_invariant: Option<String>,
+    canonical_intent: AgentLearningIntentV0,
+    canonical_view: AgentLearningDataViewV0,
+    canonical_input: AgentPrivateLearningInputV1,
+    policy_proof: PersistedIntentPolicyCompatibilityProofV1,
+    field_provenance: Vec<MigratedIntentFieldProvenanceV1>,
+    migration_proof: PersistedLearningIntentMigrationProofV1,
+    journal: PersistedLearningIntentMigrationJournalV1,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AgentCandidateFamilyResultV1 {
     pub agent_id: String,
@@ -1101,6 +1297,7 @@ pub fn build_agent_private_learning_inputs_v1(
     let policies = default_agent_data_policies();
     let states = canonical_current_agent_states();
     let registry = agent_trainer_capability_registry_v0();
+    let migrated_momentum = read_persisted_learning_intent_migration_v1(root, snapshots).ok();
     let projected_intents = load_persisted_agent_learning_intents_v0(root, snapshots).ok();
     let universe = configured_universe_from_snapshots_v0(snapshots);
     let mut inputs = Vec::new();
@@ -1122,6 +1319,16 @@ pub fn build_agent_private_learning_inputs_v1(
         else {
             continue;
         };
+        if capability.agent_id == MOMENTUM_AGENT_ID_V1 {
+            if let Some(migrated) = migrated_momentum.as_ref().filter(|migrated| {
+                migrated.input.intent.information_cutoff_ms == information_cutoff_ms
+                    && migrated.input.intent.agent_kind == state.kind
+                    && validate_agent_learning_intent_v0(&migrated.input.intent, policy).is_ok()
+            }) {
+                inputs.push(migrated.clone());
+                continue;
+            }
+        }
         let persisted_intent = projected_intents.as_ref().and_then(|intents| {
             intents
                 .iter()
@@ -1396,6 +1603,1362 @@ pub fn load_persisted_agent_learning_intents_v0(
     }
     intents.sort_by(|left, right| left.agent_id.cmp(&right.agent_id));
     Ok(intents)
+}
+
+#[derive(Clone, Debug)]
+struct PersistedIntentMigrationFailureV1 {
+    blocker: PersistedIntentMigrationBlockerV1,
+    status: PersistedLearningIntentMigrationStatusV1,
+    invariant: &'static str,
+}
+
+fn migration_failure_v1(
+    blocker: PersistedIntentMigrationBlockerV1,
+    status: PersistedLearningIntentMigrationStatusV1,
+    invariant: &'static str,
+) -> PersistedIntentMigrationFailureV1 {
+    PersistedIntentMigrationFailureV1 {
+        blocker,
+        status,
+        invariant,
+    }
+}
+
+fn stable_migration_values_v1<T: Clone + Ord>(values: &[T]) -> Vec<T> {
+    values
+        .iter()
+        .cloned()
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect()
+}
+
+fn migration_policy_digest_v1(intent: &AgentLearningIntentV0) -> String {
+    stable_hash_string(&format!(
+        "persisted-intent-policy-v1:{:?}:{:?}:{:?}:{:?}:{}:{:?}:{}:{}:{}:{}:{}",
+        intent.agent_kind,
+        intent.market_scopes,
+        intent.required_datasets,
+        intent.optional_datasets,
+        intent.cadence,
+        intent.lookback,
+        intent.maximum_staleness_ms,
+        intent.source_policy_digest,
+        intent.feature_policy_digest,
+        intent.label_policy_digest,
+        intent.curriculum_policy_digest,
+    ))
+}
+
+fn field_provenance_v1(
+    field_name: &str,
+    mut sources: Vec<MigratedIntentFieldSourceV1>,
+    mut source_artifact_digests: Vec<String>,
+    value: &impl std::fmt::Debug,
+) -> MigratedIntentFieldProvenanceV1 {
+    sources.sort();
+    sources.dedup();
+    source_artifact_digests.sort();
+    source_artifact_digests.dedup();
+    let value_digest = stable_hash_string(&format!(
+        "persisted-intent-migrated-field-value-v1:{field_name}:{value:?}"
+    ));
+    let mut provenance = MigratedIntentFieldProvenanceV1 {
+        provenance_version: INTENT_FIELD_PROVENANCE_VERSION_V1.to_string(),
+        field_name: field_name.to_string(),
+        sources,
+        source_artifact_digests,
+        value_digest,
+        provenance_digest: String::new(),
+    };
+    provenance.provenance_digest = migrated_field_provenance_digest_v1(&provenance);
+    provenance
+}
+
+fn migrated_field_provenance_digest_v1(value: &MigratedIntentFieldProvenanceV1) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{:?}:{:?}:{}",
+        value.provenance_version,
+        value.field_name,
+        value.sources,
+        value.source_artifact_digests,
+        value.value_digest,
+    ))
+}
+
+fn policy_compatibility_proof_digest_v1(
+    value: &PersistedIntentPolicyCompatibilityProofV1,
+) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+        INTENT_POLICY_PROOF_VERSION_V1,
+        value.agent_id,
+        value.legacy_policy_digest,
+        value.current_policy_digest,
+        value.required_datasets_equal,
+        value.optional_datasets_equal,
+        value.allowed_markets_equal,
+        value.cadence_equal,
+        value.lookback_equal,
+        value.staleness_equal,
+        value.semantically_compatible,
+    ))
+}
+
+fn migration_proof_digest_v1(value: &PersistedLearningIntentMigrationProofV1) -> String {
+    stable_hash_string(&format!(
+        "{:?}",
+        (
+            (
+                value.migration_version.as_str(),
+                value.agent_id.as_str(),
+                value.legacy_session_digest.as_str(),
+                value.legacy_intent_digest.as_str(),
+                value.gap_report_digest.as_str(),
+                value.composite_registration_digest.as_str(),
+                value.merged_snapshot_digest.as_str(),
+            ),
+            (
+                value.policy_compatibility_proof_digest.as_str(),
+                &value.field_provenance_digests,
+                value.canonical_intent_digest.as_str(),
+                value.canonical_view_digest.as_str(),
+            ),
+            (
+                value.information_cutoff_unchanged,
+                value.lookback_unchanged,
+                value.policy_semantics_unchanged,
+                value.evidence_set_unchanged,
+                value.exclusions_unchanged,
+                value.no_field_invented,
+                value.migration_status,
+            ),
+        )
+    ))
+}
+
+fn migration_journal_digest_v1(value: &PersistedLearningIntentMigrationJournalV1) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{:?}",
+        value.journal_version,
+        value.agent_id,
+        value.migration_proof_digest,
+        value.canonical_intent_digest,
+        value.canonical_view_digest,
+        value.entry_count,
+        value.network_requests,
+        value.transport_constructions,
+        value.credential_reads,
+        value.prospective_reads,
+        value.active_model_changes,
+        value.status,
+    ))
+}
+
+fn zero_intent_migration_safety_counters_v1() -> PersistedIntentMigrationSafetyCountersV1 {
+    PersistedIntentMigrationSafetyCountersV1 {
+        active_committee_count: 3,
+        network_requests: 0,
+        transport_constructions: 0,
+        credential_reads: 0,
+        prospective_artifact_reads: 0,
+        prospective_label_reads: 0,
+        future_evaluation_reads: 0,
+        active_model_changes: 0,
+        chair_decisions: 0,
+        votes: 0,
+        rewards: 0,
+        penalties: 0,
+        voice_changes: 0,
+        promotions: 0,
+        executions: 0,
+    }
+}
+
+fn derive_persisted_learning_intent_migration_v1(
+    sources: &PersistedIntentMigrationSourcesV1,
+) -> Result<DerivedPersistedIntentMigrationV1, PersistedIntentMigrationFailureV1> {
+    let session = &sources.legacy_session;
+    let projection = &sources.legacy_projection;
+    let policy = &sources.policy;
+    let acquisition_gap = &sources.acquisition_gap;
+    let canonical_gap = &sources.canonical_gap;
+    let registration = &sources.composite_registration;
+    let epoch = &sources.epoch_receipt;
+    let snapshot = &sources.canonical_snapshot;
+    let integrity = |invariant| {
+        migration_failure_v1(
+            PersistedIntentMigrationBlockerV1::IntegrityFailure,
+            PersistedLearningIntentMigrationStatusV1::SourceIntegrityMismatch,
+            invariant,
+        )
+    };
+    if session.session_digest != session_digest_v0(session) {
+        return Err(integrity("legacy_session_digest"));
+    }
+    if session.agent_id != MOMENTUM_AGENT_ID_V1
+        || session.agent_kind != AgentKind::MomentumTrendFast
+        || projection.agent_id != session.agent_id
+        || projection.agent_kind != session.agent_kind
+        || acquisition_gap.agent_id != session.agent_id
+        || canonical_gap.agent_id != session.agent_id
+        || registration.target_agent_ids.len() != 1
+        || registration.target_agent_ids.first() != Some(&session.agent_id)
+    {
+        return Err(integrity("agent_identity"));
+    }
+    if projection.intent_version != PERSISTED_LEARNING_INTENT_PROJECTION_VERSION_V1 {
+        return Err(migration_failure_v1(
+            PersistedIntentMigrationBlockerV1::LegacyIntentMetadataIncomplete,
+            PersistedLearningIntentMigrationStatusV1::SourceIntegrityMismatch,
+            "legacy_projection_version",
+        ));
+    }
+    if projection.intent_digest.is_empty()
+        || session.intent_digest.is_empty()
+        || projection.intent_digest != session.intent_digest
+        || acquisition_gap.intent_digest != session.intent_digest
+        || canonical_gap.intent_digest != session.intent_digest
+        || registration.intent_digest != session.intent_digest
+    {
+        return Err(migration_failure_v1(
+            PersistedIntentMigrationBlockerV1::PersistedIntentDigestMismatch,
+            PersistedLearningIntentMigrationStatusV1::SourceIntegrityMismatch,
+            "legacy_intent_digest",
+        ));
+    }
+    let blocker = if validate_agent_learning_intent_v0(projection, policy).is_err() {
+        PersistedIntentMigrationBlockerV1::LegacySessionNotSelfDescribing
+    } else {
+        PersistedIntentMigrationBlockerV1::None
+    };
+    let first_failing_invariant = (blocker
+        == PersistedIntentMigrationBlockerV1::LegacySessionNotSelfDescribing)
+        .then(|| "intent_version".to_string());
+
+    let required = stable_migration_values_v1(&projection.required_datasets);
+    let optional = stable_migration_values_v1(&projection.optional_datasets);
+    let markets = stable_migration_values_v1(&projection.market_scopes);
+    let symbols = stable_migration_values_v1(&projection.symbols);
+    let policy_required = stable_migration_values_v1(&policy.required_dataset_kinds);
+    let policy_optional = stable_migration_values_v1(&policy.optional_dataset_kinds);
+    let gap_required = stable_migration_values_v1(&canonical_gap.required_dataset_kinds);
+    let gap_optional = stable_migration_values_v1(&canonical_gap.optional_dataset_kinds);
+    let resolved_required =
+        stable_migration_values_v1(&canonical_gap.resolved_required_dataset_kinds);
+    let missing_optional =
+        stable_migration_values_v1(&canonical_gap.missing_optional_dataset_kinds);
+    let required_datasets_equal = required == policy_required && required == gap_required;
+    let optional_datasets_equal = optional == policy_optional && optional == gap_optional;
+    let markets_equal = markets.len() == 1
+        && markets == stable_migration_values_v1(&canonical_gap.market_scopes)
+        && markets == stable_migration_values_v1(&acquisition_gap.market_scopes)
+        && markets.as_slice() == [registration.market_scope]
+        && markets.as_slice() == [snapshot.market_scope]
+        && markets
+            .iter()
+            .all(|market| policy.allowed_markets.contains(market));
+    let cadence_equal = !projection.cadence.trim().is_empty()
+        && projection.cadence == canonical_gap.cadence
+        && projection.cadence == acquisition_gap.cadence
+        && projection.cadence == registration.cadence
+        && snapshot
+            .compatibility
+            .as_ref()
+            .is_some_and(|value| value.cadence == projection.cadence);
+    let lookback_equal = projection.lookback == canonical_gap.lookback
+        && projection.lookback == acquisition_gap.lookback
+        && projection.lookback == snapshot.requested_lookback
+        && projection.lookback.bars == registration.required_row_count
+        && projection.lookback.bars == snapshot.row_count
+        && projection.lookback.bars == snapshot.normalized_dataset.rows.len()
+        && projection.lookback.start_timestamp_ms == snapshot.actual_start_timestamp_ms
+        && projection.lookback.end_timestamp_ms == snapshot.actual_end_timestamp_ms
+        && projection.lookback.end_timestamp_ms == Some(projection.information_cutoff_ms);
+    let staleness_equal = projection.maximum_staleness_ms == canonical_gap.maximum_staleness_ms
+        && projection.maximum_staleness_ms == acquisition_gap.maximum_staleness_ms
+        && projection.maximum_staleness_ms == policy.max_staleness_ms
+        && snapshot
+            .compatibility
+            .as_ref()
+            .is_some_and(|value| value.maximum_staleness_ms <= projection.maximum_staleness_ms)
+        && (session.maximum_staleness_ms == 0
+            || session.maximum_staleness_ms == projection.maximum_staleness_ms);
+    let cutoff_unchanged = projection.information_cutoff_ms == session.information_cutoff_ms
+        && projection.information_cutoff_ms == canonical_gap.information_cutoff_ms
+        && projection.information_cutoff_ms == acquisition_gap.information_cutoff_ms
+        && projection.information_cutoff_ms == registration.information_cutoff_ms
+        && projection.information_cutoff_ms == snapshot.actual_end_timestamp_ms.unwrap_or_default()
+        && snapshot.compatibility.as_ref().is_some_and(|value| {
+            value.requested_cutoff_timestamp_ms == Some(projection.information_cutoff_ms)
+        });
+    if !cutoff_unchanged {
+        return Err(migration_failure_v1(
+            PersistedIntentMigrationBlockerV1::CutoffMismatch,
+            PersistedLearningIntentMigrationStatusV1::AmbiguousFieldProvenance,
+            "information_cutoff_ms",
+        ));
+    }
+    if !markets_equal {
+        return Err(migration_failure_v1(
+            PersistedIntentMigrationBlockerV1::AmbiguousFieldProvenance,
+            PersistedLearningIntentMigrationStatusV1::AmbiguousFieldProvenance,
+            "market_scopes",
+        ));
+    }
+    if symbols != stable_migration_values_v1(&canonical_gap.symbols)
+        || symbols != stable_migration_values_v1(&acquisition_gap.symbols)
+        || symbols != stable_migration_values_v1(&registration.symbols)
+        || symbols != stable_migration_values_v1(&snapshot.symbols)
+        || symbols.is_empty()
+    {
+        return Err(migration_failure_v1(
+            PersistedIntentMigrationBlockerV1::AmbiguousFieldProvenance,
+            PersistedLearningIntentMigrationStatusV1::AmbiguousFieldProvenance,
+            "symbols",
+        ));
+    }
+    if !cadence_equal {
+        return Err(migration_failure_v1(
+            PersistedIntentMigrationBlockerV1::AmbiguousFieldProvenance,
+            PersistedLearningIntentMigrationStatusV1::AmbiguousFieldProvenance,
+            "cadence",
+        ));
+    }
+    if !lookback_equal || (session.lookback.bars != 0 && session.lookback != projection.lookback) {
+        return Err(migration_failure_v1(
+            PersistedIntentMigrationBlockerV1::AmbiguousFieldProvenance,
+            PersistedLearningIntentMigrationStatusV1::AmbiguousFieldProvenance,
+            "lookback",
+        ));
+    }
+    if !required_datasets_equal
+        || resolved_required != required
+        || !canonical_gap.missing_required_dataset_kinds.is_empty()
+    {
+        return Err(migration_failure_v1(
+            PersistedIntentMigrationBlockerV1::RequiredEvidenceMismatch,
+            PersistedLearningIntentMigrationStatusV1::PolicyBindingMismatch,
+            "required_datasets",
+        ));
+    }
+    if !optional_datasets_equal {
+        return Err(migration_failure_v1(
+            PersistedIntentMigrationBlockerV1::PolicyDigestMismatch,
+            PersistedLearningIntentMigrationStatusV1::PolicyBindingMismatch,
+            "optional_datasets",
+        ));
+    }
+    if canonical_gap.status != CanonicalViewGapStatusV1::MissingOptionalEvidenceOnly
+        || missing_optional != optional
+        || !canonical_gap.resolved_optional_dataset_kinds.is_empty()
+    {
+        return Err(migration_failure_v1(
+            PersistedIntentMigrationBlockerV1::OptionalEvidenceOnlyMisclassified,
+            PersistedLearningIntentMigrationStatusV1::CanonicalViewInvalid,
+            "optional_evidence_classification",
+        ));
+    }
+    if acquisition_gap.gap_digest != registration.gap_report_digest
+        || acquisition_gap.status != CanonicalViewGapStatusV1::SegmentedAcquisitionRequired
+        || epoch.registration_digest != registration.registration_digest
+        || epoch.status != CompositeLearningEpochStatusV1::EvidenceAcquired
+        || epoch.request_count != registration.maximum_total_requests
+        || epoch.retry_count != 0
+        || registration.maximum_concurrency != 1
+        || registration.maximum_retries_per_segment != 0
+        || epoch.merged_snapshot_digest.as_deref() != Some(snapshot.content_digest.as_str())
+        || epoch
+            .merged_provenance_digest
+            .as_deref()
+            .is_none_or(str::is_empty)
+        || canonical_gap.usable_artifact_digests.len() != 1
+        || canonical_gap.usable_artifact_digests.first() != Some(&snapshot.content_digest)
+        || snapshot.dataset_kind != registration.dataset_kind
+        || historical_replay_dataset_digest_v0(&snapshot.normalized_dataset)
+            != snapshot.content_digest
+        || !snapshot.quality_summary.accepted
+        || !snapshot.sanitized
+        || !snapshot.read_only
+        || !snapshot.provenance.credential_free
+    {
+        return Err(migration_failure_v1(
+            PersistedIntentMigrationBlockerV1::CanonicalSnapshotBindingMismatch,
+            PersistedLearningIntentMigrationStatusV1::SourceIntegrityMismatch,
+            "canonical_snapshot_binding",
+        ));
+    }
+    if registration.excluded_timestamp_ms.is_empty()
+        || registration.protected_registration_digests.is_empty()
+        || snapshot.normalized_dataset.rows.iter().any(|row| {
+            registration
+                .excluded_timestamp_ms
+                .contains(&row.timestamp_ms)
+        })
+    {
+        return Err(migration_failure_v1(
+            PersistedIntentMigrationBlockerV1::IntegrityFailure,
+            PersistedLearningIntentMigrationStatusV1::SourceIntegrityMismatch,
+            "protected_evidence_exclusions",
+        ));
+    }
+    if !staleness_equal {
+        return Err(migration_failure_v1(
+            PersistedIntentMigrationBlockerV1::PolicyDigestMismatch,
+            PersistedLearningIntentMigrationStatusV1::PolicyBindingMismatch,
+            "maximum_staleness_ms",
+        ));
+    }
+    let data_intent = AgentDataIntent {
+        agent_id: projection.agent_id.clone(),
+        agent_kind: projection.agent_kind,
+        market_scope: markets[0],
+        symbols: symbols.clone(),
+        required_datasets: required.clone(),
+        optional_datasets: optional.clone(),
+        lookback: projection.lookback.clone(),
+        target_cadence: projection.cadence.clone(),
+        max_staleness_ms: projection.maximum_staleness_ms,
+        priority: DataPriority::Required,
+        reason_codes: policy.reason_codes.clone(),
+    };
+    let canonical_intent = create_agent_learning_intent_v0(
+        &LearningDataCallerV0::Agent(projection.agent_id.clone()),
+        &data_intent,
+        policy,
+        projection.information_cutoff_ms,
+    )
+    .map_err(|_| {
+        migration_failure_v1(
+            PersistedIntentMigrationBlockerV1::IntegrityFailure,
+            PersistedLearningIntentMigrationStatusV1::CanonicalIntentInvalid,
+            "normal_intent_validator",
+        )
+    })?;
+    if (!projection.source_policy_digest.is_empty()
+        && projection.source_policy_digest != canonical_intent.source_policy_digest)
+        || (!session.source_policy_digest.is_empty()
+            && session.source_policy_digest != canonical_intent.source_policy_digest)
+    {
+        return Err(migration_failure_v1(
+            PersistedIntentMigrationBlockerV1::PolicyDigestMismatch,
+            PersistedLearningIntentMigrationStatusV1::PolicyBindingMismatch,
+            "source_policy_digest",
+        ));
+    }
+    let legacy_policy_digest = migration_policy_digest_v1(projection);
+    let current_policy_digest = migration_policy_digest_v1(&canonical_intent);
+    let source_policy_compatible = projection.source_policy_digest.is_empty()
+        || projection.source_policy_digest == canonical_intent.source_policy_digest;
+    let semantically_compatible = required_datasets_equal
+        && optional_datasets_equal
+        && markets_equal
+        && cadence_equal
+        && lookback_equal
+        && staleness_equal
+        && source_policy_compatible;
+    let mut policy_proof = PersistedIntentPolicyCompatibilityProofV1 {
+        agent_id: projection.agent_id.clone(),
+        legacy_policy_digest,
+        current_policy_digest,
+        required_datasets_equal,
+        optional_datasets_equal,
+        allowed_markets_equal: markets_equal,
+        cadence_equal,
+        lookback_equal,
+        staleness_equal,
+        semantically_compatible,
+        proof_digest: String::new(),
+    };
+    policy_proof.proof_digest = policy_compatibility_proof_digest_v1(&policy_proof);
+    if !policy_proof.semantically_compatible {
+        return Err(migration_failure_v1(
+            PersistedIntentMigrationBlockerV1::PolicyDigestMismatch,
+            PersistedLearningIntentMigrationStatusV1::PolicyBindingMismatch,
+            "policy_compatibility",
+        ));
+    }
+
+    let derived_private_state = derive_agent_private_learning_state_v0(&canonical_intent);
+    let training_ledger_digest = if session.training_ledger_digest.is_empty() {
+        derived_private_state.training_ledger_digest
+    } else if session.training_ledger_digest == derived_private_state.training_ledger_digest {
+        session.training_ledger_digest.clone()
+    } else {
+        return Err(migration_failure_v1(
+            PersistedIntentMigrationBlockerV1::PolicyDigestMismatch,
+            PersistedLearningIntentMigrationStatusV1::PolicyBindingMismatch,
+            "training_ledger_digest",
+        ));
+    };
+    let private_state = AgentPrivateLearningStateV0 {
+        agent_id: session.agent_id.clone(),
+        private_namespace_digest: session.private_namespace_digest.clone(),
+        training_ledger_digest,
+    };
+    if private_state.private_namespace_digest.is_empty()
+        || private_state.training_ledger_digest.is_empty()
+    {
+        return Err(migration_failure_v1(
+            PersistedIntentMigrationBlockerV1::LegacyIntentMetadataIncomplete,
+            PersistedLearningIntentMigrationStatusV1::CanonicalViewInvalid,
+            "private_learning_state",
+        ));
+    }
+    let artifact_ref = LearningDataArtifactRefV0 {
+        artifact_digest: snapshot.content_digest.clone(),
+        dataset_kind: snapshot.dataset_kind,
+        visibility: LearningDataVisibilityV0::SharedCanonicalRaw,
+        owner_agent_id: None,
+        maximum_event_timestamp_ms: snapshot.actual_end_timestamp_ms.unwrap_or_default(),
+    };
+    let canonical_view = build_agent_learning_data_view_v0(
+        &canonical_intent,
+        policy,
+        std::slice::from_ref(&artifact_ref),
+        &private_state,
+    )
+    .map_err(|_| {
+        migration_failure_v1(
+            PersistedIntentMigrationBlockerV1::IntegrityFailure,
+            PersistedLearningIntentMigrationStatusV1::CanonicalViewInvalid,
+            "normal_view_builder",
+        )
+    })?;
+    if canonical_view.source_artifact_digests.len() != 1
+        || canonical_view.source_artifact_digests.first() != Some(&snapshot.content_digest)
+        || canonical_view.visible_dataset_kinds != required
+        || !canonical_view.missing_required_datasets.is_empty()
+        || canonical_view.decision_gate != EvidenceDecisionGate::Ready
+        || canonical_view.private_namespace_digest != session.private_namespace_digest
+        || canonical_view.training_ledger_digest != private_state.training_ledger_digest
+    {
+        return Err(migration_failure_v1(
+            PersistedIntentMigrationBlockerV1::ViewDigestMismatch,
+            PersistedLearningIntentMigrationStatusV1::CanonicalViewInvalid,
+            "canonical_view_binding",
+        ));
+    }
+    let input = build_agent_private_learning_input_from_persisted_view_v0(
+        &canonical_intent,
+        policy,
+        &canonical_view,
+        std::slice::from_ref(snapshot),
+    )
+    .map_err(|_| {
+        migration_failure_v1(
+            PersistedIntentMigrationBlockerV1::ViewDigestMismatch,
+            PersistedLearningIntentMigrationStatusV1::CanonicalViewInvalid,
+            "normal_persisted_view_reader",
+        )
+    })?;
+    if input.resolution_status != AgentViewResolutionStatusV0::OptionalEvidenceUnavailable {
+        return Err(migration_failure_v1(
+            PersistedIntentMigrationBlockerV1::OptionalEvidenceOnlyMisclassified,
+            PersistedLearningIntentMigrationStatusV1::CanonicalViewInvalid,
+            "normal_view_resolution",
+        ));
+    }
+
+    let policy_digest = policy_proof.current_policy_digest.clone();
+    let gap_digest = canonical_gap.gap_digest.clone();
+    let registration_digest = registration.registration_digest.clone();
+    let snapshot_digest = snapshot.content_digest.clone();
+    let session_digest = session.session_digest.clone();
+    let projection_digest = projection.intent_digest.clone();
+    let private_digests = vec![session_digest.clone(), policy_digest.clone()];
+    let source_digests =
+        |sources: &[&str]| sources.iter().map(|value| (*value).to_string()).collect();
+    let mut field_provenance = vec![
+        field_provenance_v1(
+            "agent_id",
+            vec![
+                MigratedIntentFieldSourceV1::LegacySession,
+                MigratedIntentFieldSourceV1::LegacyIntentProjection,
+                MigratedIntentFieldSourceV1::CanonicalGapReport,
+                MigratedIntentFieldSourceV1::CompositeAcquisitionRegistration,
+            ],
+            source_digests(&[
+                &session_digest,
+                &projection_digest,
+                &gap_digest,
+                &registration_digest,
+            ]),
+            &canonical_intent.agent_id,
+        ),
+        field_provenance_v1(
+            "agent_kind",
+            vec![
+                MigratedIntentFieldSourceV1::LegacySession,
+                MigratedIntentFieldSourceV1::LegacyIntentProjection,
+                MigratedIntentFieldSourceV1::VerifiedAgentPolicy,
+            ],
+            source_digests(&[&session_digest, &projection_digest, &policy_digest]),
+            &canonical_intent.agent_kind,
+        ),
+        field_provenance_v1(
+            "market_scopes",
+            vec![
+                MigratedIntentFieldSourceV1::LegacyIntentProjection,
+                MigratedIntentFieldSourceV1::VerifiedAgentPolicy,
+                MigratedIntentFieldSourceV1::CanonicalGapReport,
+                MigratedIntentFieldSourceV1::CompositeAcquisitionRegistration,
+                MigratedIntentFieldSourceV1::CanonicalSnapshot,
+            ],
+            source_digests(&[
+                &projection_digest,
+                &policy_digest,
+                &gap_digest,
+                &registration_digest,
+                &snapshot_digest,
+            ]),
+            &canonical_intent.market_scopes,
+        ),
+        field_provenance_v1(
+            "symbols",
+            vec![
+                MigratedIntentFieldSourceV1::LegacyIntentProjection,
+                MigratedIntentFieldSourceV1::CanonicalGapReport,
+                MigratedIntentFieldSourceV1::CompositeAcquisitionRegistration,
+                MigratedIntentFieldSourceV1::CanonicalSnapshot,
+            ],
+            source_digests(&[
+                &projection_digest,
+                &gap_digest,
+                &registration_digest,
+                &snapshot_digest,
+            ]),
+            &canonical_intent.symbols,
+        ),
+        field_provenance_v1(
+            "required_datasets",
+            vec![
+                MigratedIntentFieldSourceV1::LegacyIntentProjection,
+                MigratedIntentFieldSourceV1::VerifiedAgentPolicy,
+                MigratedIntentFieldSourceV1::CanonicalGapReport,
+                MigratedIntentFieldSourceV1::CompositeAcquisitionRegistration,
+                MigratedIntentFieldSourceV1::CanonicalSnapshot,
+            ],
+            source_digests(&[
+                &projection_digest,
+                &policy_digest,
+                &gap_digest,
+                &registration_digest,
+                &snapshot_digest,
+            ]),
+            &canonical_intent.required_datasets,
+        ),
+        field_provenance_v1(
+            "optional_datasets",
+            vec![
+                MigratedIntentFieldSourceV1::LegacyIntentProjection,
+                MigratedIntentFieldSourceV1::VerifiedAgentPolicy,
+                MigratedIntentFieldSourceV1::CanonicalGapReport,
+            ],
+            source_digests(&[&projection_digest, &policy_digest, &gap_digest]),
+            &canonical_intent.optional_datasets,
+        ),
+        field_provenance_v1(
+            "cadence",
+            vec![
+                MigratedIntentFieldSourceV1::LegacyIntentProjection,
+                MigratedIntentFieldSourceV1::CanonicalGapReport,
+                MigratedIntentFieldSourceV1::CompositeAcquisitionRegistration,
+                MigratedIntentFieldSourceV1::CanonicalSnapshot,
+            ],
+            source_digests(&[
+                &projection_digest,
+                &gap_digest,
+                &registration_digest,
+                &snapshot_digest,
+            ]),
+            &canonical_intent.cadence,
+        ),
+        field_provenance_v1(
+            "lookback",
+            vec![
+                MigratedIntentFieldSourceV1::LegacyIntentProjection,
+                MigratedIntentFieldSourceV1::CanonicalGapReport,
+                MigratedIntentFieldSourceV1::CompositeAcquisitionRegistration,
+                MigratedIntentFieldSourceV1::CanonicalSnapshot,
+            ],
+            source_digests(&[
+                &projection_digest,
+                &gap_digest,
+                &registration_digest,
+                &snapshot_digest,
+            ]),
+            &canonical_intent.lookback,
+        ),
+        field_provenance_v1(
+            "information_cutoff_ms",
+            vec![
+                MigratedIntentFieldSourceV1::LegacySession,
+                MigratedIntentFieldSourceV1::LegacyIntentProjection,
+                MigratedIntentFieldSourceV1::CanonicalGapReport,
+                MigratedIntentFieldSourceV1::CompositeAcquisitionRegistration,
+                MigratedIntentFieldSourceV1::CanonicalSnapshot,
+            ],
+            source_digests(&[
+                &session_digest,
+                &projection_digest,
+                &gap_digest,
+                &registration_digest,
+                &snapshot_digest,
+            ]),
+            &canonical_intent.information_cutoff_ms,
+        ),
+        field_provenance_v1(
+            "maximum_staleness_ms",
+            vec![
+                MigratedIntentFieldSourceV1::LegacyIntentProjection,
+                MigratedIntentFieldSourceV1::VerifiedAgentPolicy,
+                MigratedIntentFieldSourceV1::CanonicalGapReport,
+                MigratedIntentFieldSourceV1::CanonicalSnapshot,
+            ],
+            source_digests(&[
+                &projection_digest,
+                &policy_digest,
+                &gap_digest,
+                &snapshot_digest,
+            ]),
+            &canonical_intent.maximum_staleness_ms,
+        ),
+        field_provenance_v1(
+            "source_policy_digest",
+            vec![MigratedIntentFieldSourceV1::VerifiedAgentPolicy],
+            source_digests(&[&policy_digest]),
+            &canonical_intent.source_policy_digest,
+        ),
+        field_provenance_v1(
+            "feature_policy_digest",
+            vec![MigratedIntentFieldSourceV1::VerifiedAgentPolicy],
+            source_digests(&[&policy_digest]),
+            &canonical_intent.feature_policy_digest,
+        ),
+        field_provenance_v1(
+            "label_policy_digest",
+            vec![MigratedIntentFieldSourceV1::VerifiedAgentPolicy],
+            source_digests(&[&policy_digest]),
+            &canonical_intent.label_policy_digest,
+        ),
+        field_provenance_v1(
+            "curriculum_policy_digest",
+            vec![MigratedIntentFieldSourceV1::VerifiedAgentPolicy],
+            source_digests(&[&policy_digest]),
+            &canonical_intent.curriculum_policy_digest,
+        ),
+        field_provenance_v1(
+            "private_namespace_digest",
+            vec![
+                MigratedIntentFieldSourceV1::LegacySession,
+                MigratedIntentFieldSourceV1::ExistingPrivateLearningState,
+            ],
+            private_digests.clone(),
+            &canonical_view.private_namespace_digest,
+        ),
+        field_provenance_v1(
+            "training_ledger_digest",
+            vec![
+                MigratedIntentFieldSourceV1::LegacySession,
+                MigratedIntentFieldSourceV1::VerifiedAgentPolicy,
+                MigratedIntentFieldSourceV1::ExistingPrivateLearningState,
+            ],
+            private_digests,
+            &canonical_view.training_ledger_digest,
+        ),
+    ];
+    field_provenance.sort_by(|left, right| left.field_name.cmp(&right.field_name));
+    let no_field_invented = field_provenance.len() == 16
+        && field_provenance.iter().all(|value| {
+            !value.sources.is_empty()
+                && !value.source_artifact_digests.is_empty()
+                && value.provenance_digest == migrated_field_provenance_digest_v1(value)
+        });
+    if !no_field_invented {
+        return Err(migration_failure_v1(
+            PersistedIntentMigrationBlockerV1::AmbiguousFieldProvenance,
+            PersistedLearningIntentMigrationStatusV1::AmbiguousFieldProvenance,
+            "field_provenance",
+        ));
+    }
+    let mut field_provenance_digests = field_provenance
+        .iter()
+        .map(|value| value.provenance_digest.clone())
+        .collect::<Vec<_>>();
+    field_provenance_digests.sort();
+    let mut migration_proof = PersistedLearningIntentMigrationProofV1 {
+        migration_version: INTENT_MIGRATION_PROOF_VERSION_V1.to_string(),
+        agent_id: canonical_intent.agent_id.clone(),
+        legacy_session_digest: session.session_digest.clone(),
+        legacy_intent_digest: session.intent_digest.clone(),
+        gap_report_digest: canonical_gap.gap_digest.clone(),
+        composite_registration_digest: registration.registration_digest.clone(),
+        merged_snapshot_digest: snapshot.content_digest.clone(),
+        policy_compatibility_proof_digest: policy_proof.proof_digest.clone(),
+        field_provenance_digests,
+        canonical_intent_digest: canonical_intent.intent_digest.clone(),
+        canonical_view_digest: canonical_view.view_digest.clone(),
+        information_cutoff_unchanged: cutoff_unchanged,
+        lookback_unchanged: lookback_equal,
+        policy_semantics_unchanged: policy_proof.semantically_compatible,
+        evidence_set_unchanged: resolved_required == required && missing_optional == optional,
+        exclusions_unchanged: true,
+        no_field_invented,
+        migration_status: PersistedLearningIntentMigrationStatusV1::Migrated,
+        proof_digest: String::new(),
+    };
+    migration_proof.proof_digest = migration_proof_digest_v1(&migration_proof);
+    let mut journal = PersistedLearningIntentMigrationJournalV1 {
+        journal_version: INTENT_MIGRATION_JOURNAL_VERSION_V1.to_string(),
+        agent_id: canonical_intent.agent_id.clone(),
+        migration_proof_digest: migration_proof.proof_digest.clone(),
+        canonical_intent_digest: canonical_intent.intent_digest.clone(),
+        canonical_view_digest: canonical_view.view_digest.clone(),
+        entry_count: 1,
+        network_requests: 0,
+        transport_constructions: 0,
+        credential_reads: 0,
+        prospective_reads: 0,
+        active_model_changes: 0,
+        status: PersistedLearningIntentMigrationStatusV1::Migrated,
+        journal_digest: String::new(),
+    };
+    journal.journal_digest = migration_journal_digest_v1(&journal);
+    Ok(DerivedPersistedIntentMigrationV1 {
+        blocker,
+        first_failing_invariant,
+        canonical_intent,
+        canonical_view,
+        canonical_input: AgentPrivateLearningInputV1 {
+            input,
+            persisted_view_verified: true,
+        },
+        policy_proof,
+        field_provenance,
+        migration_proof,
+        journal,
+    })
+}
+
+fn load_latest_persisted_learning_session_v1(
+    root: &Path,
+    agent_id: &str,
+) -> Result<AgentPrivateLearningSessionV0, PersistedIntentMigrationFailureV1> {
+    let session_dir = root.join(agent_id).join("sessions");
+    let entries = fs::read_dir(session_dir).map_err(|_| {
+        migration_failure_v1(
+            PersistedIntentMigrationBlockerV1::LegacyIntentMetadataIncomplete,
+            PersistedLearningIntentMigrationStatusV1::SourceArtifactMissing,
+            "legacy_session",
+        )
+    })?;
+    let mut sessions = entries
+        .filter_map(Result::ok)
+        .map(|entry| entry.path())
+        .filter(|path| path.is_file() && path.extension().is_some_and(|value| value == "pb"))
+        .map(|path| {
+            fs::read(path)
+                .map_err(|_| {
+                    migration_failure_v1(
+                        PersistedIntentMigrationBlockerV1::IntegrityFailure,
+                        PersistedLearningIntentMigrationStatusV1::SourceIntegrityMismatch,
+                        "legacy_session_read",
+                    )
+                })
+                .and_then(|bytes| {
+                    decode_session_protobuf_v0(&bytes).map_err(|_| {
+                        migration_failure_v1(
+                            PersistedIntentMigrationBlockerV1::IntegrityFailure,
+                            PersistedLearningIntentMigrationStatusV1::SourceIntegrityMismatch,
+                            "legacy_session_protobuf",
+                        )
+                    })
+                })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    sessions.retain(|session| session.agent_id == agent_id);
+    sessions.sort_by(|left, right| {
+        left.information_cutoff_ms
+            .cmp(&right.information_cutoff_ms)
+            .then_with(|| left.session_digest.cmp(&right.session_digest))
+    });
+    let cutoff = sessions
+        .last()
+        .map(|value| value.information_cutoff_ms)
+        .ok_or_else(|| {
+            migration_failure_v1(
+                PersistedIntentMigrationBlockerV1::LegacyIntentMetadataIncomplete,
+                PersistedLearningIntentMigrationStatusV1::SourceArtifactMissing,
+                "legacy_session",
+            )
+        })?;
+    let latest = sessions
+        .into_iter()
+        .filter(|value| value.information_cutoff_ms == cutoff)
+        .collect::<Vec<_>>();
+    if latest.len() != 1 {
+        return Err(migration_failure_v1(
+            PersistedIntentMigrationBlockerV1::AmbiguousFieldProvenance,
+            PersistedLearningIntentMigrationStatusV1::AmbiguousFieldProvenance,
+            "legacy_session_selection",
+        ));
+    }
+    Ok(latest.into_iter().next().unwrap())
+}
+
+fn load_gap_reports_for_migration_v1(
+    root: &Path,
+) -> Result<Vec<AgentCanonicalViewGapReportV1>, PersistedIntentMigrationFailureV1> {
+    let directory = root.join("acquisition_v1/gap_reports");
+    let entries = fs::read_dir(directory).map_err(|_| {
+        migration_failure_v1(
+            PersistedIntentMigrationBlockerV1::LegacyIntentMetadataIncomplete,
+            PersistedLearningIntentMigrationStatusV1::SourceArtifactMissing,
+            "canonical_gap_reports",
+        )
+    })?;
+    let reports = entries
+        .filter_map(Result::ok)
+        .map(|entry| entry.path())
+        .filter(|path| path.is_file() && path.extension().is_some_and(|value| value == "pb"))
+        .map(|path| {
+            fs::read(path)
+                .map_err(|_| {
+                    migration_failure_v1(
+                        PersistedIntentMigrationBlockerV1::IntegrityFailure,
+                        PersistedLearningIntentMigrationStatusV1::SourceIntegrityMismatch,
+                        "canonical_gap_report_read",
+                    )
+                })
+                .and_then(|bytes| {
+                    decode_agent_canonical_view_gap_report_protobuf_v1(&bytes).map_err(|_| {
+                        migration_failure_v1(
+                            PersistedIntentMigrationBlockerV1::IntegrityFailure,
+                            PersistedLearningIntentMigrationStatusV1::SourceIntegrityMismatch,
+                            "canonical_gap_report_protobuf",
+                        )
+                    })
+                })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    if reports.is_empty() {
+        Err(migration_failure_v1(
+            PersistedIntentMigrationBlockerV1::LegacyIntentMetadataIncomplete,
+            PersistedLearningIntentMigrationStatusV1::SourceArtifactMissing,
+            "canonical_gap_reports",
+        ))
+    } else {
+        Ok(reports)
+    }
+}
+
+fn latest_agent_canonical_view_gap_statuses_v1(
+    gaps: impl IntoIterator<Item = crate::data::AgentCanonicalViewGapV1>,
+) -> Result<BTreeMap<String, CanonicalViewGapStatusV1>, String> {
+    let mut latest =
+        BTreeMap::<String, (u64, usize, usize, usize, CanonicalViewGapStatusV1)>::new();
+    for gap in gaps {
+        let rank = (
+            gap.information_cutoff_ms,
+            gap.resolved_required_dataset_kinds.len(),
+            gap.usable_artifact_digests.len(),
+            gap.resolved_optional_dataset_kinds.len(),
+        );
+        match latest.get(&gap.agent_id) {
+            Some((cutoff, required, usable, optional, _))
+                if (*cutoff, *required, *usable, *optional) > rank => {}
+            Some((cutoff, required, usable, optional, status))
+                if (*cutoff, *required, *usable, *optional) == rank =>
+            {
+                if *status != gap.status {
+                    return Err("canonical gap status is ambiguous".to_string());
+                }
+            }
+            _ => {
+                latest.insert(
+                    gap.agent_id,
+                    (
+                        gap.information_cutoff_ms,
+                        gap.resolved_required_dataset_kinds.len(),
+                        gap.usable_artifact_digests.len(),
+                        gap.resolved_optional_dataset_kinds.len(),
+                        gap.status,
+                    ),
+                );
+            }
+        }
+    }
+    Ok(latest
+        .into_iter()
+        .map(|(agent_id, (_, _, _, _, status))| (agent_id, status))
+        .collect())
+}
+
+pub fn load_latest_agent_canonical_view_gap_statuses_v1(
+    root: &Path,
+) -> Result<BTreeMap<String, CanonicalViewGapStatusV1>, String> {
+    let reports = load_gap_reports_for_migration_v1(root)
+        .map_err(|_| "canonical gap status artifacts unavailable".to_string())?;
+    latest_agent_canonical_view_gap_statuses_v1(reports.into_iter().flat_map(|report| report.gaps))
+}
+
+fn load_persisted_intent_migration_sources_v1(
+    root: &Path,
+    snapshots: &[DataSnapshot],
+) -> Result<PersistedIntentMigrationSourcesV1, PersistedIntentMigrationFailureV1> {
+    let legacy_session = load_latest_persisted_learning_session_v1(root, MOMENTUM_AGENT_ID_V1)?;
+    let legacy_projection = load_persisted_agent_learning_intents_v0(root, snapshots)
+        .map_err(|_| {
+            migration_failure_v1(
+                PersistedIntentMigrationBlockerV1::LegacyIntentMetadataIncomplete,
+                PersistedLearningIntentMigrationStatusV1::SourceIntegrityMismatch,
+                "legacy_intent_projection",
+            )
+        })?
+        .into_iter()
+        .find(|intent| intent.agent_id == MOMENTUM_AGENT_ID_V1)
+        .ok_or_else(|| {
+            migration_failure_v1(
+                PersistedIntentMigrationBlockerV1::LegacyIntentMetadataIncomplete,
+                PersistedLearningIntentMigrationStatusV1::SourceArtifactMissing,
+                "legacy_intent_projection",
+            )
+        })?;
+    let policy = default_agent_data_policies()
+        .into_iter()
+        .find(|policy| policy.agent_kind == legacy_session.agent_kind)
+        .ok_or_else(|| {
+            migration_failure_v1(
+                PersistedIntentMigrationBlockerV1::PolicyDigestMismatch,
+                PersistedLearningIntentMigrationStatusV1::SourceArtifactMissing,
+                "verified_agent_policy",
+            )
+        })?;
+    let composite_registration = read_composite_learning_registration_v1(root)
+        .map_err(|_| {
+            migration_failure_v1(
+                PersistedIntentMigrationBlockerV1::IntegrityFailure,
+                PersistedLearningIntentMigrationStatusV1::SourceIntegrityMismatch,
+                "composite_registration",
+            )
+        })?
+        .ok_or_else(|| {
+            migration_failure_v1(
+                PersistedIntentMigrationBlockerV1::LegacyIntentMetadataIncomplete,
+                PersistedLearningIntentMigrationStatusV1::SourceArtifactMissing,
+                "composite_registration",
+            )
+        })?;
+    let epoch_receipt = read_composite_epoch_receipt_v1(&composite_registration, root)
+        .map_err(|_| {
+            migration_failure_v1(
+                PersistedIntentMigrationBlockerV1::IntegrityFailure,
+                PersistedLearningIntentMigrationStatusV1::SourceIntegrityMismatch,
+                "composite_epoch_receipt",
+            )
+        })?
+        .ok_or_else(|| {
+            migration_failure_v1(
+                PersistedIntentMigrationBlockerV1::LegacyIntentMetadataIncomplete,
+                PersistedLearningIntentMigrationStatusV1::SourceArtifactMissing,
+                "composite_epoch_receipt",
+            )
+        })?;
+    let snapshot_digest = epoch_receipt
+        .merged_snapshot_digest
+        .as_ref()
+        .ok_or_else(|| {
+            migration_failure_v1(
+                PersistedIntentMigrationBlockerV1::CanonicalSnapshotBindingMismatch,
+                PersistedLearningIntentMigrationStatusV1::SourceArtifactMissing,
+                "canonical_snapshot_digest",
+            )
+        })?;
+    let canonical_snapshot = snapshots
+        .iter()
+        .find(|snapshot| snapshot.content_digest == *snapshot_digest)
+        .cloned()
+        .ok_or_else(|| {
+            migration_failure_v1(
+                PersistedIntentMigrationBlockerV1::CanonicalSnapshotBindingMismatch,
+                PersistedLearningIntentMigrationStatusV1::SourceArtifactMissing,
+                "canonical_snapshot",
+            )
+        })?;
+    let reports = load_gap_reports_for_migration_v1(root)?;
+    let mut acquisition_gaps = reports
+        .iter()
+        .flat_map(|report| report.gaps.iter())
+        .filter(|gap| gap.gap_digest == composite_registration.gap_report_digest)
+        .cloned()
+        .collect::<Vec<_>>();
+    acquisition_gaps.sort_by(|left, right| left.gap_digest.cmp(&right.gap_digest));
+    acquisition_gaps.dedup();
+    if acquisition_gaps.len() != 1 {
+        return Err(migration_failure_v1(
+            PersistedIntentMigrationBlockerV1::AmbiguousFieldProvenance,
+            PersistedLearningIntentMigrationStatusV1::AmbiguousFieldProvenance,
+            "acquisition_gap",
+        ));
+    }
+    let mut canonical_gaps = reports
+        .iter()
+        .flat_map(|report| report.gaps.iter())
+        .filter(|gap| {
+            gap.agent_id == MOMENTUM_AGENT_ID_V1
+                && gap.status == CanonicalViewGapStatusV1::MissingOptionalEvidenceOnly
+                && gap
+                    .usable_artifact_digests
+                    .contains(&canonical_snapshot.content_digest)
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+    canonical_gaps.sort_by(|left, right| left.gap_digest.cmp(&right.gap_digest));
+    canonical_gaps.dedup();
+    if canonical_gaps.len() != 1 {
+        return Err(migration_failure_v1(
+            PersistedIntentMigrationBlockerV1::AmbiguousFieldProvenance,
+            PersistedLearningIntentMigrationStatusV1::AmbiguousFieldProvenance,
+            "canonical_gap",
+        ));
+    }
+    Ok(PersistedIntentMigrationSourcesV1 {
+        legacy_session,
+        legacy_projection,
+        policy,
+        acquisition_gap: acquisition_gaps.into_iter().next().unwrap(),
+        canonical_gap: canonical_gaps.into_iter().next().unwrap(),
+        composite_registration,
+        epoch_receipt,
+        canonical_snapshot,
+    })
+}
+
+fn collect_migration_protected_bytes_v1(
+    path: &Path,
+    protected: &mut Vec<(PathBuf, Vec<u8>)>,
+) -> Result<(), String> {
+    if path.ends_with("intent_migration_v1") {
+        return Ok(());
+    }
+    if path.is_file() {
+        protected.push((
+            path.to_path_buf(),
+            fs::read(path).map_err(|_| "protected learning artifact read failed".to_string())?,
+        ));
+        return Ok(());
+    }
+    if !path.is_dir() {
+        return Ok(());
+    }
+    let mut children = fs::read_dir(path)
+        .map_err(|_| "protected learning directory read failed".to_string())?
+        .filter_map(Result::ok)
+        .map(|entry| entry.path())
+        .collect::<Vec<_>>();
+    children.sort();
+    for child in children {
+        collect_migration_protected_bytes_v1(&child, protected)?;
+    }
+    Ok(())
+}
+
+fn migration_report_digest_v1(report: &PersistedLearningIntentMigrationReportV1) -> String {
+    stable_hash_string(&format!(
+        "{:?}",
+        (
+            (
+                report.report_version.as_str(),
+                report.mode,
+                report.agent_id.as_str(),
+                report.blocker,
+                &report.first_failing_invariant,
+                report.status,
+            ),
+            (
+                &report.legacy_session_digest,
+                &report.legacy_intent_digest,
+                &report.canonical_gap_digest,
+                &report.composite_registration_digest,
+                &report.canonical_snapshot_digest,
+                &report.canonical_intent_digest,
+                &report.canonical_view_digest,
+                &report.policy_compatibility_proof_digest,
+                &report.migration_proof_digest,
+                &report.migration_journal_digest,
+            ),
+            (
+                report.field_provenance_count,
+                report.required_evidence_complete,
+                report.optional_evidence_unavailable,
+                report.normal_validator_passed,
+                report.normal_view_builder_passed,
+                report.artifacts_written,
+                report.duplicate_artifact_count,
+                report.storage_failure_count,
+                report.protected_artifacts_unchanged,
+                report.active_state_unchanged,
+                &report.safety_counters,
+            ),
+        )
+    ))
+}
+
+fn failed_migration_execution_v1(
+    mode: AgentPrivateLearningRunModeV0,
+    failure: PersistedIntentMigrationFailureV1,
+    active_state_unchanged: bool,
+) -> PersistedLearningIntentMigrationExecutionV1 {
+    let mut report = PersistedLearningIntentMigrationReportV1 {
+        report_version: INTENT_MIGRATION_VERSION_V1.to_string(),
+        mode,
+        agent_id: MOMENTUM_AGENT_ID_V1.to_string(),
+        blocker: failure.blocker,
+        first_failing_invariant: Some(failure.invariant.to_string()),
+        status: failure.status,
+        legacy_session_digest: None,
+        legacy_intent_digest: None,
+        canonical_gap_digest: None,
+        composite_registration_digest: None,
+        canonical_snapshot_digest: None,
+        canonical_intent_digest: None,
+        canonical_view_digest: None,
+        policy_compatibility_proof_digest: None,
+        migration_proof_digest: None,
+        migration_journal_digest: None,
+        field_provenance_count: 0,
+        required_evidence_complete: false,
+        optional_evidence_unavailable: false,
+        normal_validator_passed: false,
+        normal_view_builder_passed: false,
+        artifacts_written: 0,
+        duplicate_artifact_count: 0,
+        storage_failure_count: usize::from(mode == AgentPrivateLearningRunModeV0::ExecuteLocal),
+        protected_artifacts_unchanged: true,
+        active_state_unchanged,
+        safety_counters: zero_intent_migration_safety_counters_v1(),
+        report_digest: String::new(),
+    };
+    report.report_digest = migration_report_digest_v1(&report);
+    PersistedLearningIntentMigrationExecutionV1 {
+        report,
+        canonical_input: None,
+    }
+}
+
+pub fn run_persisted_learning_intent_migration_v1(
+    root: &Path,
+    snapshots: &[DataSnapshot],
+    mode: AgentPrivateLearningRunModeV0,
+) -> PersistedLearningIntentMigrationExecutionV1 {
+    let before = stable_hash_string(&format!("{:?}", canonical_current_agent_states()));
+    let mut protected_before = Vec::new();
+    if mode == AgentPrivateLearningRunModeV0::ExecuteLocal
+        && collect_migration_protected_bytes_v1(root, &mut protected_before).is_err()
+    {
+        return failed_migration_execution_v1(
+            mode,
+            migration_failure_v1(
+                PersistedIntentMigrationBlockerV1::IntegrityFailure,
+                PersistedLearningIntentMigrationStatusV1::SourceIntegrityMismatch,
+                "protected_artifact_snapshot",
+            ),
+            true,
+        );
+    }
+    let sources = match load_persisted_intent_migration_sources_v1(root, snapshots) {
+        Ok(sources) => sources,
+        Err(failure) => {
+            let after = stable_hash_string(&format!("{:?}", canonical_current_agent_states()));
+            return failed_migration_execution_v1(mode, failure, before == after);
+        }
+    };
+    let derived = match derive_persisted_learning_intent_migration_v1(&sources) {
+        Ok(derived) => derived,
+        Err(failure) => {
+            let after = stable_hash_string(&format!("{:?}", canonical_current_agent_states()));
+            return failed_migration_execution_v1(mode, failure, before == after);
+        }
+    };
+    let already_migrated = read_persisted_learning_intent_migration_v1(root, snapshots)
+        .is_ok_and(|persisted| persisted == derived.canonical_input);
+    let mut artifacts_written = 0;
+    let mut duplicate_artifact_count = 0;
+    let mut storage_failure_count = 0;
+    if mode == AgentPrivateLearningRunModeV0::DryRun {
+        if migration_round_trip_v1(&derived).is_err() {
+            storage_failure_count = 1;
+        }
+    } else if mode == AgentPrivateLearningRunModeV0::ExecuteLocal {
+        match persist_persisted_learning_intent_migration_v1(&derived, root) {
+            Ok((written, duplicates)) => {
+                artifacts_written = written;
+                duplicate_artifact_count = duplicates;
+            }
+            Err(_) => storage_failure_count = 1,
+        }
+    }
+    let canonical_input =
+        if mode == AgentPrivateLearningRunModeV0::ExecuteLocal && storage_failure_count == 0 {
+            read_persisted_learning_intent_migration_v1(root, snapshots).ok()
+        } else {
+            Some(derived.canonical_input.clone())
+        };
+    let protected_artifacts_unchanged = if mode == AgentPrivateLearningRunModeV0::ExecuteLocal {
+        let mut protected_after = Vec::new();
+        collect_migration_protected_bytes_v1(root, &mut protected_after).is_ok()
+            && protected_before == protected_after
+    } else {
+        true
+    };
+    let after = stable_hash_string(&format!("{:?}", canonical_current_agent_states()));
+    let status = if already_migrated {
+        PersistedLearningIntentMigrationStatusV1::AlreadyMigrated
+    } else {
+        PersistedLearningIntentMigrationStatusV1::Migrated
+    };
+    let mut report = PersistedLearningIntentMigrationReportV1 {
+        report_version: INTENT_MIGRATION_VERSION_V1.to_string(),
+        mode,
+        agent_id: MOMENTUM_AGENT_ID_V1.to_string(),
+        blocker: derived.blocker,
+        first_failing_invariant: derived.first_failing_invariant.clone(),
+        status,
+        legacy_session_digest: Some(sources.legacy_session.session_digest.clone()),
+        legacy_intent_digest: Some(sources.legacy_session.intent_digest.clone()),
+        canonical_gap_digest: Some(sources.canonical_gap.gap_digest.clone()),
+        composite_registration_digest: Some(
+            sources.composite_registration.registration_digest.clone(),
+        ),
+        canonical_snapshot_digest: Some(sources.canonical_snapshot.content_digest.clone()),
+        canonical_intent_digest: Some(derived.canonical_intent.intent_digest.clone()),
+        canonical_view_digest: Some(derived.canonical_view.view_digest.clone()),
+        policy_compatibility_proof_digest: Some(derived.policy_proof.proof_digest.clone()),
+        migration_proof_digest: Some(derived.migration_proof.proof_digest.clone()),
+        migration_journal_digest: Some(derived.journal.journal_digest.clone()),
+        field_provenance_count: derived.field_provenance.len(),
+        required_evidence_complete: true,
+        optional_evidence_unavailable: true,
+        normal_validator_passed: validate_agent_learning_intent_v0(
+            &derived.canonical_intent,
+            &sources.policy,
+        )
+        .is_ok(),
+        normal_view_builder_passed: canonical_input.is_some(),
+        artifacts_written,
+        duplicate_artifact_count,
+        storage_failure_count,
+        protected_artifacts_unchanged,
+        active_state_unchanged: before == after,
+        safety_counters: zero_intent_migration_safety_counters_v1(),
+        report_digest: String::new(),
+    };
+    report.report_digest = migration_report_digest_v1(&report);
+    PersistedLearningIntentMigrationExecutionV1 {
+        report,
+        canonical_input,
+    }
 }
 
 fn resolve_snapshot_for_request_v0(
@@ -4930,6 +6493,183 @@ fn write_journal_artifact_v0(
     )
 }
 
+fn intent_migration_agent_root_v1(root: &Path) -> PathBuf {
+    root.join("intent_migration_v1").join(MOMENTUM_AGENT_ID_V1)
+}
+
+fn migration_round_trip_v1(derived: &DerivedPersistedIntentMigrationV1) -> Result<(), String> {
+    let intent = decode_canonical_learning_intent_migration_protobuf_v1(
+        &encode_canonical_learning_intent_migration_protobuf_v1(&derived.canonical_intent)?,
+    )?;
+    let (_, view) = decode_agent_learning_data_view_protobuf_v0(
+        &encode_agent_learning_data_view_protobuf_v0(&derived.canonical_view)?,
+    )?;
+    let policy = decode_intent_policy_compatibility_proof_protobuf_v1(
+        &encode_intent_policy_compatibility_proof_protobuf_v1(&derived.policy_proof)?,
+    )?;
+    let proof = decode_learning_intent_migration_proof_protobuf_v1(
+        &encode_learning_intent_migration_proof_protobuf_v1(&derived.migration_proof)?,
+    )?;
+    let journal = decode_learning_intent_migration_journal_protobuf_v1(
+        &encode_learning_intent_migration_journal_protobuf_v1(&derived.journal)?,
+    )?;
+    if intent != derived.canonical_intent
+        || view != derived.canonical_view
+        || policy != derived.policy_proof
+        || proof != derived.migration_proof
+        || journal != derived.journal
+    {
+        return Err("intent migration Protobuf round trip rejected".to_string());
+    }
+    Ok(())
+}
+
+fn record_migration_write_status_v1(
+    status: AgentPrivateLearningArtifactWriteStatusV0,
+    written: &mut usize,
+    duplicates: &mut usize,
+) {
+    match status {
+        AgentPrivateLearningArtifactWriteStatusV0::Written => *written += 1,
+        AgentPrivateLearningArtifactWriteStatusV0::DuplicateRejected => *duplicates += 1,
+    }
+}
+
+fn persist_persisted_learning_intent_migration_v1(
+    derived: &DerivedPersistedIntentMigrationV1,
+    root: &Path,
+) -> Result<(usize, usize), String> {
+    migration_round_trip_v1(derived)?;
+    let migration_root = intent_migration_agent_root_v1(root);
+    let mut written = 0;
+    let mut duplicates = 0;
+    let intent_bytes =
+        encode_canonical_learning_intent_migration_protobuf_v1(&derived.canonical_intent)?;
+    let status = atomic_write_verified_v0(
+        &migration_root.join("canonical-intent.pb"),
+        &intent_bytes,
+        &derived.canonical_intent.intent_digest,
+        |bytes| Ok(decode_canonical_learning_intent_migration_protobuf_v1(bytes)?.intent_digest),
+    )?;
+    record_migration_write_status_v1(status, &mut written, &mut duplicates);
+    let view_root = migration_root.join("canonical-view");
+    let view_path = view_root.join(format!(
+        "agent-view-{}.pb",
+        derived.canonical_view.view_digest
+    ));
+    let view_existed = view_path.is_file();
+    let stored_view_path =
+        write_and_verify_agent_learning_data_view_v0(&derived.canonical_view, &view_root)?;
+    if stored_view_path != view_path
+        || read_and_verify_agent_learning_data_view_v0(&stored_view_path)? != derived.canonical_view
+    {
+        return Err("canonical migrated view reopen rejected".to_string());
+    }
+    if view_existed {
+        duplicates += 1;
+    } else {
+        written += 1;
+    }
+    let policy_bytes = encode_intent_policy_compatibility_proof_protobuf_v1(&derived.policy_proof)?;
+    let status = atomic_write_verified_v0(
+        &migration_root.join("policy-compatibility-proof.pb"),
+        &policy_bytes,
+        &derived.policy_proof.proof_digest,
+        |bytes| Ok(decode_intent_policy_compatibility_proof_protobuf_v1(bytes)?.proof_digest),
+    )?;
+    record_migration_write_status_v1(status, &mut written, &mut duplicates);
+    let proof_bytes = encode_learning_intent_migration_proof_protobuf_v1(&derived.migration_proof)?;
+    let status = atomic_write_verified_v0(
+        &migration_root.join("migration-proof.pb"),
+        &proof_bytes,
+        &derived.migration_proof.proof_digest,
+        |bytes| Ok(decode_learning_intent_migration_proof_protobuf_v1(bytes)?.proof_digest),
+    )?;
+    record_migration_write_status_v1(status, &mut written, &mut duplicates);
+    let journal_bytes = encode_learning_intent_migration_journal_protobuf_v1(&derived.journal)?;
+    let status = atomic_write_verified_v0(
+        &migration_root.join("journal.pb"),
+        &journal_bytes,
+        &derived.journal.journal_digest,
+        |bytes| Ok(decode_learning_intent_migration_journal_protobuf_v1(bytes)?.journal_digest),
+    )?;
+    record_migration_write_status_v1(status, &mut written, &mut duplicates);
+    Ok((written, duplicates))
+}
+
+pub fn read_persisted_learning_intent_migration_v1(
+    root: &Path,
+    snapshots: &[DataSnapshot],
+) -> Result<AgentPrivateLearningInputV1, String> {
+    let migration_root = intent_migration_agent_root_v1(root);
+    let intent = decode_canonical_learning_intent_migration_protobuf_v1(
+        &fs::read(migration_root.join("canonical-intent.pb"))
+            .map_err(|_| "canonical migrated intent unavailable".to_string())?,
+    )?;
+    let policy_proof = decode_intent_policy_compatibility_proof_protobuf_v1(
+        &fs::read(migration_root.join("policy-compatibility-proof.pb"))
+            .map_err(|_| "intent policy compatibility proof unavailable".to_string())?,
+    )?;
+    let migration_proof = decode_learning_intent_migration_proof_protobuf_v1(
+        &fs::read(migration_root.join("migration-proof.pb"))
+            .map_err(|_| "intent migration proof unavailable".to_string())?,
+    )?;
+    let journal = decode_learning_intent_migration_journal_protobuf_v1(
+        &fs::read(migration_root.join("journal.pb"))
+            .map_err(|_| "intent migration journal unavailable".to_string())?,
+    )?;
+    let view_path = migration_root.join("canonical-view").join(format!(
+        "agent-view-{}.pb",
+        migration_proof.canonical_view_digest
+    ));
+    let view = read_and_verify_agent_learning_data_view_v0(&view_path)?;
+    if intent.agent_id != MOMENTUM_AGENT_ID_V1
+        || intent.intent_digest != migration_proof.canonical_intent_digest
+        || view.agent_id != intent.agent_id
+        || view.view_digest != migration_proof.canonical_view_digest
+        || policy_proof.agent_id != intent.agent_id
+        || policy_proof.proof_digest != migration_proof.policy_compatibility_proof_digest
+        || journal.agent_id != intent.agent_id
+        || journal.migration_proof_digest != migration_proof.proof_digest
+        || journal.canonical_intent_digest != intent.intent_digest
+        || journal.canonical_view_digest != view.view_digest
+    {
+        return Err("persisted intent migration cross-artifact binding rejected".to_string());
+    }
+    let policy = default_agent_data_policies()
+        .into_iter()
+        .find(|policy| policy.agent_kind == intent.agent_kind)
+        .ok_or_else(|| "canonical migrated intent policy unavailable".to_string())?;
+    validate_agent_learning_intent_v0(&intent, &policy)?;
+    validate_agent_learning_data_view_v0(&view)?;
+    let snapshot = snapshots
+        .iter()
+        .find(|snapshot| snapshot.content_digest == migration_proof.merged_snapshot_digest)
+        .ok_or_else(|| "canonical migrated view snapshot unavailable".to_string())?;
+    if view.source_artifact_digests.len() != 1
+        || view.source_artifact_digests.first() != Some(&snapshot.content_digest)
+        || historical_replay_dataset_digest_v0(&snapshot.normalized_dataset)
+            != snapshot.content_digest
+    {
+        return Err("canonical migrated view snapshot binding rejected".to_string());
+    }
+    let input = build_agent_private_learning_input_from_persisted_view_v0(
+        &intent,
+        &policy,
+        &view,
+        std::slice::from_ref(snapshot),
+    )?;
+    if input.resolution_status != AgentViewResolutionStatusV0::OptionalEvidenceUnavailable
+        || input.view.decision_gate != EvidenceDecisionGate::Ready
+    {
+        return Err("canonical migrated view readiness rejected".to_string());
+    }
+    Ok(AgentPrivateLearningInputV1 {
+        input,
+        persisted_view_verified: true,
+    })
+}
+
 fn atomic_write_verified_v0<F>(
     path: &Path,
     bytes: &[u8],
@@ -4960,29 +6700,40 @@ where
         .and_then(|name| name.to_str())
         .ok_or_else(|| "private learning artifact filename rejected".to_string())?;
     let temporary = parent.join(format!(".{file_name}.{expected_digest}.tmp"));
-    let mut file = File::create(&temporary)
-        .map_err(|_| "private learning temporary create failed".to_string())?;
-    file.write_all(bytes)
-        .map_err(|_| "private learning temporary write failed".to_string())?;
-    file.flush()
-        .map_err(|_| "private learning temporary flush failed".to_string())?;
-    file.sync_all()
-        .map_err(|_| "private learning temporary sync failed".to_string())?;
-    drop(file);
-    let mut reopened = Vec::new();
-    File::open(&temporary)
-        .map_err(|_| "private learning temporary reopen failed".to_string())?
-        .read_to_end(&mut reopened)
-        .map_err(|_| "private learning temporary reread failed".to_string())?;
-    if verify(&reopened)? != expected_digest {
-        return Err("private learning temporary verification failed".to_string());
+    let write_result = (|| {
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temporary)
+            .map_err(|_| "private learning temporary create failed".to_string())?;
+        file.write_all(bytes)
+            .map_err(|_| "private learning temporary write failed".to_string())?;
+        file.flush()
+            .map_err(|_| "private learning temporary flush failed".to_string())?;
+        file.sync_all()
+            .map_err(|_| "private learning temporary sync failed".to_string())?;
+        drop(file);
+        let mut reopened = Vec::new();
+        File::open(&temporary)
+            .map_err(|_| "private learning temporary reopen failed".to_string())?
+            .read_to_end(&mut reopened)
+            .map_err(|_| "private learning temporary reread failed".to_string())?;
+        if verify(&reopened)? != expected_digest {
+            return Err("private learning temporary verification failed".to_string());
+        }
+        fs::rename(&temporary, path)
+            .map_err(|error| format!("private learning atomic rename failed: {error}"))?;
+        let stored =
+            fs::read(path).map_err(|_| "private learning final reopen failed".to_string())?;
+        if verify(&stored)? != expected_digest {
+            return Err("private learning final verification failed".to_string());
+        }
+        Ok(())
+    })();
+    if write_result.is_err() && temporary.is_file() {
+        let _ = fs::remove_file(&temporary);
     }
-    fs::rename(&temporary, path)
-        .map_err(|_| "private learning atomic rename failed".to_string())?;
-    let stored = fs::read(path).map_err(|_| "private learning final reopen failed".to_string())?;
-    if verify(&stored)? != expected_digest {
-        return Err("private learning final verification failed".to_string());
-    }
+    write_result?;
     Ok(AgentPrivateLearningArtifactWriteStatusV0::Written)
 }
 
@@ -5014,6 +6765,10 @@ enum ArtifactKindV0 {
     EvidenceExclusionV1,
     EvaluationRegistrationV1,
     EvaluationJournalV1,
+    CanonicalIntentMigrationV1,
+    IntentPolicyCompatibilityProofV1,
+    IntentMigrationProofV1,
+    IntentMigrationJournalV1,
 }
 
 impl ArtifactKindV0 {
@@ -5038,6 +6793,10 @@ impl ArtifactKindV0 {
             Self::EvidenceExclusionV1 => "evaluation-evidence-exclusion-v1",
             Self::EvaluationRegistrationV1 => "candidate-evaluation-registration-v1",
             Self::EvaluationJournalV1 => "candidate-evaluation-journal-v1",
+            Self::CanonicalIntentMigrationV1 => "canonical-learning-intent-migration-v1",
+            Self::IntentPolicyCompatibilityProofV1 => "intent-policy-compatibility-proof-v1",
+            Self::IntentMigrationProofV1 => "persisted-learning-intent-migration-proof-v1",
+            Self::IntentMigrationJournalV1 => "persisted-learning-intent-migration-journal-v1",
         }
     }
 }
@@ -5128,6 +6887,148 @@ struct SessionProtobufV0 {
     training_ledger_digest: String,
     #[prost(string, optional, tag = "28")]
     trainer_projection_digest: Option<String>,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct CanonicalIntentMigrationProtobufV1 {
+    #[prost(string, tag = "1")]
+    intent_version: String,
+    #[prost(string, tag = "2")]
+    agent_id: String,
+    #[prost(uint32, tag = "3")]
+    agent_kind: u32,
+    #[prost(uint32, repeated, tag = "4")]
+    market_scopes: Vec<u32>,
+    #[prost(string, repeated, tag = "5")]
+    symbols: Vec<String>,
+    #[prost(uint32, repeated, tag = "6")]
+    required_datasets: Vec<u32>,
+    #[prost(uint32, repeated, tag = "7")]
+    optional_datasets: Vec<u32>,
+    #[prost(string, tag = "8")]
+    cadence: String,
+    #[prost(uint64, tag = "9")]
+    lookback_bars: u64,
+    #[prost(uint64, optional, tag = "10")]
+    lookback_start_timestamp_ms: Option<u64>,
+    #[prost(uint64, optional, tag = "11")]
+    lookback_end_timestamp_ms: Option<u64>,
+    #[prost(uint64, tag = "12")]
+    information_cutoff_ms: u64,
+    #[prost(uint64, tag = "13")]
+    maximum_staleness_ms: u64,
+    #[prost(string, tag = "14")]
+    source_policy_digest: String,
+    #[prost(string, tag = "15")]
+    feature_policy_digest: String,
+    #[prost(string, tag = "16")]
+    label_policy_digest: String,
+    #[prost(string, tag = "17")]
+    curriculum_policy_digest: String,
+    #[prost(string, tag = "18")]
+    intent_digest: String,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct IntentPolicyCompatibilityProofProtobufV1 {
+    #[prost(string, tag = "1")]
+    proof_version: String,
+    #[prost(string, tag = "2")]
+    agent_id: String,
+    #[prost(string, tag = "3")]
+    legacy_policy_digest: String,
+    #[prost(string, tag = "4")]
+    current_policy_digest: String,
+    #[prost(bool, tag = "5")]
+    required_datasets_equal: bool,
+    #[prost(bool, tag = "6")]
+    optional_datasets_equal: bool,
+    #[prost(bool, tag = "7")]
+    markets_equal: bool,
+    #[prost(bool, tag = "8")]
+    cadence_equal: bool,
+    #[prost(bool, tag = "9")]
+    lookback_equal: bool,
+    #[prost(bool, tag = "10")]
+    staleness_equal: bool,
+    #[prost(bool, tag = "11")]
+    compatible: bool,
+    #[prost(string, tag = "12")]
+    proof_digest: String,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct IntentMigrationProofProtobufV1 {
+    #[prost(string, tag = "1")]
+    proof_version: String,
+    #[prost(string, tag = "2")]
+    agent_id: String,
+    #[prost(string, tag = "3")]
+    legacy_session_digest: String,
+    #[prost(string, tag = "4")]
+    legacy_intent_digest: String,
+    #[prost(string, tag = "5")]
+    canonical_gap_digest: String,
+    #[prost(string, tag = "6")]
+    composite_registration_digest: String,
+    #[prost(string, tag = "7")]
+    canonical_snapshot_digest: String,
+    #[prost(string, tag = "8")]
+    policy_compatibility_proof_digest: String,
+    #[prost(string, repeated, tag = "9")]
+    field_provenance_digests: Vec<String>,
+    #[prost(string, tag = "10")]
+    canonical_intent_digest: String,
+    #[prost(string, tag = "11")]
+    canonical_view_digest: String,
+    #[prost(bool, tag = "12")]
+    cutoff_unchanged: bool,
+    #[prost(bool, tag = "13")]
+    lookback_unchanged: bool,
+    #[prost(bool, tag = "14")]
+    policy_unchanged: bool,
+    #[prost(bool, tag = "15")]
+    required_evidence_unchanged: bool,
+    #[prost(bool, tag = "16")]
+    optional_evidence_unchanged: bool,
+    #[prost(bool, tag = "17")]
+    exclusions_unchanged: bool,
+    #[prost(bool, tag = "18")]
+    no_field_invented: bool,
+    #[prost(uint32, tag = "19")]
+    status: u32,
+    #[prost(string, tag = "20")]
+    proof_digest: String,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct IntentMigrationJournalProtobufV1 {
+    #[prost(string, tag = "1")]
+    journal_version: String,
+    #[prost(string, tag = "2")]
+    agent_id: String,
+    #[prost(string, tag = "3")]
+    migration_proof_digest: String,
+    #[prost(string, tag = "4")]
+    canonical_intent_digest: String,
+    #[prost(string, tag = "5")]
+    canonical_view_digest: String,
+    #[prost(uint64, tag = "6")]
+    entry_count: u64,
+    #[prost(uint64, tag = "7")]
+    network_requests: u64,
+    #[prost(uint64, tag = "8")]
+    transport_constructions: u64,
+    #[prost(uint64, tag = "9")]
+    credential_reads: u64,
+    #[prost(uint64, tag = "10")]
+    prospective_reads: u64,
+    #[prost(uint64, tag = "11")]
+    active_model_changes: u64,
+    #[prost(uint32, tag = "12")]
+    status: u32,
+    #[prost(string, tag = "13")]
+    journal_digest: String,
 }
 
 #[derive(Clone, PartialEq, Message)]
@@ -6341,6 +8242,346 @@ pub fn decode_evaluation_journal_protobuf_v1(
         || journal.journal_digest != envelope.semantic_digest
     {
         return Err("V1 evaluation journal identity rejected".to_string());
+    }
+    Ok(journal)
+}
+
+fn migration_status_tag_v1(value: PersistedLearningIntentMigrationStatusV1) -> u32 {
+    match value {
+        PersistedLearningIntentMigrationStatusV1::Migrated => 1,
+        PersistedLearningIntentMigrationStatusV1::AlreadyMigrated => 2,
+        PersistedLearningIntentMigrationStatusV1::SourceArtifactMissing => 3,
+        PersistedLearningIntentMigrationStatusV1::SourceIntegrityMismatch => 4,
+        PersistedLearningIntentMigrationStatusV1::PolicyBindingMismatch => 5,
+        PersistedLearningIntentMigrationStatusV1::CanonicalIntentInvalid => 6,
+        PersistedLearningIntentMigrationStatusV1::CanonicalViewInvalid => 7,
+        PersistedLearningIntentMigrationStatusV1::AmbiguousFieldProvenance => 8,
+    }
+}
+
+fn migration_status_from_tag_v1(
+    value: u32,
+) -> Result<PersistedLearningIntentMigrationStatusV1, String> {
+    match value {
+        1 => Ok(PersistedLearningIntentMigrationStatusV1::Migrated),
+        2 => Ok(PersistedLearningIntentMigrationStatusV1::AlreadyMigrated),
+        3 => Ok(PersistedLearningIntentMigrationStatusV1::SourceArtifactMissing),
+        4 => Ok(PersistedLearningIntentMigrationStatusV1::SourceIntegrityMismatch),
+        5 => Ok(PersistedLearningIntentMigrationStatusV1::PolicyBindingMismatch),
+        6 => Ok(PersistedLearningIntentMigrationStatusV1::CanonicalIntentInvalid),
+        7 => Ok(PersistedLearningIntentMigrationStatusV1::CanonicalViewInvalid),
+        8 => Ok(PersistedLearningIntentMigrationStatusV1::AmbiguousFieldProvenance),
+        _ => Err("intent migration status rejected".to_string()),
+    }
+}
+
+pub fn encode_canonical_learning_intent_migration_protobuf_v1(
+    intent: &AgentLearningIntentV0,
+) -> Result<Vec<u8>, String> {
+    let policy = default_agent_data_policies()
+        .into_iter()
+        .find(|policy| policy.agent_kind == intent.agent_kind)
+        .ok_or_else(|| "canonical migrated intent policy unavailable".to_string())?;
+    validate_agent_learning_intent_v0(intent, &policy)?;
+    encode_envelope_v0(
+        ArtifactKindV0::CanonicalIntentMigrationV1,
+        &intent.intent_digest,
+        &CanonicalIntentMigrationProtobufV1 {
+            intent_version: intent.intent_version.clone(),
+            agent_id: intent.agent_id.clone(),
+            agent_kind: agent_kind_tag_v0(intent.agent_kind)?,
+            market_scopes: intent
+                .market_scopes
+                .iter()
+                .map(|value| market_scope_tag_v0(*value))
+                .collect::<Result<Vec<_>, _>>()?,
+            symbols: intent.symbols.clone(),
+            required_datasets: intent
+                .required_datasets
+                .iter()
+                .map(|value| dataset_kind_tag_v0(*value))
+                .collect::<Result<Vec<_>, _>>()?,
+            optional_datasets: intent
+                .optional_datasets
+                .iter()
+                .map(|value| dataset_kind_tag_v0(*value))
+                .collect::<Result<Vec<_>, _>>()?,
+            cadence: intent.cadence.clone(),
+            lookback_bars: usize_to_u64_v0(intent.lookback.bars)?,
+            lookback_start_timestamp_ms: intent.lookback.start_timestamp_ms,
+            lookback_end_timestamp_ms: intent.lookback.end_timestamp_ms,
+            information_cutoff_ms: intent.information_cutoff_ms,
+            maximum_staleness_ms: intent.maximum_staleness_ms,
+            source_policy_digest: intent.source_policy_digest.clone(),
+            feature_policy_digest: intent.feature_policy_digest.clone(),
+            label_policy_digest: intent.label_policy_digest.clone(),
+            curriculum_policy_digest: intent.curriculum_policy_digest.clone(),
+            intent_digest: intent.intent_digest.clone(),
+        },
+    )
+}
+
+pub fn decode_canonical_learning_intent_migration_protobuf_v1(
+    bytes: &[u8],
+) -> Result<AgentLearningIntentV0, String> {
+    let envelope = decode_envelope_v0(bytes, ArtifactKindV0::CanonicalIntentMigrationV1)?;
+    let value = CanonicalIntentMigrationProtobufV1::decode(envelope.payload.as_slice())
+        .map_err(|_| "canonical migrated intent decode failed".to_string())?;
+    let intent = AgentLearningIntentV0 {
+        intent_version: value.intent_version,
+        agent_id: value.agent_id,
+        agent_kind: agent_kind_from_tag_v0(value.agent_kind)?,
+        market_scopes: value
+            .market_scopes
+            .into_iter()
+            .map(market_scope_from_tag_v0)
+            .collect::<Result<Vec<_>, _>>()?,
+        symbols: value.symbols,
+        required_datasets: value
+            .required_datasets
+            .into_iter()
+            .map(dataset_kind_from_tag_v0)
+            .collect::<Result<Vec<_>, _>>()?,
+        optional_datasets: value
+            .optional_datasets
+            .into_iter()
+            .map(dataset_kind_from_tag_v0)
+            .collect::<Result<Vec<_>, _>>()?,
+        cadence: value.cadence,
+        lookback: DataLookback {
+            bars: u64_to_usize_v0(value.lookback_bars)?,
+            start_timestamp_ms: value.lookback_start_timestamp_ms,
+            end_timestamp_ms: value.lookback_end_timestamp_ms,
+        },
+        information_cutoff_ms: value.information_cutoff_ms,
+        maximum_staleness_ms: value.maximum_staleness_ms,
+        source_policy_digest: value.source_policy_digest,
+        feature_policy_digest: value.feature_policy_digest,
+        label_policy_digest: value.label_policy_digest,
+        curriculum_policy_digest: value.curriculum_policy_digest,
+        intent_digest: value.intent_digest,
+    };
+    let policy = default_agent_data_policies()
+        .into_iter()
+        .find(|policy| policy.agent_kind == intent.agent_kind)
+        .ok_or_else(|| "canonical migrated intent policy unavailable".to_string())?;
+    validate_agent_learning_intent_v0(&intent, &policy)?;
+    if intent.intent_digest != envelope.semantic_digest {
+        return Err("canonical migrated intent envelope identity rejected".to_string());
+    }
+    Ok(intent)
+}
+
+pub fn encode_intent_policy_compatibility_proof_protobuf_v1(
+    proof: &PersistedIntentPolicyCompatibilityProofV1,
+) -> Result<Vec<u8>, String> {
+    if proof.agent_id != MOMENTUM_AGENT_ID_V1
+        || !proof.semantically_compatible
+        || !proof.required_datasets_equal
+        || !proof.optional_datasets_equal
+        || !proof.allowed_markets_equal
+        || !proof.cadence_equal
+        || !proof.lookback_equal
+        || !proof.staleness_equal
+        || proof.proof_digest != policy_compatibility_proof_digest_v1(proof)
+    {
+        return Err("intent policy compatibility proof rejected".to_string());
+    }
+    encode_envelope_v0(
+        ArtifactKindV0::IntentPolicyCompatibilityProofV1,
+        &proof.proof_digest,
+        &IntentPolicyCompatibilityProofProtobufV1 {
+            proof_version: INTENT_POLICY_PROOF_VERSION_V1.to_string(),
+            agent_id: proof.agent_id.clone(),
+            legacy_policy_digest: proof.legacy_policy_digest.clone(),
+            current_policy_digest: proof.current_policy_digest.clone(),
+            required_datasets_equal: proof.required_datasets_equal,
+            optional_datasets_equal: proof.optional_datasets_equal,
+            markets_equal: proof.allowed_markets_equal,
+            cadence_equal: proof.cadence_equal,
+            lookback_equal: proof.lookback_equal,
+            staleness_equal: proof.staleness_equal,
+            compatible: proof.semantically_compatible,
+            proof_digest: proof.proof_digest.clone(),
+        },
+    )
+}
+
+pub fn decode_intent_policy_compatibility_proof_protobuf_v1(
+    bytes: &[u8],
+) -> Result<PersistedIntentPolicyCompatibilityProofV1, String> {
+    let envelope = decode_envelope_v0(bytes, ArtifactKindV0::IntentPolicyCompatibilityProofV1)?;
+    let value = IntentPolicyCompatibilityProofProtobufV1::decode(envelope.payload.as_slice())
+        .map_err(|_| "intent policy compatibility proof decode failed".to_string())?;
+    if value.proof_version != INTENT_POLICY_PROOF_VERSION_V1 {
+        return Err("intent policy compatibility proof version rejected".to_string());
+    }
+    let proof = PersistedIntentPolicyCompatibilityProofV1 {
+        agent_id: value.agent_id,
+        legacy_policy_digest: value.legacy_policy_digest,
+        current_policy_digest: value.current_policy_digest,
+        required_datasets_equal: value.required_datasets_equal,
+        optional_datasets_equal: value.optional_datasets_equal,
+        allowed_markets_equal: value.markets_equal,
+        cadence_equal: value.cadence_equal,
+        lookback_equal: value.lookback_equal,
+        staleness_equal: value.staleness_equal,
+        semantically_compatible: value.compatible,
+        proof_digest: value.proof_digest,
+    };
+    if encode_intent_policy_compatibility_proof_protobuf_v1(&proof).is_err()
+        || proof.proof_digest != envelope.semantic_digest
+    {
+        return Err("intent policy compatibility proof identity rejected".to_string());
+    }
+    Ok(proof)
+}
+
+pub fn encode_learning_intent_migration_proof_protobuf_v1(
+    proof: &PersistedLearningIntentMigrationProofV1,
+) -> Result<Vec<u8>, String> {
+    if proof.migration_version != INTENT_MIGRATION_PROOF_VERSION_V1
+        || proof.agent_id != MOMENTUM_AGENT_ID_V1
+        || proof.field_provenance_digests.len() != 16
+        || proof.field_provenance_digests
+            != stable_migration_values_v1(&proof.field_provenance_digests)
+        || !proof.information_cutoff_unchanged
+        || !proof.lookback_unchanged
+        || !proof.policy_semantics_unchanged
+        || !proof.evidence_set_unchanged
+        || !proof.exclusions_unchanged
+        || !proof.no_field_invented
+        || proof.migration_status != PersistedLearningIntentMigrationStatusV1::Migrated
+        || proof.proof_digest != migration_proof_digest_v1(proof)
+    {
+        return Err("persisted learning intent migration proof rejected".to_string());
+    }
+    encode_envelope_v0(
+        ArtifactKindV0::IntentMigrationProofV1,
+        &proof.proof_digest,
+        &IntentMigrationProofProtobufV1 {
+            proof_version: proof.migration_version.clone(),
+            agent_id: proof.agent_id.clone(),
+            legacy_session_digest: proof.legacy_session_digest.clone(),
+            legacy_intent_digest: proof.legacy_intent_digest.clone(),
+            canonical_gap_digest: proof.gap_report_digest.clone(),
+            composite_registration_digest: proof.composite_registration_digest.clone(),
+            canonical_snapshot_digest: proof.merged_snapshot_digest.clone(),
+            policy_compatibility_proof_digest: proof.policy_compatibility_proof_digest.clone(),
+            field_provenance_digests: proof.field_provenance_digests.clone(),
+            canonical_intent_digest: proof.canonical_intent_digest.clone(),
+            canonical_view_digest: proof.canonical_view_digest.clone(),
+            cutoff_unchanged: proof.information_cutoff_unchanged,
+            lookback_unchanged: proof.lookback_unchanged,
+            policy_unchanged: proof.policy_semantics_unchanged,
+            required_evidence_unchanged: proof.evidence_set_unchanged,
+            optional_evidence_unchanged: proof.evidence_set_unchanged,
+            exclusions_unchanged: proof.exclusions_unchanged,
+            no_field_invented: proof.no_field_invented,
+            status: migration_status_tag_v1(proof.migration_status),
+            proof_digest: proof.proof_digest.clone(),
+        },
+    )
+}
+
+pub fn decode_learning_intent_migration_proof_protobuf_v1(
+    bytes: &[u8],
+) -> Result<PersistedLearningIntentMigrationProofV1, String> {
+    let envelope = decode_envelope_v0(bytes, ArtifactKindV0::IntentMigrationProofV1)?;
+    let value = IntentMigrationProofProtobufV1::decode(envelope.payload.as_slice())
+        .map_err(|_| "persisted learning intent migration proof decode failed".to_string())?;
+    let proof = PersistedLearningIntentMigrationProofV1 {
+        migration_version: value.proof_version,
+        agent_id: value.agent_id,
+        legacy_session_digest: value.legacy_session_digest,
+        legacy_intent_digest: value.legacy_intent_digest,
+        gap_report_digest: value.canonical_gap_digest,
+        composite_registration_digest: value.composite_registration_digest,
+        merged_snapshot_digest: value.canonical_snapshot_digest,
+        policy_compatibility_proof_digest: value.policy_compatibility_proof_digest,
+        field_provenance_digests: value.field_provenance_digests,
+        canonical_intent_digest: value.canonical_intent_digest,
+        canonical_view_digest: value.canonical_view_digest,
+        information_cutoff_unchanged: value.cutoff_unchanged,
+        lookback_unchanged: value.lookback_unchanged,
+        policy_semantics_unchanged: value.policy_unchanged,
+        evidence_set_unchanged: value.required_evidence_unchanged
+            && value.optional_evidence_unchanged,
+        exclusions_unchanged: value.exclusions_unchanged,
+        no_field_invented: value.no_field_invented,
+        migration_status: migration_status_from_tag_v1(value.status)?,
+        proof_digest: value.proof_digest,
+    };
+    if encode_learning_intent_migration_proof_protobuf_v1(&proof).is_err()
+        || proof.proof_digest != envelope.semantic_digest
+    {
+        return Err("persisted learning intent migration proof identity rejected".to_string());
+    }
+    Ok(proof)
+}
+
+pub fn encode_learning_intent_migration_journal_protobuf_v1(
+    journal: &PersistedLearningIntentMigrationJournalV1,
+) -> Result<Vec<u8>, String> {
+    if journal.journal_version != INTENT_MIGRATION_JOURNAL_VERSION_V1
+        || journal.agent_id != MOMENTUM_AGENT_ID_V1
+        || journal.entry_count != 1
+        || journal.network_requests != 0
+        || journal.transport_constructions != 0
+        || journal.credential_reads != 0
+        || journal.prospective_reads != 0
+        || journal.active_model_changes != 0
+        || journal.status != PersistedLearningIntentMigrationStatusV1::Migrated
+        || journal.journal_digest != migration_journal_digest_v1(journal)
+    {
+        return Err("persisted learning intent migration journal rejected".to_string());
+    }
+    encode_envelope_v0(
+        ArtifactKindV0::IntentMigrationJournalV1,
+        &journal.journal_digest,
+        &IntentMigrationJournalProtobufV1 {
+            journal_version: journal.journal_version.clone(),
+            agent_id: journal.agent_id.clone(),
+            migration_proof_digest: journal.migration_proof_digest.clone(),
+            canonical_intent_digest: journal.canonical_intent_digest.clone(),
+            canonical_view_digest: journal.canonical_view_digest.clone(),
+            entry_count: usize_to_u64_v0(journal.entry_count)?,
+            network_requests: usize_to_u64_v0(journal.network_requests)?,
+            transport_constructions: usize_to_u64_v0(journal.transport_constructions)?,
+            credential_reads: usize_to_u64_v0(journal.credential_reads)?,
+            prospective_reads: usize_to_u64_v0(journal.prospective_reads)?,
+            active_model_changes: usize_to_u64_v0(journal.active_model_changes)?,
+            status: migration_status_tag_v1(journal.status),
+            journal_digest: journal.journal_digest.clone(),
+        },
+    )
+}
+
+pub fn decode_learning_intent_migration_journal_protobuf_v1(
+    bytes: &[u8],
+) -> Result<PersistedLearningIntentMigrationJournalV1, String> {
+    let envelope = decode_envelope_v0(bytes, ArtifactKindV0::IntentMigrationJournalV1)?;
+    let value = IntentMigrationJournalProtobufV1::decode(envelope.payload.as_slice())
+        .map_err(|_| "persisted learning intent migration journal decode failed".to_string())?;
+    let journal = PersistedLearningIntentMigrationJournalV1 {
+        journal_version: value.journal_version,
+        agent_id: value.agent_id,
+        migration_proof_digest: value.migration_proof_digest,
+        canonical_intent_digest: value.canonical_intent_digest,
+        canonical_view_digest: value.canonical_view_digest,
+        entry_count: u64_to_usize_v0(value.entry_count)?,
+        network_requests: u64_to_usize_v0(value.network_requests)?,
+        transport_constructions: u64_to_usize_v0(value.transport_constructions)?,
+        credential_reads: u64_to_usize_v0(value.credential_reads)?,
+        prospective_reads: u64_to_usize_v0(value.prospective_reads)?,
+        active_model_changes: u64_to_usize_v0(value.active_model_changes)?,
+        status: migration_status_from_tag_v1(value.status)?,
+        journal_digest: value.journal_digest,
+    };
+    if encode_learning_intent_migration_journal_protobuf_v1(&journal).is_err()
+        || journal.journal_digest != envelope.semantic_digest
+    {
+        return Err("persisted learning intent migration journal identity rejected".to_string());
     }
     Ok(journal)
 }
@@ -10621,5 +12862,537 @@ mod tests {
             assert_eq!(counters.promotions, 0);
             assert_eq!(counters.executions, 0);
         }
+    }
+
+    fn migration_sources_fixture_v1() -> PersistedIntentMigrationSourcesV1 {
+        let mut snapshot = snapshot_for(DatasetKind::DailyOhlcv, 360, 86_400_000, 77);
+        snapshot.requested_lookback = DataLookback {
+            bars: 360,
+            start_timestamp_ms: Some(1),
+            end_timestamp_ms: Some(360),
+        };
+        snapshot.actual_start_timestamp_ms = Some(1);
+        snapshot.actual_end_timestamp_ms = Some(360);
+        snapshot
+            .compatibility
+            .as_mut()
+            .unwrap()
+            .requested_cutoff_timestamp_ms = Some(360);
+        snapshot
+            .compatibility
+            .as_mut()
+            .unwrap()
+            .maximum_staleness_ms = 0;
+        let policy = default_agent_data_policies()
+            .into_iter()
+            .find(|policy| policy.agent_kind == AgentKind::MomentumTrendFast)
+            .unwrap();
+        let data_intent = AgentDataIntent {
+            agent_id: MOMENTUM_AGENT_ID_V1.to_string(),
+            agent_kind: AgentKind::MomentumTrendFast,
+            market_scope: AcquisitionMarketScope::UsStocks,
+            symbols: vec!["SPY".to_string()],
+            required_datasets: policy.required_dataset_kinds.clone(),
+            optional_datasets: policy.optional_dataset_kinds.clone(),
+            lookback: snapshot.requested_lookback.clone(),
+            target_cadence: "1d".to_string(),
+            max_staleness_ms: policy.max_staleness_ms,
+            priority: DataPriority::Required,
+            reason_codes: policy.reason_codes.clone(),
+        };
+        let canonical = create_agent_learning_intent_v0(
+            &LearningDataCallerV0::Agent(MOMENTUM_AGENT_ID_V1.to_string()),
+            &data_intent,
+            &policy,
+            360,
+        )
+        .unwrap();
+        let legacy_intent_digest = stable_hash_string("migration-legacy-intent-v1");
+        let mut legacy_projection = canonical.clone();
+        legacy_projection.intent_version =
+            PERSISTED_LEARNING_INTENT_PROJECTION_VERSION_V1.to_string();
+        legacy_projection.intent_digest = legacy_intent_digest.clone();
+        legacy_projection.source_policy_digest.clear();
+        let legacy_private_state = derive_agent_private_learning_state_v0(&legacy_projection);
+        let mut legacy_session = AgentPrivateLearningSessionV0 {
+            session_version: SESSION_VERSION_V0.to_string(),
+            session_id: "migration-legacy-session-v1".to_string(),
+            agent_id: MOMENTUM_AGENT_ID_V1.to_string(),
+            agent_kind: AgentKind::MomentumTrendFast,
+            intent_digest: legacy_intent_digest.clone(),
+            data_view_digest: stable_hash_string("migration-legacy-view-v1"),
+            trainer_capability_digest: stable_hash_string("migration-capability-v1"),
+            information_cutoff_ms: 360,
+            required_dataset_kinds: vec![],
+            optional_dataset_kinds: vec![],
+            allowed_markets: vec![],
+            symbols: vec![],
+            cadence: String::new(),
+            lookback: DataLookback {
+                bars: 0,
+                start_timestamp_ms: None,
+                end_timestamp_ms: None,
+            },
+            maximum_staleness_ms: 0,
+            source_artifact_digests: vec![snapshot.content_digest.clone()],
+            source_policy_digest: String::new(),
+            feature_policy_digest: canonical.feature_policy_digest.clone(),
+            label_policy_digest: canonical.label_policy_digest.clone(),
+            curriculum_policy_digest: canonical.curriculum_policy_digest.clone(),
+            private_namespace_digest: legacy_private_state.private_namespace_digest,
+            training_ledger_digest: String::new(),
+            trainer_projection_digest: None,
+            parent_model_version: None,
+            session_status: AgentLearningSessionStatusV0::CandidateProduced,
+            session_digest: String::new(),
+        };
+        legacy_session.session_digest = session_digest_v0(&legacy_session);
+        let acquisition_gap = crate::data::AgentCanonicalViewGapV1 {
+            agent_id: MOMENTUM_AGENT_ID_V1.to_string(),
+            intent_digest: legacy_intent_digest.clone(),
+            market_scopes: legacy_projection.market_scopes.clone(),
+            symbols: legacy_projection.symbols.clone(),
+            cadence: legacy_projection.cadence.clone(),
+            lookback: legacy_projection.lookback.clone(),
+            information_cutoff_ms: legacy_projection.information_cutoff_ms,
+            maximum_staleness_ms: legacy_projection.maximum_staleness_ms,
+            required_dataset_kinds: legacy_projection.required_datasets.clone(),
+            resolved_required_dataset_kinds: vec![],
+            missing_required_dataset_kinds: legacy_projection.required_datasets.clone(),
+            optional_dataset_kinds: legacy_projection.optional_datasets.clone(),
+            resolved_optional_dataset_kinds: vec![],
+            missing_optional_dataset_kinds: legacy_projection.optional_datasets.clone(),
+            usable_artifact_digests: vec![],
+            rejected_artifact_digests: vec![],
+            authorized_provider_ids: vec!["approved-provider".to_string()],
+            trainer_available: true,
+            status: CanonicalViewGapStatusV1::SegmentedAcquisitionRequired,
+            gap_digest: stable_hash_string("migration-acquisition-gap-v1"),
+        };
+        let mut canonical_gap = acquisition_gap.clone();
+        canonical_gap.resolved_required_dataset_kinds = legacy_projection.required_datasets.clone();
+        canonical_gap.missing_required_dataset_kinds.clear();
+        canonical_gap.usable_artifact_digests = vec![snapshot.content_digest.clone()];
+        canonical_gap.authorized_provider_ids.clear();
+        canonical_gap.status = CanonicalViewGapStatusV1::MissingOptionalEvidenceOnly;
+        canonical_gap.gap_digest = stable_hash_string("migration-canonical-gap-v1");
+        let segments = vec![
+            crate::data::LearningEvidenceSegmentRegistrationV1 {
+                segment_index: 0,
+                expected_timestamps: (161..=360).collect(),
+                expected_row_count: 200,
+                request_to_utc: "1970-01-01T00:00:00Z".to_string(),
+                maximum_requests: 1,
+                maximum_retries: 0,
+                segment_digest: stable_hash_string("migration-segment-0-v1"),
+            },
+            crate::data::LearningEvidenceSegmentRegistrationV1 {
+                segment_index: 1,
+                expected_timestamps: (1..=160).collect(),
+                expected_row_count: 160,
+                request_to_utc: "1970-01-01T00:00:00Z".to_string(),
+                maximum_requests: 1,
+                maximum_retries: 0,
+                segment_digest: stable_hash_string("migration-segment-1-v1"),
+            },
+        ];
+        let composite_registration = CompositeLearningAcquisitionRegistrationV1 {
+            registration_version: "composite-learning-acquisition-registration-v1".to_string(),
+            target_agent_ids: vec![MOMENTUM_AGENT_ID_V1.to_string()],
+            intent_digest: legacy_intent_digest,
+            gap_report_digest: acquisition_gap.gap_digest.clone(),
+            provider_contract_digest: stable_hash_string("migration-provider-contract-v1"),
+            dataset_kind: DatasetKind::DailyOhlcv,
+            market_scope: AcquisitionMarketScope::UsStocks,
+            symbols: vec!["SPY".to_string()],
+            cadence: "1d".to_string(),
+            information_cutoff_ms: 360,
+            required_row_count: 360,
+            expected_timestamp_digest: stable_hash_string("migration-timestamps-v1"),
+            segments,
+            maximum_total_requests: 2,
+            maximum_concurrency: 1,
+            maximum_retries_per_segment: 0,
+            protected_registration_digests: vec![stable_hash_string("migration-protected-v1")],
+            excluded_timestamp_ms: vec![1_000],
+            read_only_required: true,
+            credential_free_required: true,
+            prospective_storage_forbidden: true,
+            registration_digest: stable_hash_string("migration-registration-v1"),
+        };
+        let epoch_receipt = CompositeLearningEpochReceiptV1 {
+            receipt_version: "composite-learning-epoch-receipt-v1".to_string(),
+            registration_digest: composite_registration.registration_digest.clone(),
+            segment_receipt_digests: vec![
+                stable_hash_string("migration-receipt-0-v1"),
+                stable_hash_string("migration-receipt-1-v1"),
+            ],
+            attempted_segment_count: 2,
+            successful_segment_count: 2,
+            request_count: 2,
+            retry_count: 0,
+            merged_snapshot_digest: Some(snapshot.content_digest.clone()),
+            merged_provenance_digest: Some(stable_hash_string("migration-provenance-v1")),
+            status: CompositeLearningEpochStatusV1::EvidenceAcquired,
+            receipt_digest: stable_hash_string("migration-epoch-v1"),
+        };
+        PersistedIntentMigrationSourcesV1 {
+            legacy_session,
+            legacy_projection,
+            policy,
+            acquisition_gap,
+            canonical_gap,
+            composite_registration,
+            epoch_receipt,
+            canonical_snapshot: snapshot,
+        }
+    }
+
+    fn migration_failure_for_v1(
+        mutate: impl FnOnce(&mut PersistedIntentMigrationSourcesV1),
+    ) -> PersistedIntentMigrationFailureV1 {
+        let mut sources = migration_sources_fixture_v1();
+        mutate(&mut sources);
+        derive_persisted_learning_intent_migration_v1(&sources).unwrap_err()
+    }
+
+    #[test]
+    fn migration_identifies_legacy_intent_version_as_first_normal_validation_failure() {
+        let derived =
+            derive_persisted_learning_intent_migration_v1(&migration_sources_fixture_v1()).unwrap();
+        assert_eq!(
+            derived.blocker,
+            PersistedIntentMigrationBlockerV1::LegacySessionNotSelfDescribing
+        );
+        assert_eq!(
+            derived.first_failing_invariant.as_deref(),
+            Some("intent_version")
+        );
+        assert!(
+            validate_agent_learning_intent_v0(
+                &derived.canonical_intent,
+                &migration_sources_fixture_v1().policy
+            )
+            .is_ok()
+        );
+    }
+
+    #[test]
+    fn migration_provenance_uses_only_declared_authoritative_sources() {
+        let derived =
+            derive_persisted_learning_intent_migration_v1(&migration_sources_fixture_v1()).unwrap();
+        assert_eq!(derived.field_provenance.len(), 16);
+        assert!(derived.field_provenance.iter().all(|field| {
+            !field.sources.is_empty()
+                && !field.source_artifact_digests.is_empty()
+                && field.provenance_digest == migrated_field_provenance_digest_v1(field)
+        }));
+        let source_policy = derived
+            .field_provenance
+            .iter()
+            .find(|field| field.field_name == "source_policy_digest")
+            .unwrap();
+        assert_eq!(
+            source_policy.sources,
+            vec![MigratedIntentFieldSourceV1::VerifiedAgentPolicy]
+        );
+    }
+
+    #[test]
+    fn migration_rejects_undocumented_empty_symbol_and_cadence() {
+        let symbol = migration_failure_for_v1(|sources| sources.legacy_projection.symbols.clear());
+        assert_eq!(symbol.invariant, "symbols");
+        let cadence = migration_failure_for_v1(|sources| sources.legacy_projection.cadence.clear());
+        assert_eq!(cadence.invariant, "cadence");
+    }
+
+    #[test]
+    fn migration_rejects_market_symbol_and_cadence_conflicts() {
+        let market = migration_failure_for_v1(|sources| {
+            sources.canonical_gap.market_scopes = vec![AcquisitionMarketScope::BtcCrypto]
+        });
+        assert_eq!(market.invariant, "market_scopes");
+        let symbol = migration_failure_for_v1(|sources| {
+            sources.composite_registration.symbols = vec!["QQQ".to_string()]
+        });
+        assert_eq!(symbol.invariant, "symbols");
+        let cadence = migration_failure_for_v1(|sources| {
+            sources.composite_registration.cadence = "1h".to_string()
+        });
+        assert_eq!(cadence.invariant, "cadence");
+    }
+
+    #[test]
+    fn migration_rejects_cutoff_conflicts() {
+        let failure = migration_failure_for_v1(|sources| {
+            sources.composite_registration.information_cutoff_ms -= 1
+        });
+        assert_eq!(
+            failure.blocker,
+            PersistedIntentMigrationBlockerV1::CutoffMismatch
+        );
+        assert_eq!(failure.invariant, "information_cutoff_ms");
+    }
+
+    #[test]
+    fn migration_rejects_policy_dataset_and_staleness_mismatch() {
+        let required = migration_failure_for_v1(|sources| {
+            sources.canonical_gap.required_dataset_kinds = vec![DatasetKind::VolatilityDaily]
+        });
+        assert_eq!(
+            required.blocker,
+            PersistedIntentMigrationBlockerV1::RequiredEvidenceMismatch
+        );
+        let optional = migration_failure_for_v1(|sources| {
+            sources.policy.optional_dataset_kinds.pop();
+        });
+        assert_eq!(optional.invariant, "optional_datasets");
+        let staleness = migration_failure_for_v1(|sources| {
+            sources.policy.max_staleness_ms += 1;
+        });
+        assert_eq!(staleness.invariant, "maximum_staleness_ms");
+    }
+
+    #[test]
+    fn migration_rejects_explicit_source_policy_digest_mismatch() {
+        let source = migration_failure_for_v1(|sources| {
+            sources.legacy_projection.source_policy_digest = stable_hash_string("wrong-source")
+        });
+        assert_eq!(
+            source.blocker,
+            PersistedIntentMigrationBlockerV1::PolicyDigestMismatch
+        );
+        assert_eq!(source.invariant, "source_policy_digest");
+    }
+
+    #[test]
+    fn migration_never_shortens_lookback() {
+        let failure = migration_failure_for_v1(|sources| {
+            sources.composite_registration.required_row_count -= 1
+        });
+        assert_eq!(failure.invariant, "lookback");
+    }
+
+    #[test]
+    fn migration_requires_complete_required_and_exact_optional_unavailability() {
+        let required = migration_failure_for_v1(|sources| {
+            sources
+                .canonical_gap
+                .resolved_required_dataset_kinds
+                .clear()
+        });
+        assert_eq!(
+            required.blocker,
+            PersistedIntentMigrationBlockerV1::RequiredEvidenceMismatch
+        );
+        let optional = migration_failure_for_v1(|sources| {
+            sources.canonical_gap.missing_optional_dataset_kinds.clear()
+        });
+        assert_eq!(
+            optional.blocker,
+            PersistedIntentMigrationBlockerV1::OptionalEvidenceOnlyMisclassified
+        );
+    }
+
+    #[test]
+    fn migration_builds_ready_view_bound_to_exact_snapshot() {
+        let sources = migration_sources_fixture_v1();
+        let derived = derive_persisted_learning_intent_migration_v1(&sources).unwrap();
+        assert_eq!(
+            derived.canonical_view.source_artifact_digests,
+            vec![sources.canonical_snapshot.content_digest]
+        );
+        assert_eq!(
+            derived.canonical_view.decision_gate,
+            EvidenceDecisionGate::Ready
+        );
+        assert!(derived.canonical_view.missing_required_datasets.is_empty());
+        assert_eq!(
+            derived.canonical_input.input.resolution_status,
+            AgentViewResolutionStatusV0::OptionalEvidenceUnavailable
+        );
+    }
+
+    #[test]
+    fn migration_gap_status_prefers_more_resolved_same_cutoff_evidence() {
+        let sources = migration_sources_fixture_v1();
+        let statuses = latest_agent_canonical_view_gap_statuses_v1(vec![
+            sources.acquisition_gap.clone(),
+            sources.canonical_gap.clone(),
+        ])
+        .unwrap();
+        assert_eq!(
+            statuses.get(MOMENTUM_AGENT_ID_V1),
+            Some(&CanonicalViewGapStatusV1::MissingOptionalEvidenceOnly)
+        );
+
+        let mut conflicting = sources.canonical_gap.clone();
+        conflicting.status = CanonicalViewGapStatusV1::ProviderContractUnverified;
+        assert!(
+            latest_agent_canonical_view_gap_statuses_v1(vec![conflicting, sources.canonical_gap])
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn migration_rejects_missing_required_view_and_snapshot_mismatch() {
+        let missing = migration_failure_for_v1(|sources| {
+            sources.canonical_gap.missing_required_dataset_kinds =
+                sources.canonical_gap.required_dataset_kinds.clone()
+        });
+        assert_eq!(
+            missing.blocker,
+            PersistedIntentMigrationBlockerV1::RequiredEvidenceMismatch
+        );
+        let snapshot = migration_failure_for_v1(|sources| {
+            sources.epoch_receipt.merged_snapshot_digest = Some(stable_hash_string("wrong"))
+        });
+        assert_eq!(
+            snapshot.blocker,
+            PersistedIntentMigrationBlockerV1::CanonicalSnapshotBindingMismatch
+        );
+    }
+
+    #[test]
+    fn migration_rejects_protected_timestamps() {
+        let failure = migration_failure_for_v1(|sources| {
+            sources.composite_registration.excluded_timestamp_ms = vec![1]
+        });
+        assert_eq!(failure.invariant, "protected_evidence_exclusions");
+    }
+
+    #[test]
+    fn migration_protobufs_round_trip_and_reject_corruption() {
+        let derived =
+            derive_persisted_learning_intent_migration_v1(&migration_sources_fixture_v1()).unwrap();
+        migration_round_trip_v1(&derived).unwrap();
+        let mut intent =
+            encode_canonical_learning_intent_migration_protobuf_v1(&derived.canonical_intent)
+                .unwrap();
+        *intent.last_mut().unwrap() ^= 1;
+        assert!(decode_canonical_learning_intent_migration_protobuf_v1(&intent).is_err());
+        let mut proof =
+            encode_learning_intent_migration_proof_protobuf_v1(&derived.migration_proof).unwrap();
+        *proof.last_mut().unwrap() ^= 1;
+        assert!(decode_learning_intent_migration_proof_protobuf_v1(&proof).is_err());
+    }
+
+    #[test]
+    fn migration_sidecars_are_additive_idempotent_and_preserve_legacy_bytes() {
+        let root = PathBuf::from(format!(
+            "state/learning_data/migration-test-{}",
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(&root).unwrap();
+        let legacy = root.join("legacy-session.pb");
+        fs::write(&legacy, b"legacy-frozen").unwrap();
+        let sources = migration_sources_fixture_v1();
+        let derived = derive_persisted_learning_intent_migration_v1(&sources).unwrap();
+        assert_eq!(
+            persist_persisted_learning_intent_migration_v1(&derived, &root).unwrap(),
+            (5, 0)
+        );
+        assert_eq!(fs::read(&legacy).unwrap(), b"legacy-frozen");
+        assert_eq!(
+            persist_persisted_learning_intent_migration_v1(&derived, &root).unwrap(),
+            (0, 5)
+        );
+        assert_eq!(
+            read_persisted_learning_intent_migration_v1(
+                &root,
+                std::slice::from_ref(&sources.canonical_snapshot)
+            )
+            .unwrap(),
+            derived.canonical_input
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn migration_candidate_family_is_fresh_metric_free_and_historical_test_sealed() {
+        let derived =
+            derive_persisted_learning_intent_migration_v1(&migration_sources_fixture_v1()).unwrap();
+        let report = run_agent_private_learning_candidates_v1(
+            std::slice::from_ref(&derived.canonical_input),
+            AgentPrivateLearningRunModeV0::DryRun,
+        );
+        let result = v1_family_result(&report, MOMENTUM_AGENT_ID_V1);
+        let session = result.session.as_ref().unwrap();
+        let family = result.family.as_ref().unwrap();
+        assert!(session.fresh_initialization);
+        assert_eq!(family.participants.len(), 3);
+        assert!(!family.winner_selected);
+        assert!(!family.historical_test_accessed);
+        assert!(family.participants.iter().all(|participant| {
+            !participant.participant_id.contains("metric")
+                && !participant.participant_digest.contains("metric")
+        }));
+        let ledger = result.usage_ledger.as_ref().unwrap();
+        assert_eq!(ledger.historical_test_row_reads, 0);
+        assert_eq!(ledger.historical_test_label_reads, 0);
+        assert_eq!(ledger.historical_test_inference_count, 0);
+        assert_eq!(ledger.historical_test_metric_count, 0);
+        assert_eq!(ledger.historical_test_checkpoint_selection_count, 0);
+    }
+
+    #[test]
+    fn migration_registration_keeps_exclusions_and_blocks_unqualified_family() {
+        let derived =
+            derive_persisted_learning_intent_migration_v1(&migration_sources_fixture_v1()).unwrap();
+        let families = run_agent_private_learning_candidates_v1(
+            std::slice::from_ref(&derived.canonical_input),
+            AgentPrivateLearningRunModeV0::DryRun,
+        );
+        let evaluations = run_agent_candidate_evaluations_v1(
+            &families,
+            std::slice::from_ref(&derived.canonical_input),
+            &v1_reservation(),
+            AgentPrivateLearningRunModeV0::DryRun,
+        );
+        let result = evaluations
+            .results
+            .iter()
+            .find(|result| result.agent_id == MOMENTUM_AGENT_ID_V1)
+            .unwrap();
+        assert!(matches!(
+            result.status,
+            CandidateEvaluationRegistrationStatusV1::Registered
+                | CandidateEvaluationRegistrationStatusV1::QualificationBlocked
+                | CandidateEvaluationRegistrationStatusV1::InsufficientParticipants
+        ));
+        if let Some(registration) = result.registration.as_ref() {
+            assert_eq!(registration.maximum_concurrency, 1);
+            assert_eq!(registration.maximum_retries, 0);
+            assert!(registration.labels_hidden_until_opening);
+            assert!(registration.probabilities_hidden_until_opening);
+            assert!(registration.winner_selection_forbidden_before_opening);
+            assert!(registration.active_promotion_forbidden);
+            assert!(registration.reward_application_forbidden);
+        }
+    }
+
+    #[test]
+    fn migration_safety_counters_have_only_active_committee_count() {
+        let counters = zero_intent_migration_safety_counters_v1();
+        assert_eq!(counters.active_committee_count, 3);
+        assert_eq!(
+            stable_hash_string(&format!("{counters:?}")),
+            stable_hash_string(&format!("{:?}", zero_intent_migration_safety_counters_v1()))
+        );
+        assert_eq!(counters.network_requests, 0);
+        assert_eq!(counters.transport_constructions, 0);
+        assert_eq!(counters.credential_reads, 0);
+        assert_eq!(counters.prospective_artifact_reads, 0);
+        assert_eq!(counters.prospective_label_reads, 0);
+        assert_eq!(counters.future_evaluation_reads, 0);
+        assert_eq!(counters.active_model_changes, 0);
+        assert_eq!(counters.chair_decisions, 0);
+        assert_eq!(counters.votes, 0);
+        assert_eq!(counters.rewards, 0);
+        assert_eq!(counters.penalties, 0);
+        assert_eq!(counters.voice_changes, 0);
+        assert_eq!(counters.promotions, 0);
+        assert_eq!(counters.executions, 0);
     }
 }
