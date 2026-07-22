@@ -1365,6 +1365,8 @@ pub(crate) fn canonical_hash_hex(bytes: &[u8]) -> String {
 }
 
 const LEARNING_INTENT_VERSION_V0: &str = "agent-learning-intent-v0";
+pub const PERSISTED_LEARNING_INTENT_PROJECTION_VERSION_V1: &str =
+    "persisted-agent-learning-intent-projection-v1";
 const LEARNING_VIEW_VERSION_V0: &str = "agent-learning-data-view-v0";
 const LEARNING_ENVELOPE_MAGIC_V0: &str = "SOMA-LEARNING-PB-V0";
 const LEARNING_ENVELOPE_SCHEMA_V0: &str = "soma.agent_learning_data_view.v0";
@@ -2725,6 +2727,2338 @@ pub fn plan_learning_network_pilot_v0(
             executions: 0,
         },
     }
+}
+
+const CANONICAL_VIEW_GAP_REPORT_VERSION_V1: &str = "agent-canonical-view-gap-report-v1";
+const LEARNING_EVIDENCE_PROVIDER_CONTRACT_VERSION_V1: &str =
+    "learning-evidence-provider-contract-v1";
+const LEARNING_EVIDENCE_REGISTRATION_VERSION_V1: &str =
+    "learning-evidence-acquisition-registration-v1";
+const LEARNING_EVIDENCE_RECEIPT_VERSION_V1: &str = "learning-evidence-request-receipt-v1";
+const DAILY_CADENCE_MS_V1: u64 = 86_400_000;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CanonicalViewGapStatusV1 {
+    Complete,
+    MissingRequiredEvidence,
+    MissingOptionalEvidenceOnly,
+    ProviderUnavailable,
+    ProviderContractUnverified,
+    AmbiguousArtifacts,
+    IncompatibleCadence,
+    IncompatibleMarket,
+    IncompatibleSymbol,
+    CutoffMismatch,
+    IntegrityFailure,
+    TrainerUnavailable,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AgentCanonicalViewGapV1 {
+    pub agent_id: String,
+    pub intent_digest: String,
+    pub market_scopes: Vec<AcquisitionMarketScope>,
+    pub symbols: Vec<String>,
+    pub cadence: String,
+    pub lookback: DataLookback,
+    pub information_cutoff_ms: u64,
+    pub maximum_staleness_ms: u64,
+    pub required_dataset_kinds: Vec<DatasetKind>,
+    pub resolved_required_dataset_kinds: Vec<DatasetKind>,
+    pub missing_required_dataset_kinds: Vec<DatasetKind>,
+    pub optional_dataset_kinds: Vec<DatasetKind>,
+    pub resolved_optional_dataset_kinds: Vec<DatasetKind>,
+    pub missing_optional_dataset_kinds: Vec<DatasetKind>,
+    pub usable_artifact_digests: Vec<String>,
+    pub rejected_artifact_digests: Vec<String>,
+    pub authorized_provider_ids: Vec<String>,
+    pub trainer_available: bool,
+    pub status: CanonicalViewGapStatusV1,
+    pub gap_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LearningEvidenceProviderContractV1 {
+    pub contract_version: String,
+    pub provider_id: String,
+    pub dataset_kind: DatasetKind,
+    pub market_scope: AcquisitionMarketScope,
+    pub symbols: Vec<String>,
+    pub cadence: String,
+    pub maximum_lookback_bars: usize,
+    pub earliest_timestamp_ms: u64,
+    pub latest_exclusive_timestamp_ms: u64,
+    pub maximum_response_bytes: usize,
+    pub credential_free: bool,
+    pub read_only: bool,
+    pub approved_for_network: bool,
+    pub all_rows_finalized: bool,
+    pub enabled: bool,
+    pub contract_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LearningEvidenceSafetyCountersV1 {
+    pub active_committee_count: usize,
+    pub request_attempts: usize,
+    pub retry_count: usize,
+    pub transport_constructions: usize,
+    pub credential_reads: usize,
+    pub prospective_artifact_reads: usize,
+    pub prospective_label_reads: usize,
+    pub future_evaluation_reads: usize,
+    pub active_model_changes: usize,
+    pub chair_decisions: usize,
+    pub votes: usize,
+    pub rewards: usize,
+    pub penalties: usize,
+    pub voice_changes: usize,
+    pub promotions: usize,
+    pub executions: usize,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AgentCanonicalViewGapReportV1 {
+    pub report_version: String,
+    pub gaps: Vec<AgentCanonicalViewGapV1>,
+    pub provider_contract_digests: Vec<String>,
+    pub safety_counters: LearningEvidenceSafetyCountersV1,
+    pub report_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LearningEvidenceAcquisitionRegistrationV1 {
+    pub registration_version: String,
+    pub target_agent_ids: Vec<String>,
+    pub gap_report_digests: Vec<String>,
+    pub provider_id: String,
+    pub provider_contract_digest: String,
+    pub dataset_kind: DatasetKind,
+    pub market_scope: AcquisitionMarketScope,
+    pub symbols: Vec<String>,
+    pub cadence: String,
+    pub lookback: DataLookback,
+    pub information_cutoff_ms: u64,
+    pub expected_timestamp_ms: Vec<u64>,
+    pub protected_registration_digests: Vec<String>,
+    pub excluded_timestamp_ms: Vec<u64>,
+    pub maximum_requests: usize,
+    pub maximum_concurrency: usize,
+    pub maximum_retries: usize,
+    pub maximum_response_bytes: usize,
+    pub credential_free_required: bool,
+    pub read_only_required: bool,
+    pub prospective_storage_forbidden: bool,
+    pub registration_digest: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LearningEvidenceRequestStatusV1 {
+    ReadyNotAttempted,
+    EvidenceAcquired,
+    ProviderRejected,
+    TimeoutNoRetry,
+    InvalidResponse,
+    TechnicalFailure,
+    RequestBudgetExhausted,
+    RegistrationInvalid,
+    GapNoLongerCurrent,
+    EquivalentSnapshotExists,
+    MissingNetworkConsent,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LearningEvidenceRequestReceiptV1 {
+    pub receipt_version: String,
+    pub registration_digest: String,
+    pub provider_contract_digest: String,
+    pub request_attempted: bool,
+    pub request_count: usize,
+    pub retry_count: usize,
+    pub status: LearningEvidenceRequestStatusV1,
+    pub http_status_class: Option<String>,
+    pub returned_row_count: usize,
+    pub verified_row_count: usize,
+    pub raw_response_digest: Option<String>,
+    pub provenance_manifest_digest: Option<String>,
+    pub snapshot_digest: Option<String>,
+    pub receipt_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LearningEvidenceTransportResponseV1 {
+    pub http_status_class: String,
+    pub raw_response: Vec<u8>,
+    pub response: ReadOnlyProviderResponse,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum LearningEvidenceTransportFailureV1 {
+    ProviderRejected {
+        http_status_class: Option<String>,
+        raw_response: Option<Vec<u8>>,
+    },
+    TimedOut,
+    Technical,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LearningEvidenceAcquisitionResultV1 {
+    pub status: LearningEvidenceRequestStatusV1,
+    pub receipt: Option<LearningEvidenceRequestReceiptV1>,
+    pub raw_response: Option<Vec<u8>>,
+    pub provenance_manifest: Option<LearningDataProvenanceManifestV0>,
+    pub snapshot: Option<DataSnapshot>,
+    pub safety_counters: LearningEvidenceSafetyCountersV1,
+}
+
+pub fn seal_learning_evidence_provider_contract_v1(
+    mut contract: LearningEvidenceProviderContractV1,
+) -> Result<LearningEvidenceProviderContractV1, String> {
+    contract.symbols.sort();
+    contract.symbols.dedup();
+    contract.contract_digest.clear();
+    if contract.contract_version != LEARNING_EVIDENCE_PROVIDER_CONTRACT_VERSION_V1
+        || contract.provider_id.trim().is_empty()
+        || contract.dataset_kind == DatasetKind::Unknown
+        || contract.market_scope == AcquisitionMarketScope::Unknown
+        || contract.symbols.is_empty()
+        || contract.cadence != "1d"
+        || contract.maximum_lookback_bars == 0
+        || contract.earliest_timestamp_ms >= contract.latest_exclusive_timestamp_ms
+        || contract.maximum_response_bytes == 0
+        || !contract.credential_free
+        || !contract.read_only
+        || !contract.approved_for_network
+        || !contract.all_rows_finalized
+        || (contract.provider_id == "upbit"
+            && (contract.dataset_kind != DatasetKind::DailyOhlcv
+                || contract.market_scope != AcquisitionMarketScope::BtcCrypto))
+    {
+        return Err("learning evidence provider contract rejected".into());
+    }
+    contract.contract_digest = learning_evidence_provider_contract_digest_v1(&contract);
+    Ok(contract)
+}
+
+fn learning_evidence_provider_contract_digest_v1(
+    contract: &LearningEvidenceProviderContractV1,
+) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{:?}:{:?}:{:?}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+        contract.contract_version,
+        contract.provider_id,
+        contract.dataset_kind,
+        contract.market_scope,
+        contract.symbols,
+        contract.cadence,
+        contract.maximum_lookback_bars,
+        contract.earliest_timestamp_ms,
+        contract.latest_exclusive_timestamp_ms,
+        contract.maximum_response_bytes,
+        contract.credential_free,
+        contract.read_only,
+        contract.approved_for_network,
+        contract.all_rows_finalized,
+        contract.enabled,
+    ))
+}
+
+fn validate_learning_evidence_provider_contract_v1(
+    contract: &LearningEvidenceProviderContractV1,
+) -> bool {
+    seal_learning_evidence_provider_contract_v1(contract.clone()).as_ref() == Ok(contract)
+}
+
+fn stable_learning_strings_v1(values: &[String]) -> Vec<String> {
+    let mut values = values.to_vec();
+    values.sort();
+    values.dedup();
+    values
+}
+
+fn stable_learning_kinds_v1(values: &[DatasetKind]) -> Vec<DatasetKind> {
+    let mut values = values.to_vec();
+    values.sort();
+    values.dedup();
+    values
+}
+
+fn stable_learning_markets_v1(values: &[AcquisitionMarketScope]) -> Vec<AcquisitionMarketScope> {
+    let mut values = values.to_vec();
+    values.sort();
+    values.dedup();
+    values
+}
+
+fn learning_evidence_contract_supports_v1(
+    contract: &LearningEvidenceProviderContractV1,
+    dataset_kind: DatasetKind,
+    market_scope: AcquisitionMarketScope,
+    symbols: &[String],
+    cadence: &str,
+    lookback: &DataLookback,
+    information_cutoff_ms: u64,
+) -> bool {
+    let start = information_cutoff_ms.checked_sub(
+        u64::try_from(lookback.bars)
+            .ok()
+            .and_then(|bars| bars.checked_mul(DAILY_CADENCE_MS_V1))
+            .unwrap_or(u64::MAX),
+    );
+    validate_learning_evidence_provider_contract_v1(contract)
+        && contract.enabled
+        && contract.dataset_kind == dataset_kind
+        && contract.market_scope == market_scope
+        && contract.symbols == stable_learning_strings_v1(symbols)
+        && contract.cadence == cadence
+        && lookback.bars <= contract.maximum_lookback_bars
+        && lookback.end_timestamp_ms == Some(information_cutoff_ms)
+        && start.is_some_and(|start| start >= contract.earliest_timestamp_ms)
+        && information_cutoff_ms <= contract.latest_exclusive_timestamp_ms
+}
+
+fn snapshot_integrity_valid_for_gap_v1(snapshot: &DataSnapshot) -> bool {
+    snapshot.schema_version == 1
+        && (snapshot.provider_id != "upbit"
+            || (snapshot.dataset_kind == DatasetKind::DailyOhlcv
+                && snapshot.market_scope == AcquisitionMarketScope::BtcCrypto))
+        && snapshot.snapshot_id == snapshot_id_from_semantic_digest_v1(&snapshot.content_digest)
+        && snapshot.content_digest == canonical_snapshot_semantic_digest_v1(snapshot)
+        && snapshot.row_count == snapshot.normalized_dataset.rows.len()
+        && snapshot.quality_summary.accepted
+        && snapshot.quality_summary.row_count == snapshot.row_count
+        && snapshot.sanitized
+        && snapshot.read_only
+        && snapshot.provenance.sanitized
+        && snapshot.provenance.credential_free
+        && snapshot.provenance.provider_id == snapshot.provider_id
+        && snapshot.provenance.source_type != SnapshotSourceType::LocalSnapshotReplay
+        && snapshot.actual_start_timestamp_ms
+            == snapshot
+                .normalized_dataset
+                .rows
+                .first()
+                .map(|row| row.timestamp_ms)
+        && snapshot.actual_end_timestamp_ms
+            == snapshot
+                .normalized_dataset
+                .rows
+                .last()
+                .map(|row| row.timestamp_ms)
+        && snapshot
+            .normalized_dataset
+            .rows
+            .windows(2)
+            .all(|pair| pair[0].timestamp_ms < pair[1].timestamp_ms)
+        && snapshot.normalized_dataset.rows.iter().all(|row| {
+            row.symbol == snapshot.normalized_dataset.symbol
+                && row.open.is_finite()
+                && row.high.is_finite()
+                && row.low.is_finite()
+                && row.close.is_finite()
+                && row.volume.is_finite()
+                && row.trade_value.is_none_or(f64::is_finite)
+                && row.open > 0.0
+                && row.high > 0.0
+                && row.low > 0.0
+                && row.close > 0.0
+                && row.volume >= 0.0
+                && row.trade_value.is_none_or(|value| value >= 0.0)
+                && row.high >= row.open.max(row.close)
+                && row.low <= row.open.min(row.close)
+                && row.high >= row.low
+        })
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+struct GapRejectionFlagsV1 {
+    integrity: bool,
+    cadence: bool,
+    market: bool,
+    symbol: bool,
+    cutoff: bool,
+    ambiguous: bool,
+}
+
+fn snapshot_matches_intent_dataset_v1(
+    snapshot: &DataSnapshot,
+    intent: &AgentLearningIntentV0,
+    dataset_kind: DatasetKind,
+    flags: &mut GapRejectionFlagsV1,
+) -> bool {
+    if snapshot.dataset_kind != dataset_kind {
+        return false;
+    }
+    if !snapshot_integrity_valid_for_gap_v1(snapshot) {
+        flags.integrity = true;
+        return false;
+    }
+    if !intent.market_scopes.contains(&snapshot.market_scope) {
+        flags.market = true;
+        return false;
+    }
+    if stable_learning_strings_v1(&snapshot.symbols) != intent.symbols {
+        flags.symbol = true;
+        return false;
+    }
+    let Some(compatibility) = snapshot.compatibility.as_ref() else {
+        flags.cadence = true;
+        return false;
+    };
+    if compatibility.cadence != intent.cadence
+        || compatibility.adjustment_semantics != adjustment_semantics_v1(dataset_kind)
+        || compatibility.source_schema != "application/x-soma-normalized-dataset"
+        || !compatibility.all_rows_finalized
+    {
+        flags.cadence = true;
+        return false;
+    }
+    if snapshot.requested_lookback != intent.lookback
+        || compatibility.requested_cutoff_timestamp_ms != Some(intent.information_cutoff_ms)
+        || compatibility.maximum_staleness_ms != intent.maximum_staleness_ms
+        || snapshot.actual_end_timestamp_ms.is_none_or(|end| {
+            end > intent.information_cutoff_ms
+                || intent.information_cutoff_ms.saturating_sub(end) > intent.maximum_staleness_ms
+        })
+    {
+        flags.cutoff = true;
+        return false;
+    }
+    true
+}
+
+fn canonical_view_gap_digest_v1(gap: &AgentCanonicalViewGapV1) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{:?}:{:?}:{}:{:?}:{}:{}:{:?}:{:?}:{:?}:{:?}:{:?}:{:?}:{:?}:{:?}:{}:{:?}",
+        gap.agent_id,
+        gap.intent_digest,
+        gap.market_scopes,
+        gap.symbols,
+        gap.cadence,
+        gap.lookback,
+        gap.information_cutoff_ms,
+        gap.maximum_staleness_ms,
+        gap.required_dataset_kinds,
+        gap.resolved_required_dataset_kinds,
+        gap.missing_required_dataset_kinds,
+        gap.optional_dataset_kinds,
+        gap.resolved_optional_dataset_kinds,
+        gap.missing_optional_dataset_kinds,
+        gap.usable_artifact_digests,
+        gap.rejected_artifact_digests,
+        gap.trainer_available,
+        (gap.status, &gap.authorized_provider_ids),
+    ))
+}
+
+fn canonical_view_gap_report_digest_v1(report: &AgentCanonicalViewGapReportV1) -> String {
+    stable_hash_string(&format!(
+        "{}:{:?}:{:?}:{:?}",
+        report.report_version,
+        report
+            .gaps
+            .iter()
+            .map(|gap| gap.gap_digest.as_str())
+            .collect::<Vec<_>>(),
+        report.provider_contract_digests,
+        report.safety_counters,
+    ))
+}
+
+fn zero_learning_evidence_safety_counters_v1() -> LearningEvidenceSafetyCountersV1 {
+    LearningEvidenceSafetyCountersV1 {
+        active_committee_count: 3,
+        request_attempts: 0,
+        retry_count: 0,
+        transport_constructions: 0,
+        credential_reads: 0,
+        prospective_artifact_reads: 0,
+        prospective_label_reads: 0,
+        future_evaluation_reads: 0,
+        active_model_changes: 0,
+        chair_decisions: 0,
+        votes: 0,
+        rewards: 0,
+        penalties: 0,
+        voice_changes: 0,
+        promotions: 0,
+        executions: 0,
+    }
+}
+
+pub fn derive_agent_canonical_view_gaps_v1(
+    intents: &[AgentLearningIntentV0],
+    policies: &[AgentDataPolicy],
+    snapshots: &[DataSnapshot],
+    trainer_capable_agent_ids: &BTreeSet<String>,
+    provider_contracts: &[LearningEvidenceProviderContractV1],
+) -> Result<AgentCanonicalViewGapReportV1, String> {
+    if intents.len() != 3
+        || provider_contracts
+            .iter()
+            .any(|contract| !validate_learning_evidence_provider_contract_v1(contract))
+    {
+        return Err("canonical view gap inputs rejected".into());
+    }
+    let mut gaps = Vec::new();
+    for intent in intents {
+        let policy = policies
+            .iter()
+            .find(|policy| policy.agent_kind == intent.agent_kind)
+            .ok_or_else(|| "canonical view gap policy unavailable".to_string())?;
+        let persisted_projection_valid = intent.intent_version
+            == PERSISTED_LEARNING_INTENT_PROJECTION_VERSION_V1
+            && expected_learning_agent_id_v0(intent.agent_kind) == Some(intent.agent_id.as_str())
+            && !intent.intent_digest.is_empty()
+            && !intent.market_scopes.is_empty()
+            && intent
+                .market_scopes
+                .iter()
+                .all(|market| policy.allowed_markets.contains(market))
+            && stable_learning_kinds_v1(&intent.required_datasets)
+                == stable_learning_kinds_v1(&policy.required_dataset_kinds)
+            && stable_learning_kinds_v1(&intent.optional_datasets)
+                == stable_learning_kinds_v1(&policy.optional_dataset_kinds)
+            && !intent.cadence.trim().is_empty()
+            && intent.lookback.bars > 0
+            && intent.lookback.end_timestamp_ms == Some(intent.information_cutoff_ms)
+            && intent.information_cutoff_ms > 0
+            && intent.maximum_staleness_ms == policy.max_staleness_ms;
+        if validate_agent_learning_intent_v0(intent, policy).is_err() && !persisted_projection_valid
+        {
+            return Err("canonical view gap intent rejected".into());
+        }
+        let mut resolved_required = Vec::new();
+        let mut missing_required = Vec::new();
+        let mut resolved_optional = Vec::new();
+        let mut missing_optional = Vec::new();
+        let mut usable = Vec::new();
+        let mut rejected = Vec::new();
+        let mut rejection_flags = GapRejectionFlagsV1::default();
+        for (kind, required) in intent
+            .required_datasets
+            .iter()
+            .copied()
+            .map(|kind| (kind, true))
+            .chain(
+                intent
+                    .optional_datasets
+                    .iter()
+                    .copied()
+                    .map(|kind| (kind, false)),
+            )
+        {
+            let mut matches = snapshots
+                .iter()
+                .filter(|snapshot| snapshot.dataset_kind == kind)
+                .filter(|snapshot| {
+                    let accepted = snapshot_matches_intent_dataset_v1(
+                        snapshot,
+                        intent,
+                        kind,
+                        &mut rejection_flags,
+                    );
+                    if !accepted {
+                        rejected.push(snapshot.content_digest.clone());
+                    }
+                    accepted
+                })
+                .collect::<Vec<_>>();
+            matches.sort_by(|left, right| {
+                right
+                    .fetched_at_ms
+                    .cmp(&left.fetched_at_ms)
+                    .then_with(|| right.row_count.cmp(&left.row_count))
+                    .then_with(|| left.content_digest.cmp(&right.content_digest))
+            });
+            if matches.len() > 1
+                && matches[0].fetched_at_ms == matches[1].fetched_at_ms
+                && matches[0].row_count == matches[1].row_count
+                && matches[0].content_digest != matches[1].content_digest
+            {
+                rejection_flags.ambiguous = true;
+                rejected.extend(
+                    matches
+                        .iter()
+                        .map(|snapshot| snapshot.content_digest.clone()),
+                );
+                if required {
+                    missing_required.push(kind);
+                } else {
+                    missing_optional.push(kind);
+                }
+            } else if let Some(selected) = matches.first() {
+                usable.push(selected.content_digest.clone());
+                if required {
+                    resolved_required.push(kind);
+                } else {
+                    resolved_optional.push(kind);
+                }
+            } else if required {
+                missing_required.push(kind);
+            } else {
+                missing_optional.push(kind);
+            }
+        }
+        let trainer_available = trainer_capable_agent_ids.contains(&intent.agent_id);
+        let mut authorized_provider_ids = provider_contracts
+            .iter()
+            .filter(|contract| {
+                intent.market_scopes.iter().any(|market| {
+                    missing_required.iter().any(|kind| {
+                        learning_evidence_contract_supports_v1(
+                            contract,
+                            *kind,
+                            *market,
+                            &intent.symbols,
+                            &intent.cadence,
+                            &intent.lookback,
+                            intent.information_cutoff_ms,
+                        )
+                    })
+                })
+            })
+            .map(|contract| contract.provider_id.clone())
+            .collect::<Vec<_>>();
+        authorized_provider_ids.sort();
+        authorized_provider_ids.dedup();
+        let has_disabled_exact_provider = provider_contracts.iter().any(|contract| {
+            !contract.enabled
+                && intent.market_scopes.iter().any(|market| {
+                    contract.dataset_kind != DatasetKind::Unknown
+                        && missing_required.contains(&contract.dataset_kind)
+                        && contract.market_scope == *market
+                        && contract.symbols == intent.symbols
+                        && contract.cadence == intent.cadence
+                        && intent.lookback.bars <= contract.maximum_lookback_bars
+                })
+        });
+        let status = if !trainer_available {
+            CanonicalViewGapStatusV1::TrainerUnavailable
+        } else if missing_required.is_empty() && missing_optional.is_empty() {
+            CanonicalViewGapStatusV1::Complete
+        } else if missing_required.is_empty() {
+            CanonicalViewGapStatusV1::MissingOptionalEvidenceOnly
+        } else if rejection_flags.integrity {
+            CanonicalViewGapStatusV1::IntegrityFailure
+        } else if rejection_flags.ambiguous {
+            CanonicalViewGapStatusV1::AmbiguousArtifacts
+        } else if rejection_flags.cadence {
+            CanonicalViewGapStatusV1::IncompatibleCadence
+        } else if rejection_flags.market {
+            CanonicalViewGapStatusV1::IncompatibleMarket
+        } else if rejection_flags.symbol {
+            CanonicalViewGapStatusV1::IncompatibleSymbol
+        } else if rejection_flags.cutoff {
+            CanonicalViewGapStatusV1::CutoffMismatch
+        } else if has_disabled_exact_provider {
+            CanonicalViewGapStatusV1::ProviderUnavailable
+        } else if authorized_provider_ids.is_empty() {
+            CanonicalViewGapStatusV1::ProviderContractUnverified
+        } else {
+            CanonicalViewGapStatusV1::MissingRequiredEvidence
+        };
+        let mut gap = AgentCanonicalViewGapV1 {
+            agent_id: intent.agent_id.clone(),
+            intent_digest: intent.intent_digest.clone(),
+            market_scopes: stable_learning_markets_v1(&intent.market_scopes),
+            symbols: stable_learning_strings_v1(&intent.symbols),
+            cadence: intent.cadence.clone(),
+            lookback: intent.lookback.clone(),
+            information_cutoff_ms: intent.information_cutoff_ms,
+            maximum_staleness_ms: intent.maximum_staleness_ms,
+            required_dataset_kinds: stable_learning_kinds_v1(&intent.required_datasets),
+            resolved_required_dataset_kinds: stable_learning_kinds_v1(&resolved_required),
+            missing_required_dataset_kinds: stable_learning_kinds_v1(&missing_required),
+            optional_dataset_kinds: stable_learning_kinds_v1(&intent.optional_datasets),
+            resolved_optional_dataset_kinds: stable_learning_kinds_v1(&resolved_optional),
+            missing_optional_dataset_kinds: stable_learning_kinds_v1(&missing_optional),
+            usable_artifact_digests: stable_learning_strings_v1(&usable),
+            rejected_artifact_digests: stable_learning_strings_v1(&rejected),
+            authorized_provider_ids,
+            trainer_available,
+            status,
+            gap_digest: String::new(),
+        };
+        gap.gap_digest = canonical_view_gap_digest_v1(&gap);
+        gaps.push(gap);
+    }
+    gaps.sort_by(|left, right| left.agent_id.cmp(&right.agent_id));
+    let mut provider_contract_digests = provider_contracts
+        .iter()
+        .map(|contract| contract.contract_digest.clone())
+        .collect::<Vec<_>>();
+    provider_contract_digests.sort();
+    provider_contract_digests.dedup();
+    let mut report = AgentCanonicalViewGapReportV1 {
+        report_version: CANONICAL_VIEW_GAP_REPORT_VERSION_V1.into(),
+        gaps,
+        provider_contract_digests,
+        safety_counters: zero_learning_evidence_safety_counters_v1(),
+        report_digest: String::new(),
+    };
+    report.report_digest = canonical_view_gap_report_digest_v1(&report);
+    Ok(report)
+}
+
+fn expected_learning_timestamps_v1(lookback: &DataLookback) -> Option<Vec<u64>> {
+    let end = lookback.end_timestamp_ms?;
+    let bars = u64::try_from(lookback.bars).ok()?;
+    let start = end.checked_sub(bars.checked_mul(DAILY_CADENCE_MS_V1)?)?;
+    (0..bars)
+        .map(|offset| start.checked_add(offset.checked_mul(DAILY_CADENCE_MS_V1)?))
+        .collect()
+}
+
+fn learning_evidence_registration_digest_v1(
+    registration: &LearningEvidenceAcquisitionRegistrationV1,
+) -> String {
+    stable_hash_string(&format!(
+        "{:?}",
+        (
+            (
+                registration.registration_version.as_str(),
+                &registration.target_agent_ids,
+                &registration.gap_report_digests,
+                registration.provider_id.as_str(),
+                registration.provider_contract_digest.as_str(),
+                registration.dataset_kind,
+                registration.market_scope,
+                &registration.symbols,
+                registration.cadence.as_str(),
+            ),
+            (
+                &registration.lookback,
+                registration.information_cutoff_ms,
+                &registration.expected_timestamp_ms,
+                &registration.protected_registration_digests,
+                &registration.excluded_timestamp_ms,
+                registration.maximum_requests,
+                registration.maximum_concurrency,
+                registration.maximum_retries,
+                registration.maximum_response_bytes,
+            ),
+            (
+                registration.credential_free_required,
+                registration.read_only_required,
+                registration.prospective_storage_forbidden,
+            ),
+        )
+    ))
+}
+
+pub fn validate_learning_evidence_acquisition_registration_v1(
+    registration: &LearningEvidenceAcquisitionRegistrationV1,
+) -> Result<(), String> {
+    let expected_timestamps = expected_learning_timestamps_v1(&registration.lookback);
+    if registration.registration_version != LEARNING_EVIDENCE_REGISTRATION_VERSION_V1
+        || registration.target_agent_ids.is_empty()
+        || registration.target_agent_ids
+            != stable_learning_strings_v1(&registration.target_agent_ids)
+        || registration.gap_report_digests.len() != registration.target_agent_ids.len()
+        || registration.gap_report_digests
+            != stable_learning_strings_v1(&registration.gap_report_digests)
+        || registration.provider_id.is_empty()
+        || registration.provider_contract_digest.is_empty()
+        || registration.dataset_kind == DatasetKind::Unknown
+        || registration.market_scope == AcquisitionMarketScope::Unknown
+        || registration.symbols.is_empty()
+        || registration.symbols != stable_learning_strings_v1(&registration.symbols)
+        || registration.cadence != "1d"
+        || registration.lookback.bars == 0
+        || registration.lookback.end_timestamp_ms != Some(registration.information_cutoff_ms)
+        || registration
+            .lookback
+            .start_timestamp_ms
+            .is_some_and(|start| {
+                Some(start)
+                    != expected_timestamps
+                        .as_ref()
+                        .and_then(|timestamps| timestamps.first().copied())
+            })
+        || expected_timestamps.as_ref() != Some(&registration.expected_timestamp_ms)
+        || registration.expected_timestamp_ms.iter().any(|timestamp| {
+            *timestamp > registration.information_cutoff_ms
+                || registration.excluded_timestamp_ms.contains(timestamp)
+        })
+        || registration.protected_registration_digests.is_empty()
+        || registration.protected_registration_digests
+            != stable_learning_strings_v1(&registration.protected_registration_digests)
+        || registration.excluded_timestamp_ms.is_empty()
+        || {
+            let mut values = registration.excluded_timestamp_ms.clone();
+            values.sort();
+            values.dedup();
+            values != registration.excluded_timestamp_ms
+        }
+        || registration.maximum_requests != 1
+        || registration.maximum_concurrency != 1
+        || registration.maximum_retries != 0
+        || registration.maximum_response_bytes == 0
+        || !registration.credential_free_required
+        || !registration.read_only_required
+        || !registration.prospective_storage_forbidden
+        || registration.registration_digest
+            != learning_evidence_registration_digest_v1(registration)
+    {
+        return Err("learning evidence acquisition registration rejected".into());
+    }
+    Ok(())
+}
+
+#[derive(Clone)]
+struct LearningRequestCandidateV1 {
+    semantic_key: String,
+    contract: LearningEvidenceProviderContractV1,
+    dataset_kind: DatasetKind,
+    market_scope: AcquisitionMarketScope,
+    symbols: Vec<String>,
+    cadence: String,
+    lookback: DataLookback,
+    information_cutoff_ms: u64,
+    target_agent_ids: Vec<String>,
+    gap_digests: Vec<String>,
+}
+
+pub fn select_learning_evidence_acquisition_registration_v1(
+    report: &AgentCanonicalViewGapReportV1,
+    provider_contracts: &[LearningEvidenceProviderContractV1],
+    protected_registration_digests: &[String],
+    excluded_timestamp_ms: &[u64],
+) -> Result<Option<LearningEvidenceAcquisitionRegistrationV1>, String> {
+    if report.report_version != CANONICAL_VIEW_GAP_REPORT_VERSION_V1
+        || report.report_digest != canonical_view_gap_report_digest_v1(report)
+    {
+        return Err("canonical view gap report rejected".into());
+    }
+    let mut grouped = BTreeMap::<String, LearningRequestCandidateV1>::new();
+    for gap in report.gaps.iter().filter(|gap| {
+        gap.trainer_available
+            && matches!(
+                gap.status,
+                CanonicalViewGapStatusV1::MissingRequiredEvidence
+                    | CanonicalViewGapStatusV1::IncompatibleCadence
+                    | CanonicalViewGapStatusV1::IncompatibleMarket
+                    | CanonicalViewGapStatusV1::IncompatibleSymbol
+                    | CanonicalViewGapStatusV1::CutoffMismatch
+            )
+            && !gap.missing_required_dataset_kinds.is_empty()
+    }) {
+        for dataset_kind in &gap.missing_required_dataset_kinds {
+            for market_scope in &gap.market_scopes {
+                for contract in provider_contracts.iter().filter(|contract| {
+                    learning_evidence_contract_supports_v1(
+                        contract,
+                        *dataset_kind,
+                        *market_scope,
+                        &gap.symbols,
+                        &gap.cadence,
+                        &gap.lookback,
+                        gap.information_cutoff_ms,
+                    )
+                }) {
+                    let semantic_key = format!(
+                        "{}:{:?}:{:?}:{:?}:{}:{:?}:{}",
+                        contract.provider_id,
+                        dataset_kind,
+                        market_scope,
+                        gap.symbols,
+                        gap.cadence,
+                        gap.lookback,
+                        gap.information_cutoff_ms,
+                    );
+                    let entry = grouped.entry(semantic_key.clone()).or_insert_with(|| {
+                        LearningRequestCandidateV1 {
+                            semantic_key,
+                            contract: contract.clone(),
+                            dataset_kind: *dataset_kind,
+                            market_scope: *market_scope,
+                            symbols: gap.symbols.clone(),
+                            cadence: gap.cadence.clone(),
+                            lookback: gap.lookback.clone(),
+                            information_cutoff_ms: gap.information_cutoff_ms,
+                            target_agent_ids: Vec::new(),
+                            gap_digests: Vec::new(),
+                        }
+                    });
+                    entry.target_agent_ids.push(gap.agent_id.clone());
+                    entry.gap_digests.push(gap.gap_digest.clone());
+                }
+            }
+        }
+    }
+    let mut candidates = grouped.into_values().collect::<Vec<_>>();
+    for candidate in &mut candidates {
+        candidate.target_agent_ids = stable_learning_strings_v1(&candidate.target_agent_ids);
+        candidate.gap_digests = stable_learning_strings_v1(&candidate.gap_digests);
+    }
+    candidates.sort_by(|left, right| {
+        right
+            .contract
+            .credential_free
+            .cmp(&left.contract.credential_free)
+            .then_with(|| {
+                right
+                    .target_agent_ids
+                    .len()
+                    .cmp(&left.target_agent_ids.len())
+            })
+            .then_with(|| left.lookback.bars.cmp(&right.lookback.bars))
+            .then_with(|| left.semantic_key.cmp(&right.semantic_key))
+    });
+    let Some(selected) = candidates.into_iter().next() else {
+        return Ok(None);
+    };
+    let lookback = selected.lookback;
+    let expected_timestamp_ms = expected_learning_timestamps_v1(&lookback)
+        .ok_or_else(|| "learning evidence range unavailable".to_string())?;
+    let mut protected_registration_digests = protected_registration_digests.to_vec();
+    protected_registration_digests.sort();
+    protected_registration_digests.dedup();
+    let mut excluded_timestamp_ms = excluded_timestamp_ms.to_vec();
+    excluded_timestamp_ms.sort();
+    excluded_timestamp_ms.dedup();
+    let mut registration = LearningEvidenceAcquisitionRegistrationV1 {
+        registration_version: LEARNING_EVIDENCE_REGISTRATION_VERSION_V1.into(),
+        target_agent_ids: selected.target_agent_ids,
+        gap_report_digests: selected.gap_digests,
+        provider_id: selected.contract.provider_id,
+        provider_contract_digest: selected.contract.contract_digest,
+        dataset_kind: selected.dataset_kind,
+        market_scope: selected.market_scope,
+        symbols: selected.symbols,
+        cadence: selected.cadence,
+        lookback,
+        information_cutoff_ms: selected.information_cutoff_ms,
+        expected_timestamp_ms,
+        protected_registration_digests,
+        excluded_timestamp_ms,
+        maximum_requests: 1,
+        maximum_concurrency: 1,
+        maximum_retries: 0,
+        maximum_response_bytes: selected.contract.maximum_response_bytes,
+        credential_free_required: true,
+        read_only_required: true,
+        prospective_storage_forbidden: true,
+        registration_digest: String::new(),
+    };
+    registration.registration_digest = learning_evidence_registration_digest_v1(&registration);
+    validate_learning_evidence_acquisition_registration_v1(&registration)?;
+    Ok(Some(registration))
+}
+
+fn learning_evidence_receipt_digest_v1(receipt: &LearningEvidenceRequestReceiptV1) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{}:{}:{}:{}:{:?}:{:?}:{}:{}:{:?}:{:?}:{:?}:{:?}",
+        receipt.receipt_version,
+        receipt.registration_digest,
+        receipt.provider_contract_digest,
+        receipt.request_attempted,
+        receipt.request_count,
+        receipt.retry_count,
+        receipt.status,
+        receipt.http_status_class,
+        receipt.returned_row_count,
+        receipt.verified_row_count,
+        receipt.raw_response_digest,
+        receipt.provenance_manifest_digest,
+        receipt.snapshot_digest,
+        LEARNING_EVIDENCE_RECEIPT_VERSION_V1,
+    ))
+}
+
+pub fn validate_learning_evidence_request_receipt_v1(
+    receipt: &LearningEvidenceRequestReceiptV1,
+) -> Result<(), String> {
+    let success = receipt.status == LearningEvidenceRequestStatusV1::EvidenceAcquired;
+    if receipt.receipt_version != LEARNING_EVIDENCE_RECEIPT_VERSION_V1
+        || receipt.registration_digest.is_empty()
+        || receipt.provider_contract_digest.is_empty()
+        || !receipt.request_attempted
+        || receipt.request_count != 1
+        || receipt.retry_count != 0
+        || (success
+            && (receipt.returned_row_count == 0
+                || receipt.returned_row_count != receipt.verified_row_count
+                || receipt.raw_response_digest.is_none()
+                || receipt.provenance_manifest_digest.is_none()
+                || receipt.snapshot_digest.is_none()))
+        || (!success
+            && (receipt.verified_row_count != 0
+                || receipt.provenance_manifest_digest.is_some()
+                || receipt.snapshot_digest.is_some()))
+        || receipt.receipt_digest != learning_evidence_receipt_digest_v1(receipt)
+    {
+        return Err("learning evidence request receipt rejected".into());
+    }
+    Ok(())
+}
+
+fn learning_receipt_after_attempt_v1(
+    registration: &LearningEvidenceAcquisitionRegistrationV1,
+    status: LearningEvidenceRequestStatusV1,
+    http_status_class: Option<String>,
+    returned_row_count: usize,
+    verified_row_count: usize,
+    raw_response_digest: Option<String>,
+    provenance_manifest_digest: Option<String>,
+    snapshot_digest: Option<String>,
+) -> LearningEvidenceRequestReceiptV1 {
+    let mut receipt = LearningEvidenceRequestReceiptV1 {
+        receipt_version: LEARNING_EVIDENCE_RECEIPT_VERSION_V1.into(),
+        registration_digest: registration.registration_digest.clone(),
+        provider_contract_digest: registration.provider_contract_digest.clone(),
+        request_attempted: true,
+        request_count: 1,
+        retry_count: 0,
+        status,
+        http_status_class,
+        returned_row_count,
+        verified_row_count,
+        raw_response_digest,
+        provenance_manifest_digest,
+        snapshot_digest,
+        receipt_digest: String::new(),
+    };
+    receipt.receipt_digest = learning_evidence_receipt_digest_v1(&receipt);
+    receipt
+}
+
+fn learning_result_without_attempt_v1(
+    status: LearningEvidenceRequestStatusV1,
+) -> LearningEvidenceAcquisitionResultV1 {
+    LearningEvidenceAcquisitionResultV1 {
+        status,
+        receipt: None,
+        raw_response: None,
+        provenance_manifest: None,
+        snapshot: None,
+        safety_counters: zero_learning_evidence_safety_counters_v1(),
+    }
+}
+
+fn raw_learning_response_is_sanitized_v1(body: &[u8]) -> bool {
+    let Ok(text) = std::str::from_utf8(body) else {
+        return false;
+    };
+    let lowered = text.to_ascii_lowercase();
+    !body.is_empty()
+        && !body.contains(&0)
+        && !lowered.contains("authorization")
+        && !lowered.contains("access_key")
+        && !lowered.contains("secret_key")
+        && !lowered.contains("<html")
+}
+
+fn validate_learning_transport_response_v1(
+    registration: &LearningEvidenceAcquisitionRegistrationV1,
+    response: &LearningEvidenceTransportResponseV1,
+) -> bool {
+    let normalized = &response.response.normalized_dataset;
+    response.http_status_class == "2xx"
+        && response.raw_response.len() <= registration.maximum_response_bytes
+        && raw_learning_response_is_sanitized_v1(&response.raw_response)
+        && response.response.request_id
+            == format!("learning-evidence-v1-{}", registration.registration_digest)
+        && response.response.provider_id == registration.provider_id
+        && response.response.content_type == "application/x-soma-normalized-dataset"
+        && response.response.all_rows_finalized
+        && response.response.reported_content_bytes == response.raw_response.len()
+        && normalized.symbol == registration.symbols.first().cloned().unwrap_or_default()
+        && normalized.rows.len() == registration.expected_timestamp_ms.len()
+        && normalized
+            .rows
+            .iter()
+            .map(|row| row.timestamp_ms)
+            .eq(registration.expected_timestamp_ms.iter().copied())
+        && normalized.rows.iter().all(|row| {
+            row.symbol == normalized.symbol
+                && row.timestamp_ms <= registration.information_cutoff_ms
+                && !registration
+                    .excluded_timestamp_ms
+                    .contains(&row.timestamp_ms)
+        })
+        && validate_normalized_dataset(normalized).is_ok()
+}
+
+pub fn execute_learning_evidence_acquisition_v1<F>(
+    registration: &LearningEvidenceAcquisitionRegistrationV1,
+    provider_contract: &LearningEvidenceProviderContractV1,
+    current_gap_digests: &[String],
+    existing_receipt: Option<&LearningEvidenceRequestReceiptV1>,
+    existing_snapshots: &[DataSnapshot],
+    explicit_network_consent: bool,
+    transport: F,
+) -> LearningEvidenceAcquisitionResultV1
+where
+    F: FnOnce(
+        &ReadOnlyProviderRequest,
+    )
+        -> Result<LearningEvidenceTransportResponseV1, LearningEvidenceTransportFailureV1>,
+{
+    if validate_learning_evidence_acquisition_registration_v1(registration).is_err()
+        || !validate_learning_evidence_provider_contract_v1(provider_contract)
+        || registration.provider_contract_digest != provider_contract.contract_digest
+        || !learning_evidence_contract_supports_v1(
+            provider_contract,
+            registration.dataset_kind,
+            registration.market_scope,
+            &registration.symbols,
+            &registration.cadence,
+            &registration.lookback,
+            registration.information_cutoff_ms,
+        )
+    {
+        return learning_result_without_attempt_v1(
+            LearningEvidenceRequestStatusV1::RegistrationInvalid,
+        );
+    }
+    if existing_receipt.is_some() {
+        return learning_result_without_attempt_v1(
+            LearningEvidenceRequestStatusV1::RequestBudgetExhausted,
+        );
+    }
+    if registration
+        .gap_report_digests
+        .iter()
+        .any(|digest| !current_gap_digests.contains(digest))
+    {
+        return learning_result_without_attempt_v1(
+            LearningEvidenceRequestStatusV1::GapNoLongerCurrent,
+        );
+    }
+    if existing_snapshots.iter().any(|snapshot| {
+        snapshot_integrity_valid_for_gap_v1(snapshot)
+            && snapshot.dataset_kind == registration.dataset_kind
+            && snapshot.market_scope == registration.market_scope
+            && stable_learning_strings_v1(&snapshot.symbols) == registration.symbols
+            && snapshot.requested_lookback == registration.lookback
+            && snapshot
+                .compatibility
+                .as_ref()
+                .is_some_and(|compatibility| {
+                    compatibility.cadence == registration.cadence
+                        && compatibility.adjustment_semantics
+                            == adjustment_semantics_v1(registration.dataset_kind)
+                        && compatibility.source_schema == "application/x-soma-normalized-dataset"
+                        && compatibility.requested_cutoff_timestamp_ms
+                            == Some(registration.information_cutoff_ms)
+                        && compatibility.maximum_staleness_ms
+                            == registration.information_cutoff_ms.saturating_sub(
+                                registration
+                                    .expected_timestamp_ms
+                                    .last()
+                                    .copied()
+                                    .unwrap_or_default(),
+                            )
+                        && compatibility.all_rows_finalized
+                })
+            && snapshot
+                .normalized_dataset
+                .rows
+                .iter()
+                .map(|row| row.timestamp_ms)
+                .eq(registration.expected_timestamp_ms.iter().copied())
+    }) {
+        return learning_result_without_attempt_v1(
+            LearningEvidenceRequestStatusV1::EquivalentSnapshotExists,
+        );
+    }
+    if !explicit_network_consent {
+        return learning_result_without_attempt_v1(
+            LearningEvidenceRequestStatusV1::MissingNetworkConsent,
+        );
+    }
+    let request = ReadOnlyProviderRequest {
+        request_id: format!("learning-evidence-v1-{}", registration.registration_digest),
+        request_key: format!("learning-evidence-v1:{}", registration.registration_digest),
+        provider_id: registration.provider_id.clone(),
+        dataset_kind: registration.dataset_kind,
+        market_scope: registration.market_scope,
+        symbols: registration.symbols.clone(),
+        lookback: registration.lookback.clone(),
+        cadence: registration.cadence.clone(),
+        max_staleness_ms: registration.information_cutoff_ms.saturating_sub(
+            registration
+                .expected_timestamp_ms
+                .last()
+                .copied()
+                .unwrap_or_default(),
+        ),
+        reason_codes: vec![ReasonCode::AcquisitionRequestPlanned],
+    };
+    let mut counters = zero_learning_evidence_safety_counters_v1();
+    counters.request_attempts = 1;
+    counters.transport_constructions = 1;
+    let transport_response = match transport(&request) {
+        Ok(response) => response,
+        Err(failure) => {
+            let (status, http_status_class, raw_response) = match failure {
+                LearningEvidenceTransportFailureV1::ProviderRejected {
+                    http_status_class,
+                    raw_response,
+                } => (
+                    LearningEvidenceRequestStatusV1::ProviderRejected,
+                    http_status_class,
+                    raw_response,
+                ),
+                LearningEvidenceTransportFailureV1::TimedOut => {
+                    (LearningEvidenceRequestStatusV1::TimeoutNoRetry, None, None)
+                }
+                LearningEvidenceTransportFailureV1::Technical => (
+                    LearningEvidenceRequestStatusV1::TechnicalFailure,
+                    None,
+                    None,
+                ),
+            };
+            let raw_digest = raw_response.as_deref().map(canonical_hash_hex);
+            let receipt = learning_receipt_after_attempt_v1(
+                registration,
+                status,
+                http_status_class,
+                0,
+                0,
+                raw_digest,
+                None,
+                None,
+            );
+            return LearningEvidenceAcquisitionResultV1 {
+                status,
+                receipt: Some(receipt),
+                raw_response,
+                provenance_manifest: None,
+                snapshot: None,
+                safety_counters: counters,
+            };
+        }
+    };
+    let returned_row_count = transport_response.response.normalized_dataset.rows.len();
+    let raw_digest = canonical_hash_hex(&transport_response.raw_response);
+    if !validate_learning_transport_response_v1(registration, &transport_response) {
+        let receipt = learning_receipt_after_attempt_v1(
+            registration,
+            LearningEvidenceRequestStatusV1::InvalidResponse,
+            Some(transport_response.http_status_class.clone()),
+            returned_row_count,
+            0,
+            Some(raw_digest),
+            None,
+            None,
+        );
+        return LearningEvidenceAcquisitionResultV1 {
+            status: LearningEvidenceRequestStatusV1::InvalidResponse,
+            receipt: Some(receipt),
+            raw_response: Some(transport_response.raw_response),
+            provenance_manifest: None,
+            snapshot: None,
+            safety_counters: counters,
+        };
+    }
+    let snapshot = match snapshot_from_response(
+        &request,
+        transport_response.response,
+        AcquisitionMode::ApprovedReadOnlyNetwork,
+        registration.information_cutoff_ms,
+        registration.maximum_response_bytes,
+    ) {
+        Ok(snapshot) => snapshot,
+        Err(_) => {
+            let receipt = learning_receipt_after_attempt_v1(
+                registration,
+                LearningEvidenceRequestStatusV1::InvalidResponse,
+                Some(transport_response.http_status_class.clone()),
+                returned_row_count,
+                0,
+                Some(raw_digest),
+                None,
+                None,
+            );
+            return LearningEvidenceAcquisitionResultV1 {
+                status: LearningEvidenceRequestStatusV1::InvalidResponse,
+                receipt: Some(receipt),
+                raw_response: Some(transport_response.raw_response),
+                provenance_manifest: None,
+                snapshot: None,
+                safety_counters: counters,
+            };
+        }
+    };
+    if existing_snapshots
+        .iter()
+        .any(|existing| existing.content_digest == snapshot.content_digest)
+    {
+        return learning_result_without_attempt_v1(
+            LearningEvidenceRequestStatusV1::EquivalentSnapshotExists,
+        );
+    }
+    let provenance_manifest =
+        match seal_learning_data_provenance_manifest_v0(LearningDataProvenanceManifestV0 {
+            source_provider_id: registration.provider_id.clone(),
+            source_type: "ApprovedReadOnlyProvider".into(),
+            acquisition_request_identity: registration.registration_digest.clone(),
+            fetch_timestamp_ms: snapshot.fetched_at_ms,
+            publication_event_timestamp_ms: snapshot.actual_end_timestamp_ms,
+            raw_content_digest: raw_digest.clone(),
+            parser_version: "upbit-learning-evidence-parser-v1".into(),
+            normalized_artifact_digest: snapshot.content_digest.clone(),
+            sanitized: true,
+            credential_free: true,
+            information_cutoff_ms: registration.information_cutoff_ms,
+            usage_classification: LearningDataUsageClassificationV0::ResearchOnlyUnconsumed,
+            manifest_digest: String::new(),
+        }) {
+            Ok(manifest) => manifest,
+            Err(_) => {
+                let receipt = learning_receipt_after_attempt_v1(
+                    registration,
+                    LearningEvidenceRequestStatusV1::InvalidResponse,
+                    Some(transport_response.http_status_class.clone()),
+                    returned_row_count,
+                    0,
+                    Some(raw_digest),
+                    None,
+                    None,
+                );
+                return LearningEvidenceAcquisitionResultV1 {
+                    status: LearningEvidenceRequestStatusV1::InvalidResponse,
+                    receipt: Some(receipt),
+                    raw_response: Some(transport_response.raw_response),
+                    provenance_manifest: None,
+                    snapshot: None,
+                    safety_counters: counters,
+                };
+            }
+        };
+    let receipt = learning_receipt_after_attempt_v1(
+        registration,
+        LearningEvidenceRequestStatusV1::EvidenceAcquired,
+        Some(transport_response.http_status_class),
+        returned_row_count,
+        returned_row_count,
+        Some(raw_digest),
+        Some(provenance_manifest.manifest_digest.clone()),
+        Some(snapshot.content_digest.clone()),
+    );
+    LearningEvidenceAcquisitionResultV1 {
+        status: LearningEvidenceRequestStatusV1::EvidenceAcquired,
+        receipt: Some(receipt),
+        raw_response: Some(transport_response.raw_response),
+        provenance_manifest: Some(provenance_manifest),
+        snapshot: Some(snapshot),
+        safety_counters: counters,
+    }
+}
+
+const LEARNING_GAP_ARTIFACT_KIND_V1: &str = "agent-canonical-view-gap-report-v1";
+const LEARNING_REGISTRATION_ARTIFACT_KIND_V1: &str =
+    "learning-evidence-acquisition-registration-v1";
+const LEARNING_PROVENANCE_ARTIFACT_KIND_V1: &str = "learning-evidence-provenance-manifest-v1";
+const LEARNING_RECEIPT_ARTIFACT_KIND_V1: &str = "learning-evidence-request-receipt-v1";
+
+#[derive(Clone, PartialEq, Message)]
+struct LearningLookbackProtobufV1 {
+    #[prost(uint64, tag = "1")]
+    bars: u64,
+    #[prost(uint64, optional, tag = "2")]
+    start_timestamp_ms: Option<u64>,
+    #[prost(uint64, optional, tag = "3")]
+    end_timestamp_ms: Option<u64>,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct CanonicalViewGapProtobufV1 {
+    #[prost(string, tag = "1")]
+    agent_id: String,
+    #[prost(string, tag = "2")]
+    intent_digest: String,
+    #[prost(uint32, repeated, tag = "3")]
+    market_scopes: Vec<u32>,
+    #[prost(string, repeated, tag = "4")]
+    symbols: Vec<String>,
+    #[prost(string, tag = "5")]
+    cadence: String,
+    #[prost(message, optional, tag = "6")]
+    lookback: Option<LearningLookbackProtobufV1>,
+    #[prost(uint64, tag = "7")]
+    information_cutoff_ms: u64,
+    #[prost(uint64, tag = "8")]
+    maximum_staleness_ms: u64,
+    #[prost(uint32, repeated, tag = "9")]
+    required_dataset_kinds: Vec<u32>,
+    #[prost(uint32, repeated, tag = "10")]
+    resolved_required_dataset_kinds: Vec<u32>,
+    #[prost(uint32, repeated, tag = "11")]
+    missing_required_dataset_kinds: Vec<u32>,
+    #[prost(uint32, repeated, tag = "12")]
+    optional_dataset_kinds: Vec<u32>,
+    #[prost(uint32, repeated, tag = "13")]
+    resolved_optional_dataset_kinds: Vec<u32>,
+    #[prost(uint32, repeated, tag = "14")]
+    missing_optional_dataset_kinds: Vec<u32>,
+    #[prost(string, repeated, tag = "15")]
+    usable_artifact_digests: Vec<String>,
+    #[prost(string, repeated, tag = "16")]
+    rejected_artifact_digests: Vec<String>,
+    #[prost(string, repeated, tag = "17")]
+    authorized_provider_ids: Vec<String>,
+    #[prost(bool, tag = "18")]
+    trainer_available: bool,
+    #[prost(uint32, tag = "19")]
+    status: u32,
+    #[prost(string, tag = "20")]
+    gap_digest: String,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct LearningEvidenceSafetyCountersProtobufV1 {
+    #[prost(uint64, tag = "1")]
+    active_committee_count: u64,
+    #[prost(uint64, tag = "2")]
+    request_attempts: u64,
+    #[prost(uint64, tag = "3")]
+    retry_count: u64,
+    #[prost(uint64, tag = "4")]
+    transport_constructions: u64,
+    #[prost(uint64, tag = "5")]
+    credential_reads: u64,
+    #[prost(uint64, tag = "6")]
+    prospective_artifact_reads: u64,
+    #[prost(uint64, tag = "7")]
+    prospective_label_reads: u64,
+    #[prost(uint64, tag = "8")]
+    future_evaluation_reads: u64,
+    #[prost(uint64, tag = "9")]
+    active_model_changes: u64,
+    #[prost(uint64, tag = "10")]
+    chair_decisions: u64,
+    #[prost(uint64, tag = "11")]
+    votes: u64,
+    #[prost(uint64, tag = "12")]
+    rewards: u64,
+    #[prost(uint64, tag = "13")]
+    penalties: u64,
+    #[prost(uint64, tag = "14")]
+    voice_changes: u64,
+    #[prost(uint64, tag = "15")]
+    promotions: u64,
+    #[prost(uint64, tag = "16")]
+    executions: u64,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct CanonicalViewGapReportProtobufV1 {
+    #[prost(string, tag = "1")]
+    report_version: String,
+    #[prost(message, repeated, tag = "2")]
+    gaps: Vec<CanonicalViewGapProtobufV1>,
+    #[prost(string, repeated, tag = "3")]
+    provider_contract_digests: Vec<String>,
+    #[prost(message, optional, tag = "4")]
+    safety_counters: Option<LearningEvidenceSafetyCountersProtobufV1>,
+    #[prost(string, tag = "5")]
+    report_digest: String,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct LearningEvidenceRegistrationProtobufV1 {
+    #[prost(string, tag = "1")]
+    registration_version: String,
+    #[prost(string, repeated, tag = "2")]
+    target_agent_ids: Vec<String>,
+    #[prost(string, repeated, tag = "3")]
+    gap_report_digests: Vec<String>,
+    #[prost(string, tag = "4")]
+    provider_id: String,
+    #[prost(string, tag = "5")]
+    provider_contract_digest: String,
+    #[prost(uint32, tag = "6")]
+    dataset_kind: u32,
+    #[prost(uint32, tag = "7")]
+    market_scope: u32,
+    #[prost(string, repeated, tag = "8")]
+    symbols: Vec<String>,
+    #[prost(string, tag = "9")]
+    cadence: String,
+    #[prost(message, optional, tag = "10")]
+    lookback: Option<LearningLookbackProtobufV1>,
+    #[prost(uint64, tag = "11")]
+    information_cutoff_ms: u64,
+    #[prost(uint64, repeated, tag = "12")]
+    expected_timestamp_ms: Vec<u64>,
+    #[prost(string, repeated, tag = "13")]
+    protected_registration_digests: Vec<String>,
+    #[prost(uint64, repeated, tag = "14")]
+    excluded_timestamp_ms: Vec<u64>,
+    #[prost(uint64, tag = "15")]
+    maximum_requests: u64,
+    #[prost(uint64, tag = "16")]
+    maximum_concurrency: u64,
+    #[prost(uint64, tag = "17")]
+    maximum_retries: u64,
+    #[prost(uint64, tag = "18")]
+    maximum_response_bytes: u64,
+    #[prost(bool, tag = "19")]
+    credential_free_required: bool,
+    #[prost(bool, tag = "20")]
+    read_only_required: bool,
+    #[prost(bool, tag = "21")]
+    prospective_storage_forbidden: bool,
+    #[prost(string, tag = "22")]
+    registration_digest: String,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct LearningEvidenceProvenanceProtobufV1 {
+    #[prost(string, tag = "1")]
+    source_provider_id: String,
+    #[prost(string, tag = "2")]
+    source_type: String,
+    #[prost(string, tag = "3")]
+    acquisition_request_identity: String,
+    #[prost(uint64, tag = "4")]
+    fetch_timestamp_ms: u64,
+    #[prost(uint64, optional, tag = "5")]
+    publication_event_timestamp_ms: Option<u64>,
+    #[prost(string, tag = "6")]
+    raw_content_digest: String,
+    #[prost(string, tag = "7")]
+    parser_version: String,
+    #[prost(string, tag = "8")]
+    normalized_artifact_digest: String,
+    #[prost(bool, tag = "9")]
+    sanitized: bool,
+    #[prost(bool, tag = "10")]
+    credential_free: bool,
+    #[prost(uint64, tag = "11")]
+    information_cutoff_ms: u64,
+    #[prost(uint32, tag = "12")]
+    usage_classification: u32,
+    #[prost(string, tag = "13")]
+    manifest_digest: String,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct LearningEvidenceReceiptProtobufV1 {
+    #[prost(string, tag = "1")]
+    receipt_version: String,
+    #[prost(string, tag = "2")]
+    registration_digest: String,
+    #[prost(string, tag = "3")]
+    provider_contract_digest: String,
+    #[prost(bool, tag = "4")]
+    request_attempted: bool,
+    #[prost(uint64, tag = "5")]
+    request_count: u64,
+    #[prost(uint64, tag = "6")]
+    retry_count: u64,
+    #[prost(uint32, tag = "7")]
+    status: u32,
+    #[prost(string, optional, tag = "8")]
+    http_status_class: Option<String>,
+    #[prost(uint64, tag = "9")]
+    returned_row_count: u64,
+    #[prost(uint64, tag = "10")]
+    verified_row_count: u64,
+    #[prost(string, optional, tag = "11")]
+    raw_response_digest: Option<String>,
+    #[prost(string, optional, tag = "12")]
+    provenance_manifest_digest: Option<String>,
+    #[prost(string, optional, tag = "13")]
+    snapshot_digest: Option<String>,
+    #[prost(string, tag = "14")]
+    receipt_digest: String,
+}
+
+fn learning_lookback_to_protobuf_v1(
+    lookback: &DataLookback,
+) -> Result<LearningLookbackProtobufV1, String> {
+    Ok(LearningLookbackProtobufV1 {
+        bars: u64::try_from(lookback.bars).map_err(|_| "learning lookback overflow".to_string())?,
+        start_timestamp_ms: lookback.start_timestamp_ms,
+        end_timestamp_ms: lookback.end_timestamp_ms,
+    })
+}
+
+fn learning_lookback_from_protobuf_v1(
+    lookback: Option<LearningLookbackProtobufV1>,
+) -> Result<DataLookback, String> {
+    let lookback = lookback.ok_or_else(|| "learning lookback missing".to_string())?;
+    Ok(DataLookback {
+        bars: usize::try_from(lookback.bars)
+            .map_err(|_| "learning lookback rejected".to_string())?,
+        start_timestamp_ms: lookback.start_timestamp_ms,
+        end_timestamp_ms: lookback.end_timestamp_ms,
+    })
+}
+
+fn market_scope_from_code_v1(code: u32) -> Result<AcquisitionMarketScope, String> {
+    match code {
+        1 => Ok(AcquisitionMarketScope::UsStocks),
+        2 => Ok(AcquisitionMarketScope::KoreanStocks),
+        3 => Ok(AcquisitionMarketScope::BtcCrypto),
+        _ => Err("learning market scope rejected".into()),
+    }
+}
+
+fn dataset_kind_from_code_v1(code: u32) -> Result<DatasetKind, String> {
+    u16::try_from(code)
+        .ok()
+        .and_then(dataset_kind_from_code_v0)
+        .ok_or_else(|| "learning dataset kind rejected".into())
+}
+
+fn gap_status_tag_v1(status: CanonicalViewGapStatusV1) -> u32 {
+    match status {
+        CanonicalViewGapStatusV1::Complete => 1,
+        CanonicalViewGapStatusV1::MissingRequiredEvidence => 2,
+        CanonicalViewGapStatusV1::MissingOptionalEvidenceOnly => 3,
+        CanonicalViewGapStatusV1::ProviderUnavailable => 4,
+        CanonicalViewGapStatusV1::ProviderContractUnverified => 5,
+        CanonicalViewGapStatusV1::AmbiguousArtifacts => 6,
+        CanonicalViewGapStatusV1::IncompatibleCadence => 7,
+        CanonicalViewGapStatusV1::IncompatibleMarket => 8,
+        CanonicalViewGapStatusV1::IncompatibleSymbol => 9,
+        CanonicalViewGapStatusV1::CutoffMismatch => 10,
+        CanonicalViewGapStatusV1::IntegrityFailure => 11,
+        CanonicalViewGapStatusV1::TrainerUnavailable => 12,
+    }
+}
+
+fn gap_status_from_tag_v1(tag: u32) -> Result<CanonicalViewGapStatusV1, String> {
+    match tag {
+        1 => Ok(CanonicalViewGapStatusV1::Complete),
+        2 => Ok(CanonicalViewGapStatusV1::MissingRequiredEvidence),
+        3 => Ok(CanonicalViewGapStatusV1::MissingOptionalEvidenceOnly),
+        4 => Ok(CanonicalViewGapStatusV1::ProviderUnavailable),
+        5 => Ok(CanonicalViewGapStatusV1::ProviderContractUnverified),
+        6 => Ok(CanonicalViewGapStatusV1::AmbiguousArtifacts),
+        7 => Ok(CanonicalViewGapStatusV1::IncompatibleCadence),
+        8 => Ok(CanonicalViewGapStatusV1::IncompatibleMarket),
+        9 => Ok(CanonicalViewGapStatusV1::IncompatibleSymbol),
+        10 => Ok(CanonicalViewGapStatusV1::CutoffMismatch),
+        11 => Ok(CanonicalViewGapStatusV1::IntegrityFailure),
+        12 => Ok(CanonicalViewGapStatusV1::TrainerUnavailable),
+        _ => Err("canonical gap status rejected".into()),
+    }
+}
+
+fn receipt_status_tag_v1(status: LearningEvidenceRequestStatusV1) -> u32 {
+    match status {
+        LearningEvidenceRequestStatusV1::ReadyNotAttempted => 1,
+        LearningEvidenceRequestStatusV1::EvidenceAcquired => 2,
+        LearningEvidenceRequestStatusV1::ProviderRejected => 3,
+        LearningEvidenceRequestStatusV1::TimeoutNoRetry => 4,
+        LearningEvidenceRequestStatusV1::InvalidResponse => 5,
+        LearningEvidenceRequestStatusV1::TechnicalFailure => 6,
+        LearningEvidenceRequestStatusV1::RequestBudgetExhausted => 7,
+        LearningEvidenceRequestStatusV1::RegistrationInvalid => 8,
+        LearningEvidenceRequestStatusV1::GapNoLongerCurrent => 9,
+        LearningEvidenceRequestStatusV1::EquivalentSnapshotExists => 10,
+        LearningEvidenceRequestStatusV1::MissingNetworkConsent => 11,
+    }
+}
+
+fn receipt_status_from_tag_v1(tag: u32) -> Result<LearningEvidenceRequestStatusV1, String> {
+    match tag {
+        1 => Ok(LearningEvidenceRequestStatusV1::ReadyNotAttempted),
+        2 => Ok(LearningEvidenceRequestStatusV1::EvidenceAcquired),
+        3 => Ok(LearningEvidenceRequestStatusV1::ProviderRejected),
+        4 => Ok(LearningEvidenceRequestStatusV1::TimeoutNoRetry),
+        5 => Ok(LearningEvidenceRequestStatusV1::InvalidResponse),
+        6 => Ok(LearningEvidenceRequestStatusV1::TechnicalFailure),
+        7 => Ok(LearningEvidenceRequestStatusV1::RequestBudgetExhausted),
+        8 => Ok(LearningEvidenceRequestStatusV1::RegistrationInvalid),
+        9 => Ok(LearningEvidenceRequestStatusV1::GapNoLongerCurrent),
+        10 => Ok(LearningEvidenceRequestStatusV1::EquivalentSnapshotExists),
+        11 => Ok(LearningEvidenceRequestStatusV1::MissingNetworkConsent),
+        _ => Err("learning receipt status rejected".into()),
+    }
+}
+
+fn safety_to_protobuf_v1(
+    counters: &LearningEvidenceSafetyCountersV1,
+) -> Result<LearningEvidenceSafetyCountersProtobufV1, String> {
+    let convert = |value| u64::try_from(value).map_err(|_| "learning counter overflow".to_string());
+    Ok(LearningEvidenceSafetyCountersProtobufV1 {
+        active_committee_count: convert(counters.active_committee_count)?,
+        request_attempts: convert(counters.request_attempts)?,
+        retry_count: convert(counters.retry_count)?,
+        transport_constructions: convert(counters.transport_constructions)?,
+        credential_reads: convert(counters.credential_reads)?,
+        prospective_artifact_reads: convert(counters.prospective_artifact_reads)?,
+        prospective_label_reads: convert(counters.prospective_label_reads)?,
+        future_evaluation_reads: convert(counters.future_evaluation_reads)?,
+        active_model_changes: convert(counters.active_model_changes)?,
+        chair_decisions: convert(counters.chair_decisions)?,
+        votes: convert(counters.votes)?,
+        rewards: convert(counters.rewards)?,
+        penalties: convert(counters.penalties)?,
+        voice_changes: convert(counters.voice_changes)?,
+        promotions: convert(counters.promotions)?,
+        executions: convert(counters.executions)?,
+    })
+}
+
+fn safety_from_protobuf_v1(
+    counters: Option<LearningEvidenceSafetyCountersProtobufV1>,
+) -> Result<LearningEvidenceSafetyCountersV1, String> {
+    let counters = counters.ok_or_else(|| "learning safety counters missing".to_string())?;
+    let convert =
+        |value| usize::try_from(value).map_err(|_| "learning counter rejected".to_string());
+    Ok(LearningEvidenceSafetyCountersV1 {
+        active_committee_count: convert(counters.active_committee_count)?,
+        request_attempts: convert(counters.request_attempts)?,
+        retry_count: convert(counters.retry_count)?,
+        transport_constructions: convert(counters.transport_constructions)?,
+        credential_reads: convert(counters.credential_reads)?,
+        prospective_artifact_reads: convert(counters.prospective_artifact_reads)?,
+        prospective_label_reads: convert(counters.prospective_label_reads)?,
+        future_evaluation_reads: convert(counters.future_evaluation_reads)?,
+        active_model_changes: convert(counters.active_model_changes)?,
+        chair_decisions: convert(counters.chair_decisions)?,
+        votes: convert(counters.votes)?,
+        rewards: convert(counters.rewards)?,
+        penalties: convert(counters.penalties)?,
+        voice_changes: convert(counters.voice_changes)?,
+        promotions: convert(counters.promotions)?,
+        executions: convert(counters.executions)?,
+    })
+}
+
+fn encode_learning_artifact_envelope_v1<M: Message>(
+    artifact_kind: &str,
+    semantic_digest: &str,
+    source_artifact_digests: Vec<String>,
+    payload: M,
+) -> Result<Vec<u8>, String> {
+    if artifact_kind.is_empty() || semantic_digest.is_empty() {
+        return Err("learning artifact envelope rejected".into());
+    }
+    let payload = payload.encode_to_vec();
+    Ok(CanonicalLearningArtifactEnvelopeProtobufV0 {
+        magic: LEARNING_ENVELOPE_MAGIC_V0.into(),
+        envelope_version: 1,
+        schema_name: "soma.learning_evidence.v1".into(),
+        artifact_kind: artifact_kind.into(),
+        semantic_digest: semantic_digest.into(),
+        payload_length: u64::try_from(payload.len())
+            .map_err(|_| "learning artifact payload too large".to_string())?,
+        payload_digest: canonical_hash_hex(&payload),
+        payload,
+        source_artifact_digests,
+    }
+    .encode_to_vec())
+}
+
+fn decode_learning_artifact_envelope_v1(
+    bytes: &[u8],
+    expected_kind: &str,
+) -> Result<(String, Vec<String>, Vec<u8>), String> {
+    let envelope = CanonicalLearningArtifactEnvelopeProtobufV0::decode(bytes)
+        .map_err(|_| "learning artifact envelope decode failed".to_string())?;
+    if envelope.magic != LEARNING_ENVELOPE_MAGIC_V0
+        || envelope.envelope_version != 1
+        || envelope.schema_name != "soma.learning_evidence.v1"
+        || envelope.artifact_kind != expected_kind
+        || envelope.semantic_digest.is_empty()
+        || usize::try_from(envelope.payload_length).ok() != Some(envelope.payload.len())
+        || envelope.payload_digest != canonical_hash_hex(&envelope.payload)
+    {
+        return Err("learning artifact envelope rejected".into());
+    }
+    Ok((
+        envelope.semantic_digest,
+        envelope.source_artifact_digests,
+        envelope.payload,
+    ))
+}
+
+fn gap_to_protobuf_v1(gap: &AgentCanonicalViewGapV1) -> Result<CanonicalViewGapProtobufV1, String> {
+    Ok(CanonicalViewGapProtobufV1 {
+        agent_id: gap.agent_id.clone(),
+        intent_digest: gap.intent_digest.clone(),
+        market_scopes: gap
+            .market_scopes
+            .iter()
+            .map(|market| u32::from(market_scope_code_v0(*market)))
+            .collect(),
+        symbols: gap.symbols.clone(),
+        cadence: gap.cadence.clone(),
+        lookback: Some(learning_lookback_to_protobuf_v1(&gap.lookback)?),
+        information_cutoff_ms: gap.information_cutoff_ms,
+        maximum_staleness_ms: gap.maximum_staleness_ms,
+        required_dataset_kinds: gap
+            .required_dataset_kinds
+            .iter()
+            .map(|kind| u32::from(dataset_kind_code_v0(*kind)))
+            .collect(),
+        resolved_required_dataset_kinds: gap
+            .resolved_required_dataset_kinds
+            .iter()
+            .map(|kind| u32::from(dataset_kind_code_v0(*kind)))
+            .collect(),
+        missing_required_dataset_kinds: gap
+            .missing_required_dataset_kinds
+            .iter()
+            .map(|kind| u32::from(dataset_kind_code_v0(*kind)))
+            .collect(),
+        optional_dataset_kinds: gap
+            .optional_dataset_kinds
+            .iter()
+            .map(|kind| u32::from(dataset_kind_code_v0(*kind)))
+            .collect(),
+        resolved_optional_dataset_kinds: gap
+            .resolved_optional_dataset_kinds
+            .iter()
+            .map(|kind| u32::from(dataset_kind_code_v0(*kind)))
+            .collect(),
+        missing_optional_dataset_kinds: gap
+            .missing_optional_dataset_kinds
+            .iter()
+            .map(|kind| u32::from(dataset_kind_code_v0(*kind)))
+            .collect(),
+        usable_artifact_digests: gap.usable_artifact_digests.clone(),
+        rejected_artifact_digests: gap.rejected_artifact_digests.clone(),
+        authorized_provider_ids: gap.authorized_provider_ids.clone(),
+        trainer_available: gap.trainer_available,
+        status: gap_status_tag_v1(gap.status),
+        gap_digest: gap.gap_digest.clone(),
+    })
+}
+
+fn gap_from_protobuf_v1(
+    gap: CanonicalViewGapProtobufV1,
+) -> Result<AgentCanonicalViewGapV1, String> {
+    let convert_kinds = |values: Vec<u32>| {
+        values
+            .into_iter()
+            .map(dataset_kind_from_code_v1)
+            .collect::<Result<Vec<_>, _>>()
+    };
+    let gap = AgentCanonicalViewGapV1 {
+        agent_id: gap.agent_id,
+        intent_digest: gap.intent_digest,
+        market_scopes: gap
+            .market_scopes
+            .into_iter()
+            .map(market_scope_from_code_v1)
+            .collect::<Result<Vec<_>, _>>()?,
+        symbols: gap.symbols,
+        cadence: gap.cadence,
+        lookback: learning_lookback_from_protobuf_v1(gap.lookback)?,
+        information_cutoff_ms: gap.information_cutoff_ms,
+        maximum_staleness_ms: gap.maximum_staleness_ms,
+        required_dataset_kinds: convert_kinds(gap.required_dataset_kinds)?,
+        resolved_required_dataset_kinds: convert_kinds(gap.resolved_required_dataset_kinds)?,
+        missing_required_dataset_kinds: convert_kinds(gap.missing_required_dataset_kinds)?,
+        optional_dataset_kinds: convert_kinds(gap.optional_dataset_kinds)?,
+        resolved_optional_dataset_kinds: convert_kinds(gap.resolved_optional_dataset_kinds)?,
+        missing_optional_dataset_kinds: convert_kinds(gap.missing_optional_dataset_kinds)?,
+        usable_artifact_digests: gap.usable_artifact_digests,
+        rejected_artifact_digests: gap.rejected_artifact_digests,
+        authorized_provider_ids: gap.authorized_provider_ids,
+        trainer_available: gap.trainer_available,
+        status: gap_status_from_tag_v1(gap.status)?,
+        gap_digest: gap.gap_digest,
+    };
+    if gap.gap_digest != canonical_view_gap_digest_v1(&gap) {
+        return Err("canonical view gap identity rejected".into());
+    }
+    Ok(gap)
+}
+
+pub fn encode_agent_canonical_view_gap_report_protobuf_v1(
+    report: &AgentCanonicalViewGapReportV1,
+) -> Result<Vec<u8>, String> {
+    if report.report_version != CANONICAL_VIEW_GAP_REPORT_VERSION_V1
+        || report.report_digest != canonical_view_gap_report_digest_v1(report)
+    {
+        return Err("canonical view gap report rejected".into());
+    }
+    encode_learning_artifact_envelope_v1(
+        LEARNING_GAP_ARTIFACT_KIND_V1,
+        &report.report_digest,
+        report
+            .gaps
+            .iter()
+            .flat_map(|gap| gap.usable_artifact_digests.clone())
+            .collect(),
+        CanonicalViewGapReportProtobufV1 {
+            report_version: report.report_version.clone(),
+            gaps: report
+                .gaps
+                .iter()
+                .map(gap_to_protobuf_v1)
+                .collect::<Result<Vec<_>, _>>()?,
+            provider_contract_digests: report.provider_contract_digests.clone(),
+            safety_counters: Some(safety_to_protobuf_v1(&report.safety_counters)?),
+            report_digest: report.report_digest.clone(),
+        },
+    )
+}
+
+pub fn decode_agent_canonical_view_gap_report_protobuf_v1(
+    bytes: &[u8],
+) -> Result<AgentCanonicalViewGapReportV1, String> {
+    let (semantic_digest, _, payload) =
+        decode_learning_artifact_envelope_v1(bytes, LEARNING_GAP_ARTIFACT_KIND_V1)?;
+    let value = CanonicalViewGapReportProtobufV1::decode(payload.as_slice())
+        .map_err(|_| "canonical view gap report decode failed".to_string())?;
+    let report = AgentCanonicalViewGapReportV1 {
+        report_version: value.report_version,
+        gaps: value
+            .gaps
+            .into_iter()
+            .map(gap_from_protobuf_v1)
+            .collect::<Result<Vec<_>, _>>()?,
+        provider_contract_digests: value.provider_contract_digests,
+        safety_counters: safety_from_protobuf_v1(value.safety_counters)?,
+        report_digest: value.report_digest,
+    };
+    if report.report_version != CANONICAL_VIEW_GAP_REPORT_VERSION_V1
+        || report.report_digest != canonical_view_gap_report_digest_v1(&report)
+        || report.report_digest != semantic_digest
+    {
+        return Err("canonical view gap report identity rejected".into());
+    }
+    Ok(report)
+}
+
+pub fn encode_learning_evidence_registration_protobuf_v1(
+    registration: &LearningEvidenceAcquisitionRegistrationV1,
+) -> Result<Vec<u8>, String> {
+    validate_learning_evidence_acquisition_registration_v1(registration)?;
+    encode_learning_artifact_envelope_v1(
+        LEARNING_REGISTRATION_ARTIFACT_KIND_V1,
+        &registration.registration_digest,
+        registration.gap_report_digests.clone(),
+        LearningEvidenceRegistrationProtobufV1 {
+            registration_version: registration.registration_version.clone(),
+            target_agent_ids: registration.target_agent_ids.clone(),
+            gap_report_digests: registration.gap_report_digests.clone(),
+            provider_id: registration.provider_id.clone(),
+            provider_contract_digest: registration.provider_contract_digest.clone(),
+            dataset_kind: u32::from(dataset_kind_code_v0(registration.dataset_kind)),
+            market_scope: u32::from(market_scope_code_v0(registration.market_scope)),
+            symbols: registration.symbols.clone(),
+            cadence: registration.cadence.clone(),
+            lookback: Some(learning_lookback_to_protobuf_v1(&registration.lookback)?),
+            information_cutoff_ms: registration.information_cutoff_ms,
+            expected_timestamp_ms: registration.expected_timestamp_ms.clone(),
+            protected_registration_digests: registration.protected_registration_digests.clone(),
+            excluded_timestamp_ms: registration.excluded_timestamp_ms.clone(),
+            maximum_requests: u64::try_from(registration.maximum_requests)
+                .map_err(|_| "learning request budget overflow".to_string())?,
+            maximum_concurrency: u64::try_from(registration.maximum_concurrency)
+                .map_err(|_| "learning concurrency overflow".to_string())?,
+            maximum_retries: u64::try_from(registration.maximum_retries)
+                .map_err(|_| "learning retry budget overflow".to_string())?,
+            maximum_response_bytes: u64::try_from(registration.maximum_response_bytes)
+                .map_err(|_| "learning response budget overflow".to_string())?,
+            credential_free_required: registration.credential_free_required,
+            read_only_required: registration.read_only_required,
+            prospective_storage_forbidden: registration.prospective_storage_forbidden,
+            registration_digest: registration.registration_digest.clone(),
+        },
+    )
+}
+
+pub fn decode_learning_evidence_registration_protobuf_v1(
+    bytes: &[u8],
+) -> Result<LearningEvidenceAcquisitionRegistrationV1, String> {
+    let (semantic_digest, _, payload) =
+        decode_learning_artifact_envelope_v1(bytes, LEARNING_REGISTRATION_ARTIFACT_KIND_V1)?;
+    let value = LearningEvidenceRegistrationProtobufV1::decode(payload.as_slice())
+        .map_err(|_| "learning evidence registration decode failed".to_string())?;
+    let registration = LearningEvidenceAcquisitionRegistrationV1 {
+        registration_version: value.registration_version,
+        target_agent_ids: value.target_agent_ids,
+        gap_report_digests: value.gap_report_digests,
+        provider_id: value.provider_id,
+        provider_contract_digest: value.provider_contract_digest,
+        dataset_kind: dataset_kind_from_code_v1(value.dataset_kind)?,
+        market_scope: market_scope_from_code_v1(value.market_scope)?,
+        symbols: value.symbols,
+        cadence: value.cadence,
+        lookback: learning_lookback_from_protobuf_v1(value.lookback)?,
+        information_cutoff_ms: value.information_cutoff_ms,
+        expected_timestamp_ms: value.expected_timestamp_ms,
+        protected_registration_digests: value.protected_registration_digests,
+        excluded_timestamp_ms: value.excluded_timestamp_ms,
+        maximum_requests: usize::try_from(value.maximum_requests)
+            .map_err(|_| "learning request budget rejected".to_string())?,
+        maximum_concurrency: usize::try_from(value.maximum_concurrency)
+            .map_err(|_| "learning concurrency rejected".to_string())?,
+        maximum_retries: usize::try_from(value.maximum_retries)
+            .map_err(|_| "learning retry budget rejected".to_string())?,
+        maximum_response_bytes: usize::try_from(value.maximum_response_bytes)
+            .map_err(|_| "learning response budget rejected".to_string())?,
+        credential_free_required: value.credential_free_required,
+        read_only_required: value.read_only_required,
+        prospective_storage_forbidden: value.prospective_storage_forbidden,
+        registration_digest: value.registration_digest,
+    };
+    validate_learning_evidence_acquisition_registration_v1(&registration)?;
+    if registration.registration_digest != semantic_digest {
+        return Err("learning evidence registration identity rejected".into());
+    }
+    Ok(registration)
+}
+
+pub fn encode_learning_evidence_provenance_protobuf_v1(
+    manifest: &LearningDataProvenanceManifestV0,
+) -> Result<Vec<u8>, String> {
+    if seal_learning_data_provenance_manifest_v0(manifest.clone()).as_ref() != Ok(manifest) {
+        return Err("learning provenance manifest rejected".into());
+    }
+    encode_learning_artifact_envelope_v1(
+        LEARNING_PROVENANCE_ARTIFACT_KIND_V1,
+        &manifest.manifest_digest,
+        vec![manifest.normalized_artifact_digest.clone()],
+        LearningEvidenceProvenanceProtobufV1 {
+            source_provider_id: manifest.source_provider_id.clone(),
+            source_type: manifest.source_type.clone(),
+            acquisition_request_identity: manifest.acquisition_request_identity.clone(),
+            fetch_timestamp_ms: manifest.fetch_timestamp_ms,
+            publication_event_timestamp_ms: manifest.publication_event_timestamp_ms,
+            raw_content_digest: manifest.raw_content_digest.clone(),
+            parser_version: manifest.parser_version.clone(),
+            normalized_artifact_digest: manifest.normalized_artifact_digest.clone(),
+            sanitized: manifest.sanitized,
+            credential_free: manifest.credential_free,
+            information_cutoff_ms: manifest.information_cutoff_ms,
+            usage_classification: 1,
+            manifest_digest: manifest.manifest_digest.clone(),
+        },
+    )
+}
+
+pub fn decode_learning_evidence_provenance_protobuf_v1(
+    bytes: &[u8],
+) -> Result<LearningDataProvenanceManifestV0, String> {
+    let (semantic_digest, _, payload) =
+        decode_learning_artifact_envelope_v1(bytes, LEARNING_PROVENANCE_ARTIFACT_KIND_V1)?;
+    let value = LearningEvidenceProvenanceProtobufV1::decode(payload.as_slice())
+        .map_err(|_| "learning provenance manifest decode failed".to_string())?;
+    if value.usage_classification != 1 {
+        return Err("learning provenance classification rejected".into());
+    }
+    let manifest = LearningDataProvenanceManifestV0 {
+        source_provider_id: value.source_provider_id,
+        source_type: value.source_type,
+        acquisition_request_identity: value.acquisition_request_identity,
+        fetch_timestamp_ms: value.fetch_timestamp_ms,
+        publication_event_timestamp_ms: value.publication_event_timestamp_ms,
+        raw_content_digest: value.raw_content_digest,
+        parser_version: value.parser_version,
+        normalized_artifact_digest: value.normalized_artifact_digest,
+        sanitized: value.sanitized,
+        credential_free: value.credential_free,
+        information_cutoff_ms: value.information_cutoff_ms,
+        usage_classification: LearningDataUsageClassificationV0::ResearchOnlyUnconsumed,
+        manifest_digest: value.manifest_digest,
+    };
+    if seal_learning_data_provenance_manifest_v0(manifest.clone()).as_ref() != Ok(&manifest)
+        || manifest.manifest_digest != semantic_digest
+    {
+        return Err("learning provenance manifest identity rejected".into());
+    }
+    Ok(manifest)
+}
+
+pub fn encode_learning_evidence_receipt_protobuf_v1(
+    receipt: &LearningEvidenceRequestReceiptV1,
+) -> Result<Vec<u8>, String> {
+    validate_learning_evidence_request_receipt_v1(receipt)?;
+    encode_learning_artifact_envelope_v1(
+        LEARNING_RECEIPT_ARTIFACT_KIND_V1,
+        &receipt.receipt_digest,
+        vec![receipt.registration_digest.clone()],
+        LearningEvidenceReceiptProtobufV1 {
+            receipt_version: receipt.receipt_version.clone(),
+            registration_digest: receipt.registration_digest.clone(),
+            provider_contract_digest: receipt.provider_contract_digest.clone(),
+            request_attempted: receipt.request_attempted,
+            request_count: u64::try_from(receipt.request_count)
+                .map_err(|_| "learning request count overflow".to_string())?,
+            retry_count: u64::try_from(receipt.retry_count)
+                .map_err(|_| "learning retry count overflow".to_string())?,
+            status: receipt_status_tag_v1(receipt.status),
+            http_status_class: receipt.http_status_class.clone(),
+            returned_row_count: u64::try_from(receipt.returned_row_count)
+                .map_err(|_| "learning row count overflow".to_string())?,
+            verified_row_count: u64::try_from(receipt.verified_row_count)
+                .map_err(|_| "learning row count overflow".to_string())?,
+            raw_response_digest: receipt.raw_response_digest.clone(),
+            provenance_manifest_digest: receipt.provenance_manifest_digest.clone(),
+            snapshot_digest: receipt.snapshot_digest.clone(),
+            receipt_digest: receipt.receipt_digest.clone(),
+        },
+    )
+}
+
+pub fn decode_learning_evidence_receipt_protobuf_v1(
+    bytes: &[u8],
+) -> Result<LearningEvidenceRequestReceiptV1, String> {
+    let (semantic_digest, _, payload) =
+        decode_learning_artifact_envelope_v1(bytes, LEARNING_RECEIPT_ARTIFACT_KIND_V1)?;
+    let value = LearningEvidenceReceiptProtobufV1::decode(payload.as_slice())
+        .map_err(|_| "learning evidence receipt decode failed".to_string())?;
+    let receipt = LearningEvidenceRequestReceiptV1 {
+        receipt_version: value.receipt_version,
+        registration_digest: value.registration_digest,
+        provider_contract_digest: value.provider_contract_digest,
+        request_attempted: value.request_attempted,
+        request_count: usize::try_from(value.request_count)
+            .map_err(|_| "learning request count rejected".to_string())?,
+        retry_count: usize::try_from(value.retry_count)
+            .map_err(|_| "learning retry count rejected".to_string())?,
+        status: receipt_status_from_tag_v1(value.status)?,
+        http_status_class: value.http_status_class,
+        returned_row_count: usize::try_from(value.returned_row_count)
+            .map_err(|_| "learning row count rejected".to_string())?,
+        verified_row_count: usize::try_from(value.verified_row_count)
+            .map_err(|_| "learning row count rejected".to_string())?,
+        raw_response_digest: value.raw_response_digest,
+        provenance_manifest_digest: value.provenance_manifest_digest,
+        snapshot_digest: value.snapshot_digest,
+        receipt_digest: value.receipt_digest,
+    };
+    validate_learning_evidence_request_receipt_v1(&receipt)?;
+    if receipt.receipt_digest != semantic_digest {
+        return Err("learning evidence receipt identity rejected".into());
+    }
+    Ok(receipt)
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LearningEvidenceArtifactWriteStatusV1 {
+    Written,
+    DuplicateRejected,
+}
+
+fn write_learning_evidence_artifact_v1<F>(
+    path: &Path,
+    bytes: &[u8],
+    expected_digest: &str,
+    verify: F,
+) -> Result<LearningEvidenceArtifactWriteStatusV1, String>
+where
+    F: Fn(&[u8]) -> Result<String, String>,
+{
+    if !safe_learning_data_path_v0(path)
+        || path.extension().is_none_or(|extension| extension != "pb")
+        || expected_digest.is_empty()
+    {
+        return Err("learning evidence storage path rejected".into());
+    }
+    if path.is_file() {
+        let existing =
+            fs::read(path).map_err(|_| "learning evidence artifact reopen failed".to_string())?;
+        return if verify(&existing)? == expected_digest {
+            Ok(LearningEvidenceArtifactWriteStatusV1::DuplicateRejected)
+        } else {
+            Err("learning evidence artifact identity collision".into())
+        };
+    }
+    let parent = path
+        .parent()
+        .ok_or_else(|| "learning evidence artifact parent missing".to_string())?;
+    fs::create_dir_all(parent)
+        .map_err(|_| "learning evidence directory unavailable".to_string())?;
+    let file_name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .ok_or_else(|| "learning evidence filename rejected".to_string())?;
+    let temporary = parent.join(format!(".{file_name}.{}.tmp", std::process::id()));
+    let write_result = (|| {
+        let mut file = File::options()
+            .write(true)
+            .create_new(true)
+            .open(&temporary)
+            .map_err(|_| "learning evidence temporary create failed".to_string())?;
+        file.write_all(bytes)
+            .map_err(|_| "learning evidence temporary write failed".to_string())?;
+        file.flush()
+            .map_err(|_| "learning evidence temporary flush failed".to_string())?;
+        file.sync_all()
+            .map_err(|_| "learning evidence temporary sync failed".to_string())?;
+        drop(file);
+        let temporary_bytes = fs::read(&temporary)
+            .map_err(|_| "learning evidence temporary reopen failed".to_string())?;
+        if verify(&temporary_bytes)? != expected_digest {
+            return Err("learning evidence temporary verification failed".into());
+        }
+        fs::rename(&temporary, path)
+            .map_err(|_| "learning evidence atomic rename failed".to_string())?;
+        let final_bytes =
+            fs::read(path).map_err(|_| "learning evidence final reopen failed".to_string())?;
+        if verify(&final_bytes)? != expected_digest {
+            return Err("learning evidence final verification failed".into());
+        }
+        Ok(LearningEvidenceArtifactWriteStatusV1::Written)
+    })();
+    if write_result.is_err() && temporary.is_file() {
+        let _ = fs::remove_file(temporary);
+    }
+    write_result
+}
+
+pub fn write_and_verify_agent_canonical_view_gap_report_v1(
+    report: &AgentCanonicalViewGapReportV1,
+    root: &Path,
+) -> Result<LearningEvidenceArtifactWriteStatusV1, String> {
+    let bytes = encode_agent_canonical_view_gap_report_protobuf_v1(report)?;
+    let path = root
+        .join("acquisition_v1")
+        .join("gap_reports")
+        .join(format!("{}.pb", report.report_digest));
+    write_learning_evidence_artifact_v1(&path, &bytes, &report.report_digest, |bytes| {
+        Ok(decode_agent_canonical_view_gap_report_protobuf_v1(bytes)?.report_digest)
+    })
+}
+
+pub fn write_and_verify_learning_evidence_registration_v1(
+    registration: &LearningEvidenceAcquisitionRegistrationV1,
+    root: &Path,
+) -> Result<LearningEvidenceArtifactWriteStatusV1, String> {
+    let bytes = encode_learning_evidence_registration_protobuf_v1(registration)?;
+    let path = root
+        .join("acquisition_v1")
+        .join("registrations")
+        .join(format!("{}.pb", registration.registration_digest));
+    write_learning_evidence_artifact_v1(&path, &bytes, &registration.registration_digest, |bytes| {
+        Ok(decode_learning_evidence_registration_protobuf_v1(bytes)?.registration_digest)
+    })
+}
+
+pub fn read_learning_evidence_registration_v1(
+    registration_digest: &str,
+    root: &Path,
+) -> Result<LearningEvidenceAcquisitionRegistrationV1, String> {
+    let path = root
+        .join("acquisition_v1")
+        .join("registrations")
+        .join(format!("{registration_digest}.pb"));
+    if !safe_learning_data_path_v0(&path) {
+        return Err("learning registration path rejected".into());
+    }
+    decode_learning_evidence_registration_protobuf_v1(
+        &fs::read(path).map_err(|_| "learning registration unavailable".to_string())?,
+    )
+}
+
+pub fn write_and_verify_learning_evidence_provenance_v1(
+    manifest: &LearningDataProvenanceManifestV0,
+    root: &Path,
+) -> Result<LearningEvidenceArtifactWriteStatusV1, String> {
+    let bytes = encode_learning_evidence_provenance_protobuf_v1(manifest)?;
+    let path = root
+        .join("acquisition_v1")
+        .join("provenance_manifests")
+        .join(format!("{}.pb", manifest.manifest_digest));
+    write_learning_evidence_artifact_v1(&path, &bytes, &manifest.manifest_digest, |bytes| {
+        Ok(decode_learning_evidence_provenance_protobuf_v1(bytes)?.manifest_digest)
+    })
+}
+
+pub fn write_and_verify_learning_evidence_receipt_v1(
+    receipt: &LearningEvidenceRequestReceiptV1,
+    root: &Path,
+) -> Result<LearningEvidenceArtifactWriteStatusV1, String> {
+    let bytes = encode_learning_evidence_receipt_protobuf_v1(receipt)?;
+    let path = root
+        .join("acquisition_v1")
+        .join("receipts")
+        .join(format!("{}.pb", receipt.registration_digest));
+    write_learning_evidence_artifact_v1(&path, &bytes, &receipt.receipt_digest, |bytes| {
+        Ok(decode_learning_evidence_receipt_protobuf_v1(bytes)?.receipt_digest)
+    })
+}
+
+pub fn read_learning_evidence_receipt_v1(
+    registration_digest: &str,
+    root: &Path,
+) -> Result<Option<LearningEvidenceRequestReceiptV1>, String> {
+    let path = root
+        .join("acquisition_v1")
+        .join("receipts")
+        .join(format!("{registration_digest}.pb"));
+    if !safe_learning_data_path_v0(&path) {
+        return Err("learning receipt path rejected".into());
+    }
+    path.is_file()
+        .then(|| {
+            decode_learning_evidence_receipt_protobuf_v1(
+                &fs::read(path).map_err(|_| "learning receipt unavailable".to_string())?,
+            )
+        })
+        .transpose()
+}
+
+pub fn write_and_verify_learning_raw_response_v1(
+    raw_response: &[u8],
+    expected_digest: &str,
+    root: &Path,
+) -> Result<LearningEvidenceArtifactWriteStatusV1, String> {
+    let path = root
+        .join("acquisition_v1")
+        .join("raw")
+        .join(format!("{expected_digest}.json"));
+    if !safe_learning_data_path_v0(&path)
+        || canonical_hash_hex(raw_response) != expected_digest
+        || !raw_learning_response_is_sanitized_v1(raw_response)
+    {
+        return Err("learning raw response rejected".into());
+    }
+    if path.is_file() {
+        return if canonical_hash_hex(
+            &fs::read(path).map_err(|_| "learning raw response reopen failed".to_string())?,
+        ) == expected_digest
+        {
+            Ok(LearningEvidenceArtifactWriteStatusV1::DuplicateRejected)
+        } else {
+            Err("learning raw response identity collision".into())
+        };
+    }
+    let parent = path
+        .parent()
+        .ok_or_else(|| "learning raw response parent missing".to_string())?;
+    fs::create_dir_all(parent)
+        .map_err(|_| "learning raw response directory unavailable".to_string())?;
+    let temporary = parent.join(format!(".{expected_digest}.{}.tmp", std::process::id()));
+    let write_result = (|| {
+        let mut file = File::options()
+            .write(true)
+            .create_new(true)
+            .open(&temporary)
+            .map_err(|_| "learning raw response temporary create failed".to_string())?;
+        file.write_all(raw_response)
+            .map_err(|_| "learning raw response write failed".to_string())?;
+        file.flush()
+            .map_err(|_| "learning raw response flush failed".to_string())?;
+        file.sync_all()
+            .map_err(|_| "learning raw response sync failed".to_string())?;
+        drop(file);
+        let temporary_bytes = fs::read(&temporary)
+            .map_err(|_| "learning raw response temporary reopen failed".to_string())?;
+        if canonical_hash_hex(&temporary_bytes) != expected_digest {
+            return Err("learning raw response temporary verification failed".into());
+        }
+        fs::rename(&temporary, &path)
+            .map_err(|_| "learning raw response atomic rename failed".to_string())?;
+        let final_bytes =
+            fs::read(&path).map_err(|_| "learning raw response final reopen failed".to_string())?;
+        if canonical_hash_hex(&final_bytes) != expected_digest {
+            return Err("learning raw response final verification failed".into());
+        }
+        Ok(LearningEvidenceArtifactWriteStatusV1::Written)
+    })();
+    if write_result.is_err() && temporary.is_file() {
+        let _ = fs::remove_file(temporary);
+    }
+    write_result
 }
 
 fn snapshot_digest(dataset: &HistoricalReplayDataset) -> String {
@@ -4138,5 +6472,757 @@ mod tests {
         let bound = bind_proposal_to_frozen_evidence(proposal, bundle);
         assert_eq!(bound.proposal.stance, Stance::Abstain);
         assert!(bound.frozen);
+    }
+
+    const LEARNING_V1_CUTOFF_MS: u64 = 1_780_000_000_000;
+
+    fn learning_v1_intents() -> Vec<AgentLearningIntentV0> {
+        let mut intents = derive_active_agent_learning_intents_v0(
+            &canonical_current_agent_states(),
+            &universe(),
+            &default_agent_data_policies(),
+            LEARNING_V1_CUTOFF_MS,
+        )
+        .unwrap();
+        let momentum = intents
+            .iter_mut()
+            .find(|intent| intent.agent_kind == AgentKind::MomentumTrendFast)
+            .unwrap();
+        momentum.market_scopes = vec![AcquisitionMarketScope::BtcCrypto];
+        momentum.symbols = vec!["KRW-BTC".into()];
+        stabilize_learning_intent_v0(momentum);
+        momentum.intent_digest = agent_learning_intent_digest_v0(momentum);
+        intents
+    }
+
+    fn learning_v1_contract() -> LearningEvidenceProviderContractV1 {
+        seal_learning_evidence_provider_contract_v1(LearningEvidenceProviderContractV1 {
+            contract_version: LEARNING_EVIDENCE_PROVIDER_CONTRACT_VERSION_V1.into(),
+            provider_id: "upbit".into(),
+            dataset_kind: DatasetKind::DailyOhlcv,
+            market_scope: AcquisitionMarketScope::BtcCrypto,
+            symbols: vec!["KRW-BTC".into()],
+            cadence: "1d".into(),
+            maximum_lookback_bars: 200,
+            earliest_timestamp_ms: LEARNING_V1_CUTOFF_MS - 300 * DAILY_CADENCE_MS_V1,
+            latest_exclusive_timestamp_ms: LEARNING_V1_CUTOFF_MS + DAILY_CADENCE_MS_V1,
+            maximum_response_bytes: 262_144,
+            credential_free: true,
+            read_only: true,
+            approved_for_network: true,
+            all_rows_finalized: true,
+            enabled: true,
+            contract_digest: String::new(),
+        })
+        .unwrap()
+    }
+
+    fn learning_v1_trainers() -> BTreeSet<String> {
+        BTreeSet::from([
+            "momentum_trend_fast".to_string(),
+            "cycle_risk_skeptic".to_string(),
+        ])
+    }
+
+    fn learning_v1_gap_report(snapshots: &[DataSnapshot]) -> AgentCanonicalViewGapReportV1 {
+        derive_agent_canonical_view_gaps_v1(
+            &learning_v1_intents(),
+            &default_agent_data_policies(),
+            snapshots,
+            &learning_v1_trainers(),
+            &[learning_v1_contract()],
+        )
+        .unwrap()
+    }
+
+    fn learning_v1_registration() -> LearningEvidenceAcquisitionRegistrationV1 {
+        select_learning_evidence_acquisition_registration_v1(
+            &learning_v1_gap_report(&[]),
+            &[learning_v1_contract()],
+            &["opening-registration".into()],
+            &[
+                LEARNING_V1_CUTOFF_MS + DAILY_CADENCE_MS_V1,
+                LEARNING_V1_CUTOFF_MS + 2 * DAILY_CADENCE_MS_V1,
+                LEARNING_V1_CUTOFF_MS + 3 * DAILY_CADENCE_MS_V1,
+                LEARNING_V1_CUTOFF_MS + 4 * DAILY_CADENCE_MS_V1,
+            ],
+        )
+        .unwrap()
+        .unwrap()
+    }
+
+    fn learning_v1_snapshot(intent: &AgentLearningIntentV0) -> DataSnapshot {
+        let timestamps = expected_learning_timestamps_v1(&intent.lookback).unwrap();
+        let rows = timestamps
+            .iter()
+            .enumerate()
+            .map(|(index, timestamp_ms)| {
+                let close = 100.0 + index as f64;
+                HistoricalOhlcvRow {
+                    symbol: "KRW-BTC".into(),
+                    timestamp_ms: *timestamp_ms,
+                    open: close,
+                    high: close + 2.0,
+                    low: close - 2.0,
+                    close: close + 1.0,
+                    volume: 10.0,
+                    trade_value: Some(1_000.0),
+                }
+            })
+            .collect::<Vec<_>>();
+        let normalized_dataset = HistoricalReplayDataset {
+            symbol: "KRW-BTC".into(),
+            source: "upbit-approved-readonly-daily".into(),
+            rows,
+            reason_codes: vec![],
+        };
+        let content_digest = historical_replay_dataset_digest_v0(&normalized_dataset);
+        DataSnapshot {
+            snapshot_id: snapshot_id_from_semantic_digest_v1(&content_digest),
+            request_key: "learning-v1-fixture".into(),
+            provider_id: "upbit".into(),
+            dataset_kind: DatasetKind::DailyOhlcv,
+            market_scope: AcquisitionMarketScope::BtcCrypto,
+            symbols: vec!["KRW-BTC".into()],
+            requested_lookback: intent.lookback.clone(),
+            actual_start_timestamp_ms: timestamps.first().copied(),
+            actual_end_timestamp_ms: timestamps.last().copied(),
+            fetched_at_ms: LEARNING_V1_CUTOFF_MS,
+            normalized_at_ms: LEARNING_V1_CUTOFF_MS,
+            schema_version: 1,
+            row_count: normalized_dataset.rows.len(),
+            quality_summary: SnapshotQualitySummary {
+                accepted: true,
+                row_count: normalized_dataset.rows.len(),
+                reason_codes: vec![],
+            },
+            content_digest,
+            sanitized: true,
+            read_only: true,
+            compatibility: Some(SnapshotCompatibilityV1 {
+                cadence: "1d".into(),
+                adjustment_semantics: SnapshotAdjustmentSemanticsV1::Unadjusted,
+                source_schema: "application/x-soma-normalized-dataset".into(),
+                requested_cutoff_timestamp_ms: Some(intent.information_cutoff_ms),
+                maximum_staleness_ms: intent.maximum_staleness_ms,
+                all_rows_finalized: true,
+            }),
+            normalized_dataset,
+            provenance: SnapshotProvenance {
+                provider_id: "upbit".into(),
+                acquisition_request_id: "learning-v1-fixture".into(),
+                fetch_receipt_id: "learning-v1-fixture-receipt".into(),
+                source_type: SnapshotSourceType::ApprovedReadOnlyProvider,
+                sanitized: true,
+                credential_free: true,
+                reason_codes: vec![],
+            },
+            reason_codes: vec![],
+        }
+    }
+
+    fn learning_v1_transport_response(
+        request: &ReadOnlyProviderRequest,
+    ) -> LearningEvidenceTransportResponseV1 {
+        let momentum = learning_v1_intents()
+            .into_iter()
+            .find(|intent| intent.agent_kind == AgentKind::MomentumTrendFast)
+            .unwrap();
+        let snapshot = learning_v1_snapshot(&momentum);
+        let raw_response = b"[{\"bounded\":true}]".to_vec();
+        LearningEvidenceTransportResponseV1 {
+            http_status_class: "2xx".into(),
+            raw_response: raw_response.clone(),
+            response: ReadOnlyProviderResponse {
+                request_id: request.request_id.clone(),
+                provider_id: request.provider_id.clone(),
+                fetched_at_ms: LEARNING_V1_CUTOFF_MS,
+                content_type: "application/x-soma-normalized-dataset".into(),
+                all_rows_finalized: true,
+                normalized_dataset: snapshot.normalized_dataset,
+                reported_content_bytes: raw_response.len(),
+                reason_codes: vec![],
+            },
+        }
+    }
+
+    #[test]
+    fn v1_gap_report_uses_exact_policy_required_datasets() {
+        let report = learning_v1_gap_report(&[]);
+        let momentum = report
+            .gaps
+            .iter()
+            .find(|gap| gap.agent_id == "momentum_trend_fast")
+            .unwrap();
+        let risk = report
+            .gaps
+            .iter()
+            .find(|gap| gap.agent_id == "cycle_risk_skeptic")
+            .unwrap();
+        assert_eq!(momentum.required_dataset_kinds, [DatasetKind::DailyOhlcv]);
+        assert_eq!(
+            risk.required_dataset_kinds,
+            [DatasetKind::MarketIndexDaily, DatasetKind::VolatilityDaily]
+        );
+    }
+
+    #[test]
+    fn v1_gap_report_distinguishes_optional_from_required() {
+        let report = learning_v1_gap_report(&[]);
+        for gap in report.gaps {
+            assert_eq!(
+                gap.missing_required_dataset_kinds,
+                gap.required_dataset_kinds
+            );
+            assert_eq!(
+                gap.missing_optional_dataset_kinds,
+                gap.optional_dataset_kinds
+            );
+        }
+    }
+
+    #[test]
+    fn v1_value_trainer_unavailable_is_not_selected() {
+        let report = learning_v1_gap_report(&[]);
+        assert_eq!(
+            report
+                .gaps
+                .iter()
+                .find(|gap| gap.agent_id == "value_quality_filter")
+                .unwrap()
+                .status,
+            CanonicalViewGapStatusV1::TrainerUnavailable
+        );
+        assert_eq!(
+            learning_v1_registration().target_agent_ids,
+            ["momentum_trend_fast"]
+        );
+    }
+
+    #[test]
+    fn v1_cycle_without_exact_provider_contract_is_explicit() {
+        let report = learning_v1_gap_report(&[]);
+        assert_eq!(
+            report
+                .gaps
+                .iter()
+                .find(|gap| gap.agent_id == "cycle_risk_skeptic")
+                .unwrap()
+                .status,
+            CanonicalViewGapStatusV1::ProviderContractUnverified
+        );
+    }
+
+    #[test]
+    fn v1_upbit_ohlcv_cannot_masquerade_as_volatility_or_index() {
+        for dataset_kind in [DatasetKind::VolatilityDaily, DatasetKind::MarketIndexDaily] {
+            let mut contract = learning_v1_contract();
+            contract.dataset_kind = dataset_kind;
+            contract.contract_digest.clear();
+            assert!(seal_learning_evidence_provider_contract_v1(contract).is_err());
+        }
+    }
+
+    #[test]
+    fn v1_equivalent_gaps_deduplicate_to_one_request() {
+        let mut report = learning_v1_gap_report(&[]);
+        let mut duplicate = report
+            .gaps
+            .iter()
+            .find(|gap| gap.agent_id == "momentum_trend_fast")
+            .unwrap()
+            .clone();
+        duplicate.agent_id = "momentum_trend_second".into();
+        duplicate.intent_digest = stable_hash_string("second-momentum-intent");
+        duplicate.gap_digest = canonical_view_gap_digest_v1(&duplicate);
+        report.gaps.push(duplicate);
+        report
+            .gaps
+            .sort_by(|left, right| left.agent_id.cmp(&right.agent_id));
+        report.report_digest = canonical_view_gap_report_digest_v1(&report);
+        let registration = select_learning_evidence_acquisition_registration_v1(
+            &report,
+            &[learning_v1_contract()],
+            &["protected".into()],
+            &[LEARNING_V1_CUTOFF_MS + DAILY_CADENCE_MS_V1],
+        )
+        .unwrap()
+        .unwrap();
+        assert_eq!(registration.maximum_requests, 1);
+        assert_eq!(registration.target_agent_ids.len(), 2);
+    }
+
+    #[test]
+    fn v1_selected_range_stays_at_or_before_cutoff_and_excludes_prospective() {
+        let registration = learning_v1_registration();
+        assert!(
+            registration
+                .expected_timestamp_ms
+                .iter()
+                .all(|timestamp| *timestamp <= registration.information_cutoff_ms)
+        );
+        assert!(
+            registration
+                .expected_timestamp_ms
+                .iter()
+                .all(|timestamp| { !registration.excluded_timestamp_ms.contains(timestamp) })
+        );
+    }
+
+    #[test]
+    fn v1_registration_freezes_one_request_no_retry_contract() {
+        let registration = learning_v1_registration();
+        assert_eq!(registration.maximum_requests, 1);
+        assert_eq!(registration.maximum_concurrency, 1);
+        assert_eq!(registration.maximum_retries, 0);
+        assert!(registration.credential_free_required);
+        assert!(registration.read_only_required);
+        assert!(registration.prospective_storage_forbidden);
+    }
+
+    #[test]
+    fn v1_missing_consent_constructs_no_transport() {
+        let registration = learning_v1_registration();
+        let calls = std::cell::Cell::new(0);
+        let result = execute_learning_evidence_acquisition_v1(
+            &registration,
+            &learning_v1_contract(),
+            &registration.gap_report_digests,
+            None,
+            &[],
+            false,
+            |_| {
+                calls.set(calls.get() + 1);
+                Err(LearningEvidenceTransportFailureV1::Technical)
+            },
+        );
+        assert_eq!(calls.get(), 0);
+        assert_eq!(
+            result.status,
+            LearningEvidenceRequestStatusV1::MissingNetworkConsent
+        );
+        assert_eq!(result.safety_counters.transport_constructions, 0);
+    }
+
+    #[test]
+    fn v1_one_attempt_consumes_budget() {
+        let registration = learning_v1_registration();
+        let first = execute_learning_evidence_acquisition_v1(
+            &registration,
+            &learning_v1_contract(),
+            &registration.gap_report_digests,
+            None,
+            &[],
+            true,
+            |request| Ok(learning_v1_transport_response(request)),
+        );
+        let receipt = first.receipt.as_ref().unwrap();
+        let calls = std::cell::Cell::new(0);
+        let replay = execute_learning_evidence_acquisition_v1(
+            &registration,
+            &learning_v1_contract(),
+            &registration.gap_report_digests,
+            Some(receipt),
+            &[],
+            true,
+            |_| {
+                calls.set(calls.get() + 1);
+                Err(LearningEvidenceTransportFailureV1::Technical)
+            },
+        );
+        assert_eq!(calls.get(), 0);
+        assert_eq!(
+            replay.status,
+            LearningEvidenceRequestStatusV1::RequestBudgetExhausted
+        );
+    }
+
+    #[test]
+    fn v1_failure_is_terminal_and_never_retries() {
+        let registration = learning_v1_registration();
+        let calls = std::cell::Cell::new(0);
+        let result = execute_learning_evidence_acquisition_v1(
+            &registration,
+            &learning_v1_contract(),
+            &registration.gap_report_digests,
+            None,
+            &[],
+            true,
+            |_| {
+                calls.set(calls.get() + 1);
+                Err(LearningEvidenceTransportFailureV1::TimedOut)
+            },
+        );
+        assert_eq!(calls.get(), 1);
+        assert_eq!(
+            result.status,
+            LearningEvidenceRequestStatusV1::TimeoutNoRetry
+        );
+        assert_eq!(result.receipt.as_ref().unwrap().request_count, 1);
+        assert_eq!(result.receipt.as_ref().unwrap().retry_count, 0);
+    }
+
+    #[test]
+    fn v1_valid_response_creates_canonical_snapshot_and_manifest() {
+        let registration = learning_v1_registration();
+        let result = execute_learning_evidence_acquisition_v1(
+            &registration,
+            &learning_v1_contract(),
+            &registration.gap_report_digests,
+            None,
+            &[],
+            true,
+            |request| Ok(learning_v1_transport_response(request)),
+        );
+        assert_eq!(
+            result.status,
+            LearningEvidenceRequestStatusV1::EvidenceAcquired
+        );
+        let snapshot = result.snapshot.unwrap();
+        assert_eq!(snapshot.dataset_kind, DatasetKind::DailyOhlcv);
+        assert_eq!(snapshot.market_scope, AcquisitionMarketScope::BtcCrypto);
+        assert_eq!(snapshot.row_count, registration.lookback.bars);
+        assert!(result.provenance_manifest.is_some());
+    }
+
+    #[test]
+    fn v1_duplicate_snapshot_rejects_before_transport() {
+        let registration = learning_v1_registration();
+        let momentum = learning_v1_intents()
+            .into_iter()
+            .find(|intent| intent.agent_kind == AgentKind::MomentumTrendFast)
+            .unwrap();
+        let snapshot = learning_v1_snapshot(&momentum);
+        let calls = std::cell::Cell::new(0);
+        let result = execute_learning_evidence_acquisition_v1(
+            &registration,
+            &learning_v1_contract(),
+            &registration.gap_report_digests,
+            None,
+            &[snapshot],
+            true,
+            |_| {
+                calls.set(calls.get() + 1);
+                Err(LearningEvidenceTransportFailureV1::Technical)
+            },
+        );
+        assert_eq!(calls.get(), 0);
+        assert_eq!(
+            result.status,
+            LearningEvidenceRequestStatusV1::EquivalentSnapshotExists
+        );
+    }
+
+    #[test]
+    fn v1_snapshot_completes_only_authorized_momentum_view() {
+        let intents = learning_v1_intents();
+        let momentum = intents
+            .iter()
+            .find(|intent| intent.agent_kind == AgentKind::MomentumTrendFast)
+            .unwrap();
+        let report = learning_v1_gap_report(&[learning_v1_snapshot(momentum)]);
+        assert!(
+            report
+                .gaps
+                .iter()
+                .find(|gap| gap.agent_id == "momentum_trend_fast")
+                .unwrap()
+                .missing_required_dataset_kinds
+                .is_empty()
+        );
+        assert_eq!(
+            report
+                .gaps
+                .iter()
+                .find(|gap| gap.agent_id == "cycle_risk_skeptic")
+                .unwrap()
+                .status,
+            CanonicalViewGapStatusV1::ProviderContractUnverified
+        );
+    }
+
+    #[test]
+    fn v1_gap_and_registration_protobuf_round_trip_and_corruption_reject() {
+        let gap = learning_v1_gap_report(&[]);
+        let gap_bytes = encode_agent_canonical_view_gap_report_protobuf_v1(&gap).unwrap();
+        assert_eq!(
+            decode_agent_canonical_view_gap_report_protobuf_v1(&gap_bytes).unwrap(),
+            gap
+        );
+        let registration = learning_v1_registration();
+        let registration_bytes =
+            encode_learning_evidence_registration_protobuf_v1(&registration).unwrap();
+        assert_eq!(
+            decode_learning_evidence_registration_protobuf_v1(&registration_bytes).unwrap(),
+            registration
+        );
+        let mut corrupt = registration_bytes;
+        let last = corrupt.len() - 1;
+        corrupt[last] ^= 0xff;
+        assert!(decode_learning_evidence_registration_protobuf_v1(&corrupt).is_err());
+    }
+
+    #[test]
+    fn v1_manifest_and_receipt_protobuf_round_trip_and_corruption_reject() {
+        let registration = learning_v1_registration();
+        let result = execute_learning_evidence_acquisition_v1(
+            &registration,
+            &learning_v1_contract(),
+            &registration.gap_report_digests,
+            None,
+            &[],
+            true,
+            |request| Ok(learning_v1_transport_response(request)),
+        );
+        let manifest = result.provenance_manifest.unwrap();
+        let manifest_bytes = encode_learning_evidence_provenance_protobuf_v1(&manifest).unwrap();
+        assert_eq!(
+            decode_learning_evidence_provenance_protobuf_v1(&manifest_bytes).unwrap(),
+            manifest
+        );
+        let receipt = result.receipt.unwrap();
+        let mut receipt_bytes = encode_learning_evidence_receipt_protobuf_v1(&receipt).unwrap();
+        assert_eq!(
+            decode_learning_evidence_receipt_protobuf_v1(&receipt_bytes).unwrap(),
+            receipt
+        );
+        let last = receipt_bytes.len() - 1;
+        receipt_bytes[last] ^= 0xff;
+        assert!(decode_learning_evidence_receipt_protobuf_v1(&receipt_bytes).is_err());
+    }
+
+    #[test]
+    fn v1_prospective_named_storage_path_is_forbidden() {
+        let report = learning_v1_gap_report(&[]);
+        assert!(
+            write_and_verify_agent_canonical_view_gap_report_v1(
+                &report,
+                Path::new("state/learning_data/prospective")
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn v1_atomic_artifacts_reopen_and_duplicate_reject() {
+        let root = PathBuf::from(format!(
+            "state/learning_data/test-acquisition-v1-{}",
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&root);
+        let report = learning_v1_gap_report(&[]);
+        assert_eq!(
+            write_and_verify_agent_canonical_view_gap_report_v1(&report, &root).unwrap(),
+            LearningEvidenceArtifactWriteStatusV1::Written
+        );
+        assert_eq!(
+            write_and_verify_agent_canonical_view_gap_report_v1(&report, &root).unwrap(),
+            LearningEvidenceArtifactWriteStatusV1::DuplicateRejected
+        );
+        let registration = learning_v1_registration();
+        assert_eq!(
+            write_and_verify_learning_evidence_registration_v1(&registration, &root).unwrap(),
+            LearningEvidenceArtifactWriteStatusV1::Written
+        );
+        assert_eq!(
+            read_learning_evidence_registration_v1(&registration.registration_digest, &root)
+                .unwrap(),
+            registration
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn v1_gap_digest_changes_when_current_evidence_changes() {
+        let empty = learning_v1_gap_report(&[]);
+        let momentum = learning_v1_intents()
+            .into_iter()
+            .find(|intent| intent.agent_kind == AgentKind::MomentumTrendFast)
+            .unwrap();
+        let filled = learning_v1_gap_report(&[learning_v1_snapshot(&momentum)]);
+        assert_ne!(empty.report_digest, filled.report_digest);
+    }
+
+    #[test]
+    fn v1_response_with_protected_timestamp_rejects() {
+        let mut registration = learning_v1_registration();
+        registration
+            .excluded_timestamp_ms
+            .push(registration.expected_timestamp_ms[0]);
+        registration.excluded_timestamp_ms.sort();
+        registration.excluded_timestamp_ms.dedup();
+        registration.registration_digest = learning_evidence_registration_digest_v1(&registration);
+        assert!(validate_learning_evidence_acquisition_registration_v1(&registration).is_err());
+    }
+
+    #[test]
+    fn v1_authority_and_future_read_counters_stay_zero() {
+        let registration = learning_v1_registration();
+        let result = execute_learning_evidence_acquisition_v1(
+            &registration,
+            &learning_v1_contract(),
+            &registration.gap_report_digests,
+            None,
+            &[],
+            true,
+            |request| Ok(learning_v1_transport_response(request)),
+        );
+        let counters = result.safety_counters;
+        assert_eq!(counters.request_attempts, 1);
+        assert_eq!(counters.retry_count, 0);
+        assert_eq!(counters.credential_reads, 0);
+        assert_eq!(counters.prospective_artifact_reads, 0);
+        assert_eq!(counters.prospective_label_reads, 0);
+        assert_eq!(counters.future_evaluation_reads, 0);
+        assert_eq!(counters.active_model_changes, 0);
+        assert_eq!(counters.chair_decisions, 0);
+        assert_eq!(counters.votes, 0);
+        assert_eq!(counters.rewards, 0);
+        assert_eq!(counters.penalties, 0);
+        assert_eq!(counters.voice_changes, 0);
+        assert_eq!(counters.promotions, 0);
+        assert_eq!(counters.executions, 0);
+        assert_eq!(counters.active_committee_count, 3);
+    }
+
+    #[test]
+    fn v1_invalid_registration_constructs_no_transport() {
+        let mut registration = learning_v1_registration();
+        registration.maximum_retries = 1;
+        let calls = std::cell::Cell::new(0);
+        let result = execute_learning_evidence_acquisition_v1(
+            &registration,
+            &learning_v1_contract(),
+            &registration.gap_report_digests,
+            None,
+            &[],
+            true,
+            |_| {
+                calls.set(calls.get() + 1);
+                Err(LearningEvidenceTransportFailureV1::Technical)
+            },
+        );
+        assert_eq!(calls.get(), 0);
+        assert_eq!(
+            result.status,
+            LearningEvidenceRequestStatusV1::RegistrationInvalid
+        );
+    }
+
+    #[test]
+    fn v1_stale_gap_constructs_no_transport() {
+        let registration = learning_v1_registration();
+        let calls = std::cell::Cell::new(0);
+        let result = execute_learning_evidence_acquisition_v1(
+            &registration,
+            &learning_v1_contract(),
+            &[],
+            None,
+            &[],
+            true,
+            |_| {
+                calls.set(calls.get() + 1);
+                Err(LearningEvidenceTransportFailureV1::Technical)
+            },
+        );
+        assert_eq!(calls.get(), 0);
+        assert_eq!(
+            result.status,
+            LearningEvidenceRequestStatusV1::GapNoLongerCurrent
+        );
+    }
+
+    #[test]
+    fn v1_unmatched_provider_contract_constructs_no_transport() {
+        let registration = learning_v1_registration();
+        let mut contract = learning_v1_contract();
+        contract.maximum_response_bytes /= 2;
+        contract.contract_digest.clear();
+        let contract = seal_learning_evidence_provider_contract_v1(contract).unwrap();
+        let calls = std::cell::Cell::new(0);
+        let result = execute_learning_evidence_acquisition_v1(
+            &registration,
+            &contract,
+            &registration.gap_report_digests,
+            None,
+            &[],
+            true,
+            |_| {
+                calls.set(calls.get() + 1);
+                Err(LearningEvidenceTransportFailureV1::Technical)
+            },
+        );
+        assert_eq!(calls.get(), 0);
+        assert_eq!(
+            result.status,
+            LearningEvidenceRequestStatusV1::RegistrationInvalid
+        );
+    }
+
+    #[test]
+    fn v1_invalid_response_consumes_exactly_one_attempt() {
+        let registration = learning_v1_registration();
+        let calls = std::cell::Cell::new(0);
+        let result = execute_learning_evidence_acquisition_v1(
+            &registration,
+            &learning_v1_contract(),
+            &registration.gap_report_digests,
+            None,
+            &[],
+            true,
+            |request| {
+                calls.set(calls.get() + 1);
+                let mut response = learning_v1_transport_response(request);
+                response.http_status_class = "4xx".into();
+                Ok(response)
+            },
+        );
+        assert_eq!(calls.get(), 1);
+        assert_eq!(
+            result.status,
+            LearningEvidenceRequestStatusV1::InvalidResponse
+        );
+        let receipt = result.receipt.unwrap();
+        assert_eq!(receipt.request_count, 1);
+        assert_eq!(receipt.retry_count, 0);
+        assert!(result.snapshot.is_none());
+    }
+
+    #[test]
+    fn v1_resolved_required_with_missing_optional_is_optional_only() {
+        let intents = learning_v1_intents();
+        let momentum = intents
+            .iter()
+            .find(|intent| intent.agent_kind == AgentKind::MomentumTrendFast)
+            .unwrap();
+        let report = learning_v1_gap_report(&[learning_v1_snapshot(momentum)]);
+        let gap = report
+            .gaps
+            .iter()
+            .find(|gap| gap.agent_id == "momentum_trend_fast")
+            .unwrap();
+        assert_eq!(
+            gap.status,
+            CanonicalViewGapStatusV1::MissingOptionalEvidenceOnly
+        );
+        assert!(gap.missing_required_dataset_kinds.is_empty());
+        assert!(!gap.missing_optional_dataset_kinds.is_empty());
+    }
+
+    #[test]
+    fn v1_receipt_digest_rejects_semantic_mutation() {
+        let registration = learning_v1_registration();
+        let result = execute_learning_evidence_acquisition_v1(
+            &registration,
+            &learning_v1_contract(),
+            &registration.gap_report_digests,
+            None,
+            &[],
+            true,
+            |request| Ok(learning_v1_transport_response(request)),
+        );
+        let mut receipt = result.receipt.unwrap();
+        receipt.verified_row_count = receipt.verified_row_count.saturating_sub(1);
+        assert!(encode_learning_evidence_receipt_protobuf_v1(&receipt).is_err());
     }
 }
