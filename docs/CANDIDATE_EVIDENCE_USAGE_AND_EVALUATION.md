@@ -102,3 +102,66 @@ Exactly one command and one mode are accepted. Network permission is rejected.
 The public result contains only identities, statuses, cutoff, comparator count,
 storage counts, and zero safety/authority counters. It excludes raw rows,
 labels, metrics, model parameters, predictions, probabilities, and local paths.
+
+## V1 family evidence ledger
+
+V1 does not reinterpret the V0 ledger. It constructs a new ledger from the
+validation-only execution with explicit entries for view binding, trainer
+projection, feature derivation, label derivation, normalizer fit, parameter
+training, validation inference, validation metrics, family inclusion,
+referenced-but-unconsumed evidence, and reserved retrospective rows. Training
+and validation ranges are distinct, the purge range is unconsumed, and all
+remaining historical rows are `ReservedRetrospectiveUnused`.
+
+The V1 ledger rejects any nonzero historical-test row read, label read,
+inference, metric, checkpoint-selection, or identity-influence value. Family
+identity includes only frozen participant and lineage semantics. Validation
+metric digests live exclusively in qualification receipts and therefore cannot
+alter participant parameters or family identity.
+
+## Explicit future-evidence exclusion
+
+The V1 exclusion contract binds the existing protected opening registration,
+the protected Momentum and Cycle/Risk capsule identities, and every timestamp
+already reserved by that lane. Reservation metadata is parsed without opening
+outcome rows, labels, probabilities, or metrics. For the current protected
+metadata the derived exclusion set contains four timestamps. A capsule
+admission check rejects any excluded timestamp even if a scalar candidate
+cutoff would otherwise allow it.
+
+The minimum accepted timestamp is calculated from the maximum legal next
+timestamp after the candidate source end, the final reserved timestamp, all
+protected boundaries, and the provider-finality boundary. The production code
+does not hardcode a calendar result. It advances by the protected cadence and
+accepts only timestamps at or after the derived minimum.
+
+## V1 registration
+
+A registration is created only when the V1 session, complete view, projection,
+family, qualification receipts, usage ledger, and exclusion contract all
+verify; at least two frozen participants exist; every included participant is
+qualified; historical-test access is zero; and no winner was selected. One
+agent's blocker does not affect another.
+
+Every registered participant and qualification-receipt digest is sorted and
+frozen before future evidence. Maximum requests and concurrency are one,
+retries are zero, labels and probabilities stay hidden until a one-time
+opening, and winner selection, promotion, and reward application remain
+forbidden. This Sprint performs no request and opens no evidence.
+
+The exclusion, registration, and registration journal use manually defined
+Protobuf artifacts under `state/learning_data/evaluation_v1/{agent}` with
+temporary write, flush, `sync_all`, temporary reopen, atomic rename, and final
+reopen verification. Repeated identical writes are duplicate-rejected.
+
+The offline CLI is:
+
+```text
+--register-agent-candidate-evaluation-v1 --status|--dry-run|--execute-local
+--output-format text|json
+```
+
+With the current local evidence, Momentum and Cycle/Risk have no complete V1
+view and are reported as explicit candidate-unavailable blockers;
+Value/Quality remains candidate-unavailable by capability. No future
+performance, winner, promotion, reward, or trading-readiness conclusion follows.
