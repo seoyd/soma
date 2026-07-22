@@ -162,10 +162,10 @@
     readiness, reward effectiveness, Chair learning, or trading readiness was
     proven.
 
-37. **Commit, push, and draft PR** — The verified implementation and report
-    are committed on `agent/sprint79-mamba-representation-path`. Final commit
-    identities, remote push, and the draft PR link are recorded after final
-    verification.
+37. **Commit, push, and draft PR** — Commits `e224b9a`, `af60eea`, and
+    `5b92c24` were pushed on `agent/sprint79-mamba-representation-path`.
+    Draft PR [#11](https://github.com/seoyd/soma/pull/11) targets `main`; this
+    final PR metadata is recorded in a follow-up report-only commit.
 
 38. **Next architecture recommendation** — Preserve V1, V2, and V3 as terminal
     frozen-Mamba evidence. If another experiment is authorized, preregister a
