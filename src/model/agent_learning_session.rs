@@ -1101,9 +1101,7 @@ pub fn build_agent_private_learning_inputs_v1(
     let policies = default_agent_data_policies();
     let states = canonical_current_agent_states();
     let registry = agent_trainer_capability_registry_v0();
-    let Ok(projected_intents) = load_persisted_agent_learning_intents_v0(root, snapshots) else {
-        return Vec::new();
-    };
+    let projected_intents = load_persisted_agent_learning_intents_v0(root, snapshots).ok();
     let universe = configured_universe_from_snapshots_v0(snapshots);
     let mut inputs = Vec::new();
     for capability in registry
@@ -1124,24 +1122,27 @@ pub fn build_agent_private_learning_inputs_v1(
         else {
             continue;
         };
-        let Some(projected_intent) = projected_intents
-            .iter()
-            .find(|intent| intent.agent_id == capability.agent_id)
-        else {
-            continue;
-        };
+        let agent_information_cutoff_ms = projected_intents
+            .as_ref()
+            .and_then(|intents| {
+                intents
+                    .iter()
+                    .find(|intent| intent.agent_id == capability.agent_id)
+            })
+            .map(|intent| intent.information_cutoff_ms)
+            .unwrap_or(information_cutoff_ms);
         let data_intent = plan_agent_data_intent(
             state.agent_id.clone(),
             state.kind,
             &universe,
             policy,
-            projected_intent.information_cutoff_ms,
+            agent_information_cutoff_ms,
         );
         let Ok(intent) = create_agent_learning_intent_v0(
             &LearningDataCallerV0::Agent(state.agent_id.clone()),
             &data_intent,
             policy,
-            projected_intent.information_cutoff_ms,
+            agent_information_cutoff_ms,
         ) else {
             continue;
         };

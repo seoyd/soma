@@ -165,3 +165,23 @@ With the current local evidence, Momentum and Cycle/Risk have no complete V1
 view and are reported as explicit candidate-unavailable blockers;
 Value/Quality remains candidate-unavailable by capability. No future
 performance, winner, promotion, reward, or trading-readiness conclusion follows.
+
+## Sprint 75 canonical-view rerun
+
+The canonical-view audit now precedes V1 candidate and evaluation registration.
+It derives each gap from persisted intent identity, current policy, immutable
+evidence, trainer capability, and verified provider semantics. A successful
+view for one agent may proceed independently; another agent's missing evidence
+does not become a global blocker.
+
+The current offline rerun produced no V1 family. Momentum remained
+`InsufficientEvidence`, Cycle/Risk remained `InsufficientEvidence`, and
+Value/Quality remained `TrainerUnavailable`. Their evaluation registration
+statuses were `CandidateUnavailable`. Historical-test access stayed zero, no
+winner was selected, and no family became eligible for committee membership,
+promotion, reward, or active mutation.
+
+No future evaluation evidence was opened. The four protected timestamps,
+protected registration identities, candidate-source boundary, and provider
+finality boundary remain mandatory exclusions for every future V1 registration.
+Both boundary audits passed.
