@@ -130,3 +130,54 @@ replace an active model, promote a candidate, apply a reward, or perform a
 network request. Its artifacts live under the separate ignored
 `state/learning_data/evaluation/{agent}` namespace and use the same verified,
 non-overwriting Protobuf write protocol.
+
+## Validation-only V1 candidate families
+
+V1 is additive. Every V0 session, dataset, projection, candidate, evidence
+ledger, identity audit, invalid registration, and journal remains an immutable
+`SupersededRetrospectiveResearchOnly` record. V0 parameters, candidates, and
+selection results cannot be parents, comparators, active models, or warm-start
+inputs for V1.
+
+A V1 generation attempt starts from the complete canonical intent and verifies
+an `AgentLearningDataViewV0` Protobuf round trip. Execute-local persists and
+reopens that view before training. The session binds the intent, view, explicit
+trainer projection, capability, source/feature/label/curriculum policies,
+information cutoff, complete authorized artifact set, private namespace, and
+training ledger. A missing required artifact blocks only its owning agent.
+
+The only usable retrospective partitions are training, a purge gap, and
+validation. Features and labels are derived only through validation;
+normalizers fit only on training; parameters update only on training; validation
+performs inference and metrics without updates. All remaining rows are recorded
+as `ReservedRetrospectiveUnused`. Historical-test row, label, inference, metric,
+checkpoint-selection, and identity-influence counters must remain zero.
+
+Momentum freezes `FrozenMambaHeadV1`, `LinearMomentumBaselineV1`, and
+`ConstantProbabilityBaselineV1`. Cycle/Risk freezes `FrozenMambaRiskV1`,
+`LinearRiskV1`, and `TrainingPrevalenceConstantV1`. These use the existing
+feature builders, labels, train-only normalizers, frozen encoders, logistic
+heads, linear baselines, constants, Brier training, and validation gates. A
+separate qualification receipt records a validation outcome; no metric or
+receipt changes participant or family model identity. A failed receipt blocks
+registration without selecting a winner. Value/Quality remains
+`TrainerUnavailable` with no family.
+
+The V1 session, projection, participants, qualification receipts, family, and
+usage ledger are manually defined Protobuf artifacts under
+`state/learning_data/v1/{agent}`. The same non-overwriting temporary-write,
+flush, `sync_all`, reopen, atomic-rename, and final-reopen protocol applies.
+
+The offline CLI is:
+
+```text
+--agent-private-learning-candidates-v1 --status|--dry-run|--execute-local
+--output-format text|json
+```
+
+Public output contains identities, participant counts, statuses, storage
+counts, and zero-authority counters only. It never reports validation metrics,
+rows, labels, probabilities, parameters, or local paths. With the currently
+available local snapshots, the canonical views for Momentum and Cycle/Risk are
+incomplete, so actual generation reports explicit per-agent evidence blockers;
+Value/Quality remains unavailable. This is not a performance result.
