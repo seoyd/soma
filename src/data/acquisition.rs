@@ -728,7 +728,7 @@ fn snapshot_is_compatible_fallback(
         && compatibility.adjustment_semantics == adjustment_semantics_v1(request.dataset_kind)
         && compatibility.source_schema == "application/x-soma-normalized-dataset"
         && compatibility.requested_cutoff_timestamp_ms == request.lookback.end_timestamp_ms
-        && compatibility.maximum_staleness_ms == request.max_staleness_ms
+        && compatibility.maximum_staleness_ms <= request.max_staleness_ms
         && compatibility.all_rows_finalized
         && snapshot.schema_version == 1
         && snapshot.quality_summary.accepted
@@ -3189,7 +3189,7 @@ fn snapshot_matches_intent_dataset_v1(
     }
     if snapshot.requested_lookback != intent.lookback
         || compatibility.requested_cutoff_timestamp_ms != Some(intent.information_cutoff_ms)
-        || compatibility.maximum_staleness_ms != intent.maximum_staleness_ms
+        || compatibility.maximum_staleness_ms > intent.maximum_staleness_ms
         || snapshot.actual_end_timestamp_ms.is_none_or(|end| {
             end > intent.information_cutoff_ms
                 || intent.information_cutoff_ms.saturating_sub(end) > intent.maximum_staleness_ms
@@ -9186,6 +9186,55 @@ mod tests {
                 .unwrap()
                 .status,
             CanonicalViewGapStatusV1::ProviderContractUnverified
+        );
+    }
+
+    #[test]
+    fn v1_snapshot_accepts_stricter_staleness_and_rejects_policy_overrun() {
+        let intents = learning_v1_intents();
+        let momentum = intents
+            .iter()
+            .find(|intent| intent.agent_kind == AgentKind::MomentumTrendFast)
+            .unwrap();
+        let mut fresher = learning_v1_snapshot(momentum);
+        fresher.compatibility.as_mut().unwrap().maximum_staleness_ms = 0;
+        let request = ReadOnlyProviderRequest {
+            request_id: "stricter-staleness".into(),
+            request_key: "stricter-staleness".into(),
+            provider_id: fresher.provider_id.clone(),
+            dataset_kind: fresher.dataset_kind,
+            market_scope: fresher.market_scope,
+            symbols: fresher.symbols.clone(),
+            lookback: fresher.requested_lookback.clone(),
+            cadence: "1d".into(),
+            max_staleness_ms: momentum.maximum_staleness_ms,
+            reason_codes: vec![],
+        };
+        assert!(snapshot_is_compatible_fallback(&fresher, &request));
+        let report = learning_v1_gap_report(&[fresher]);
+        assert!(
+            report
+                .gaps
+                .iter()
+                .find(|gap| gap.agent_id == "momentum_trend_fast")
+                .unwrap()
+                .missing_required_dataset_kinds
+                .is_empty()
+        );
+
+        let mut stale = learning_v1_snapshot(momentum);
+        stale.compatibility.as_mut().unwrap().maximum_staleness_ms =
+            momentum.maximum_staleness_ms + 1;
+        assert!(!snapshot_is_compatible_fallback(&stale, &request));
+        let report = learning_v1_gap_report(&[stale]);
+        assert_eq!(
+            report
+                .gaps
+                .iter()
+                .find(|gap| gap.agent_id == "momentum_trend_fast")
+                .unwrap()
+                .missing_required_dataset_kinds,
+            [DatasetKind::DailyOhlcv]
         );
     }
 
