@@ -22,6 +22,7 @@ pub mod meta;
 pub mod model_escalation_decision;
 pub mod model_ops_review_closure;
 pub mod model_ops_rollup;
+pub mod momentum_mamba_repair;
 pub mod prediction;
 pub mod sequence_dataset_export;
 pub mod sequence_readiness;
@@ -870,6 +871,35 @@ pub use model_ops_rollup::{
     StorageArtifactPolicy, TrainingDataStorageIntegrityCheck, TrainingDataStorageIntegrityStatus,
     TrainingDataStorageMaterializationConfig, TrainingDataStorageMaterializationReport,
     TrainingDataStorageMaterializationStatus,
+};
+pub use momentum_mamba_repair::{
+    FrozenCandidateParticipantV2, MomentumCandidateFamilyV2,
+    MomentumFutureEvaluationRegistrationStatusV2, MomentumFutureEvaluationRegistrationV2,
+    MomentumFutureEvaluationRosterStatusV2, MomentumFutureEvaluationRosterV2,
+    MomentumMambaCollapseAuditV2, MomentumMambaCollapseRootCauseV2,
+    MomentumMambaRepairCapabilityStatusV2, MomentumMambaRepairExecutionStatusV2,
+    MomentumMambaRepairJournalV2, MomentumMambaRepairRegistrationV2, MomentumMambaRepairReportV2,
+    MomentumMambaRepairSafetyCountersV2, MomentumMambaRepairSplitV2,
+    MomentumMambaRepairVariantConfigV2, ParticipantQualificationRoleV2,
+    ParticipantValidationQualificationV2, ValidationQualificationStatusV2,
+    decode_momentum_candidate_family_protobuf_v2,
+    decode_momentum_candidate_participant_protobuf_v2,
+    decode_momentum_future_evaluation_registration_protobuf_v2,
+    decode_momentum_future_evaluation_roster_protobuf_v2,
+    decode_momentum_mamba_collapse_audit_protobuf_v2,
+    decode_momentum_mamba_repair_journal_protobuf_v2,
+    decode_momentum_mamba_repair_registration_protobuf_v2,
+    decode_momentum_mamba_repair_split_protobuf_v2,
+    decode_momentum_qualification_receipt_protobuf_v2,
+    encode_momentum_candidate_family_protobuf_v2,
+    encode_momentum_candidate_participant_protobuf_v2,
+    encode_momentum_future_evaluation_registration_protobuf_v2,
+    encode_momentum_future_evaluation_roster_protobuf_v2,
+    encode_momentum_mamba_collapse_audit_protobuf_v2,
+    encode_momentum_mamba_repair_journal_protobuf_v2,
+    encode_momentum_mamba_repair_registration_protobuf_v2,
+    encode_momentum_mamba_repair_split_protobuf_v2,
+    encode_momentum_qualification_receipt_protobuf_v2, run_momentum_mamba_repair_v2,
 };
 pub use prediction::{
     PredictionFrame, PredictionImportConfig, PredictionInputFormat, PredictionRow,

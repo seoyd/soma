@@ -6670,7 +6670,7 @@ pub fn read_persisted_learning_intent_migration_v1(
     })
 }
 
-fn atomic_write_verified_v0<F>(
+pub(crate) fn atomic_write_verified_v0<F>(
     path: &Path,
     bytes: &[u8],
     expected_digest: &str,
