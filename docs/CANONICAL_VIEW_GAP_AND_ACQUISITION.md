@@ -18,13 +18,17 @@ authorized providers, trainer availability, and a semantic gap digest.
 Current Protobuf sessions that contain full intent metadata are reconstructed
 only when their original intent digest verifies. Legacy sessions retain their
 persisted intent identity and cutoff; their missing metadata is projected from
-the source snapshot identities and the current policy. No missing symbol or
-market is invented. A legacy projection is audit-only and cannot bypass normal
-intent validation for training.
+available source snapshot identities and the current policy. A legacy
+projection is audit-only and cannot bypass normal intent validation for
+training.
 
-Required evidence is evaluated before optional evidence. Incompatible cadence,
-market, symbol, cutoff, ambiguity, and integrity failures remain explicit.
-Provider availability never changes an agent policy to match available data.
+Required evidence is evaluated before optional evidence. A real cadence,
+market, symbol, cutoff, ambiguity, or integrity failure remains explicit. A
+matching provider whose single-response capacity is too small is classified
+separately. Segmented acquisition is required only when the complete bounded
+partition is derivable before a response is observed; unsupported or
+over-budget partitions fail closed. Provider availability never changes an
+agent policy to match available data.
 
 ## Provider and request boundary
 
@@ -40,11 +44,13 @@ access, number of blocked agents served, bounded response size, and stable
 request identity. Equivalent requests are deduplicated before any transport is
 constructed.
 
-The current audit produced no eligible request. Momentum requires a 312-row
-historical view while the verified single-call Upbit contract is bounded to 200
-rows. Cycle/Risk has no exact index or volatility provider contract.
-Value/Quality has no trainer. Consequently no runtime registration, transport,
-raw response, provenance manifest, receipt, or canonical snapshot was created.
+The current audit produced no eligible single request. Momentum requires a
+312-row historical view while the verified single-call Upbit contract is
+bounded to 200 rows; its exact two-segment requirement is explicit and the
+lookback is not shortened. Cycle/Risk has no exact index or volatility provider
+contract. Value/Quality has no trainer. Consequently no single-request runtime
+registration, transport, raw response, provenance manifest, receipt, or
+canonical snapshot was created.
 
 ## One-request execution contract
 
@@ -70,7 +76,7 @@ snapshots and persisted artifacts are duplicate-rejected.
 
 | Agent | Gap status | Required evidence result | Acquisition result |
 | --- | --- | --- | --- |
-| Momentum | `IncompatibleCadence` | Daily OHLCV remains unresolved against the persisted 312-row view. | No exact bounded provider contract; request count 0. |
+| Momentum | `SegmentedAcquisitionRequired` | Daily OHLCV remains unresolved against the persisted 312-row view. | Exact bounded two-segment acquisition required; request count 0. |
 | Cycle/Risk | `ProviderContractUnverified` | Index and volatility evidence remain missing. | Upbit OHLCV is not relabeled; request count 0. |
 | Value/Quality | `TrainerUnavailable` | Adjusted prices and fundamentals remain missing. | Excluded from request priority. |
 

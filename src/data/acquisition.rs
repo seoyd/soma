@@ -2736,12 +2736,16 @@ const LEARNING_EVIDENCE_REGISTRATION_VERSION_V1: &str =
     "learning-evidence-acquisition-registration-v1";
 const LEARNING_EVIDENCE_RECEIPT_VERSION_V1: &str = "learning-evidence-request-receipt-v1";
 const DAILY_CADENCE_MS_V1: u64 = 86_400_000;
+const MAX_LEARNING_EVIDENCE_SEGMENTS_V1: usize = 2;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CanonicalViewGapStatusV1 {
     Complete,
     MissingRequiredEvidence,
     MissingOptionalEvidenceOnly,
+    ProviderSingleRequestCapacityExceeded,
+    SegmentedAcquisitionRequired,
+    SegmentedAcquisitionUnsupported,
     ProviderUnavailable,
     ProviderContractUnverified,
     AmbiguousArtifacts,
@@ -3000,12 +3004,8 @@ fn learning_evidence_contract_supports_v1(
     lookback: &DataLookback,
     information_cutoff_ms: u64,
 ) -> bool {
-    let start = information_cutoff_ms.checked_sub(
-        u64::try_from(lookback.bars)
-            .ok()
-            .and_then(|bars| bars.checked_mul(DAILY_CADENCE_MS_V1))
-            .unwrap_or(u64::MAX),
-    );
+    let start = expected_learning_timestamps_v1(lookback)
+        .and_then(|timestamps| timestamps.first().copied());
     validate_learning_evidence_provider_contract_v1(contract)
         && contract.enabled
         && contract.dataset_kind == dataset_kind
@@ -3016,6 +3016,74 @@ fn learning_evidence_contract_supports_v1(
         && lookback.end_timestamp_ms == Some(information_cutoff_ms)
         && start.is_some_and(|start| start >= contract.earliest_timestamp_ms)
         && information_cutoff_ms <= contract.latest_exclusive_timestamp_ms
+}
+
+fn learning_evidence_contract_matches_identity_v1(
+    contract: &LearningEvidenceProviderContractV1,
+    dataset_kind: DatasetKind,
+    market_scope: AcquisitionMarketScope,
+    symbols: &[String],
+) -> bool {
+    validate_learning_evidence_provider_contract_v1(contract)
+        && contract.dataset_kind == dataset_kind
+        && contract.market_scope == market_scope
+        && contract.symbols == stable_learning_strings_v1(symbols)
+}
+
+fn learning_evidence_contract_matches_range_v1(
+    contract: &LearningEvidenceProviderContractV1,
+    lookback: &DataLookback,
+    information_cutoff_ms: u64,
+) -> bool {
+    let Some(timestamps) = expected_learning_timestamps_v1(lookback) else {
+        return false;
+    };
+    lookback.end_timestamp_ms == Some(information_cutoff_ms)
+        && lookback
+            .start_timestamp_ms
+            .is_none_or(|start| timestamps.first().copied() == Some(start))
+        && timestamps
+            .first()
+            .is_some_and(|start| *start >= contract.earliest_timestamp_ms)
+        && information_cutoff_ms <= contract.latest_exclusive_timestamp_ms
+}
+
+fn single_request_capacity_status_v1(
+    required_rows: usize,
+    maximum_rows: usize,
+) -> Option<CanonicalViewGapStatusV1> {
+    (required_rows > maximum_rows)
+        .then_some(CanonicalViewGapStatusV1::ProviderSingleRequestCapacityExceeded)
+}
+
+fn exact_bounded_segment_count_v1(
+    lookback: &DataLookback,
+    cadence: &str,
+    maximum_rows_per_segment: usize,
+    approved_segment_cap: usize,
+    response_dependent_pagination: bool,
+) -> Result<usize, String> {
+    if response_dependent_pagination
+        || cadence != "1d"
+        || lookback.bars == 0
+        || maximum_rows_per_segment == 0
+        || approved_segment_cap == 0
+    {
+        return Err("exact bounded learning evidence segmentation unavailable".into());
+    }
+    let timestamps = expected_learning_timestamps_v1(lookback)
+        .ok_or_else(|| "exact bounded learning evidence segmentation unavailable".to_string())?;
+    if lookback
+        .start_timestamp_ms
+        .is_some_and(|start| timestamps.first().copied() != Some(start))
+    {
+        return Err("exact bounded learning evidence segmentation unavailable".into());
+    }
+    let segment_count = lookback.bars.div_ceil(maximum_rows_per_segment);
+    if segment_count == 0 || segment_count > approved_segment_cap {
+        return Err("learning evidence segment cap exceeded".into());
+    }
+    Ok(segment_count)
 }
 
 fn snapshot_integrity_valid_for_gap_v1(snapshot: &DataSnapshot) -> bool {
@@ -3302,22 +3370,114 @@ pub fn derive_agent_canonical_view_gaps_v1(
             }
         }
         let trainer_available = trainer_capable_agent_ids.contains(&intent.agent_id);
+        let matches_missing_kind = |contract: &LearningEvidenceProviderContractV1| {
+            missing_required.contains(&contract.dataset_kind)
+        };
+        let matches_market = |contract: &LearningEvidenceProviderContractV1| {
+            intent.market_scopes.contains(&contract.market_scope)
+        };
+        let matches_symbols = |contract: &LearningEvidenceProviderContractV1| {
+            contract.symbols == stable_learning_strings_v1(&intent.symbols)
+        };
+        let matches_cadence =
+            |contract: &LearningEvidenceProviderContractV1| contract.cadence == intent.cadence;
+        let matches_range = |contract: &LearningEvidenceProviderContractV1| {
+            learning_evidence_contract_matches_range_v1(
+                contract,
+                &intent.lookback,
+                intent.information_cutoff_ms,
+            )
+        };
+        let is_exact_segment_provider = |contract: &LearningEvidenceProviderContractV1| {
+            contract.provider_id == "upbit"
+                && contract.dataset_kind == DatasetKind::DailyOhlcv
+                && contract.market_scope == AcquisitionMarketScope::BtcCrypto
+                && contract.cadence == "1d"
+        };
+        let exact_identity = |contract: &LearningEvidenceProviderContractV1| {
+            intent.market_scopes.iter().any(|market| {
+                missing_required.iter().any(|kind| {
+                    learning_evidence_contract_matches_identity_v1(
+                        contract,
+                        *kind,
+                        *market,
+                        &intent.symbols,
+                    )
+                })
+            })
+        };
+        let has_single_request_provider = provider_contracts.iter().any(|contract| {
+            contract.enabled
+                && exact_identity(contract)
+                && matches_cadence(contract)
+                && matches_range(contract)
+                && learning_evidence_contract_supports_v1(
+                    contract,
+                    contract.dataset_kind,
+                    contract.market_scope,
+                    &intent.symbols,
+                    &intent.cadence,
+                    &intent.lookback,
+                    intent.information_cutoff_ms,
+                )
+        });
+        let capacity_exceeded_contracts = provider_contracts
+            .iter()
+            .filter(|contract| {
+                contract.enabled
+                    && exact_identity(contract)
+                    && matches_cadence(contract)
+                    && matches_range(contract)
+                    && single_request_capacity_status_v1(
+                        intent.lookback.bars,
+                        contract.maximum_lookback_bars,
+                    )
+                    .is_some()
+            })
+            .collect::<Vec<_>>();
+        let segmented_acquisition_required = capacity_exceeded_contracts.iter().any(|contract| {
+            is_exact_segment_provider(contract)
+                && exact_bounded_segment_count_v1(
+                    &intent.lookback,
+                    &intent.cadence,
+                    contract.maximum_lookback_bars,
+                    MAX_LEARNING_EVIDENCE_SEGMENTS_V1,
+                    false,
+                )
+                .is_ok_and(|count| count > 1)
+        });
+        let segmented_acquisition_unsupported =
+            capacity_exceeded_contracts.iter().any(|contract| {
+                is_exact_segment_provider(contract)
+                    && exact_bounded_segment_count_v1(
+                        &intent.lookback,
+                        &intent.cadence,
+                        contract.maximum_lookback_bars,
+                        MAX_LEARNING_EVIDENCE_SEGMENTS_V1,
+                        false,
+                    )
+                    .is_err()
+            });
+        let single_request_capacity_exceeded = capacity_exceeded_contracts
+            .iter()
+            .any(|contract| !is_exact_segment_provider(contract));
         let mut authorized_provider_ids = provider_contracts
             .iter()
             .filter(|contract| {
-                intent.market_scopes.iter().any(|market| {
-                    missing_required.iter().any(|kind| {
-                        learning_evidence_contract_supports_v1(
-                            contract,
-                            *kind,
-                            *market,
-                            &intent.symbols,
-                            &intent.cadence,
-                            &intent.lookback,
-                            intent.information_cutoff_ms,
-                        )
-                    })
-                })
+                contract.enabled
+                    && exact_identity(contract)
+                    && matches_cadence(contract)
+                    && matches_range(contract)
+                    && (intent.lookback.bars <= contract.maximum_lookback_bars
+                        || (is_exact_segment_provider(contract)
+                            && exact_bounded_segment_count_v1(
+                                &intent.lookback,
+                                &intent.cadence,
+                                contract.maximum_lookback_bars,
+                                MAX_LEARNING_EVIDENCE_SEGMENTS_V1,
+                                false,
+                            )
+                            .is_ok_and(|count| count > 1)))
             })
             .map(|contract| contract.provider_id.clone())
             .collect::<Vec<_>>();
@@ -3325,14 +3485,22 @@ pub fn derive_agent_canonical_view_gaps_v1(
         authorized_provider_ids.dedup();
         let has_disabled_exact_provider = provider_contracts.iter().any(|contract| {
             !contract.enabled
-                && intent.market_scopes.iter().any(|market| {
-                    contract.dataset_kind != DatasetKind::Unknown
-                        && missing_required.contains(&contract.dataset_kind)
-                        && contract.market_scope == *market
-                        && contract.symbols == intent.symbols
-                        && contract.cadence == intent.cadence
-                        && intent.lookback.bars <= contract.maximum_lookback_bars
-                })
+                && exact_identity(contract)
+                && matches_cadence(contract)
+                && matches_range(contract)
+        });
+        let has_kind_contract = provider_contracts.iter().any(matches_missing_kind);
+        let has_market_contract = provider_contracts
+            .iter()
+            .any(|contract| matches_missing_kind(contract) && matches_market(contract));
+        let has_symbol_contract = provider_contracts.iter().any(|contract| {
+            matches_missing_kind(contract) && matches_market(contract) && matches_symbols(contract)
+        });
+        let has_cadence_contract = provider_contracts.iter().any(|contract| {
+            matches_missing_kind(contract)
+                && matches_market(contract)
+                && matches_symbols(contract)
+                && matches_cadence(contract)
         });
         let status = if !trainer_available {
             CanonicalViewGapStatusV1::TrainerUnavailable
@@ -3344,6 +3512,24 @@ pub fn derive_agent_canonical_view_gaps_v1(
             CanonicalViewGapStatusV1::IntegrityFailure
         } else if rejection_flags.ambiguous {
             CanonicalViewGapStatusV1::AmbiguousArtifacts
+        } else if has_single_request_provider {
+            CanonicalViewGapStatusV1::MissingRequiredEvidence
+        } else if segmented_acquisition_required {
+            CanonicalViewGapStatusV1::SegmentedAcquisitionRequired
+        } else if segmented_acquisition_unsupported {
+            CanonicalViewGapStatusV1::SegmentedAcquisitionUnsupported
+        } else if single_request_capacity_exceeded {
+            CanonicalViewGapStatusV1::ProviderSingleRequestCapacityExceeded
+        } else if has_disabled_exact_provider {
+            CanonicalViewGapStatusV1::ProviderUnavailable
+        } else if has_symbol_contract && !has_cadence_contract {
+            CanonicalViewGapStatusV1::IncompatibleCadence
+        } else if has_market_contract && !has_symbol_contract {
+            CanonicalViewGapStatusV1::IncompatibleSymbol
+        } else if has_kind_contract && !has_market_contract {
+            CanonicalViewGapStatusV1::IncompatibleMarket
+        } else if has_cadence_contract {
+            CanonicalViewGapStatusV1::CutoffMismatch
         } else if rejection_flags.cadence {
             CanonicalViewGapStatusV1::IncompatibleCadence
         } else if rejection_flags.market {
@@ -3352,8 +3538,6 @@ pub fn derive_agent_canonical_view_gaps_v1(
             CanonicalViewGapStatusV1::IncompatibleSymbol
         } else if rejection_flags.cutoff {
             CanonicalViewGapStatusV1::CutoffMismatch
-        } else if has_disabled_exact_provider {
-            CanonicalViewGapStatusV1::ProviderUnavailable
         } else if authorized_provider_ids.is_empty() {
             CanonicalViewGapStatusV1::ProviderContractUnverified
         } else {
@@ -3405,7 +3589,20 @@ pub fn derive_agent_canonical_view_gaps_v1(
 fn expected_learning_timestamps_v1(lookback: &DataLookback) -> Option<Vec<u64>> {
     let end = lookback.end_timestamp_ms?;
     let bars = u64::try_from(lookback.bars).ok()?;
-    let start = end.checked_sub(bars.checked_mul(DAILY_CADENCE_MS_V1)?)?;
+    if bars == 0 {
+        return None;
+    }
+    let start = if let Some(start) = lookback.start_timestamp_ms {
+        let inclusive_end =
+            start.checked_add(bars.checked_sub(1)?.checked_mul(DAILY_CADENCE_MS_V1)?)?;
+        let exclusive_end = start.checked_add(bars.checked_mul(DAILY_CADENCE_MS_V1)?)?;
+        if inclusive_end != end && exclusive_end != end {
+            return None;
+        }
+        start
+    } else {
+        end.checked_sub(bars.checked_mul(DAILY_CADENCE_MS_V1)?)?
+    };
     (0..bars)
         .map(|offset| start.checked_add(offset.checked_mul(DAILY_CADENCE_MS_V1)?))
         .collect()
@@ -3535,14 +3732,7 @@ pub fn select_learning_evidence_acquisition_registration_v1(
     let mut grouped = BTreeMap::<String, LearningRequestCandidateV1>::new();
     for gap in report.gaps.iter().filter(|gap| {
         gap.trainer_available
-            && matches!(
-                gap.status,
-                CanonicalViewGapStatusV1::MissingRequiredEvidence
-                    | CanonicalViewGapStatusV1::IncompatibleCadence
-                    | CanonicalViewGapStatusV1::IncompatibleMarket
-                    | CanonicalViewGapStatusV1::IncompatibleSymbol
-                    | CanonicalViewGapStatusV1::CutoffMismatch
-            )
+            && gap.status == CanonicalViewGapStatusV1::MissingRequiredEvidence
             && !gap.missing_required_dataset_kinds.is_empty()
     }) {
         for dataset_kind in &gap.missing_required_dataset_kinds {
@@ -3912,6 +4102,8 @@ where
                     None,
                 ),
             };
+            let raw_response = raw_response
+                .filter(|raw_response| raw_learning_response_is_sanitized_v1(raw_response));
             let raw_digest = raw_response.as_deref().map(canonical_hash_hex);
             let receipt = learning_receipt_after_attempt_v1(
                 registration,
@@ -3934,7 +4126,8 @@ where
         }
     };
     let returned_row_count = transport_response.response.normalized_dataset.rows.len();
-    let raw_digest = canonical_hash_hex(&transport_response.raw_response);
+    let raw_is_sanitized = raw_learning_response_is_sanitized_v1(&transport_response.raw_response);
+    let raw_digest = raw_is_sanitized.then(|| canonical_hash_hex(&transport_response.raw_response));
     if !validate_learning_transport_response_v1(registration, &transport_response) {
         let receipt = learning_receipt_after_attempt_v1(
             registration,
@@ -3942,19 +4135,39 @@ where
             Some(transport_response.http_status_class.clone()),
             returned_row_count,
             0,
-            Some(raw_digest),
+            raw_digest,
             None,
             None,
         );
         return LearningEvidenceAcquisitionResultV1 {
             status: LearningEvidenceRequestStatusV1::InvalidResponse,
             receipt: Some(receipt),
-            raw_response: Some(transport_response.raw_response),
+            raw_response: raw_is_sanitized.then_some(transport_response.raw_response),
             provenance_manifest: None,
             snapshot: None,
             safety_counters: counters,
         };
     }
+    let Some(raw_digest) = raw_digest else {
+        let receipt = learning_receipt_after_attempt_v1(
+            registration,
+            LearningEvidenceRequestStatusV1::InvalidResponse,
+            Some(transport_response.http_status_class),
+            returned_row_count,
+            0,
+            None,
+            None,
+            None,
+        );
+        return LearningEvidenceAcquisitionResultV1 {
+            status: LearningEvidenceRequestStatusV1::InvalidResponse,
+            receipt: Some(receipt),
+            raw_response: None,
+            provenance_manifest: None,
+            snapshot: None,
+            safety_counters: counters,
+        };
+    };
     let snapshot = match snapshot_from_response(
         &request,
         transport_response.response,
@@ -3988,9 +4201,24 @@ where
         .iter()
         .any(|existing| existing.content_digest == snapshot.content_digest)
     {
-        return learning_result_without_attempt_v1(
+        let receipt = learning_receipt_after_attempt_v1(
+            registration,
             LearningEvidenceRequestStatusV1::EquivalentSnapshotExists,
+            Some(transport_response.http_status_class),
+            returned_row_count,
+            0,
+            Some(raw_digest),
+            None,
+            None,
         );
+        return LearningEvidenceAcquisitionResultV1 {
+            status: LearningEvidenceRequestStatusV1::EquivalentSnapshotExists,
+            receipt: Some(receipt),
+            raw_response: Some(transport_response.raw_response),
+            provenance_manifest: None,
+            snapshot: None,
+            safety_counters: counters,
+        };
     }
     let provenance_manifest =
         match seal_learning_data_provenance_manifest_v0(LearningDataProvenanceManifestV0 {
@@ -4322,6 +4550,9 @@ fn gap_status_tag_v1(status: CanonicalViewGapStatusV1) -> u32 {
         CanonicalViewGapStatusV1::CutoffMismatch => 10,
         CanonicalViewGapStatusV1::IntegrityFailure => 11,
         CanonicalViewGapStatusV1::TrainerUnavailable => 12,
+        CanonicalViewGapStatusV1::ProviderSingleRequestCapacityExceeded => 13,
+        CanonicalViewGapStatusV1::SegmentedAcquisitionRequired => 14,
+        CanonicalViewGapStatusV1::SegmentedAcquisitionUnsupported => 15,
     }
 }
 
@@ -4339,6 +4570,9 @@ fn gap_status_from_tag_v1(tag: u32) -> Result<CanonicalViewGapStatusV1, String> 
         10 => Ok(CanonicalViewGapStatusV1::CutoffMismatch),
         11 => Ok(CanonicalViewGapStatusV1::IntegrityFailure),
         12 => Ok(CanonicalViewGapStatusV1::TrainerUnavailable),
+        13 => Ok(CanonicalViewGapStatusV1::ProviderSingleRequestCapacityExceeded),
+        14 => Ok(CanonicalViewGapStatusV1::SegmentedAcquisitionRequired),
+        15 => Ok(CanonicalViewGapStatusV1::SegmentedAcquisitionUnsupported),
         _ => Err("canonical gap status rejected".into()),
     }
 }
@@ -6714,6 +6948,176 @@ mod tests {
     }
 
     #[test]
+    fn v1_daily_intent_and_daily_provider_are_not_incompatible_cadence() {
+        let report = learning_v1_gap_report(&[]);
+        let gap = report
+            .gaps
+            .iter()
+            .find(|gap| gap.agent_id == "momentum_trend_fast")
+            .unwrap();
+        assert_eq!(
+            gap.status,
+            CanonicalViewGapStatusV1::MissingRequiredEvidence
+        );
+        assert_ne!(gap.status, CanonicalViewGapStatusV1::IncompatibleCadence);
+    }
+
+    #[test]
+    fn v1_312_rows_against_200_row_limit_requires_segmentation() {
+        let mut intents = learning_v1_intents();
+        let momentum = intents
+            .iter_mut()
+            .find(|intent| intent.agent_kind == AgentKind::MomentumTrendFast)
+            .unwrap();
+        momentum.lookback = DataLookback {
+            bars: 312,
+            start_timestamp_ms: Some(LEARNING_V1_CUTOFF_MS - 311 * DAILY_CADENCE_MS_V1),
+            end_timestamp_ms: Some(LEARNING_V1_CUTOFF_MS),
+        };
+        stabilize_learning_intent_v0(momentum);
+        momentum.intent_digest = agent_learning_intent_digest_v0(momentum);
+        let mut contract = learning_v1_contract();
+        contract.earliest_timestamp_ms = LEARNING_V1_CUTOFF_MS - 400 * DAILY_CADENCE_MS_V1;
+        contract.contract_digest.clear();
+        let contract = seal_learning_evidence_provider_contract_v1(contract).unwrap();
+        let report = derive_agent_canonical_view_gaps_v1(
+            &intents,
+            &default_agent_data_policies(),
+            &[],
+            &learning_v1_trainers(),
+            &[contract],
+        )
+        .unwrap();
+        let gap = report
+            .gaps
+            .iter()
+            .find(|gap| gap.agent_id == "momentum_trend_fast")
+            .unwrap();
+        assert_eq!(
+            gap.status,
+            CanonicalViewGapStatusV1::SegmentedAcquisitionRequired
+        );
+        assert_ne!(gap.status, CanonicalViewGapStatusV1::IncompatibleCadence);
+        assert_eq!(gap.lookback.bars, 312);
+        assert_eq!(gap.authorized_provider_ids, ["upbit"]);
+        assert_eq!(
+            decode_agent_canonical_view_gap_report_protobuf_v1(
+                &encode_agent_canonical_view_gap_report_protobuf_v1(&report).unwrap(),
+            )
+            .unwrap(),
+            report
+        );
+    }
+
+    #[test]
+    fn v1_non_segment_provider_reports_single_request_capacity() {
+        let mut contract = learning_v1_contract();
+        contract.provider_id = "bounded-daily-provider".into();
+        contract.maximum_lookback_bars = 50;
+        contract.contract_digest.clear();
+        let contract = seal_learning_evidence_provider_contract_v1(contract).unwrap();
+        let report = derive_agent_canonical_view_gaps_v1(
+            &learning_v1_intents(),
+            &default_agent_data_policies(),
+            &[],
+            &learning_v1_trainers(),
+            &[contract],
+        )
+        .unwrap();
+        assert_eq!(
+            report
+                .gaps
+                .iter()
+                .find(|gap| gap.agent_id == "momentum_trend_fast")
+                .unwrap()
+                .status,
+            CanonicalViewGapStatusV1::ProviderSingleRequestCapacityExceeded
+        );
+    }
+
+    #[test]
+    fn v1_actual_minute_daily_provider_mismatch_is_incompatible_cadence() {
+        let mut intents = learning_v1_intents();
+        let momentum = intents
+            .iter_mut()
+            .find(|intent| intent.agent_kind == AgentKind::MomentumTrendFast)
+            .unwrap();
+        momentum.cadence = "1m".into();
+        stabilize_learning_intent_v0(momentum);
+        momentum.intent_digest = agent_learning_intent_digest_v0(momentum);
+        let report = derive_agent_canonical_view_gaps_v1(
+            &intents,
+            &default_agent_data_policies(),
+            &[],
+            &learning_v1_trainers(),
+            &[learning_v1_contract()],
+        )
+        .unwrap();
+        assert_eq!(
+            report
+                .gaps
+                .iter()
+                .find(|gap| gap.agent_id == "momentum_trend_fast")
+                .unwrap()
+                .status,
+            CanonicalViewGapStatusV1::IncompatibleCadence
+        );
+    }
+
+    #[test]
+    fn v1_unbounded_or_response_dependent_segment_plan_rejects() {
+        let unbounded = DataLookback {
+            bars: 312,
+            start_timestamp_ms: None,
+            end_timestamp_ms: None,
+        };
+        assert!(exact_bounded_segment_count_v1(&unbounded, "1d", 200, 2, false).is_err());
+        let bounded = DataLookback {
+            bars: 312,
+            start_timestamp_ms: None,
+            end_timestamp_ms: Some(LEARNING_V1_CUTOFF_MS),
+        };
+        assert!(exact_bounded_segment_count_v1(&bounded, "1d", 200, 2, true).is_err());
+    }
+
+    #[test]
+    fn v1_segment_plan_over_approved_cap_is_unsupported() {
+        let mut intents = learning_v1_intents();
+        let momentum = intents
+            .iter_mut()
+            .find(|intent| intent.agent_kind == AgentKind::MomentumTrendFast)
+            .unwrap();
+        momentum.lookback = DataLookback {
+            bars: 401,
+            start_timestamp_ms: None,
+            end_timestamp_ms: Some(LEARNING_V1_CUTOFF_MS),
+        };
+        stabilize_learning_intent_v0(momentum);
+        momentum.intent_digest = agent_learning_intent_digest_v0(momentum);
+        let mut contract = learning_v1_contract();
+        contract.earliest_timestamp_ms = LEARNING_V1_CUTOFF_MS - 500 * DAILY_CADENCE_MS_V1;
+        contract.contract_digest.clear();
+        let contract = seal_learning_evidence_provider_contract_v1(contract).unwrap();
+        let report = derive_agent_canonical_view_gaps_v1(
+            &intents,
+            &default_agent_data_policies(),
+            &[],
+            &learning_v1_trainers(),
+            &[contract],
+        )
+        .unwrap();
+        assert_eq!(
+            report
+                .gaps
+                .iter()
+                .find(|gap| gap.agent_id == "momentum_trend_fast")
+                .unwrap()
+                .status,
+            CanonicalViewGapStatusV1::SegmentedAcquisitionUnsupported
+        );
+    }
+
+    #[test]
     fn v1_upbit_ohlcv_cannot_masquerade_as_volatility_or_index() {
         for dataset_kind in [DatasetKind::VolatilityDaily, DatasetKind::MarketIndexDaily] {
             let mut contract = learning_v1_contract();
@@ -6911,6 +7315,64 @@ mod tests {
             result.status,
             LearningEvidenceRequestStatusV1::EquivalentSnapshotExists
         );
+    }
+
+    #[test]
+    fn v1_post_transport_duplicate_still_consumes_request_budget() {
+        let registration = learning_v1_registration();
+        let momentum = learning_v1_intents()
+            .into_iter()
+            .find(|intent| intent.agent_kind == AgentKind::MomentumTrendFast)
+            .unwrap();
+        let mut noncanonical_existing = learning_v1_snapshot(&momentum);
+        noncanonical_existing.quality_summary.accepted = false;
+        let result = execute_learning_evidence_acquisition_v1(
+            &registration,
+            &learning_v1_contract(),
+            &registration.gap_report_digests,
+            None,
+            &[noncanonical_existing],
+            true,
+            |request| Ok(learning_v1_transport_response(request)),
+        );
+        assert_eq!(
+            result.status,
+            LearningEvidenceRequestStatusV1::EquivalentSnapshotExists
+        );
+        assert_eq!(result.safety_counters.request_attempts, 1);
+        assert_eq!(result.safety_counters.transport_constructions, 1);
+        let receipt = result.receipt.unwrap();
+        assert_eq!(receipt.request_count, 1);
+        assert_eq!(receipt.retry_count, 0);
+        validate_learning_evidence_request_receipt_v1(&receipt).unwrap();
+    }
+
+    #[test]
+    fn v1_unsafe_rejection_body_is_dropped_but_attempt_is_receipted() {
+        let registration = learning_v1_registration();
+        let result = execute_learning_evidence_acquisition_v1(
+            &registration,
+            &learning_v1_contract(),
+            &registration.gap_report_digests,
+            None,
+            &[],
+            true,
+            |_| {
+                Err(LearningEvidenceTransportFailureV1::ProviderRejected {
+                    http_status_class: Some("4xx".into()),
+                    raw_response: Some(b"<html>authorization failed</html>".to_vec()),
+                })
+            },
+        );
+        assert_eq!(
+            result.status,
+            LearningEvidenceRequestStatusV1::ProviderRejected
+        );
+        assert!(result.raw_response.is_none());
+        let receipt = result.receipt.unwrap();
+        assert_eq!(receipt.request_count, 1);
+        assert!(receipt.raw_response_digest.is_none());
+        validate_learning_evidence_request_receipt_v1(&receipt).unwrap();
     }
 
     #[test]
