@@ -63,3 +63,17 @@ Public text and JSON expose only statuses, semantic identities, attribution
 class names, eligibility status, candidate presence, and safety counters. Raw
 market values, returns, adverse excursions, numeric labels, probabilities,
 private metrics, parameters, and local paths are excluded.
+
+## Verified result
+
+The one-time execution reopened complete verified evidence, persisted and
+reopened its authorization and atomic two-outcome bundle, and finished with
+`Opened`. Momentum attribution was `MissedMaterialOpportunity`; Cycle/Risk
+attribution was `CorrectUncertainty`. Both reward checks returned
+`IneligibleMinimumSamples`, with no candidate and no reward or penalty
+application.
+
+A repeated confirmed execution returned `AlreadyOpened` without constructing a
+provider call or transport. Opening attempts remained one, opened events
+remained two, all authority counters remained zero, and protected artifacts
+remained unchanged. Text and JSON status agreed.

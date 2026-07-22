@@ -105,19 +105,21 @@ snapshots and persisted artifacts are duplicate-rejected.
 
 | Agent | Gap status | Required evidence result | Acquisition result |
 | --- | --- | --- | --- |
-| Momentum | `SegmentedAcquisitionRequired` | Daily OHLCV remains unresolved against the persisted 312-row view. | Exact bounded two-segment acquisition required; request count 0. |
+| Momentum | `MissingOptionalEvidenceOnly` | Daily OHLCV is resolved; only optional evidence remains missing. | `EvidenceAcquired`; both registered segments and the merged canonical snapshot verified. |
 | Cycle/Risk | `ProviderContractUnverified` | Index and volatility evidence remain missing. | Upbit OHLCV is not relabeled; request count 0. |
 | Value/Quality | `TrainerUnavailable` | Adjusted prices and fundamentals remain missing. | Excluded from request priority. |
 
-The offline rerun kept the three agents independent: Momentum and Cycle/Risk
-reported insufficient evidence, while Value/Quality reported trainer
-unavailable. Candidate and evaluation registration outcomes were unavailable
-without affecting another agent's status.
+The offline rerun kept the three agents independent. Momentum's required view
+completed, but V1 family generation remained `InsufficientEvidence` because a
+complete persisted view under the normal intent-validation boundary was not
+available; no evaluation registration was created. Cycle/Risk remained
+`ProviderContractUnverified`, and Value/Quality remained `TrainerUnavailable`.
 
 ## Safety result
 
-Learning request attempts, retries, and transport constructions were zero.
-Credential, prospective-artifact, prospective-label, and future-evaluation
-reads were zero. Active-model changes, Chair decisions, votes, rewards,
-penalties, voice changes, promotions, and executions were zero. Active committee
-count remained three. Both boundary audits passed.
+The terminal epoch contains two successful segment attempts, zero retries, and
+maximum concurrency one. A repeated confirmed execution returned
+`AlreadyTerminal` with zero new requests and zero new transports. Credential,
+prospective-artifact, prospective-label, and future-evaluation reads were zero.
+Active-model changes, Chair decisions, votes, rewards, penalties, voice changes,
+promotions, and executions were zero. Active committee count remained three.
