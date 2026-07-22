@@ -1122,29 +1122,33 @@ pub fn build_agent_private_learning_inputs_v1(
         else {
             continue;
         };
-        let agent_information_cutoff_ms = projected_intents
-            .as_ref()
-            .and_then(|intents| {
-                intents
-                    .iter()
-                    .find(|intent| intent.agent_id == capability.agent_id)
-            })
-            .map(|intent| intent.information_cutoff_ms)
-            .unwrap_or(information_cutoff_ms);
-        let data_intent = plan_agent_data_intent(
-            state.agent_id.clone(),
-            state.kind,
-            &universe,
-            policy,
-            agent_information_cutoff_ms,
-        );
-        let Ok(intent) = create_agent_learning_intent_v0(
-            &LearningDataCallerV0::Agent(state.agent_id.clone()),
-            &data_intent,
-            policy,
-            agent_information_cutoff_ms,
-        ) else {
-            continue;
+        let persisted_intent = projected_intents.as_ref().and_then(|intents| {
+            intents
+                .iter()
+                .find(|intent| intent.agent_id == capability.agent_id)
+        });
+        let intent = if let Some(persisted_intent) = persisted_intent {
+            if validate_agent_learning_intent_v0(persisted_intent, policy).is_err() {
+                continue;
+            }
+            persisted_intent.clone()
+        } else {
+            let data_intent = plan_agent_data_intent(
+                state.agent_id.clone(),
+                state.kind,
+                &universe,
+                policy,
+                information_cutoff_ms,
+            );
+            let Ok(intent) = create_agent_learning_intent_v0(
+                &LearningDataCallerV0::Agent(state.agent_id.clone()),
+                &data_intent,
+                policy,
+                information_cutoff_ms,
+            ) else {
+                continue;
+            };
+            intent
         };
         let Ok(planned) = build_session_input_v0(&intent, policy, snapshots) else {
             continue;
@@ -1450,7 +1454,7 @@ fn validate_snapshot_for_request_v0(
                     == expected_adjustment_semantics_v0(request.dataset_kind)
                 && compatibility.source_schema == "application/x-soma-normalized-dataset"
                 && compatibility.requested_cutoff_timestamp_ms == request.lookback.end_timestamp_ms
-                && compatibility.maximum_staleness_ms == request.max_staleness_ms
+                && compatibility.maximum_staleness_ms <= request.max_staleness_ms
                 && compatibility.all_rows_finalized
         });
     if !exact_request && !compatible_request {
@@ -8848,6 +8852,46 @@ mod tests {
             .unwrap();
         assert!(momentum.view.source_artifact_digests.contains(&expected));
         assert_eq!(momentum.view.source_artifact_digests.len(), 4);
+    }
+
+    #[test]
+    fn compatible_snapshot_may_be_fresher_than_request_policy() {
+        let mut snapshot = snapshots()
+            .into_iter()
+            .find(|snapshot| snapshot.dataset_kind == DatasetKind::DailyOhlcv)
+            .unwrap();
+        let compatibility = snapshot.compatibility.as_ref().unwrap().clone();
+        let request = ReadOnlyProviderRequest {
+            request_id: "fresher-compatible-snapshot".into(),
+            request_key: "fresher-compatible-snapshot".into(),
+            provider_id: snapshot.provider_id.clone(),
+            dataset_kind: snapshot.dataset_kind,
+            market_scope: snapshot.market_scope,
+            symbols: snapshot.symbols.clone(),
+            lookback: snapshot.requested_lookback.clone(),
+            cadence: compatibility.cadence,
+            max_staleness_ms: compatibility.maximum_staleness_ms,
+            reason_codes: vec![],
+        };
+        snapshot
+            .compatibility
+            .as_mut()
+            .unwrap()
+            .maximum_staleness_ms = 0;
+        assert_eq!(
+            validate_snapshot_for_request_v0(&snapshot, &request),
+            Ok(true)
+        );
+
+        snapshot
+            .compatibility
+            .as_mut()
+            .unwrap()
+            .maximum_staleness_ms = request.max_staleness_ms + 1;
+        assert_eq!(
+            validate_snapshot_for_request_v0(&snapshot, &request),
+            Ok(false)
+        );
     }
 
     #[test]

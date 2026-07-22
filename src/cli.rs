@@ -66,6 +66,8 @@ pub struct CliArgs {
     #[arg(long, default_value_t = false)]
     pub prospective_outcome_acquisition: bool,
     #[arg(long, default_value_t = false)]
+    pub prospective_outcome_opening: bool,
+    #[arg(long, default_value_t = false)]
     pub agent_private_learning_sessions: bool,
     #[arg(long, default_value_t = false)]
     pub agent_candidate_evidence_audit: bool,
@@ -90,7 +92,11 @@ pub struct CliArgs {
     #[arg(long, default_value_t = false)]
     pub confirm_one_time_outcome_request: bool,
     #[arg(long, default_value_t = false)]
+    pub confirm_one_time_prospective_opening: bool,
+    #[arg(long, default_value_t = false)]
     pub confirm_one_time_learning_evidence_request: bool,
+    #[arg(long, default_value_t = false)]
+    pub confirm_composite_learning_evidence_epoch: bool,
     #[arg(long, default_value_t = false)]
     pub btc_prospective_challenge_create: bool,
     #[arg(long, default_value_t = false)]
@@ -132,6 +138,7 @@ pub fn run() -> Result<(), String> {
             args.execute_local,
             args.allow_network,
             args.confirm_one_time_learning_evidence_request,
+            args.confirm_composite_learning_evidence_epoch,
         );
     }
     if args.agent_private_learning_candidates_v1 && args.register_agent_candidate_evaluation_v1 {
@@ -169,6 +176,29 @@ pub fn run() -> Result<(), String> {
             args.allow_network,
         );
     }
+    if args.prospective_outcome_opening {
+        let config = args
+            .historical_snapshot_campaign_config
+            .as_deref()
+            .ok_or_else(|| {
+                "prospective outcome opening requires a local historical provider config"
+                    .to_string()
+            })?;
+        return run_prospective_outcome_opening_v0(
+            config,
+            &args.output_format,
+            args.status,
+            args.dry_run,
+            args.execute_local,
+            args.allow_network,
+            args.confirm_one_time_prospective_opening,
+        );
+    }
+    if args.confirm_one_time_prospective_opening {
+        return Err(
+            "prospective opening confirmation requires --prospective-outcome-opening".into(),
+        );
+    }
     if args.execute_local {
         return Err(
             "--execute-local requires an offline learning audit or session command".to_string(),
@@ -183,6 +213,11 @@ pub fn run() -> Result<(), String> {
     }
     if args.confirm_one_time_learning_evidence_request {
         return Err("learning evidence confirmation requires --agent-canonical-view-gap-v1".into());
+    }
+    if args.confirm_composite_learning_evidence_epoch {
+        return Err(
+            "composite learning confirmation requires --agent-canonical-view-gap-v1".into(),
+        );
     }
     if args.toss_historical_contract_report {
         return print_toss_historical_contract_report(
@@ -421,7 +456,10 @@ struct AgentCanonicalViewGapCliReportV1 {
     selected_dataset_kind: Option<crate::data::DatasetKind>,
     registration_digest: Option<String>,
     registration_reopened_and_verified: bool,
-    request_status: crate::data::LearningEvidenceRequestStatusV1,
+    request_status: String,
+    segment_count: usize,
+    segment_digests: Vec<String>,
+    segment_statuses: Vec<String>,
     request_count: usize,
     retry_count: usize,
     transport_constructions: usize,
@@ -528,7 +566,10 @@ fn print_agent_canonical_view_gap_report_v1(
         "registration_reopened_and_verified={}",
         report.registration_reopened_and_verified
     );
-    println!("request_status={:?}", report.request_status);
+    println!("request_status={}", report.request_status);
+    println!("segment_count={}", report.segment_count);
+    println!("segment_digests={}", report.segment_digests.join("|"));
+    println!("segment_statuses={}", report.segment_statuses.join("|"));
     println!("request_count={}", report.request_count);
     println!("retry_count={}", report.retry_count);
     println!("transport_constructions={}", report.transport_constructions);
@@ -601,6 +642,7 @@ fn run_agent_canonical_view_gap_cli_v1(
     execute_local: bool,
     allow_network: bool,
     confirm_one_time_learning_evidence_request: bool,
+    confirm_composite_learning_evidence_epoch: bool,
 ) -> Result<(), String> {
     if usize::from(status) + usize::from(dry_run) + usize::from(execute_local) != 1 {
         return Err(
@@ -608,13 +650,18 @@ fn run_agent_canonical_view_gap_cli_v1(
                 .into(),
         );
     }
-    if allow_network != confirm_one_time_learning_evidence_request {
+    if confirm_one_time_learning_evidence_request && confirm_composite_learning_evidence_epoch {
+        return Err("select exactly one learning evidence confirmation".into());
+    }
+    let network_confirmed =
+        confirm_one_time_learning_evidence_request || confirm_composite_learning_evidence_epoch;
+    if allow_network != network_confirmed {
         return Err(
-            "learning evidence request requires both --allow-network and --confirm-one-time-learning-evidence-request"
+            "learning evidence request requires network access and exactly one matching confirmation"
                 .into(),
         );
     }
-    if (allow_network || confirm_one_time_learning_evidence_request) && !execute_local {
+    if (allow_network || network_confirmed) && !execute_local {
         return Err("canonical view gap status and dry-run modes are offline-only".into());
     }
     let mode = if status {
@@ -663,6 +710,12 @@ fn run_agent_canonical_view_gap_cli_v1(
         &reservation.protected_registration_digests,
         &reservation.reserved_timestamp_ms,
     )?;
+    let selected_composite = crate::data::select_composite_learning_acquisition_registration_v1(
+        &gap_report,
+        &provider_contracts,
+        &reservation.protected_registration_digests,
+        &reservation.reserved_timestamp_ms,
+    )?;
     let persisted_registrations = load_persisted_learning_registrations_v1(root)?;
     if persisted_registrations.len() > 1 {
         return Err("multiple learning evidence registrations rejected".into());
@@ -670,6 +723,13 @@ fn run_agent_canonical_view_gap_cli_v1(
     let registration = selected_registration
         .clone()
         .or_else(|| persisted_registrations.first().cloned());
+    let persisted_composite = crate::data::read_composite_learning_registration_v1(root)?;
+    let composite_registration = selected_composite
+        .clone()
+        .or_else(|| persisted_composite.clone());
+    if registration.is_some() && composite_registration.is_some() {
+        return Err("single and composite learning registrations conflict".into());
+    }
     let mut registration_reopened_and_verified = false;
     if dry_run {
         let decoded = crate::data::decode_agent_canonical_view_gap_report_protobuf_v1(
@@ -684,6 +744,21 @@ fn run_agent_canonical_view_gap_cli_v1(
             )?;
             if &decoded != registration {
                 return Err("learning evidence registration Protobuf round trip rejected".into());
+            }
+        }
+        if let Some(registration) = selected_composite.as_ref() {
+            let contract = provider_contracts
+                .iter()
+                .find(|contract| contract.contract_digest == registration.provider_contract_digest)
+                .ok_or("composite learning provider contract unavailable")?;
+            let decoded = crate::data::decode_composite_learning_registration_protobuf_v1(
+                &crate::data::encode_composite_learning_registration_protobuf_v1(
+                    registration,
+                    contract,
+                )?,
+            )?;
+            if &decoded != registration {
+                return Err("composite learning registration Protobuf round trip rejected".into());
             }
         }
     }
@@ -706,6 +781,25 @@ fn run_agent_canonical_view_gap_cli_v1(
                     root,
                 )? == *existing;
         }
+        if let Some(selected) = selected_composite.as_ref() {
+            let contract = provider_contracts
+                .iter()
+                .find(|contract| contract.contract_digest == selected.provider_contract_digest)
+                .ok_or("composite learning provider contract unavailable")?;
+            crate::data::write_and_verify_composite_learning_registration_v1(
+                selected, contract, root,
+            )?;
+            registration_reopened_and_verified =
+                crate::data::read_composite_learning_registration_v1(root)?.as_ref()
+                    == Some(selected);
+            if !registration_reopened_and_verified {
+                return Err("composite learning registration reopen rejected".into());
+            }
+        } else if let Some(existing) = composite_registration.as_ref() {
+            registration_reopened_and_verified =
+                crate::data::read_composite_learning_registration_v1(root)?.as_ref()
+                    == Some(existing);
+        }
     }
     let existing_receipt = registration
         .as_ref()
@@ -720,6 +814,12 @@ fn run_agent_canonical_view_gap_cli_v1(
         .map(|gap| gap.gap_digest.clone())
         .collect::<Vec<_>>();
     let mut acquisition_result = None;
+    let existing_epoch_receipt = composite_registration
+        .as_ref()
+        .map(|registration| crate::data::read_composite_epoch_receipt_v1(registration, root))
+        .transpose()?
+        .flatten();
+    let mut composite_result = None;
     if allow_network && confirm_one_time_learning_evidence_request {
         let registration = registration
             .as_ref()
@@ -769,11 +869,91 @@ fn run_agent_canonical_view_gap_cli_v1(
         }
         acquisition_result = Some(result);
     }
+    if allow_network && confirm_composite_learning_evidence_epoch {
+        let registration = composite_registration
+            .as_ref()
+            .ok_or("composite learning registration unavailable")?;
+        let contract = provider_contracts
+            .iter()
+            .find(|contract| contract.contract_digest == registration.provider_contract_digest)
+            .ok_or("composite learning provider contract unavailable")?;
+        let result = crate::data::execute_composite_learning_acquisition_v1(
+            registration,
+            contract,
+            &current_gap_digests,
+            existing_epoch_receipt.as_ref(),
+            true,
+            |_segment, request| {
+                crate::data::fetch_upbit_learning_evidence_once_v1(&provider_config, request)
+            },
+        );
+        let raw_receipts = result
+            .segment_receipts
+            .iter()
+            .filter(|receipt| receipt.raw_response_digest.is_some())
+            .collect::<Vec<_>>();
+        if raw_receipts.len() != result.raw_responses.len() {
+            return Err("composite learning raw response chain rejected".into());
+        }
+        for (raw, receipt) in result.raw_responses.iter().zip(raw_receipts) {
+            crate::data::write_and_verify_learning_raw_response_v1(
+                raw,
+                receipt.raw_response_digest.as_deref().unwrap_or_default(),
+                root,
+            )?;
+        }
+        for receipt in &result.segment_receipts {
+            crate::data::write_and_verify_composite_segment_receipt_v1(receipt, root)?;
+        }
+        for capsule in &result.segment_capsules {
+            crate::data::write_and_verify_composite_segment_capsule_v1(
+                capsule,
+                registration,
+                contract,
+                root,
+            )?;
+        }
+        if let Some(provenance) = &result.merged_provenance {
+            crate::data::write_and_verify_composite_merged_provenance_v1(
+                provenance,
+                registration,
+                root,
+            )?;
+        }
+        if let Some(snapshot) = &result.snapshot {
+            crate::data::write_and_verify_local_snapshot_v0(
+                snapshot,
+                Path::new(&provider_config.snapshot_output_dir),
+            )?;
+            let stored = crate::data::read_local_snapshot_protobuf_v1(
+                &Path::new(&provider_config.snapshot_output_dir)
+                    .join(format!("{}.pb", snapshot.snapshot_id)),
+            )?;
+            if stored.content_digest != snapshot.content_digest
+                || stored.row_count != registration.required_row_count
+            {
+                return Err("composite canonical snapshot reopen rejected".into());
+            }
+        }
+        if let Some(receipt) = &result.epoch_receipt {
+            crate::data::write_and_verify_composite_epoch_receipt_v1(receipt, registration, root)?;
+            if crate::data::read_composite_epoch_receipt_v1(registration, root)?.as_ref()
+                != Some(receipt)
+            {
+                return Err("composite epoch receipt reopen rejected".into());
+            }
+        }
+        composite_result = Some(result);
+    }
     let replayed_receipt = if let Some(result) = acquisition_result.as_ref() {
         result.receipt.clone().or(existing_receipt.clone())
     } else {
         existing_receipt.clone()
     };
+    let replayed_epoch_receipt = composite_result
+        .as_ref()
+        .and_then(|result| result.epoch_receipt.clone())
+        .or(existing_epoch_receipt.clone());
     let refreshed_snapshots = crate::model::load_local_learning_snapshots_v0(snapshot_root)?;
     let post_gap_report = crate::data::derive_agent_canonical_view_gaps_v1(
         &intents,
@@ -813,28 +993,57 @@ fn run_agent_canonical_view_gap_cli_v1(
         evaluation_registrations =
             crate::model::public_candidate_evaluation_summaries_v1(&evaluations);
     }
-    let request_status = acquisition_result
+    let request_status = composite_result
         .as_ref()
-        .map(|result| result.status)
-        .or_else(|| replayed_receipt.as_ref().map(|receipt| receipt.status))
-        .unwrap_or(crate::data::LearningEvidenceRequestStatusV1::ReadyNotAttempted);
-    let mut safety_counters = acquisition_result
+        .map(|result| format!("{:?}", result.status))
+        .or_else(|| {
+            replayed_epoch_receipt
+                .as_ref()
+                .map(|receipt| format!("{:?}", receipt.status))
+        })
+        .or_else(|| {
+            acquisition_result
+                .as_ref()
+                .map(|result| format!("{:?}", result.status))
+        })
+        .or_else(|| {
+            replayed_receipt
+                .as_ref()
+                .map(|receipt| format!("{:?}", receipt.status))
+        })
+        .unwrap_or_else(|| "ReadyNotAttempted".into());
+    let mut safety_counters = composite_result
         .as_ref()
         .map(|result| result.safety_counters.clone())
+        .or_else(|| {
+            acquisition_result
+                .as_ref()
+                .map(|result| result.safety_counters.clone())
+        })
         .unwrap_or_else(|| gap_report.safety_counters.clone());
-    if acquisition_result.is_none() {
+    if acquisition_result.is_none() && composite_result.is_none() {
         safety_counters.request_attempts = replayed_receipt
             .as_ref()
             .map_or(0, |receipt| receipt.request_count);
+        safety_counters.request_attempts = safety_counters.request_attempts.max(
+            replayed_epoch_receipt
+                .as_ref()
+                .map_or(0, |receipt| receipt.request_count),
+        );
         safety_counters.retry_count = replayed_receipt
             .as_ref()
             .map_or(0, |receipt| receipt.retry_count);
+        safety_counters.retry_count = safety_counters.retry_count.max(
+            replayed_epoch_receipt
+                .as_ref()
+                .map_or(0, |receipt| receipt.retry_count),
+        );
     }
     print_agent_canonical_view_gap_report_v1(
         &AgentCanonicalViewGapCliReportV1 {
             report_version: "agent-canonical-view-gap-cli-report-v1",
             mode: mode.into(),
-            offline: acquisition_result.is_none(),
+            offline: acquisition_result.is_none() && composite_result.is_none(),
             gaps: gap_report.gaps.clone(),
             post_acquisition_gaps: post_gap_report.gaps,
             gap_report_digest: gap_report.report_digest,
@@ -843,52 +1052,158 @@ fn run_agent_canonical_view_gap_cli_v1(
             selected_target_agent_ids: registration
                 .as_ref()
                 .map(|registration| registration.target_agent_ids.clone())
+                .or_else(|| {
+                    composite_registration
+                        .as_ref()
+                        .map(|registration| registration.target_agent_ids.clone())
+                })
                 .unwrap_or_default(),
             selected_dataset_kind: registration
                 .as_ref()
-                .map(|registration| registration.dataset_kind),
+                .map(|registration| registration.dataset_kind)
+                .or_else(|| {
+                    composite_registration
+                        .as_ref()
+                        .map(|registration| registration.dataset_kind)
+                }),
             registration_digest: registration
                 .as_ref()
-                .map(|registration| registration.registration_digest.clone()),
+                .map(|registration| registration.registration_digest.clone())
+                .or_else(|| {
+                    composite_registration
+                        .as_ref()
+                        .map(|registration| registration.registration_digest.clone())
+                }),
             registration_reopened_and_verified,
             request_status,
-            request_count: replayed_receipt
+            segment_count: composite_registration
                 .as_ref()
-                .map_or(0, |receipt| receipt.request_count),
-            retry_count: replayed_receipt
+                .map_or(0, |registration| registration.segments.len()),
+            segment_digests: composite_registration
                 .as_ref()
-                .map_or(0, |receipt| receipt.retry_count),
-            transport_constructions: acquisition_result
+                .map(|registration| {
+                    registration
+                        .segments
+                        .iter()
+                        .map(|segment| segment.segment_digest.clone())
+                        .collect()
+                })
+                .unwrap_or_default(),
+            segment_statuses: composite_result
                 .as_ref()
-                .map_or(0, |result| result.safety_counters.transport_constructions),
-            http_status_class: replayed_receipt
+                .map(|result| {
+                    result
+                        .segment_receipts
+                        .iter()
+                        .map(|receipt| format!("{:?}", receipt.status))
+                        .collect()
+                })
+                .unwrap_or_default(),
+            request_count: replayed_epoch_receipt
                 .as_ref()
-                .and_then(|receipt| receipt.http_status_class.clone()),
-            returned_row_count: replayed_receipt
+                .map(|receipt| receipt.request_count)
+                .or_else(|| {
+                    replayed_receipt
+                        .as_ref()
+                        .map(|receipt| receipt.request_count)
+                })
+                .unwrap_or_default(),
+            retry_count: replayed_epoch_receipt
                 .as_ref()
-                .map_or(0, |receipt| receipt.returned_row_count),
-            verified_row_count: replayed_receipt
+                .map(|receipt| receipt.retry_count)
+                .or_else(|| replayed_receipt.as_ref().map(|receipt| receipt.retry_count))
+                .unwrap_or_default(),
+            transport_constructions: composite_result
                 .as_ref()
-                .map_or(0, |receipt| receipt.verified_row_count),
-            receipt_present: replayed_receipt.is_some(),
-            receipt_digest: replayed_receipt
+                .map(|result| result.safety_counters.transport_constructions)
+                .or_else(|| {
+                    acquisition_result
+                        .as_ref()
+                        .map(|result| result.safety_counters.transport_constructions)
+                })
+                .unwrap_or_default(),
+            http_status_class: composite_result
                 .as_ref()
-                .map(|receipt| receipt.receipt_digest.clone()),
-            raw_response_present: replayed_receipt
+                .and_then(|result| result.segment_receipts.last())
+                .and_then(|receipt| receipt.http_status_class.clone())
+                .or_else(|| {
+                    replayed_receipt
+                        .as_ref()
+                        .and_then(|receipt| receipt.http_status_class.clone())
+                }),
+            returned_row_count: composite_result
                 .as_ref()
-                .is_some_and(|receipt| receipt.raw_response_digest.is_some()),
-            provenance_manifest_present: replayed_receipt
+                .map(|result| {
+                    result
+                        .segment_receipts
+                        .iter()
+                        .map(|receipt| receipt.returned_row_count)
+                        .sum()
+                })
+                .or_else(|| {
+                    replayed_receipt
+                        .as_ref()
+                        .map(|receipt| receipt.returned_row_count)
+                })
+                .unwrap_or_default(),
+            verified_row_count: composite_result
                 .as_ref()
-                .is_some_and(|receipt| receipt.provenance_manifest_digest.is_some()),
-            provenance_manifest_digest: replayed_receipt
+                .map(|result| {
+                    result
+                        .segment_receipts
+                        .iter()
+                        .map(|receipt| receipt.verified_row_count)
+                        .sum()
+                })
+                .or_else(|| {
+                    replayed_receipt
+                        .as_ref()
+                        .map(|receipt| receipt.verified_row_count)
+                })
+                .unwrap_or_default(),
+            receipt_present: replayed_epoch_receipt.is_some() || replayed_receipt.is_some(),
+            receipt_digest: replayed_epoch_receipt
                 .as_ref()
-                .and_then(|receipt| receipt.provenance_manifest_digest.clone()),
-            canonical_snapshot_present: replayed_receipt
+                .map(|receipt| receipt.receipt_digest.clone())
+                .or_else(|| {
+                    replayed_receipt
+                        .as_ref()
+                        .map(|receipt| receipt.receipt_digest.clone())
+                }),
+            raw_response_present: composite_result
                 .as_ref()
-                .is_some_and(|receipt| receipt.snapshot_digest.is_some()),
-            canonical_snapshot_digest: replayed_receipt
+                .is_some_and(|result| !result.raw_responses.is_empty())
+                || replayed_receipt
+                    .as_ref()
+                    .is_some_and(|receipt| receipt.raw_response_digest.is_some()),
+            provenance_manifest_present: replayed_epoch_receipt
                 .as_ref()
-                .and_then(|receipt| receipt.snapshot_digest.clone()),
+                .is_some_and(|receipt| receipt.merged_provenance_digest.is_some())
+                || replayed_receipt
+                    .as_ref()
+                    .is_some_and(|receipt| receipt.provenance_manifest_digest.is_some()),
+            provenance_manifest_digest: replayed_epoch_receipt
+                .as_ref()
+                .and_then(|receipt| receipt.merged_provenance_digest.clone())
+                .or_else(|| {
+                    replayed_receipt
+                        .as_ref()
+                        .and_then(|receipt| receipt.provenance_manifest_digest.clone())
+                }),
+            canonical_snapshot_present: replayed_epoch_receipt
+                .as_ref()
+                .is_some_and(|receipt| receipt.merged_snapshot_digest.is_some())
+                || replayed_receipt
+                    .as_ref()
+                    .is_some_and(|receipt| receipt.snapshot_digest.is_some()),
+            canonical_snapshot_digest: replayed_epoch_receipt
+                .as_ref()
+                .and_then(|receipt| receipt.merged_snapshot_digest.clone())
+                .or_else(|| {
+                    replayed_receipt
+                        .as_ref()
+                        .and_then(|receipt| receipt.snapshot_digest.clone())
+                }),
             candidate_families,
             evaluation_registrations,
             safety_counters,
@@ -3928,6 +4243,12 @@ struct ProspectiveOpeningContextV0 {
     registration: crate::model::ProspectiveOneTimeOpeningRegistrationV0,
     plans: Vec<crate::model::ProspectiveEventMaturityPlanV0>,
     public_registration: crate::data::ProspectivePublicExportAcquisitionRegistrationV0,
+    momentum: crate::model::ProspectiveChallengeLocalStateV0,
+    risk: crate::model::CycleRiskProspectiveLocalStateV0,
+    external_capsule: crate::model::ProspectiveExternalRowCapsuleV0,
+    event_audit: crate::model::ProspectiveSealedEventAuditV0,
+    outcome_receipt: crate::data::ProspectiveOutcomeAcquisitionReceiptV0,
+    outcome_capsule: crate::data::ProspectiveOutcomeEvidenceCapsuleV0,
     event_integrity_valid: bool,
     challenge_valid: bool,
     expected_series_id: String,
@@ -4136,11 +4457,534 @@ fn prospective_opening_context_v0(local_dir: &Path) -> Result<ProspectiveOpening
         registration,
         plans,
         public_registration,
+        momentum,
+        risk,
+        external_capsule,
+        event_audit: audit,
+        outcome_receipt: crate::data::read_prospective_outcome_acquisition_receipt_v0(
+            &local_dir.join("prospective_outcome_acquisition_receipt_v0.json"),
+        )?,
+        outcome_capsule: crate::data::read_prospective_outcome_evidence_capsule_v0(
+            &local_dir.join("prospective_outcome_evidence_capsule_v0.json"),
+        )?,
         event_integrity_valid: true,
         challenge_valid,
         expected_series_id: admission_registration.canonical_series_id,
         label_open_count,
     })
+}
+
+#[derive(Serialize)]
+struct ProspectiveOutcomeOpeningCliReportV0 {
+    report_version: &'static str,
+    mode: String,
+    offline: bool,
+    status: String,
+    readiness: String,
+    evidence_status: String,
+    opening_registration_digest: String,
+    authorization_digest: Option<String>,
+    receipt_digest: Option<String>,
+    outcome_capsule_digest: String,
+    opening_attempt_count: usize,
+    opened_event_count: usize,
+    outcome_digests: Vec<String>,
+    attribution_classes: Vec<String>,
+    reward_eligibility: Vec<String>,
+    reward_candidate_present: bool,
+    duplicate_execution_rejected: bool,
+    provider_calls: usize,
+    transport_constructions: usize,
+    network_consent_reads: usize,
+    credential_reads: usize,
+    prospective_label_reads: usize,
+    reward_apply_count: usize,
+    penalty_apply_count: usize,
+    voice_mutation_count: usize,
+    chair_decisions: usize,
+    votes: usize,
+    promotions: usize,
+    executions: usize,
+    protected_artifacts_unchanged: bool,
+}
+
+fn print_prospective_outcome_opening_report_v0(
+    report: &ProspectiveOutcomeOpeningCliReportV0,
+    output_format: &str,
+) -> Result<(), String> {
+    match output_format {
+        "json" => println!(
+            "{}",
+            serde_json::to_string(report)
+                .map_err(|_| "prospective opening report serialization failed")?
+        ),
+        "text" => {
+            println!("report_version={}", report.report_version);
+            println!("mode={}", report.mode);
+            println!("offline={}", report.offline);
+            println!("status={}", report.status);
+            println!("readiness={}", report.readiness);
+            println!("evidence_status={}", report.evidence_status);
+            println!(
+                "opening_registration_digest={}",
+                report.opening_registration_digest
+            );
+            println!(
+                "authorization_digest={}",
+                report.authorization_digest.as_deref().unwrap_or_default()
+            );
+            println!(
+                "receipt_digest={}",
+                report.receipt_digest.as_deref().unwrap_or_default()
+            );
+            println!("outcome_capsule_digest={}", report.outcome_capsule_digest);
+            println!("opening_attempt_count={}", report.opening_attempt_count);
+            println!("opened_event_count={}", report.opened_event_count);
+            println!("outcome_digests={}", report.outcome_digests.join(":"));
+            println!(
+                "attribution_classes={}",
+                report.attribution_classes.join(":")
+            );
+            println!("reward_eligibility={}", report.reward_eligibility.join(":"));
+            println!(
+                "reward_candidate_present={}",
+                report.reward_candidate_present
+            );
+            println!(
+                "duplicate_execution_rejected={}",
+                report.duplicate_execution_rejected
+            );
+            println!("provider_calls={}", report.provider_calls);
+            println!("transport_constructions={}", report.transport_constructions);
+            println!("network_consent_reads={}", report.network_consent_reads);
+            println!("credential_reads={}", report.credential_reads);
+            println!("prospective_label_reads={}", report.prospective_label_reads);
+            println!("reward_apply_count={}", report.reward_apply_count);
+            println!("penalty_apply_count={}", report.penalty_apply_count);
+            println!("voice_mutation_count={}", report.voice_mutation_count);
+            println!("chair_decisions={}", report.chair_decisions);
+            println!("votes={}", report.votes);
+            println!("promotions={}", report.promotions);
+            println!("executions={}", report.executions);
+            println!(
+                "protected_artifacts_unchanged={}",
+                report.protected_artifacts_unchanged
+            );
+        }
+        _ => return Err("unsupported prospective opening output format".into()),
+    }
+    Ok(())
+}
+
+fn load_selected_historical_snapshot_v0(
+    config_path: &Path,
+) -> Result<crate::data::DataSnapshot, String> {
+    let config = crate::data::UpbitHistoricalPilotConfigV0::from_toml_path(config_path)?;
+    config.validate()?;
+    let mut snapshots = fs::read_dir(&config.snapshot_output_dir)
+        .map_err(|_| "local snapshot directory unavailable")?
+        .filter_map(Result::ok)
+        .map(|entry| entry.path())
+        .filter(|path| path.extension().is_some_and(|extension| extension == "pb"))
+        .map(|path| crate::data::read_local_snapshot_protobuf_v1(&path))
+        .collect::<Result<Vec<_>, _>>()?;
+    snapshots.sort_by(|left, right| {
+        historical_snapshot_selection_rank(right)
+            .cmp(&historical_snapshot_selection_rank(left))
+            .then_with(|| right.row_count.cmp(&left.row_count))
+            .then_with(|| left.fetched_at_ms.cmp(&right.fetched_at_ms))
+            .then_with(|| left.snapshot_id.cmp(&right.snapshot_id))
+    });
+    snapshots
+        .into_iter()
+        .next()
+        .ok_or_else(|| "local historical campaign requires a snapshot".into())
+}
+
+fn prospective_opening_reward_contracts_v0(
+    context: &ProspectiveOpeningContextV0,
+    risk_report: &crate::model::CycleRiskShadowReportV0,
+) -> Result<
+    (
+        crate::model::LearnedProspectiveContractV0,
+        crate::model::LearnedProspectiveContractV0,
+        crate::model::LearnedRewardSampleGateV0,
+        crate::model::LearnedRewardEligibilityRegistrationV0,
+    ),
+    String,
+> {
+    let momentum_horizon = crate::core::stable_hash_string(&format!(
+        "momentum-horizon-v0:{}:{}",
+        context.momentum.capsule.prediction_horizon, context.momentum.capsule.label_policy_digest
+    ));
+    let risk_horizon = crate::core::stable_hash_string(&format!(
+        "cycle-risk-horizon-v0:{}:{}",
+        context.risk.capsule.prediction_horizon, context.risk.capsule.label_policy_digest
+    ));
+    let momentum_contract = crate::model::new_learned_prospective_contract_v0(
+        crate::model::LearnedAgentObjectiveV0::DirectionalMomentum,
+        context.momentum.capsule.capsule_digest.clone(),
+        context.momentum.capsule.candidate.artifact_digest.clone(),
+        momentum_horizon,
+        context
+            .momentum
+            .capsule
+            .prospective_cutoff_exclusive_timestamp_ms,
+    )?;
+    let risk_contract = crate::model::new_learned_prospective_contract_v0(
+        crate::model::LearnedAgentObjectiveV0::DownsideRisk,
+        context.risk.capsule.capsule_digest.clone(),
+        context
+            .risk
+            .capsule
+            .historical_champion
+            .artifact_digest
+            .clone(),
+        risk_horizon,
+        context.risk.capsule.cutoff_exclusive_timestamp_ms,
+    )?;
+    let gate = crate::model::new_learned_reward_sample_gate_v0(
+        context
+            .momentum
+            .capsule
+            .evaluation_policy
+            .minimum_mature_events
+            .max(context.risk.capsule.evaluation_policy.minimum_mature_events),
+        context
+            .momentum
+            .capsule
+            .evaluation_policy
+            .minimum_support_qualified_events
+            .max(
+                context
+                    .risk
+                    .capsule
+                    .evaluation_policy
+                    .minimum_support_qualified_events,
+            ),
+        risk_report.regimes.len(),
+    )?;
+    let registration = crate::model::pre_register_learned_reward_eligibility_v0(
+        &crate::model::LearnedRewardEligibilityRegistrationInputV0 {
+            momentum: momentum_contract.clone(),
+            cycle_risk: risk_contract.clone(),
+            attribution_policy_digest: crate::core::stable_hash_string(
+                "learned-prospective-attribution-policy-v0",
+            ),
+            maturity_policy_digest: crate::core::stable_hash_string(&format!(
+                "learned-outcome-maturity-policy-v0:{}:{}:{}:{}",
+                context
+                    .momentum
+                    .capsule
+                    .opening_policy
+                    .minimum_mature_events,
+                context
+                    .momentum
+                    .capsule
+                    .opening_policy
+                    .minimum_support_qualified_events,
+                context.risk.capsule.opening_policy.minimum_mature_events,
+                context
+                    .risk
+                    .capsule
+                    .opening_policy
+                    .minimum_support_qualified_events,
+            )),
+            sample_gate_policy_digest: gate.gate_digest.clone(),
+            objective_mapping_policy_digest: crate::core::stable_hash_string(
+                "learned-objective-mapping-policy-v0",
+            ),
+            integrity_policy_digest: crate::core::stable_hash_string(
+                "learned-prospective-integrity-policy-v0",
+            ),
+        },
+    )?;
+    Ok((momentum_contract, risk_contract, gate, registration))
+}
+
+fn prospective_opening_protected_bytes_v0(local_dir: &Path) -> Result<Vec<Vec<u8>>, String> {
+    let mut bytes = prospective_outcome_acquisition_protected_bytes(local_dir)?;
+    for name in [
+        "prospective_outcome_acquisition_receipt_v0.json",
+        "prospective_outcome_evidence_capsule_v0.json",
+    ] {
+        bytes.push(
+            fs::read(local_dir.join(name))
+                .map_err(|_| "prospective opening protected artifact unavailable")?,
+        );
+    }
+    Ok(bytes)
+}
+
+fn run_prospective_outcome_opening_v0(
+    config_path: &Path,
+    output_format: &str,
+    status_mode: bool,
+    dry_run: bool,
+    execute_local: bool,
+    allow_network: bool,
+    confirm_one_time_prospective_opening: bool,
+) -> Result<(), String> {
+    if usize::from(status_mode) + usize::from(dry_run) + usize::from(execute_local) != 1 {
+        return Err("select exactly one prospective opening mode".into());
+    }
+    if allow_network {
+        return Err("prospective outcome opening is offline-only".into());
+    }
+    if confirm_one_time_prospective_opening != execute_local {
+        return Err(
+            "execute-local prospective opening requires its one-time confirmation only".into(),
+        );
+    }
+    if output_format != "text" && output_format != "json" {
+        return Err("unsupported prospective opening output format".into());
+    }
+    let mode = if status_mode {
+        "status"
+    } else if dry_run {
+        "dry-run"
+    } else {
+        "execute-local"
+    };
+    let local_dir = config_path
+        .parent()
+        .ok_or("prospective opening local directory unavailable")?;
+    let protected_before = prospective_opening_protected_bytes_v0(local_dir)?;
+    let context = prospective_opening_context_v0(local_dir)?;
+    let registration = crate::model::read_prospective_one_time_opening_registration_v0(
+        &local_dir.join("prospective_one_time_opening_registration_v0.json"),
+    )?;
+    crate::model::validate_prospective_one_time_opening_registration_v0(
+        &registration,
+        &context.plans,
+    )?;
+    if registration != context.registration {
+        return Err("prospective opening registration mismatch".into());
+    }
+    let acquisition_plan = crate::data::build_prospective_outcome_acquisition_plan_v0(
+        &registration,
+        &context.plans,
+        &context.public_registration,
+        crate::model::ProspectiveOutcomeRequestReadinessV0::ReadyForExplicitRequest,
+    )?;
+    crate::data::validate_prospective_outcome_evidence_capsule_for_plan_v0(
+        &context.outcome_capsule,
+        &acquisition_plan,
+        &context.expected_series_id,
+    )?;
+    let snapshot = load_selected_historical_snapshot_v0(config_path)?;
+    let risk_config = crate::model::CycleRiskShadowConfigV0::default();
+    let risk_report = crate::model::run_cycle_risk_shadow_v0(&snapshot, &risk_config)
+        .map_err(|_| "prospective opening frozen risk policy rebuild failed")?;
+    let rebuilt_risk_capsule = crate::model::prepare_cycle_risk_prospective_tournament_v0(
+        &snapshot,
+        &risk_report,
+        &risk_config,
+    )
+    .map_err(|_| "prospective opening frozen risk capsule rebuild failed")?;
+    if rebuilt_risk_capsule != context.risk.capsule
+        || risk_config.label.digest() != context.risk.capsule.label_policy_digest
+    {
+        return Err("prospective opening frozen risk policy mismatch".into());
+    }
+    let momentum_config = crate::model::MomentumLearningCampaignConfigV0::default();
+    let sequence = &momentum_config.sequence_config;
+    let momentum_label_policy_digest = crate::core::stable_hash_string(&format!(
+        "{}:{}:{}:{}:{}",
+        sequence.sequence_length,
+        sequence.prediction_horizon,
+        sequence.label_dead_zone.to_bits(),
+        sequence.stride,
+        sequence.include_neutral_labels,
+    ));
+    if momentum_label_policy_digest != context.momentum.capsule.label_policy_digest {
+        return Err("prospective opening frozen momentum policy mismatch".into());
+    }
+    let risk_threshold_bits = risk_report
+        .regimes
+        .iter()
+        .map(|regime| regime.checkpoint.threshold.to_bits())
+        .collect::<Vec<_>>();
+    let (momentum_contract, risk_contract, reward_gate, reward_registration) =
+        prospective_opening_reward_contracts_v0(&context, &risk_report)?;
+    let opening_root =
+        crate::model::default_private_learning_root_v0().join("prospective_opening_v0");
+    let authorization_path = opening_root.join("opening-authorization-v0.pb");
+    let bundle_path = opening_root.join("opening-bundle-v0.pb");
+    let existing_bundle = if bundle_path.is_file() {
+        Some(crate::model::read_prospective_outcome_opening_bundle_v0(
+            &bundle_path,
+        )?)
+    } else {
+        None
+    };
+    let input = crate::model::ProspectiveOutcomeOpeningInputV0 {
+        registration: &registration,
+        plans: &context.plans,
+        acquisition_receipt: &context.outcome_receipt,
+        outcome_capsule: &context.outcome_capsule,
+        expected_series_id: &context.expected_series_id,
+        momentum_event: &context.event_audit.momentum_event,
+        risk_event: &context.event_audit.risk_event,
+        prospective_source_row: &context.external_capsule.row,
+        momentum_contract: &momentum_contract,
+        risk_contract: &risk_contract,
+        reward_registration: &reward_registration,
+        reward_gate: &reward_gate,
+        momentum_label_dead_zone_bits: sequence.label_dead_zone.to_bits(),
+        risk_threshold_bits: &risk_threshold_bits,
+        observed_timestamp: current_utc_timestamp_ms(),
+        challenge_valid: context.challenge_valid,
+        opening_attempt_count_before: 0,
+        opened_event_count_before: context.label_open_count,
+    };
+    let preflight = crate::model::derive_prospective_outcome_opening_preflight_v0(&input)?;
+    let mut duplicate_execution_rejected = false;
+    let bundle = if let Some(existing) = existing_bundle {
+        if existing.receipt.opening_registration_digest != registration.registration_digest
+            || existing.receipt.outcome_capsule_digest != context.outcome_capsule.capsule_digest
+        {
+            return Err("prospective opening stored bundle identity mismatch".into());
+        }
+        duplicate_execution_rejected = execute_local;
+        Some(existing)
+    } else if execute_local {
+        let authorization = crate::model::authorize_prospective_outcome_opening_v0(&input, true)?;
+        crate::model::write_and_verify_prospective_outcome_opening_authorization_v0(
+            &authorization_path,
+            &authorization,
+        )?;
+        let reopened =
+            crate::model::read_prospective_outcome_opening_authorization_v0(&authorization_path)?;
+        crate::model::validate_prospective_outcome_opening_authorization_v0(&reopened, &input)?;
+        let derived =
+            crate::model::derive_prospective_outcome_opening_bundle_v0(&input, Some(&reopened));
+        crate::model::write_and_verify_prospective_outcome_opening_bundle_v0(
+            &bundle_path,
+            &derived,
+        )?;
+        let reopened_bundle =
+            crate::model::read_prospective_outcome_opening_bundle_v0(&bundle_path)?;
+        if reopened_bundle != derived {
+            return Err("prospective opening bundle reopen mismatch".into());
+        }
+        Some(reopened_bundle)
+    } else {
+        None
+    };
+    let protected_artifacts_unchanged =
+        protected_before == prospective_opening_protected_bytes_v0(local_dir)?;
+    if !protected_artifacts_unchanged {
+        return Err("prospective opening protected artifact mismatch".into());
+    }
+    let (
+        status,
+        authorization_digest,
+        receipt_digest,
+        opening_attempt_count,
+        opened_event_count,
+        outcome_digests,
+        attribution_classes,
+        reward_eligibility,
+        reward_candidate_present,
+        reward_apply_count,
+        penalty_apply_count,
+        voice_mutation_count,
+        authority_action_count,
+    ) = if let Some(bundle) = bundle.as_ref() {
+        (
+            if duplicate_execution_rejected {
+                format!(
+                    "{:?}",
+                    crate::model::ProspectiveOutcomeOpeningStatusV0::AlreadyOpened
+                )
+            } else {
+                format!("{:?}", bundle.receipt.status)
+            },
+            bundle
+                .authorization
+                .as_ref()
+                .map(|value| value.authorization_digest.clone()),
+            Some(bundle.receipt.receipt_digest.clone()),
+            bundle.receipt.opening_attempt_count,
+            bundle.receipt.opened_event_count,
+            bundle
+                .outcomes
+                .iter()
+                .map(|outcome| outcome.outcome_digest.clone())
+                .collect(),
+            bundle
+                .outcomes
+                .iter()
+                .map(|outcome| format!("{:?}", outcome.attribution_class))
+                .collect(),
+            bundle
+                .outcomes
+                .iter()
+                .map(|outcome| format!("{:?}", outcome.eligibility_status))
+                .collect(),
+            bundle.reward_candidate_count > 0,
+            bundle.reward_apply_count,
+            bundle.penalty_apply_count,
+            bundle.voice_mutation_count,
+            bundle.authority_action_count,
+        )
+    } else {
+        (
+            "ReadyForExplicitOpening".into(),
+            None,
+            None,
+            0,
+            0,
+            vec![],
+            vec![],
+            vec![],
+            false,
+            0,
+            0,
+            0,
+            0,
+        )
+    };
+    print_prospective_outcome_opening_report_v0(
+        &ProspectiveOutcomeOpeningCliReportV0 {
+            report_version: "prospective-outcome-opening-cli-report-v0",
+            mode: mode.into(),
+            offline: true,
+            status,
+            readiness: format!("{:?}", preflight.readiness),
+            evidence_status: format!("{:?}", preflight.evidence_status),
+            opening_registration_digest: registration.registration_digest,
+            authorization_digest,
+            receipt_digest,
+            outcome_capsule_digest: context.outcome_capsule.capsule_digest,
+            opening_attempt_count,
+            opened_event_count,
+            outcome_digests,
+            attribution_classes,
+            reward_eligibility,
+            reward_candidate_present,
+            duplicate_execution_rejected,
+            provider_calls: 0,
+            transport_constructions: 0,
+            network_consent_reads: 0,
+            credential_reads: 0,
+            prospective_label_reads: opened_event_count,
+            reward_apply_count,
+            penalty_apply_count,
+            voice_mutation_count,
+            chair_decisions: 0,
+            votes: 0,
+            promotions: 0,
+            executions: 0,
+            protected_artifacts_unchanged,
+        },
+        output_format,
+    )?;
+    if authority_action_count != 0 {
+        return Err("prospective opening authority mutation rejected".into());
+    }
+    Ok(())
 }
 
 fn print_prospective_opening_registration_report(

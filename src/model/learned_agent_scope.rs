@@ -1,7 +1,13 @@
 //! Offline, external scope attestations for immutable learned-agent opinions.
 
-use std::{collections::BTreeSet, fs, path::Path};
+use std::{
+    collections::BTreeSet,
+    fs::{self, File, OpenOptions},
+    io::{Read, Write},
+    path::Path,
+};
 
+use prost::Message;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -6855,7 +6861,7 @@ pub fn aggregate_joint_scope_replays_v2(
     let mut risk_abstained_count = 0usize;
     let mut technical_failure_scope_count = 0usize;
     let mut incomparable_count = 0usize;
-    let mut tension_count = 0usize;
+    let tension_count = 0usize;
     let mut orthogonal_count = 0usize;
     let mut deliberations = Vec::new();
     for result in &ordered {
@@ -10714,6 +10720,1476 @@ pub fn validate_prospective_opening_authorization_v0(
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProspectiveOutcomeOpeningStatusV0 {
+    Opened,
+    AlreadyOpened,
+    AuthorizationMissing,
+    RegistrationMismatch,
+    EvidenceMismatch,
+    ObjectiveDerivationFailure,
+    IntegrityFailure,
+    TerminalTechnicalFailure,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProspectiveOutcomeOpeningAuthorizationV0 {
+    pub authorization_version: String,
+    pub opening_registration_digest: String,
+    pub outcome_receipt_digest: String,
+    pub outcome_capsule_digest: String,
+    pub momentum_event_digest: String,
+    pub risk_event_digest: String,
+    pub authorized_event_digests: Vec<String>,
+    pub authorized_row_digests: Vec<String>,
+    pub opening_attempt_count_before: usize,
+    pub opened_event_count_before: usize,
+    pub explicit_owner_authorization: bool,
+    pub one_time_only: bool,
+    pub authorization_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProspectiveObjectiveOpeningOutcomeV0 {
+    pub outcome_version: String,
+    pub objective: LearnedAgentObjectiveV0,
+    pub event_id: String,
+    pub event_digest: String,
+    pub maturity_plan_digest: String,
+    pub source_row_digests: Vec<String>,
+    pub label_policy_digest: String,
+    pub attribution_class: LearnedAbstentionAttributionV0,
+    pub attribution: LearnedProspectiveEventAttributionV0,
+    pub learned_outcome_digest: String,
+    pub eligibility_status: LearnedRewardEligibilityStatusV0,
+    pub eligibility_digest: String,
+    pub reward_candidate_digest: Option<String>,
+    pub ledger_digest: String,
+    pub outcome_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProspectiveOpeningAttributionJournalV0 {
+    pub journal_version: String,
+    pub attributions: Vec<LearnedProspectiveEventAttributionV0>,
+    pub journal_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProspectiveOutcomeOpeningReceiptV0 {
+    pub receipt_version: String,
+    pub authorization_digest: String,
+    pub opening_registration_digest: String,
+    pub outcome_capsule_digest: String,
+    pub opening_attempt_count: usize,
+    pub opened_event_count: usize,
+    pub momentum_outcome_digest: Option<String>,
+    pub risk_outcome_digest: Option<String>,
+    pub status: ProspectiveOutcomeOpeningStatusV0,
+    pub receipt_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProspectiveOutcomeOpeningBundleV0 {
+    pub bundle_version: String,
+    pub authorization: Option<ProspectiveOutcomeOpeningAuthorizationV0>,
+    pub receipt: ProspectiveOutcomeOpeningReceiptV0,
+    pub outcomes: Vec<ProspectiveObjectiveOpeningOutcomeV0>,
+    pub attribution_journal: ProspectiveOpeningAttributionJournalV0,
+    pub reward_candidate_count: usize,
+    pub reward_apply_count: usize,
+    pub penalty_apply_count: usize,
+    pub voice_mutation_count: usize,
+    pub authority_action_count: usize,
+    pub bundle_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ProspectiveOutcomeOpeningPreflightV0 {
+    pub readiness: ProspectiveOpeningReadinessV0,
+    pub evidence_status: ProspectiveOutcomeEvidenceStatusV0,
+    pub evidence_digest: String,
+    pub exact_row_digests: Vec<String>,
+    pub opening_attempt_count_before: usize,
+    pub opened_event_count_before: usize,
+}
+
+pub struct ProspectiveOutcomeOpeningInputV0<'a> {
+    pub registration: &'a ProspectiveOneTimeOpeningRegistrationV0,
+    pub plans: &'a [ProspectiveEventMaturityPlanV0],
+    pub acquisition_receipt: &'a crate::data::ProspectiveOutcomeAcquisitionReceiptV0,
+    pub outcome_capsule: &'a crate::data::ProspectiveOutcomeEvidenceCapsuleV0,
+    pub expected_series_id: &'a str,
+    pub momentum_event: &'a LearnedProspectiveEventV0,
+    pub risk_event: &'a LearnedProspectiveEventV0,
+    pub prospective_source_row: &'a CanonicalHistoricalRowIdentityV1,
+    pub momentum_contract: &'a LearnedProspectiveContractV0,
+    pub risk_contract: &'a LearnedProspectiveContractV0,
+    pub reward_registration: &'a LearnedRewardEligibilityRegistrationV0,
+    pub reward_gate: &'a LearnedRewardSampleGateV0,
+    pub momentum_label_dead_zone_bits: u32,
+    pub risk_threshold_bits: &'a [u32],
+    pub observed_timestamp: u64,
+    pub challenge_valid: bool,
+    pub opening_attempt_count_before: usize,
+    pub opened_event_count_before: usize,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ProspectiveOpeningArtifactWriteStatusV0 {
+    Written,
+    DuplicateRejected,
+}
+
+fn prospective_outcome_opening_authorization_digest_v0(
+    value: &ProspectiveOutcomeOpeningAuthorizationV0,
+) -> String {
+    digest(&(
+        &value.authorization_version,
+        &value.opening_registration_digest,
+        &value.outcome_receipt_digest,
+        &value.outcome_capsule_digest,
+        &value.momentum_event_digest,
+        &value.risk_event_digest,
+        &value.authorized_event_digests,
+        &value.authorized_row_digests,
+        value.opening_attempt_count_before,
+        value.opened_event_count_before,
+        value.explicit_owner_authorization,
+        value.one_time_only,
+    ))
+}
+
+fn prospective_objective_opening_outcome_digest_v0(
+    value: &ProspectiveObjectiveOpeningOutcomeV0,
+) -> String {
+    digest(&(
+        (
+            &value.outcome_version,
+            value.objective,
+            &value.event_id,
+            &value.event_digest,
+            &value.maturity_plan_digest,
+            &value.source_row_digests,
+            &value.label_policy_digest,
+        ),
+        (
+            value.attribution_class,
+            &value.attribution,
+            &value.learned_outcome_digest,
+            value.eligibility_status,
+            &value.eligibility_digest,
+            &value.reward_candidate_digest,
+            &value.ledger_digest,
+        ),
+    ))
+}
+
+fn prospective_opening_attribution_journal_digest_v0(
+    value: &ProspectiveOpeningAttributionJournalV0,
+) -> String {
+    digest(&(&value.journal_version, &value.attributions))
+}
+
+fn prospective_outcome_opening_receipt_digest_v0(
+    value: &ProspectiveOutcomeOpeningReceiptV0,
+) -> String {
+    digest(&(
+        &value.receipt_version,
+        &value.authorization_digest,
+        &value.opening_registration_digest,
+        &value.outcome_capsule_digest,
+        value.opening_attempt_count,
+        value.opened_event_count,
+        &value.momentum_outcome_digest,
+        &value.risk_outcome_digest,
+        value.status,
+    ))
+}
+
+fn prospective_outcome_opening_bundle_digest_v0(
+    value: &ProspectiveOutcomeOpeningBundleV0,
+) -> String {
+    digest(&(
+        &value.bundle_version,
+        value
+            .authorization
+            .as_ref()
+            .map(|authorization| authorization.authorization_digest.as_str()),
+        &value.receipt.receipt_digest,
+        value
+            .outcomes
+            .iter()
+            .map(|outcome| outcome.outcome_digest.as_str())
+            .collect::<Vec<_>>(),
+        &value.attribution_journal.journal_digest,
+        value.reward_candidate_count,
+        value.reward_apply_count,
+        value.penalty_apply_count,
+        value.voice_mutation_count,
+        value.authority_action_count,
+    ))
+}
+
+pub fn derive_prospective_outcome_opening_preflight_v0(
+    input: &ProspectiveOutcomeOpeningInputV0<'_>,
+) -> Result<ProspectiveOutcomeOpeningPreflightV0, String> {
+    validate_prospective_one_time_opening_registration_v0(input.registration, input.plans)?;
+    if input.plans.len() != 2
+        || !crate::data::verify_prospective_outcome_acquisition_receipt_v0(
+            input.acquisition_receipt,
+        )
+        || !crate::data::verify_prospective_outcome_evidence_capsule_v0(input.outcome_capsule)
+        || input.acquisition_receipt.opening_registration_digest
+            != input.registration.registration_digest
+        || input.acquisition_receipt.outcome_capsule_digest.as_deref()
+            != Some(input.outcome_capsule.capsule_digest.as_str())
+        || input.outcome_capsule.opening_registration_digest
+            != input.registration.registration_digest
+        || input.outcome_capsule.acquisition_receipt_digest
+            != input.acquisition_receipt.receipt_digest
+        || input.momentum_event.event_digest != input.registration.momentum_event_digest
+        || input.risk_event.event_digest != input.registration.risk_event_digest
+        || input.momentum_event.shared_raw_evidence_digest
+            != input.registration.shared_raw_evidence_digest
+        || input.risk_event.shared_raw_evidence_digest
+            != input.registration.shared_raw_evidence_digest
+        || input.prospective_source_row.row_digest_v1
+            != canonical_semantic_digest_v1(input.prospective_source_row)
+        || input.expected_series_id.is_empty()
+        || input.opening_attempt_count_before > 0
+        || input.opened_event_count_before > 0
+        || !input.challenge_valid
+    {
+        return Err("prospective_outcome_opening_preflight_integrity_invalid".into());
+    }
+    let rows = input
+        .outcome_capsule
+        .canonical_rows
+        .iter()
+        .map(|row| ProspectiveOutcomeEvidenceRowV0 {
+            series_id: row.series_id.clone(),
+            timestamp: row.timestamp_ms,
+            canonical_row_digest: row.row_digest_v1.clone(),
+            finalized: input.outcome_capsule.finalized,
+        })
+        .collect::<Vec<_>>();
+    let assessment =
+        assess_prospective_outcome_evidence_v0(input.plans, input.expected_series_id, &rows);
+    let readiness = aggregate_prospective_opening_readiness_v0(
+        &input
+            .plans
+            .iter()
+            .map(|plan| {
+                prospective_opening_readiness_v0(
+                    plan,
+                    input.observed_timestamp,
+                    assessment.status,
+                    true,
+                    input.challenge_valid,
+                    input.opened_event_count_before,
+                )
+            })
+            .collect::<Vec<_>>(),
+    );
+    if assessment.status != ProspectiveOutcomeEvidenceStatusV0::CompleteVerified
+        || readiness != ProspectiveOpeningReadinessV0::ReadyForExplicitOpening
+        || assessment
+            .evidence_digest
+            .as_deref()
+            .is_none_or(str::is_empty)
+        || input.outcome_capsule.canonical_row_digests
+            != input
+                .outcome_capsule
+                .canonical_rows
+                .iter()
+                .map(|row| row.row_digest_v1.clone())
+                .collect::<Vec<_>>()
+    {
+        return Err("prospective_outcome_opening_evidence_not_ready".into());
+    }
+    Ok(ProspectiveOutcomeOpeningPreflightV0 {
+        readiness,
+        evidence_status: assessment.status,
+        evidence_digest: assessment.evidence_digest.unwrap_or_default(),
+        exact_row_digests: input.outcome_capsule.canonical_row_digests.clone(),
+        opening_attempt_count_before: input.opening_attempt_count_before,
+        opened_event_count_before: input.opened_event_count_before,
+    })
+}
+
+pub fn authorize_prospective_outcome_opening_v0(
+    input: &ProspectiveOutcomeOpeningInputV0<'_>,
+    explicit_owner_authorization: bool,
+) -> Result<ProspectiveOutcomeOpeningAuthorizationV0, String> {
+    let preflight = derive_prospective_outcome_opening_preflight_v0(input)?;
+    if !explicit_owner_authorization
+        || preflight.opening_attempt_count_before != 0
+        || preflight.opened_event_count_before != 0
+    {
+        return Err("prospective_outcome_opening_owner_authorization_missing".into());
+    }
+    let mut authorized_event_digests = vec![
+        input.registration.momentum_event_digest.clone(),
+        input.registration.risk_event_digest.clone(),
+    ];
+    authorized_event_digests.sort();
+    let mut authorization = ProspectiveOutcomeOpeningAuthorizationV0 {
+        authorization_version: "prospective-outcome-opening-authorization-v0".into(),
+        opening_registration_digest: input.registration.registration_digest.clone(),
+        outcome_receipt_digest: input.acquisition_receipt.receipt_digest.clone(),
+        outcome_capsule_digest: input.outcome_capsule.capsule_digest.clone(),
+        momentum_event_digest: input.registration.momentum_event_digest.clone(),
+        risk_event_digest: input.registration.risk_event_digest.clone(),
+        authorized_event_digests,
+        authorized_row_digests: preflight.exact_row_digests,
+        opening_attempt_count_before: 0,
+        opened_event_count_before: 0,
+        explicit_owner_authorization: true,
+        one_time_only: true,
+        authorization_digest: String::new(),
+    };
+    authorization.authorization_digest =
+        prospective_outcome_opening_authorization_digest_v0(&authorization);
+    validate_prospective_outcome_opening_authorization_v0(&authorization, input)?;
+    Ok(authorization)
+}
+
+pub fn validate_prospective_outcome_opening_authorization_v0(
+    authorization: &ProspectiveOutcomeOpeningAuthorizationV0,
+    input: &ProspectiveOutcomeOpeningInputV0<'_>,
+) -> Result<(), String> {
+    let preflight = derive_prospective_outcome_opening_preflight_v0(input)?;
+    let mut expected_events = vec![
+        input.registration.momentum_event_digest.clone(),
+        input.registration.risk_event_digest.clone(),
+    ];
+    expected_events.sort();
+    if authorization.authorization_version != "prospective-outcome-opening-authorization-v0"
+        || authorization.opening_registration_digest != input.registration.registration_digest
+        || authorization.outcome_receipt_digest != input.acquisition_receipt.receipt_digest
+        || authorization.outcome_capsule_digest != input.outcome_capsule.capsule_digest
+        || authorization.momentum_event_digest != input.registration.momentum_event_digest
+        || authorization.risk_event_digest != input.registration.risk_event_digest
+        || authorization.authorized_event_digests != expected_events
+        || authorization.authorized_row_digests != preflight.exact_row_digests
+        || authorization.opening_attempt_count_before != 0
+        || authorization.opened_event_count_before != 0
+        || !authorization.explicit_owner_authorization
+        || !authorization.one_time_only
+        || authorization.authorization_digest
+            != prospective_outcome_opening_authorization_digest_v0(authorization)
+    {
+        Err("prospective_outcome_opening_authorization_invalid".into())
+    } else {
+        Ok(())
+    }
+}
+
+fn prospective_opening_attribution_v0(
+    event: &LearnedProspectiveEventV0,
+    contract: &LearnedProspectiveContractV0,
+) -> LearnedProspectiveEventAttributionV0 {
+    let mut attribution = LearnedProspectiveEventAttributionV0 {
+        attribution_version: "learned-prospective-event-attribution-v0".into(),
+        event_id: event.event_id.clone(),
+        event_digest: event.event_digest.clone(),
+        agent_id: event.agent_id.clone(),
+        objective: event.objective,
+        opinion_id: format!("sealed-opinion-{}", event.event_id),
+        opinion_digest: stable_hash_string(&format!(
+            "sealed-prospective-opinion-v0:{}:{}",
+            event.event_digest, event.challenge_digest
+        )),
+        opinion_seal_digest: stable_hash_string(&format!(
+            "sealed-prospective-opinion-seal-v0:{}:{}",
+            event.event_id, event.event_digest
+        )),
+        challenge_digest: event.challenge_digest.clone(),
+        model_artifact_digest: contract.model_artifact_digest.clone(),
+        raw_evidence_digest: event.shared_raw_evidence_digest.clone(),
+        event_timestamp: event.prediction_timestamp,
+        maturity_timestamp: event.maturity_timestamp,
+        prediction_horizon_digest: contract.prediction_horizon_digest.clone(),
+        support_status_digest: event.support_status_digest.clone(),
+        attribution_digest: String::new(),
+    };
+    attribution.attribution_digest = learned_attribution_digest_v0(&attribution);
+    attribution
+}
+
+fn opening_plan_for_objective_v0(
+    plans: &[ProspectiveEventMaturityPlanV0],
+    objective: LearnedAgentObjectiveV0,
+) -> Result<&ProspectiveEventMaturityPlanV0, String> {
+    let matches = plans
+        .iter()
+        .filter(|plan| plan.objective == objective)
+        .collect::<Vec<_>>();
+    if matches.len() == 1 {
+        Ok(matches[0])
+    } else {
+        Err("prospective_outcome_objective_plan_invalid".into())
+    }
+}
+
+fn opening_rows_for_plan_v0<'a>(
+    capsule: &'a crate::data::ProspectiveOutcomeEvidenceCapsuleV0,
+    plan: &ProspectiveEventMaturityPlanV0,
+) -> Result<Vec<&'a CanonicalHistoricalRowIdentityV1>, String> {
+    let rows = capsule
+        .canonical_rows
+        .iter()
+        .filter(|row| {
+            row.timestamp_ms >= plan.required_outcome_start_timestamp
+                && row.timestamp_ms <= plan.required_outcome_end_timestamp
+        })
+        .collect::<Vec<_>>();
+    if rows.len() != plan.required_finalized_row_count
+        || rows.first().map(|row| row.timestamp_ms) != Some(plan.required_outcome_start_timestamp)
+        || rows.last().map(|row| row.timestamp_ms) != Some(plan.required_outcome_end_timestamp)
+    {
+        Err("prospective_outcome_objective_rows_invalid".into())
+    } else {
+        Ok(rows)
+    }
+}
+
+fn open_objective_v0(
+    input: &ProspectiveOutcomeOpeningInputV0<'_>,
+    event: &LearnedProspectiveEventV0,
+    contract: &LearnedProspectiveContractV0,
+    objective: LearnedAgentObjectiveV0,
+) -> Result<ProspectiveObjectiveOpeningOutcomeV0, String> {
+    let plan = opening_plan_for_objective_v0(input.plans, objective)?;
+    let rows = opening_rows_for_plan_v0(input.outcome_capsule, plan)?;
+    if event.objective != objective
+        || event.event_digest != plan.event_digest
+        || event.event_id != plan.event_id
+        || event.prediction_timestamp != plan.prediction_timestamp
+        || event.maturity_timestamp != plan.maturity_timestamp
+        || event.challenge_digest != contract.challenge_digest
+        || event.agent_id != contract.agent_id
+        || event
+            .frozen_model_artifact_digests
+            .iter()
+            .all(|digest| digest != &contract.model_artifact_digest)
+        || event.operational_outcome
+            != ProspectiveOperationalOutcomeV0::ShadowAbstentionSupportUnavailable
+    {
+        return Err("prospective_outcome_objective_event_mismatch".into());
+    }
+    let attribution = prospective_opening_attribution_v0(event, contract);
+    validate_learned_prospective_event_attribution_v0(&attribution, contract, &BTreeSet::new())?;
+    let source_row_digests = rows
+        .iter()
+        .map(|row| row.row_digest_v1.clone())
+        .collect::<Vec<_>>();
+    let regime_digest = stable_hash_string(&format!(
+        "prospective-opened-regime-v0:{objective:?}:{:?}",
+        source_row_digests
+    ));
+    let (attribution_class, payload) = match objective {
+        LearnedAgentObjectiveV0::DirectionalMomentum => {
+            if rows.len() != 1 || plan.required_finalized_row_count != 1 {
+                return Err("prospective_momentum_outcome_range_invalid".into());
+            }
+            let initial_close = f64::from_bits(input.prospective_source_row.close_bits);
+            let final_close = f64::from_bits(rows[0].close_bits);
+            let dead_zone = f32::from_bits(input.momentum_label_dead_zone_bits) as f64;
+            if !initial_close.is_finite()
+                || !final_close.is_finite()
+                || !dead_zone.is_finite()
+                || initial_close <= 0.0
+                || final_close <= 0.0
+                || dead_zone < 0.0
+            {
+                return Err("prospective_momentum_outcome_numeric_invalid".into());
+            }
+            let material = (final_close / initial_close - 1.0).abs() > dead_zone;
+            let class = if material {
+                LearnedAbstentionAttributionV0::MissedMaterialOpportunity
+            } else {
+                LearnedAbstentionAttributionV0::CorrectUncertainty
+            };
+            (
+                class,
+                LearnedProspectiveOutcomePayloadV0::Momentum(MomentumProspectiveOutcomeV0 {
+                    directional_label_correct: false,
+                    support_qualified_brier_improved: false,
+                    calibration_improved: false,
+                    high_confidence_error: false,
+                    baseline_beaten: false,
+                    abstention: class,
+                    probability_collapse: false,
+                    support_qualified: false,
+                    regime_digest,
+                }),
+            )
+        }
+        LearnedAgentObjectiveV0::DownsideRisk => {
+            if input.risk_threshold_bits.is_empty()
+                || rows.len() != plan.required_finalized_row_count
+            {
+                return Err("prospective_risk_outcome_policy_invalid".into());
+            }
+            let initial_close = f64::from_bits(input.prospective_source_row.close_bits);
+            let minimum_low = rows
+                .iter()
+                .map(|row| f64::from_bits(row.low_bits))
+                .fold(initial_close, f64::min);
+            if !initial_close.is_finite()
+                || !minimum_low.is_finite()
+                || initial_close <= 0.0
+                || minimum_low <= 0.0
+            {
+                return Err("prospective_risk_outcome_numeric_invalid".into());
+            }
+            let adverse = (initial_close / minimum_low).ln() as f32;
+            let labels = input
+                .risk_threshold_bits
+                .iter()
+                .map(|bits| f32::from_bits(*bits))
+                .map(|threshold| {
+                    threshold
+                        .is_finite()
+                        .then_some(adverse >= threshold)
+                        .ok_or("prospective_risk_threshold_invalid")
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            let class = if labels.iter().all(|label| *label) {
+                LearnedAbstentionAttributionV0::FailedToWarnMaterialRisk
+            } else if labels.iter().all(|label| !*label) {
+                LearnedAbstentionAttributionV0::CorrectUncertainty
+            } else {
+                LearnedAbstentionAttributionV0::NotYetEvaluable
+            };
+            (
+                class,
+                LearnedProspectiveOutcomePayloadV0::CycleRisk(CycleRiskProspectiveOutcomeV0 {
+                    downside_label_correct: false,
+                    support_qualified_brier_improved: false,
+                    calibration_improved: false,
+                    high_confidence_false_negative: false,
+                    correct_elevated_risk_warning: false,
+                    false_permanent_alarm: false,
+                    abstention: class,
+                    probability_collapse: false,
+                    support_qualified: false,
+                    regime_digest,
+                }),
+            )
+        }
+    };
+    let mut ledger = new_learned_prospective_outcome_ledger_v0(input.reward_registration)?;
+    append_learned_prospective_event_attribution_v0(
+        &mut ledger,
+        input.reward_registration,
+        attribution.clone(),
+        contract,
+    )?;
+    append_learned_matured_outcome_v0(
+        &mut ledger,
+        input.reward_registration,
+        LearnedProspectiveOutcomeRecordV0 {
+            record_version: String::new(),
+            event_id: event.event_id.clone(),
+            attribution_digest: attribution.attribution_digest.clone(),
+            agent_id: event.agent_id.clone(),
+            objective,
+            payload,
+            maturity_status: LearnedOutcomeMaturityStatusV0::MatureOpenedOnce,
+            challenge_valid: true,
+            integrity_valid: true,
+            retrospective_evidence: false,
+            owner_influence: false,
+            outcome_digest: String::new(),
+        },
+    )?;
+    let learned_outcome_digest = ledger
+        .matured_outcomes
+        .first()
+        .map(|record| record.outcome_digest.clone())
+        .ok_or("prospective_outcome_bridge_record_missing")?;
+    let eligibility = derive_learned_reward_eligibility_v0(
+        input.reward_registration,
+        input.reward_gate,
+        &ledger,
+        objective,
+    )?;
+    let reward_candidate_digest = learned_reward_input_candidate_v0(&eligibility, &ledger)
+        .ok()
+        .map(|candidate| {
+            if candidate.eligible_for_application {
+                Err("prospective_outcome_reward_application_forbidden")
+            } else {
+                Ok(candidate.candidate_digest)
+            }
+        })
+        .transpose()?;
+    let mut outcome = ProspectiveObjectiveOpeningOutcomeV0 {
+        outcome_version: "prospective-objective-opening-outcome-v0".into(),
+        objective,
+        event_id: event.event_id.clone(),
+        event_digest: event.event_digest.clone(),
+        maturity_plan_digest: plan.plan_digest.clone(),
+        source_row_digests,
+        label_policy_digest: plan.label_policy_digest.clone(),
+        attribution_class,
+        attribution,
+        learned_outcome_digest,
+        eligibility_status: eligibility.eligibility_status,
+        eligibility_digest: eligibility.eligibility_digest,
+        reward_candidate_digest,
+        ledger_digest: ledger.ledger_digest,
+        outcome_digest: String::new(),
+    };
+    outcome.outcome_digest = prospective_objective_opening_outcome_digest_v0(&outcome);
+    Ok(outcome)
+}
+
+fn terminal_prospective_opening_bundle_v0(
+    authorization: Option<ProspectiveOutcomeOpeningAuthorizationV0>,
+    registration_digest: &str,
+    capsule_digest: &str,
+    status: ProspectiveOutcomeOpeningStatusV0,
+) -> ProspectiveOutcomeOpeningBundleV0 {
+    let mut receipt = ProspectiveOutcomeOpeningReceiptV0 {
+        receipt_version: "prospective-outcome-opening-receipt-v0".into(),
+        authorization_digest: authorization
+            .as_ref()
+            .map(|value| value.authorization_digest.clone())
+            .unwrap_or_default(),
+        opening_registration_digest: registration_digest.into(),
+        outcome_capsule_digest: capsule_digest.into(),
+        opening_attempt_count: usize::from(authorization.is_some()),
+        opened_event_count: 0,
+        momentum_outcome_digest: None,
+        risk_outcome_digest: None,
+        status,
+        receipt_digest: String::new(),
+    };
+    receipt.receipt_digest = prospective_outcome_opening_receipt_digest_v0(&receipt);
+    let mut journal = ProspectiveOpeningAttributionJournalV0 {
+        journal_version: "prospective-opening-attribution-journal-v0".into(),
+        attributions: vec![],
+        journal_digest: String::new(),
+    };
+    journal.journal_digest = prospective_opening_attribution_journal_digest_v0(&journal);
+    let mut bundle = ProspectiveOutcomeOpeningBundleV0 {
+        bundle_version: "prospective-outcome-opening-bundle-v0".into(),
+        authorization,
+        receipt,
+        outcomes: vec![],
+        attribution_journal: journal,
+        reward_candidate_count: 0,
+        reward_apply_count: 0,
+        penalty_apply_count: 0,
+        voice_mutation_count: 0,
+        authority_action_count: 0,
+        bundle_digest: String::new(),
+    };
+    bundle.bundle_digest = prospective_outcome_opening_bundle_digest_v0(&bundle);
+    bundle
+}
+
+pub fn derive_prospective_outcome_opening_bundle_v0(
+    input: &ProspectiveOutcomeOpeningInputV0<'_>,
+    authorization: Option<&ProspectiveOutcomeOpeningAuthorizationV0>,
+) -> ProspectiveOutcomeOpeningBundleV0 {
+    let Some(authorization) = authorization else {
+        return terminal_prospective_opening_bundle_v0(
+            None,
+            &input.registration.registration_digest,
+            &input.outcome_capsule.capsule_digest,
+            ProspectiveOutcomeOpeningStatusV0::AuthorizationMissing,
+        );
+    };
+    let authorization = authorization.clone();
+    if validate_prospective_outcome_opening_authorization_v0(&authorization, input).is_err() {
+        return terminal_prospective_opening_bundle_v0(
+            Some(authorization),
+            &input.registration.registration_digest,
+            &input.outcome_capsule.capsule_digest,
+            ProspectiveOutcomeOpeningStatusV0::EvidenceMismatch,
+        );
+    }
+    let momentum = open_objective_v0(
+        input,
+        input.momentum_event,
+        input.momentum_contract,
+        LearnedAgentObjectiveV0::DirectionalMomentum,
+    );
+    let risk = open_objective_v0(
+        input,
+        input.risk_event,
+        input.risk_contract,
+        LearnedAgentObjectiveV0::DownsideRisk,
+    );
+    let (momentum, risk) = match (momentum, risk) {
+        (Ok(momentum), Ok(risk)) => (momentum, risk),
+        _ => {
+            return terminal_prospective_opening_bundle_v0(
+                Some(authorization),
+                &input.registration.registration_digest,
+                &input.outcome_capsule.capsule_digest,
+                ProspectiveOutcomeOpeningStatusV0::ObjectiveDerivationFailure,
+            );
+        }
+    };
+    let mut attributions = vec![momentum.attribution.clone(), risk.attribution.clone()];
+    attributions.sort_by(|left, right| left.event_id.cmp(&right.event_id));
+    let mut journal = ProspectiveOpeningAttributionJournalV0 {
+        journal_version: "prospective-opening-attribution-journal-v0".into(),
+        attributions,
+        journal_digest: String::new(),
+    };
+    journal.journal_digest = prospective_opening_attribution_journal_digest_v0(&journal);
+    let reward_candidate_count = usize::from(momentum.reward_candidate_digest.is_some())
+        + usize::from(risk.reward_candidate_digest.is_some());
+    let mut receipt = ProspectiveOutcomeOpeningReceiptV0 {
+        receipt_version: "prospective-outcome-opening-receipt-v0".into(),
+        authorization_digest: authorization.authorization_digest.clone(),
+        opening_registration_digest: input.registration.registration_digest.clone(),
+        outcome_capsule_digest: input.outcome_capsule.capsule_digest.clone(),
+        opening_attempt_count: 1,
+        opened_event_count: 2,
+        momentum_outcome_digest: Some(momentum.outcome_digest.clone()),
+        risk_outcome_digest: Some(risk.outcome_digest.clone()),
+        status: ProspectiveOutcomeOpeningStatusV0::Opened,
+        receipt_digest: String::new(),
+    };
+    receipt.receipt_digest = prospective_outcome_opening_receipt_digest_v0(&receipt);
+    let mut bundle = ProspectiveOutcomeOpeningBundleV0 {
+        bundle_version: "prospective-outcome-opening-bundle-v0".into(),
+        authorization: Some(authorization),
+        receipt,
+        outcomes: vec![momentum, risk],
+        attribution_journal: journal,
+        reward_candidate_count,
+        reward_apply_count: 0,
+        penalty_apply_count: 0,
+        voice_mutation_count: 0,
+        authority_action_count: 0,
+        bundle_digest: String::new(),
+    };
+    bundle.bundle_digest = prospective_outcome_opening_bundle_digest_v0(&bundle);
+    bundle
+}
+
+pub fn validate_prospective_outcome_opening_bundle_v0(
+    bundle: &ProspectiveOutcomeOpeningBundleV0,
+) -> Result<(), String> {
+    let success = bundle.receipt.status == ProspectiveOutcomeOpeningStatusV0::Opened;
+    let objective_set = bundle
+        .outcomes
+        .iter()
+        .map(|outcome| outcome.objective)
+        .collect::<BTreeSet<_>>();
+    let expected_objectives = [
+        LearnedAgentObjectiveV0::DirectionalMomentum,
+        LearnedAgentObjectiveV0::DownsideRisk,
+    ]
+    .into_iter()
+    .collect::<BTreeSet<_>>();
+    if bundle.bundle_version != "prospective-outcome-opening-bundle-v0"
+        || bundle.receipt.receipt_version != "prospective-outcome-opening-receipt-v0"
+        || bundle.receipt.receipt_digest
+            != prospective_outcome_opening_receipt_digest_v0(&bundle.receipt)
+        || bundle.attribution_journal.journal_version
+            != "prospective-opening-attribution-journal-v0"
+        || bundle.attribution_journal.journal_digest
+            != prospective_opening_attribution_journal_digest_v0(&bundle.attribution_journal)
+        || bundle.outcomes.iter().any(|outcome| {
+            outcome.outcome_version != "prospective-objective-opening-outcome-v0"
+                || outcome.outcome_digest
+                    != prospective_objective_opening_outcome_digest_v0(outcome)
+                || outcome.attribution.objective != outcome.objective
+                || outcome.attribution.event_digest != outcome.event_digest
+        })
+        || bundle.reward_candidate_count
+            != bundle
+                .outcomes
+                .iter()
+                .filter(|outcome| outcome.reward_candidate_digest.is_some())
+                .count()
+        || bundle.reward_apply_count != 0
+        || bundle.penalty_apply_count != 0
+        || bundle.voice_mutation_count != 0
+        || bundle.authority_action_count != 0
+        || bundle.authorization.as_ref().is_some_and(|authorization| {
+            authorization.authorization_digest
+                != prospective_outcome_opening_authorization_digest_v0(authorization)
+                || authorization.opening_registration_digest
+                    != bundle.receipt.opening_registration_digest
+                || authorization.outcome_capsule_digest != bundle.receipt.outcome_capsule_digest
+                || authorization.authorization_digest != bundle.receipt.authorization_digest
+        })
+        || (success
+            && (bundle.authorization.is_none()
+                || bundle.receipt.opening_attempt_count != 1
+                || bundle.receipt.opened_event_count != 2
+                || bundle.outcomes.len() != 2
+                || objective_set != expected_objectives
+                || bundle.attribution_journal.attributions.len() != 2
+                || bundle.receipt.momentum_outcome_digest
+                    != bundle
+                        .outcomes
+                        .iter()
+                        .find(|outcome| {
+                            outcome.objective == LearnedAgentObjectiveV0::DirectionalMomentum
+                        })
+                        .map(|outcome| outcome.outcome_digest.clone())
+                || bundle.receipt.risk_outcome_digest
+                    != bundle
+                        .outcomes
+                        .iter()
+                        .find(|outcome| outcome.objective == LearnedAgentObjectiveV0::DownsideRisk)
+                        .map(|outcome| outcome.outcome_digest.clone())))
+        || (!success
+            && (bundle.receipt.opened_event_count != 0
+                || !bundle.outcomes.is_empty()
+                || !bundle.attribution_journal.attributions.is_empty()
+                || bundle.receipt.momentum_outcome_digest.is_some()
+                || bundle.receipt.risk_outcome_digest.is_some()))
+        || bundle.bundle_digest != prospective_outcome_opening_bundle_digest_v0(bundle)
+    {
+        Err("prospective_outcome_opening_bundle_invalid".into())
+    } else {
+        Ok(())
+    }
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct ProspectiveOutcomeOpeningAuthorizationProtobufV0 {
+    #[prost(string, tag = "1")]
+    authorization_version: String,
+    #[prost(string, tag = "2")]
+    opening_registration_digest: String,
+    #[prost(string, tag = "3")]
+    outcome_receipt_digest: String,
+    #[prost(string, tag = "4")]
+    outcome_capsule_digest: String,
+    #[prost(string, tag = "5")]
+    momentum_event_digest: String,
+    #[prost(string, tag = "6")]
+    risk_event_digest: String,
+    #[prost(string, repeated, tag = "7")]
+    authorized_event_digests: Vec<String>,
+    #[prost(string, repeated, tag = "8")]
+    authorized_row_digests: Vec<String>,
+    #[prost(uint64, tag = "9")]
+    opening_attempt_count_before: u64,
+    #[prost(uint64, tag = "10")]
+    opened_event_count_before: u64,
+    #[prost(bool, tag = "11")]
+    explicit_owner_authorization: bool,
+    #[prost(bool, tag = "12")]
+    one_time_only: bool,
+    #[prost(string, tag = "13")]
+    authorization_digest: String,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct LearnedProspectiveAttributionProtobufV0 {
+    #[prost(string, tag = "1")]
+    attribution_version: String,
+    #[prost(string, tag = "2")]
+    event_id: String,
+    #[prost(string, tag = "3")]
+    event_digest: String,
+    #[prost(string, tag = "4")]
+    agent_id: String,
+    #[prost(uint32, tag = "5")]
+    objective: u32,
+    #[prost(string, tag = "6")]
+    opinion_id: String,
+    #[prost(string, tag = "7")]
+    opinion_digest: String,
+    #[prost(string, tag = "8")]
+    opinion_seal_digest: String,
+    #[prost(string, tag = "9")]
+    challenge_digest: String,
+    #[prost(string, tag = "10")]
+    model_artifact_digest: String,
+    #[prost(string, tag = "11")]
+    raw_evidence_digest: String,
+    #[prost(uint64, tag = "12")]
+    event_timestamp: u64,
+    #[prost(uint64, tag = "13")]
+    maturity_timestamp: u64,
+    #[prost(string, tag = "14")]
+    prediction_horizon_digest: String,
+    #[prost(string, tag = "15")]
+    support_status_digest: String,
+    #[prost(string, tag = "16")]
+    attribution_digest: String,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct ProspectiveObjectiveOpeningOutcomeProtobufV0 {
+    #[prost(string, tag = "1")]
+    outcome_version: String,
+    #[prost(uint32, tag = "2")]
+    objective: u32,
+    #[prost(string, tag = "3")]
+    event_id: String,
+    #[prost(string, tag = "4")]
+    event_digest: String,
+    #[prost(string, tag = "5")]
+    maturity_plan_digest: String,
+    #[prost(string, repeated, tag = "6")]
+    source_row_digests: Vec<String>,
+    #[prost(string, tag = "7")]
+    label_policy_digest: String,
+    #[prost(uint32, tag = "8")]
+    attribution_class: u32,
+    #[prost(message, optional, tag = "9")]
+    attribution: Option<LearnedProspectiveAttributionProtobufV0>,
+    #[prost(string, tag = "10")]
+    learned_outcome_digest: String,
+    #[prost(uint32, tag = "11")]
+    eligibility_status: u32,
+    #[prost(string, tag = "12")]
+    eligibility_digest: String,
+    #[prost(string, optional, tag = "13")]
+    reward_candidate_digest: Option<String>,
+    #[prost(string, tag = "14")]
+    ledger_digest: String,
+    #[prost(string, tag = "15")]
+    outcome_digest: String,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct ProspectiveOpeningAttributionJournalProtobufV0 {
+    #[prost(string, tag = "1")]
+    journal_version: String,
+    #[prost(message, repeated, tag = "2")]
+    attributions: Vec<LearnedProspectiveAttributionProtobufV0>,
+    #[prost(string, tag = "3")]
+    journal_digest: String,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct ProspectiveOutcomeOpeningReceiptProtobufV0 {
+    #[prost(string, tag = "1")]
+    receipt_version: String,
+    #[prost(string, tag = "2")]
+    authorization_digest: String,
+    #[prost(string, tag = "3")]
+    opening_registration_digest: String,
+    #[prost(string, tag = "4")]
+    outcome_capsule_digest: String,
+    #[prost(uint64, tag = "5")]
+    opening_attempt_count: u64,
+    #[prost(uint64, tag = "6")]
+    opened_event_count: u64,
+    #[prost(string, optional, tag = "7")]
+    momentum_outcome_digest: Option<String>,
+    #[prost(string, optional, tag = "8")]
+    risk_outcome_digest: Option<String>,
+    #[prost(uint32, tag = "9")]
+    status: u32,
+    #[prost(string, tag = "10")]
+    receipt_digest: String,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct ProspectiveOutcomeOpeningBundleProtobufV0 {
+    #[prost(string, tag = "1")]
+    bundle_version: String,
+    #[prost(message, optional, tag = "2")]
+    authorization: Option<ProspectiveOutcomeOpeningAuthorizationProtobufV0>,
+    #[prost(message, optional, tag = "3")]
+    receipt: Option<ProspectiveOutcomeOpeningReceiptProtobufV0>,
+    #[prost(message, repeated, tag = "4")]
+    outcomes: Vec<ProspectiveObjectiveOpeningOutcomeProtobufV0>,
+    #[prost(message, optional, tag = "5")]
+    attribution_journal: Option<ProspectiveOpeningAttributionJournalProtobufV0>,
+    #[prost(uint64, tag = "6")]
+    reward_candidate_count: u64,
+    #[prost(uint64, tag = "7")]
+    reward_apply_count: u64,
+    #[prost(uint64, tag = "8")]
+    penalty_apply_count: u64,
+    #[prost(uint64, tag = "9")]
+    voice_mutation_count: u64,
+    #[prost(uint64, tag = "10")]
+    authority_action_count: u64,
+    #[prost(string, tag = "11")]
+    bundle_digest: String,
+}
+
+fn opening_objective_tag_v0(value: LearnedAgentObjectiveV0) -> u32 {
+    match value {
+        LearnedAgentObjectiveV0::DirectionalMomentum => 1,
+        LearnedAgentObjectiveV0::DownsideRisk => 2,
+    }
+}
+
+fn opening_objective_from_tag_v0(value: u32) -> Result<LearnedAgentObjectiveV0, String> {
+    match value {
+        1 => Ok(LearnedAgentObjectiveV0::DirectionalMomentum),
+        2 => Ok(LearnedAgentObjectiveV0::DownsideRisk),
+        _ => Err("prospective_opening_protobuf_objective_invalid".into()),
+    }
+}
+
+fn opening_attribution_tag_v0(value: LearnedAbstentionAttributionV0) -> u32 {
+    match value {
+        LearnedAbstentionAttributionV0::JustifiedCapitalProtection => 1,
+        LearnedAbstentionAttributionV0::CorrectUncertainty => 2,
+        LearnedAbstentionAttributionV0::MissedMaterialOpportunity => 3,
+        LearnedAbstentionAttributionV0::FailedToWarnMaterialRisk => 4,
+        LearnedAbstentionAttributionV0::NeutralUninformative => 5,
+        LearnedAbstentionAttributionV0::NotYetEvaluable => 6,
+    }
+}
+
+fn opening_attribution_from_tag_v0(value: u32) -> Result<LearnedAbstentionAttributionV0, String> {
+    match value {
+        1 => Ok(LearnedAbstentionAttributionV0::JustifiedCapitalProtection),
+        2 => Ok(LearnedAbstentionAttributionV0::CorrectUncertainty),
+        3 => Ok(LearnedAbstentionAttributionV0::MissedMaterialOpportunity),
+        4 => Ok(LearnedAbstentionAttributionV0::FailedToWarnMaterialRisk),
+        5 => Ok(LearnedAbstentionAttributionV0::NeutralUninformative),
+        6 => Ok(LearnedAbstentionAttributionV0::NotYetEvaluable),
+        _ => Err("prospective_opening_protobuf_attribution_invalid".into()),
+    }
+}
+
+fn opening_eligibility_tag_v0(value: LearnedRewardEligibilityStatusV0) -> u32 {
+    match value {
+        LearnedRewardEligibilityStatusV0::EligibleForCandidateComputation => 1,
+        LearnedRewardEligibilityStatusV0::IneligibleNoProspectiveOutcomes => 2,
+        LearnedRewardEligibilityStatusV0::IneligibleAwaitingMaturity => 3,
+        LearnedRewardEligibilityStatusV0::IneligibleMinimumSamples => 4,
+        LearnedRewardEligibilityStatusV0::IneligibleInsufficientRegimeCoverage => 5,
+        LearnedRewardEligibilityStatusV0::IneligibleEarlyLabelAccess => 6,
+        LearnedRewardEligibilityStatusV0::IneligibleIntegrityFailure => 7,
+        LearnedRewardEligibilityStatusV0::IneligibleChallengeInvalidated => 8,
+        LearnedRewardEligibilityStatusV0::IneligibleUnsupportedObjective => 9,
+        LearnedRewardEligibilityStatusV0::IneligibleRetrospectiveEvidence => 10,
+        LearnedRewardEligibilityStatusV0::IneligibleOwnerInfluence => 11,
+        LearnedRewardEligibilityStatusV0::IneligibleDuplicateOpening => 12,
+        LearnedRewardEligibilityStatusV0::TechnicalFailure => 13,
+    }
+}
+
+fn opening_eligibility_from_tag_v0(value: u32) -> Result<LearnedRewardEligibilityStatusV0, String> {
+    match value {
+        1 => Ok(LearnedRewardEligibilityStatusV0::EligibleForCandidateComputation),
+        2 => Ok(LearnedRewardEligibilityStatusV0::IneligibleNoProspectiveOutcomes),
+        3 => Ok(LearnedRewardEligibilityStatusV0::IneligibleAwaitingMaturity),
+        4 => Ok(LearnedRewardEligibilityStatusV0::IneligibleMinimumSamples),
+        5 => Ok(LearnedRewardEligibilityStatusV0::IneligibleInsufficientRegimeCoverage),
+        6 => Ok(LearnedRewardEligibilityStatusV0::IneligibleEarlyLabelAccess),
+        7 => Ok(LearnedRewardEligibilityStatusV0::IneligibleIntegrityFailure),
+        8 => Ok(LearnedRewardEligibilityStatusV0::IneligibleChallengeInvalidated),
+        9 => Ok(LearnedRewardEligibilityStatusV0::IneligibleUnsupportedObjective),
+        10 => Ok(LearnedRewardEligibilityStatusV0::IneligibleRetrospectiveEvidence),
+        11 => Ok(LearnedRewardEligibilityStatusV0::IneligibleOwnerInfluence),
+        12 => Ok(LearnedRewardEligibilityStatusV0::IneligibleDuplicateOpening),
+        13 => Ok(LearnedRewardEligibilityStatusV0::TechnicalFailure),
+        _ => Err("prospective_opening_protobuf_eligibility_invalid".into()),
+    }
+}
+
+fn opening_status_tag_v0(value: ProspectiveOutcomeOpeningStatusV0) -> u32 {
+    match value {
+        ProspectiveOutcomeOpeningStatusV0::Opened => 1,
+        ProspectiveOutcomeOpeningStatusV0::AlreadyOpened => 2,
+        ProspectiveOutcomeOpeningStatusV0::AuthorizationMissing => 3,
+        ProspectiveOutcomeOpeningStatusV0::RegistrationMismatch => 4,
+        ProspectiveOutcomeOpeningStatusV0::EvidenceMismatch => 5,
+        ProspectiveOutcomeOpeningStatusV0::ObjectiveDerivationFailure => 6,
+        ProspectiveOutcomeOpeningStatusV0::IntegrityFailure => 7,
+        ProspectiveOutcomeOpeningStatusV0::TerminalTechnicalFailure => 8,
+    }
+}
+
+fn opening_status_from_tag_v0(value: u32) -> Result<ProspectiveOutcomeOpeningStatusV0, String> {
+    match value {
+        1 => Ok(ProspectiveOutcomeOpeningStatusV0::Opened),
+        2 => Ok(ProspectiveOutcomeOpeningStatusV0::AlreadyOpened),
+        3 => Ok(ProspectiveOutcomeOpeningStatusV0::AuthorizationMissing),
+        4 => Ok(ProspectiveOutcomeOpeningStatusV0::RegistrationMismatch),
+        5 => Ok(ProspectiveOutcomeOpeningStatusV0::EvidenceMismatch),
+        6 => Ok(ProspectiveOutcomeOpeningStatusV0::ObjectiveDerivationFailure),
+        7 => Ok(ProspectiveOutcomeOpeningStatusV0::IntegrityFailure),
+        8 => Ok(ProspectiveOutcomeOpeningStatusV0::TerminalTechnicalFailure),
+        _ => Err("prospective_opening_protobuf_status_invalid".into()),
+    }
+}
+
+fn opening_authorization_to_protobuf_v0(
+    value: &ProspectiveOutcomeOpeningAuthorizationV0,
+) -> ProspectiveOutcomeOpeningAuthorizationProtobufV0 {
+    ProspectiveOutcomeOpeningAuthorizationProtobufV0 {
+        authorization_version: value.authorization_version.clone(),
+        opening_registration_digest: value.opening_registration_digest.clone(),
+        outcome_receipt_digest: value.outcome_receipt_digest.clone(),
+        outcome_capsule_digest: value.outcome_capsule_digest.clone(),
+        momentum_event_digest: value.momentum_event_digest.clone(),
+        risk_event_digest: value.risk_event_digest.clone(),
+        authorized_event_digests: value.authorized_event_digests.clone(),
+        authorized_row_digests: value.authorized_row_digests.clone(),
+        opening_attempt_count_before: value.opening_attempt_count_before as u64,
+        opened_event_count_before: value.opened_event_count_before as u64,
+        explicit_owner_authorization: value.explicit_owner_authorization,
+        one_time_only: value.one_time_only,
+        authorization_digest: value.authorization_digest.clone(),
+    }
+}
+
+fn opening_authorization_from_protobuf_v0(
+    value: ProspectiveOutcomeOpeningAuthorizationProtobufV0,
+) -> Result<ProspectiveOutcomeOpeningAuthorizationV0, String> {
+    let authorization = ProspectiveOutcomeOpeningAuthorizationV0 {
+        authorization_version: value.authorization_version,
+        opening_registration_digest: value.opening_registration_digest,
+        outcome_receipt_digest: value.outcome_receipt_digest,
+        outcome_capsule_digest: value.outcome_capsule_digest,
+        momentum_event_digest: value.momentum_event_digest,
+        risk_event_digest: value.risk_event_digest,
+        authorized_event_digests: value.authorized_event_digests,
+        authorized_row_digests: value.authorized_row_digests,
+        opening_attempt_count_before: usize::try_from(value.opening_attempt_count_before)
+            .map_err(|_| "prospective_opening_protobuf_count_invalid")?,
+        opened_event_count_before: usize::try_from(value.opened_event_count_before)
+            .map_err(|_| "prospective_opening_protobuf_count_invalid")?,
+        explicit_owner_authorization: value.explicit_owner_authorization,
+        one_time_only: value.one_time_only,
+        authorization_digest: value.authorization_digest,
+    };
+    if authorization.authorization_version != "prospective-outcome-opening-authorization-v0"
+        || authorization.opening_registration_digest.is_empty()
+        || authorization.outcome_receipt_digest.is_empty()
+        || authorization.outcome_capsule_digest.is_empty()
+        || authorization.authorized_event_digests.len() != 2
+        || authorization.authorized_row_digests.is_empty()
+        || authorization.opening_attempt_count_before != 0
+        || authorization.opened_event_count_before != 0
+        || !authorization.explicit_owner_authorization
+        || !authorization.one_time_only
+        || authorization.authorization_digest
+            != prospective_outcome_opening_authorization_digest_v0(&authorization)
+    {
+        Err("prospective_opening_protobuf_authorization_invalid".into())
+    } else {
+        Ok(authorization)
+    }
+}
+
+fn opening_attribution_to_protobuf_v0(
+    value: &LearnedProspectiveEventAttributionV0,
+) -> LearnedProspectiveAttributionProtobufV0 {
+    LearnedProspectiveAttributionProtobufV0 {
+        attribution_version: value.attribution_version.clone(),
+        event_id: value.event_id.clone(),
+        event_digest: value.event_digest.clone(),
+        agent_id: value.agent_id.clone(),
+        objective: opening_objective_tag_v0(value.objective),
+        opinion_id: value.opinion_id.clone(),
+        opinion_digest: value.opinion_digest.clone(),
+        opinion_seal_digest: value.opinion_seal_digest.clone(),
+        challenge_digest: value.challenge_digest.clone(),
+        model_artifact_digest: value.model_artifact_digest.clone(),
+        raw_evidence_digest: value.raw_evidence_digest.clone(),
+        event_timestamp: value.event_timestamp,
+        maturity_timestamp: value.maturity_timestamp,
+        prediction_horizon_digest: value.prediction_horizon_digest.clone(),
+        support_status_digest: value.support_status_digest.clone(),
+        attribution_digest: value.attribution_digest.clone(),
+    }
+}
+
+fn opening_attribution_from_protobuf_v0(
+    value: LearnedProspectiveAttributionProtobufV0,
+) -> Result<LearnedProspectiveEventAttributionV0, String> {
+    let attribution = LearnedProspectiveEventAttributionV0 {
+        attribution_version: value.attribution_version,
+        event_id: value.event_id,
+        event_digest: value.event_digest,
+        agent_id: value.agent_id,
+        objective: opening_objective_from_tag_v0(value.objective)?,
+        opinion_id: value.opinion_id,
+        opinion_digest: value.opinion_digest,
+        opinion_seal_digest: value.opinion_seal_digest,
+        challenge_digest: value.challenge_digest,
+        model_artifact_digest: value.model_artifact_digest,
+        raw_evidence_digest: value.raw_evidence_digest,
+        event_timestamp: value.event_timestamp,
+        maturity_timestamp: value.maturity_timestamp,
+        prediction_horizon_digest: value.prediction_horizon_digest,
+        support_status_digest: value.support_status_digest,
+        attribution_digest: value.attribution_digest,
+    };
+    if attribution.attribution_version != "learned-prospective-event-attribution-v0"
+        || attribution.attribution_digest != learned_attribution_digest_v0(&attribution)
+    {
+        Err("prospective_opening_protobuf_attribution_invalid".into())
+    } else {
+        Ok(attribution)
+    }
+}
+
+pub fn encode_prospective_outcome_opening_authorization_protobuf_v0(
+    value: &ProspectiveOutcomeOpeningAuthorizationV0,
+) -> Result<Vec<u8>, String> {
+    let decoded =
+        opening_authorization_from_protobuf_v0(opening_authorization_to_protobuf_v0(value))?;
+    if &decoded != value {
+        return Err("prospective_opening_authorization_roundtrip_invalid".into());
+    }
+    Ok(opening_authorization_to_protobuf_v0(value).encode_to_vec())
+}
+
+pub fn decode_prospective_outcome_opening_authorization_protobuf_v0(
+    bytes: &[u8],
+) -> Result<ProspectiveOutcomeOpeningAuthorizationV0, String> {
+    opening_authorization_from_protobuf_v0(
+        ProspectiveOutcomeOpeningAuthorizationProtobufV0::decode(bytes)
+            .map_err(|_| "prospective_opening_authorization_decode_failed")?,
+    )
+}
+
+pub fn encode_prospective_outcome_opening_bundle_protobuf_v0(
+    bundle: &ProspectiveOutcomeOpeningBundleV0,
+) -> Result<Vec<u8>, String> {
+    validate_prospective_outcome_opening_bundle_v0(bundle)?;
+    let outcomes = bundle
+        .outcomes
+        .iter()
+        .map(|outcome| ProspectiveObjectiveOpeningOutcomeProtobufV0 {
+            outcome_version: outcome.outcome_version.clone(),
+            objective: opening_objective_tag_v0(outcome.objective),
+            event_id: outcome.event_id.clone(),
+            event_digest: outcome.event_digest.clone(),
+            maturity_plan_digest: outcome.maturity_plan_digest.clone(),
+            source_row_digests: outcome.source_row_digests.clone(),
+            label_policy_digest: outcome.label_policy_digest.clone(),
+            attribution_class: opening_attribution_tag_v0(outcome.attribution_class),
+            attribution: Some(opening_attribution_to_protobuf_v0(&outcome.attribution)),
+            learned_outcome_digest: outcome.learned_outcome_digest.clone(),
+            eligibility_status: opening_eligibility_tag_v0(outcome.eligibility_status),
+            eligibility_digest: outcome.eligibility_digest.clone(),
+            reward_candidate_digest: outcome.reward_candidate_digest.clone(),
+            ledger_digest: outcome.ledger_digest.clone(),
+            outcome_digest: outcome.outcome_digest.clone(),
+        })
+        .collect();
+    let receipt = &bundle.receipt;
+    Ok(ProspectiveOutcomeOpeningBundleProtobufV0 {
+        bundle_version: bundle.bundle_version.clone(),
+        authorization: bundle
+            .authorization
+            .as_ref()
+            .map(opening_authorization_to_protobuf_v0),
+        receipt: Some(ProspectiveOutcomeOpeningReceiptProtobufV0 {
+            receipt_version: receipt.receipt_version.clone(),
+            authorization_digest: receipt.authorization_digest.clone(),
+            opening_registration_digest: receipt.opening_registration_digest.clone(),
+            outcome_capsule_digest: receipt.outcome_capsule_digest.clone(),
+            opening_attempt_count: receipt.opening_attempt_count as u64,
+            opened_event_count: receipt.opened_event_count as u64,
+            momentum_outcome_digest: receipt.momentum_outcome_digest.clone(),
+            risk_outcome_digest: receipt.risk_outcome_digest.clone(),
+            status: opening_status_tag_v0(receipt.status),
+            receipt_digest: receipt.receipt_digest.clone(),
+        }),
+        outcomes,
+        attribution_journal: Some(ProspectiveOpeningAttributionJournalProtobufV0 {
+            journal_version: bundle.attribution_journal.journal_version.clone(),
+            attributions: bundle
+                .attribution_journal
+                .attributions
+                .iter()
+                .map(opening_attribution_to_protobuf_v0)
+                .collect(),
+            journal_digest: bundle.attribution_journal.journal_digest.clone(),
+        }),
+        reward_candidate_count: bundle.reward_candidate_count as u64,
+        reward_apply_count: bundle.reward_apply_count as u64,
+        penalty_apply_count: bundle.penalty_apply_count as u64,
+        voice_mutation_count: bundle.voice_mutation_count as u64,
+        authority_action_count: bundle.authority_action_count as u64,
+        bundle_digest: bundle.bundle_digest.clone(),
+    }
+    .encode_to_vec())
+}
+
+pub fn decode_prospective_outcome_opening_bundle_protobuf_v0(
+    bytes: &[u8],
+) -> Result<ProspectiveOutcomeOpeningBundleV0, String> {
+    let value = ProspectiveOutcomeOpeningBundleProtobufV0::decode(bytes)
+        .map_err(|_| "prospective_opening_bundle_decode_failed")?;
+    let receipt = value
+        .receipt
+        .ok_or("prospective_opening_bundle_receipt_missing")?;
+    let journal = value
+        .attribution_journal
+        .ok_or("prospective_opening_bundle_journal_missing")?;
+    let outcomes = value
+        .outcomes
+        .into_iter()
+        .map(|outcome| {
+            Ok(ProspectiveObjectiveOpeningOutcomeV0 {
+                outcome_version: outcome.outcome_version,
+                objective: opening_objective_from_tag_v0(outcome.objective)?,
+                event_id: outcome.event_id,
+                event_digest: outcome.event_digest,
+                maturity_plan_digest: outcome.maturity_plan_digest,
+                source_row_digests: outcome.source_row_digests,
+                label_policy_digest: outcome.label_policy_digest,
+                attribution_class: opening_attribution_from_tag_v0(outcome.attribution_class)?,
+                attribution: opening_attribution_from_protobuf_v0(
+                    outcome
+                        .attribution
+                        .ok_or("prospective_opening_outcome_attribution_missing")?,
+                )?,
+                learned_outcome_digest: outcome.learned_outcome_digest,
+                eligibility_status: opening_eligibility_from_tag_v0(outcome.eligibility_status)?,
+                eligibility_digest: outcome.eligibility_digest,
+                reward_candidate_digest: outcome.reward_candidate_digest,
+                ledger_digest: outcome.ledger_digest,
+                outcome_digest: outcome.outcome_digest,
+            })
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    let mut bundle = ProspectiveOutcomeOpeningBundleV0 {
+        bundle_version: value.bundle_version,
+        authorization: value
+            .authorization
+            .map(opening_authorization_from_protobuf_v0)
+            .transpose()?,
+        receipt: ProspectiveOutcomeOpeningReceiptV0 {
+            receipt_version: receipt.receipt_version,
+            authorization_digest: receipt.authorization_digest,
+            opening_registration_digest: receipt.opening_registration_digest,
+            outcome_capsule_digest: receipt.outcome_capsule_digest,
+            opening_attempt_count: usize::try_from(receipt.opening_attempt_count)
+                .map_err(|_| "prospective_opening_protobuf_count_invalid")?,
+            opened_event_count: usize::try_from(receipt.opened_event_count)
+                .map_err(|_| "prospective_opening_protobuf_count_invalid")?,
+            momentum_outcome_digest: receipt.momentum_outcome_digest,
+            risk_outcome_digest: receipt.risk_outcome_digest,
+            status: opening_status_from_tag_v0(receipt.status)?,
+            receipt_digest: receipt.receipt_digest,
+        },
+        outcomes,
+        attribution_journal: ProspectiveOpeningAttributionJournalV0 {
+            journal_version: journal.journal_version,
+            attributions: journal
+                .attributions
+                .into_iter()
+                .map(opening_attribution_from_protobuf_v0)
+                .collect::<Result<Vec<_>, _>>()?,
+            journal_digest: journal.journal_digest,
+        },
+        reward_candidate_count: usize::try_from(value.reward_candidate_count)
+            .map_err(|_| "prospective_opening_protobuf_count_invalid")?,
+        reward_apply_count: usize::try_from(value.reward_apply_count)
+            .map_err(|_| "prospective_opening_protobuf_count_invalid")?,
+        penalty_apply_count: usize::try_from(value.penalty_apply_count)
+            .map_err(|_| "prospective_opening_protobuf_count_invalid")?,
+        voice_mutation_count: usize::try_from(value.voice_mutation_count)
+            .map_err(|_| "prospective_opening_protobuf_count_invalid")?,
+        authority_action_count: usize::try_from(value.authority_action_count)
+            .map_err(|_| "prospective_opening_protobuf_count_invalid")?,
+        bundle_digest: value.bundle_digest,
+    };
+    validate_prospective_outcome_opening_bundle_v0(&bundle)?;
+    // Force owned vectors to be materialized before the caller trusts the reopen.
+    bundle.outcomes.shrink_to_fit();
+    Ok(bundle)
+}
+
+fn write_atomic_opening_protobuf_v0(
+    path: &Path,
+    bytes: &[u8],
+    expected_digest: &str,
+    decode_digest: impl Fn(&[u8]) -> Result<String, String>,
+) -> Result<ProspectiveOpeningArtifactWriteStatusV0, String> {
+    if path.is_file() {
+        let existing = fs::read(path).map_err(|_| "prospective_opening_artifact_reopen_failed")?;
+        return if existing == bytes && decode_digest(&existing)? == expected_digest {
+            Ok(ProspectiveOpeningArtifactWriteStatusV0::DuplicateRejected)
+        } else {
+            Err("prospective_opening_artifact_duplicate_or_corrupt".into())
+        };
+    }
+    let parent = path
+        .parent()
+        .ok_or("prospective_opening_artifact_parent_unavailable")?;
+    fs::create_dir_all(parent).map_err(|_| "prospective_opening_artifact_parent_unavailable")?;
+    let temporary = path.with_extension(format!("{expected_digest}.tmp"));
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&temporary)
+        .map_err(|_| "prospective_opening_artifact_temporary_create_failed")?;
+    file.write_all(bytes)
+        .map_err(|_| "prospective_opening_artifact_write_failed")?;
+    file.flush()
+        .map_err(|_| "prospective_opening_artifact_flush_failed")?;
+    file.sync_all()
+        .map_err(|_| "prospective_opening_artifact_sync_failed")?;
+    drop(file);
+    let mut reopened = Vec::new();
+    File::open(&temporary)
+        .and_then(|mut file| file.read_to_end(&mut reopened))
+        .map_err(|_| "prospective_opening_artifact_temporary_reopen_failed")?;
+    if reopened != bytes || decode_digest(&reopened)? != expected_digest {
+        return Err("prospective_opening_artifact_temporary_verify_failed".into());
+    }
+    fs::rename(&temporary, path).map_err(|_| "prospective_opening_artifact_rename_failed")?;
+    let final_bytes = fs::read(path).map_err(|_| "prospective_opening_artifact_reopen_failed")?;
+    if final_bytes != bytes || decode_digest(&final_bytes)? != expected_digest {
+        return Err("prospective_opening_artifact_final_verify_failed".into());
+    }
+    Ok(ProspectiveOpeningArtifactWriteStatusV0::Written)
+}
+
+pub fn write_and_verify_prospective_outcome_opening_authorization_v0(
+    path: &Path,
+    authorization: &ProspectiveOutcomeOpeningAuthorizationV0,
+) -> Result<ProspectiveOpeningArtifactWriteStatusV0, String> {
+    let bytes = encode_prospective_outcome_opening_authorization_protobuf_v0(authorization)?;
+    write_atomic_opening_protobuf_v0(path, &bytes, &authorization.authorization_digest, |bytes| {
+        Ok(
+            decode_prospective_outcome_opening_authorization_protobuf_v0(bytes)?
+                .authorization_digest,
+        )
+    })
+}
+
+pub fn read_prospective_outcome_opening_authorization_v0(
+    path: &Path,
+) -> Result<ProspectiveOutcomeOpeningAuthorizationV0, String> {
+    decode_prospective_outcome_opening_authorization_protobuf_v0(
+        &fs::read(path).map_err(|_| "prospective_opening_authorization_unavailable")?,
+    )
+}
+
+pub fn write_and_verify_prospective_outcome_opening_bundle_v0(
+    path: &Path,
+    bundle: &ProspectiveOutcomeOpeningBundleV0,
+) -> Result<ProspectiveOpeningArtifactWriteStatusV0, String> {
+    let bytes = encode_prospective_outcome_opening_bundle_protobuf_v0(bundle)?;
+    write_atomic_opening_protobuf_v0(path, &bytes, &bundle.bundle_digest, |bytes| {
+        Ok(decode_prospective_outcome_opening_bundle_protobuf_v0(bytes)?.bundle_digest)
+    })
+}
+
+pub fn read_prospective_outcome_opening_bundle_v0(
+    path: &Path,
+) -> Result<ProspectiveOutcomeOpeningBundleV0, String> {
+    decode_prospective_outcome_opening_bundle_protobuf_v0(
+        &fs::read(path).map_err(|_| "prospective_opening_bundle_unavailable")?,
+    )
+}
+
 pub fn audit_sealed_prospective_events_v0(
     admission_registration: &ProspectiveExternalAdmissionRegistrationV0,
     external_capsule: &ProspectiveExternalRowCapsuleV0,
@@ -13143,5 +14619,164 @@ mod tests {
         assert!(!registration.network_execution_allowed_this_sprint);
         assert!(!registration.label_access_allowed_this_sprint);
         assert!(!registration.reward_application_allowed);
+    }
+
+    fn opening_authorization_fixture() -> ProspectiveOutcomeOpeningAuthorizationV0 {
+        let mut authorization = ProspectiveOutcomeOpeningAuthorizationV0 {
+            authorization_version: "prospective-outcome-opening-authorization-v0".into(),
+            opening_registration_digest: "opening-registration".into(),
+            outcome_receipt_digest: "outcome-receipt".into(),
+            outcome_capsule_digest: "outcome-capsule".into(),
+            momentum_event_digest: "momentum-event".into(),
+            risk_event_digest: "risk-event".into(),
+            authorized_event_digests: vec!["momentum-event".into(), "risk-event".into()],
+            authorized_row_digests: vec![
+                "row-1".into(),
+                "row-2".into(),
+                "row-3".into(),
+                "row-4".into(),
+            ],
+            opening_attempt_count_before: 0,
+            opened_event_count_before: 0,
+            explicit_owner_authorization: true,
+            one_time_only: true,
+            authorization_digest: String::new(),
+        };
+        authorization.authorized_event_digests.sort();
+        authorization.authorization_digest =
+            prospective_outcome_opening_authorization_digest_v0(&authorization);
+        authorization
+    }
+
+    #[test]
+    fn opening_authorization_protobuf_binds_receipt_capsule_events_and_rows() {
+        let authorization = opening_authorization_fixture();
+        let bytes =
+            encode_prospective_outcome_opening_authorization_protobuf_v0(&authorization).unwrap();
+        assert_eq!(
+            decode_prospective_outcome_opening_authorization_protobuf_v0(&bytes).unwrap(),
+            authorization
+        );
+        let mut changed = authorization;
+        changed.outcome_receipt_digest = "changed".into();
+        assert!(encode_prospective_outcome_opening_authorization_protobuf_v0(&changed).is_err());
+    }
+
+    #[test]
+    fn missing_opening_authorization_seals_zero_outcome_terminal_bundle() {
+        let bundle = terminal_prospective_opening_bundle_v0(
+            None,
+            "opening-registration",
+            "outcome-capsule",
+            ProspectiveOutcomeOpeningStatusV0::AuthorizationMissing,
+        );
+        assert!(validate_prospective_outcome_opening_bundle_v0(&bundle).is_ok());
+        assert_eq!(bundle.receipt.opening_attempt_count, 0);
+        assert_eq!(bundle.receipt.opened_event_count, 0);
+        assert!(bundle.outcomes.is_empty());
+    }
+
+    fn opening_outcome_fixture(
+        objective: LearnedAgentObjectiveV0,
+        event_suffix: &str,
+    ) -> ProspectiveObjectiveOpeningOutcomeV0 {
+        let contract = reward_contract(objective, event_suffix);
+        let mut attribution = reward_event(&contract);
+        attribution.event_id = format!("{event_suffix}-event");
+        attribution.event_digest = format!("{event_suffix}-event-digest");
+        attribution.attribution_digest = learned_attribution_digest_v0(&attribution);
+        let mut outcome = ProspectiveObjectiveOpeningOutcomeV0 {
+            outcome_version: "prospective-objective-opening-outcome-v0".into(),
+            objective,
+            event_id: attribution.event_id.clone(),
+            event_digest: attribution.event_digest.clone(),
+            maturity_plan_digest: format!("{event_suffix}-plan"),
+            source_row_digests: vec![format!("{event_suffix}-row")],
+            label_policy_digest: format!("{event_suffix}-label-policy"),
+            attribution_class: LearnedAbstentionAttributionV0::CorrectUncertainty,
+            attribution,
+            learned_outcome_digest: format!("{event_suffix}-learned-outcome"),
+            eligibility_status: LearnedRewardEligibilityStatusV0::IneligibleMinimumSamples,
+            eligibility_digest: format!("{event_suffix}-eligibility"),
+            reward_candidate_digest: None,
+            ledger_digest: format!("{event_suffix}-ledger"),
+            outcome_digest: String::new(),
+        };
+        outcome.outcome_digest = prospective_objective_opening_outcome_digest_v0(&outcome);
+        outcome
+    }
+
+    #[test]
+    fn opening_bundle_keeps_momentum_and_risk_distinct_and_compute_only() {
+        let authorization = opening_authorization_fixture();
+        let momentum =
+            opening_outcome_fixture(LearnedAgentObjectiveV0::DirectionalMomentum, "momentum");
+        let risk = opening_outcome_fixture(LearnedAgentObjectiveV0::DownsideRisk, "risk");
+        let mut attributions = vec![momentum.attribution.clone(), risk.attribution.clone()];
+        attributions.sort_by(|left, right| left.event_id.cmp(&right.event_id));
+        let mut journal = ProspectiveOpeningAttributionJournalV0 {
+            journal_version: "prospective-opening-attribution-journal-v0".into(),
+            attributions,
+            journal_digest: String::new(),
+        };
+        journal.journal_digest = prospective_opening_attribution_journal_digest_v0(&journal);
+        let mut receipt = ProspectiveOutcomeOpeningReceiptV0 {
+            receipt_version: "prospective-outcome-opening-receipt-v0".into(),
+            authorization_digest: authorization.authorization_digest.clone(),
+            opening_registration_digest: authorization.opening_registration_digest.clone(),
+            outcome_capsule_digest: authorization.outcome_capsule_digest.clone(),
+            opening_attempt_count: 1,
+            opened_event_count: 2,
+            momentum_outcome_digest: Some(momentum.outcome_digest.clone()),
+            risk_outcome_digest: Some(risk.outcome_digest.clone()),
+            status: ProspectiveOutcomeOpeningStatusV0::Opened,
+            receipt_digest: String::new(),
+        };
+        receipt.receipt_digest = prospective_outcome_opening_receipt_digest_v0(&receipt);
+        let mut bundle = ProspectiveOutcomeOpeningBundleV0 {
+            bundle_version: "prospective-outcome-opening-bundle-v0".into(),
+            authorization: Some(authorization),
+            receipt,
+            outcomes: vec![momentum, risk],
+            attribution_journal: journal,
+            reward_candidate_count: 0,
+            reward_apply_count: 0,
+            penalty_apply_count: 0,
+            voice_mutation_count: 0,
+            authority_action_count: 0,
+            bundle_digest: String::new(),
+        };
+        bundle.bundle_digest = prospective_outcome_opening_bundle_digest_v0(&bundle);
+        assert!(validate_prospective_outcome_opening_bundle_v0(&bundle).is_ok());
+        assert_ne!(bundle.outcomes[0].objective, bundle.outcomes[1].objective);
+        assert_eq!(bundle.reward_apply_count, 0);
+        assert_eq!(bundle.penalty_apply_count, 0);
+        let bytes = encode_prospective_outcome_opening_bundle_protobuf_v0(&bundle).unwrap();
+        assert_eq!(
+            decode_prospective_outcome_opening_bundle_protobuf_v0(&bytes).unwrap(),
+            bundle
+        );
+    }
+
+    #[test]
+    fn opening_bundle_rejects_partial_success_and_corruption() {
+        let mut bundle = terminal_prospective_opening_bundle_v0(
+            Some(opening_authorization_fixture()),
+            "opening-registration",
+            "outcome-capsule",
+            ProspectiveOutcomeOpeningStatusV0::ObjectiveDerivationFailure,
+        );
+        bundle.receipt.opened_event_count = 1;
+        bundle.receipt.receipt_digest =
+            prospective_outcome_opening_receipt_digest_v0(&bundle.receipt);
+        bundle.bundle_digest = prospective_outcome_opening_bundle_digest_v0(&bundle);
+        assert!(validate_prospective_outcome_opening_bundle_v0(&bundle).is_err());
+
+        let authorization = opening_authorization_fixture();
+        let mut bytes =
+            encode_prospective_outcome_opening_authorization_protobuf_v0(&authorization).unwrap();
+        let last = bytes.len() - 1;
+        bytes[last] ^= 1;
+        assert!(decode_prospective_outcome_opening_authorization_protobuf_v0(&bytes).is_err());
     }
 }

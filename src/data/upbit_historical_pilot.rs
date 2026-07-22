@@ -1297,12 +1297,15 @@ pub fn fetch_upbit_learning_evidence_once_v1(
         .and_then(|bars| bars.checked_mul(86_400_000))
         .and_then(|duration| end.checked_sub(duration))
         .ok_or(LearningEvidenceTransportFailureV1::Technical)?;
+    let expected_final_timestamp = end
+        .checked_sub(86_400_000)
+        .ok_or(LearningEvidenceTransportFailureV1::Technical)?;
     if request
         .lookback
         .start_timestamp_ms
         .is_some_and(|start| start != expected_start)
         || expected_start < config.start_timestamp_ms
-        || end > config.end_timestamp_ms
+        || expected_final_timestamp >= config.end_timestamp_ms
     {
         return Err(LearningEvidenceTransportFailureV1::Technical);
     }
