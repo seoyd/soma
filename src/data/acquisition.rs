@@ -4278,6 +4278,1029 @@ where
     }
 }
 
+const COMPOSITE_LEARNING_REGISTRATION_VERSION_V1: &str =
+    "composite-learning-acquisition-registration-v1";
+const LEARNING_SEGMENT_REGISTRATION_VERSION_V1: &str = "learning-evidence-segment-registration-v1";
+const LEARNING_SEGMENT_RECEIPT_VERSION_V1: &str = "learning-evidence-segment-receipt-v1";
+const LEARNING_SEGMENT_CAPSULE_VERSION_V1: &str = "learning-evidence-segment-capsule-v1";
+const LEARNING_EPOCH_RECEIPT_VERSION_V1: &str = "composite-learning-epoch-receipt-v1";
+const LEARNING_MERGED_PROVENANCE_VERSION_V1: &str = "composite-learning-provenance-v1";
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LearningEvidenceSegmentRegistrationV1 {
+    pub segment_index: usize,
+    pub expected_timestamps: Vec<u64>,
+    pub expected_row_count: usize,
+    pub request_to_utc: String,
+    pub maximum_requests: usize,
+    pub maximum_retries: usize,
+    pub segment_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CompositeLearningAcquisitionRegistrationV1 {
+    pub registration_version: String,
+    pub target_agent_ids: Vec<String>,
+    pub intent_digest: String,
+    pub gap_report_digest: String,
+    pub provider_contract_digest: String,
+    pub dataset_kind: DatasetKind,
+    pub market_scope: AcquisitionMarketScope,
+    pub symbols: Vec<String>,
+    pub cadence: String,
+    pub information_cutoff_ms: u64,
+    pub required_row_count: usize,
+    pub expected_timestamp_digest: String,
+    pub segments: Vec<LearningEvidenceSegmentRegistrationV1>,
+    pub maximum_total_requests: usize,
+    pub maximum_concurrency: usize,
+    pub maximum_retries_per_segment: usize,
+    pub protected_registration_digests: Vec<String>,
+    pub excluded_timestamp_ms: Vec<u64>,
+    pub read_only_required: bool,
+    pub credential_free_required: bool,
+    pub prospective_storage_forbidden: bool,
+    pub registration_digest: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CompositeLearningEpochStatusV1 {
+    ReadyNotAttempted,
+    EvidenceAcquired,
+    TerminalSegmentFailure,
+    TerminalPartialEvidence,
+    AlreadyTerminal,
+    RegistrationInvalid,
+    GapNoLongerCurrent,
+    MissingNetworkConsent,
+    IntegrityFailure,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LearningEvidenceSegmentReceiptV1 {
+    pub receipt_version: String,
+    pub composite_registration_digest: String,
+    pub segment_digest: String,
+    pub segment_index: usize,
+    pub request_attempted: bool,
+    pub request_count: usize,
+    pub retry_count: usize,
+    pub status: LearningEvidenceRequestStatusV1,
+    pub http_status_class: Option<String>,
+    pub returned_row_count: usize,
+    pub verified_row_count: usize,
+    pub raw_response_digest: Option<String>,
+    pub segment_capsule_digest: Option<String>,
+    pub receipt_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct LearningEvidenceSegmentCapsuleV1 {
+    pub capsule_version: String,
+    pub composite_registration_digest: String,
+    pub segment_digest: String,
+    pub segment_receipt_digest: String,
+    pub segment_index: usize,
+    pub provider_id: String,
+    pub symbol: String,
+    pub cadence: String,
+    pub expected_timestamps: Vec<u64>,
+    pub rows: Vec<HistoricalOhlcvRow>,
+    pub segment_semantic_digest: String,
+    pub finalized: bool,
+    pub read_only: bool,
+    pub credential_free: bool,
+    pub capsule_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CompositeLearningEpochReceiptV1 {
+    pub receipt_version: String,
+    pub registration_digest: String,
+    pub segment_receipt_digests: Vec<String>,
+    pub attempted_segment_count: usize,
+    pub successful_segment_count: usize,
+    pub request_count: usize,
+    pub retry_count: usize,
+    pub merged_snapshot_digest: Option<String>,
+    pub merged_provenance_digest: Option<String>,
+    pub status: CompositeLearningEpochStatusV1,
+    pub receipt_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CompositeLearningMergedProvenanceV1 {
+    pub provenance_version: String,
+    pub registration_digest: String,
+    pub provider_contract_digest: String,
+    pub segment_digests: Vec<String>,
+    pub segment_receipt_digests: Vec<String>,
+    pub segment_capsule_digests: Vec<String>,
+    pub canonical_snapshot_digest: String,
+    pub expected_timestamp_digest: String,
+    pub required_row_count: usize,
+    pub read_only: bool,
+    pub credential_free: bool,
+    pub prospective_storage_used: bool,
+    pub provenance_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct CompositeLearningAcquisitionResultV1 {
+    pub status: CompositeLearningEpochStatusV1,
+    pub segment_receipts: Vec<LearningEvidenceSegmentReceiptV1>,
+    pub segment_capsules: Vec<LearningEvidenceSegmentCapsuleV1>,
+    pub raw_responses: Vec<Vec<u8>>,
+    pub epoch_receipt: Option<CompositeLearningEpochReceiptV1>,
+    pub merged_provenance: Option<CompositeLearningMergedProvenanceV1>,
+    pub snapshot: Option<DataSnapshot>,
+    pub safety_counters: LearningEvidenceSafetyCountersV1,
+}
+
+fn format_learning_utc_timestamp_v1(timestamp_ms: u64) -> Option<String> {
+    let seconds = timestamp_ms / 1_000;
+    let days = i64::try_from(seconds / 86_400).ok()?;
+    let days = days + 719_468;
+    let era = if days >= 0 { days } else { days - 146_096 } / 146_097;
+    let doe = days - era * 146_097;
+    let yoe = (doe - doe / 1_460 + doe / 36_524 - doe / 146_096) / 365;
+    let mut year = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let day = doy - (153 * mp + 2) / 5 + 1;
+    let month = mp + if mp < 10 { 3 } else { -9 };
+    year += i64::from(month <= 2);
+    let second_of_day = seconds % 86_400;
+    Some(format!(
+        "{year:04}-{month:02}-{day:02}T{:02}:{:02}:{:02}Z",
+        second_of_day / 3_600,
+        (second_of_day % 3_600) / 60,
+        second_of_day % 60
+    ))
+}
+
+fn learning_segment_registration_digest_v1(
+    segment: &LearningEvidenceSegmentRegistrationV1,
+) -> String {
+    stable_hash_string(&format!(
+        "{}:{:?}:{}:{}:{}:{}:{}",
+        segment.segment_index,
+        segment.expected_timestamps,
+        segment.expected_row_count,
+        segment.request_to_utc,
+        segment.maximum_requests,
+        segment.maximum_retries,
+        LEARNING_SEGMENT_REGISTRATION_VERSION_V1,
+    ))
+}
+
+fn composite_learning_registration_digest_v1(
+    registration: &CompositeLearningAcquisitionRegistrationV1,
+) -> String {
+    stable_hash_string(&format!(
+        "{:?}",
+        (
+            (
+                registration.registration_version.as_str(),
+                &registration.target_agent_ids,
+                registration.intent_digest.as_str(),
+                registration.gap_report_digest.as_str(),
+                registration.provider_contract_digest.as_str(),
+                registration.dataset_kind,
+                registration.market_scope,
+                &registration.symbols,
+                registration.cadence.as_str(),
+            ),
+            (
+                registration.information_cutoff_ms,
+                registration.required_row_count,
+                registration.expected_timestamp_digest.as_str(),
+                registration
+                    .segments
+                    .iter()
+                    .map(|segment| segment.segment_digest.as_str())
+                    .collect::<Vec<_>>(),
+                registration.maximum_total_requests,
+                registration.maximum_concurrency,
+                registration.maximum_retries_per_segment,
+            ),
+            (
+                &registration.protected_registration_digests,
+                &registration.excluded_timestamp_ms,
+                registration.read_only_required,
+                registration.credential_free_required,
+                registration.prospective_storage_forbidden,
+            ),
+        )
+    ))
+}
+
+fn derive_learning_segments_v1(
+    expected_timestamps: &[u64],
+    provider_maximum_rows: usize,
+) -> Result<Vec<LearningEvidenceSegmentRegistrationV1>, String> {
+    if expected_timestamps.is_empty()
+        || provider_maximum_rows == 0
+        || expected_timestamps
+            .windows(2)
+            .any(|pair| pair[1].checked_sub(pair[0]) != Some(DAILY_CADENCE_MS_V1))
+    {
+        return Err("composite learning timestamp plan rejected".into());
+    }
+    let segment_count = expected_timestamps.len().div_ceil(provider_maximum_rows);
+    if segment_count <= 1 || segment_count > MAX_LEARNING_EVIDENCE_SEGMENTS_V1 {
+        return Err("composite learning segment governance rejected".into());
+    }
+    let mut segments = Vec::with_capacity(segment_count);
+    let mut end = expected_timestamps.len();
+    for segment_index in 0..segment_count {
+        let start = end.saturating_sub(provider_maximum_rows);
+        let timestamps = expected_timestamps[start..end].to_vec();
+        let request_to_ms = timestamps
+            .last()
+            .copied()
+            .and_then(|timestamp| timestamp.checked_add(DAILY_CADENCE_MS_V1))
+            .ok_or("composite learning segment boundary rejected")?;
+        let mut segment = LearningEvidenceSegmentRegistrationV1 {
+            segment_index,
+            expected_row_count: timestamps.len(),
+            expected_timestamps: timestamps,
+            request_to_utc: format_learning_utc_timestamp_v1(request_to_ms)
+                .ok_or("composite learning segment boundary rejected")?,
+            maximum_requests: 1,
+            maximum_retries: 0,
+            segment_digest: String::new(),
+        };
+        segment.segment_digest = learning_segment_registration_digest_v1(&segment);
+        segments.push(segment);
+        end = start;
+    }
+    if end != 0 {
+        return Err("composite learning partial timestamp plan rejected".into());
+    }
+    Ok(segments)
+}
+
+pub fn select_composite_learning_acquisition_registration_v1(
+    report: &AgentCanonicalViewGapReportV1,
+    provider_contracts: &[LearningEvidenceProviderContractV1],
+    protected_registration_digests: &[String],
+    excluded_timestamp_ms: &[u64],
+) -> Result<Option<CompositeLearningAcquisitionRegistrationV1>, String> {
+    if report.report_version != CANONICAL_VIEW_GAP_REPORT_VERSION_V1
+        || report.report_digest != canonical_view_gap_report_digest_v1(report)
+    {
+        return Err("composite learning gap report rejected".into());
+    }
+    let candidates = report
+        .gaps
+        .iter()
+        .filter(|gap| {
+            gap.trainer_available
+                && gap.status == CanonicalViewGapStatusV1::SegmentedAcquisitionRequired
+                && gap.missing_required_dataset_kinds.len() == 1
+        })
+        .collect::<Vec<_>>();
+    if candidates.is_empty() {
+        return Ok(None);
+    }
+    if candidates.len() != 1 {
+        return Err("composite learning ambiguous gap rejected".into());
+    }
+    let gap = candidates[0];
+    let dataset_kind = gap.missing_required_dataset_kinds[0];
+    let contracts = provider_contracts
+        .iter()
+        .filter(|contract| {
+            validate_learning_evidence_provider_contract_v1(contract)
+                && contract.dataset_kind == dataset_kind
+                && gap.market_scopes.as_slice() == [contract.market_scope]
+                && stable_learning_strings_v1(&gap.symbols)
+                    == stable_learning_strings_v1(&contract.symbols)
+                && gap.cadence == contract.cadence
+                && gap.information_cutoff_ms < contract.latest_exclusive_timestamp_ms
+                && gap.lookback.bars > contract.maximum_lookback_bars
+        })
+        .collect::<Vec<_>>();
+    if contracts.len() != 1 {
+        return Err("composite learning provider contract rejected".into());
+    }
+    let contract = contracts[0];
+    let expected_timestamps = expected_learning_timestamps_v1(&gap.lookback)
+        .ok_or("composite learning expected timestamps unavailable")?;
+    if expected_timestamps.len() != gap.lookback.bars
+        || expected_timestamps
+            .iter()
+            .any(|timestamp| *timestamp > gap.information_cutoff_ms)
+    {
+        return Err("composite learning intent shortening rejected".into());
+    }
+    let segments =
+        derive_learning_segments_v1(&expected_timestamps, contract.maximum_lookback_bars)?;
+    let mut protected_registration_digests = protected_registration_digests.to_vec();
+    protected_registration_digests.sort();
+    protected_registration_digests.dedup();
+    let mut excluded_timestamp_ms = excluded_timestamp_ms.to_vec();
+    excluded_timestamp_ms.sort();
+    excluded_timestamp_ms.dedup();
+    if expected_timestamps
+        .iter()
+        .any(|timestamp| excluded_timestamp_ms.contains(timestamp))
+    {
+        return Err("composite learning protected timestamp rejected".into());
+    }
+    let mut registration = CompositeLearningAcquisitionRegistrationV1 {
+        registration_version: COMPOSITE_LEARNING_REGISTRATION_VERSION_V1.into(),
+        target_agent_ids: vec![gap.agent_id.clone()],
+        intent_digest: gap.intent_digest.clone(),
+        gap_report_digest: gap.gap_digest.clone(),
+        provider_contract_digest: contract.contract_digest.clone(),
+        dataset_kind,
+        market_scope: contract.market_scope,
+        symbols: stable_learning_strings_v1(&gap.symbols),
+        cadence: gap.cadence.clone(),
+        information_cutoff_ms: gap.information_cutoff_ms,
+        required_row_count: expected_timestamps.len(),
+        expected_timestamp_digest: stable_hash_string(&format!(
+            "composite-learning-expected-timestamps-v1:{expected_timestamps:?}"
+        )),
+        maximum_total_requests: segments.len(),
+        segments,
+        maximum_concurrency: 1,
+        maximum_retries_per_segment: 0,
+        protected_registration_digests,
+        excluded_timestamp_ms,
+        read_only_required: true,
+        credential_free_required: true,
+        prospective_storage_forbidden: true,
+        registration_digest: String::new(),
+    };
+    registration.registration_digest = composite_learning_registration_digest_v1(&registration);
+    validate_composite_learning_acquisition_registration_v1(&registration, contract)?;
+    Ok(Some(registration))
+}
+
+pub fn validate_composite_learning_acquisition_registration_v1(
+    registration: &CompositeLearningAcquisitionRegistrationV1,
+    contract: &LearningEvidenceProviderContractV1,
+) -> Result<(), String> {
+    if !validate_learning_evidence_provider_contract_v1(contract)
+        || registration.registration_version != COMPOSITE_LEARNING_REGISTRATION_VERSION_V1
+        || registration.target_agent_ids.len() != 1
+        || registration.target_agent_ids
+            != stable_learning_strings_v1(&registration.target_agent_ids)
+        || registration.intent_digest.is_empty()
+        || registration.gap_report_digest.is_empty()
+        || registration.provider_contract_digest != contract.contract_digest
+        || registration.dataset_kind != contract.dataset_kind
+        || registration.market_scope != contract.market_scope
+        || registration.symbols != stable_learning_strings_v1(&contract.symbols)
+        || registration.cadence != "1d"
+        || registration.cadence != contract.cadence
+        || registration.required_row_count <= contract.maximum_lookback_bars
+        || registration.segments.len() <= 1
+        || registration.segments.len() > MAX_LEARNING_EVIDENCE_SEGMENTS_V1
+        || registration.maximum_total_requests != registration.segments.len()
+        || registration.maximum_concurrency != 1
+        || registration.maximum_retries_per_segment != 0
+        || registration.protected_registration_digests.is_empty()
+        || registration.protected_registration_digests
+            != stable_learning_strings_v1(&registration.protected_registration_digests)
+        || registration.excluded_timestamp_ms.is_empty()
+        || {
+            let mut values = registration.excluded_timestamp_ms.clone();
+            values.sort();
+            values.dedup();
+            values != registration.excluded_timestamp_ms
+        }
+        || !registration.read_only_required
+        || !registration.credential_free_required
+        || !registration.prospective_storage_forbidden
+    {
+        return Err("composite learning registration rejected".into());
+    }
+    let mut expected = registration
+        .segments
+        .iter()
+        .flat_map(|segment| segment.expected_timestamps.iter().copied())
+        .collect::<Vec<_>>();
+    let unique = expected.iter().copied().collect::<BTreeSet<_>>();
+    expected.sort();
+    if registration
+        .segments
+        .iter()
+        .enumerate()
+        .any(|(index, segment)| {
+            segment.segment_index != index
+                || segment.expected_timestamps.is_empty()
+                || segment.expected_row_count != segment.expected_timestamps.len()
+                || segment.expected_row_count > contract.maximum_lookback_bars
+                || segment.maximum_requests != 1
+                || segment.maximum_retries != 0
+                || segment
+                    .expected_timestamps
+                    .windows(2)
+                    .any(|pair| pair[1].checked_sub(pair[0]) != Some(DAILY_CADENCE_MS_V1))
+                || segment
+                    .expected_timestamps
+                    .last()
+                    .copied()
+                    .and_then(|timestamp| timestamp.checked_add(DAILY_CADENCE_MS_V1))
+                    .and_then(format_learning_utc_timestamp_v1)
+                    .as_deref()
+                    != Some(segment.request_to_utc.as_str())
+                || segment.segment_digest != learning_segment_registration_digest_v1(segment)
+        })
+        || expected.len() != registration.required_row_count
+        || unique.len() != registration.required_row_count
+        || expected
+            .windows(2)
+            .any(|pair| pair[1].checked_sub(pair[0]) != Some(DAILY_CADENCE_MS_V1))
+        || expected.last().copied().unwrap_or_default() > registration.information_cutoff_ms
+        || expected
+            .iter()
+            .any(|timestamp| registration.excluded_timestamp_ms.contains(timestamp))
+        || registration.expected_timestamp_digest
+            != stable_hash_string(&format!(
+                "composite-learning-expected-timestamps-v1:{expected:?}"
+            ))
+        || registration.registration_digest
+            != composite_learning_registration_digest_v1(registration)
+    {
+        return Err("composite learning segment partition rejected".into());
+    }
+    Ok(())
+}
+
+pub fn composite_learning_expected_timestamps_v1(
+    registration: &CompositeLearningAcquisitionRegistrationV1,
+) -> Vec<u64> {
+    let mut timestamps = registration
+        .segments
+        .iter()
+        .flat_map(|segment| segment.expected_timestamps.iter().copied())
+        .collect::<Vec<_>>();
+    timestamps.sort();
+    timestamps
+}
+
+fn segment_internal_registration_v1(
+    composite: &CompositeLearningAcquisitionRegistrationV1,
+    contract: &LearningEvidenceProviderContractV1,
+    segment: &LearningEvidenceSegmentRegistrationV1,
+) -> LearningEvidenceAcquisitionRegistrationV1 {
+    let start = segment.expected_timestamps.first().copied();
+    let end = segment
+        .expected_timestamps
+        .last()
+        .copied()
+        .and_then(|timestamp| timestamp.checked_add(DAILY_CADENCE_MS_V1));
+    let mut registration = LearningEvidenceAcquisitionRegistrationV1 {
+        registration_version: LEARNING_EVIDENCE_REGISTRATION_VERSION_V1.into(),
+        target_agent_ids: composite.target_agent_ids.clone(),
+        gap_report_digests: vec![composite.gap_report_digest.clone()],
+        provider_id: contract.provider_id.clone(),
+        provider_contract_digest: contract.contract_digest.clone(),
+        dataset_kind: composite.dataset_kind,
+        market_scope: composite.market_scope,
+        symbols: composite.symbols.clone(),
+        cadence: composite.cadence.clone(),
+        lookback: DataLookback {
+            bars: segment.expected_row_count,
+            start_timestamp_ms: start,
+            end_timestamp_ms: end,
+        },
+        information_cutoff_ms: end.unwrap_or_default(),
+        expected_timestamp_ms: segment.expected_timestamps.clone(),
+        protected_registration_digests: composite.protected_registration_digests.clone(),
+        excluded_timestamp_ms: composite.excluded_timestamp_ms.clone(),
+        maximum_requests: 1,
+        maximum_concurrency: 1,
+        maximum_retries: 0,
+        maximum_response_bytes: contract.maximum_response_bytes,
+        credential_free_required: true,
+        read_only_required: true,
+        prospective_storage_forbidden: true,
+        registration_digest: String::new(),
+    };
+    registration.registration_digest = learning_evidence_registration_digest_v1(&registration);
+    registration
+}
+
+fn segment_receipt_digest_v1(receipt: &LearningEvidenceSegmentReceiptV1) -> String {
+    stable_hash_string(&format!(
+        "{:?}",
+        (
+            receipt.receipt_version.as_str(),
+            receipt.composite_registration_digest.as_str(),
+            receipt.segment_digest.as_str(),
+            receipt.segment_index,
+            receipt.request_attempted,
+            receipt.request_count,
+            receipt.retry_count,
+            receipt.status,
+            &receipt.http_status_class,
+            receipt.returned_row_count,
+            receipt.verified_row_count,
+            &receipt.raw_response_digest,
+        )
+    ))
+}
+
+fn segment_capsule_digest_v1(capsule: &LearningEvidenceSegmentCapsuleV1) -> String {
+    stable_hash_string(&format!(
+        "{:?}",
+        (
+            (
+                capsule.capsule_version.as_str(),
+                capsule.composite_registration_digest.as_str(),
+                capsule.segment_digest.as_str(),
+                capsule.segment_receipt_digest.as_str(),
+                capsule.segment_index,
+                capsule.provider_id.as_str(),
+                capsule.symbol.as_str(),
+                capsule.cadence.as_str(),
+            ),
+            (
+                &capsule.expected_timestamps,
+                &capsule.rows,
+                capsule.segment_semantic_digest.as_str(),
+                capsule.finalized,
+                capsule.read_only,
+                capsule.credential_free,
+            ),
+        )
+    ))
+}
+
+fn epoch_receipt_digest_v1(receipt: &CompositeLearningEpochReceiptV1) -> String {
+    stable_hash_string(&format!(
+        "{:?}",
+        (
+            receipt.receipt_version.as_str(),
+            receipt.registration_digest.as_str(),
+            &receipt.segment_receipt_digests,
+            receipt.attempted_segment_count,
+            receipt.successful_segment_count,
+            receipt.request_count,
+            receipt.retry_count,
+            &receipt.merged_snapshot_digest,
+            &receipt.merged_provenance_digest,
+            receipt.status,
+        )
+    ))
+}
+
+fn merged_provenance_digest_v1(provenance: &CompositeLearningMergedProvenanceV1) -> String {
+    stable_hash_string(&format!(
+        "{:?}",
+        (
+            (
+                provenance.provenance_version.as_str(),
+                provenance.registration_digest.as_str(),
+                provenance.provider_contract_digest.as_str(),
+                &provenance.segment_digests,
+                &provenance.segment_receipt_digests,
+            ),
+            (
+                &provenance.segment_capsule_digests,
+                provenance.canonical_snapshot_digest.as_str(),
+                provenance.expected_timestamp_digest.as_str(),
+                provenance.required_row_count,
+                provenance.read_only,
+                provenance.credential_free,
+                provenance.prospective_storage_used,
+            ),
+        )
+    ))
+}
+
+pub fn validate_learning_evidence_segment_receipt_v1(
+    receipt: &LearningEvidenceSegmentReceiptV1,
+) -> Result<(), String> {
+    let success = receipt.status == LearningEvidenceRequestStatusV1::EvidenceAcquired;
+    if receipt.receipt_version != LEARNING_SEGMENT_RECEIPT_VERSION_V1
+        || receipt.composite_registration_digest.is_empty()
+        || receipt.segment_digest.is_empty()
+        || !receipt.request_attempted
+        || receipt.request_count != 1
+        || receipt.retry_count != 0
+        || (success
+            && (receipt.returned_row_count == 0
+                || receipt.returned_row_count != receipt.verified_row_count
+                || receipt.raw_response_digest.is_none()
+                || receipt.segment_capsule_digest.is_none()))
+        || (!success
+            && (receipt.verified_row_count != 0 || receipt.segment_capsule_digest.is_some()))
+        || receipt.receipt_digest != segment_receipt_digest_v1(receipt)
+    {
+        Err("composite learning segment receipt rejected".into())
+    } else {
+        Ok(())
+    }
+}
+
+pub fn validate_learning_evidence_segment_capsule_v1(
+    capsule: &LearningEvidenceSegmentCapsuleV1,
+    registration: &CompositeLearningAcquisitionRegistrationV1,
+    contract: &LearningEvidenceProviderContractV1,
+) -> Result<(), String> {
+    validate_composite_learning_acquisition_registration_v1(registration, contract)?;
+    let segment = registration
+        .segments
+        .get(capsule.segment_index)
+        .ok_or("composite learning segment missing")?;
+    let dataset = HistoricalReplayDataset {
+        symbol: capsule.symbol.clone(),
+        rows: capsule.rows.clone(),
+        source: capsule.provider_id.clone(),
+        reason_codes: vec![],
+    };
+    if capsule.capsule_version != LEARNING_SEGMENT_CAPSULE_VERSION_V1
+        || capsule.composite_registration_digest != registration.registration_digest
+        || capsule.segment_digest != segment.segment_digest
+        || capsule.segment_receipt_digest.is_empty()
+        || capsule.provider_id != contract.provider_id
+        || registration.symbols.as_slice() != [capsule.symbol.clone()]
+        || capsule.cadence != registration.cadence
+        || capsule.expected_timestamps != segment.expected_timestamps
+        || capsule.rows.len() != segment.expected_row_count
+        || capsule
+            .rows
+            .iter()
+            .map(|row| row.timestamp_ms)
+            .ne(segment.expected_timestamps.iter().copied())
+        || capsule.rows.iter().any(|row| {
+            row.symbol != capsule.symbol
+                || registration
+                    .excluded_timestamp_ms
+                    .contains(&row.timestamp_ms)
+        })
+        || validate_normalized_dataset(&dataset).is_err()
+        || capsule.segment_semantic_digest != historical_replay_dataset_digest_v0(&dataset)
+        || !capsule.finalized
+        || !capsule.read_only
+        || !capsule.credential_free
+        || capsule.capsule_digest != segment_capsule_digest_v1(capsule)
+    {
+        Err("composite learning segment capsule rejected".into())
+    } else {
+        Ok(())
+    }
+}
+
+pub fn validate_composite_learning_epoch_receipt_v1(
+    receipt: &CompositeLearningEpochReceiptV1,
+    registration: &CompositeLearningAcquisitionRegistrationV1,
+) -> Result<(), String> {
+    let success = receipt.status == CompositeLearningEpochStatusV1::EvidenceAcquired;
+    if receipt.receipt_version != LEARNING_EPOCH_RECEIPT_VERSION_V1
+        || receipt.registration_digest != registration.registration_digest
+        || receipt.attempted_segment_count != receipt.segment_receipt_digests.len()
+        || receipt.request_count != receipt.attempted_segment_count
+        || receipt.request_count > registration.maximum_total_requests
+        || receipt.retry_count != 0
+        || receipt.successful_segment_count > receipt.attempted_segment_count
+        || (success
+            && (receipt.successful_segment_count != registration.segments.len()
+                || receipt.merged_snapshot_digest.is_none()
+                || receipt.merged_provenance_digest.is_none()))
+        || (!success
+            && (receipt.merged_snapshot_digest.is_some()
+                || receipt.merged_provenance_digest.is_some()))
+        || receipt.receipt_digest != epoch_receipt_digest_v1(receipt)
+    {
+        Err("composite learning epoch receipt rejected".into())
+    } else {
+        Ok(())
+    }
+}
+
+fn terminal_epoch_receipt_v1(
+    registration: &CompositeLearningAcquisitionRegistrationV1,
+    segment_receipts: &[LearningEvidenceSegmentReceiptV1],
+    successful_segment_count: usize,
+    status: CompositeLearningEpochStatusV1,
+) -> CompositeLearningEpochReceiptV1 {
+    let mut receipt = CompositeLearningEpochReceiptV1 {
+        receipt_version: LEARNING_EPOCH_RECEIPT_VERSION_V1.into(),
+        registration_digest: registration.registration_digest.clone(),
+        segment_receipt_digests: segment_receipts
+            .iter()
+            .map(|receipt| receipt.receipt_digest.clone())
+            .collect(),
+        attempted_segment_count: segment_receipts.len(),
+        successful_segment_count,
+        request_count: segment_receipts.len(),
+        retry_count: 0,
+        merged_snapshot_digest: None,
+        merged_provenance_digest: None,
+        status,
+        receipt_digest: String::new(),
+    };
+    receipt.receipt_digest = epoch_receipt_digest_v1(&receipt);
+    receipt
+}
+
+fn empty_composite_result_v1(
+    status: CompositeLearningEpochStatusV1,
+) -> CompositeLearningAcquisitionResultV1 {
+    CompositeLearningAcquisitionResultV1 {
+        status,
+        segment_receipts: vec![],
+        segment_capsules: vec![],
+        raw_responses: vec![],
+        epoch_receipt: None,
+        merged_provenance: None,
+        snapshot: None,
+        safety_counters: zero_learning_evidence_safety_counters_v1(),
+    }
+}
+
+pub fn execute_composite_learning_acquisition_v1<F>(
+    registration: &CompositeLearningAcquisitionRegistrationV1,
+    contract: &LearningEvidenceProviderContractV1,
+    current_gap_digests: &[String],
+    existing_epoch_receipt: Option<&CompositeLearningEpochReceiptV1>,
+    explicit_network_consent: bool,
+    mut transport: F,
+) -> CompositeLearningAcquisitionResultV1
+where
+    F: FnMut(
+        &LearningEvidenceSegmentRegistrationV1,
+        &ReadOnlyProviderRequest,
+    )
+        -> Result<LearningEvidenceTransportResponseV1, LearningEvidenceTransportFailureV1>,
+{
+    if validate_composite_learning_acquisition_registration_v1(registration, contract).is_err() {
+        return empty_composite_result_v1(CompositeLearningEpochStatusV1::RegistrationInvalid);
+    }
+    if let Some(existing) = existing_epoch_receipt {
+        return if validate_composite_learning_epoch_receipt_v1(existing, registration).is_ok() {
+            empty_composite_result_v1(CompositeLearningEpochStatusV1::AlreadyTerminal)
+        } else {
+            empty_composite_result_v1(CompositeLearningEpochStatusV1::IntegrityFailure)
+        };
+    }
+    if !current_gap_digests.contains(&registration.gap_report_digest) {
+        return empty_composite_result_v1(CompositeLearningEpochStatusV1::GapNoLongerCurrent);
+    }
+    if !explicit_network_consent {
+        return empty_composite_result_v1(CompositeLearningEpochStatusV1::MissingNetworkConsent);
+    }
+    let mut result = empty_composite_result_v1(CompositeLearningEpochStatusV1::ReadyNotAttempted);
+    let mut merged_fetched_at_ms = 0;
+    let mut merged_normalized_at_ms = 0;
+    for segment in &registration.segments {
+        let internal = segment_internal_registration_v1(registration, contract, segment);
+        if validate_learning_evidence_acquisition_registration_v1(&internal).is_err() {
+            result.status = CompositeLearningEpochStatusV1::RegistrationInvalid;
+            return result;
+        }
+        let single = execute_learning_evidence_acquisition_v1(
+            &internal,
+            contract,
+            current_gap_digests,
+            None,
+            &[],
+            true,
+            |request| transport(segment, request),
+        );
+        result.safety_counters.request_attempts += single.safety_counters.request_attempts;
+        result.safety_counters.transport_constructions +=
+            single.safety_counters.transport_constructions;
+        result.safety_counters.retry_count += single.safety_counters.retry_count;
+        let Some(single_receipt) = single.receipt else {
+            result.status = CompositeLearningEpochStatusV1::IntegrityFailure;
+            return result;
+        };
+        let raw_response_digest = single_receipt.raw_response_digest.clone();
+        if let Some(raw) = single.raw_response {
+            result.raw_responses.push(raw);
+        }
+        let mut segment_receipt = LearningEvidenceSegmentReceiptV1 {
+            receipt_version: LEARNING_SEGMENT_RECEIPT_VERSION_V1.into(),
+            composite_registration_digest: registration.registration_digest.clone(),
+            segment_digest: segment.segment_digest.clone(),
+            segment_index: segment.segment_index,
+            request_attempted: true,
+            request_count: 1,
+            retry_count: 0,
+            status: single_receipt.status,
+            http_status_class: single_receipt.http_status_class,
+            returned_row_count: single_receipt.returned_row_count,
+            verified_row_count: single_receipt.verified_row_count,
+            raw_response_digest,
+            segment_capsule_digest: None,
+            receipt_digest: String::new(),
+        };
+        if single.status == LearningEvidenceRequestStatusV1::EvidenceAcquired {
+            let Some(snapshot) = single.snapshot else {
+                result.status = CompositeLearningEpochStatusV1::IntegrityFailure;
+                return result;
+            };
+            merged_fetched_at_ms = merged_fetched_at_ms.max(snapshot.fetched_at_ms);
+            merged_normalized_at_ms = merged_normalized_at_ms.max(snapshot.normalized_at_ms);
+            let dataset = HistoricalReplayDataset {
+                symbol: snapshot.normalized_dataset.symbol.clone(),
+                rows: snapshot.normalized_dataset.rows.clone(),
+                source: contract.provider_id.clone(),
+                reason_codes: vec![],
+            };
+            let mut capsule = LearningEvidenceSegmentCapsuleV1 {
+                capsule_version: LEARNING_SEGMENT_CAPSULE_VERSION_V1.into(),
+                composite_registration_digest: registration.registration_digest.clone(),
+                segment_digest: segment.segment_digest.clone(),
+                segment_receipt_digest: String::new(),
+                segment_index: segment.segment_index,
+                provider_id: contract.provider_id.clone(),
+                symbol: snapshot.normalized_dataset.symbol,
+                cadence: registration.cadence.clone(),
+                expected_timestamps: segment.expected_timestamps.clone(),
+                rows: snapshot.normalized_dataset.rows,
+                segment_semantic_digest: historical_replay_dataset_digest_v0(&dataset),
+                finalized: true,
+                read_only: true,
+                credential_free: true,
+                capsule_digest: String::new(),
+            };
+            segment_receipt.receipt_digest = segment_receipt_digest_v1(&segment_receipt);
+            capsule.segment_receipt_digest = segment_receipt.receipt_digest.clone();
+            capsule.capsule_digest = segment_capsule_digest_v1(&capsule);
+            segment_receipt.segment_capsule_digest = Some(capsule.capsule_digest.clone());
+            result.segment_capsules.push(capsule);
+        } else {
+            segment_receipt.receipt_digest = segment_receipt_digest_v1(&segment_receipt);
+        }
+        if validate_learning_evidence_segment_receipt_v1(&segment_receipt).is_err() {
+            result.status = CompositeLearningEpochStatusV1::IntegrityFailure;
+            return result;
+        }
+        let succeeded = segment_receipt.status == LearningEvidenceRequestStatusV1::EvidenceAcquired;
+        result.segment_receipts.push(segment_receipt);
+        if !succeeded {
+            let successful = result.segment_capsules.len();
+            let status = if segment.segment_index == 0 {
+                CompositeLearningEpochStatusV1::TerminalSegmentFailure
+            } else {
+                CompositeLearningEpochStatusV1::TerminalPartialEvidence
+            };
+            let epoch = terminal_epoch_receipt_v1(
+                registration,
+                &result.segment_receipts,
+                successful,
+                status,
+            );
+            result.status = status;
+            result.epoch_receipt = Some(epoch);
+            return result;
+        }
+    }
+    let mut rows = result
+        .segment_capsules
+        .iter()
+        .flat_map(|capsule| capsule.rows.iter().cloned())
+        .collect::<Vec<_>>();
+    rows.sort_by_key(|row| row.timestamp_ms);
+    let expected = composite_learning_expected_timestamps_v1(registration);
+    if rows.len() != registration.required_row_count
+        || rows
+            .iter()
+            .map(|row| row.timestamp_ms)
+            .ne(expected.iter().copied())
+        || rows.iter().any(|row| {
+            registration
+                .excluded_timestamp_ms
+                .contains(&row.timestamp_ms)
+                || registration.symbols.as_slice() != [row.symbol.clone()]
+        })
+    {
+        let epoch = terminal_epoch_receipt_v1(
+            registration,
+            &result.segment_receipts,
+            result.segment_capsules.len(),
+            CompositeLearningEpochStatusV1::IntegrityFailure,
+        );
+        result.status = CompositeLearningEpochStatusV1::IntegrityFailure;
+        result.epoch_receipt = Some(epoch);
+        return result;
+    }
+    let dataset = HistoricalReplayDataset {
+        symbol: registration.symbols[0].clone(),
+        rows,
+        source: contract.provider_id.clone(),
+        reason_codes: vec![],
+    };
+    if validate_normalized_dataset(&dataset).is_err() {
+        result.status = CompositeLearningEpochStatusV1::IntegrityFailure;
+        return result;
+    }
+    let content_digest = historical_replay_dataset_digest_v0(&dataset);
+    let snapshot = DataSnapshot {
+        snapshot_id: snapshot_id_from_semantic_digest_v1(&content_digest),
+        request_key: format!(
+            "composite-learning-evidence-v1:{}",
+            registration.registration_digest
+        ),
+        provider_id: contract.provider_id.clone(),
+        dataset_kind: registration.dataset_kind,
+        market_scope: registration.market_scope,
+        symbols: registration.symbols.clone(),
+        requested_lookback: DataLookback {
+            bars: registration.required_row_count,
+            start_timestamp_ms: expected.first().copied(),
+            end_timestamp_ms: Some(registration.information_cutoff_ms),
+        },
+        actual_start_timestamp_ms: expected.first().copied(),
+        actual_end_timestamp_ms: expected.last().copied(),
+        fetched_at_ms: merged_fetched_at_ms,
+        normalized_at_ms: merged_normalized_at_ms,
+        schema_version: 1,
+        row_count: dataset.rows.len(),
+        quality_summary: SnapshotQualitySummary {
+            accepted: true,
+            row_count: dataset.rows.len(),
+            reason_codes: vec![ReasonCode::CsvLoaded],
+        },
+        content_digest: content_digest.clone(),
+        sanitized: true,
+        read_only: true,
+        compatibility: Some(SnapshotCompatibilityV1 {
+            cadence: registration.cadence.clone(),
+            adjustment_semantics: adjustment_semantics_v1(registration.dataset_kind),
+            source_schema: "application/x-soma-normalized-dataset".into(),
+            requested_cutoff_timestamp_ms: Some(registration.information_cutoff_ms),
+            maximum_staleness_ms: registration
+                .information_cutoff_ms
+                .saturating_sub(expected.last().copied().unwrap_or_default()),
+            all_rows_finalized: true,
+        }),
+        normalized_dataset: dataset,
+        provenance: SnapshotProvenance {
+            provider_id: contract.provider_id.clone(),
+            acquisition_request_id: registration.registration_digest.clone(),
+            fetch_receipt_id: stable_hash_string(&format!(
+                "composite-learning-receipt-v1:{}",
+                registration.registration_digest
+            )),
+            source_type: SnapshotSourceType::ApprovedReadOnlyProvider,
+            sanitized: true,
+            credential_free: true,
+            reason_codes: vec![
+                ReasonCode::DatasetKindReadOnly,
+                ReasonCode::DataSnapshotCreated,
+            ],
+        },
+        reason_codes: vec![
+            ReasonCode::DataSnapshotCreated,
+            ReasonCode::DataSnapshotImmutable,
+            ReasonCode::DatasetKindReadOnly,
+        ],
+    };
+    let mut provenance = CompositeLearningMergedProvenanceV1 {
+        provenance_version: LEARNING_MERGED_PROVENANCE_VERSION_V1.into(),
+        registration_digest: registration.registration_digest.clone(),
+        provider_contract_digest: contract.contract_digest.clone(),
+        segment_digests: registration
+            .segments
+            .iter()
+            .map(|segment| segment.segment_digest.clone())
+            .collect(),
+        segment_receipt_digests: result
+            .segment_receipts
+            .iter()
+            .map(|receipt| receipt.receipt_digest.clone())
+            .collect(),
+        segment_capsule_digests: result
+            .segment_capsules
+            .iter()
+            .map(|capsule| capsule.capsule_digest.clone())
+            .collect(),
+        canonical_snapshot_digest: content_digest.clone(),
+        expected_timestamp_digest: registration.expected_timestamp_digest.clone(),
+        required_row_count: registration.required_row_count,
+        read_only: true,
+        credential_free: true,
+        prospective_storage_used: false,
+        provenance_digest: String::new(),
+    };
+    provenance.provenance_digest = merged_provenance_digest_v1(&provenance);
+    let mut epoch = terminal_epoch_receipt_v1(
+        registration,
+        &result.segment_receipts,
+        result.segment_capsules.len(),
+        CompositeLearningEpochStatusV1::EvidenceAcquired,
+    );
+    epoch.merged_snapshot_digest = Some(content_digest);
+    epoch.merged_provenance_digest = Some(provenance.provenance_digest.clone());
+    epoch.receipt_digest = epoch_receipt_digest_v1(&epoch);
+    result.status = CompositeLearningEpochStatusV1::EvidenceAcquired;
+    result.epoch_receipt = Some(epoch);
+    result.merged_provenance = Some(provenance);
+    result.snapshot = Some(snapshot);
+    result
+}
+
 const LEARNING_GAP_ARTIFACT_KIND_V1: &str = "agent-canonical-view-gap-report-v1";
 const LEARNING_REGISTRATION_ARTIFACT_KIND_V1: &str =
     "learning-evidence-acquisition-registration-v1";
@@ -5229,6 +6252,764 @@ pub fn read_learning_evidence_receipt_v1(
             )
         })
         .transpose()
+}
+
+const COMPOSITE_REGISTRATION_ARTIFACT_KIND_V1: &str =
+    "composite-learning-acquisition-registration-v1";
+const COMPOSITE_SEGMENT_RECEIPT_ARTIFACT_KIND_V1: &str = "learning-evidence-segment-receipt-v1";
+const COMPOSITE_SEGMENT_CAPSULE_ARTIFACT_KIND_V1: &str = "learning-evidence-segment-capsule-v1";
+const COMPOSITE_EPOCH_RECEIPT_ARTIFACT_KIND_V1: &str = "composite-learning-epoch-receipt-v1";
+const COMPOSITE_PROVENANCE_ARTIFACT_KIND_V1: &str = "composite-learning-provenance-v1";
+
+#[derive(Clone, PartialEq, Message)]
+struct LearningEvidenceSegmentRegistrationProtobufV1 {
+    #[prost(uint64, tag = "1")]
+    segment_index: u64,
+    #[prost(uint64, repeated, tag = "2")]
+    expected_timestamps: Vec<u64>,
+    #[prost(uint64, tag = "3")]
+    expected_row_count: u64,
+    #[prost(string, tag = "4")]
+    request_to_utc: String,
+    #[prost(uint64, tag = "5")]
+    maximum_requests: u64,
+    #[prost(uint64, tag = "6")]
+    maximum_retries: u64,
+    #[prost(string, tag = "7")]
+    segment_digest: String,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct CompositeLearningRegistrationProtobufV1 {
+    #[prost(string, tag = "1")]
+    registration_version: String,
+    #[prost(string, repeated, tag = "2")]
+    target_agent_ids: Vec<String>,
+    #[prost(string, tag = "3")]
+    intent_digest: String,
+    #[prost(string, tag = "4")]
+    gap_report_digest: String,
+    #[prost(string, tag = "5")]
+    provider_contract_digest: String,
+    #[prost(uint32, tag = "6")]
+    dataset_kind: u32,
+    #[prost(uint32, tag = "7")]
+    market_scope: u32,
+    #[prost(string, repeated, tag = "8")]
+    symbols: Vec<String>,
+    #[prost(string, tag = "9")]
+    cadence: String,
+    #[prost(uint64, tag = "10")]
+    information_cutoff_ms: u64,
+    #[prost(uint64, tag = "11")]
+    required_row_count: u64,
+    #[prost(string, tag = "12")]
+    expected_timestamp_digest: String,
+    #[prost(message, repeated, tag = "13")]
+    segments: Vec<LearningEvidenceSegmentRegistrationProtobufV1>,
+    #[prost(uint64, tag = "14")]
+    maximum_total_requests: u64,
+    #[prost(uint64, tag = "15")]
+    maximum_concurrency: u64,
+    #[prost(uint64, tag = "16")]
+    maximum_retries_per_segment: u64,
+    #[prost(string, repeated, tag = "17")]
+    protected_registration_digests: Vec<String>,
+    #[prost(uint64, repeated, tag = "18")]
+    excluded_timestamp_ms: Vec<u64>,
+    #[prost(bool, tag = "19")]
+    read_only_required: bool,
+    #[prost(bool, tag = "20")]
+    credential_free_required: bool,
+    #[prost(bool, tag = "21")]
+    prospective_storage_forbidden: bool,
+    #[prost(string, tag = "22")]
+    registration_digest: String,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct CompositeSegmentReceiptProtobufV1 {
+    #[prost(string, tag = "1")]
+    receipt_version: String,
+    #[prost(string, tag = "2")]
+    composite_registration_digest: String,
+    #[prost(string, tag = "3")]
+    segment_digest: String,
+    #[prost(uint64, tag = "4")]
+    segment_index: u64,
+    #[prost(bool, tag = "5")]
+    request_attempted: bool,
+    #[prost(uint64, tag = "6")]
+    request_count: u64,
+    #[prost(uint64, tag = "7")]
+    retry_count: u64,
+    #[prost(uint32, tag = "8")]
+    status: u32,
+    #[prost(string, optional, tag = "9")]
+    http_status_class: Option<String>,
+    #[prost(uint64, tag = "10")]
+    returned_row_count: u64,
+    #[prost(uint64, tag = "11")]
+    verified_row_count: u64,
+    #[prost(string, optional, tag = "12")]
+    raw_response_digest: Option<String>,
+    #[prost(string, optional, tag = "13")]
+    segment_capsule_digest: Option<String>,
+    #[prost(string, tag = "14")]
+    receipt_digest: String,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct CompositeHistoricalRowProtobufV1 {
+    #[prost(string, tag = "1")]
+    symbol: String,
+    #[prost(uint64, tag = "2")]
+    timestamp_ms: u64,
+    #[prost(fixed64, tag = "3")]
+    open_bits: u64,
+    #[prost(fixed64, tag = "4")]
+    high_bits: u64,
+    #[prost(fixed64, tag = "5")]
+    low_bits: u64,
+    #[prost(fixed64, tag = "6")]
+    close_bits: u64,
+    #[prost(fixed64, tag = "7")]
+    volume_bits: u64,
+    #[prost(fixed64, optional, tag = "8")]
+    trade_value_bits: Option<u64>,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct CompositeSegmentCapsuleProtobufV1 {
+    #[prost(string, tag = "1")]
+    capsule_version: String,
+    #[prost(string, tag = "2")]
+    composite_registration_digest: String,
+    #[prost(string, tag = "3")]
+    segment_digest: String,
+    #[prost(string, tag = "4")]
+    segment_receipt_digest: String,
+    #[prost(uint64, tag = "5")]
+    segment_index: u64,
+    #[prost(string, tag = "6")]
+    provider_id: String,
+    #[prost(string, tag = "7")]
+    symbol: String,
+    #[prost(string, tag = "8")]
+    cadence: String,
+    #[prost(uint64, repeated, tag = "9")]
+    expected_timestamps: Vec<u64>,
+    #[prost(message, repeated, tag = "10")]
+    rows: Vec<CompositeHistoricalRowProtobufV1>,
+    #[prost(string, tag = "11")]
+    segment_semantic_digest: String,
+    #[prost(bool, tag = "12")]
+    finalized: bool,
+    #[prost(bool, tag = "13")]
+    read_only: bool,
+    #[prost(bool, tag = "14")]
+    credential_free: bool,
+    #[prost(string, tag = "15")]
+    capsule_digest: String,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct CompositeEpochReceiptProtobufV1 {
+    #[prost(string, tag = "1")]
+    receipt_version: String,
+    #[prost(string, tag = "2")]
+    registration_digest: String,
+    #[prost(string, repeated, tag = "3")]
+    segment_receipt_digests: Vec<String>,
+    #[prost(uint64, tag = "4")]
+    attempted_segment_count: u64,
+    #[prost(uint64, tag = "5")]
+    successful_segment_count: u64,
+    #[prost(uint64, tag = "6")]
+    request_count: u64,
+    #[prost(uint64, tag = "7")]
+    retry_count: u64,
+    #[prost(string, optional, tag = "8")]
+    merged_snapshot_digest: Option<String>,
+    #[prost(string, optional, tag = "9")]
+    merged_provenance_digest: Option<String>,
+    #[prost(uint32, tag = "10")]
+    status: u32,
+    #[prost(string, tag = "11")]
+    receipt_digest: String,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct CompositeMergedProvenanceProtobufV1 {
+    #[prost(string, tag = "1")]
+    provenance_version: String,
+    #[prost(string, tag = "2")]
+    registration_digest: String,
+    #[prost(string, tag = "3")]
+    provider_contract_digest: String,
+    #[prost(string, repeated, tag = "4")]
+    segment_digests: Vec<String>,
+    #[prost(string, repeated, tag = "5")]
+    segment_receipt_digests: Vec<String>,
+    #[prost(string, repeated, tag = "6")]
+    segment_capsule_digests: Vec<String>,
+    #[prost(string, tag = "7")]
+    canonical_snapshot_digest: String,
+    #[prost(string, tag = "8")]
+    expected_timestamp_digest: String,
+    #[prost(uint64, tag = "9")]
+    required_row_count: u64,
+    #[prost(bool, tag = "10")]
+    read_only: bool,
+    #[prost(bool, tag = "11")]
+    credential_free: bool,
+    #[prost(bool, tag = "12")]
+    prospective_storage_used: bool,
+    #[prost(string, tag = "13")]
+    provenance_digest: String,
+}
+
+fn composite_status_tag_v1(value: CompositeLearningEpochStatusV1) -> u32 {
+    match value {
+        CompositeLearningEpochStatusV1::ReadyNotAttempted => 1,
+        CompositeLearningEpochStatusV1::EvidenceAcquired => 2,
+        CompositeLearningEpochStatusV1::TerminalSegmentFailure => 3,
+        CompositeLearningEpochStatusV1::TerminalPartialEvidence => 4,
+        CompositeLearningEpochStatusV1::AlreadyTerminal => 5,
+        CompositeLearningEpochStatusV1::RegistrationInvalid => 6,
+        CompositeLearningEpochStatusV1::GapNoLongerCurrent => 7,
+        CompositeLearningEpochStatusV1::MissingNetworkConsent => 8,
+        CompositeLearningEpochStatusV1::IntegrityFailure => 9,
+    }
+}
+
+fn composite_status_from_tag_v1(value: u32) -> Result<CompositeLearningEpochStatusV1, String> {
+    match value {
+        1 => Ok(CompositeLearningEpochStatusV1::ReadyNotAttempted),
+        2 => Ok(CompositeLearningEpochStatusV1::EvidenceAcquired),
+        3 => Ok(CompositeLearningEpochStatusV1::TerminalSegmentFailure),
+        4 => Ok(CompositeLearningEpochStatusV1::TerminalPartialEvidence),
+        5 => Ok(CompositeLearningEpochStatusV1::AlreadyTerminal),
+        6 => Ok(CompositeLearningEpochStatusV1::RegistrationInvalid),
+        7 => Ok(CompositeLearningEpochStatusV1::GapNoLongerCurrent),
+        8 => Ok(CompositeLearningEpochStatusV1::MissingNetworkConsent),
+        9 => Ok(CompositeLearningEpochStatusV1::IntegrityFailure),
+        _ => Err("composite learning epoch status rejected".into()),
+    }
+}
+
+fn segment_to_protobuf_v1(
+    segment: &LearningEvidenceSegmentRegistrationV1,
+) -> LearningEvidenceSegmentRegistrationProtobufV1 {
+    LearningEvidenceSegmentRegistrationProtobufV1 {
+        segment_index: segment.segment_index as u64,
+        expected_timestamps: segment.expected_timestamps.clone(),
+        expected_row_count: segment.expected_row_count as u64,
+        request_to_utc: segment.request_to_utc.clone(),
+        maximum_requests: segment.maximum_requests as u64,
+        maximum_retries: segment.maximum_retries as u64,
+        segment_digest: segment.segment_digest.clone(),
+    }
+}
+
+fn segment_from_protobuf_v1(
+    segment: LearningEvidenceSegmentRegistrationProtobufV1,
+) -> Result<LearningEvidenceSegmentRegistrationV1, String> {
+    Ok(LearningEvidenceSegmentRegistrationV1 {
+        segment_index: usize::try_from(segment.segment_index)
+            .map_err(|_| "composite learning segment index rejected")?,
+        expected_timestamps: segment.expected_timestamps,
+        expected_row_count: usize::try_from(segment.expected_row_count)
+            .map_err(|_| "composite learning row count rejected")?,
+        request_to_utc: segment.request_to_utc,
+        maximum_requests: usize::try_from(segment.maximum_requests)
+            .map_err(|_| "composite learning request count rejected")?,
+        maximum_retries: usize::try_from(segment.maximum_retries)
+            .map_err(|_| "composite learning retry count rejected")?,
+        segment_digest: segment.segment_digest,
+    })
+}
+
+pub fn encode_composite_learning_registration_protobuf_v1(
+    registration: &CompositeLearningAcquisitionRegistrationV1,
+    contract: &LearningEvidenceProviderContractV1,
+) -> Result<Vec<u8>, String> {
+    validate_composite_learning_acquisition_registration_v1(registration, contract)?;
+    encode_learning_artifact_envelope_v1(
+        COMPOSITE_REGISTRATION_ARTIFACT_KIND_V1,
+        &registration.registration_digest,
+        registration.protected_registration_digests.clone(),
+        CompositeLearningRegistrationProtobufV1 {
+            registration_version: registration.registration_version.clone(),
+            target_agent_ids: registration.target_agent_ids.clone(),
+            intent_digest: registration.intent_digest.clone(),
+            gap_report_digest: registration.gap_report_digest.clone(),
+            provider_contract_digest: registration.provider_contract_digest.clone(),
+            dataset_kind: u32::from(dataset_kind_code_v0(registration.dataset_kind)),
+            market_scope: u32::from(market_scope_code_v0(registration.market_scope)),
+            symbols: registration.symbols.clone(),
+            cadence: registration.cadence.clone(),
+            information_cutoff_ms: registration.information_cutoff_ms,
+            required_row_count: registration.required_row_count as u64,
+            expected_timestamp_digest: registration.expected_timestamp_digest.clone(),
+            segments: registration
+                .segments
+                .iter()
+                .map(segment_to_protobuf_v1)
+                .collect(),
+            maximum_total_requests: registration.maximum_total_requests as u64,
+            maximum_concurrency: registration.maximum_concurrency as u64,
+            maximum_retries_per_segment: registration.maximum_retries_per_segment as u64,
+            protected_registration_digests: registration.protected_registration_digests.clone(),
+            excluded_timestamp_ms: registration.excluded_timestamp_ms.clone(),
+            read_only_required: registration.read_only_required,
+            credential_free_required: registration.credential_free_required,
+            prospective_storage_forbidden: registration.prospective_storage_forbidden,
+            registration_digest: registration.registration_digest.clone(),
+        },
+    )
+}
+
+pub fn decode_composite_learning_registration_protobuf_v1(
+    bytes: &[u8],
+) -> Result<CompositeLearningAcquisitionRegistrationV1, String> {
+    let (semantic_digest, _, payload) =
+        decode_learning_artifact_envelope_v1(bytes, COMPOSITE_REGISTRATION_ARTIFACT_KIND_V1)?;
+    let value = CompositeLearningRegistrationProtobufV1::decode(payload.as_slice())
+        .map_err(|_| "composite learning registration decode failed")?;
+    let registration = CompositeLearningAcquisitionRegistrationV1 {
+        registration_version: value.registration_version,
+        target_agent_ids: value.target_agent_ids,
+        intent_digest: value.intent_digest,
+        gap_report_digest: value.gap_report_digest,
+        provider_contract_digest: value.provider_contract_digest,
+        dataset_kind: dataset_kind_from_code_v1(value.dataset_kind)?,
+        market_scope: market_scope_from_code_v1(value.market_scope)?,
+        symbols: value.symbols,
+        cadence: value.cadence,
+        information_cutoff_ms: value.information_cutoff_ms,
+        required_row_count: usize::try_from(value.required_row_count)
+            .map_err(|_| "composite learning row count rejected")?,
+        expected_timestamp_digest: value.expected_timestamp_digest,
+        segments: value
+            .segments
+            .into_iter()
+            .map(segment_from_protobuf_v1)
+            .collect::<Result<Vec<_>, _>>()?,
+        maximum_total_requests: usize::try_from(value.maximum_total_requests)
+            .map_err(|_| "composite learning request count rejected")?,
+        maximum_concurrency: usize::try_from(value.maximum_concurrency)
+            .map_err(|_| "composite learning concurrency rejected")?,
+        maximum_retries_per_segment: usize::try_from(value.maximum_retries_per_segment)
+            .map_err(|_| "composite learning retry count rejected")?,
+        protected_registration_digests: value.protected_registration_digests,
+        excluded_timestamp_ms: value.excluded_timestamp_ms,
+        read_only_required: value.read_only_required,
+        credential_free_required: value.credential_free_required,
+        prospective_storage_forbidden: value.prospective_storage_forbidden,
+        registration_digest: value.registration_digest,
+    };
+    if registration.registration_digest != semantic_digest
+        || registration.registration_digest
+            != composite_learning_registration_digest_v1(&registration)
+    {
+        return Err("composite learning registration identity rejected".into());
+    }
+    Ok(registration)
+}
+
+fn encode_segment_receipt_protobuf_v1(
+    receipt: &LearningEvidenceSegmentReceiptV1,
+) -> Result<Vec<u8>, String> {
+    validate_learning_evidence_segment_receipt_v1(receipt)?;
+    encode_learning_artifact_envelope_v1(
+        COMPOSITE_SEGMENT_RECEIPT_ARTIFACT_KIND_V1,
+        &receipt.receipt_digest,
+        vec![
+            receipt.composite_registration_digest.clone(),
+            receipt.segment_digest.clone(),
+        ],
+        CompositeSegmentReceiptProtobufV1 {
+            receipt_version: receipt.receipt_version.clone(),
+            composite_registration_digest: receipt.composite_registration_digest.clone(),
+            segment_digest: receipt.segment_digest.clone(),
+            segment_index: receipt.segment_index as u64,
+            request_attempted: receipt.request_attempted,
+            request_count: receipt.request_count as u64,
+            retry_count: receipt.retry_count as u64,
+            status: receipt_status_tag_v1(receipt.status),
+            http_status_class: receipt.http_status_class.clone(),
+            returned_row_count: receipt.returned_row_count as u64,
+            verified_row_count: receipt.verified_row_count as u64,
+            raw_response_digest: receipt.raw_response_digest.clone(),
+            segment_capsule_digest: receipt.segment_capsule_digest.clone(),
+            receipt_digest: receipt.receipt_digest.clone(),
+        },
+    )
+}
+
+fn decode_segment_receipt_protobuf_v1(
+    bytes: &[u8],
+) -> Result<LearningEvidenceSegmentReceiptV1, String> {
+    let (semantic_digest, _, payload) =
+        decode_learning_artifact_envelope_v1(bytes, COMPOSITE_SEGMENT_RECEIPT_ARTIFACT_KIND_V1)?;
+    let value = CompositeSegmentReceiptProtobufV1::decode(payload.as_slice())
+        .map_err(|_| "composite segment receipt decode failed")?;
+    let receipt = LearningEvidenceSegmentReceiptV1 {
+        receipt_version: value.receipt_version,
+        composite_registration_digest: value.composite_registration_digest,
+        segment_digest: value.segment_digest,
+        segment_index: usize::try_from(value.segment_index)
+            .map_err(|_| "segment index rejected")?,
+        request_attempted: value.request_attempted,
+        request_count: usize::try_from(value.request_count)
+            .map_err(|_| "request count rejected")?,
+        retry_count: usize::try_from(value.retry_count).map_err(|_| "retry count rejected")?,
+        status: receipt_status_from_tag_v1(value.status)?,
+        http_status_class: value.http_status_class,
+        returned_row_count: usize::try_from(value.returned_row_count)
+            .map_err(|_| "row count rejected")?,
+        verified_row_count: usize::try_from(value.verified_row_count)
+            .map_err(|_| "row count rejected")?,
+        raw_response_digest: value.raw_response_digest,
+        segment_capsule_digest: value.segment_capsule_digest,
+        receipt_digest: value.receipt_digest,
+    };
+    validate_learning_evidence_segment_receipt_v1(&receipt)?;
+    if receipt.receipt_digest != semantic_digest {
+        return Err("composite segment receipt identity rejected".into());
+    }
+    Ok(receipt)
+}
+
+fn encode_segment_capsule_protobuf_v1(
+    capsule: &LearningEvidenceSegmentCapsuleV1,
+    registration: &CompositeLearningAcquisitionRegistrationV1,
+    contract: &LearningEvidenceProviderContractV1,
+) -> Result<Vec<u8>, String> {
+    validate_learning_evidence_segment_capsule_v1(capsule, registration, contract)?;
+    encode_learning_artifact_envelope_v1(
+        COMPOSITE_SEGMENT_CAPSULE_ARTIFACT_KIND_V1,
+        &capsule.capsule_digest,
+        vec![
+            capsule.composite_registration_digest.clone(),
+            capsule.segment_receipt_digest.clone(),
+        ],
+        CompositeSegmentCapsuleProtobufV1 {
+            capsule_version: capsule.capsule_version.clone(),
+            composite_registration_digest: capsule.composite_registration_digest.clone(),
+            segment_digest: capsule.segment_digest.clone(),
+            segment_receipt_digest: capsule.segment_receipt_digest.clone(),
+            segment_index: capsule.segment_index as u64,
+            provider_id: capsule.provider_id.clone(),
+            symbol: capsule.symbol.clone(),
+            cadence: capsule.cadence.clone(),
+            expected_timestamps: capsule.expected_timestamps.clone(),
+            rows: capsule
+                .rows
+                .iter()
+                .map(|row| CompositeHistoricalRowProtobufV1 {
+                    symbol: row.symbol.clone(),
+                    timestamp_ms: row.timestamp_ms,
+                    open_bits: row.open.to_bits(),
+                    high_bits: row.high.to_bits(),
+                    low_bits: row.low.to_bits(),
+                    close_bits: row.close.to_bits(),
+                    volume_bits: row.volume.to_bits(),
+                    trade_value_bits: row.trade_value.map(f64::to_bits),
+                })
+                .collect(),
+            segment_semantic_digest: capsule.segment_semantic_digest.clone(),
+            finalized: capsule.finalized,
+            read_only: capsule.read_only,
+            credential_free: capsule.credential_free,
+            capsule_digest: capsule.capsule_digest.clone(),
+        },
+    )
+}
+
+fn decode_segment_capsule_protobuf_v1(
+    bytes: &[u8],
+    registration: &CompositeLearningAcquisitionRegistrationV1,
+    contract: &LearningEvidenceProviderContractV1,
+) -> Result<LearningEvidenceSegmentCapsuleV1, String> {
+    let (semantic_digest, _, payload) =
+        decode_learning_artifact_envelope_v1(bytes, COMPOSITE_SEGMENT_CAPSULE_ARTIFACT_KIND_V1)?;
+    let value = CompositeSegmentCapsuleProtobufV1::decode(payload.as_slice())
+        .map_err(|_| "composite segment capsule decode failed")?;
+    let capsule = LearningEvidenceSegmentCapsuleV1 {
+        capsule_version: value.capsule_version,
+        composite_registration_digest: value.composite_registration_digest,
+        segment_digest: value.segment_digest,
+        segment_receipt_digest: value.segment_receipt_digest,
+        segment_index: usize::try_from(value.segment_index)
+            .map_err(|_| "segment index rejected")?,
+        provider_id: value.provider_id,
+        symbol: value.symbol,
+        cadence: value.cadence,
+        expected_timestamps: value.expected_timestamps,
+        rows: value
+            .rows
+            .into_iter()
+            .map(|row| HistoricalOhlcvRow {
+                symbol: row.symbol,
+                timestamp_ms: row.timestamp_ms,
+                open: f64::from_bits(row.open_bits),
+                high: f64::from_bits(row.high_bits),
+                low: f64::from_bits(row.low_bits),
+                close: f64::from_bits(row.close_bits),
+                volume: f64::from_bits(row.volume_bits),
+                trade_value: row.trade_value_bits.map(f64::from_bits),
+            })
+            .collect(),
+        segment_semantic_digest: value.segment_semantic_digest,
+        finalized: value.finalized,
+        read_only: value.read_only,
+        credential_free: value.credential_free,
+        capsule_digest: value.capsule_digest,
+    };
+    validate_learning_evidence_segment_capsule_v1(&capsule, registration, contract)?;
+    if capsule.capsule_digest != semantic_digest {
+        return Err("composite segment capsule identity rejected".into());
+    }
+    Ok(capsule)
+}
+
+fn encode_epoch_receipt_protobuf_v1(
+    receipt: &CompositeLearningEpochReceiptV1,
+    registration: &CompositeLearningAcquisitionRegistrationV1,
+) -> Result<Vec<u8>, String> {
+    validate_composite_learning_epoch_receipt_v1(receipt, registration)?;
+    encode_learning_artifact_envelope_v1(
+        COMPOSITE_EPOCH_RECEIPT_ARTIFACT_KIND_V1,
+        &receipt.receipt_digest,
+        vec![receipt.registration_digest.clone()],
+        CompositeEpochReceiptProtobufV1 {
+            receipt_version: receipt.receipt_version.clone(),
+            registration_digest: receipt.registration_digest.clone(),
+            segment_receipt_digests: receipt.segment_receipt_digests.clone(),
+            attempted_segment_count: receipt.attempted_segment_count as u64,
+            successful_segment_count: receipt.successful_segment_count as u64,
+            request_count: receipt.request_count as u64,
+            retry_count: receipt.retry_count as u64,
+            merged_snapshot_digest: receipt.merged_snapshot_digest.clone(),
+            merged_provenance_digest: receipt.merged_provenance_digest.clone(),
+            status: composite_status_tag_v1(receipt.status),
+            receipt_digest: receipt.receipt_digest.clone(),
+        },
+    )
+}
+
+fn decode_epoch_receipt_protobuf_v1(
+    bytes: &[u8],
+    registration: &CompositeLearningAcquisitionRegistrationV1,
+) -> Result<CompositeLearningEpochReceiptV1, String> {
+    let (semantic_digest, _, payload) =
+        decode_learning_artifact_envelope_v1(bytes, COMPOSITE_EPOCH_RECEIPT_ARTIFACT_KIND_V1)?;
+    let value = CompositeEpochReceiptProtobufV1::decode(payload.as_slice())
+        .map_err(|_| "composite epoch receipt decode failed")?;
+    let receipt = CompositeLearningEpochReceiptV1 {
+        receipt_version: value.receipt_version,
+        registration_digest: value.registration_digest,
+        segment_receipt_digests: value.segment_receipt_digests,
+        attempted_segment_count: usize::try_from(value.attempted_segment_count)
+            .map_err(|_| "attempt count rejected")?,
+        successful_segment_count: usize::try_from(value.successful_segment_count)
+            .map_err(|_| "success count rejected")?,
+        request_count: usize::try_from(value.request_count)
+            .map_err(|_| "request count rejected")?,
+        retry_count: usize::try_from(value.retry_count).map_err(|_| "retry count rejected")?,
+        merged_snapshot_digest: value.merged_snapshot_digest,
+        merged_provenance_digest: value.merged_provenance_digest,
+        status: composite_status_from_tag_v1(value.status)?,
+        receipt_digest: value.receipt_digest,
+    };
+    validate_composite_learning_epoch_receipt_v1(&receipt, registration)?;
+    if receipt.receipt_digest != semantic_digest {
+        return Err("composite epoch receipt identity rejected".into());
+    }
+    Ok(receipt)
+}
+
+fn validate_composite_merged_provenance_v1(
+    provenance: &CompositeLearningMergedProvenanceV1,
+    registration: &CompositeLearningAcquisitionRegistrationV1,
+) -> Result<(), String> {
+    if provenance.provenance_version != LEARNING_MERGED_PROVENANCE_VERSION_V1
+        || provenance.registration_digest != registration.registration_digest
+        || provenance.provider_contract_digest != registration.provider_contract_digest
+        || provenance.segment_digests
+            != registration
+                .segments
+                .iter()
+                .map(|segment| segment.segment_digest.clone())
+                .collect::<Vec<_>>()
+        || provenance.segment_receipt_digests.len() != registration.segments.len()
+        || provenance.segment_capsule_digests.len() != registration.segments.len()
+        || provenance.canonical_snapshot_digest.is_empty()
+        || provenance.expected_timestamp_digest != registration.expected_timestamp_digest
+        || provenance.required_row_count != registration.required_row_count
+        || !provenance.read_only
+        || !provenance.credential_free
+        || provenance.prospective_storage_used
+        || provenance.provenance_digest != merged_provenance_digest_v1(provenance)
+    {
+        Err("composite learning provenance rejected".into())
+    } else {
+        Ok(())
+    }
+}
+
+fn encode_merged_provenance_protobuf_v1(
+    provenance: &CompositeLearningMergedProvenanceV1,
+    registration: &CompositeLearningAcquisitionRegistrationV1,
+) -> Result<Vec<u8>, String> {
+    validate_composite_merged_provenance_v1(provenance, registration)?;
+    encode_learning_artifact_envelope_v1(
+        COMPOSITE_PROVENANCE_ARTIFACT_KIND_V1,
+        &provenance.provenance_digest,
+        provenance.segment_capsule_digests.clone(),
+        CompositeMergedProvenanceProtobufV1 {
+            provenance_version: provenance.provenance_version.clone(),
+            registration_digest: provenance.registration_digest.clone(),
+            provider_contract_digest: provenance.provider_contract_digest.clone(),
+            segment_digests: provenance.segment_digests.clone(),
+            segment_receipt_digests: provenance.segment_receipt_digests.clone(),
+            segment_capsule_digests: provenance.segment_capsule_digests.clone(),
+            canonical_snapshot_digest: provenance.canonical_snapshot_digest.clone(),
+            expected_timestamp_digest: provenance.expected_timestamp_digest.clone(),
+            required_row_count: provenance.required_row_count as u64,
+            read_only: provenance.read_only,
+            credential_free: provenance.credential_free,
+            prospective_storage_used: provenance.prospective_storage_used,
+            provenance_digest: provenance.provenance_digest.clone(),
+        },
+    )
+}
+
+fn decode_merged_provenance_protobuf_v1(
+    bytes: &[u8],
+    registration: &CompositeLearningAcquisitionRegistrationV1,
+) -> Result<CompositeLearningMergedProvenanceV1, String> {
+    let (semantic_digest, _, payload) =
+        decode_learning_artifact_envelope_v1(bytes, COMPOSITE_PROVENANCE_ARTIFACT_KIND_V1)?;
+    let value = CompositeMergedProvenanceProtobufV1::decode(payload.as_slice())
+        .map_err(|_| "composite learning provenance decode failed")?;
+    let provenance = CompositeLearningMergedProvenanceV1 {
+        provenance_version: value.provenance_version,
+        registration_digest: value.registration_digest,
+        provider_contract_digest: value.provider_contract_digest,
+        segment_digests: value.segment_digests,
+        segment_receipt_digests: value.segment_receipt_digests,
+        segment_capsule_digests: value.segment_capsule_digests,
+        canonical_snapshot_digest: value.canonical_snapshot_digest,
+        expected_timestamp_digest: value.expected_timestamp_digest,
+        required_row_count: usize::try_from(value.required_row_count)
+            .map_err(|_| "row count rejected")?,
+        read_only: value.read_only,
+        credential_free: value.credential_free,
+        prospective_storage_used: value.prospective_storage_used,
+        provenance_digest: value.provenance_digest,
+    };
+    validate_composite_merged_provenance_v1(&provenance, registration)?;
+    if provenance.provenance_digest != semantic_digest {
+        return Err("composite learning provenance identity rejected".into());
+    }
+    Ok(provenance)
+}
+
+pub fn write_and_verify_composite_learning_registration_v1(
+    registration: &CompositeLearningAcquisitionRegistrationV1,
+    contract: &LearningEvidenceProviderContractV1,
+    root: &Path,
+) -> Result<LearningEvidenceArtifactWriteStatusV1, String> {
+    let bytes = encode_composite_learning_registration_protobuf_v1(registration, contract)?;
+    let path = root.join("acquisition_v1/composite/registration.pb");
+    write_learning_evidence_artifact_v1(&path, &bytes, &registration.registration_digest, |bytes| {
+        Ok(decode_composite_learning_registration_protobuf_v1(bytes)?.registration_digest)
+    })
+}
+
+pub fn read_composite_learning_registration_v1(
+    root: &Path,
+) -> Result<Option<CompositeLearningAcquisitionRegistrationV1>, String> {
+    let path = root.join("acquisition_v1/composite/registration.pb");
+    path.is_file()
+        .then(|| {
+            decode_composite_learning_registration_protobuf_v1(
+                &fs::read(path).map_err(|_| "composite learning registration unavailable")?,
+            )
+        })
+        .transpose()
+}
+
+pub fn write_and_verify_composite_segment_receipt_v1(
+    receipt: &LearningEvidenceSegmentReceiptV1,
+    root: &Path,
+) -> Result<LearningEvidenceArtifactWriteStatusV1, String> {
+    let bytes = encode_segment_receipt_protobuf_v1(receipt)?;
+    let path = root.join(format!(
+        "acquisition_v1/composite/segment-{}-receipt.pb",
+        receipt.segment_index
+    ));
+    write_learning_evidence_artifact_v1(&path, &bytes, &receipt.receipt_digest, |bytes| {
+        Ok(decode_segment_receipt_protobuf_v1(bytes)?.receipt_digest)
+    })
+}
+
+pub fn write_and_verify_composite_segment_capsule_v1(
+    capsule: &LearningEvidenceSegmentCapsuleV1,
+    registration: &CompositeLearningAcquisitionRegistrationV1,
+    contract: &LearningEvidenceProviderContractV1,
+    root: &Path,
+) -> Result<LearningEvidenceArtifactWriteStatusV1, String> {
+    let bytes = encode_segment_capsule_protobuf_v1(capsule, registration, contract)?;
+    let path = root.join(format!(
+        "acquisition_v1/composite/segment-{}-capsule.pb",
+        capsule.segment_index
+    ));
+    write_learning_evidence_artifact_v1(&path, &bytes, &capsule.capsule_digest, |bytes| {
+        Ok(decode_segment_capsule_protobuf_v1(bytes, registration, contract)?.capsule_digest)
+    })
+}
+
+pub fn write_and_verify_composite_epoch_receipt_v1(
+    receipt: &CompositeLearningEpochReceiptV1,
+    registration: &CompositeLearningAcquisitionRegistrationV1,
+    root: &Path,
+) -> Result<LearningEvidenceArtifactWriteStatusV1, String> {
+    let bytes = encode_epoch_receipt_protobuf_v1(receipt, registration)?;
+    let path = root.join("acquisition_v1/composite/epoch-receipt.pb");
+    write_learning_evidence_artifact_v1(&path, &bytes, &receipt.receipt_digest, |bytes| {
+        Ok(decode_epoch_receipt_protobuf_v1(bytes, registration)?.receipt_digest)
+    })
+}
+
+pub fn read_composite_epoch_receipt_v1(
+    registration: &CompositeLearningAcquisitionRegistrationV1,
+    root: &Path,
+) -> Result<Option<CompositeLearningEpochReceiptV1>, String> {
+    let path = root.join("acquisition_v1/composite/epoch-receipt.pb");
+    path.is_file()
+        .then(|| {
+            decode_epoch_receipt_protobuf_v1(
+                &fs::read(path).map_err(|_| "composite epoch receipt unavailable")?,
+                registration,
+            )
+        })
+        .transpose()
+}
+
+pub fn write_and_verify_composite_merged_provenance_v1(
+    provenance: &CompositeLearningMergedProvenanceV1,
+    registration: &CompositeLearningAcquisitionRegistrationV1,
+    root: &Path,
+) -> Result<LearningEvidenceArtifactWriteStatusV1, String> {
+    let bytes = encode_merged_provenance_protobuf_v1(provenance, registration)?;
+    let path = root.join("acquisition_v1/composite/merged-provenance.pb");
+    write_learning_evidence_artifact_v1(&path, &bytes, &provenance.provenance_digest, |bytes| {
+        Ok(decode_merged_provenance_protobuf_v1(bytes, registration)?.provenance_digest)
+    })
 }
 
 pub fn write_and_verify_learning_raw_response_v1(
@@ -7686,5 +9467,323 @@ mod tests {
         let mut receipt = result.receipt.unwrap();
         receipt.verified_row_count = receipt.verified_row_count.saturating_sub(1);
         assert!(encode_learning_evidence_receipt_protobuf_v1(&receipt).is_err());
+    }
+
+    fn composite_learning_contract() -> LearningEvidenceProviderContractV1 {
+        let mut contract = learning_v1_contract();
+        contract.earliest_timestamp_ms =
+            LEARNING_V1_CUTOFF_MS.saturating_sub(400 * DAILY_CADENCE_MS_V1);
+        contract.contract_digest = String::new();
+        seal_learning_evidence_provider_contract_v1(contract).unwrap()
+    }
+
+    fn composite_learning_report() -> AgentCanonicalViewGapReportV1 {
+        let mut intents = learning_v1_intents();
+        let momentum = intents
+            .iter_mut()
+            .find(|intent| intent.agent_kind == AgentKind::MomentumTrendFast)
+            .unwrap();
+        momentum.lookback = DataLookback {
+            bars: 312,
+            start_timestamp_ms: None,
+            end_timestamp_ms: Some(LEARNING_V1_CUTOFF_MS),
+        };
+        momentum.information_cutoff_ms = LEARNING_V1_CUTOFF_MS;
+        momentum.intent_digest = agent_learning_intent_digest_v0(momentum);
+        derive_agent_canonical_view_gaps_v1(
+            &intents,
+            &default_agent_data_policies(),
+            &[],
+            &learning_v1_trainers(),
+            &[composite_learning_contract()],
+        )
+        .unwrap()
+    }
+
+    fn composite_learning_registration() -> CompositeLearningAcquisitionRegistrationV1 {
+        select_composite_learning_acquisition_registration_v1(
+            &composite_learning_report(),
+            &[composite_learning_contract()],
+            &["opening-registration".into()],
+            &[
+                LEARNING_V1_CUTOFF_MS + DAILY_CADENCE_MS_V1,
+                LEARNING_V1_CUTOFF_MS + 2 * DAILY_CADENCE_MS_V1,
+            ],
+        )
+        .unwrap()
+        .unwrap()
+    }
+
+    fn composite_segment_response(
+        request: &ReadOnlyProviderRequest,
+    ) -> LearningEvidenceTransportResponseV1 {
+        let timestamps = expected_learning_timestamps_v1(&request.lookback).unwrap();
+        let rows = timestamps
+            .iter()
+            .enumerate()
+            .map(|(index, timestamp_ms)| {
+                let close = 100.0 + index as f64;
+                HistoricalOhlcvRow {
+                    symbol: "KRW-BTC".into(),
+                    timestamp_ms: *timestamp_ms,
+                    open: close,
+                    high: close + 2.0,
+                    low: close - 2.0,
+                    close: close + 1.0,
+                    volume: 10.0,
+                    trade_value: Some(1_000.0),
+                }
+            })
+            .collect::<Vec<_>>();
+        let raw_response = format!("[{{\"request\":\"{}\"}}]", request.request_id).into_bytes();
+        LearningEvidenceTransportResponseV1 {
+            http_status_class: "2xx".into(),
+            raw_response: raw_response.clone(),
+            response: ReadOnlyProviderResponse {
+                request_id: request.request_id.clone(),
+                provider_id: request.provider_id.clone(),
+                fetched_at_ms: LEARNING_V1_CUTOFF_MS,
+                content_type: "application/x-soma-normalized-dataset".into(),
+                all_rows_finalized: true,
+                normalized_dataset: HistoricalReplayDataset {
+                    symbol: "KRW-BTC".into(),
+                    rows,
+                    source: "upbit".into(),
+                    reason_codes: vec![],
+                },
+                reported_content_bytes: raw_response.len(),
+                reason_codes: vec![],
+            },
+        }
+    }
+
+    #[test]
+    fn composite_plan_is_exact_deterministic_complete_and_disjoint() {
+        let first = composite_learning_registration();
+        let second = composite_learning_registration();
+        assert_eq!(first, second);
+        assert_eq!(first.segments.len(), 2);
+        assert_eq!(first.segments[0].expected_row_count, 200);
+        assert_eq!(first.segments[1].expected_row_count, 112);
+        let expected = composite_learning_expected_timestamps_v1(&first);
+        assert_eq!(expected.len(), first.required_row_count);
+        assert_eq!(
+            expected.iter().copied().collect::<BTreeSet<_>>().len(),
+            expected.len()
+        );
+        let newer = first.segments[0]
+            .expected_timestamps
+            .iter()
+            .copied()
+            .collect::<BTreeSet<_>>();
+        let older = first.segments[1]
+            .expected_timestamps
+            .iter()
+            .copied()
+            .collect::<BTreeSet<_>>();
+        assert!(newer.is_disjoint(&older));
+    }
+
+    #[test]
+    fn composite_plan_rejects_shortening_and_segment_cap_overflow() {
+        let contract = composite_learning_contract();
+        let mut registration = composite_learning_registration();
+        registration.required_row_count -= 1;
+        registration.registration_digest = composite_learning_registration_digest_v1(&registration);
+        assert!(
+            validate_composite_learning_acquisition_registration_v1(&registration, &contract)
+                .is_err()
+        );
+        let timestamps = (0..401)
+            .map(|index| index as u64 * DAILY_CADENCE_MS_V1)
+            .collect::<Vec<_>>();
+        assert!(derive_learning_segments_v1(&timestamps, 200).is_err());
+    }
+
+    #[test]
+    fn composite_first_failure_suppresses_second_and_consumes_one_attempt() {
+        let registration = composite_learning_registration();
+        let calls = std::cell::Cell::new(0);
+        let result = execute_composite_learning_acquisition_v1(
+            &registration,
+            &composite_learning_contract(),
+            &[registration.gap_report_digest.clone()],
+            None,
+            true,
+            |_segment, _request| {
+                calls.set(calls.get() + 1);
+                Err(LearningEvidenceTransportFailureV1::Technical)
+            },
+        );
+        assert_eq!(calls.get(), 1);
+        assert_eq!(
+            result.status,
+            CompositeLearningEpochStatusV1::TerminalSegmentFailure
+        );
+        assert_eq!(result.segment_receipts.len(), 1);
+        assert_eq!(result.safety_counters.request_attempts, 1);
+        assert_eq!(result.safety_counters.retry_count, 0);
+        assert!(result.snapshot.is_none());
+    }
+
+    #[test]
+    fn composite_second_failure_retains_only_forensic_partial_evidence() {
+        let registration = composite_learning_registration();
+        let calls = std::cell::Cell::new(0);
+        let result = execute_composite_learning_acquisition_v1(
+            &registration,
+            &composite_learning_contract(),
+            &[registration.gap_report_digest.clone()],
+            None,
+            true,
+            |_segment, request| {
+                calls.set(calls.get() + 1);
+                if calls.get() == 1 {
+                    Ok(composite_segment_response(request))
+                } else {
+                    Err(LearningEvidenceTransportFailureV1::TimedOut)
+                }
+            },
+        );
+        assert_eq!(calls.get(), 2);
+        assert_eq!(
+            result.status,
+            CompositeLearningEpochStatusV1::TerminalPartialEvidence
+        );
+        assert_eq!(result.segment_capsules.len(), 1);
+        assert!(result.snapshot.is_none());
+        assert_eq!(result.safety_counters.retry_count, 0);
+    }
+
+    #[test]
+    fn composite_success_merges_exact_semantic_dataset_independent_of_capsule_order() {
+        let registration = composite_learning_registration();
+        let result = execute_composite_learning_acquisition_v1(
+            &registration,
+            &composite_learning_contract(),
+            &[registration.gap_report_digest.clone()],
+            None,
+            true,
+            |_segment, request| Ok(composite_segment_response(request)),
+        );
+        assert_eq!(
+            result.status,
+            CompositeLearningEpochStatusV1::EvidenceAcquired
+        );
+        let snapshot = result.snapshot.as_ref().unwrap();
+        assert_eq!(snapshot.row_count, registration.required_row_count);
+        assert_eq!(result.segment_receipts.len(), 2);
+        assert_eq!(result.safety_counters.request_attempts, 2);
+        assert_eq!(result.safety_counters.retry_count, 0);
+        let mut reversed = result.segment_capsules.clone();
+        reversed.reverse();
+        let mut rows = reversed
+            .iter()
+            .flat_map(|capsule| capsule.rows.clone())
+            .collect::<Vec<_>>();
+        rows.sort_by_key(|row| row.timestamp_ms);
+        let dataset = HistoricalReplayDataset {
+            symbol: registration.symbols[0].clone(),
+            rows,
+            source: composite_learning_contract().provider_id,
+            reason_codes: vec![],
+        };
+        assert_eq!(
+            historical_replay_dataset_digest_v0(&dataset),
+            snapshot.content_digest
+        );
+    }
+
+    #[test]
+    fn composite_exact_timestamp_validation_rejects_missing_duplicate_and_extra() {
+        for mutation in 0..3 {
+            let registration = composite_learning_registration();
+            let result = execute_composite_learning_acquisition_v1(
+                &registration,
+                &composite_learning_contract(),
+                &[registration.gap_report_digest.clone()],
+                None,
+                true,
+                |_segment, request| {
+                    let mut response = composite_segment_response(request);
+                    match mutation {
+                        0 => {
+                            response.response.normalized_dataset.rows.pop();
+                        }
+                        1 => {
+                            let row = response.response.normalized_dataset.rows[0].clone();
+                            response.response.normalized_dataset.rows.insert(0, row);
+                        }
+                        _ => {
+                            let mut row = response
+                                .response
+                                .normalized_dataset
+                                .rows
+                                .last()
+                                .unwrap()
+                                .clone();
+                            row.timestamp_ms += DAILY_CADENCE_MS_V1;
+                            response.response.normalized_dataset.rows.push(row);
+                        }
+                    }
+                    Ok(response)
+                },
+            );
+            assert_eq!(
+                result.status,
+                CompositeLearningEpochStatusV1::TerminalSegmentFailure
+            );
+            assert!(result.snapshot.is_none());
+        }
+    }
+
+    #[test]
+    fn composite_protobuf_roundtrip_and_corruption_reject() {
+        let registration = composite_learning_registration();
+        let contract = composite_learning_contract();
+        let bytes =
+            encode_composite_learning_registration_protobuf_v1(&registration, &contract).unwrap();
+        assert_eq!(
+            decode_composite_learning_registration_protobuf_v1(&bytes).unwrap(),
+            registration
+        );
+        let mut corrupt = bytes;
+        let digest = registration.registration_digest.as_bytes();
+        let offset = corrupt
+            .windows(digest.len())
+            .position(|window| window == digest)
+            .unwrap();
+        corrupt[offset] ^= 1;
+        assert!(decode_composite_learning_registration_protobuf_v1(&corrupt).is_err());
+    }
+
+    #[test]
+    fn composite_terminal_receipt_blocks_all_new_transports() {
+        let registration = composite_learning_registration();
+        let first = execute_composite_learning_acquisition_v1(
+            &registration,
+            &composite_learning_contract(),
+            &[registration.gap_report_digest.clone()],
+            None,
+            true,
+            |_segment, _request| Err(LearningEvidenceTransportFailureV1::Technical),
+        );
+        let calls = std::cell::Cell::new(0);
+        let repeated = execute_composite_learning_acquisition_v1(
+            &registration,
+            &composite_learning_contract(),
+            &[registration.gap_report_digest.clone()],
+            first.epoch_receipt.as_ref(),
+            true,
+            |_segment, _request| {
+                calls.set(calls.get() + 1);
+                Err(LearningEvidenceTransportFailureV1::Technical)
+            },
+        );
+        assert_eq!(
+            repeated.status,
+            CompositeLearningEpochStatusV1::AlreadyTerminal
+        );
+        assert_eq!(calls.get(), 0);
     }
 }

@@ -44,15 +44,44 @@ access, number of blocked agents served, bounded response size, and stable
 request identity. Equivalent requests are deduplicated before any transport is
 constructed.
 
-The current audit produced no eligible single request. Momentum requires a
-312-row historical view while the verified single-call Upbit contract is
-bounded to 200 rows; its exact two-segment requirement is explicit and the
-lookback is not shortened. Cycle/Risk has no exact index or volatility provider
-contract. Value/Quality has no trainer. Consequently no single-request runtime
-registration, transport, raw response, provenance manifest, receipt, or
-canonical snapshot was created.
+The current audit produced no eligible legacy single request. Momentum's exact
+two-segment registration preserves the full persisted lookback. Cycle/Risk has
+no exact index or volatility provider contract. Value/Quality has no trainer.
 
-## One-request execution contract
+## Composite execution contract
+
+When a matching daily provider has insufficient single-response capacity, the
+complete expected timestamp sequence is derived from the persisted intent
+before transport. The segment count is the ceiling of required rows divided by
+the provider limit and is capped at two for one epoch. The current registered
+plan contains a newer provider-sized segment and the exact older remainder;
+both timestamp sets, exclusive request boundaries, execution order, budgets,
+and semantic digests are fixed before the first response.
+
+Each segment permits one attempt, zero retries, and one concurrent transport.
+The second boundary never depends on the first response. A first-segment
+failure suppresses the second request. A second-segment failure retains only
+ignored forensic segment evidence and creates no merged snapshot.
+
+Each response must match the exact registered timestamp set and count, market,
+symbol, cadence, provider, schema, finality, bounded size, sanitization, finite
+OHLCV values, and nonnegative volume and trade value. Missing, duplicate,
+extra, excluded, or prospective timestamps reject. Newest-first provider data
+is identity-checked and normalized chronologically.
+
+A canonical snapshot exists only after every segment succeeds. Merge verifies
+complete row count, unique and disjoint segment membership, strict daily
+chronology, identical source semantics, and protected exclusions. Its semantic
+identity derives from the complete normalized dataset and is independent of
+segment order or Protobuf bytes.
+
+The composite registration, segment receipts, segment capsules, epoch receipt,
+merged provenance, and canonical snapshot use manual Protobuf. Each segment raw
+blob is retained separately. All writes use temporary create-new storage,
+flush, `sync_all`, temporary reopen and verification, atomic rename, and final
+reopen and verification.
+
+## Legacy one-request execution contract
 
 When an eligible request exists, its ignored registration fixes one request,
 one concurrent transport, zero retries, a bounded response, read-only and
