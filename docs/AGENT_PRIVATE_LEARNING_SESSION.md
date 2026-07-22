@@ -177,7 +177,41 @@ The offline CLI is:
 
 Public output contains identities, participant counts, statuses, storage
 counts, and zero-authority counters only. It never reports validation metrics,
-rows, labels, probabilities, parameters, or local paths. With the currently
-available local snapshots, the canonical views for Momentum and Cycle/Risk are
-incomplete, so actual generation reports explicit per-agent evidence blockers;
-Value/Quality remains unavailable. This is not a performance result.
+rows, labels, probabilities, parameters, or local paths.
+
+## Persisted intent migration V1
+
+The Momentum legacy session is retained byte-for-byte and classified as
+`LegacySessionNotSelfDescribing`; the first normal intent-validation failure is
+`intent_version`. The additive migration reconstructs every canonical field
+from the legacy projection, verified agent policy, canonical gap report,
+composite acquisition registration, verified merged snapshot, and existing
+private-learning state. Conflicting or missing source semantics fail closed.
+The proof records both legacy and current policy identities and separately
+proves required/optional datasets, allowed market, cadence, lookback, and
+staleness compatibility.
+
+The migrated intent passes the ordinary production validator. Its view is built
+by the ordinary view builder and binds the complete 312-row Momentum snapshot.
+Required evidence is complete, optional evidence remains explicitly
+unavailable, the decision gate is `Ready`, and resolution is
+`OptionalEvidenceUnavailable`. Five independent manual-Protobuf sidecars hold
+the intent, view, policy proof, migration proof, and journal. Repeated execution
+reopens the same semantic identities and reports `AlreadyMigrated` without
+overwriting them.
+
+The migration command is fully offline:
+
+```text
+--migrate-persisted-learning-intent-v1 --status|--dry-run|--execute-local
+--output-format text|json
+```
+
+Status and dry-run write nothing, and every mode rejects network permission.
+The verified Momentum rerun froze the three specified participants with two
+`Qualified` receipts and one `RejectedProbabilityCollapse` receipt. No winner
+was selected, historical-test access stayed zero, and the family remained
+ineligible for active use, promotion, and reward. Evaluation registration was
+`QualificationBlocked`. Cycle/Risk remained independently
+`ProviderContractUnverified`; Value/Quality remained `TrainerUnavailable`.
+These are contract and qualification results, not performance claims.

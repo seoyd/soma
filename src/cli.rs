@@ -1597,6 +1597,7 @@ fn format_persisted_intent_migration_text_v1(
             registration.exclusion_digest.as_deref().unwrap_or_default(),
             registration
                 .minimum_accepted_timestamp_ms
+                .map(|value| value.to_string())
                 .unwrap_or_default(),
             registration.participant_count,
             registration.historical_test_access_count,
@@ -7981,7 +7982,25 @@ mod tests {
                 report_digest: "report".to_string(),
             },
             candidate_families: Vec::new(),
-            evaluation_registrations: Vec::new(),
+            evaluation_registrations: vec![MigratedEvaluationRegistrationCliV1 {
+                agent_id: "momentum_trend_fast".to_string(),
+                status: crate::model::CandidateEvaluationRegistrationStatusV1::QualificationBlocked,
+                blocker_code: Some("validation_qualification_invalid".to_string()),
+                registration_digest: None,
+                exclusion_digest: None,
+                minimum_accepted_timestamp_ms: None,
+                participant_count: 0,
+                historical_test_access_count: 0,
+                maximum_requests: 0,
+                maximum_concurrency: 0,
+                maximum_retries: 0,
+                labels_hidden_until_opening: false,
+                probabilities_hidden_until_opening: false,
+                one_time_opening_required: false,
+                winner_selection_forbidden_before_opening: false,
+                active_promotion_forbidden: false,
+                reward_application_forbidden: false,
+            }],
             reward_eligibility_replay: PersistedRewardEligibilityReplayCliV1 {
                 opening_status: crate::model::ProspectiveOutcomeOpeningStatusV0::Opened,
                 opening_attempt_count: 1,
@@ -8070,6 +8089,8 @@ mod tests {
         assert!(text.contains("migration_blocker=LegacySessionNotSelfDescribing"));
         assert!(text.contains("opening_attempt_count=1"));
         assert!(text.contains("opened_event_count=2"));
+        assert!(text.contains("minimum_accepted_timestamp_ms=;"));
+        assert!(json["evaluation_registrations"][0]["minimum_accepted_timestamp_ms"].is_null());
         assert!(text.contains("reward_apply_count=0"));
         assert!(text.contains("penalty_apply_count=0"));
     }
