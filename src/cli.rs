@@ -76,6 +76,8 @@ pub struct CliArgs {
     #[arg(long, default_value_t = false)]
     pub register_agent_candidate_evaluation_v1: bool,
     #[arg(long, default_value_t = false)]
+    pub agent_canonical_view_gap_v1: bool,
+    #[arg(long, default_value_t = false)]
     pub status: bool,
     #[arg(long, default_value_t = false)]
     pub dry_run: bool,
@@ -87,6 +89,8 @@ pub struct CliArgs {
     pub confirm_single_public_candle_request: bool,
     #[arg(long, default_value_t = false)]
     pub confirm_one_time_outcome_request: bool,
+    #[arg(long, default_value_t = false)]
+    pub confirm_one_time_learning_evidence_request: bool,
     #[arg(long, default_value_t = false)]
     pub btc_prospective_challenge_create: bool,
     #[arg(long, default_value_t = false)]
@@ -113,6 +117,23 @@ pub struct CliArgs {
 
 pub fn run() -> Result<(), String> {
     let args = CliArgs::parse();
+    if args.agent_canonical_view_gap_v1 {
+        let config = args
+            .historical_snapshot_campaign_config
+            .as_deref()
+            .ok_or_else(|| {
+                "canonical view gap audit requires a local historical provider config".to_string()
+            })?;
+        return run_agent_canonical_view_gap_cli_v1(
+            config,
+            &args.output_format,
+            args.status,
+            args.dry_run,
+            args.execute_local,
+            args.allow_network,
+            args.confirm_one_time_learning_evidence_request,
+        );
+    }
     if args.agent_private_learning_candidates_v1 && args.register_agent_candidate_evaluation_v1 {
         return Err("select exactly one V1 candidate or registration command".to_string());
     }
@@ -159,6 +180,9 @@ pub fn run() -> Result<(), String> {
         return Err(
             "prospective outcome mode flags require --prospective-outcome-acquisition".into(),
         );
+    }
+    if args.confirm_one_time_learning_evidence_request {
+        return Err("learning evidence confirmation requires --agent-canonical-view-gap-v1".into());
     }
     if args.toss_historical_contract_report {
         return print_toss_historical_contract_report(
@@ -381,6 +405,497 @@ pub fn run() -> Result<(), String> {
         println!("paper_order: none");
     }
     Ok(())
+}
+
+#[derive(Serialize)]
+struct AgentCanonicalViewGapCliReportV1 {
+    report_version: &'static str,
+    mode: String,
+    offline: bool,
+    gaps: Vec<crate::data::AgentCanonicalViewGapV1>,
+    post_acquisition_gaps: Vec<crate::data::AgentCanonicalViewGapV1>,
+    gap_report_digest: String,
+    post_gap_report_digest: String,
+    provider_contract_digests: Vec<String>,
+    selected_target_agent_ids: Vec<String>,
+    selected_dataset_kind: Option<crate::data::DatasetKind>,
+    registration_digest: Option<String>,
+    registration_reopened_and_verified: bool,
+    request_status: crate::data::LearningEvidenceRequestStatusV1,
+    request_count: usize,
+    retry_count: usize,
+    transport_constructions: usize,
+    http_status_class: Option<String>,
+    returned_row_count: usize,
+    verified_row_count: usize,
+    receipt_present: bool,
+    receipt_digest: Option<String>,
+    raw_response_present: bool,
+    provenance_manifest_present: bool,
+    provenance_manifest_digest: Option<String>,
+    canonical_snapshot_present: bool,
+    canonical_snapshot_digest: Option<String>,
+    candidate_families: Vec<crate::model::AgentCandidateFamilyPublicSummaryV1>,
+    evaluation_registrations: Vec<crate::model::AgentCandidateEvaluationPublicSummaryV1>,
+    safety_counters: crate::data::LearningEvidenceSafetyCountersV1,
+    prospective_storage_writes: usize,
+}
+
+fn load_persisted_learning_registrations_v1(
+    root: &Path,
+) -> Result<Vec<crate::data::LearningEvidenceAcquisitionRegistrationV1>, String> {
+    let directory = root.join("acquisition_v1").join("registrations");
+    if !directory.is_dir() {
+        return Ok(Vec::new());
+    }
+    let mut registrations = fs::read_dir(directory)
+        .map_err(|_| "learning registration directory unavailable".to_string())?
+        .map(|entry| {
+            let path = entry
+                .map_err(|_| "learning registration directory rejected".to_string())?
+                .path();
+            if path.extension().is_none_or(|extension| extension != "pb") {
+                return Ok(None);
+            }
+            crate::data::decode_learning_evidence_registration_protobuf_v1(
+                &fs::read(path).map_err(|_| "learning registration unavailable".to_string())?,
+            )
+            .map(Some)
+        })
+        .collect::<Result<Vec<_>, String>>()?
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>();
+    registrations.sort_by(|left, right| left.registration_digest.cmp(&right.registration_digest));
+    Ok(registrations)
+}
+
+fn print_agent_canonical_view_gap_report_v1(
+    report: &AgentCanonicalViewGapCliReportV1,
+    output_format: &str,
+) -> Result<(), String> {
+    if output_format == "json" {
+        println!(
+            "{}",
+            serde_json::to_string(report)
+                .map_err(|_| "canonical view gap report serialization failed")?
+        );
+        return Ok(());
+    }
+    if output_format != "text" {
+        return Err("unsupported canonical view gap output format".into());
+    }
+    println!("report_version={}", report.report_version);
+    println!("mode={}", report.mode);
+    println!("offline={}", report.offline);
+    for gap in &report.gaps {
+        println!(
+            "agent={};intent_digest={};required={:?};resolved_required={:?};missing_required={:?};optional={:?};resolved_optional={:?};missing_optional={:?};authorized_providers={};status={:?};gap_digest={}",
+            gap.agent_id,
+            gap.intent_digest,
+            gap.required_dataset_kinds,
+            gap.resolved_required_dataset_kinds,
+            gap.missing_required_dataset_kinds,
+            gap.optional_dataset_kinds,
+            gap.resolved_optional_dataset_kinds,
+            gap.missing_optional_dataset_kinds,
+            gap.authorized_provider_ids.join("|"),
+            gap.status,
+            gap.gap_digest,
+        );
+    }
+    println!("gap_report_digest={}", report.gap_report_digest);
+    println!(
+        "provider_contract_digests={}",
+        report.provider_contract_digests.join("|")
+    );
+    println!(
+        "selected_target_agent_ids={}",
+        report.selected_target_agent_ids.join("|")
+    );
+    println!(
+        "selected_dataset_kind={}",
+        report
+            .selected_dataset_kind
+            .map(|kind| format!("{kind:?}"))
+            .unwrap_or_default()
+    );
+    println!(
+        "registration_digest={}",
+        report.registration_digest.as_deref().unwrap_or_default()
+    );
+    println!(
+        "registration_reopened_and_verified={}",
+        report.registration_reopened_and_verified
+    );
+    println!("request_status={:?}", report.request_status);
+    println!("request_count={}", report.request_count);
+    println!("retry_count={}", report.retry_count);
+    println!("transport_constructions={}", report.transport_constructions);
+    println!(
+        "http_status_class={}",
+        report.http_status_class.as_deref().unwrap_or_default()
+    );
+    println!("returned_row_count={}", report.returned_row_count);
+    println!("verified_row_count={}", report.verified_row_count);
+    println!("receipt_present={}", report.receipt_present);
+    println!(
+        "receipt_digest={}",
+        report.receipt_digest.as_deref().unwrap_or_default()
+    );
+    println!("raw_response_present={}", report.raw_response_present);
+    println!(
+        "provenance_manifest_present={}",
+        report.provenance_manifest_present
+    );
+    println!(
+        "provenance_manifest_digest={}",
+        report
+            .provenance_manifest_digest
+            .as_deref()
+            .unwrap_or_default()
+    );
+    println!(
+        "canonical_snapshot_present={}",
+        report.canonical_snapshot_present
+    );
+    println!(
+        "canonical_snapshot_digest={}",
+        report
+            .canonical_snapshot_digest
+            .as_deref()
+            .unwrap_or_default()
+    );
+    for family in &report.candidate_families {
+        println!(
+            "candidate_agent={};status={:?};participant_count={};historical_test_access_count={}",
+            family.agent_id,
+            family.status,
+            family.participant_count,
+            family.historical_test_access_count,
+        );
+    }
+    for registration in &report.evaluation_registrations {
+        println!(
+            "evaluation_agent={};status={:?};participant_count={};historical_test_access_count={}",
+            registration.agent_id,
+            registration.registration_status,
+            registration.participant_count,
+            registration.historical_test_access_count,
+        );
+    }
+    println!("post_gap_report_digest={}", report.post_gap_report_digest);
+    println!("safety_counters={:?}", report.safety_counters);
+    println!(
+        "prospective_storage_writes={}",
+        report.prospective_storage_writes
+    );
+    Ok(())
+}
+
+fn run_agent_canonical_view_gap_cli_v1(
+    config_path: &Path,
+    output_format: &str,
+    status: bool,
+    dry_run: bool,
+    execute_local: bool,
+    allow_network: bool,
+    confirm_one_time_learning_evidence_request: bool,
+) -> Result<(), String> {
+    if usize::from(status) + usize::from(dry_run) + usize::from(execute_local) != 1 {
+        return Err(
+            "select exactly one canonical view gap mode: --status, --dry-run, or --execute-local"
+                .into(),
+        );
+    }
+    if allow_network != confirm_one_time_learning_evidence_request {
+        return Err(
+            "learning evidence request requires both --allow-network and --confirm-one-time-learning-evidence-request"
+                .into(),
+        );
+    }
+    if (allow_network || confirm_one_time_learning_evidence_request) && !execute_local {
+        return Err("canonical view gap status and dry-run modes are offline-only".into());
+    }
+    let mode = if status {
+        "status"
+    } else if dry_run {
+        "dry-run"
+    } else {
+        "execute-local"
+    };
+    let root = crate::model::default_private_learning_root_v0();
+    let snapshot_root = Path::new("data/local_snapshots");
+    let snapshots = crate::model::load_local_learning_snapshots_v0(snapshot_root)?;
+    let policies = crate::data::default_agent_data_policies();
+    let intents = crate::model::load_persisted_agent_learning_intents_v0(root, &snapshots)?;
+    let information_cutoff_ms = intents
+        .iter()
+        .map(|intent| intent.information_cutoff_ms)
+        .max()
+        .ok_or_else(|| "canonical learning information cutoff unavailable".to_string())?;
+    let trainer_capable_agent_ids = crate::model::agent_trainer_capability_registry_v0()
+        .capabilities
+        .into_iter()
+        .filter(|capability| capability.supports_training)
+        .map(|capability| capability.agent_id)
+        .collect::<BTreeSet<_>>();
+    let provider_config = crate::data::UpbitHistoricalPilotConfigV0::from_toml_path(config_path)?;
+    let provider_contracts =
+        crate::data::upbit_learning_evidence_provider_contract_v1(&provider_config)
+            .map(|contract| vec![contract])
+            .unwrap_or_default();
+    let gap_report = crate::data::derive_agent_canonical_view_gaps_v1(
+        &intents,
+        &policies,
+        &snapshots,
+        &trainer_capable_agent_ids,
+        &provider_contracts,
+    )?;
+    let reservation = crate::model::load_protected_evaluation_reservation_v1(
+        config_path
+            .parent()
+            .ok_or_else(|| "protected reservation directory unavailable".to_string())?,
+    )?;
+    let selected_registration = crate::data::select_learning_evidence_acquisition_registration_v1(
+        &gap_report,
+        &provider_contracts,
+        &reservation.protected_registration_digests,
+        &reservation.reserved_timestamp_ms,
+    )?;
+    let persisted_registrations = load_persisted_learning_registrations_v1(root)?;
+    if persisted_registrations.len() > 1 {
+        return Err("multiple learning evidence registrations rejected".into());
+    }
+    let registration = selected_registration
+        .clone()
+        .or_else(|| persisted_registrations.first().cloned());
+    let mut registration_reopened_and_verified = false;
+    if dry_run {
+        let decoded = crate::data::decode_agent_canonical_view_gap_report_protobuf_v1(
+            &crate::data::encode_agent_canonical_view_gap_report_protobuf_v1(&gap_report)?,
+        )?;
+        if decoded != gap_report {
+            return Err("canonical view gap Protobuf round trip rejected".into());
+        }
+        if let Some(registration) = selected_registration.as_ref() {
+            let decoded = crate::data::decode_learning_evidence_registration_protobuf_v1(
+                &crate::data::encode_learning_evidence_registration_protobuf_v1(registration)?,
+            )?;
+            if &decoded != registration {
+                return Err("learning evidence registration Protobuf round trip rejected".into());
+            }
+        }
+    }
+    if execute_local {
+        crate::data::write_and_verify_agent_canonical_view_gap_report_v1(&gap_report, root)?;
+        if let Some(selected) = selected_registration.as_ref() {
+            crate::data::write_and_verify_learning_evidence_registration_v1(selected, root)?;
+            registration_reopened_and_verified =
+                crate::data::read_learning_evidence_registration_v1(
+                    &selected.registration_digest,
+                    root,
+                )? == *selected;
+            if !registration_reopened_and_verified {
+                return Err("learning evidence registration reopen rejected".into());
+            }
+        } else if let Some(existing) = registration.as_ref() {
+            registration_reopened_and_verified =
+                crate::data::read_learning_evidence_registration_v1(
+                    &existing.registration_digest,
+                    root,
+                )? == *existing;
+        }
+    }
+    let existing_receipt = registration
+        .as_ref()
+        .map(|registration| {
+            crate::data::read_learning_evidence_receipt_v1(&registration.registration_digest, root)
+        })
+        .transpose()?
+        .flatten();
+    let current_gap_digests = gap_report
+        .gaps
+        .iter()
+        .map(|gap| gap.gap_digest.clone())
+        .collect::<Vec<_>>();
+    let mut acquisition_result = None;
+    if allow_network && confirm_one_time_learning_evidence_request {
+        let registration = registration
+            .as_ref()
+            .ok_or_else(|| "learning evidence registration unavailable".to_string())?;
+        let contract = provider_contracts
+            .iter()
+            .find(|contract| contract.contract_digest == registration.provider_contract_digest)
+            .ok_or_else(|| "learning evidence provider contract unavailable".to_string())?;
+        let result = crate::data::execute_learning_evidence_acquisition_v1(
+            registration,
+            contract,
+            &current_gap_digests,
+            existing_receipt.as_ref(),
+            &snapshots,
+            true,
+            |request| crate::data::fetch_upbit_learning_evidence_once_v1(&provider_config, request),
+        );
+        if let (Some(raw), Some(receipt)) = (&result.raw_response, &result.receipt) {
+            if let Some(raw_digest) = receipt.raw_response_digest.as_deref() {
+                crate::data::write_and_verify_learning_raw_response_v1(raw, raw_digest, root)?;
+            }
+        }
+        if let Some(manifest) = &result.provenance_manifest {
+            crate::data::write_and_verify_learning_evidence_provenance_v1(manifest, root)?;
+        }
+        if let Some(snapshot) = &result.snapshot {
+            crate::data::write_and_verify_local_snapshot_v0(
+                snapshot,
+                Path::new(&provider_config.snapshot_output_dir),
+            )?;
+            let stored = crate::data::read_local_snapshot_protobuf_v1(
+                &Path::new(&provider_config.snapshot_output_dir)
+                    .join(format!("{}.pb", snapshot.snapshot_id)),
+            )?;
+            if stored.content_digest != snapshot.content_digest {
+                return Err("canonical learning snapshot reopen rejected".into());
+            }
+        }
+        if let Some(receipt) = &result.receipt {
+            crate::data::write_and_verify_learning_evidence_receipt_v1(receipt, root)?;
+            if crate::data::read_learning_evidence_receipt_v1(&receipt.registration_digest, root)?
+                .as_ref()
+                != Some(receipt)
+            {
+                return Err("learning evidence receipt reopen rejected".into());
+            }
+        }
+        acquisition_result = Some(result);
+    }
+    let replayed_receipt = if let Some(result) = acquisition_result.as_ref() {
+        result.receipt.clone().or(existing_receipt.clone())
+    } else {
+        existing_receipt.clone()
+    };
+    let refreshed_snapshots = crate::model::load_local_learning_snapshots_v0(snapshot_root)?;
+    let post_gap_report = crate::data::derive_agent_canonical_view_gaps_v1(
+        &intents,
+        &policies,
+        &refreshed_snapshots,
+        &trainer_capable_agent_ids,
+        &provider_contracts,
+    )?;
+    if execute_local {
+        crate::data::write_and_verify_agent_canonical_view_gap_report_v1(&post_gap_report, root)?;
+    }
+    let mut candidate_families = Vec::new();
+    let mut evaluation_registrations = Vec::new();
+    if execute_local {
+        let inputs = crate::model::build_agent_private_learning_inputs_v1(
+            &refreshed_snapshots,
+            information_cutoff_ms,
+            root,
+            crate::model::AgentPrivateLearningRunModeV0::ExecuteLocal,
+        );
+        let mut families = crate::model::run_agent_private_learning_candidates_v1(
+            &inputs,
+            crate::model::AgentPrivateLearningRunModeV0::ExecuteLocal,
+        );
+        crate::model::persist_agent_candidate_families_report_v1(&mut families, root);
+        let mut evaluations = crate::model::run_agent_candidate_evaluations_v1(
+            &families,
+            &inputs,
+            &reservation,
+            crate::model::AgentPrivateLearningRunModeV0::ExecuteLocal,
+        );
+        crate::model::persist_agent_candidate_evaluations_report_v1(&mut evaluations, root);
+        if families.storage_failure_count != 0 || evaluations.storage_failure_count != 0 {
+            return Err("offline V1 rerun persistence rejected".into());
+        }
+        candidate_families = crate::model::public_candidate_family_summaries_v1(&families);
+        evaluation_registrations =
+            crate::model::public_candidate_evaluation_summaries_v1(&evaluations);
+    }
+    let request_status = acquisition_result
+        .as_ref()
+        .map(|result| result.status)
+        .or_else(|| replayed_receipt.as_ref().map(|receipt| receipt.status))
+        .unwrap_or(crate::data::LearningEvidenceRequestStatusV1::ReadyNotAttempted);
+    let mut safety_counters = acquisition_result
+        .as_ref()
+        .map(|result| result.safety_counters.clone())
+        .unwrap_or_else(|| gap_report.safety_counters.clone());
+    if acquisition_result.is_none() {
+        safety_counters.request_attempts = replayed_receipt
+            .as_ref()
+            .map_or(0, |receipt| receipt.request_count);
+        safety_counters.retry_count = replayed_receipt
+            .as_ref()
+            .map_or(0, |receipt| receipt.retry_count);
+    }
+    print_agent_canonical_view_gap_report_v1(
+        &AgentCanonicalViewGapCliReportV1 {
+            report_version: "agent-canonical-view-gap-cli-report-v1",
+            mode: mode.into(),
+            offline: acquisition_result.is_none(),
+            gaps: gap_report.gaps.clone(),
+            post_acquisition_gaps: post_gap_report.gaps,
+            gap_report_digest: gap_report.report_digest,
+            post_gap_report_digest: post_gap_report.report_digest,
+            provider_contract_digests: gap_report.provider_contract_digests,
+            selected_target_agent_ids: registration
+                .as_ref()
+                .map(|registration| registration.target_agent_ids.clone())
+                .unwrap_or_default(),
+            selected_dataset_kind: registration
+                .as_ref()
+                .map(|registration| registration.dataset_kind),
+            registration_digest: registration
+                .as_ref()
+                .map(|registration| registration.registration_digest.clone()),
+            registration_reopened_and_verified,
+            request_status,
+            request_count: replayed_receipt
+                .as_ref()
+                .map_or(0, |receipt| receipt.request_count),
+            retry_count: replayed_receipt
+                .as_ref()
+                .map_or(0, |receipt| receipt.retry_count),
+            transport_constructions: acquisition_result
+                .as_ref()
+                .map_or(0, |result| result.safety_counters.transport_constructions),
+            http_status_class: replayed_receipt
+                .as_ref()
+                .and_then(|receipt| receipt.http_status_class.clone()),
+            returned_row_count: replayed_receipt
+                .as_ref()
+                .map_or(0, |receipt| receipt.returned_row_count),
+            verified_row_count: replayed_receipt
+                .as_ref()
+                .map_or(0, |receipt| receipt.verified_row_count),
+            receipt_present: replayed_receipt.is_some(),
+            receipt_digest: replayed_receipt
+                .as_ref()
+                .map(|receipt| receipt.receipt_digest.clone()),
+            raw_response_present: replayed_receipt
+                .as_ref()
+                .is_some_and(|receipt| receipt.raw_response_digest.is_some()),
+            provenance_manifest_present: replayed_receipt
+                .as_ref()
+                .is_some_and(|receipt| receipt.provenance_manifest_digest.is_some()),
+            provenance_manifest_digest: replayed_receipt
+                .as_ref()
+                .and_then(|receipt| receipt.provenance_manifest_digest.clone()),
+            canonical_snapshot_present: replayed_receipt
+                .as_ref()
+                .is_some_and(|receipt| receipt.snapshot_digest.is_some()),
+            canonical_snapshot_digest: replayed_receipt
+                .as_ref()
+                .and_then(|receipt| receipt.snapshot_digest.clone()),
+            candidate_families,
+            evaluation_registrations,
+            safety_counters,
+            prospective_storage_writes: 0,
+        },
+        output_format,
+    )
 }
 
 fn run_agent_candidate_family_cli_v1(

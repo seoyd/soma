@@ -25,10 +25,11 @@ use crate::{
 use super::acquisition::AcquisitionRequest;
 use super::{
     AcquisitionMarketScope, AcquisitionMode, AcquisitionPlan, AcquisitionPolicy,
-    DataAcquisitionBroker, DataLookback, DataSnapshot, DatasetKind, ProviderCapabilities,
-    ProviderFetchFailure, ReadOnlyMarketDataProvider, ReadOnlyProviderRegistry,
-    ReadOnlyProviderRequest, ReadOnlyProviderResponse, SnapshotProvenance, SnapshotQualitySummary,
-    SnapshotSourceType,
+    DataAcquisitionBroker, DataLookback, DataSnapshot, DatasetKind,
+    LearningEvidenceProviderContractV1, LearningEvidenceTransportFailureV1,
+    LearningEvidenceTransportResponseV1, ProviderCapabilities, ProviderFetchFailure,
+    ReadOnlyMarketDataProvider, ReadOnlyProviderRegistry, ReadOnlyProviderRequest,
+    ReadOnlyProviderResponse, SnapshotProvenance, SnapshotQualitySummary, SnapshotSourceType,
 };
 
 const UPBIT_PROVIDER_ID: &str = "upbit";
@@ -1229,6 +1230,179 @@ impl UpbitDailyOhlcvProviderV0 {
     pub fn new(config: UpbitHistoricalPilotConfigV0) -> Self {
         Self { config }
     }
+}
+
+pub fn upbit_learning_evidence_provider_contract_v1(
+    config: &UpbitHistoricalPilotConfigV0,
+) -> Result<LearningEvidenceProviderContractV1, String> {
+    config.validate()?;
+    let qualification = qualify_upbit_historical_provider_v0(Some(config));
+    if qualification.status != HistoricalProviderQualificationStatusV0::Qualified
+        || !qualification.supports_daily_ohlcv
+        || qualification.supported_markets != [AcquisitionMarketScope::BtcCrypto]
+        || qualification.requires_credentials
+        || !qualification.read_only
+        || !qualification.network_approved
+        || !qualification.response_schema_known
+        || !qualification.timestamp_semantics_known
+        || !qualification.pagination_semantics_known
+    {
+        return Err("Upbit learning evidence contract unverified".into());
+    }
+    super::acquisition::seal_learning_evidence_provider_contract_v1(
+        LearningEvidenceProviderContractV1 {
+            contract_version: "learning-evidence-provider-contract-v1".into(),
+            provider_id: UPBIT_PROVIDER_ID.into(),
+            dataset_kind: DatasetKind::DailyOhlcv,
+            market_scope: AcquisitionMarketScope::BtcCrypto,
+            symbols: vec![config.symbol.clone()],
+            cadence: "1d".into(),
+            maximum_lookback_bars: UPBIT_MAX_CANDLES_PER_REQUEST,
+            earliest_timestamp_ms: config.start_timestamp_ms,
+            latest_exclusive_timestamp_ms: config.end_timestamp_ms,
+            maximum_response_bytes: config.maximum_response_bytes,
+            credential_free: true,
+            read_only: true,
+            approved_for_network: true,
+            all_rows_finalized: true,
+            enabled: config.enabled,
+            contract_digest: String::new(),
+        },
+    )
+}
+
+pub fn fetch_upbit_learning_evidence_once_v1(
+    config: &UpbitHistoricalPilotConfigV0,
+    request: &ReadOnlyProviderRequest,
+) -> Result<LearningEvidenceTransportResponseV1, LearningEvidenceTransportFailureV1> {
+    config
+        .validate()
+        .map_err(|_| LearningEvidenceTransportFailureV1::Technical)?;
+    if request.provider_id != UPBIT_PROVIDER_ID
+        || request.market_scope != AcquisitionMarketScope::BtcCrypto
+        || request.dataset_kind != DatasetKind::DailyOhlcv
+        || request.cadence != "1d"
+        || request.symbols.as_slice() != [config.symbol.clone()]
+        || request.lookback.bars == 0
+        || request.lookback.bars > UPBIT_MAX_CANDLES_PER_REQUEST
+    {
+        return Err(LearningEvidenceTransportFailureV1::Technical);
+    }
+    let end = request
+        .lookback
+        .end_timestamp_ms
+        .ok_or(LearningEvidenceTransportFailureV1::Technical)?;
+    let expected_start = u64::try_from(request.lookback.bars)
+        .ok()
+        .and_then(|bars| bars.checked_mul(86_400_000))
+        .and_then(|duration| end.checked_sub(duration))
+        .ok_or(LearningEvidenceTransportFailureV1::Technical)?;
+    if request
+        .lookback
+        .start_timestamp_ms
+        .is_some_and(|start| start != expected_start)
+        || expected_start < config.start_timestamp_ms
+        || end > config.end_timestamp_ms
+    {
+        return Err(LearningEvidenceTransportFailureV1::Technical);
+    }
+    let url = upbit_daily_candles_url(&config.symbol, end, request.lookback.bars)
+        .ok_or(LearningEvidenceTransportFailureV1::Technical)?;
+    let output = Command::new("curl")
+        .args([
+            "--disable",
+            "--silent",
+            "--show-error",
+            "--proto",
+            "=https",
+            "--proto-redir",
+            "=https",
+            "--max-redirs",
+            "0",
+            "--connect-timeout",
+            &config.timeout_seconds.to_string(),
+            "--max-time",
+            &config.timeout_seconds.to_string(),
+            "--max-filesize",
+            &config.maximum_response_bytes.to_string(),
+            "--request",
+            "GET",
+            "--header",
+            "accept: application/json",
+            "--write-out",
+            "\n%{http_code}\n%{content_type}",
+            &url,
+        ])
+        .output()
+        .map_err(|_| LearningEvidenceTransportFailureV1::Technical)?;
+    if !output.status.success() {
+        return if output.status.code() == Some(28) {
+            Err(LearningEvidenceTransportFailureV1::TimedOut)
+        } else {
+            Err(LearningEvidenceTransportFailureV1::Technical)
+        };
+    }
+    let output = String::from_utf8(output.stdout)
+        .map_err(|_| LearningEvidenceTransportFailureV1::Technical)?;
+    let (body_and_status, content_type) = output
+        .rsplit_once('\n')
+        .ok_or(LearningEvidenceTransportFailureV1::Technical)?;
+    let (body, status) = body_and_status
+        .rsplit_once('\n')
+        .ok_or(LearningEvidenceTransportFailureV1::Technical)?;
+    let status = status
+        .trim()
+        .parse::<u16>()
+        .map_err(|_| LearningEvidenceTransportFailureV1::Technical)?;
+    let http_status_class = format!("{}xx", status / 100);
+    let raw_response = body.as_bytes().to_vec();
+    if status != 200 {
+        return Err(LearningEvidenceTransportFailureV1::ProviderRejected {
+            http_status_class: Some(http_status_class),
+            raw_response: Some(raw_response),
+        });
+    }
+    if raw_response.len() > config.maximum_response_bytes
+        || !content_type
+            .split(';')
+            .next()
+            .is_some_and(|mime| mime.trim().eq_ignore_ascii_case("application/json"))
+    {
+        return Err(LearningEvidenceTransportFailureV1::ProviderRejected {
+            http_status_class: Some(http_status_class),
+            raw_response: Some(raw_response),
+        });
+    }
+    let normalized_dataset = parse_upbit_daily_ohlcv_v0(body, &config.symbol).map_err(|_| {
+        LearningEvidenceTransportFailureV1::ProviderRejected {
+            http_status_class: Some(http_status_class.clone()),
+            raw_response: Some(raw_response.clone()),
+        }
+    })?;
+    if normalized_dataset
+        .rows
+        .iter()
+        .any(|row| row.timestamp_ms < expected_start || row.timestamp_ms >= end)
+    {
+        return Err(LearningEvidenceTransportFailureV1::ProviderRejected {
+            http_status_class: Some(http_status_class),
+            raw_response: Some(raw_response),
+        });
+    }
+    Ok(LearningEvidenceTransportResponseV1 {
+        http_status_class,
+        raw_response: raw_response.clone(),
+        response: ReadOnlyProviderResponse {
+            request_id: request.request_id.clone(),
+            provider_id: UPBIT_PROVIDER_ID.into(),
+            fetched_at_ms: current_time_ms(),
+            content_type: "application/x-soma-normalized-dataset".into(),
+            all_rows_finalized: true,
+            normalized_dataset,
+            reported_content_bytes: raw_response.len(),
+            reason_codes: vec![],
+        },
+    })
 }
 
 impl ReadOnlyMarketDataProvider for UpbitDailyOhlcvProviderV0 {
@@ -4492,20 +4666,44 @@ pub fn write_and_verify_local_snapshot_v0(
     fs::create_dir_all(output_dir)
         .map_err(|_| "local snapshot directory unavailable".to_string())?;
     let path = output_dir.join(format!("{}.pb", snapshot.snapshot_id));
-    let temporary = output_dir.join(format!(".{}.tmp", snapshot.snapshot_id));
-    let mut file =
-        File::create(&temporary).map_err(|_| "local snapshot write failed".to_string())?;
-    file.write_all(&serialized)
-        .map_err(|_| "local snapshot write failed".to_string())?;
-    file.sync_all()
-        .map_err(|_| "local snapshot sync failed".to_string())?;
-    drop(file);
-    let temporary_snapshot = read_and_verify_local_snapshot_v0(&temporary, snapshot)?;
-    if temporary_snapshot.snapshot_id != snapshot.snapshot_id {
-        return Err("local snapshot identifier verification failed".to_string());
+    if path.is_file() {
+        return if read_and_verify_local_snapshot_v0(&path, snapshot).is_ok() {
+            Err("duplicate local snapshot rejected".into())
+        } else {
+            Err("local snapshot identity collision".into())
+        };
     }
-    fs::rename(&temporary, &path).map_err(|_| "local snapshot atomic rename failed".to_string())?;
-    read_and_verify_local_snapshot_v0(&path, snapshot)?;
+    let temporary = output_dir.join(format!(
+        ".{}.{}.tmp",
+        snapshot.snapshot_id,
+        std::process::id()
+    ));
+    let write_result = (|| {
+        let mut file = File::options()
+            .write(true)
+            .create_new(true)
+            .open(&temporary)
+            .map_err(|_| "local snapshot write failed".to_string())?;
+        file.write_all(&serialized)
+            .map_err(|_| "local snapshot write failed".to_string())?;
+        file.flush()
+            .map_err(|_| "local snapshot flush failed".to_string())?;
+        file.sync_all()
+            .map_err(|_| "local snapshot sync failed".to_string())?;
+        drop(file);
+        let temporary_snapshot = read_and_verify_local_snapshot_v0(&temporary, snapshot)?;
+        if temporary_snapshot.snapshot_id != snapshot.snapshot_id {
+            return Err("local snapshot identifier verification failed".to_string());
+        }
+        fs::rename(&temporary, &path)
+            .map_err(|_| "local snapshot atomic rename failed".to_string())?;
+        read_and_verify_local_snapshot_v0(&path, snapshot)?;
+        Ok(())
+    })();
+    if write_result.is_err() && temporary.is_file() {
+        let _ = fs::remove_file(temporary);
+    }
+    write_result?;
     Ok(path)
 }
 

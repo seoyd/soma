@@ -1,0 +1,94 @@
+# Canonical View Gap and Learning Evidence Acquisition V1
+
+## Purpose
+
+This protocol audits the canonical learning view of each active agent from its
+persisted intent identity, current data policy, immutable local evidence, real
+trainer capability, and verified provider contracts. Status and dry-run are
+offline. Execute-local persists only verified Protobuf artifacts and remains
+offline unless both explicit network-consent flags are present.
+
+## Gap resolution
+
+For each active agent the audit reports required and optional dataset kinds,
+resolved and missing evidence, market and symbol scope, cadence, lookback,
+information cutoff, maximum staleness, usable and rejected artifact identities,
+authorized providers, trainer availability, and a semantic gap digest.
+
+Current Protobuf sessions that contain full intent metadata are reconstructed
+only when their original intent digest verifies. Legacy sessions retain their
+persisted intent identity and cutoff; their missing metadata is projected from
+available source snapshot identities and the current policy. A legacy
+projection is audit-only and cannot bypass normal intent validation for
+training.
+
+Required evidence is evaluated before optional evidence. A real cadence,
+market, symbol, cutoff, ambiguity, or integrity failure remains explicit. A
+matching provider whose single-response capacity is too small is classified
+separately. Segmented acquisition is required only when the complete bounded
+partition is derivable before a response is observed; unsupported or
+over-budget partitions fail closed. Provider availability never changes an
+agent policy to match available data.
+
+## Provider and request boundary
+
+A provider contract is eligible only when its provider identity, dataset
+semantics, market, symbols, cadence, bounded historical range, response limit,
+finality, read-only behavior, and credential-free status all match. Upbit is
+authorized only for BTC daily OHLCV and cannot satisfy index, volatility,
+breadth, macro, fundamental, valuation, or adjusted-price contracts.
+
+Selection considers only trainer-capable agents missing required evidence. It
+orders exact requests by required status, semantic support, credential-free
+access, number of blocked agents served, bounded response size, and stable
+request identity. Equivalent requests are deduplicated before any transport is
+constructed.
+
+The current audit produced no eligible single request. Momentum requires a
+312-row historical view while the verified single-call Upbit contract is
+bounded to 200 rows; its exact two-segment requirement is explicit and the
+lookback is not shortened. Cycle/Risk has no exact index or volatility provider
+contract. Value/Quality has no trainer. Consequently no single-request runtime
+registration, transport, raw response, provenance manifest, receipt, or
+canonical snapshot was created.
+
+## One-request execution contract
+
+When an eligible request exists, its ignored registration fixes one request,
+one concurrent transport, zero retries, a bounded response, read-only and
+credential-free access, and a prospective-storage prohibition. Execution also
+requires a verified registration reopen, a current gap, no prior receipt, no
+equivalent canonical snapshot, and explicit network consent. Every transport
+attempt consumes the budget; failures are terminal and no fallback provider is
+used.
+
+Validated responses must match provider and dataset semantics, exact timestamp
+range, chronology, cutoff, protected exclusions, schema, finality, finite
+values, size, and sanitization. Successful evidence is stored as an ignored raw
+blob, manual-Protobuf provenance, a canonical manual-Protobuf snapshot, and a
+manual-Protobuf receipt. Semantic identity is independent of encoded bytes.
+
+All writes use a temporary file, flush, `sync_all`, temporary reopen and
+verification, atomic rename, and final reopen and verification. Identical
+snapshots and persisted artifacts are duplicate-rejected.
+
+## Current per-agent result
+
+| Agent | Gap status | Required evidence result | Acquisition result |
+| --- | --- | --- | --- |
+| Momentum | `SegmentedAcquisitionRequired` | Daily OHLCV remains unresolved against the persisted 312-row view. | Exact bounded two-segment acquisition required; request count 0. |
+| Cycle/Risk | `ProviderContractUnverified` | Index and volatility evidence remain missing. | Upbit OHLCV is not relabeled; request count 0. |
+| Value/Quality | `TrainerUnavailable` | Adjusted prices and fundamentals remain missing. | Excluded from request priority. |
+
+The offline rerun kept the three agents independent: Momentum and Cycle/Risk
+reported insufficient evidence, while Value/Quality reported trainer
+unavailable. Candidate and evaluation registration outcomes were unavailable
+without affecting another agent's status.
+
+## Safety result
+
+Learning request attempts, retries, and transport constructions were zero.
+Credential, prospective-artifact, prospective-label, and future-evaluation
+reads were zero. Active-model changes, Chair decisions, votes, rewards,
+penalties, voice changes, promotions, and executions were zero. Active committee
+count remained three. Both boundary audits passed.

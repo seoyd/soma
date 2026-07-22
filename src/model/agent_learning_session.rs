@@ -17,15 +17,17 @@ use serde::{Deserialize, Serialize};
 use crate::{
     core::stable_hash_string,
     data::{
-        AcquisitionMarketScope, AcquisitionMode, AcquisitionPolicy, AgentDataPolicy,
-        AgentLearningDataViewV0, AgentLearningIntentV0, ConfiguredUniverse, DataLookback,
-        DataSnapshot, DatasetKind, EvidenceDecisionGate, LearningDataArtifactRefV0,
-        LearningDataPlaneSafetyCountersV0, LearningDataVisibilityV0, ReadOnlyProviderRegistry,
-        ReadOnlyProviderRequest, SnapshotAdjustmentSemanticsV1, SnapshotSourceType,
-        build_agent_learning_data_view_v0, build_learning_acquisition_plan_v0,
-        decode_agent_learning_data_view_protobuf_v0, default_agent_data_policies,
-        derive_active_agent_learning_intents_v0, derive_agent_private_learning_state_v0,
-        encode_agent_learning_data_view_protobuf_v0, historical_replay_dataset_digest_v0,
+        AcquisitionMarketScope, AcquisitionMode, AcquisitionPolicy, AgentDataIntent,
+        AgentDataPolicy, AgentLearningDataViewV0, AgentLearningIntentV0, ConfiguredUniverse,
+        DataLookback, DataPriority, DataSnapshot, DatasetKind, EvidenceDecisionGate,
+        LearningDataArtifactRefV0, LearningDataCallerV0, LearningDataPlaneSafetyCountersV0,
+        LearningDataVisibilityV0, PERSISTED_LEARNING_INTENT_PROJECTION_VERSION_V1,
+        ReadOnlyProviderRegistry, ReadOnlyProviderRequest, SnapshotAdjustmentSemanticsV1,
+        SnapshotSourceType, build_agent_learning_data_view_v0, build_learning_acquisition_plan_v0,
+        create_agent_learning_intent_v0, decode_agent_learning_data_view_protobuf_v0,
+        default_agent_data_policies, derive_active_agent_learning_intents_v0,
+        derive_agent_private_learning_state_v0, encode_agent_learning_data_view_protobuf_v0,
+        historical_replay_dataset_digest_v0, plan_agent_data_intent,
         read_and_verify_agent_learning_data_view_v0, read_local_snapshot_protobuf_v1,
         validate_agent_learning_data_view_v0, validate_agent_learning_intent_v0,
         write_and_verify_agent_learning_data_view_v0,
@@ -1097,17 +1099,10 @@ pub fn build_agent_private_learning_inputs_v1(
         return Vec::new();
     }
     let policies = default_agent_data_policies();
-    let universe = configured_universe_from_snapshots_v0(snapshots);
     let states = canonical_current_agent_states();
     let registry = agent_trainer_capability_registry_v0();
-    let Ok(intents) = derive_active_agent_learning_intents_v0(
-        &states,
-        &universe,
-        &policies,
-        information_cutoff_ms,
-    ) else {
-        return Vec::new();
-    };
+    let projected_intents = load_persisted_agent_learning_intents_v0(root, snapshots).ok();
+    let universe = configured_universe_from_snapshots_v0(snapshots);
     let mut inputs = Vec::new();
     for capability in registry
         .capabilities
@@ -1127,13 +1122,31 @@ pub fn build_agent_private_learning_inputs_v1(
         else {
             continue;
         };
-        let Some(intent) = intents
-            .iter()
-            .find(|intent| intent.agent_id == capability.agent_id)
-        else {
+        let agent_information_cutoff_ms = projected_intents
+            .as_ref()
+            .and_then(|intents| {
+                intents
+                    .iter()
+                    .find(|intent| intent.agent_id == capability.agent_id)
+            })
+            .map(|intent| intent.information_cutoff_ms)
+            .unwrap_or(information_cutoff_ms);
+        let data_intent = plan_agent_data_intent(
+            state.agent_id.clone(),
+            state.kind,
+            &universe,
+            policy,
+            agent_information_cutoff_ms,
+        );
+        let Ok(intent) = create_agent_learning_intent_v0(
+            &LearningDataCallerV0::Agent(state.agent_id.clone()),
+            &data_intent,
+            policy,
+            agent_information_cutoff_ms,
+        ) else {
             continue;
         };
-        let Ok(planned) = build_session_input_v0(intent, policy, snapshots) else {
+        let Ok(planned) = build_session_input_v0(&intent, policy, snapshots) else {
             continue;
         };
         if planned.view.decision_gate != EvidenceDecisionGate::Ready {
@@ -1164,7 +1177,7 @@ pub fn build_agent_private_learning_inputs_v1(
             continue;
         };
         match build_agent_private_learning_input_from_persisted_view_v0(
-            intent,
+            &intent,
             policy,
             &persisted_view,
             snapshots,
@@ -1183,7 +1196,7 @@ pub fn build_agent_private_learning_inputs_v1(
     inputs
 }
 
-fn configured_universe_from_snapshots_v0(snapshots: &[DataSnapshot]) -> ConfiguredUniverse {
+pub fn configured_universe_from_snapshots_v0(snapshots: &[DataSnapshot]) -> ConfiguredUniverse {
     let mut symbols_by_market = BTreeMap::<AcquisitionMarketScope, Vec<String>>::new();
     for snapshot in snapshots {
         symbols_by_market
@@ -1196,6 +1209,189 @@ fn configured_universe_from_snapshots_v0(snapshots: &[DataSnapshot]) -> Configur
         symbols.dedup();
     }
     ConfiguredUniverse { symbols_by_market }
+}
+
+pub fn load_persisted_agent_learning_intents_v0(
+    root: &Path,
+    snapshots: &[DataSnapshot],
+) -> Result<Vec<AgentLearningIntentV0>, String> {
+    let states = canonical_current_agent_states();
+    let policies = default_agent_data_policies();
+    let mut intents = Vec::with_capacity(states.len());
+    for state in states {
+        let policy = policies
+            .iter()
+            .find(|policy| policy.agent_kind == state.kind)
+            .ok_or_else(|| "persisted learning policy unavailable".to_string())?;
+        let session_dir = root.join(&state.agent_id).join("sessions");
+        let mut paths = fs::read_dir(&session_dir)
+            .map_err(|_| "persisted learning session directory unavailable".to_string())?
+            .filter_map(Result::ok)
+            .map(|entry| entry.path())
+            .filter(|path| path.is_file() && path.extension().is_some_and(|value| value == "pb"))
+            .collect::<Vec<_>>();
+        paths.sort();
+        let mut sessions = Vec::new();
+        for path in paths {
+            let session = decode_session_protobuf_v0(
+                &fs::read(path)
+                    .map_err(|_| "persisted learning session read failed".to_string())?,
+            )?;
+            if session.agent_id == state.agent_id && session.agent_kind == state.kind {
+                sessions.push(session);
+            }
+        }
+        sessions.sort_by(|left, right| {
+            left.information_cutoff_ms
+                .cmp(&right.information_cutoff_ms)
+                .then_with(|| left.session_digest.cmp(&right.session_digest))
+        });
+        let latest_cutoff = sessions
+            .last()
+            .map(|session| session.information_cutoff_ms)
+            .ok_or_else(|| {
+                format!(
+                    "persisted learning intent unavailable for active agent {}",
+                    state.agent_id
+                )
+            })?;
+        let mut latest = sessions
+            .into_iter()
+            .filter(|session| session.information_cutoff_ms == latest_cutoff)
+            .collect::<Vec<_>>();
+        latest.dedup_by(|left, right| left.session_digest == right.session_digest);
+        if latest.len() != 1 {
+            return Err("persisted learning intent is ambiguous".to_string());
+        }
+        let session = latest.pop().unwrap();
+        let exact_matches = session
+            .allowed_markets
+            .iter()
+            .filter_map(|market_scope| {
+                let data_intent = AgentDataIntent {
+                    agent_id: session.agent_id.clone(),
+                    agent_kind: session.agent_kind,
+                    market_scope: *market_scope,
+                    symbols: session.symbols.clone(),
+                    required_datasets: session.required_dataset_kinds.clone(),
+                    optional_datasets: session.optional_dataset_kinds.clone(),
+                    lookback: session.lookback.clone(),
+                    target_cadence: session.cadence.clone(),
+                    max_staleness_ms: session.maximum_staleness_ms,
+                    priority: DataPriority::Required,
+                    reason_codes: policy.reason_codes.clone(),
+                };
+                create_agent_learning_intent_v0(
+                    &LearningDataCallerV0::Agent(session.agent_id.clone()),
+                    &data_intent,
+                    policy,
+                    session.information_cutoff_ms,
+                )
+                .ok()
+                .filter(|intent| intent.intent_digest == session.intent_digest)
+            })
+            .collect::<Vec<_>>();
+        if exact_matches.len() == 1 {
+            intents.push(exact_matches.into_iter().next().unwrap());
+            continue;
+        }
+        if session.session_version != SESSION_VERSION_V0 {
+            return Err("persisted learning intent metadata rejected".to_string());
+        }
+        let source_snapshots = snapshots
+            .iter()
+            .filter(|snapshot| {
+                session
+                    .source_artifact_digests
+                    .contains(&snapshot.content_digest)
+            })
+            .collect::<Vec<_>>();
+        let mut market_scopes = source_snapshots
+            .iter()
+            .map(|snapshot| snapshot.market_scope)
+            .filter(|market| policy.allowed_markets.contains(market))
+            .collect::<Vec<_>>();
+        market_scopes.sort();
+        market_scopes.dedup();
+        if market_scopes.is_empty() {
+            market_scopes = policy.allowed_markets.clone();
+        }
+        let mut symbols = source_snapshots
+            .iter()
+            .flat_map(|snapshot| snapshot.symbols.clone())
+            .collect::<Vec<_>>();
+        symbols.sort();
+        symbols.dedup();
+        let inferred_exact_matches = market_scopes
+            .iter()
+            .filter_map(|market_scope| {
+                let mut lookback = policy.default_lookback.clone();
+                lookback.end_timestamp_ms = Some(session.information_cutoff_ms);
+                let data_intent = AgentDataIntent {
+                    agent_id: session.agent_id.clone(),
+                    agent_kind: session.agent_kind,
+                    market_scope: *market_scope,
+                    symbols: symbols.clone(),
+                    required_datasets: policy.required_dataset_kinds.clone(),
+                    optional_datasets: policy.optional_dataset_kinds.clone(),
+                    lookback,
+                    target_cadence: "1d".to_string(),
+                    max_staleness_ms: policy.max_staleness_ms,
+                    priority: DataPriority::Required,
+                    reason_codes: policy.reason_codes.clone(),
+                };
+                create_agent_learning_intent_v0(
+                    &LearningDataCallerV0::Agent(session.agent_id.clone()),
+                    &data_intent,
+                    policy,
+                    session.information_cutoff_ms,
+                )
+                .ok()
+                .filter(|intent| intent.intent_digest == session.intent_digest)
+            })
+            .collect::<Vec<_>>();
+        if inferred_exact_matches.len() == 1 {
+            intents.push(inferred_exact_matches.into_iter().next().unwrap());
+            continue;
+        }
+        let cadence = source_snapshots
+            .iter()
+            .filter_map(|snapshot| {
+                snapshot
+                    .compatibility
+                    .as_ref()
+                    .map(|compatibility| compatibility.cadence.clone())
+            })
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .next()
+            .unwrap_or_else(|| "1d".to_string());
+        let mut lookback = source_snapshots
+            .first()
+            .map(|snapshot| snapshot.requested_lookback.clone())
+            .unwrap_or_else(|| policy.default_lookback.clone());
+        lookback.end_timestamp_ms = Some(session.information_cutoff_ms);
+        intents.push(AgentLearningIntentV0 {
+            intent_version: PERSISTED_LEARNING_INTENT_PROJECTION_VERSION_V1.to_string(),
+            agent_id: session.agent_id,
+            agent_kind: session.agent_kind,
+            market_scopes,
+            symbols,
+            required_datasets: policy.required_dataset_kinds.clone(),
+            optional_datasets: policy.optional_dataset_kinds.clone(),
+            cadence,
+            lookback,
+            information_cutoff_ms: session.information_cutoff_ms,
+            maximum_staleness_ms: policy.max_staleness_ms,
+            source_policy_digest: session.source_policy_digest,
+            feature_policy_digest: session.feature_policy_digest,
+            label_policy_digest: session.label_policy_digest,
+            curriculum_policy_digest: session.curriculum_policy_digest,
+            intent_digest: session.intent_digest,
+        });
+    }
+    intents.sort_by(|left, right| left.agent_id.cmp(&right.agent_id));
+    Ok(intents)
 }
 
 fn resolve_snapshot_for_request_v0(
