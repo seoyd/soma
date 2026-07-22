@@ -261,3 +261,59 @@ The offline CLI is:
 All modes reject network authority. Status and dry-run create no artifacts.
 Public output contains only classifications, digests, statuses, counts, optional
 registration boundaries, reward-eligibility status, and zero safety counters.
+
+## Momentum frozen representation V3
+
+V3 begins only after reopening the exact failed V1 Momentum participant and the
+exact exhausted V2 head-only repair family. Its probes use V2-consumed evidence
+only and keep raw-feature, Last-output, Mean-output, and Last+Mean diagnostics
+separate. The audit records no fresh V3 validation access.
+
+The fresh split is derived from the V2 remaining reserve. Feature-history,
+sequence, and label-horizon requirements form the purge; fresh qualification
+uses labels in its own range while the purge supplies required input context.
+The final two validation-sized blocks remain untouched. Execute-local persists
+and reopens the split, probe audit, and exact four-route registration before any
+fresh-validation inference.
+
+Last, Mean, Last+Mean, and Last-plus-raw-residual routes reuse the frozen encoder
+but create fresh deterministic heads. All feature and representation
+normalizers fit training only, validation updates are zero, and V1/V2 heads and
+warm starts are rejected. Fresh Linear and Constant comparators use the same
+split and timestamps.
+
+The residual route carries a deterministic contribution audit with separate
+Mamba and raw parameter blocks and block-zero predictions. A material Mamba
+effect is necessary but cannot replace ordinary learned qualification. Raw-only
+support is classified separately and cannot enter the genuine-Mamba roster.
+Every rejected route stays in the family, and no private metric ranks or selects
+a winner.
+
+A future roster is permitted only when at least one genuine Mamba route and at
+least one comparator qualify. If present, it includes every qualified member
+and excludes raw fallback from the Mamba set. Its optional future registration
+preserves hidden labels and probabilities, one-time opening, source and
+provider-finality boundaries, protected registrations and timestamps, previous
+validation/reserve identities, one request, one concurrent request, and zero
+retries. No future evidence is acquired by V3.
+
+The verified result retained six participants and rejected every frozen-Mamba
+route. Linear and Constant qualified by role, but comparator-only registration
+was rejected. Therefore no roster, future registration, or minimum future
+timestamp exists, and the frozen representation path is terminal under this
+contract.
+
+V3 persists twelve manual-Protobuf artifact categories with the existing
+verified atomic writer. Identical reruns are duplicate-rejected. The offline
+CLI is:
+
+```text
+--momentum-mamba-representation-v3 --status|--dry-run|--execute-local
+--output-format text|json
+```
+
+All modes reject network and authority permission. Status and dry-run write
+nothing. Output contains public classifications, digests, counts, blockers,
+reward eligibility, and zero safety counters only; private rows, features,
+representations, logits, probabilities, labels, metrics, parameters, gradients,
+and paths remain excluded.
