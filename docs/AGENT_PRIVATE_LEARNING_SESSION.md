@@ -215,3 +215,49 @@ ineligible for active use, promotion, and reward. Evaluation registration was
 `QualificationBlocked`. Cycle/Risk remained independently
 `ProviderContractUnverified`; Value/Quality remained `TrainerUnavailable`.
 These are contract and qualification results, not performance claims.
+
+## Momentum Mamba repair V2
+
+V2 is an additive repair experiment over the frozen V1 Momentum result. It
+identifies the failed V1 Mamba participant and receipt by digest, replays only
+the already-consumed V1 ranges for collapse diagnosis, and derives the next
+training, purge, fresh-validation, and remaining-reserved ranges from the V1
+usage ledger. Prior validation cannot qualify V2.
+
+The collapse audit keeps frozen-representation, head-optimization, probability,
+and label-balance diagnostics separate. It exposes classifications and digests,
+not private values. Repair capability maps only to already implemented bounded
+pooling, head-control, or regularization dimensions. Encoder backpropagation,
+architecture changes, V1 head reuse, and warm starts are rejected.
+
+Before fresh validation inference, execute-local persists and reopens the audit,
+split, and concrete variant registration. All variants then fit feature
+normalizers and train fresh heads on the same repair-training range. Every Mamba
+variant, the fresh Linear comparator, and the training-prevalence Constant
+benchmark use identical fresh validation timestamps and perform zero validation
+updates. Constant is qualified by its benchmark role; learned Mamba candidates
+still require non-collapsed finite representations and probabilities.
+
+The additive family retains rejected variants. A future roster contains every
+qualified learned participant and every qualified comparator, with no metric
+ranking, only when at least one learned participant and one comparator qualify.
+Baselines alone cannot create a registration. A passing roster reuses the
+existing hidden-label, hidden-probability, one-time-opening, source-boundary,
+provider-finality, protected-timestamp, single-concurrency, and zero-retry
+contract without acquiring future evidence.
+
+The V2 audit, split, registration, participants, qualification receipts, family,
+optional roster, optional future registration, and journal use manual Protobuf
+and the existing non-overwriting atomic write protocol. Repeated identical
+execution reopens semantic identities and duplicate-rejects every sidecar.
+
+The offline CLI is:
+
+```text
+--momentum-mamba-repair-v2 --status|--dry-run|--execute-local
+--output-format text|json
+```
+
+All modes reject network authority. Status and dry-run create no artifacts.
+Public output contains only classifications, digests, statuses, counts, optional
+registration boundaries, reward-eligibility status, and zero safety counters.
