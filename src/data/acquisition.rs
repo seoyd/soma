@@ -3004,8 +3004,7 @@ fn learning_evidence_contract_supports_v1(
     lookback: &DataLookback,
     information_cutoff_ms: u64,
 ) -> bool {
-    let start = expected_learning_timestamps_v1(lookback)
-        .and_then(|timestamps| timestamps.first().copied());
+    let timestamps = expected_learning_timestamps_v1(lookback);
     validate_learning_evidence_provider_contract_v1(contract)
         && contract.enabled
         && contract.dataset_kind == dataset_kind
@@ -3014,8 +3013,14 @@ fn learning_evidence_contract_supports_v1(
         && contract.cadence == cadence
         && lookback.bars <= contract.maximum_lookback_bars
         && lookback.end_timestamp_ms == Some(information_cutoff_ms)
-        && start.is_some_and(|start| start >= contract.earliest_timestamp_ms)
-        && information_cutoff_ms <= contract.latest_exclusive_timestamp_ms
+        && timestamps.as_ref().is_some_and(|timestamps| {
+            timestamps
+                .first()
+                .is_some_and(|start| *start >= contract.earliest_timestamp_ms)
+                && timestamps
+                    .last()
+                    .is_some_and(|end| *end < contract.latest_exclusive_timestamp_ms)
+        })
 }
 
 fn learning_evidence_contract_matches_identity_v1(
@@ -9473,6 +9478,7 @@ mod tests {
         let mut contract = learning_v1_contract();
         contract.earliest_timestamp_ms =
             LEARNING_V1_CUTOFF_MS.saturating_sub(400 * DAILY_CADENCE_MS_V1);
+        contract.latest_exclusive_timestamp_ms = LEARNING_V1_CUTOFF_MS + 1;
         contract.contract_digest = String::new();
         seal_learning_evidence_provider_contract_v1(contract).unwrap()
     }
