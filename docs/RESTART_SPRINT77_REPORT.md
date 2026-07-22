@@ -134,9 +134,10 @@
     future-evaluation outcome, promotion suitability, reward eligibility beyond
     the existing sample gate, or live-trading fitness was proven.
 
-28. **Commit, push, and draft PR** — Source commit
-    `b252634` records the migration implementation. Final documentation commit,
-    push result, and draft PR are recorded after complete verification.
+28. **Commit, push, and draft PR** — Source commit `b252634` records the
+    migration implementation and commit `95484c9` records the verified result.
+    Both were pushed to `agent/sprint77-momentum-intent-migration`. Draft PR #9
+    was opened against `main`.
 
 29. **Next Sprint recommendation** — Investigate the frozen-Mamba probability
     collapse inside the private validation boundary. Do not register future
