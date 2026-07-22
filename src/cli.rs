@@ -72,6 +72,10 @@ pub struct CliArgs {
     #[arg(long, default_value_t = false)]
     pub register_agent_candidate_evaluation: bool,
     #[arg(long, default_value_t = false)]
+    pub agent_private_learning_candidates_v1: bool,
+    #[arg(long, default_value_t = false)]
+    pub register_agent_candidate_evaluation_v1: bool,
+    #[arg(long, default_value_t = false)]
     pub status: bool,
     #[arg(long, default_value_t = false)]
     pub dry_run: bool,
@@ -109,6 +113,19 @@ pub struct CliArgs {
 
 pub fn run() -> Result<(), String> {
     let args = CliArgs::parse();
+    if args.agent_private_learning_candidates_v1 && args.register_agent_candidate_evaluation_v1 {
+        return Err("select exactly one V1 candidate or registration command".to_string());
+    }
+    if args.agent_private_learning_candidates_v1 || args.register_agent_candidate_evaluation_v1 {
+        return run_agent_candidate_family_cli_v1(
+            &args.output_format,
+            args.status,
+            args.dry_run,
+            args.execute_local,
+            args.allow_network,
+            args.register_agent_candidate_evaluation_v1,
+        );
+    }
     if args.agent_candidate_evidence_audit && args.register_agent_candidate_evaluation {
         return Err("select exactly one candidate audit or registration command".to_string());
     }
@@ -364,6 +381,159 @@ pub fn run() -> Result<(), String> {
         println!("paper_order: none");
     }
     Ok(())
+}
+
+fn run_agent_candidate_family_cli_v1(
+    output_format: &str,
+    status: bool,
+    dry_run: bool,
+    execute_local: bool,
+    allow_network: bool,
+    registration_requested: bool,
+) -> Result<(), String> {
+    if usize::from(status) + usize::from(dry_run) + usize::from(execute_local) != 1 {
+        return Err(
+            "select exactly one V1 learning mode: --status, --dry-run, or --execute-local"
+                .to_string(),
+        );
+    }
+    if allow_network {
+        return Err("V1 candidate generation and registration are offline-only".to_string());
+    }
+    let mode = if status {
+        crate::model::AgentPrivateLearningRunModeV0::Status
+    } else if dry_run {
+        crate::model::AgentPrivateLearningRunModeV0::DryRun
+    } else {
+        crate::model::AgentPrivateLearningRunModeV0::ExecuteLocal
+    };
+    let snapshots =
+        crate::model::load_local_learning_snapshots_v0(Path::new("data/local_snapshots"))?;
+    let cutoff = snapshots
+        .iter()
+        .filter_map(|snapshot| snapshot.actual_end_timestamp_ms)
+        .max()
+        .unwrap_or(1);
+    let root = crate::model::default_private_learning_root_v0();
+    let inputs =
+        crate::model::build_agent_private_learning_inputs_v1(&snapshots, cutoff, root, mode);
+    let mut families = crate::model::run_agent_private_learning_candidates_v1(&inputs, mode);
+    if execute_local {
+        crate::model::persist_agent_candidate_families_report_v1(&mut families, root);
+    }
+    if registration_requested {
+        let reservation =
+            crate::model::load_protected_evaluation_reservation_v1(Path::new("config/local"))?;
+        let mut report = crate::model::run_agent_candidate_evaluations_v1(
+            &families,
+            &inputs,
+            &reservation,
+            mode,
+        );
+        if execute_local && families.storage_failure_count == 0 {
+            crate::model::persist_agent_candidate_evaluations_report_v1(&mut report, root);
+        }
+        let summaries = crate::model::public_candidate_evaluation_summaries_v1(&report);
+        if output_format == "json" {
+            println!(
+                "{}",
+                serde_json::json!({
+                    "mode": format!("{:?}", report.mode),
+                    "registrations": summaries,
+                    "active_state_unchanged": report.active_state_unchanged,
+                    "duplicate_artifact_count": report.duplicate_artifact_count,
+                    "storage_failure_count": report.storage_failure_count,
+                    "safety_counters": report.safety_counters,
+                    "report_digest": report.report_digest,
+                })
+            );
+        } else {
+            println!("mode={:?}", report.mode);
+            for summary in summaries {
+                println!(
+                    "agent={};session_digest={};family_digest={};participant_count={};historical_test_access_count={};minimum_accepted_timestamp_ms={};exclusion_digest={};registration_status={:?}",
+                    summary.agent_id,
+                    summary.session_digest.unwrap_or_default(),
+                    summary.family_digest.unwrap_or_default(),
+                    summary.participant_count,
+                    summary.historical_test_access_count,
+                    summary.minimum_accepted_timestamp_ms.unwrap_or_default(),
+                    summary.exclusion_digest.unwrap_or_default(),
+                    summary.registration_status,
+                );
+            }
+            print_v1_safety_counters(&report.safety_counters);
+            println!("duplicate_artifacts={}", report.duplicate_artifact_count);
+            println!("storage_failures={}", report.storage_failure_count);
+            println!("report_digest={}", report.report_digest);
+        }
+        if families.storage_failure_count > 0 || report.storage_failure_count > 0 {
+            return Err("one or more V1 evaluation artifacts failed verification".to_string());
+        }
+        return Ok(());
+    }
+    let summaries = crate::model::public_candidate_family_summaries_v1(&families);
+    if output_format == "json" {
+        println!(
+            "{}",
+            serde_json::json!({
+                "mode": format!("{:?}", families.mode),
+                "candidate_families": summaries,
+                "active_state_unchanged": families.active_state_unchanged,
+                "duplicate_artifact_count": families.duplicate_artifact_count,
+                "storage_failure_count": families.storage_failure_count,
+                "safety_counters": families.safety_counters,
+                "report_digest": families.report_digest,
+            })
+        );
+    } else {
+        println!("mode={:?}", families.mode);
+        for summary in summaries {
+            println!(
+                "agent={};session_digest={};view_digest={};projection_digest={};family_digest={};participant_count={};historical_test_access_count={};status={:?}",
+                summary.agent_id,
+                summary.session_digest.unwrap_or_default(),
+                summary.view_digest.unwrap_or_default(),
+                summary.projection_digest.unwrap_or_default(),
+                summary.family_digest.unwrap_or_default(),
+                summary.participant_count,
+                summary.historical_test_access_count,
+                summary.status,
+            );
+        }
+        print_v1_safety_counters(&families.safety_counters);
+        println!("duplicate_artifacts={}", families.duplicate_artifact_count);
+        println!("storage_failures={}", families.storage_failure_count);
+        println!("report_digest={}", families.report_digest);
+    }
+    if families.storage_failure_count > 0 {
+        return Err("one or more V1 candidate artifacts failed verification".to_string());
+    }
+    Ok(())
+}
+
+fn print_v1_safety_counters(counters: &crate::model::AgentLearningSafetyCountersV1) {
+    println!("active_committee_count={}", counters.active_committee_count);
+    println!("network_requests={}", counters.network_requests);
+    println!("credential_reads={}", counters.credential_reads);
+    println!("prospective_row_reads={}", counters.prospective_row_reads);
+    println!(
+        "prospective_label_reads={}",
+        counters.prospective_label_reads
+    );
+    println!("prospective_mutations={}", counters.prospective_mutations);
+    println!(
+        "historical_test_reads_v1={}",
+        counters.historical_test_reads_v1
+    );
+    println!("active_model_changes={}", counters.active_model_changes);
+    println!("chair_decisions={}", counters.chair_decisions);
+    println!("votes={}", counters.votes);
+    println!("rewards={}", counters.rewards);
+    println!("penalties={}", counters.penalties);
+    println!("voice_changes={}", counters.voice_changes);
+    println!("promotions={}", counters.promotions);
+    println!("executions={}", counters.executions);
 }
 
 fn run_agent_candidate_evaluation_cli_v0(

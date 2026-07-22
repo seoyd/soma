@@ -647,6 +647,33 @@ pub struct CycleRiskShadowReportV0 {
     pub ledger_digest: String,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CycleRiskValidationParticipantArtifactV1 {
+    pub model_kind: String,
+    pub model_artifact_digest: String,
+    pub parameter_digest: String,
+    pub normalizer_digest: String,
+    pub training_policy_digest: String,
+    pub initialization_digest: String,
+    pub private_validation_metric_digest: String,
+    pub qualified: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CycleRiskValidationOnlyExecutionV1 {
+    pub training_range: super::IndexRangeV0,
+    pub purge_range: super::IndexRangeV0,
+    pub validation_range: super::IndexRangeV0,
+    pub reserved_retrospective_unused_range: super::IndexRangeV0,
+    pub participants: Vec<CycleRiskValidationParticipantArtifactV1>,
+    pub validation_parameter_updates: usize,
+    pub historical_test_row_reads: usize,
+    pub historical_test_label_reads: usize,
+    pub historical_test_inference_count: usize,
+    pub historical_test_metric_count: usize,
+    pub historical_test_checkpoint_selection_count: usize,
+}
+
 pub fn cycle_risk_agent_independence_proof_v0() -> LearnedAgentIndependenceProofV0 {
     let mut proof = LearnedAgentIndependenceProofV0 {
         momentum_agent_id: MOMENTUM_AGENT_ID_V0.to_string(),
@@ -825,6 +852,232 @@ pub fn run_cycle_risk_shadow_regime_v0(
         snapshot.snapshot_id, regime_id, snapshot.content_digest
     ));
     run_regime(rows, regime_id, &snapshot.snapshot_id, &pack_digest, config)
+}
+
+pub fn run_cycle_risk_validation_only_v1(
+    snapshot: &DataSnapshot,
+    config: &CycleRiskShadowConfigV0,
+) -> Result<CycleRiskValidationOnlyExecutionV1, CycleRiskErrorV0> {
+    config.validate()?;
+    let rows = &snapshot.normalized_dataset.rows;
+    if rows.len() < minimum_rows(config)
+        || rows
+            .windows(2)
+            .any(|pair| pair[0].timestamp_ms >= pair[1].timestamp_ms)
+        || crate::data::historical_replay_dataset_digest_v0(&snapshot.normalized_dataset)
+            != snapshot.content_digest
+    {
+        return Err(CycleRiskErrorV0::InvalidEvidence);
+    }
+
+    let feature_offset = config.feature.minimum_history();
+    let feature_count = rows.len().saturating_sub(feature_offset);
+    let training_end = (feature_count as f32 * config.train_fraction).floor() as usize;
+    let validation_end =
+        training_end + (feature_count as f32 * config.validation_fraction).floor() as usize;
+    let gap = config.label.purge_gap_rows + config.sequence_length;
+    if training_end <= gap
+        || training_end + gap >= validation_end
+        || validation_end >= feature_count
+    {
+        return Err(CycleRiskErrorV0::InsufficientHistory);
+    }
+
+    let allowed_source_end = feature_offset
+        .checked_add(validation_end)
+        .ok_or(CycleRiskErrorV0::InvalidEvidence)?;
+    let allowed_rows = &rows[..allowed_source_end];
+    let features = build_features(allowed_rows, &config.feature)?;
+    if features.len() != validation_end {
+        return Err(CycleRiskErrorV0::InvalidEvidence);
+    }
+    let training_features = &features[..training_end];
+    let validation_features = &features[training_end + gap..validation_end];
+    let threshold = fit_threshold(training_features, allowed_rows, config)?;
+    let normalizer = fit_normalizer(training_features)?;
+    let training_features = normalize(training_features, &normalizer)?;
+    let validation_features = normalize(validation_features, &normalizer)?;
+    let training_examples = sequences(
+        &training_features,
+        allowed_rows,
+        config.sequence_length,
+        threshold,
+        config.label.horizon_rows,
+        &snapshot.snapshot_id,
+    )?;
+    let validation_examples = sequences(
+        &validation_features,
+        allowed_rows,
+        config.sequence_length,
+        threshold,
+        config.label.horizon_rows,
+        &snapshot.snapshot_id,
+    )?;
+    if training_examples.len() < config.label.minimum_training_anchors
+        || validation_examples.is_empty()
+    {
+        return Err(CycleRiskErrorV0::InsufficientHistory);
+    }
+    class_balance(&training_examples, config)?;
+
+    let training_policy_digest = config.digest();
+    let constant = ConstantProbabilityBaselineV0::fit(&training_examples)
+        .map_err(|_| CycleRiskErrorV0::Training)?;
+    let constant_metric = metrics(
+        &vec![constant.probability; validation_examples.len()],
+        &labels(&validation_examples),
+        config,
+    )?;
+    let constant_parameter_digest = stable_hash_string(&format!(
+        "cycle-risk-training-prevalence-constant-v1:{:08x}",
+        constant.probability.to_bits()
+    ));
+
+    let mut head_config = HeadTrainingConfigV0::default();
+    head_config.seed = config.seed.wrapping_add(1);
+    head_config.epochs = 24;
+    let linear =
+        LinearMomentumBaselineV0::train(&training_examples, &validation_examples, &head_config)
+            .map_err(|_| CycleRiskErrorV0::Training)?;
+    let linear_metric = metrics(
+        &probabilities(&linear.head, &validation_examples)?,
+        &labels(&validation_examples),
+        config,
+    )?;
+
+    let encoder = risk_encoder(config)?;
+    let encoder_digest = encoder.parameter_digest();
+    let encoded_training = encode_examples(&encoder, &training_examples)?;
+    let encoded_validation = encode_examples(&encoder, &validation_examples)?;
+    let representation_normalizer = fit_representation_normalizer(&encoded_training)?;
+    let encoded_training =
+        normalize_representations(&encoded_training, &representation_normalizer)?;
+    let encoded_validation =
+        normalize_representations(&encoded_validation, &representation_normalizer)?;
+    let initial_head = LogisticPredictionHeadV0::seeded(
+        encoder.model.config.input_dim,
+        config.seed.wrapping_add(2),
+    )
+    .map_err(|_| CycleRiskErrorV0::Training)?;
+    let initial_head_digest = initial_head.parameter_digest();
+    let trained_head = train_risk_head(
+        initial_head,
+        &encoded_training,
+        &encoded_validation,
+        &head_config,
+    )?;
+    if encoder.parameter_digest() != encoder_digest {
+        return Err(CycleRiskErrorV0::Training);
+    }
+    let mamba_metric = metrics(
+        &encoded_head_probabilities(&trained_head, &encoded_validation)?,
+        &labels(&validation_examples),
+        config,
+    )?;
+
+    let metric_is_usable = |metric: &CycleRiskMetricSetV0, allow_constant: bool| {
+        metric.brier.is_finite()
+            && metric.calibration_reliability.is_finite()
+            && metric.resolution.is_finite()
+            && metric.mean_probability.is_finite()
+            && (allow_constant
+                || (!metric.probability_collapse
+                    && metric.high_confidence_false_negatives
+                        <= config.maximum_high_confidence_false_negatives))
+    };
+    let combined_mamba_normalizer_digest = stable_hash_string(&format!(
+        "cycle-risk-validation-normalizers-v1:{}:{}",
+        normalizer.digest, representation_normalizer.digest
+    ));
+    let mut participants = vec![
+        CycleRiskValidationParticipantArtifactV1 {
+            model_kind: "FrozenMambaRiskV1".to_string(),
+            model_artifact_digest: stable_hash_string(&format!(
+                "cycle-risk-frozen-mamba-v1:{}:{}:{}:{}",
+                encoder_digest,
+                trained_head.parameter_digest(),
+                combined_mamba_normalizer_digest,
+                training_policy_digest
+            )),
+            parameter_digest: trained_head.parameter_digest(),
+            normalizer_digest: combined_mamba_normalizer_digest,
+            training_policy_digest: training_policy_digest.clone(),
+            initialization_digest: stable_hash_string(&format!(
+                "cycle-risk-fresh-mamba-initialization-v1:{}:{}",
+                config.seed.wrapping_add(2),
+                initial_head_digest
+            )),
+            private_validation_metric_digest: stable_hash_string(&format!(
+                "cycle-risk-private-validation-v1:{mamba_metric:?}"
+            )),
+            qualified: metric_is_usable(&mamba_metric, false),
+        },
+        CycleRiskValidationParticipantArtifactV1 {
+            model_kind: "LinearRiskV1".to_string(),
+            model_artifact_digest: stable_hash_string(&format!(
+                "cycle-risk-linear-v1:{}:{}:{}",
+                linear.head.parameter_digest(),
+                normalizer.digest,
+                training_policy_digest
+            )),
+            parameter_digest: linear.head.parameter_digest(),
+            normalizer_digest: normalizer.digest.clone(),
+            training_policy_digest: training_policy_digest.clone(),
+            initialization_digest: stable_hash_string(&format!(
+                "cycle-risk-fresh-linear-initialization-v1:{}",
+                head_config.seed
+            )),
+            private_validation_metric_digest: stable_hash_string(&format!(
+                "cycle-risk-private-validation-v1:{linear_metric:?}"
+            )),
+            qualified: metric_is_usable(&linear_metric, false),
+        },
+        CycleRiskValidationParticipantArtifactV1 {
+            model_kind: "TrainingPrevalenceConstantV1".to_string(),
+            model_artifact_digest: stable_hash_string(&format!(
+                "cycle-risk-constant-v1:{}:{}:{}",
+                constant_parameter_digest, normalizer.digest, training_policy_digest
+            )),
+            parameter_digest: constant_parameter_digest,
+            normalizer_digest: normalizer.digest.clone(),
+            training_policy_digest,
+            initialization_digest: stable_hash_string(&format!(
+                "cycle-risk-fresh-training-prevalence-v1:{}",
+                training_examples.len()
+            )),
+            private_validation_metric_digest: stable_hash_string(&format!(
+                "cycle-risk-private-validation-v1:{constant_metric:?}"
+            )),
+            qualified: metric_is_usable(&constant_metric, true),
+        },
+    ];
+    participants.sort_by(|left, right| left.model_kind.cmp(&right.model_kind));
+
+    Ok(CycleRiskValidationOnlyExecutionV1 {
+        training_range: super::IndexRangeV0 {
+            start: feature_offset,
+            end: feature_offset + training_end,
+        },
+        purge_range: super::IndexRangeV0 {
+            start: feature_offset + training_end,
+            end: feature_offset + training_end + gap,
+        },
+        validation_range: super::IndexRangeV0 {
+            start: feature_offset + training_end + gap,
+            end: allowed_source_end,
+        },
+        reserved_retrospective_unused_range: super::IndexRangeV0 {
+            start: allowed_source_end,
+            end: rows.len(),
+        },
+        participants,
+        validation_parameter_updates: 0,
+        historical_test_row_reads: 0,
+        historical_test_label_reads: 0,
+        historical_test_inference_count: 0,
+        historical_test_metric_count: 0,
+        historical_test_checkpoint_selection_count: 0,
+    })
 }
 
 fn run_regime(

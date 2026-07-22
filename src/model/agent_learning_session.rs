@@ -23,19 +23,27 @@ use crate::{
         LearningDataPlaneSafetyCountersV0, LearningDataVisibilityV0, ReadOnlyProviderRegistry,
         ReadOnlyProviderRequest, SnapshotAdjustmentSemanticsV1, SnapshotSourceType,
         build_agent_learning_data_view_v0, build_learning_acquisition_plan_v0,
-        default_agent_data_policies, derive_active_agent_learning_intents_v0,
-        derive_agent_private_learning_state_v0, historical_replay_dataset_digest_v0,
-        read_local_snapshot_protobuf_v1, validate_agent_learning_data_view_v0,
-        validate_agent_learning_intent_v0,
+        decode_agent_learning_data_view_protobuf_v0, default_agent_data_policies,
+        derive_active_agent_learning_intents_v0, derive_agent_private_learning_state_v0,
+        encode_agent_learning_data_view_protobuf_v0, historical_replay_dataset_digest_v0,
+        read_and_verify_agent_learning_data_view_v0, read_local_snapshot_protobuf_v1,
+        validate_agent_learning_data_view_v0, validate_agent_learning_intent_v0,
+        write_and_verify_agent_learning_data_view_v0,
     },
     league::{AgentKind, HistoricalOhlcvRow, canonical_current_agent_states},
 };
 
+use super::cycle_risk_shadow::{
+    CycleRiskValidationOnlyExecutionV1, run_cycle_risk_validation_only_v1,
+};
 use super::{
-    CycleRiskErrorV0, CycleRiskShadowConfigV0, IndexRangeV0, ModelAgentDeploymentStatus,
-    MomentumLearningCampaignConfigV0, MomentumLearningCampaignStatusV0,
-    build_momentum_learning_windows_v0, frozen_mamba3_encoder_from_seed_v0,
-    run_cycle_risk_shadow_v0, run_momentum_learning_campaign_v0,
+    ConstantProbabilityBaselineV0, CycleRiskErrorV0, CycleRiskShadowConfigV0, EvaluationMetricsV0,
+    FeatureNormalizerV0, IndexRangeV0, LinearMomentumBaselineV0, LogisticPredictionHeadV0,
+    ModelAgentDeploymentStatus, MomentumCandleV0, MomentumLearningCampaignConfigV0,
+    MomentumLearningCampaignStatusV0, SequenceExampleV0, build_momentum_features_v0,
+    build_momentum_learning_windows_v0, build_momentum_sequence_examples_v0, evaluate_head_v0,
+    frozen_mamba3_encoder_from_seed_v0, run_cycle_risk_shadow_v0,
+    run_momentum_learning_campaign_v0, train_frozen_mamba_head_v0,
 };
 
 const SESSION_VERSION_V0: &str = "agent-private-learning-session-v0";
@@ -49,6 +57,16 @@ const EVIDENCE_LEDGER_VERSION_V0: &str = "candidate-evidence-usage-ledger-v0";
 const IDENTITY_AUDIT_VERSION_V0: &str = "agent-candidate-identity-audit-v0";
 const EVALUATION_REGISTRATION_VERSION_V0: &str = "agent-candidate-evaluation-registration-v0";
 const EVALUATION_JOURNAL_VERSION_V0: &str = "agent-candidate-evaluation-journal-v0";
+const SESSION_VERSION_V1_FAMILY: &str = "agent-private-learning-session-v1-family";
+const PROJECTION_VERSION_V1: &str = "agent-trainer-input-projection-v1";
+const PARTICIPANT_VERSION_V1: &str = "frozen-candidate-participant-v1";
+const FAMILY_VERSION_V1: &str = "agent-candidate-family-v1";
+const QUALIFICATION_VERSION_V1: &str = "participant-validation-qualification-v1";
+const USAGE_LEDGER_VERSION_V1: &str = "agent-candidate-usage-ledger-v1";
+const EXCLUSION_VERSION_V1: &str = "evaluation-evidence-exclusion-v1";
+const EVALUATION_REGISTRATION_VERSION_V1: &str = "agent-candidate-evaluation-registration-v1";
+const EVALUATION_JOURNAL_VERSION_V1: &str = "agent-candidate-evaluation-journal-v1";
+const DAILY_CADENCE_MS_V1: u64 = 86_400_000;
 const ARTIFACT_MAGIC_V0: &[u8] = b"SOMA-AGENT-PRIVATE-LEARNING-PB-V0";
 const ARTIFACT_SCHEMA_V0: &str = "soma.agent_private_learning.v0";
 const DEFAULT_PRIVATE_LEARNING_ROOT_V0: &str = "state/learning_data";
@@ -329,6 +347,335 @@ pub struct AgentCandidateEvaluationPublicSummaryV0 {
     pub comparator_count: usize,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum AgentLearningSessionStatusV1 {
+    Registered,
+    PersistedViewVerified,
+    ProjectionReady,
+    CandidateFamilyFrozen,
+    InsufficientEvidence,
+    TrainerUnavailable,
+    ValidationBlocked,
+    RejectedUnauthorizedEvidence,
+    RejectedCutoffLeakage,
+    RejectedSafetyInvariant,
+    TechnicalFailure,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AgentTrainerInputProjectionV1 {
+    pub projection_version: String,
+    pub agent_id: String,
+    pub trainer_kind: AgentTrainerKindV0,
+    pub source_view_digest: String,
+    pub consumed_artifact_digests: Vec<String>,
+    pub referenced_unconsumed_artifact_digests: Vec<String>,
+    pub primary_series_digest: Option<String>,
+    pub projection_policy_digest: String,
+    pub projection_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AgentPrivateLearningSessionV1 {
+    pub session_version: String,
+    pub session_id: String,
+    pub agent_id: String,
+    pub agent_kind: AgentKind,
+    pub intent_digest: String,
+    pub view_digest: String,
+    pub projection_digest: String,
+    pub capability_digest: String,
+    pub source_policy_digest: String,
+    pub feature_policy_digest: String,
+    pub label_policy_digest: String,
+    pub curriculum_policy_digest: String,
+    pub information_cutoff_ms: u64,
+    pub source_artifact_digests: Vec<String>,
+    pub consumed_artifact_digests: Vec<String>,
+    pub referenced_unconsumed_artifact_digests: Vec<String>,
+    pub private_namespace_digest: String,
+    pub training_ledger_digest: String,
+    pub fresh_initialization: bool,
+    pub historical_test_access_forbidden: bool,
+    pub status: AgentLearningSessionStatusV1,
+    pub session_digest: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CandidateParticipantRoleV1 {
+    ModelCandidate,
+    LinearComparator,
+    ConstantComparator,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FrozenCandidateParticipantV1 {
+    pub participant_id: String,
+    pub role: CandidateParticipantRoleV1,
+    pub model_kind: String,
+    pub model_artifact_digest: String,
+    pub parameter_digest: String,
+    pub normalizer_digest: String,
+    pub feature_policy_digest: String,
+    pub label_policy_digest: String,
+    pub training_policy_digest: String,
+    pub initialization_digest: String,
+    pub deployment_status: ModelAgentDeploymentStatus,
+    pub participant_digest: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ValidationQualificationStatusV1 {
+    Qualified,
+    RejectedInsufficientValidation,
+    RejectedProbabilityCollapse,
+    RejectedNumericalFailure,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ParticipantValidationQualificationV1 {
+    pub participant_digest: String,
+    pub validation_range_digest: String,
+    pub metric_policy_digest: String,
+    pub private_metric_digest: String,
+    pub qualification_status: ValidationQualificationStatusV1,
+    pub parameter_updates_during_validation: usize,
+    pub receipt_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AgentCandidateFamilyV1 {
+    pub family_version: String,
+    pub agent_id: String,
+    pub session_digest: String,
+    pub view_digest: String,
+    pub projection_digest: String,
+    pub participants: Vec<FrozenCandidateParticipantV1>,
+    pub validation_qualification_receipts: Vec<String>,
+    pub winner_selected: bool,
+    pub historical_test_accessed: bool,
+    pub eligible_for_active_committee: bool,
+    pub eligible_for_promotion: bool,
+    pub eligible_for_reward: bool,
+    pub family_digest: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CandidateEvidenceUseV1 {
+    ViewBinding,
+    TrainerProjection,
+    FeatureDerivation,
+    LabelDerivation,
+    NormalizerFit,
+    ParameterTraining,
+    ValidationInference,
+    ValidationMetric,
+    FamilyInclusion,
+    ReferencedButUnconsumed,
+    ReservedRetrospectiveUnused,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CandidateEvidenceUsageEntryV1 {
+    pub artifact_digest: String,
+    pub range: Option<IndexRangeV0>,
+    pub use_kind: CandidateEvidenceUseV1,
+    pub labels_read: bool,
+    pub parameters_updated: bool,
+    pub entry_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AgentCandidateUsageLedgerV1 {
+    pub ledger_version: String,
+    pub agent_id: String,
+    pub session_digest: String,
+    pub family_digest: String,
+    pub entries: Vec<CandidateEvidenceUsageEntryV1>,
+    pub historical_test_row_reads: usize,
+    pub historical_test_label_reads: usize,
+    pub historical_test_inference_count: usize,
+    pub historical_test_metric_count: usize,
+    pub historical_test_checkpoint_selection_count: usize,
+    pub historical_test_identity_influence: bool,
+    pub ledger_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct EvaluationEvidenceExclusionV1 {
+    pub protected_registration_digests: Vec<String>,
+    pub excluded_timestamp_ms: Vec<u64>,
+    pub excluded_range_digests: Vec<String>,
+    pub exclusion_digest: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CandidateEvaluationRegistrationStatusV1 {
+    Registered,
+    CandidateUnavailable,
+    SessionInvalid,
+    ViewInvalid,
+    ProjectionInvalid,
+    FamilyInvalid,
+    QualificationBlocked,
+    HistoricalTestAccessDetected,
+    ExclusionInvalid,
+    InsufficientParticipants,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AgentCandidateEvaluationRegistrationV1 {
+    pub registration_version: String,
+    pub agent_id: String,
+    pub family_digest: String,
+    pub session_digest: String,
+    pub usage_ledger_digest: String,
+    pub participant_digests: Vec<String>,
+    pub qualification_receipt_digests: Vec<String>,
+    pub exclusion_digest: String,
+    pub minimum_accepted_timestamp_ms: u64,
+    pub required_dataset_kinds: Vec<DatasetKind>,
+    pub source_policy_digest: String,
+    pub finality_policy_digest: String,
+    pub label_policy_digest: String,
+    pub metric_policy_digest: String,
+    pub support_policy_digest: String,
+    pub minimum_future_rows: usize,
+    pub minimum_mature_events: usize,
+    pub maximum_requests: usize,
+    pub maximum_concurrency: usize,
+    pub maximum_retries: usize,
+    pub labels_hidden_until_opening: bool,
+    pub probabilities_hidden_until_opening: bool,
+    pub one_time_opening_required: bool,
+    pub winner_selection_forbidden_before_opening: bool,
+    pub active_promotion_forbidden: bool,
+    pub reward_application_forbidden: bool,
+    pub status: CandidateEvaluationRegistrationStatusV1,
+    pub registration_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AgentCandidateEvaluationRegistrationJournalEntryV1 {
+    pub registration_digest: String,
+    pub status: CandidateEvaluationRegistrationStatusV1,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AgentCandidateEvaluationRegistrationJournalV1 {
+    pub journal_version: String,
+    pub agent_id: String,
+    pub family_digest: String,
+    pub entries: Vec<AgentCandidateEvaluationRegistrationJournalEntryV1>,
+    pub journal_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AgentLearningSafetyCountersV1 {
+    pub active_committee_count: usize,
+    pub network_requests: usize,
+    pub credential_reads: usize,
+    pub prospective_row_reads: usize,
+    pub prospective_label_reads: usize,
+    pub prospective_mutations: usize,
+    pub historical_test_reads_v1: usize,
+    pub active_model_changes: usize,
+    pub chair_decisions: usize,
+    pub votes: usize,
+    pub rewards: usize,
+    pub penalties: usize,
+    pub voice_changes: usize,
+    pub promotions: usize,
+    pub executions: usize,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct AgentPrivateLearningInputV1 {
+    pub input: AgentPrivateLearningSessionInputV0,
+    pub persisted_view_verified: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AgentCandidateFamilyResultV1 {
+    pub agent_id: String,
+    pub session: Option<AgentPrivateLearningSessionV1>,
+    pub projection: Option<AgentTrainerInputProjectionV1>,
+    pub family: Option<AgentCandidateFamilyV1>,
+    pub qualification_receipts: Vec<ParticipantValidationQualificationV1>,
+    pub usage_ledger: Option<AgentCandidateUsageLedgerV1>,
+    pub status: AgentLearningSessionStatusV1,
+    pub sanitized_error_code: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AgentCandidateFamiliesReportV1 {
+    pub report_version: String,
+    pub mode: AgentPrivateLearningRunModeV0,
+    pub results: Vec<AgentCandidateFamilyResultV1>,
+    pub safety_counters: AgentLearningSafetyCountersV1,
+    pub active_state_unchanged: bool,
+    pub duplicate_artifact_count: usize,
+    pub storage_failure_count: usize,
+    pub report_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProtectedEvaluationReservationV1 {
+    pub protected_registration_digests: Vec<String>,
+    pub reserved_timestamp_ms: Vec<u64>,
+    pub cadence_ms: u64,
+    pub provider_finality_boundary_ms: u64,
+    pub reservation_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AgentCandidateEvaluationResultV1 {
+    pub agent_id: String,
+    pub family_digest: Option<String>,
+    pub session_digest: Option<String>,
+    pub exclusion: Option<EvaluationEvidenceExclusionV1>,
+    pub registration: Option<AgentCandidateEvaluationRegistrationV1>,
+    pub journal: Option<AgentCandidateEvaluationRegistrationJournalV1>,
+    pub status: CandidateEvaluationRegistrationStatusV1,
+    pub sanitized_error_code: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AgentCandidateEvaluationsReportV1 {
+    pub report_version: String,
+    pub mode: AgentPrivateLearningRunModeV0,
+    pub results: Vec<AgentCandidateEvaluationResultV1>,
+    pub safety_counters: AgentLearningSafetyCountersV1,
+    pub active_state_unchanged: bool,
+    pub duplicate_artifact_count: usize,
+    pub storage_failure_count: usize,
+    pub report_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AgentCandidateFamilyPublicSummaryV1 {
+    pub agent_id: String,
+    pub session_digest: Option<String>,
+    pub view_digest: Option<String>,
+    pub projection_digest: Option<String>,
+    pub family_digest: Option<String>,
+    pub participant_count: usize,
+    pub historical_test_access_count: usize,
+    pub status: AgentLearningSessionStatusV1,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AgentCandidateEvaluationPublicSummaryV1 {
+    pub agent_id: String,
+    pub session_digest: Option<String>,
+    pub family_digest: Option<String>,
+    pub participant_count: usize,
+    pub historical_test_access_count: usize,
+    pub minimum_accepted_timestamp_ms: Option<u64>,
+    pub exclusion_digest: Option<String>,
+    pub registration_status: CandidateEvaluationRegistrationStatusV1,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AgentPrivateDatasetManifestV0 {
     pub dataset_version: String,
@@ -473,6 +820,34 @@ enum EvidenceResolutionErrorV0 {
 struct MaterializedPrivateDatasetV0 {
     snapshot: DataSnapshot,
     manifest: AgentPrivateDatasetManifestV0,
+}
+
+#[derive(Clone, Debug)]
+struct ValidationParticipantBuildV1 {
+    model_kind: String,
+    role: CandidateParticipantRoleV1,
+    model_artifact_digest: String,
+    parameter_digest: String,
+    normalizer_digest: String,
+    training_policy_digest: String,
+    initialization_digest: String,
+    private_validation_metric_digest: String,
+    qualification_status: ValidationQualificationStatusV1,
+}
+
+#[derive(Clone, Debug)]
+struct ValidationOnlyExecutionV1 {
+    training_range: IndexRangeV0,
+    purge_range: IndexRangeV0,
+    validation_range: IndexRangeV0,
+    reserved_retrospective_unused_range: IndexRangeV0,
+    participants: Vec<ValidationParticipantBuildV1>,
+    validation_parameter_updates: usize,
+    historical_test_row_reads: usize,
+    historical_test_label_reads: usize,
+    historical_test_inference_count: usize,
+    historical_test_metric_count: usize,
+    historical_test_checkpoint_selection_count: usize,
 }
 
 pub fn agent_trainer_capability_registry_v0() -> AgentTrainerCapabilityRegistryV0 {
@@ -712,6 +1087,102 @@ pub fn build_agent_private_learning_input_from_persisted_view_v0(
     })
 }
 
+pub fn build_agent_private_learning_inputs_v1(
+    snapshots: &[DataSnapshot],
+    information_cutoff_ms: u64,
+    root: &Path,
+    mode: AgentPrivateLearningRunModeV0,
+) -> Vec<AgentPrivateLearningInputV1> {
+    if information_cutoff_ms == 0 {
+        return Vec::new();
+    }
+    let policies = default_agent_data_policies();
+    let universe = configured_universe_from_snapshots_v0(snapshots);
+    let states = canonical_current_agent_states();
+    let registry = agent_trainer_capability_registry_v0();
+    let Ok(intents) = derive_active_agent_learning_intents_v0(
+        &states,
+        &universe,
+        &policies,
+        information_cutoff_ms,
+    ) else {
+        return Vec::new();
+    };
+    let mut inputs = Vec::new();
+    for capability in registry
+        .capabilities
+        .iter()
+        .filter(|capability| capability.supports_training)
+    {
+        let Some(state) = states
+            .iter()
+            .find(|state| state.agent_id == capability.agent_id)
+            .cloned()
+        else {
+            continue;
+        };
+        let Some(policy) = policies
+            .iter()
+            .find(|policy| policy.agent_kind == state.kind)
+        else {
+            continue;
+        };
+        let Some(intent) = intents
+            .iter()
+            .find(|intent| intent.agent_id == capability.agent_id)
+        else {
+            continue;
+        };
+        let Ok(planned) = build_session_input_v0(intent, policy, snapshots) else {
+            continue;
+        };
+        if planned.view.decision_gate != EvidenceDecisionGate::Ready {
+            inputs.push(AgentPrivateLearningInputV1 {
+                input: planned,
+                persisted_view_verified: false,
+            });
+            continue;
+        }
+        let persisted_view = match mode {
+            AgentPrivateLearningRunModeV0::ExecuteLocal => {
+                let view_root = root.join("v1").join(&capability.agent_id).join("views");
+                write_and_verify_agent_learning_data_view_v0(&planned.view, &view_root)
+                    .and_then(|path| read_and_verify_agent_learning_data_view_v0(&path))
+            }
+            AgentPrivateLearningRunModeV0::DryRun => {
+                encode_agent_learning_data_view_protobuf_v0(&planned.view).and_then(|bytes| {
+                    decode_agent_learning_data_view_protobuf_v0(&bytes).map(|(_, view)| view)
+                })
+            }
+            AgentPrivateLearningRunModeV0::Status => Ok(planned.view.clone()),
+        };
+        let Ok(persisted_view) = persisted_view else {
+            inputs.push(AgentPrivateLearningInputV1 {
+                input: planned,
+                persisted_view_verified: false,
+            });
+            continue;
+        };
+        match build_agent_private_learning_input_from_persisted_view_v0(
+            intent,
+            policy,
+            &persisted_view,
+            snapshots,
+        ) {
+            Ok(input) => inputs.push(AgentPrivateLearningInputV1 {
+                input,
+                persisted_view_verified: true,
+            }),
+            Err(_) => inputs.push(AgentPrivateLearningInputV1 {
+                input: planned,
+                persisted_view_verified: false,
+            }),
+        }
+    }
+    inputs.sort_by(|left, right| left.input.intent.agent_id.cmp(&right.input.intent.agent_id));
+    inputs
+}
+
 fn configured_universe_from_snapshots_v0(snapshots: &[DataSnapshot]) -> ConfiguredUniverse {
     let mut symbols_by_market = BTreeMap::<AcquisitionMarketScope, Vec<String>>::new();
     for snapshot in snapshots {
@@ -882,6 +1353,1261 @@ pub fn run_agent_private_learning_sessions_v0(
     };
     report.report_digest = report_digest_v0(&report);
     report
+}
+
+pub fn run_agent_private_learning_candidates_v1(
+    inputs: &[AgentPrivateLearningInputV1],
+    mode: AgentPrivateLearningRunModeV0,
+) -> AgentCandidateFamiliesReportV1 {
+    let before = stable_hash_string(&format!("{:?}", canonical_current_agent_states()));
+    let registry = agent_trainer_capability_registry_v0();
+    let mut results = registry
+        .capabilities
+        .iter()
+        .map(|capability| {
+            let input = inputs
+                .iter()
+                .find(|input| input.input.intent.agent_id == capability.agent_id);
+            run_one_candidate_family_v1(input, capability, mode)
+        })
+        .collect::<Vec<_>>();
+    results.sort_by(|left, right| left.agent_id.cmp(&right.agent_id));
+    let after = stable_hash_string(&format!("{:?}", canonical_current_agent_states()));
+    let mut report = AgentCandidateFamiliesReportV1 {
+        report_version: "agent-candidate-families-report-v1".to_string(),
+        mode,
+        results,
+        safety_counters: zero_agent_learning_safety_counters_v1(),
+        active_state_unchanged: before == after,
+        duplicate_artifact_count: 0,
+        storage_failure_count: 0,
+        report_digest: String::new(),
+    };
+    report.report_digest = candidate_families_report_digest_v1(&report);
+    report
+}
+
+#[derive(Deserialize)]
+struct MomentumReservationCapsuleMetadataV1 {
+    capsule_digest: String,
+    prediction_horizon: usize,
+}
+
+#[derive(Deserialize)]
+struct MomentumReservationEventMetadataV1 {
+    required_label_maturity_timestamp_ms: u64,
+}
+
+#[derive(Deserialize)]
+struct MomentumReservationJournalMetadataV1 {
+    events: Vec<MomentumReservationEventMetadataV1>,
+}
+
+#[derive(Deserialize)]
+struct MomentumReservationMetadataV1 {
+    capsule: MomentumReservationCapsuleMetadataV1,
+    journal: MomentumReservationJournalMetadataV1,
+}
+
+#[derive(Deserialize)]
+struct RiskReservationCapsuleMetadataV1 {
+    capsule_digest: String,
+    prediction_horizon: usize,
+}
+
+#[derive(Deserialize)]
+struct RiskReservationJournalMetadataV1 {
+    sealed_event_timestamps: Vec<u64>,
+}
+
+#[derive(Deserialize)]
+struct RiskReservationMetadataV1 {
+    capsule: RiskReservationCapsuleMetadataV1,
+    journal: RiskReservationJournalMetadataV1,
+}
+
+pub fn load_protected_evaluation_reservation_v1(
+    local_config_root: &Path,
+) -> Result<ProtectedEvaluationReservationV1, String> {
+    let opening = super::read_prospective_one_time_opening_registration_v0(
+        &local_config_root.join("prospective_one_time_opening_registration_v0.json"),
+    )?;
+    if opening.registration_digest.is_empty()
+        || opening.maximum_future_requests != 1
+        || opening.maximum_concurrency != 1
+        || opening.maximum_retries != 0
+        || !opening.explicit_opening_authorization_required
+        || !opening.one_time_opening_required
+        || !opening.early_opening_forbidden
+        || !opening.duplicate_opening_forbidden
+        || !opening.interim_metrics_forbidden
+        || opening.network_execution_allowed_this_sprint
+        || opening.label_access_allowed_this_sprint
+        || opening.reward_application_allowed
+    {
+        return Err("protected prospective registration rejected".to_string());
+    }
+    let momentum: MomentumReservationMetadataV1 = serde_json::from_reader(
+        File::open(local_config_root.join("prospective_shadow_challenge_v0.json"))
+            .map_err(|_| "protected momentum metadata unavailable".to_string())?,
+    )
+    .map_err(|_| "protected momentum metadata rejected".to_string())?;
+    let risk: RiskReservationMetadataV1 = serde_json::from_reader(
+        File::open(local_config_root.join("cycle_risk_prospective_local_state_v0.json"))
+            .map_err(|_| "protected risk metadata unavailable".to_string())?,
+    )
+    .map_err(|_| "protected risk metadata rejected".to_string())?;
+    if momentum.capsule.capsule_digest.is_empty()
+        || momentum.capsule.prediction_horizon == 0
+        || risk.capsule.capsule_digest.is_empty()
+        || risk.capsule.prediction_horizon == 0
+    {
+        return Err("protected prospective capsule metadata rejected".to_string());
+    }
+    let mut reserved = BTreeSet::new();
+    for event in momentum.journal.events {
+        if event.required_label_maturity_timestamp_ms == 0 {
+            return Err("protected momentum maturity timestamp rejected".to_string());
+        }
+        reserved.insert(event.required_label_maturity_timestamp_ms);
+    }
+    for event_timestamp in risk.journal.sealed_event_timestamps {
+        if event_timestamp == 0 {
+            return Err("protected risk event timestamp rejected".to_string());
+        }
+        for offset in 1..=risk.capsule.prediction_horizon {
+            let offset =
+                u64::try_from(offset).map_err(|_| "protected risk horizon rejected".to_string())?;
+            reserved.insert(
+                event_timestamp
+                    .checked_add(offset.saturating_mul(DAILY_CADENCE_MS_V1))
+                    .ok_or_else(|| "protected risk timestamp overflow".to_string())?,
+            );
+        }
+    }
+    if reserved.is_empty() {
+        return Err("protected prospective reservation is empty".to_string());
+    }
+    let mut protected_registration_digests = vec![
+        opening.registration_digest,
+        momentum.capsule.capsule_digest,
+        risk.capsule.capsule_digest,
+    ];
+    protected_registration_digests.sort();
+    protected_registration_digests.dedup();
+    let reserved_timestamp_ms = reserved.into_iter().collect::<Vec<_>>();
+    let provider_finality_boundary_ms = reserved_timestamp_ms
+        .last()
+        .copied()
+        .and_then(|timestamp| timestamp.checked_add(DAILY_CADENCE_MS_V1))
+        .ok_or_else(|| "protected finality boundary unavailable".to_string())?;
+    let mut reservation = ProtectedEvaluationReservationV1 {
+        protected_registration_digests,
+        reserved_timestamp_ms,
+        cadence_ms: DAILY_CADENCE_MS_V1,
+        provider_finality_boundary_ms,
+        reservation_digest: String::new(),
+    };
+    reservation.reservation_digest = protected_reservation_digest_v1(&reservation);
+    validate_protected_reservation_v1(&reservation)?;
+    Ok(reservation)
+}
+
+pub fn run_agent_candidate_evaluations_v1(
+    families: &AgentCandidateFamiliesReportV1,
+    inputs: &[AgentPrivateLearningInputV1],
+    reservation: &ProtectedEvaluationReservationV1,
+    mode: AgentPrivateLearningRunModeV0,
+) -> AgentCandidateEvaluationsReportV1 {
+    let before = stable_hash_string(&format!("{:?}", canonical_current_agent_states()));
+    let reservation_valid = validate_protected_reservation_v1(reservation).is_ok();
+    let registry = agent_trainer_capability_registry_v0();
+    let mut results = registry
+        .capabilities
+        .iter()
+        .map(|capability| {
+            let family = families
+                .results
+                .iter()
+                .find(|result| result.agent_id == capability.agent_id);
+            let input = inputs
+                .iter()
+                .find(|input| input.input.intent.agent_id == capability.agent_id);
+            register_one_candidate_family_v1(
+                family,
+                input,
+                capability,
+                reservation_valid.then_some(reservation),
+            )
+        })
+        .collect::<Vec<_>>();
+    results.sort_by(|left, right| left.agent_id.cmp(&right.agent_id));
+    let after = stable_hash_string(&format!("{:?}", canonical_current_agent_states()));
+    let mut report = AgentCandidateEvaluationsReportV1 {
+        report_version: "agent-candidate-evaluations-report-v1".to_string(),
+        mode,
+        results,
+        safety_counters: zero_agent_learning_safety_counters_v1(),
+        active_state_unchanged: before == after,
+        duplicate_artifact_count: 0,
+        storage_failure_count: 0,
+        report_digest: String::new(),
+    };
+    report.report_digest = candidate_evaluations_report_digest_v1(&report);
+    report
+}
+
+fn register_one_candidate_family_v1(
+    family_result: Option<&AgentCandidateFamilyResultV1>,
+    input: Option<&AgentPrivateLearningInputV1>,
+    capability: &AgentTrainerCapabilityV0,
+    reservation: Option<&ProtectedEvaluationReservationV1>,
+) -> AgentCandidateEvaluationResultV1 {
+    let unavailable = |status, code: &str| AgentCandidateEvaluationResultV1 {
+        agent_id: capability.agent_id.clone(),
+        family_digest: None,
+        session_digest: None,
+        exclusion: None,
+        registration: None,
+        journal: None,
+        status,
+        sanitized_error_code: Some(code.to_string()),
+    };
+    if !capability.supports_training
+        || capability.trainer_kind == AgentTrainerKindV0::ValueQualityUnavailable
+    {
+        return unavailable(
+            CandidateEvaluationRegistrationStatusV1::CandidateUnavailable,
+            "candidate_family_unavailable",
+        );
+    }
+    let (Some(family_result), Some(input), Some(reservation)) = (family_result, input, reservation)
+    else {
+        return unavailable(
+            CandidateEvaluationRegistrationStatusV1::CandidateUnavailable,
+            "registration_inputs_unavailable",
+        );
+    };
+    let (Some(session), Some(projection), Some(family), Some(ledger)) = (
+        family_result.session.as_ref(),
+        family_result.projection.as_ref(),
+        family_result.family.as_ref(),
+        family_result.usage_ledger.as_ref(),
+    ) else {
+        return unavailable(
+            CandidateEvaluationRegistrationStatusV1::CandidateUnavailable,
+            "candidate_family_unavailable",
+        );
+    };
+    let blocked = |status, code: &str| AgentCandidateEvaluationResultV1 {
+        agent_id: capability.agent_id.clone(),
+        family_digest: Some(family.family_digest.clone()),
+        session_digest: Some(session.session_digest.clone()),
+        exclusion: None,
+        registration: None,
+        journal: None,
+        status,
+        sanitized_error_code: Some(code.to_string()),
+    };
+    if validate_session_v1(session).is_err()
+        || session.status != AgentLearningSessionStatusV1::CandidateFamilyFrozen
+        || session.agent_id != capability.agent_id
+    {
+        return blocked(
+            CandidateEvaluationRegistrationStatusV1::SessionInvalid,
+            "v1_session_invalid",
+        );
+    }
+    if !input.persisted_view_verified
+        || input.input.view.decision_gate != EvidenceDecisionGate::Ready
+        || validate_agent_learning_data_view_v0(&input.input.view).is_err()
+        || input.input.view.view_digest != session.view_digest
+        || input.input.intent.intent_digest != session.intent_digest
+    {
+        return blocked(
+            CandidateEvaluationRegistrationStatusV1::ViewInvalid,
+            "complete_persisted_view_invalid",
+        );
+    }
+    if validate_projection_v1(projection).is_err()
+        || projection.projection_digest != session.projection_digest
+        || projection.source_view_digest != session.view_digest
+    {
+        return blocked(
+            CandidateEvaluationRegistrationStatusV1::ProjectionInvalid,
+            "v1_projection_invalid",
+        );
+    }
+    if validate_candidate_family_v1(family).is_err()
+        || family.session_digest != session.session_digest
+        || family.view_digest != session.view_digest
+        || family.projection_digest != projection.projection_digest
+        || family_result.status != AgentLearningSessionStatusV1::CandidateFamilyFrozen
+    {
+        return blocked(
+            CandidateEvaluationRegistrationStatusV1::FamilyInvalid,
+            "v1_family_invalid",
+        );
+    }
+    if validate_usage_ledger_v1(ledger).is_err()
+        || ledger.session_digest != session.session_digest
+        || ledger.family_digest != family.family_digest
+    {
+        return blocked(
+            CandidateEvaluationRegistrationStatusV1::HistoricalTestAccessDetected,
+            "v1_usage_ledger_invalid",
+        );
+    }
+    if family.participants.len() < 2 {
+        return blocked(
+            CandidateEvaluationRegistrationStatusV1::InsufficientParticipants,
+            "insufficient_frozen_participants",
+        );
+    }
+    let participant_digests = family
+        .participants
+        .iter()
+        .map(|participant| participant.participant_digest.clone())
+        .collect::<BTreeSet<_>>();
+    let mut qualified_receipts = family_result
+        .qualification_receipts
+        .iter()
+        .filter(|receipt| participant_digests.contains(&receipt.participant_digest))
+        .cloned()
+        .collect::<Vec<_>>();
+    qualified_receipts.sort_by(|left, right| left.receipt_digest.cmp(&right.receipt_digest));
+    if qualified_receipts.len() != family.participants.len()
+        || qualified_receipts.iter().any(|receipt| {
+            receipt.qualification_status != ValidationQualificationStatusV1::Qualified
+                || validate_qualification_receipt_v1(receipt).is_err()
+        })
+        || qualified_receipts
+            .iter()
+            .map(|receipt| receipt.receipt_digest.clone())
+            .collect::<Vec<_>>()
+            != family.validation_qualification_receipts
+    {
+        return blocked(
+            CandidateEvaluationRegistrationStatusV1::QualificationBlocked,
+            "validation_qualification_invalid",
+        );
+    }
+    let mut exclusion = EvaluationEvidenceExclusionV1 {
+        protected_registration_digests: reservation.protected_registration_digests.clone(),
+        excluded_timestamp_ms: reservation.reserved_timestamp_ms.clone(),
+        excluded_range_digests: reservation
+            .reserved_timestamp_ms
+            .iter()
+            .map(|timestamp| {
+                stable_hash_string(&format!(
+                    "protected-prospective-timestamp-range-v1:{timestamp}:{}",
+                    reservation.cadence_ms
+                ))
+            })
+            .collect(),
+        exclusion_digest: String::new(),
+    };
+    exclusion.excluded_range_digests.sort();
+    exclusion.exclusion_digest = evaluation_exclusion_digest_v1(&exclusion);
+    if validate_evaluation_exclusion_v1(&exclusion).is_err() {
+        return blocked(
+            CandidateEvaluationRegistrationStatusV1::ExclusionInvalid,
+            "evaluation_exclusion_invalid",
+        );
+    }
+    let candidate_source_end = input
+        .input
+        .artifacts
+        .iter()
+        .filter(|artifact| {
+            session
+                .source_artifact_digests
+                .contains(&artifact.artifact_ref.artifact_digest)
+        })
+        .filter_map(|artifact| artifact.snapshot.actual_end_timestamp_ms)
+        .max();
+    let Some(candidate_source_next) =
+        candidate_source_end.and_then(|timestamp| timestamp.checked_add(reservation.cadence_ms))
+    else {
+        return blocked(
+            CandidateEvaluationRegistrationStatusV1::ViewInvalid,
+            "candidate_source_boundary_unavailable",
+        );
+    };
+    let Some(reserved_next) = reservation
+        .reserved_timestamp_ms
+        .last()
+        .and_then(|timestamp| timestamp.checked_add(reservation.cadence_ms))
+    else {
+        return blocked(
+            CandidateEvaluationRegistrationStatusV1::ExclusionInvalid,
+            "protected_boundary_unavailable",
+        );
+    };
+    let minimum_accepted_timestamp_ms = candidate_source_next
+        .max(reserved_next)
+        .max(reservation.provider_finality_boundary_ms);
+    let mut required_dataset_kinds = input.input.intent.required_datasets.clone();
+    required_dataset_kinds.sort();
+    required_dataset_kinds.dedup();
+    let mut participant_digests = participant_digests.into_iter().collect::<Vec<_>>();
+    participant_digests.sort();
+    let qualification_receipt_digests = qualified_receipts
+        .iter()
+        .map(|receipt| receipt.receipt_digest.clone())
+        .collect::<Vec<_>>();
+    let mut registration = AgentCandidateEvaluationRegistrationV1 {
+        registration_version: EVALUATION_REGISTRATION_VERSION_V1.to_string(),
+        agent_id: session.agent_id.clone(),
+        family_digest: family.family_digest.clone(),
+        session_digest: session.session_digest.clone(),
+        usage_ledger_digest: ledger.ledger_digest.clone(),
+        participant_digests,
+        qualification_receipt_digests,
+        exclusion_digest: exclusion.exclusion_digest.clone(),
+        minimum_accepted_timestamp_ms,
+        required_dataset_kinds,
+        source_policy_digest: session.source_policy_digest.clone(),
+        finality_policy_digest: stable_hash_string(&format!(
+            "finalized-daily-only-v1:{}:{}",
+            reservation.cadence_ms, reservation.provider_finality_boundary_ms
+        )),
+        label_policy_digest: session.label_policy_digest.clone(),
+        metric_policy_digest: stable_hash_string("future-common-timestamp-brier-v1"),
+        support_policy_digest: stable_hash_string("future-common-timestamp-support-v1"),
+        minimum_future_rows: 1,
+        minimum_mature_events: 1,
+        maximum_requests: 1,
+        maximum_concurrency: 1,
+        maximum_retries: 0,
+        labels_hidden_until_opening: true,
+        probabilities_hidden_until_opening: true,
+        one_time_opening_required: true,
+        winner_selection_forbidden_before_opening: true,
+        active_promotion_forbidden: true,
+        reward_application_forbidden: true,
+        status: CandidateEvaluationRegistrationStatusV1::Registered,
+        registration_digest: String::new(),
+    };
+    registration.registration_digest = evaluation_registration_digest_v1(&registration);
+    if validate_evaluation_registration_v1(&registration).is_err() {
+        return blocked(
+            CandidateEvaluationRegistrationStatusV1::FamilyInvalid,
+            "v1_registration_invalid",
+        );
+    }
+    let mut journal = AgentCandidateEvaluationRegistrationJournalV1 {
+        journal_version: EVALUATION_JOURNAL_VERSION_V1.to_string(),
+        agent_id: session.agent_id.clone(),
+        family_digest: family.family_digest.clone(),
+        entries: vec![AgentCandidateEvaluationRegistrationJournalEntryV1 {
+            registration_digest: registration.registration_digest.clone(),
+            status: CandidateEvaluationRegistrationStatusV1::Registered,
+        }],
+        journal_digest: String::new(),
+    };
+    journal.journal_digest = evaluation_journal_digest_v1(&journal);
+    AgentCandidateEvaluationResultV1 {
+        agent_id: capability.agent_id.clone(),
+        family_digest: Some(family.family_digest.clone()),
+        session_digest: Some(session.session_digest.clone()),
+        exclusion: Some(exclusion),
+        registration: Some(registration),
+        journal: Some(journal),
+        status: CandidateEvaluationRegistrationStatusV1::Registered,
+        sanitized_error_code: None,
+    }
+}
+
+pub fn evaluation_evidence_allowed_v1(
+    registration: &AgentCandidateEvaluationRegistrationV1,
+    exclusion: &EvaluationEvidenceExclusionV1,
+    timestamp_ms: u64,
+) -> bool {
+    validate_evaluation_registration_v1(registration).is_ok()
+        && validate_evaluation_exclusion_v1(exclusion).is_ok()
+        && registration.exclusion_digest == exclusion.exclusion_digest
+        && timestamp_ms >= registration.minimum_accepted_timestamp_ms
+        && !exclusion.excluded_timestamp_ms.contains(&timestamp_ms)
+}
+
+pub fn public_candidate_family_summaries_v1(
+    report: &AgentCandidateFamiliesReportV1,
+) -> Vec<AgentCandidateFamilyPublicSummaryV1> {
+    report
+        .results
+        .iter()
+        .map(|result| AgentCandidateFamilyPublicSummaryV1 {
+            agent_id: result.agent_id.clone(),
+            session_digest: result
+                .session
+                .as_ref()
+                .map(|session| session.session_digest.clone()),
+            view_digest: result
+                .session
+                .as_ref()
+                .map(|session| session.view_digest.clone()),
+            projection_digest: result
+                .projection
+                .as_ref()
+                .map(|projection| projection.projection_digest.clone()),
+            family_digest: result
+                .family
+                .as_ref()
+                .map(|family| family.family_digest.clone()),
+            participant_count: result
+                .family
+                .as_ref()
+                .map_or(0, |family| family.participants.len()),
+            historical_test_access_count: result.usage_ledger.as_ref().map_or(0, |ledger| {
+                ledger.historical_test_row_reads
+                    + ledger.historical_test_label_reads
+                    + ledger.historical_test_inference_count
+                    + ledger.historical_test_metric_count
+                    + ledger.historical_test_checkpoint_selection_count
+                    + usize::from(ledger.historical_test_identity_influence)
+            }),
+            status: result.status,
+        })
+        .collect()
+}
+
+pub fn public_candidate_evaluation_summaries_v1(
+    report: &AgentCandidateEvaluationsReportV1,
+) -> Vec<AgentCandidateEvaluationPublicSummaryV1> {
+    report
+        .results
+        .iter()
+        .map(|result| AgentCandidateEvaluationPublicSummaryV1 {
+            agent_id: result.agent_id.clone(),
+            session_digest: result.session_digest.clone(),
+            family_digest: result.family_digest.clone(),
+            participant_count: result
+                .registration
+                .as_ref()
+                .map_or(0, |registration| registration.participant_digests.len()),
+            historical_test_access_count: 0,
+            minimum_accepted_timestamp_ms: result
+                .registration
+                .as_ref()
+                .map(|registration| registration.minimum_accepted_timestamp_ms),
+            exclusion_digest: result
+                .exclusion
+                .as_ref()
+                .map(|exclusion| exclusion.exclusion_digest.clone()),
+            registration_status: result.status,
+        })
+        .collect()
+}
+
+fn run_one_candidate_family_v1(
+    input: Option<&AgentPrivateLearningInputV1>,
+    capability: &AgentTrainerCapabilityV0,
+    mode: AgentPrivateLearningRunModeV0,
+) -> AgentCandidateFamilyResultV1 {
+    if !capability.supports_training
+        || capability.trainer_kind == AgentTrainerKindV0::ValueQualityUnavailable
+    {
+        return unavailable_candidate_family_result_v1(
+            &capability.agent_id,
+            AgentLearningSessionStatusV1::TrainerUnavailable,
+            "trainer_unavailable",
+        );
+    }
+    let Some(input) = input else {
+        return unavailable_candidate_family_result_v1(
+            &capability.agent_id,
+            AgentLearningSessionStatusV1::InsufficientEvidence,
+            "complete_persisted_view_unavailable",
+        );
+    };
+    if !input.persisted_view_verified {
+        return unavailable_candidate_family_result_v1(
+            &capability.agent_id,
+            AgentLearningSessionStatusV1::InsufficientEvidence,
+            "persisted_view_verification_failed",
+        );
+    }
+    if !matches!(
+        input.input.resolution_status,
+        AgentViewResolutionStatusV0::Complete
+            | AgentViewResolutionStatusV0::OptionalEvidenceUnavailable
+    ) || input.input.view.decision_gate != EvidenceDecisionGate::Ready
+    {
+        return unavailable_candidate_family_result_v1(
+            &capability.agent_id,
+            AgentLearningSessionStatusV1::InsufficientEvidence,
+            "complete_view_required",
+        );
+    }
+    let projection = match build_trainer_projection_v1(&input.input, capability.trainer_kind) {
+        Ok(projection) => projection,
+        Err(status) => {
+            return unavailable_candidate_family_result_v1(
+                &capability.agent_id,
+                status,
+                "trainer_projection_rejected",
+            );
+        }
+    };
+    let mut session = registered_session_v1(&input.input, capability, &projection);
+    if mode == AgentPrivateLearningRunModeV0::Status {
+        session.status = AgentLearningSessionStatusV1::ProjectionReady;
+        session.session_digest = session_digest_v1(&session);
+        return AgentCandidateFamilyResultV1 {
+            agent_id: capability.agent_id.clone(),
+            session: Some(session),
+            projection: Some(projection),
+            family: None,
+            qualification_receipts: vec![],
+            usage_ledger: None,
+            status: AgentLearningSessionStatusV1::ProjectionReady,
+            sanitized_error_code: None,
+        };
+    }
+    let snapshot = projection
+        .primary_series_digest
+        .as_ref()
+        .and_then(|digest| {
+            input
+                .input
+                .artifacts
+                .iter()
+                .find(|artifact| artifact.artifact_ref.artifact_digest == *digest)
+        })
+        .map(|artifact| &artifact.snapshot);
+    let Some(snapshot) = snapshot else {
+        return unavailable_candidate_family_result_v1(
+            &capability.agent_id,
+            AgentLearningSessionStatusV1::InsufficientEvidence,
+            "projected_source_unavailable",
+        );
+    };
+    let execution = match capability.trainer_kind {
+        AgentTrainerKindV0::MomentumFrozenMambaHead => {
+            run_momentum_validation_only_v1(&input.input, snapshot)
+        }
+        AgentTrainerKindV0::CycleRiskIndependentShadow => {
+            run_cycle_risk_validation_only_v1(snapshot, &CycleRiskShadowConfigV0::default())
+                .map(validation_execution_from_cycle_v1)
+                .map_err(|_| AgentLearningSessionStatusV1::ValidationBlocked)
+        }
+        AgentTrainerKindV0::ValueQualityUnavailable => {
+            Err(AgentLearningSessionStatusV1::TrainerUnavailable)
+        }
+    };
+    let execution = match execution {
+        Ok(execution) => execution,
+        Err(status) => {
+            session.status = status;
+            session.session_digest = session_digest_v1(&session);
+            return AgentCandidateFamilyResultV1 {
+                agent_id: capability.agent_id.clone(),
+                session: Some(session),
+                projection: Some(projection),
+                family: None,
+                qualification_receipts: vec![],
+                usage_ledger: None,
+                status,
+                sanitized_error_code: Some("validation_only_training_blocked".to_string()),
+            };
+        }
+    };
+    if execution.validation_parameter_updates != 0
+        || execution.historical_test_row_reads != 0
+        || execution.historical_test_label_reads != 0
+        || execution.historical_test_inference_count != 0
+        || execution.historical_test_metric_count != 0
+        || execution.historical_test_checkpoint_selection_count != 0
+    {
+        session.status = AgentLearningSessionStatusV1::RejectedSafetyInvariant;
+        session.session_digest = session_digest_v1(&session);
+        return AgentCandidateFamilyResultV1 {
+            agent_id: capability.agent_id.clone(),
+            session: Some(session),
+            projection: Some(projection),
+            family: None,
+            qualification_receipts: vec![],
+            usage_ledger: None,
+            status: AgentLearningSessionStatusV1::RejectedSafetyInvariant,
+            sanitized_error_code: Some("validation_only_safety_invariant".to_string()),
+        };
+    }
+
+    session.status = AgentLearningSessionStatusV1::CandidateFamilyFrozen;
+    session.session_digest = session_digest_v1(&session);
+    let validation_range_digest = stable_hash_string(&format!(
+        "validation-only-range-v1:{}:{:?}",
+        session.session_digest, execution.validation_range
+    ));
+    let metric_policy_digest = stable_hash_string(
+        "validation-only-qualification-metric-v1:brier:finite:role-aware-collapse",
+    );
+    let mut participants = Vec::new();
+    let mut receipts = Vec::new();
+    for built in execution.participants {
+        let participant_id = format!(
+            "{}-{}",
+            session.agent_id,
+            stable_hash_string(&format!(
+                "participant-v1:{}:{}:{}",
+                session.session_digest, built.model_kind, built.parameter_digest
+            ))
+        );
+        let mut participant = FrozenCandidateParticipantV1 {
+            participant_id,
+            role: built.role,
+            model_kind: built.model_kind,
+            model_artifact_digest: built.model_artifact_digest,
+            parameter_digest: built.parameter_digest,
+            normalizer_digest: built.normalizer_digest,
+            feature_policy_digest: session.feature_policy_digest.clone(),
+            label_policy_digest: session.label_policy_digest.clone(),
+            training_policy_digest: built.training_policy_digest,
+            initialization_digest: built.initialization_digest,
+            deployment_status: ModelAgentDeploymentStatus::ShadowOnly,
+            participant_digest: String::new(),
+        };
+        participant.participant_digest = participant_digest_v1(&participant);
+        let mut receipt = ParticipantValidationQualificationV1 {
+            participant_digest: participant.participant_digest.clone(),
+            validation_range_digest: validation_range_digest.clone(),
+            metric_policy_digest: metric_policy_digest.clone(),
+            private_metric_digest: built.private_validation_metric_digest,
+            qualification_status: built.qualification_status,
+            parameter_updates_during_validation: 0,
+            receipt_digest: String::new(),
+        };
+        receipt.receipt_digest = qualification_receipt_digest_v1(&receipt);
+        participants.push(participant);
+        receipts.push(receipt);
+    }
+    participants.sort_by(|left, right| left.participant_id.cmp(&right.participant_id));
+    receipts.sort_by(|left, right| left.participant_digest.cmp(&right.participant_digest));
+    let included_participant_digests = participants
+        .iter()
+        .map(|participant| participant.participant_digest.as_str())
+        .collect::<BTreeSet<_>>();
+    let mut qualification_receipt_digests = receipts
+        .iter()
+        .filter(|receipt| {
+            included_participant_digests.contains(receipt.participant_digest.as_str())
+        })
+        .map(|receipt| receipt.receipt_digest.clone())
+        .collect::<Vec<_>>();
+    qualification_receipt_digests.sort();
+    qualification_receipt_digests.dedup();
+    let mut family = AgentCandidateFamilyV1 {
+        family_version: FAMILY_VERSION_V1.to_string(),
+        agent_id: session.agent_id.clone(),
+        session_digest: session.session_digest.clone(),
+        view_digest: session.view_digest.clone(),
+        projection_digest: session.projection_digest.clone(),
+        participants,
+        validation_qualification_receipts: qualification_receipt_digests,
+        winner_selected: false,
+        historical_test_accessed: false,
+        eligible_for_active_committee: false,
+        eligible_for_promotion: false,
+        eligible_for_reward: false,
+        family_digest: String::new(),
+    };
+    family.family_digest = candidate_family_digest_v1(&family);
+    let usage_ledger = candidate_usage_ledger_v1(
+        &session,
+        &projection,
+        &family,
+        &execution.training_range,
+        &execution.purge_range,
+        &execution.validation_range,
+        &execution.reserved_retrospective_unused_range,
+    );
+    let status = if family.participants.len() >= 2 {
+        AgentLearningSessionStatusV1::CandidateFamilyFrozen
+    } else {
+        AgentLearningSessionStatusV1::ValidationBlocked
+    };
+    AgentCandidateFamilyResultV1 {
+        agent_id: capability.agent_id.clone(),
+        session: Some(session),
+        projection: Some(projection),
+        family: Some(family),
+        qualification_receipts: receipts,
+        usage_ledger: Some(usage_ledger),
+        status,
+        sanitized_error_code: (status != AgentLearningSessionStatusV1::CandidateFamilyFrozen)
+            .then(|| "validation_qualification_blocked".to_string()),
+    }
+}
+
+fn unavailable_candidate_family_result_v1(
+    agent_id: &str,
+    status: AgentLearningSessionStatusV1,
+    error_code: &str,
+) -> AgentCandidateFamilyResultV1 {
+    AgentCandidateFamilyResultV1 {
+        agent_id: agent_id.to_string(),
+        session: None,
+        projection: None,
+        family: None,
+        qualification_receipts: vec![],
+        usage_ledger: None,
+        status,
+        sanitized_error_code: Some(error_code.to_string()),
+    }
+}
+
+fn build_trainer_projection_v1(
+    input: &AgentPrivateLearningSessionInputV0,
+    trainer_kind: AgentTrainerKindV0,
+) -> Result<AgentTrainerInputProjectionV1, AgentLearningSessionStatusV1> {
+    let preliminary = build_trainer_projection_v0(input, trainer_kind)
+        .map_err(|_| AgentLearningSessionStatusV1::InsufficientEvidence)?;
+    let mut projection = AgentTrainerInputProjectionV1 {
+        projection_version: PROJECTION_VERSION_V1.to_string(),
+        agent_id: preliminary.agent_id,
+        trainer_kind: preliminary.trainer_kind,
+        source_view_digest: preliminary.source_view_digest,
+        consumed_artifact_digests: preliminary.consumed_artifact_digests,
+        referenced_unconsumed_artifact_digests: preliminary
+            .referenced_but_unconsumed_artifact_digests,
+        primary_series_digest: preliminary.primary_series_digest,
+        projection_policy_digest: stable_hash_string(&format!(
+            "validation-only-projection-v1:{}",
+            preliminary.projection_policy_digest
+        )),
+        projection_digest: String::new(),
+    };
+    projection.projection_digest = projection_digest_v1(&projection);
+    validate_projection_v1(&projection)
+        .map_err(|_| AgentLearningSessionStatusV1::RejectedSafetyInvariant)?;
+    Ok(projection)
+}
+
+fn registered_session_v1(
+    input: &AgentPrivateLearningSessionInputV0,
+    capability: &AgentTrainerCapabilityV0,
+    projection: &AgentTrainerInputProjectionV1,
+) -> AgentPrivateLearningSessionV1 {
+    let session_id = format!(
+        "v1-family-session-{}",
+        stable_hash_string(&format!(
+            "{}:{}:{}:{}",
+            input.intent.intent_digest,
+            input.view.view_digest,
+            projection.projection_digest,
+            capability.capability_digest
+        ))
+    );
+    let mut session = AgentPrivateLearningSessionV1 {
+        session_version: SESSION_VERSION_V1_FAMILY.to_string(),
+        session_id,
+        agent_id: input.intent.agent_id.clone(),
+        agent_kind: input.intent.agent_kind,
+        intent_digest: input.intent.intent_digest.clone(),
+        view_digest: input.view.view_digest.clone(),
+        projection_digest: projection.projection_digest.clone(),
+        capability_digest: capability.capability_digest.clone(),
+        source_policy_digest: input.intent.source_policy_digest.clone(),
+        feature_policy_digest: input.view.feature_policy_digest.clone(),
+        label_policy_digest: input.view.label_policy_digest.clone(),
+        curriculum_policy_digest: input.view.curriculum_policy_digest.clone(),
+        information_cutoff_ms: input.view.information_cutoff_ms,
+        source_artifact_digests: input.view.source_artifact_digests.clone(),
+        consumed_artifact_digests: projection.consumed_artifact_digests.clone(),
+        referenced_unconsumed_artifact_digests: projection
+            .referenced_unconsumed_artifact_digests
+            .clone(),
+        private_namespace_digest: input.view.private_namespace_digest.clone(),
+        training_ledger_digest: input.view.training_ledger_digest.clone(),
+        fresh_initialization: true,
+        historical_test_access_forbidden: true,
+        status: AgentLearningSessionStatusV1::PersistedViewVerified,
+        session_digest: String::new(),
+    };
+    session.session_digest = session_digest_v1(&session);
+    session
+}
+
+fn run_momentum_validation_only_v1(
+    input: &AgentPrivateLearningSessionInputV0,
+    snapshot: &DataSnapshot,
+) -> Result<ValidationOnlyExecutionV1, AgentLearningSessionStatusV1> {
+    let mut config = MomentumLearningCampaignConfigV0::default();
+    config.agent_id = input.intent.agent_id.clone();
+    config.campaign_id = format!(
+        "validation-only-v1-{}",
+        stable_hash_string(&format!(
+            "{}:{}",
+            input.intent.intent_digest, input.view.view_digest
+        ))
+    );
+    config.initialization_policy = super::HeadInitializationPolicyV0::ColdStartEachWindow;
+    config
+        .validate()
+        .map_err(|_| AgentLearningSessionStatusV1::RejectedSafetyInvariant)?;
+    let gap = config
+        .required_purge_gap()
+        .map_err(|_| AgentLearningSessionStatusV1::RejectedSafetyInvariant)?;
+    let validation_start = config
+        .train_rows
+        .checked_add(gap)
+        .ok_or(AgentLearningSessionStatusV1::RejectedSafetyInvariant)?;
+    let validation_end = validation_start
+        .checked_add(config.validation_rows)
+        .ok_or(AgentLearningSessionStatusV1::RejectedSafetyInvariant)?;
+    let rows = &snapshot.normalized_dataset.rows;
+    if validation_end >= rows.len()
+        || rows[..validation_end]
+            .windows(2)
+            .any(|pair| pair[0].timestamp_ms >= pair[1].timestamp_ms)
+        || historical_replay_dataset_digest_v0(&snapshot.normalized_dataset)
+            != snapshot.content_digest
+    {
+        return Err(AgentLearningSessionStatusV1::InsufficientEvidence);
+    }
+    let candles = rows[..validation_end]
+        .iter()
+        .map(|row| {
+            Ok(MomentumCandleV0 {
+                timestamp: i64::try_from(row.timestamp_ms)
+                    .map_err(|_| AgentLearningSessionStatusV1::RejectedSafetyInvariant)?,
+                open: row.open as f32,
+                high: row.high as f32,
+                low: row.low as f32,
+                close: row.close as f32,
+                volume: row.volume as f32,
+            })
+        })
+        .collect::<Result<Vec<_>, AgentLearningSessionStatusV1>>()?;
+    let raw_features = build_momentum_features_v0(&candles, &config.feature_config)
+        .map_err(|_| AgentLearningSessionStatusV1::ValidationBlocked)?;
+    let training_features = raw_features
+        .iter()
+        .filter(|row| row.source_index < config.train_rows)
+        .cloned()
+        .collect::<Vec<_>>();
+    if training_features.is_empty() {
+        return Err(AgentLearningSessionStatusV1::InsufficientEvidence);
+    }
+    let normalizer = FeatureNormalizerV0::fit(&training_features)
+        .map_err(|_| AgentLearningSessionStatusV1::ValidationBlocked)?;
+    let normalized = normalizer
+        .transform(&raw_features)
+        .map_err(|_| AgentLearningSessionStatusV1::ValidationBlocked)?;
+    let all_examples = build_momentum_sequence_examples_v0(
+        &candles,
+        &normalized,
+        &config.sequence_config,
+        std::slice::from_ref(&snapshot.snapshot_id),
+    )
+    .map_err(|_| AgentLearningSessionStatusV1::ValidationBlocked)?;
+    let training_examples = examples_for_partition_v1(
+        &all_examples,
+        &IndexRangeV0 {
+            start: 0,
+            end: config.train_rows,
+        },
+    );
+    let validation_examples = examples_for_partition_v1(
+        &all_examples,
+        &IndexRangeV0 {
+            start: validation_start,
+            end: validation_end,
+        },
+    );
+    if training_examples.is_empty()
+        || validation_examples.len() < config.validation_signal_gate.minimum_samples
+        || training_examples
+            .last()
+            .is_some_and(|row| row.label_index >= validation_start)
+        || validation_examples
+            .iter()
+            .any(|row| row.label_index >= validation_end)
+    {
+        return Err(AgentLearningSessionStatusV1::ValidationBlocked);
+    }
+
+    let encoder = frozen_mamba3_encoder_from_seed_v0(
+        &config.feature_config,
+        config.campaign_seed,
+        config.backend_preference,
+        config.fallback_policy,
+    )
+    .map_err(|_| AgentLearningSessionStatusV1::TechnicalFailure)?;
+    let encoder_digest = encoder.parameter_digest();
+    let representation_dimension = encoder
+        .encode_sequence(&training_examples[0].input)
+        .map_err(|_| AgentLearningSessionStatusV1::TechnicalFailure)?
+        .representation
+        .len();
+    let initial_head = LogisticPredictionHeadV0::seeded(
+        representation_dimension,
+        config.campaign_seed ^ 0x74A1_0001,
+    )
+    .map_err(|_| AgentLearningSessionStatusV1::TechnicalFailure)?;
+    let initial_head_digest = initial_head.parameter_digest();
+    let trained = train_frozen_mamba_head_v0(
+        &encoder,
+        initial_head,
+        &training_examples,
+        &validation_examples,
+        &config.training_config,
+    )
+    .map_err(|_| AgentLearningSessionStatusV1::ValidationBlocked)?;
+    if trained.encoder_digest_before != encoder_digest
+        || trained.encoder_digest_after != encoder_digest
+    {
+        return Err(AgentLearningSessionStatusV1::RejectedSafetyInvariant);
+    }
+    let encoded_validation = encoder
+        .encode_batch(&validation_examples)
+        .map_err(|_| AgentLearningSessionStatusV1::TechnicalFailure)?;
+    let mamba_metric = evaluate_head_v0(&trained.final_head, &encoded_validation)
+        .map_err(|_| AgentLearningSessionStatusV1::ValidationBlocked)?;
+    let mamba_probabilities = encoded_validation
+        .iter()
+        .map(|example| trained.final_head.probability(&example.representation))
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|_| AgentLearningSessionStatusV1::ValidationBlocked)?;
+
+    let mut linear_config = config.training_config.clone();
+    linear_config.seed = config.campaign_seed ^ 0x74A1_0002;
+    let linear =
+        LinearMomentumBaselineV0::train(&training_examples, &validation_examples, &linear_config)
+            .map_err(|_| AgentLearningSessionStatusV1::ValidationBlocked)?;
+    let linear_metric = linear
+        .evaluate(&validation_examples)
+        .map_err(|_| AgentLearningSessionStatusV1::ValidationBlocked)?;
+    let linear_probabilities = validation_examples
+        .iter()
+        .map(|example| {
+            example
+                .input
+                .last()
+                .ok_or(AgentLearningSessionStatusV1::ValidationBlocked)
+                .and_then(|row| {
+                    linear
+                        .head
+                        .probability(row)
+                        .map_err(|_| AgentLearningSessionStatusV1::ValidationBlocked)
+                })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    let constant = ConstantProbabilityBaselineV0::fit(&training_examples)
+        .map_err(|_| AgentLearningSessionStatusV1::ValidationBlocked)?;
+    let constant_metric = constant
+        .evaluate(&validation_examples)
+        .map_err(|_| AgentLearningSessionStatusV1::ValidationBlocked)?;
+    let constant_parameter_digest = stable_hash_string(&format!(
+        "momentum-training-prevalence-constant-v1:{:08x}",
+        constant.probability.to_bits()
+    ));
+    let training_policy_digest = config.digest();
+    let normalizer_digest = normalizer.digest();
+    let mut participants = vec![
+        ValidationParticipantBuildV1 {
+            model_kind: "FrozenMambaHeadV1".to_string(),
+            role: CandidateParticipantRoleV1::ModelCandidate,
+            model_artifact_digest: stable_hash_string(&format!(
+                "momentum-frozen-mamba-head-v1:{}:{}:{}:{}",
+                encoder_digest,
+                trained.final_head.parameter_digest(),
+                normalizer_digest,
+                training_policy_digest
+            )),
+            parameter_digest: trained.final_head.parameter_digest(),
+            normalizer_digest: normalizer_digest.clone(),
+            training_policy_digest: training_policy_digest.clone(),
+            initialization_digest: stable_hash_string(&format!(
+                "momentum-fresh-mamba-initialization-v1:{}:{}",
+                config.campaign_seed ^ 0x74A1_0001,
+                initial_head_digest
+            )),
+            private_validation_metric_digest: private_validation_metric_digest_v1(
+                "FrozenMambaHeadV1",
+                &mamba_metric,
+            ),
+            qualification_status: momentum_qualification_status_v1(
+                &mamba_metric,
+                &mamba_probabilities,
+                config.validation_signal_gate.minimum_samples,
+                config.validation_signal_gate.minimum_probability_stddev,
+                false,
+            ),
+        },
+        ValidationParticipantBuildV1 {
+            model_kind: "LinearMomentumBaselineV1".to_string(),
+            role: CandidateParticipantRoleV1::LinearComparator,
+            model_artifact_digest: stable_hash_string(&format!(
+                "momentum-linear-baseline-v1:{}:{}:{}",
+                linear.head.parameter_digest(),
+                normalizer_digest,
+                training_policy_digest
+            )),
+            parameter_digest: linear.head.parameter_digest(),
+            normalizer_digest: normalizer_digest.clone(),
+            training_policy_digest: training_policy_digest.clone(),
+            initialization_digest: stable_hash_string(&format!(
+                "momentum-fresh-linear-initialization-v1:{}",
+                linear_config.seed
+            )),
+            private_validation_metric_digest: private_validation_metric_digest_v1(
+                "LinearMomentumBaselineV1",
+                &linear_metric,
+            ),
+            qualification_status: momentum_qualification_status_v1(
+                &linear_metric,
+                &linear_probabilities,
+                config.validation_signal_gate.minimum_samples,
+                config.validation_signal_gate.minimum_probability_stddev,
+                false,
+            ),
+        },
+        ValidationParticipantBuildV1 {
+            model_kind: "ConstantProbabilityBaselineV1".to_string(),
+            role: CandidateParticipantRoleV1::ConstantComparator,
+            model_artifact_digest: stable_hash_string(&format!(
+                "momentum-constant-baseline-v1:{}:{}:{}",
+                constant_parameter_digest, normalizer_digest, training_policy_digest
+            )),
+            parameter_digest: constant_parameter_digest,
+            normalizer_digest,
+            training_policy_digest,
+            initialization_digest: stable_hash_string(&format!(
+                "momentum-fresh-training-prevalence-v1:{}",
+                training_examples.len()
+            )),
+            private_validation_metric_digest: private_validation_metric_digest_v1(
+                "ConstantProbabilityBaselineV1",
+                &constant_metric,
+            ),
+            qualification_status: momentum_qualification_status_v1(
+                &constant_metric,
+                &vec![constant.probability; validation_examples.len()],
+                config.validation_signal_gate.minimum_samples,
+                config.validation_signal_gate.minimum_probability_stddev,
+                true,
+            ),
+        },
+    ];
+    participants.sort_by(|left, right| left.model_kind.cmp(&right.model_kind));
+    Ok(ValidationOnlyExecutionV1 {
+        training_range: IndexRangeV0 {
+            start: 0,
+            end: config.train_rows,
+        },
+        purge_range: IndexRangeV0 {
+            start: config.train_rows,
+            end: validation_start,
+        },
+        validation_range: IndexRangeV0 {
+            start: validation_start,
+            end: validation_end,
+        },
+        reserved_retrospective_unused_range: IndexRangeV0 {
+            start: validation_end,
+            end: rows.len(),
+        },
+        participants,
+        validation_parameter_updates: 0,
+        historical_test_row_reads: 0,
+        historical_test_label_reads: 0,
+        historical_test_inference_count: 0,
+        historical_test_metric_count: 0,
+        historical_test_checkpoint_selection_count: 0,
+    })
+}
+
+fn examples_for_partition_v1(
+    examples: &[SequenceExampleV0],
+    range: &IndexRangeV0,
+) -> Vec<SequenceExampleV0> {
+    examples
+        .iter()
+        .filter(|example| example.sequence_start >= range.start && example.label_index < range.end)
+        .cloned()
+        .collect()
+}
+
+fn private_validation_metric_digest_v1(model_kind: &str, metric: &EvaluationMetricsV0) -> String {
+    stable_hash_string(&format!(
+        "private-validation-metric-v1:{model_kind}:{metric:?}"
+    ))
+}
+
+fn momentum_qualification_status_v1(
+    metric: &EvaluationMetricsV0,
+    probabilities: &[f32],
+    minimum_samples: usize,
+    minimum_probability_stddev: f32,
+    allow_constant: bool,
+) -> ValidationQualificationStatusV1 {
+    if metric.sample_count < minimum_samples || probabilities.len() != metric.sample_count {
+        return ValidationQualificationStatusV1::RejectedInsufficientValidation;
+    }
+    if !metric.brier_score.is_finite()
+        || !metric.accuracy.is_finite()
+        || !metric.mean_predicted_probability.is_finite()
+        || probabilities.iter().any(|value| !value.is_finite())
+    {
+        return ValidationQualificationStatusV1::RejectedNumericalFailure;
+    }
+    let mean = probabilities.iter().sum::<f32>() / probabilities.len() as f32;
+    let stddev = (probabilities
+        .iter()
+        .map(|value| (value - mean).powi(2))
+        .sum::<f32>()
+        / probabilities.len() as f32)
+        .sqrt();
+    if !allow_constant && stddev < minimum_probability_stddev {
+        ValidationQualificationStatusV1::RejectedProbabilityCollapse
+    } else {
+        ValidationQualificationStatusV1::Qualified
+    }
+}
+
+fn validation_execution_from_cycle_v1(
+    execution: CycleRiskValidationOnlyExecutionV1,
+) -> ValidationOnlyExecutionV1 {
+    let participants = execution
+        .participants
+        .into_iter()
+        .map(|participant| ValidationParticipantBuildV1 {
+            role: match participant.model_kind.as_str() {
+                "FrozenMambaRiskV1" => CandidateParticipantRoleV1::ModelCandidate,
+                "LinearRiskV1" => CandidateParticipantRoleV1::LinearComparator,
+                _ => CandidateParticipantRoleV1::ConstantComparator,
+            },
+            model_kind: participant.model_kind,
+            model_artifact_digest: participant.model_artifact_digest,
+            parameter_digest: participant.parameter_digest,
+            normalizer_digest: participant.normalizer_digest,
+            training_policy_digest: participant.training_policy_digest,
+            initialization_digest: participant.initialization_digest,
+            private_validation_metric_digest: participant.private_validation_metric_digest,
+            qualification_status: if participant.qualified {
+                ValidationQualificationStatusV1::Qualified
+            } else {
+                ValidationQualificationStatusV1::RejectedProbabilityCollapse
+            },
+        })
+        .collect();
+    ValidationOnlyExecutionV1 {
+        training_range: execution.training_range,
+        purge_range: execution.purge_range,
+        validation_range: execution.validation_range,
+        reserved_retrospective_unused_range: execution.reserved_retrospective_unused_range,
+        participants,
+        validation_parameter_updates: execution.validation_parameter_updates,
+        historical_test_row_reads: execution.historical_test_row_reads,
+        historical_test_label_reads: execution.historical_test_label_reads,
+        historical_test_inference_count: execution.historical_test_inference_count,
+        historical_test_metric_count: execution.historical_test_metric_count,
+        historical_test_checkpoint_selection_count: execution
+            .historical_test_checkpoint_selection_count,
+    }
 }
 
 fn run_one_session_v0(
@@ -2631,6 +4357,230 @@ pub fn persist_agent_candidate_evaluation_report_v0(
     storage
 }
 
+pub fn persist_agent_candidate_families_report_v1(
+    report: &mut AgentCandidateFamiliesReportV1,
+    root: &Path,
+) -> AgentPrivateLearningStorageReportV0 {
+    let mut storage = AgentPrivateLearningStorageReportV0 {
+        written_artifact_count: 0,
+        duplicate_artifact_count: 0,
+        failed_artifact_count: 0,
+    };
+    for result in &report.results {
+        if !safe_agent_component_v0(&result.agent_id) {
+            storage.failed_artifact_count += 1;
+            continue;
+        }
+        let agent_root = root.join("v1").join(&result.agent_id);
+        if let Some(session) = &result.session {
+            record_write_result_v0(
+                write_session_artifact_v1(session, &agent_root.join("sessions")),
+                &mut storage,
+            );
+        }
+        if let Some(projection) = &result.projection {
+            record_write_result_v0(
+                write_projection_artifact_v1(projection, &agent_root.join("projections")),
+                &mut storage,
+            );
+        }
+        if let Some(family) = &result.family {
+            for participant in &family.participants {
+                record_write_result_v0(
+                    write_participant_artifact_v1(participant, &agent_root.join("participants")),
+                    &mut storage,
+                );
+            }
+            record_write_result_v0(
+                write_family_artifact_v1(family, &agent_root.join("families")),
+                &mut storage,
+            );
+        }
+        for receipt in &result.qualification_receipts {
+            record_write_result_v0(
+                write_qualification_artifact_v1(
+                    receipt,
+                    &agent_root.join("qualification_receipts"),
+                ),
+                &mut storage,
+            );
+        }
+        if let Some(ledger) = &result.usage_ledger {
+            record_write_result_v0(
+                write_usage_ledger_artifact_v1(ledger, &agent_root.join("usage_ledgers")),
+                &mut storage,
+            );
+        }
+    }
+    report.duplicate_artifact_count = storage.duplicate_artifact_count;
+    report.storage_failure_count = storage.failed_artifact_count;
+    report.report_digest = candidate_families_report_digest_v1(report);
+    storage
+}
+
+pub fn persist_agent_candidate_evaluations_report_v1(
+    report: &mut AgentCandidateEvaluationsReportV1,
+    root: &Path,
+) -> AgentPrivateLearningStorageReportV0 {
+    let mut storage = AgentPrivateLearningStorageReportV0 {
+        written_artifact_count: 0,
+        duplicate_artifact_count: 0,
+        failed_artifact_count: 0,
+    };
+    for result in &report.results {
+        if !safe_agent_component_v0(&result.agent_id) {
+            storage.failed_artifact_count += 1;
+            continue;
+        }
+        let agent_root = root.join("evaluation_v1").join(&result.agent_id);
+        if let Some(exclusion) = &result.exclusion {
+            record_write_result_v0(
+                write_exclusion_artifact_v1(exclusion, &agent_root.join("exclusions")),
+                &mut storage,
+            );
+        }
+        if let Some(registration) = &result.registration {
+            record_write_result_v0(
+                write_evaluation_registration_artifact_v1(
+                    registration,
+                    &agent_root.join("registrations"),
+                ),
+                &mut storage,
+            );
+        }
+        if let Some(journal) = &result.journal {
+            record_write_result_v0(
+                write_evaluation_journal_artifact_v1(
+                    journal,
+                    &agent_root.join("registration_journals"),
+                ),
+                &mut storage,
+            );
+        }
+    }
+    report.duplicate_artifact_count = storage.duplicate_artifact_count;
+    report.storage_failure_count = storage.failed_artifact_count;
+    report.report_digest = candidate_evaluations_report_digest_v1(report);
+    storage
+}
+
+fn write_session_artifact_v1(
+    session: &AgentPrivateLearningSessionV1,
+    directory: &Path,
+) -> Result<AgentPrivateLearningArtifactWriteStatusV0, String> {
+    let bytes = encode_session_protobuf_v1(session)?;
+    atomic_write_verified_v0(
+        &directory.join(format!("{}.pb", session.session_digest)),
+        &bytes,
+        &session.session_digest,
+        |stored| Ok(decode_session_protobuf_v1(stored)?.session_digest),
+    )
+}
+
+fn write_projection_artifact_v1(
+    projection: &AgentTrainerInputProjectionV1,
+    directory: &Path,
+) -> Result<AgentPrivateLearningArtifactWriteStatusV0, String> {
+    let bytes = encode_trainer_projection_protobuf_v1(projection)?;
+    atomic_write_verified_v0(
+        &directory.join(format!("{}.pb", projection.projection_digest)),
+        &bytes,
+        &projection.projection_digest,
+        |stored| Ok(decode_trainer_projection_protobuf_v1(stored)?.projection_digest),
+    )
+}
+
+fn write_participant_artifact_v1(
+    participant: &FrozenCandidateParticipantV1,
+    directory: &Path,
+) -> Result<AgentPrivateLearningArtifactWriteStatusV0, String> {
+    let bytes = encode_participant_protobuf_v1(participant)?;
+    atomic_write_verified_v0(
+        &directory.join(format!("{}.pb", participant.participant_digest)),
+        &bytes,
+        &participant.participant_digest,
+        |stored| Ok(decode_participant_protobuf_v1(stored)?.participant_digest),
+    )
+}
+
+fn write_qualification_artifact_v1(
+    receipt: &ParticipantValidationQualificationV1,
+    directory: &Path,
+) -> Result<AgentPrivateLearningArtifactWriteStatusV0, String> {
+    let bytes = encode_qualification_receipt_protobuf_v1(receipt)?;
+    atomic_write_verified_v0(
+        &directory.join(format!("{}.pb", receipt.receipt_digest)),
+        &bytes,
+        &receipt.receipt_digest,
+        |stored| Ok(decode_qualification_receipt_protobuf_v1(stored)?.receipt_digest),
+    )
+}
+
+fn write_family_artifact_v1(
+    family: &AgentCandidateFamilyV1,
+    directory: &Path,
+) -> Result<AgentPrivateLearningArtifactWriteStatusV0, String> {
+    let bytes = encode_candidate_family_protobuf_v1(family)?;
+    atomic_write_verified_v0(
+        &directory.join(format!("{}.pb", family.family_digest)),
+        &bytes,
+        &family.family_digest,
+        |stored| Ok(decode_candidate_family_protobuf_v1(stored)?.family_digest),
+    )
+}
+
+fn write_usage_ledger_artifact_v1(
+    ledger: &AgentCandidateUsageLedgerV1,
+    directory: &Path,
+) -> Result<AgentPrivateLearningArtifactWriteStatusV0, String> {
+    let bytes = encode_usage_ledger_protobuf_v1(ledger)?;
+    atomic_write_verified_v0(
+        &directory.join(format!("{}.pb", ledger.ledger_digest)),
+        &bytes,
+        &ledger.ledger_digest,
+        |stored| Ok(decode_usage_ledger_protobuf_v1(stored)?.ledger_digest),
+    )
+}
+
+fn write_exclusion_artifact_v1(
+    exclusion: &EvaluationEvidenceExclusionV1,
+    directory: &Path,
+) -> Result<AgentPrivateLearningArtifactWriteStatusV0, String> {
+    let bytes = encode_evidence_exclusion_protobuf_v1(exclusion)?;
+    atomic_write_verified_v0(
+        &directory.join(format!("{}.pb", exclusion.exclusion_digest)),
+        &bytes,
+        &exclusion.exclusion_digest,
+        |stored| Ok(decode_evidence_exclusion_protobuf_v1(stored)?.exclusion_digest),
+    )
+}
+
+fn write_evaluation_registration_artifact_v1(
+    registration: &AgentCandidateEvaluationRegistrationV1,
+    directory: &Path,
+) -> Result<AgentPrivateLearningArtifactWriteStatusV0, String> {
+    let bytes = encode_evaluation_registration_protobuf_v1(registration)?;
+    atomic_write_verified_v0(
+        &directory.join(format!("{}.pb", registration.registration_digest)),
+        &bytes,
+        &registration.registration_digest,
+        |stored| Ok(decode_evaluation_registration_protobuf_v1(stored)?.registration_digest),
+    )
+}
+
+fn write_evaluation_journal_artifact_v1(
+    journal: &AgentCandidateEvaluationRegistrationJournalV1,
+    directory: &Path,
+) -> Result<AgentPrivateLearningArtifactWriteStatusV0, String> {
+    let bytes = encode_evaluation_journal_protobuf_v1(journal)?;
+    atomic_write_verified_v0(
+        &directory.join(format!("{}.pb", journal.journal_digest)),
+        &bytes,
+        &journal.journal_digest,
+        |stored| Ok(decode_evaluation_journal_protobuf_v1(stored)?.journal_digest),
+    )
+}
+
 fn write_evidence_usage_ledger_artifact_v0(
     ledger: &CandidateEvidenceUsageLedgerV0,
     directory: &Path,
@@ -2855,6 +4805,15 @@ enum ArtifactKindV0 {
     CandidateIdentityAudit,
     EvaluationRegistration,
     EvaluationJournal,
+    SessionV1,
+    ProjectionV1,
+    CandidateFamilyV1,
+    ParticipantV1,
+    QualificationReceiptV1,
+    UsageLedgerV1,
+    EvidenceExclusionV1,
+    EvaluationRegistrationV1,
+    EvaluationJournalV1,
 }
 
 impl ArtifactKindV0 {
@@ -2870,6 +4829,15 @@ impl ArtifactKindV0 {
             Self::CandidateIdentityAudit => "candidate-identity-audit",
             Self::EvaluationRegistration => "candidate-evaluation-registration",
             Self::EvaluationJournal => "candidate-evaluation-journal",
+            Self::SessionV1 => "session-v1",
+            Self::ProjectionV1 => "projection-v1",
+            Self::CandidateFamilyV1 => "candidate-family-v1",
+            Self::ParticipantV1 => "candidate-participant-v1",
+            Self::QualificationReceiptV1 => "validation-qualification-v1",
+            Self::UsageLedgerV1 => "candidate-usage-ledger-v1",
+            Self::EvidenceExclusionV1 => "evaluation-evidence-exclusion-v1",
+            Self::EvaluationRegistrationV1 => "candidate-evaluation-registration-v1",
+            Self::EvaluationJournalV1 => "candidate-evaluation-journal-v1",
         }
     }
 }
@@ -3262,6 +5230,296 @@ struct CapabilityRegistryProtobufV0 {
     registry_digest: String,
 }
 
+#[derive(Clone, PartialEq, Message)]
+struct SessionProtobufV1 {
+    #[prost(string, tag = "1")]
+    session_version: String,
+    #[prost(string, tag = "2")]
+    session_id: String,
+    #[prost(string, tag = "3")]
+    agent_id: String,
+    #[prost(uint32, tag = "4")]
+    agent_kind: u32,
+    #[prost(string, tag = "5")]
+    intent_digest: String,
+    #[prost(string, tag = "6")]
+    view_digest: String,
+    #[prost(string, tag = "7")]
+    projection_digest: String,
+    #[prost(string, tag = "8")]
+    capability_digest: String,
+    #[prost(string, tag = "9")]
+    source_policy_digest: String,
+    #[prost(string, tag = "10")]
+    feature_policy_digest: String,
+    #[prost(string, tag = "11")]
+    label_policy_digest: String,
+    #[prost(string, tag = "12")]
+    curriculum_policy_digest: String,
+    #[prost(uint64, tag = "13")]
+    information_cutoff_ms: u64,
+    #[prost(string, repeated, tag = "14")]
+    source_artifact_digests: Vec<String>,
+    #[prost(string, repeated, tag = "15")]
+    consumed_artifact_digests: Vec<String>,
+    #[prost(string, repeated, tag = "16")]
+    referenced_unconsumed_artifact_digests: Vec<String>,
+    #[prost(string, tag = "17")]
+    private_namespace_digest: String,
+    #[prost(string, tag = "18")]
+    training_ledger_digest: String,
+    #[prost(bool, tag = "19")]
+    fresh_initialization: bool,
+    #[prost(bool, tag = "20")]
+    historical_test_access_forbidden: bool,
+    #[prost(uint32, tag = "21")]
+    status: u32,
+    #[prost(string, tag = "22")]
+    session_digest: String,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct ProjectionProtobufV1 {
+    #[prost(string, tag = "1")]
+    projection_version: String,
+    #[prost(string, tag = "2")]
+    agent_id: String,
+    #[prost(uint32, tag = "3")]
+    trainer_kind: u32,
+    #[prost(string, tag = "4")]
+    source_view_digest: String,
+    #[prost(string, repeated, tag = "5")]
+    consumed_artifact_digests: Vec<String>,
+    #[prost(string, repeated, tag = "6")]
+    referenced_unconsumed_artifact_digests: Vec<String>,
+    #[prost(string, optional, tag = "7")]
+    primary_series_digest: Option<String>,
+    #[prost(string, tag = "8")]
+    projection_policy_digest: String,
+    #[prost(string, tag = "9")]
+    projection_digest: String,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct ParticipantProtobufV1 {
+    #[prost(string, tag = "1")]
+    participant_version: String,
+    #[prost(string, tag = "2")]
+    participant_id: String,
+    #[prost(uint32, tag = "3")]
+    role: u32,
+    #[prost(string, tag = "4")]
+    model_kind: String,
+    #[prost(string, tag = "5")]
+    model_artifact_digest: String,
+    #[prost(string, tag = "6")]
+    parameter_digest: String,
+    #[prost(string, tag = "7")]
+    normalizer_digest: String,
+    #[prost(string, tag = "8")]
+    feature_policy_digest: String,
+    #[prost(string, tag = "9")]
+    label_policy_digest: String,
+    #[prost(string, tag = "10")]
+    training_policy_digest: String,
+    #[prost(string, tag = "11")]
+    initialization_digest: String,
+    #[prost(uint32, tag = "12")]
+    deployment_status: u32,
+    #[prost(string, tag = "13")]
+    participant_digest: String,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct QualificationReceiptProtobufV1 {
+    #[prost(string, tag = "1")]
+    qualification_version: String,
+    #[prost(string, tag = "2")]
+    participant_digest: String,
+    #[prost(string, tag = "3")]
+    validation_range_digest: String,
+    #[prost(string, tag = "4")]
+    metric_policy_digest: String,
+    #[prost(string, tag = "5")]
+    private_metric_digest: String,
+    #[prost(uint32, tag = "6")]
+    qualification_status: u32,
+    #[prost(uint64, tag = "7")]
+    parameter_updates_during_validation: u64,
+    #[prost(string, tag = "8")]
+    receipt_digest: String,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct CandidateFamilyProtobufV1 {
+    #[prost(string, tag = "1")]
+    family_version: String,
+    #[prost(string, tag = "2")]
+    agent_id: String,
+    #[prost(string, tag = "3")]
+    session_digest: String,
+    #[prost(string, tag = "4")]
+    view_digest: String,
+    #[prost(string, tag = "5")]
+    projection_digest: String,
+    #[prost(message, repeated, tag = "6")]
+    participants: Vec<ParticipantProtobufV1>,
+    #[prost(string, repeated, tag = "7")]
+    validation_qualification_receipts: Vec<String>,
+    #[prost(bool, tag = "8")]
+    winner_selected: bool,
+    #[prost(bool, tag = "9")]
+    historical_test_accessed: bool,
+    #[prost(bool, tag = "10")]
+    eligible_for_active_committee: bool,
+    #[prost(bool, tag = "11")]
+    eligible_for_promotion: bool,
+    #[prost(bool, tag = "12")]
+    eligible_for_reward: bool,
+    #[prost(string, tag = "13")]
+    family_digest: String,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct UsageEntryProtobufV1 {
+    #[prost(string, tag = "1")]
+    artifact_digest: String,
+    #[prost(message, optional, tag = "2")]
+    range: Option<RangeProtobufV0>,
+    #[prost(uint32, tag = "3")]
+    use_kind: u32,
+    #[prost(bool, tag = "4")]
+    labels_read: bool,
+    #[prost(bool, tag = "5")]
+    parameters_updated: bool,
+    #[prost(string, tag = "6")]
+    entry_digest: String,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct UsageLedgerProtobufV1 {
+    #[prost(string, tag = "1")]
+    ledger_version: String,
+    #[prost(string, tag = "2")]
+    agent_id: String,
+    #[prost(string, tag = "3")]
+    session_digest: String,
+    #[prost(string, tag = "4")]
+    family_digest: String,
+    #[prost(message, repeated, tag = "5")]
+    entries: Vec<UsageEntryProtobufV1>,
+    #[prost(uint64, tag = "6")]
+    historical_test_row_reads: u64,
+    #[prost(uint64, tag = "7")]
+    historical_test_label_reads: u64,
+    #[prost(uint64, tag = "8")]
+    historical_test_inference_count: u64,
+    #[prost(uint64, tag = "9")]
+    historical_test_metric_count: u64,
+    #[prost(uint64, tag = "10")]
+    historical_test_checkpoint_selection_count: u64,
+    #[prost(bool, tag = "11")]
+    historical_test_identity_influence: bool,
+    #[prost(string, tag = "12")]
+    ledger_digest: String,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct EvidenceExclusionProtobufV1 {
+    #[prost(string, tag = "1")]
+    exclusion_version: String,
+    #[prost(string, repeated, tag = "2")]
+    protected_registration_digests: Vec<String>,
+    #[prost(uint64, repeated, tag = "3")]
+    excluded_timestamp_ms: Vec<u64>,
+    #[prost(string, repeated, tag = "4")]
+    excluded_range_digests: Vec<String>,
+    #[prost(string, tag = "5")]
+    exclusion_digest: String,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct EvaluationRegistrationProtobufV1 {
+    #[prost(string, tag = "1")]
+    registration_version: String,
+    #[prost(string, tag = "2")]
+    agent_id: String,
+    #[prost(string, tag = "3")]
+    family_digest: String,
+    #[prost(string, tag = "4")]
+    session_digest: String,
+    #[prost(string, tag = "5")]
+    usage_ledger_digest: String,
+    #[prost(string, repeated, tag = "6")]
+    participant_digests: Vec<String>,
+    #[prost(string, repeated, tag = "7")]
+    qualification_receipt_digests: Vec<String>,
+    #[prost(string, tag = "8")]
+    exclusion_digest: String,
+    #[prost(uint64, tag = "9")]
+    minimum_accepted_timestamp_ms: u64,
+    #[prost(uint32, repeated, tag = "10")]
+    required_dataset_kinds: Vec<u32>,
+    #[prost(string, tag = "11")]
+    source_policy_digest: String,
+    #[prost(string, tag = "12")]
+    finality_policy_digest: String,
+    #[prost(string, tag = "13")]
+    label_policy_digest: String,
+    #[prost(string, tag = "14")]
+    metric_policy_digest: String,
+    #[prost(string, tag = "15")]
+    support_policy_digest: String,
+    #[prost(uint64, tag = "16")]
+    minimum_future_rows: u64,
+    #[prost(uint64, tag = "17")]
+    minimum_mature_events: u64,
+    #[prost(uint64, tag = "18")]
+    maximum_requests: u64,
+    #[prost(uint64, tag = "19")]
+    maximum_concurrency: u64,
+    #[prost(uint64, tag = "20")]
+    maximum_retries: u64,
+    #[prost(bool, tag = "21")]
+    labels_hidden_until_opening: bool,
+    #[prost(bool, tag = "22")]
+    probabilities_hidden_until_opening: bool,
+    #[prost(bool, tag = "23")]
+    one_time_opening_required: bool,
+    #[prost(bool, tag = "24")]
+    winner_selection_forbidden_before_opening: bool,
+    #[prost(bool, tag = "25")]
+    active_promotion_forbidden: bool,
+    #[prost(bool, tag = "26")]
+    reward_application_forbidden: bool,
+    #[prost(uint32, tag = "27")]
+    status: u32,
+    #[prost(string, tag = "28")]
+    registration_digest: String,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct EvaluationJournalEntryProtobufV1 {
+    #[prost(string, tag = "1")]
+    registration_digest: String,
+    #[prost(uint32, tag = "2")]
+    status: u32,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct EvaluationJournalProtobufV1 {
+    #[prost(string, tag = "1")]
+    journal_version: String,
+    #[prost(string, tag = "2")]
+    agent_id: String,
+    #[prost(string, tag = "3")]
+    family_digest: String,
+    #[prost(message, repeated, tag = "4")]
+    entries: Vec<EvaluationJournalEntryProtobufV1>,
+    #[prost(string, tag = "5")]
+    journal_digest: String,
+}
+
 fn encode_envelope_v0<M: Message>(
     kind: ArtifactKindV0,
     semantic_digest: &str,
@@ -3299,6 +5557,592 @@ fn decode_envelope_v0(
         return Err("private learning protobuf envelope rejected".to_string());
     }
     Ok(envelope)
+}
+
+fn participant_to_protobuf_v1(participant: &FrozenCandidateParticipantV1) -> ParticipantProtobufV1 {
+    ParticipantProtobufV1 {
+        participant_version: PARTICIPANT_VERSION_V1.to_string(),
+        participant_id: participant.participant_id.clone(),
+        role: participant_role_tag_v1(participant.role),
+        model_kind: participant.model_kind.clone(),
+        model_artifact_digest: participant.model_artifact_digest.clone(),
+        parameter_digest: participant.parameter_digest.clone(),
+        normalizer_digest: participant.normalizer_digest.clone(),
+        feature_policy_digest: participant.feature_policy_digest.clone(),
+        label_policy_digest: participant.label_policy_digest.clone(),
+        training_policy_digest: participant.training_policy_digest.clone(),
+        initialization_digest: participant.initialization_digest.clone(),
+        deployment_status: 1,
+        participant_digest: participant.participant_digest.clone(),
+    }
+}
+
+fn participant_from_protobuf_v1(
+    value: ParticipantProtobufV1,
+) -> Result<FrozenCandidateParticipantV1, String> {
+    if value.participant_version != PARTICIPANT_VERSION_V1 || value.deployment_status != 1 {
+        return Err("V1 participant protobuf rejected".to_string());
+    }
+    let participant = FrozenCandidateParticipantV1 {
+        participant_id: value.participant_id,
+        role: participant_role_from_tag_v1(value.role)?,
+        model_kind: value.model_kind,
+        model_artifact_digest: value.model_artifact_digest,
+        parameter_digest: value.parameter_digest,
+        normalizer_digest: value.normalizer_digest,
+        feature_policy_digest: value.feature_policy_digest,
+        label_policy_digest: value.label_policy_digest,
+        training_policy_digest: value.training_policy_digest,
+        initialization_digest: value.initialization_digest,
+        deployment_status: ModelAgentDeploymentStatus::ShadowOnly,
+        participant_digest: value.participant_digest,
+    };
+    validate_participant_v1(&participant)?;
+    Ok(participant)
+}
+
+pub fn encode_session_protobuf_v1(
+    session: &AgentPrivateLearningSessionV1,
+) -> Result<Vec<u8>, String> {
+    validate_session_v1(session)?;
+    encode_envelope_v0(
+        ArtifactKindV0::SessionV1,
+        &session.session_digest,
+        &SessionProtobufV1 {
+            session_version: session.session_version.clone(),
+            session_id: session.session_id.clone(),
+            agent_id: session.agent_id.clone(),
+            agent_kind: agent_kind_tag_v0(session.agent_kind)?,
+            intent_digest: session.intent_digest.clone(),
+            view_digest: session.view_digest.clone(),
+            projection_digest: session.projection_digest.clone(),
+            capability_digest: session.capability_digest.clone(),
+            source_policy_digest: session.source_policy_digest.clone(),
+            feature_policy_digest: session.feature_policy_digest.clone(),
+            label_policy_digest: session.label_policy_digest.clone(),
+            curriculum_policy_digest: session.curriculum_policy_digest.clone(),
+            information_cutoff_ms: session.information_cutoff_ms,
+            source_artifact_digests: session.source_artifact_digests.clone(),
+            consumed_artifact_digests: session.consumed_artifact_digests.clone(),
+            referenced_unconsumed_artifact_digests: session
+                .referenced_unconsumed_artifact_digests
+                .clone(),
+            private_namespace_digest: session.private_namespace_digest.clone(),
+            training_ledger_digest: session.training_ledger_digest.clone(),
+            fresh_initialization: session.fresh_initialization,
+            historical_test_access_forbidden: session.historical_test_access_forbidden,
+            status: session_status_tag_v1(session.status),
+            session_digest: session.session_digest.clone(),
+        },
+    )
+}
+
+pub fn decode_session_protobuf_v1(bytes: &[u8]) -> Result<AgentPrivateLearningSessionV1, String> {
+    let envelope = decode_envelope_v0(bytes, ArtifactKindV0::SessionV1)?;
+    let value = SessionProtobufV1::decode(envelope.payload.as_slice())
+        .map_err(|_| "V1 session protobuf decode failed".to_string())?;
+    let session = AgentPrivateLearningSessionV1 {
+        session_version: value.session_version,
+        session_id: value.session_id,
+        agent_id: value.agent_id,
+        agent_kind: agent_kind_from_tag_v0(value.agent_kind)?,
+        intent_digest: value.intent_digest,
+        view_digest: value.view_digest,
+        projection_digest: value.projection_digest,
+        capability_digest: value.capability_digest,
+        source_policy_digest: value.source_policy_digest,
+        feature_policy_digest: value.feature_policy_digest,
+        label_policy_digest: value.label_policy_digest,
+        curriculum_policy_digest: value.curriculum_policy_digest,
+        information_cutoff_ms: value.information_cutoff_ms,
+        source_artifact_digests: value.source_artifact_digests,
+        consumed_artifact_digests: value.consumed_artifact_digests,
+        referenced_unconsumed_artifact_digests: value.referenced_unconsumed_artifact_digests,
+        private_namespace_digest: value.private_namespace_digest,
+        training_ledger_digest: value.training_ledger_digest,
+        fresh_initialization: value.fresh_initialization,
+        historical_test_access_forbidden: value.historical_test_access_forbidden,
+        status: session_status_from_tag_v1(value.status)?,
+        session_digest: value.session_digest,
+    };
+    validate_session_v1(&session)?;
+    if session.session_digest != envelope.semantic_digest {
+        return Err("V1 session envelope identity rejected".to_string());
+    }
+    Ok(session)
+}
+
+pub fn encode_trainer_projection_protobuf_v1(
+    projection: &AgentTrainerInputProjectionV1,
+) -> Result<Vec<u8>, String> {
+    validate_projection_v1(projection)?;
+    encode_envelope_v0(
+        ArtifactKindV0::ProjectionV1,
+        &projection.projection_digest,
+        &ProjectionProtobufV1 {
+            projection_version: projection.projection_version.clone(),
+            agent_id: projection.agent_id.clone(),
+            trainer_kind: trainer_kind_tag_v0(projection.trainer_kind),
+            source_view_digest: projection.source_view_digest.clone(),
+            consumed_artifact_digests: projection.consumed_artifact_digests.clone(),
+            referenced_unconsumed_artifact_digests: projection
+                .referenced_unconsumed_artifact_digests
+                .clone(),
+            primary_series_digest: projection.primary_series_digest.clone(),
+            projection_policy_digest: projection.projection_policy_digest.clone(),
+            projection_digest: projection.projection_digest.clone(),
+        },
+    )
+}
+
+pub fn decode_trainer_projection_protobuf_v1(
+    bytes: &[u8],
+) -> Result<AgentTrainerInputProjectionV1, String> {
+    let envelope = decode_envelope_v0(bytes, ArtifactKindV0::ProjectionV1)?;
+    let value = ProjectionProtobufV1::decode(envelope.payload.as_slice())
+        .map_err(|_| "V1 projection protobuf decode failed".to_string())?;
+    let projection = AgentTrainerInputProjectionV1 {
+        projection_version: value.projection_version,
+        agent_id: value.agent_id,
+        trainer_kind: trainer_kind_from_tag_v0(value.trainer_kind)?,
+        source_view_digest: value.source_view_digest,
+        consumed_artifact_digests: value.consumed_artifact_digests,
+        referenced_unconsumed_artifact_digests: value.referenced_unconsumed_artifact_digests,
+        primary_series_digest: value.primary_series_digest,
+        projection_policy_digest: value.projection_policy_digest,
+        projection_digest: value.projection_digest,
+    };
+    validate_projection_v1(&projection)?;
+    if projection.projection_digest != envelope.semantic_digest {
+        return Err("V1 projection envelope identity rejected".to_string());
+    }
+    Ok(projection)
+}
+
+pub fn encode_participant_protobuf_v1(
+    participant: &FrozenCandidateParticipantV1,
+) -> Result<Vec<u8>, String> {
+    validate_participant_v1(participant)?;
+    encode_envelope_v0(
+        ArtifactKindV0::ParticipantV1,
+        &participant.participant_digest,
+        &participant_to_protobuf_v1(participant),
+    )
+}
+
+pub fn decode_participant_protobuf_v1(
+    bytes: &[u8],
+) -> Result<FrozenCandidateParticipantV1, String> {
+    let envelope = decode_envelope_v0(bytes, ArtifactKindV0::ParticipantV1)?;
+    let value = ParticipantProtobufV1::decode(envelope.payload.as_slice())
+        .map_err(|_| "V1 participant protobuf decode failed".to_string())?;
+    let participant = participant_from_protobuf_v1(value)?;
+    if participant.participant_digest != envelope.semantic_digest {
+        return Err("V1 participant envelope identity rejected".to_string());
+    }
+    Ok(participant)
+}
+
+pub fn encode_qualification_receipt_protobuf_v1(
+    receipt: &ParticipantValidationQualificationV1,
+) -> Result<Vec<u8>, String> {
+    validate_qualification_receipt_v1(receipt)?;
+    encode_envelope_v0(
+        ArtifactKindV0::QualificationReceiptV1,
+        &receipt.receipt_digest,
+        &QualificationReceiptProtobufV1 {
+            qualification_version: QUALIFICATION_VERSION_V1.to_string(),
+            participant_digest: receipt.participant_digest.clone(),
+            validation_range_digest: receipt.validation_range_digest.clone(),
+            metric_policy_digest: receipt.metric_policy_digest.clone(),
+            private_metric_digest: receipt.private_metric_digest.clone(),
+            qualification_status: qualification_status_tag_v1(receipt.qualification_status),
+            parameter_updates_during_validation: usize_to_u64_v0(
+                receipt.parameter_updates_during_validation,
+            )?,
+            receipt_digest: receipt.receipt_digest.clone(),
+        },
+    )
+}
+
+pub fn decode_qualification_receipt_protobuf_v1(
+    bytes: &[u8],
+) -> Result<ParticipantValidationQualificationV1, String> {
+    let envelope = decode_envelope_v0(bytes, ArtifactKindV0::QualificationReceiptV1)?;
+    let value = QualificationReceiptProtobufV1::decode(envelope.payload.as_slice())
+        .map_err(|_| "V1 qualification receipt protobuf decode failed".to_string())?;
+    if value.qualification_version != QUALIFICATION_VERSION_V1 {
+        return Err("V1 qualification receipt version rejected".to_string());
+    }
+    let receipt = ParticipantValidationQualificationV1 {
+        participant_digest: value.participant_digest,
+        validation_range_digest: value.validation_range_digest,
+        metric_policy_digest: value.metric_policy_digest,
+        private_metric_digest: value.private_metric_digest,
+        qualification_status: qualification_status_from_tag_v1(value.qualification_status)?,
+        parameter_updates_during_validation: u64_to_usize_v0(
+            value.parameter_updates_during_validation,
+        )?,
+        receipt_digest: value.receipt_digest,
+    };
+    validate_qualification_receipt_v1(&receipt)?;
+    if receipt.receipt_digest != envelope.semantic_digest {
+        return Err("V1 qualification receipt envelope identity rejected".to_string());
+    }
+    Ok(receipt)
+}
+
+pub fn encode_candidate_family_protobuf_v1(
+    family: &AgentCandidateFamilyV1,
+) -> Result<Vec<u8>, String> {
+    validate_candidate_family_v1(family)?;
+    encode_envelope_v0(
+        ArtifactKindV0::CandidateFamilyV1,
+        &family.family_digest,
+        &CandidateFamilyProtobufV1 {
+            family_version: family.family_version.clone(),
+            agent_id: family.agent_id.clone(),
+            session_digest: family.session_digest.clone(),
+            view_digest: family.view_digest.clone(),
+            projection_digest: family.projection_digest.clone(),
+            participants: family
+                .participants
+                .iter()
+                .map(participant_to_protobuf_v1)
+                .collect(),
+            validation_qualification_receipts: family.validation_qualification_receipts.clone(),
+            winner_selected: family.winner_selected,
+            historical_test_accessed: family.historical_test_accessed,
+            eligible_for_active_committee: family.eligible_for_active_committee,
+            eligible_for_promotion: family.eligible_for_promotion,
+            eligible_for_reward: family.eligible_for_reward,
+            family_digest: family.family_digest.clone(),
+        },
+    )
+}
+
+pub fn decode_candidate_family_protobuf_v1(bytes: &[u8]) -> Result<AgentCandidateFamilyV1, String> {
+    let envelope = decode_envelope_v0(bytes, ArtifactKindV0::CandidateFamilyV1)?;
+    let value = CandidateFamilyProtobufV1::decode(envelope.payload.as_slice())
+        .map_err(|_| "V1 family protobuf decode failed".to_string())?;
+    let family = AgentCandidateFamilyV1 {
+        family_version: value.family_version,
+        agent_id: value.agent_id,
+        session_digest: value.session_digest,
+        view_digest: value.view_digest,
+        projection_digest: value.projection_digest,
+        participants: value
+            .participants
+            .into_iter()
+            .map(participant_from_protobuf_v1)
+            .collect::<Result<Vec<_>, _>>()?,
+        validation_qualification_receipts: value.validation_qualification_receipts,
+        winner_selected: value.winner_selected,
+        historical_test_accessed: value.historical_test_accessed,
+        eligible_for_active_committee: value.eligible_for_active_committee,
+        eligible_for_promotion: value.eligible_for_promotion,
+        eligible_for_reward: value.eligible_for_reward,
+        family_digest: value.family_digest,
+    };
+    validate_candidate_family_v1(&family)?;
+    if family.family_digest != envelope.semantic_digest {
+        return Err("V1 family envelope identity rejected".to_string());
+    }
+    Ok(family)
+}
+
+pub fn encode_usage_ledger_protobuf_v1(
+    ledger: &AgentCandidateUsageLedgerV1,
+) -> Result<Vec<u8>, String> {
+    validate_usage_ledger_v1(ledger)?;
+    encode_envelope_v0(
+        ArtifactKindV0::UsageLedgerV1,
+        &ledger.ledger_digest,
+        &UsageLedgerProtobufV1 {
+            ledger_version: ledger.ledger_version.clone(),
+            agent_id: ledger.agent_id.clone(),
+            session_digest: ledger.session_digest.clone(),
+            family_digest: ledger.family_digest.clone(),
+            entries: ledger
+                .entries
+                .iter()
+                .map(|entry| {
+                    Ok(UsageEntryProtobufV1 {
+                        artifact_digest: entry.artifact_digest.clone(),
+                        range: entry
+                            .range
+                            .as_ref()
+                            .map(|range| range_to_protobuf_v0(range))
+                            .transpose()?,
+                        use_kind: evidence_use_tag_v1(entry.use_kind),
+                        labels_read: entry.labels_read,
+                        parameters_updated: entry.parameters_updated,
+                        entry_digest: entry.entry_digest.clone(),
+                    })
+                })
+                .collect::<Result<Vec<_>, String>>()?,
+            historical_test_row_reads: usize_to_u64_v0(ledger.historical_test_row_reads)?,
+            historical_test_label_reads: usize_to_u64_v0(ledger.historical_test_label_reads)?,
+            historical_test_inference_count: usize_to_u64_v0(
+                ledger.historical_test_inference_count,
+            )?,
+            historical_test_metric_count: usize_to_u64_v0(ledger.historical_test_metric_count)?,
+            historical_test_checkpoint_selection_count: usize_to_u64_v0(
+                ledger.historical_test_checkpoint_selection_count,
+            )?,
+            historical_test_identity_influence: ledger.historical_test_identity_influence,
+            ledger_digest: ledger.ledger_digest.clone(),
+        },
+    )
+}
+
+pub fn decode_usage_ledger_protobuf_v1(
+    bytes: &[u8],
+) -> Result<AgentCandidateUsageLedgerV1, String> {
+    let envelope = decode_envelope_v0(bytes, ArtifactKindV0::UsageLedgerV1)?;
+    let value = UsageLedgerProtobufV1::decode(envelope.payload.as_slice())
+        .map_err(|_| "V1 usage ledger protobuf decode failed".to_string())?;
+    let ledger = AgentCandidateUsageLedgerV1 {
+        ledger_version: value.ledger_version,
+        agent_id: value.agent_id,
+        session_digest: value.session_digest,
+        family_digest: value.family_digest,
+        entries: value
+            .entries
+            .into_iter()
+            .map(|entry| {
+                Ok(CandidateEvidenceUsageEntryV1 {
+                    artifact_digest: entry.artifact_digest,
+                    range: entry
+                        .range
+                        .map(|range| range_from_protobuf_v0(Some(range)))
+                        .transpose()?,
+                    use_kind: evidence_use_from_tag_v1(entry.use_kind)?,
+                    labels_read: entry.labels_read,
+                    parameters_updated: entry.parameters_updated,
+                    entry_digest: entry.entry_digest,
+                })
+            })
+            .collect::<Result<Vec<_>, String>>()?,
+        historical_test_row_reads: u64_to_usize_v0(value.historical_test_row_reads)?,
+        historical_test_label_reads: u64_to_usize_v0(value.historical_test_label_reads)?,
+        historical_test_inference_count: u64_to_usize_v0(value.historical_test_inference_count)?,
+        historical_test_metric_count: u64_to_usize_v0(value.historical_test_metric_count)?,
+        historical_test_checkpoint_selection_count: u64_to_usize_v0(
+            value.historical_test_checkpoint_selection_count,
+        )?,
+        historical_test_identity_influence: value.historical_test_identity_influence,
+        ledger_digest: value.ledger_digest,
+    };
+    validate_usage_ledger_v1(&ledger)?;
+    if ledger.ledger_digest != envelope.semantic_digest {
+        return Err("V1 usage ledger envelope identity rejected".to_string());
+    }
+    Ok(ledger)
+}
+
+pub fn encode_evidence_exclusion_protobuf_v1(
+    exclusion: &EvaluationEvidenceExclusionV1,
+) -> Result<Vec<u8>, String> {
+    validate_evaluation_exclusion_v1(exclusion)?;
+    encode_envelope_v0(
+        ArtifactKindV0::EvidenceExclusionV1,
+        &exclusion.exclusion_digest,
+        &EvidenceExclusionProtobufV1 {
+            exclusion_version: EXCLUSION_VERSION_V1.to_string(),
+            protected_registration_digests: exclusion.protected_registration_digests.clone(),
+            excluded_timestamp_ms: exclusion.excluded_timestamp_ms.clone(),
+            excluded_range_digests: exclusion.excluded_range_digests.clone(),
+            exclusion_digest: exclusion.exclusion_digest.clone(),
+        },
+    )
+}
+
+pub fn decode_evidence_exclusion_protobuf_v1(
+    bytes: &[u8],
+) -> Result<EvaluationEvidenceExclusionV1, String> {
+    let envelope = decode_envelope_v0(bytes, ArtifactKindV0::EvidenceExclusionV1)?;
+    let value = EvidenceExclusionProtobufV1::decode(envelope.payload.as_slice())
+        .map_err(|_| "V1 evidence exclusion protobuf decode failed".to_string())?;
+    if value.exclusion_version != EXCLUSION_VERSION_V1 {
+        return Err("V1 evidence exclusion version rejected".to_string());
+    }
+    let exclusion = EvaluationEvidenceExclusionV1 {
+        protected_registration_digests: value.protected_registration_digests,
+        excluded_timestamp_ms: value.excluded_timestamp_ms,
+        excluded_range_digests: value.excluded_range_digests,
+        exclusion_digest: value.exclusion_digest,
+    };
+    validate_evaluation_exclusion_v1(&exclusion)?;
+    if exclusion.exclusion_digest != envelope.semantic_digest {
+        return Err("V1 evidence exclusion envelope identity rejected".to_string());
+    }
+    Ok(exclusion)
+}
+
+pub fn encode_evaluation_registration_protobuf_v1(
+    registration: &AgentCandidateEvaluationRegistrationV1,
+) -> Result<Vec<u8>, String> {
+    validate_evaluation_registration_v1(registration)?;
+    encode_envelope_v0(
+        ArtifactKindV0::EvaluationRegistrationV1,
+        &registration.registration_digest,
+        &EvaluationRegistrationProtobufV1 {
+            registration_version: registration.registration_version.clone(),
+            agent_id: registration.agent_id.clone(),
+            family_digest: registration.family_digest.clone(),
+            session_digest: registration.session_digest.clone(),
+            usage_ledger_digest: registration.usage_ledger_digest.clone(),
+            participant_digests: registration.participant_digests.clone(),
+            qualification_receipt_digests: registration.qualification_receipt_digests.clone(),
+            exclusion_digest: registration.exclusion_digest.clone(),
+            minimum_accepted_timestamp_ms: registration.minimum_accepted_timestamp_ms,
+            required_dataset_kinds: registration
+                .required_dataset_kinds
+                .iter()
+                .map(|kind| dataset_kind_tag_v0(*kind))
+                .collect::<Result<Vec<_>, _>>()?,
+            source_policy_digest: registration.source_policy_digest.clone(),
+            finality_policy_digest: registration.finality_policy_digest.clone(),
+            label_policy_digest: registration.label_policy_digest.clone(),
+            metric_policy_digest: registration.metric_policy_digest.clone(),
+            support_policy_digest: registration.support_policy_digest.clone(),
+            minimum_future_rows: usize_to_u64_v0(registration.minimum_future_rows)?,
+            minimum_mature_events: usize_to_u64_v0(registration.minimum_mature_events)?,
+            maximum_requests: usize_to_u64_v0(registration.maximum_requests)?,
+            maximum_concurrency: usize_to_u64_v0(registration.maximum_concurrency)?,
+            maximum_retries: usize_to_u64_v0(registration.maximum_retries)?,
+            labels_hidden_until_opening: registration.labels_hidden_until_opening,
+            probabilities_hidden_until_opening: registration.probabilities_hidden_until_opening,
+            one_time_opening_required: registration.one_time_opening_required,
+            winner_selection_forbidden_before_opening: registration
+                .winner_selection_forbidden_before_opening,
+            active_promotion_forbidden: registration.active_promotion_forbidden,
+            reward_application_forbidden: registration.reward_application_forbidden,
+            status: registration_status_tag_v1(registration.status),
+            registration_digest: registration.registration_digest.clone(),
+        },
+    )
+}
+
+pub fn decode_evaluation_registration_protobuf_v1(
+    bytes: &[u8],
+) -> Result<AgentCandidateEvaluationRegistrationV1, String> {
+    let envelope = decode_envelope_v0(bytes, ArtifactKindV0::EvaluationRegistrationV1)?;
+    let value = EvaluationRegistrationProtobufV1::decode(envelope.payload.as_slice())
+        .map_err(|_| "V1 evaluation registration protobuf decode failed".to_string())?;
+    let registration = AgentCandidateEvaluationRegistrationV1 {
+        registration_version: value.registration_version,
+        agent_id: value.agent_id,
+        family_digest: value.family_digest,
+        session_digest: value.session_digest,
+        usage_ledger_digest: value.usage_ledger_digest,
+        participant_digests: value.participant_digests,
+        qualification_receipt_digests: value.qualification_receipt_digests,
+        exclusion_digest: value.exclusion_digest,
+        minimum_accepted_timestamp_ms: value.minimum_accepted_timestamp_ms,
+        required_dataset_kinds: value
+            .required_dataset_kinds
+            .into_iter()
+            .map(dataset_kind_from_tag_v0)
+            .collect::<Result<Vec<_>, _>>()?,
+        source_policy_digest: value.source_policy_digest,
+        finality_policy_digest: value.finality_policy_digest,
+        label_policy_digest: value.label_policy_digest,
+        metric_policy_digest: value.metric_policy_digest,
+        support_policy_digest: value.support_policy_digest,
+        minimum_future_rows: u64_to_usize_v0(value.minimum_future_rows)?,
+        minimum_mature_events: u64_to_usize_v0(value.minimum_mature_events)?,
+        maximum_requests: u64_to_usize_v0(value.maximum_requests)?,
+        maximum_concurrency: u64_to_usize_v0(value.maximum_concurrency)?,
+        maximum_retries: u64_to_usize_v0(value.maximum_retries)?,
+        labels_hidden_until_opening: value.labels_hidden_until_opening,
+        probabilities_hidden_until_opening: value.probabilities_hidden_until_opening,
+        one_time_opening_required: value.one_time_opening_required,
+        winner_selection_forbidden_before_opening: value.winner_selection_forbidden_before_opening,
+        active_promotion_forbidden: value.active_promotion_forbidden,
+        reward_application_forbidden: value.reward_application_forbidden,
+        status: registration_status_from_tag_v1(value.status)?,
+        registration_digest: value.registration_digest,
+    };
+    validate_evaluation_registration_v1(&registration)?;
+    if registration.registration_digest != envelope.semantic_digest {
+        return Err("V1 evaluation registration envelope identity rejected".to_string());
+    }
+    Ok(registration)
+}
+
+pub fn encode_evaluation_journal_protobuf_v1(
+    journal: &AgentCandidateEvaluationRegistrationJournalV1,
+) -> Result<Vec<u8>, String> {
+    if journal.journal_version != EVALUATION_JOURNAL_VERSION_V1
+        || journal.agent_id.is_empty()
+        || journal.family_digest.is_empty()
+        || journal.entries.is_empty()
+        || journal.entries.iter().any(|entry| {
+            entry.registration_digest.is_empty()
+                || entry.status != CandidateEvaluationRegistrationStatusV1::Registered
+        })
+        || journal.journal_digest != evaluation_journal_digest_v1(journal)
+    {
+        return Err("V1 evaluation journal rejected".to_string());
+    }
+    encode_envelope_v0(
+        ArtifactKindV0::EvaluationJournalV1,
+        &journal.journal_digest,
+        &EvaluationJournalProtobufV1 {
+            journal_version: journal.journal_version.clone(),
+            agent_id: journal.agent_id.clone(),
+            family_digest: journal.family_digest.clone(),
+            entries: journal
+                .entries
+                .iter()
+                .map(|entry| EvaluationJournalEntryProtobufV1 {
+                    registration_digest: entry.registration_digest.clone(),
+                    status: registration_status_tag_v1(entry.status),
+                })
+                .collect(),
+            journal_digest: journal.journal_digest.clone(),
+        },
+    )
+}
+
+pub fn decode_evaluation_journal_protobuf_v1(
+    bytes: &[u8],
+) -> Result<AgentCandidateEvaluationRegistrationJournalV1, String> {
+    let envelope = decode_envelope_v0(bytes, ArtifactKindV0::EvaluationJournalV1)?;
+    let value = EvaluationJournalProtobufV1::decode(envelope.payload.as_slice())
+        .map_err(|_| "V1 evaluation journal protobuf decode failed".to_string())?;
+    let journal = AgentCandidateEvaluationRegistrationJournalV1 {
+        journal_version: value.journal_version,
+        agent_id: value.agent_id,
+        family_digest: value.family_digest,
+        entries: value
+            .entries
+            .into_iter()
+            .map(|entry| {
+                Ok(AgentCandidateEvaluationRegistrationJournalEntryV1 {
+                    registration_digest: entry.registration_digest,
+                    status: registration_status_from_tag_v1(entry.status)?,
+                })
+            })
+            .collect::<Result<Vec<_>, String>>()?,
+        journal_digest: value.journal_digest,
+    };
+    if journal.journal_version != EVALUATION_JOURNAL_VERSION_V1
+        || journal.agent_id.is_empty()
+        || journal.family_digest.is_empty()
+        || journal.entries.is_empty()
+        || journal.entries.iter().any(|entry| {
+            entry.registration_digest.is_empty()
+                || entry.status != CandidateEvaluationRegistrationStatusV1::Registered
+        })
+        || journal.journal_digest != evaluation_journal_digest_v1(&journal)
+        || journal.journal_digest != envelope.semantic_digest
+    {
+        return Err("V1 evaluation journal identity rejected".to_string());
+    }
+    Ok(journal)
 }
 
 pub fn encode_session_protobuf_v0(
@@ -4180,6 +7024,141 @@ fn session_status_from_tag_v0(value: u32) -> Result<AgentLearningSessionStatusV0
     }
 }
 
+fn session_status_tag_v1(status: AgentLearningSessionStatusV1) -> u32 {
+    match status {
+        AgentLearningSessionStatusV1::Registered => 1,
+        AgentLearningSessionStatusV1::PersistedViewVerified => 2,
+        AgentLearningSessionStatusV1::ProjectionReady => 3,
+        AgentLearningSessionStatusV1::CandidateFamilyFrozen => 4,
+        AgentLearningSessionStatusV1::InsufficientEvidence => 5,
+        AgentLearningSessionStatusV1::TrainerUnavailable => 6,
+        AgentLearningSessionStatusV1::ValidationBlocked => 7,
+        AgentLearningSessionStatusV1::RejectedUnauthorizedEvidence => 8,
+        AgentLearningSessionStatusV1::RejectedCutoffLeakage => 9,
+        AgentLearningSessionStatusV1::RejectedSafetyInvariant => 10,
+        AgentLearningSessionStatusV1::TechnicalFailure => 11,
+    }
+}
+
+fn session_status_from_tag_v1(value: u32) -> Result<AgentLearningSessionStatusV1, String> {
+    match value {
+        1 => Ok(AgentLearningSessionStatusV1::Registered),
+        2 => Ok(AgentLearningSessionStatusV1::PersistedViewVerified),
+        3 => Ok(AgentLearningSessionStatusV1::ProjectionReady),
+        4 => Ok(AgentLearningSessionStatusV1::CandidateFamilyFrozen),
+        5 => Ok(AgentLearningSessionStatusV1::InsufficientEvidence),
+        6 => Ok(AgentLearningSessionStatusV1::TrainerUnavailable),
+        7 => Ok(AgentLearningSessionStatusV1::ValidationBlocked),
+        8 => Ok(AgentLearningSessionStatusV1::RejectedUnauthorizedEvidence),
+        9 => Ok(AgentLearningSessionStatusV1::RejectedCutoffLeakage),
+        10 => Ok(AgentLearningSessionStatusV1::RejectedSafetyInvariant),
+        11 => Ok(AgentLearningSessionStatusV1::TechnicalFailure),
+        _ => Err("V1 session status rejected".to_string()),
+    }
+}
+
+fn participant_role_tag_v1(role: CandidateParticipantRoleV1) -> u32 {
+    match role {
+        CandidateParticipantRoleV1::ModelCandidate => 1,
+        CandidateParticipantRoleV1::LinearComparator => 2,
+        CandidateParticipantRoleV1::ConstantComparator => 3,
+    }
+}
+
+fn participant_role_from_tag_v1(value: u32) -> Result<CandidateParticipantRoleV1, String> {
+    match value {
+        1 => Ok(CandidateParticipantRoleV1::ModelCandidate),
+        2 => Ok(CandidateParticipantRoleV1::LinearComparator),
+        3 => Ok(CandidateParticipantRoleV1::ConstantComparator),
+        _ => Err("V1 participant role rejected".to_string()),
+    }
+}
+
+fn qualification_status_tag_v1(status: ValidationQualificationStatusV1) -> u32 {
+    match status {
+        ValidationQualificationStatusV1::Qualified => 1,
+        ValidationQualificationStatusV1::RejectedInsufficientValidation => 2,
+        ValidationQualificationStatusV1::RejectedProbabilityCollapse => 3,
+        ValidationQualificationStatusV1::RejectedNumericalFailure => 4,
+    }
+}
+
+fn qualification_status_from_tag_v1(value: u32) -> Result<ValidationQualificationStatusV1, String> {
+    match value {
+        1 => Ok(ValidationQualificationStatusV1::Qualified),
+        2 => Ok(ValidationQualificationStatusV1::RejectedInsufficientValidation),
+        3 => Ok(ValidationQualificationStatusV1::RejectedProbabilityCollapse),
+        4 => Ok(ValidationQualificationStatusV1::RejectedNumericalFailure),
+        _ => Err("V1 qualification status rejected".to_string()),
+    }
+}
+
+fn evidence_use_tag_v1(kind: CandidateEvidenceUseV1) -> u32 {
+    match kind {
+        CandidateEvidenceUseV1::ViewBinding => 1,
+        CandidateEvidenceUseV1::TrainerProjection => 2,
+        CandidateEvidenceUseV1::FeatureDerivation => 3,
+        CandidateEvidenceUseV1::LabelDerivation => 4,
+        CandidateEvidenceUseV1::NormalizerFit => 5,
+        CandidateEvidenceUseV1::ParameterTraining => 6,
+        CandidateEvidenceUseV1::ValidationInference => 7,
+        CandidateEvidenceUseV1::ValidationMetric => 8,
+        CandidateEvidenceUseV1::FamilyInclusion => 9,
+        CandidateEvidenceUseV1::ReferencedButUnconsumed => 10,
+        CandidateEvidenceUseV1::ReservedRetrospectiveUnused => 11,
+    }
+}
+
+fn evidence_use_from_tag_v1(value: u32) -> Result<CandidateEvidenceUseV1, String> {
+    match value {
+        1 => Ok(CandidateEvidenceUseV1::ViewBinding),
+        2 => Ok(CandidateEvidenceUseV1::TrainerProjection),
+        3 => Ok(CandidateEvidenceUseV1::FeatureDerivation),
+        4 => Ok(CandidateEvidenceUseV1::LabelDerivation),
+        5 => Ok(CandidateEvidenceUseV1::NormalizerFit),
+        6 => Ok(CandidateEvidenceUseV1::ParameterTraining),
+        7 => Ok(CandidateEvidenceUseV1::ValidationInference),
+        8 => Ok(CandidateEvidenceUseV1::ValidationMetric),
+        9 => Ok(CandidateEvidenceUseV1::FamilyInclusion),
+        10 => Ok(CandidateEvidenceUseV1::ReferencedButUnconsumed),
+        11 => Ok(CandidateEvidenceUseV1::ReservedRetrospectiveUnused),
+        _ => Err("V1 evidence use rejected".to_string()),
+    }
+}
+
+fn registration_status_tag_v1(status: CandidateEvaluationRegistrationStatusV1) -> u32 {
+    match status {
+        CandidateEvaluationRegistrationStatusV1::Registered => 1,
+        CandidateEvaluationRegistrationStatusV1::CandidateUnavailable => 2,
+        CandidateEvaluationRegistrationStatusV1::SessionInvalid => 3,
+        CandidateEvaluationRegistrationStatusV1::ViewInvalid => 4,
+        CandidateEvaluationRegistrationStatusV1::ProjectionInvalid => 5,
+        CandidateEvaluationRegistrationStatusV1::FamilyInvalid => 6,
+        CandidateEvaluationRegistrationStatusV1::QualificationBlocked => 7,
+        CandidateEvaluationRegistrationStatusV1::HistoricalTestAccessDetected => 8,
+        CandidateEvaluationRegistrationStatusV1::ExclusionInvalid => 9,
+        CandidateEvaluationRegistrationStatusV1::InsufficientParticipants => 10,
+    }
+}
+
+fn registration_status_from_tag_v1(
+    value: u32,
+) -> Result<CandidateEvaluationRegistrationStatusV1, String> {
+    match value {
+        1 => Ok(CandidateEvaluationRegistrationStatusV1::Registered),
+        2 => Ok(CandidateEvaluationRegistrationStatusV1::CandidateUnavailable),
+        3 => Ok(CandidateEvaluationRegistrationStatusV1::SessionInvalid),
+        4 => Ok(CandidateEvaluationRegistrationStatusV1::ViewInvalid),
+        5 => Ok(CandidateEvaluationRegistrationStatusV1::ProjectionInvalid),
+        6 => Ok(CandidateEvaluationRegistrationStatusV1::FamilyInvalid),
+        7 => Ok(CandidateEvaluationRegistrationStatusV1::QualificationBlocked),
+        8 => Ok(CandidateEvaluationRegistrationStatusV1::HistoricalTestAccessDetected),
+        9 => Ok(CandidateEvaluationRegistrationStatusV1::ExclusionInvalid),
+        10 => Ok(CandidateEvaluationRegistrationStatusV1::InsufficientParticipants),
+        _ => Err("V1 registration status rejected".to_string()),
+    }
+}
+
 fn dataset_kind_tag_v0(kind: DatasetKind) -> Result<u32, String> {
     match kind {
         DatasetKind::DailyOhlcv => Ok(1),
@@ -4421,6 +7400,699 @@ fn registry_digest_v0(registry: &AgentTrainerCapabilityRegistryV0) -> String {
             .iter()
             .map(|capability| capability.capability_digest.as_str())
             .collect::<Vec<_>>()
+    ))
+}
+
+fn projection_digest_v1(projection: &AgentTrainerInputProjectionV1) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{:?}:{}:{:?}:{:?}:{:?}:{}",
+        projection.projection_version,
+        projection.agent_id,
+        projection.trainer_kind,
+        projection.source_view_digest,
+        projection.consumed_artifact_digests,
+        projection.referenced_unconsumed_artifact_digests,
+        projection.primary_series_digest,
+        projection.projection_policy_digest
+    ))
+}
+
+fn validate_projection_v1(projection: &AgentTrainerInputProjectionV1) -> Result<(), String> {
+    let mut consumed = projection.consumed_artifact_digests.clone();
+    consumed.sort();
+    consumed.dedup();
+    let mut referenced = projection.referenced_unconsumed_artifact_digests.clone();
+    referenced.sort();
+    referenced.dedup();
+    if projection.projection_version != PROJECTION_VERSION_V1
+        || projection.agent_id.is_empty()
+        || projection.source_view_digest.is_empty()
+        || projection.consumed_artifact_digests != consumed
+        || projection.referenced_unconsumed_artifact_digests != referenced
+        || projection
+            .consumed_artifact_digests
+            .iter()
+            .any(|digest| referenced.contains(digest))
+        || projection
+            .primary_series_digest
+            .as_ref()
+            .is_none_or(|digest| !consumed.contains(digest))
+        || projection.projection_policy_digest.is_empty()
+        || projection.projection_digest != projection_digest_v1(projection)
+    {
+        return Err("V1 trainer projection rejected".to_string());
+    }
+    Ok(())
+}
+
+fn session_digest_v1(session: &AgentPrivateLearningSessionV1) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{}:{:?}:{}:{}:{}:{}:{}:{}:{}:{}:{}:{:?}:{:?}:{:?}:{}:{}:{}:{}:{:?}",
+        session.session_version,
+        session.session_id,
+        session.agent_id,
+        session.agent_kind,
+        session.intent_digest,
+        session.view_digest,
+        session.projection_digest,
+        session.capability_digest,
+        session.source_policy_digest,
+        session.feature_policy_digest,
+        session.label_policy_digest,
+        session.curriculum_policy_digest,
+        session.information_cutoff_ms,
+        session.source_artifact_digests,
+        session.consumed_artifact_digests,
+        session.referenced_unconsumed_artifact_digests,
+        session.private_namespace_digest,
+        session.training_ledger_digest,
+        session.fresh_initialization,
+        session.historical_test_access_forbidden,
+        session.status
+    ))
+}
+
+fn validate_session_v1(session: &AgentPrivateLearningSessionV1) -> Result<(), String> {
+    let sorted_unique = |values: &[String]| {
+        let mut expected = values.to_vec();
+        expected.sort();
+        expected.dedup();
+        expected == values
+    };
+    if session.session_version != SESSION_VERSION_V1_FAMILY
+        || session.session_id.is_empty()
+        || session.agent_id.is_empty()
+        || session.intent_digest.is_empty()
+        || session.view_digest.is_empty()
+        || session.projection_digest.is_empty()
+        || session.capability_digest.is_empty()
+        || session.source_policy_digest.is_empty()
+        || session.feature_policy_digest.is_empty()
+        || session.label_policy_digest.is_empty()
+        || session.curriculum_policy_digest.is_empty()
+        || session.information_cutoff_ms == 0
+        || session.source_artifact_digests.is_empty()
+        || !sorted_unique(&session.source_artifact_digests)
+        || !sorted_unique(&session.consumed_artifact_digests)
+        || !sorted_unique(&session.referenced_unconsumed_artifact_digests)
+        || session
+            .consumed_artifact_digests
+            .iter()
+            .any(|digest| !session.source_artifact_digests.contains(digest))
+        || session
+            .referenced_unconsumed_artifact_digests
+            .iter()
+            .any(|digest| !session.source_artifact_digests.contains(digest))
+        || session.private_namespace_digest.is_empty()
+        || session.training_ledger_digest.is_empty()
+        || !session.fresh_initialization
+        || !session.historical_test_access_forbidden
+        || session.session_digest != session_digest_v1(session)
+    {
+        return Err("V1 learning session rejected".to_string());
+    }
+    Ok(())
+}
+
+fn participant_digest_v1(participant: &FrozenCandidateParticipantV1) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{:?}:{}:{}:{}:{}:{}:{}:{}:{}:{:?}",
+        PARTICIPANT_VERSION_V1,
+        participant.participant_id,
+        participant.role,
+        participant.model_kind,
+        participant.model_artifact_digest,
+        participant.parameter_digest,
+        participant.normalizer_digest,
+        participant.feature_policy_digest,
+        participant.label_policy_digest,
+        participant.training_policy_digest,
+        participant.initialization_digest,
+        participant.deployment_status
+    ))
+}
+
+fn validate_participant_v1(participant: &FrozenCandidateParticipantV1) -> Result<(), String> {
+    if participant.participant_id.is_empty()
+        || participant.model_kind.is_empty()
+        || participant.model_artifact_digest.is_empty()
+        || participant.parameter_digest.is_empty()
+        || participant.normalizer_digest.is_empty()
+        || participant.feature_policy_digest.is_empty()
+        || participant.label_policy_digest.is_empty()
+        || participant.training_policy_digest.is_empty()
+        || participant.initialization_digest.is_empty()
+        || participant.deployment_status != ModelAgentDeploymentStatus::ShadowOnly
+        || participant.participant_digest != participant_digest_v1(participant)
+    {
+        return Err("V1 frozen participant rejected".to_string());
+    }
+    Ok(())
+}
+
+fn qualification_receipt_digest_v1(receipt: &ParticipantValidationQualificationV1) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{}:{}:{}:{:?}:{}",
+        QUALIFICATION_VERSION_V1,
+        receipt.participant_digest,
+        receipt.validation_range_digest,
+        receipt.metric_policy_digest,
+        receipt.private_metric_digest,
+        receipt.qualification_status,
+        receipt.parameter_updates_during_validation
+    ))
+}
+
+fn validate_qualification_receipt_v1(
+    receipt: &ParticipantValidationQualificationV1,
+) -> Result<(), String> {
+    if receipt.participant_digest.is_empty()
+        || receipt.validation_range_digest.is_empty()
+        || receipt.metric_policy_digest.is_empty()
+        || receipt.private_metric_digest.is_empty()
+        || receipt.parameter_updates_during_validation != 0
+        || receipt.receipt_digest != qualification_receipt_digest_v1(receipt)
+    {
+        return Err("V1 validation qualification receipt rejected".to_string());
+    }
+    Ok(())
+}
+
+fn candidate_family_digest_v1(family: &AgentCandidateFamilyV1) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{}:{}:{}:{:?}:{}:{}:{}:{}:{}",
+        family.family_version,
+        family.agent_id,
+        family.session_digest,
+        family.view_digest,
+        family.projection_digest,
+        family
+            .participants
+            .iter()
+            .map(|participant| participant.participant_digest.as_str())
+            .collect::<Vec<_>>(),
+        family.winner_selected,
+        family.historical_test_accessed,
+        family.eligible_for_active_committee,
+        family.eligible_for_promotion,
+        family.eligible_for_reward
+    ))
+}
+
+fn validate_candidate_family_v1(family: &AgentCandidateFamilyV1) -> Result<(), String> {
+    let mut participant_ids = family
+        .participants
+        .iter()
+        .map(|participant| participant.participant_id.as_str())
+        .collect::<Vec<_>>();
+    let original_ids = participant_ids.clone();
+    participant_ids.sort();
+    participant_ids.dedup();
+    let mut receipt_digests = family.validation_qualification_receipts.clone();
+    receipt_digests.sort();
+    receipt_digests.dedup();
+    if family.family_version != FAMILY_VERSION_V1
+        || family.agent_id.is_empty()
+        || family.session_digest.is_empty()
+        || family.view_digest.is_empty()
+        || family.projection_digest.is_empty()
+        || original_ids != participant_ids
+        || family.validation_qualification_receipts != receipt_digests
+        || family.participants.iter().any(|participant| {
+            validate_participant_v1(participant).is_err()
+                || participant.deployment_status != ModelAgentDeploymentStatus::ShadowOnly
+        })
+        || family.winner_selected
+        || family.historical_test_accessed
+        || family.eligible_for_active_committee
+        || family.eligible_for_promotion
+        || family.eligible_for_reward
+        || family.family_digest != candidate_family_digest_v1(family)
+    {
+        return Err("V1 candidate family rejected".to_string());
+    }
+    Ok(())
+}
+
+fn usage_entry_digest_v1(entry: &CandidateEvidenceUsageEntryV1) -> String {
+    stable_hash_string(&format!(
+        "{}:{:?}:{:?}:{}:{}",
+        entry.artifact_digest,
+        entry.range,
+        entry.use_kind,
+        entry.labels_read,
+        entry.parameters_updated
+    ))
+}
+
+fn usage_ledger_digest_v1(ledger: &AgentCandidateUsageLedgerV1) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{}:{}:{:?}:{}:{}:{}:{}:{}:{}",
+        ledger.ledger_version,
+        ledger.agent_id,
+        ledger.session_digest,
+        ledger.family_digest,
+        ledger
+            .entries
+            .iter()
+            .map(|entry| entry.entry_digest.as_str())
+            .collect::<Vec<_>>(),
+        ledger.historical_test_row_reads,
+        ledger.historical_test_label_reads,
+        ledger.historical_test_inference_count,
+        ledger.historical_test_metric_count,
+        ledger.historical_test_checkpoint_selection_count,
+        ledger.historical_test_identity_influence
+    ))
+}
+
+fn validate_usage_ledger_v1(ledger: &AgentCandidateUsageLedgerV1) -> Result<(), String> {
+    if ledger.ledger_version != USAGE_LEDGER_VERSION_V1
+        || ledger.agent_id.is_empty()
+        || ledger.session_digest.is_empty()
+        || ledger.family_digest.is_empty()
+        || ledger.entries.is_empty()
+        || ledger.entries.iter().any(|entry| {
+            entry.artifact_digest.is_empty()
+                || entry
+                    .range
+                    .as_ref()
+                    .is_some_and(|range| range.start > range.end)
+                || entry.entry_digest != usage_entry_digest_v1(entry)
+        })
+        || ledger.historical_test_row_reads != 0
+        || ledger.historical_test_label_reads != 0
+        || ledger.historical_test_inference_count != 0
+        || ledger.historical_test_metric_count != 0
+        || ledger.historical_test_checkpoint_selection_count != 0
+        || ledger.historical_test_identity_influence
+        || ledger.ledger_digest != usage_ledger_digest_v1(ledger)
+    {
+        return Err("V1 candidate usage ledger rejected".to_string());
+    }
+    Ok(())
+}
+
+fn candidate_usage_ledger_v1(
+    session: &AgentPrivateLearningSessionV1,
+    projection: &AgentTrainerInputProjectionV1,
+    family: &AgentCandidateFamilyV1,
+    training_range: &IndexRangeV0,
+    purge_range: &IndexRangeV0,
+    validation_range: &IndexRangeV0,
+    reserved_range: &IndexRangeV0,
+) -> AgentCandidateUsageLedgerV1 {
+    let mut entries = Vec::new();
+    let mut push = |artifact_digest: String,
+                    range: Option<IndexRangeV0>,
+                    use_kind: CandidateEvidenceUseV1,
+                    labels_read: bool,
+                    parameters_updated: bool| {
+        let mut entry = CandidateEvidenceUsageEntryV1 {
+            artifact_digest,
+            range,
+            use_kind,
+            labels_read,
+            parameters_updated,
+            entry_digest: String::new(),
+        };
+        entry.entry_digest = usage_entry_digest_v1(&entry);
+        entries.push(entry);
+    };
+    for digest in &session.source_artifact_digests {
+        push(
+            digest.clone(),
+            None,
+            CandidateEvidenceUseV1::ViewBinding,
+            false,
+            false,
+        );
+    }
+    for digest in &projection.consumed_artifact_digests {
+        push(
+            digest.clone(),
+            None,
+            CandidateEvidenceUseV1::TrainerProjection,
+            false,
+            false,
+        );
+    }
+    if let Some(primary) = &projection.primary_series_digest {
+        for (range, use_kind, labels_read, parameters_updated) in [
+            (
+                training_range,
+                CandidateEvidenceUseV1::FeatureDerivation,
+                false,
+                false,
+            ),
+            (
+                training_range,
+                CandidateEvidenceUseV1::LabelDerivation,
+                true,
+                false,
+            ),
+            (
+                training_range,
+                CandidateEvidenceUseV1::NormalizerFit,
+                false,
+                false,
+            ),
+            (
+                training_range,
+                CandidateEvidenceUseV1::ParameterTraining,
+                true,
+                true,
+            ),
+            (
+                validation_range,
+                CandidateEvidenceUseV1::FeatureDerivation,
+                false,
+                false,
+            ),
+            (
+                validation_range,
+                CandidateEvidenceUseV1::LabelDerivation,
+                true,
+                false,
+            ),
+            (
+                validation_range,
+                CandidateEvidenceUseV1::ValidationInference,
+                false,
+                false,
+            ),
+            (
+                validation_range,
+                CandidateEvidenceUseV1::ValidationMetric,
+                true,
+                false,
+            ),
+            (
+                purge_range,
+                CandidateEvidenceUseV1::ReferencedButUnconsumed,
+                false,
+                false,
+            ),
+            (
+                reserved_range,
+                CandidateEvidenceUseV1::ReservedRetrospectiveUnused,
+                false,
+                false,
+            ),
+        ] {
+            push(
+                primary.clone(),
+                Some(range.clone()),
+                use_kind,
+                labels_read,
+                parameters_updated,
+            );
+        }
+    }
+    for digest in &projection.referenced_unconsumed_artifact_digests {
+        push(
+            digest.clone(),
+            None,
+            CandidateEvidenceUseV1::ReferencedButUnconsumed,
+            false,
+            false,
+        );
+    }
+    for participant in &family.participants {
+        push(
+            participant.participant_digest.clone(),
+            None,
+            CandidateEvidenceUseV1::FamilyInclusion,
+            false,
+            false,
+        );
+    }
+    let mut ledger = AgentCandidateUsageLedgerV1 {
+        ledger_version: USAGE_LEDGER_VERSION_V1.to_string(),
+        agent_id: session.agent_id.clone(),
+        session_digest: session.session_digest.clone(),
+        family_digest: family.family_digest.clone(),
+        entries,
+        historical_test_row_reads: 0,
+        historical_test_label_reads: 0,
+        historical_test_inference_count: 0,
+        historical_test_metric_count: 0,
+        historical_test_checkpoint_selection_count: 0,
+        historical_test_identity_influence: false,
+        ledger_digest: String::new(),
+    };
+    ledger.ledger_digest = usage_ledger_digest_v1(&ledger);
+    ledger
+}
+
+fn zero_agent_learning_safety_counters_v1() -> AgentLearningSafetyCountersV1 {
+    AgentLearningSafetyCountersV1 {
+        active_committee_count: 3,
+        network_requests: 0,
+        credential_reads: 0,
+        prospective_row_reads: 0,
+        prospective_label_reads: 0,
+        prospective_mutations: 0,
+        historical_test_reads_v1: 0,
+        active_model_changes: 0,
+        chair_decisions: 0,
+        votes: 0,
+        rewards: 0,
+        penalties: 0,
+        voice_changes: 0,
+        promotions: 0,
+        executions: 0,
+    }
+}
+
+fn candidate_families_report_digest_v1(report: &AgentCandidateFamiliesReportV1) -> String {
+    stable_hash_string(&format!(
+        "{}:{:?}:{:?}:{:?}:{}:{}:{}",
+        report.report_version,
+        report.mode,
+        report
+            .results
+            .iter()
+            .map(|result| (
+                result.agent_id.as_str(),
+                result.status,
+                result
+                    .family
+                    .as_ref()
+                    .map(|family| family.family_digest.as_str()),
+                result
+                    .usage_ledger
+                    .as_ref()
+                    .map(|ledger| ledger.ledger_digest.as_str())
+            ))
+            .collect::<Vec<_>>(),
+        report.safety_counters,
+        report.active_state_unchanged,
+        report.duplicate_artifact_count,
+        report.storage_failure_count
+    ))
+}
+
+fn protected_reservation_digest_v1(reservation: &ProtectedEvaluationReservationV1) -> String {
+    stable_hash_string(&format!(
+        "protected-evaluation-reservation-v1:{:?}:{:?}:{}:{}",
+        reservation.protected_registration_digests,
+        reservation.reserved_timestamp_ms,
+        reservation.cadence_ms,
+        reservation.provider_finality_boundary_ms
+    ))
+}
+
+fn validate_protected_reservation_v1(
+    reservation: &ProtectedEvaluationReservationV1,
+) -> Result<(), String> {
+    let mut registrations = reservation.protected_registration_digests.clone();
+    registrations.sort();
+    registrations.dedup();
+    let mut timestamps = reservation.reserved_timestamp_ms.clone();
+    timestamps.sort();
+    timestamps.dedup();
+    if registrations.is_empty()
+        || registrations != reservation.protected_registration_digests
+        || registrations.iter().any(String::is_empty)
+        || timestamps.is_empty()
+        || timestamps != reservation.reserved_timestamp_ms
+        || timestamps.contains(&0)
+        || reservation.cadence_ms == 0
+        || timestamps.windows(2).any(|pair| {
+            pair[1]
+                .checked_sub(pair[0])
+                .is_none_or(|delta| delta % reservation.cadence_ms != 0)
+        })
+        || timestamps
+            .last()
+            .and_then(|timestamp| timestamp.checked_add(reservation.cadence_ms))
+            .is_none_or(|boundary| boundary > reservation.provider_finality_boundary_ms)
+        || reservation.reservation_digest != protected_reservation_digest_v1(reservation)
+    {
+        return Err("protected evaluation reservation rejected".to_string());
+    }
+    Ok(())
+}
+
+fn evaluation_exclusion_digest_v1(exclusion: &EvaluationEvidenceExclusionV1) -> String {
+    stable_hash_string(&format!(
+        "{}:{:?}:{:?}:{:?}",
+        EXCLUSION_VERSION_V1,
+        exclusion.protected_registration_digests,
+        exclusion.excluded_timestamp_ms,
+        exclusion.excluded_range_digests
+    ))
+}
+
+fn validate_evaluation_exclusion_v1(
+    exclusion: &EvaluationEvidenceExclusionV1,
+) -> Result<(), String> {
+    let sorted_unique_strings = |values: &[String]| {
+        let mut expected = values.to_vec();
+        expected.sort();
+        expected.dedup();
+        expected == values && !expected.is_empty() && expected.iter().all(|value| !value.is_empty())
+    };
+    let mut timestamps = exclusion.excluded_timestamp_ms.clone();
+    timestamps.sort();
+    timestamps.dedup();
+    if !sorted_unique_strings(&exclusion.protected_registration_digests)
+        || !sorted_unique_strings(&exclusion.excluded_range_digests)
+        || timestamps.is_empty()
+        || timestamps != exclusion.excluded_timestamp_ms
+        || timestamps.contains(&0)
+        || exclusion.exclusion_digest != evaluation_exclusion_digest_v1(exclusion)
+    {
+        return Err("V1 evaluation evidence exclusion rejected".to_string());
+    }
+    Ok(())
+}
+
+fn evaluation_registration_digest_v1(
+    registration: &AgentCandidateEvaluationRegistrationV1,
+) -> String {
+    stable_hash_string(&format!(
+        "{:?}",
+        (
+            (
+                registration.registration_version.as_str(),
+                registration.agent_id.as_str(),
+                registration.family_digest.as_str(),
+                registration.session_digest.as_str(),
+                registration.usage_ledger_digest.as_str(),
+                &registration.participant_digests,
+                &registration.qualification_receipt_digests,
+                registration.exclusion_digest.as_str(),
+                registration.minimum_accepted_timestamp_ms,
+            ),
+            (
+                &registration.required_dataset_kinds,
+                registration.source_policy_digest.as_str(),
+                registration.finality_policy_digest.as_str(),
+                registration.label_policy_digest.as_str(),
+                registration.metric_policy_digest.as_str(),
+                registration.support_policy_digest.as_str(),
+                registration.minimum_future_rows,
+                registration.minimum_mature_events,
+                registration.maximum_requests,
+                registration.maximum_concurrency,
+            ),
+            (
+                registration.maximum_retries,
+                registration.labels_hidden_until_opening,
+                registration.probabilities_hidden_until_opening,
+                registration.one_time_opening_required,
+                registration.winner_selection_forbidden_before_opening,
+                registration.active_promotion_forbidden,
+                registration.reward_application_forbidden,
+                registration.status,
+            )
+        )
+    ))
+}
+
+fn validate_evaluation_registration_v1(
+    registration: &AgentCandidateEvaluationRegistrationV1,
+) -> Result<(), String> {
+    let mut participants = registration.participant_digests.clone();
+    participants.sort();
+    participants.dedup();
+    let mut receipts = registration.qualification_receipt_digests.clone();
+    receipts.sort();
+    receipts.dedup();
+    let mut kinds = registration.required_dataset_kinds.clone();
+    kinds.sort();
+    kinds.dedup();
+    if registration.registration_version != EVALUATION_REGISTRATION_VERSION_V1
+        || registration.agent_id.is_empty()
+        || registration.family_digest.is_empty()
+        || registration.session_digest.is_empty()
+        || registration.usage_ledger_digest.is_empty()
+        || registration.participant_digests != participants
+        || participants.len() < 2
+        || registration.qualification_receipt_digests != receipts
+        || receipts.len() != participants.len()
+        || registration.exclusion_digest.is_empty()
+        || registration.minimum_accepted_timestamp_ms == 0
+        || registration.required_dataset_kinds != kinds
+        || kinds.is_empty()
+        || registration.source_policy_digest.is_empty()
+        || registration.finality_policy_digest.is_empty()
+        || registration.label_policy_digest.is_empty()
+        || registration.metric_policy_digest.is_empty()
+        || registration.support_policy_digest.is_empty()
+        || registration.minimum_future_rows == 0
+        || registration.minimum_mature_events == 0
+        || registration.maximum_requests != 1
+        || registration.maximum_concurrency != 1
+        || registration.maximum_retries != 0
+        || !registration.labels_hidden_until_opening
+        || !registration.probabilities_hidden_until_opening
+        || !registration.one_time_opening_required
+        || !registration.winner_selection_forbidden_before_opening
+        || !registration.active_promotion_forbidden
+        || !registration.reward_application_forbidden
+        || registration.status != CandidateEvaluationRegistrationStatusV1::Registered
+        || registration.registration_digest != evaluation_registration_digest_v1(registration)
+    {
+        return Err("V1 candidate evaluation registration rejected".to_string());
+    }
+    Ok(())
+}
+
+fn evaluation_journal_digest_v1(journal: &AgentCandidateEvaluationRegistrationJournalV1) -> String {
+    stable_hash_string(&format!(
+        "{}:{}:{}:{:?}",
+        journal.journal_version, journal.agent_id, journal.family_digest, journal.entries
+    ))
+}
+
+fn candidate_evaluations_report_digest_v1(report: &AgentCandidateEvaluationsReportV1) -> String {
+    stable_hash_string(&format!(
+        "{}:{:?}:{:?}:{:?}:{}:{}:{}",
+        report.report_version,
+        report.mode,
+        report
+            .results
+            .iter()
+            .map(|result| (
+                result.agent_id.as_str(),
+                result.status,
+                result
+                    .registration
+                    .as_ref()
+                    .map(|registration| registration.registration_digest.as_str()),
+                result
+                    .exclusion
+                    .as_ref()
+                    .map(|exclusion| exclusion.exclusion_digest.as_str())
+            ))
+            .collect::<Vec<_>>(),
+        report.safety_counters,
+        report.active_state_unchanged,
+        report.duplicate_artifact_count,
+        report.storage_failure_count
     ))
 }
 
@@ -5941,5 +9613,773 @@ mod tests {
         assert!(!json.contains("normalizer"));
         assert!(!json.contains("weights"));
         assert!(!json.contains("prediction"));
+    }
+
+    fn v1_inputs() -> Vec<AgentPrivateLearningInputV1> {
+        let mut source = snapshots();
+        for (snapshot_index, snapshot) in source.iter_mut().enumerate() {
+            for (index, row) in snapshot.normalized_dataset.rows.iter_mut().enumerate() {
+                let phase = index as f64 * 0.31 + snapshot_index as f64 * 0.07;
+                let close =
+                    110.0 + index as f64 * 0.015 + phase.sin() * 6.0 + (phase * 0.37).cos() * 3.0;
+                let open = close + (phase * 1.7).sin() * 0.8;
+                row.open = open;
+                row.high = open.max(close) * (1.01 + (index % 5) as f64 * 0.001);
+                row.low = open.min(close) * if index % 13 == 0 { 0.94 } else { 0.985 };
+                row.close = close;
+                row.volume = 1_000.0 + (phase * 0.9).sin().abs() * 900.0;
+                row.trade_value = Some(row.close * row.volume);
+            }
+            snapshot.content_digest =
+                historical_replay_dataset_digest_v0(&snapshot.normalized_dataset);
+            snapshot.snapshot_id = snapshot_id_from_semantic_digest_v1(&snapshot.content_digest);
+        }
+        build_agent_private_learning_inputs_v0(&source, 360)
+            .unwrap()
+            .into_iter()
+            .map(|input| AgentPrivateLearningInputV1 {
+                input,
+                persisted_view_verified: true,
+            })
+            .collect()
+    }
+
+    fn v1_family_report() -> AgentCandidateFamiliesReportV1 {
+        static REPORT: OnceLock<AgentCandidateFamiliesReportV1> = OnceLock::new();
+        REPORT
+            .get_or_init(|| {
+                run_agent_private_learning_candidates_v1(
+                    &v1_inputs(),
+                    AgentPrivateLearningRunModeV0::DryRun,
+                )
+            })
+            .clone()
+    }
+
+    fn v1_family_result<'a>(
+        report: &'a AgentCandidateFamiliesReportV1,
+        agent_id: &str,
+    ) -> &'a AgentCandidateFamilyResultV1 {
+        report
+            .results
+            .iter()
+            .find(|result| result.agent_id == agent_id)
+            .unwrap()
+    }
+
+    #[test]
+    fn v1_momentum_freezes_three_participants() {
+        let report = v1_family_report();
+        let result = v1_family_result(&report, "momentum_trend_fast");
+        assert_eq!(
+            result.status,
+            AgentLearningSessionStatusV1::CandidateFamilyFrozen
+        );
+        assert_eq!(
+            result.family.as_ref().unwrap().participants.len(),
+            3,
+            "participants={:?};receipts={:?}",
+            result
+                .family
+                .as_ref()
+                .unwrap()
+                .participants
+                .iter()
+                .map(|participant| (&participant.model_kind, &participant.participant_digest))
+                .collect::<Vec<_>>(),
+            result.qualification_receipts,
+        );
+    }
+
+    #[test]
+    fn v1_cycle_risk_freezes_three_participants() {
+        let report = v1_family_report();
+        let result = v1_family_result(&report, "cycle_risk_skeptic");
+        assert_eq!(
+            result.status,
+            AgentLearningSessionStatusV1::CandidateFamilyFrozen
+        );
+        assert_eq!(result.family.as_ref().unwrap().participants.len(), 3);
+    }
+
+    fn v1_reservation() -> ProtectedEvaluationReservationV1 {
+        let mut reservation = ProtectedEvaluationReservationV1 {
+            protected_registration_digests: vec![
+                "capsule-momentum".to_string(),
+                "capsule-risk".to_string(),
+                "opening-registration".to_string(),
+            ],
+            reserved_timestamp_ms: vec![
+                1_784_332_800_000,
+                1_784_419_200_000,
+                1_784_505_600_000,
+                1_784_592_000_000,
+            ],
+            cadence_ms: DAILY_CADENCE_MS_V1,
+            provider_finality_boundary_ms: 1_784_678_400_000,
+            reservation_digest: String::new(),
+        };
+        reservation.reservation_digest = protected_reservation_digest_v1(&reservation);
+        reservation
+    }
+
+    fn fully_qualified_v1_families() -> AgentCandidateFamiliesReportV1 {
+        let mut report = v1_family_report();
+        for result in &mut report.results {
+            let Some(family) = &mut result.family else {
+                continue;
+            };
+            for receipt in &mut result.qualification_receipts {
+                receipt.qualification_status = ValidationQualificationStatusV1::Qualified;
+                receipt.receipt_digest = qualification_receipt_digest_v1(receipt);
+            }
+            let participant_digests = family
+                .participants
+                .iter()
+                .map(|participant| participant.participant_digest.as_str())
+                .collect::<BTreeSet<_>>();
+            family.validation_qualification_receipts = result
+                .qualification_receipts
+                .iter()
+                .filter(|receipt| participant_digests.contains(receipt.participant_digest.as_str()))
+                .map(|receipt| receipt.receipt_digest.clone())
+                .collect();
+            family.validation_qualification_receipts.sort();
+            result.status = AgentLearningSessionStatusV1::CandidateFamilyFrozen;
+        }
+        report.report_digest = candidate_families_report_digest_v1(&report);
+        report
+    }
+
+    fn v1_evaluation_report() -> AgentCandidateEvaluationsReportV1 {
+        static REPORT: OnceLock<AgentCandidateEvaluationsReportV1> = OnceLock::new();
+        REPORT
+            .get_or_init(|| {
+                run_agent_candidate_evaluations_v1(
+                    &fully_qualified_v1_families(),
+                    &v1_inputs(),
+                    &v1_reservation(),
+                    AgentPrivateLearningRunModeV0::DryRun,
+                )
+            })
+            .clone()
+    }
+
+    #[test]
+    fn v1_v0_artifacts_remain_byte_identical() {
+        let root = unique_root("v1-v0-byte-freeze");
+        let _ = fs::remove_dir_all(&root);
+        let mut v0 = execution_report();
+        assert_eq!(
+            persist_agent_private_learning_report_v0(&mut v0, &root).failed_artifact_count,
+            0
+        );
+        let mut paths = Vec::new();
+        collect_protobuf_paths_v0(&root, &mut paths).unwrap();
+        let before = paths
+            .into_iter()
+            .map(|path| {
+                let bytes = fs::read(&path).unwrap();
+                (path, bytes)
+            })
+            .collect::<Vec<_>>();
+        let mut v1 = v1_family_report();
+        assert_eq!(
+            persist_agent_candidate_families_report_v1(&mut v1, &root).failed_artifact_count,
+            0
+        );
+        for (path, bytes) in before {
+            assert_eq!(fs::read(path).unwrap(), bytes);
+        }
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn v1_v0_candidate_is_never_a_parent() {
+        for result in v1_family_report().results {
+            if let Some(session) = result.session {
+                assert!(session.fresh_initialization);
+                assert!(!session.session_id.contains(CANDIDATE_VERSION_V0));
+                assert!(!session.source_artifact_digests.iter().any(|digest| {
+                    execution_report().results.iter().any(|v0| {
+                        v0.candidate
+                            .as_ref()
+                            .is_some_and(|candidate| candidate.candidate_digest == *digest)
+                    })
+                }));
+            }
+        }
+    }
+
+    #[test]
+    fn v1_complete_persisted_view_is_required() {
+        let mut inputs = v1_inputs();
+        let momentum = inputs
+            .iter_mut()
+            .find(|input| input.input.intent.agent_id == "momentum_trend_fast")
+            .unwrap();
+        momentum.persisted_view_verified = false;
+        let report = run_agent_private_learning_candidates_v1(
+            &inputs,
+            AgentPrivateLearningRunModeV0::DryRun,
+        );
+        let result = v1_family_result(&report, "momentum_trend_fast");
+        assert!(result.family.is_none());
+        assert_eq!(
+            result.status,
+            AgentLearningSessionStatusV1::InsufficientEvidence
+        );
+    }
+
+    #[test]
+    fn v1_missing_required_evidence_blocks_only_affected_agent() {
+        let mut inputs = v1_inputs();
+        inputs
+            .iter_mut()
+            .find(|input| input.input.intent.agent_id == "cycle_risk_skeptic")
+            .unwrap()
+            .persisted_view_verified = false;
+        let report = run_agent_private_learning_candidates_v1(
+            &inputs,
+            AgentPrivateLearningRunModeV0::DryRun,
+        );
+        assert!(
+            v1_family_result(&report, "cycle_risk_skeptic")
+                .family
+                .is_none()
+        );
+        assert!(
+            v1_family_result(&report, "momentum_trend_fast")
+                .family
+                .is_some()
+        );
+    }
+
+    #[test]
+    fn v1_projection_binds_every_consumed_artifact() {
+        for result in v1_family_report().results {
+            let (Some(session), Some(projection)) = (result.session, result.projection) else {
+                continue;
+            };
+            assert_eq!(
+                session.consumed_artifact_digests,
+                projection.consumed_artifact_digests
+            );
+            assert!(
+                projection
+                    .consumed_artifact_digests
+                    .iter()
+                    .all(|digest| { session.source_artifact_digests.contains(digest) })
+            );
+        }
+    }
+
+    #[test]
+    fn v1_unconsumed_authorized_artifacts_are_recorded() {
+        for result in v1_family_report().results {
+            let (Some(projection), Some(ledger)) = (result.projection, result.usage_ledger) else {
+                continue;
+            };
+            for digest in projection.referenced_unconsumed_artifact_digests {
+                assert!(ledger.entries.iter().any(|entry| {
+                    entry.artifact_digest == digest
+                        && entry.use_kind == CandidateEvidenceUseV1::ReferencedButUnconsumed
+                        && entry.range.is_none()
+                }));
+            }
+        }
+    }
+
+    #[test]
+    fn v1_largest_row_shortcut_is_absent() {
+        let mut source = snapshots();
+        let expected = source
+            .iter()
+            .find(|snapshot| snapshot.dataset_kind == DatasetKind::DailyOhlcv)
+            .unwrap()
+            .content_digest
+            .clone();
+        let mut incompatible = source
+            .iter()
+            .find(|snapshot| snapshot.dataset_kind == DatasetKind::DailyOhlcv)
+            .unwrap()
+            .clone();
+        incompatible.requested_lookback.bars = 50_000;
+        incompatible.row_count = 50_000;
+        source.push(incompatible);
+        let built = build_agent_private_learning_inputs_v1(
+            &source,
+            360,
+            &unique_root("v1-largest-row"),
+            AgentPrivateLearningRunModeV0::DryRun,
+        );
+        let momentum = built
+            .iter()
+            .find(|input| input.input.intent.agent_id == "momentum_trend_fast")
+            .unwrap();
+        assert!(
+            momentum
+                .input
+                .view
+                .source_artifact_digests
+                .contains(&expected)
+        );
+    }
+
+    #[test]
+    fn v1_fresh_initialization_is_deterministic() {
+        let first = v1_family_report();
+        let second = run_agent_private_learning_candidates_v1(
+            &v1_inputs(),
+            AgentPrivateLearningRunModeV0::DryRun,
+        );
+        assert_eq!(
+            first
+                .results
+                .iter()
+                .filter_map(|result| result.family.as_ref().map(|family| &family.family_digest))
+                .collect::<Vec<_>>(),
+            second
+                .results
+                .iter()
+                .filter_map(|result| result.family.as_ref().map(|family| &family.family_digest))
+                .collect::<Vec<_>>()
+        );
+        assert!(
+            first
+                .results
+                .iter()
+                .filter_map(|result| result.session.as_ref())
+                .all(|session| session.fresh_initialization)
+        );
+    }
+
+    fn ledger_range_for(
+        ledger: &AgentCandidateUsageLedgerV1,
+        use_kind: CandidateEvidenceUseV1,
+    ) -> IndexRangeV0 {
+        ledger
+            .entries
+            .iter()
+            .find(|entry| entry.use_kind == use_kind && entry.range.is_some())
+            .and_then(|entry| entry.range.clone())
+            .unwrap()
+    }
+
+    #[test]
+    fn v1_training_labels_stay_inside_training() {
+        for result in v1_family_report().results {
+            let Some(ledger) = result.usage_ledger else {
+                continue;
+            };
+            let training = ledger_range_for(&ledger, CandidateEvidenceUseV1::ParameterTraining);
+            assert!(ledger.entries.iter().any(|entry| {
+                entry.use_kind == CandidateEvidenceUseV1::LabelDerivation
+                    && entry.labels_read
+                    && entry.range.as_ref() == Some(&training)
+            }));
+        }
+    }
+
+    #[test]
+    fn v1_validation_labels_stay_inside_validation() {
+        for result in v1_family_report().results {
+            let Some(ledger) = result.usage_ledger else {
+                continue;
+            };
+            let validation = ledger_range_for(&ledger, CandidateEvidenceUseV1::ValidationInference);
+            assert!(ledger.entries.iter().any(|entry| {
+                entry.use_kind == CandidateEvidenceUseV1::LabelDerivation
+                    && entry.labels_read
+                    && entry.range.as_ref() == Some(&validation)
+            }));
+        }
+    }
+
+    #[test]
+    fn v1_normalizer_fits_training_only() {
+        for result in v1_family_report().results {
+            let Some(ledger) = result.usage_ledger else {
+                continue;
+            };
+            assert_eq!(
+                ledger_range_for(&ledger, CandidateEvidenceUseV1::NormalizerFit),
+                ledger_range_for(&ledger, CandidateEvidenceUseV1::ParameterTraining)
+            );
+        }
+    }
+
+    #[test]
+    fn v1_validation_parameter_updates_remain_zero() {
+        for result in v1_family_report().results {
+            assert!(
+                result
+                    .qualification_receipts
+                    .iter()
+                    .all(|receipt| { receipt.parameter_updates_during_validation == 0 })
+            );
+            if let Some(ledger) = result.usage_ledger {
+                assert!(
+                    ledger
+                        .entries
+                        .iter()
+                        .filter(|entry| {
+                            matches!(
+                                entry.use_kind,
+                                CandidateEvidenceUseV1::ValidationInference
+                                    | CandidateEvidenceUseV1::ValidationMetric
+                            )
+                        })
+                        .all(|entry| !entry.parameters_updated)
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn v1_historical_test_row_reads_are_zero() {
+        assert!(
+            v1_family_report()
+                .results
+                .iter()
+                .filter_map(|result| result.usage_ledger.as_ref())
+                .all(|ledger| ledger.historical_test_row_reads == 0)
+        );
+    }
+
+    #[test]
+    fn v1_historical_test_label_reads_are_zero() {
+        assert!(
+            v1_family_report()
+                .results
+                .iter()
+                .filter_map(|result| result.usage_ledger.as_ref())
+                .all(|ledger| ledger.historical_test_label_reads == 0)
+        );
+    }
+
+    #[test]
+    fn v1_historical_test_metrics_are_zero() {
+        assert!(
+            v1_family_report()
+                .results
+                .iter()
+                .filter_map(|result| result.usage_ledger.as_ref())
+                .all(|ledger| {
+                    ledger.historical_test_inference_count == 0
+                        && ledger.historical_test_metric_count == 0
+                        && ledger.historical_test_checkpoint_selection_count == 0
+                        && !ledger.historical_test_identity_influence
+                })
+        );
+    }
+
+    #[test]
+    fn v1_participant_identity_excludes_metric_results() {
+        let report = v1_family_report();
+        let result = v1_family_result(&report, "momentum_trend_fast");
+        let participant = &result.family.as_ref().unwrap().participants[0];
+        let before = participant.participant_digest.clone();
+        let mut receipt = result
+            .qualification_receipts
+            .iter()
+            .find(|receipt| receipt.participant_digest == before)
+            .unwrap()
+            .clone();
+        receipt.private_metric_digest = "different-private-validation-metric".to_string();
+        receipt.receipt_digest = qualification_receipt_digest_v1(&receipt);
+        assert_eq!(participant_digest_v1(participant), before);
+        assert_ne!(
+            receipt.receipt_digest,
+            result
+                .qualification_receipts
+                .iter()
+                .find(|candidate| candidate.participant_digest == before)
+                .unwrap()
+                .receipt_digest
+        );
+    }
+
+    #[test]
+    fn v1_value_quality_remains_unavailable() {
+        let report = v1_family_report();
+        let result = v1_family_result(&report, "value_quality_filter");
+        assert_eq!(
+            result.status,
+            AgentLearningSessionStatusV1::TrainerUnavailable
+        );
+        assert!(result.family.is_none());
+    }
+
+    #[test]
+    fn v1_no_winner_is_selected() {
+        assert!(
+            v1_family_report()
+                .results
+                .iter()
+                .filter_map(|result| result.family.as_ref())
+                .all(|family| {
+                    !family.winner_selected
+                        && !family.eligible_for_active_committee
+                        && !family.eligible_for_promotion
+                        && !family.eligible_for_reward
+                })
+        );
+    }
+
+    #[test]
+    fn v1_qualification_receipt_is_separate_from_identity() {
+        for result in v1_family_report().results {
+            let Some(family) = result.family else {
+                continue;
+            };
+            assert_eq!(
+                family.participants.len(),
+                result.qualification_receipts.len()
+            );
+            assert!(result.qualification_receipts.iter().all(|receipt| {
+                family
+                    .participants
+                    .iter()
+                    .any(|participant| participant.participant_digest == receipt.participant_digest)
+                    && receipt.receipt_digest != receipt.participant_digest
+            }));
+        }
+    }
+
+    #[test]
+    fn v1_four_prospective_timestamps_enter_exclusion() {
+        let reservation =
+            load_protected_evaluation_reservation_v1(Path::new("config/local")).unwrap();
+        assert_eq!(reservation.reserved_timestamp_ms.len(), 4);
+        let report = v1_evaluation_report();
+        assert!(
+            report
+                .results
+                .iter()
+                .filter_map(|result| result.exclusion.as_ref())
+                .all(|exclusion| exclusion.excluded_timestamp_ms.len() == 4)
+        );
+    }
+
+    #[test]
+    fn v1_excluded_timestamp_admission_rejects() {
+        let report = v1_evaluation_report();
+        for result in report.results {
+            let (Some(registration), Some(exclusion)) = (result.registration, result.exclusion)
+            else {
+                continue;
+            };
+            for timestamp in &exclusion.excluded_timestamp_ms {
+                assert!(!evaluation_evidence_allowed_v1(
+                    &registration,
+                    &exclusion,
+                    *timestamp
+                ));
+            }
+        }
+    }
+
+    #[test]
+    fn v1_minimum_timestamp_respects_reserved_boundary() {
+        let reservation = v1_reservation();
+        let boundary = reservation.reserved_timestamp_ms.last().unwrap() + reservation.cadence_ms;
+        for registration in v1_evaluation_report()
+            .results
+            .iter()
+            .filter_map(|result| result.registration.as_ref())
+        {
+            assert!(registration.minimum_accepted_timestamp_ms >= boundary);
+        }
+    }
+
+    #[test]
+    fn v1_registration_freezes_participant_set() {
+        let families = fully_qualified_v1_families();
+        let evaluations = v1_evaluation_report();
+        for registration in evaluations
+            .results
+            .iter()
+            .filter_map(|result| result.registration.as_ref())
+        {
+            let family = v1_family_result(&families, &registration.agent_id)
+                .family
+                .as_ref()
+                .unwrap();
+            let mut expected = family
+                .participants
+                .iter()
+                .map(|participant| participant.participant_digest.clone())
+                .collect::<Vec<_>>();
+            expected.sort();
+            assert_eq!(registration.participant_digests, expected);
+        }
+    }
+
+    #[test]
+    fn v1_registration_reads_no_future_evidence() {
+        let report = v1_evaluation_report();
+        assert_eq!(report.safety_counters.prospective_row_reads, 0);
+        assert_eq!(report.safety_counters.prospective_label_reads, 0);
+        assert_eq!(report.safety_counters.prospective_mutations, 0);
+    }
+
+    #[test]
+    fn v1_repeated_persistence_is_duplicate_rejected() {
+        let root = unique_root("v1-repeat-persistence");
+        let _ = fs::remove_dir_all(&root);
+        let mut first = v1_family_report();
+        let first_storage = persist_agent_candidate_families_report_v1(&mut first, &root);
+        assert_eq!(first_storage.failed_artifact_count, 0);
+        let mut second = v1_family_report();
+        let second_storage = persist_agent_candidate_families_report_v1(&mut second, &root);
+        assert_eq!(second_storage.failed_artifact_count, 0);
+        assert_eq!(
+            second_storage.duplicate_artifact_count,
+            first_storage.written_artifact_count
+        );
+        let mut evaluation_first = v1_evaluation_report();
+        let evaluation_storage =
+            persist_agent_candidate_evaluations_report_v1(&mut evaluation_first, &root);
+        assert_eq!(evaluation_storage.failed_artifact_count, 0);
+        let mut evaluation_second = v1_evaluation_report();
+        let evaluation_replay =
+            persist_agent_candidate_evaluations_report_v1(&mut evaluation_second, &root);
+        assert_eq!(evaluation_replay.failed_artifact_count, 0);
+        assert_eq!(
+            evaluation_replay.duplicate_artifact_count,
+            evaluation_storage.written_artifact_count
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    fn corrupt_last_byte(mut bytes: Vec<u8>) -> Vec<u8> {
+        let last = bytes.len() - 1;
+        bytes[last] ^= 0xff;
+        bytes
+    }
+
+    #[test]
+    fn v1_all_manual_protobuf_artifacts_reject_corruption() {
+        let families = fully_qualified_v1_families();
+        let family_result = v1_family_result(&families, "momentum_trend_fast");
+        let session = family_result.session.as_ref().unwrap();
+        let projection = family_result.projection.as_ref().unwrap();
+        let family = family_result.family.as_ref().unwrap();
+        let participant = &family.participants[0];
+        let receipt = &family_result.qualification_receipts[0];
+        let ledger = family_result.usage_ledger.as_ref().unwrap();
+        let evaluations = v1_evaluation_report();
+        let evaluation = evaluations
+            .results
+            .iter()
+            .find(|result| result.agent_id == "momentum_trend_fast")
+            .unwrap();
+        let exclusion = evaluation.exclusion.as_ref().unwrap();
+        let registration = evaluation.registration.as_ref().unwrap();
+        let journal = evaluation.journal.as_ref().unwrap();
+        assert!(
+            decode_session_protobuf_v1(&corrupt_last_byte(
+                encode_session_protobuf_v1(session).unwrap()
+            ))
+            .is_err()
+        );
+        assert!(
+            decode_trainer_projection_protobuf_v1(&corrupt_last_byte(
+                encode_trainer_projection_protobuf_v1(projection).unwrap()
+            ))
+            .is_err()
+        );
+        assert!(
+            decode_candidate_family_protobuf_v1(&corrupt_last_byte(
+                encode_candidate_family_protobuf_v1(family).unwrap()
+            ))
+            .is_err()
+        );
+        assert!(
+            decode_participant_protobuf_v1(&corrupt_last_byte(
+                encode_participant_protobuf_v1(participant).unwrap()
+            ))
+            .is_err()
+        );
+        assert!(
+            decode_qualification_receipt_protobuf_v1(&corrupt_last_byte(
+                encode_qualification_receipt_protobuf_v1(receipt).unwrap()
+            ))
+            .is_err()
+        );
+        assert!(
+            decode_usage_ledger_protobuf_v1(&corrupt_last_byte(
+                encode_usage_ledger_protobuf_v1(ledger).unwrap()
+            ))
+            .is_err()
+        );
+        assert!(
+            decode_evidence_exclusion_protobuf_v1(&corrupt_last_byte(
+                encode_evidence_exclusion_protobuf_v1(exclusion).unwrap()
+            ))
+            .is_err()
+        );
+        assert!(
+            decode_evaluation_registration_protobuf_v1(&corrupt_last_byte(
+                encode_evaluation_registration_protobuf_v1(registration).unwrap()
+            ))
+            .is_err()
+        );
+        assert!(
+            decode_evaluation_journal_protobuf_v1(&corrupt_last_byte(
+                encode_evaluation_journal_protobuf_v1(journal).unwrap()
+            ))
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn v1_active_and_prospective_artifacts_remain_unchanged() {
+        let root = unique_root("v1-protected-sentinel");
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(&root).unwrap();
+        let active = root.join("active-model.pb");
+        let prospective = root.join("prospective-lane.pb");
+        fs::write(&active, b"active-frozen").unwrap();
+        fs::write(&prospective, b"prospective-frozen").unwrap();
+        let mut families = v1_family_report();
+        let mut evaluations = v1_evaluation_report();
+        assert_eq!(
+            persist_agent_candidate_families_report_v1(&mut families, &root).failed_artifact_count,
+            0
+        );
+        assert_eq!(
+            persist_agent_candidate_evaluations_report_v1(&mut evaluations, &root)
+                .failed_artifact_count,
+            0
+        );
+        assert_eq!(fs::read(active).unwrap(), b"active-frozen");
+        assert_eq!(fs::read(prospective).unwrap(), b"prospective-frozen");
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn v1_network_and_authority_counters_remain_zero() {
+        for counters in [
+            v1_family_report().safety_counters,
+            v1_evaluation_report().safety_counters,
+        ] {
+            assert_eq!(counters.active_committee_count, 3);
+            assert_eq!(counters.network_requests, 0);
+            assert_eq!(counters.credential_reads, 0);
+            assert_eq!(counters.prospective_row_reads, 0);
+            assert_eq!(counters.prospective_label_reads, 0);
+            assert_eq!(counters.prospective_mutations, 0);
+            assert_eq!(counters.historical_test_reads_v1, 0);
+            assert_eq!(counters.active_model_changes, 0);
+            assert_eq!(counters.chair_decisions, 0);
+            assert_eq!(counters.votes, 0);
+            assert_eq!(counters.rewards, 0);
+            assert_eq!(counters.penalties, 0);
+            assert_eq!(counters.voice_changes, 0);
+            assert_eq!(counters.promotions, 0);
+            assert_eq!(counters.executions, 0);
+        }
     }
 }
