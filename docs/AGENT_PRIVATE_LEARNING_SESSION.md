@@ -317,3 +317,62 @@ nothing. Output contains public classifications, digests, counts, blockers,
 reward eligibility, and zero safety counters only; private rows, features,
 representations, logits, probabilities, labels, metrics, parameters, gradients,
 and paths remain excluded.
+
+## Momentum raw-feature learned path V4
+
+V4 reopens and validates the complete V1–V3 Momentum history, then emits a
+scope-limited closure for the current frozen encoder, evidence identity, feature
+policy, and label policy. The closure does not invalidate Mamba globally. It
+forbids another head-only or frozen-representation sweep and requires new
+encoder, evidence, and preregistration identities before any future reopening.
+
+The split is derived from the V3 final reserve. Evidence before V3 validation is
+training, the full V3 validation block is purge, the first validation-sized
+reserve block is fresh V4 validation, and the final validation-sized block stays
+untouched. The closure, split, and exact three-participant registration are
+atomically persisted and reopened before validation inference.
+
+The learned set contains one raw-feature logistic head and one deterministic
+original-plus-square-plus-pairwise interaction logistic head. Both use fresh
+initialization, training-only normalization, fixed registered Brier-loss SGD,
+finite numerical guards, and zero validation updates. A training-prevalence
+constant is retained as a benchmark and never counted as learned. No prior
+parameters, normalizers, predictions, Mamba representation, result-selected
+interactions, or second configuration batch are used.
+
+The interaction participant carries a deterministic nonlinear-block ablation.
+Material, below-policy, linear-equivalent, and invalid contribution are distinct
+statuses. Linear-equivalent participation is retained in the family but can be
+removed from a future roster as a semantic duplicate without ranking private
+metrics.
+
+A future roster exists only with at least one qualified learned participant and
+a qualified constant benchmark. It contains every qualified learned participant
+and the benchmark; it selects no winner. An optional evaluation registration
+binds the complete V4 family evidence, the frozen-Mamba closure, all prior
+validation identities, the untouched V4 reserve, protected registrations and
+timestamps, provider finality, hidden outcomes, one request, one concurrent
+request, and zero retries. Creating the registration never acquires evidence.
+
+The verified current result rejected all three participants for insufficient
+validation samples. The interaction contribution was material but could not
+override ordinary qualification. The family therefore has zero qualified
+learned participants and zero qualified benchmarks, decision
+`NoQualifiedRawFeatureLearner`, and no future roster or evaluation registration.
+
+The historical trainer capability remains terminal only for its current
+frozen-Mamba contract. `MomentumRawFeatureV4/ShadowOnly` is a separate research
+capability and is not routed into canonical state, persona, voting, Chair, Risk
+Governor, brokerage, promotion, or reward application.
+
+The offline CLI is:
+
+```text
+--momentum-raw-feature-v4 --status|--dry-run|--execute-local
+--output-format text|json
+```
+
+All modes reject network and authority permission. Status and dry-run write
+nothing. Public output excludes rows, raw or expanded features, probabilities,
+labels, metric values, parameters, gradients, and paths. Final-reserve, network,
+future-evaluation, active, reward, and execution counters remain zero.

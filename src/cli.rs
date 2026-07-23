@@ -87,6 +87,8 @@ pub struct CliArgs {
     #[arg(long, default_value_t = false)]
     pub momentum_mamba_representation_v3: bool,
     #[arg(long, default_value_t = false)]
+    pub momentum_raw_feature_v4: bool,
+    #[arg(long, default_value_t = false)]
     pub status: bool,
     #[arg(long, default_value_t = false)]
     pub dry_run: bool,
@@ -130,6 +132,31 @@ pub struct CliArgs {
 
 pub fn run() -> Result<(), String> {
     let args = CliArgs::parse();
+    if args.momentum_raw_feature_v4 {
+        if args.execute
+            || args.confirm_single_public_candle_request
+            || args.confirm_one_time_outcome_request
+            || args.confirm_one_time_prospective_opening
+            || args.confirm_one_time_learning_evidence_request
+            || args.confirm_composite_learning_evidence_epoch
+        {
+            return Err("Momentum raw-feature V4 rejects network authority flags".into());
+        }
+        let config = args
+            .historical_snapshot_campaign_config
+            .as_deref()
+            .ok_or_else(|| {
+                "Momentum raw-feature V4 requires a local historical provider config".to_string()
+            })?;
+        return run_momentum_raw_feature_cli_v4(
+            config,
+            &args.output_format,
+            args.status,
+            args.dry_run,
+            args.execute_local,
+            args.allow_network,
+        );
+    }
     if args.momentum_mamba_representation_v3 {
         if args.execute
             || args.confirm_single_public_candle_request
@@ -756,6 +783,48 @@ struct MomentumMambaRepresentationCliReportV3 {
     protected_artifacts_unchanged: bool,
     active_state_unchanged: bool,
     safety_counters: crate::model::MomentumRepresentationSafetyCountersV3,
+    report_digest: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+struct MomentumRawFeatureParticipantCliV4 {
+    participant_id: String,
+    participant_role: crate::model::MomentumRawFeatureRoleV4,
+    model_kind: crate::model::MomentumRawFeatureModelKindV4,
+    qualification_status: crate::model::MomentumRawFeatureQualificationStatusV4,
+}
+
+#[derive(Clone, Debug, Serialize)]
+struct MomentumRawFeatureCliReportV4 {
+    report_version: &'static str,
+    mode: String,
+    offline: bool,
+    status: crate::model::MomentumRawFeatureExecutionStatusV4,
+    frozen_mamba_closure_status: Option<crate::model::MomentumFrozenMambaClosureDecisionV4>,
+    frozen_mamba_closure_digest: Option<String>,
+    split_digest: Option<String>,
+    registration_digest: Option<String>,
+    participants: Vec<MomentumRawFeatureParticipantCliV4>,
+    interaction_contribution_status: Option<crate::model::InteractionContributionStatusV4>,
+    qualified_learned_count: usize,
+    qualified_benchmark_count: usize,
+    family_digest: Option<String>,
+    path_decision: Option<crate::model::MomentumRawFeaturePathDecisionV4>,
+    decision_digest: Option<String>,
+    roster_status: crate::model::MomentumRawFeatureRosterStatusV4,
+    roster_digest: Option<String>,
+    evaluation_registration_status: crate::model::MomentumRawFeatureEvaluationStatusV4,
+    evaluation_registration_digest: Option<String>,
+    minimum_accepted_timestamp_ms: Option<u64>,
+    cycle_risk_evidence_status: Option<crate::data::CanonicalViewGapStatusV1>,
+    value_quality_evidence_status: Option<crate::data::CanonicalViewGapStatusV1>,
+    reward_eligibility_replay: PersistedRewardEligibilityReplayCliV1,
+    artifacts_written: usize,
+    duplicate_artifact_count: usize,
+    storage_failure_count: usize,
+    protected_artifacts_unchanged: bool,
+    active_state_unchanged: bool,
+    safety_counters: crate::model::MomentumRawFeatureSafetyCountersV4,
     report_digest: String,
 }
 
@@ -2298,6 +2367,362 @@ fn format_momentum_mamba_representation_text_v3(
     );
     let _ = writeln!(output, "report_digest={}", report.report_digest);
     output
+}
+
+fn format_momentum_raw_feature_text_v4(report: &MomentumRawFeatureCliReportV4) -> String {
+    let mut output = String::new();
+    let _ = writeln!(output, "report_version={}", report.report_version);
+    let _ = writeln!(output, "mode={}", report.mode);
+    let _ = writeln!(output, "offline={}", report.offline);
+    let _ = writeln!(output, "status={:?}", report.status);
+    let _ = writeln!(
+        output,
+        "frozen_mamba_closure_status={}",
+        report
+            .frozen_mamba_closure_status
+            .map(|value| format!("{value:?}"))
+            .unwrap_or_default()
+    );
+    for (name, value) in [
+        (
+            "frozen_mamba_closure_digest",
+            &report.frozen_mamba_closure_digest,
+        ),
+        ("split_digest", &report.split_digest),
+        ("registration_digest", &report.registration_digest),
+        ("family_digest", &report.family_digest),
+        ("decision_digest", &report.decision_digest),
+        ("roster_digest", &report.roster_digest),
+        (
+            "evaluation_registration_digest",
+            &report.evaluation_registration_digest,
+        ),
+    ] {
+        let _ = writeln!(output, "{name}={}", value.as_deref().unwrap_or_default());
+    }
+    for participant in &report.participants {
+        let _ = writeln!(
+            output,
+            "participant_id={};participant_role={:?};model_kind={:?};qualification_status={:?}",
+            participant.participant_id,
+            participant.participant_role,
+            participant.model_kind,
+            participant.qualification_status,
+        );
+    }
+    let _ = writeln!(
+        output,
+        "interaction_contribution_status={}",
+        report
+            .interaction_contribution_status
+            .map(|value| format!("{value:?}"))
+            .unwrap_or_default()
+    );
+    let _ = writeln!(
+        output,
+        "qualified_learned_count={}",
+        report.qualified_learned_count
+    );
+    let _ = writeln!(
+        output,
+        "qualified_benchmark_count={}",
+        report.qualified_benchmark_count
+    );
+    let _ = writeln!(
+        output,
+        "path_decision={}",
+        report
+            .path_decision
+            .map(|value| format!("{value:?}"))
+            .unwrap_or_default()
+    );
+    let _ = writeln!(output, "roster_status={:?}", report.roster_status);
+    let _ = writeln!(
+        output,
+        "evaluation_registration_status={:?}",
+        report.evaluation_registration_status
+    );
+    let _ = writeln!(
+        output,
+        "minimum_accepted_timestamp_ms={}",
+        report
+            .minimum_accepted_timestamp_ms
+            .map(|value| value.to_string())
+            .unwrap_or_default()
+    );
+    let _ = writeln!(
+        output,
+        "cycle_risk_evidence_status={}",
+        report
+            .cycle_risk_evidence_status
+            .map(|value| format!("{value:?}"))
+            .unwrap_or_default()
+    );
+    let _ = writeln!(
+        output,
+        "value_quality_evidence_status={}",
+        report
+            .value_quality_evidence_status
+            .map(|value| format!("{value:?}"))
+            .unwrap_or_default()
+    );
+    let reward = &report.reward_eligibility_replay;
+    let _ = writeln!(output, "opening_status={:?}", reward.opening_status);
+    let _ = writeln!(
+        output,
+        "attribution_classes={:?}",
+        reward.attribution_classes
+    );
+    let _ = writeln!(
+        output,
+        "reward_eligibility_statuses={:?}",
+        reward.eligibility_statuses
+    );
+    let _ = writeln!(output, "reward_apply_count={}", reward.reward_apply_count);
+    let _ = writeln!(output, "penalty_apply_count={}", reward.penalty_apply_count);
+    for (name, value) in [
+        ("network_requests", report.safety_counters.network_requests),
+        (
+            "transport_constructions",
+            report.safety_counters.transport_constructions,
+        ),
+        ("credential_reads", report.safety_counters.credential_reads),
+        (
+            "prospective_row_reads",
+            report.safety_counters.prospective_row_reads,
+        ),
+        (
+            "prospective_label_openings",
+            report.safety_counters.prospective_label_openings,
+        ),
+        (
+            "historical_test_reads",
+            report.safety_counters.historical_test_reads,
+        ),
+        (
+            "future_evaluation_reads",
+            report.safety_counters.future_evaluation_reads,
+        ),
+        (
+            "final_reserve_row_reads",
+            report.safety_counters.final_reserve_row_reads,
+        ),
+        (
+            "final_reserve_label_reads",
+            report.safety_counters.final_reserve_label_reads,
+        ),
+        (
+            "active_model_changes",
+            report.safety_counters.active_model_changes,
+        ),
+        ("chair_decisions", report.safety_counters.chair_decisions),
+        ("votes", report.safety_counters.votes),
+        (
+            "reward_applications",
+            report.safety_counters.reward_applications,
+        ),
+        (
+            "penalty_applications",
+            report.safety_counters.penalty_applications,
+        ),
+        ("voice_changes", report.safety_counters.voice_changes),
+        (
+            "cooldowns_started",
+            report.safety_counters.cooldowns_started,
+        ),
+        ("promotions", report.safety_counters.promotions),
+        ("quarantines", report.safety_counters.quarantines),
+        ("executions", report.safety_counters.executions),
+        (
+            "active_committee_count",
+            report.safety_counters.active_committee_count,
+        ),
+    ] {
+        let _ = writeln!(output, "{name}={value}");
+    }
+    let _ = writeln!(output, "artifacts_written={}", report.artifacts_written);
+    let _ = writeln!(
+        output,
+        "duplicate_artifact_count={}",
+        report.duplicate_artifact_count
+    );
+    let _ = writeln!(
+        output,
+        "storage_failure_count={}",
+        report.storage_failure_count
+    );
+    let _ = writeln!(
+        output,
+        "protected_artifacts_unchanged={}",
+        report.protected_artifacts_unchanged
+    );
+    let _ = writeln!(
+        output,
+        "active_state_unchanged={}",
+        report.active_state_unchanged
+    );
+    let _ = writeln!(output, "report_digest={}", report.report_digest);
+    output
+}
+
+fn run_momentum_raw_feature_cli_v4(
+    config_path: &Path,
+    output_format: &str,
+    status: bool,
+    dry_run: bool,
+    execute_local: bool,
+    allow_network: bool,
+) -> Result<(), String> {
+    if usize::from(status) + usize::from(dry_run) + usize::from(execute_local) != 1 {
+        return Err("select exactly one Momentum raw-feature V4 mode".to_string());
+    }
+    if allow_network {
+        return Err("Momentum raw-feature V4 is offline-only".to_string());
+    }
+    if output_format != "text" && output_format != "json" {
+        return Err("unsupported Momentum raw-feature V4 output format".to_string());
+    }
+    let prior = build_persisted_learning_intent_migration_cli_report_v1(
+        config_path,
+        true,
+        false,
+        false,
+        false,
+    )?;
+    let mode = if status {
+        crate::model::AgentPrivateLearningRunModeV0::Status
+    } else if dry_run {
+        crate::model::AgentPrivateLearningRunModeV0::DryRun
+    } else {
+        crate::model::AgentPrivateLearningRunModeV0::ExecuteLocal
+    };
+    let snapshots =
+        crate::model::load_local_learning_snapshots_v0(Path::new("data/local_snapshots"))?;
+    let root = crate::model::default_private_learning_root_v0();
+    let reservation = crate::model::load_protected_evaluation_reservation_v1(
+        config_path
+            .parent()
+            .ok_or("Momentum raw-feature reservation directory unavailable")?,
+    )?;
+    let result = crate::model::run_momentum_raw_feature_v4(root, &snapshots, &reservation, mode);
+    let participants = result
+        .family
+        .as_ref()
+        .map(|family| {
+            family
+                .participants
+                .iter()
+                .filter_map(|participant| {
+                    let receipt = family.qualification_receipts.iter().find(|receipt| {
+                        receipt.participant_digest == participant.participant_digest
+                    })?;
+                    Some(MomentumRawFeatureParticipantCliV4 {
+                        participant_id: participant.participant_id.clone(),
+                        participant_role: participant.participant_role,
+                        model_kind: participant.model_kind,
+                        qualification_status: receipt.status,
+                    })
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    let evidence_status = |agent_id: &str| {
+        prior
+            .candidate_families
+            .iter()
+            .find(|family| family.agent_id == agent_id)
+            .and_then(|family| family.evidence_status)
+    };
+    let report = MomentumRawFeatureCliReportV4 {
+        report_version: "momentum-raw-feature-cli-report-v4",
+        mode: if status {
+            "status"
+        } else if dry_run {
+            "dry-run"
+        } else {
+            "execute-local"
+        }
+        .to_string(),
+        offline: true,
+        status: result.status,
+        frozen_mamba_closure_status: result.closure.as_ref().map(|value| value.decision),
+        frozen_mamba_closure_digest: result
+            .closure
+            .as_ref()
+            .map(|value| value.closure_digest.clone()),
+        split_digest: result
+            .split
+            .as_ref()
+            .map(|value| value.split_digest.clone()),
+        registration_digest: result
+            .registration
+            .as_ref()
+            .map(|value| value.registration_digest.clone()),
+        participants,
+        interaction_contribution_status: result
+            .family
+            .as_ref()
+            .and_then(|family| family.interaction_contribution_audit.as_ref())
+            .map(|audit| audit.contribution_status),
+        qualified_learned_count: result
+            .family
+            .as_ref()
+            .map_or(0, |family| family.qualified_learned_count),
+        qualified_benchmark_count: result
+            .family
+            .as_ref()
+            .map_or(0, |family| family.qualified_benchmark_count),
+        family_digest: result
+            .family
+            .as_ref()
+            .map(|value| value.family_digest.clone()),
+        path_decision: result.decision.as_ref().map(|value| value.decision),
+        decision_digest: result
+            .decision
+            .as_ref()
+            .map(|value| value.decision_digest.clone()),
+        roster_status: result.roster_status,
+        roster_digest: result
+            .roster
+            .as_ref()
+            .map(|value| value.roster_digest.clone()),
+        evaluation_registration_status: result.evaluation_registration_status,
+        evaluation_registration_digest: result
+            .evaluation_registration
+            .as_ref()
+            .map(|value| value.registration_digest.clone()),
+        minimum_accepted_timestamp_ms: result
+            .evaluation_registration
+            .as_ref()
+            .map(|value| value.minimum_accepted_timestamp_ms),
+        cycle_risk_evidence_status: evidence_status("cycle_risk_skeptic"),
+        value_quality_evidence_status: evidence_status("value_quality_filter"),
+        reward_eligibility_replay: prior.reward_eligibility_replay,
+        artifacts_written: result.artifacts_written,
+        duplicate_artifact_count: result.duplicate_artifact_count,
+        storage_failure_count: result.storage_failure_count,
+        protected_artifacts_unchanged: result.protected_artifacts_unchanged,
+        active_state_unchanged: result.active_state_unchanged,
+        safety_counters: result.safety_counters,
+        report_digest: result.report_digest,
+    };
+    if output_format == "json" {
+        println!(
+            "{}",
+            serde_json::to_string(&report)
+                .map_err(|_| "Momentum raw-feature V4 report encoding failed")?
+        );
+    } else {
+        print!("{}", format_momentum_raw_feature_text_v4(&report));
+    }
+    if report.storage_failure_count > 0
+        || !report.protected_artifacts_unchanged
+        || !report.active_state_unchanged
+        || report.status == crate::model::MomentumRawFeatureExecutionStatusV4::TechnicalFailure
+    {
+        return Err("Momentum raw-feature V4 verification failed".to_string());
+    }
+    Ok(())
 }
 
 fn run_momentum_mamba_representation_cli_v3(
@@ -9183,6 +9608,144 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(error, "Momentum Mamba representation V3 is offline-only");
+    }
+
+    fn momentum_raw_feature_cli_fixture_v4() -> MomentumRawFeatureCliReportV4 {
+        MomentumRawFeatureCliReportV4 {
+            report_version: "momentum-raw-feature-cli-report-v4",
+            mode: "execute-local".to_string(),
+            offline: true,
+            status: crate::model::MomentumRawFeatureExecutionStatusV4::Executed,
+            frozen_mamba_closure_status: Some(
+                crate::model::MomentumFrozenMambaClosureDecisionV4::ClosedForCurrentEvidenceAndPolicy,
+            ),
+            frozen_mamba_closure_digest: Some("closure".to_string()),
+            split_digest: Some("split".to_string()),
+            registration_digest: Some("registration".to_string()),
+            participants: vec![MomentumRawFeatureParticipantCliV4 {
+                participant_id: "RawFeatureLogisticV4".to_string(),
+                participant_role: crate::model::MomentumRawFeatureRoleV4::LearnedRawLogistic,
+                model_kind: crate::model::MomentumRawFeatureModelKindV4::RawFeatureLogistic,
+                qualification_status:
+                    crate::model::MomentumRawFeatureQualificationStatusV4::QualifiedLearned,
+            }],
+            interaction_contribution_status: Some(
+                crate::model::InteractionContributionStatusV4::LinearEquivalent,
+            ),
+            qualified_learned_count: 1,
+            qualified_benchmark_count: 1,
+            family_digest: Some("family".to_string()),
+            path_decision: Some(
+                crate::model::MomentumRawFeaturePathDecisionV4::OnlyLinearRawPathViable,
+            ),
+            decision_digest: Some("decision".to_string()),
+            roster_status: crate::model::MomentumRawFeatureRosterStatusV4::Ready,
+            roster_digest: Some("roster".to_string()),
+            evaluation_registration_status:
+                crate::model::MomentumRawFeatureEvaluationStatusV4::Registered,
+            evaluation_registration_digest: Some("evaluation".to_string()),
+            minimum_accepted_timestamp_ms: Some(105),
+            cycle_risk_evidence_status: Some(
+                crate::data::CanonicalViewGapStatusV1::ProviderContractUnverified,
+            ),
+            value_quality_evidence_status: Some(
+                crate::data::CanonicalViewGapStatusV1::TrainerUnavailable,
+            ),
+            reward_eligibility_replay: persisted_intent_migration_cli_fixture_v1()
+                .reward_eligibility_replay,
+            artifacts_written: 15,
+            duplicate_artifact_count: 0,
+            storage_failure_count: 0,
+            protected_artifacts_unchanged: true,
+            active_state_unchanged: true,
+            safety_counters: crate::model::MomentumRawFeatureSafetyCountersV4 {
+                network_requests: 0,
+                transport_constructions: 0,
+                credential_reads: 0,
+                prospective_row_reads: 0,
+                prospective_label_openings: 0,
+                historical_test_reads: 0,
+                future_evaluation_reads: 0,
+                final_reserve_row_reads: 0,
+                final_reserve_label_reads: 0,
+                active_model_changes: 0,
+                chair_decisions: 0,
+                votes: 0,
+                reward_applications: 0,
+                penalty_applications: 0,
+                voice_changes: 0,
+                cooldowns_started: 0,
+                promotions: 0,
+                quarantines: 0,
+                executions: 0,
+                active_committee_count: 3,
+            },
+            report_digest: "report".to_string(),
+        }
+    }
+
+    #[test]
+    fn momentum_raw_feature_text_and_json_public_fields_agree() {
+        let report = momentum_raw_feature_cli_fixture_v4();
+        let text = format_momentum_raw_feature_text_v4(&report);
+        let json = serde_json::to_value(&report).unwrap();
+        for field in [
+            "network_requests",
+            "transport_constructions",
+            "credential_reads",
+            "prospective_row_reads",
+            "prospective_label_openings",
+            "historical_test_reads",
+            "future_evaluation_reads",
+            "final_reserve_row_reads",
+            "final_reserve_label_reads",
+            "active_model_changes",
+            "chair_decisions",
+            "votes",
+            "reward_applications",
+            "penalty_applications",
+            "voice_changes",
+            "cooldowns_started",
+            "promotions",
+            "quarantines",
+            "executions",
+            "active_committee_count",
+        ] {
+            assert!(text.contains(&format!("{field}={}", json["safety_counters"][field])));
+        }
+        assert!(text.contains("participant_id=RawFeatureLogisticV4"));
+        assert!(text.contains("path_decision=OnlyLinearRawPathViable"));
+        assert_eq!(json["minimum_accepted_timestamp_ms"], 105);
+        let rendered_json = serde_json::to_string(&report).unwrap();
+        for forbidden in [
+            "raw_rows",
+            "raw_features",
+            "expanded_feature_values",
+            "probabilities",
+            "labels",
+            "private_metric_digest",
+            "parameters",
+            "gradients",
+            "local_paths",
+            "artifact_path",
+        ] {
+            assert!(!text.contains(forbidden));
+            assert!(!rendered_json.contains(forbidden));
+        }
+    }
+
+    #[test]
+    fn momentum_raw_feature_rejects_network_permission_before_io() {
+        let error = run_momentum_raw_feature_cli_v4(
+            Path::new("not-used"),
+            "json",
+            true,
+            false,
+            false,
+            true,
+        )
+        .unwrap_err();
+        assert_eq!(error, "Momentum raw-feature V4 is offline-only");
     }
 
     fn persisted_intent_migration_cli_fixture_v1() -> PersistedLearningIntentMigrationCliReportV1 {
