@@ -89,6 +89,8 @@ pub struct CliArgs {
     #[arg(long, default_value_t = false)]
     pub momentum_raw_feature_v4: bool,
     #[arg(long, default_value_t = false)]
+    pub momentum_v4_supplemental_qualification: bool,
+    #[arg(long, default_value_t = false)]
     pub status: bool,
     #[arg(long, default_value_t = false)]
     pub dry_run: bool,
@@ -132,6 +134,34 @@ pub struct CliArgs {
 
 pub fn run() -> Result<(), String> {
     let args = CliArgs::parse();
+    if args.momentum_v4_supplemental_qualification {
+        if args.execute
+            || args.confirm_single_public_candle_request
+            || args.confirm_one_time_outcome_request
+            || args.confirm_one_time_prospective_opening
+            || args.confirm_one_time_learning_evidence_request
+            || args.confirm_composite_learning_evidence_epoch
+        {
+            return Err(
+                "Momentum V4 supplemental qualification rejects network authority flags".into(),
+            );
+        }
+        let config = args
+            .historical_snapshot_campaign_config
+            .as_deref()
+            .ok_or_else(|| {
+                "Momentum V4 supplemental qualification requires a local historical provider config"
+                    .to_string()
+            })?;
+        return run_momentum_v4_supplemental_cli(
+            config,
+            &args.output_format,
+            args.status,
+            args.dry_run,
+            args.execute_local,
+            args.allow_network,
+        );
+    }
     if args.momentum_raw_feature_v4 {
         if args.execute
             || args.confirm_single_public_candle_request
@@ -825,6 +855,48 @@ struct MomentumRawFeatureCliReportV4 {
     protected_artifacts_unchanged: bool,
     active_state_unchanged: bool,
     safety_counters: crate::model::MomentumRawFeatureSafetyCountersV4,
+    report_digest: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+struct MomentumSupplementalCliReportV4_1 {
+    report_version: &'static str,
+    mode: String,
+    offline: bool,
+    status: crate::model::MomentumSupplementalExecutionStatusV4_1,
+    original_validation_index_count: usize,
+    original_valid_sample_count: usize,
+    original_neutral_excluded_count: usize,
+    corrected_v4_decision: Option<crate::model::MomentumRawFeaturePathDecisionV4>,
+    supplemental_registration_digest: Option<String>,
+    reserve_opening_status: crate::model::MomentumReserveOpeningStatusV4_1,
+    supplemental_valid_sample_count: usize,
+    accumulated_valid_sample_count: usize,
+    minimum_required_valid_samples: usize,
+    minimum_reached: bool,
+    accumulated_qualification_statuses:
+        Vec<crate::model::MomentumAccumulatedQualificationStatusV4_1>,
+    interaction_contribution_status: Option<crate::model::InteractionContributionStatusV4>,
+    qualified_learned_count: usize,
+    qualified_benchmark_count: usize,
+    accumulated_family_digest: Option<String>,
+    accumulated_decision: Option<crate::model::MomentumAccumulatedPathDecisionV4_1>,
+    accumulated_decision_digest: Option<String>,
+    roster_status: crate::model::MomentumAccumulatedRosterStatusV4_1,
+    roster_digest: Option<String>,
+    evaluation_registration_status: crate::model::MomentumAccumulatedEvaluationStatusV4_1,
+    evaluation_registration_digest: Option<String>,
+    minimum_accepted_timestamp_ms: Option<u64>,
+    additional_evidence_requirement_digest: Option<String>,
+    cycle_risk_evidence_status: Option<crate::data::CanonicalViewGapStatusV1>,
+    value_quality_evidence_status: Option<crate::data::CanonicalViewGapStatusV1>,
+    reward_eligibility_replay: PersistedRewardEligibilityReplayCliV1,
+    artifacts_written: usize,
+    duplicate_artifact_count: usize,
+    storage_failure_count: usize,
+    protected_artifacts_unchanged: bool,
+    active_state_unchanged: bool,
+    safety_counters: crate::model::MomentumSupplementalSafetyCountersV4_1,
     report_digest: String,
 }
 
@@ -2563,6 +2635,419 @@ fn format_momentum_raw_feature_text_v4(report: &MomentumRawFeatureCliReportV4) -
     );
     let _ = writeln!(output, "report_digest={}", report.report_digest);
     output
+}
+
+fn format_momentum_v4_supplemental_text(report: &MomentumSupplementalCliReportV4_1) -> String {
+    let mut output = String::new();
+    let _ = writeln!(output, "report_version={}", report.report_version);
+    let _ = writeln!(output, "mode={}", report.mode);
+    let _ = writeln!(output, "offline={}", report.offline);
+    let _ = writeln!(output, "status={:?}", report.status);
+    let _ = writeln!(
+        output,
+        "original_validation_index_count={}",
+        report.original_validation_index_count
+    );
+    let _ = writeln!(
+        output,
+        "original_valid_sample_count={}",
+        report.original_valid_sample_count
+    );
+    let _ = writeln!(
+        output,
+        "original_neutral_excluded_count={}",
+        report.original_neutral_excluded_count
+    );
+    let _ = writeln!(
+        output,
+        "corrected_v4_decision={}",
+        report
+            .corrected_v4_decision
+            .map(|value| format!("{value:?}"))
+            .unwrap_or_default()
+    );
+    let _ = writeln!(
+        output,
+        "supplemental_registration_digest={}",
+        report
+            .supplemental_registration_digest
+            .as_deref()
+            .unwrap_or_default()
+    );
+    let _ = writeln!(
+        output,
+        "reserve_opening_status={:?}",
+        report.reserve_opening_status
+    );
+    let _ = writeln!(
+        output,
+        "supplemental_valid_sample_count={}",
+        report.supplemental_valid_sample_count
+    );
+    let _ = writeln!(
+        output,
+        "accumulated_valid_sample_count={}",
+        report.accumulated_valid_sample_count
+    );
+    let _ = writeln!(
+        output,
+        "minimum_required_valid_samples={}",
+        report.minimum_required_valid_samples
+    );
+    let _ = writeln!(output, "minimum_reached={}", report.minimum_reached);
+    let _ = writeln!(
+        output,
+        "accumulated_qualification_statuses={:?}",
+        report.accumulated_qualification_statuses
+    );
+    let _ = writeln!(
+        output,
+        "interaction_contribution_status={}",
+        report
+            .interaction_contribution_status
+            .map(|value| format!("{value:?}"))
+            .unwrap_or_default()
+    );
+    let _ = writeln!(
+        output,
+        "qualified_learned_count={}",
+        report.qualified_learned_count
+    );
+    let _ = writeln!(
+        output,
+        "qualified_benchmark_count={}",
+        report.qualified_benchmark_count
+    );
+    for (name, value) in [
+        (
+            "accumulated_family_digest",
+            &report.accumulated_family_digest,
+        ),
+        (
+            "accumulated_decision_digest",
+            &report.accumulated_decision_digest,
+        ),
+        ("roster_digest", &report.roster_digest),
+        (
+            "evaluation_registration_digest",
+            &report.evaluation_registration_digest,
+        ),
+        (
+            "additional_evidence_requirement_digest",
+            &report.additional_evidence_requirement_digest,
+        ),
+    ] {
+        let _ = writeln!(output, "{name}={}", value.as_deref().unwrap_or_default());
+    }
+    let _ = writeln!(
+        output,
+        "accumulated_decision={}",
+        report
+            .accumulated_decision
+            .map(|value| format!("{value:?}"))
+            .unwrap_or_default()
+    );
+    let _ = writeln!(output, "roster_status={:?}", report.roster_status);
+    let _ = writeln!(
+        output,
+        "evaluation_registration_status={:?}",
+        report.evaluation_registration_status
+    );
+    let _ = writeln!(
+        output,
+        "minimum_accepted_timestamp_ms={}",
+        report
+            .minimum_accepted_timestamp_ms
+            .map(|value| value.to_string())
+            .unwrap_or_default()
+    );
+    let _ = writeln!(
+        output,
+        "cycle_risk_evidence_status={}",
+        report
+            .cycle_risk_evidence_status
+            .map(|value| format!("{value:?}"))
+            .unwrap_or_default()
+    );
+    let _ = writeln!(
+        output,
+        "value_quality_evidence_status={}",
+        report
+            .value_quality_evidence_status
+            .map(|value| format!("{value:?}"))
+            .unwrap_or_default()
+    );
+    let _ = writeln!(
+        output,
+        "reward_eligibility_statuses={:?}",
+        report.reward_eligibility_replay.eligibility_statuses
+    );
+    let _ = writeln!(
+        output,
+        "reward_apply_count={}",
+        report.reward_eligibility_replay.reward_apply_count
+    );
+    let _ = writeln!(
+        output,
+        "penalty_apply_count={}",
+        report.reward_eligibility_replay.penalty_apply_count
+    );
+    for (name, value) in [
+        ("network_requests", report.safety_counters.network_requests),
+        (
+            "transport_constructions",
+            report.safety_counters.transport_constructions,
+        ),
+        ("credential_reads", report.safety_counters.credential_reads),
+        (
+            "new_prospective_row_reads",
+            report.safety_counters.new_prospective_row_reads,
+        ),
+        (
+            "new_prospective_label_openings",
+            report.safety_counters.new_prospective_label_openings,
+        ),
+        (
+            "historical_test_reads",
+            report.safety_counters.historical_test_reads,
+        ),
+        (
+            "future_evaluation_reads",
+            report.safety_counters.future_evaluation_reads,
+        ),
+        (
+            "reserve_opening_attempts",
+            report.safety_counters.reserve_opening_attempts,
+        ),
+        (
+            "reserve_row_reads",
+            report.safety_counters.reserve_row_reads,
+        ),
+        (
+            "reserve_label_reads",
+            report.safety_counters.reserve_label_reads,
+        ),
+        (
+            "participant_parameter_changes",
+            report.safety_counters.participant_parameter_changes,
+        ),
+        (
+            "active_model_changes",
+            report.safety_counters.active_model_changes,
+        ),
+        ("chair_decisions", report.safety_counters.chair_decisions),
+        ("votes", report.safety_counters.votes),
+        (
+            "reward_applications",
+            report.safety_counters.reward_applications,
+        ),
+        (
+            "penalty_applications",
+            report.safety_counters.penalty_applications,
+        ),
+        ("voice_changes", report.safety_counters.voice_changes),
+        (
+            "cooldowns_started",
+            report.safety_counters.cooldowns_started,
+        ),
+        ("promotions", report.safety_counters.promotions),
+        ("quarantines", report.safety_counters.quarantines),
+        ("executions", report.safety_counters.executions),
+        (
+            "active_committee_count",
+            report.safety_counters.active_committee_count,
+        ),
+    ] {
+        let _ = writeln!(output, "{name}={value}");
+    }
+    let _ = writeln!(output, "artifacts_written={}", report.artifacts_written);
+    let _ = writeln!(
+        output,
+        "duplicate_artifact_count={}",
+        report.duplicate_artifact_count
+    );
+    let _ = writeln!(
+        output,
+        "storage_failure_count={}",
+        report.storage_failure_count
+    );
+    let _ = writeln!(
+        output,
+        "protected_artifacts_unchanged={}",
+        report.protected_artifacts_unchanged
+    );
+    let _ = writeln!(
+        output,
+        "active_state_unchanged={}",
+        report.active_state_unchanged
+    );
+    let _ = writeln!(output, "report_digest={}", report.report_digest);
+    output
+}
+
+fn run_momentum_v4_supplemental_cli(
+    config_path: &Path,
+    output_format: &str,
+    status: bool,
+    dry_run: bool,
+    execute_local: bool,
+    allow_network: bool,
+) -> Result<(), String> {
+    if usize::from(status) + usize::from(dry_run) + usize::from(execute_local) != 1 {
+        return Err("select exactly one Momentum V4 supplemental qualification mode".to_string());
+    }
+    if allow_network {
+        return Err("Momentum V4 supplemental qualification is offline-only".to_string());
+    }
+    if output_format != "text" && output_format != "json" {
+        return Err("unsupported Momentum V4 supplemental output format".to_string());
+    }
+    let prior = build_persisted_learning_intent_migration_cli_report_v1(
+        config_path,
+        true,
+        false,
+        false,
+        false,
+    )?;
+    let mode = if status {
+        crate::model::AgentPrivateLearningRunModeV0::Status
+    } else if dry_run {
+        crate::model::AgentPrivateLearningRunModeV0::DryRun
+    } else {
+        crate::model::AgentPrivateLearningRunModeV0::ExecuteLocal
+    };
+    let snapshots =
+        crate::model::load_local_learning_snapshots_v0(Path::new("data/local_snapshots"))?;
+    let root = crate::model::default_private_learning_root_v0();
+    let reservation = crate::model::load_protected_evaluation_reservation_v1(
+        config_path
+            .parent()
+            .ok_or("Momentum V4 supplemental reservation directory unavailable")?,
+    )?;
+    let result = crate::model::run_momentum_v4_supplemental_qualification(
+        root,
+        &snapshots,
+        &reservation,
+        mode,
+    );
+    let evidence_status = |agent_id: &str| {
+        prior
+            .candidate_families
+            .iter()
+            .find(|family| family.agent_id == agent_id)
+            .and_then(|family| family.evidence_status)
+    };
+    let original = result.original_validation_yield_audit.as_ref();
+    let supplemental_yield = result.supplemental_yield.as_ref();
+    let family = result.accumulated_family.as_ref();
+    let report = MomentumSupplementalCliReportV4_1 {
+        report_version: "momentum-supplemental-cli-report-v4.1",
+        mode: if status {
+            "status"
+        } else if dry_run {
+            "dry-run"
+        } else {
+            "execute-local"
+        }
+        .to_string(),
+        offline: true,
+        status: result.status,
+        original_validation_index_count: original.map_or(0, |value| value.validation_index_count),
+        original_valid_sample_count: original.map_or(0, |value| value.valid_labelled_sample_count),
+        original_neutral_excluded_count: original.map_or(0, |value| value.neutral_excluded_count),
+        corrected_v4_decision: result
+            .corrected_v4_decision
+            .as_ref()
+            .map(|value| value.decision),
+        supplemental_registration_digest: result
+            .supplemental_registration
+            .as_ref()
+            .map(|value| value.registration_digest.clone()),
+        reserve_opening_status: result.reserve_opening_status,
+        supplemental_valid_sample_count: supplemental_yield
+            .map_or(0, |value| value.supplemental_valid_sample_count),
+        accumulated_valid_sample_count: supplemental_yield
+            .map_or(0, |value| value.accumulated_valid_sample_count),
+        minimum_required_valid_samples: supplemental_yield.map_or_else(
+            || {
+                result
+                    .supplemental_registration
+                    .as_ref()
+                    .map_or(0, |value| value.minimum_required_valid_samples)
+            },
+            |value| value.minimum_required_valid_samples,
+        ),
+        minimum_reached: supplemental_yield.is_some_and(|value| value.minimum_reached),
+        accumulated_qualification_statuses: family
+            .map(|value| {
+                value
+                    .accumulated_receipts
+                    .iter()
+                    .map(|receipt| receipt.status)
+                    .collect()
+            })
+            .unwrap_or_default(),
+        interaction_contribution_status: result
+            .accumulated_interaction_audit
+            .as_ref()
+            .map(|value| value.contribution_status),
+        qualified_learned_count: family.map_or(0, |value| value.qualified_learned_count),
+        qualified_benchmark_count: family.map_or(0, |value| value.qualified_benchmark_count),
+        accumulated_family_digest: family.map(|value| value.family_digest.clone()),
+        accumulated_decision: result
+            .accumulated_decision
+            .as_ref()
+            .map(|value| value.decision),
+        accumulated_decision_digest: result
+            .accumulated_decision
+            .as_ref()
+            .map(|value| value.decision_digest.clone()),
+        roster_status: result.roster_status,
+        roster_digest: result
+            .roster
+            .as_ref()
+            .map(|value| value.roster_digest.clone()),
+        evaluation_registration_status: result.evaluation_registration_status,
+        evaluation_registration_digest: result
+            .evaluation_registration
+            .as_ref()
+            .map(|value| value.registration_digest.clone()),
+        minimum_accepted_timestamp_ms: result
+            .evaluation_registration
+            .as_ref()
+            .map(|value| value.minimum_accepted_timestamp_ms),
+        additional_evidence_requirement_digest: result
+            .additional_evidence_requirement
+            .as_ref()
+            .map(|value| value.requirement_digest.clone()),
+        cycle_risk_evidence_status: evidence_status("cycle_risk_skeptic"),
+        value_quality_evidence_status: evidence_status("value_quality_filter"),
+        reward_eligibility_replay: prior.reward_eligibility_replay,
+        artifacts_written: result.artifacts_written,
+        duplicate_artifact_count: result.duplicate_artifact_count,
+        storage_failure_count: result.storage_failure_count,
+        protected_artifacts_unchanged: result.protected_artifacts_unchanged,
+        active_state_unchanged: result.active_state_unchanged,
+        safety_counters: result.safety_counters,
+        report_digest: result.report_digest,
+    };
+    if output_format == "json" {
+        println!(
+            "{}",
+            serde_json::to_string(&report)
+                .map_err(|_| "Momentum V4 supplemental report encoding failed")?
+        );
+    } else {
+        print!("{}", format_momentum_v4_supplemental_text(&report));
+    }
+    if report.storage_failure_count > 0
+        || !report.protected_artifacts_unchanged
+        || !report.active_state_unchanged
+        || report.status == crate::model::MomentumSupplementalExecutionStatusV4_1::TechnicalFailure
+    {
+        return Err("Momentum V4 supplemental qualification verification failed".to_string());
+    }
+    Ok(())
 }
 
 fn run_momentum_raw_feature_cli_v4(
@@ -9746,6 +10231,166 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(error, "Momentum raw-feature V4 is offline-only");
+    }
+
+    fn momentum_supplemental_cli_fixture_v4_1() -> MomentumSupplementalCliReportV4_1 {
+        MomentumSupplementalCliReportV4_1 {
+            report_version: "momentum-supplemental-cli-report-v4.1",
+            mode: "execute-local".to_string(),
+            offline: true,
+            status: crate::model::MomentumSupplementalExecutionStatusV4_1::Executed,
+            original_validation_index_count: 24,
+            original_valid_sample_count: 23,
+            original_neutral_excluded_count: 1,
+            corrected_v4_decision: Some(
+                crate::model::MomentumRawFeaturePathDecisionV4::InsufficientFreshValidation,
+            ),
+            supplemental_registration_digest: Some("registration".to_string()),
+            reserve_opening_status: crate::model::MomentumReserveOpeningStatusV4_1::Opened,
+            supplemental_valid_sample_count: 22,
+            accumulated_valid_sample_count: 45,
+            minimum_required_valid_samples: 24,
+            minimum_reached: true,
+            accumulated_qualification_statuses: vec![
+                crate::model::MomentumAccumulatedQualificationStatusV4_1::QualifiedLearned,
+                crate::model::MomentumAccumulatedQualificationStatusV4_1::BenchmarkQualified,
+            ],
+            interaction_contribution_status: Some(
+                crate::model::InteractionContributionStatusV4::LinearEquivalent,
+            ),
+            qualified_learned_count: 1,
+            qualified_benchmark_count: 1,
+            accumulated_family_digest: Some("family".to_string()),
+            accumulated_decision: Some(
+                crate::model::MomentumAccumulatedPathDecisionV4_1::OnlyLinearRawPathViable,
+            ),
+            accumulated_decision_digest: Some("decision".to_string()),
+            roster_status: crate::model::MomentumAccumulatedRosterStatusV4_1::Ready,
+            roster_digest: Some("roster".to_string()),
+            evaluation_registration_status:
+                crate::model::MomentumAccumulatedEvaluationStatusV4_1::Registered,
+            evaluation_registration_digest: Some("evaluation".to_string()),
+            minimum_accepted_timestamp_ms: Some(105),
+            additional_evidence_requirement_digest: None,
+            cycle_risk_evidence_status: Some(
+                crate::data::CanonicalViewGapStatusV1::ProviderContractUnverified,
+            ),
+            value_quality_evidence_status: Some(
+                crate::data::CanonicalViewGapStatusV1::TrainerUnavailable,
+            ),
+            reward_eligibility_replay: persisted_intent_migration_cli_fixture_v1()
+                .reward_eligibility_replay,
+            artifacts_written: 12,
+            duplicate_artifact_count: 0,
+            storage_failure_count: 0,
+            protected_artifacts_unchanged: true,
+            active_state_unchanged: true,
+            safety_counters: crate::model::MomentumSupplementalSafetyCountersV4_1 {
+                network_requests: 0,
+                transport_constructions: 0,
+                credential_reads: 0,
+                new_prospective_row_reads: 0,
+                new_prospective_label_openings: 0,
+                historical_test_reads: 0,
+                future_evaluation_reads: 0,
+                reserve_opening_attempts: 1,
+                reserve_row_reads: 24,
+                reserve_label_reads: 24,
+                participant_parameter_changes: 0,
+                active_model_changes: 0,
+                chair_decisions: 0,
+                votes: 0,
+                reward_applications: 0,
+                penalty_applications: 0,
+                voice_changes: 0,
+                cooldowns_started: 0,
+                promotions: 0,
+                quarantines: 0,
+                executions: 0,
+                active_committee_count: 3,
+            },
+            report_digest: "report".to_string(),
+        }
+    }
+
+    #[test]
+    fn momentum_supplemental_text_and_json_public_fields_agree() {
+        let report = momentum_supplemental_cli_fixture_v4_1();
+        let text = format_momentum_v4_supplemental_text(&report);
+        let json = serde_json::to_value(&report).unwrap();
+        for field in [
+            "network_requests",
+            "transport_constructions",
+            "credential_reads",
+            "new_prospective_row_reads",
+            "new_prospective_label_openings",
+            "historical_test_reads",
+            "future_evaluation_reads",
+            "reserve_opening_attempts",
+            "reserve_row_reads",
+            "reserve_label_reads",
+            "participant_parameter_changes",
+            "active_model_changes",
+            "chair_decisions",
+            "votes",
+            "reward_applications",
+            "penalty_applications",
+            "voice_changes",
+            "cooldowns_started",
+            "promotions",
+            "quarantines",
+            "executions",
+            "active_committee_count",
+        ] {
+            assert!(text.contains(&format!("{field}={}", json["safety_counters"][field])));
+        }
+        assert!(text.contains("reserve_opening_status=Opened"));
+        assert!(text.contains("accumulated_valid_sample_count=45"));
+        let rendered_json = serde_json::to_string(&report).unwrap();
+        for forbidden in [
+            "raw_rows",
+            "raw_features",
+            "expanded_feature_values",
+            "probabilities",
+            "labels",
+            "private_metric_digest",
+            "parameters",
+            "gradients",
+            "local_paths",
+            "artifact_path",
+        ] {
+            assert!(!text.contains(forbidden));
+            assert!(!rendered_json.contains(forbidden));
+        }
+    }
+
+    #[test]
+    fn momentum_supplemental_rejects_network_permission_before_io() {
+        let error = run_momentum_v4_supplemental_cli(
+            Path::new("not-used"),
+            "json",
+            true,
+            false,
+            false,
+            true,
+        )
+        .unwrap_err();
+        assert_eq!(
+            error,
+            "Momentum V4 supplemental qualification is offline-only"
+        );
+    }
+
+    #[test]
+    fn momentum_supplemental_flag_parses() {
+        let args = CliArgs::try_parse_from([
+            "soma-zero",
+            "--momentum-v4-supplemental-qualification",
+            "--status",
+        ])
+        .unwrap();
+        assert!(args.momentum_v4_supplemental_qualification);
+        assert!(args.status);
     }
 
     fn persisted_intent_migration_cli_fixture_v1() -> PersistedLearningIntentMigrationCliReportV1 {

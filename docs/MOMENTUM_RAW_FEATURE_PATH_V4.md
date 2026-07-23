@@ -140,3 +140,36 @@ qualification attempt. It does not prove that a participant substantively
 failed, model improvement, participant superiority, a winner, future
 performance, reward effectiveness, promotion readiness, Chair learning, or
 trading readiness.
+
+## Additive V4.1 qualification
+
+V4.1 preserves every V4 artifact and deterministically reconstructs the exact
+three frozen participants before consuming the former final reserve once.
+Registration `0e9762c34cae048b` binds the persisted participant, parameter,
+normalizer, split, source, intent, view, family, and validation-audit
+identities. A `Ready` opening receipt is persisted before the reserve examples
+or labels are constructed.
+
+The supplemental `[288,312)` block yields 23 valid examples and one neutral
+exclusion. Its exact union with the original 23 valid examples contains 46
+samples and reaches the unchanged minimum of 24. The two learned participants
+derive `QualifiedLearned`; the constant derives `BenchmarkQualified`. The
+additive interaction audit is `MaterialInteractionContribution`.
+
+Accumulated family `4900d33cd7f0eb60` records two qualified learned
+participants, one qualified benchmark, no winner, no parameter change, and no
+active, promotion, or reward eligibility. The bounded path decision is
+`RawFeatureLearnedPathViable` (`d08e8a1d2ecfef4f`). Roster
+`4883ef775c6e5589` contains all three qualifying roles without ranking, and
+future evaluation registration `372b95d7dfee4bef` binds the full accumulated
+history with minimum timestamp `1784764800000`. No future evidence was
+acquired.
+
+The opening uses one attempt, 24 reserve-row reads, and 24 reserve-label reads.
+An identical rerun reports `AlreadyOpened`, writes zero, and performs no
+reserve or model work. All other network, external-evidence, historical-test,
+future-evaluation, parameter-mutation, active-model, Chair, vote, reward,
+penalty, voice, cooldown, promotion, quarantine, and execution counters remain
+zero. This additive qualification is a policy result over the accumulated
+evidence, not proof of improvement, superiority, a winner, future performance,
+or deployment readiness.
