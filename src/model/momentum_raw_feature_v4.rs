@@ -437,13 +437,13 @@ pub struct MomentumRawFeatureReportV4 {
 }
 
 #[derive(Clone, Debug)]
-struct FrozenHistoryV4 {
-    v1: V1FrozenStateV2,
-    v2_split: MomentumMambaRepairSplitV2,
-    v2_family: MomentumCandidateFamilyV2,
-    v3_split: MomentumRepresentationSplitV3,
-    v3_family: MomentumRepresentationFamilyV3,
-    v3_decision: MomentumRepresentationRouteDecisionArtifactV3,
+pub(crate) struct FrozenHistoryV4 {
+    pub(crate) v1: V1FrozenStateV2,
+    pub(crate) v2_split: MomentumMambaRepairSplitV2,
+    pub(crate) v2_family: MomentumCandidateFamilyV2,
+    pub(crate) v3_split: MomentumRepresentationSplitV3,
+    pub(crate) v3_family: MomentumRepresentationFamilyV3,
+    pub(crate) v3_decision: MomentumRepresentationRouteDecisionArtifactV3,
 }
 
 #[derive(Clone, Debug)]
@@ -455,6 +455,43 @@ struct ExperimentV4 {
     roster_status: MomentumRawFeatureRosterStatusV4,
     evaluation: Option<MomentumRawFeatureEvaluationRegistrationV4>,
     evaluation_status: MomentumRawFeatureEvaluationStatusV4,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct MomentumFrozenReplayV4 {
+    pub(crate) history: FrozenHistoryV4,
+    pub(crate) closure: MomentumFrozenMambaPathClosureV4,
+    pub(crate) split: MomentumRawFeatureSplitV4,
+    pub(crate) registration: MomentumRawFeatureRegistrationV4,
+    pub(crate) validation_yield_audit: MomentumValidationYieldAuditV4,
+    pub(crate) family: MomentumRawFeatureFamilyV4,
+    pub(crate) decision: MomentumRawFeaturePathDecisionArtifactV4,
+    pub(crate) feature_normalizer: FeatureNormalizerV0,
+    pub(crate) raw_normalizer: RepresentationNormalizerV0,
+    pub(crate) interaction_normalizer: RepresentationNormalizerV0,
+    pub(crate) raw_head: LogisticPredictionHeadV0,
+    pub(crate) interaction_head: LogisticPredictionHeadV0,
+    pub(crate) training_prevalence: f32,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct MomentumAccumulatedParticipantEvaluationV4 {
+    pub(crate) participant_digest: String,
+    pub(crate) original_receipt_digest: String,
+    pub(crate) status: MomentumRawFeatureQualificationStatusV4,
+    pub(crate) private_metric_digest: String,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct MomentumAccumulatedReplayEvaluationV4 {
+    pub(crate) original_valid_sample_count: usize,
+    pub(crate) supplemental_valid_sample_count: usize,
+    pub(crate) original_neutral_excluded_count: usize,
+    pub(crate) supplemental_neutral_excluded_count: usize,
+    pub(crate) accumulated_validation_identity_digest: String,
+    pub(crate) source_boundary_timestamp_ms: u64,
+    pub(crate) participant_evaluations: Vec<MomentumAccumulatedParticipantEvaluationV4>,
+    pub(crate) interaction_contribution: MomentumInteractionContributionAuditV4,
 }
 
 fn sorted_unique(mut values: Vec<String>) -> Vec<String> {
@@ -2531,6 +2568,418 @@ fn run_experiment_v4(
         roster_status,
         evaluation,
         evaluation_status,
+    })
+}
+
+pub(crate) fn reconstruct_frozen_momentum_v4(
+    root: &Path,
+    snapshots: &[DataSnapshot],
+    reservation: &ProtectedEvaluationReservationV1,
+) -> Result<MomentumFrozenReplayV4, String> {
+    let history = load_frozen_history_v4(root, snapshots)?;
+    let closure = derive_closure_v4(&history)?;
+    let split = derive_split_v4(&history, reservation)?;
+    let registration = derive_registration_v4(&history, &closure, &split)?;
+    let persisted_preregistration = reopen_preregistration_v4(&root.join("v4").join(AGENT_ID_V4))?;
+    if persisted_preregistration != (closure.clone(), split.clone(), registration.clone()) {
+        return Err("V4 frozen preregistration identity mismatch".to_string());
+    }
+    let (persisted, _) = reopen_experiment_v4(&root.join("v4").join(AGENT_ID_V4))?;
+    let config = MomentumLearningCampaignConfigV0::default();
+    let candles =
+        candles_from_snapshot_prefix(&history.v1.snapshot, split.fresh_validation_range.end)?;
+    let features = build_momentum_features_v0(&candles, &config.feature_config)
+        .map_err(|_| "V4 replay feature derivation rejected".to_string())?;
+    let training_features = features
+        .iter()
+        .filter(|row| row.source_index < split.training_range.end)
+        .cloned()
+        .collect::<Vec<_>>();
+    let feature_normalizer = FeatureNormalizerV0::fit(&training_features)
+        .map_err(|_| "V4 replay feature normalizer rejected".to_string())?;
+    let normalized = feature_normalizer
+        .transform(&features)
+        .map_err(|_| "V4 replay normalized features rejected".to_string())?;
+    let examples = build_momentum_sequence_examples_v0(
+        &candles,
+        &normalized,
+        &config.sequence_config,
+        std::slice::from_ref(&history.v1.snapshot.snapshot_id),
+    )
+    .map_err(|_| "V4 replay examples rejected".to_string())?;
+    let training_examples = examples_with_labels(&examples, &split.training_range);
+    let validation_examples = examples_with_labels(&examples, &split.fresh_validation_range);
+    let validation_yield_audit = derive_validation_yield_audit_v4(
+        &history.v1.snapshot.content_digest,
+        &closure.label_policy_digest,
+        &split.fresh_validation_range,
+        split.minimum_validation_samples,
+        &candles,
+        &normalized,
+        &config.sequence_config,
+    )?;
+    if validation_yield_audit != persisted.validation_yield_audit
+        || validation_examples.len() != validation_yield_audit.valid_labelled_sample_count
+    {
+        return Err("V4 replay validation-yield identity mismatch".to_string());
+    }
+    let validation_identity = validation_timestamp_digest_v4(&validation_examples);
+    let training_identity = stable_hash_string(&format!(
+        "v4-training-label-identities:{:?}",
+        training_examples
+            .iter()
+            .map(|item| (item.label_index, &item.snapshot_ids))
+            .collect::<Vec<_>>()
+    ));
+    let raw_training = raw_encoded(&training_examples)?;
+    let raw_validation = raw_encoded(&validation_examples)?;
+    let raw_config = registration
+        .participants
+        .iter()
+        .find(|item| item.model_kind == MomentumRawFeatureModelKindV4::RawFeatureLogistic)
+        .ok_or_else(|| "V4 replay raw configuration missing".to_string())?;
+    let raw_normalizer = RepresentationNormalizerV0::fit(&raw_training)
+        .map_err(|_| "V4 replay raw normalizer rejected".to_string())?;
+    let raw_training_normalized = raw_normalizer
+        .transform(&raw_training)
+        .map_err(|_| "V4 replay raw training transform rejected".to_string())?;
+    let mut raw_training_config = config.training_config.clone();
+    raw_training_config.seed = raw_config.initialization_seed;
+    raw_training_config.epochs = raw_config.maximum_epochs;
+    raw_training_config.optimizer.learning_rate = f32::from_bits(raw_config.learning_rate_bits);
+    raw_training_config.optimizer.weight_decay = f32::from_bits(raw_config.l2_regularization_bits);
+    raw_training_config.early_stopping_patience = None;
+    let raw_initial = LogisticPredictionHeadV0::seeded(
+        raw_training_normalized[0].representation.len(),
+        raw_config.initialization_seed,
+    )
+    .map_err(|_| "V4 replay raw initialization rejected".to_string())?;
+    let raw_head = train_head_v4(raw_initial, &raw_training_normalized, &raw_training_config)?;
+    let replayed_raw = make_participant_v4(
+        raw_config,
+        MomentumRawFeatureRoleV4::LearnedRawLogistic,
+        &history,
+        &split,
+        &validation_identity,
+        raw_head.parameter_digest(),
+        stable_hash_string(&format!(
+            "{}:{}",
+            feature_normalizer.digest(),
+            raw_normalizer.digest()
+        )),
+        training_identity.clone(),
+    );
+    let persisted_raw = persisted
+        .family
+        .participants
+        .iter()
+        .find(|item| item.participant_role == MomentumRawFeatureRoleV4::LearnedRawLogistic)
+        .ok_or_else(|| "V4 frozen raw participant missing".to_string())?;
+    if &replayed_raw != persisted_raw {
+        return Err("V4 frozen raw participant reconstruction mismatch".to_string());
+    }
+
+    let interaction_config = registration
+        .participants
+        .iter()
+        .find(|item| {
+            item.model_kind == MomentumRawFeatureModelKindV4::RawFeatureInteractionLogistic
+        })
+        .ok_or_else(|| "V4 replay interaction configuration missing".to_string())?;
+    let interaction_training = expand_interactions_v4(&raw_training)?;
+    let interaction_validation = expand_interactions_v4(&raw_validation)?;
+    let interaction_normalizer = RepresentationNormalizerV0::fit(&interaction_training)
+        .map_err(|_| "V4 replay interaction normalizer rejected".to_string())?;
+    let interaction_training_normalized =
+        interaction_normalizer
+            .transform(&interaction_training)
+            .map_err(|_| "V4 replay interaction training transform rejected".to_string())?;
+    let interaction_validation_normalized = interaction_normalizer
+        .transform(&interaction_validation)
+        .map_err(|_| "V4 replay interaction validation transform rejected".to_string())?;
+    let mut interaction_training_config = config.training_config.clone();
+    interaction_training_config.seed = interaction_config.initialization_seed;
+    interaction_training_config.epochs = interaction_config.maximum_epochs;
+    interaction_training_config.optimizer.learning_rate =
+        f32::from_bits(interaction_config.learning_rate_bits);
+    interaction_training_config.optimizer.weight_decay =
+        f32::from_bits(interaction_config.l2_regularization_bits);
+    interaction_training_config.early_stopping_patience = None;
+    let interaction_initial = LogisticPredictionHeadV0::seeded(
+        interaction_training_normalized[0].representation.len(),
+        interaction_config.initialization_seed,
+    )
+    .map_err(|_| "V4 replay interaction initialization rejected".to_string())?;
+    let interaction_head = train_head_v4(
+        interaction_initial,
+        &interaction_training_normalized,
+        &interaction_training_config,
+    )?;
+    let replayed_interaction = make_participant_v4(
+        interaction_config,
+        MomentumRawFeatureRoleV4::LearnedInteractionLogistic,
+        &history,
+        &split,
+        &validation_identity,
+        interaction_head.parameter_digest(),
+        stable_hash_string(&format!(
+            "{}:{}",
+            feature_normalizer.digest(),
+            interaction_normalizer.digest()
+        )),
+        training_identity.clone(),
+    );
+    let persisted_interaction = persisted
+        .family
+        .participants
+        .iter()
+        .find(|item| item.participant_role == MomentumRawFeatureRoleV4::LearnedInteractionLogistic)
+        .ok_or_else(|| "V4 frozen interaction participant missing".to_string())?;
+    if &replayed_interaction != persisted_interaction {
+        return Err("V4 frozen interaction participant reconstruction mismatch".to_string());
+    }
+    let replayed_contribution = contribution_audit_v4(
+        &replayed_interaction,
+        &interaction_head,
+        &interaction_validation_normalized,
+        raw_training[0].representation.len(),
+    )?;
+    if persisted.family.interaction_contribution_audit.as_ref() != Some(&replayed_contribution) {
+        return Err("V4 frozen interaction audit reconstruction mismatch".to_string());
+    }
+
+    let training_prevalence = training_examples.iter().map(|item| item.label).sum::<f32>()
+        / training_examples.len() as f32;
+    let constant_config = registration
+        .participants
+        .iter()
+        .find(|item| item.model_kind == MomentumRawFeatureModelKindV4::TrainingPrevalenceConstant)
+        .ok_or_else(|| "V4 replay benchmark configuration missing".to_string())?;
+    let replayed_constant = make_participant_v4(
+        constant_config,
+        MomentumRawFeatureRoleV4::ConstantBenchmark,
+        &history,
+        &split,
+        &validation_identity,
+        stable_hash_string(&format!(
+            "training-prevalence-v4:{}",
+            training_prevalence.to_bits()
+        )),
+        stable_hash_string("training-labels-only-no-normalizer-v4"),
+        training_identity,
+    );
+    let persisted_constant = persisted
+        .family
+        .participants
+        .iter()
+        .find(|item| item.participant_role == MomentumRawFeatureRoleV4::ConstantBenchmark)
+        .ok_or_else(|| "V4 frozen benchmark participant missing".to_string())?;
+    if &replayed_constant != persisted_constant {
+        return Err("V4 frozen benchmark reconstruction mismatch".to_string());
+    }
+    if persisted.decision != derive_decision_v4(&persisted.family) {
+        return Err("V4 corrected decision reconstruction mismatch".to_string());
+    }
+    Ok(MomentumFrozenReplayV4 {
+        history,
+        closure,
+        split,
+        registration,
+        validation_yield_audit,
+        family: persisted.family,
+        decision: persisted.decision,
+        feature_normalizer,
+        raw_normalizer,
+        interaction_normalizer,
+        raw_head,
+        interaction_head,
+        training_prevalence,
+    })
+}
+
+pub(crate) fn evaluate_frozen_momentum_v4_accumulated(
+    replay: &MomentumFrozenReplayV4,
+) -> Result<MomentumAccumulatedReplayEvaluationV4, String> {
+    let config = MomentumLearningCampaignConfigV0::default();
+    let candles = candles_from_snapshot_prefix(
+        &replay.history.v1.snapshot,
+        replay.split.final_untouched_range.end,
+    )?;
+    let features = build_momentum_features_v0(&candles, &config.feature_config)
+        .map_err(|_| "V4.1 accumulated feature derivation rejected".to_string())?;
+    let normalized = replay
+        .feature_normalizer
+        .transform(&features)
+        .map_err(|_| "V4.1 accumulated feature normalization rejected".to_string())?;
+    let examples = build_momentum_sequence_examples_v0(
+        &candles,
+        &normalized,
+        &config.sequence_config,
+        std::slice::from_ref(&replay.history.v1.snapshot.snapshot_id),
+    )
+    .map_err(|_| "V4.1 accumulated examples rejected".to_string())?;
+    let original = examples_with_labels(&examples, &replay.split.fresh_validation_range);
+    let supplemental = examples_with_labels(&examples, &replay.split.final_untouched_range);
+    let supplemental_yield = derive_validation_yield_audit_v4(
+        &replay.history.v1.snapshot.content_digest,
+        &replay.closure.label_policy_digest,
+        &replay.split.final_untouched_range,
+        replay.split.minimum_validation_samples,
+        &candles,
+        &normalized,
+        &config.sequence_config,
+    )?;
+    if original.len() != replay.validation_yield_audit.valid_labelled_sample_count
+        || supplemental.len() != supplemental_yield.valid_labelled_sample_count
+    {
+        return Err("V4.1 accumulated yield mismatch".to_string());
+    }
+    let mut accumulated = original.clone();
+    accumulated.extend(supplemental.clone());
+    let identities = accumulated
+        .iter()
+        .map(|item| item.label_index)
+        .collect::<BTreeSet<_>>();
+    if identities.len() != accumulated.len()
+        || accumulated.iter().any(|item| {
+            item.label_index >= replay.split.final_untouched_range.end
+                || (item.label_index < replay.split.fresh_validation_range.start)
+                || (item.label_index >= replay.split.fresh_validation_range.end
+                    && item.label_index < replay.split.final_untouched_range.start)
+        })
+    {
+        return Err("V4.1 accumulated evidence union rejected".to_string());
+    }
+    let accumulated_validation_identity_digest = validation_timestamp_digest_v4(&accumulated);
+    let raw_rows = raw_encoded(&accumulated)?;
+    let raw_normalized = replay
+        .raw_normalizer
+        .transform(&raw_rows)
+        .map_err(|_| "V4.1 raw accumulated transform rejected".to_string())?;
+    let raw_metric = evaluate_head_v0(&replay.raw_head, &raw_normalized)
+        .map_err(|_| "V4.1 raw accumulated evaluation rejected".to_string())?;
+    let raw_probabilities = raw_normalized
+        .iter()
+        .map(|item| replay.raw_head.probability(&item.representation))
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|_| "V4.1 raw accumulated probabilities rejected".to_string())?;
+    let raw_status = base_qualification_v4(
+        &raw_metric,
+        &raw_probabilities,
+        replay.split.minimum_validation_samples,
+    );
+
+    let interaction_rows = expand_interactions_v4(&raw_rows)?;
+    let interaction_normalized = replay
+        .interaction_normalizer
+        .transform(&interaction_rows)
+        .map_err(|_| "V4.1 interaction accumulated transform rejected".to_string())?;
+    let interaction_metric = evaluate_head_v0(&replay.interaction_head, &interaction_normalized)
+        .map_err(|_| "V4.1 interaction accumulated evaluation rejected".to_string())?;
+    let interaction_probabilities = interaction_normalized
+        .iter()
+        .map(|item| replay.interaction_head.probability(&item.representation))
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|_| "V4.1 interaction accumulated probabilities rejected".to_string())?;
+    let interaction_participant = replay
+        .family
+        .participants
+        .iter()
+        .find(|item| item.participant_role == MomentumRawFeatureRoleV4::LearnedInteractionLogistic)
+        .ok_or_else(|| "V4.1 interaction participant missing".to_string())?;
+    let interaction_contribution = contribution_audit_v4(
+        interaction_participant,
+        &replay.interaction_head,
+        &interaction_normalized,
+        raw_rows[0].representation.len(),
+    )?;
+    let interaction_base = base_qualification_v4(
+        &interaction_metric,
+        &interaction_probabilities,
+        replay.split.minimum_validation_samples,
+    );
+    let interaction_status =
+        if interaction_base == MomentumRawFeatureQualificationStatusV4::QualifiedLearned {
+            match interaction_contribution.contribution_status {
+                InteractionContributionStatusV4::MaterialInteractionContribution => {
+                    MomentumRawFeatureQualificationStatusV4::QualifiedLearned
+                }
+                InteractionContributionStatusV4::DetectableButBelowPolicy
+                | InteractionContributionStatusV4::LinearEquivalent => {
+                    MomentumRawFeatureQualificationStatusV4::QualifiedLinearEquivalent
+                }
+                InteractionContributionStatusV4::Invalid => {
+                    MomentumRawFeatureQualificationStatusV4::RejectedFeatureIntegrity
+                }
+            }
+        } else {
+            interaction_base
+        };
+
+    let constant_probabilities = vec![replay.training_prevalence; accumulated.len()];
+    let labels = accumulated
+        .iter()
+        .map(|item| item.label)
+        .collect::<Vec<_>>();
+    let constant_metric = evaluate_probabilities_v0(&constant_probabilities, &labels)
+        .map_err(|_| "V4.1 benchmark accumulated evaluation rejected".to_string())?;
+    let constant_status = if constant_metric.sample_count < replay.split.minimum_validation_samples
+    {
+        MomentumRawFeatureQualificationStatusV4::RejectedInsufficientValidation
+    } else {
+        MomentumRawFeatureQualificationStatusV4::BenchmarkQualified
+    };
+    let evaluation_for = |role,
+                          status,
+                          metric: &EvaluationMetricsV0|
+     -> Result<MomentumAccumulatedParticipantEvaluationV4, String> {
+        let participant = replay
+            .family
+            .participants
+            .iter()
+            .find(|item| item.participant_role == role)
+            .ok_or_else(|| "V4.1 frozen participant missing".to_string())?;
+        let receipt = replay
+            .family
+            .qualification_receipts
+            .iter()
+            .find(|item| item.participant_digest == participant.participant_digest)
+            .ok_or_else(|| "V4.1 original receipt missing".to_string())?;
+        Ok(MomentumAccumulatedParticipantEvaluationV4 {
+            participant_digest: participant.participant_digest.clone(),
+            original_receipt_digest: receipt.receipt_digest.clone(),
+            status,
+            private_metric_digest: metric_digest_v4(participant.model_kind, metric),
+        })
+    };
+    Ok(MomentumAccumulatedReplayEvaluationV4 {
+        original_valid_sample_count: original.len(),
+        supplemental_valid_sample_count: supplemental.len(),
+        original_neutral_excluded_count: replay.validation_yield_audit.neutral_excluded_count,
+        supplemental_neutral_excluded_count: supplemental_yield.neutral_excluded_count,
+        accumulated_validation_identity_digest,
+        source_boundary_timestamp_ms: candles
+            .last()
+            .and_then(|candle| u64::try_from(candle.timestamp).ok())
+            .ok_or_else(|| "V4.1 source boundary timestamp rejected".to_string())?,
+        participant_evaluations: vec![
+            evaluation_for(
+                MomentumRawFeatureRoleV4::LearnedRawLogistic,
+                raw_status,
+                &raw_metric,
+            )?,
+            evaluation_for(
+                MomentumRawFeatureRoleV4::LearnedInteractionLogistic,
+                interaction_status,
+                &interaction_metric,
+            )?,
+            evaluation_for(
+                MomentumRawFeatureRoleV4::ConstantBenchmark,
+                constant_status,
+                &constant_metric,
+            )?,
+        ],
+        interaction_contribution,
     })
 }
 

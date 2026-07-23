@@ -24,6 +24,7 @@ pub mod model_ops_review_closure;
 pub mod model_ops_rollup;
 pub mod momentum_mamba_repair;
 pub mod momentum_mamba_representation;
+pub mod momentum_raw_feature_supplemental;
 pub mod momentum_raw_feature_v4;
 pub mod prediction;
 pub mod sequence_dataset_export;
@@ -904,6 +905,7 @@ pub use momentum_mamba_repair::{
     encode_momentum_qualification_receipt_protobuf_v2, run_momentum_mamba_repair_v2,
 };
 pub use momentum_mamba_representation::*;
+pub use momentum_raw_feature_supplemental::*;
 pub use momentum_raw_feature_v4::*;
 pub use prediction::{
     PredictionFrame, PredictionImportConfig, PredictionInputFormat, PredictionRow,
