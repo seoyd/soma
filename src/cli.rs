@@ -3090,39 +3090,55 @@ fn run_momentum_v4_supplemental_cli(
 }
 
 pub(crate) fn format_momentum_v4_future_prediction_text(
-    status: &crate::model::MomentumFuturePredictionStatusReceiptV4_2,
+    status: &crate::model::MomentumFuturePredictionStatusReceiptV4_3,
 ) -> String {
     let mut output = String::new();
     let _ = writeln!(output, "status_version={}", status.status_version);
+    let _ = writeln!(output, "lifecycle_version={}", status.lifecycle_version);
+    let _ = writeln!(output, "lifecycle_digest={}", status.lifecycle_digest);
     let _ = writeln!(
         output,
-        "request_budget_meaning={:?}",
-        status.request_budget_meaning
+        "context_authorization_status={:?}",
+        status.context_authorization_status
     );
-    let _ = writeln!(output, "lifecycle_digest={}", status.lifecycle_digest);
-    let _ = writeln!(output, "event_readiness={:?}", status.event_readiness);
-    let _ = writeln!(output, "event_timestamp_ms={}", status.event_timestamp_ms);
+    let _ = writeln!(
+        output,
+        "context_authorization_digest={}",
+        status.context_authorization_digest
+    );
+    let _ = writeln!(
+        output,
+        "supersession_status={:?}",
+        status.supersession_status
+    );
+    let _ = writeln!(output, "supersession_digest={}", status.supersession_digest);
+    let _ = writeln!(
+        output,
+        "superseded_event_timestamp_ms={}",
+        status.superseded_event_timestamp_ms
+    );
+    let _ = writeln!(
+        output,
+        "replacement_event_timestamp_ms={}",
+        status.replacement_event_timestamp_ms
+    );
     let _ = writeln!(
         output,
         "input_finality_boundary_ms={}",
         status.input_finality_boundary_ms
     );
+    let _ = writeln!(output, "event_readiness={:?}", status.event_readiness);
     let _ = writeln!(
         output,
-        "context_policy_status={:?}",
-        status.context_policy_status
-    );
-    let _ = writeln!(output, "context_plan_digest={}", status.context_plan_digest);
-    let _ = writeln!(
-        output,
-        "input_registration_digest={}",
-        status.input_registration_digest
+        "corrected_context_plan_digest={}",
+        status.corrected_context_plan_digest
     );
     let _ = writeln!(
         output,
-        "request_attempt_count={}",
-        status.request_attempt_count
+        "corrected_input_registration_digest={}",
+        status.corrected_input_registration_digest
     );
+    let _ = writeln!(output, "input_request_count={}", status.input_request_count);
     let _ = writeln!(
         output,
         "input_receipt_digest={}",
@@ -3132,6 +3148,19 @@ pub(crate) fn format_momentum_v4_future_prediction_text(
         output,
         "input_capsule_digest={}",
         status.input_capsule_digest.as_deref().unwrap_or("absent")
+    );
+    let _ = writeln!(
+        output,
+        "context_usage_ledger_digest={}",
+        status
+            .context_usage_ledger_digest
+            .as_deref()
+            .unwrap_or("absent")
+    );
+    let _ = writeln!(
+        output,
+        "context_usage_classes={}",
+        status.context_usage_classes.join(",")
     );
     let _ = writeln!(
         output,
@@ -3148,11 +3177,16 @@ pub(crate) fn format_momentum_v4_future_prediction_text(
     );
     let _ = writeln!(
         output,
-        "outcome_maturity_plan_digest={}",
+        "prediction_journal_digest={}",
         status
-            .outcome_maturity_plan_digest
+            .prediction_journal_digest
             .as_deref()
             .unwrap_or("absent")
+    );
+    let _ = writeln!(
+        output,
+        "outcome_plan_digest={}",
+        status.outcome_plan_digest.as_deref().unwrap_or("absent")
     );
     let _ = writeln!(
         output,
@@ -3192,7 +3226,7 @@ pub(crate) fn format_momentum_v4_future_prediction_text(
     for (name, value) in [
         ("input_request_attempts", counters.input_request_attempts),
         ("input_retries", counters.input_retries),
-        ("input_concurrency", counters.input_concurrency),
+        ("maximum_concurrency", counters.maximum_concurrency),
         (
             "outcome_request_attempts",
             counters.outcome_request_attempts,
@@ -3203,6 +3237,22 @@ pub(crate) fn format_momentum_v4_future_prediction_text(
             counters.participant_parameter_updates,
         ),
         ("normalizer_refits", counters.normalizer_refits),
+        (
+            "protected_context_training_uses",
+            counters.protected_context_training_uses,
+        ),
+        (
+            "protected_context_label_uses",
+            counters.protected_context_label_uses,
+        ),
+        (
+            "protected_context_metric_uses",
+            counters.protected_context_metric_uses,
+        ),
+        (
+            "protected_context_reward_uses",
+            counters.protected_context_reward_uses,
+        ),
         ("outcome_row_reads", counters.outcome_row_reads),
         ("outcome_label_reads", counters.outcome_label_reads),
         ("metric_computations", counters.metric_computations),
@@ -3298,7 +3348,7 @@ fn run_momentum_v4_future_prediction_cli(
     } else {
         crate::model::MomentumFuturePredictionRunModeV4_2::Execute
     };
-    let report = crate::model::run_momentum_future_prediction_v4_2(
+    let report = crate::model::run_momentum_future_prediction_v4_3(
         root,
         &snapshots,
         &reservation,

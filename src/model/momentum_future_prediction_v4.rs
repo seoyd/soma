@@ -34,8 +34,8 @@ use super::momentum_raw_feature_supplemental::{
     reopen_momentum_v4_1_future_source,
 };
 use super::momentum_raw_feature_v4::{
-    MomentumFrozenParticipantPredictionV4, predict_frozen_momentum_v4_event,
-    reconstruct_frozen_momentum_v4,
+    MomentumFrozenParticipantPredictionV4, MomentumRawFeatureRoleV4,
+    predict_frozen_momentum_v4_event, reconstruct_frozen_momentum_v4,
 };
 use super::{MomentumLearningCampaignConfigV0, ProtectedEvaluationReservationV1};
 
@@ -53,6 +53,19 @@ const PREDICTION_CAPSULE_VERSION_V4_2: &str = "momentum-prospective-prediction-c
 const PREDICTION_JOURNAL_VERSION_V4_2: &str = "momentum-prospective-prediction-journal-v4.2";
 const MATURITY_PLAN_VERSION_V4_2: &str = "momentum-prospective-outcome-maturity-plan-v4.2";
 const STATUS_RECEIPT_VERSION_V4_2: &str = "momentum-future-prediction-status-v4.2";
+const ROOT_VERSION_V4_3: &str = "v4_3";
+const AUTHORIZATION_VERSION_V4_3: &str = "momentum-protected-context-authorization-v4.3";
+const SUPERSESSION_VERSION_V4_3: &str = "momentum-input-plan-supersession-v4.3";
+const CONTEXT_PLAN_VERSION_V4_3: &str = "momentum-prospective-feature-context-plan-v4.3";
+const INPUT_REGISTRATION_VERSION_V4_3: &str = "momentum-prospective-input-registration-v4.3";
+const INPUT_RECEIPT_VERSION_V4_3: &str = "momentum-prospective-input-receipt-v4.3";
+const INPUT_CAPSULE_VERSION_V4_3: &str = "momentum-prospective-input-capsule-v4.3";
+const CONTEXT_LEDGER_VERSION_V4_3: &str = "momentum-context-usage-ledger-v4.3";
+const CONTEXT_PROOF_VERSION_V4_3: &str = "momentum-feature-context-verification-v4.3";
+const PREDICTION_CAPSULE_VERSION_V4_3: &str = "momentum-prospective-prediction-capsule-v4.3";
+const PREDICTION_JOURNAL_VERSION_V4_3: &str = "momentum-prospective-prediction-journal-v4.3";
+const OUTCOME_PLAN_VERSION_V4_3: &str = "momentum-prospective-outcome-plan-v4.3";
+const STATUS_RECEIPT_VERSION_V4_3: &str = "momentum-future-prediction-status-v4.3";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum FutureEvaluationRequestBudgetMeaningV4_2 {
@@ -102,6 +115,7 @@ pub enum MomentumEventReadinessV4_2 {
     AwaitingSufficientFeatureContext,
     AwaitingPostExclusionContext,
     ContextPolicyAmbiguous,
+    SupersededInputRegistration,
     PriorInputAttemptTerminal,
     PredictionAlreadySealed,
     IntegrityFailure,
@@ -388,6 +402,421 @@ pub struct MomentumFuturePredictionReportV4_2 {
     pub prediction_capsule: Option<MomentumProspectivePredictionCapsuleV4_2>,
     pub prediction_journal: Option<MomentumProspectivePredictionJournalV4_2>,
     pub outcome_maturity_plan: Option<MomentumProspectiveOutcomeMaturityPlanV4_2>,
+    pub artifacts_written: usize,
+    pub duplicate_artifact_count: usize,
+    pub storage_failure_count: usize,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProtectedContextUseClassV4_3 {
+    RawOhlcvInferenceContext,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProtectedContextAuthorizationStatusV4_3 {
+    Authorized,
+    AlreadyAuthorized,
+    ModelFreezeNotProven,
+    RawEvidenceUnavailable,
+    PriorOutcomeArtifactReferenced,
+    PolicyConflict,
+    IntegrityFailure,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MomentumProtectedContextAuthorizationV4_3 {
+    pub authorization_version: String,
+    pub agent_id: String,
+    pub v4_family_digest: String,
+    pub accumulated_family_digest: String,
+    pub roster_digest: String,
+    pub evaluation_registration_digest: String,
+    pub lifecycle_digest: String,
+    pub participant_digests: Vec<String>,
+    pub parameter_digests: Vec<String>,
+    pub normalizer_digests: Vec<String>,
+    pub model_source_boundary_timestamp_ms: u64,
+    pub protected_registration_digests: Vec<String>,
+    pub protected_timestamp_ms: Vec<u64>,
+    pub allowed_use_class: ProtectedContextUseClassV4_3,
+    pub raw_ohlcv_context_allowed: bool,
+    pub training_use_forbidden: bool,
+    pub normalizer_fit_forbidden: bool,
+    pub label_use_forbidden: bool,
+    pub qualification_use_forbidden: bool,
+    pub metric_use_forbidden: bool,
+    pub reward_use_forbidden: bool,
+    pub event_timestamp_use_forbidden: bool,
+    pub outcome_timestamp_use_forbidden: bool,
+    pub prior_outcome_capsule_use_forbidden: bool,
+    pub authorization_status: ProtectedContextAuthorizationStatusV4_3,
+    pub authorization_digest: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MomentumContextEvidenceUseV4_3 {
+    ExistingFrozenHistoricalContext,
+    ProtectedRawInferenceContext,
+    NewIncrementalInferenceContext,
+    ProspectiveEventInput,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MomentumContextUsageEntryV4_3 {
+    pub timestamp_ms: u64,
+    pub raw_row_digest: String,
+    pub use_class: MomentumContextEvidenceUseV4_3,
+    pub used_for_feature_construction: bool,
+    pub used_for_training: bool,
+    pub used_for_normalizer_fit: bool,
+    pub used_for_label: bool,
+    pub used_for_metric: bool,
+    pub used_for_reward: bool,
+    pub entry_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MomentumContextUsageLedgerV4_3 {
+    pub ledger_version: String,
+    pub authorization_digest: String,
+    pub event_timestamp_ms: u64,
+    pub entries: Vec<MomentumContextUsageEntryV4_3>,
+    pub ledger_digest: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MomentumInputPlanSupersessionStatusV4_3 {
+    Superseded,
+    AlreadySuperseded,
+    PriorAttemptExists,
+    PriorEvidenceExists,
+    IntegrityFailure,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MomentumInputPlanSupersessionV4_3 {
+    pub supersession_version: String,
+    pub lifecycle_digest: String,
+    pub context_authorization_digest: String,
+    pub superseded_context_plan_digest: String,
+    pub superseded_input_registration_digest: String,
+    pub superseded_event_timestamp_ms: u64,
+    pub prior_request_attempt_count: usize,
+    pub prior_receipt_present: bool,
+    pub prior_capsule_present: bool,
+    pub prior_prediction_capsule_present: bool,
+    pub replacement_event_timestamp_ms: u64,
+    pub replacement_context_plan_digest: String,
+    pub replacement_input_registration_digest: String,
+    pub status: MomentumInputPlanSupersessionStatusV4_3,
+    pub supersession_digest: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MomentumEventReadinessV4_3 {
+    ReadyForInputAcquisition,
+    AwaitingInputFinality,
+    ContextOnlyAuthorizationMissing,
+    ContextAuthorizationIntegrityFailure,
+    InputRegistrationSuperseded,
+    PriorInputAttemptTerminal,
+    PredictionAlreadySealed,
+    IntegrityFailure,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MomentumProspectiveFeatureContextPlanV4_3 {
+    pub plan_version: String,
+    pub lifecycle_digest: String,
+    pub context_authorization_digest: String,
+    pub event_timestamp_ms: u64,
+    pub input_finality_boundary_ms: u64,
+    pub required_context_start_timestamp_ms: u64,
+    pub required_context_end_timestamp_ms: u64,
+    pub required_row_count: usize,
+    pub exact_required_timestamp_ms: Vec<u64>,
+    pub existing_source_timestamp_ms: Vec<u64>,
+    pub protected_context_timestamp_ms: Vec<u64>,
+    pub incremental_timestamp_ms: Vec<u64>,
+    pub context_usage_policy_digest: String,
+    pub plan_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MomentumProspectiveInputRegistrationV4_3 {
+    pub registration_version: String,
+    pub lifecycle_digest: String,
+    pub evaluation_registration_digest: String,
+    pub roster_digest: String,
+    pub context_authorization_digest: String,
+    pub supersession_digest: String,
+    pub context_plan_digest: String,
+    pub event_timestamp_ms: u64,
+    pub input_finality_boundary_ms: u64,
+    pub provider_id: String,
+    pub market: String,
+    pub symbol: String,
+    pub cadence: String,
+    pub exact_expected_timestamp_ms: Vec<u64>,
+    pub expected_row_count: usize,
+    pub request_to_timestamp_ms: u64,
+    pub maximum_requests: usize,
+    pub maximum_concurrency: usize,
+    pub maximum_retries: usize,
+    pub maximum_response_bytes: usize,
+    pub credential_free_required: bool,
+    pub read_only_required: bool,
+    pub outcome_timestamp_forbidden: bool,
+    pub prior_outcome_artifact_forbidden: bool,
+    pub registration_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MomentumProspectiveInputReceiptV4_3 {
+    pub receipt_version: String,
+    pub lifecycle_digest: String,
+    pub context_authorization_digest: String,
+    pub input_registration_digest: String,
+    pub request_attempted: bool,
+    pub request_count: usize,
+    pub retry_count: usize,
+    pub status: MomentumProspectiveInputStatusV4_2,
+    pub http_status_class: Option<String>,
+    pub returned_row_count: usize,
+    pub verified_row_count: usize,
+    pub raw_response_digest: Option<String>,
+    pub input_capsule_digest: Option<String>,
+    pub terminal: bool,
+    pub receipt_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MomentumProspectiveInputCapsuleV4_3 {
+    pub capsule_version: String,
+    pub lifecycle_digest: String,
+    pub context_authorization_digest: String,
+    pub input_registration_digest: String,
+    pub event_timestamp_ms: u64,
+    pub exact_timestamp_ms: Vec<u64>,
+    pub row_identity_digests: Vec<String>,
+    pub normalized_dataset_digest: String,
+    pub raw_response_digest: String,
+    pub outcome_row_present: bool,
+    pub labels_accessed: bool,
+    pub metrics_computed: bool,
+    pub prior_outcome_capsule_accessed: bool,
+    pub credential_free: bool,
+    pub read_only: bool,
+    pub sanitized: bool,
+    pub capsule_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MomentumProspectiveContextVerificationV4_3 {
+    pub proof_version: String,
+    pub context_authorization_digest: String,
+    pub feature_context_plan_digest: String,
+    pub input_registration_digest: String,
+    pub input_capsule_digest: String,
+    pub context_usage_ledger_digest: String,
+    pub exact_timestamps_verified: bool,
+    pub strict_chronology_verified: bool,
+    pub feature_history_complete: bool,
+    pub protected_context_inference_only: bool,
+    pub outcome_timestamp_absent: bool,
+    pub prior_outcome_artifact_accessed: bool,
+    pub proof_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MomentumParticipantPredictionSealV4_3 {
+    pub participant_digest: String,
+    pub participant_role: String,
+    pub event_timestamp_ms: u64,
+    pub input_receipt_digest: String,
+    pub input_capsule_digest: String,
+    pub context_usage_ledger_digest: String,
+    pub feature_identity_digest: String,
+    pub prediction_probability_bits: u32,
+    pub prediction_digest: String,
+    pub participant_identity_verified: bool,
+    pub parameter_updates: usize,
+    pub normalizer_refits: usize,
+    pub outcome_access_count: usize,
+    pub seal_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MomentumProspectivePredictionCapsuleV4_3 {
+    pub capsule_version: String,
+    pub lifecycle_digest: String,
+    pub evaluation_registration_digest: String,
+    pub roster_digest: String,
+    pub context_authorization_digest: String,
+    pub supersession_digest: String,
+    pub corrected_context_plan_digest: String,
+    pub input_registration_digest: String,
+    pub event_timestamp_ms: u64,
+    pub input_receipt_digest: String,
+    pub input_capsule_digest: String,
+    pub context_usage_ledger_digest: String,
+    pub participant_prediction_seals: Vec<MomentumParticipantPredictionSealV4_3>,
+    pub probabilities_hidden: bool,
+    pub labels_hidden: bool,
+    pub outcome_accessed: bool,
+    pub metrics_computed: bool,
+    pub winner_selected: bool,
+    pub capsule_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MomentumProspectivePredictionJournalEntryV4_3 {
+    pub event_timestamp_ms: u64,
+    pub context_authorization_digest: String,
+    pub input_capsule_digest: String,
+    pub context_usage_ledger_digest: String,
+    pub prediction_capsule_digest: String,
+    pub participant_prediction_digests: Vec<String>,
+    pub prediction_sealed_before_outcome: bool,
+    pub outcome_stage_unlocked: bool,
+    pub entry_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MomentumProspectivePredictionJournalV4_3 {
+    pub journal_version: String,
+    pub entries: Vec<MomentumProspectivePredictionJournalEntryV4_3>,
+    pub journal_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MomentumProspectiveOutcomePlanV4_3 {
+    pub plan_version: String,
+    pub prediction_capsule_digest: String,
+    pub event_timestamp_ms: u64,
+    pub prediction_horizon: usize,
+    pub required_outcome_timestamp_ms: Vec<u64>,
+    pub outcome_finality_boundary_ms: u64,
+    pub maximum_outcome_requests: usize,
+    pub maximum_outcome_retries: usize,
+    pub labels_hidden_until_opening: bool,
+    pub one_time_opening_required: bool,
+    pub outcome_stage_locked_before_finality: bool,
+    pub plan_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MomentumFuturePredictionSafetyCountersV4_3 {
+    pub input_request_attempts: usize,
+    pub input_retries: usize,
+    pub maximum_concurrency: usize,
+    pub outcome_request_attempts: usize,
+    pub outcome_retries: usize,
+    pub participant_parameter_updates: usize,
+    pub normalizer_refits: usize,
+    pub protected_context_training_uses: usize,
+    pub protected_context_label_uses: usize,
+    pub protected_context_metric_uses: usize,
+    pub protected_context_reward_uses: usize,
+    pub outcome_row_reads: usize,
+    pub outcome_label_reads: usize,
+    pub metric_computations: usize,
+    pub winner_selections: usize,
+    pub active_model_changes: usize,
+    pub chair_decisions: usize,
+    pub votes: usize,
+    pub reward_applications: usize,
+    pub penalty_applications: usize,
+    pub voice_changes: usize,
+    pub cooldowns_started: usize,
+    pub promotions: usize,
+    pub quarantines: usize,
+    pub executions: usize,
+    pub active_committee_count: usize,
+}
+
+impl Default for MomentumFuturePredictionSafetyCountersV4_3 {
+    fn default() -> Self {
+        Self {
+            input_request_attempts: 0,
+            input_retries: 0,
+            maximum_concurrency: 1,
+            outcome_request_attempts: 0,
+            outcome_retries: 0,
+            participant_parameter_updates: 0,
+            normalizer_refits: 0,
+            protected_context_training_uses: 0,
+            protected_context_label_uses: 0,
+            protected_context_metric_uses: 0,
+            protected_context_reward_uses: 0,
+            outcome_row_reads: 0,
+            outcome_label_reads: 0,
+            metric_computations: 0,
+            winner_selections: 0,
+            active_model_changes: 0,
+            chair_decisions: 0,
+            votes: 0,
+            reward_applications: 0,
+            penalty_applications: 0,
+            voice_changes: 0,
+            cooldowns_started: 0,
+            promotions: 0,
+            quarantines: 0,
+            executions: 0,
+            active_committee_count: 3,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MomentumFuturePredictionStatusReceiptV4_3 {
+    pub status_version: String,
+    pub lifecycle_version: String,
+    pub lifecycle_digest: String,
+    pub context_authorization_status: ProtectedContextAuthorizationStatusV4_3,
+    pub context_authorization_digest: String,
+    pub supersession_status: MomentumInputPlanSupersessionStatusV4_3,
+    pub supersession_digest: String,
+    pub superseded_event_timestamp_ms: u64,
+    pub replacement_event_timestamp_ms: u64,
+    pub input_finality_boundary_ms: u64,
+    pub event_readiness: MomentumEventReadinessV4_3,
+    pub corrected_context_plan_digest: String,
+    pub corrected_input_registration_digest: String,
+    pub input_request_count: usize,
+    pub input_receipt_digest: Option<String>,
+    pub input_capsule_digest: Option<String>,
+    pub context_usage_ledger_digest: Option<String>,
+    pub context_usage_classes: Vec<String>,
+    pub participant_prediction_digests: Vec<String>,
+    pub prediction_capsule_digest: Option<String>,
+    pub prediction_journal_digest: Option<String>,
+    pub outcome_plan_digest: Option<String>,
+    pub outcome_finality_boundary_ms: Option<u64>,
+    pub cycle_risk_status: String,
+    pub value_quality_status: String,
+    pub prior_momentum_attribution: String,
+    pub prior_cycle_risk_attribution: String,
+    pub protected_artifacts_unchanged: bool,
+    pub active_state_unchanged: bool,
+    pub safety_counters: MomentumFuturePredictionSafetyCountersV4_3,
+    pub status_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct MomentumFuturePredictionReportV4_3 {
+    pub status: MomentumFuturePredictionStatusReceiptV4_3,
+    pub lifecycle: MomentumFutureEvaluationLifecycleV4_2,
+    pub context_authorization: MomentumProtectedContextAuthorizationV4_3,
+    pub supersession: MomentumInputPlanSupersessionV4_3,
+    pub context_plan: MomentumProspectiveFeatureContextPlanV4_3,
+    pub input_registration: MomentumProspectiveInputRegistrationV4_3,
+    pub input_receipt: Option<MomentumProspectiveInputReceiptV4_3>,
+    pub input_capsule: Option<MomentumProspectiveInputCapsuleV4_3>,
+    pub context_usage_ledger: Option<MomentumContextUsageLedgerV4_3>,
+    pub prediction_capsule: Option<MomentumProspectivePredictionCapsuleV4_3>,
+    pub prediction_journal: Option<MomentumProspectivePredictionJournalV4_3>,
+    pub outcome_plan: Option<MomentumProspectiveOutcomePlanV4_3>,
     pub artifacts_written: usize,
     pub duplicate_artifact_count: usize,
     pub storage_failure_count: usize,
@@ -2025,6 +2454,9 @@ fn parse_readiness(value: &str) -> Result<MomentumEventReadinessV4_2, String> {
             Ok(MomentumEventReadinessV4_2::AwaitingPostExclusionContext)
         }
         "ContextPolicyAmbiguous" => Ok(MomentumEventReadinessV4_2::ContextPolicyAmbiguous),
+        "SupersededInputRegistration" => {
+            Ok(MomentumEventReadinessV4_2::SupersededInputRegistration)
+        }
         "PriorInputAttemptTerminal" => Ok(MomentumEventReadinessV4_2::PriorInputAttemptTerminal),
         "PredictionAlreadySealed" => Ok(MomentumEventReadinessV4_2::PredictionAlreadySealed),
         "IntegrityFailure" => Ok(MomentumEventReadinessV4_2::IntegrityFailure),
@@ -2931,6 +3363,43 @@ pub fn run_momentum_future_prediction_v4_2(
     let input_registration =
         derive_input_registration(&lifecycle, &context_plan, &source, provider_config)?;
     let v4_2_root = root.join(ROOT_VERSION_V4_2).join(AGENT_ID_V4_2);
+    if let Some(supersession) = read_single(
+        &root
+            .join(ROOT_VERSION_V4_3)
+            .join(AGENT_ID_V4_2)
+            .join("supersessions"),
+        decode_supersession_v4_3,
+    )? {
+        if !old_registration_superseded_v4_3(
+            &supersession,
+            &lifecycle,
+            &context_plan,
+            &input_registration,
+        ) {
+            return Err("V4.2 supersession identity rejected".to_string());
+        }
+        let protected_after = protected_artifacts(root)?;
+        let active_after = stable_hash_string(&format!("{:?}", canonical_current_agent_states()));
+        let status = build_status_receipt(
+            &lifecycle,
+            &context_plan,
+            &input_registration,
+            MomentumEventReadinessV4_2::SupersededInputRegistration,
+            None,
+            None,
+            None,
+            None,
+            protected_before == protected_after,
+            active_before == active_after,
+            MomentumFuturePredictionSafetyCountersV4_2::default(),
+        )?;
+        return Ok(base_report(
+            status,
+            lifecycle,
+            context_plan,
+            input_registration,
+        ));
+    }
     let persisted_input_receipt =
         read_single(&v4_2_root.join("input_receipts"), decode_input_receipt)?;
     let persisted_input_capsule =
@@ -3304,6 +3773,3430 @@ pub fn run_momentum_future_prediction_v4_2(
     Ok(report)
 }
 
+fn authorization_digest_v4_3(value: &MomentumProtectedContextAuthorizationV4_3) -> String {
+    canonical_digest(value, |value| value.authorization_digest.clear())
+}
+
+fn context_usage_entry_digest_v4_3(value: &MomentumContextUsageEntryV4_3) -> String {
+    canonical_digest(value, |value| value.entry_digest.clear())
+}
+
+fn context_usage_ledger_digest_v4_3(value: &MomentumContextUsageLedgerV4_3) -> String {
+    canonical_digest(value, |value| value.ledger_digest.clear())
+}
+
+fn supersession_digest_v4_3(value: &MomentumInputPlanSupersessionV4_3) -> String {
+    canonical_digest(value, |value| {
+        value.replacement_input_registration_digest.clear();
+        value.supersession_digest.clear();
+    })
+}
+
+fn context_plan_digest_v4_3(value: &MomentumProspectiveFeatureContextPlanV4_3) -> String {
+    canonical_digest(value, |value| value.plan_digest.clear())
+}
+
+fn input_registration_digest_v4_3(value: &MomentumProspectiveInputRegistrationV4_3) -> String {
+    canonical_digest(value, |value| value.registration_digest.clear())
+}
+
+fn input_receipt_digest_v4_3(value: &MomentumProspectiveInputReceiptV4_3) -> String {
+    canonical_digest(value, |value| value.receipt_digest.clear())
+}
+
+fn input_capsule_digest_v4_3(value: &MomentumProspectiveInputCapsuleV4_3) -> String {
+    canonical_digest(value, |value| value.capsule_digest.clear())
+}
+
+fn context_proof_digest_v4_3(value: &MomentumProspectiveContextVerificationV4_3) -> String {
+    canonical_digest(value, |value| value.proof_digest.clear())
+}
+
+fn prediction_seal_digest_v4_3(value: &MomentumParticipantPredictionSealV4_3) -> String {
+    canonical_digest(value, |value| value.seal_digest.clear())
+}
+
+fn prediction_capsule_digest_v4_3(value: &MomentumProspectivePredictionCapsuleV4_3) -> String {
+    canonical_digest(value, |value| value.capsule_digest.clear())
+}
+
+fn prediction_entry_digest_v4_3(value: &MomentumProspectivePredictionJournalEntryV4_3) -> String {
+    canonical_digest(value, |value| value.entry_digest.clear())
+}
+
+fn prediction_journal_digest_v4_3(value: &MomentumProspectivePredictionJournalV4_3) -> String {
+    canonical_digest(value, |value| value.journal_digest.clear())
+}
+
+fn outcome_plan_digest_v4_3(value: &MomentumProspectiveOutcomePlanV4_3) -> String {
+    canonical_digest(value, |value| value.plan_digest.clear())
+}
+
+fn status_digest_v4_3(value: &MomentumFuturePredictionStatusReceiptV4_3) -> String {
+    canonical_digest(value, |value| value.status_digest.clear())
+}
+
+fn participant_source_identities_v4_3(
+    source: &MomentumFutureEvaluationSourceV4_2,
+    lifecycle: &MomentumFutureEvaluationLifecycleV4_2,
+) -> Result<(Vec<String>, Vec<String>), String> {
+    let mut parameter_digests = Vec::with_capacity(lifecycle.participant_digests.len());
+    let mut normalizer_digests = Vec::with_capacity(lifecycle.participant_digests.len());
+    for participant_digest in &lifecycle.participant_digests {
+        let participant = source
+            .source_family
+            .participants
+            .iter()
+            .find(|participant| &participant.participant_digest == participant_digest)
+            .ok_or_else(|| "V4.3 frozen participant unavailable".to_string())?;
+        if (participant.participant_role != MomentumRawFeatureRoleV4::ConstantBenchmark
+            && !participant.fresh_initialization)
+            || participant.prior_parameters_reused
+            || participant.prior_normalizer_reused
+            || participant.prior_predictions_reused
+            || participant.validation_parameter_updates != 0
+        {
+            return Err("V4.3 frozen participant contract rejected".to_string());
+        }
+        parameter_digests.push(participant.parameter_digest.clone());
+        normalizer_digests.push(participant.normalizer_digest.clone());
+    }
+    Ok((parameter_digests, normalizer_digests))
+}
+
+fn derive_context_authorization_v4_3(
+    source: &MomentumFutureEvaluationSourceV4_2,
+    lifecycle: &MomentumFutureEvaluationLifecycleV4_2,
+    canonical_raw_provider_available: bool,
+    prior_outcome_artifact_referenced: bool,
+    model_source_boundary_override: Option<u64>,
+) -> Result<MomentumProtectedContextAuthorizationV4_3, String> {
+    let (parameter_digests, normalizer_digests) =
+        participant_source_identities_v4_3(source, lifecycle)?;
+    let model_source_boundary_timestamp_ms =
+        model_source_boundary_override.unwrap_or(source.evaluation.source_boundary_timestamp_ms);
+    let event_timestamp_ms = align_up(
+        lifecycle.minimum_accepted_event_timestamp_ms.max(
+            source
+                .evaluation
+                .source_boundary_timestamp_ms
+                .checked_add(lifecycle.cadence_ms)
+                .ok_or_else(|| "V4.3 source boundary overflow".to_string())?,
+        ),
+        lifecycle.cadence_ms,
+    )?;
+    let outcome_timestamp_ms = event_timestamp_ms
+        .checked_add(
+            u64::try_from(lifecycle.prediction_horizon)
+                .ok()
+                .and_then(|horizon| horizon.checked_mul(lifecycle.cadence_ms))
+                .ok_or_else(|| "V4.3 outcome timestamp overflow".to_string())?,
+        )
+        .ok_or_else(|| "V4.3 outcome timestamp overflow".to_string())?;
+    let freeze_proven = lifecycle.participant_digests.len() == 3
+        && lifecycle.participant_parameter_digests == parameter_digests
+        && lifecycle.participant_normalizer_digests == normalizer_digests
+        && !source.accumulated_family.parameters_changed
+        && !source.accumulated_family.winner_selected;
+    let source_precedes_protected = !source.evaluation.protected_timestamp_ms.is_empty()
+        && source
+            .evaluation
+            .protected_timestamp_ms
+            .iter()
+            .all(|timestamp| model_source_boundary_timestamp_ms < *timestamp);
+    let policy_valid = !source.evaluation.protected_registration_digests.is_empty()
+        && source
+            .evaluation
+            .protected_timestamp_ms
+            .iter()
+            .all(|timestamp| {
+                *timestamp != event_timestamp_ms && *timestamp != outcome_timestamp_ms
+            });
+    let authorization_status = if !freeze_proven || !source_precedes_protected {
+        ProtectedContextAuthorizationStatusV4_3::ModelFreezeNotProven
+    } else if prior_outcome_artifact_referenced {
+        ProtectedContextAuthorizationStatusV4_3::PriorOutcomeArtifactReferenced
+    } else if !canonical_raw_provider_available {
+        ProtectedContextAuthorizationStatusV4_3::RawEvidenceUnavailable
+    } else if !policy_valid {
+        ProtectedContextAuthorizationStatusV4_3::PolicyConflict
+    } else {
+        ProtectedContextAuthorizationStatusV4_3::Authorized
+    };
+    let mut authorization = MomentumProtectedContextAuthorizationV4_3 {
+        authorization_version: AUTHORIZATION_VERSION_V4_3.to_string(),
+        agent_id: AGENT_ID_V4_2.to_string(),
+        v4_family_digest: source.source_family.family_digest.clone(),
+        accumulated_family_digest: source.accumulated_family.family_digest.clone(),
+        roster_digest: source.roster.roster_digest.clone(),
+        evaluation_registration_digest: source.evaluation.registration_digest.clone(),
+        lifecycle_digest: lifecycle.lifecycle_digest.clone(),
+        participant_digests: lifecycle.participant_digests.clone(),
+        parameter_digests,
+        normalizer_digests,
+        model_source_boundary_timestamp_ms,
+        protected_registration_digests: sorted_unique(
+            source.evaluation.protected_registration_digests.clone(),
+        ),
+        protected_timestamp_ms: {
+            let mut timestamps = source.evaluation.protected_timestamp_ms.clone();
+            timestamps.sort_unstable();
+            timestamps.dedup();
+            timestamps
+        },
+        allowed_use_class: ProtectedContextUseClassV4_3::RawOhlcvInferenceContext,
+        raw_ohlcv_context_allowed: true,
+        training_use_forbidden: true,
+        normalizer_fit_forbidden: true,
+        label_use_forbidden: true,
+        qualification_use_forbidden: true,
+        metric_use_forbidden: true,
+        reward_use_forbidden: true,
+        event_timestamp_use_forbidden: true,
+        outcome_timestamp_use_forbidden: true,
+        prior_outcome_capsule_use_forbidden: true,
+        authorization_status,
+        authorization_digest: String::new(),
+    };
+    authorization.authorization_digest = authorization_digest_v4_3(&authorization);
+    validate_context_authorization_v4_3(&authorization, source, lifecycle)?;
+    Ok(authorization)
+}
+
+fn validate_context_authorization_v4_3(
+    value: &MomentumProtectedContextAuthorizationV4_3,
+    source: &MomentumFutureEvaluationSourceV4_2,
+    lifecycle: &MomentumFutureEvaluationLifecycleV4_2,
+) -> Result<(), String> {
+    let (parameter_digests, normalizer_digests) =
+        participant_source_identities_v4_3(source, lifecycle)?;
+    validate_authorization_policy_v4_3(value)?;
+    if value.authorization_version != AUTHORIZATION_VERSION_V4_3
+        || value.agent_id != AGENT_ID_V4_2
+        || value.v4_family_digest != source.source_family.family_digest
+        || value.accumulated_family_digest != source.accumulated_family.family_digest
+        || value.roster_digest != source.roster.roster_digest
+        || value.evaluation_registration_digest != source.evaluation.registration_digest
+        || value.lifecycle_digest != lifecycle.lifecycle_digest
+        || value.participant_digests != lifecycle.participant_digests
+        || value.parameter_digests != parameter_digests
+        || value.normalizer_digests != normalizer_digests
+        || value.protected_registration_digests
+            != sorted_unique(source.evaluation.protected_registration_digests.clone())
+        || value.protected_timestamp_ms != {
+            let mut timestamps = source.evaluation.protected_timestamp_ms.clone();
+            timestamps.sort_unstable();
+            timestamps.dedup();
+            timestamps
+        }
+        || value.authorization_digest != authorization_digest_v4_3(value)
+    {
+        return Err("V4.3 protected context authorization rejected".to_string());
+    }
+    Ok(())
+}
+
+fn validate_authorization_policy_v4_3(
+    value: &MomentumProtectedContextAuthorizationV4_3,
+) -> Result<(), String> {
+    if value.authorization_status != ProtectedContextAuthorizationStatusV4_3::Authorized
+        || value.protected_timestamp_ms.is_empty()
+        || !value
+            .protected_timestamp_ms
+            .iter()
+            .all(|timestamp| value.model_source_boundary_timestamp_ms < *timestamp)
+        || value.allowed_use_class != ProtectedContextUseClassV4_3::RawOhlcvInferenceContext
+        || !value.raw_ohlcv_context_allowed
+        || !value.training_use_forbidden
+        || !value.normalizer_fit_forbidden
+        || !value.label_use_forbidden
+        || !value.qualification_use_forbidden
+        || !value.metric_use_forbidden
+        || !value.reward_use_forbidden
+        || !value.event_timestamp_use_forbidden
+        || !value.outcome_timestamp_use_forbidden
+        || !value.prior_outcome_capsule_use_forbidden
+    {
+        return Err("V4.3 protected context policy rejected".to_string());
+    }
+    Ok(())
+}
+
+fn event_readiness_v4_3(
+    observed_timestamp_ms: u64,
+    input_finality_boundary_ms: u64,
+    prior_terminal_receipt: bool,
+    prediction_already_sealed: bool,
+) -> MomentumEventReadinessV4_3 {
+    if prediction_already_sealed {
+        MomentumEventReadinessV4_3::PredictionAlreadySealed
+    } else if prior_terminal_receipt {
+        MomentumEventReadinessV4_3::PriorInputAttemptTerminal
+    } else if observed_timestamp_ms < input_finality_boundary_ms {
+        MomentumEventReadinessV4_3::AwaitingInputFinality
+    } else {
+        MomentumEventReadinessV4_3::ReadyForInputAcquisition
+    }
+}
+
+fn old_registration_superseded_v4_3(
+    supersession: &MomentumInputPlanSupersessionV4_3,
+    lifecycle: &MomentumFutureEvaluationLifecycleV4_2,
+    context_plan: &MomentumProspectiveFeatureContextPlanV4_2,
+    input_registration: &MomentumProspectiveInputAcquisitionRegistrationV4_2,
+) -> bool {
+    supersession.status == MomentumInputPlanSupersessionStatusV4_3::Superseded
+        && supersession.lifecycle_digest == lifecycle.lifecycle_digest
+        && supersession.superseded_context_plan_digest == context_plan.plan_digest
+        && supersession.superseded_input_registration_digest
+            == input_registration.registration_digest
+        && supersession.prior_request_attempt_count == 0
+        && !supersession.prior_receipt_present
+        && !supersession.prior_capsule_present
+        && !supersession.prior_prediction_capsule_present
+}
+
+fn derive_context_plan_v4_3(
+    source: &MomentumFutureEvaluationSourceV4_2,
+    lifecycle: &MomentumFutureEvaluationLifecycleV4_2,
+    authorization: &MomentumProtectedContextAuthorizationV4_3,
+    source_snapshot: &DataSnapshot,
+) -> Result<MomentumProspectiveFeatureContextPlanV4_3, String> {
+    if authorization.authorization_status != ProtectedContextAuthorizationStatusV4_3::Authorized {
+        return Err("V4.3 context authorization unavailable".to_string());
+    }
+    let required_row_count = MomentumLearningCampaignConfigV0::default()
+        .feature_config
+        .minimum_history()
+        .map_err(|_| "V4.3 feature history policy rejected".to_string())?
+        .checked_add(
+            MomentumLearningCampaignConfigV0::default()
+                .sequence_config
+                .sequence_length
+                .saturating_sub(1),
+        )
+        .ok_or_else(|| "V4.3 feature history overflow".to_string())?;
+    let event_timestamp_ms = align_up(
+        lifecycle.minimum_accepted_event_timestamp_ms.max(
+            source
+                .evaluation
+                .source_boundary_timestamp_ms
+                .checked_add(lifecycle.cadence_ms)
+                .ok_or_else(|| "V4.3 source boundary overflow".to_string())?,
+        ),
+        lifecycle.cadence_ms,
+    )?;
+    let history_offset = u64::try_from(required_row_count.saturating_sub(1))
+        .ok()
+        .and_then(|count| count.checked_mul(lifecycle.cadence_ms))
+        .ok_or_else(|| "V4.3 context range overflow".to_string())?;
+    let required_context_start_timestamp_ms = event_timestamp_ms
+        .checked_sub(history_offset)
+        .ok_or_else(|| "V4.3 context start unavailable".to_string())?;
+    let exact_required_timestamp_ms = timestamp_range(
+        required_context_start_timestamp_ms,
+        required_row_count,
+        lifecycle.cadence_ms,
+    )?;
+    let source_timestamps = source_snapshot
+        .normalized_dataset
+        .rows
+        .iter()
+        .map(|row| row.timestamp_ms)
+        .collect::<BTreeSet<_>>();
+    let existing_source_timestamp_ms = exact_required_timestamp_ms
+        .iter()
+        .filter(|timestamp| source_timestamps.contains(timestamp))
+        .copied()
+        .collect::<Vec<_>>();
+    let protected_context_timestamp_ms = exact_required_timestamp_ms
+        .iter()
+        .filter(|timestamp| authorization.protected_timestamp_ms.contains(timestamp))
+        .copied()
+        .collect::<Vec<_>>();
+    let incremental_timestamp_ms = exact_required_timestamp_ms
+        .iter()
+        .filter(|timestamp| {
+            !source_timestamps.contains(timestamp)
+                && !authorization.protected_timestamp_ms.contains(timestamp)
+        })
+        .copied()
+        .collect::<Vec<_>>();
+    let input_finality_boundary_ms = event_timestamp_ms
+        .checked_add(lifecycle.cadence_ms)
+        .ok_or_else(|| "V4.3 input finality overflow".to_string())?;
+    let context_usage_policy_digest = stable_hash_string(&format!(
+        "momentum-v4.3-context-usage:{}:{:?}:{:?}:{:?}",
+        authorization.authorization_digest,
+        existing_source_timestamp_ms,
+        protected_context_timestamp_ms,
+        incremental_timestamp_ms
+    ));
+    let mut plan = MomentumProspectiveFeatureContextPlanV4_3 {
+        plan_version: CONTEXT_PLAN_VERSION_V4_3.to_string(),
+        lifecycle_digest: lifecycle.lifecycle_digest.clone(),
+        context_authorization_digest: authorization.authorization_digest.clone(),
+        event_timestamp_ms,
+        input_finality_boundary_ms,
+        required_context_start_timestamp_ms,
+        required_context_end_timestamp_ms: event_timestamp_ms,
+        required_row_count,
+        exact_required_timestamp_ms,
+        existing_source_timestamp_ms,
+        protected_context_timestamp_ms,
+        incremental_timestamp_ms,
+        context_usage_policy_digest,
+        plan_digest: String::new(),
+    };
+    plan.plan_digest = context_plan_digest_v4_3(&plan);
+    validate_context_plan_v4_3(&plan, source, lifecycle, authorization, source_snapshot)?;
+    Ok(plan)
+}
+
+fn validate_context_plan_v4_3(
+    value: &MomentumProspectiveFeatureContextPlanV4_3,
+    source: &MomentumFutureEvaluationSourceV4_2,
+    lifecycle: &MomentumFutureEvaluationLifecycleV4_2,
+    authorization: &MomentumProtectedContextAuthorizationV4_3,
+    source_snapshot: &DataSnapshot,
+) -> Result<(), String> {
+    let expected = timestamp_range(
+        value.required_context_start_timestamp_ms,
+        value.required_row_count,
+        lifecycle.cadence_ms,
+    )?;
+    let source_timestamps = source_snapshot
+        .normalized_dataset
+        .rows
+        .iter()
+        .map(|row| row.timestamp_ms)
+        .collect::<BTreeSet<_>>();
+    let expected_existing = expected
+        .iter()
+        .filter(|timestamp| source_timestamps.contains(timestamp))
+        .copied()
+        .collect::<Vec<_>>();
+    let expected_protected = expected
+        .iter()
+        .filter(|timestamp| authorization.protected_timestamp_ms.contains(timestamp))
+        .copied()
+        .collect::<Vec<_>>();
+    let expected_incremental = expected
+        .iter()
+        .filter(|timestamp| {
+            !source_timestamps.contains(timestamp)
+                && !authorization.protected_timestamp_ms.contains(timestamp)
+        })
+        .copied()
+        .collect::<Vec<_>>();
+    let outcome_timestamp = value
+        .event_timestamp_ms
+        .checked_add(
+            u64::try_from(lifecycle.prediction_horizon)
+                .ok()
+                .and_then(|horizon| horizon.checked_mul(lifecycle.cadence_ms))
+                .ok_or_else(|| "V4.3 outcome timestamp overflow".to_string())?,
+        )
+        .ok_or_else(|| "V4.3 outcome timestamp overflow".to_string())?;
+    if value.plan_version != CONTEXT_PLAN_VERSION_V4_3
+        || value.lifecycle_digest != lifecycle.lifecycle_digest
+        || value.context_authorization_digest != authorization.authorization_digest
+        || value.event_timestamp_ms
+            != align_up(
+                lifecycle.minimum_accepted_event_timestamp_ms.max(
+                    source
+                        .evaluation
+                        .source_boundary_timestamp_ms
+                        .checked_add(lifecycle.cadence_ms)
+                        .ok_or_else(|| "V4.3 source boundary overflow".to_string())?,
+                ),
+                lifecycle.cadence_ms,
+            )?
+        || value.input_finality_boundary_ms
+            != value
+                .event_timestamp_ms
+                .checked_add(lifecycle.cadence_ms)
+                .ok_or_else(|| "V4.3 input finality overflow".to_string())?
+        || value.required_context_end_timestamp_ms != value.event_timestamp_ms
+        || value.required_row_count != 16
+        || value.exact_required_timestamp_ms != expected
+        || expected.last() != Some(&value.event_timestamp_ms)
+        || expected.windows(2).any(|pair| pair[1] <= pair[0])
+        || expected.contains(&outcome_timestamp)
+        || authorization
+            .protected_timestamp_ms
+            .contains(&value.event_timestamp_ms)
+        || authorization
+            .protected_timestamp_ms
+            .contains(&outcome_timestamp)
+        || value.existing_source_timestamp_ms != expected_existing
+        || value.protected_context_timestamp_ms != expected_protected
+        || value.incremental_timestamp_ms != expected_incremental
+        || value.protected_context_timestamp_ms.is_empty()
+        || value.plan_digest != context_plan_digest_v4_3(value)
+    {
+        return Err("V4.3 corrected context plan rejected".to_string());
+    }
+    Ok(())
+}
+
+fn derive_supersession_v4_3(
+    lifecycle: &MomentumFutureEvaluationLifecycleV4_2,
+    authorization: &MomentumProtectedContextAuthorizationV4_3,
+    old_plan: &MomentumProspectiveFeatureContextPlanV4_2,
+    old_registration: &MomentumProspectiveInputAcquisitionRegistrationV4_2,
+    replacement_plan: &MomentumProspectiveFeatureContextPlanV4_3,
+    prior_request_attempt_count: usize,
+    prior_receipt_present: bool,
+    prior_capsule_present: bool,
+    prior_prediction_capsule_present: bool,
+) -> MomentumInputPlanSupersessionV4_3 {
+    let status = if prior_request_attempt_count != 0 {
+        MomentumInputPlanSupersessionStatusV4_3::PriorAttemptExists
+    } else if prior_receipt_present || prior_capsule_present || prior_prediction_capsule_present {
+        MomentumInputPlanSupersessionStatusV4_3::PriorEvidenceExists
+    } else {
+        MomentumInputPlanSupersessionStatusV4_3::Superseded
+    };
+    let mut supersession = MomentumInputPlanSupersessionV4_3 {
+        supersession_version: SUPERSESSION_VERSION_V4_3.to_string(),
+        lifecycle_digest: lifecycle.lifecycle_digest.clone(),
+        context_authorization_digest: authorization.authorization_digest.clone(),
+        superseded_context_plan_digest: old_plan.plan_digest.clone(),
+        superseded_input_registration_digest: old_registration.registration_digest.clone(),
+        superseded_event_timestamp_ms: old_plan.event_timestamp_ms,
+        prior_request_attempt_count,
+        prior_receipt_present,
+        prior_capsule_present,
+        prior_prediction_capsule_present,
+        replacement_event_timestamp_ms: replacement_plan.event_timestamp_ms,
+        replacement_context_plan_digest: replacement_plan.plan_digest.clone(),
+        replacement_input_registration_digest: String::new(),
+        status,
+        supersession_digest: String::new(),
+    };
+    supersession.supersession_digest = supersession_digest_v4_3(&supersession);
+    supersession
+}
+
+fn derive_input_registration_v4_3(
+    lifecycle: &MomentumFutureEvaluationLifecycleV4_2,
+    source: &MomentumFutureEvaluationSourceV4_2,
+    authorization: &MomentumProtectedContextAuthorizationV4_3,
+    supersession: &MomentumInputPlanSupersessionV4_3,
+    plan: &MomentumProspectiveFeatureContextPlanV4_3,
+    config: &UpbitHistoricalPilotConfigV0,
+) -> Result<MomentumProspectiveInputRegistrationV4_3, String> {
+    let mut registration = MomentumProspectiveInputRegistrationV4_3 {
+        registration_version: INPUT_REGISTRATION_VERSION_V4_3.to_string(),
+        lifecycle_digest: lifecycle.lifecycle_digest.clone(),
+        evaluation_registration_digest: source.evaluation.registration_digest.clone(),
+        roster_digest: source.roster.roster_digest.clone(),
+        context_authorization_digest: authorization.authorization_digest.clone(),
+        supersession_digest: supersession.supersession_digest.clone(),
+        context_plan_digest: plan.plan_digest.clone(),
+        event_timestamp_ms: plan.event_timestamp_ms,
+        input_finality_boundary_ms: plan.input_finality_boundary_ms,
+        provider_id: config.provider_id.clone(),
+        market: "btc_crypto".to_string(),
+        symbol: config.symbol.clone(),
+        cadence: "1d".to_string(),
+        exact_expected_timestamp_ms: plan.exact_required_timestamp_ms.clone(),
+        expected_row_count: plan.required_row_count,
+        request_to_timestamp_ms: plan.input_finality_boundary_ms,
+        maximum_requests: 1,
+        maximum_concurrency: 1,
+        maximum_retries: 0,
+        maximum_response_bytes: config.maximum_response_bytes,
+        credential_free_required: true,
+        read_only_required: true,
+        outcome_timestamp_forbidden: true,
+        prior_outcome_artifact_forbidden: true,
+        registration_digest: String::new(),
+    };
+    registration.registration_digest = input_registration_digest_v4_3(&registration);
+    validate_input_registration_v4_3(
+        &registration,
+        lifecycle,
+        source,
+        authorization,
+        supersession,
+        plan,
+        config,
+    )?;
+    Ok(registration)
+}
+
+fn validate_supersession_v4_3(
+    value: &MomentumInputPlanSupersessionV4_3,
+    lifecycle: &MomentumFutureEvaluationLifecycleV4_2,
+    authorization: &MomentumProtectedContextAuthorizationV4_3,
+    old_plan: &MomentumProspectiveFeatureContextPlanV4_2,
+    old_registration: &MomentumProspectiveInputAcquisitionRegistrationV4_2,
+    replacement_plan: &MomentumProspectiveFeatureContextPlanV4_3,
+    replacement_registration: &MomentumProspectiveInputRegistrationV4_3,
+) -> Result<(), String> {
+    if value.supersession_version != SUPERSESSION_VERSION_V4_3
+        || value.lifecycle_digest != lifecycle.lifecycle_digest
+        || value.context_authorization_digest != authorization.authorization_digest
+        || value.superseded_context_plan_digest != old_plan.plan_digest
+        || value.superseded_input_registration_digest != old_registration.registration_digest
+        || value.superseded_event_timestamp_ms != old_plan.event_timestamp_ms
+        || value.prior_request_attempt_count != 0
+        || value.prior_receipt_present
+        || value.prior_capsule_present
+        || value.prior_prediction_capsule_present
+        || value.replacement_event_timestamp_ms != replacement_plan.event_timestamp_ms
+        || value.replacement_context_plan_digest != replacement_plan.plan_digest
+        || value.replacement_input_registration_digest
+            != replacement_registration.registration_digest
+        || value.status != MomentumInputPlanSupersessionStatusV4_3::Superseded
+        || value.supersession_digest != supersession_digest_v4_3(value)
+    {
+        return Err("V4.3 input-plan supersession rejected".to_string());
+    }
+    Ok(())
+}
+
+fn validate_input_registration_v4_3(
+    value: &MomentumProspectiveInputRegistrationV4_3,
+    lifecycle: &MomentumFutureEvaluationLifecycleV4_2,
+    source: &MomentumFutureEvaluationSourceV4_2,
+    authorization: &MomentumProtectedContextAuthorizationV4_3,
+    supersession: &MomentumInputPlanSupersessionV4_3,
+    plan: &MomentumProspectiveFeatureContextPlanV4_3,
+    config: &UpbitHistoricalPilotConfigV0,
+) -> Result<(), String> {
+    let outcome_timestamp = value
+        .event_timestamp_ms
+        .checked_add(
+            u64::try_from(lifecycle.prediction_horizon)
+                .ok()
+                .and_then(|horizon| horizon.checked_mul(lifecycle.cadence_ms))
+                .ok_or_else(|| "V4.3 outcome timestamp overflow".to_string())?,
+        )
+        .ok_or_else(|| "V4.3 outcome timestamp overflow".to_string())?;
+    if value.registration_version != INPUT_REGISTRATION_VERSION_V4_3
+        || value.lifecycle_digest != lifecycle.lifecycle_digest
+        || value.evaluation_registration_digest != source.evaluation.registration_digest
+        || value.roster_digest != source.roster.roster_digest
+        || value.context_authorization_digest != authorization.authorization_digest
+        || value.supersession_digest != supersession.supersession_digest
+        || value.context_plan_digest != plan.plan_digest
+        || value.event_timestamp_ms != plan.event_timestamp_ms
+        || value.input_finality_boundary_ms != plan.input_finality_boundary_ms
+        || value.provider_id != config.provider_id
+        || value.market != "btc_crypto"
+        || value.symbol != config.symbol
+        || value.cadence != "1d"
+        || value.exact_expected_timestamp_ms != plan.exact_required_timestamp_ms
+        || value.expected_row_count != 16
+        || value.request_to_timestamp_ms != plan.input_finality_boundary_ms
+        || value.maximum_requests != 1
+        || value.maximum_concurrency != 1
+        || value.maximum_retries != 0
+        || value.maximum_response_bytes == 0
+        || !value.credential_free_required
+        || !value.read_only_required
+        || !value.outcome_timestamp_forbidden
+        || !value.prior_outcome_artifact_forbidden
+        || value
+            .exact_expected_timestamp_ms
+            .contains(&outcome_timestamp)
+        || value.registration_digest != input_registration_digest_v4_3(value)
+    {
+        return Err("V4.3 corrected input registration rejected".to_string());
+    }
+    Ok(())
+}
+
+fn parse_authorization_status_v4_3(
+    value: &str,
+) -> Result<ProtectedContextAuthorizationStatusV4_3, String> {
+    match value {
+        "Authorized" => Ok(ProtectedContextAuthorizationStatusV4_3::Authorized),
+        "AlreadyAuthorized" => Ok(ProtectedContextAuthorizationStatusV4_3::AlreadyAuthorized),
+        "ModelFreezeNotProven" => Ok(ProtectedContextAuthorizationStatusV4_3::ModelFreezeNotProven),
+        "RawEvidenceUnavailable" => {
+            Ok(ProtectedContextAuthorizationStatusV4_3::RawEvidenceUnavailable)
+        }
+        "PriorOutcomeArtifactReferenced" => {
+            Ok(ProtectedContextAuthorizationStatusV4_3::PriorOutcomeArtifactReferenced)
+        }
+        "PolicyConflict" => Ok(ProtectedContextAuthorizationStatusV4_3::PolicyConflict),
+        "IntegrityFailure" => Ok(ProtectedContextAuthorizationStatusV4_3::IntegrityFailure),
+        _ => Err("V4.3 authorization status rejected".to_string()),
+    }
+}
+
+fn parse_usage_class_v4_3(value: &str) -> Result<MomentumContextEvidenceUseV4_3, String> {
+    match value {
+        "ExistingFrozenHistoricalContext" => {
+            Ok(MomentumContextEvidenceUseV4_3::ExistingFrozenHistoricalContext)
+        }
+        "ProtectedRawInferenceContext" => {
+            Ok(MomentumContextEvidenceUseV4_3::ProtectedRawInferenceContext)
+        }
+        "NewIncrementalInferenceContext" => {
+            Ok(MomentumContextEvidenceUseV4_3::NewIncrementalInferenceContext)
+        }
+        "ProspectiveEventInput" => Ok(MomentumContextEvidenceUseV4_3::ProspectiveEventInput),
+        _ => Err("V4.3 context usage class rejected".to_string()),
+    }
+}
+
+fn parse_supersession_status_v4_3(
+    value: &str,
+) -> Result<MomentumInputPlanSupersessionStatusV4_3, String> {
+    match value {
+        "Superseded" => Ok(MomentumInputPlanSupersessionStatusV4_3::Superseded),
+        "AlreadySuperseded" => Ok(MomentumInputPlanSupersessionStatusV4_3::AlreadySuperseded),
+        "PriorAttemptExists" => Ok(MomentumInputPlanSupersessionStatusV4_3::PriorAttemptExists),
+        "PriorEvidenceExists" => Ok(MomentumInputPlanSupersessionStatusV4_3::PriorEvidenceExists),
+        "IntegrityFailure" => Ok(MomentumInputPlanSupersessionStatusV4_3::IntegrityFailure),
+        _ => Err("V4.3 supersession status rejected".to_string()),
+    }
+}
+
+fn parse_readiness_v4_3(value: &str) -> Result<MomentumEventReadinessV4_3, String> {
+    match value {
+        "ReadyForInputAcquisition" => Ok(MomentumEventReadinessV4_3::ReadyForInputAcquisition),
+        "AwaitingInputFinality" => Ok(MomentumEventReadinessV4_3::AwaitingInputFinality),
+        "ContextOnlyAuthorizationMissing" => {
+            Ok(MomentumEventReadinessV4_3::ContextOnlyAuthorizationMissing)
+        }
+        "ContextAuthorizationIntegrityFailure" => {
+            Ok(MomentumEventReadinessV4_3::ContextAuthorizationIntegrityFailure)
+        }
+        "InputRegistrationSuperseded" => {
+            Ok(MomentumEventReadinessV4_3::InputRegistrationSuperseded)
+        }
+        "PriorInputAttemptTerminal" => Ok(MomentumEventReadinessV4_3::PriorInputAttemptTerminal),
+        "PredictionAlreadySealed" => Ok(MomentumEventReadinessV4_3::PredictionAlreadySealed),
+        "IntegrityFailure" => Ok(MomentumEventReadinessV4_3::IntegrityFailure),
+        _ => Err("V4.3 readiness rejected".to_string()),
+    }
+}
+
+fn encode_authorization_v4_3(
+    value: &MomentumProtectedContextAuthorizationV4_3,
+) -> Result<Vec<u8>, String> {
+    ArtifactBuilderV4_2::new("MomentumProtectedContextAuthorizationV4_3")
+        .string("authorization_version", &value.authorization_version)
+        .string("agent_id", &value.agent_id)
+        .string("v4_family_digest", &value.v4_family_digest)
+        .string(
+            "accumulated_family_digest",
+            &value.accumulated_family_digest,
+        )
+        .string("roster_digest", &value.roster_digest)
+        .string(
+            "evaluation_registration_digest",
+            &value.evaluation_registration_digest,
+        )
+        .string("lifecycle_digest", &value.lifecycle_digest)
+        .strings("participant_digests", &value.participant_digests)
+        .strings("parameter_digests", &value.parameter_digests)
+        .strings("normalizer_digests", &value.normalizer_digests)
+        .unsigned(
+            "model_source_boundary_timestamp_ms",
+            value.model_source_boundary_timestamp_ms,
+        )
+        .strings(
+            "protected_registration_digests",
+            &value.protected_registration_digests,
+        )
+        .unsigneds("protected_timestamp_ms", &value.protected_timestamp_ms)
+        .string(
+            "allowed_use_class",
+            format!("{:?}", value.allowed_use_class),
+        )
+        .boolean("raw_ohlcv_context_allowed", value.raw_ohlcv_context_allowed)
+        .boolean("training_use_forbidden", value.training_use_forbidden)
+        .boolean("normalizer_fit_forbidden", value.normalizer_fit_forbidden)
+        .boolean("label_use_forbidden", value.label_use_forbidden)
+        .boolean(
+            "qualification_use_forbidden",
+            value.qualification_use_forbidden,
+        )
+        .boolean("metric_use_forbidden", value.metric_use_forbidden)
+        .boolean("reward_use_forbidden", value.reward_use_forbidden)
+        .boolean(
+            "event_timestamp_use_forbidden",
+            value.event_timestamp_use_forbidden,
+        )
+        .boolean(
+            "outcome_timestamp_use_forbidden",
+            value.outcome_timestamp_use_forbidden,
+        )
+        .boolean(
+            "prior_outcome_capsule_use_forbidden",
+            value.prior_outcome_capsule_use_forbidden,
+        )
+        .string(
+            "authorization_status",
+            format!("{:?}", value.authorization_status),
+        )
+        .string("authorization_digest", &value.authorization_digest)
+        .encode()
+}
+
+fn decode_authorization_v4_3(
+    bytes: &[u8],
+) -> Result<MomentumProtectedContextAuthorizationV4_3, String> {
+    let mut fields =
+        ArtifactReaderV4_2::decode(bytes, "MomentumProtectedContextAuthorizationV4_3")?;
+    let allowed_use_class = match fields.string("allowed_use_class")?.as_str() {
+        "RawOhlcvInferenceContext" => ProtectedContextUseClassV4_3::RawOhlcvInferenceContext,
+        _ => return Err("V4.3 protected use class rejected".to_string()),
+    };
+    let value = MomentumProtectedContextAuthorizationV4_3 {
+        authorization_version: fields.string("authorization_version")?,
+        agent_id: fields.string("agent_id")?,
+        v4_family_digest: fields.string("v4_family_digest")?,
+        accumulated_family_digest: fields.string("accumulated_family_digest")?,
+        roster_digest: fields.string("roster_digest")?,
+        evaluation_registration_digest: fields.string("evaluation_registration_digest")?,
+        lifecycle_digest: fields.string("lifecycle_digest")?,
+        participant_digests: fields.strings("participant_digests")?,
+        parameter_digests: fields.strings("parameter_digests")?,
+        normalizer_digests: fields.strings("normalizer_digests")?,
+        model_source_boundary_timestamp_ms: fields
+            .unsigned("model_source_boundary_timestamp_ms")?,
+        protected_registration_digests: fields.strings("protected_registration_digests")?,
+        protected_timestamp_ms: fields.unsigneds("protected_timestamp_ms")?,
+        allowed_use_class,
+        raw_ohlcv_context_allowed: fields.boolean("raw_ohlcv_context_allowed")?,
+        training_use_forbidden: fields.boolean("training_use_forbidden")?,
+        normalizer_fit_forbidden: fields.boolean("normalizer_fit_forbidden")?,
+        label_use_forbidden: fields.boolean("label_use_forbidden")?,
+        qualification_use_forbidden: fields.boolean("qualification_use_forbidden")?,
+        metric_use_forbidden: fields.boolean("metric_use_forbidden")?,
+        reward_use_forbidden: fields.boolean("reward_use_forbidden")?,
+        event_timestamp_use_forbidden: fields.boolean("event_timestamp_use_forbidden")?,
+        outcome_timestamp_use_forbidden: fields.boolean("outcome_timestamp_use_forbidden")?,
+        prior_outcome_capsule_use_forbidden: fields
+            .boolean("prior_outcome_capsule_use_forbidden")?,
+        authorization_status: parse_authorization_status_v4_3(
+            &fields.string("authorization_status")?,
+        )?,
+        authorization_digest: fields.string("authorization_digest")?,
+    };
+    fields.finish()?;
+    validate_authorization_policy_v4_3(&value)?;
+    if value.authorization_digest != authorization_digest_v4_3(&value) {
+        return Err("V4.3 authorization digest rejected".to_string());
+    }
+    Ok(value)
+}
+
+fn encode_usage_entry_v4_3(value: &MomentumContextUsageEntryV4_3) -> Result<Vec<u8>, String> {
+    ArtifactBuilderV4_2::new("MomentumContextUsageEntryV4_3")
+        .unsigned("timestamp_ms", value.timestamp_ms)
+        .string("raw_row_digest", &value.raw_row_digest)
+        .string("use_class", format!("{:?}", value.use_class))
+        .boolean(
+            "used_for_feature_construction",
+            value.used_for_feature_construction,
+        )
+        .boolean("used_for_training", value.used_for_training)
+        .boolean("used_for_normalizer_fit", value.used_for_normalizer_fit)
+        .boolean("used_for_label", value.used_for_label)
+        .boolean("used_for_metric", value.used_for_metric)
+        .boolean("used_for_reward", value.used_for_reward)
+        .string("entry_digest", &value.entry_digest)
+        .encode()
+}
+
+fn decode_usage_entry_v4_3(bytes: &[u8]) -> Result<MomentumContextUsageEntryV4_3, String> {
+    let mut fields = ArtifactReaderV4_2::decode(bytes, "MomentumContextUsageEntryV4_3")?;
+    let value = MomentumContextUsageEntryV4_3 {
+        timestamp_ms: fields.unsigned("timestamp_ms")?,
+        raw_row_digest: fields.string("raw_row_digest")?,
+        use_class: parse_usage_class_v4_3(&fields.string("use_class")?)?,
+        used_for_feature_construction: fields.boolean("used_for_feature_construction")?,
+        used_for_training: fields.boolean("used_for_training")?,
+        used_for_normalizer_fit: fields.boolean("used_for_normalizer_fit")?,
+        used_for_label: fields.boolean("used_for_label")?,
+        used_for_metric: fields.boolean("used_for_metric")?,
+        used_for_reward: fields.boolean("used_for_reward")?,
+        entry_digest: fields.string("entry_digest")?,
+    };
+    fields.finish()?;
+    if !value.used_for_feature_construction
+        || value.used_for_training
+        || value.used_for_normalizer_fit
+        || value.used_for_label
+        || value.used_for_metric
+        || value.used_for_reward
+        || value.raw_row_digest.is_empty()
+        || value.entry_digest != context_usage_entry_digest_v4_3(&value)
+    {
+        return Err("V4.3 context usage entry rejected".to_string());
+    }
+    Ok(value)
+}
+
+fn encode_usage_ledger_v4_3(value: &MomentumContextUsageLedgerV4_3) -> Result<Vec<u8>, String> {
+    ArtifactBuilderV4_2::new("MomentumContextUsageLedgerV4_3")
+        .string("ledger_version", &value.ledger_version)
+        .string("authorization_digest", &value.authorization_digest)
+        .unsigned("event_timestamp_ms", value.event_timestamp_ms)
+        .messages(
+            "entries",
+            value
+                .entries
+                .iter()
+                .map(encode_usage_entry_v4_3)
+                .collect::<Result<Vec<_>, _>>()?,
+        )
+        .string("ledger_digest", &value.ledger_digest)
+        .encode()
+}
+
+fn decode_usage_ledger_v4_3(bytes: &[u8]) -> Result<MomentumContextUsageLedgerV4_3, String> {
+    let mut fields = ArtifactReaderV4_2::decode(bytes, "MomentumContextUsageLedgerV4_3")?;
+    let value = MomentumContextUsageLedgerV4_3 {
+        ledger_version: fields.string("ledger_version")?,
+        authorization_digest: fields.string("authorization_digest")?,
+        event_timestamp_ms: fields.unsigned("event_timestamp_ms")?,
+        entries: fields
+            .messages("entries")?
+            .iter()
+            .map(|bytes| decode_usage_entry_v4_3(bytes))
+            .collect::<Result<Vec<_>, _>>()?,
+        ledger_digest: fields.string("ledger_digest")?,
+    };
+    fields.finish()?;
+    if value.ledger_version != CONTEXT_LEDGER_VERSION_V4_3
+        || value.entries.len() != 16
+        || value
+            .entries
+            .windows(2)
+            .any(|pair| pair[1].timestamp_ms <= pair[0].timestamp_ms)
+        || value.ledger_digest != context_usage_ledger_digest_v4_3(&value)
+    {
+        return Err("V4.3 context usage ledger rejected".to_string());
+    }
+    Ok(value)
+}
+
+fn encode_supersession_v4_3(value: &MomentumInputPlanSupersessionV4_3) -> Result<Vec<u8>, String> {
+    ArtifactBuilderV4_2::new("MomentumInputPlanSupersessionV4_3")
+        .string("supersession_version", &value.supersession_version)
+        .string("lifecycle_digest", &value.lifecycle_digest)
+        .string(
+            "context_authorization_digest",
+            &value.context_authorization_digest,
+        )
+        .string(
+            "superseded_context_plan_digest",
+            &value.superseded_context_plan_digest,
+        )
+        .string(
+            "superseded_input_registration_digest",
+            &value.superseded_input_registration_digest,
+        )
+        .unsigned(
+            "superseded_event_timestamp_ms",
+            value.superseded_event_timestamp_ms,
+        )
+        .unsigned(
+            "prior_request_attempt_count",
+            as_u64(value.prior_request_attempt_count)?,
+        )
+        .boolean("prior_receipt_present", value.prior_receipt_present)
+        .boolean("prior_capsule_present", value.prior_capsule_present)
+        .boolean(
+            "prior_prediction_capsule_present",
+            value.prior_prediction_capsule_present,
+        )
+        .unsigned(
+            "replacement_event_timestamp_ms",
+            value.replacement_event_timestamp_ms,
+        )
+        .string(
+            "replacement_context_plan_digest",
+            &value.replacement_context_plan_digest,
+        )
+        .string(
+            "replacement_input_registration_digest",
+            &value.replacement_input_registration_digest,
+        )
+        .string("status", format!("{:?}", value.status))
+        .string("supersession_digest", &value.supersession_digest)
+        .encode()
+}
+
+fn decode_supersession_v4_3(bytes: &[u8]) -> Result<MomentumInputPlanSupersessionV4_3, String> {
+    let mut fields = ArtifactReaderV4_2::decode(bytes, "MomentumInputPlanSupersessionV4_3")?;
+    let value = MomentumInputPlanSupersessionV4_3 {
+        supersession_version: fields.string("supersession_version")?,
+        lifecycle_digest: fields.string("lifecycle_digest")?,
+        context_authorization_digest: fields.string("context_authorization_digest")?,
+        superseded_context_plan_digest: fields.string("superseded_context_plan_digest")?,
+        superseded_input_registration_digest: fields
+            .string("superseded_input_registration_digest")?,
+        superseded_event_timestamp_ms: fields.unsigned("superseded_event_timestamp_ms")?,
+        prior_request_attempt_count: as_usize(fields.unsigned("prior_request_attempt_count")?)?,
+        prior_receipt_present: fields.boolean("prior_receipt_present")?,
+        prior_capsule_present: fields.boolean("prior_capsule_present")?,
+        prior_prediction_capsule_present: fields.boolean("prior_prediction_capsule_present")?,
+        replacement_event_timestamp_ms: fields.unsigned("replacement_event_timestamp_ms")?,
+        replacement_context_plan_digest: fields.string("replacement_context_plan_digest")?,
+        replacement_input_registration_digest: fields
+            .string("replacement_input_registration_digest")?,
+        status: parse_supersession_status_v4_3(&fields.string("status")?)?,
+        supersession_digest: fields.string("supersession_digest")?,
+    };
+    fields.finish()?;
+    if value.supersession_version != SUPERSESSION_VERSION_V4_3
+        || value.supersession_digest != supersession_digest_v4_3(&value)
+    {
+        return Err("V4.3 supersession artifact rejected".to_string());
+    }
+    Ok(value)
+}
+
+fn encode_context_plan_v4_3(
+    value: &MomentumProspectiveFeatureContextPlanV4_3,
+) -> Result<Vec<u8>, String> {
+    ArtifactBuilderV4_2::new("MomentumProspectiveFeatureContextPlanV4_3")
+        .string("plan_version", &value.plan_version)
+        .string("lifecycle_digest", &value.lifecycle_digest)
+        .string(
+            "context_authorization_digest",
+            &value.context_authorization_digest,
+        )
+        .unsigned("event_timestamp_ms", value.event_timestamp_ms)
+        .unsigned(
+            "input_finality_boundary_ms",
+            value.input_finality_boundary_ms,
+        )
+        .unsigned(
+            "required_context_start_timestamp_ms",
+            value.required_context_start_timestamp_ms,
+        )
+        .unsigned(
+            "required_context_end_timestamp_ms",
+            value.required_context_end_timestamp_ms,
+        )
+        .unsigned("required_row_count", as_u64(value.required_row_count)?)
+        .unsigneds(
+            "exact_required_timestamp_ms",
+            &value.exact_required_timestamp_ms,
+        )
+        .unsigneds(
+            "existing_source_timestamp_ms",
+            &value.existing_source_timestamp_ms,
+        )
+        .unsigneds(
+            "protected_context_timestamp_ms",
+            &value.protected_context_timestamp_ms,
+        )
+        .unsigneds("incremental_timestamp_ms", &value.incremental_timestamp_ms)
+        .string(
+            "context_usage_policy_digest",
+            &value.context_usage_policy_digest,
+        )
+        .string("plan_digest", &value.plan_digest)
+        .encode()
+}
+
+fn decode_context_plan_v4_3(
+    bytes: &[u8],
+) -> Result<MomentumProspectiveFeatureContextPlanV4_3, String> {
+    let mut fields =
+        ArtifactReaderV4_2::decode(bytes, "MomentumProspectiveFeatureContextPlanV4_3")?;
+    let value = MomentumProspectiveFeatureContextPlanV4_3 {
+        plan_version: fields.string("plan_version")?,
+        lifecycle_digest: fields.string("lifecycle_digest")?,
+        context_authorization_digest: fields.string("context_authorization_digest")?,
+        event_timestamp_ms: fields.unsigned("event_timestamp_ms")?,
+        input_finality_boundary_ms: fields.unsigned("input_finality_boundary_ms")?,
+        required_context_start_timestamp_ms: fields
+            .unsigned("required_context_start_timestamp_ms")?,
+        required_context_end_timestamp_ms: fields.unsigned("required_context_end_timestamp_ms")?,
+        required_row_count: as_usize(fields.unsigned("required_row_count")?)?,
+        exact_required_timestamp_ms: fields.unsigneds("exact_required_timestamp_ms")?,
+        existing_source_timestamp_ms: fields.unsigneds("existing_source_timestamp_ms")?,
+        protected_context_timestamp_ms: fields.unsigneds("protected_context_timestamp_ms")?,
+        incremental_timestamp_ms: fields.unsigneds("incremental_timestamp_ms")?,
+        context_usage_policy_digest: fields.string("context_usage_policy_digest")?,
+        plan_digest: fields.string("plan_digest")?,
+    };
+    fields.finish()?;
+    if value.plan_version != CONTEXT_PLAN_VERSION_V4_3
+        || value.plan_digest != context_plan_digest_v4_3(&value)
+    {
+        return Err("V4.3 context plan artifact rejected".to_string());
+    }
+    Ok(value)
+}
+
+fn encode_input_registration_v4_3(
+    value: &MomentumProspectiveInputRegistrationV4_3,
+) -> Result<Vec<u8>, String> {
+    ArtifactBuilderV4_2::new("MomentumProspectiveInputRegistrationV4_3")
+        .string("registration_version", &value.registration_version)
+        .string("lifecycle_digest", &value.lifecycle_digest)
+        .string(
+            "evaluation_registration_digest",
+            &value.evaluation_registration_digest,
+        )
+        .string("roster_digest", &value.roster_digest)
+        .string(
+            "context_authorization_digest",
+            &value.context_authorization_digest,
+        )
+        .string("supersession_digest", &value.supersession_digest)
+        .string("context_plan_digest", &value.context_plan_digest)
+        .unsigned("event_timestamp_ms", value.event_timestamp_ms)
+        .unsigned(
+            "input_finality_boundary_ms",
+            value.input_finality_boundary_ms,
+        )
+        .string("provider_id", &value.provider_id)
+        .string("market", &value.market)
+        .string("symbol", &value.symbol)
+        .string("cadence", &value.cadence)
+        .unsigneds(
+            "exact_expected_timestamp_ms",
+            &value.exact_expected_timestamp_ms,
+        )
+        .unsigned("expected_row_count", as_u64(value.expected_row_count)?)
+        .unsigned("request_to_timestamp_ms", value.request_to_timestamp_ms)
+        .unsigned("maximum_requests", as_u64(value.maximum_requests)?)
+        .unsigned("maximum_concurrency", as_u64(value.maximum_concurrency)?)
+        .unsigned("maximum_retries", as_u64(value.maximum_retries)?)
+        .unsigned(
+            "maximum_response_bytes",
+            as_u64(value.maximum_response_bytes)?,
+        )
+        .boolean("credential_free_required", value.credential_free_required)
+        .boolean("read_only_required", value.read_only_required)
+        .boolean(
+            "outcome_timestamp_forbidden",
+            value.outcome_timestamp_forbidden,
+        )
+        .boolean(
+            "prior_outcome_artifact_forbidden",
+            value.prior_outcome_artifact_forbidden,
+        )
+        .string("registration_digest", &value.registration_digest)
+        .encode()
+}
+
+fn decode_input_registration_v4_3(
+    bytes: &[u8],
+) -> Result<MomentumProspectiveInputRegistrationV4_3, String> {
+    let mut fields = ArtifactReaderV4_2::decode(bytes, "MomentumProspectiveInputRegistrationV4_3")?;
+    let value = MomentumProspectiveInputRegistrationV4_3 {
+        registration_version: fields.string("registration_version")?,
+        lifecycle_digest: fields.string("lifecycle_digest")?,
+        evaluation_registration_digest: fields.string("evaluation_registration_digest")?,
+        roster_digest: fields.string("roster_digest")?,
+        context_authorization_digest: fields.string("context_authorization_digest")?,
+        supersession_digest: fields.string("supersession_digest")?,
+        context_plan_digest: fields.string("context_plan_digest")?,
+        event_timestamp_ms: fields.unsigned("event_timestamp_ms")?,
+        input_finality_boundary_ms: fields.unsigned("input_finality_boundary_ms")?,
+        provider_id: fields.string("provider_id")?,
+        market: fields.string("market")?,
+        symbol: fields.string("symbol")?,
+        cadence: fields.string("cadence")?,
+        exact_expected_timestamp_ms: fields.unsigneds("exact_expected_timestamp_ms")?,
+        expected_row_count: as_usize(fields.unsigned("expected_row_count")?)?,
+        request_to_timestamp_ms: fields.unsigned("request_to_timestamp_ms")?,
+        maximum_requests: as_usize(fields.unsigned("maximum_requests")?)?,
+        maximum_concurrency: as_usize(fields.unsigned("maximum_concurrency")?)?,
+        maximum_retries: as_usize(fields.unsigned("maximum_retries")?)?,
+        maximum_response_bytes: as_usize(fields.unsigned("maximum_response_bytes")?)?,
+        credential_free_required: fields.boolean("credential_free_required")?,
+        read_only_required: fields.boolean("read_only_required")?,
+        outcome_timestamp_forbidden: fields.boolean("outcome_timestamp_forbidden")?,
+        prior_outcome_artifact_forbidden: fields.boolean("prior_outcome_artifact_forbidden")?,
+        registration_digest: fields.string("registration_digest")?,
+    };
+    fields.finish()?;
+    if value.registration_version != INPUT_REGISTRATION_VERSION_V4_3
+        || value.registration_digest != input_registration_digest_v4_3(&value)
+    {
+        return Err("V4.3 input registration artifact rejected".to_string());
+    }
+    Ok(value)
+}
+
+fn encode_input_receipt_v4_3(
+    value: &MomentumProspectiveInputReceiptV4_3,
+) -> Result<Vec<u8>, String> {
+    ArtifactBuilderV4_2::new("MomentumProspectiveInputReceiptV4_3")
+        .string("receipt_version", &value.receipt_version)
+        .string("lifecycle_digest", &value.lifecycle_digest)
+        .string(
+            "context_authorization_digest",
+            &value.context_authorization_digest,
+        )
+        .string(
+            "input_registration_digest",
+            &value.input_registration_digest,
+        )
+        .boolean("request_attempted", value.request_attempted)
+        .unsigned("request_count", as_u64(value.request_count)?)
+        .unsigned("retry_count", as_u64(value.retry_count)?)
+        .string("status", format!("{:?}", value.status))
+        .optional_string("http_status_class", &value.http_status_class)
+        .unsigned("returned_row_count", as_u64(value.returned_row_count)?)
+        .unsigned("verified_row_count", as_u64(value.verified_row_count)?)
+        .optional_string("raw_response_digest", &value.raw_response_digest)
+        .optional_string("input_capsule_digest", &value.input_capsule_digest)
+        .boolean("terminal", value.terminal)
+        .string("receipt_digest", &value.receipt_digest)
+        .encode()
+}
+
+fn decode_input_receipt_v4_3(bytes: &[u8]) -> Result<MomentumProspectiveInputReceiptV4_3, String> {
+    let mut fields = ArtifactReaderV4_2::decode(bytes, "MomentumProspectiveInputReceiptV4_3")?;
+    let value = MomentumProspectiveInputReceiptV4_3 {
+        receipt_version: fields.string("receipt_version")?,
+        lifecycle_digest: fields.string("lifecycle_digest")?,
+        context_authorization_digest: fields.string("context_authorization_digest")?,
+        input_registration_digest: fields.string("input_registration_digest")?,
+        request_attempted: fields.boolean("request_attempted")?,
+        request_count: as_usize(fields.unsigned("request_count")?)?,
+        retry_count: as_usize(fields.unsigned("retry_count")?)?,
+        status: parse_input_status(&fields.string("status")?)?,
+        http_status_class: fields.optional_string("http_status_class")?,
+        returned_row_count: as_usize(fields.unsigned("returned_row_count")?)?,
+        verified_row_count: as_usize(fields.unsigned("verified_row_count")?)?,
+        raw_response_digest: fields.optional_string("raw_response_digest")?,
+        input_capsule_digest: fields.optional_string("input_capsule_digest")?,
+        terminal: fields.boolean("terminal")?,
+        receipt_digest: fields.string("receipt_digest")?,
+    };
+    fields.finish()?;
+    if value.receipt_version != INPUT_RECEIPT_VERSION_V4_3
+        || value.request_count > 1
+        || value.retry_count != 0
+        || value.request_attempted != (value.request_count == 1)
+        || value.terminal != value.status.is_terminal()
+        || value.receipt_digest != input_receipt_digest_v4_3(&value)
+    {
+        return Err("V4.3 input receipt rejected".to_string());
+    }
+    Ok(value)
+}
+
+fn encode_input_capsule_v4_3(
+    value: &MomentumProspectiveInputCapsuleV4_3,
+) -> Result<Vec<u8>, String> {
+    ArtifactBuilderV4_2::new("MomentumProspectiveInputCapsuleV4_3")
+        .string("capsule_version", &value.capsule_version)
+        .string("lifecycle_digest", &value.lifecycle_digest)
+        .string(
+            "context_authorization_digest",
+            &value.context_authorization_digest,
+        )
+        .string(
+            "input_registration_digest",
+            &value.input_registration_digest,
+        )
+        .unsigned("event_timestamp_ms", value.event_timestamp_ms)
+        .unsigneds("exact_timestamp_ms", &value.exact_timestamp_ms)
+        .strings("row_identity_digests", &value.row_identity_digests)
+        .string(
+            "normalized_dataset_digest",
+            &value.normalized_dataset_digest,
+        )
+        .string("raw_response_digest", &value.raw_response_digest)
+        .boolean("outcome_row_present", value.outcome_row_present)
+        .boolean("labels_accessed", value.labels_accessed)
+        .boolean("metrics_computed", value.metrics_computed)
+        .boolean(
+            "prior_outcome_capsule_accessed",
+            value.prior_outcome_capsule_accessed,
+        )
+        .boolean("credential_free", value.credential_free)
+        .boolean("read_only", value.read_only)
+        .boolean("sanitized", value.sanitized)
+        .string("capsule_digest", &value.capsule_digest)
+        .encode()
+}
+
+fn decode_input_capsule_v4_3(bytes: &[u8]) -> Result<MomentumProspectiveInputCapsuleV4_3, String> {
+    let mut fields = ArtifactReaderV4_2::decode(bytes, "MomentumProspectiveInputCapsuleV4_3")?;
+    let value = MomentumProspectiveInputCapsuleV4_3 {
+        capsule_version: fields.string("capsule_version")?,
+        lifecycle_digest: fields.string("lifecycle_digest")?,
+        context_authorization_digest: fields.string("context_authorization_digest")?,
+        input_registration_digest: fields.string("input_registration_digest")?,
+        event_timestamp_ms: fields.unsigned("event_timestamp_ms")?,
+        exact_timestamp_ms: fields.unsigneds("exact_timestamp_ms")?,
+        row_identity_digests: fields.strings("row_identity_digests")?,
+        normalized_dataset_digest: fields.string("normalized_dataset_digest")?,
+        raw_response_digest: fields.string("raw_response_digest")?,
+        outcome_row_present: fields.boolean("outcome_row_present")?,
+        labels_accessed: fields.boolean("labels_accessed")?,
+        metrics_computed: fields.boolean("metrics_computed")?,
+        prior_outcome_capsule_accessed: fields.boolean("prior_outcome_capsule_accessed")?,
+        credential_free: fields.boolean("credential_free")?,
+        read_only: fields.boolean("read_only")?,
+        sanitized: fields.boolean("sanitized")?,
+        capsule_digest: fields.string("capsule_digest")?,
+    };
+    fields.finish()?;
+    if value.capsule_version != INPUT_CAPSULE_VERSION_V4_3
+        || value.exact_timestamp_ms.len() != 16
+        || value.row_identity_digests.len() != 16
+        || value.outcome_row_present
+        || value.labels_accessed
+        || value.metrics_computed
+        || value.prior_outcome_capsule_accessed
+        || !value.credential_free
+        || !value.read_only
+        || !value.sanitized
+        || value.capsule_digest != input_capsule_digest_v4_3(&value)
+    {
+        return Err("V4.3 input capsule rejected".to_string());
+    }
+    Ok(value)
+}
+
+fn encode_context_proof_v4_3(
+    value: &MomentumProspectiveContextVerificationV4_3,
+) -> Result<Vec<u8>, String> {
+    ArtifactBuilderV4_2::new("MomentumProspectiveContextVerificationV4_3")
+        .string("proof_version", &value.proof_version)
+        .string(
+            "context_authorization_digest",
+            &value.context_authorization_digest,
+        )
+        .string(
+            "feature_context_plan_digest",
+            &value.feature_context_plan_digest,
+        )
+        .string(
+            "input_registration_digest",
+            &value.input_registration_digest,
+        )
+        .string("input_capsule_digest", &value.input_capsule_digest)
+        .string(
+            "context_usage_ledger_digest",
+            &value.context_usage_ledger_digest,
+        )
+        .boolean("exact_timestamps_verified", value.exact_timestamps_verified)
+        .boolean(
+            "strict_chronology_verified",
+            value.strict_chronology_verified,
+        )
+        .boolean("feature_history_complete", value.feature_history_complete)
+        .boolean(
+            "protected_context_inference_only",
+            value.protected_context_inference_only,
+        )
+        .boolean("outcome_timestamp_absent", value.outcome_timestamp_absent)
+        .boolean(
+            "prior_outcome_artifact_accessed",
+            value.prior_outcome_artifact_accessed,
+        )
+        .string("proof_digest", &value.proof_digest)
+        .encode()
+}
+
+fn decode_context_proof_v4_3(
+    bytes: &[u8],
+) -> Result<MomentumProspectiveContextVerificationV4_3, String> {
+    let mut fields =
+        ArtifactReaderV4_2::decode(bytes, "MomentumProspectiveContextVerificationV4_3")?;
+    let value = MomentumProspectiveContextVerificationV4_3 {
+        proof_version: fields.string("proof_version")?,
+        context_authorization_digest: fields.string("context_authorization_digest")?,
+        feature_context_plan_digest: fields.string("feature_context_plan_digest")?,
+        input_registration_digest: fields.string("input_registration_digest")?,
+        input_capsule_digest: fields.string("input_capsule_digest")?,
+        context_usage_ledger_digest: fields.string("context_usage_ledger_digest")?,
+        exact_timestamps_verified: fields.boolean("exact_timestamps_verified")?,
+        strict_chronology_verified: fields.boolean("strict_chronology_verified")?,
+        feature_history_complete: fields.boolean("feature_history_complete")?,
+        protected_context_inference_only: fields.boolean("protected_context_inference_only")?,
+        outcome_timestamp_absent: fields.boolean("outcome_timestamp_absent")?,
+        prior_outcome_artifact_accessed: fields.boolean("prior_outcome_artifact_accessed")?,
+        proof_digest: fields.string("proof_digest")?,
+    };
+    fields.finish()?;
+    if value.proof_version != CONTEXT_PROOF_VERSION_V4_3
+        || !value.exact_timestamps_verified
+        || !value.strict_chronology_verified
+        || !value.feature_history_complete
+        || !value.protected_context_inference_only
+        || !value.outcome_timestamp_absent
+        || value.prior_outcome_artifact_accessed
+        || value.proof_digest != context_proof_digest_v4_3(&value)
+    {
+        return Err("V4.3 context proof rejected".to_string());
+    }
+    Ok(value)
+}
+
+fn encode_prediction_seal_v4_3(
+    value: &MomentumParticipantPredictionSealV4_3,
+) -> Result<Vec<u8>, String> {
+    ArtifactBuilderV4_2::new("MomentumParticipantPredictionSealV4_3")
+        .string("participant_digest", &value.participant_digest)
+        .string("participant_role", &value.participant_role)
+        .unsigned("event_timestamp_ms", value.event_timestamp_ms)
+        .string("input_receipt_digest", &value.input_receipt_digest)
+        .string("input_capsule_digest", &value.input_capsule_digest)
+        .string(
+            "context_usage_ledger_digest",
+            &value.context_usage_ledger_digest,
+        )
+        .string("feature_identity_digest", &value.feature_identity_digest)
+        .unsigned(
+            "prediction_probability_bits",
+            u64::from(value.prediction_probability_bits),
+        )
+        .string("prediction_digest", &value.prediction_digest)
+        .boolean(
+            "participant_identity_verified",
+            value.participant_identity_verified,
+        )
+        .unsigned("parameter_updates", as_u64(value.parameter_updates)?)
+        .unsigned("normalizer_refits", as_u64(value.normalizer_refits)?)
+        .unsigned("outcome_access_count", as_u64(value.outcome_access_count)?)
+        .string("seal_digest", &value.seal_digest)
+        .encode()
+}
+
+fn decode_prediction_seal_v4_3(
+    bytes: &[u8],
+) -> Result<MomentumParticipantPredictionSealV4_3, String> {
+    let mut fields = ArtifactReaderV4_2::decode(bytes, "MomentumParticipantPredictionSealV4_3")?;
+    let probability_bits = fields.unsigned("prediction_probability_bits")?;
+    let value = MomentumParticipantPredictionSealV4_3 {
+        participant_digest: fields.string("participant_digest")?,
+        participant_role: fields.string("participant_role")?,
+        event_timestamp_ms: fields.unsigned("event_timestamp_ms")?,
+        input_receipt_digest: fields.string("input_receipt_digest")?,
+        input_capsule_digest: fields.string("input_capsule_digest")?,
+        context_usage_ledger_digest: fields.string("context_usage_ledger_digest")?,
+        feature_identity_digest: fields.string("feature_identity_digest")?,
+        prediction_probability_bits: u32::try_from(probability_bits)
+            .map_err(|_| "V4.3 prediction bits rejected".to_string())?,
+        prediction_digest: fields.string("prediction_digest")?,
+        participant_identity_verified: fields.boolean("participant_identity_verified")?,
+        parameter_updates: as_usize(fields.unsigned("parameter_updates")?)?,
+        normalizer_refits: as_usize(fields.unsigned("normalizer_refits")?)?,
+        outcome_access_count: as_usize(fields.unsigned("outcome_access_count")?)?,
+        seal_digest: fields.string("seal_digest")?,
+    };
+    fields.finish()?;
+    if value.participant_role.is_empty()
+        || !value.participant_identity_verified
+        || value.parameter_updates != 0
+        || value.normalizer_refits != 0
+        || value.outcome_access_count != 0
+        || value.seal_digest != prediction_seal_digest_v4_3(&value)
+    {
+        return Err("V4.3 participant prediction seal rejected".to_string());
+    }
+    Ok(value)
+}
+
+fn encode_prediction_capsule_v4_3(
+    value: &MomentumProspectivePredictionCapsuleV4_3,
+) -> Result<Vec<u8>, String> {
+    ArtifactBuilderV4_2::new("MomentumProspectivePredictionCapsuleV4_3")
+        .string("capsule_version", &value.capsule_version)
+        .string("lifecycle_digest", &value.lifecycle_digest)
+        .string(
+            "evaluation_registration_digest",
+            &value.evaluation_registration_digest,
+        )
+        .string("roster_digest", &value.roster_digest)
+        .string(
+            "context_authorization_digest",
+            &value.context_authorization_digest,
+        )
+        .string("supersession_digest", &value.supersession_digest)
+        .string(
+            "corrected_context_plan_digest",
+            &value.corrected_context_plan_digest,
+        )
+        .string(
+            "input_registration_digest",
+            &value.input_registration_digest,
+        )
+        .unsigned("event_timestamp_ms", value.event_timestamp_ms)
+        .string("input_receipt_digest", &value.input_receipt_digest)
+        .string("input_capsule_digest", &value.input_capsule_digest)
+        .string(
+            "context_usage_ledger_digest",
+            &value.context_usage_ledger_digest,
+        )
+        .messages(
+            "participant_prediction_seals",
+            value
+                .participant_prediction_seals
+                .iter()
+                .map(encode_prediction_seal_v4_3)
+                .collect::<Result<Vec<_>, _>>()?,
+        )
+        .boolean("probabilities_hidden", value.probabilities_hidden)
+        .boolean("labels_hidden", value.labels_hidden)
+        .boolean("outcome_accessed", value.outcome_accessed)
+        .boolean("metrics_computed", value.metrics_computed)
+        .boolean("winner_selected", value.winner_selected)
+        .string("capsule_digest", &value.capsule_digest)
+        .encode()
+}
+
+fn decode_prediction_capsule_v4_3(
+    bytes: &[u8],
+) -> Result<MomentumProspectivePredictionCapsuleV4_3, String> {
+    let mut fields = ArtifactReaderV4_2::decode(bytes, "MomentumProspectivePredictionCapsuleV4_3")?;
+    let value = MomentumProspectivePredictionCapsuleV4_3 {
+        capsule_version: fields.string("capsule_version")?,
+        lifecycle_digest: fields.string("lifecycle_digest")?,
+        evaluation_registration_digest: fields.string("evaluation_registration_digest")?,
+        roster_digest: fields.string("roster_digest")?,
+        context_authorization_digest: fields.string("context_authorization_digest")?,
+        supersession_digest: fields.string("supersession_digest")?,
+        corrected_context_plan_digest: fields.string("corrected_context_plan_digest")?,
+        input_registration_digest: fields.string("input_registration_digest")?,
+        event_timestamp_ms: fields.unsigned("event_timestamp_ms")?,
+        input_receipt_digest: fields.string("input_receipt_digest")?,
+        input_capsule_digest: fields.string("input_capsule_digest")?,
+        context_usage_ledger_digest: fields.string("context_usage_ledger_digest")?,
+        participant_prediction_seals: fields
+            .messages("participant_prediction_seals")?
+            .iter()
+            .map(|bytes| decode_prediction_seal_v4_3(bytes))
+            .collect::<Result<Vec<_>, _>>()?,
+        probabilities_hidden: fields.boolean("probabilities_hidden")?,
+        labels_hidden: fields.boolean("labels_hidden")?,
+        outcome_accessed: fields.boolean("outcome_accessed")?,
+        metrics_computed: fields.boolean("metrics_computed")?,
+        winner_selected: fields.boolean("winner_selected")?,
+        capsule_digest: fields.string("capsule_digest")?,
+    };
+    fields.finish()?;
+    let participant_digests = value
+        .participant_prediction_seals
+        .iter()
+        .map(|seal| &seal.participant_digest)
+        .collect::<BTreeSet<_>>();
+    if value.capsule_version != PREDICTION_CAPSULE_VERSION_V4_3
+        || value.participant_prediction_seals.len() != 3
+        || participant_digests.len() != 3
+        || !value.probabilities_hidden
+        || !value.labels_hidden
+        || value.outcome_accessed
+        || value.metrics_computed
+        || value.winner_selected
+        || value.capsule_digest != prediction_capsule_digest_v4_3(&value)
+    {
+        return Err("V4.3 prediction capsule rejected".to_string());
+    }
+    Ok(value)
+}
+
+fn encode_prediction_entry_v4_3(
+    value: &MomentumProspectivePredictionJournalEntryV4_3,
+) -> Result<Vec<u8>, String> {
+    ArtifactBuilderV4_2::new("MomentumProspectivePredictionJournalEntryV4_3")
+        .unsigned("event_timestamp_ms", value.event_timestamp_ms)
+        .string(
+            "context_authorization_digest",
+            &value.context_authorization_digest,
+        )
+        .string("input_capsule_digest", &value.input_capsule_digest)
+        .string(
+            "context_usage_ledger_digest",
+            &value.context_usage_ledger_digest,
+        )
+        .string(
+            "prediction_capsule_digest",
+            &value.prediction_capsule_digest,
+        )
+        .strings(
+            "participant_prediction_digests",
+            &value.participant_prediction_digests,
+        )
+        .boolean(
+            "prediction_sealed_before_outcome",
+            value.prediction_sealed_before_outcome,
+        )
+        .boolean("outcome_stage_unlocked", value.outcome_stage_unlocked)
+        .string("entry_digest", &value.entry_digest)
+        .encode()
+}
+
+fn decode_prediction_entry_v4_3(
+    bytes: &[u8],
+) -> Result<MomentumProspectivePredictionJournalEntryV4_3, String> {
+    let mut fields =
+        ArtifactReaderV4_2::decode(bytes, "MomentumProspectivePredictionJournalEntryV4_3")?;
+    let value = MomentumProspectivePredictionJournalEntryV4_3 {
+        event_timestamp_ms: fields.unsigned("event_timestamp_ms")?,
+        context_authorization_digest: fields.string("context_authorization_digest")?,
+        input_capsule_digest: fields.string("input_capsule_digest")?,
+        context_usage_ledger_digest: fields.string("context_usage_ledger_digest")?,
+        prediction_capsule_digest: fields.string("prediction_capsule_digest")?,
+        participant_prediction_digests: fields.strings("participant_prediction_digests")?,
+        prediction_sealed_before_outcome: fields.boolean("prediction_sealed_before_outcome")?,
+        outcome_stage_unlocked: fields.boolean("outcome_stage_unlocked")?,
+        entry_digest: fields.string("entry_digest")?,
+    };
+    fields.finish()?;
+    if value.participant_prediction_digests.len() != 3
+        || !value.prediction_sealed_before_outcome
+        || value.outcome_stage_unlocked
+        || value.entry_digest != prediction_entry_digest_v4_3(&value)
+    {
+        return Err("V4.3 prediction journal entry rejected".to_string());
+    }
+    Ok(value)
+}
+
+fn encode_prediction_journal_v4_3(
+    value: &MomentumProspectivePredictionJournalV4_3,
+) -> Result<Vec<u8>, String> {
+    ArtifactBuilderV4_2::new("MomentumProspectivePredictionJournalV4_3")
+        .string("journal_version", &value.journal_version)
+        .messages(
+            "entries",
+            value
+                .entries
+                .iter()
+                .map(encode_prediction_entry_v4_3)
+                .collect::<Result<Vec<_>, _>>()?,
+        )
+        .string("journal_digest", &value.journal_digest)
+        .encode()
+}
+
+fn decode_prediction_journal_v4_3(
+    bytes: &[u8],
+) -> Result<MomentumProspectivePredictionJournalV4_3, String> {
+    let mut fields = ArtifactReaderV4_2::decode(bytes, "MomentumProspectivePredictionJournalV4_3")?;
+    let value = MomentumProspectivePredictionJournalV4_3 {
+        journal_version: fields.string("journal_version")?,
+        entries: fields
+            .messages("entries")?
+            .iter()
+            .map(|bytes| decode_prediction_entry_v4_3(bytes))
+            .collect::<Result<Vec<_>, _>>()?,
+        journal_digest: fields.string("journal_digest")?,
+    };
+    fields.finish()?;
+    if value.journal_version != PREDICTION_JOURNAL_VERSION_V4_3
+        || value.entries.len() != 1
+        || value.journal_digest != prediction_journal_digest_v4_3(&value)
+    {
+        return Err("V4.3 prediction journal rejected".to_string());
+    }
+    Ok(value)
+}
+
+fn encode_outcome_plan_v4_3(value: &MomentumProspectiveOutcomePlanV4_3) -> Result<Vec<u8>, String> {
+    ArtifactBuilderV4_2::new("MomentumProspectiveOutcomePlanV4_3")
+        .string("plan_version", &value.plan_version)
+        .string(
+            "prediction_capsule_digest",
+            &value.prediction_capsule_digest,
+        )
+        .unsigned("event_timestamp_ms", value.event_timestamp_ms)
+        .unsigned("prediction_horizon", as_u64(value.prediction_horizon)?)
+        .unsigneds(
+            "required_outcome_timestamp_ms",
+            &value.required_outcome_timestamp_ms,
+        )
+        .unsigned(
+            "outcome_finality_boundary_ms",
+            value.outcome_finality_boundary_ms,
+        )
+        .unsigned(
+            "maximum_outcome_requests",
+            as_u64(value.maximum_outcome_requests)?,
+        )
+        .unsigned(
+            "maximum_outcome_retries",
+            as_u64(value.maximum_outcome_retries)?,
+        )
+        .boolean(
+            "labels_hidden_until_opening",
+            value.labels_hidden_until_opening,
+        )
+        .boolean("one_time_opening_required", value.one_time_opening_required)
+        .boolean(
+            "outcome_stage_locked_before_finality",
+            value.outcome_stage_locked_before_finality,
+        )
+        .string("plan_digest", &value.plan_digest)
+        .encode()
+}
+
+fn decode_outcome_plan_v4_3(bytes: &[u8]) -> Result<MomentumProspectiveOutcomePlanV4_3, String> {
+    let mut fields = ArtifactReaderV4_2::decode(bytes, "MomentumProspectiveOutcomePlanV4_3")?;
+    let value = MomentumProspectiveOutcomePlanV4_3 {
+        plan_version: fields.string("plan_version")?,
+        prediction_capsule_digest: fields.string("prediction_capsule_digest")?,
+        event_timestamp_ms: fields.unsigned("event_timestamp_ms")?,
+        prediction_horizon: as_usize(fields.unsigned("prediction_horizon")?)?,
+        required_outcome_timestamp_ms: fields.unsigneds("required_outcome_timestamp_ms")?,
+        outcome_finality_boundary_ms: fields.unsigned("outcome_finality_boundary_ms")?,
+        maximum_outcome_requests: as_usize(fields.unsigned("maximum_outcome_requests")?)?,
+        maximum_outcome_retries: as_usize(fields.unsigned("maximum_outcome_retries")?)?,
+        labels_hidden_until_opening: fields.boolean("labels_hidden_until_opening")?,
+        one_time_opening_required: fields.boolean("one_time_opening_required")?,
+        outcome_stage_locked_before_finality: fields
+            .boolean("outcome_stage_locked_before_finality")?,
+        plan_digest: fields.string("plan_digest")?,
+    };
+    fields.finish()?;
+    if value.plan_version != OUTCOME_PLAN_VERSION_V4_3
+        || value.prediction_horizon != 1
+        || value.required_outcome_timestamp_ms.len() != 1
+        || value.maximum_outcome_requests != 1
+        || value.maximum_outcome_retries != 0
+        || !value.labels_hidden_until_opening
+        || !value.one_time_opening_required
+        || !value.outcome_stage_locked_before_finality
+        || value.plan_digest != outcome_plan_digest_v4_3(&value)
+    {
+        return Err("V4.3 outcome plan rejected".to_string());
+    }
+    Ok(value)
+}
+
+fn encode_safety_counters_v4_3(
+    value: &MomentumFuturePredictionSafetyCountersV4_3,
+) -> Result<Vec<u8>, String> {
+    let values = [
+        value.input_request_attempts,
+        value.input_retries,
+        value.maximum_concurrency,
+        value.outcome_request_attempts,
+        value.outcome_retries,
+        value.participant_parameter_updates,
+        value.normalizer_refits,
+        value.protected_context_training_uses,
+        value.protected_context_label_uses,
+        value.protected_context_metric_uses,
+        value.protected_context_reward_uses,
+        value.outcome_row_reads,
+        value.outcome_label_reads,
+        value.metric_computations,
+        value.winner_selections,
+        value.active_model_changes,
+        value.chair_decisions,
+        value.votes,
+        value.reward_applications,
+        value.penalty_applications,
+        value.voice_changes,
+        value.cooldowns_started,
+        value.promotions,
+        value.quarantines,
+        value.executions,
+        value.active_committee_count,
+    ]
+    .into_iter()
+    .map(as_u64)
+    .collect::<Result<Vec<_>, _>>()?;
+    ArtifactBuilderV4_2::new("MomentumFuturePredictionSafetyCountersV4_3")
+        .unsigneds("values", &values)
+        .encode()
+}
+
+fn decode_safety_counters_v4_3(
+    bytes: &[u8],
+) -> Result<MomentumFuturePredictionSafetyCountersV4_3, String> {
+    let mut fields =
+        ArtifactReaderV4_2::decode(bytes, "MomentumFuturePredictionSafetyCountersV4_3")?;
+    let values = fields.unsigneds("values")?;
+    fields.finish()?;
+    if values.len() != 26 {
+        return Err("V4.3 safety counter shape rejected".to_string());
+    }
+    let value = MomentumFuturePredictionSafetyCountersV4_3 {
+        input_request_attempts: as_usize(values[0])?,
+        input_retries: as_usize(values[1])?,
+        maximum_concurrency: as_usize(values[2])?,
+        outcome_request_attempts: as_usize(values[3])?,
+        outcome_retries: as_usize(values[4])?,
+        participant_parameter_updates: as_usize(values[5])?,
+        normalizer_refits: as_usize(values[6])?,
+        protected_context_training_uses: as_usize(values[7])?,
+        protected_context_label_uses: as_usize(values[8])?,
+        protected_context_metric_uses: as_usize(values[9])?,
+        protected_context_reward_uses: as_usize(values[10])?,
+        outcome_row_reads: as_usize(values[11])?,
+        outcome_label_reads: as_usize(values[12])?,
+        metric_computations: as_usize(values[13])?,
+        winner_selections: as_usize(values[14])?,
+        active_model_changes: as_usize(values[15])?,
+        chair_decisions: as_usize(values[16])?,
+        votes: as_usize(values[17])?,
+        reward_applications: as_usize(values[18])?,
+        penalty_applications: as_usize(values[19])?,
+        voice_changes: as_usize(values[20])?,
+        cooldowns_started: as_usize(values[21])?,
+        promotions: as_usize(values[22])?,
+        quarantines: as_usize(values[23])?,
+        executions: as_usize(values[24])?,
+        active_committee_count: as_usize(values[25])?,
+    };
+    validate_safety_counters_v4_3(&value)?;
+    Ok(value)
+}
+
+fn validate_safety_counters_v4_3(
+    value: &MomentumFuturePredictionSafetyCountersV4_3,
+) -> Result<(), String> {
+    if value.input_request_attempts > 1
+        || value.input_retries != 0
+        || value.maximum_concurrency != 1
+        || value.outcome_request_attempts != 0
+        || value.outcome_retries != 0
+        || value.participant_parameter_updates != 0
+        || value.normalizer_refits != 0
+        || value.protected_context_training_uses != 0
+        || value.protected_context_label_uses != 0
+        || value.protected_context_metric_uses != 0
+        || value.protected_context_reward_uses != 0
+        || value.outcome_row_reads != 0
+        || value.outcome_label_reads != 0
+        || value.metric_computations != 0
+        || value.winner_selections != 0
+        || value.active_model_changes != 0
+        || value.chair_decisions != 0
+        || value.votes != 0
+        || value.reward_applications != 0
+        || value.penalty_applications != 0
+        || value.voice_changes != 0
+        || value.cooldowns_started != 0
+        || value.promotions != 0
+        || value.quarantines != 0
+        || value.executions != 0
+        || value.active_committee_count != 3
+    {
+        return Err("V4.3 safety counter rejected".to_string());
+    }
+    Ok(())
+}
+
+fn encode_status_v4_3(
+    value: &MomentumFuturePredictionStatusReceiptV4_3,
+) -> Result<Vec<u8>, String> {
+    ArtifactBuilderV4_2::new("MomentumFuturePredictionStatusReceiptV4_3")
+        .string("status_version", &value.status_version)
+        .string("lifecycle_version", &value.lifecycle_version)
+        .string("lifecycle_digest", &value.lifecycle_digest)
+        .string(
+            "context_authorization_status",
+            format!("{:?}", value.context_authorization_status),
+        )
+        .string(
+            "context_authorization_digest",
+            &value.context_authorization_digest,
+        )
+        .string(
+            "supersession_status",
+            format!("{:?}", value.supersession_status),
+        )
+        .string("supersession_digest", &value.supersession_digest)
+        .unsigned(
+            "superseded_event_timestamp_ms",
+            value.superseded_event_timestamp_ms,
+        )
+        .unsigned(
+            "replacement_event_timestamp_ms",
+            value.replacement_event_timestamp_ms,
+        )
+        .unsigned(
+            "input_finality_boundary_ms",
+            value.input_finality_boundary_ms,
+        )
+        .string("event_readiness", format!("{:?}", value.event_readiness))
+        .string(
+            "corrected_context_plan_digest",
+            &value.corrected_context_plan_digest,
+        )
+        .string(
+            "corrected_input_registration_digest",
+            &value.corrected_input_registration_digest,
+        )
+        .unsigned("input_request_count", as_u64(value.input_request_count)?)
+        .optional_string("input_receipt_digest", &value.input_receipt_digest)
+        .optional_string("input_capsule_digest", &value.input_capsule_digest)
+        .optional_string(
+            "context_usage_ledger_digest",
+            &value.context_usage_ledger_digest,
+        )
+        .strings("context_usage_classes", &value.context_usage_classes)
+        .strings(
+            "participant_prediction_digests",
+            &value.participant_prediction_digests,
+        )
+        .optional_string(
+            "prediction_capsule_digest",
+            &value.prediction_capsule_digest,
+        )
+        .optional_string(
+            "prediction_journal_digest",
+            &value.prediction_journal_digest,
+        )
+        .optional_string("outcome_plan_digest", &value.outcome_plan_digest)
+        .unsigneds(
+            "outcome_finality_boundary_ms",
+            &value
+                .outcome_finality_boundary_ms
+                .into_iter()
+                .collect::<Vec<_>>(),
+        )
+        .string("cycle_risk_status", &value.cycle_risk_status)
+        .string("value_quality_status", &value.value_quality_status)
+        .string(
+            "prior_momentum_attribution",
+            &value.prior_momentum_attribution,
+        )
+        .string(
+            "prior_cycle_risk_attribution",
+            &value.prior_cycle_risk_attribution,
+        )
+        .boolean(
+            "protected_artifacts_unchanged",
+            value.protected_artifacts_unchanged,
+        )
+        .boolean("active_state_unchanged", value.active_state_unchanged)
+        .messages(
+            "safety_counters",
+            vec![encode_safety_counters_v4_3(&value.safety_counters)?],
+        )
+        .string("status_digest", &value.status_digest)
+        .encode()
+}
+
+fn decode_status_v4_3(bytes: &[u8]) -> Result<MomentumFuturePredictionStatusReceiptV4_3, String> {
+    let mut fields =
+        ArtifactReaderV4_2::decode(bytes, "MomentumFuturePredictionStatusReceiptV4_3")?;
+    let finality = fields.unsigneds("outcome_finality_boundary_ms")?;
+    let safety = fields.messages("safety_counters")?;
+    if finality.len() > 1 || safety.len() != 1 {
+        return Err("V4.3 status shape rejected".to_string());
+    }
+    let value = MomentumFuturePredictionStatusReceiptV4_3 {
+        status_version: fields.string("status_version")?,
+        lifecycle_version: fields.string("lifecycle_version")?,
+        lifecycle_digest: fields.string("lifecycle_digest")?,
+        context_authorization_status: parse_authorization_status_v4_3(
+            &fields.string("context_authorization_status")?,
+        )?,
+        context_authorization_digest: fields.string("context_authorization_digest")?,
+        supersession_status: parse_supersession_status_v4_3(
+            &fields.string("supersession_status")?,
+        )?,
+        supersession_digest: fields.string("supersession_digest")?,
+        superseded_event_timestamp_ms: fields.unsigned("superseded_event_timestamp_ms")?,
+        replacement_event_timestamp_ms: fields.unsigned("replacement_event_timestamp_ms")?,
+        input_finality_boundary_ms: fields.unsigned("input_finality_boundary_ms")?,
+        event_readiness: parse_readiness_v4_3(&fields.string("event_readiness")?)?,
+        corrected_context_plan_digest: fields.string("corrected_context_plan_digest")?,
+        corrected_input_registration_digest: fields
+            .string("corrected_input_registration_digest")?,
+        input_request_count: as_usize(fields.unsigned("input_request_count")?)?,
+        input_receipt_digest: fields.optional_string("input_receipt_digest")?,
+        input_capsule_digest: fields.optional_string("input_capsule_digest")?,
+        context_usage_ledger_digest: fields.optional_string("context_usage_ledger_digest")?,
+        context_usage_classes: fields.strings("context_usage_classes")?,
+        participant_prediction_digests: fields.strings("participant_prediction_digests")?,
+        prediction_capsule_digest: fields.optional_string("prediction_capsule_digest")?,
+        prediction_journal_digest: fields.optional_string("prediction_journal_digest")?,
+        outcome_plan_digest: fields.optional_string("outcome_plan_digest")?,
+        outcome_finality_boundary_ms: finality.first().copied(),
+        cycle_risk_status: fields.string("cycle_risk_status")?,
+        value_quality_status: fields.string("value_quality_status")?,
+        prior_momentum_attribution: fields.string("prior_momentum_attribution")?,
+        prior_cycle_risk_attribution: fields.string("prior_cycle_risk_attribution")?,
+        protected_artifacts_unchanged: fields.boolean("protected_artifacts_unchanged")?,
+        active_state_unchanged: fields.boolean("active_state_unchanged")?,
+        safety_counters: decode_safety_counters_v4_3(&safety[0])?,
+        status_digest: fields.string("status_digest")?,
+    };
+    fields.finish()?;
+    if value.status_version != STATUS_RECEIPT_VERSION_V4_3
+        || value.input_request_count > 1
+        || !value.protected_artifacts_unchanged
+        || !value.active_state_unchanged
+        || value.status_digest != status_digest_v4_3(&value)
+    {
+        return Err("V4.3 status receipt rejected".to_string());
+    }
+    Ok(value)
+}
+
+fn persist_v4_3(
+    root: &Path,
+    directory: &str,
+    digest: &str,
+    extension: &str,
+    bytes: &[u8],
+    decode_digest: impl Fn(&[u8]) -> Result<String, String>,
+) -> Result<(usize, usize), String> {
+    persist_artifact(
+        &root.join(directory).join(format!("{digest}.{extension}")),
+        bytes,
+        digest,
+        decode_digest,
+    )
+}
+
+fn collect_protected_artifacts_v4_3(
+    root: &Path,
+    current: &Path,
+    values: &mut Vec<(PathBuf, Vec<u8>)>,
+) -> Result<(), String> {
+    if current == root.join(ROOT_VERSION_V4_3) {
+        return Ok(());
+    }
+    if current.is_dir() {
+        let mut paths = fs::read_dir(current)
+            .map_err(|_| "V4.3 protected directory read failed".to_string())?
+            .filter_map(Result::ok)
+            .map(|entry| entry.path())
+            .collect::<Vec<_>>();
+        paths.sort();
+        for path in paths {
+            collect_protected_artifacts_v4_3(root, &path, values)?;
+        }
+    } else if current.is_file() {
+        values.push((
+            current
+                .strip_prefix(root)
+                .map_err(|_| "V4.3 protected path rejected".to_string())?
+                .to_path_buf(),
+            fs::read(current).map_err(|_| "V4.3 protected artifact read failed".to_string())?,
+        ));
+    }
+    Ok(())
+}
+
+fn protected_artifacts_v4_3(root: &Path) -> Result<Vec<(PathBuf, Vec<u8>)>, String> {
+    let mut values = Vec::new();
+    collect_protected_artifacts_v4_3(root, root, &mut values)?;
+    values.sort_by(|left, right| left.0.cmp(&right.0));
+    Ok(values)
+}
+
+fn provider_contract_available_v4_3(config: &UpbitHistoricalPilotConfigV0) -> Result<bool, String> {
+    config.validate()?;
+    let contract = upbit_learning_evidence_provider_contract_v1(config)?;
+    Ok(contract.provider_id == config.provider_id
+        && contract.market_scope == AcquisitionMarketScope::BtcCrypto
+        && contract.dataset_kind == DatasetKind::DailyOhlcv
+        && contract.symbols.as_slice() == [config.symbol.clone()]
+        && contract.cadence == "1d"
+        && contract.maximum_response_bytes == config.maximum_response_bytes
+        && contract.credential_free
+        && contract.read_only
+        && contract.approved_for_network
+        && contract.all_rows_finalized
+        && contract.enabled)
+}
+
+fn build_provider_request_v4_3(
+    registration: &MomentumProspectiveInputRegistrationV4_3,
+) -> Result<ReadOnlyProviderRequest, String> {
+    let expected_start = registration
+        .exact_expected_timestamp_ms
+        .first()
+        .copied()
+        .ok_or_else(|| "V4.3 registered request start unavailable".to_string())?;
+    if registration.expected_row_count != 16
+        || registration.exact_expected_timestamp_ms.len() != 16
+        || registration
+            .exact_expected_timestamp_ms
+            .windows(2)
+            .any(|pair| pair[1] != pair[0].saturating_add(DAILY_CADENCE_MS_V4_2))
+        || registration
+            .exact_expected_timestamp_ms
+            .last()
+            .and_then(|timestamp| timestamp.checked_add(DAILY_CADENCE_MS_V4_2))
+            != Some(registration.request_to_timestamp_ms)
+    {
+        return Err("V4.3 registered input request rejected".to_string());
+    }
+    Ok(ReadOnlyProviderRequest {
+        request_id: stable_hash_string(&format!(
+            "momentum-v4.3-input-request:{}",
+            registration.registration_digest
+        )),
+        request_key: stable_hash_string(&format!(
+            "momentum-v4.3-input-key:{}:{}:{expected_start}:{}",
+            registration.provider_id, registration.symbol, registration.request_to_timestamp_ms
+        )),
+        provider_id: registration.provider_id.clone(),
+        dataset_kind: DatasetKind::DailyOhlcv,
+        market_scope: AcquisitionMarketScope::BtcCrypto,
+        symbols: vec![registration.symbol.clone()],
+        lookback: DataLookback {
+            bars: registration.expected_row_count,
+            start_timestamp_ms: Some(expected_start),
+            end_timestamp_ms: Some(registration.request_to_timestamp_ms),
+        },
+        cadence: registration.cadence.clone(),
+        max_staleness_ms: 0,
+        reason_codes: vec![],
+    })
+}
+
+fn request_config_v4_3(
+    config: &UpbitHistoricalPilotConfigV0,
+    registration: &MomentumProspectiveInputRegistrationV4_3,
+) -> Result<UpbitHistoricalPilotConfigV0, String> {
+    let mut request_config = config.clone();
+    request_config.start_timestamp_ms =
+        registration
+            .exact_expected_timestamp_ms
+            .first()
+            .copied()
+            .ok_or_else(|| "V4.3 request start unavailable".to_string())?;
+    request_config.end_timestamp_ms = registration.request_to_timestamp_ms;
+    request_config.max_retries = 0;
+    request_config.validate()?;
+    if !provider_contract_available_v4_3(&request_config)? {
+        return Err("V4.3 provider contract rejected".to_string());
+    }
+    Ok(request_config)
+}
+
+fn build_context_usage_ledger_v4_3(
+    authorization: &MomentumProtectedContextAuthorizationV4_3,
+    plan: &MomentumProspectiveFeatureContextPlanV4_3,
+    rows: &[HistoricalOhlcvRow],
+) -> Result<MomentumContextUsageLedgerV4_3, String> {
+    if rows.len() != plan.required_row_count {
+        return Err("V4.3 context usage row count rejected".to_string());
+    }
+    let mut entries = Vec::with_capacity(rows.len());
+    for row in rows {
+        let use_class = if row.timestamp_ms == plan.event_timestamp_ms {
+            MomentumContextEvidenceUseV4_3::ProspectiveEventInput
+        } else if plan
+            .protected_context_timestamp_ms
+            .contains(&row.timestamp_ms)
+        {
+            MomentumContextEvidenceUseV4_3::ProtectedRawInferenceContext
+        } else if plan
+            .existing_source_timestamp_ms
+            .contains(&row.timestamp_ms)
+        {
+            MomentumContextEvidenceUseV4_3::ExistingFrozenHistoricalContext
+        } else if plan.incremental_timestamp_ms.contains(&row.timestamp_ms) {
+            MomentumContextEvidenceUseV4_3::NewIncrementalInferenceContext
+        } else {
+            return Err("V4.3 context usage classification rejected".to_string());
+        };
+        let mut entry = MomentumContextUsageEntryV4_3 {
+            timestamp_ms: row.timestamp_ms,
+            raw_row_digest: row_identity_digest(row),
+            use_class,
+            used_for_feature_construction: true,
+            used_for_training: false,
+            used_for_normalizer_fit: false,
+            used_for_label: false,
+            used_for_metric: false,
+            used_for_reward: false,
+            entry_digest: String::new(),
+        };
+        entry.entry_digest = context_usage_entry_digest_v4_3(&entry);
+        entries.push(entry);
+    }
+    let mut ledger = MomentumContextUsageLedgerV4_3 {
+        ledger_version: CONTEXT_LEDGER_VERSION_V4_3.to_string(),
+        authorization_digest: authorization.authorization_digest.clone(),
+        event_timestamp_ms: plan.event_timestamp_ms,
+        entries,
+        ledger_digest: String::new(),
+    };
+    ledger.ledger_digest = context_usage_ledger_digest_v4_3(&ledger);
+    decode_usage_ledger_v4_3(&encode_usage_ledger_v4_3(&ledger)?)?;
+    Ok(ledger)
+}
+
+fn validate_input_response_v4_3(
+    lifecycle: &MomentumFutureEvaluationLifecycleV4_2,
+    authorization: &MomentumProtectedContextAuthorizationV4_3,
+    plan: &MomentumProspectiveFeatureContextPlanV4_3,
+    registration: &MomentumProspectiveInputRegistrationV4_3,
+    transport: &LearningEvidenceTransportResponseV1,
+) -> Result<
+    (
+        MomentumProspectiveInputCapsuleV4_3,
+        MomentumContextUsageLedgerV4_3,
+        MomentumProspectiveContextVerificationV4_3,
+        Vec<HistoricalOhlcvRow>,
+    ),
+    String,
+> {
+    if transport.http_status_class != "2xx"
+        || transport.raw_response.is_empty()
+        || transport.raw_response.len() > registration.maximum_response_bytes
+        || serde_json::from_slice::<serde_json::Value>(&transport.raw_response).is_err()
+        || transport.response.provider_id != registration.provider_id
+        || transport.response.content_type != "application/x-soma-normalized-dataset"
+        || !transport.response.all_rows_finalized
+        || transport.response.normalized_dataset.symbol != registration.symbol
+        || transport.response.reported_content_bytes != transport.raw_response.len()
+    {
+        return Err("V4.3 input response envelope rejected".to_string());
+    }
+    let rows = &transport.response.normalized_dataset.rows;
+    let timestamps = rows.iter().map(|row| row.timestamp_ms).collect::<Vec<_>>();
+    let unique = timestamps.iter().copied().collect::<BTreeSet<_>>();
+    let outcome_timestamp = plan
+        .event_timestamp_ms
+        .checked_add(
+            u64::try_from(lifecycle.prediction_horizon)
+                .ok()
+                .and_then(|horizon| horizon.checked_mul(lifecycle.cadence_ms))
+                .ok_or_else(|| "V4.3 outcome timestamp overflow".to_string())?,
+        )
+        .ok_or_else(|| "V4.3 outcome timestamp overflow".to_string())?;
+    if rows.len() != registration.expected_row_count
+        || timestamps != registration.exact_expected_timestamp_ms
+        || unique.len() != rows.len()
+        || rows
+            .windows(2)
+            .any(|pair| pair[1].timestamp_ms != pair[0].timestamp_ms + lifecycle.cadence_ms)
+        || timestamps.contains(&outcome_timestamp)
+        || rows.iter().any(|row| {
+            row.symbol != registration.symbol
+                || ![
+                    row.open,
+                    row.high,
+                    row.low,
+                    row.close,
+                    row.volume,
+                    row.trade_value.unwrap_or_default(),
+                ]
+                .iter()
+                .all(|value| value.is_finite())
+                || row.open <= 0.0
+                || row.high <= 0.0
+                || row.low <= 0.0
+                || row.close <= 0.0
+                || row.volume < 0.0
+                || row.trade_value.is_some_and(|value| value < 0.0)
+                || row.high < row.open.max(row.close)
+                || row.low > row.open.min(row.close)
+        })
+    {
+        return Err("V4.3 exact input evidence rejected".to_string());
+    }
+    let raw_response_digest = stable_hash_string(&format!(
+        "momentum-v4.3-raw-input:{:?}",
+        transport.raw_response
+    ));
+    let mut capsule = MomentumProspectiveInputCapsuleV4_3 {
+        capsule_version: INPUT_CAPSULE_VERSION_V4_3.to_string(),
+        lifecycle_digest: lifecycle.lifecycle_digest.clone(),
+        context_authorization_digest: authorization.authorization_digest.clone(),
+        input_registration_digest: registration.registration_digest.clone(),
+        event_timestamp_ms: plan.event_timestamp_ms,
+        exact_timestamp_ms: timestamps,
+        row_identity_digests: rows.iter().map(row_identity_digest).collect(),
+        normalized_dataset_digest: historical_replay_dataset_digest_v0(
+            &transport.response.normalized_dataset,
+        ),
+        raw_response_digest,
+        outcome_row_present: false,
+        labels_accessed: false,
+        metrics_computed: false,
+        prior_outcome_capsule_accessed: false,
+        credential_free: true,
+        read_only: true,
+        sanitized: true,
+        capsule_digest: String::new(),
+    };
+    capsule.capsule_digest = input_capsule_digest_v4_3(&capsule);
+    decode_input_capsule_v4_3(&encode_input_capsule_v4_3(&capsule)?)?;
+    let ledger = build_context_usage_ledger_v4_3(authorization, plan, rows)?;
+    let mut proof = MomentumProspectiveContextVerificationV4_3 {
+        proof_version: CONTEXT_PROOF_VERSION_V4_3.to_string(),
+        context_authorization_digest: authorization.authorization_digest.clone(),
+        feature_context_plan_digest: plan.plan_digest.clone(),
+        input_registration_digest: registration.registration_digest.clone(),
+        input_capsule_digest: capsule.capsule_digest.clone(),
+        context_usage_ledger_digest: ledger.ledger_digest.clone(),
+        exact_timestamps_verified: true,
+        strict_chronology_verified: true,
+        feature_history_complete: true,
+        protected_context_inference_only: ledger.entries.iter().all(|entry| {
+            entry.use_class != MomentumContextEvidenceUseV4_3::ProtectedRawInferenceContext
+                || (entry.used_for_feature_construction
+                    && !entry.used_for_training
+                    && !entry.used_for_normalizer_fit
+                    && !entry.used_for_label
+                    && !entry.used_for_metric
+                    && !entry.used_for_reward)
+        }),
+        outcome_timestamp_absent: true,
+        prior_outcome_artifact_accessed: false,
+        proof_digest: String::new(),
+    };
+    proof.proof_digest = context_proof_digest_v4_3(&proof);
+    decode_context_proof_v4_3(&encode_context_proof_v4_3(&proof)?)?;
+    Ok((capsule, ledger, proof, rows.clone()))
+}
+
+fn build_input_receipt_v4_3(
+    lifecycle: &MomentumFutureEvaluationLifecycleV4_2,
+    authorization: &MomentumProtectedContextAuthorizationV4_3,
+    registration: &MomentumProspectiveInputRegistrationV4_3,
+    status: MomentumProspectiveInputStatusV4_2,
+    http_status_class: Option<String>,
+    returned_row_count: usize,
+    verified_row_count: usize,
+    raw_response_digest: Option<String>,
+    input_capsule_digest: Option<String>,
+) -> MomentumProspectiveInputReceiptV4_3 {
+    let mut receipt = MomentumProspectiveInputReceiptV4_3 {
+        receipt_version: INPUT_RECEIPT_VERSION_V4_3.to_string(),
+        lifecycle_digest: lifecycle.lifecycle_digest.clone(),
+        context_authorization_digest: authorization.authorization_digest.clone(),
+        input_registration_digest: registration.registration_digest.clone(),
+        request_attempted: status != MomentumProspectiveInputStatusV4_2::ReadyNotAttempted,
+        request_count: usize::from(status != MomentumProspectiveInputStatusV4_2::ReadyNotAttempted),
+        retry_count: 0,
+        status,
+        http_status_class,
+        returned_row_count,
+        verified_row_count,
+        raw_response_digest,
+        input_capsule_digest,
+        terminal: status.is_terminal(),
+        receipt_digest: String::new(),
+    };
+    receipt.receipt_digest = input_receipt_digest_v4_3(&receipt);
+    receipt
+}
+
+fn seal_participant_predictions_v4_3(
+    source: &MomentumFutureEvaluationSourceV4_2,
+    lifecycle: &MomentumFutureEvaluationLifecycleV4_2,
+    receipt: &MomentumProspectiveInputReceiptV4_3,
+    input_capsule: &MomentumProspectiveInputCapsuleV4_3,
+    ledger: &MomentumContextUsageLedgerV4_3,
+    prediction: &[MomentumFrozenParticipantPredictionV4],
+    feature_identity_digest: &str,
+) -> Result<Vec<MomentumParticipantPredictionSealV4_3>, String> {
+    if prediction.len() != 3 || prediction.len() != lifecycle.participant_digests.len() {
+        return Err("V4.3 frozen prediction roster rejected".to_string());
+    }
+    lifecycle
+        .participant_digests
+        .iter()
+        .map(|participant_digest| {
+            let predicted = prediction
+                .iter()
+                .find(|value| &value.participant_digest == participant_digest)
+                .ok_or_else(|| "V4.3 participant prediction unavailable".to_string())?;
+            let participant = source
+                .source_family
+                .participants
+                .iter()
+                .find(|value| &value.participant_digest == participant_digest)
+                .ok_or_else(|| "V4.3 participant source unavailable".to_string())?;
+            if predicted.config_digest != participant.config_digest
+                || predicted.parameter_digest != participant.parameter_digest
+                || predicted.normalizer_digest != participant.normalizer_digest
+                || predicted.model_artifact_digest != participant.model_artifact_digest
+                || predicted.feature_schema_digest != participant.input_feature_schema_digest
+                || predicted.training_identity_digest != participant.training_identity_digest
+            {
+                return Err("V4.3 participant reconstruction identity rejected".to_string());
+            }
+            let participant_role = match participant.participant_role {
+                MomentumRawFeatureRoleV4::LearnedRawLogistic => "RawFeatureLogisticV4",
+                MomentumRawFeatureRoleV4::LearnedInteractionLogistic => {
+                    "RawFeatureInteractionLogisticV4"
+                }
+                MomentumRawFeatureRoleV4::ConstantBenchmark => "TrainingPrevalenceConstantV4",
+            }
+            .to_string();
+            let prediction_digest = stable_hash_string(&format!(
+                "momentum-v4.3-prediction:{}:{}:{}:{}:{}",
+                participant.participant_digest,
+                input_capsule.event_timestamp_ms,
+                receipt.receipt_digest,
+                ledger.ledger_digest,
+                predicted.probability_bits
+            ));
+            let mut seal = MomentumParticipantPredictionSealV4_3 {
+                participant_digest: participant.participant_digest.clone(),
+                participant_role,
+                event_timestamp_ms: input_capsule.event_timestamp_ms,
+                input_receipt_digest: receipt.receipt_digest.clone(),
+                input_capsule_digest: input_capsule.capsule_digest.clone(),
+                context_usage_ledger_digest: ledger.ledger_digest.clone(),
+                feature_identity_digest: feature_identity_digest.to_string(),
+                prediction_probability_bits: predicted.probability_bits,
+                prediction_digest,
+                participant_identity_verified: true,
+                parameter_updates: 0,
+                normalizer_refits: 0,
+                outcome_access_count: 0,
+                seal_digest: String::new(),
+            };
+            seal.seal_digest = prediction_seal_digest_v4_3(&seal);
+            decode_prediction_seal_v4_3(&encode_prediction_seal_v4_3(&seal)?)?;
+            Ok(seal)
+        })
+        .collect()
+}
+
+fn build_prediction_capsule_v4_3(
+    source: &MomentumFutureEvaluationSourceV4_2,
+    lifecycle: &MomentumFutureEvaluationLifecycleV4_2,
+    authorization: &MomentumProtectedContextAuthorizationV4_3,
+    supersession: &MomentumInputPlanSupersessionV4_3,
+    plan: &MomentumProspectiveFeatureContextPlanV4_3,
+    registration: &MomentumProspectiveInputRegistrationV4_3,
+    receipt: &MomentumProspectiveInputReceiptV4_3,
+    input_capsule: &MomentumProspectiveInputCapsuleV4_3,
+    ledger: &MomentumContextUsageLedgerV4_3,
+    seals: Vec<MomentumParticipantPredictionSealV4_3>,
+) -> Result<MomentumProspectivePredictionCapsuleV4_3, String> {
+    if seals
+        .iter()
+        .map(|seal| seal.participant_digest.clone())
+        .collect::<Vec<_>>()
+        != lifecycle.participant_digests
+    {
+        return Err("V4.3 prediction seal ordering rejected".to_string());
+    }
+    let mut capsule = MomentumProspectivePredictionCapsuleV4_3 {
+        capsule_version: PREDICTION_CAPSULE_VERSION_V4_3.to_string(),
+        lifecycle_digest: lifecycle.lifecycle_digest.clone(),
+        evaluation_registration_digest: source.evaluation.registration_digest.clone(),
+        roster_digest: source.roster.roster_digest.clone(),
+        context_authorization_digest: authorization.authorization_digest.clone(),
+        supersession_digest: supersession.supersession_digest.clone(),
+        corrected_context_plan_digest: plan.plan_digest.clone(),
+        input_registration_digest: registration.registration_digest.clone(),
+        event_timestamp_ms: plan.event_timestamp_ms,
+        input_receipt_digest: receipt.receipt_digest.clone(),
+        input_capsule_digest: input_capsule.capsule_digest.clone(),
+        context_usage_ledger_digest: ledger.ledger_digest.clone(),
+        participant_prediction_seals: seals,
+        probabilities_hidden: true,
+        labels_hidden: true,
+        outcome_accessed: false,
+        metrics_computed: false,
+        winner_selected: false,
+        capsule_digest: String::new(),
+    };
+    capsule.capsule_digest = prediction_capsule_digest_v4_3(&capsule);
+    decode_prediction_capsule_v4_3(&encode_prediction_capsule_v4_3(&capsule)?)?;
+    Ok(capsule)
+}
+
+fn build_prediction_journal_v4_3(
+    authorization: &MomentumProtectedContextAuthorizationV4_3,
+    input_capsule: &MomentumProspectiveInputCapsuleV4_3,
+    ledger: &MomentumContextUsageLedgerV4_3,
+    capsule: &MomentumProspectivePredictionCapsuleV4_3,
+) -> Result<MomentumProspectivePredictionJournalV4_3, String> {
+    let mut entry = MomentumProspectivePredictionJournalEntryV4_3 {
+        event_timestamp_ms: capsule.event_timestamp_ms,
+        context_authorization_digest: authorization.authorization_digest.clone(),
+        input_capsule_digest: input_capsule.capsule_digest.clone(),
+        context_usage_ledger_digest: ledger.ledger_digest.clone(),
+        prediction_capsule_digest: capsule.capsule_digest.clone(),
+        participant_prediction_digests: capsule
+            .participant_prediction_seals
+            .iter()
+            .map(|seal| seal.prediction_digest.clone())
+            .collect(),
+        prediction_sealed_before_outcome: true,
+        outcome_stage_unlocked: false,
+        entry_digest: String::new(),
+    };
+    entry.entry_digest = prediction_entry_digest_v4_3(&entry);
+    let mut journal = MomentumProspectivePredictionJournalV4_3 {
+        journal_version: PREDICTION_JOURNAL_VERSION_V4_3.to_string(),
+        entries: vec![entry],
+        journal_digest: String::new(),
+    };
+    journal.journal_digest = prediction_journal_digest_v4_3(&journal);
+    decode_prediction_journal_v4_3(&encode_prediction_journal_v4_3(&journal)?)?;
+    Ok(journal)
+}
+
+fn build_outcome_plan_v4_3(
+    lifecycle: &MomentumFutureEvaluationLifecycleV4_2,
+    capsule: &MomentumProspectivePredictionCapsuleV4_3,
+) -> Result<MomentumProspectiveOutcomePlanV4_3, String> {
+    let required_outcome_timestamp_ms = (1..=lifecycle.prediction_horizon)
+        .map(|offset| {
+            u64::try_from(offset)
+                .ok()
+                .and_then(|offset| offset.checked_mul(lifecycle.cadence_ms))
+                .and_then(|offset| capsule.event_timestamp_ms.checked_add(offset))
+                .ok_or_else(|| "V4.3 outcome timestamp overflow".to_string())
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let outcome_finality_boundary_ms = required_outcome_timestamp_ms
+        .last()
+        .and_then(|timestamp| timestamp.checked_add(lifecycle.cadence_ms))
+        .ok_or_else(|| "V4.3 outcome finality unavailable".to_string())?;
+    let mut plan = MomentumProspectiveOutcomePlanV4_3 {
+        plan_version: OUTCOME_PLAN_VERSION_V4_3.to_string(),
+        prediction_capsule_digest: capsule.capsule_digest.clone(),
+        event_timestamp_ms: capsule.event_timestamp_ms,
+        prediction_horizon: lifecycle.prediction_horizon,
+        required_outcome_timestamp_ms,
+        outcome_finality_boundary_ms,
+        maximum_outcome_requests: lifecycle.outcome_stage_maximum_requests,
+        maximum_outcome_retries: lifecycle.outcome_stage_maximum_retries,
+        labels_hidden_until_opening: true,
+        one_time_opening_required: true,
+        outcome_stage_locked_before_finality: true,
+        plan_digest: String::new(),
+    };
+    plan.plan_digest = outcome_plan_digest_v4_3(&plan);
+    decode_outcome_plan_v4_3(&encode_outcome_plan_v4_3(&plan)?)?;
+    Ok(plan)
+}
+
+fn build_status_v4_3(
+    lifecycle: &MomentumFutureEvaluationLifecycleV4_2,
+    authorization: &MomentumProtectedContextAuthorizationV4_3,
+    authorization_status: ProtectedContextAuthorizationStatusV4_3,
+    supersession: &MomentumInputPlanSupersessionV4_3,
+    supersession_status: MomentumInputPlanSupersessionStatusV4_3,
+    plan: &MomentumProspectiveFeatureContextPlanV4_3,
+    registration: &MomentumProspectiveInputRegistrationV4_3,
+    readiness: MomentumEventReadinessV4_3,
+    receipt: Option<&MomentumProspectiveInputReceiptV4_3>,
+    input_capsule: Option<&MomentumProspectiveInputCapsuleV4_3>,
+    ledger: Option<&MomentumContextUsageLedgerV4_3>,
+    prediction_capsule: Option<&MomentumProspectivePredictionCapsuleV4_3>,
+    journal: Option<&MomentumProspectivePredictionJournalV4_3>,
+    outcome_plan: Option<&MomentumProspectiveOutcomePlanV4_3>,
+    protected_artifacts_unchanged: bool,
+    active_state_unchanged: bool,
+    safety_counters: MomentumFuturePredictionSafetyCountersV4_3,
+) -> Result<MomentumFuturePredictionStatusReceiptV4_3, String> {
+    validate_safety_counters_v4_3(&safety_counters)?;
+    let mut status = MomentumFuturePredictionStatusReceiptV4_3 {
+        status_version: STATUS_RECEIPT_VERSION_V4_3.to_string(),
+        lifecycle_version: lifecycle.lifecycle_version.clone(),
+        lifecycle_digest: lifecycle.lifecycle_digest.clone(),
+        context_authorization_status: authorization_status,
+        context_authorization_digest: authorization.authorization_digest.clone(),
+        supersession_status,
+        supersession_digest: supersession.supersession_digest.clone(),
+        superseded_event_timestamp_ms: supersession.superseded_event_timestamp_ms,
+        replacement_event_timestamp_ms: plan.event_timestamp_ms,
+        input_finality_boundary_ms: plan.input_finality_boundary_ms,
+        event_readiness: readiness,
+        corrected_context_plan_digest: plan.plan_digest.clone(),
+        corrected_input_registration_digest: registration.registration_digest.clone(),
+        input_request_count: receipt.map_or(0, |receipt| receipt.request_count),
+        input_receipt_digest: receipt.map(|receipt| receipt.receipt_digest.clone()),
+        input_capsule_digest: input_capsule.map(|capsule| capsule.capsule_digest.clone()),
+        context_usage_ledger_digest: ledger.map(|ledger| ledger.ledger_digest.clone()),
+        context_usage_classes: ledger.map_or_else(Vec::new, |ledger| {
+            ledger
+                .entries
+                .iter()
+                .map(|entry| format!("{:?}", entry.use_class))
+                .collect()
+        }),
+        participant_prediction_digests: prediction_capsule.map_or_else(Vec::new, |capsule| {
+            capsule
+                .participant_prediction_seals
+                .iter()
+                .map(|seal| seal.prediction_digest.clone())
+                .collect()
+        }),
+        prediction_capsule_digest: prediction_capsule.map(|capsule| capsule.capsule_digest.clone()),
+        prediction_journal_digest: journal.map(|journal| journal.journal_digest.clone()),
+        outcome_plan_digest: outcome_plan.map(|plan| plan.plan_digest.clone()),
+        outcome_finality_boundary_ms: outcome_plan.map(|plan| plan.outcome_finality_boundary_ms),
+        cycle_risk_status: "ProviderContractUnverified".to_string(),
+        value_quality_status: "TrainerUnavailable".to_string(),
+        prior_momentum_attribution: "MissedMaterialOpportunity".to_string(),
+        prior_cycle_risk_attribution: "CorrectUncertainty".to_string(),
+        protected_artifacts_unchanged,
+        active_state_unchanged,
+        safety_counters,
+        status_digest: String::new(),
+    };
+    status.status_digest = status_digest_v4_3(&status);
+    decode_status_v4_3(&encode_status_v4_3(&status)?)?;
+    Ok(status)
+}
+
+fn base_report_v4_3(
+    status: MomentumFuturePredictionStatusReceiptV4_3,
+    lifecycle: MomentumFutureEvaluationLifecycleV4_2,
+    context_authorization: MomentumProtectedContextAuthorizationV4_3,
+    supersession: MomentumInputPlanSupersessionV4_3,
+    context_plan: MomentumProspectiveFeatureContextPlanV4_3,
+    input_registration: MomentumProspectiveInputRegistrationV4_3,
+) -> MomentumFuturePredictionReportV4_3 {
+    MomentumFuturePredictionReportV4_3 {
+        status,
+        lifecycle,
+        context_authorization,
+        supersession,
+        context_plan,
+        input_registration,
+        input_receipt: None,
+        input_capsule: None,
+        context_usage_ledger: None,
+        prediction_capsule: None,
+        prediction_journal: None,
+        outcome_plan: None,
+        artifacts_written: 0,
+        duplicate_artifact_count: 0,
+        storage_failure_count: 0,
+    }
+}
+
+pub fn run_momentum_future_prediction_v4_3(
+    root: &Path,
+    snapshots: &[DataSnapshot],
+    reservation: &ProtectedEvaluationReservationV1,
+    provider_config: &UpbitHistoricalPilotConfigV0,
+    observed_timestamp_ms: u64,
+    mode: MomentumFuturePredictionRunModeV4_2,
+    network_allowed: bool,
+    one_time_input_request_confirmed: bool,
+) -> Result<MomentumFuturePredictionReportV4_3, String> {
+    if mode != MomentumFuturePredictionRunModeV4_2::Execute
+        && (network_allowed || one_time_input_request_confirmed)
+    {
+        return Err("V4.3 non-execute mode rejects network authority".to_string());
+    }
+    if mode == MomentumFuturePredictionRunModeV4_2::Execute
+        && (!network_allowed || !one_time_input_request_confirmed)
+    {
+        return Err("V4.3 execute requires both network permissions".to_string());
+    }
+    provider_config.validate()?;
+    let protected_before = protected_artifacts_v4_3(root)?;
+    let active_before = stable_hash_string(&format!("{:?}", canonical_current_agent_states()));
+    let source = reopen_momentum_v4_1_future_source(root)?;
+    let source_snapshot = source_snapshot(snapshots, &source)?;
+    let lifecycle = derive_lifecycle(&source)?;
+    let v4_2_root = root.join(ROOT_VERSION_V4_2).join(AGENT_ID_V4_2);
+    let old_lifecycle = read_single(&v4_2_root.join("lifecycles"), decode_lifecycle)?
+        .ok_or_else(|| "V4.3 prior lifecycle unavailable".to_string())?;
+    let old_plan = read_single(&v4_2_root.join("context_plans"), decode_context_plan)?
+        .ok_or_else(|| "V4.3 prior context plan unavailable".to_string())?;
+    let old_registration = read_single(
+        &v4_2_root.join("input_registrations"),
+        decode_input_registration,
+    )?
+    .ok_or_else(|| "V4.3 prior input registration unavailable".to_string())?;
+    let old_status = read_single(&v4_2_root.join("status_receipts"), decode_status)?
+        .ok_or_else(|| "V4.3 prior status unavailable".to_string())?;
+    let derived_old_plan = derive_context_plan(&lifecycle, &source.evaluation, source_snapshot)?;
+    let derived_old_registration =
+        derive_input_registration(&lifecycle, &derived_old_plan, &source, provider_config)?;
+    if old_lifecycle != lifecycle
+        || old_plan != derived_old_plan
+        || old_registration != derived_old_registration
+        || old_status.lifecycle_digest != lifecycle.lifecycle_digest
+        || old_status.context_plan_digest != old_plan.plan_digest
+        || old_status.input_registration_digest != old_registration.registration_digest
+        || old_status.request_attempt_count != 0
+    {
+        return Err("V4.3 prior V4.2 contract rejected".to_string());
+    }
+    let old_receipt = read_single(&v4_2_root.join("input_receipts"), decode_input_receipt)?;
+    let old_capsule = read_single(&v4_2_root.join("input_capsules"), decode_input_capsule)?;
+    let old_prediction = read_single(
+        &v4_2_root.join("prediction_capsules"),
+        decode_prediction_capsule,
+    )?;
+    let authorization = derive_context_authorization_v4_3(
+        &source,
+        &lifecycle,
+        provider_contract_available_v4_3(provider_config)?,
+        false,
+        None,
+    )?;
+    if authorization.authorization_status != ProtectedContextAuthorizationStatusV4_3::Authorized {
+        return Err("V4.3 protected context authorization failed closed".to_string());
+    }
+    let context_plan =
+        derive_context_plan_v4_3(&source, &lifecycle, &authorization, source_snapshot)?;
+    let mut supersession = derive_supersession_v4_3(
+        &lifecycle,
+        &authorization,
+        &old_plan,
+        &old_registration,
+        &context_plan,
+        old_status.request_attempt_count,
+        old_receipt.is_some(),
+        old_capsule.is_some(),
+        old_prediction.is_some(),
+    );
+    if supersession.status != MomentumInputPlanSupersessionStatusV4_3::Superseded {
+        return Err("V4.3 prior input registration cannot be superseded".to_string());
+    }
+    let input_registration = derive_input_registration_v4_3(
+        &lifecycle,
+        &source,
+        &authorization,
+        &supersession,
+        &context_plan,
+        provider_config,
+    )?;
+    supersession.replacement_input_registration_digest =
+        input_registration.registration_digest.clone();
+    validate_supersession_v4_3(
+        &supersession,
+        &lifecycle,
+        &authorization,
+        &old_plan,
+        &old_registration,
+        &context_plan,
+        &input_registration,
+    )?;
+
+    let v4_3_root = root.join(ROOT_VERSION_V4_3).join(AGENT_ID_V4_2);
+    let persisted_authorization = read_single(
+        &v4_3_root.join("context_authorizations"),
+        decode_authorization_v4_3,
+    )?;
+    if persisted_authorization
+        .as_ref()
+        .is_some_and(|value| value != &authorization)
+    {
+        return Err("V4.3 persisted authorization changed".to_string());
+    }
+    let persisted_supersession =
+        read_single(&v4_3_root.join("supersessions"), decode_supersession_v4_3)?;
+    if persisted_supersession
+        .as_ref()
+        .is_some_and(|value| value != &supersession)
+    {
+        return Err("V4.3 persisted supersession changed".to_string());
+    }
+    let persisted_context_plan =
+        read_single(&v4_3_root.join("context_plans"), decode_context_plan_v4_3)?;
+    if persisted_context_plan
+        .as_ref()
+        .is_some_and(|value| value != &context_plan)
+    {
+        return Err("V4.3 persisted context plan changed".to_string());
+    }
+    let persisted_registration = read_single(
+        &v4_3_root.join("input_registrations"),
+        decode_input_registration_v4_3,
+    )?;
+    if persisted_registration
+        .as_ref()
+        .is_some_and(|value| value != &input_registration)
+    {
+        return Err("V4.3 persisted input registration changed".to_string());
+    }
+    let persisted_receipt =
+        read_single(&v4_3_root.join("input_receipts"), decode_input_receipt_v4_3)?;
+    let persisted_input_capsule =
+        read_single(&v4_3_root.join("input_capsules"), decode_input_capsule_v4_3)?;
+    let persisted_prediction = read_single(
+        &v4_3_root.join("prediction_capsules"),
+        decode_prediction_capsule_v4_3,
+    )?;
+    let authorization_status = if persisted_authorization.is_some() {
+        ProtectedContextAuthorizationStatusV4_3::AlreadyAuthorized
+    } else {
+        ProtectedContextAuthorizationStatusV4_3::Authorized
+    };
+    let supersession_status = if persisted_supersession.is_some() {
+        MomentumInputPlanSupersessionStatusV4_3::AlreadySuperseded
+    } else {
+        MomentumInputPlanSupersessionStatusV4_3::Superseded
+    };
+
+    if let Some(prediction_capsule) = persisted_prediction {
+        let receipt = persisted_receipt
+            .ok_or_else(|| "V4.3 sealed replay input receipt unavailable".to_string())?;
+        let input_capsule = persisted_input_capsule
+            .ok_or_else(|| "V4.3 sealed replay input capsule unavailable".to_string())?;
+        let ledger = read_single(
+            &v4_3_root.join("context_usage_ledgers"),
+            decode_usage_ledger_v4_3,
+        )?
+        .ok_or_else(|| "V4.3 sealed replay context ledger unavailable".to_string())?;
+        let journal = read_single(
+            &v4_3_root.join("prediction_journals"),
+            decode_prediction_journal_v4_3,
+        )?
+        .ok_or_else(|| "V4.3 sealed replay journal unavailable".to_string())?;
+        let outcome_plan = read_single(&v4_3_root.join("outcome_plans"), decode_outcome_plan_v4_3)?
+            .ok_or_else(|| "V4.3 sealed replay outcome plan unavailable".to_string())?;
+        if prediction_capsule.lifecycle_digest != lifecycle.lifecycle_digest
+            || prediction_capsule.context_authorization_digest != authorization.authorization_digest
+            || prediction_capsule.supersession_digest != supersession.supersession_digest
+            || prediction_capsule.corrected_context_plan_digest != context_plan.plan_digest
+            || prediction_capsule.input_registration_digest
+                != input_registration.registration_digest
+            || prediction_capsule.input_receipt_digest != receipt.receipt_digest
+            || prediction_capsule.input_capsule_digest != input_capsule.capsule_digest
+            || prediction_capsule.context_usage_ledger_digest != ledger.ledger_digest
+            || journal.entries[0].prediction_capsule_digest != prediction_capsule.capsule_digest
+            || outcome_plan.prediction_capsule_digest != prediction_capsule.capsule_digest
+        {
+            return Err("V4.3 sealed replay cross-binding rejected".to_string());
+        }
+        let protected_after = protected_artifacts_v4_3(root)?;
+        let active_after = stable_hash_string(&format!("{:?}", canonical_current_agent_states()));
+        let status = build_status_v4_3(
+            &lifecycle,
+            &authorization,
+            authorization_status,
+            &supersession,
+            supersession_status,
+            &context_plan,
+            &input_registration,
+            MomentumEventReadinessV4_3::PredictionAlreadySealed,
+            Some(&receipt),
+            Some(&input_capsule),
+            Some(&ledger),
+            Some(&prediction_capsule),
+            Some(&journal),
+            Some(&outcome_plan),
+            protected_before == protected_after,
+            active_before == active_after,
+            MomentumFuturePredictionSafetyCountersV4_3::default(),
+        )?;
+        let mut report = base_report_v4_3(
+            status,
+            lifecycle,
+            authorization,
+            supersession,
+            context_plan,
+            input_registration,
+        );
+        report.input_receipt = Some(receipt);
+        report.input_capsule = Some(input_capsule);
+        report.context_usage_ledger = Some(ledger);
+        report.prediction_capsule = Some(prediction_capsule);
+        report.prediction_journal = Some(journal);
+        report.outcome_plan = Some(outcome_plan);
+        return Ok(report);
+    }
+
+    let readiness = event_readiness_v4_3(
+        observed_timestamp_ms,
+        context_plan.input_finality_boundary_ms,
+        persisted_receipt
+            .as_ref()
+            .is_some_and(|receipt| receipt.terminal),
+        false,
+    );
+    if mode != MomentumFuturePredictionRunModeV4_2::Execute
+        || readiness == MomentumEventReadinessV4_3::PriorInputAttemptTerminal
+    {
+        let protected_after = protected_artifacts_v4_3(root)?;
+        let active_after = stable_hash_string(&format!("{:?}", canonical_current_agent_states()));
+        let status = build_status_v4_3(
+            &lifecycle,
+            &authorization,
+            authorization_status,
+            &supersession,
+            supersession_status,
+            &context_plan,
+            &input_registration,
+            readiness,
+            persisted_receipt.as_ref(),
+            persisted_input_capsule.as_ref(),
+            None,
+            None,
+            None,
+            None,
+            protected_before == protected_after,
+            active_before == active_after,
+            MomentumFuturePredictionSafetyCountersV4_3::default(),
+        )?;
+        let mut report = base_report_v4_3(
+            status,
+            lifecycle,
+            authorization,
+            supersession,
+            context_plan,
+            input_registration,
+        );
+        report.input_receipt = persisted_receipt;
+        report.input_capsule = persisted_input_capsule;
+        return Ok(report);
+    }
+
+    let mut counts = (0, 0);
+    add_counts(
+        &mut counts,
+        persist_v4_3(
+            &v4_3_root,
+            "context_authorizations",
+            &authorization.authorization_digest,
+            "pb",
+            &encode_authorization_v4_3(&authorization)?,
+            |bytes| Ok(decode_authorization_v4_3(bytes)?.authorization_digest),
+        )?,
+    );
+    add_counts(
+        &mut counts,
+        persist_v4_3(
+            &v4_3_root,
+            "supersessions",
+            &supersession.supersession_digest,
+            "pb",
+            &encode_supersession_v4_3(&supersession)?,
+            |bytes| Ok(decode_supersession_v4_3(bytes)?.supersession_digest),
+        )?,
+    );
+    add_counts(
+        &mut counts,
+        persist_v4_3(
+            &v4_3_root,
+            "context_plans",
+            &context_plan.plan_digest,
+            "pb",
+            &encode_context_plan_v4_3(&context_plan)?,
+            |bytes| Ok(decode_context_plan_v4_3(bytes)?.plan_digest),
+        )?,
+    );
+    add_counts(
+        &mut counts,
+        persist_v4_3(
+            &v4_3_root,
+            "input_registrations",
+            &input_registration.registration_digest,
+            "pb",
+            &encode_input_registration_v4_3(&input_registration)?,
+            |bytes| Ok(decode_input_registration_v4_3(bytes)?.registration_digest),
+        )?,
+    );
+    let reopened_authorization = reopen_exact(
+        &v4_3_root
+            .join("context_authorizations")
+            .join(format!("{}.pb", authorization.authorization_digest)),
+        decode_authorization_v4_3,
+    )?;
+    let reopened_supersession = reopen_exact(
+        &v4_3_root
+            .join("supersessions")
+            .join(format!("{}.pb", supersession.supersession_digest)),
+        decode_supersession_v4_3,
+    )?;
+    let reopened_context_plan = reopen_exact(
+        &v4_3_root
+            .join("context_plans")
+            .join(format!("{}.pb", context_plan.plan_digest)),
+        decode_context_plan_v4_3,
+    )?;
+    let reopened_registration = reopen_exact(
+        &v4_3_root
+            .join("input_registrations")
+            .join(format!("{}.pb", input_registration.registration_digest)),
+        decode_input_registration_v4_3,
+    )?;
+    if reopened_authorization != authorization
+        || reopened_supersession != supersession
+        || reopened_context_plan != context_plan
+        || reopened_registration != input_registration
+    {
+        return Err("V4.3 prerequest contract reopen rejected".to_string());
+    }
+
+    if readiness == MomentumEventReadinessV4_3::AwaitingInputFinality {
+        let protected_after = protected_artifacts_v4_3(root)?;
+        let active_after = stable_hash_string(&format!("{:?}", canonical_current_agent_states()));
+        if protected_before != protected_after || active_before != active_after {
+            return Err("V4.3 prefinality execution changed protected state".to_string());
+        }
+        let status = build_status_v4_3(
+            &lifecycle,
+            &authorization,
+            authorization_status,
+            &supersession,
+            supersession_status,
+            &context_plan,
+            &input_registration,
+            readiness,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            true,
+            true,
+            MomentumFuturePredictionSafetyCountersV4_3::default(),
+        )?;
+        add_counts(
+            &mut counts,
+            persist_v4_3(
+                &v4_3_root,
+                "status_receipts",
+                &status.status_digest,
+                "pb",
+                &encode_status_v4_3(&status)?,
+                |bytes| Ok(decode_status_v4_3(bytes)?.status_digest),
+            )?,
+        );
+        let mut report = base_report_v4_3(
+            status,
+            lifecycle,
+            authorization,
+            supersession,
+            context_plan,
+            input_registration,
+        );
+        report.artifacts_written = counts.0;
+        report.duplicate_artifact_count = counts.1;
+        return Ok(report);
+    }
+
+    let request = build_provider_request_v4_3(&input_registration)?;
+    let request_config = request_config_v4_3(provider_config, &input_registration)?;
+    let mut safety_counters = MomentumFuturePredictionSafetyCountersV4_3 {
+        input_request_attempts: 1,
+        ..Default::default()
+    };
+    let transport = fetch_upbit_learning_evidence_once_v1(&request_config, &request);
+    let transport = match transport {
+        Ok(transport) => transport,
+        Err(failure) => {
+            let (input_status, http_status_class, raw_response) = match failure {
+                LearningEvidenceTransportFailureV1::ProviderRejected {
+                    http_status_class,
+                    raw_response,
+                } => (
+                    MomentumProspectiveInputStatusV4_2::ProviderRejected,
+                    http_status_class,
+                    raw_response,
+                ),
+                LearningEvidenceTransportFailureV1::TimedOut => (
+                    MomentumProspectiveInputStatusV4_2::TimeoutNoRetry,
+                    None,
+                    None,
+                ),
+                LearningEvidenceTransportFailureV1::Technical => (
+                    MomentumProspectiveInputStatusV4_2::TechnicalFailure,
+                    None,
+                    None,
+                ),
+            };
+            let raw_digest = raw_response
+                .as_ref()
+                .map(|bytes| stable_hash_string(&format!("momentum-v4.3-raw-input:{bytes:?}")));
+            if let (Some(bytes), Some(digest)) = (&raw_response, &raw_digest)
+                && bytes.len() <= input_registration.maximum_response_bytes
+            {
+                add_counts(
+                    &mut counts,
+                    persist_v4_3(&v4_3_root, "raw_input", digest, "json", bytes, |stored| {
+                        Ok(stable_hash_string(&format!(
+                            "momentum-v4.3-raw-input:{stored:?}"
+                        )))
+                    })?,
+                );
+            }
+            let receipt = build_input_receipt_v4_3(
+                &lifecycle,
+                &authorization,
+                &input_registration,
+                input_status,
+                http_status_class,
+                0,
+                0,
+                raw_digest,
+                None,
+            );
+            add_counts(
+                &mut counts,
+                persist_v4_3(
+                    &v4_3_root,
+                    "input_receipts",
+                    &receipt.receipt_digest,
+                    "pb",
+                    &encode_input_receipt_v4_3(&receipt)?,
+                    |bytes| Ok(decode_input_receipt_v4_3(bytes)?.receipt_digest),
+                )?,
+            );
+            let protected_after = protected_artifacts_v4_3(root)?;
+            let active_after =
+                stable_hash_string(&format!("{:?}", canonical_current_agent_states()));
+            if protected_before != protected_after || active_before != active_after {
+                return Err("V4.3 failed attempt changed protected state".to_string());
+            }
+            let status = build_status_v4_3(
+                &lifecycle,
+                &authorization,
+                authorization_status,
+                &supersession,
+                supersession_status,
+                &context_plan,
+                &input_registration,
+                MomentumEventReadinessV4_3::PriorInputAttemptTerminal,
+                Some(&receipt),
+                None,
+                None,
+                None,
+                None,
+                None,
+                true,
+                true,
+                safety_counters,
+            )?;
+            add_counts(
+                &mut counts,
+                persist_v4_3(
+                    &v4_3_root,
+                    "status_receipts",
+                    &status.status_digest,
+                    "pb",
+                    &encode_status_v4_3(&status)?,
+                    |bytes| Ok(decode_status_v4_3(bytes)?.status_digest),
+                )?,
+            );
+            let mut report = base_report_v4_3(
+                status,
+                lifecycle,
+                authorization,
+                supersession,
+                context_plan,
+                input_registration,
+            );
+            report.input_receipt = Some(receipt);
+            report.artifacts_written = counts.0;
+            report.duplicate_artifact_count = counts.1;
+            return Ok(report);
+        }
+    };
+
+    let validated = validate_input_response_v4_3(
+        &lifecycle,
+        &authorization,
+        &context_plan,
+        &input_registration,
+        &transport,
+    );
+    let (input_capsule, ledger, context_proof, context_rows) = match validated {
+        Ok(value) => value,
+        Err(_) => {
+            let raw_digest = stable_hash_string(&format!(
+                "momentum-v4.3-raw-input:{:?}",
+                transport.raw_response
+            ));
+            add_counts(
+                &mut counts,
+                persist_v4_3(
+                    &v4_3_root,
+                    "raw_input",
+                    &raw_digest,
+                    "json",
+                    &transport.raw_response,
+                    |stored| {
+                        Ok(stable_hash_string(&format!(
+                            "momentum-v4.3-raw-input:{stored:?}"
+                        )))
+                    },
+                )?,
+            );
+            let receipt = build_input_receipt_v4_3(
+                &lifecycle,
+                &authorization,
+                &input_registration,
+                MomentumProspectiveInputStatusV4_2::InvalidResponse,
+                Some(transport.http_status_class),
+                transport.response.normalized_dataset.rows.len(),
+                0,
+                Some(raw_digest),
+                None,
+            );
+            add_counts(
+                &mut counts,
+                persist_v4_3(
+                    &v4_3_root,
+                    "input_receipts",
+                    &receipt.receipt_digest,
+                    "pb",
+                    &encode_input_receipt_v4_3(&receipt)?,
+                    |bytes| Ok(decode_input_receipt_v4_3(bytes)?.receipt_digest),
+                )?,
+            );
+            let protected_after = protected_artifacts_v4_3(root)?;
+            let active_after =
+                stable_hash_string(&format!("{:?}", canonical_current_agent_states()));
+            if protected_before != protected_after || active_before != active_after {
+                return Err("V4.3 invalid response changed protected state".to_string());
+            }
+            let status = build_status_v4_3(
+                &lifecycle,
+                &authorization,
+                authorization_status,
+                &supersession,
+                supersession_status,
+                &context_plan,
+                &input_registration,
+                MomentumEventReadinessV4_3::PriorInputAttemptTerminal,
+                Some(&receipt),
+                None,
+                None,
+                None,
+                None,
+                None,
+                true,
+                true,
+                safety_counters,
+            )?;
+            add_counts(
+                &mut counts,
+                persist_v4_3(
+                    &v4_3_root,
+                    "status_receipts",
+                    &status.status_digest,
+                    "pb",
+                    &encode_status_v4_3(&status)?,
+                    |bytes| Ok(decode_status_v4_3(bytes)?.status_digest),
+                )?,
+            );
+            let mut report = base_report_v4_3(
+                status,
+                lifecycle,
+                authorization,
+                supersession,
+                context_plan,
+                input_registration,
+            );
+            report.input_receipt = Some(receipt);
+            report.artifacts_written = counts.0;
+            report.duplicate_artifact_count = counts.1;
+            return Ok(report);
+        }
+    };
+    add_counts(
+        &mut counts,
+        persist_v4_3(
+            &v4_3_root,
+            "raw_input",
+            &input_capsule.raw_response_digest,
+            "json",
+            &transport.raw_response,
+            |stored| {
+                Ok(stable_hash_string(&format!(
+                    "momentum-v4.3-raw-input:{stored:?}"
+                )))
+            },
+        )?,
+    );
+    add_counts(
+        &mut counts,
+        persist_v4_3(
+            &v4_3_root,
+            "input_capsules",
+            &input_capsule.capsule_digest,
+            "pb",
+            &encode_input_capsule_v4_3(&input_capsule)?,
+            |bytes| Ok(decode_input_capsule_v4_3(bytes)?.capsule_digest),
+        )?,
+    );
+    add_counts(
+        &mut counts,
+        persist_v4_3(
+            &v4_3_root,
+            "context_usage_ledgers",
+            &ledger.ledger_digest,
+            "pb",
+            &encode_usage_ledger_v4_3(&ledger)?,
+            |bytes| Ok(decode_usage_ledger_v4_3(bytes)?.ledger_digest),
+        )?,
+    );
+    add_counts(
+        &mut counts,
+        persist_v4_3(
+            &v4_3_root,
+            "context_verifications",
+            &context_proof.proof_digest,
+            "pb",
+            &encode_context_proof_v4_3(&context_proof)?,
+            |bytes| Ok(decode_context_proof_v4_3(bytes)?.proof_digest),
+        )?,
+    );
+    let receipt = build_input_receipt_v4_3(
+        &lifecycle,
+        &authorization,
+        &input_registration,
+        MomentumProspectiveInputStatusV4_2::EvidenceAcquired,
+        Some(transport.http_status_class),
+        context_rows.len(),
+        context_rows.len(),
+        Some(input_capsule.raw_response_digest.clone()),
+        Some(input_capsule.capsule_digest.clone()),
+    );
+    add_counts(
+        &mut counts,
+        persist_v4_3(
+            &v4_3_root,
+            "input_receipts",
+            &receipt.receipt_digest,
+            "pb",
+            &encode_input_receipt_v4_3(&receipt)?,
+            |bytes| Ok(decode_input_receipt_v4_3(bytes)?.receipt_digest),
+        )?,
+    );
+    let replay = reconstruct_frozen_momentum_v4(root, snapshots, reservation)?;
+    let frozen_prediction =
+        predict_frozen_momentum_v4_event(&replay, &lifecycle.participant_digests, &context_rows)?;
+    let seals = seal_participant_predictions_v4_3(
+        &source,
+        &lifecycle,
+        &receipt,
+        &input_capsule,
+        &ledger,
+        &frozen_prediction.participant_predictions,
+        &frozen_prediction.feature_identity_digest,
+    )?;
+    for seal in &seals {
+        add_counts(
+            &mut counts,
+            persist_v4_3(
+                &v4_3_root,
+                "participant_prediction_seals",
+                &seal.seal_digest,
+                "pb",
+                &encode_prediction_seal_v4_3(seal)?,
+                |bytes| Ok(decode_prediction_seal_v4_3(bytes)?.seal_digest),
+            )?,
+        );
+    }
+    let prediction_capsule = build_prediction_capsule_v4_3(
+        &source,
+        &lifecycle,
+        &authorization,
+        &supersession,
+        &context_plan,
+        &input_registration,
+        &receipt,
+        &input_capsule,
+        &ledger,
+        seals,
+    )?;
+    add_counts(
+        &mut counts,
+        persist_v4_3(
+            &v4_3_root,
+            "prediction_capsules",
+            &prediction_capsule.capsule_digest,
+            "pb",
+            &encode_prediction_capsule_v4_3(&prediction_capsule)?,
+            |bytes| Ok(decode_prediction_capsule_v4_3(bytes)?.capsule_digest),
+        )?,
+    );
+    let journal = build_prediction_journal_v4_3(
+        &authorization,
+        &input_capsule,
+        &ledger,
+        &prediction_capsule,
+    )?;
+    add_counts(
+        &mut counts,
+        persist_v4_3(
+            &v4_3_root,
+            "prediction_journals",
+            &journal.journal_digest,
+            "pb",
+            &encode_prediction_journal_v4_3(&journal)?,
+            |bytes| Ok(decode_prediction_journal_v4_3(bytes)?.journal_digest),
+        )?,
+    );
+    let outcome_plan = build_outcome_plan_v4_3(&lifecycle, &prediction_capsule)?;
+    add_counts(
+        &mut counts,
+        persist_v4_3(
+            &v4_3_root,
+            "outcome_plans",
+            &outcome_plan.plan_digest,
+            "pb",
+            &encode_outcome_plan_v4_3(&outcome_plan)?,
+            |bytes| Ok(decode_outcome_plan_v4_3(bytes)?.plan_digest),
+        )?,
+    );
+    let protected_after = protected_artifacts_v4_3(root)?;
+    let active_after = stable_hash_string(&format!("{:?}", canonical_current_agent_states()));
+    if protected_before != protected_after || active_before != active_after {
+        return Err("V4.3 prediction sealing changed protected state".to_string());
+    }
+    safety_counters.participant_parameter_updates = prediction_capsule
+        .participant_prediction_seals
+        .iter()
+        .map(|seal| seal.parameter_updates)
+        .sum();
+    safety_counters.normalizer_refits = prediction_capsule
+        .participant_prediction_seals
+        .iter()
+        .map(|seal| seal.normalizer_refits)
+        .sum();
+    let status = build_status_v4_3(
+        &lifecycle,
+        &authorization,
+        authorization_status,
+        &supersession,
+        supersession_status,
+        &context_plan,
+        &input_registration,
+        MomentumEventReadinessV4_3::PredictionAlreadySealed,
+        Some(&receipt),
+        Some(&input_capsule),
+        Some(&ledger),
+        Some(&prediction_capsule),
+        Some(&journal),
+        Some(&outcome_plan),
+        true,
+        true,
+        safety_counters,
+    )?;
+    add_counts(
+        &mut counts,
+        persist_v4_3(
+            &v4_3_root,
+            "status_receipts",
+            &status.status_digest,
+            "pb",
+            &encode_status_v4_3(&status)?,
+            |bytes| Ok(decode_status_v4_3(bytes)?.status_digest),
+        )?,
+    );
+    let mut report = base_report_v4_3(
+        status,
+        lifecycle,
+        authorization,
+        supersession,
+        context_plan,
+        input_registration,
+    );
+    report.input_receipt = Some(receipt);
+    report.input_capsule = Some(input_capsule);
+    report.context_usage_ledger = Some(ledger);
+    report.prediction_capsule = Some(prediction_capsule);
+    report.prediction_journal = Some(journal);
+    report.outcome_plan = Some(outcome_plan);
+    report.artifacts_written = counts.0;
+    report.duplicate_artifact_count = counts.1;
+    Ok(report)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -3602,6 +7495,303 @@ mod tests {
             true,
             true,
             MomentumFuturePredictionSafetyCountersV4_2::default(),
+        )
+        .unwrap()
+    }
+
+    fn authorization_fixture_v4_3() -> MomentumProtectedContextAuthorizationV4_3 {
+        let lifecycle = lifecycle_fixture();
+        let mut value = MomentumProtectedContextAuthorizationV4_3 {
+            authorization_version: AUTHORIZATION_VERSION_V4_3.into(),
+            agent_id: AGENT_ID_V4_2.into(),
+            v4_family_digest: lifecycle.source_v4_family_digest.clone(),
+            accumulated_family_digest: lifecycle.accumulated_family_digest.clone(),
+            roster_digest: lifecycle.roster_digest.clone(),
+            evaluation_registration_digest: lifecycle.evaluation_registration_digest.clone(),
+            lifecycle_digest: lifecycle.lifecycle_digest.clone(),
+            participant_digests: lifecycle.participant_digests.clone(),
+            parameter_digests: lifecycle.participant_parameter_digests.clone(),
+            normalizer_digests: lifecycle.participant_normalizer_digests.clone(),
+            model_source_boundary_timestamp_ms: 92 * DAY,
+            protected_registration_digests: vec!["protected".into()],
+            protected_timestamp_ms: vec![95 * DAY, 96 * DAY, 97 * DAY, 98 * DAY],
+            allowed_use_class: ProtectedContextUseClassV4_3::RawOhlcvInferenceContext,
+            raw_ohlcv_context_allowed: true,
+            training_use_forbidden: true,
+            normalizer_fit_forbidden: true,
+            label_use_forbidden: true,
+            qualification_use_forbidden: true,
+            metric_use_forbidden: true,
+            reward_use_forbidden: true,
+            event_timestamp_use_forbidden: true,
+            outcome_timestamp_use_forbidden: true,
+            prior_outcome_capsule_use_forbidden: true,
+            authorization_status: ProtectedContextAuthorizationStatusV4_3::Authorized,
+            authorization_digest: String::new(),
+        };
+        value.authorization_digest = authorization_digest_v4_3(&value);
+        value
+    }
+
+    fn context_plan_fixture_v4_3() -> MomentumProspectiveFeatureContextPlanV4_3 {
+        let lifecycle = lifecycle_fixture();
+        let authorization = authorization_fixture_v4_3();
+        let exact_required_timestamp_ms = timestamp_range(85 * DAY, 16, DAY).unwrap();
+        let existing_source_timestamp_ms = timestamp_range(85 * DAY, 8, DAY).unwrap();
+        let protected_context_timestamp_ms = authorization.protected_timestamp_ms.clone();
+        let incremental_timestamp_ms = vec![93 * DAY, 94 * DAY, 99 * DAY, 100 * DAY];
+        let context_usage_policy_digest = stable_hash_string(&format!(
+            "momentum-v4.3-context-usage:{}:{:?}:{:?}:{:?}",
+            authorization.authorization_digest,
+            existing_source_timestamp_ms,
+            protected_context_timestamp_ms,
+            incremental_timestamp_ms
+        ));
+        let mut value = MomentumProspectiveFeatureContextPlanV4_3 {
+            plan_version: CONTEXT_PLAN_VERSION_V4_3.into(),
+            lifecycle_digest: lifecycle.lifecycle_digest,
+            context_authorization_digest: authorization.authorization_digest,
+            event_timestamp_ms: MINIMUM_EVENT,
+            input_finality_boundary_ms: 101 * DAY,
+            required_context_start_timestamp_ms: 85 * DAY,
+            required_context_end_timestamp_ms: MINIMUM_EVENT,
+            required_row_count: 16,
+            exact_required_timestamp_ms,
+            existing_source_timestamp_ms,
+            protected_context_timestamp_ms,
+            incremental_timestamp_ms,
+            context_usage_policy_digest,
+            plan_digest: String::new(),
+        };
+        value.plan_digest = context_plan_digest_v4_3(&value);
+        value
+    }
+
+    fn supersession_fixture_v4_3() -> MomentumInputPlanSupersessionV4_3 {
+        let lifecycle = lifecycle_fixture();
+        let authorization = authorization_fixture_v4_3();
+        let old_plan =
+            derive_context_plan(&lifecycle, &evaluation_fixture(), &snapshot_fixture()).unwrap();
+        let replacement_plan = context_plan_fixture_v4_3();
+        let old_registration = registration_fixture();
+        let mut value = derive_supersession_v4_3(
+            &lifecycle,
+            &authorization,
+            &old_plan,
+            &old_registration,
+            &replacement_plan,
+            0,
+            false,
+            false,
+            false,
+        );
+        value.replacement_input_registration_digest = "replacement-registration".into();
+        value
+    }
+
+    fn registration_fixture_v4_3() -> MomentumProspectiveInputRegistrationV4_3 {
+        let lifecycle = lifecycle_fixture();
+        let authorization = authorization_fixture_v4_3();
+        let supersession = supersession_fixture_v4_3();
+        let plan = context_plan_fixture_v4_3();
+        let mut value = MomentumProspectiveInputRegistrationV4_3 {
+            registration_version: INPUT_REGISTRATION_VERSION_V4_3.into(),
+            lifecycle_digest: lifecycle.lifecycle_digest,
+            evaluation_registration_digest: lifecycle.evaluation_registration_digest,
+            roster_digest: lifecycle.roster_digest,
+            context_authorization_digest: authorization.authorization_digest,
+            supersession_digest: supersession.supersession_digest,
+            context_plan_digest: plan.plan_digest,
+            event_timestamp_ms: plan.event_timestamp_ms,
+            input_finality_boundary_ms: plan.input_finality_boundary_ms,
+            provider_id: "upbit".into(),
+            market: "btc_crypto".into(),
+            symbol: "KRW-BTC".into(),
+            cadence: "1d".into(),
+            exact_expected_timestamp_ms: plan.exact_required_timestamp_ms,
+            expected_row_count: 16,
+            request_to_timestamp_ms: 101 * DAY,
+            maximum_requests: 1,
+            maximum_concurrency: 1,
+            maximum_retries: 0,
+            maximum_response_bytes: 262_144,
+            credential_free_required: true,
+            read_only_required: true,
+            outcome_timestamp_forbidden: true,
+            prior_outcome_artifact_forbidden: true,
+            registration_digest: String::new(),
+        };
+        value.registration_digest = input_registration_digest_v4_3(&value);
+        value
+    }
+
+    fn transport_fixture_v4_3() -> LearningEvidenceTransportResponseV1 {
+        let registration = registration_fixture_v4_3();
+        let rows = registration
+            .exact_expected_timestamp_ms
+            .iter()
+            .copied()
+            .map(row)
+            .collect::<Vec<_>>();
+        let raw_response = b"[{\"fixture\":\"v4.3\"}]".to_vec();
+        LearningEvidenceTransportResponseV1 {
+            http_status_class: "2xx".into(),
+            raw_response: raw_response.clone(),
+            response: crate::data::ReadOnlyProviderResponse {
+                request_id: "request-v4.3".into(),
+                provider_id: "upbit".into(),
+                fetched_at_ms: 101 * DAY,
+                content_type: "application/x-soma-normalized-dataset".into(),
+                all_rows_finalized: true,
+                normalized_dataset: HistoricalReplayDataset {
+                    symbol: "KRW-BTC".into(),
+                    rows,
+                    source: "fixture".into(),
+                    reason_codes: vec![],
+                },
+                reported_content_bytes: raw_response.len(),
+                reason_codes: vec![],
+            },
+        }
+    }
+
+    fn input_bundle_fixture_v4_3() -> (
+        MomentumProspectiveInputCapsuleV4_3,
+        MomentumContextUsageLedgerV4_3,
+        MomentumProspectiveContextVerificationV4_3,
+        Vec<HistoricalOhlcvRow>,
+    ) {
+        validate_input_response_v4_3(
+            &lifecycle_fixture(),
+            &authorization_fixture_v4_3(),
+            &context_plan_fixture_v4_3(),
+            &registration_fixture_v4_3(),
+            &transport_fixture_v4_3(),
+        )
+        .unwrap()
+    }
+
+    fn receipt_fixture_v4_3() -> MomentumProspectiveInputReceiptV4_3 {
+        let (capsule, _, _, rows) = input_bundle_fixture_v4_3();
+        build_input_receipt_v4_3(
+            &lifecycle_fixture(),
+            &authorization_fixture_v4_3(),
+            &registration_fixture_v4_3(),
+            MomentumProspectiveInputStatusV4_2::EvidenceAcquired,
+            Some("2xx".into()),
+            rows.len(),
+            rows.len(),
+            Some(capsule.raw_response_digest.clone()),
+            Some(capsule.capsule_digest.clone()),
+        )
+    }
+
+    fn prediction_capsule_fixture_v4_3() -> MomentumProspectivePredictionCapsuleV4_3 {
+        let lifecycle = lifecycle_fixture();
+        let authorization = authorization_fixture_v4_3();
+        let supersession = supersession_fixture_v4_3();
+        let plan = context_plan_fixture_v4_3();
+        let registration = registration_fixture_v4_3();
+        let (input_capsule, ledger, _, _) = input_bundle_fixture_v4_3();
+        let receipt = receipt_fixture_v4_3();
+        let roles = [
+            "RawFeatureLogisticV4",
+            "RawFeatureInteractionLogisticV4",
+            "TrainingPrevalenceConstantV4",
+        ];
+        let seals = lifecycle
+            .participant_digests
+            .iter()
+            .enumerate()
+            .map(|(index, participant_digest)| {
+                let bits = (0.4_f32 + index as f32 * 0.1).to_bits();
+                let mut seal = MomentumParticipantPredictionSealV4_3 {
+                    participant_digest: participant_digest.clone(),
+                    participant_role: roles[index].into(),
+                    event_timestamp_ms: plan.event_timestamp_ms,
+                    input_receipt_digest: receipt.receipt_digest.clone(),
+                    input_capsule_digest: input_capsule.capsule_digest.clone(),
+                    context_usage_ledger_digest: ledger.ledger_digest.clone(),
+                    feature_identity_digest: "feature-identity".into(),
+                    prediction_probability_bits: bits,
+                    prediction_digest: stable_hash_string(&format!(
+                        "fixture-prediction:{participant_digest}:{bits}"
+                    )),
+                    participant_identity_verified: true,
+                    parameter_updates: 0,
+                    normalizer_refits: 0,
+                    outcome_access_count: 0,
+                    seal_digest: String::new(),
+                };
+                seal.seal_digest = prediction_seal_digest_v4_3(&seal);
+                seal
+            })
+            .collect();
+        let mut capsule = MomentumProspectivePredictionCapsuleV4_3 {
+            capsule_version: PREDICTION_CAPSULE_VERSION_V4_3.into(),
+            lifecycle_digest: lifecycle.lifecycle_digest,
+            evaluation_registration_digest: lifecycle.evaluation_registration_digest,
+            roster_digest: lifecycle.roster_digest,
+            context_authorization_digest: authorization.authorization_digest,
+            supersession_digest: supersession.supersession_digest,
+            corrected_context_plan_digest: plan.plan_digest,
+            input_registration_digest: registration.registration_digest,
+            event_timestamp_ms: plan.event_timestamp_ms,
+            input_receipt_digest: receipt.receipt_digest,
+            input_capsule_digest: input_capsule.capsule_digest,
+            context_usage_ledger_digest: ledger.ledger_digest,
+            participant_prediction_seals: seals,
+            probabilities_hidden: true,
+            labels_hidden: true,
+            outcome_accessed: false,
+            metrics_computed: false,
+            winner_selected: false,
+            capsule_digest: String::new(),
+        };
+        capsule.capsule_digest = prediction_capsule_digest_v4_3(&capsule);
+        capsule
+    }
+
+    fn journal_fixture_v4_3() -> MomentumProspectivePredictionJournalV4_3 {
+        let authorization = authorization_fixture_v4_3();
+        let (input_capsule, ledger, _, _) = input_bundle_fixture_v4_3();
+        build_prediction_journal_v4_3(
+            &authorization,
+            &input_capsule,
+            &ledger,
+            &prediction_capsule_fixture_v4_3(),
+        )
+        .unwrap()
+    }
+
+    fn outcome_plan_fixture_v4_3() -> MomentumProspectiveOutcomePlanV4_3 {
+        build_outcome_plan_v4_3(&lifecycle_fixture(), &prediction_capsule_fixture_v4_3()).unwrap()
+    }
+
+    fn status_fixture_v4_3() -> MomentumFuturePredictionStatusReceiptV4_3 {
+        let lifecycle = lifecycle_fixture();
+        let authorization = authorization_fixture_v4_3();
+        let supersession = supersession_fixture_v4_3();
+        let plan = context_plan_fixture_v4_3();
+        let registration = registration_fixture_v4_3();
+        build_status_v4_3(
+            &lifecycle,
+            &authorization,
+            ProtectedContextAuthorizationStatusV4_3::Authorized,
+            &supersession,
+            MomentumInputPlanSupersessionStatusV4_3::Superseded,
+            &plan,
+            &registration,
+            MomentumEventReadinessV4_3::AwaitingInputFinality,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            true,
+            true,
+            MomentumFuturePredictionSafetyCountersV4_3::default(),
         )
         .unwrap()
     }
@@ -3980,32 +8170,24 @@ mod tests {
     }
 
     #[test]
-    fn text_and_json_status_agree() {
+    fn v4_2_status_json_retains_contract_fields() {
         let status = status_fixture();
-        let text = crate::cli::format_momentum_v4_future_prediction_text(&status);
         let json = serde_json::to_value(&status).unwrap();
-        let text_fields = text
-            .lines()
-            .filter_map(|line| line.split_once('='))
-            .collect::<BTreeMap<_, _>>();
         assert_eq!(
-            text_fields["event_timestamp_ms"],
-            json["event_timestamp_ms"].as_u64().unwrap().to_string()
+            json["event_timestamp_ms"].as_u64(),
+            Some(status.event_timestamp_ms)
         );
         assert_eq!(
-            text_fields["input_finality_boundary_ms"],
-            json["input_finality_boundary_ms"]
-                .as_u64()
-                .unwrap()
-                .to_string()
+            json["input_finality_boundary_ms"].as_u64(),
+            Some(status.input_finality_boundary_ms)
         );
         assert_eq!(
-            text_fields["context_plan_digest"],
-            json["context_plan_digest"].as_str().unwrap()
+            json["context_plan_digest"].as_str(),
+            Some(status.context_plan_digest.as_str())
         );
         assert_eq!(
-            text_fields["status_digest"],
-            json["status_digest"].as_str().unwrap()
+            json["status_digest"].as_str(),
+            Some(status.status_digest.as_str())
         );
     }
 
@@ -4017,5 +8199,543 @@ mod tests {
         assert!(status.active_state_unchanged);
         assert!(status.protected_artifacts_unchanged);
         assert_eq!(counters.active_committee_count, 3);
+    }
+
+    #[test]
+    fn sprint83_01_pr14_invariants_remain_valid() {
+        let lifecycle = lifecycle_fixture();
+        assert_eq!(
+            decode_lifecycle(&encode_lifecycle(&lifecycle).unwrap()).unwrap(),
+            lifecycle
+        );
+        assert_eq!(lifecycle.participant_digests.len(), 3);
+        assert_eq!(lifecycle.input_stage_maximum_requests, 1);
+        assert_eq!(lifecycle.outcome_stage_maximum_requests, 1);
+    }
+
+    #[test]
+    fn sprint83_02_preexisting_artifacts_are_protected_byte_for_byte() {
+        let root = std::env::temp_dir().join(format!("soma-v4-3-protected-{}", std::process::id()));
+        fs::create_dir_all(root.join("v4_2")).unwrap();
+        fs::create_dir_all(root.join("v4_3")).unwrap();
+        fs::write(root.join("v4_2/history.pb"), b"immutable").unwrap();
+        fs::write(root.join("v4_3/additive.pb"), b"before").unwrap();
+        let before = protected_artifacts_v4_3(&root).unwrap();
+        fs::write(root.join("v4_3/additive.pb"), b"after").unwrap();
+        assert_eq!(before, protected_artifacts_v4_3(&root).unwrap());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn sprint83_03_authorization_binds_exact_frozen_participants() {
+        let authorization = authorization_fixture_v4_3();
+        let lifecycle = lifecycle_fixture();
+        assert_eq!(
+            authorization.participant_digests,
+            lifecycle.participant_digests
+        );
+        assert_eq!(
+            authorization.parameter_digests,
+            lifecycle.participant_parameter_digests
+        );
+        assert_eq!(
+            authorization.normalizer_digests,
+            lifecycle.participant_normalizer_digests
+        );
+        assert_eq!(
+            decode_authorization_v4_3(&encode_authorization_v4_3(&authorization).unwrap()).unwrap(),
+            authorization
+        );
+    }
+
+    #[test]
+    fn sprint83_04_authorization_rejects_model_source_overlap() {
+        let mut authorization = authorization_fixture_v4_3();
+        authorization.model_source_boundary_timestamp_ms = authorization.protected_timestamp_ms[0];
+        authorization.authorization_digest = authorization_digest_v4_3(&authorization);
+        assert!(validate_authorization_policy_v4_3(&authorization).is_err());
+    }
+
+    #[test]
+    fn sprint83_05_authorization_rejects_prior_outcome_provenance() {
+        let mut authorization = authorization_fixture_v4_3();
+        authorization.authorization_status =
+            ProtectedContextAuthorizationStatusV4_3::PriorOutcomeArtifactReferenced;
+        authorization.authorization_digest = authorization_digest_v4_3(&authorization);
+        assert!(validate_authorization_policy_v4_3(&authorization).is_err());
+    }
+
+    #[test]
+    fn sprint83_06_authorization_allows_only_raw_ohlcv_inference_context() {
+        let authorization = authorization_fixture_v4_3();
+        validate_authorization_policy_v4_3(&authorization).unwrap();
+        assert_eq!(
+            authorization.allowed_use_class,
+            ProtectedContextUseClassV4_3::RawOhlcvInferenceContext
+        );
+        assert!(authorization.raw_ohlcv_context_allowed);
+    }
+
+    #[test]
+    fn sprint83_07_protected_rows_cannot_train_parameters() {
+        let (_, ledger, _, _) = input_bundle_fixture_v4_3();
+        assert!(ledger.entries.iter().all(|entry| !entry.used_for_training));
+    }
+
+    #[test]
+    fn sprint83_08_protected_rows_cannot_fit_normalizers() {
+        let (_, ledger, _, _) = input_bundle_fixture_v4_3();
+        assert!(
+            ledger
+                .entries
+                .iter()
+                .all(|entry| !entry.used_for_normalizer_fit)
+        );
+    }
+
+    #[test]
+    fn sprint83_09_protected_rows_cannot_create_labels() {
+        let (_, ledger, _, _) = input_bundle_fixture_v4_3();
+        assert!(ledger.entries.iter().all(|entry| !entry.used_for_label));
+    }
+
+    #[test]
+    fn sprint83_10_protected_rows_cannot_create_metrics_or_rewards() {
+        let (_, ledger, _, _) = input_bundle_fixture_v4_3();
+        assert!(
+            ledger
+                .entries
+                .iter()
+                .all(|entry| !entry.used_for_metric && !entry.used_for_reward)
+        );
+    }
+
+    #[test]
+    fn sprint83_11_protected_timestamps_cannot_become_event() {
+        let authorization = authorization_fixture_v4_3();
+        let plan = context_plan_fixture_v4_3();
+        assert!(
+            !authorization
+                .protected_timestamp_ms
+                .contains(&plan.event_timestamp_ms)
+        );
+    }
+
+    #[test]
+    fn sprint83_12_protected_timestamps_cannot_become_outcome() {
+        let authorization = authorization_fixture_v4_3();
+        let outcome = context_plan_fixture_v4_3().event_timestamp_ms + DAY;
+        assert!(!authorization.protected_timestamp_ms.contains(&outcome));
+    }
+
+    #[test]
+    fn sprint83_13_old_context_plan_remains_immutable() {
+        let old_plan = derive_context_plan(
+            &lifecycle_fixture(),
+            &evaluation_fixture(),
+            &snapshot_fixture(),
+        )
+        .unwrap();
+        let before = encode_context_plan(&old_plan).unwrap();
+        let _ = supersession_fixture_v4_3();
+        assert_eq!(before, encode_context_plan(&old_plan).unwrap());
+    }
+
+    #[test]
+    fn sprint83_14_old_input_registration_remains_immutable() {
+        let registration = registration_fixture();
+        let before = encode_input_registration(&registration).unwrap();
+        let _ = supersession_fixture_v4_3();
+        assert_eq!(before, encode_input_registration(&registration).unwrap());
+    }
+
+    #[test]
+    fn sprint83_15_old_input_registration_is_execution_ineligible() {
+        let lifecycle = lifecycle_fixture();
+        let old_plan =
+            derive_context_plan(&lifecycle, &evaluation_fixture(), &snapshot_fixture()).unwrap();
+        let old_registration = registration_fixture();
+        let supersession = supersession_fixture_v4_3();
+        assert!(old_registration_superseded_v4_3(
+            &supersession,
+            &lifecycle,
+            &old_plan,
+            &old_registration
+        ));
+    }
+
+    #[test]
+    fn sprint83_16_supersession_rejects_prior_attempt() {
+        let lifecycle = lifecycle_fixture();
+        let authorization = authorization_fixture_v4_3();
+        let old_plan =
+            derive_context_plan(&lifecycle, &evaluation_fixture(), &snapshot_fixture()).unwrap();
+        let value = derive_supersession_v4_3(
+            &lifecycle,
+            &authorization,
+            &old_plan,
+            &registration_fixture(),
+            &context_plan_fixture_v4_3(),
+            1,
+            false,
+            false,
+            false,
+        );
+        assert_eq!(
+            value.status,
+            MomentumInputPlanSupersessionStatusV4_3::PriorAttemptExists
+        );
+    }
+
+    #[test]
+    fn sprint83_17_corrected_event_derives_from_original_minimum() {
+        let lifecycle = lifecycle_fixture();
+        let plan = context_plan_fixture_v4_3();
+        assert_eq!(
+            plan.event_timestamp_ms,
+            lifecycle.minimum_accepted_event_timestamp_ms
+        );
+    }
+
+    #[test]
+    fn sprint83_18_corrected_context_has_exactly_sixteen_daily_timestamps() {
+        let plan = context_plan_fixture_v4_3();
+        assert_eq!(plan.exact_required_timestamp_ms.len(), 16);
+        assert!(
+            plan.exact_required_timestamp_ms
+                .windows(2)
+                .all(|pair| pair[1] == pair[0] + DAY)
+        );
+    }
+
+    #[test]
+    fn sprint83_19_corrected_context_ends_at_event() {
+        let plan = context_plan_fixture_v4_3();
+        assert_eq!(
+            plan.exact_required_timestamp_ms.last(),
+            Some(&plan.event_timestamp_ms)
+        );
+        assert_eq!(
+            plan.required_context_end_timestamp_ms,
+            plan.event_timestamp_ms
+        );
+    }
+
+    #[test]
+    fn sprint83_20_outcome_is_absent_from_input_registration() {
+        let registration = registration_fixture_v4_3();
+        assert!(
+            !registration
+                .exact_expected_timestamp_ms
+                .contains(&(registration.event_timestamp_ms + DAY))
+        );
+        assert!(registration.outcome_timestamp_forbidden);
+    }
+
+    #[test]
+    fn sprint83_21_prefinality_constructs_zero_transport() {
+        let readiness = event_readiness_v4_3(100 * DAY, 101 * DAY, false, false);
+        let counters = MomentumFuturePredictionSafetyCountersV4_3::default();
+        assert_eq!(readiness, MomentumEventReadinessV4_3::AwaitingInputFinality);
+        assert_eq!(counters.input_request_attempts, 0);
+    }
+
+    #[test]
+    fn sprint83_22_postfinality_permits_exactly_one_transport() {
+        let readiness = event_readiness_v4_3(101 * DAY, 101 * DAY, false, false);
+        let request = build_provider_request_v4_3(&registration_fixture_v4_3()).unwrap();
+        assert_eq!(
+            readiness,
+            MomentumEventReadinessV4_3::ReadyForInputAcquisition
+        );
+        assert_eq!(request.lookback.bars, 16);
+    }
+
+    #[test]
+    fn sprint83_23_input_retries_remain_zero() {
+        let registration = registration_fixture_v4_3();
+        assert_eq!(registration.maximum_requests, 1);
+        assert_eq!(registration.maximum_retries, 0);
+        assert_eq!(registration.maximum_concurrency, 1);
+    }
+
+    #[test]
+    fn sprint83_24_exact_response_timestamp_set_is_enforced() {
+        let mut transport = transport_fixture_v4_3();
+        transport.response.normalized_dataset.rows.pop();
+        assert!(
+            validate_input_response_v4_3(
+                &lifecycle_fixture(),
+                &authorization_fixture_v4_3(),
+                &context_plan_fixture_v4_3(),
+                &registration_fixture_v4_3(),
+                &transport
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn sprint83_25_missing_duplicate_extra_and_wrong_market_rows_reject() {
+        let validate = |transport: &LearningEvidenceTransportResponseV1| {
+            validate_input_response_v4_3(
+                &lifecycle_fixture(),
+                &authorization_fixture_v4_3(),
+                &context_plan_fixture_v4_3(),
+                &registration_fixture_v4_3(),
+                transport,
+            )
+        };
+        let mut duplicate = transport_fixture_v4_3();
+        duplicate.response.normalized_dataset.rows[1].timestamp_ms =
+            duplicate.response.normalized_dataset.rows[0].timestamp_ms;
+        assert!(validate(&duplicate).is_err());
+        let mut extra = transport_fixture_v4_3();
+        extra.response.normalized_dataset.rows.push(row(101 * DAY));
+        assert!(validate(&extra).is_err());
+        let mut wrong_market = transport_fixture_v4_3();
+        wrong_market.response.normalized_dataset.rows[0].symbol = "KRW-ETH".into();
+        assert!(validate(&wrong_market).is_err());
+    }
+
+    #[test]
+    fn sprint83_26_prior_outcome_artifact_is_never_read_for_input_values() {
+        let (capsule, _, proof, _) = input_bundle_fixture_v4_3();
+        assert!(!capsule.prior_outcome_capsule_accessed);
+        assert!(!proof.prior_outcome_artifact_accessed);
+    }
+
+    #[test]
+    fn sprint83_27_context_usage_ledger_classifies_every_row() {
+        let (_, ledger, _, _) = input_bundle_fixture_v4_3();
+        let classes = ledger
+            .entries
+            .iter()
+            .map(|entry| entry.use_class)
+            .collect::<Vec<_>>();
+        assert_eq!(classes.len(), 16);
+        assert_eq!(
+            classes
+                .iter()
+                .filter(|class| {
+                    **class == MomentumContextEvidenceUseV4_3::ProtectedRawInferenceContext
+                })
+                .count(),
+            4
+        );
+        assert!(classes.contains(&MomentumContextEvidenceUseV4_3::ProspectiveEventInput));
+    }
+
+    #[test]
+    fn sprint83_28_participant_parameter_mismatch_rejects() {
+        let mut predictions = predictions_fixture();
+        predictions[0].parameter_digest = "changed".into();
+        assert!(
+            seal_participant_predictions(
+                &lifecycle_fixture(),
+                &input_capsule_fixture(),
+                &predictions,
+                "features"
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn sprint83_29_participant_normalizer_mismatch_rejects() {
+        let mut predictions = predictions_fixture();
+        predictions[1].normalizer_digest = "changed".into();
+        assert!(
+            seal_participant_predictions(
+                &lifecycle_fixture(),
+                &input_capsule_fixture(),
+                &predictions,
+                "features"
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn sprint83_30_all_three_participants_use_identical_context() {
+        let capsule = prediction_capsule_fixture_v4_3();
+        let bindings = capsule
+            .participant_prediction_seals
+            .iter()
+            .map(|seal| {
+                (
+                    seal.event_timestamp_ms,
+                    seal.input_capsule_digest.clone(),
+                    seal.context_usage_ledger_digest.clone(),
+                    seal.feature_identity_digest.clone(),
+                )
+            })
+            .collect::<BTreeSet<_>>();
+        assert_eq!(bindings.len(), 1);
+    }
+
+    #[test]
+    fn sprint83_31_interaction_feature_order_remains_deterministic() {
+        assert_eq!(
+            expand_interaction_representation_v4(&[2.0, 3.0, 5.0]).unwrap(),
+            vec![2.0, 3.0, 5.0, 4.0, 9.0, 25.0, 6.0, 10.0, 15.0]
+        );
+    }
+
+    #[test]
+    fn sprint83_32_public_output_hides_probabilities() {
+        let status = status_fixture_v4_3();
+        let text = crate::cli::format_momentum_v4_future_prediction_text(&status);
+        let json = serde_json::to_string(&status).unwrap();
+        for forbidden in [
+            "probability_bits",
+            "ohlcv",
+            "labels",
+            "parameters",
+            "features",
+        ] {
+            assert!(!text.to_lowercase().contains(forbidden));
+            assert!(!json.to_lowercase().contains(forbidden));
+        }
+    }
+
+    #[test]
+    fn sprint83_33_prediction_capsule_contains_exactly_three_seals() {
+        let capsule = prediction_capsule_fixture_v4_3();
+        assert_eq!(capsule.participant_prediction_seals.len(), 3);
+        decode_prediction_capsule_v4_3(&encode_prediction_capsule_v4_3(&capsule).unwrap()).unwrap();
+    }
+
+    #[test]
+    fn sprint83_34_prediction_creates_no_metric_or_winner() {
+        let capsule = prediction_capsule_fixture_v4_3();
+        assert!(!capsule.metrics_computed);
+        assert!(!capsule.winner_selected);
+    }
+
+    #[test]
+    fn sprint83_35_outcome_plan_derives_from_frozen_horizon() {
+        let plan = outcome_plan_fixture_v4_3();
+        assert_eq!(
+            plan.prediction_horizon,
+            lifecycle_fixture().prediction_horizon
+        );
+        assert_eq!(plan.required_outcome_timestamp_ms, vec![101 * DAY]);
+        assert_eq!(plan.outcome_finality_boundary_ms, 102 * DAY);
+    }
+
+    #[test]
+    fn sprint83_36_outcome_access_remains_zero() {
+        let capsule = prediction_capsule_fixture_v4_3();
+        assert!(!capsule.outcome_accessed);
+        assert!(
+            capsule
+                .participant_prediction_seals
+                .iter()
+                .all(|seal| seal.outcome_access_count == 0)
+        );
+    }
+
+    #[test]
+    fn sprint83_37_successful_replay_performs_zero_work() {
+        assert_eq!(
+            event_readiness_v4_3(u64::MAX, 101 * DAY, false, true),
+            MomentumEventReadinessV4_3::PredictionAlreadySealed
+        );
+        let counters = MomentumFuturePredictionSafetyCountersV4_3::default();
+        assert_eq!(counters.input_request_attempts, 0);
+        assert_eq!(counters.participant_parameter_updates, 0);
+        let journal = journal_fixture_v4_3();
+        assert_eq!(
+            decode_prediction_journal_v4_3(&encode_prediction_journal_v4_3(&journal).unwrap())
+                .unwrap(),
+            journal
+        );
+    }
+
+    #[test]
+    fn sprint83_38_terminal_failed_input_does_not_retry() {
+        assert_eq!(
+            event_readiness_v4_3(u64::MAX, 101 * DAY, true, false),
+            MomentumEventReadinessV4_3::PriorInputAttemptTerminal
+        );
+        let receipt = build_input_receipt_v4_3(
+            &lifecycle_fixture(),
+            &authorization_fixture_v4_3(),
+            &registration_fixture_v4_3(),
+            MomentumProspectiveInputStatusV4_2::TimeoutNoRetry,
+            None,
+            0,
+            0,
+            None,
+            None,
+        );
+        assert!(receipt.terminal);
+        assert_eq!(receipt.retry_count, 0);
+    }
+
+    #[test]
+    fn sprint83_39_prior_prospective_attribution_remains_unchanged() {
+        let status = status_fixture_v4_3();
+        assert_eq!(
+            status.prior_momentum_attribution,
+            "MissedMaterialOpportunity"
+        );
+        assert_eq!(status.prior_cycle_risk_attribution, "CorrectUncertainty");
+    }
+
+    #[test]
+    fn sprint83_40_all_authority_counters_remain_zero() {
+        let counters = MomentumFuturePredictionSafetyCountersV4_3::default();
+        validate_safety_counters_v4_3(&counters).unwrap();
+        assert_eq!(counters.chair_decisions, 0);
+        assert_eq!(counters.votes, 0);
+        assert_eq!(counters.executions, 0);
+        assert_eq!(counters.active_committee_count, 3);
+    }
+
+    #[test]
+    fn sprint83_41_protobuf_corruption_rejects_every_v4_3_category() {
+        let corrupt = [0xff];
+        assert!(decode_authorization_v4_3(&corrupt).is_err());
+        assert!(decode_usage_entry_v4_3(&corrupt).is_err());
+        assert!(decode_usage_ledger_v4_3(&corrupt).is_err());
+        assert!(decode_supersession_v4_3(&corrupt).is_err());
+        assert!(decode_context_plan_v4_3(&corrupt).is_err());
+        assert!(decode_input_registration_v4_3(&corrupt).is_err());
+        assert!(decode_input_receipt_v4_3(&corrupt).is_err());
+        assert!(decode_input_capsule_v4_3(&corrupt).is_err());
+        assert!(decode_context_proof_v4_3(&corrupt).is_err());
+        assert!(decode_prediction_seal_v4_3(&corrupt).is_err());
+        assert!(decode_prediction_capsule_v4_3(&corrupt).is_err());
+        assert!(decode_prediction_journal_v4_3(&corrupt).is_err());
+        assert!(decode_outcome_plan_v4_3(&corrupt).is_err());
+        assert!(decode_status_v4_3(&corrupt).is_err());
+    }
+
+    #[test]
+    fn sprint83_42_text_and_json_status_agree() {
+        let status = status_fixture_v4_3();
+        let text = crate::cli::format_momentum_v4_future_prediction_text(&status);
+        let json = serde_json::to_value(&status).unwrap();
+        let text_fields = text
+            .lines()
+            .filter_map(|line| line.split_once('='))
+            .collect::<BTreeMap<_, _>>();
+        assert_eq!(
+            text_fields["replacement_event_timestamp_ms"],
+            json["replacement_event_timestamp_ms"]
+                .as_u64()
+                .unwrap()
+                .to_string()
+        );
+        assert_eq!(
+            text_fields["corrected_context_plan_digest"],
+            json["corrected_context_plan_digest"].as_str().unwrap()
+        );
+        assert_eq!(
+            text_fields["status_digest"],
+            json["status_digest"].as_str().unwrap()
+        );
     }
 }
