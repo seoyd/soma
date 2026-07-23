@@ -33,7 +33,8 @@ use super::momentum_mamba_representation::{
 use super::{
     AgentPrivateLearningRunModeV0, EncodedTrainingExampleV0, EvaluationMetricsV0,
     FeatureNormalizerV0, HeadTrainingConfigV0, IndexRangeV0, LogisticPredictionHeadV0,
-    ModelAgentDeploymentStatus, MomentumLearningCampaignConfigV0, ProtectedEvaluationReservationV1,
+    ModelAgentDeploymentStatus, MomentumCandleV0, MomentumFeatureRowV0,
+    MomentumLearningCampaignConfigV0, MomentumSequenceConfigV0, ProtectedEvaluationReservationV1,
     RepresentationNormalizerV0, SequenceExampleV0, apply_sgd_v0, brier_loss_and_gradients_v0,
     build_momentum_features_v0, build_momentum_sequence_examples_v0, evaluate_head_v0,
     evaluate_probabilities_v0,
@@ -42,6 +43,7 @@ use super::{
 const AGENT_ID_V4: &str = "momentum_trend_fast";
 const CLOSURE_VERSION_V4: &str = "momentum-frozen-mamba-path-closure-v4";
 const SPLIT_VERSION_V4: &str = "momentum-raw-feature-split-v4";
+const VALIDATION_YIELD_AUDIT_VERSION_V4: &str = "momentum-validation-yield-audit-v4";
 const REGISTRATION_VERSION_V4: &str = "momentum-raw-feature-registration-v4";
 const PARTICIPANT_VERSION_V4: &str = "frozen-candidate-participant-v4";
 const RECEIPT_VERSION_V4: &str = "momentum-raw-feature-qualification-v4";
@@ -102,6 +104,22 @@ pub struct MomentumRawFeatureSplitV4 {
     pub historical_test_overlap_count: usize,
     pub future_evaluation_overlap_count: usize,
     pub split_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MomentumValidationYieldAuditV4 {
+    pub audit_version: String,
+    pub source_snapshot_digest: String,
+    pub label_policy_digest: String,
+    pub validation_index_range: IndexRangeV0,
+    pub validation_index_count: usize,
+    pub minimum_required_valid_samples: usize,
+    pub valid_labelled_sample_count: usize,
+    pub neutral_excluded_count: usize,
+    pub horizon_unavailable_count: usize,
+    pub feature_unavailable_count: usize,
+    pub substantive_qualification_possible: bool,
+    pub audit_digest: String,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -278,6 +296,7 @@ pub struct MomentumRawFeaturePathDecisionArtifactV4 {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MomentumRawFeatureRosterStatusV4 {
     Ready,
+    QualificationEvidenceInsufficient,
     NoQualifiedLearnedParticipant,
     BenchmarkUnavailable,
     SemanticDuplicateOnly,
@@ -300,6 +319,7 @@ pub struct MomentumRawFeatureFutureRosterV4 {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MomentumRawFeatureEvaluationStatusV4 {
     Registered,
+    QualificationEvidenceInsufficient,
     NoQualifiedLearnedParticipant,
     BenchmarkUnavailable,
     SemanticDuplicateOnly,
@@ -399,6 +419,7 @@ pub struct MomentumRawFeatureReportV4 {
     pub closure: Option<MomentumFrozenMambaPathClosureV4>,
     pub split: Option<MomentumRawFeatureSplitV4>,
     pub registration: Option<MomentumRawFeatureRegistrationV4>,
+    pub validation_yield_audit: Option<MomentumValidationYieldAuditV4>,
     pub family: Option<MomentumRawFeatureFamilyV4>,
     pub decision: Option<MomentumRawFeaturePathDecisionArtifactV4>,
     pub roster: Option<MomentumRawFeatureFutureRosterV4>,
@@ -427,6 +448,7 @@ struct FrozenHistoryV4 {
 
 #[derive(Clone, Debug)]
 struct ExperimentV4 {
+    validation_yield_audit: MomentumValidationYieldAuditV4,
     family: MomentumRawFeatureFamilyV4,
     decision: MomentumRawFeaturePathDecisionArtifactV4,
     roster: Option<MomentumRawFeatureFutureRosterV4>,
@@ -476,6 +498,12 @@ fn closure_digest_v4(value: &MomentumFrozenMambaPathClosureV4) -> String {
 fn split_digest_v4(value: &MomentumRawFeatureSplitV4) -> String {
     let mut canonical = value.clone();
     canonical.split_digest.clear();
+    stable_hash_string(&format!("{canonical:?}"))
+}
+
+fn validation_yield_audit_digest_v4(value: &MomentumValidationYieldAuditV4) -> String {
+    let mut canonical = value.clone();
+    canonical.audit_digest.clear();
     stable_hash_string(&format!("{canonical:?}"))
 }
 
@@ -665,6 +693,35 @@ fn validate_split_v4(value: &MomentumRawFeatureSplitV4) -> Result<(), String> {
         || value.split_digest != split_digest_v4(value)
     {
         return Err("V4 raw-feature split rejected".to_string());
+    }
+    Ok(())
+}
+
+fn validate_validation_yield_audit_v4(
+    value: &MomentumValidationYieldAuditV4,
+) -> Result<(), String> {
+    let index_count = value
+        .validation_index_range
+        .end
+        .checked_sub(value.validation_index_range.start)
+        .ok_or_else(|| "V4 validation-yield range rejected".to_string())?;
+    let classified_count = value
+        .valid_labelled_sample_count
+        .checked_add(value.neutral_excluded_count)
+        .and_then(|count| count.checked_add(value.horizon_unavailable_count))
+        .and_then(|count| count.checked_add(value.feature_unavailable_count))
+        .ok_or_else(|| "V4 validation-yield count overflow".to_string())?;
+    if value.audit_version != VALIDATION_YIELD_AUDIT_VERSION_V4
+        || value.source_snapshot_digest.is_empty()
+        || value.label_policy_digest.is_empty()
+        || value.validation_index_count != index_count
+        || classified_count != value.validation_index_count
+        || value.minimum_required_valid_samples == 0
+        || value.substantive_qualification_possible
+            != (value.valid_labelled_sample_count >= value.minimum_required_valid_samples)
+        || value.audit_digest != validation_yield_audit_digest_v4(value)
+    {
+        return Err("V4 validation-yield audit rejected".to_string());
     }
     Ok(())
 }
@@ -956,25 +1013,105 @@ fn validate_family_v4(value: &MomentumRawFeatureFamilyV4) -> Result<(), String> 
     Ok(())
 }
 
+fn decision_inputs_v4(
+    family: &MomentumRawFeatureFamilyV4,
+) -> (bool, bool, MomentumRawFeaturePathDecisionV4) {
+    let status_for_role = |role| {
+        family
+            .participants
+            .iter()
+            .find(|item| item.participant_role == role)
+            .and_then(|participant| {
+                family
+                    .qualification_receipts
+                    .iter()
+                    .find(|receipt| receipt.participant_digest == participant.participant_digest)
+            })
+            .map(|receipt| receipt.status)
+    };
+    let qualified_raw = status_for_role(MomentumRawFeatureRoleV4::LearnedRawLogistic)
+        == Some(MomentumRawFeatureQualificationStatusV4::QualifiedLearned);
+    let qualified_interaction =
+        status_for_role(MomentumRawFeatureRoleV4::LearnedInteractionLogistic)
+            == Some(MomentumRawFeatureQualificationStatusV4::QualifiedLearned)
+            && family
+                .interaction_contribution_audit
+                .as_ref()
+                .is_some_and(|audit| {
+                    audit.contribution_status
+                        == InteractionContributionStatusV4::MaterialInteractionContribution
+                });
+    let all_insufficient = family.qualification_receipts.iter().all(|receipt| {
+        receipt.status == MomentumRawFeatureQualificationStatusV4::RejectedInsufficientValidation
+    });
+    let decision = if qualified_interaction {
+        MomentumRawFeaturePathDecisionV4::RawFeatureLearnedPathViable
+    } else if qualified_raw {
+        MomentumRawFeaturePathDecisionV4::OnlyLinearRawPathViable
+    } else if all_insufficient {
+        MomentumRawFeaturePathDecisionV4::InsufficientFreshValidation
+    } else {
+        MomentumRawFeaturePathDecisionV4::NoQualifiedRawFeatureLearner
+    };
+    (qualified_raw, qualified_interaction, decision)
+}
+
+fn derive_decision_v4(
+    family: &MomentumRawFeatureFamilyV4,
+) -> MomentumRawFeaturePathDecisionArtifactV4 {
+    let (qualified_raw_logistic, qualified_material_interaction, decision) =
+        decision_inputs_v4(family);
+    let mut value = MomentumRawFeaturePathDecisionArtifactV4 {
+        decision_version: DECISION_VERSION_V4.to_string(),
+        family_digest: family.family_digest.clone(),
+        qualified_raw_logistic,
+        qualified_material_interaction,
+        decision,
+        decision_digest: String::new(),
+    };
+    value.decision_digest = decision_digest_v4(&value);
+    value
+}
+
 fn validate_decision_v4(
     value: &MomentumRawFeaturePathDecisionArtifactV4,
     family: &MomentumRawFeatureFamilyV4,
 ) -> Result<(), String> {
-    let expected = if value.qualified_material_interaction {
-        MomentumRawFeaturePathDecisionV4::RawFeatureLearnedPathViable
-    } else if value.qualified_raw_logistic {
-        MomentumRawFeaturePathDecisionV4::OnlyLinearRawPathViable
-    } else {
-        MomentumRawFeaturePathDecisionV4::NoQualifiedRawFeatureLearner
-    };
+    let (qualified_raw, qualified_interaction, expected) = decision_inputs_v4(family);
     if value.decision_version != DECISION_VERSION_V4
         || value.family_digest != family.family_digest
+        || value.qualified_raw_logistic != qualified_raw
+        || value.qualified_material_interaction != qualified_interaction
         || value.decision != expected
         || value.decision_digest != decision_digest_v4(value)
     {
         return Err("V4 path decision rejected".to_string());
     }
     Ok(())
+}
+
+fn legacy_insufficient_decision_v4(
+    family: &MomentumRawFeatureFamilyV4,
+) -> Option<MomentumRawFeaturePathDecisionArtifactV4> {
+    family
+        .qualification_receipts
+        .iter()
+        .all(|receipt| {
+            receipt.status
+                == MomentumRawFeatureQualificationStatusV4::RejectedInsufficientValidation
+        })
+        .then(|| {
+            let mut value = MomentumRawFeaturePathDecisionArtifactV4 {
+                decision_version: DECISION_VERSION_V4.to_string(),
+                family_digest: family.family_digest.clone(),
+                qualified_raw_logistic: false,
+                qualified_material_interaction: false,
+                decision: MomentumRawFeaturePathDecisionV4::NoQualifiedRawFeatureLearner,
+                decision_digest: String::new(),
+            };
+            value.decision_digest = decision_digest_v4(&value);
+            value
+        })
 }
 
 fn validate_roster_v4(
@@ -1161,6 +1298,30 @@ fn read_single<T>(
         return Err("V4 single artifact identity rejected".to_string());
     }
     decode(&fs::read(&paths[0]).map_err(|_| "V4 artifact read failed".to_string())?)
+}
+
+fn read_corrected_decision_v4(
+    directory: &Path,
+    family: &MomentumRawFeatureFamilyV4,
+) -> Result<MomentumRawFeaturePathDecisionArtifactV4, String> {
+    let legacy = legacy_insufficient_decision_v4(family);
+    let mut corrected = Vec::new();
+    for path in protobuf_paths(directory)? {
+        let bytes = fs::read(path).map_err(|_| "V4 artifact read failed".to_string())?;
+        let value = decision_from_pb_unvalidated(
+            DecisionProtobufV4::decode(bytes.as_slice())
+                .map_err(|_| "V4 decision Protobuf rejected".to_string())?,
+        )?;
+        if validate_decision_v4(&value, family).is_ok() {
+            corrected.push(value);
+        } else if legacy.as_ref() != Some(&value) {
+            return Err("V4 unexpected decision artifact rejected".to_string());
+        }
+    }
+    if corrected.len() != 1 {
+        return Err("V4 corrected decision identity rejected".to_string());
+    }
+    Ok(corrected.remove(0))
 }
 
 fn load_frozen_history_v4(
@@ -1473,6 +1634,80 @@ fn examples_with_labels(
         .filter(|item| item.label_index >= range.start && item.label_index < range.end)
         .cloned()
         .collect()
+}
+
+fn derive_validation_yield_audit_v4(
+    source_snapshot_digest: &str,
+    label_policy_digest: &str,
+    range: &IndexRangeV0,
+    minimum_required_valid_samples: usize,
+    candles: &[MomentumCandleV0],
+    features: &[MomentumFeatureRowV0],
+    config: &MomentumSequenceConfigV0,
+) -> Result<MomentumValidationYieldAuditV4, String> {
+    config
+        .validate()
+        .map_err(|_| "V4 validation-yield policy rejected".to_string())?;
+    let validation_index_count = range
+        .end
+        .checked_sub(range.start)
+        .ok_or_else(|| "V4 validation-yield range rejected".to_string())?;
+    let mut valid_labelled_sample_count = 0usize;
+    let mut neutral_excluded_count = 0usize;
+    let mut horizon_unavailable_count = 0usize;
+    let mut feature_unavailable_count = 0usize;
+    for label_index in range.start..range.end {
+        let Some(sequence_end) = label_index.checked_sub(config.prediction_horizon) else {
+            horizon_unavailable_count += 1;
+            continue;
+        };
+        if label_index >= candles.len() {
+            horizon_unavailable_count += 1;
+            continue;
+        }
+        let Some(end_position) = features
+            .iter()
+            .position(|feature| feature.source_index == sequence_end)
+        else {
+            feature_unavailable_count += 1;
+            continue;
+        };
+        if end_position + 1 < config.sequence_length
+            || features[end_position + 1 - config.sequence_length..=end_position]
+                .windows(2)
+                .any(|pair| pair[1].source_index != pair[0].source_index + 1)
+        {
+            feature_unavailable_count += 1;
+            continue;
+        }
+        let future_return = candles[label_index].close / candles[sequence_end].close - 1.0;
+        if !future_return.is_finite() {
+            return Err("V4 validation-yield return rejected".to_string());
+        }
+        if !config.include_neutral_labels && future_return.abs() <= config.label_dead_zone {
+            neutral_excluded_count += 1;
+        } else {
+            valid_labelled_sample_count += 1;
+        }
+    }
+    let mut audit = MomentumValidationYieldAuditV4 {
+        audit_version: VALIDATION_YIELD_AUDIT_VERSION_V4.to_string(),
+        source_snapshot_digest: source_snapshot_digest.to_string(),
+        label_policy_digest: label_policy_digest.to_string(),
+        validation_index_range: range.clone(),
+        validation_index_count,
+        minimum_required_valid_samples,
+        valid_labelled_sample_count,
+        neutral_excluded_count,
+        horizon_unavailable_count,
+        feature_unavailable_count,
+        substantive_qualification_possible: valid_labelled_sample_count
+            >= minimum_required_valid_samples,
+        audit_digest: String::new(),
+    };
+    audit.audit_digest = validation_yield_audit_digest_v4(&audit);
+    validate_validation_yield_audit_v4(&audit)?;
+    Ok(audit)
 }
 
 fn raw_encoded(examples: &[SequenceExampleV0]) -> Result<Vec<EncodedTrainingExampleV0>, String> {
@@ -1819,6 +2054,15 @@ fn derive_roster_v4(
             .collect(),
     );
     if learned.is_empty() {
+        if family.qualification_receipts.iter().all(|receipt| {
+            receipt.status
+                == MomentumRawFeatureQualificationStatusV4::RejectedInsufficientValidation
+        }) {
+            return Ok((
+                None,
+                MomentumRawFeatureRosterStatusV4::QualificationEvidenceInsufficient,
+            ));
+        }
         return Ok((
             None,
             if duplicates.is_empty() {
@@ -1882,6 +2126,9 @@ fn derive_evaluation_v4(
         return Ok((
             None,
             match roster_status {
+                MomentumRawFeatureRosterStatusV4::QualificationEvidenceInsufficient => {
+                    MomentumRawFeatureEvaluationStatusV4::QualificationEvidenceInsufficient
+                }
                 MomentumRawFeatureRosterStatusV4::BenchmarkUnavailable => {
                     MomentumRawFeatureEvaluationStatusV4::BenchmarkUnavailable
                 }
@@ -2013,8 +2260,18 @@ fn run_experiment_v4(
     .map_err(|_| "V4 sequence derivation rejected".to_string())?;
     let training_examples = examples_with_labels(&examples, &split.training_range);
     let validation_examples = examples_with_labels(&examples, &split.fresh_validation_range);
+    let validation_yield_audit = derive_validation_yield_audit_v4(
+        &history.v1.snapshot.content_digest,
+        &closure.label_policy_digest,
+        &split.fresh_validation_range,
+        split.minimum_validation_samples,
+        &candles,
+        &normalized,
+        &config.sequence_config,
+    )?;
     if training_examples.is_empty()
         || validation_examples.is_empty()
+        || validation_examples.len() != validation_yield_audit.valid_labelled_sample_count
         || validation_examples.iter().any(|item| {
             item.label_index < split.fresh_validation_range.start
                 || item.label_index >= split.fresh_validation_range.end
@@ -2253,46 +2510,7 @@ fn run_experiment_v4(
     };
     family.family_digest = family_digest_v4(&family);
     validate_family_v4(&family)?;
-    let status_for_role = |role| {
-        family
-            .participants
-            .iter()
-            .find(|item| item.participant_role == role)
-            .and_then(|participant| {
-                family
-                    .qualification_receipts
-                    .iter()
-                    .find(|receipt| receipt.participant_digest == participant.participant_digest)
-            })
-            .map(|receipt| receipt.status)
-    };
-    let qualified_raw = status_for_role(MomentumRawFeatureRoleV4::LearnedRawLogistic)
-        == Some(MomentumRawFeatureQualificationStatusV4::QualifiedLearned);
-    let qualified_interaction =
-        status_for_role(MomentumRawFeatureRoleV4::LearnedInteractionLogistic)
-            == Some(MomentumRawFeatureQualificationStatusV4::QualifiedLearned)
-            && family
-                .interaction_contribution_audit
-                .as_ref()
-                .is_some_and(|audit| {
-                    audit.contribution_status
-                        == InteractionContributionStatusV4::MaterialInteractionContribution
-                });
-    let mut decision = MomentumRawFeaturePathDecisionArtifactV4 {
-        decision_version: DECISION_VERSION_V4.to_string(),
-        family_digest: family.family_digest.clone(),
-        qualified_raw_logistic: qualified_raw,
-        qualified_material_interaction: qualified_interaction,
-        decision: if qualified_interaction {
-            MomentumRawFeaturePathDecisionV4::RawFeatureLearnedPathViable
-        } else if qualified_raw {
-            MomentumRawFeaturePathDecisionV4::OnlyLinearRawPathViable
-        } else {
-            MomentumRawFeaturePathDecisionV4::NoQualifiedRawFeatureLearner
-        },
-        decision_digest: String::new(),
-    };
-    decision.decision_digest = decision_digest_v4(&decision);
+    let decision = derive_decision_v4(&family);
     validate_decision_v4(&decision, &family)?;
     let (roster, roster_status) = derive_roster_v4(&family)?;
     let (evaluation, evaluation_status) = derive_evaluation_v4(
@@ -2306,6 +2524,7 @@ fn run_experiment_v4(
         reservation,
     )?;
     Ok(ExperimentV4 {
+        validation_yield_audit,
         family,
         decision,
         roster,
@@ -2331,6 +2550,12 @@ struct ClosureProtobufV4 {
 
 #[derive(Clone, PartialEq, Message)]
 struct SplitProtobufV4 {
+    #[prost(message, repeated, tag = "1")]
+    fields: Vec<FieldProtobufV4>,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct ValidationYieldAuditProtobufV4 {
     #[prost(message, repeated, tag = "1")]
     fields: Vec<FieldProtobufV4>,
 }
@@ -2578,6 +2803,9 @@ fn parse_path_decision(value: &str) -> Result<MomentumRawFeaturePathDecisionV4, 
 fn parse_roster_status(value: &str) -> Result<MomentumRawFeatureRosterStatusV4, String> {
     match value {
         "Ready" => Ok(MomentumRawFeatureRosterStatusV4::Ready),
+        "QualificationEvidenceInsufficient" => {
+            Ok(MomentumRawFeatureRosterStatusV4::QualificationEvidenceInsufficient)
+        }
         "NoQualifiedLearnedParticipant" => {
             Ok(MomentumRawFeatureRosterStatusV4::NoQualifiedLearnedParticipant)
         }
@@ -2766,6 +2994,66 @@ fn split_from_pb(value: SplitProtobufV4) -> Result<MomentumRawFeatureSplitV4, St
     };
     finish_fields(f)?;
     validate_split_v4(&result)?;
+    Ok(result)
+}
+
+fn validation_yield_audit_to_pb(
+    value: &MomentumValidationYieldAuditV4,
+) -> ValidationYieldAuditProtobufV4 {
+    ValidationYieldAuditProtobufV4 {
+        fields: vec![
+            field("audit_version", &value.audit_version),
+            field("source_snapshot_digest", &value.source_snapshot_digest),
+            field("label_policy_digest", &value.label_policy_digest),
+            field("validation_start", value.validation_index_range.start),
+            field("validation_end", value.validation_index_range.end),
+            field("validation_index_count", value.validation_index_count),
+            field(
+                "minimum_required_valid_samples",
+                value.minimum_required_valid_samples,
+            ),
+            field(
+                "valid_labelled_sample_count",
+                value.valid_labelled_sample_count,
+            ),
+            field("neutral_excluded_count", value.neutral_excluded_count),
+            field("horizon_unavailable_count", value.horizon_unavailable_count),
+            field("feature_unavailable_count", value.feature_unavailable_count),
+            field(
+                "substantive_qualification_possible",
+                value.substantive_qualification_possible,
+            ),
+            field("audit_digest", &value.audit_digest),
+        ],
+    }
+}
+
+fn validation_yield_audit_from_pb(
+    value: ValidationYieldAuditProtobufV4,
+) -> Result<MomentumValidationYieldAuditV4, String> {
+    let mut f = field_map(value.fields)?;
+    let result = MomentumValidationYieldAuditV4 {
+        audit_version: take(&mut f, "audit_version")?,
+        source_snapshot_digest: take(&mut f, "source_snapshot_digest")?,
+        label_policy_digest: take(&mut f, "label_policy_digest")?,
+        validation_index_range: IndexRangeV0 {
+            start: take_usize(&mut f, "validation_start")?,
+            end: take_usize(&mut f, "validation_end")?,
+        },
+        validation_index_count: take_usize(&mut f, "validation_index_count")?,
+        minimum_required_valid_samples: take_usize(&mut f, "minimum_required_valid_samples")?,
+        valid_labelled_sample_count: take_usize(&mut f, "valid_labelled_sample_count")?,
+        neutral_excluded_count: take_usize(&mut f, "neutral_excluded_count")?,
+        horizon_unavailable_count: take_usize(&mut f, "horizon_unavailable_count")?,
+        feature_unavailable_count: take_usize(&mut f, "feature_unavailable_count")?,
+        substantive_qualification_possible: take_bool(
+            &mut f,
+            "substantive_qualification_possible",
+        )?,
+        audit_digest: take(&mut f, "audit_digest")?,
+    };
+    finish_fields(f)?;
+    validate_validation_yield_audit_v4(&result)?;
     Ok(result)
 }
 
@@ -3191,9 +3479,8 @@ fn decision_to_pb(value: &MomentumRawFeaturePathDecisionArtifactV4) -> DecisionP
     }
 }
 
-fn decision_from_pb(
+fn decision_from_pb_unvalidated(
     value: DecisionProtobufV4,
-    family: &MomentumRawFeatureFamilyV4,
 ) -> Result<MomentumRawFeaturePathDecisionArtifactV4, String> {
     let mut f = field_map(value.fields)?;
     let result = MomentumRawFeaturePathDecisionArtifactV4 {
@@ -3205,6 +3492,14 @@ fn decision_from_pb(
         decision_digest: take(&mut f, "decision_digest")?,
     };
     finish_fields(f)?;
+    Ok(result)
+}
+
+fn decision_from_pb(
+    value: DecisionProtobufV4,
+    family: &MomentumRawFeatureFamilyV4,
+) -> Result<MomentumRawFeaturePathDecisionArtifactV4, String> {
+    let result = decision_from_pb_unvalidated(value)?;
     validate_decision_v4(&result, family)?;
     Ok(result)
 }
@@ -3471,6 +3766,20 @@ pub fn decode_momentum_raw_feature_split_protobuf_v4(
         SplitProtobufV4::decode(bytes).map_err(|_| "V4 split Protobuf rejected".to_string())?,
     )
 }
+pub fn encode_momentum_validation_yield_audit_protobuf_v4(
+    value: &MomentumValidationYieldAuditV4,
+) -> Result<Vec<u8>, String> {
+    validate_validation_yield_audit_v4(value)?;
+    encode_message_v4(&validation_yield_audit_to_pb(value))
+}
+pub fn decode_momentum_validation_yield_audit_protobuf_v4(
+    bytes: &[u8],
+) -> Result<MomentumValidationYieldAuditV4, String> {
+    validation_yield_audit_from_pb(
+        ValidationYieldAuditProtobufV4::decode(bytes)
+            .map_err(|_| "V4 validation-yield audit Protobuf rejected".to_string())?,
+    )
+}
 pub fn encode_momentum_raw_feature_registration_protobuf_v4(
     value: &MomentumRawFeatureRegistrationV4,
 ) -> Result<Vec<u8>, String> {
@@ -3714,10 +4023,25 @@ fn persist_experiment_v4(
     experiment: &ExperimentV4,
     journal: &MomentumRawFeatureJournalV4,
 ) -> Result<(usize, usize), String> {
+    validate_validation_yield_audit_v4(&experiment.validation_yield_audit)?;
     validate_family_v4(&experiment.family)?;
     validate_decision_v4(&experiment.decision, &experiment.family)?;
     validate_journal_v4(journal)?;
     let mut counts = (0, 0);
+    add_counts(
+        &mut counts,
+        persist_artifact_v4(
+            &root.join("validation_yield_audits").join(format!(
+                "{}.pb",
+                experiment.validation_yield_audit.audit_digest
+            )),
+            &encode_momentum_validation_yield_audit_protobuf_v4(
+                &experiment.validation_yield_audit,
+            )?,
+            &experiment.validation_yield_audit.audit_digest,
+            |bytes| Ok(decode_momentum_validation_yield_audit_protobuf_v4(bytes)?.audit_digest),
+        )?,
+    );
     for participant in &experiment.family.participants {
         add_counts(
             &mut counts,
@@ -3859,13 +4183,18 @@ fn persist_experiment_v4(
 fn reopen_experiment_v4(
     root: &Path,
 ) -> Result<(ExperimentV4, MomentumRawFeatureJournalV4), String> {
+    let validation_yield_audit = read_single(
+        &root.join("validation_yield_audits"),
+        decode_momentum_validation_yield_audit_protobuf_v4,
+    )?;
     let family = read_single(
         &root.join("families"),
         decode_momentum_raw_feature_family_protobuf_v4,
     )?;
-    let decision = read_single(&root.join("path_decisions"), |bytes| {
-        decode_momentum_raw_feature_decision_protobuf_v4(bytes, &family)
-    })?;
+    if validation_yield_audit.source_snapshot_digest != family.source_snapshot_digest {
+        return Err("V4 validation-yield family binding rejected".to_string());
+    }
+    let decision = read_corrected_decision_v4(&root.join("path_decisions"), &family)?;
     let (expected_roster, roster_status) = derive_roster_v4(&family)?;
     let roster = if expected_roster.is_some() {
         Some(read_single(&root.join("rosters"), |bytes| {
@@ -3893,6 +4222,9 @@ fn reopen_experiment_v4(
             return Err("V4 unexpected evaluation registration rejected".to_string());
         }
         let status = match roster_status {
+            MomentumRawFeatureRosterStatusV4::QualificationEvidenceInsufficient => {
+                MomentumRawFeatureEvaluationStatusV4::QualificationEvidenceInsufficient
+            }
             MomentumRawFeatureRosterStatusV4::BenchmarkUnavailable => {
                 MomentumRawFeatureEvaluationStatusV4::BenchmarkUnavailable
             }
@@ -3903,10 +4235,25 @@ fn reopen_experiment_v4(
         };
         (None, status)
     };
-    let journal = read_single(
-        &root.join("journals"),
-        decode_momentum_raw_feature_journal_protobuf_v4,
-    )?;
+    let legacy_decision_digest =
+        legacy_insufficient_decision_v4(&family).map(|value| value.decision_digest);
+    let mut matching_journals = Vec::new();
+    for path in protobuf_paths(&root.join("journals"))? {
+        let journal = decode_momentum_raw_feature_journal_protobuf_v4(
+            &fs::read(path).map_err(|_| "V4 artifact read failed".to_string())?,
+        )?;
+        if journal.decision_digest.as_deref() == Some(decision.decision_digest.as_str()) {
+            matching_journals.push(journal);
+        } else if journal.family_digest.as_deref() != Some(family.family_digest.as_str())
+            || journal.decision_digest != legacy_decision_digest
+        {
+            return Err("V4 unexpected journal artifact rejected".to_string());
+        }
+    }
+    if matching_journals.len() != 1 {
+        return Err("V4 corrected journal identity rejected".to_string());
+    }
+    let journal = matching_journals.remove(0);
     if journal.family_digest.as_deref() != Some(family.family_digest.as_str())
         || journal.decision_digest.as_deref() != Some(decision.decision_digest.as_str())
         || journal.roster_digest.as_deref()
@@ -3920,6 +4267,7 @@ fn reopen_experiment_v4(
     }
     Ok((
         ExperimentV4 {
+            validation_yield_audit,
             family,
             decision,
             roster,
@@ -3983,13 +4331,14 @@ fn base_report_v4(
         closure: None,
         split: None,
         registration: None,
+        validation_yield_audit: None,
         family: None,
         decision: None,
         roster: None,
-        roster_status: MomentumRawFeatureRosterStatusV4::NoQualifiedLearnedParticipant,
+        roster_status: MomentumRawFeatureRosterStatusV4::QualificationEvidenceInsufficient,
         evaluation_registration: None,
         evaluation_registration_status:
-            MomentumRawFeatureEvaluationStatusV4::NoQualifiedLearnedParticipant,
+            MomentumRawFeatureEvaluationStatusV4::QualificationEvidenceInsufficient,
         journal: None,
         artifacts_written: 0,
         duplicate_artifact_count: 0,
@@ -4016,6 +4365,7 @@ fn populate_report_v4(
     report.split = Some(preregistration.1);
     report.registration = Some(preregistration.2);
     if let Some((experiment, journal)) = experiment {
+        report.validation_yield_audit = Some(experiment.validation_yield_audit);
         report.family = Some(experiment.family);
         report.decision = Some(experiment.decision);
         report.roster = experiment.roster;
@@ -4371,6 +4721,25 @@ mod tests {
         value
     }
 
+    fn validation_yield_audit_fixture() -> MomentumValidationYieldAuditV4 {
+        let mut value = MomentumValidationYieldAuditV4 {
+            audit_version: VALIDATION_YIELD_AUDIT_VERSION_V4.to_string(),
+            source_snapshot_digest: "snapshot".to_string(),
+            label_policy_digest: "label-policy".to_string(),
+            validation_index_range: IndexRangeV0 { start: 24, end: 48 },
+            validation_index_count: 24,
+            minimum_required_valid_samples: 24,
+            valid_labelled_sample_count: 20,
+            neutral_excluded_count: 4,
+            horizon_unavailable_count: 0,
+            feature_unavailable_count: 0,
+            substantive_qualification_possible: false,
+            audit_digest: String::new(),
+        };
+        value.audit_digest = validation_yield_audit_digest_v4(&value);
+        value
+    }
+
     fn config_fixture(
         kind: MomentumRawFeatureModelKindV4,
         seed: u64,
@@ -4567,35 +4936,7 @@ mod tests {
     fn decision_fixture(
         family: &MomentumRawFeatureFamilyV4,
     ) -> MomentumRawFeaturePathDecisionArtifactV4 {
-        let raw = family.qualification_receipts.iter().any(|item| {
-            item.participant_role == MomentumRawFeatureRoleV4::LearnedRawLogistic
-                && item.status == MomentumRawFeatureQualificationStatusV4::QualifiedLearned
-        });
-        let interaction = family.qualification_receipts.iter().any(|item| {
-            item.participant_role == MomentumRawFeatureRoleV4::LearnedInteractionLogistic
-                && item.status == MomentumRawFeatureQualificationStatusV4::QualifiedLearned
-        }) && family.interaction_contribution_audit.as_ref().is_some_and(
-            |item| {
-                item.contribution_status
-                    == InteractionContributionStatusV4::MaterialInteractionContribution
-            },
-        );
-        let mut value = MomentumRawFeaturePathDecisionArtifactV4 {
-            decision_version: DECISION_VERSION_V4.to_string(),
-            family_digest: family.family_digest.clone(),
-            qualified_raw_logistic: raw,
-            qualified_material_interaction: interaction,
-            decision: if interaction {
-                MomentumRawFeaturePathDecisionV4::RawFeatureLearnedPathViable
-            } else if raw {
-                MomentumRawFeaturePathDecisionV4::OnlyLinearRawPathViable
-            } else {
-                MomentumRawFeaturePathDecisionV4::NoQualifiedRawFeatureLearner
-            },
-            decision_digest: String::new(),
-        };
-        value.decision_digest = decision_digest_v4(&value);
-        value
+        derive_decision_v4(family)
     }
 
     fn evaluation_fixture(
@@ -5014,7 +5355,7 @@ mod tests {
     }
 
     #[test]
-    fn no_learned_status_precedes_missing_benchmark_status() {
+    fn all_insufficient_receipts_use_evidence_insufficient_taxonomy() {
         let mut family = family_fixture(
             MomentumRawFeatureQualificationStatusV4::RejectedInsufficientValidation,
             MomentumRawFeatureQualificationStatusV4::RejectedInsufficientValidation,
@@ -5030,9 +5371,91 @@ mod tests {
         family.family_digest = family_digest_v4(&family);
         assert!(validate_family_v4(&family).is_ok());
         assert_eq!(
-            derive_roster_v4(&family).unwrap().1,
-            MomentumRawFeatureRosterStatusV4::NoQualifiedLearnedParticipant
+            derive_decision_v4(&family).decision,
+            MomentumRawFeaturePathDecisionV4::InsufficientFreshValidation
         );
+        assert_eq!(
+            derive_roster_v4(&family).unwrap().1,
+            MomentumRawFeatureRosterStatusV4::QualificationEvidenceInsufficient
+        );
+    }
+
+    #[test]
+    fn substantive_rejection_still_means_no_qualified_learner() {
+        let family = family_fixture(
+            MomentumRawFeatureQualificationStatusV4::RejectedProbabilityCollapse,
+            MomentumRawFeatureQualificationStatusV4::RejectedProbabilityCollapse,
+        );
+        assert_eq!(
+            derive_decision_v4(&family).decision,
+            MomentumRawFeaturePathDecisionV4::NoQualifiedRawFeatureLearner
+        );
+    }
+
+    #[test]
+    fn validation_yield_categories_are_exclusive_and_neutral_sensitive() {
+        let closes = [100.0_f32, 100.0, 100.0, 102.0, 102.0, 100.0];
+        let candles = closes
+            .iter()
+            .enumerate()
+            .map(|(index, close)| MomentumCandleV0 {
+                timestamp: index as i64,
+                open: *close,
+                high: *close,
+                low: *close,
+                close: *close,
+                volume: 1.0,
+            })
+            .collect::<Vec<_>>();
+        let features = (0..candles.len())
+            .map(|source_index| MomentumFeatureRowV0 {
+                source_index,
+                values: vec![source_index as f32],
+            })
+            .collect::<Vec<_>>();
+        let range = IndexRangeV0 { start: 1, end: 6 };
+        let config = MomentumSequenceConfigV0 {
+            sequence_length: 2,
+            prediction_horizon: 1,
+            label_dead_zone: 0.01,
+            stride: 1,
+            include_neutral_labels: false,
+        };
+        let audit = derive_validation_yield_audit_v4(
+            "snapshot",
+            "label-policy",
+            &range,
+            3,
+            &candles,
+            &features,
+            &config,
+        )
+        .unwrap();
+        assert_eq!(audit.validation_index_count, 5);
+        assert_eq!(audit.valid_labelled_sample_count, 2);
+        assert_eq!(audit.neutral_excluded_count, 2);
+        assert_eq!(audit.horizon_unavailable_count, 0);
+        assert_eq!(audit.feature_unavailable_count, 1);
+        assert!(!audit.substantive_qualification_possible);
+
+        let include_neutral = MomentumSequenceConfigV0 {
+            include_neutral_labels: true,
+            ..config
+        };
+        let inclusive = derive_validation_yield_audit_v4(
+            "snapshot",
+            "label-policy-with-neutral",
+            &range,
+            3,
+            &candles,
+            &features,
+            &include_neutral,
+        )
+        .unwrap();
+        assert_eq!(inclusive.valid_labelled_sample_count, 4);
+        assert_eq!(inclusive.neutral_excluded_count, 0);
+        assert_eq!(inclusive.feature_unavailable_count, 1);
+        assert!(inclusive.substantive_qualification_possible);
     }
 
     #[test]
@@ -5088,6 +5511,7 @@ mod tests {
     fn protobuf_corruption_rejects() {
         assert!(decode_momentum_frozen_mamba_closure_protobuf_v4(&[0xff]).is_err());
         assert!(decode_momentum_raw_feature_split_protobuf_v4(&[0xff]).is_err());
+        assert!(decode_momentum_validation_yield_audit_protobuf_v4(&[0xff]).is_err());
         assert!(decode_momentum_raw_feature_registration_protobuf_v4(&[0xff]).is_err());
     }
 
@@ -5117,6 +5541,7 @@ mod tests {
     fn all_manual_protobuf_contracts_round_trip() {
         let closure = closure_fixture();
         let split = split_fixture();
+        let validation_yield_audit = validation_yield_audit_fixture();
         let registration = registration_fixture();
         let family = family_fixture(
             MomentumRawFeatureQualificationStatusV4::QualifiedLearned,
@@ -5139,6 +5564,14 @@ mod tests {
             )
             .unwrap(),
             split
+        );
+        assert_eq!(
+            decode_momentum_validation_yield_audit_protobuf_v4(
+                &encode_momentum_validation_yield_audit_protobuf_v4(&validation_yield_audit)
+                    .unwrap()
+            )
+            .unwrap(),
+            validation_yield_audit
         );
         assert_eq!(
             decode_momentum_raw_feature_registration_protobuf_v4(

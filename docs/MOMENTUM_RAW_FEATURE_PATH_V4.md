@@ -74,9 +74,12 @@ learned participation.
 
 ## Verified qualification result
 
-The current validation index block is 24 rows, but the existing label policy
-does not yield the required 24 valid validation samples inside that block.
-Accordingly, the verified receipt statuses are:
+The current validation index block is 24 rows. The additive validation-yield
+audit derives 23 valid labelled samples and one neutral exclusion from the
+frozen policy, with zero horizon-unavailable and feature-unavailable indices.
+The required minimum remains 24, so substantive qualification was not
+possible. Audit digest: `62069972025760a4`. Accordingly, the immutable receipt
+statuses are:
 
 | Participant | Status |
 |---|---|
@@ -94,18 +97,21 @@ the contribution audit. The qualified learned and benchmark counts are both
 zero. No winner was selected, and the family is ineligible for active committee
 use, promotion, and reward.
 
-The path decision is `NoQualifiedRawFeatureLearner`, digest
-`d454a95486fc3e77`. The future roster status is
-`NoQualifiedLearnedParticipant`; no roster or evaluation registration exists,
-and no minimum future timestamp is assigned.
+The corrected path decision is `InsufficientFreshValidation`, digest
+`bd34ab49577e8919`. The future roster and evaluation statuses are both
+`QualificationEvidenceInsufficient`; no roster or evaluation registration
+exists, and no minimum future timestamp is assigned. This correction does not
+alter the three original receipts.
 
 ## Persistence, CLI, and safety
 
-Closure, split, registration, participants, receipts, contribution audit,
-family, decision, optional roster, optional evaluation registration, and journal
-use hand-written `prost::Message` contracts and the existing verified atomic
-writer. The applicable failed-qualification result contains 13 Protobuf
-sidecars. An identical rerun writes zero and duplicate-rejects all 13.
+Closure, split, registration, validation-yield audit, participants, receipts,
+contribution audit, family, decision, optional roster, optional evaluation
+registration, and journal use hand-written `prost::Message` contracts and the
+existing verified atomic writer. Semantic hardening added the audit, corrected
+decision, and corrected journal without overwriting the original 13 sidecars.
+The directory contains 16 sidecars, of which 14 form the current applicable
+identity set; an identical rerun writes zero and duplicate-rejects all 14.
 
 The offline command is:
 
@@ -129,7 +135,8 @@ Value/Quality remains `TrainerUnavailable`. Persisted attribution remains
 Cycle/Risk; both reward-eligibility results remain `IneligibleMinimumSamples`
 with zero applications.
 
-This result proves the bounded V4 protocol and its current insufficient-sample
-outcome. It does not prove model improvement, participant superiority, a
-winner, future performance, reward effectiveness, promotion readiness, Chair
-learning, or trading readiness.
+This result proves the bounded V4 protocol and an underpowered initial
+qualification attempt. It does not prove that a participant substantively
+failed, model improvement, participant superiority, a winner, future
+performance, reward effectiveness, promotion readiness, Chair learning, or
+trading readiness.

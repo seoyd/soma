@@ -58,9 +58,10 @@
 10. **Shared fresh-validation execution** — All three participants share the
     same snapshot, training timestamps, purge, fresh-validation timestamps, and
     label policy. Validation parameter updates are zero. The 24-row validation
-    index block does not yield the policy-required 24 valid labelled samples,
-    so qualification records an insufficient-sample result without weakening
-    the threshold or reading the reserve.
+    index block yields 23 valid labelled samples and one neutral exclusion under
+    the frozen policy. Audit `62069972025760a4` records zero horizon and feature
+    exclusions, so qualification records an insufficient-evidence result
+    without weakening the threshold or reading the reserve.
 
 11. **Participant qualification statuses** — `RawFeatureLogisticV4`,
     `RawFeatureInteractionLogisticV4`, and `TrainingPrevalenceConstantV4` are
@@ -80,17 +81,18 @@
 14. **Qualified learned count** — Zero learned participants qualified. The
     constant benchmark is excluded from this count by role.
 
-15. **Path decision** — The derived decision is
-    `NoQualifiedRawFeatureLearner`, digest `d454a95486fc3e77`.
+15. **Path decision** — The semantically corrected decision is
+    `InsufficientFreshValidation`, digest `bd34ab49577e8919`. The original
+    receipts remain unchanged.
 
-16. **Future roster** — Status is `NoQualifiedLearnedParticipant`; no roster
-    artifact exists. The implemented ready path includes every qualified
+16. **Future roster** — Status is `QualificationEvidenceInsufficient`; no
+    roster artifact exists. The implemented ready path includes every qualified
     learned participant plus a qualified benchmark and semantically deduplicates
     a linear-equivalent interaction without private-metric ranking.
 
 17. **Evaluation registration** — Status is
-    `NoQualifiedLearnedParticipant`; no evaluation-registration artifact exists
-    and no future evidence was acquired or opened.
+    `QualificationEvidenceInsufficient`; no evaluation-registration artifact
+    exists and no future evidence was acquired or opened.
 
 18. **Exclusions and minimum accepted timestamp** — The optional contract binds
     closure, family, roster, split, registration, receipts, contribution audit,
@@ -122,11 +124,12 @@
     zero.
 
 24. **Protobuf persistence and replay** — Hand-written `prost::Message`
-    contracts cover closure, split, registration, participants, receipts,
-    contribution audit, family, decision, optional roster, optional evaluation
-    registration, and journal. The applicable result contains 13 Protobuf
-    sidecars. An identical rerun wrote zero and duplicate-rejected all 13;
-    corruption is rejected.
+    contracts cover closure, split, registration, validation-yield audit,
+    participants, receipts, contribution audit, family, decision, optional
+    roster, optional evaluation registration, and journal. Hardening added three
+    sidecars without overwriting the original 13. The current applicable set has
+    14 identities; an identical rerun wrote zero and duplicate-rejected all 14,
+    and corruption is rejected.
 
 25. **Network and authority counters** — Network requests, transports,
     credential reads, prospective reads/openings, historical-test reads,
@@ -148,8 +151,8 @@
     Protobuf sidecars remain ignored and uncommitted.
 
 28. **Complete verification** — Formatting and default/Metal workspace checks
-    passed. Default tests passed with 655 library, 404 committee-core
-    integration, and 12 workspace-control tests; Metal passed with 656, 404,
+    passed. Default tests passed with 657 library, 404 committee-core
+    integration, and 12 workspace-control tests; Metal passed with 658, 404,
     and 12. Git diff checks passed. Every Rust command used one build job, and
     every test run used one test thread.
 
@@ -161,11 +164,12 @@
     registration exclusions, Protobuf idempotency and corruption rejection,
     protected-state immutability, and zero-authority boundaries are enforced.
 
-31. **What remains unproven** — No participant qualified on the current valid
-    sample count. No model improvement, participant superiority, winner, future
-    outcome, reward or penalty effect, promotion readiness, Chair learning, or
-    live-trading readiness was proven. The frozen-Mamba closure says nothing
-    about another encoder, evidence identity, or policy contract.
+31. **What remains unproven** — The initial 23 valid samples did not permit
+    substantive qualification, so no participant failure was proven. No model
+    improvement, participant superiority, winner, future outcome, reward or
+    penalty effect, promotion readiness, Chair learning, or live-trading
+    readiness was proven. The frozen-Mamba closure says nothing about another
+    encoder, evidence identity, or policy contract.
 
 32. **Commit, push, and draft PR** — Implementation commit `4e136ed` and
     verified-report commit `8446b06` were pushed on
