@@ -1462,6 +1462,34 @@ impl RepresentationNormalizerV0 {
             .collect()
     }
 
+    pub fn transform_representation(
+        &self,
+        representation: &[f32],
+    ) -> Result<Vec<f32>, CampaignErrorV0> {
+        if self.means.is_empty()
+            || self.means.len() != self.scales.len()
+            || representation.len() != self.means.len()
+            || self
+                .means
+                .iter()
+                .chain(&self.scales)
+                .chain(representation)
+                .any(|value| !value.is_finite())
+            || self.scales.iter().any(|value| *value <= 0.0)
+        {
+            return Err(CampaignErrorV0::Learning);
+        }
+        let transformed = representation
+            .iter()
+            .enumerate()
+            .map(|(index, value)| (value - self.means[index]) / self.scales[index])
+            .collect::<Vec<_>>();
+        if transformed.iter().any(|value| !value.is_finite()) {
+            return Err(CampaignErrorV0::Learning);
+        }
+        Ok(transformed)
+    }
+
     pub fn digest(&self) -> String {
         stable_hash_string(&format!(
             "{}:{}:{}",

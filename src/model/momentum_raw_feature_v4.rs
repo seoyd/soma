@@ -12,6 +12,7 @@ use std::{
 use prost::Message;
 use serde::{Deserialize, Serialize};
 
+use crate::league::HistoricalOhlcvRow;
 use crate::{core::stable_hash_string, data::DataSnapshot, league::canonical_current_agent_states};
 
 use super::agent_learning_session::{
@@ -492,6 +493,24 @@ pub(crate) struct MomentumAccumulatedReplayEvaluationV4 {
     pub(crate) source_boundary_timestamp_ms: u64,
     pub(crate) participant_evaluations: Vec<MomentumAccumulatedParticipantEvaluationV4>,
     pub(crate) interaction_contribution: MomentumInteractionContributionAuditV4,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct MomentumFrozenParticipantPredictionV4 {
+    pub(crate) participant_digest: String,
+    pub(crate) config_digest: String,
+    pub(crate) parameter_digest: String,
+    pub(crate) normalizer_digest: String,
+    pub(crate) model_artifact_digest: String,
+    pub(crate) feature_schema_digest: String,
+    pub(crate) training_identity_digest: String,
+    pub(crate) probability_bits: u32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct MomentumFrozenPredictionV4 {
+    pub(crate) feature_identity_digest: String,
+    pub(crate) participant_predictions: Vec<MomentumFrozenParticipantPredictionV4>,
 }
 
 fn sorted_unique(mut values: Vec<String>) -> Vec<String> {
@@ -1771,8 +1790,6 @@ fn expand_interactions_v4(
     if dimension == 0 {
         return Err("V4 interaction dimension unavailable".to_string());
     }
-    let expected =
-        dimension + dimension + dimension.saturating_mul(dimension.saturating_sub(1)) / 2;
     rows.iter()
         .map(|item| {
             if item.representation.len() != dimension
@@ -1780,17 +1797,7 @@ fn expand_interactions_v4(
             {
                 return Err("V4 interaction input rejected".to_string());
             }
-            let mut expanded = Vec::with_capacity(expected);
-            expanded.extend_from_slice(&item.representation);
-            expanded.extend(item.representation.iter().map(|value| value * value));
-            for i in 0..dimension {
-                for j in (i + 1)..dimension {
-                    expanded.push(item.representation[i] * item.representation[j]);
-                }
-            }
-            if expanded.len() != expected || expanded.iter().any(|value| !value.is_finite()) {
-                return Err("V4 interaction expansion rejected".to_string());
-            }
+            let expanded = expand_interaction_representation_v4(&item.representation)?;
             Ok(EncodedTrainingExampleV0 {
                 representation: expanded,
                 label: item.label,
@@ -1798,6 +1805,27 @@ fn expand_interactions_v4(
             })
         })
         .collect()
+}
+
+pub(crate) fn expand_interaction_representation_v4(values: &[f32]) -> Result<Vec<f32>, String> {
+    let dimension = values.len();
+    if dimension == 0 || values.iter().any(|value| !value.is_finite()) {
+        return Err("V4 interaction input rejected".to_string());
+    }
+    let expected =
+        dimension + dimension + dimension.saturating_mul(dimension.saturating_sub(1)) / 2;
+    let mut expanded = Vec::with_capacity(expected);
+    expanded.extend_from_slice(values);
+    expanded.extend(values.iter().map(|value| value * value));
+    for i in 0..dimension {
+        for j in (i + 1)..dimension {
+            expanded.push(values[i] * values[j]);
+        }
+    }
+    if expanded.len() != expected || expanded.iter().any(|value| !value.is_finite()) {
+        return Err("V4 interaction expansion rejected".to_string());
+    }
+    Ok(expanded)
 }
 
 fn train_head_v4(
@@ -2794,6 +2822,178 @@ pub(crate) fn reconstruct_frozen_momentum_v4(
         raw_head,
         interaction_head,
         training_prevalence,
+    })
+}
+
+pub(crate) fn predict_frozen_momentum_v4_event(
+    replay: &MomentumFrozenReplayV4,
+    roster_participant_digests: &[String],
+    context_rows: &[HistoricalOhlcvRow],
+) -> Result<MomentumFrozenPredictionV4, String> {
+    let config = MomentumLearningCampaignConfigV0::default();
+    let required_row_count = config
+        .feature_config
+        .minimum_history()
+        .map_err(|_| "V4.2 feature-history policy rejected".to_string())?
+        .checked_add(config.sequence_config.sequence_length.saturating_sub(1))
+        .ok_or_else(|| "V4.2 feature-history length overflow".to_string())?;
+    if context_rows.len() != required_row_count
+        || context_rows.is_empty()
+        || roster_participant_digests.len() != replay.family.participants.len()
+        || context_rows.windows(2).any(|pair| {
+            pair[1].timestamp_ms
+                != pair[0]
+                    .timestamp_ms
+                    .checked_add(86_400_000)
+                    .unwrap_or_default()
+        })
+    {
+        return Err("V4.2 prospective context identity rejected".to_string());
+    }
+    let candles = context_rows
+        .iter()
+        .map(|row| {
+            if row.timestamp_ms > i64::MAX as u64
+                || row.symbol.trim().is_empty()
+                || ![
+                    row.open,
+                    row.high,
+                    row.low,
+                    row.close,
+                    row.volume,
+                    row.trade_value.unwrap_or_default(),
+                ]
+                .iter()
+                .all(|value| value.is_finite())
+                || row.open <= 0.0
+                || row.high <= 0.0
+                || row.low <= 0.0
+                || row.close <= 0.0
+                || row.volume < 0.0
+                || row.trade_value.is_some_and(|value| value < 0.0)
+                || row.high < row.open.max(row.close)
+                || row.low > row.open.min(row.close)
+            {
+                return Err("V4.2 prospective candle rejected".to_string());
+            }
+            Ok(MomentumCandleV0 {
+                timestamp: row.timestamp_ms as i64,
+                open: row.open as f32,
+                high: row.high as f32,
+                low: row.low as f32,
+                close: row.close as f32,
+                volume: row.volume as f32,
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let features = build_momentum_features_v0(&candles, &config.feature_config)
+        .map_err(|_| "V4.2 prospective feature derivation rejected".to_string())?;
+    let normalized = replay
+        .feature_normalizer
+        .transform(&features)
+        .map_err(|_| "V4.2 frozen feature normalization rejected".to_string())?;
+    if normalized.len() != config.sequence_config.sequence_length {
+        return Err("V4.2 prospective sequence dimension rejected".to_string());
+    }
+    let raw_representation = normalized
+        .last()
+        .map(|row| row.values.clone())
+        .ok_or_else(|| "V4.2 prospective feature vector unavailable".to_string())?;
+    let raw_normalized = replay
+        .raw_normalizer
+        .transform_representation(&raw_representation)
+        .map_err(|_| "V4.2 frozen raw normalization rejected".to_string())?;
+    let interaction_representation = expand_interaction_representation_v4(&raw_representation)?;
+    let interaction_normalized = replay
+        .interaction_normalizer
+        .transform_representation(&interaction_representation)
+        .map_err(|_| "V4.2 frozen interaction normalization rejected".to_string())?;
+    let raw_probability = replay
+        .raw_head
+        .probability(&raw_normalized)
+        .map_err(|_| "V4.2 raw prediction rejected".to_string())?;
+    let interaction_probability = replay
+        .interaction_head
+        .probability(&interaction_normalized)
+        .map_err(|_| "V4.2 interaction prediction rejected".to_string())?;
+    if !replay.training_prevalence.is_finite() || !(0.0..=1.0).contains(&replay.training_prevalence)
+    {
+        return Err("V4.2 benchmark prediction rejected".to_string());
+    }
+    let feature_identity_digest = stable_hash_string(&format!(
+        "momentum-v4.2-prospective-feature:{:?}:{:?}",
+        context_rows
+            .iter()
+            .map(|row| row.timestamp_ms)
+            .collect::<Vec<_>>(),
+        normalized
+            .iter()
+            .map(|row| {
+                row.values
+                    .iter()
+                    .map(|value| value.to_bits())
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>()
+    ));
+    let mut predictions = Vec::with_capacity(roster_participant_digests.len());
+    for participant_digest in roster_participant_digests {
+        let participant = replay
+            .family
+            .participants
+            .iter()
+            .find(|item| &item.participant_digest == participant_digest)
+            .ok_or_else(|| "V4.2 roster participant identity rejected".to_string())?;
+        let probability_bits = match participant.participant_role {
+            MomentumRawFeatureRoleV4::LearnedRawLogistic => {
+                if replay.raw_head.parameter_digest() != participant.parameter_digest
+                    || stable_hash_string(&format!(
+                        "{}:{}",
+                        replay.feature_normalizer.digest(),
+                        replay.raw_normalizer.digest()
+                    )) != participant.normalizer_digest
+                {
+                    return Err("V4.2 raw participant reconstruction changed".to_string());
+                }
+                raw_probability.to_bits()
+            }
+            MomentumRawFeatureRoleV4::LearnedInteractionLogistic => {
+                if replay.interaction_head.parameter_digest() != participant.parameter_digest
+                    || stable_hash_string(&format!(
+                        "{}:{}",
+                        replay.feature_normalizer.digest(),
+                        replay.interaction_normalizer.digest()
+                    )) != participant.normalizer_digest
+                {
+                    return Err("V4.2 interaction participant reconstruction changed".to_string());
+                }
+                interaction_probability.to_bits()
+            }
+            MomentumRawFeatureRoleV4::ConstantBenchmark => {
+                if stable_hash_string(&format!(
+                    "training-prevalence-v4:{}",
+                    replay.training_prevalence.to_bits()
+                )) != participant.parameter_digest
+                {
+                    return Err("V4.2 benchmark participant reconstruction changed".to_string());
+                }
+                replay.training_prevalence.to_bits()
+            }
+        };
+        predictions.push(MomentumFrozenParticipantPredictionV4 {
+            participant_digest: participant.participant_digest.clone(),
+            config_digest: participant.config_digest.clone(),
+            parameter_digest: participant.parameter_digest.clone(),
+            normalizer_digest: participant.normalizer_digest.clone(),
+            model_artifact_digest: participant.model_artifact_digest.clone(),
+            feature_schema_digest: participant.input_feature_schema_digest.clone(),
+            training_identity_digest: participant.training_identity_digest.clone(),
+            probability_bits,
+        });
+    }
+    Ok(MomentumFrozenPredictionV4 {
+        feature_identity_digest,
+        participant_predictions: predictions,
     })
 }
 

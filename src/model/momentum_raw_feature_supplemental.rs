@@ -389,6 +389,18 @@ struct SupplementalResultV4_1 {
     journal: MomentumSupplementalJournalV4_1,
 }
 
+#[derive(Clone, Debug)]
+pub(crate) struct MomentumFutureEvaluationSourceV4_2 {
+    pub(crate) closure: super::momentum_raw_feature_v4::MomentumFrozenMambaPathClosureV4,
+    pub(crate) split: MomentumRawFeatureSplitV4,
+    pub(crate) registration: MomentumRawFeatureRegistrationV4,
+    pub(crate) source_family: MomentumRawFeatureFamilyV4,
+    pub(crate) supplemental_registration: MomentumSupplementalQualificationRegistrationV4_1,
+    pub(crate) accumulated_family: MomentumAccumulatedQualificationFamilyV4_1,
+    pub(crate) roster: MomentumAccumulatedFutureRosterV4_1,
+    pub(crate) evaluation: MomentumAccumulatedEvaluationRegistrationV4_1,
+}
+
 fn canonical_digest<T: Clone + std::fmt::Debug>(value: &T, clear: impl FnOnce(&mut T)) -> String {
     let mut canonical = value.clone();
     clear(&mut canonical);
@@ -3005,6 +3017,49 @@ fn reopen_result(
         evaluation_status,
         additional_requirement,
         journal,
+    })
+}
+
+pub(crate) fn reopen_momentum_v4_1_future_source(
+    root: &Path,
+) -> Result<MomentumFutureEvaluationSourceV4_2, String> {
+    let frozen = load_frozen_v4(root)?;
+    let result = reopen_result(&root.join(ROOT_VERSION_V4_1).join(AGENT_ID_V4_1), &frozen)?;
+    let roster = result
+        .roster
+        .ok_or_else(|| "V4.2 future roster unavailable".to_string())?;
+    let evaluation = result
+        .evaluation
+        .ok_or_else(|| "V4.2 future evaluation registration unavailable".to_string())?;
+    if result.roster_status != MomentumAccumulatedRosterStatusV4_1::Ready
+        || result.evaluation_status != MomentumAccumulatedEvaluationStatusV4_1::Registered
+        || result.family.qualified_learned_count != 2
+        || result.family.qualified_benchmark_count != 1
+        || result.family.winner_selected
+        || result.family.parameters_changed
+        || roster.learned_participant_digests.len() != 2
+        || roster.benchmark_participant_digests.len() != 1
+        || evaluation.maximum_requests != 1
+        || evaluation.maximum_concurrency != 1
+        || evaluation.maximum_retries != 0
+        || !evaluation.labels_hidden_until_opening
+        || !evaluation.probabilities_hidden_until_opening
+        || !evaluation.one_time_opening_required
+        || !evaluation.winner_selection_forbidden_before_opening
+        || !evaluation.active_promotion_forbidden
+        || !evaluation.reward_application_forbidden
+    {
+        return Err("V4.2 frozen future source contract rejected".to_string());
+    }
+    Ok(MomentumFutureEvaluationSourceV4_2 {
+        closure: frozen.closure,
+        split: frozen.split,
+        registration: frozen.registration,
+        source_family: frozen.family,
+        supplemental_registration: result.registration,
+        accumulated_family: result.family,
+        roster,
+        evaluation,
     })
 }
 
