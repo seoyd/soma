@@ -450,17 +450,17 @@ struct ClassBalanceDiagnosticV2 {
 }
 
 #[derive(Clone, Debug)]
-struct V1FrozenStateV2 {
-    input: super::AgentPrivateLearningInputV1,
-    snapshot: DataSnapshot,
-    session: AgentPrivateLearningSessionV1,
-    family: AgentCandidateFamilyV1,
-    usage_ledger: AgentCandidateUsageLedgerV1,
-    failed_participant: FrozenCandidateParticipantV1,
-    failed_receipt: ParticipantValidationQualificationV1,
-    prior_training_range: IndexRangeV0,
-    prior_validation_range: IndexRangeV0,
-    prior_reserved_range: IndexRangeV0,
+pub(crate) struct V1FrozenStateV2 {
+    pub(crate) input: super::AgentPrivateLearningInputV1,
+    pub(crate) snapshot: DataSnapshot,
+    pub(crate) session: AgentPrivateLearningSessionV1,
+    pub(crate) family: AgentCandidateFamilyV1,
+    pub(crate) usage_ledger: AgentCandidateUsageLedgerV1,
+    pub(crate) failed_participant: FrozenCandidateParticipantV1,
+    pub(crate) failed_receipt: ParticipantValidationQualificationV1,
+    pub(crate) prior_training_range: IndexRangeV0,
+    pub(crate) prior_validation_range: IndexRangeV0,
+    pub(crate) prior_reserved_range: IndexRangeV0,
 }
 
 #[derive(Clone, Debug)]
@@ -1227,7 +1227,7 @@ fn ledger_range(
     Ok(ranges.remove(0))
 }
 
-fn load_v1_frozen_state_v2(
+pub(crate) fn load_v1_frozen_state_v2(
     root: &Path,
     snapshots: &[DataSnapshot],
 ) -> Result<V1FrozenStateV2, String> {
@@ -1376,7 +1376,7 @@ fn load_v1_frozen_state_v2(
     })
 }
 
-fn candles_from_snapshot_prefix(
+pub(crate) fn candles_from_snapshot_prefix(
     snapshot: &DataSnapshot,
     end: usize,
 ) -> Result<Vec<MomentumCandleV0>, String> {
@@ -1399,7 +1399,7 @@ fn candles_from_snapshot_prefix(
         .collect()
 }
 
-fn examples_in_range(
+pub(crate) fn examples_in_range(
     examples: &[SequenceExampleV0],
     range: &IndexRangeV0,
 ) -> Vec<SequenceExampleV0> {

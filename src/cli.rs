@@ -85,6 +85,8 @@ pub struct CliArgs {
     #[arg(long, default_value_t = false)]
     pub momentum_mamba_repair_v2: bool,
     #[arg(long, default_value_t = false)]
+    pub momentum_mamba_representation_v3: bool,
+    #[arg(long, default_value_t = false)]
     pub status: bool,
     #[arg(long, default_value_t = false)]
     pub dry_run: bool,
@@ -128,6 +130,32 @@ pub struct CliArgs {
 
 pub fn run() -> Result<(), String> {
     let args = CliArgs::parse();
+    if args.momentum_mamba_representation_v3 {
+        if args.execute
+            || args.confirm_single_public_candle_request
+            || args.confirm_one_time_outcome_request
+            || args.confirm_one_time_prospective_opening
+            || args.confirm_one_time_learning_evidence_request
+            || args.confirm_composite_learning_evidence_epoch
+        {
+            return Err("Momentum Mamba representation V3 rejects network authority flags".into());
+        }
+        let config = args
+            .historical_snapshot_campaign_config
+            .as_deref()
+            .ok_or_else(|| {
+                "Momentum Mamba representation V3 requires a local historical provider config"
+                    .to_string()
+            })?;
+        return run_momentum_mamba_representation_cli_v3(
+            config,
+            &args.output_format,
+            args.status,
+            args.dry_run,
+            args.execute_local,
+            args.allow_network,
+        );
+    }
     if args.momentum_mamba_repair_v2 {
         if args.execute
             || args.confirm_single_public_candle_request
@@ -674,6 +702,60 @@ struct MomentumMambaRepairCliReportV2 {
     protected_artifacts_unchanged: bool,
     active_state_unchanged: bool,
     safety_counters: crate::model::MomentumMambaRepairSafetyCountersV2,
+    report_digest: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+struct MomentumRepresentationProbeCliV3 {
+    probe_kind: crate::model::MomentumRepresentationProbeKindV3,
+    status: crate::model::MomentumRepresentationProbeStatusV3,
+    representation_diagnostic_digest: String,
+    probe_digest: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+struct MomentumRepresentationParticipantCliV3 {
+    participant_digest: String,
+    model_kind: String,
+    input_kind: String,
+    qualification_status: crate::model::MomentumRepresentationQualificationStatusV3,
+    contribution_status: Option<crate::model::MambaContributionStatusV3>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+struct MomentumMambaRepresentationCliReportV3 {
+    report_version: &'static str,
+    mode: String,
+    offline: bool,
+    status: crate::model::MomentumRepresentationExecutionStatusV3,
+    repair_stage: crate::model::MomentumFrozenMambaRepairStageV3,
+    probes: Vec<MomentumRepresentationProbeCliV3>,
+    representation_audit_digest: Option<String>,
+    split_digest: Option<String>,
+    final_reserved_range_digest: Option<String>,
+    registration_digest: Option<String>,
+    registered_variant_count: usize,
+    participants: Vec<MomentumRepresentationParticipantCliV3>,
+    qualified_genuine_mamba_count: usize,
+    qualified_raw_fallback_count: usize,
+    qualified_comparator_count: usize,
+    route_decision: Option<crate::model::MomentumRepresentationRouteDecisionV3>,
+    decision_digest: Option<String>,
+    family_digest: Option<String>,
+    roster_status: crate::model::MomentumRepresentationRosterStatusV3,
+    roster_digest: Option<String>,
+    evaluation_registration_status: crate::model::MomentumRepresentationEvaluationStatusV3,
+    evaluation_registration_digest: Option<String>,
+    minimum_accepted_timestamp_ms: Option<u64>,
+    cycle_risk_evidence_status: Option<crate::data::CanonicalViewGapStatusV1>,
+    value_quality_evidence_status: Option<crate::data::CanonicalViewGapStatusV1>,
+    reward_eligibility_replay: PersistedRewardEligibilityReplayCliV1,
+    artifacts_written: usize,
+    duplicate_artifact_count: usize,
+    storage_failure_count: usize,
+    protected_artifacts_unchanged: bool,
+    active_state_unchanged: bool,
+    safety_counters: crate::model::MomentumRepresentationSafetyCountersV3,
     report_digest: String,
 }
 
@@ -2013,6 +2095,403 @@ fn format_momentum_mamba_repair_text_v2(report: &MomentumMambaRepairCliReportV2)
     );
     let _ = writeln!(output, "report_digest={}", report.report_digest);
     output
+}
+
+fn format_momentum_mamba_representation_text_v3(
+    report: &MomentumMambaRepresentationCliReportV3,
+) -> String {
+    let mut output = String::new();
+    let _ = writeln!(output, "report_version={}", report.report_version);
+    let _ = writeln!(output, "mode={}", report.mode);
+    let _ = writeln!(output, "offline={}", report.offline);
+    let _ = writeln!(output, "status={:?}", report.status);
+    let _ = writeln!(output, "repair_stage={:?}", report.repair_stage);
+    for probe in &report.probes {
+        let _ = writeln!(
+            output,
+            "probe_kind={:?};status={:?};representation_diagnostic_digest={};probe_digest={}",
+            probe.probe_kind,
+            probe.status,
+            probe.representation_diagnostic_digest,
+            probe.probe_digest,
+        );
+    }
+    for (name, value) in [
+        (
+            "representation_audit_digest",
+            &report.representation_audit_digest,
+        ),
+        ("split_digest", &report.split_digest),
+        (
+            "final_reserved_range_digest",
+            &report.final_reserved_range_digest,
+        ),
+        ("registration_digest", &report.registration_digest),
+        ("decision_digest", &report.decision_digest),
+        ("family_digest", &report.family_digest),
+        ("roster_digest", &report.roster_digest),
+        (
+            "evaluation_registration_digest",
+            &report.evaluation_registration_digest,
+        ),
+    ] {
+        let _ = writeln!(output, "{name}={}", value.as_deref().unwrap_or_default());
+    }
+    let _ = writeln!(
+        output,
+        "registered_variant_count={}",
+        report.registered_variant_count
+    );
+    for participant in &report.participants {
+        let _ = writeln!(
+            output,
+            "participant_digest={};model_kind={};input_kind={};qualification_status={:?};contribution_status={}",
+            participant.participant_digest,
+            participant.model_kind,
+            participant.input_kind,
+            participant.qualification_status,
+            participant
+                .contribution_status
+                .map(|value| format!("{value:?}"))
+                .unwrap_or_default(),
+        );
+    }
+    let _ = writeln!(
+        output,
+        "qualified_genuine_mamba_count={}",
+        report.qualified_genuine_mamba_count
+    );
+    let _ = writeln!(
+        output,
+        "qualified_raw_fallback_count={}",
+        report.qualified_raw_fallback_count
+    );
+    let _ = writeln!(
+        output,
+        "qualified_comparator_count={}",
+        report.qualified_comparator_count
+    );
+    let _ = writeln!(
+        output,
+        "route_decision={}",
+        report
+            .route_decision
+            .map(|value| format!("{value:?}"))
+            .unwrap_or_default()
+    );
+    let _ = writeln!(output, "roster_status={:?}", report.roster_status);
+    let _ = writeln!(
+        output,
+        "evaluation_registration_status={:?}",
+        report.evaluation_registration_status
+    );
+    let _ = writeln!(
+        output,
+        "minimum_accepted_timestamp_ms={}",
+        report
+            .minimum_accepted_timestamp_ms
+            .map(|value| value.to_string())
+            .unwrap_or_default()
+    );
+    let _ = writeln!(
+        output,
+        "cycle_risk_evidence_status={}",
+        report
+            .cycle_risk_evidence_status
+            .map(|value| format!("{value:?}"))
+            .unwrap_or_default()
+    );
+    let _ = writeln!(
+        output,
+        "value_quality_evidence_status={}",
+        report
+            .value_quality_evidence_status
+            .map(|value| format!("{value:?}"))
+            .unwrap_or_default()
+    );
+    let reward = &report.reward_eligibility_replay;
+    let _ = writeln!(output, "opening_status={:?}", reward.opening_status);
+    let _ = writeln!(
+        output,
+        "attribution_classes={:?}",
+        reward.attribution_classes
+    );
+    let _ = writeln!(
+        output,
+        "reward_eligibility_statuses={:?}",
+        reward.eligibility_statuses
+    );
+    let _ = writeln!(output, "reward_apply_count={}", reward.reward_apply_count);
+    let _ = writeln!(output, "penalty_apply_count={}", reward.penalty_apply_count);
+    for (name, value) in [
+        ("network_requests", report.safety_counters.network_requests),
+        (
+            "transport_constructions",
+            report.safety_counters.transport_constructions,
+        ),
+        ("credential_reads", report.safety_counters.credential_reads),
+        (
+            "prospective_row_reads",
+            report.safety_counters.prospective_row_reads,
+        ),
+        (
+            "prospective_label_openings",
+            report.safety_counters.prospective_label_openings,
+        ),
+        (
+            "historical_test_reads",
+            report.safety_counters.historical_test_reads,
+        ),
+        (
+            "future_evaluation_reads",
+            report.safety_counters.future_evaluation_reads,
+        ),
+        (
+            "active_model_changes",
+            report.safety_counters.active_model_changes,
+        ),
+        ("chair_decisions", report.safety_counters.chair_decisions),
+        ("votes", report.safety_counters.votes),
+        (
+            "reward_applications",
+            report.safety_counters.reward_applications,
+        ),
+        (
+            "penalty_applications",
+            report.safety_counters.penalty_applications,
+        ),
+        ("voice_changes", report.safety_counters.voice_changes),
+        (
+            "cooldowns_started",
+            report.safety_counters.cooldowns_started,
+        ),
+        ("promotions", report.safety_counters.promotions),
+        ("quarantines", report.safety_counters.quarantines),
+        ("executions", report.safety_counters.executions),
+        (
+            "active_committee_count",
+            report.safety_counters.active_committee_count,
+        ),
+    ] {
+        let _ = writeln!(output, "{name}={value}");
+    }
+    let _ = writeln!(output, "artifacts_written={}", report.artifacts_written);
+    let _ = writeln!(
+        output,
+        "duplicate_artifact_count={}",
+        report.duplicate_artifact_count
+    );
+    let _ = writeln!(
+        output,
+        "storage_failure_count={}",
+        report.storage_failure_count
+    );
+    let _ = writeln!(
+        output,
+        "protected_artifacts_unchanged={}",
+        report.protected_artifacts_unchanged
+    );
+    let _ = writeln!(
+        output,
+        "active_state_unchanged={}",
+        report.active_state_unchanged
+    );
+    let _ = writeln!(output, "report_digest={}", report.report_digest);
+    output
+}
+
+fn run_momentum_mamba_representation_cli_v3(
+    config_path: &Path,
+    output_format: &str,
+    status: bool,
+    dry_run: bool,
+    execute_local: bool,
+    allow_network: bool,
+) -> Result<(), String> {
+    if usize::from(status) + usize::from(dry_run) + usize::from(execute_local) != 1 {
+        return Err("select exactly one Momentum Mamba representation V3 mode".to_string());
+    }
+    if allow_network {
+        return Err("Momentum Mamba representation V3 is offline-only".to_string());
+    }
+    if output_format != "text" && output_format != "json" {
+        return Err("unsupported Momentum Mamba representation V3 output format".to_string());
+    }
+    let prior = build_persisted_learning_intent_migration_cli_report_v1(
+        config_path,
+        true,
+        false,
+        false,
+        false,
+    )?;
+    let mode = if status {
+        crate::model::AgentPrivateLearningRunModeV0::Status
+    } else if dry_run {
+        crate::model::AgentPrivateLearningRunModeV0::DryRun
+    } else {
+        crate::model::AgentPrivateLearningRunModeV0::ExecuteLocal
+    };
+    let snapshots =
+        crate::model::load_local_learning_snapshots_v0(Path::new("data/local_snapshots"))?;
+    let root = crate::model::default_private_learning_root_v0();
+    let reservation = crate::model::load_protected_evaluation_reservation_v1(
+        config_path
+            .parent()
+            .ok_or("Momentum representation reservation directory unavailable")?,
+    )?;
+    let result =
+        crate::model::run_momentum_mamba_representation_v3(root, &snapshots, &reservation, mode);
+    let probes = result
+        .representation_audit
+        .as_ref()
+        .map(|audit| {
+            audit
+                .probes
+                .iter()
+                .map(|probe| MomentumRepresentationProbeCliV3 {
+                    probe_kind: probe.probe_kind,
+                    status: probe.status,
+                    representation_diagnostic_digest: probe
+                        .representation_diagnostic_digest
+                        .clone(),
+                    probe_digest: probe.probe_digest.clone(),
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    let participants = result
+        .family
+        .as_ref()
+        .map(|family| {
+            family
+                .participants
+                .iter()
+                .filter_map(|participant| {
+                    let receipt = family.qualification_receipts.iter().find(|receipt| {
+                        receipt.participant_digest == participant.participant_digest
+                    })?;
+                    let contribution_status = family
+                        .contribution_audits
+                        .iter()
+                        .find(|audit| audit.participant_digest == participant.participant_digest)
+                        .map(|audit| audit.contribution_status);
+                    Some(MomentumRepresentationParticipantCliV3 {
+                        participant_digest: participant.participant_digest.clone(),
+                        model_kind: participant.model_kind.clone(),
+                        input_kind: participant.input_kind.clone(),
+                        qualification_status: receipt.status,
+                        contribution_status,
+                    })
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    let evidence_status = |agent_id: &str| {
+        prior
+            .candidate_families
+            .iter()
+            .find(|family| family.agent_id == agent_id)
+            .and_then(|family| family.evidence_status)
+    };
+    let report = MomentumMambaRepresentationCliReportV3 {
+        report_version: "momentum-mamba-representation-cli-report-v3",
+        mode: if status {
+            "status"
+        } else if dry_run {
+            "dry-run"
+        } else {
+            "execute-local"
+        }
+        .to_string(),
+        offline: true,
+        status: result.status,
+        repair_stage: result.repair_stage,
+        probes,
+        representation_audit_digest: result
+            .representation_audit
+            .as_ref()
+            .map(|audit| audit.audit_digest.clone()),
+        split_digest: result
+            .split
+            .as_ref()
+            .map(|split| split.split_digest.clone()),
+        final_reserved_range_digest: result.split.as_ref().map(|split| {
+            crate::core::stable_hash_string(&format!(
+                "momentum-representation-final-reserve-v3:{}:{}",
+                split.final_reserved_range.start, split.final_reserved_range.end
+            ))
+        }),
+        registration_digest: result
+            .registration
+            .as_ref()
+            .map(|registration| registration.registration_digest.clone()),
+        registered_variant_count: result
+            .registration
+            .as_ref()
+            .map_or(0, |registration| registration.variants.len()),
+        participants,
+        qualified_genuine_mamba_count: result.family.as_ref().map_or(0, |family| {
+            family.qualified_mamba_only_count + family.qualified_mamba_hybrid_count
+        }),
+        qualified_raw_fallback_count: result
+            .family
+            .as_ref()
+            .map_or(0, |family| family.qualified_raw_fallback_count),
+        qualified_comparator_count: result
+            .family
+            .as_ref()
+            .map_or(0, |family| family.qualified_comparator_count),
+        route_decision: result.decision.as_ref().map(|decision| decision.decision),
+        decision_digest: result
+            .decision
+            .as_ref()
+            .map(|decision| decision.decision_digest.clone()),
+        family_digest: result
+            .family
+            .as_ref()
+            .map(|family| family.family_digest.clone()),
+        roster_status: result.roster_status,
+        roster_digest: result
+            .roster
+            .as_ref()
+            .map(|roster| roster.roster_digest.clone()),
+        evaluation_registration_status: result.evaluation_registration_status,
+        evaluation_registration_digest: result
+            .evaluation_registration
+            .as_ref()
+            .map(|registration| registration.registration_digest.clone()),
+        minimum_accepted_timestamp_ms: result
+            .evaluation_registration
+            .as_ref()
+            .map(|registration| registration.minimum_accepted_timestamp_ms),
+        cycle_risk_evidence_status: evidence_status("cycle_risk_skeptic"),
+        value_quality_evidence_status: evidence_status("value_quality_filter"),
+        reward_eligibility_replay: prior.reward_eligibility_replay,
+        artifacts_written: result.artifacts_written,
+        duplicate_artifact_count: result.duplicate_artifact_count,
+        storage_failure_count: result.storage_failure_count,
+        protected_artifacts_unchanged: result.protected_artifacts_unchanged,
+        active_state_unchanged: result.active_state_unchanged,
+        safety_counters: result.safety_counters,
+        report_digest: result.report_digest,
+    };
+    if output_format == "json" {
+        println!(
+            "{}",
+            serde_json::to_string(&report)
+                .map_err(|_| "Momentum Mamba representation V3 report encoding failed")?
+        );
+    } else {
+        print!("{}", format_momentum_mamba_representation_text_v3(&report));
+    }
+    if report.storage_failure_count > 0
+        || !report.protected_artifacts_unchanged
+        || !report.active_state_unchanged
+        || report.status == crate::model::MomentumRepresentationExecutionStatusV3::TechnicalFailure
+    {
+        return Err("Momentum Mamba representation V3 verification failed".to_string());
+    }
+    Ok(())
 }
 
 fn run_momentum_mamba_repair_cli_v2(
@@ -8559,6 +9038,151 @@ mod tests {
         )
         .unwrap_err();
         assert_eq!(error, "Momentum Mamba repair is offline-only");
+    }
+
+    fn momentum_mamba_representation_cli_fixture_v3() -> MomentumMambaRepresentationCliReportV3 {
+        MomentumMambaRepresentationCliReportV3 {
+            report_version: "momentum-mamba-representation-cli-report-v3",
+            mode: "execute-local".to_string(),
+            offline: true,
+            status: crate::model::MomentumRepresentationExecutionStatusV3::Executed,
+            repair_stage:
+                crate::model::MomentumFrozenMambaRepairStageV3::V3MambaContributionAbsent,
+            probes: vec![MomentumRepresentationProbeCliV3 {
+                probe_kind: crate::model::MomentumRepresentationProbeKindV3::MambaMeanOutputProbe,
+                status:
+                    crate::model::MomentumRepresentationProbeStatusV3::NonCollapsedPrediction,
+                representation_diagnostic_digest: "representation-diagnostic".to_string(),
+                probe_digest: "probe".to_string(),
+            }],
+            representation_audit_digest: Some("audit".to_string()),
+            split_digest: Some("split".to_string()),
+            final_reserved_range_digest: Some("reserve".to_string()),
+            registration_digest: Some("registration".to_string()),
+            registered_variant_count: 4,
+            participants: vec![MomentumRepresentationParticipantCliV3 {
+                participant_digest: "participant".to_string(),
+                model_kind: "FrozenMambaRepresentationV3/mean".to_string(),
+                input_kind: "MambaMeanOutput".to_string(),
+                qualification_status:
+                    crate::model::MomentumRepresentationQualificationStatusV3::RejectedProbabilityCollapse,
+                contribution_status: Some(
+                    crate::model::MambaContributionStatusV3::NoDetectableContribution,
+                ),
+            }],
+            qualified_genuine_mamba_count: 0,
+            qualified_raw_fallback_count: 1,
+            qualified_comparator_count: 2,
+            route_decision: Some(
+                crate::model::MomentumRepresentationRouteDecisionV3::RawFeatureFallbackOnly,
+            ),
+            decision_digest: Some("decision".to_string()),
+            family_digest: Some("family".to_string()),
+            roster_status:
+                crate::model::MomentumRepresentationRosterStatusV3::FrozenMambaRepresentationPathRejected,
+            roster_digest: None,
+            evaluation_registration_status:
+                crate::model::MomentumRepresentationEvaluationStatusV3::FrozenMambaRepresentationPathRejected,
+            evaluation_registration_digest: None,
+            minimum_accepted_timestamp_ms: None,
+            cycle_risk_evidence_status: Some(
+                crate::data::CanonicalViewGapStatusV1::ProviderContractUnverified,
+            ),
+            value_quality_evidence_status: Some(
+                crate::data::CanonicalViewGapStatusV1::TrainerUnavailable,
+            ),
+            reward_eligibility_replay: persisted_intent_migration_cli_fixture_v1()
+                .reward_eligibility_replay,
+            artifacts_written: 26,
+            duplicate_artifact_count: 0,
+            storage_failure_count: 0,
+            protected_artifacts_unchanged: true,
+            active_state_unchanged: true,
+            safety_counters: crate::model::MomentumRepresentationSafetyCountersV3 {
+                network_requests: 0,
+                transport_constructions: 0,
+                credential_reads: 0,
+                prospective_row_reads: 0,
+                prospective_label_openings: 0,
+                historical_test_reads: 0,
+                future_evaluation_reads: 0,
+                active_model_changes: 0,
+                chair_decisions: 0,
+                votes: 0,
+                reward_applications: 0,
+                penalty_applications: 0,
+                voice_changes: 0,
+                cooldowns_started: 0,
+                promotions: 0,
+                quarantines: 0,
+                executions: 0,
+                active_committee_count: 3,
+            },
+            report_digest: "report".to_string(),
+        }
+    }
+
+    #[test]
+    fn momentum_mamba_representation_text_and_json_public_fields_agree() {
+        let report = momentum_mamba_representation_cli_fixture_v3();
+        let text = format_momentum_mamba_representation_text_v3(&report);
+        let json = serde_json::to_value(&report).unwrap();
+        for field in [
+            "network_requests",
+            "transport_constructions",
+            "credential_reads",
+            "prospective_row_reads",
+            "prospective_label_openings",
+            "historical_test_reads",
+            "future_evaluation_reads",
+            "active_model_changes",
+            "chair_decisions",
+            "votes",
+            "reward_applications",
+            "penalty_applications",
+            "voice_changes",
+            "cooldowns_started",
+            "promotions",
+            "quarantines",
+            "executions",
+            "active_committee_count",
+        ] {
+            assert!(text.contains(&format!("{field}={}", json["safety_counters"][field])));
+        }
+        assert!(text.contains("registered_variant_count=4"));
+        assert!(text.contains("qualified_genuine_mamba_count=0"));
+        assert!(text.contains("route_decision=RawFeatureFallbackOnly"));
+        assert!(json["minimum_accepted_timestamp_ms"].is_null());
+        let rendered_json = serde_json::to_string(&report).unwrap();
+        for forbidden in [
+            "raw_rows",
+            "raw_features",
+            "private_probe_metric_digest",
+            "private_metric_digest",
+            "logits",
+            "probabilities",
+            "labels",
+            "weights",
+            "gradients",
+            "artifact_path",
+        ] {
+            assert!(!text.contains(forbidden));
+            assert!(!rendered_json.contains(forbidden));
+        }
+    }
+
+    #[test]
+    fn momentum_mamba_representation_rejects_network_permission_before_io() {
+        let error = run_momentum_mamba_representation_cli_v3(
+            Path::new("not-used"),
+            "json",
+            true,
+            false,
+            false,
+            true,
+        )
+        .unwrap_err();
+        assert_eq!(error, "Momentum Mamba representation V3 is offline-only");
     }
 
     fn persisted_intent_migration_cli_fixture_v1() -> PersistedLearningIntentMigrationCliReportV1 {
