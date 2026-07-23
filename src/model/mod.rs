@@ -22,6 +22,7 @@ pub mod meta;
 pub mod model_escalation_decision;
 pub mod model_ops_review_closure;
 pub mod model_ops_rollup;
+pub mod momentum_future_prediction_v4;
 pub mod momentum_mamba_repair;
 pub mod momentum_mamba_representation;
 pub mod momentum_raw_feature_supplemental;
@@ -875,6 +876,7 @@ pub use model_ops_rollup::{
     TrainingDataStorageMaterializationConfig, TrainingDataStorageMaterializationReport,
     TrainingDataStorageMaterializationStatus,
 };
+pub use momentum_future_prediction_v4::*;
 pub use momentum_mamba_repair::{
     FrozenCandidateParticipantV2, MomentumCandidateFamilyV2,
     MomentumFutureEvaluationRegistrationStatusV2, MomentumFutureEvaluationRegistrationV2,

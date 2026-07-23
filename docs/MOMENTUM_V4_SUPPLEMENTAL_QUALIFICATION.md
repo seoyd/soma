@@ -136,3 +136,20 @@ exact accumulated qualification, additive persistence, replay idempotency, and
 the zero-authority boundary. It does not prove model improvement, participant
 superiority, a winner, future performance, reward effectiveness, promotion
 readiness, Chair learning, or trading readiness.
+
+## Additive V4.2 lifecycle clarification
+
+The V4.1 value `maximum_requests = 1` does not state whether that request is
+for input evidence, outcome evidence, or the complete evaluation lifecycle.
+V4.2 therefore classifies the old meaning as `Ambiguous` and does not
+reinterpret it after observing provider data. The additive lifecycle separates
+one input request with zero retries from one later outcome request with zero
+retries. It requires prediction sealing before outcome access and keeps the
+outcome stage locked after sealing until a separately registered maturity
+boundary and one-time opening.
+
+This clarification does not change the V4.1 registration, roster, participant
+identities, qualification receipts, policies, or source evidence. The V4.1
+protected timestamps also do not explicitly authorize read-only inference
+context. V4.2 consequently treats their context semantics as ambiguous instead
+of weakening the exclusion contract.
