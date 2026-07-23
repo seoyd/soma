@@ -167,9 +167,12 @@
     live-trading readiness was proven. The frozen-Mamba closure says nothing
     about another encoder, evidence identity, or policy contract.
 
-32. **Commit, push, and draft PR** — Implementation commit `4e136ed` is on
-    `agent/sprint80-momentum-raw-feature-v4`. Publication and Draft PR metadata
-    will be recorded after the verified report commit is pushed.
+32. **Commit, push, and draft PR** — Implementation commit `4e136ed` and
+    verified-report commit `8446b06` were pushed on
+    `agent/sprint80-momentum-raw-feature-v4`. Draft PR
+    [#12](https://github.com/seoyd/soma/pull/12) targets `main`; its open,
+    mergeable, draft state and report-commit head were verified. This final PR
+    metadata is recorded in a follow-up report-only commit.
 
 33. **Next Sprint recommendation** — Preserve V1 through V4 and the final
     reserve as immutable history. If a new experiment is authorized,
