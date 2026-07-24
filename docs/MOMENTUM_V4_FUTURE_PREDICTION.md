@@ -20,6 +20,11 @@ Sprint 86 preflight, and all status and dry-run forms remained pre-finality
 with zero transport or opening work. The V4.3 prediction artifacts and all
 three participant seals remain unchanged.
 
+The active prospective roster remains the two raw-feature logistic
+participants and the training-prevalence constant benchmark. No Mamba or
+sequence representation participates in this event, and the closed Mamba
+research path remains unchanged.
+
 ## Sprint 84 operational seal
 
 The registered V4.3 request executed once inside the legal prospective window.

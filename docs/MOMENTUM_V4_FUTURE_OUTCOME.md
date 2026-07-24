@@ -63,7 +63,9 @@ Execute-local requires the exact one-time owner confirmation. Before private
 numeric access, it persists and reopens an authorization binding the outcome
 registration, receipt and capsule, prediction capsule and journal, all three
 participant seals and prediction digests, and the frozen feature, label, and
-evaluation policies.
+evaluation policies. The authorization also binds explicit prohibitions on
+winner selection, ranking, reward and penalty application, Chair action, voice
+mutation, promotion, and trading.
 
 The frozen horizon-one label policy is reused without a new threshold. Returns
 strictly outside the frozen dead zone produce a binary scorable event. A
@@ -78,9 +80,10 @@ and digests; it never exposes OHLCV, returns, labels, probabilities, Brier
 values, correctness values, parameters, features, or local paths.
 
 The opening bundle records one attempt, one opened event, exactly three
-participant evaluations, and zero winner, reward, or penalty. A distinct
-append-only V4.4 ledger records one event without merging any prior prospective
-experiment.
+participant evaluations, and zero winner, ranking, reward, penalty, or Chair
+action. The sealed outcome capsule binds zero reward and penalty application,
+and the distinct append-only V4.4 ledger repeats those zero-application
+bindings without merging any prior prospective experiment.
 
 Reward eligibility is recomputed from the new ledger, preserved participant
 roles, event counts, the existing minimum-sample gate, and integrity state.
@@ -119,11 +122,12 @@ final reopen/decode storage.
 
 ## Current verified state
 
-PR #17 was merged into `main` as `1f62904f7a3ea7488c0dd22a438b8f2d1c26737c`.
-At `2026-07-24T05:43:20Z`, finality had not arrived. Two text status runs, two
-JSON status runs, and text and JSON dry-runs all agreed on
-`AwaitingOutcomeFinality`, registration `52da8d28f246ee4b`, request fingerprint
-`ccf0335feac46846`, and status `4524bdd75525c60f`.
+PR #17 was merged into `main` as `1f62904f7a3ea7488c0dd22a438b8f2d1c26737c`,
+and the Sprint 86 documentation close was merged as
+`ba9db686ff13d7acd172625dd9d96fe88565d8da`.
+At `2026-07-24T14:14:30Z`, finality had not arrived. Status and dry-run agreed
+on `AwaitingOutcomeFinality`, registration `52da8d28f246ee4b`, request
+fingerprint `ccf0335feac46846`, and status `4524bdd75525c60f`.
 
 Runtime storage remains byte-identical to its before-state and contains only
 the V4.4 registration and safe status receipts. There is no outcome attempt,
@@ -131,6 +135,11 @@ transport construction, HTTP result, outcome receipt, outcome capsule, opening
 authorization, opening receipt, evaluation ledger, metric, ranking, winner,
 reward, or authority action. The authorized post-finality request and separate
 opening remain deferred until the persisted finality boundary is reached.
+
+Before operational close, the future outcome artifacts were strengthened so
+that their manual Protobuf payloads and semantic digests directly bind every
+zero-authority condition listed above. This was a source-contract correction;
+it did not create or modify runtime outcome evidence.
 
 This verifies the implementation and the pre-finality fail-closed state. It
 does not establish prediction correctness, model improvement, participant

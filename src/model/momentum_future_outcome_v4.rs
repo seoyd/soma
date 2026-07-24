@@ -168,6 +168,8 @@ pub struct MomentumSealedOutcomeCapsuleV4_4 {
     pub probabilities_opened: bool,
     pub metrics_computed: bool,
     pub winner_selected: bool,
+    pub reward_applied: bool,
+    pub penalty_applied: bool,
     pub capsule_digest: String,
 }
 
@@ -189,8 +191,13 @@ pub struct MomentumOutcomeOpeningAuthorizationV4_4 {
     pub explicit_owner_authorization: bool,
     pub one_time_only: bool,
     pub winner_selection_forbidden: bool,
+    pub ranking_forbidden: bool,
     pub reward_application_forbidden: bool,
-    pub active_promotion_forbidden: bool,
+    pub penalty_application_forbidden: bool,
+    pub chair_action_forbidden: bool,
+    pub voice_mutation_forbidden: bool,
+    pub promotion_forbidden: bool,
+    pub trading_forbidden: bool,
     pub authorization_digest: String,
 }
 
@@ -251,8 +258,10 @@ pub struct MomentumOutcomeOpeningBundleV4_4 {
     pub participant_evaluations: Vec<MomentumParticipantProspectiveEvaluationV4_4>,
     pub metrics_computed: bool,
     pub winner_selected: bool,
+    pub ranking_created: bool,
     pub reward_applied: bool,
     pub penalty_applied: bool,
+    pub chair_action_taken: bool,
     pub bundle_digest: String,
 }
 
@@ -278,6 +287,8 @@ pub struct MomentumProspectiveEvaluationLedgerEntryV4_4 {
     pub total_event_count_after: usize,
     pub scorable_event_count_after: usize,
     pub winner_selected: bool,
+    pub reward_applied: bool,
+    pub penalty_applied: bool,
     pub entry_digest: String,
 }
 
@@ -792,6 +803,8 @@ fn encode_capsule(value: &MomentumSealedOutcomeCapsuleV4_4) -> Result<Vec<u8>, S
         .boolean("probabilities_opened", value.probabilities_opened)
         .boolean("metrics_computed", value.metrics_computed)
         .boolean("winner_selected", value.winner_selected)
+        .boolean("reward_applied", value.reward_applied)
+        .boolean("penalty_applied", value.penalty_applied)
         .string("capsule_digest", &value.capsule_digest)
         .encode()
 }
@@ -810,6 +823,8 @@ fn decode_capsule(bytes: &[u8]) -> Result<MomentumSealedOutcomeCapsuleV4_4, Stri
         probabilities_opened: fields.boolean("probabilities_opened")?,
         metrics_computed: fields.boolean("metrics_computed")?,
         winner_selected: fields.boolean("winner_selected")?,
+        reward_applied: fields.boolean("reward_applied")?,
+        penalty_applied: fields.boolean("penalty_applied")?,
         capsule_digest: fields.string("capsule_digest")?,
     };
     fields.finish()?;
@@ -861,14 +876,19 @@ fn encode_opening_authorization(
             "winner_selection_forbidden",
             value.winner_selection_forbidden,
         )
+        .boolean("ranking_forbidden", value.ranking_forbidden)
         .boolean(
             "reward_application_forbidden",
             value.reward_application_forbidden,
         )
         .boolean(
-            "active_promotion_forbidden",
-            value.active_promotion_forbidden,
+            "penalty_application_forbidden",
+            value.penalty_application_forbidden,
         )
+        .boolean("chair_action_forbidden", value.chair_action_forbidden)
+        .boolean("voice_mutation_forbidden", value.voice_mutation_forbidden)
+        .boolean("promotion_forbidden", value.promotion_forbidden)
+        .boolean("trading_forbidden", value.trading_forbidden)
         .string("authorization_digest", &value.authorization_digest)
         .encode()
 }
@@ -894,8 +914,13 @@ fn decode_opening_authorization(
         explicit_owner_authorization: fields.boolean("explicit_owner_authorization")?,
         one_time_only: fields.boolean("one_time_only")?,
         winner_selection_forbidden: fields.boolean("winner_selection_forbidden")?,
+        ranking_forbidden: fields.boolean("ranking_forbidden")?,
         reward_application_forbidden: fields.boolean("reward_application_forbidden")?,
-        active_promotion_forbidden: fields.boolean("active_promotion_forbidden")?,
+        penalty_application_forbidden: fields.boolean("penalty_application_forbidden")?,
+        chair_action_forbidden: fields.boolean("chair_action_forbidden")?,
+        voice_mutation_forbidden: fields.boolean("voice_mutation_forbidden")?,
+        promotion_forbidden: fields.boolean("promotion_forbidden")?,
+        trading_forbidden: fields.boolean("trading_forbidden")?,
         authorization_digest: fields.string("authorization_digest")?,
     };
     fields.finish()?;
@@ -1004,8 +1029,10 @@ fn encode_opening_bundle(value: &MomentumOutcomeOpeningBundleV4_4) -> Result<Vec
         )
         .boolean("metrics_computed", value.metrics_computed)
         .boolean("winner_selected", value.winner_selected)
+        .boolean("ranking_created", value.ranking_created)
         .boolean("reward_applied", value.reward_applied)
         .boolean("penalty_applied", value.penalty_applied)
+        .boolean("chair_action_taken", value.chair_action_taken)
         .string("bundle_digest", &value.bundle_digest)
         .encode()
 }
@@ -1027,8 +1054,10 @@ fn decode_opening_bundle(bytes: &[u8]) -> Result<MomentumOutcomeOpeningBundleV4_
             .collect::<Result<Vec<_>, _>>()?,
         metrics_computed: fields.boolean("metrics_computed")?,
         winner_selected: fields.boolean("winner_selected")?,
+        ranking_created: fields.boolean("ranking_created")?,
         reward_applied: fields.boolean("reward_applied")?,
         penalty_applied: fields.boolean("penalty_applied")?,
+        chair_action_taken: fields.boolean("chair_action_taken")?,
         bundle_digest: fields.string("bundle_digest")?,
     };
     fields.finish()?;
@@ -1108,6 +1137,8 @@ fn encode_ledger_entry(
             as_u64(value.scorable_event_count_after)?,
         )
         .boolean("winner_selected", value.winner_selected)
+        .boolean("reward_applied", value.reward_applied)
+        .boolean("penalty_applied", value.penalty_applied)
         .string("entry_digest", &value.entry_digest)
         .encode()
 }
@@ -1127,6 +1158,8 @@ fn decode_ledger_entry(
         total_event_count_after: as_usize(fields.unsigned("total_event_count_after")?)?,
         scorable_event_count_after: as_usize(fields.unsigned("scorable_event_count_after")?)?,
         winner_selected: fields.boolean("winner_selected")?,
+        reward_applied: fields.boolean("reward_applied")?,
+        penalty_applied: fields.boolean("penalty_applied")?,
         entry_digest: fields.string("entry_digest")?,
     };
     fields.finish()?;
@@ -1586,6 +1619,8 @@ fn validate_capsule_shape(value: &MomentumSealedOutcomeCapsuleV4_4) -> Result<()
         || value.probabilities_opened
         || value.metrics_computed
         || value.winner_selected
+        || value.reward_applied
+        || value.penalty_applied
         || value.capsule_digest != capsule_digest(value)
     {
         return Err("V4.4 sealed outcome capsule rejected".to_string());
@@ -1624,8 +1659,13 @@ fn validate_opening_authorization_shape(
         || !value.explicit_owner_authorization
         || !value.one_time_only
         || !value.winner_selection_forbidden
+        || !value.ranking_forbidden
         || !value.reward_application_forbidden
-        || !value.active_promotion_forbidden
+        || !value.penalty_application_forbidden
+        || !value.chair_action_forbidden
+        || !value.voice_mutation_forbidden
+        || !value.promotion_forbidden
+        || !value.trading_forbidden
         || value.authorization_digest != authorization_digest(value)
     {
         return Err("V4.4 opening authorization rejected".to_string());
@@ -1684,8 +1724,10 @@ fn validate_opening_bundle_shape(value: &MomentumOutcomeOpeningBundleV4_4) -> Re
             != 3
         || value.metrics_computed != scorable
         || value.winner_selected
+        || value.ranking_created
         || value.reward_applied
         || value.penalty_applied
+        || value.chair_action_taken
         || value.bundle_digest != opening_bundle_digest(value)
     {
         return Err("V4.4 opening bundle rejected".to_string());
@@ -1728,6 +1770,8 @@ fn validate_ledger_entry_shape(
         || value.total_event_count_after != 1
         || value.scorable_event_count_after != usize::from(scorable)
         || value.winner_selected
+        || value.reward_applied
+        || value.penalty_applied
         || value.entry_digest != ledger_entry_digest(value)
     {
         return Err("V4.4 evaluation ledger entry rejected".to_string());
@@ -2615,6 +2659,8 @@ where
         probabilities_opened: false,
         metrics_computed: false,
         winner_selected: false,
+        reward_applied: false,
+        penalty_applied: false,
         capsule_digest: String::new(),
     };
     capsule.capsule_digest = capsule_digest(&capsule);
@@ -2762,8 +2808,13 @@ fn derive_opening_authorization(
         explicit_owner_authorization: true,
         one_time_only: true,
         winner_selection_forbidden: true,
+        ranking_forbidden: true,
         reward_application_forbidden: true,
-        active_promotion_forbidden: true,
+        penalty_application_forbidden: true,
+        chair_action_forbidden: true,
+        voice_mutation_forbidden: true,
+        promotion_forbidden: true,
+        trading_forbidden: true,
         authorization_digest: String::new(),
     };
     value.authorization_digest = authorization_digest(&value);
@@ -3003,8 +3054,10 @@ fn build_opening_bundle(
         participant_evaluations: evaluations,
         metrics_computed: label_status == MomentumProspectiveLabelStatusV4_4::ScorableBinaryOutcome,
         winner_selected: false,
+        ranking_created: false,
         reward_applied: false,
         penalty_applied: false,
+        chair_action_taken: false,
         bundle_digest: String::new(),
     };
     value.bundle_digest = opening_bundle_digest(&value);
@@ -3033,6 +3086,8 @@ fn build_evaluation_ledger(
             bundle.label_status == MomentumProspectiveLabelStatusV4_4::ScorableBinaryOutcome,
         ),
         winner_selected: false,
+        reward_applied: false,
+        penalty_applied: false,
         entry_digest: String::new(),
     };
     entry.entry_digest = ledger_entry_digest(&entry);
@@ -3583,6 +3638,8 @@ mod tests {
             probabilities_opened: false,
             metrics_computed: false,
             winner_selected: false,
+            reward_applied: false,
+            penalty_applied: false,
             capsule_digest: String::new(),
         };
         capsule.capsule_digest = capsule_digest(&capsule);
@@ -3612,8 +3669,13 @@ mod tests {
             explicit_owner_authorization: true,
             one_time_only: true,
             winner_selection_forbidden: true,
+            ranking_forbidden: true,
             reward_application_forbidden: true,
-            active_promotion_forbidden: true,
+            penalty_application_forbidden: true,
+            chair_action_forbidden: true,
+            voice_mutation_forbidden: true,
+            promotion_forbidden: true,
+            trading_forbidden: true,
             authorization_digest: String::new(),
         };
         value.authorization_digest = authorization_digest(&value);
@@ -3676,8 +3738,10 @@ mod tests {
             metrics_computed: label_status
                 == MomentumProspectiveLabelStatusV4_4::ScorableBinaryOutcome,
             winner_selected: false,
+            ranking_created: false,
             reward_applied: false,
             penalty_applied: false,
+            chair_action_taken: false,
             bundle_digest: String::new(),
         };
         value.bundle_digest = opening_bundle_digest(&value);
@@ -3704,6 +3768,8 @@ mod tests {
                 label_status == MomentumProspectiveLabelStatusV4_4::ScorableBinaryOutcome,
             ),
             winner_selected: false,
+            reward_applied: false,
+            penalty_applied: false,
             entry_digest: String::new(),
         };
         entry.entry_digest = ledger_entry_digest(&entry);
@@ -3747,6 +3813,8 @@ mod tests {
         assert!(!capsule.probabilities_opened);
         assert!(!capsule.metrics_computed);
         assert!(!capsule.winner_selected);
+        assert!(!capsule.reward_applied);
+        assert!(!capsule.penalty_applied);
     }
 
     #[test]
@@ -3941,6 +4009,35 @@ mod tests {
     }
 
     #[test]
+    fn sprint87_01_opening_authorization_binds_every_authority_prohibition() {
+        let authorization = opening_authorization_fixture();
+        assert_eq!(
+            decode_opening_authorization(&encode_opening_authorization(&authorization).unwrap())
+                .unwrap(),
+            authorization
+        );
+        for invalidate in [
+            |value: &mut MomentumOutcomeOpeningAuthorizationV4_4| value.ranking_forbidden = false,
+            |value: &mut MomentumOutcomeOpeningAuthorizationV4_4| {
+                value.penalty_application_forbidden = false
+            },
+            |value: &mut MomentumOutcomeOpeningAuthorizationV4_4| {
+                value.chair_action_forbidden = false
+            },
+            |value: &mut MomentumOutcomeOpeningAuthorizationV4_4| {
+                value.voice_mutation_forbidden = false
+            },
+            |value: &mut MomentumOutcomeOpeningAuthorizationV4_4| value.promotion_forbidden = false,
+            |value: &mut MomentumOutcomeOpeningAuthorizationV4_4| value.trading_forbidden = false,
+        ] {
+            let mut invalid = authorization.clone();
+            invalidate(&mut invalid);
+            invalid.authorization_digest = authorization_digest(&invalid);
+            assert!(validate_opening_authorization_shape(&invalid).is_err());
+        }
+    }
+
+    #[test]
     fn sprint85_25_opening_cannot_construct_network_transport() {
         let root =
             std::env::temp_dir().join(format!("soma-sprint85-opening-{}", std::process::id()));
@@ -4066,6 +4163,8 @@ mod tests {
     fn sprint85_37_no_winner_is_selected() {
         let bundle = bundle_fixture(MomentumProspectiveLabelStatusV4_4::ScorableBinaryOutcome);
         assert!(!bundle.winner_selected);
+        assert!(!bundle.ranking_created);
+        assert!(!bundle.chair_action_taken);
     }
 
     #[test]
@@ -4073,6 +4172,8 @@ mod tests {
         let ledger = ledger_fixture(MomentumProspectiveLabelStatusV4_4::ScorableBinaryOutcome);
         assert_eq!(ledger.entries.len(), 1);
         assert_eq!(ledger.entries[0].total_event_count_after, 1);
+        assert!(!ledger.entries[0].reward_applied);
+        assert!(!ledger.entries[0].penalty_applied);
     }
 
     #[test]
@@ -4172,5 +4273,60 @@ mod tests {
         assert_eq!(counters.promotions, 0);
         assert_eq!(counters.quarantines, 0);
         assert_eq!(counters.active_committee_count, 3);
+    }
+
+    #[test]
+    fn sprint87_02_closed_artifacts_bind_zero_authority_application() {
+        let capsule = receipt_and_capsule().1;
+        assert_eq!(
+            decode_capsule(&encode_capsule(&capsule).unwrap()).unwrap(),
+            capsule
+        );
+        assert!(!capsule.reward_applied);
+        assert!(!capsule.penalty_applied);
+        for invalidate in [
+            |value: &mut MomentumSealedOutcomeCapsuleV4_4| value.reward_applied = true,
+            |value: &mut MomentumSealedOutcomeCapsuleV4_4| value.penalty_applied = true,
+        ] {
+            let mut invalid = capsule.clone();
+            invalidate(&mut invalid);
+            invalid.capsule_digest = capsule_digest(&invalid);
+            assert!(validate_capsule_shape(&invalid).is_err());
+        }
+
+        let bundle = bundle_fixture(MomentumProspectiveLabelStatusV4_4::ScorableBinaryOutcome);
+        assert_eq!(
+            decode_opening_bundle(&encode_opening_bundle(&bundle).unwrap()).unwrap(),
+            bundle
+        );
+        assert!(!bundle.ranking_created);
+        assert!(!bundle.chair_action_taken);
+        for invalidate in [
+            |value: &mut MomentumOutcomeOpeningBundleV4_4| value.ranking_created = true,
+            |value: &mut MomentumOutcomeOpeningBundleV4_4| value.chair_action_taken = true,
+        ] {
+            let mut invalid = bundle.clone();
+            invalidate(&mut invalid);
+            invalid.bundle_digest = opening_bundle_digest(&invalid);
+            assert!(validate_opening_bundle_shape(&invalid).is_err());
+        }
+
+        let ledger = ledger_fixture(MomentumProspectiveLabelStatusV4_4::ScorableBinaryOutcome);
+        assert_eq!(
+            decode_ledger(&encode_ledger(&ledger).unwrap()).unwrap(),
+            ledger
+        );
+        assert!(!ledger.entries[0].reward_applied);
+        assert!(!ledger.entries[0].penalty_applied);
+        for invalidate in [
+            |value: &mut MomentumProspectiveEvaluationLedgerEntryV4_4| value.reward_applied = true,
+            |value: &mut MomentumProspectiveEvaluationLedgerEntryV4_4| value.penalty_applied = true,
+        ] {
+            let mut invalid = ledger.clone();
+            invalidate(&mut invalid.entries[0]);
+            invalid.entries[0].entry_digest = ledger_entry_digest(&invalid.entries[0]);
+            invalid.ledger_digest = ledger_digest(&invalid);
+            assert!(validate_ledger_shape(&invalid).is_err());
+        }
     }
 }
