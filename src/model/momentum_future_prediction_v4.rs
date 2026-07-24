@@ -1064,7 +1064,7 @@ fn timestamp_range(
         .collect()
 }
 
-fn row_identity_digest(row: &HistoricalOhlcvRow) -> String {
+pub(super) fn row_identity_digest(row: &HistoricalOhlcvRow) -> String {
     stable_hash_string(&format!(
         "momentum-v4.2-context-row:{}:{}:{}:{}:{}:{}:{}:{:?}",
         row.symbol,
@@ -1360,20 +1360,20 @@ struct ArtifactProtobufV4_2 {
     fields: Vec<ArtifactFieldProtobufV4_2>,
 }
 
-struct ArtifactBuilderV4_2 {
+pub(super) struct ArtifactBuilderV4_2 {
     kind: String,
     fields: Vec<ArtifactFieldProtobufV4_2>,
 }
 
 impl ArtifactBuilderV4_2 {
-    fn new(kind: &str) -> Self {
+    pub(super) fn new(kind: &str) -> Self {
         Self {
             kind: kind.to_string(),
             fields: Vec::new(),
         }
     }
 
-    fn string(mut self, name: &str, value: impl Into<String>) -> Self {
+    pub(super) fn string(mut self, name: &str, value: impl Into<String>) -> Self {
         self.fields.push(ArtifactFieldProtobufV4_2 {
             name: name.to_string(),
             strings: vec![value.into()],
@@ -1384,7 +1384,7 @@ impl ArtifactBuilderV4_2 {
         self
     }
 
-    fn optional_string(mut self, name: &str, value: &Option<String>) -> Self {
+    pub(super) fn optional_string(mut self, name: &str, value: &Option<String>) -> Self {
         self.fields.push(ArtifactFieldProtobufV4_2 {
             name: name.to_string(),
             strings: value.iter().cloned().collect(),
@@ -1395,7 +1395,7 @@ impl ArtifactBuilderV4_2 {
         self
     }
 
-    fn strings(mut self, name: &str, values: &[String]) -> Self {
+    pub(super) fn strings(mut self, name: &str, values: &[String]) -> Self {
         self.fields.push(ArtifactFieldProtobufV4_2 {
             name: name.to_string(),
             strings: values.to_vec(),
@@ -1406,7 +1406,7 @@ impl ArtifactBuilderV4_2 {
         self
     }
 
-    fn unsigned(mut self, name: &str, value: u64) -> Self {
+    pub(super) fn unsigned(mut self, name: &str, value: u64) -> Self {
         self.fields.push(ArtifactFieldProtobufV4_2 {
             name: name.to_string(),
             strings: vec![],
@@ -1417,7 +1417,7 @@ impl ArtifactBuilderV4_2 {
         self
     }
 
-    fn unsigneds(mut self, name: &str, values: &[u64]) -> Self {
+    pub(super) fn unsigneds(mut self, name: &str, values: &[u64]) -> Self {
         self.fields.push(ArtifactFieldProtobufV4_2 {
             name: name.to_string(),
             strings: vec![],
@@ -1428,7 +1428,7 @@ impl ArtifactBuilderV4_2 {
         self
     }
 
-    fn boolean(mut self, name: &str, value: bool) -> Self {
+    pub(super) fn boolean(mut self, name: &str, value: bool) -> Self {
         self.fields.push(ArtifactFieldProtobufV4_2 {
             name: name.to_string(),
             strings: vec![],
@@ -1439,7 +1439,7 @@ impl ArtifactBuilderV4_2 {
         self
     }
 
-    fn messages(mut self, name: &str, values: Vec<Vec<u8>>) -> Self {
+    pub(super) fn messages(mut self, name: &str, values: Vec<Vec<u8>>) -> Self {
         self.fields.push(ArtifactFieldProtobufV4_2 {
             name: name.to_string(),
             strings: vec![],
@@ -1450,7 +1450,7 @@ impl ArtifactBuilderV4_2 {
         self
     }
 
-    fn encode(self) -> Result<Vec<u8>, String> {
+    pub(super) fn encode(self) -> Result<Vec<u8>, String> {
         let mut bytes = Vec::new();
         ArtifactProtobufV4_2 {
             kind: self.kind,
@@ -1462,12 +1462,12 @@ impl ArtifactBuilderV4_2 {
     }
 }
 
-struct ArtifactReaderV4_2 {
+pub(super) struct ArtifactReaderV4_2 {
     fields: BTreeMap<String, ArtifactFieldProtobufV4_2>,
 }
 
 impl ArtifactReaderV4_2 {
-    fn decode(bytes: &[u8], expected_kind: &str) -> Result<Self, String> {
+    pub(super) fn decode(bytes: &[u8], expected_kind: &str) -> Result<Self, String> {
         let value = ArtifactProtobufV4_2::decode(bytes)
             .map_err(|_| "V4.2 Protobuf decoding failed".to_string())?;
         if value.kind != expected_kind {
@@ -1488,7 +1488,7 @@ impl ArtifactReaderV4_2 {
             .ok_or_else(|| "V4.2 Protobuf required field missing".to_string())
     }
 
-    fn string(&mut self, name: &str) -> Result<String, String> {
+    pub(super) fn string(&mut self, name: &str) -> Result<String, String> {
         let field = self.take(name)?;
         if field.strings.len() != 1
             || !field.unsigned.is_empty()
@@ -1500,7 +1500,7 @@ impl ArtifactReaderV4_2 {
         Ok(field.strings[0].clone())
     }
 
-    fn optional_string(&mut self, name: &str) -> Result<Option<String>, String> {
+    pub(super) fn optional_string(&mut self, name: &str) -> Result<Option<String>, String> {
         let field = self.take(name)?;
         if field.strings.len() > 1
             || !field.unsigned.is_empty()
@@ -1512,7 +1512,7 @@ impl ArtifactReaderV4_2 {
         Ok(field.strings.into_iter().next())
     }
 
-    fn strings(&mut self, name: &str) -> Result<Vec<String>, String> {
+    pub(super) fn strings(&mut self, name: &str) -> Result<Vec<String>, String> {
         let field = self.take(name)?;
         if !field.unsigned.is_empty() || !field.booleans.is_empty() || !field.messages.is_empty() {
             return Err("V4.2 Protobuf string list rejected".to_string());
@@ -1520,7 +1520,7 @@ impl ArtifactReaderV4_2 {
         Ok(field.strings)
     }
 
-    fn unsigned(&mut self, name: &str) -> Result<u64, String> {
+    pub(super) fn unsigned(&mut self, name: &str) -> Result<u64, String> {
         let field = self.take(name)?;
         if field.unsigned.len() != 1
             || !field.strings.is_empty()
@@ -1532,7 +1532,7 @@ impl ArtifactReaderV4_2 {
         Ok(field.unsigned[0])
     }
 
-    fn unsigneds(&mut self, name: &str) -> Result<Vec<u64>, String> {
+    pub(super) fn unsigneds(&mut self, name: &str) -> Result<Vec<u64>, String> {
         let field = self.take(name)?;
         if !field.strings.is_empty() || !field.booleans.is_empty() || !field.messages.is_empty() {
             return Err("V4.2 Protobuf unsigned list rejected".to_string());
@@ -1540,7 +1540,7 @@ impl ArtifactReaderV4_2 {
         Ok(field.unsigned)
     }
 
-    fn boolean(&mut self, name: &str) -> Result<bool, String> {
+    pub(super) fn boolean(&mut self, name: &str) -> Result<bool, String> {
         let field = self.take(name)?;
         if field.booleans.len() != 1
             || !field.strings.is_empty()
@@ -1552,7 +1552,7 @@ impl ArtifactReaderV4_2 {
         Ok(field.booleans[0])
     }
 
-    fn messages(&mut self, name: &str) -> Result<Vec<Vec<u8>>, String> {
+    pub(super) fn messages(&mut self, name: &str) -> Result<Vec<Vec<u8>>, String> {
         let field = self.take(name)?;
         if !field.strings.is_empty() || !field.unsigned.is_empty() || !field.booleans.is_empty() {
             return Err("V4.2 Protobuf nested message list rejected".to_string());
@@ -1560,7 +1560,7 @@ impl ArtifactReaderV4_2 {
         Ok(field.messages)
     }
 
-    fn finish(self) -> Result<(), String> {
+    pub(super) fn finish(self) -> Result<(), String> {
         if self.fields.is_empty() {
             Ok(())
         } else {
@@ -1569,11 +1569,11 @@ impl ArtifactReaderV4_2 {
     }
 }
 
-fn as_u64(value: usize) -> Result<u64, String> {
+pub(super) fn as_u64(value: usize) -> Result<u64, String> {
     u64::try_from(value).map_err(|_| "V4.2 integer encoding overflow".to_string())
 }
 
-fn as_usize(value: u64) -> Result<usize, String> {
+pub(super) fn as_usize(value: u64) -> Result<usize, String> {
     usize::try_from(value).map_err(|_| "V4.2 integer decoding overflow".to_string())
 }
 
@@ -2597,7 +2597,7 @@ fn decode_status(bytes: &[u8]) -> Result<MomentumFuturePredictionStatusReceiptV4
     Ok(value)
 }
 
-fn protobuf_paths(directory: &Path) -> Result<Vec<PathBuf>, String> {
+pub(super) fn protobuf_paths(directory: &Path) -> Result<Vec<PathBuf>, String> {
     if !directory.exists() {
         return Ok(Vec::new());
     }
@@ -2614,7 +2614,7 @@ fn protobuf_paths(directory: &Path) -> Result<Vec<PathBuf>, String> {
     Ok(paths)
 }
 
-fn read_single<T>(
+pub(super) fn read_single<T>(
     directory: &Path,
     decode: impl Fn(&[u8]) -> Result<T, String>,
 ) -> Result<Option<T>, String> {
@@ -2629,7 +2629,7 @@ fn read_single<T>(
     decode(&bytes).map(Some)
 }
 
-fn persist_artifact(
+pub(super) fn persist_artifact(
     path: &Path,
     bytes: &[u8],
     digest: &str,
@@ -5843,11 +5843,171 @@ fn collect_protected_artifacts_v4_3(
     Ok(())
 }
 
-fn protected_artifacts_v4_3(root: &Path) -> Result<Vec<(PathBuf, Vec<u8>)>, String> {
+pub(super) fn protected_artifacts_v4_3(root: &Path) -> Result<Vec<(PathBuf, Vec<u8>)>, String> {
     let mut values = Vec::new();
     collect_protected_artifacts_v4_3(root, root, &mut values)?;
     values.sort_by(|left, right| left.0.cmp(&right.0));
     Ok(values)
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(super) struct MomentumSealedPredictionChainV4_3 {
+    pub lifecycle: MomentumFutureEvaluationLifecycleV4_2,
+    pub context_authorization: MomentumProtectedContextAuthorizationV4_3,
+    pub supersession: MomentumInputPlanSupersessionV4_3,
+    pub context_plan: MomentumProspectiveFeatureContextPlanV4_3,
+    pub input_registration: MomentumProspectiveInputRegistrationV4_3,
+    pub input_receipt: MomentumProspectiveInputReceiptV4_3,
+    pub input_capsule: MomentumProspectiveInputCapsuleV4_3,
+    pub context_verification: MomentumProspectiveContextVerificationV4_3,
+    pub context_usage_ledger: MomentumContextUsageLedgerV4_3,
+    pub prediction_capsule: MomentumProspectivePredictionCapsuleV4_3,
+    pub prediction_journal: MomentumProspectivePredictionJournalV4_3,
+    pub outcome_plan: MomentumProspectiveOutcomePlanV4_3,
+}
+
+pub(super) fn reopen_momentum_v4_3_sealed_chain(
+    root: &Path,
+) -> Result<MomentumSealedPredictionChainV4_3, String> {
+    let v4_2_root = root.join(ROOT_VERSION_V4_2).join(AGENT_ID_V4_2);
+    let v4_3_root = root.join(ROOT_VERSION_V4_3).join(AGENT_ID_V4_2);
+    let lifecycle = read_single(&v4_2_root.join("lifecycles"), decode_lifecycle)?
+        .ok_or_else(|| "V4.3 sealed lifecycle unavailable".to_string())?;
+    let context_authorization = read_single(
+        &v4_3_root.join("context_authorizations"),
+        decode_authorization_v4_3,
+    )?
+    .ok_or_else(|| "V4.3 sealed authorization unavailable".to_string())?;
+    let supersession = read_single(&v4_3_root.join("supersessions"), decode_supersession_v4_3)?
+        .ok_or_else(|| "V4.3 sealed supersession unavailable".to_string())?;
+    let context_plan = read_single(&v4_3_root.join("context_plans"), decode_context_plan_v4_3)?
+        .ok_or_else(|| "V4.3 sealed context plan unavailable".to_string())?;
+    let input_registration = read_single(
+        &v4_3_root.join("input_registrations"),
+        decode_input_registration_v4_3,
+    )?
+    .ok_or_else(|| "V4.3 sealed input registration unavailable".to_string())?;
+    let input_receipt = read_single(&v4_3_root.join("input_receipts"), decode_input_receipt_v4_3)?
+        .ok_or_else(|| "V4.3 sealed input receipt unavailable".to_string())?;
+    let input_capsule = read_single(&v4_3_root.join("input_capsules"), decode_input_capsule_v4_3)?
+        .ok_or_else(|| "V4.3 sealed input capsule unavailable".to_string())?;
+    let context_verification = read_single(
+        &v4_3_root.join("context_verifications"),
+        decode_context_proof_v4_3,
+    )?
+    .ok_or_else(|| "V4.3 sealed context verification unavailable".to_string())?;
+    let context_usage_ledger = read_single(
+        &v4_3_root.join("context_usage_ledgers"),
+        decode_usage_ledger_v4_3,
+    )?
+    .ok_or_else(|| "V4.3 sealed context ledger unavailable".to_string())?;
+    let prediction_capsule = read_single(
+        &v4_3_root.join("prediction_capsules"),
+        decode_prediction_capsule_v4_3,
+    )?
+    .ok_or_else(|| "V4.3 sealed prediction capsule unavailable".to_string())?;
+    let prediction_journal = read_single(
+        &v4_3_root.join("prediction_journals"),
+        decode_prediction_journal_v4_3,
+    )?
+    .ok_or_else(|| "V4.3 sealed prediction journal unavailable".to_string())?;
+    let outcome_plan = read_single(&v4_3_root.join("outcome_plans"), decode_outcome_plan_v4_3)?
+        .ok_or_else(|| "V4.3 sealed outcome plan unavailable".to_string())?;
+    let journal_entry = prediction_journal
+        .entries
+        .first()
+        .ok_or_else(|| "V4.3 sealed prediction journal empty".to_string())?;
+    let seal_digests = prediction_capsule
+        .participant_prediction_seals
+        .iter()
+        .map(|seal| seal.seal_digest.clone())
+        .collect::<BTreeSet<_>>();
+    let persisted_seals = protobuf_paths(&v4_3_root.join("participant_prediction_seals"))?
+        .into_iter()
+        .map(|path| {
+            fs::read(path)
+                .map_err(|_| "V4.3 participant seal read failed".to_string())
+                .and_then(|bytes| decode_prediction_seal_v4_3(&bytes))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let persisted_seal_digests = persisted_seals
+        .iter()
+        .map(|seal| seal.seal_digest.clone())
+        .collect::<BTreeSet<_>>();
+    let forbidden_context_uses = context_usage_ledger.entries.iter().any(|entry| {
+        !entry.used_for_feature_construction
+            || entry.used_for_training
+            || entry.used_for_normalizer_fit
+            || entry.used_for_label
+            || entry.used_for_metric
+            || entry.used_for_reward
+    });
+    if context_authorization.lifecycle_digest != lifecycle.lifecycle_digest
+        || supersession.lifecycle_digest != lifecycle.lifecycle_digest
+        || context_plan.lifecycle_digest != lifecycle.lifecycle_digest
+        || input_registration.lifecycle_digest != lifecycle.lifecycle_digest
+        || input_receipt.lifecycle_digest != lifecycle.lifecycle_digest
+        || input_capsule.lifecycle_digest != lifecycle.lifecycle_digest
+        || prediction_capsule.lifecycle_digest != lifecycle.lifecycle_digest
+        || context_authorization.authorization_status
+            != ProtectedContextAuthorizationStatusV4_3::Authorized
+        || supersession.status != MomentumInputPlanSupersessionStatusV4_3::Superseded
+        || input_receipt.status != MomentumProspectiveInputStatusV4_2::EvidenceAcquired
+        || !input_receipt.request_attempted
+        || input_receipt.request_count != 1
+        || input_receipt.retry_count != 0
+        || !input_receipt.terminal
+        || input_receipt.input_capsule_digest.as_deref()
+            != Some(input_capsule.capsule_digest.as_str())
+        || input_capsule.outcome_row_present
+        || input_capsule.labels_accessed
+        || input_capsule.metrics_computed
+        || input_capsule.prior_outcome_capsule_accessed
+        || context_verification.input_capsule_digest != input_capsule.capsule_digest
+        || context_verification.context_usage_ledger_digest != context_usage_ledger.ledger_digest
+        || !context_verification.exact_timestamps_verified
+        || !context_verification.strict_chronology_verified
+        || !context_verification.feature_history_complete
+        || !context_verification.protected_context_inference_only
+        || !context_verification.outcome_timestamp_absent
+        || context_verification.prior_outcome_artifact_accessed
+        || context_usage_ledger.entries.len() != context_plan.required_row_count
+        || forbidden_context_uses
+        || prediction_capsule.context_authorization_digest
+            != context_authorization.authorization_digest
+        || prediction_capsule.supersession_digest != supersession.supersession_digest
+        || prediction_capsule.corrected_context_plan_digest != context_plan.plan_digest
+        || prediction_capsule.input_registration_digest != input_registration.registration_digest
+        || prediction_capsule.input_receipt_digest != input_receipt.receipt_digest
+        || prediction_capsule.input_capsule_digest != input_capsule.capsule_digest
+        || prediction_capsule.context_usage_ledger_digest != context_usage_ledger.ledger_digest
+        || seal_digests.len() != 3
+        || persisted_seal_digests != seal_digests
+        || journal_entry.prediction_capsule_digest != prediction_capsule.capsule_digest
+        || !journal_entry.prediction_sealed_before_outcome
+        || journal_entry.outcome_stage_unlocked
+        || outcome_plan.prediction_capsule_digest != prediction_capsule.capsule_digest
+        || outcome_plan.event_timestamp_ms != prediction_capsule.event_timestamp_ms
+        || outcome_plan.required_outcome_timestamp_ms.len() != 1
+        || outcome_plan.maximum_outcome_requests != 1
+        || outcome_plan.maximum_outcome_retries != 0
+    {
+        return Err("V4.3 sealed chain integrity rejected".to_string());
+    }
+    Ok(MomentumSealedPredictionChainV4_3 {
+        lifecycle,
+        context_authorization,
+        supersession,
+        context_plan,
+        input_registration,
+        input_receipt,
+        input_capsule,
+        context_verification,
+        context_usage_ledger,
+        prediction_capsule,
+        prediction_journal,
+        outcome_plan,
+    })
 }
 
 fn provider_contract_available_v4_3(config: &UpbitHistoricalPilotConfigV0) -> Result<bool, String> {
@@ -7857,6 +8017,132 @@ mod tests {
         build_outcome_plan_v4_3(&lifecycle_fixture(), &prediction_capsule_fixture_v4_3()).unwrap()
     }
 
+    fn persist_sealed_chain_fixture_v4_3(root: &Path) {
+        let v4_2_root = root.join(ROOT_VERSION_V4_2).join(AGENT_ID_V4_2);
+        let v4_3_root = root.join(ROOT_VERSION_V4_3).join(AGENT_ID_V4_2);
+        let lifecycle = lifecycle_fixture();
+        let authorization = authorization_fixture_v4_3();
+        let supersession = supersession_fixture_v4_3();
+        let context_plan = context_plan_fixture_v4_3();
+        let registration = registration_fixture_v4_3();
+        let (input_capsule, ledger, proof, _) = input_bundle_fixture_v4_3();
+        let receipt = receipt_fixture_v4_3();
+        let prediction_capsule = prediction_capsule_fixture_v4_3();
+        let journal = journal_fixture_v4_3();
+        let outcome_plan = outcome_plan_fixture_v4_3();
+        persist_lifecycle(&v4_2_root, &lifecycle).unwrap();
+        persist_v4_3(
+            &v4_3_root,
+            "context_authorizations",
+            &authorization.authorization_digest,
+            "pb",
+            &encode_authorization_v4_3(&authorization).unwrap(),
+            |bytes| Ok(decode_authorization_v4_3(bytes)?.authorization_digest),
+        )
+        .unwrap();
+        persist_v4_3(
+            &v4_3_root,
+            "supersessions",
+            &supersession.supersession_digest,
+            "pb",
+            &encode_supersession_v4_3(&supersession).unwrap(),
+            |bytes| Ok(decode_supersession_v4_3(bytes)?.supersession_digest),
+        )
+        .unwrap();
+        persist_v4_3(
+            &v4_3_root,
+            "context_plans",
+            &context_plan.plan_digest,
+            "pb",
+            &encode_context_plan_v4_3(&context_plan).unwrap(),
+            |bytes| Ok(decode_context_plan_v4_3(bytes)?.plan_digest),
+        )
+        .unwrap();
+        persist_v4_3(
+            &v4_3_root,
+            "input_registrations",
+            &registration.registration_digest,
+            "pb",
+            &encode_input_registration_v4_3(&registration).unwrap(),
+            |bytes| Ok(decode_input_registration_v4_3(bytes)?.registration_digest),
+        )
+        .unwrap();
+        persist_v4_3(
+            &v4_3_root,
+            "input_receipts",
+            &receipt.receipt_digest,
+            "pb",
+            &encode_input_receipt_v4_3(&receipt).unwrap(),
+            |bytes| Ok(decode_input_receipt_v4_3(bytes)?.receipt_digest),
+        )
+        .unwrap();
+        persist_v4_3(
+            &v4_3_root,
+            "input_capsules",
+            &input_capsule.capsule_digest,
+            "pb",
+            &encode_input_capsule_v4_3(&input_capsule).unwrap(),
+            |bytes| Ok(decode_input_capsule_v4_3(bytes)?.capsule_digest),
+        )
+        .unwrap();
+        persist_v4_3(
+            &v4_3_root,
+            "context_verifications",
+            &proof.proof_digest,
+            "pb",
+            &encode_context_proof_v4_3(&proof).unwrap(),
+            |bytes| Ok(decode_context_proof_v4_3(bytes)?.proof_digest),
+        )
+        .unwrap();
+        persist_v4_3(
+            &v4_3_root,
+            "context_usage_ledgers",
+            &ledger.ledger_digest,
+            "pb",
+            &encode_usage_ledger_v4_3(&ledger).unwrap(),
+            |bytes| Ok(decode_usage_ledger_v4_3(bytes)?.ledger_digest),
+        )
+        .unwrap();
+        for seal in &prediction_capsule.participant_prediction_seals {
+            persist_v4_3(
+                &v4_3_root,
+                "participant_prediction_seals",
+                &seal.seal_digest,
+                "pb",
+                &encode_prediction_seal_v4_3(seal).unwrap(),
+                |bytes| Ok(decode_prediction_seal_v4_3(bytes)?.seal_digest),
+            )
+            .unwrap();
+        }
+        persist_v4_3(
+            &v4_3_root,
+            "prediction_capsules",
+            &prediction_capsule.capsule_digest,
+            "pb",
+            &encode_prediction_capsule_v4_3(&prediction_capsule).unwrap(),
+            |bytes| Ok(decode_prediction_capsule_v4_3(bytes)?.capsule_digest),
+        )
+        .unwrap();
+        persist_v4_3(
+            &v4_3_root,
+            "prediction_journals",
+            &journal.journal_digest,
+            "pb",
+            &encode_prediction_journal_v4_3(&journal).unwrap(),
+            |bytes| Ok(decode_prediction_journal_v4_3(bytes)?.journal_digest),
+        )
+        .unwrap();
+        persist_v4_3(
+            &v4_3_root,
+            "outcome_plans",
+            &outcome_plan.plan_digest,
+            "pb",
+            &encode_outcome_plan_v4_3(&outcome_plan).unwrap(),
+            |bytes| Ok(decode_outcome_plan_v4_3(bytes)?.plan_digest),
+        )
+        .unwrap();
+    }
+
     fn status_fixture_v4_3() -> MomentumFuturePredictionStatusReceiptV4_3 {
         let lifecycle = lifecycle_fixture();
         let authorization = authorization_fixture_v4_3();
@@ -8931,5 +9217,78 @@ mod tests {
         status.maximum_requests = 2;
         status.status_digest = status_digest_v4_3(&status);
         assert!(decode_status_v4_3(&encode_status_v4_3(&status).unwrap()).is_err());
+    }
+
+    #[test]
+    fn sprint85_03_sealed_prediction_chain_validates_fully() {
+        let root =
+            std::env::temp_dir().join(format!("soma-sprint85-chain-{}-03", std::process::id()));
+        persist_sealed_chain_fixture_v4_3(&root);
+        let chain = reopen_momentum_v4_3_sealed_chain(&root).unwrap();
+        assert_eq!(
+            chain.prediction_capsule.participant_prediction_seals.len(),
+            3
+        );
+        assert_eq!(chain.input_receipt.request_count, 1);
+        assert_eq!(chain.outcome_plan.maximum_outcome_requests, 1);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn sprint85_04_missing_prediction_seal_blocks_outcome_acquisition() {
+        let root =
+            std::env::temp_dir().join(format!("soma-sprint85-chain-{}-04", std::process::id()));
+        persist_sealed_chain_fixture_v4_3(&root);
+        let seals = protobuf_paths(
+            &root
+                .join(ROOT_VERSION_V4_3)
+                .join(AGENT_ID_V4_2)
+                .join("participant_prediction_seals"),
+        )
+        .unwrap();
+        fs::remove_file(&seals[0]).unwrap();
+        assert!(reopen_momentum_v4_3_sealed_chain(&root).is_err());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn sprint85_05_altered_prediction_digest_blocks_outcome_acquisition() {
+        let root =
+            std::env::temp_dir().join(format!("soma-sprint85-chain-{}-05", std::process::id()));
+        persist_sealed_chain_fixture_v4_3(&root);
+        let path = protobuf_paths(
+            &root
+                .join(ROOT_VERSION_V4_3)
+                .join(AGENT_ID_V4_2)
+                .join("prediction_capsules"),
+        )
+        .unwrap()
+        .remove(0);
+        let mut bytes = fs::read(&path).unwrap();
+        let index = bytes.len() / 2;
+        bytes[index] ^= 1;
+        fs::write(path, bytes).unwrap();
+        assert!(reopen_momentum_v4_3_sealed_chain(&root).is_err());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn sprint85_06_altered_outcome_plan_blocks_acquisition() {
+        let root =
+            std::env::temp_dir().join(format!("soma-sprint85-chain-{}-06", std::process::id()));
+        persist_sealed_chain_fixture_v4_3(&root);
+        let path = protobuf_paths(
+            &root
+                .join(ROOT_VERSION_V4_3)
+                .join(AGENT_ID_V4_2)
+                .join("outcome_plans"),
+        )
+        .unwrap()
+        .remove(0);
+        let mut bytes = fs::read(&path).unwrap();
+        bytes.push(0xff);
+        fs::write(path, bytes).unwrap();
+        assert!(reopen_momentum_v4_3_sealed_chain(&root).is_err());
+        fs::remove_dir_all(root).unwrap();
     }
 }
