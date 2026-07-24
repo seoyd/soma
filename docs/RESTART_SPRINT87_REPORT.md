@@ -78,9 +78,9 @@
     correctness, model improvement, participant superiority, a winner, reward
     effectiveness, Chair learning, promotion readiness, and trading readiness
     remain unproven.
-34. **Commit, push, and PR:** verified changes are prepared on
-    `agent/sprint87-v4-outcome-operational-close`; publication details are
-    recorded in the final handoff.
+34. **Commit, push, and PR:** commit `9a12786` was pushed to
+    `agent/sprint87-v4-outcome-operational-close`, and draft PR #19 was opened
+    against `main`.
 35. **Next recommendation:** at or after finality, rerun the six acquisition
     preflights. If they agree on ready state, execute only the registered
     request once and open locally only after exact successful evidence.
