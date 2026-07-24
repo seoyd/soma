@@ -50,5 +50,4 @@ secrets/
 credentials/
 *.key
 *.pem
-work.md
 copilot-session-*.md
