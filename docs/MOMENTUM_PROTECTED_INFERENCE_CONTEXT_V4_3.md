@@ -88,3 +88,26 @@ atomic create, flush, sync, reopen, semantic verification, rename, and final
 reopen sequence. Public status exposes identities and zero-authority counters,
 not probabilities, OHLCV, labels, metrics, parameters, features, returns, or
 local paths.
+
+## Sealed operational result
+
+The one registered request was attempted once after input finality and before
+outcome finality. It returned a successful HTTP class and exactly 16 verified
+rows. The usage ledger contains eight frozen historical entries, three new
+incremental entries, four protected raw-inference entries, and one prospective
+event entry. Every entry is feature-only and records zero training,
+normalizer-fit, label, metric, and reward use.
+
+All three frozen participant identities were verified before their predictions
+were sealed. The resulting capsule contains exactly three seals, hides numeric
+probabilities and labels, and records no outcome access, metric, or winner.
+The journal keeps the outcome stage locked, and the horizon-one plan contains
+only the derived outcome identity and finality boundary.
+
+Status and dry-run expose the exact registered timestamps, provider, market,
+cadence, request boundary, request fingerprint, and `1/1/0` request budget.
+They construct no transport and write no artifact. If an unsealed epoch reaches
+outcome finality, `ProspectiveWindowExpired` prevents backdated acquisition.
+Sealed replay returns `PredictionAlreadySealed` before transport and reports
+zero new network, reconstruction, prediction, write, outcome, or authority
+work.

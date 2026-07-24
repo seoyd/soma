@@ -1,5 +1,27 @@
 # Momentum V4 Future-Prediction Lifecycle
 
+## Sprint 84 operational seal
+
+The registered V4.3 request executed once inside the legal prospective window.
+The accepted response matched the exact 16 finalized daily `KRW-BTC`
+timestamps, excluded the outcome timestamp, and produced input receipt
+`8d045b3a28aafda1`, input capsule `493d494df60a8e91`, context ledger
+`f1d7cf3649ce228c`, and context proof `1c0028e11fbcf46e`.
+
+The three frozen participants reopened without parameter updates or normalizer
+refits. Their validated seals were committed into prediction capsule
+`58250df8680eba74` and journal `7b75a55a4cf6752e`. Outcome plan
+`ed9a4163f2a9c85f` remains locked until its independently authorized stage;
+Sprint 84 issued zero outcome requests and performed no labels, metrics,
+ranking, winner, reward, authority, or trading work.
+
+Production readiness now enforces both edges of the prospective window. Before
+input finality it returns `AwaitingInputFinality`; from input finality until
+outcome finality it returns `ReadyForInputAcquisition`; at or after outcome
+finality, an unsealed epoch returns `ProspectiveWindowExpired` with zero
+transport. A sealed epoch always reopens as `PredictionAlreadySealed` and does
+zero new work.
+
 ## V4.3 protected-context amendment
 
 V4.3 explicitly authorizes protected timestamps only as canonical raw OHLCV
@@ -137,9 +159,9 @@ stage is still locked. The maturity plan contains only future timestamp
 identities derived from the frozen horizon. V4.2 never requests the outcome
 row.
 
-## Current safe result
+## Historical V4.2 safe result
 
-The current execution persisted and reopened only the additive lifecycle,
+The historical V4.2 execution persisted and reopened only the additive lifecycle,
 context plan, input registration, and status receipt. Readiness is
 `ContextPolicyAmbiguous`, so it constructed zero transport, issued zero network
 requests, created no input evidence, performed no participant prediction, and
