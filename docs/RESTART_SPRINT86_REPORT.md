@@ -94,9 +94,9 @@
     correctness, model improvement, participant superiority, a winner, reward
     effectiveness, promotion readiness, Chair learning, and trading readiness
     are not established.
-37. **Commit, push, and draft PR:** the verified Sprint 86 documentation is
-    prepared on `agent/sprint86-v4-outcome-execution`; publication details are
-    recorded in the final handoff.
+37. **Commit, push, and draft PR:** documentation commit `10f6d3a` was pushed
+    to `agent/sprint86-v4-outcome-execution`, and draft PR #18 was opened
+    against `main`.
 38. **Next Sprint recommendation:** at or after the persisted finality
     boundary, rerun status and dry-run. If ready, execute only the registered
     one-row request once. Open locally only after exact successful evidence;
