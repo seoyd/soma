@@ -1,5 +1,20 @@
 # Momentum V4 Future-Prediction Lifecycle
 
+## V4.4 outcome continuation
+
+The sealed V4.3 chain is now the only accepted source for the separately
+registered V4.4 outcome stage. V4.4 reopens every lifecycle, context, input,
+seal, capsule, journal, and maturity-plan identity before considering a
+transport. The V4.3 files remain byte-identical and continue to prove that all
+three predictions were sealed before outcome access.
+
+Outcome acquisition and local opening are distinct commands and authorities.
+Acquisition can make at most one exact finalized-row request after the
+persisted finality boundary; it stores only closed evidence. Opening rejects
+network permission and requires a separate one-time local authorization before
+private label or probability access. See `MOMENTUM_V4_FUTURE_OUTCOME.md` for
+the response, replay, evaluation-ledger, and reward-eligibility boundaries.
+
 ## Sprint 84 operational seal
 
 The registered V4.3 request executed once inside the legal prospective window.
