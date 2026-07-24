@@ -119,7 +119,7 @@ final reopen/decode storage.
 
 ## Current verified state
 
-At `2026-07-24T03:14:34Z`, finality had not arrived. Status, dry-run, and
+At `2026-07-24T03:43:12Z`, finality had not arrived. Status, dry-run, and
 execute agreed on `AwaitingOutcomeFinality`, registration
 `52da8d28f246ee4b`, and request fingerprint `ccf0335feac46846`. Runtime storage
 contains only the V4.4 registration and safe status. There is no outcome
