@@ -1,4 +1,35 @@
-# Momentum V4.2 Future-Prediction Lifecycle
+# Momentum V4 Future-Prediction Lifecycle
+
+## V4.3 protected-context amendment
+
+V4.3 explicitly authorizes protected timestamps only as canonical raw OHLCV
+feature context for the same frozen three participants. It forbids training,
+normalizer fitting, labels, qualification, metrics, rewards, event selection,
+outcome selection, and prior-outcome-capsule use. Every accepted row is bound
+to an append-only context-usage entry.
+
+The blocked V4.2 plan and registration remain immutable history. A separately
+persisted supersession makes the old executor permanently
+`SupersededInputRegistration` with zero transport. The corrected plan derives
+the original V4.1 minimum event `2026-07-23T00:00:00Z`, the exact 16 daily
+candles beginning `2026-07-08T00:00:00Z`, and input finality
+`2026-07-24T00:00:00Z`.
+
+The corrected registration requests the exact 16 timestamps in one
+credential-free, read-only Upbit `KRW-BTC` daily request, with concurrency one
+and zero retries. Before finality, execute persists only authorization,
+supersession, corrected plan, corrected registration, and safe status. It
+creates no receipt, input capsule, usage ledger, prediction, journal, or
+outcome plan.
+
+After finality, exact input evidence may reconstruct and seal the frozen raw
+logistic, interaction logistic, and training-prevalence benchmark predictions.
+The horizon-one outcome timestamp is `2026-07-24T00:00:00Z`, with finality
+`2026-07-25T00:00:00Z`; it is not acquired in Sprint 83. See
+`MOMENTUM_PROTECTED_INFERENCE_CONTEXT_V4_3.md` for the complete authorization
+and provenance boundary.
+
+## V4.2 historical contract
 
 Momentum V4.2 is an additive, two-stage lifecycle for the frozen V4 family. It
 separates finalized input-evidence acquisition and prediction sealing from a
