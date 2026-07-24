@@ -15,6 +15,11 @@ network permission and requires a separate one-time local authorization before
 private label or probability access. See `MOMENTUM_V4_FUTURE_OUTCOME.md` for
 the response, replay, evaluation-ledger, and reward-eligibility boundaries.
 
+PR #17 is merged. The merged sealed chain reopened successfully during the
+Sprint 86 preflight, and all status and dry-run forms remained pre-finality
+with zero transport or opening work. The V4.3 prediction artifacts and all
+three participant seals remain unchanged.
+
 ## Sprint 84 operational seal
 
 The registered V4.3 request executed once inside the legal prospective window.

@@ -119,13 +119,18 @@ final reopen/decode storage.
 
 ## Current verified state
 
-At `2026-07-24T03:43:12Z`, finality had not arrived. Status, dry-run, and
-execute agreed on `AwaitingOutcomeFinality`, registration
-`52da8d28f246ee4b`, and request fingerprint `ccf0335feac46846`. Runtime storage
-contains only the V4.4 registration and safe status. There is no outcome
-attempt, HTTP result, outcome receipt, outcome capsule, opening authorization,
-opening receipt, evaluation ledger, metric, ranking, winner, reward, or
-authority action.
+PR #17 was merged into `main` as `1f62904f7a3ea7488c0dd22a438b8f2d1c26737c`.
+At `2026-07-24T05:43:20Z`, finality had not arrived. Two text status runs, two
+JSON status runs, and text and JSON dry-runs all agreed on
+`AwaitingOutcomeFinality`, registration `52da8d28f246ee4b`, request fingerprint
+`ccf0335feac46846`, and status `4524bdd75525c60f`.
+
+Runtime storage remains byte-identical to its before-state and contains only
+the V4.4 registration and safe status receipts. There is no outcome attempt,
+transport construction, HTTP result, outcome receipt, outcome capsule, opening
+authorization, opening receipt, evaluation ledger, metric, ranking, winner,
+reward, or authority action. The authorized post-finality request and separate
+opening remain deferred until the persisted finality boundary is reached.
 
 This verifies the implementation and the pre-finality fail-closed state. It
 does not establish prediction correctness, model improvement, participant
