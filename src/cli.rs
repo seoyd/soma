@@ -3128,6 +3128,32 @@ pub(crate) fn format_momentum_v4_future_prediction_text(
         status.input_finality_boundary_ms
     );
     let _ = writeln!(output, "event_readiness={:?}", status.event_readiness);
+    let _ = writeln!(output, "input_provider_id={}", status.input_provider_id);
+    let _ = writeln!(output, "input_market={}", status.input_market);
+    let _ = writeln!(output, "input_cadence={}", status.input_cadence);
+    let _ = writeln!(
+        output,
+        "exact_expected_timestamp_ms={}",
+        status
+            .exact_expected_timestamp_ms
+            .iter()
+            .map(u64::to_string)
+            .collect::<Vec<_>>()
+            .join(",")
+    );
+    let _ = writeln!(output, "expected_row_count={}", status.expected_row_count);
+    let _ = writeln!(
+        output,
+        "request_to_timestamp_ms={}",
+        status.request_to_timestamp_ms
+    );
+    let _ = writeln!(output, "maximum_requests={}", status.maximum_requests);
+    let _ = writeln!(output, "maximum_retries={}", status.maximum_retries);
+    let _ = writeln!(
+        output,
+        "input_request_fingerprint={}",
+        status.input_request_fingerprint
+    );
     let _ = writeln!(
         output,
         "corrected_context_plan_digest={}",

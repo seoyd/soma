@@ -513,9 +513,10 @@ pub struct MomentumInputPlanSupersessionV4_3 {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub enum MomentumEventReadinessV4_3 {
+pub enum MomentumInputExecutionReadinessV4_3 {
     ReadyForInputAcquisition,
     AwaitingInputFinality,
+    ProspectiveWindowExpired,
     ContextOnlyAuthorizationMissing,
     ContextAuthorizationIntegrityFailure,
     InputRegistrationSuperseded,
@@ -523,6 +524,8 @@ pub enum MomentumEventReadinessV4_3 {
     PredictionAlreadySealed,
     IntegrityFailure,
 }
+
+pub type MomentumEventReadinessV4_3 = MomentumInputExecutionReadinessV4_3;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MomentumProspectiveFeatureContextPlanV4_3 {
@@ -781,6 +784,16 @@ pub struct MomentumFuturePredictionStatusReceiptV4_3 {
     pub replacement_event_timestamp_ms: u64,
     pub input_finality_boundary_ms: u64,
     pub event_readiness: MomentumEventReadinessV4_3,
+    pub input_provider_id: String,
+    pub input_market: String,
+    pub input_cadence: String,
+    pub exact_expected_timestamp_ms: Vec<u64>,
+    pub expected_row_count: usize,
+    pub request_to_timestamp_ms: u64,
+    pub maximum_requests: usize,
+    pub maximum_concurrency: usize,
+    pub maximum_retries: usize,
+    pub input_request_fingerprint: String,
     pub corrected_context_plan_digest: String,
     pub corrected_input_registration_digest: String,
     pub input_request_count: usize,
@@ -4025,6 +4038,7 @@ fn validate_authorization_policy_v4_3(
 fn event_readiness_v4_3(
     observed_timestamp_ms: u64,
     input_finality_boundary_ms: u64,
+    outcome_finality_boundary_ms: u64,
     prior_terminal_receipt: bool,
     prediction_already_sealed: bool,
 ) -> MomentumEventReadinessV4_3 {
@@ -4034,9 +4048,23 @@ fn event_readiness_v4_3(
         MomentumEventReadinessV4_3::PriorInputAttemptTerminal
     } else if observed_timestamp_ms < input_finality_boundary_ms {
         MomentumEventReadinessV4_3::AwaitingInputFinality
+    } else if observed_timestamp_ms >= outcome_finality_boundary_ms {
+        MomentumEventReadinessV4_3::ProspectiveWindowExpired
     } else {
         MomentumEventReadinessV4_3::ReadyForInputAcquisition
     }
+}
+
+fn execution_stops_before_transport_v4_3(
+    mode: MomentumFuturePredictionRunModeV4_2,
+    readiness: MomentumEventReadinessV4_3,
+) -> bool {
+    mode != MomentumFuturePredictionRunModeV4_2::Execute
+        || matches!(
+            readiness,
+            MomentumEventReadinessV4_3::PriorInputAttemptTerminal
+                | MomentumEventReadinessV4_3::ProspectiveWindowExpired
+        )
 }
 
 fn old_registration_superseded_v4_3(
@@ -4462,6 +4490,7 @@ fn parse_readiness_v4_3(value: &str) -> Result<MomentumEventReadinessV4_3, Strin
     match value {
         "ReadyForInputAcquisition" => Ok(MomentumEventReadinessV4_3::ReadyForInputAcquisition),
         "AwaitingInputFinality" => Ok(MomentumEventReadinessV4_3::AwaitingInputFinality),
+        "ProspectiveWindowExpired" => Ok(MomentumEventReadinessV4_3::ProspectiveWindowExpired),
         "ContextOnlyAuthorizationMissing" => {
             Ok(MomentumEventReadinessV4_3::ContextOnlyAuthorizationMissing)
         }
@@ -5619,6 +5648,22 @@ fn encode_status_v4_3(
             value.input_finality_boundary_ms,
         )
         .string("event_readiness", format!("{:?}", value.event_readiness))
+        .string("input_provider_id", &value.input_provider_id)
+        .string("input_market", &value.input_market)
+        .string("input_cadence", &value.input_cadence)
+        .unsigneds(
+            "exact_expected_timestamp_ms",
+            &value.exact_expected_timestamp_ms,
+        )
+        .unsigned("expected_row_count", as_u64(value.expected_row_count)?)
+        .unsigned("request_to_timestamp_ms", value.request_to_timestamp_ms)
+        .unsigned("maximum_requests", as_u64(value.maximum_requests)?)
+        .unsigned("maximum_concurrency", as_u64(value.maximum_concurrency)?)
+        .unsigned("maximum_retries", as_u64(value.maximum_retries)?)
+        .string(
+            "input_request_fingerprint",
+            &value.input_request_fingerprint,
+        )
         .string(
             "corrected_context_plan_digest",
             &value.corrected_context_plan_digest,
@@ -5702,6 +5747,16 @@ fn decode_status_v4_3(bytes: &[u8]) -> Result<MomentumFuturePredictionStatusRece
         replacement_event_timestamp_ms: fields.unsigned("replacement_event_timestamp_ms")?,
         input_finality_boundary_ms: fields.unsigned("input_finality_boundary_ms")?,
         event_readiness: parse_readiness_v4_3(&fields.string("event_readiness")?)?,
+        input_provider_id: fields.string("input_provider_id")?,
+        input_market: fields.string("input_market")?,
+        input_cadence: fields.string("input_cadence")?,
+        exact_expected_timestamp_ms: fields.unsigneds("exact_expected_timestamp_ms")?,
+        expected_row_count: as_usize(fields.unsigned("expected_row_count")?)?,
+        request_to_timestamp_ms: fields.unsigned("request_to_timestamp_ms")?,
+        maximum_requests: as_usize(fields.unsigned("maximum_requests")?)?,
+        maximum_concurrency: as_usize(fields.unsigned("maximum_concurrency")?)?,
+        maximum_retries: as_usize(fields.unsigned("maximum_retries")?)?,
+        input_request_fingerprint: fields.string("input_request_fingerprint")?,
         corrected_context_plan_digest: fields.string("corrected_context_plan_digest")?,
         corrected_input_registration_digest: fields
             .string("corrected_input_registration_digest")?,
@@ -5726,6 +5781,12 @@ fn decode_status_v4_3(bytes: &[u8]) -> Result<MomentumFuturePredictionStatusRece
     };
     fields.finish()?;
     if value.status_version != STATUS_RECEIPT_VERSION_V4_3
+        || value.exact_expected_timestamp_ms.len() != value.expected_row_count
+        || value.expected_row_count != 16
+        || value.maximum_requests != 1
+        || value.maximum_concurrency != 1
+        || value.maximum_retries != 0
+        || value.input_request_fingerprint.is_empty()
         || value.input_request_count > 1
         || !value.protected_artifacts_unchanged
         || !value.active_state_unchanged
@@ -6235,16 +6296,16 @@ fn build_prediction_journal_v4_3(
     Ok(journal)
 }
 
-fn build_outcome_plan_v4_3(
+fn derive_outcome_window_v4_3(
     lifecycle: &MomentumFutureEvaluationLifecycleV4_2,
-    capsule: &MomentumProspectivePredictionCapsuleV4_3,
-) -> Result<MomentumProspectiveOutcomePlanV4_3, String> {
+    event_timestamp_ms: u64,
+) -> Result<(Vec<u64>, u64), String> {
     let required_outcome_timestamp_ms = (1..=lifecycle.prediction_horizon)
         .map(|offset| {
             u64::try_from(offset)
                 .ok()
                 .and_then(|offset| offset.checked_mul(lifecycle.cadence_ms))
-                .and_then(|offset| capsule.event_timestamp_ms.checked_add(offset))
+                .and_then(|offset| event_timestamp_ms.checked_add(offset))
                 .ok_or_else(|| "V4.3 outcome timestamp overflow".to_string())
         })
         .collect::<Result<Vec<_>, _>>()?;
@@ -6252,6 +6313,15 @@ fn build_outcome_plan_v4_3(
         .last()
         .and_then(|timestamp| timestamp.checked_add(lifecycle.cadence_ms))
         .ok_or_else(|| "V4.3 outcome finality unavailable".to_string())?;
+    Ok((required_outcome_timestamp_ms, outcome_finality_boundary_ms))
+}
+
+fn build_outcome_plan_v4_3(
+    lifecycle: &MomentumFutureEvaluationLifecycleV4_2,
+    capsule: &MomentumProspectivePredictionCapsuleV4_3,
+) -> Result<MomentumProspectiveOutcomePlanV4_3, String> {
+    let (required_outcome_timestamp_ms, outcome_finality_boundary_ms) =
+        derive_outcome_window_v4_3(lifecycle, capsule.event_timestamp_ms)?;
     let mut plan = MomentumProspectiveOutcomePlanV4_3 {
         plan_version: OUTCOME_PLAN_VERSION_V4_3.to_string(),
         prediction_capsule_digest: capsule.capsule_digest.clone(),
@@ -6291,6 +6361,14 @@ fn build_status_v4_3(
     safety_counters: MomentumFuturePredictionSafetyCountersV4_3,
 ) -> Result<MomentumFuturePredictionStatusReceiptV4_3, String> {
     validate_safety_counters_v4_3(&safety_counters)?;
+    let request = build_provider_request_v4_3(registration)?;
+    let (_, derived_outcome_finality_boundary_ms) =
+        derive_outcome_window_v4_3(lifecycle, plan.event_timestamp_ms)?;
+    if outcome_plan.is_some_and(|value| {
+        value.outcome_finality_boundary_ms != derived_outcome_finality_boundary_ms
+    }) {
+        return Err("V4.3 status outcome finality rejected".to_string());
+    }
     let mut status = MomentumFuturePredictionStatusReceiptV4_3 {
         status_version: STATUS_RECEIPT_VERSION_V4_3.to_string(),
         lifecycle_version: lifecycle.lifecycle_version.clone(),
@@ -6303,6 +6381,16 @@ fn build_status_v4_3(
         replacement_event_timestamp_ms: plan.event_timestamp_ms,
         input_finality_boundary_ms: plan.input_finality_boundary_ms,
         event_readiness: readiness,
+        input_provider_id: registration.provider_id.clone(),
+        input_market: registration.symbol.clone(),
+        input_cadence: registration.cadence.clone(),
+        exact_expected_timestamp_ms: registration.exact_expected_timestamp_ms.clone(),
+        expected_row_count: registration.expected_row_count,
+        request_to_timestamp_ms: registration.request_to_timestamp_ms,
+        maximum_requests: registration.maximum_requests,
+        maximum_concurrency: registration.maximum_concurrency,
+        maximum_retries: registration.maximum_retries,
+        input_request_fingerprint: request.request_id,
         corrected_context_plan_digest: plan.plan_digest.clone(),
         corrected_input_registration_digest: registration.registration_digest.clone(),
         input_request_count: receipt.map_or(0, |receipt| receipt.request_count),
@@ -6326,7 +6414,7 @@ fn build_status_v4_3(
         prediction_capsule_digest: prediction_capsule.map(|capsule| capsule.capsule_digest.clone()),
         prediction_journal_digest: journal.map(|journal| journal.journal_digest.clone()),
         outcome_plan_digest: outcome_plan.map(|plan| plan.plan_digest.clone()),
-        outcome_finality_boundary_ms: outcome_plan.map(|plan| plan.outcome_finality_boundary_ms),
+        outcome_finality_boundary_ms: Some(derived_outcome_finality_boundary_ms),
         cycle_risk_status: "ProviderContractUnverified".to_string(),
         value_quality_status: "TrainerUnavailable".to_string(),
         prior_momentum_attribution: "MissedMaterialOpportunity".to_string(),
@@ -6596,17 +6684,18 @@ pub fn run_momentum_future_prediction_v4_3(
         return Ok(report);
     }
 
+    let (_, outcome_finality_boundary_ms) =
+        derive_outcome_window_v4_3(&lifecycle, context_plan.event_timestamp_ms)?;
     let readiness = event_readiness_v4_3(
         observed_timestamp_ms,
         context_plan.input_finality_boundary_ms,
+        outcome_finality_boundary_ms,
         persisted_receipt
             .as_ref()
             .is_some_and(|receipt| receipt.terminal),
         false,
     );
-    if mode != MomentumFuturePredictionRunModeV4_2::Execute
-        || readiness == MomentumEventReadinessV4_3::PriorInputAttemptTerminal
-    {
+    if execution_stops_before_transport_v4_3(mode, readiness) {
         let protected_after = protected_artifacts_v4_3(root)?;
         let active_after = stable_hash_string(&format!("{:?}", canonical_current_agent_states()));
         let status = build_status_v4_3(
@@ -8434,7 +8523,7 @@ mod tests {
 
     #[test]
     fn sprint83_21_prefinality_constructs_zero_transport() {
-        let readiness = event_readiness_v4_3(100 * DAY, 101 * DAY, false, false);
+        let readiness = event_readiness_v4_3(100 * DAY, 101 * DAY, 102 * DAY, false, false);
         let counters = MomentumFuturePredictionSafetyCountersV4_3::default();
         assert_eq!(readiness, MomentumEventReadinessV4_3::AwaitingInputFinality);
         assert_eq!(counters.input_request_attempts, 0);
@@ -8442,7 +8531,7 @@ mod tests {
 
     #[test]
     fn sprint83_22_postfinality_permits_exactly_one_transport() {
-        let readiness = event_readiness_v4_3(101 * DAY, 101 * DAY, false, false);
+        let readiness = event_readiness_v4_3(101 * DAY, 101 * DAY, 102 * DAY, false, false);
         let request = build_provider_request_v4_3(&registration_fixture_v4_3()).unwrap();
         assert_eq!(
             readiness,
@@ -8639,7 +8728,7 @@ mod tests {
     #[test]
     fn sprint83_37_successful_replay_performs_zero_work() {
         assert_eq!(
-            event_readiness_v4_3(u64::MAX, 101 * DAY, false, true),
+            event_readiness_v4_3(u64::MAX, 101 * DAY, 102 * DAY, false, true),
             MomentumEventReadinessV4_3::PredictionAlreadySealed
         );
         let counters = MomentumFuturePredictionSafetyCountersV4_3::default();
@@ -8656,7 +8745,7 @@ mod tests {
     #[test]
     fn sprint83_38_terminal_failed_input_does_not_retry() {
         assert_eq!(
-            event_readiness_v4_3(u64::MAX, 101 * DAY, true, false),
+            event_readiness_v4_3(u64::MAX, 101 * DAY, 102 * DAY, true, false),
             MomentumEventReadinessV4_3::PriorInputAttemptTerminal
         );
         let receipt = build_input_receipt_v4_3(
@@ -8737,5 +8826,110 @@ mod tests {
             text_fields["status_digest"],
             json["status_digest"].as_str().unwrap()
         );
+    }
+
+    #[test]
+    fn sprint84_01_prospective_window_readiness_is_explicit() {
+        let before: MomentumInputExecutionReadinessV4_3 =
+            event_readiness_v4_3(100 * DAY, 101 * DAY, 102 * DAY, false, false);
+        let open = event_readiness_v4_3(101 * DAY, 101 * DAY, 102 * DAY, false, false);
+        let expired = event_readiness_v4_3(102 * DAY, 101 * DAY, 102 * DAY, false, false);
+        assert_eq!(
+            before,
+            MomentumInputExecutionReadinessV4_3::AwaitingInputFinality
+        );
+        assert_eq!(
+            open,
+            MomentumInputExecutionReadinessV4_3::ReadyForInputAcquisition
+        );
+        assert_eq!(
+            expired,
+            MomentumInputExecutionReadinessV4_3::ProspectiveWindowExpired
+        );
+    }
+
+    #[test]
+    fn sprint84_02_status_binds_the_exact_registered_request() {
+        let status = status_fixture_v4_3();
+        let registration = registration_fixture_v4_3();
+        let request = build_provider_request_v4_3(&registration).unwrap();
+        assert_eq!(status.input_provider_id, registration.provider_id);
+        assert_eq!(status.input_market, registration.symbol);
+        assert_eq!(status.input_cadence, registration.cadence);
+        assert_eq!(
+            status.exact_expected_timestamp_ms,
+            registration.exact_expected_timestamp_ms
+        );
+        assert_eq!(status.expected_row_count, 16);
+        assert_eq!(
+            status.request_to_timestamp_ms,
+            registration.request_to_timestamp_ms
+        );
+        assert_eq!(status.maximum_requests, 1);
+        assert_eq!(status.maximum_concurrency, 1);
+        assert_eq!(status.maximum_retries, 0);
+        assert_eq!(status.input_request_fingerprint, request.request_id);
+        assert_eq!(status.outcome_finality_boundary_ms, Some(102 * DAY));
+    }
+
+    #[test]
+    fn sprint84_03_text_and_json_preflight_contracts_agree() {
+        let status = status_fixture_v4_3();
+        let text = crate::cli::format_momentum_v4_future_prediction_text(&status);
+        let json = serde_json::to_value(&status).unwrap();
+        let text_fields = text
+            .lines()
+            .filter_map(|line| line.split_once('='))
+            .collect::<BTreeMap<_, _>>();
+        assert_eq!(
+            text_fields["exact_expected_timestamp_ms"],
+            status
+                .exact_expected_timestamp_ms
+                .iter()
+                .map(u64::to_string)
+                .collect::<Vec<_>>()
+                .join(",")
+        );
+        assert_eq!(
+            text_fields["input_request_fingerprint"],
+            json["input_request_fingerprint"].as_str().unwrap()
+        );
+        assert_eq!(
+            text_fields["outcome_finality_boundary_ms"],
+            json["outcome_finality_boundary_ms"]
+                .as_u64()
+                .unwrap()
+                .to_string()
+        );
+    }
+
+    #[test]
+    fn sprint84_04_expired_window_has_zero_request_authority() {
+        let readiness = event_readiness_v4_3(102 * DAY, 101 * DAY, 102 * DAY, false, false);
+        let counters = MomentumFuturePredictionSafetyCountersV4_3::default();
+        assert_eq!(
+            readiness,
+            MomentumInputExecutionReadinessV4_3::ProspectiveWindowExpired
+        );
+        assert!(execution_stops_before_transport_v4_3(
+            MomentumFuturePredictionRunModeV4_2::Execute,
+            readiness
+        ));
+        assert!(!execution_stops_before_transport_v4_3(
+            MomentumFuturePredictionRunModeV4_2::Execute,
+            MomentumInputExecutionReadinessV4_3::ReadyForInputAcquisition
+        ));
+        assert_eq!(counters.input_request_attempts, 0);
+        assert_eq!(counters.input_retries, 0);
+        assert_eq!(counters.outcome_request_attempts, 0);
+        assert_eq!(counters.participant_parameter_updates, 0);
+    }
+
+    #[test]
+    fn sprint84_05_status_rejects_a_changed_request_budget() {
+        let mut status = status_fixture_v4_3();
+        status.maximum_requests = 2;
+        status.status_digest = status_digest_v4_3(&status);
+        assert!(decode_status_v4_3(&encode_status_v4_3(&status).unwrap()).is_err());
     }
 }
