@@ -119,6 +119,11 @@ finality, recovery returns `PredictionSealWindowExpired` before raw loading,
 participant reconstruction, prediction, or writes. Completed and terminal
 replay paths perform zero new work.
 
+Status and dry-run never perform that local recovery. Before outcome finality
+they report `ReadyForLocalPredictionRecovery` with zero raw loading,
+reconstruction, prediction, transport, or writes; only an explicitly
+authorized input execution replay may resume the local seal.
+
 ## Manual interface
 
 Status:

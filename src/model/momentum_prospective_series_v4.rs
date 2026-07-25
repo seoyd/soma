@@ -91,6 +91,7 @@ pub enum MomentumSeriesContextUseV4 {
 pub enum MomentumProspectiveEpochReadinessV4 {
     RegisteredAwaitingInputFinality,
     ReadyForInputAcquisition,
+    ReadyForLocalPredictionRecovery,
     PredictionAlreadySealed,
     PredictionSealWindowExpired,
     ProspectiveWindowExpired,
@@ -665,6 +666,9 @@ fn parse_readiness(value: &str) -> Result<MomentumProspectiveEpochReadinessV4, S
         }
         "ReadyForInputAcquisition" => {
             Ok(MomentumProspectiveEpochReadinessV4::ReadyForInputAcquisition)
+        }
+        "ReadyForLocalPredictionRecovery" => {
+            Ok(MomentumProspectiveEpochReadinessV4::ReadyForLocalPredictionRecovery)
         }
         "PredictionAlreadySealed" => {
             Ok(MomentumProspectiveEpochReadinessV4::PredictionAlreadySealed)
@@ -3995,7 +3999,7 @@ fn readiness(
             return if observed_timestamp_ms >= registration.outcome_finality_boundary_ms {
                 MomentumProspectiveEpochReadinessV4::PredictionSealWindowExpired
             } else {
-                MomentumProspectiveEpochReadinessV4::ReadyForInputAcquisition
+                MomentumProspectiveEpochReadinessV4::ReadyForLocalPredictionRecovery
             };
         }
         if receipt.status != MomentumProspectiveSeriesInputStatusV4::ReadyNotAttempted {
@@ -4088,6 +4092,14 @@ fn reward_status(event: &EventOneStateV4) -> Result<MomentumRewardEligibilitySta
         .as_ref()
         .map(|value| value.status)
         .ok_or_else(|| "V4 series event-one eligibility unavailable".to_string())
+}
+
+fn local_prediction_recovery_allowed(
+    mode: MomentumProspectiveSeriesRunModeV4,
+    current_readiness: MomentumProspectiveEpochReadinessV4,
+) -> bool {
+    mode == MomentumProspectiveSeriesRunModeV4::ExecuteInput
+        && current_readiness == MomentumProspectiveEpochReadinessV4::ReadyForLocalPredictionRecovery
 }
 
 fn report(
@@ -4487,7 +4499,9 @@ where
         {
             return Err("V4 series terminal input chain rejected".to_string());
         }
-        if observed_timestamp_ms >= registration.outcome_finality_boundary_ms {
+        let recovery_readiness =
+            readiness(observed_timestamp_ms, &registration, Some(receipt), None);
+        if !local_prediction_recovery_allowed(mode, recovery_readiness) {
             let protected_after = protected_artifacts(root)?;
             let active_after =
                 stable_hash_string(&format!("{:?}", canonical_current_agent_states()));
@@ -4496,7 +4510,7 @@ where
                 &audit,
                 &delta,
                 &registration,
-                MomentumProspectiveEpochReadinessV4::PredictionSealWindowExpired,
+                recovery_readiness,
                 Some(receipt),
                 Some(input_capsule),
                 None,
@@ -6097,5 +6111,47 @@ mod tests {
             request.lookback.end_timestamp_ms,
             Some(EVENT + DAILY_CADENCE_MS)
         );
+    }
+
+    #[test]
+    fn sprint90_49_successful_input_status_and_dry_run_do_not_seal() {
+        let chain = fixture_prediction_chain();
+        let recovery_readiness = readiness(
+            chain.3.input_finality_boundary_ms,
+            &chain.3,
+            Some(&chain.4),
+            None,
+        );
+        assert_eq!(
+            recovery_readiness,
+            MomentumProspectiveEpochReadinessV4::ReadyForLocalPredictionRecovery
+        );
+        assert!(!local_prediction_recovery_allowed(
+            MomentumProspectiveSeriesRunModeV4::Status,
+            recovery_readiness,
+        ));
+        assert!(!local_prediction_recovery_allowed(
+            MomentumProspectiveSeriesRunModeV4::DryRun,
+            recovery_readiness,
+        ));
+        assert!(local_prediction_recovery_allowed(
+            MomentumProspectiveSeriesRunModeV4::ExecuteInput,
+            recovery_readiness,
+        ));
+
+        let expired_readiness = readiness(
+            chain.3.outcome_finality_boundary_ms,
+            &chain.3,
+            Some(&chain.4),
+            None,
+        );
+        assert_eq!(
+            expired_readiness,
+            MomentumProspectiveEpochReadinessV4::PredictionSealWindowExpired
+        );
+        assert!(!local_prediction_recovery_allowed(
+            MomentumProspectiveSeriesRunModeV4::ExecuteInput,
+            expired_readiness,
+        ));
     }
 }

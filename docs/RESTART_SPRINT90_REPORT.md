@@ -88,14 +88,15 @@
     `docs/MOMENTUM_V4_PROSPECTIVE_SERIES.md`,
     `docs/MOMENTUM_V4_FUTURE_PREDICTION.md`, and this report.
 29. **Complete verification:** format and both workspace checks passed.
-    Implementation-specific tests passed 48 of 48 in default and Metal. Full
-    default passed `867 + 404 + 12`; full Metal passed `868 + 404 + 12`.
+    Implementation-specific tests passed 49 of 49 in default and Metal. Full
+    default passed `868 + 404 + 12`; full Metal passed `869 + 404 + 12`.
     Only the four pre-existing dead-code warnings remained.
 30. **Boundary audits:** both passed.
 31. **Proven:** registered request previews are consistent and authority-free;
-    operational evidence schemas bind the exact continuation contract; and
+    operational evidence schemas bind the exact continuation contract;
     interrupted successful-input recovery cannot backdate prediction sealing
-    after outcome finality.
+    after outcome finality; and status and dry-run report
+    `ReadyForLocalPredictionRecovery` without performing that recovery.
 32. **Unproven:** the real input response, context assembly, three numeric
     predictions, prediction capsule, journal, outcome plan, model improvement,
     participant superiority, winner, reward effectiveness, Chair learning,
@@ -103,7 +104,8 @@
     remain unproven.
 33. **Commit, push, and PR:** implementation commit `5481271` was pushed on
     `agent/sprint90-v4-epoch2-input-seal`, and Draft PR #22 was opened against
-    `main`. This report is the follow-up verified-result commit.
+    `main`. This report and the read-only recovery-state correction are
+    follow-up commits on that PR.
 34. **Next recommendation:** after input finality and before outcome finality,
     re-run the agreeing status and dry-run matrix, then execute exactly the
     registered epoch-two input once with explicit confirmation. Do not acquire
