@@ -4047,7 +4047,7 @@ fn readiness(
     if observed_timestamp_ms < registration.input_finality_boundary_ms {
         MomentumProspectiveEpochReadinessV4::RegisteredAwaitingInputFinality
     } else if observed_timestamp_ms >= registration.outcome_finality_boundary_ms {
-        MomentumProspectiveEpochReadinessV4::ProspectiveWindowExpired
+        MomentumProspectiveEpochReadinessV4::PredictionSealWindowExpired
     } else {
         MomentumProspectiveEpochReadinessV4::ReadyForInputAcquisition
     }
@@ -5810,7 +5810,7 @@ mod tests {
         let chain = fixture_prediction_chain();
         assert_eq!(
             readiness(EVENT + 2 * DAILY_CADENCE_MS, &chain.3, None, None),
-            MomentumProspectiveEpochReadinessV4::ProspectiveWindowExpired
+            MomentumProspectiveEpochReadinessV4::PredictionSealWindowExpired
         );
     }
 
