@@ -3202,6 +3202,64 @@ fn verify_momentum_v4_outcome_prior_boundary(config_path: &Path) -> Result<(), S
     Ok(())
 }
 
+#[derive(Serialize)]
+struct MomentumV4FutureOutcomeCliReport<'a> {
+    #[serde(flatten)]
+    status: &'a crate::model::MomentumFutureOutcomeStatusReceiptV4_4,
+    prediction_capsule_digest: &'a str,
+    prediction_journal_digest: &'a str,
+    outcome_plan_digest: &'a str,
+    provider_id: &'a str,
+    market: &'a str,
+    symbol: &'a str,
+    cadence: &'a str,
+    exact_expected_timestamp_ms: &'a [u64],
+    request_to_timestamp_ms: u64,
+    expected_row_count: usize,
+    maximum_requests: usize,
+    maximum_concurrency: usize,
+    maximum_retries: usize,
+    prediction_value_reads: usize,
+    artifacts_written: usize,
+    duplicate_artifact_count: usize,
+}
+
+impl<'a> From<&'a crate::model::MomentumFutureOutcomeReportV4_4>
+    for MomentumV4FutureOutcomeCliReport<'a>
+{
+    fn from(report: &'a crate::model::MomentumFutureOutcomeReportV4_4) -> Self {
+        let registration = &report.registration;
+        Self {
+            status: &report.status,
+            prediction_capsule_digest: &registration.prediction_capsule_digest,
+            prediction_journal_digest: &registration.prediction_journal_digest,
+            outcome_plan_digest: &registration.outcome_plan_digest,
+            provider_id: &registration.provider_id,
+            market: &registration.market,
+            symbol: &registration.symbol,
+            cadence: &registration.cadence,
+            exact_expected_timestamp_ms: &registration.exact_expected_timestamp_ms,
+            request_to_timestamp_ms: registration.request_to_timestamp_ms,
+            expected_row_count: registration.expected_row_count,
+            maximum_requests: registration.maximum_requests,
+            maximum_concurrency: registration.maximum_concurrency,
+            maximum_retries: registration.maximum_retries,
+            prediction_value_reads: report.prediction_value_reads,
+            artifacts_written: report.artifacts_written,
+            duplicate_artifact_count: report.duplicate_artifact_count,
+        }
+    }
+}
+
+#[derive(Serialize)]
+struct MomentumV4FutureOutcomeOpeningCliReport<'a> {
+    #[serde(flatten)]
+    status: &'a crate::model::MomentumFutureOutcomeStatusReceiptV4_4,
+    prediction_value_reads: usize,
+    artifacts_written: usize,
+    duplicate_artifact_count: usize,
+}
+
 pub(crate) fn format_momentum_v4_future_outcome_text(
     status: &crate::model::MomentumFutureOutcomeStatusReceiptV4_4,
 ) -> String {
@@ -3336,6 +3394,103 @@ pub(crate) fn format_momentum_v4_future_outcome_text(
     output
 }
 
+pub(crate) fn format_momentum_v4_future_outcome_report_text(
+    report: &crate::model::MomentumFutureOutcomeReportV4_4,
+) -> String {
+    let mut output = format_momentum_v4_future_outcome_text(&report.status);
+    let registration = &report.registration;
+    let _ = writeln!(
+        output,
+        "prediction_capsule_digest={}",
+        registration.prediction_capsule_digest
+    );
+    let _ = writeln!(
+        output,
+        "prediction_journal_digest={}",
+        registration.prediction_journal_digest
+    );
+    let _ = writeln!(
+        output,
+        "outcome_plan_digest={}",
+        registration.outcome_plan_digest
+    );
+    let _ = writeln!(output, "provider_id={}", registration.provider_id);
+    let _ = writeln!(output, "market={}", registration.market);
+    let _ = writeln!(output, "symbol={}", registration.symbol);
+    let _ = writeln!(output, "cadence={}", registration.cadence);
+    let _ = writeln!(
+        output,
+        "exact_expected_timestamp_ms={:?}",
+        registration.exact_expected_timestamp_ms
+    );
+    let _ = writeln!(
+        output,
+        "request_to_timestamp_ms={}",
+        registration.request_to_timestamp_ms
+    );
+    let _ = writeln!(
+        output,
+        "expected_row_count={}",
+        registration.expected_row_count
+    );
+    let _ = writeln!(output, "maximum_requests={}", registration.maximum_requests);
+    let _ = writeln!(
+        output,
+        "maximum_concurrency={}",
+        registration.maximum_concurrency
+    );
+    let _ = writeln!(output, "maximum_retries={}", registration.maximum_retries);
+    let _ = writeln!(
+        output,
+        "prediction_value_reads={}",
+        report.prediction_value_reads
+    );
+    let _ = writeln!(output, "artifacts_written={}", report.artifacts_written);
+    let _ = writeln!(
+        output,
+        "duplicate_artifact_count={}",
+        report.duplicate_artifact_count
+    );
+    output
+}
+
+pub(crate) fn format_momentum_v4_future_outcome_report_json(
+    report: &crate::model::MomentumFutureOutcomeReportV4_4,
+) -> Result<String, String> {
+    serde_json::to_string(&MomentumV4FutureOutcomeCliReport::from(report))
+        .map_err(|_| "Momentum V4 future outcome report encoding failed".to_string())
+}
+
+pub(crate) fn format_momentum_v4_future_outcome_opening_report_text(
+    report: &crate::model::MomentumFutureOutcomeOpeningReportV4_4,
+) -> String {
+    let mut output = format_momentum_v4_future_outcome_text(&report.status);
+    let _ = writeln!(
+        output,
+        "prediction_value_reads={}",
+        report.prediction_value_reads
+    );
+    let _ = writeln!(output, "artifacts_written={}", report.artifacts_written);
+    let _ = writeln!(
+        output,
+        "duplicate_artifact_count={}",
+        report.duplicate_artifact_count
+    );
+    output
+}
+
+pub(crate) fn format_momentum_v4_future_outcome_opening_report_json(
+    report: &crate::model::MomentumFutureOutcomeOpeningReportV4_4,
+) -> Result<String, String> {
+    serde_json::to_string(&MomentumV4FutureOutcomeOpeningCliReport {
+        status: &report.status,
+        prediction_value_reads: report.prediction_value_reads,
+        artifacts_written: report.artifacts_written,
+        duplicate_artifact_count: report.duplicate_artifact_count,
+    })
+    .map_err(|_| "Momentum V4 future outcome opening report encoding failed".to_string())
+}
+
 fn run_momentum_v4_future_outcome_cli(
     config_path: &Path,
     output_format: &str,
@@ -3381,11 +3536,10 @@ fn run_momentum_v4_future_outcome_cli(
     if output_format == "json" {
         println!(
             "{}",
-            serde_json::to_string(&report.status)
-                .map_err(|_| "Momentum V4 future outcome status encoding failed")?
+            format_momentum_v4_future_outcome_report_json(&report)?
         );
     } else {
-        print!("{}", format_momentum_v4_future_outcome_text(&report.status));
+        print!("{}", format_momentum_v4_future_outcome_report_text(&report));
     }
     Ok(())
 }
@@ -3437,11 +3591,13 @@ fn run_momentum_v4_future_outcome_opening_cli(
     if output_format == "json" {
         println!(
             "{}",
-            serde_json::to_string(&report.status)
-                .map_err(|_| "Momentum V4 future outcome opening status encoding failed")?
+            format_momentum_v4_future_outcome_opening_report_json(&report)?
         );
     } else {
-        print!("{}", format_momentum_v4_future_outcome_text(&report.status));
+        print!(
+            "{}",
+            format_momentum_v4_future_outcome_opening_report_text(&report)
+        );
     }
     Ok(())
 }
