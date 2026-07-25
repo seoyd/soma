@@ -1,5 +1,20 @@
 # Momentum V4 Future-Prediction Lifecycle
 
+## Sprint 90 prospective-series operation
+
+The epoch-two contract now provides matching read-only status and dry-run
+request previews without transport or writes. Successful input capsules bind
+the exact context-delta plan, provider, and single consumed attempt;
+participant seals bind epoch two and the context-use proof; and the prediction
+journal binds the event-one adoption, delta plan, and all three seal
+identities.
+
+Interrupted local sealing may resume from exact successful input evidence only
+before outcome finality. At or after outcome finality, an unsealed recovery
+returns `PredictionSealWindowExpired` before raw-row loading, participant
+reconstruction, prediction, or writes. This prevents a stored input receipt
+from being used to backdate a prediction.
+
 ## Sprint 89 prospective-series continuation
 
 The first completed V4 event is now adopted into a separate append-only

@@ -85,6 +85,12 @@ normalized response must agree and contain exactly the registered finalized
 rows with valid chronology and OHLCV shape. Wrong, duplicate, missing, extra,
 unfinished, or outcome rows fail terminally.
 
+Status and dry-run both expose the same sanitized registered request preview:
+registration time, canonical reused timestamps, provider, market, cadence,
+request boundaries, request fingerprint, prior-attempt count, and receipt and
+prediction presence. Dry-run cannot accept network authority, construct a
+transport, or write an artifact.
+
 ## Prediction sealing and recovery
 
 After exact input verification, the same assembled 16-row context is supplied
@@ -100,11 +106,23 @@ winner, and ranking work.
 
 The append-only journal proves that deterministic registration preceded input
 finality, input acquisition preceded prediction, and prediction preceded
-outcome access. The horizon-one outcome plan remains locked, with zero outcome
-requests and openings. If execution is interrupted after a successful input
-receipt, replay reopens the digest-bound raw evidence and resumes prediction
-without another network request. Completed and terminal replay paths perform
-zero new work.
+outcome access. It binds the event-one adoption, exact context-delta plan, and
+three participant-seal identities. Each seal directly binds epoch two and the
+context-use proof. The input capsule directly binds the delta plan, provider,
+and consumed one-attempt budget. The horizon-one outcome plan remains locked,
+with zero outcome requests and openings.
+
+If execution is interrupted after a successful input receipt, replay reopens
+the digest-bound raw evidence and resumes prediction without another network
+request only while the prediction window remains open. At or after outcome
+finality, recovery returns `PredictionSealWindowExpired` before raw loading,
+participant reconstruction, prediction, or writes. Completed and terminal
+replay paths perform zero new work.
+
+Status and dry-run never perform that local recovery. Before outcome finality
+they report `ReadyForLocalPredictionRecovery` with zero raw loading,
+reconstruction, prediction, transport, or writes; only an explicitly
+authorized input execution replay may resume the local seal.
 
 ## Manual interface
 
@@ -113,6 +131,14 @@ Status:
 ```text
 --momentum-v4-prospective-series
 --status
+--output-format text|json
+```
+
+Dry-run:
+
+```text
+--momentum-v4-prospective-series
+--dry-run
 --output-format text|json
 ```
 
@@ -147,6 +173,7 @@ existing verified create-new temporary write, flush, sync, reopen/decode,
 atomic rename, and final reopen/decode sequence. Runtime evidence is
 append-only and separate from the first event.
 
-The next step is to preregister and seal a second event using the identical
+The next step, after input finality and before outcome finality, is to execute
+the exact registered one-row delta and seal epoch two using the identical
 frozen roster. Official Mamba-3 is not implemented or evaluated. Chair
 functionality remains inactive.
