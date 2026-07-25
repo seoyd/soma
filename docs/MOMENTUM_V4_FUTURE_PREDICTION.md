@@ -1,5 +1,30 @@
 # Momentum V4 Future-Prediction Lifecycle
 
+## Sprint 89 prospective-series continuation
+
+The first completed V4 event is now adopted into a separate append-only
+prospective-series contract. The contract preserves the identical frozen
+three-participant roster and derives the next legal daily event from cadence,
+the prior opened outcome timestamp, and actual registration time. Existing
+canonical raw rows are referenced by digest, and only the exact contiguous
+missing timestamp set can be requested.
+
+Registration is local and rejects network permission. Before input finality it
+persists only the series, adoption, candidate audit, context-delta plan, epoch
+registration, and safe status. A separately confirmed input command can make
+at most one credential-free, read-only request inside the legal window. It
+then reconstructs the frozen participants on one identical 16-row context and
+requires exactly three private prediction seals. The horizon-one outcome plan
+remains locked with zero outcome requests and openings.
+
+Completed prospective events and scorable events both remain one, and reward
+eligibility remains `IneligibleMinimumSamples` until a later event is opened.
+There is no training, refit, participant selection, ranking, winner, reward,
+penalty, governance, or execution authority. Official Mamba-3 is not
+implemented or evaluated, and Chair functionality is inactive. The full
+series contract and CLI are documented in
+`MOMENTUM_V4_PROSPECTIVE_SERIES.md`.
+
 ## V4.4 outcome continuation
 
 The sealed V4.3 chain is now the only accepted source for the separately

@@ -97,6 +97,14 @@ pub struct CliArgs {
     #[arg(long, default_value_t = false)]
     pub momentum_v4_future_outcome_opening: bool,
     #[arg(long, default_value_t = false)]
+    pub momentum_v4_prospective_series: bool,
+    #[arg(long, default_value_t = false)]
+    pub register_next_epoch: bool,
+    #[arg(long)]
+    pub epoch: Option<u64>,
+    #[arg(long, default_value_t = false)]
+    pub execute_input: bool,
+    #[arg(long, default_value_t = false)]
     pub status: bool,
     #[arg(long, default_value_t = false)]
     pub dry_run: bool,
@@ -120,6 +128,8 @@ pub struct CliArgs {
     pub confirm_one_time_future_outcome_request: bool,
     #[arg(long, default_value_t = false)]
     pub confirm_one_time_future_outcome_opening: bool,
+    #[arg(long, default_value_t = false)]
+    pub confirm_one_time_prospective_input_request: bool,
     #[arg(long, default_value_t = false)]
     pub btc_prospective_challenge_create: bool,
     #[arg(long, default_value_t = false)]
@@ -146,6 +156,51 @@ pub struct CliArgs {
 
 pub fn run() -> Result<(), String> {
     let args = CliArgs::parse();
+    if args.momentum_v4_prospective_series {
+        if args.momentum_v4_future_prediction
+            || args.momentum_v4_future_outcome
+            || args.momentum_v4_future_outcome_opening
+            || args.dry_run
+            || args.execute
+            || args.confirm_single_public_candle_request
+            || args.confirm_one_time_outcome_request
+            || args.confirm_one_time_prospective_opening
+            || args.confirm_one_time_learning_evidence_request
+            || args.confirm_composite_learning_evidence_epoch
+            || args.confirm_one_time_future_input_request
+            || args.confirm_one_time_future_outcome_request
+            || args.confirm_one_time_future_outcome_opening
+        {
+            return Err("Momentum V4 prospective series rejects unrelated authority flags".into());
+        }
+        let config = args
+            .historical_snapshot_campaign_config
+            .as_deref()
+            .ok_or_else(|| {
+                "Momentum V4 prospective series requires a local historical provider config"
+                    .to_string()
+            })?;
+        return run_momentum_v4_prospective_series_cli(
+            config,
+            &args.output_format,
+            args.status,
+            args.register_next_epoch,
+            args.execute_local,
+            args.execute_input,
+            args.epoch,
+            args.allow_network,
+            args.confirm_one_time_prospective_input_request,
+        );
+    }
+    if args.register_next_epoch
+        || args.epoch.is_some()
+        || args.execute_input
+        || args.confirm_one_time_prospective_input_request
+    {
+        return Err(
+            "prospective series flags require --momentum-v4-prospective-series".to_string(),
+        );
+    }
     if args.momentum_v4_future_outcome {
         if args.momentum_v4_future_outcome_opening
             || args.momentum_v4_future_prediction
@@ -3812,6 +3867,282 @@ pub(crate) fn format_momentum_v4_future_prediction_text(
     }
     let _ = writeln!(output, "status_digest={}", status.status_digest);
     output
+}
+
+#[derive(Serialize)]
+struct MomentumV4ProspectiveSeriesCliReport<'a> {
+    status:
+        &'a crate::model::momentum_prospective_series_v4::MomentumProspectiveEpochStatusReceiptV4,
+    candidate_gap_disposition:
+        crate::model::momentum_prospective_series_v4::MomentumProspectiveCandidateDispositionV4,
+    maximum_input_requests: usize,
+    maximum_input_retries: usize,
+    maximum_input_concurrency: usize,
+    artifacts_written: usize,
+    duplicate_artifact_count: usize,
+}
+
+pub(crate) fn format_momentum_v4_prospective_series_text(
+    report: &crate::model::momentum_prospective_series_v4::MomentumProspectiveSeriesReportV4,
+) -> String {
+    let status = &report.status;
+    let mut output = String::new();
+    let _ = writeln!(output, "series_digest={}", status.series_digest);
+    let _ = writeln!(
+        output,
+        "event_one_adoption_digest={}",
+        status.event_one_adoption_digest
+    );
+    let _ = writeln!(
+        output,
+        "candidate_gap_audit_digest={}",
+        status.candidate_gap_audit_digest
+    );
+    let _ = writeln!(
+        output,
+        "candidate_disposition={:?}",
+        report.candidate_gap_audit.canonical_disposition
+    );
+    let _ = writeln!(
+        output,
+        "context_delta_plan_digest={}",
+        status.context_delta_plan_digest
+    );
+    let _ = writeln!(
+        output,
+        "epoch_registration_digest={}",
+        status.epoch_registration_digest
+    );
+    let _ = writeln!(output, "epoch_number={}", status.epoch_number);
+    let _ = writeln!(output, "event_timestamp_ms={}", status.event_timestamp_ms);
+    let _ = writeln!(
+        output,
+        "input_finality_boundary_ms={}",
+        status.input_finality_boundary_ms
+    );
+    let _ = writeln!(
+        output,
+        "outcome_timestamp_ms={}",
+        status.outcome_timestamp_ms
+    );
+    let _ = writeln!(
+        output,
+        "outcome_finality_boundary_ms={}",
+        status.outcome_finality_boundary_ms
+    );
+    let _ = writeln!(
+        output,
+        "exact_context_timestamp_ms={:?}",
+        status.exact_context_timestamp_ms
+    );
+    let _ = writeln!(
+        output,
+        "exact_missing_timestamp_ms={:?}",
+        status.exact_missing_timestamp_ms
+    );
+    let _ = writeln!(output, "readiness={:?}", status.readiness);
+    let _ = writeln!(
+        output,
+        "input_receipt_digest={}",
+        status.input_receipt_digest.as_deref().unwrap_or("absent")
+    );
+    let _ = writeln!(
+        output,
+        "input_capsule_digest={}",
+        status.input_capsule_digest.as_deref().unwrap_or("absent")
+    );
+    let _ = writeln!(
+        output,
+        "prediction_capsule_digest={}",
+        status
+            .prediction_capsule_digest
+            .as_deref()
+            .unwrap_or("absent")
+    );
+    let _ = writeln!(
+        output,
+        "outcome_plan_digest={}",
+        status.outcome_plan_digest.as_deref().unwrap_or("absent")
+    );
+    let _ = writeln!(output, "total_event_count={}", status.total_event_count);
+    let _ = writeln!(
+        output,
+        "scorable_event_count={}",
+        status.scorable_event_count
+    );
+    let _ = writeln!(
+        output,
+        "reward_eligibility_status={:?}",
+        status.reward_eligibility_status
+    );
+    let _ = writeln!(
+        output,
+        "maximum_input_requests={}",
+        report.epoch_registration.maximum_input_requests
+    );
+    let _ = writeln!(
+        output,
+        "maximum_input_retries={}",
+        report.epoch_registration.maximum_input_retries
+    );
+    let _ = writeln!(
+        output,
+        "maximum_input_concurrency={}",
+        report.epoch_registration.maximum_input_concurrency
+    );
+    let _ = writeln!(
+        output,
+        "protected_artifacts_unchanged={}",
+        status.protected_artifacts_unchanged
+    );
+    let _ = writeln!(
+        output,
+        "active_state_unchanged={}",
+        status.active_state_unchanged
+    );
+    let counters = &status.safety_counters;
+    for (name, value) in [
+        (
+            "network_request_attempts",
+            counters.network_request_attempts,
+        ),
+        ("retries", counters.retries),
+        ("maximum_concurrency", counters.maximum_concurrency),
+        ("transport_constructions", counters.transport_constructions),
+        ("canonical_raw_row_reads", counters.canonical_raw_row_reads),
+        (
+            "prior_private_evaluation_reads",
+            counters.prior_private_evaluation_reads,
+        ),
+        (
+            "participant_reconstructions",
+            counters.participant_reconstructions,
+        ),
+        ("feature_generations", counters.feature_generations),
+        ("prediction_computations", counters.prediction_computations),
+        ("parameter_updates", counters.parameter_updates),
+        ("normalizer_refits", counters.normalizer_refits),
+        ("training_uses", counters.training_uses),
+        ("qualification_uses", counters.qualification_uses),
+        ("outcome_requests", counters.outcome_requests),
+        ("outcome_openings", counters.outcome_openings),
+        ("metric_computations", counters.metric_computations),
+        ("winner_selections", counters.winner_selections),
+        ("ranking_creations", counters.ranking_creations),
+        ("reward_applications", counters.reward_applications),
+        ("penalty_applications", counters.penalty_applications),
+        ("chair_decisions", counters.chair_decisions),
+        ("votes", counters.votes),
+        ("voice_changes", counters.voice_changes),
+        ("tier_changes", counters.tier_changes),
+        ("cooldowns", counters.cooldowns),
+        ("promotions", counters.promotions),
+        ("quarantines", counters.quarantines),
+        ("paper_executions", counters.paper_executions),
+        ("live_executions", counters.live_executions),
+        ("active_committee_count", counters.active_committee_count),
+    ] {
+        let _ = writeln!(output, "{name}={value}");
+    }
+    let _ = writeln!(output, "artifacts_written={}", report.artifacts_written);
+    let _ = writeln!(
+        output,
+        "duplicate_artifact_count={}",
+        report.duplicate_artifact_count
+    );
+    let _ = writeln!(output, "status_digest={}", status.status_digest);
+    output
+}
+
+#[allow(clippy::too_many_arguments)]
+fn run_momentum_v4_prospective_series_cli(
+    config_path: &Path,
+    output_format: &str,
+    status: bool,
+    register_next_epoch: bool,
+    execute_local: bool,
+    execute_input: bool,
+    epoch: Option<u64>,
+    allow_network: bool,
+    confirmation: bool,
+) -> Result<(), String> {
+    if usize::from(status) + usize::from(register_next_epoch) + usize::from(execute_input) != 1 {
+        return Err("select exactly one Momentum V4 prospective series mode".to_string());
+    }
+    if output_format != "text" && output_format != "json" {
+        return Err("unsupported Momentum V4 prospective series output format".to_string());
+    }
+    if register_next_epoch {
+        if !execute_local || epoch.is_some() || allow_network || confirmation {
+            return Err(
+                "Momentum V4 prospective registration requires only --execute-local".to_string(),
+            );
+        }
+    } else if execute_local {
+        return Err(
+            "Momentum V4 prospective --execute-local is reserved for registration".to_string(),
+        );
+    }
+    if execute_input {
+        if epoch.is_none() || !allow_network || !confirmation {
+            return Err(
+                "Momentum V4 prospective input execution requires epoch, network permission, and exact confirmation"
+                    .to_string(),
+            );
+        }
+    } else if epoch.is_some() || allow_network || confirmation {
+        return Err("Momentum V4 prospective read-only mode rejects input authority".to_string());
+    }
+    verify_momentum_v4_outcome_prior_boundary(config_path)?;
+    let provider_config = crate::data::UpbitHistoricalPilotConfigV0::from_toml_path(config_path)?;
+    let snapshots =
+        crate::model::load_local_learning_snapshots_v0(Path::new("data/local_snapshots"))?;
+    let root = crate::model::default_private_learning_root_v0();
+    let reservation = crate::model::load_protected_evaluation_reservation_v1(
+        config_path
+            .parent()
+            .ok_or("Momentum V4 prospective reservation directory unavailable")?,
+    )?;
+    let mode = if status {
+        crate::model::momentum_prospective_series_v4::MomentumProspectiveSeriesRunModeV4::Status
+    } else if register_next_epoch {
+        crate::model::momentum_prospective_series_v4::MomentumProspectiveSeriesRunModeV4::RegisterNextEpoch
+    } else {
+        crate::model::momentum_prospective_series_v4::MomentumProspectiveSeriesRunModeV4::ExecuteInput
+    };
+    let report = crate::model::momentum_prospective_series_v4::run_momentum_prospective_series_v4(
+        root,
+        &snapshots,
+        &reservation,
+        &provider_config,
+        current_utc_timestamp_ms(),
+        mode,
+        allow_network,
+        confirmation,
+        epoch,
+    )?;
+    if !report.status.protected_artifacts_unchanged || !report.status.active_state_unchanged {
+        return Err("Momentum V4 prospective series verification failed".to_string());
+    }
+    if output_format == "json" {
+        let public_report = MomentumV4ProspectiveSeriesCliReport {
+            status: &report.status,
+            candidate_gap_disposition: report.candidate_gap_audit.canonical_disposition,
+            maximum_input_requests: report.epoch_registration.maximum_input_requests,
+            maximum_input_retries: report.epoch_registration.maximum_input_retries,
+            maximum_input_concurrency: report.epoch_registration.maximum_input_concurrency,
+            artifacts_written: report.artifacts_written,
+            duplicate_artifact_count: report.duplicate_artifact_count,
+        };
+        println!(
+            "{}",
+            serde_json::to_string(&public_report)
+                .map_err(|_| "Momentum V4 prospective series report encoding failed")?
+        );
+    } else {
+        print!("{}", format_momentum_v4_prospective_series_text(&report));
+    }
+    Ok(())
 }
 
 fn run_momentum_v4_future_prediction_cli(

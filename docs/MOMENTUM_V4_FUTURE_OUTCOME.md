@@ -1,5 +1,22 @@
 # Momentum V4.4 Future Outcome and Opening
 
+## Prospective-series continuation boundary
+
+The first V4 outcome and opening remain immutable inputs to an additive
+prospective-series contract. Event-one counts remain one total and one
+scorable event, with reward eligibility `IneligibleMinimumSamples`. Its raw
+outcome row may be referenced as context-only evidence for a later registered
+event, but its opening bundle, label, participant evaluations, scores, and
+eligibility state cannot supply features or affect cadence continuation.
+
+The next registered event has a separately locked horizon-one outcome plan.
+The prospective input stage performs zero outcome requests, openings, label
+access, metrics, winner selection, ranking, reward, or penalty work. A later
+Sprint must authorize any outcome acquisition and opening as a distinct stage.
+Official Mamba-3 is not implemented or evaluated, and Chair functionality
+remains inactive. See `MOMENTUM_V4_PROSPECTIVE_SERIES.md` for the append-only
+series and manual input contract.
+
 ## Boundary
 
 V4.4 continues the single sealed V4.3 prospective event. It does not retrain,

@@ -26,6 +26,7 @@ pub mod momentum_future_outcome_v4;
 pub mod momentum_future_prediction_v4;
 pub mod momentum_mamba_repair;
 pub mod momentum_mamba_representation;
+pub mod momentum_prospective_series_v4;
 pub mod momentum_raw_feature_supplemental;
 pub mod momentum_raw_feature_v4;
 pub mod prediction;
