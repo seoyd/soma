@@ -160,7 +160,6 @@ pub fn run() -> Result<(), String> {
         if args.momentum_v4_future_prediction
             || args.momentum_v4_future_outcome
             || args.momentum_v4_future_outcome_opening
-            || args.dry_run
             || args.execute
             || args.confirm_single_public_candle_request
             || args.confirm_one_time_outcome_request
@@ -184,6 +183,7 @@ pub fn run() -> Result<(), String> {
             config,
             &args.output_format,
             args.status,
+            args.dry_run,
             args.register_next_epoch,
             args.execute_local,
             args.execute_input,
@@ -3878,14 +3878,37 @@ struct MomentumV4ProspectiveSeriesCliReport<'a> {
     maximum_input_requests: usize,
     maximum_input_retries: usize,
     maximum_input_concurrency: usize,
+    registration_created_at_ms: u64,
+    canonical_reused_timestamp_ms: Vec<u64>,
+    provider_id: &'a str,
+    market: &'a str,
+    symbol: &'a str,
+    cadence: &'a str,
+    request_start_timestamp_ms: u64,
+    request_end_timestamp_ms: u64,
+    request_fingerprint: String,
+    prior_attempt_count: usize,
+    receipt_present: bool,
+    prediction_capsule_present: bool,
     artifacts_written: usize,
     duplicate_artifact_count: usize,
 }
 
 pub(crate) fn format_momentum_v4_prospective_series_text(
     report: &crate::model::momentum_prospective_series_v4::MomentumProspectiveSeriesReportV4,
-) -> String {
+) -> Result<String, String> {
     let status = &report.status;
+    let request = crate::model::momentum_prospective_series_v4::build_provider_request(
+        &report.epoch_registration,
+    )?;
+    let request_start_timestamp_ms = request
+        .lookback
+        .start_timestamp_ms
+        .ok_or_else(|| "Momentum V4 prospective request start unavailable".to_string())?;
+    let request_end_timestamp_ms = request
+        .lookback
+        .end_timestamp_ms
+        .ok_or_else(|| "Momentum V4 prospective request end unavailable".to_string())?;
     let mut output = String::new();
     let _ = writeln!(output, "series_digest={}", status.series_digest);
     let _ = writeln!(
@@ -3914,6 +3937,11 @@ pub(crate) fn format_momentum_v4_prospective_series_text(
         status.epoch_registration_digest
     );
     let _ = writeln!(output, "epoch_number={}", status.epoch_number);
+    let _ = writeln!(
+        output,
+        "registration_created_at_ms={}",
+        report.epoch_registration.registration_created_at_ms
+    );
     let _ = writeln!(output, "event_timestamp_ms={}", status.event_timestamp_ms);
     let _ = writeln!(
         output,
@@ -3939,6 +3967,48 @@ pub(crate) fn format_momentum_v4_prospective_series_text(
         output,
         "exact_missing_timestamp_ms={:?}",
         status.exact_missing_timestamp_ms
+    );
+    let _ = writeln!(
+        output,
+        "canonical_reused_timestamp_ms={:?}",
+        report
+            .context_delta_plan
+            .canonical_rows
+            .iter()
+            .map(|row| row.timestamp_ms)
+            .collect::<Vec<_>>()
+    );
+    let _ = writeln!(
+        output,
+        "provider_id={}",
+        report.epoch_registration.provider_id
+    );
+    let _ = writeln!(output, "market={}", report.epoch_registration.market);
+    let _ = writeln!(output, "symbol={}", report.epoch_registration.symbol);
+    let _ = writeln!(output, "cadence={}", report.epoch_registration.cadence);
+    let _ = writeln!(
+        output,
+        "request_start_timestamp_ms={request_start_timestamp_ms}"
+    );
+    let _ = writeln!(
+        output,
+        "request_end_timestamp_ms={request_end_timestamp_ms}"
+    );
+    let _ = writeln!(output, "request_fingerprint={}", request.request_key);
+    let _ = writeln!(
+        output,
+        "prior_attempt_count={}",
+        report
+            .input_receipt
+            .as_ref()
+            .map(|receipt| receipt.request_count)
+            .unwrap_or_default()
+    );
+    let _ = writeln!(output, "receipt_present={}", report.input_receipt.is_some());
+    let _ = writeln!(
+        output,
+        "prediction_capsule_present={}",
+        report.prediction_capsule.is_some()
     );
     let _ = writeln!(output, "readiness={:?}", status.readiness);
     let _ = writeln!(
@@ -4051,7 +4121,7 @@ pub(crate) fn format_momentum_v4_prospective_series_text(
         report.duplicate_artifact_count
     );
     let _ = writeln!(output, "status_digest={}", status.status_digest);
-    output
+    Ok(output)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -4059,6 +4129,7 @@ fn run_momentum_v4_prospective_series_cli(
     config_path: &Path,
     output_format: &str,
     status: bool,
+    dry_run: bool,
     register_next_epoch: bool,
     execute_local: bool,
     execute_input: bool,
@@ -4066,7 +4137,12 @@ fn run_momentum_v4_prospective_series_cli(
     allow_network: bool,
     confirmation: bool,
 ) -> Result<(), String> {
-    if usize::from(status) + usize::from(register_next_epoch) + usize::from(execute_input) != 1 {
+    if usize::from(status)
+        + usize::from(dry_run)
+        + usize::from(register_next_epoch)
+        + usize::from(execute_input)
+        != 1
+    {
         return Err("select exactly one Momentum V4 prospective series mode".to_string());
     }
     if output_format != "text" && output_format != "json" {
@@ -4105,6 +4181,8 @@ fn run_momentum_v4_prospective_series_cli(
     )?;
     let mode = if status {
         crate::model::momentum_prospective_series_v4::MomentumProspectiveSeriesRunModeV4::Status
+    } else if dry_run {
+        crate::model::momentum_prospective_series_v4::MomentumProspectiveSeriesRunModeV4::DryRun
     } else if register_next_epoch {
         crate::model::momentum_prospective_series_v4::MomentumProspectiveSeriesRunModeV4::RegisterNextEpoch
     } else {
@@ -4125,12 +4203,42 @@ fn run_momentum_v4_prospective_series_cli(
         return Err("Momentum V4 prospective series verification failed".to_string());
     }
     if output_format == "json" {
+        let request = crate::model::momentum_prospective_series_v4::build_provider_request(
+            &report.epoch_registration,
+        )?;
         let public_report = MomentumV4ProspectiveSeriesCliReport {
             status: &report.status,
             candidate_gap_disposition: report.candidate_gap_audit.canonical_disposition,
             maximum_input_requests: report.epoch_registration.maximum_input_requests,
             maximum_input_retries: report.epoch_registration.maximum_input_retries,
             maximum_input_concurrency: report.epoch_registration.maximum_input_concurrency,
+            registration_created_at_ms: report.epoch_registration.registration_created_at_ms,
+            canonical_reused_timestamp_ms: report
+                .context_delta_plan
+                .canonical_rows
+                .iter()
+                .map(|row| row.timestamp_ms)
+                .collect(),
+            provider_id: &report.epoch_registration.provider_id,
+            market: &report.epoch_registration.market,
+            symbol: &report.epoch_registration.symbol,
+            cadence: &report.epoch_registration.cadence,
+            request_start_timestamp_ms: request
+                .lookback
+                .start_timestamp_ms
+                .ok_or_else(|| "Momentum V4 prospective request start unavailable".to_string())?,
+            request_end_timestamp_ms: request
+                .lookback
+                .end_timestamp_ms
+                .ok_or_else(|| "Momentum V4 prospective request end unavailable".to_string())?,
+            request_fingerprint: request.request_key,
+            prior_attempt_count: report
+                .input_receipt
+                .as_ref()
+                .map(|receipt| receipt.request_count)
+                .unwrap_or_default(),
+            receipt_present: report.input_receipt.is_some(),
+            prediction_capsule_present: report.prediction_capsule.is_some(),
             artifacts_written: report.artifacts_written,
             duplicate_artifact_count: report.duplicate_artifact_count,
         };
@@ -4140,7 +4248,7 @@ fn run_momentum_v4_prospective_series_cli(
                 .map_err(|_| "Momentum V4 prospective series report encoding failed")?
         );
     } else {
-        print!("{}", format_momentum_v4_prospective_series_text(&report));
+        print!("{}", format_momentum_v4_prospective_series_text(&report)?);
     }
     Ok(())
 }

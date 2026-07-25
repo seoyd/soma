@@ -92,6 +92,7 @@ pub enum MomentumProspectiveEpochReadinessV4 {
     RegisteredAwaitingInputFinality,
     ReadyForInputAcquisition,
     PredictionAlreadySealed,
+    PredictionSealWindowExpired,
     ProspectiveWindowExpired,
     MissingCanonicalContext,
     MissingSetNotContiguous,
@@ -103,6 +104,7 @@ pub enum MomentumProspectiveEpochReadinessV4 {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MomentumProspectiveSeriesRunModeV4 {
     Status,
+    DryRun,
     RegisterNextEpoch,
     ExecuteInput,
 }
@@ -325,6 +327,9 @@ pub struct MomentumProspectiveSeriesInputCapsuleV4 {
     pub capsule_version: String,
     pub series_digest: String,
     pub epoch_registration_digest: String,
+    pub context_delta_plan_digest: String,
+    pub provider_id: String,
+    pub request_attempt_count: usize,
     pub event_timestamp_ms: u64,
     pub exact_timestamp_ms: Vec<u64>,
     pub row_identity_digests: Vec<String>,
@@ -344,12 +349,14 @@ pub struct MomentumProspectiveSeriesInputCapsuleV4 {
 pub struct MomentumSeriesParticipantPredictionSealV4 {
     pub seal_version: String,
     pub series_digest: String,
+    pub epoch_number: u64,
     pub epoch_registration_digest: String,
     pub participant_digest: String,
     pub participant_role: String,
     pub event_timestamp_ms: u64,
     pub input_receipt_digest: String,
     pub input_capsule_digest: String,
+    pub context_use_proof_digest: String,
     pub context_assembly_proof_digest: String,
     pub feature_identity_digest: String,
     pub prediction_probability_bits: u32,
@@ -380,6 +387,9 @@ pub struct MomentumProspectiveSeriesPredictionCapsuleV4 {
     pub metrics_computed: bool,
     pub winner_selected: bool,
     pub ranking_created: bool,
+    pub reward_applied: bool,
+    pub penalty_applied: bool,
+    pub chair_action_taken: bool,
     pub capsule_digest: String,
 }
 
@@ -388,7 +398,9 @@ pub struct MomentumProspectiveSeriesJournalEntryV4 {
     pub journal_version: String,
     pub series_digest: String,
     pub epoch_number: u64,
+    pub event_one_adoption_digest: String,
     pub previous_epoch_ledger_entry_digest: String,
+    pub context_delta_plan_digest: String,
     pub event_timestamp_ms: u64,
     pub registration_created_at_ms: u64,
     pub input_finality_boundary_ms: u64,
@@ -396,9 +408,11 @@ pub struct MomentumProspectiveSeriesJournalEntryV4 {
     pub input_capsule_digest: String,
     pub context_assembly_proof_digest: String,
     pub prediction_capsule_digest: String,
+    pub participant_seal_digests: Vec<String>,
     pub participant_prediction_digests: Vec<String>,
     pub deterministic_fixed_cadence_selection: bool,
     pub prior_event_scores_read: bool,
+    pub prior_event_correctness_read: bool,
     pub registration_preceded_input_finality: bool,
     pub input_acquisition_preceded_prediction: bool,
     pub prediction_preceded_outcome_access: bool,
@@ -654,6 +668,9 @@ fn parse_readiness(value: &str) -> Result<MomentumProspectiveEpochReadinessV4, S
         }
         "PredictionAlreadySealed" => {
             Ok(MomentumProspectiveEpochReadinessV4::PredictionAlreadySealed)
+        }
+        "PredictionSealWindowExpired" => {
+            Ok(MomentumProspectiveEpochReadinessV4::PredictionSealWindowExpired)
         }
         "ProspectiveWindowExpired" => {
             Ok(MomentumProspectiveEpochReadinessV4::ProspectiveWindowExpired)
@@ -1224,6 +1241,7 @@ fn validate_epoch_registration(
         || value.series_digest.is_empty()
         || value.epoch_number < 2
         || value.previous_epoch_ledger_entry_digest.is_empty()
+        || value.context_delta_plan_digest.is_empty()
         || value.previous_epoch_opening_bundle_digest.is_empty()
         || value.registration_created_at_ms >= value.input_finality_boundary_ms
         || value.input_finality_boundary_ms
@@ -1698,6 +1716,9 @@ fn validate_input_capsule(value: &MomentumProspectiveSeriesInputCapsuleV4) -> Re
     if value.capsule_version != INPUT_CAPSULE_VERSION
         || value.series_digest.is_empty()
         || value.epoch_registration_digest.is_empty()
+        || value.context_delta_plan_digest.is_empty()
+        || value.provider_id.is_empty()
+        || value.request_attempt_count != 1
         || value.event_timestamp_ms == 0
         || value.exact_timestamp_ms.is_empty()
         || value.exact_timestamp_ms.len() != value.row_identity_digests.len()
@@ -1727,6 +1748,15 @@ fn encode_input_capsule(
             "epoch_registration_digest",
             &value.epoch_registration_digest,
         )
+        .string(
+            "context_delta_plan_digest",
+            &value.context_delta_plan_digest,
+        )
+        .string("provider_id", &value.provider_id)
+        .unsigned(
+            "request_attempt_count",
+            as_u64(value.request_attempt_count)?,
+        )
         .unsigned("event_timestamp_ms", value.event_timestamp_ms)
         .unsigneds("exact_timestamp_ms", &value.exact_timestamp_ms)
         .strings("row_identity_digests", &value.row_identity_digests)
@@ -1755,6 +1785,9 @@ fn decode_input_capsule(bytes: &[u8]) -> Result<MomentumProspectiveSeriesInputCa
         capsule_version: fields.string("capsule_version")?,
         series_digest: fields.string("series_digest")?,
         epoch_registration_digest: fields.string("epoch_registration_digest")?,
+        context_delta_plan_digest: fields.string("context_delta_plan_digest")?,
+        provider_id: fields.string("provider_id")?,
+        request_attempt_count: as_usize(fields.unsigned("request_attempt_count")?)?,
         event_timestamp_ms: fields.unsigned("event_timestamp_ms")?,
         exact_timestamp_ms: fields.unsigneds("exact_timestamp_ms")?,
         row_identity_digests: fields.strings("row_identity_digests")?,
@@ -1779,12 +1812,14 @@ fn validate_prediction_seal(
 ) -> Result<(), String> {
     if value.seal_version != PREDICTION_SEAL_VERSION
         || value.series_digest.is_empty()
+        || value.epoch_number < 2
         || value.epoch_registration_digest.is_empty()
         || value.participant_digest.is_empty()
         || value.participant_role.is_empty()
         || value.event_timestamp_ms == 0
         || value.input_receipt_digest.is_empty()
         || value.input_capsule_digest.is_empty()
+        || value.context_use_proof_digest.is_empty()
         || value.context_assembly_proof_digest.is_empty()
         || value.feature_identity_digest.is_empty()
         || value.prediction_digest.is_empty()
@@ -1806,6 +1841,7 @@ fn encode_prediction_seal(
     ArtifactBuilderV4_2::new("series-prediction-seal")
         .string("seal_version", &value.seal_version)
         .string("series_digest", &value.series_digest)
+        .unsigned("epoch_number", value.epoch_number)
         .string(
             "epoch_registration_digest",
             &value.epoch_registration_digest,
@@ -1815,6 +1851,7 @@ fn encode_prediction_seal(
         .unsigned("event_timestamp_ms", value.event_timestamp_ms)
         .string("input_receipt_digest", &value.input_receipt_digest)
         .string("input_capsule_digest", &value.input_capsule_digest)
+        .string("context_use_proof_digest", &value.context_use_proof_digest)
         .string(
             "context_assembly_proof_digest",
             &value.context_assembly_proof_digest,
@@ -1844,12 +1881,14 @@ fn decode_prediction_seal(
     let value = MomentumSeriesParticipantPredictionSealV4 {
         seal_version: fields.string("seal_version")?,
         series_digest: fields.string("series_digest")?,
+        epoch_number: fields.unsigned("epoch_number")?,
         epoch_registration_digest: fields.string("epoch_registration_digest")?,
         participant_digest: fields.string("participant_digest")?,
         participant_role: fields.string("participant_role")?,
         event_timestamp_ms: fields.unsigned("event_timestamp_ms")?,
         input_receipt_digest: fields.string("input_receipt_digest")?,
         input_capsule_digest: fields.string("input_capsule_digest")?,
+        context_use_proof_digest: fields.string("context_use_proof_digest")?,
         context_assembly_proof_digest: fields.string("context_assembly_proof_digest")?,
         feature_identity_digest: fields.string("feature_identity_digest")?,
         prediction_probability_bits: u32::try_from(fields.unsigned("prediction_probability_bits")?)
@@ -1892,6 +1931,9 @@ fn validate_prediction_capsule(
         || value.metrics_computed
         || value.winner_selected
         || value.ranking_created
+        || value.reward_applied
+        || value.penalty_applied
+        || value.chair_action_taken
         || value.capsule_digest != prediction_capsule_digest(value)
     {
         return Err("V4 series prediction capsule rejected".to_string());
@@ -1928,6 +1970,9 @@ fn encode_prediction_capsule(
         .boolean("metrics_computed", value.metrics_computed)
         .boolean("winner_selected", value.winner_selected)
         .boolean("ranking_created", value.ranking_created)
+        .boolean("reward_applied", value.reward_applied)
+        .boolean("penalty_applied", value.penalty_applied)
+        .boolean("chair_action_taken", value.chair_action_taken)
         .string("capsule_digest", &value.capsule_digest)
         .encode()
 }
@@ -1953,6 +1998,9 @@ fn decode_prediction_capsule(
         metrics_computed: fields.boolean("metrics_computed")?,
         winner_selected: fields.boolean("winner_selected")?,
         ranking_created: fields.boolean("ranking_created")?,
+        reward_applied: fields.boolean("reward_applied")?,
+        penalty_applied: fields.boolean("penalty_applied")?,
+        chair_action_taken: fields.boolean("chair_action_taken")?,
         capsule_digest: fields.string("capsule_digest")?,
     };
     fields.finish()?;
@@ -1964,16 +2012,26 @@ fn validate_journal(value: &MomentumProspectiveSeriesJournalEntryV4) -> Result<(
     if value.journal_version != JOURNAL_VERSION
         || value.series_digest.is_empty()
         || value.epoch_number < 2
+        || value.event_one_adoption_digest.is_empty()
         || value.previous_epoch_ledger_entry_digest.is_empty()
+        || value.context_delta_plan_digest.is_empty()
         || value.event_timestamp_ms == 0
         || value.registration_created_at_ms >= value.input_finality_boundary_ms
         || value.input_receipt_digest.is_empty()
         || value.input_capsule_digest.is_empty()
         || value.context_assembly_proof_digest.is_empty()
         || value.prediction_capsule_digest.is_empty()
+        || value.participant_seal_digests.len() != 3
+        || value
+            .participant_seal_digests
+            .iter()
+            .collect::<BTreeSet<_>>()
+            .len()
+            != 3
         || value.participant_prediction_digests.len() != 3
         || !value.deterministic_fixed_cadence_selection
         || value.prior_event_scores_read
+        || value.prior_event_correctness_read
         || !value.registration_preceded_input_finality
         || !value.input_acquisition_preceded_prediction
         || !value.prediction_preceded_outcome_access
@@ -1997,8 +2055,16 @@ fn encode_journal(value: &MomentumProspectiveSeriesJournalEntryV4) -> Result<Vec
         .string("series_digest", &value.series_digest)
         .unsigned("epoch_number", value.epoch_number)
         .string(
+            "event_one_adoption_digest",
+            &value.event_one_adoption_digest,
+        )
+        .string(
             "previous_epoch_ledger_entry_digest",
             &value.previous_epoch_ledger_entry_digest,
+        )
+        .string(
+            "context_delta_plan_digest",
+            &value.context_delta_plan_digest,
         )
         .unsigned("event_timestamp_ms", value.event_timestamp_ms)
         .unsigned(
@@ -2019,6 +2085,7 @@ fn encode_journal(value: &MomentumProspectiveSeriesJournalEntryV4) -> Result<Vec
             "prediction_capsule_digest",
             &value.prediction_capsule_digest,
         )
+        .strings("participant_seal_digests", &value.participant_seal_digests)
         .strings(
             "participant_prediction_digests",
             &value.participant_prediction_digests,
@@ -2028,6 +2095,10 @@ fn encode_journal(value: &MomentumProspectiveSeriesJournalEntryV4) -> Result<Vec
             value.deterministic_fixed_cadence_selection,
         )
         .boolean("prior_event_scores_read", value.prior_event_scores_read)
+        .boolean(
+            "prior_event_correctness_read",
+            value.prior_event_correctness_read,
+        )
         .boolean(
             "registration_preceded_input_finality",
             value.registration_preceded_input_finality,
@@ -2057,7 +2128,9 @@ fn decode_journal(bytes: &[u8]) -> Result<MomentumProspectiveSeriesJournalEntryV
         journal_version: fields.string("journal_version")?,
         series_digest: fields.string("series_digest")?,
         epoch_number: fields.unsigned("epoch_number")?,
+        event_one_adoption_digest: fields.string("event_one_adoption_digest")?,
         previous_epoch_ledger_entry_digest: fields.string("previous_epoch_ledger_entry_digest")?,
+        context_delta_plan_digest: fields.string("context_delta_plan_digest")?,
         event_timestamp_ms: fields.unsigned("event_timestamp_ms")?,
         registration_created_at_ms: fields.unsigned("registration_created_at_ms")?,
         input_finality_boundary_ms: fields.unsigned("input_finality_boundary_ms")?,
@@ -2065,10 +2138,12 @@ fn decode_journal(bytes: &[u8]) -> Result<MomentumProspectiveSeriesJournalEntryV
         input_capsule_digest: fields.string("input_capsule_digest")?,
         context_assembly_proof_digest: fields.string("context_assembly_proof_digest")?,
         prediction_capsule_digest: fields.string("prediction_capsule_digest")?,
+        participant_seal_digests: fields.strings("participant_seal_digests")?,
         participant_prediction_digests: fields.strings("participant_prediction_digests")?,
         deterministic_fixed_cadence_selection: fields
             .boolean("deterministic_fixed_cadence_selection")?,
         prior_event_scores_read: fields.boolean("prior_event_scores_read")?,
+        prior_event_correctness_read: fields.boolean("prior_event_correctness_read")?,
         registration_preceded_input_finality: fields
             .boolean("registration_preceded_input_finality")?,
         input_acquisition_preceded_prediction: fields
@@ -3218,7 +3293,7 @@ fn persist_preregistration(
     Ok(counts)
 }
 
-fn build_provider_request(
+pub(crate) fn build_provider_request(
     registration: &MomentumProspectiveEpochRegistrationV4,
 ) -> Result<ReadOnlyProviderRequest, String> {
     let first = registration
@@ -3369,6 +3444,9 @@ fn validate_input_response(
         capsule_version: INPUT_CAPSULE_VERSION.to_string(),
         series_digest: registration.series_digest.clone(),
         epoch_registration_digest: registration.registration_digest.clone(),
+        context_delta_plan_digest: registration.context_delta_plan_digest.clone(),
+        provider_id: registration.provider_id.clone(),
+        request_attempt_count: 1,
         event_timestamp_ms: registration.event_timestamp_ms,
         exact_timestamp_ms: timestamps,
         row_identity_digests: rows.iter().map(row_identity_digest).collect(),
@@ -3565,6 +3643,7 @@ fn derive_prediction_artifacts(
     registration: &MomentumProspectiveEpochRegistrationV4,
     receipt: &MomentumProspectiveSeriesInputReceiptV4,
     capsule: &MomentumProspectiveSeriesInputCapsuleV4,
+    use_proof: &MomentumSeriesContextUseProofV4,
     assembly: &MomentumSeriesContextAssemblyProofV4,
     context: &[HistoricalOhlcvRow],
 ) -> Result<
@@ -3630,12 +3709,14 @@ fn derive_prediction_artifacts(
             let mut value = MomentumSeriesParticipantPredictionSealV4 {
                 seal_version: PREDICTION_SEAL_VERSION.to_string(),
                 series_digest: series.series_digest.clone(),
+                epoch_number: registration.epoch_number,
                 epoch_registration_digest: registration.registration_digest.clone(),
                 participant_digest: participant_digest.clone(),
                 participant_role: participant_role_name(participant.participant_role).to_string(),
                 event_timestamp_ms: registration.event_timestamp_ms,
                 input_receipt_digest: receipt.receipt_digest.clone(),
                 input_capsule_digest: capsule.capsule_digest.clone(),
+                context_use_proof_digest: use_proof.proof_digest.clone(),
                 context_assembly_proof_digest: assembly.proof_digest.clone(),
                 feature_identity_digest: prediction.feature_identity_digest.clone(),
                 prediction_probability_bits: predicted.probability_bits,
@@ -3672,6 +3753,9 @@ fn derive_prediction_artifacts(
         metrics_computed: false,
         winner_selected: false,
         ranking_created: false,
+        reward_applied: false,
+        penalty_applied: false,
+        chair_action_taken: false,
         capsule_digest: String::new(),
     };
     prediction_capsule.capsule_digest = prediction_capsule_digest(&prediction_capsule);
@@ -3680,7 +3764,9 @@ fn derive_prediction_artifacts(
         journal_version: JOURNAL_VERSION.to_string(),
         series_digest: series.series_digest.clone(),
         epoch_number: registration.epoch_number,
+        event_one_adoption_digest: adoption.adoption_digest.clone(),
         previous_epoch_ledger_entry_digest: adoption.evaluation_ledger_entry_digest.clone(),
+        context_delta_plan_digest: registration.context_delta_plan_digest.clone(),
         event_timestamp_ms: registration.event_timestamp_ms,
         registration_created_at_ms: registration.registration_created_at_ms,
         input_finality_boundary_ms: registration.input_finality_boundary_ms,
@@ -3688,9 +3774,11 @@ fn derive_prediction_artifacts(
         input_capsule_digest: capsule.capsule_digest.clone(),
         context_assembly_proof_digest: assembly.proof_digest.clone(),
         prediction_capsule_digest: prediction_capsule.capsule_digest.clone(),
+        participant_seal_digests: prediction_capsule.participant_seal_digests.clone(),
         participant_prediction_digests: prediction_capsule.participant_prediction_digests.clone(),
         deterministic_fixed_cadence_selection: true,
         prior_event_scores_read: false,
+        prior_event_correctness_read: false,
         registration_preceded_input_finality: true,
         input_acquisition_preceded_prediction: true,
         prediction_preceded_outcome_access: true,
@@ -3902,10 +3990,17 @@ fn readiness(
     if prediction_capsule.is_some() {
         return MomentumProspectiveEpochReadinessV4::PredictionAlreadySealed;
     }
-    if receipt.is_some_and(|value| {
-        value.status != MomentumProspectiveSeriesInputStatusV4::ReadyNotAttempted
-    }) {
-        return MomentumProspectiveEpochReadinessV4::IntegrityFailure;
+    if let Some(receipt) = receipt {
+        if receipt.status == MomentumProspectiveSeriesInputStatusV4::EvidenceAcquired {
+            return if observed_timestamp_ms >= registration.outcome_finality_boundary_ms {
+                MomentumProspectiveEpochReadinessV4::PredictionSealWindowExpired
+            } else {
+                MomentumProspectiveEpochReadinessV4::ReadyForInputAcquisition
+            };
+        }
+        if receipt.status != MomentumProspectiveSeriesInputStatusV4::ReadyNotAttempted {
+            return MomentumProspectiveEpochReadinessV4::IntegrityFailure;
+        }
     }
     if observed_timestamp_ms < registration.input_finality_boundary_ms {
         MomentumProspectiveEpochReadinessV4::RegisteredAwaitingInputFinality
@@ -4031,6 +4126,7 @@ fn report(
 }
 
 fn validate_persisted_prediction_chain(
+    adoption: &MomentumProspectiveSeriesAdoptionV4,
     registration: &MomentumProspectiveEpochRegistrationV4,
     receipt: &MomentumProspectiveSeriesInputReceiptV4,
     input_capsule: &MomentumProspectiveSeriesInputCapsuleV4,
@@ -4053,6 +4149,9 @@ fn validate_persisted_prediction_chain(
         || receipt.epoch_registration_digest != registration.registration_digest
         || receipt.input_capsule_digest.as_deref() != Some(input_capsule.capsule_digest.as_str())
         || input_capsule.epoch_registration_digest != registration.registration_digest
+        || input_capsule.context_delta_plan_digest != registration.context_delta_plan_digest
+        || input_capsule.provider_id != registration.provider_id
+        || input_capsule.request_attempt_count != 1
         || input_capsule.exact_timestamp_ms != registration.exact_missing_timestamp_ms
         || use_proof.epoch_registration_digest != registration.registration_digest
         || assembly.epoch_registration_digest != registration.registration_digest
@@ -4061,9 +4160,11 @@ fn validate_persisted_prediction_chain(
         || assembly.exact_context_timestamp_ms != registration.exact_context_timestamp_ms
         || seals.len() != 3
         || seals.iter().any(|value| {
-            value.epoch_registration_digest != registration.registration_digest
+            value.epoch_number != registration.epoch_number
+                || value.epoch_registration_digest != registration.registration_digest
                 || value.input_receipt_digest != receipt.receipt_digest
                 || value.input_capsule_digest != input_capsule.capsule_digest
+                || value.context_use_proof_digest != use_proof.proof_digest
                 || value.context_assembly_proof_digest != assembly.proof_digest
         })
         || prediction_capsule.epoch_registration_digest != registration.registration_digest
@@ -4072,9 +4173,16 @@ fn validate_persisted_prediction_chain(
         || prediction_capsule.context_assembly_proof_digest != assembly.proof_digest
         || prediction_capsule.participant_seal_digests != seal_digests
         || prediction_capsule.participant_prediction_digests != prediction_digests
+        || prediction_capsule.reward_applied
+        || prediction_capsule.penalty_applied
+        || prediction_capsule.chair_action_taken
         || journal.epoch_number != registration.epoch_number
+        || journal.event_one_adoption_digest != adoption.adoption_digest
+        || journal.context_delta_plan_digest != registration.context_delta_plan_digest
         || journal.prediction_capsule_digest != prediction_capsule.capsule_digest
+        || journal.participant_seal_digests != seal_digests
         || journal.participant_prediction_digests != prediction_digests
+        || journal.prior_event_correctness_read
         || outcome_plan.epoch_registration_digest != registration.registration_digest
         || outcome_plan.prediction_capsule_digest != prediction_capsule.capsule_digest
         || outcome_plan.required_outcome_timestamp_ms != [registration.outcome_timestamp_ms]
@@ -4126,6 +4234,28 @@ fn reopen_acquired_rows(
     Ok((raw, dataset.rows))
 }
 
+fn validate_run_authority(
+    mode: MomentumProspectiveSeriesRunModeV4,
+    network_allowed: bool,
+    one_time_request_confirmed: bool,
+    requested_epoch: Option<u64>,
+) -> Result<(), String> {
+    if mode != MomentumProspectiveSeriesRunModeV4::ExecuteInput
+        && (network_allowed || one_time_request_confirmed || requested_epoch.is_some())
+    {
+        return Err("V4 series non-input mode rejects network authority".to_string());
+    }
+    if mode == MomentumProspectiveSeriesRunModeV4::ExecuteInput
+        && (!network_allowed || !one_time_request_confirmed || requested_epoch.is_none())
+    {
+        return Err(
+            "V4 series input execution requires epoch, network permission, and exact confirmation"
+                .to_string(),
+        );
+    }
+    Ok(())
+}
+
 fn run_with_transport<F>(
     root: &Path,
     snapshots: &[DataSnapshot],
@@ -4145,19 +4275,12 @@ where
     )
         -> Result<LearningEvidenceTransportResponseV1, LearningEvidenceTransportFailureV1>,
 {
-    if mode != MomentumProspectiveSeriesRunModeV4::ExecuteInput
-        && (network_allowed || one_time_request_confirmed || requested_epoch.is_some())
-    {
-        return Err("V4 series non-input mode rejects network authority".to_string());
-    }
-    if mode == MomentumProspectiveSeriesRunModeV4::ExecuteInput
-        && (!network_allowed || !one_time_request_confirmed || requested_epoch.is_none())
-    {
-        return Err(
-            "V4 series input execution requires epoch, network permission, and exact confirmation"
-                .to_string(),
-        );
-    }
+    validate_run_authority(
+        mode,
+        network_allowed,
+        one_time_request_confirmed,
+        requested_epoch,
+    )?;
     provider_config.validate()?;
     let protected_before = protected_artifacts(root)?;
     let active_before = stable_hash_string(&format!("{:?}", canonical_current_agent_states()));
@@ -4285,6 +4408,7 @@ where
         persisted_outcome_plan.as_ref(),
     ) {
         validate_persisted_prediction_chain(
+            &adoption,
             &registration,
             receipt,
             input_capsule,
@@ -4349,10 +4473,57 @@ where
         (persisted_receipt.as_ref(), persisted_input_capsule.as_ref())
     {
         if receipt.status != MomentumProspectiveSeriesInputStatusV4::EvidenceAcquired
+            || receipt.series_digest != registration.series_digest
+            || receipt.epoch_registration_digest != registration.registration_digest
             || receipt.input_capsule_digest.as_deref()
                 != Some(input_capsule.capsule_digest.as_str())
+            || input_capsule.series_digest != registration.series_digest
+            || input_capsule.epoch_registration_digest != registration.registration_digest
+            || input_capsule.context_delta_plan_digest != registration.context_delta_plan_digest
+            || input_capsule.provider_id != registration.provider_id
+            || input_capsule.request_attempt_count != 1
+            || input_capsule.event_timestamp_ms != registration.event_timestamp_ms
+            || input_capsule.exact_timestamp_ms != registration.exact_missing_timestamp_ms
         {
             return Err("V4 series terminal input chain rejected".to_string());
+        }
+        if observed_timestamp_ms >= registration.outcome_finality_boundary_ms {
+            let protected_after = protected_artifacts(root)?;
+            let active_after =
+                stable_hash_string(&format!("{:?}", canonical_current_agent_states()));
+            let status = build_status(
+                &adoption,
+                &audit,
+                &delta,
+                &registration,
+                MomentumProspectiveEpochReadinessV4::PredictionSealWindowExpired,
+                Some(receipt),
+                Some(input_capsule),
+                None,
+                None,
+                None,
+                None,
+                reward_status(&event)?,
+                protected_before == protected_after,
+                active_before == active_after,
+                idle_safety_counters(),
+            )?;
+            return Ok(report(
+                status,
+                series,
+                adoption,
+                audit,
+                delta,
+                registration,
+                persisted_receipt,
+                persisted_input_capsule,
+                None,
+                None,
+                None,
+                None,
+                None,
+                (0, 0),
+            ));
         }
         let (raw_response, new_rows) =
             reopen_acquired_rows(&artifact_root, &registration, input_capsule)?;
@@ -4376,6 +4547,7 @@ where
             &registration,
             receipt,
             input_capsule,
+            &use_proof,
             &assembly,
             &context,
         )?;
@@ -4447,9 +4619,11 @@ where
     if canonical.is_some() {
         base_safety.canonical_raw_row_reads = delta.canonical_rows.len();
     }
-    if mode == MomentumProspectiveSeriesRunModeV4::Status
-        || mode == MomentumProspectiveSeriesRunModeV4::ExecuteInput
-            && current_readiness != MomentumProspectiveEpochReadinessV4::ReadyForInputAcquisition
+    if matches!(
+        mode,
+        MomentumProspectiveSeriesRunModeV4::Status | MomentumProspectiveSeriesRunModeV4::DryRun
+    ) || mode == MomentumProspectiveSeriesRunModeV4::ExecuteInput
+        && current_readiness != MomentumProspectiveEpochReadinessV4::ReadyForInputAcquisition
         || persisted_receipt.is_some()
     {
         let status = build_status(
@@ -4762,6 +4936,7 @@ where
         &registration,
         &receipt,
         &input_capsule,
+        &use_proof,
         &assembly,
         &context,
     )?;
@@ -5027,6 +5202,9 @@ mod tests {
             capsule_version: INPUT_CAPSULE_VERSION.into(),
             series_digest: series.series_digest.clone(),
             epoch_registration_digest: registration.registration_digest.clone(),
+            context_delta_plan_digest: registration.context_delta_plan_digest.clone(),
+            provider_id: registration.provider_id.clone(),
+            request_attempt_count: 1,
             event_timestamp_ms: EVENT,
             exact_timestamp_ms: vec![EVENT],
             row_identity_digests: vec!["row-event".into()],
@@ -5149,6 +5327,7 @@ mod tests {
         registration: &MomentumProspectiveEpochRegistrationV4,
         receipt: &MomentumProspectiveSeriesInputReceiptV4,
         input_capsule: &MomentumProspectiveSeriesInputCapsuleV4,
+        use_proof: &MomentumSeriesContextUseProofV4,
         assembly: &MomentumSeriesContextAssemblyProofV4,
     ) -> Vec<MomentumSeriesParticipantPredictionSealV4> {
         series
@@ -5159,12 +5338,14 @@ mod tests {
                 let mut value = MomentumSeriesParticipantPredictionSealV4 {
                     seal_version: PREDICTION_SEAL_VERSION.into(),
                     series_digest: series.series_digest.clone(),
+                    epoch_number: registration.epoch_number,
                     epoch_registration_digest: registration.registration_digest.clone(),
                     participant_digest: participant.clone(),
                     participant_role: format!("role-{index}"),
                     event_timestamp_ms: EVENT,
                     input_receipt_digest: receipt.receipt_digest.clone(),
                     input_capsule_digest: input_capsule.capsule_digest.clone(),
+                    context_use_proof_digest: use_proof.proof_digest.clone(),
                     context_assembly_proof_digest: assembly.proof_digest.clone(),
                     feature_identity_digest: "feature-identity".into(),
                     prediction_probability_bits: (index as f32 / 10.0 + 0.4).to_bits(),
@@ -5203,7 +5384,14 @@ mod tests {
         let input_capsule = fixture_input_capsule(&series, &registration);
         let receipt = fixture_receipt(&series, &registration, &input_capsule);
         let (use_proof, assembly) = fixture_context_proofs(&series, &registration, &input_capsule);
-        let seals = fixture_seals(&series, &registration, &receipt, &input_capsule, &assembly);
+        let seals = fixture_seals(
+            &series,
+            &registration,
+            &receipt,
+            &input_capsule,
+            &use_proof,
+            &assembly,
+        );
         let mut prediction_capsule = MomentumProspectiveSeriesPredictionCapsuleV4 {
             capsule_version: PREDICTION_CAPSULE_VERSION.into(),
             series_digest: series.series_digest.clone(),
@@ -5227,6 +5415,9 @@ mod tests {
             metrics_computed: false,
             winner_selected: false,
             ranking_created: false,
+            reward_applied: false,
+            penalty_applied: false,
+            chair_action_taken: false,
             capsule_digest: String::new(),
         };
         prediction_capsule.capsule_digest = prediction_capsule_digest(&prediction_capsule);
@@ -5234,7 +5425,9 @@ mod tests {
             journal_version: JOURNAL_VERSION.into(),
             series_digest: series.series_digest.clone(),
             epoch_number: 2,
+            event_one_adoption_digest: adoption.adoption_digest.clone(),
             previous_epoch_ledger_entry_digest: adoption.evaluation_ledger_entry_digest.clone(),
+            context_delta_plan_digest: registration.context_delta_plan_digest.clone(),
             event_timestamp_ms: EVENT,
             registration_created_at_ms: registration.registration_created_at_ms,
             input_finality_boundary_ms: registration.input_finality_boundary_ms,
@@ -5242,11 +5435,13 @@ mod tests {
             input_capsule_digest: input_capsule.capsule_digest.clone(),
             context_assembly_proof_digest: assembly.proof_digest.clone(),
             prediction_capsule_digest: prediction_capsule.capsule_digest.clone(),
+            participant_seal_digests: prediction_capsule.participant_seal_digests.clone(),
             participant_prediction_digests: prediction_capsule
                 .participant_prediction_digests
                 .clone(),
             deterministic_fixed_cadence_selection: true,
             prior_event_scores_read: false,
+            prior_event_correctness_read: false,
             registration_preceded_input_finality: true,
             input_acquisition_preceded_prediction: true,
             prediction_preceded_outcome_access: true,
@@ -5797,5 +5992,110 @@ mod tests {
         assert_eq!(first, (1, 0));
         assert_eq!(replay, (0, 0));
         fs::remove_dir_all(root).expect("remove isolated fixture");
+    }
+
+    #[test]
+    fn sprint90_44_success_capsule_binds_registered_delta_provider_and_attempt() {
+        let chain = fixture_prediction_chain();
+        let registration = chain.3;
+        let capsule = chain.5;
+        assert_eq!(
+            capsule.context_delta_plan_digest,
+            registration.context_delta_plan_digest
+        );
+        assert_eq!(capsule.provider_id, registration.provider_id);
+        assert_eq!(capsule.request_attempt_count, 1);
+        assert_eq!(
+            capsule.row_identity_digests.len(),
+            registration.exact_missing_timestamp_ms.len()
+        );
+        assert!(validate_input_capsule(&capsule).is_ok());
+    }
+
+    #[test]
+    fn sprint90_45_prediction_artifacts_bind_epoch_context_and_zero_authority() {
+        let chain = fixture_prediction_chain();
+        assert!(chain.8.iter().all(|seal| {
+            seal.epoch_number == chain.3.epoch_number
+                && seal.context_use_proof_digest == chain.6.proof_digest
+                && validate_prediction_seal(seal).is_ok()
+        }));
+        assert!(!chain.9.reward_applied);
+        assert!(!chain.9.penalty_applied);
+        assert!(!chain.9.chair_action_taken);
+        assert!(validate_prediction_capsule(&chain.9).is_ok());
+    }
+
+    #[test]
+    fn sprint90_46_journal_binds_adoption_delta_and_exact_seals() {
+        let chain = fixture_prediction_chain();
+        assert_eq!(chain.10.event_one_adoption_digest, chain.1.adoption_digest);
+        assert_eq!(
+            chain.10.context_delta_plan_digest,
+            chain.3.context_delta_plan_digest
+        );
+        assert_eq!(
+            chain.10.participant_seal_digests,
+            chain
+                .8
+                .iter()
+                .map(|seal| seal.seal_digest.clone())
+                .collect::<Vec<_>>()
+        );
+        assert!(!chain.10.prior_event_correctness_read);
+        assert!(validate_journal(&chain.10).is_ok());
+    }
+
+    #[test]
+    fn sprint90_47_recovery_after_outcome_finality_cannot_backdate_seal() {
+        let chain = fixture_prediction_chain();
+        assert_eq!(
+            readiness(
+                chain.3.outcome_finality_boundary_ms,
+                &chain.3,
+                Some(&chain.4),
+                None,
+            ),
+            MomentumProspectiveEpochReadinessV4::PredictionSealWindowExpired
+        );
+        assert_eq!(
+            readiness(
+                chain.3.outcome_finality_boundary_ms,
+                &chain.3,
+                Some(&chain.4),
+                Some(&chain.9),
+            ),
+            MomentumProspectiveEpochReadinessV4::PredictionAlreadySealed
+        );
+    }
+
+    #[test]
+    fn sprint90_48_dry_run_has_no_network_authority() {
+        assert!(
+            validate_run_authority(
+                MomentumProspectiveSeriesRunModeV4::DryRun,
+                false,
+                false,
+                None,
+            )
+            .is_ok()
+        );
+        assert!(
+            validate_run_authority(
+                MomentumProspectiveSeriesRunModeV4::DryRun,
+                true,
+                false,
+                None,
+            )
+            .is_err()
+        );
+        let chain = fixture_prediction_chain();
+        let request = build_provider_request(&chain.3).expect("exact delta request");
+        assert_eq!(request.lookback.bars, 1);
+        assert_eq!(request.lookback.start_timestamp_ms, Some(EVENT));
+        assert_eq!(
+            request.lookback.end_timestamp_ms,
+            Some(EVENT + DAILY_CADENCE_MS)
+        );
     }
 }
