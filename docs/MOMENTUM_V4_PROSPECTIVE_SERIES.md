@@ -88,6 +88,8 @@ unfinished, or outcome rows fail terminally.
 Transport and validation failures persist one terminal receipt and report
 `PriorInputAttemptTerminal`. Replay returns that state before transport
 construction, so a consumed request can never be retried or replaced.
+A terminal receipt carrying successful response identity or a mismatched
+registration binding remains an `IntegrityFailure`.
 
 Status and dry-run both expose the same sanitized registered request preview:
 registration time, canonical reused timestamps, provider, market, cadence,

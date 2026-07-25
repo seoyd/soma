@@ -1647,7 +1647,34 @@ fn decode_context_assembly(bytes: &[u8]) -> Result<MomentumSeriesContextAssembly
 
 fn validate_input_receipt(value: &MomentumProspectiveSeriesInputReceiptV4) -> Result<(), String> {
     let attempted = value.status != MomentumProspectiveSeriesInputStatusV4::ReadyNotAttempted;
-    let acquired = value.status == MomentumProspectiveSeriesInputStatusV4::EvidenceAcquired;
+    let status_fields_valid = match value.status {
+        MomentumProspectiveSeriesInputStatusV4::ReadyNotAttempted => {
+            value.http_status_class.is_none()
+                && value.returned_row_count == 0
+                && value.verified_row_count == 0
+                && value.raw_response_digest.is_none()
+                && value.input_capsule_digest.is_none()
+        }
+        MomentumProspectiveSeriesInputStatusV4::EvidenceAcquired => {
+            value.http_status_class.as_deref() == Some("2xx")
+                && value.returned_row_count > 0
+                && value.verified_row_count == value.returned_row_count
+                && value.raw_response_digest.is_some()
+                && value.input_capsule_digest.is_some()
+        }
+        MomentumProspectiveSeriesInputStatusV4::TerminalTransportFailure => {
+            value.http_status_class.as_deref() != Some("2xx")
+                && value.returned_row_count == 0
+                && value.verified_row_count == 0
+                && value.raw_response_digest.is_none()
+                && value.input_capsule_digest.is_none()
+        }
+        MomentumProspectiveSeriesInputStatusV4::TerminalValidationFailure => {
+            value.verified_row_count == 0
+                && value.raw_response_digest.is_none()
+                && value.input_capsule_digest.is_none()
+        }
+    };
     if value.receipt_version != INPUT_RECEIPT_VERSION
         || value.series_digest.is_empty()
         || value.epoch_registration_digest.is_empty()
@@ -1656,10 +1683,7 @@ fn validate_input_receipt(value: &MomentumProspectiveSeriesInputReceiptV4) -> Re
         || value.retry_count != 0
         || value.transport_construction_count != usize::from(attempted)
         || value.verified_row_count > value.returned_row_count
-        || acquired
-            != (value.input_capsule_digest.is_some()
-                && value.raw_response_digest.is_some()
-                && value.verified_row_count > 0)
+        || !status_fields_valid
         || value.terminal != attempted
         || value.receipt_digest != input_receipt_digest(value)
     {
@@ -3999,15 +4023,25 @@ fn readiness(
         return MomentumProspectiveEpochReadinessV4::PredictionAlreadySealed;
     }
     if let Some(receipt) = receipt {
-        if receipt.status == MomentumProspectiveSeriesInputStatusV4::EvidenceAcquired {
-            return if observed_timestamp_ms >= registration.outcome_finality_boundary_ms {
-                MomentumProspectiveEpochReadinessV4::PredictionSealWindowExpired
-            } else {
-                MomentumProspectiveEpochReadinessV4::ReadyForLocalPredictionRecovery
-            };
+        if validate_input_receipt(receipt).is_err()
+            || receipt.series_digest != registration.series_digest
+            || receipt.epoch_registration_digest != registration.registration_digest
+        {
+            return MomentumProspectiveEpochReadinessV4::IntegrityFailure;
         }
-        if receipt.status != MomentumProspectiveSeriesInputStatusV4::ReadyNotAttempted {
-            return MomentumProspectiveEpochReadinessV4::PriorInputAttemptTerminal;
+        match receipt.status {
+            MomentumProspectiveSeriesInputStatusV4::EvidenceAcquired => {
+                return if observed_timestamp_ms >= registration.outcome_finality_boundary_ms {
+                    MomentumProspectiveEpochReadinessV4::PredictionSealWindowExpired
+                } else {
+                    MomentumProspectiveEpochReadinessV4::ReadyForLocalPredictionRecovery
+                };
+            }
+            MomentumProspectiveSeriesInputStatusV4::TerminalTransportFailure
+            | MomentumProspectiveSeriesInputStatusV4::TerminalValidationFailure => {
+                return MomentumProspectiveEpochReadinessV4::PriorInputAttemptTerminal;
+            }
+            MomentumProspectiveSeriesInputStatusV4::ReadyNotAttempted => {}
         }
     }
     if observed_timestamp_ms < registration.input_finality_boundary_ms {
@@ -6192,5 +6226,61 @@ mod tests {
             );
             assert!(!input_acquisition_allowed(terminal_readiness));
         }
+    }
+
+    #[test]
+    fn sprint92_51_corrupt_terminal_receipt_remains_integrity_failure() {
+        let chain = fixture_prediction_chain();
+        let mut receipt = chain.4.clone();
+        receipt.status = MomentumProspectiveSeriesInputStatusV4::TerminalValidationFailure;
+        receipt.verified_row_count = 0;
+        receipt.input_capsule_digest = None;
+        receipt.receipt_digest = input_receipt_digest(&receipt);
+        assert!(validate_input_receipt(&receipt).is_err());
+        assert_eq!(
+            readiness(
+                chain.3.input_finality_boundary_ms,
+                &chain.3,
+                Some(&receipt),
+                None,
+            ),
+            MomentumProspectiveEpochReadinessV4::IntegrityFailure
+        );
+
+        receipt.raw_response_digest = None;
+        receipt.series_digest = "different-series".into();
+        receipt.receipt_digest = input_receipt_digest(&receipt);
+        assert!(validate_input_receipt(&receipt).is_ok());
+        assert_eq!(
+            readiness(
+                chain.3.input_finality_boundary_ms,
+                &chain.3,
+                Some(&receipt),
+                None,
+            ),
+            MomentumProspectiveEpochReadinessV4::IntegrityFailure
+        );
+    }
+
+    #[test]
+    fn sprint92_52_only_ready_acquisition_authorizes_input() {
+        for current_readiness in [
+            MomentumProspectiveEpochReadinessV4::RegisteredAwaitingInputFinality,
+            MomentumProspectiveEpochReadinessV4::ReadyForLocalPredictionRecovery,
+            MomentumProspectiveEpochReadinessV4::PredictionAlreadySealed,
+            MomentumProspectiveEpochReadinessV4::PredictionSealWindowExpired,
+            MomentumProspectiveEpochReadinessV4::PriorInputAttemptTerminal,
+            MomentumProspectiveEpochReadinessV4::ProspectiveWindowExpired,
+            MomentumProspectiveEpochReadinessV4::MissingCanonicalContext,
+            MomentumProspectiveEpochReadinessV4::MissingSetNotContiguous,
+            MomentumProspectiveEpochReadinessV4::PriorPrivateEvidenceAccessDetected,
+            MomentumProspectiveEpochReadinessV4::FrozenIdentityMismatch,
+            MomentumProspectiveEpochReadinessV4::IntegrityFailure,
+        ] {
+            assert!(!input_acquisition_allowed(current_readiness));
+        }
+        assert!(input_acquisition_allowed(
+            MomentumProspectiveEpochReadinessV4::ReadyForInputAcquisition
+        ));
     }
 }
