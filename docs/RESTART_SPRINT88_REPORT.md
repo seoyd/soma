@@ -13,7 +13,8 @@
    `b73f1b4ff06c3c0132c7dacb8a7fa5e67ab0ea3c8c3e9b2d1a90f48e9fc5d868`,
    and
    `ec2defdd918ee8a05892b493eadb43f1f1358d8a1039d9669fecd0f58297043f`.
-   The canonical active three-agent state identity was captured separately.
+   The canonical active three-agent state identity was
+   `27bcd0d843c107fa`.
 4. **Merged authority contracts:** capsule, authorization, opening bundle, and
    ledger fields for zero winner, ranking, reward, penalty, Chair, voice,
    promotion, and trading authority were present in data structures, manual
@@ -94,6 +95,9 @@
 31. **Unproven:** model improvement, participant superiority, a winner, reward
     effectiveness, promotion readiness, Chair learning, official Mamba-3
     behavior, and trading readiness remain unproven.
-32. **Commit, push, and PR:** pending final validation and publication.
+32. **Commit, push, and PR:** implementation commit
+    `ae5f6f597eb35ba29c5d871b9be389146a05e68d` was pushed on
+    `agent/sprint88-first-v4-outcome-close`, and Draft PR #20 was opened
+    against `main`.
 33. **Next recommendation:** preserve event one immutably and perform no next
     event, retraining, Mamba-3, Chair, reward, or trading step in this Sprint.
