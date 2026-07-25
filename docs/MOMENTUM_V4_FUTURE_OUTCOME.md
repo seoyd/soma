@@ -116,32 +116,54 @@ Local opening:
 
 The acquisition command rejects opening and unrelated authority flags. The
 opening command rejects network, acquisition, and unrelated authority flags.
+Acquisition status and dry-run expose the complete registered preflight
+contract in both text and JSON, including the prediction, journal, plan,
+provider, market, cadence, timestamp, row-count, request-budget, and zero-work
+fields. Opening status and dry-run likewise expose write and sealed-prediction
+read counts without exposing private values.
+
 All V4.4 machine artifacts use manual `prost::Message` contracts and verified
 create-new temporary write, flush, sync, reopen/decode, atomic rename, and
 final reopen/decode storage.
 
 ## Current verified state
 
-PR #17 was merged into `main` as `1f62904f7a3ea7488c0dd22a438b8f2d1c26737c`,
-and the Sprint 86 documentation close was merged as
-`ba9db686ff13d7acd172625dd9d96fe88565d8da`.
-At `2026-07-24T14:14:30Z`, finality had not arrived. Status and dry-run agreed
-on `AwaitingOutcomeFinality`, registration `52da8d28f246ee4b`, request
-fingerprint `ccf0335feac46846`, and status `4524bdd75525c60f`.
+PR #19 was merged into `main` as
+`98347586cccbed1809bd677aa2bd43e6eb7e25b1`. At
+`2026-07-25T00:13:58Z`, actual UTC was after the persisted finality boundary.
+Two text statuses, two JSON statuses, and text and JSON dry-runs agreed on
+`ReadyForOutcomeAcquisition`, registration `52da8d28f246ee4b`, request
+fingerprint `ccf0335feac46846`, the complete registered request contract, and
+zero preflight work.
 
-Runtime storage remains byte-identical to its before-state and contains only
-the V4.4 registration and safe status receipts. There is no outcome attempt,
-transport construction, HTTP result, outcome receipt, outcome capsule, opening
-authorization, opening receipt, evaluation ledger, metric, ranking, winner,
-reward, or authority action. The authorized post-finality request and separate
-opening remain deferred until the persisted finality boundary is reached.
+The registered public request executed exactly once. The response passed the
+HTTP, provider, market, cadence, exact single-row, finality, bounded JSON, and
+OHLCV-shape checks. Receipt `1cba98966e0b6002` and sealed capsule
+`e1b3f829d186b3b3` were persisted with labels, probabilities, metrics, winner,
+reward, and penalty remaining closed. Confirmed acquisition replay returned
+the existing state with zero transport, reads, metrics, or writes.
 
-Before operational close, the future outcome artifacts were strengthened so
-that their manual Protobuf payloads and semantic digests directly bind every
-zero-authority condition listed above. This was a source-contract correction;
-it did not create or modify runtime outcome evidence.
+Opening status and dry-run agreed on a ready sealed state and zero private
+reads or writes. The first execute-local attempt exposed a correctness defect
+before authorization persistence: the lifecycle data-access policy identity
+was incorrectly compared with the frozen sequence label policy. The corrected
+implementation binds the actual horizon, dead-zone, and neutral-handling
+policy directly and rejects any substituted policy digest.
 
-This verifies the implementation and the pre-finality fail-closed state. It
-does not establish prediction correctness, model improvement, participant
+After the correction, the one local opening completed atomically. The event
+was classified `ScorableBinaryOutcome`; all three participant evaluations have
+public status `Scored`; total and scorable V4 event counts are one; and reward
+eligibility is `IneligibleMinimumSamples`. No private OHLCV, return, label,
+probability, score, or correctness value was published. Opening replay returned
+`AlreadyOpened` with zero new reads, metrics, ledger work, eligibility work, or
+writes.
+
+The original 147-artifact aggregate identity remains
+`6f7a560954e1b4e5dfef87b40f88126d1662fab580c34271fa33efd56e014239`.
+Winner, ranking, reward, penalty, voice, tier, cooldown, promotion, quarantine,
+Chair, vote, active-model, paper, and live-execution actions remain zero.
+
+This verifies the first immutable V4 prospective event and its fail-closed
+authority boundaries. It does not establish model improvement, participant
 superiority, a winner, reward effectiveness, promotion readiness, Chair
-learning, or trading readiness.
+learning, official Mamba-3 behavior, or trading readiness.

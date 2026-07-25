@@ -422,6 +422,7 @@ pub struct MomentumFutureOutcomeReportV4_4 {
     pub registration: MomentumOutcomeAcquisitionRegistrationV4_4,
     pub receipt: Option<MomentumOutcomeAcquisitionReceiptV4_4>,
     pub outcome_capsule: Option<MomentumSealedOutcomeCapsuleV4_4>,
+    pub prediction_value_reads: usize,
     pub artifacts_written: usize,
     pub duplicate_artifact_count: usize,
 }
@@ -434,6 +435,7 @@ pub struct MomentumFutureOutcomeOpeningReportV4_4 {
     pub opening_bundle: Option<MomentumOutcomeOpeningBundleV4_4>,
     pub evaluation_ledger: Option<MomentumProspectiveEvaluationLedgerV4_4>,
     pub reward_eligibility: Option<MomentumRewardEligibilityReplayReceiptV4_4>,
+    pub prediction_value_reads: usize,
     pub artifacts_written: usize,
     pub duplicate_artifact_count: usize,
 }
@@ -1652,7 +1654,7 @@ fn validate_opening_authorization_shape(
             .len()
             != 3
         || value.feature_policy_digest.is_empty()
-        || value.label_policy_digest.is_empty()
+        || value.label_policy_digest != frozen_label_policy_digest()
         || value.evaluation_policy_digest.is_empty()
         || value.opening_attempt_count_before != 0
         || value.opened_event_count_before != 0
@@ -2439,6 +2441,7 @@ where
             registration,
             receipt: persisted_receipt,
             outcome_capsule: persisted_capsule,
+            prediction_value_reads: 0,
             artifacts_written: 0,
             duplicate_artifact_count: 0,
         });
@@ -2497,6 +2500,7 @@ where
             registration,
             receipt: None,
             outcome_capsule: None,
+            prediction_value_reads: 0,
             artifacts_written: counts.0,
             duplicate_artifact_count: counts.1,
         });
@@ -2576,6 +2580,7 @@ where
                 registration,
                 receipt: Some(receipt),
                 outcome_capsule: None,
+                prediction_value_reads: 0,
                 artifacts_written: counts.0,
                 duplicate_artifact_count: counts.1,
             });
@@ -2633,6 +2638,7 @@ where
                 registration,
                 receipt: Some(receipt),
                 outcome_capsule: None,
+                prediction_value_reads: 0,
                 artifacts_written: counts.0,
                 duplicate_artifact_count: counts.1,
             });
@@ -2727,6 +2733,7 @@ where
         registration,
         receipt: Some(receipt),
         outcome_capsule: Some(capsule),
+        prediction_value_reads: 0,
         artifacts_written: counts.0,
         duplicate_artifact_count: counts.1,
     })
@@ -2778,9 +2785,6 @@ fn derive_opening_authorization(
     receipt: &MomentumOutcomeAcquisitionReceiptV4_4,
     capsule: &MomentumSealedOutcomeCapsuleV4_4,
 ) -> Result<MomentumOutcomeOpeningAuthorizationV4_4, String> {
-    if frozen_label_policy_digest() != chain.lifecycle.label_policy_digest {
-        return Err("V4.4 frozen label policy mismatch".to_string());
-    }
     let mut value = MomentumOutcomeOpeningAuthorizationV4_4 {
         authorization_version: OPENING_AUTHORIZATION_VERSION.to_string(),
         outcome_registration_digest: registration.registration_digest.clone(),
@@ -2801,7 +2805,7 @@ fn derive_opening_authorization(
             .map(|seal| seal.prediction_digest.clone())
             .collect(),
         feature_policy_digest: chain.lifecycle.feature_policy_digest.clone(),
-        label_policy_digest: chain.lifecycle.label_policy_digest.clone(),
+        label_policy_digest: frozen_label_policy_digest(),
         evaluation_policy_digest: evaluation_policy_digest(),
         opening_attempt_count_before: 0,
         opened_event_count_before: 0,
@@ -2855,7 +2859,6 @@ fn validate_opening_bindings(
         || authorization.participant_seal_digests != seal_digests
         || authorization.participant_prediction_digests != prediction_digests
         || authorization.feature_policy_digest != chain.lifecycle.feature_policy_digest
-        || authorization.label_policy_digest != chain.lifecycle.label_policy_digest
         || authorization.label_policy_digest != frozen_label_policy_digest()
         || authorization.evaluation_policy_digest != evaluation_policy_digest()
     {
@@ -3312,6 +3315,7 @@ pub fn run_momentum_future_outcome_opening_v4_4(
             opening_bundle,
             evaluation_ledger,
             reward_eligibility,
+            prediction_value_reads: 0,
             artifacts_written: 0,
             duplicate_artifact_count: 0,
         });
@@ -3341,6 +3345,7 @@ pub fn run_momentum_future_outcome_opening_v4_4(
             opening_bundle: None,
             evaluation_ledger: None,
             reward_eligibility: None,
+            prediction_value_reads: 0,
             artifacts_written: 0,
             duplicate_artifact_count: 0,
         });
@@ -3492,6 +3497,7 @@ pub fn run_momentum_future_outcome_opening_v4_4(
         opening_bundle: Some(bundle),
         evaluation_ledger: Some(ledger),
         reward_eligibility: Some(reward),
+        prediction_value_reads: 3,
         artifacts_written: counts.0,
         duplicate_artifact_count: counts.1,
     })
@@ -4077,8 +4083,10 @@ mod tests {
 
     #[test]
     fn sprint85_28_changed_label_policy_blocks_opening() {
-        let authorization = opening_authorization_fixture();
-        assert_ne!(authorization.label_policy_digest, "changed-label-policy");
+        let mut authorization = opening_authorization_fixture();
+        authorization.label_policy_digest = "changed-label-policy".to_string();
+        authorization.authorization_digest = authorization_digest(&authorization);
+        assert!(validate_opening_authorization_shape(&authorization).is_err());
     }
 
     #[test]
@@ -4327,6 +4335,96 @@ mod tests {
             invalid.entries[0].entry_digest = ledger_entry_digest(&invalid.entries[0]);
             invalid.ledger_digest = ledger_digest(&invalid);
             assert!(validate_ledger_shape(&invalid).is_err());
+        }
+    }
+
+    #[test]
+    fn sprint88_01_acquisition_cli_exposes_the_complete_preflight_contract() {
+        let registration = registration_fixture();
+        let report = MomentumFutureOutcomeReportV4_4 {
+            status: status_fixture(),
+            registration: registration.clone(),
+            receipt: None,
+            outcome_capsule: None,
+            prediction_value_reads: 0,
+            artifacts_written: 0,
+            duplicate_artifact_count: 0,
+        };
+        let text = crate::cli::format_momentum_v4_future_outcome_report_text(&report);
+        let json: serde_json::Value = serde_json::from_str(
+            &crate::cli::format_momentum_v4_future_outcome_report_json(&report).unwrap(),
+        )
+        .unwrap();
+        for (name, value) in [
+            (
+                "prediction_capsule_digest",
+                registration.prediction_capsule_digest.as_str(),
+            ),
+            (
+                "prediction_journal_digest",
+                registration.prediction_journal_digest.as_str(),
+            ),
+            (
+                "outcome_plan_digest",
+                registration.outcome_plan_digest.as_str(),
+            ),
+            ("provider_id", registration.provider_id.as_str()),
+            ("market", registration.market.as_str()),
+            ("symbol", registration.symbol.as_str()),
+            ("cadence", registration.cadence.as_str()),
+        ] {
+            assert!(text.contains(&format!("{name}={value}")));
+            assert_eq!(json[name], value);
+        }
+        for (name, value) in [
+            (
+                "request_to_timestamp_ms",
+                registration.request_to_timestamp_ms,
+            ),
+            ("expected_row_count", registration.expected_row_count as u64),
+            ("maximum_requests", registration.maximum_requests as u64),
+            (
+                "maximum_concurrency",
+                registration.maximum_concurrency as u64,
+            ),
+            ("maximum_retries", registration.maximum_retries as u64),
+        ] {
+            assert!(text.contains(&format!("{name}={value}")));
+            assert_eq!(json[name], value);
+        }
+        assert_eq!(
+            json["exact_expected_timestamp_ms"],
+            serde_json::json!(registration.exact_expected_timestamp_ms)
+        );
+        assert_eq!(json["prediction_value_reads"], 0);
+        assert_eq!(json["artifacts_written"], 0);
+    }
+
+    #[test]
+    fn sprint88_02_opening_cli_exposes_zero_preflight_work() {
+        let report = MomentumFutureOutcomeOpeningReportV4_4 {
+            status: status_fixture(),
+            authorization: None,
+            opening_receipt: None,
+            opening_bundle: None,
+            evaluation_ledger: None,
+            reward_eligibility: None,
+            prediction_value_reads: 0,
+            artifacts_written: 0,
+            duplicate_artifact_count: 0,
+        };
+        let text = crate::cli::format_momentum_v4_future_outcome_opening_report_text(&report);
+        let json: serde_json::Value = serde_json::from_str(
+            &crate::cli::format_momentum_v4_future_outcome_opening_report_json(&report).unwrap(),
+        )
+        .unwrap();
+        for field in [
+            "prediction_value_reads",
+            "artifacts_written",
+            "duplicate_artifact_count",
+        ] {
+            assert!(text.contains(&format!("{field}=0")));
+            assert_eq!(json[field], 0);
         }
     }
 }

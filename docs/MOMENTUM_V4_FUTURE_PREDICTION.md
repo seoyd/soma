@@ -25,6 +25,26 @@ participants and the training-prevalence constant benchmark. No Mamba or
 sequence representation participates in this event, and the closed Mamba
 research path remains unchanged.
 
+## Sprint 88 outcome close
+
+The registered V4.4 outcome request executed once after finality and accepted
+one exact finalized row. A separate local authorization then opened the sealed
+outcome and all three predictions atomically. The resulting append-only V4
+ledger contains one scorable event and exactly three participant evaluations.
+The constant participant remains a benchmark, and no participant was ranked
+or selected as a winner.
+
+The operation did not retrain or refit any participant, change a parameter or
+normalizer, add a prediction event, or alter the V4.3 prediction capsule,
+journal, participant seals, or maturity plan. Reward eligibility was only
+recomputed against the existing minimum-sample contract; no reward, penalty,
+voice, tier, promotion, Chair, vote, or trading authority was exercised.
+
+The current prospective path is still Raw-feature V4. The internal frozen
+Mamba path remains closed only for its exact prior encoder, evidence, and
+policy contract. Official Mamba-3 was neither implemented nor evaluated by
+this event.
+
 ## Sprint 84 operational seal
 
 The registered V4.3 request executed once inside the legal prospective window.
