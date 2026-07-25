@@ -94,6 +94,7 @@ pub enum MomentumProspectiveEpochReadinessV4 {
     ReadyForLocalPredictionRecovery,
     PredictionAlreadySealed,
     PredictionSealWindowExpired,
+    PriorInputAttemptTerminal,
     ProspectiveWindowExpired,
     MissingCanonicalContext,
     MissingSetNotContiguous,
@@ -675,6 +676,9 @@ fn parse_readiness(value: &str) -> Result<MomentumProspectiveEpochReadinessV4, S
         }
         "PredictionSealWindowExpired" => {
             Ok(MomentumProspectiveEpochReadinessV4::PredictionSealWindowExpired)
+        }
+        "PriorInputAttemptTerminal" => {
+            Ok(MomentumProspectiveEpochReadinessV4::PriorInputAttemptTerminal)
         }
         "ProspectiveWindowExpired" => {
             Ok(MomentumProspectiveEpochReadinessV4::ProspectiveWindowExpired)
@@ -4003,7 +4007,7 @@ fn readiness(
             };
         }
         if receipt.status != MomentumProspectiveSeriesInputStatusV4::ReadyNotAttempted {
-            return MomentumProspectiveEpochReadinessV4::IntegrityFailure;
+            return MomentumProspectiveEpochReadinessV4::PriorInputAttemptTerminal;
         }
     }
     if observed_timestamp_ms < registration.input_finality_boundary_ms {
@@ -4100,6 +4104,10 @@ fn local_prediction_recovery_allowed(
 ) -> bool {
     mode == MomentumProspectiveSeriesRunModeV4::ExecuteInput
         && current_readiness == MomentumProspectiveEpochReadinessV4::ReadyForLocalPredictionRecovery
+}
+
+fn input_acquisition_allowed(current_readiness: MomentumProspectiveEpochReadinessV4) -> bool {
+    current_readiness == MomentumProspectiveEpochReadinessV4::ReadyForInputAcquisition
 }
 
 fn report(
@@ -4637,7 +4645,7 @@ where
         mode,
         MomentumProspectiveSeriesRunModeV4::Status | MomentumProspectiveSeriesRunModeV4::DryRun
     ) || mode == MomentumProspectiveSeriesRunModeV4::ExecuteInput
-        && current_readiness != MomentumProspectiveEpochReadinessV4::ReadyForInputAcquisition
+        && !input_acquisition_allowed(current_readiness)
         || persisted_receipt.is_some()
     {
         let status = build_status(
@@ -4746,7 +4754,7 @@ where
         ));
     }
 
-    if current_readiness != MomentumProspectiveEpochReadinessV4::ReadyForInputAcquisition {
+    if !input_acquisition_allowed(current_readiness) {
         return Err("V4 series input acquisition readiness rejected".to_string());
     }
     let canonical = canonical.unwrap_or(load_canonical_rows(root, &event)?);
@@ -4796,7 +4804,7 @@ where
                 &audit,
                 &delta,
                 &registration,
-                MomentumProspectiveEpochReadinessV4::IntegrityFailure,
+                MomentumProspectiveEpochReadinessV4::PriorInputAttemptTerminal,
                 Some(&receipt),
                 None,
                 None,
@@ -4864,7 +4872,7 @@ where
                     &audit,
                     &delta,
                     &registration,
-                    MomentumProspectiveEpochReadinessV4::IntegrityFailure,
+                    MomentumProspectiveEpochReadinessV4::PriorInputAttemptTerminal,
                     Some(&receipt),
                     None,
                     None,
@@ -6153,5 +6161,36 @@ mod tests {
             MomentumProspectiveSeriesRunModeV4::ExecuteInput,
             expired_readiness,
         ));
+    }
+
+    #[test]
+    fn sprint91_50_terminal_input_receipt_cannot_retry() {
+        let chain = fixture_prediction_chain();
+        for status in [
+            MomentumProspectiveSeriesInputStatusV4::TerminalTransportFailure,
+            MomentumProspectiveSeriesInputStatusV4::TerminalValidationFailure,
+        ] {
+            let mut receipt = chain.4.clone();
+            receipt.status = status;
+            receipt.http_status_class = None;
+            receipt.returned_row_count = 0;
+            receipt.verified_row_count = 0;
+            receipt.raw_response_digest = None;
+            receipt.input_capsule_digest = None;
+            receipt.receipt_digest = input_receipt_digest(&receipt);
+            assert!(validate_input_receipt(&receipt).is_ok());
+
+            let terminal_readiness = readiness(
+                chain.3.input_finality_boundary_ms,
+                &chain.3,
+                Some(&receipt),
+                None,
+            );
+            assert_eq!(
+                terminal_readiness,
+                MomentumProspectiveEpochReadinessV4::PriorInputAttemptTerminal
+            );
+            assert!(!input_acquisition_allowed(terminal_readiness));
+        }
     }
 }

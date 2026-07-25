@@ -85,6 +85,10 @@ normalized response must agree and contain exactly the registered finalized
 rows with valid chronology and OHLCV shape. Wrong, duplicate, missing, extra,
 unfinished, or outcome rows fail terminally.
 
+Transport and validation failures persist one terminal receipt and report
+`PriorInputAttemptTerminal`. Replay returns that state before transport
+construction, so a consumed request can never be retried or replaced.
+
 Status and dry-run both expose the same sanitized registered request preview:
 registration time, canonical reused timestamps, provider, market, cadence,
 request boundaries, request fingerprint, prior-attempt count, and receipt and
