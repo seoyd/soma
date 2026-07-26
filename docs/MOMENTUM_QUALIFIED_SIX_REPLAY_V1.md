@@ -132,6 +132,14 @@ NotTradingAuthority
 The replay journal digest is `4d989dea3d3e9572`; the final public report
 digest is `d66027c0d2320d13`.
 
+## Post-result diagnostics
+
+The completed development and validation results underwent a separate
+post-result stability and calibration diagnostic pass. The sealed holdout
+remained closed, and no candidate became independently qualified merely from
+those diagnostics. A challenger-requirements receipt was produced, but no
+new model was trained.
+
 ## Verification
 
 Formatting and workspace checks passed in Default and Metal configurations.
