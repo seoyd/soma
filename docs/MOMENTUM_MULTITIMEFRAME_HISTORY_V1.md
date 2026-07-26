@@ -211,3 +211,16 @@ not registered or executed.
 See [Momentum Macro Candle Forensics V1](MOMENTUM_MACRO_CANDLE_FORENSICS_V1.md)
 and [Restart Sprint 97 Report](RESTART_SPRINT97_REPORT.md) for the contracts,
 classification result, CLI, and authority boundary.
+
+## Separate Qualified-Six replay
+
+The six qualified views are now consumed by a separate, single-task,
+next-10-minute historical replay. This does not modify the earlier
+three-task/full-eight registration: month and year remain unresolved and the
+full-eight A3 lane remains blocked.
+
+The separate experiment evaluated development and validation only. Its
+holdout remains closed, and all live, governance, network, and execution
+counters remain zero. See
+[Momentum Qualified-Six Replay V1](MOMENTUM_QUALIFIED_SIX_REPLAY_V1.md) for
+the registration, causal execution, aggregate results, and authority limits.

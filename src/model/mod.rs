@@ -29,6 +29,7 @@ pub mod momentum_mamba_repair;
 pub mod momentum_mamba_representation;
 pub mod momentum_multitimeframe_history_v1;
 pub mod momentum_prospective_series_v4;
+pub mod momentum_qualified_six_replay_v1;
 pub mod momentum_raw_feature_supplemental;
 pub mod momentum_raw_feature_v4;
 pub mod prediction;
@@ -924,6 +925,15 @@ pub use momentum_mamba_repair::{
 };
 pub use momentum_mamba_representation::*;
 pub use momentum_multitimeframe_history_v1::*;
+pub use momentum_qualified_six_replay_v1::{
+    MomentumQualifiedBenchmarkComparisonV1, MomentumQualifiedBenchmarkReceiptV1,
+    MomentumQualifiedContributionReceiptV1, MomentumQualifiedContributionStatusV1,
+    MomentumQualifiedParticipantMetricsV1, MomentumQualifiedParticipantV1,
+    MomentumQualifiedPredictionTaskV1, MomentumQualifiedRefitPolicyV1,
+    MomentumQualifiedReplayFamilyV1, MomentumQualifiedReplayStatusV1,
+    MomentumQualifiedSixReplayReportV1, MomentumQualifiedSixRunModeV1,
+    format_momentum_qualified_six_replay_text_v1, run_momentum_qualified_six_replay_v1,
+};
 pub use momentum_raw_feature_supplemental::*;
 pub use momentum_raw_feature_v4::*;
 pub use prediction::{
