@@ -102,6 +102,18 @@ pub struct CliArgs {
     pub momentum_v4_historical_replay: bool,
     #[arg(long, default_value_t = false)]
     pub momentum_v4_historical_backfill_plan: bool,
+    #[arg(long, default_value_t = false)]
+    pub momentum_mtf_history: bool,
+    #[arg(long, default_value_t = false)]
+    pub register_foundation: bool,
+    #[arg(long, default_value_t = false)]
+    pub execute_backfill: bool,
+    #[arg(long, default_value_t = false)]
+    pub confirm_bounded_mtf_history_backfill: bool,
+    #[arg(long, default_value_t = false)]
+    pub derive_views: bool,
+    #[arg(long, default_value_t = false)]
+    pub protocol_replay: bool,
     #[arg(
         long,
         value_parser = ["protocol-replay", "expanding-window-walk-forward"]
@@ -165,6 +177,53 @@ pub struct CliArgs {
 
 pub fn run() -> Result<(), String> {
     let args = CliArgs::parse();
+    if args.momentum_mtf_history {
+        if args.momentum_v4_historical_replay
+            || args.momentum_v4_historical_backfill_plan
+            || args.momentum_v4_prospective_series
+            || args.momentum_v4_future_prediction
+            || args.momentum_v4_future_outcome
+            || args.momentum_v4_future_outcome_opening
+            || args.execute
+            || args.full_auto
+            || args.register_next_epoch
+            || args.epoch.is_some()
+            || args.execute_input
+            || args.mode.is_some()
+            || args.confirm_single_public_candle_request
+            || args.confirm_one_time_outcome_request
+            || args.confirm_one_time_prospective_opening
+            || args.confirm_one_time_learning_evidence_request
+            || args.confirm_composite_learning_evidence_epoch
+            || args.confirm_one_time_future_input_request
+            || args.confirm_one_time_future_outcome_request
+            || args.confirm_one_time_future_outcome_opening
+            || args.confirm_one_time_prospective_input_request
+        {
+            return Err("multi-timeframe history rejects unrelated authority flags".to_string());
+        }
+        return run_momentum_multitimeframe_history_cli_v1(
+            args.historical_snapshot_campaign_config.as_deref(),
+            &args.output_format,
+            args.status,
+            args.dry_run,
+            args.register_foundation,
+            args.execute_backfill,
+            args.derive_views,
+            args.protocol_replay,
+            args.execute_local,
+            args.allow_network,
+            args.confirm_bounded_mtf_history_backfill,
+        );
+    }
+    if args.register_foundation
+        || args.execute_backfill
+        || args.derive_views
+        || args.protocol_replay
+        || args.confirm_bounded_mtf_history_backfill
+    {
+        return Err("multi-timeframe history flags require --momentum-mtf-history".to_string());
+    }
     if args.momentum_v4_historical_replay {
         if args.allow_network {
             return Err("Momentum V4 historical replay is offline-only".to_string());
@@ -3116,6 +3175,132 @@ fn format_momentum_v4_supplemental_text(report: &MomentumSupplementalCliReportV4
     );
     let _ = writeln!(output, "report_digest={}", report.report_digest);
     output
+}
+
+#[allow(clippy::too_many_arguments)]
+fn run_momentum_multitimeframe_history_cli_v1(
+    config_path: Option<&Path>,
+    output_format: &str,
+    status: bool,
+    dry_run: bool,
+    register_foundation: bool,
+    execute_backfill: bool,
+    derive_views: bool,
+    protocol_replay: bool,
+    execute_local: bool,
+    allow_network: bool,
+    confirmation: bool,
+) -> Result<(), String> {
+    if usize::from(status)
+        + usize::from(dry_run)
+        + usize::from(register_foundation)
+        + usize::from(execute_backfill)
+        + usize::from(derive_views)
+        + usize::from(protocol_replay)
+        != 1
+    {
+        return Err("select exactly one multi-timeframe history mode".to_string());
+    }
+    if output_format != "text" && output_format != "json" {
+        return Err("unsupported multi-timeframe history output format".to_string());
+    }
+    if status || dry_run {
+        if execute_local || allow_network || confirmation {
+            return Err("read-only multi-timeframe mode rejects authority".to_string());
+        }
+    } else if register_foundation {
+        if !execute_local || allow_network || confirmation {
+            return Err("foundation registration requires only --execute-local".to_string());
+        }
+    } else if execute_backfill {
+        if execute_local || !allow_network || !confirmation {
+            return Err(
+                "backfill requires network permission and exact bounded confirmation".to_string(),
+            );
+        }
+    } else if !execute_local || allow_network || confirmation {
+        return Err("local historical execution requires only --execute-local".to_string());
+    }
+
+    let mode = if status {
+        crate::model::MomentumMtfHistoryRunModeV1::Status
+    } else if dry_run {
+        crate::model::MomentumMtfHistoryRunModeV1::DryRun
+    } else if register_foundation {
+        crate::model::MomentumMtfHistoryRunModeV1::RegisterFoundation
+    } else if execute_backfill {
+        crate::model::MomentumMtfHistoryRunModeV1::ExecuteBackfill
+    } else if derive_views {
+        crate::model::MomentumMtfHistoryRunModeV1::DeriveViews
+    } else {
+        crate::model::MomentumMtfHistoryRunModeV1::ProtocolReplay
+    };
+    let snapshots = if register_foundation || execute_backfill {
+        crate::model::load_local_learning_snapshots_v0(Path::new("data/local_snapshots"))?
+    } else {
+        Vec::new()
+    };
+    let provider_config = if register_foundation {
+        let config_path = config_path.ok_or_else(|| {
+            "foundation registration requires a local historical provider config".to_string()
+        })?;
+        Some(crate::data::UpbitHistoricalPilotConfigV0::from_toml_path(
+            config_path,
+        )?)
+    } else {
+        None
+    };
+    let live_report = if register_foundation {
+        let config_path = config_path.ok_or_else(|| {
+            "foundation registration requires a local historical provider config".to_string()
+        })?;
+        verify_momentum_v4_outcome_prior_boundary(config_path)?;
+        let provider_config = provider_config
+            .as_ref()
+            .ok_or_else(|| "historical provider configuration unavailable".to_string())?;
+        let root = crate::model::default_private_learning_root_v0();
+        let reservation = crate::model::load_protected_evaluation_reservation_v1(
+            config_path
+                .parent()
+                .ok_or("Momentum V4 reservation directory unavailable")?,
+        )?;
+        Some(
+            crate::model::momentum_prospective_series_v4::run_momentum_prospective_series_v4(
+                root,
+                &snapshots,
+                &reservation,
+                provider_config,
+                current_utc_timestamp_ms(),
+                crate::model::momentum_prospective_series_v4::MomentumProspectiveSeriesRunModeV4::Status,
+                false,
+                false,
+                None,
+            )?,
+        )
+    } else {
+        None
+    };
+    let report = crate::model::run_momentum_multitimeframe_history_v1(
+        &snapshots,
+        live_report.as_ref(),
+        provider_config.as_ref(),
+        mode,
+        allow_network,
+        confirmation,
+    )?;
+    if output_format == "json" {
+        println!(
+            "{}",
+            serde_json::to_string(&report)
+                .map_err(|_| "multi-timeframe history report encoding failed".to_string())?
+        );
+    } else {
+        print!(
+            "{}",
+            crate::model::format_momentum_multitimeframe_history_text_v1(&report)?
+        );
+    }
+    Ok(())
 }
 
 fn run_momentum_historical_replay_cli(

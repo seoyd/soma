@@ -27,6 +27,7 @@ pub mod momentum_future_prediction_v4;
 pub mod momentum_historical_replay_v1;
 pub mod momentum_mamba_repair;
 pub mod momentum_mamba_representation;
+pub mod momentum_multitimeframe_history_v1;
 pub mod momentum_prospective_series_v4;
 pub mod momentum_raw_feature_supplemental;
 pub mod momentum_raw_feature_v4;
@@ -922,6 +923,7 @@ pub use momentum_mamba_repair::{
     encode_momentum_qualification_receipt_protobuf_v2, run_momentum_mamba_repair_v2,
 };
 pub use momentum_mamba_representation::*;
+pub use momentum_multitimeframe_history_v1::*;
 pub use momentum_raw_feature_supplemental::*;
 pub use momentum_raw_feature_v4::*;
 pub use prediction::{
