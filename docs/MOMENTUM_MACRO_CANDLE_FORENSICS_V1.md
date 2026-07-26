@@ -133,3 +133,16 @@ tests passed in both configurations, together with the related prospective,
 historical, and prior multi-timeframe suites. Full sequential workspace
 testing passed with 1,005 + 404 + 12 tests under Default and
 1,006 + 404 + 12 tests under Metal.
+
+## Downstream Qualified-Six experiment
+
+The six-view qualification is consumed by a separate development/validation
+experiment for one next-10-minute direction task. It neither promotes month
+or year nor satisfies the all-eight prerequisite: the 15 monthly and four
+yearly failures remain unresolved, tolerance is unchanged, and full-eight A3
+remains blocked.
+
+The separate experiment does not overwrite this forensic evidence or claim
+independent/live performance. Its holdout remains closed and all governance,
+network, and execution counters remain zero. See
+[Momentum Qualified-Six Replay V1](MOMENTUM_QUALIFIED_SIX_REPLAY_V1.md).

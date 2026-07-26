@@ -972,6 +972,70 @@ pub struct MomentumMacroForensicsPublicReportV1 {
     pub report_digest: String,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct MomentumQualifiedReplayCandleEvidenceV1 {
+    pub timeframe: MomentumHistoricalTimeframeV1,
+    pub open_timestamp_ms: u64,
+    pub close_exclusive_timestamp_ms: u64,
+    pub open: f64,
+    pub high: f64,
+    pub low: f64,
+    pub close: f64,
+    pub volume: f64,
+    pub candle_digest: String,
+    pub missing_evidence: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(super) struct MomentumQualifiedReplayProtocolEventV1 {
+    pub prediction_timestamp_ms: u64,
+    pub target_timestamp_ms: u64,
+    pub receipt_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(super) struct MomentumQualifiedReplayHoldoutEvidenceV1 {
+    pub holdout_digest: String,
+    pub eligible_start_timestamp_ms: u64,
+    pub eligible_end_timestamp_ms: u64,
+    pub holdout_start_timestamp_ms: u64,
+    pub labels_opened: bool,
+    pub metrics_computed: bool,
+    pub aggregate_comparison_opened: bool,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct MomentumQualifiedSixEvidenceV1 {
+    pub qualified_timeframe_set_digest: String,
+    pub monthly_policy_digest: String,
+    pub yearly_policy_digest: String,
+    pub causal_revalidation_digest: String,
+    pub protocol_replay_digest: String,
+    pub included_timeframes: Vec<MomentumHistoricalTimeframeV1>,
+    pub excluded_timeframes: Vec<MomentumHistoricalTimeframeV1>,
+    pub view_index_digests: Vec<String>,
+    pub views:
+        BTreeMap<MomentumHistoricalTimeframeV1, Vec<MomentumQualifiedReplayCandleEvidenceV1>>,
+    pub protocol_events: Vec<MomentumQualifiedReplayProtocolEventV1>,
+    pub prior_holdout: MomentumQualifiedReplayHoldoutEvidenceV1,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(super) struct MomentumQualifiedReplayProtectedStateV1 {
+    pub live_tree_file_count: usize,
+    pub live_tree_digest: String,
+    pub active_roster_digest: String,
+    pub live_completed_event_count: usize,
+    pub live_scorable_event_count: usize,
+    pub live_input_attempts: usize,
+    pub live_input_retries: usize,
+    pub live_prediction_seal_count: usize,
+    pub live_outcome_requests: usize,
+    pub live_outcome_openings: usize,
+    pub epoch_three_registered: bool,
+    pub active_committee_count: usize,
+}
+
 fn canonical_digest<T: Clone + std::fmt::Debug>(value: &T, clear: impl FnOnce(&mut T)) -> String {
     let mut canonical = value.clone();
     clear(&mut canonical);
@@ -7167,6 +7231,245 @@ pub fn run_momentum_macro_forensics_v1(
     mode: MomentumMacroForensicsRunModeV1,
 ) -> Result<MomentumMacroForensicsPublicReportV1, String> {
     run_macro_forensics_at(Path::new(ROOT), Path::new(LIVE_ROOT), mode)
+}
+
+fn replay_candle_evidence(row: &HistoricalCandleRowV1) -> MomentumQualifiedReplayCandleEvidenceV1 {
+    MomentumQualifiedReplayCandleEvidenceV1 {
+        timeframe: row.timeframe,
+        open_timestamp_ms: row.interval.open_timestamp_ms,
+        close_exclusive_timestamp_ms: row.interval.close_exclusive_timestamp_ms,
+        open: row.open,
+        high: row.high,
+        low: row.low,
+        close: row.close,
+        volume: row.volume,
+        candle_digest: row.candle_digest.clone(),
+        missing_evidence: matches!(
+            row.presence,
+            CandleIntervalPresenceV1::MissingEvidence | CandleIntervalPresenceV1::IntegrityFailure
+        ),
+    }
+}
+
+pub(super) fn load_momentum_qualified_six_evidence_v1()
+-> Result<MomentumQualifiedSixEvidenceV1, String> {
+    let root = Path::new(ROOT);
+    let (_, foundation, _) = reopen_foundation(root)?;
+    let foundation =
+        foundation.ok_or_else(|| "qualified-six foundation unavailable".to_string())?;
+    if f64::from_bits(foundation.numeric_absolute_tolerance_bits) != ABSOLUTE_TOLERANCE
+        || f64::from_bits(foundation.numeric_relative_tolerance_bits) != RELATIVE_TOLERANCE
+    {
+        return Err("qualified-six tolerance contract changed".to_string());
+    }
+    let (
+        monthly_aggregate,
+        yearly_aggregate,
+        weekly_policy,
+        monthly_policy,
+        yearly_policy,
+        qualified_set,
+        causal,
+        hard_replay,
+    ) = reopen_macro_result(root)?;
+    let monthly_aggregate =
+        monthly_aggregate.ok_or_else(|| "qualified-six monthly audit unavailable".to_string())?;
+    let yearly_aggregate =
+        yearly_aggregate.ok_or_else(|| "qualified-six yearly audit unavailable".to_string())?;
+    let weekly_policy =
+        weekly_policy.ok_or_else(|| "qualified-six weekly policy unavailable".to_string())?;
+    let monthly_policy =
+        monthly_policy.ok_or_else(|| "qualified-six monthly policy unavailable".to_string())?;
+    let yearly_policy =
+        yearly_policy.ok_or_else(|| "qualified-six yearly policy unavailable".to_string())?;
+    let qualified_set =
+        qualified_set.ok_or_else(|| "qualified-six timeframe set unavailable".to_string())?;
+    let causal = causal.ok_or_else(|| "qualified-six causal audit unavailable".to_string())?;
+    let unresolved_root_count = monthly_aggregate
+        .root_cause_counts
+        .iter()
+        .chain(&yearly_aggregate.root_cause_counts)
+        .filter_map(|entry| entry.strip_prefix("ProviderContractAmbiguous="))
+        .map(|count| {
+            count
+                .parse::<usize>()
+                .map_err(|_| "qualified-six unresolved root count rejected".to_string())
+        })
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
+        .sum::<usize>();
+    if monthly_aggregate.unresolved_count != 15
+        || yearly_aggregate.unresolved_count != 4
+        || unresolved_root_count != 19
+        || weekly_policy.selected_source
+            != MomentumCanonicalMacroSourceV1::DerivedFromCanonicalDaily
+        || monthly_policy.selected_source != MomentumCanonicalMacroSourceV1::ExcludedUnresolved
+        || yearly_policy.selected_source != MomentumCanonicalMacroSourceV1::ExcludedUnresolved
+        || qualified_set.qualified_count != 6
+        || qualified_set.unresolved_count != 2
+        || qualified_set.month1 != MomentumTimeframeQualificationV1::ExcludedUnresolved
+        || qualified_set.year1 != MomentumTimeframeQualificationV1::ExcludedUnresolved
+        || qualified_set.full_eight_timeframe_replay_allowed
+        || hard_replay.is_some()
+        || causal.future_access_count != 0
+        || causal.partial_candle_access_count != 0
+        || causal.unqualified_view_access_count != 0
+        || causal.labels_read != 0
+    {
+        return Err("qualified-six prerequisite contract rejected".to_string());
+    }
+    let minute_index = reopen_index(root, MomentumHistoricalTimeframeV1::Minute1)?
+        .ok_or_else(|| "qualified-six minute index unavailable".to_string())?;
+    let daily_index = reopen_index(root, MomentumHistoricalTimeframeV1::Day1)?
+        .ok_or_else(|| "qualified-six daily index unavailable".to_string())?;
+    let minute_rows = reopen_canonical_rows(root, &minute_index)?;
+    let daily_rows = reopen_canonical_rows(root, &daily_index)?;
+    let included_timeframes = vec![
+        MomentumHistoricalTimeframeV1::Minute1,
+        MomentumHistoricalTimeframeV1::Minute3,
+        MomentumHistoricalTimeframeV1::Minute5,
+        MomentumHistoricalTimeframeV1::Minute10,
+        MomentumHistoricalTimeframeV1::Day1,
+        MomentumHistoricalTimeframeV1::Week1,
+    ];
+    let excluded_timeframes = vec![
+        MomentumHistoricalTimeframeV1::Month1,
+        MomentumHistoricalTimeframeV1::Year1,
+    ];
+    let mut raw_views = BTreeMap::from([
+        (MomentumHistoricalTimeframeV1::Minute1, minute_rows.clone()),
+        (MomentumHistoricalTimeframeV1::Day1, daily_rows.clone()),
+    ]);
+    let mut view_index_digests = BTreeMap::from([
+        (
+            MomentumHistoricalTimeframeV1::Minute1,
+            minute_index.index_digest.clone(),
+        ),
+        (
+            MomentumHistoricalTimeframeV1::Day1,
+            daily_index.index_digest.clone(),
+        ),
+    ]);
+    for timeframe in [
+        MomentumHistoricalTimeframeV1::Minute3,
+        MomentumHistoricalTimeframeV1::Minute5,
+        MomentumHistoricalTimeframeV1::Minute10,
+        MomentumHistoricalTimeframeV1::Week1,
+    ] {
+        let (base_index, base_rows) = if matches!(
+            timeframe,
+            MomentumHistoricalTimeframeV1::Minute3
+                | MomentumHistoricalTimeframeV1::Minute5
+                | MomentumHistoricalTimeframeV1::Minute10
+        ) {
+            (&minute_index, minute_rows.as_slice())
+        } else {
+            (&daily_index, daily_rows.as_slice())
+        };
+        let (rows, derived_index) = aggregate_view(&foundation, base_index, base_rows, timeframe)?;
+        let persisted = read_single(
+            &root.join(format!("derived_{}/indices", timeframe.as_str())),
+            decode_derived_index,
+        )?
+        .ok_or_else(|| "qualified-six derived index unavailable".to_string())?;
+        if persisted != derived_index || derived_index.missing_evidence_count != 0 {
+            return Err("qualified-six derived index rejected".to_string());
+        }
+        view_index_digests.insert(timeframe, derived_index.index_digest);
+        raw_views.insert(timeframe, rows);
+    }
+    let view_index_digests = included_timeframes
+        .iter()
+        .map(|timeframe| {
+            view_index_digests
+                .get(timeframe)
+                .cloned()
+                .ok_or_else(|| "qualified-six ordered index digest unavailable".to_string())
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let views = included_timeframes
+        .iter()
+        .map(|timeframe| {
+            let rows = raw_views
+                .remove(timeframe)
+                .ok_or_else(|| "qualified-six source view unavailable".to_string())?;
+            Ok((
+                *timeframe,
+                rows.iter().map(replay_candle_evidence).collect::<Vec<_>>(),
+            ))
+        })
+        .collect::<Result<BTreeMap<_, _>, String>>()?;
+    let protocol = read_single(&root.join("protocol_replays"), decode_protocol)?
+        .ok_or_else(|| "qualified-six protocol unavailable".to_string())?;
+    if protocol.replay_digest != causal.protocol_replay_digest
+        || protocol.event_count != causal.event_count
+        || !protocol.all_views_closed
+        || protocol.future_access_count != 0
+        || protocol.partial_candle_access_count != 0
+        || !protocol.prediction_before_reveal
+        || protocol.performance_claim_produced
+    {
+        return Err("qualified-six protocol contract rejected".to_string());
+    }
+    let protocol_events = protocol
+        .receipts
+        .iter()
+        .map(|receipt| MomentumQualifiedReplayProtocolEventV1 {
+            prediction_timestamp_ms: receipt.prediction_timestamp_ms,
+            target_timestamp_ms: receipt.target_timestamp_ms,
+            receipt_digest: receipt.receipt_digest.clone(),
+        })
+        .collect::<Vec<_>>();
+    let prior_holdout = read_single(&root.join("sealed_holdouts"), decode_holdout)?
+        .ok_or_else(|| "qualified-six prior holdout unavailable".to_string())?;
+    if prior_holdout.labels_opened
+        || prior_holdout.metrics_computed
+        || prior_holdout.aggregate_comparison_opened
+    {
+        return Err("qualified-six prior holdout opened".to_string());
+    }
+    Ok(MomentumQualifiedSixEvidenceV1 {
+        qualified_timeframe_set_digest: qualified_set.set_digest,
+        monthly_policy_digest: monthly_policy.policy_digest,
+        yearly_policy_digest: yearly_policy.policy_digest,
+        causal_revalidation_digest: causal.revalidation_digest,
+        protocol_replay_digest: protocol.replay_digest,
+        included_timeframes,
+        excluded_timeframes,
+        view_index_digests,
+        views,
+        protocol_events,
+        prior_holdout: MomentumQualifiedReplayHoldoutEvidenceV1 {
+            holdout_digest: prior_holdout.holdout_digest,
+            eligible_start_timestamp_ms: prior_holdout.eligible_start_timestamp_ms,
+            eligible_end_timestamp_ms: prior_holdout.eligible_end_timestamp_ms,
+            holdout_start_timestamp_ms: prior_holdout.holdout_start_timestamp_ms,
+            labels_opened: prior_holdout.labels_opened,
+            metrics_computed: prior_holdout.metrics_computed,
+            aggregate_comparison_opened: prior_holdout.aggregate_comparison_opened,
+        },
+    })
+}
+
+pub(super) fn momentum_qualified_replay_protected_state_v1()
+-> Result<MomentumQualifiedReplayProtectedStateV1, String> {
+    let (pause, _, _) = reopen_foundation(Path::new(ROOT))?;
+    let pause = pause.ok_or_else(|| "qualified-six live pause unavailable".to_string())?;
+    let (live_tree_file_count, live_tree_digest) = tree_identity(Path::new(LIVE_ROOT))?;
+    Ok(MomentumQualifiedReplayProtectedStateV1 {
+        live_tree_file_count,
+        live_tree_digest,
+        active_roster_digest: active_roster_digest(),
+        live_completed_event_count: pause.completed_event_count,
+        live_scorable_event_count: pause.scorable_event_count,
+        live_input_attempts: pause.input_attempts,
+        live_input_retries: pause.input_retries,
+        live_prediction_seal_count: pause.prediction_seal_count,
+        live_outcome_requests: pause.outcome_requests,
+        live_outcome_openings: pause.outcome_openings,
+        epoch_three_registered: pause.epoch_three_registered,
+        active_committee_count: canonical_current_agent_states().len(),
+    })
 }
 
 pub fn format_momentum_macro_forensics_text_v1(
