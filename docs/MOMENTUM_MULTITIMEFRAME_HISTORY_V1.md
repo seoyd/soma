@@ -187,3 +187,27 @@ Not proven:
 - native monthly or yearly aggregation equivalence;
 - participant superiority, winner, reward effectiveness, or Chair learning;
 - paper- or live-trading readiness.
+
+## Macro semantic qualification
+
+The additive macro forensic lane reopens the persisted weekly, monthly, and
+yearly evidence without network access. Historical page receipts do not
+contain the native KST timestamp, `first_day_of_period`, or last-trade
+timestamp, so the 15 monthly and four yearly failures cannot receive a more
+specific provider-semantic cause from persisted evidence.
+
+The failures are classified as `ProviderContractAmbiguous` and
+`ExcludedUnresolved`. No tolerance was widened, no request was replayed, no
+OHLCV was modified, and no old index was overwritten. Weekly remains
+`DerivedFromCanonicalDaily`; month and year are excluded from model use.
+
+The resulting qualified set contains `1m`, `3m`, `5m`, `10m`, `1d`, and
+`1w`. Month and year remain unresolved, making
+`full_eight_timeframe_replay_allowed = false`. Causal revalidation preserves
+25,856 protocol events with zero future, partial-candle, unqualified-view,
+and label access. The qualified hard replay and A3 full fusion are therefore
+not registered or executed.
+
+See [Momentum Macro Candle Forensics V1](MOMENTUM_MACRO_CANDLE_FORENSICS_V1.md)
+and [Restart Sprint 97 Report](RESTART_SPRINT97_REPORT.md) for the contracts,
+classification result, CLI, and authority boundary.
