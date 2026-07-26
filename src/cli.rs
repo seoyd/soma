@@ -105,6 +105,10 @@ pub struct CliArgs {
     #[arg(long, default_value_t = false)]
     pub momentum_mtf_history: bool,
     #[arg(long, default_value_t = false)]
+    pub momentum_mtf_macro_forensics: bool,
+    #[arg(long, default_value_t = false)]
+    pub momentum_mtf_hard_replay_registration: bool,
+    #[arg(long, default_value_t = false)]
     pub register_foundation: bool,
     #[arg(long, default_value_t = false)]
     pub execute_backfill: bool,
@@ -177,6 +181,93 @@ pub struct CliArgs {
 
 pub fn run() -> Result<(), String> {
     let args = CliArgs::parse();
+    if args.momentum_mtf_macro_forensics || args.momentum_mtf_hard_replay_registration {
+        if args.momentum_mtf_macro_forensics && args.momentum_mtf_hard_replay_registration {
+            return Err("macro forensics selector conflict rejected".to_string());
+        }
+        if args.momentum_mtf_history
+            || args.historical_provider_smoke_config.is_some()
+            || args.historical_snapshot_campaign_config.is_some()
+            || args.momentum_temporal_diagnostics
+            || args.momentum_cross_market_report
+            || args.btc_multi_regime_report
+            || args.btc_cross_regime_diagnostics
+            || args.btc_cycle_risk_shadow_report
+            || args.learned_agent_shadow_deliberation
+            || args.learned_agent_scope_alignment
+            || args.joint_canonical_scope_replay
+            || args.joint_momentum_failure_forensics
+            || args.joint_canonical_scope_replay_v2
+            || args.joint_momentum_closure_forensics_v3
+            || args.joint_canonical_scope_registration_v3
+            || args.joint_canonical_scope_replay_v3
+            || args.chair_shadow_observation_inbox
+            || args.chair_shadow_owner_advisory_review
+            || args.learned_reward_eligibility
+            || args.prospective_external_row_admission
+            || args.acquire_one_upbit_prospective_candle
+            || args.register_prospective_outcome_opening
+            || args.prospective_event_maturity_preflight
+            || args.prospective_outcome_acquisition
+            || args.prospective_outcome_opening
+            || args.agent_private_learning_sessions
+            || args.agent_candidate_evidence_audit
+            || args.register_agent_candidate_evaluation
+            || args.agent_private_learning_candidates_v1
+            || args.register_agent_candidate_evaluation_v1
+            || args.agent_canonical_view_gap_v1
+            || args.migrate_persisted_learning_intent_v1
+            || args.momentum_mamba_repair_v2
+            || args.momentum_mamba_representation_v3
+            || args.momentum_raw_feature_v4
+            || args.momentum_v4_supplemental_qualification
+            || args.momentum_v4_historical_replay
+            || args.momentum_v4_historical_backfill_plan
+            || args.momentum_v4_prospective_series
+            || args.momentum_v4_future_prediction
+            || args.momentum_v4_future_outcome
+            || args.momentum_v4_future_outcome_opening
+            || args.allow_network
+            || args.execute
+            || args.full_auto
+            || args.register_next_epoch
+            || args.epoch.is_some()
+            || args.execute_input
+            || args.mode.is_some()
+            || args.register_foundation
+            || args.execute_backfill
+            || args.derive_views
+            || args.protocol_replay
+            || args.confirm_bounded_mtf_history_backfill
+            || args.confirm_single_public_candle_request
+            || args.confirm_one_time_outcome_request
+            || args.confirm_one_time_prospective_opening
+            || args.confirm_one_time_learning_evidence_request
+            || args.confirm_composite_learning_evidence_epoch
+            || args.confirm_one_time_future_input_request
+            || args.confirm_one_time_future_outcome_request
+            || args.confirm_one_time_future_outcome_opening
+            || args.confirm_one_time_prospective_input_request
+            || args.btc_prospective_challenge_create
+            || args.btc_prospective_challenge_status
+            || args.btc_prospective_challenge_confirm_preregistration
+            || args.btc_prospective_registry_close
+            || args.btc_prospective_accumulate
+            || args.btc_prospective_evaluate
+            || args.toss_historical_contract_report
+            || args.toss_kr_historical_manifest.is_some()
+            || args.toss_us_historical_manifest.is_some()
+        {
+            return Err("macro forensics rejects network or authority flags".to_string());
+        }
+        return run_momentum_macro_forensics_cli_v1(
+            &args.output_format,
+            args.momentum_mtf_hard_replay_registration,
+            args.status,
+            args.dry_run,
+            args.execute_local,
+        );
+    }
     if args.momentum_mtf_history {
         if args.momentum_v4_historical_replay
             || args.momentum_v4_historical_backfill_plan
@@ -3175,6 +3266,53 @@ fn format_momentum_v4_supplemental_text(report: &MomentumSupplementalCliReportV4
     );
     let _ = writeln!(output, "report_digest={}", report.report_digest);
     output
+}
+
+fn run_momentum_macro_forensics_cli_v1(
+    output_format: &str,
+    hard_replay_status: bool,
+    status: bool,
+    dry_run: bool,
+    execute_local: bool,
+) -> Result<(), String> {
+    if output_format != "text" && output_format != "json" {
+        return Err("macro forensics output format rejected".to_string());
+    }
+    let selected = usize::from(status) + usize::from(dry_run) + usize::from(execute_local);
+    let mode = if hard_replay_status {
+        if !status || selected != 1 {
+            return Err("hard replay registration requires status-only mode".to_string());
+        }
+        crate::model::MomentumMacroForensicsRunModeV1::HardReplayStatus
+    } else {
+        if selected != 1 {
+            return Err("macro forensics requires exactly one run mode".to_string());
+        }
+        if execute_local && output_format != "json" {
+            return Err("macro forensics execution requires JSON output".to_string());
+        }
+        if status {
+            crate::model::MomentumMacroForensicsRunModeV1::Status
+        } else if dry_run {
+            crate::model::MomentumMacroForensicsRunModeV1::DryRun
+        } else {
+            crate::model::MomentumMacroForensicsRunModeV1::ExecuteLocal
+        }
+    };
+    let report = crate::model::run_momentum_macro_forensics_v1(mode)?;
+    if output_format == "json" {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&report)
+                .map_err(|_| "macro forensics JSON serialization failed".to_string())?
+        );
+    } else {
+        print!(
+            "{}",
+            crate::model::format_momentum_macro_forensics_text_v1(&report)?
+        );
+    }
+    Ok(())
 }
 
 #[allow(clippy::too_many_arguments)]
