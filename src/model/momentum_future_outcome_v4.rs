@@ -2867,7 +2867,7 @@ fn validate_opening_bindings(
     Ok(())
 }
 
-fn classify_label(
+pub(super) fn classify_label_v4_4(
     event_close: f64,
     outcome_close: f64,
 ) -> Result<(MomentumProspectiveLabelStatusV4_4, Option<bool>, u64), String> {
@@ -3405,7 +3405,8 @@ pub fn run_momentum_future_outcome_opening_v4_4(
     }
     let (event_close, outcome_close) =
         reopen_private_opening_rows(root, &chain, &registration, &proof)?;
-    let (label_status, label, private_return_bits) = classify_label(event_close, outcome_close)?;
+    let (label_status, label, private_return_bits) =
+        classify_label_v4_4(event_close, outcome_close)?;
     let evaluations =
         build_participant_evaluations(&chain, &proof, label_status, label, private_return_bits)?;
     let bundle = build_opening_bundle(
@@ -4096,7 +4097,7 @@ mod tests {
                 .sequence_config
                 .label_dead_zone,
         );
-        let result = classify_label(100.0, 100.0 * (1.0 + dead_zone / 2.0)).unwrap();
+        let result = classify_label_v4_4(100.0, 100.0 * (1.0 + dead_zone / 2.0)).unwrap();
         assert_eq!(
             result.0,
             MomentumProspectiveLabelStatusV4_4::NeutralOutcomeExcluded

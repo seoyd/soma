@@ -4802,7 +4802,7 @@ fn verify_snapshot_semantic_identity_v1(snapshot: &DataSnapshot) -> Result<(), S
     Ok(())
 }
 
-fn validate_snapshot_shape_v1(snapshot: &DataSnapshot) -> Result<(), String> {
+pub(crate) fn validate_snapshot_shape_v1(snapshot: &DataSnapshot) -> Result<(), String> {
     let dataset = &snapshot.normalized_dataset;
     if snapshot.row_count != dataset.rows.len()
         || snapshot.quality_summary.row_count != snapshot.row_count
