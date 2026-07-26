@@ -137,3 +137,27 @@ changing historical replay artifacts. Historical fold counts, metrics,
 classifications, parameters, normalizers, and replay identity had no influence
 on the frozen live roster or predictions. The backfill plan remains
 unexecuted.
+
+## Sprint 96 multi-timeframe foundation
+
+The former offline-only backfill plan is superseded by a separately
+registered and explicitly authorized multi-timeframe data foundation.
+Historical replay semantics in this document remain unchanged.
+
+The new foundation:
+
+- keeps the live epoch-two outcome sealed and pauses epoch three;
+- uses native `1m` and `1d` as the only canonical bases;
+- derives `3m`, `5m`, `10m`, `1w`, `1mo`, and `1y` without redundant full
+  native storage;
+- uses bounded native higher-timeframe pages only for semantic comparison;
+- proves closed-candle as-of alignment in a no-score protocol replay;
+- registers, but does not execute, the next three prediction tasks and A0–A5
+  ablation;
+- keeps the 70/15/15 historical holdout sealed.
+
+Native month and year samples contain unresolved exact-OHLC mismatches. They
+block future multi-timeframe model replay. No model tournament, holdout
+opening, live mutation, governance action, or trading simulation is implied.
+See `MOMENTUM_MULTITIMEFRAME_HISTORY_V1.md` for the complete contract and
+verified aggregate results.
