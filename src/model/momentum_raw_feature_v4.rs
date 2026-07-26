@@ -1766,7 +1766,9 @@ fn derive_validation_yield_audit_v4(
     Ok(audit)
 }
 
-fn raw_encoded(examples: &[SequenceExampleV0]) -> Result<Vec<EncodedTrainingExampleV0>, String> {
+pub(crate) fn raw_encoded(
+    examples: &[SequenceExampleV0],
+) -> Result<Vec<EncodedTrainingExampleV0>, String> {
     examples
         .iter()
         .map(|item| {
@@ -1828,7 +1830,7 @@ pub(crate) fn expand_interaction_representation_v4(values: &[f32]) -> Result<Vec
     Ok(expanded)
 }
 
-fn train_head_v4(
+pub(crate) fn train_head_v4(
     mut head: LogisticPredictionHeadV0,
     training: &[EncodedTrainingExampleV0],
     config: &HeadTrainingConfigV0,

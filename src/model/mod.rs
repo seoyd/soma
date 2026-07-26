@@ -24,6 +24,7 @@ pub mod model_ops_review_closure;
 pub mod model_ops_rollup;
 pub mod momentum_future_outcome_v4;
 pub mod momentum_future_prediction_v4;
+pub mod momentum_historical_replay_v1;
 pub mod momentum_mamba_repair;
 pub mod momentum_mamba_representation;
 pub mod momentum_prospective_series_v4;
@@ -880,6 +881,17 @@ pub use model_ops_rollup::{
 };
 pub use momentum_future_outcome_v4::*;
 pub use momentum_future_prediction_v4::*;
+pub use momentum_historical_replay_v1::{
+    HistoricalBackfillDirectionV1, HistoricalEvidenceUseClassV1, HistoricalLabelStatusV1,
+    MomentumHistoricalAggregateReportV1, MomentumHistoricalBackfillPlanV1,
+    MomentumHistoricalComparisonStatusV1, MomentumHistoricalContaminationAuditV1,
+    MomentumHistoricalDatasetSnapshotV1, MomentumHistoricalFoldSelectionPolicyV1,
+    MomentumHistoricalParticipantAggregateV1, MomentumHistoricalPublicReportV1,
+    MomentumHistoricalReplayModeV1, MomentumHistoricalReplayRegistrationV1,
+    MomentumHistoricalRunModeV1, MomentumHistoricalSafetyCountersV1,
+    MomentumHistoricalTradingSimulationStatusV1, historical_backfill_plan_status_v1,
+    run_momentum_historical_replay_v1,
+};
 pub use momentum_mamba_repair::{
     FrozenCandidateParticipantV2, MomentumCandidateFamilyV2,
     MomentumFutureEvaluationRegistrationStatusV2, MomentumFutureEvaluationRegistrationV2,
