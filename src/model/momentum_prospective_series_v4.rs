@@ -4180,6 +4180,7 @@ fn report(
 }
 
 fn validate_persisted_prediction_chain(
+    series: &MomentumProspectiveSeriesV4,
     adoption: &MomentumProspectiveSeriesAdoptionV4,
     registration: &MomentumProspectiveEpochRegistrationV4,
     receipt: &MomentumProspectiveSeriesInputReceiptV4,
@@ -4191,15 +4192,42 @@ fn validate_persisted_prediction_chain(
     journal: &MomentumProspectiveSeriesJournalEntryV4,
     outcome_plan: &MomentumProspectiveSeriesOutcomePlanV4,
 ) -> Result<(), String> {
-    let seal_digests = seals
+    let seals_by_digest = seals
         .iter()
-        .map(|value| value.seal_digest.clone())
-        .collect::<Vec<_>>();
-    let prediction_digests = seals
-        .iter()
-        .map(|value| value.prediction_digest.clone())
-        .collect::<Vec<_>>();
-    if receipt.status != MomentumProspectiveSeriesInputStatusV4::EvidenceAcquired
+        .map(|value| (value.seal_digest.as_str(), value))
+        .collect::<BTreeMap<_, _>>();
+    let capsule_seal_bindings_match = seals_by_digest.len() == seals.len()
+        && prediction_capsule.participant_seal_digests.len() == seals.len()
+        && prediction_capsule.participant_prediction_digests.len() == seals.len()
+        && prediction_capsule
+            .participant_seal_digests
+            .iter()
+            .collect::<BTreeSet<_>>()
+            .len()
+            == seals.len()
+        && prediction_capsule
+            .participant_seal_digests
+            .iter()
+            .zip(&prediction_capsule.participant_prediction_digests)
+            .all(|(seal_digest, prediction_digest)| {
+                seals_by_digest
+                    .get(seal_digest.as_str())
+                    .is_some_and(|seal| seal.prediction_digest == *prediction_digest)
+            });
+    let participant_roster_matches = series.participant_digests.len() == seals.len()
+        && seals
+            .iter()
+            .map(|value| value.participant_digest.as_str())
+            .collect::<BTreeSet<_>>()
+            .len()
+            == seals.len()
+        && series.participant_digests.iter().all(|participant_digest| {
+            seals
+                .iter()
+                .any(|seal| seal.participant_digest == *participant_digest)
+        });
+    if registration.series_digest != series.series_digest
+        || receipt.status != MomentumProspectiveSeriesInputStatusV4::EvidenceAcquired
         || receipt.epoch_registration_digest != registration.registration_digest
         || receipt.input_capsule_digest.as_deref() != Some(input_capsule.capsule_digest.as_str())
         || input_capsule.epoch_registration_digest != registration.registration_digest
@@ -4213,8 +4241,10 @@ fn validate_persisted_prediction_chain(
         || assembly.context_use_proof_digest != use_proof.proof_digest
         || assembly.exact_context_timestamp_ms != registration.exact_context_timestamp_ms
         || seals.len() != 3
+        || !participant_roster_matches
         || seals.iter().any(|value| {
-            value.epoch_number != registration.epoch_number
+            value.series_digest != series.series_digest
+                || value.epoch_number != registration.epoch_number
                 || value.epoch_registration_digest != registration.registration_digest
                 || value.input_receipt_digest != receipt.receipt_digest
                 || value.input_capsule_digest != input_capsule.capsule_digest
@@ -4225,8 +4255,7 @@ fn validate_persisted_prediction_chain(
         || prediction_capsule.input_receipt_digest != receipt.receipt_digest
         || prediction_capsule.input_capsule_digest != input_capsule.capsule_digest
         || prediction_capsule.context_assembly_proof_digest != assembly.proof_digest
-        || prediction_capsule.participant_seal_digests != seal_digests
-        || prediction_capsule.participant_prediction_digests != prediction_digests
+        || !capsule_seal_bindings_match
         || prediction_capsule.reward_applied
         || prediction_capsule.penalty_applied
         || prediction_capsule.chair_action_taken
@@ -4234,8 +4263,9 @@ fn validate_persisted_prediction_chain(
         || journal.event_one_adoption_digest != adoption.adoption_digest
         || journal.context_delta_plan_digest != registration.context_delta_plan_digest
         || journal.prediction_capsule_digest != prediction_capsule.capsule_digest
-        || journal.participant_seal_digests != seal_digests
-        || journal.participant_prediction_digests != prediction_digests
+        || journal.participant_seal_digests != prediction_capsule.participant_seal_digests
+        || journal.participant_prediction_digests
+            != prediction_capsule.participant_prediction_digests
         || journal.prior_event_correctness_read
         || outcome_plan.epoch_registration_digest != registration.registration_digest
         || outcome_plan.prediction_capsule_digest != prediction_capsule.capsule_digest
@@ -4462,6 +4492,7 @@ where
         persisted_outcome_plan.as_ref(),
     ) {
         validate_persisted_prediction_chain(
+            &series,
             &adoption,
             &registration,
             receipt,
@@ -6282,5 +6313,96 @@ mod tests {
         assert!(input_acquisition_allowed(
             MomentumProspectiveEpochReadinessV4::ReadyForInputAcquisition
         ));
+    }
+
+    #[test]
+    fn sprint95_53_completed_chain_validation_is_independent_of_directory_order() {
+        let chain = fixture_prediction_chain();
+        let mut reopened_seals = chain.8.clone();
+        reopened_seals.reverse();
+        assert!(
+            validate_persisted_prediction_chain(
+                &chain.0,
+                &chain.1,
+                &chain.3,
+                &chain.4,
+                &chain.5,
+                &chain.6,
+                &chain.7,
+                &reopened_seals,
+                &chain.9,
+                &chain.10,
+                &chain.11,
+            )
+            .is_ok()
+        );
+    }
+
+    #[test]
+    fn sprint96_54_completed_chain_rejects_non_exact_seal_bindings() {
+        let chain = fixture_prediction_chain();
+
+        let mut duplicate_capsule = chain.9.clone();
+        duplicate_capsule.participant_seal_digests[1] =
+            duplicate_capsule.participant_seal_digests[0].clone();
+        duplicate_capsule.participant_prediction_digests[1] =
+            duplicate_capsule.participant_prediction_digests[0].clone();
+
+        let mut missing_seals = chain.8.clone();
+        missing_seals.pop();
+
+        let mut mismatched_capsule = chain.9.clone();
+        mismatched_capsule.participant_prediction_digests[0] = "mismatch".into();
+
+        let mut extra_seals = chain.8.clone();
+        extra_seals.push(chain.8[0].clone());
+
+        for (seals, capsule) in [
+            (&chain.8, &duplicate_capsule),
+            (&missing_seals, &chain.9),
+            (&chain.8, &mismatched_capsule),
+            (&extra_seals, &chain.9),
+        ] {
+            assert!(
+                validate_persisted_prediction_chain(
+                    &chain.0, &chain.1, &chain.3, &chain.4, &chain.5, &chain.6, &chain.7, seals,
+                    capsule, &chain.10, &chain.11,
+                )
+                .is_err()
+            );
+        }
+
+        let mut wrong_roster = chain.8.clone();
+        wrong_roster[0].participant_digest = "different-participant".into();
+        wrong_roster[0].seal_digest = prediction_seal_digest(&wrong_roster[0]);
+        let mut wrong_roster_capsule = chain.9.clone();
+        wrong_roster_capsule.participant_seal_digests[0] = wrong_roster[0].seal_digest.clone();
+        wrong_roster_capsule.capsule_digest = prediction_capsule_digest(&wrong_roster_capsule);
+        let mut wrong_roster_journal = chain.10.clone();
+        wrong_roster_journal.participant_seal_digests =
+            wrong_roster_capsule.participant_seal_digests.clone();
+        wrong_roster_journal.prediction_capsule_digest =
+            wrong_roster_capsule.capsule_digest.clone();
+        wrong_roster_journal.entry_digest = journal_entry_digest(&wrong_roster_journal);
+        let mut wrong_roster_outcome_plan = chain.11.clone();
+        wrong_roster_outcome_plan.prediction_capsule_digest =
+            wrong_roster_capsule.capsule_digest.clone();
+        wrong_roster_outcome_plan.plan_digest = outcome_plan_digest(&wrong_roster_outcome_plan);
+        assert!(
+            validate_persisted_prediction_chain(
+                &chain.0,
+                &chain.1,
+                &chain.3,
+                &chain.4,
+                &chain.5,
+                &chain.6,
+                &chain.7,
+                &wrong_roster,
+                &wrong_roster_capsule,
+                &wrong_roster_journal,
+                &wrong_roster_outcome_plan,
+            )
+            .is_err()
+        );
     }
 }

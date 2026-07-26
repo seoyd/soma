@@ -13,12 +13,16 @@ event count is one, and reward eligibility remains
 `IneligibleMinimumSamples`. No winner, ranking, reward, penalty, Chair action,
 or trading action exists.
 
-## Current registered state
+## Current sealed state
 
 Epoch two is preregistered as event timestamp `1784937600000`. Its input
 finality is `1785024000000`, its horizon-one outcome timestamp is
-`1785024000000`, and outcome finality is `1785110400000`. Readiness is
-`RegisteredAwaitingInputFinality`.
+`1785024000000`, and outcome finality is `1785110400000`.
+
+The exact registered input executed once inside the legal window. It consumed
+one request with zero retries, accepted the single missing finalized row, and
+sealed the unchanged three-participant live roster. Current readiness is
+`PredictionAlreadySealed`.
 
 The exact 16-row context runs daily from `1783641600000` through
 `1784937600000`. Fifteen canonical rows are reused; the exact missing set is
@@ -27,8 +31,11 @@ The exact 16-row context runs daily from `1783641600000` through
 zero network, raw-read, reconstruction, feature, prediction, outcome,
 authority, and write work.
 
-No input receipt, input capsule, context-assembly proof, prediction seal,
-prediction capsule, series journal entry, or outcome plan exists yet.
+The successful input receipt is `ec2806f2d5d234e5`, the input capsule is
+`3a918381cf1cedfa`, and the context-assembly proof is `41aa5585171d28a5`.
+Exactly three private seals are bound by prediction capsule
+`f0fc2d24e1c920e4`, journal `ed46f8a8b3f4f806`, and locked outcome plan
+`ae798b355d36bb74`. Numeric probabilities remain private.
 
 ## Immutable series contract
 
@@ -130,6 +137,12 @@ they report `ReadyForLocalPredictionRecovery` with zero raw loading,
 reconstruction, prediction, transport, or writes; only an explicitly
 authorized input execution replay may resume the local seal.
 
+Completed-chain validation binds each reopened seal by the seal and prediction
+digests frozen in the capsule. Filesystem directory order has no semantic
+authority. Status, dry-run, and repeated execute-input replay all return the
+existing sealed chain with zero network, raw loading, reconstruction,
+prediction, or writes.
+
 ## Manual interface
 
 Status:
@@ -179,7 +192,6 @@ existing verified create-new temporary write, flush, sync, reopen/decode,
 atomic rename, and final reopen/decode sequence. Runtime evidence is
 append-only and separate from the first event.
 
-The next step, after input finality and before outcome finality, is to execute
-the exact registered one-row delta and seal epoch two using the identical
-frozen roster. Official Mamba-3 is not implemented or evaluated. Chair
-functionality remains inactive.
+The next step is to keep the outcome stage closed until its registered
+finality boundary and a separate explicit authorization. Official Mamba-3 is
+not implemented or evaluated. Chair functionality remains inactive.
