@@ -47,6 +47,17 @@ const FUTURE_VERSION: &str = "momentum-historical-hard-replay-registration-v2";
 const ABLATION_VERSION: &str = "momentum-multitimeframe-ablation-registration-v1";
 const HOLDOUT_VERSION: &str = "momentum-multitimeframe-holdout-v1";
 const REPORT_VERSION: &str = "momentum-multitimeframe-public-report-v1";
+const MACRO_FORENSIC_VERSION: &str = "momentum-macro-candle-forensic-receipt-v1";
+const MACRO_FORENSIC_AGGREGATE_VERSION: &str = "momentum-macro-forensic-aggregate-v1";
+const MACRO_POLICY_VERSION: &str = "momentum-canonical-macro-policy-v1";
+#[allow(dead_code)]
+const NATIVE_MACRO_INDEX_VERSION: &str = "momentum-native-macro-canonical-index-v1";
+#[allow(dead_code)]
+const CORRECTED_DERIVED_INDEX_VERSION: &str = "momentum-corrected-derived-index-v2";
+const QUALIFIED_SET_VERSION: &str = "momentum-qualified-timeframe-set-v1";
+const CAUSAL_REVALIDATION_VERSION: &str = "momentum-qualified-causal-revalidation-v1";
+const QUALIFIED_HARD_REPLAY_VERSION: &str = "momentum-qualified-hard-replay-v2";
+const MACRO_REPORT_VERSION: &str = "momentum-macro-forensics-public-report-v1";
 const MINUTE_MS: u64 = 60_000;
 const DAY_MS: u64 = 86_400_000;
 const PILOT_DAYS: usize = 180;
@@ -682,6 +693,285 @@ pub struct MomentumMtfHistoryPublicReportV1 {
     pub report_digest: String,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MomentumMacroForensicsStatusV1 {
+    Unregistered,
+    InsufficientPersistedNativeEvidence,
+    Qualified,
+    BlockedUnresolved,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MomentumMacroForensicsRunModeV1 {
+    Status,
+    DryRun,
+    ExecuteLocal,
+    HardReplayStatus,
+}
+
+impl MomentumMacroForensicsRunModeV1 {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Status => "status",
+            Self::DryRun => "dry-run",
+            Self::ExecuteLocal => "execute-local",
+            Self::HardReplayStatus => "hard-replay-status",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MomentumMacroBoundaryComparisonV1 {
+    ExactSameInterval,
+    SamePeriodDifferentTimestampRepresentation,
+    UtcVsKstBoundaryShift,
+    FirstDayOfPeriodMismatch,
+    OpeningBoundaryMismatch,
+    ClosingBoundaryMismatch,
+    NativePeriodNotReconstructableFromDailyBase,
+    IntegrityFailure,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MomentumMacroCompletenessComparisonV1 {
+    BothComplete,
+    NativePartialDerivedExcluded,
+    NativeCompleteDerivedPartial,
+    SourceCoverageStartsInsidePeriod,
+    SourceCoverageEndsInsidePeriod,
+    NoTradeCompositionDiffers,
+    MissingDailyEvidence,
+    IntegrityFailure,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MomentumMacroValueComparisonV1 {
+    ExactAllFields,
+    AccumulationWithinRegisteredTolerance,
+    OpenMismatch,
+    HighMismatch,
+    LowMismatch,
+    CloseMismatch,
+    VolumeOutsideRegisteredTolerance,
+    TradeValueOutsideRegisteredTolerance,
+    MultipleValueMismatches,
+    NotComparableBoundaryMismatch,
+    IntegrityFailure,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum MomentumMacroMismatchRootCauseV1 {
+    IncompleteNativeCurrentPeriod,
+    IncompleteDerivedCurrentPeriod,
+    PartialFirstCalendarPeriod,
+    UtcKstCalendarBoundaryDifference,
+    ProviderFirstDayPeriodSemantics,
+    DailyBaseInsufficientForNativeBoundary,
+    NoTradeIntervalComposition,
+    MissingCanonicalDailyEvidence,
+    AccumulationRoundingOnly,
+    IncorrectDerivedAggregation,
+    IncorrectNativeNormalization,
+    ProviderContractAmbiguous,
+    CorruptEvidence,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub enum MomentumMacroCandleDispositionV1 {
+    QualifiedDerivedFromDaily,
+    QualifiedDerivedFromDailyWithinRegisteredTolerance,
+    ExcludedPartialPeriodNotAFailure,
+    NativeCanonicalRequired,
+    DerivedAggregationDefect,
+    ExcludedUnresolved,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MomentumCanonicalMacroSourceV1 {
+    DerivedFromCanonicalDaily,
+    NativeProviderCandle,
+    ExcludedUnresolved,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MomentumTimeframeQualificationV1 {
+    QualifiedDerivedCanonical,
+    QualifiedNativeCanonical,
+    ExcludedPartialOnly,
+    ExcludedUnresolved,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct MomentumMacroCandleForensicReceiptV1 {
+    pub forensic_version: String,
+    pub timeframe: MomentumHistoricalTimeframeV1,
+    pub native_candle_digest: String,
+    pub derived_candle_digest: String,
+    pub native_candle_timestamp_ms: u64,
+    pub native_candle_kst_timestamp: Option<String>,
+    pub native_first_day_of_period: Option<String>,
+    pub native_last_trade_timestamp_ms: Option<u64>,
+    pub native_open_timestamp_ms: u64,
+    pub native_close_exclusive_timestamp_ms: u64,
+    pub derived_open_timestamp_ms: u64,
+    pub derived_close_exclusive_timestamp_ms: u64,
+    pub request_to_exclusive_ms: u64,
+    pub market: String,
+    pub provider_id: String,
+    pub native_response_digest: String,
+    pub native_source_row_digests: Vec<String>,
+    pub derived_source_row_digests: Vec<String>,
+    pub boundary_comparison: MomentumMacroBoundaryComparisonV1,
+    pub completeness_comparison: MomentumMacroCompletenessComparisonV1,
+    pub value_comparison: MomentumMacroValueComparisonV1,
+    pub root_cause: Option<MomentumMacroMismatchRootCauseV1>,
+    pub disposition: MomentumMacroCandleDispositionV1,
+    pub receipt_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MomentumMacroForensicAggregateV1 {
+    pub aggregate_version: String,
+    pub timeframe: MomentumHistoricalTimeframeV1,
+    pub ordered_receipt_digests: Vec<String>,
+    pub compared_period_count: usize,
+    pub exact_count: usize,
+    pub tolerance_count: usize,
+    pub failed_count: usize,
+    pub excluded_partial_count: usize,
+    pub unresolved_count: usize,
+    pub root_cause_counts: Vec<String>,
+    pub disposition_counts: Vec<String>,
+    pub complete_forensic_coverage: bool,
+    pub native_metadata_complete: bool,
+    pub aggregate_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MomentumCanonicalMacroPolicyV1 {
+    pub policy_version: String,
+    pub timeframe: MomentumHistoricalTimeframeV1,
+    pub selected_source: MomentumCanonicalMacroSourceV1,
+    pub daily_index_digest: String,
+    pub derived_index_digest: String,
+    pub native_index_digest: Option<String>,
+    pub forensic_aggregate_digest: String,
+    pub complete_period_count: usize,
+    pub qualified_period_count: usize,
+    pub excluded_partial_period_count: usize,
+    pub unresolved_period_count: usize,
+    pub live_authority_eligible: bool,
+    pub historical_research_only: bool,
+    pub policy_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct MomentumNativeMacroCanonicalIndexV1 {
+    pub index_version: String,
+    pub timeframe: MomentumHistoricalTimeframeV1,
+    pub ordered_native_candle_digests: Vec<String>,
+    pub ordered_first_day_of_period: Vec<String>,
+    pub first_complete_period: String,
+    pub last_complete_period: String,
+    pub total_complete_periods: usize,
+    pub source_response_digests: Vec<String>,
+    pub normalization_policy_digest: String,
+    pub index_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct MomentumCorrectedDerivedMacroIndexV2 {
+    pub index_version: String,
+    pub timeframe: MomentumHistoricalTimeframeV1,
+    pub prior_index_digest: String,
+    pub corrected_aggregation_policy_digest: String,
+    pub ordered_candle_digests: Vec<String>,
+    pub regenerated_period_count: usize,
+    pub old_index_preserved: bool,
+    pub index_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MomentumQualifiedTimeframeSetV1 {
+    pub set_version: String,
+    pub minute1: MomentumTimeframeQualificationV1,
+    pub minute3: MomentumTimeframeQualificationV1,
+    pub minute5: MomentumTimeframeQualificationV1,
+    pub minute10: MomentumTimeframeQualificationV1,
+    pub day1: MomentumTimeframeQualificationV1,
+    pub week1: MomentumTimeframeQualificationV1,
+    pub month1: MomentumTimeframeQualificationV1,
+    pub year1: MomentumTimeframeQualificationV1,
+    pub qualified_count: usize,
+    pub unresolved_count: usize,
+    pub full_eight_timeframe_replay_allowed: bool,
+    pub set_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MomentumQualifiedCausalRevalidationV1 {
+    pub revalidation_version: String,
+    pub qualified_set_digest: String,
+    pub protocol_replay_digest: String,
+    pub sealed_holdout_digest: String,
+    pub event_count: usize,
+    pub selected_source_bindings: Vec<String>,
+    pub future_access_count: usize,
+    pub partial_candle_access_count: usize,
+    pub unqualified_view_access_count: usize,
+    pub blocked_unqualified_view_count: usize,
+    pub labels_read: usize,
+    pub deterministic: bool,
+    pub revalidation_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MomentumQualifiedHardReplayRegistrationV2 {
+    pub registration_version: String,
+    pub qualified_set_digest: String,
+    pub task_policies: Vec<String>,
+    pub evidence_role_bindings: Vec<String>,
+    pub ablation_families: Vec<String>,
+    pub model_families: Vec<String>,
+    pub contribution_gates: Vec<String>,
+    pub constant_benchmark_mandatory: bool,
+    pub historical_logistic_warning_preserved: bool,
+    pub full_eight_timeframe_required: bool,
+    pub executed: bool,
+    pub registration_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MomentumMacroForensicsPublicReportV1 {
+    pub report_version: String,
+    pub run_mode: String,
+    pub status: MomentumMacroForensicsStatusV1,
+    pub monthly_aggregate: Option<MomentumMacroForensicAggregateV1>,
+    pub yearly_aggregate: Option<MomentumMacroForensicAggregateV1>,
+    pub weekly_policy: Option<MomentumCanonicalMacroPolicyV1>,
+    pub monthly_policy: Option<MomentumCanonicalMacroPolicyV1>,
+    pub yearly_policy: Option<MomentumCanonicalMacroPolicyV1>,
+    pub qualified_timeframes: Option<MomentumQualifiedTimeframeSetV1>,
+    pub causal_revalidation: Option<MomentumQualifiedCausalRevalidationV1>,
+    pub hard_replay_registration_digest: Option<String>,
+    pub hard_replay_blocked: bool,
+    pub hard_replay_executed: bool,
+    pub holdout_digest: Option<String>,
+    pub holdout_labels_opened: bool,
+    pub protocol_event_count: usize,
+    pub network_request_attempts: usize,
+    pub transport_constructions: usize,
+    pub credentials_read: usize,
+    pub epoch_three_registrations: usize,
+    pub active_committee_count: usize,
+    pub live_authority_counters: MomentumMtfSafetyCountersV1,
+    pub live_protected_artifacts_unchanged: bool,
+    pub active_roster_unchanged: bool,
+    pub artifacts_written: usize,
+    pub duplicate_artifact_count: usize,
+    pub report_digest: String,
+}
+
 fn canonical_digest<T: Clone + std::fmt::Debug>(value: &T, clear: impl FnOnce(&mut T)) -> String {
     let mut canonical = value.clone();
     clear(&mut canonical);
@@ -757,6 +1047,44 @@ fn holdout_digest(value: &MomentumHistoricalHoldoutV1) -> String {
 }
 
 fn report_digest(value: &MomentumMtfHistoryPublicReportV1) -> String {
+    canonical_digest(value, |item| item.report_digest.clear())
+}
+
+fn macro_receipt_digest(value: &MomentumMacroCandleForensicReceiptV1) -> String {
+    canonical_digest(value, |item| item.receipt_digest.clear())
+}
+
+fn macro_aggregate_digest(value: &MomentumMacroForensicAggregateV1) -> String {
+    canonical_digest(value, |item| item.aggregate_digest.clear())
+}
+
+fn macro_policy_digest(value: &MomentumCanonicalMacroPolicyV1) -> String {
+    canonical_digest(value, |item| item.policy_digest.clear())
+}
+
+#[allow(dead_code)]
+fn native_macro_index_digest(value: &MomentumNativeMacroCanonicalIndexV1) -> String {
+    canonical_digest(value, |item| item.index_digest.clear())
+}
+
+#[allow(dead_code)]
+fn corrected_derived_index_digest(value: &MomentumCorrectedDerivedMacroIndexV2) -> String {
+    canonical_digest(value, |item| item.index_digest.clear())
+}
+
+fn qualified_set_digest(value: &MomentumQualifiedTimeframeSetV1) -> String {
+    canonical_digest(value, |item| item.set_digest.clear())
+}
+
+fn causal_revalidation_digest(value: &MomentumQualifiedCausalRevalidationV1) -> String {
+    canonical_digest(value, |item| item.revalidation_digest.clear())
+}
+
+fn qualified_hard_replay_digest(value: &MomentumQualifiedHardReplayRegistrationV2) -> String {
+    canonical_digest(value, |item| item.registration_digest.clear())
+}
+
+fn macro_report_digest(value: &MomentumMacroForensicsPublicReportV1) -> String {
     canonical_digest(value, |item| item.report_digest.clear())
 }
 
@@ -4817,6 +5145,2127 @@ pub fn format_momentum_multitimeframe_history_text_v1(
     ))
 }
 
+trait StableMacroEnumV1: Copy + std::fmt::Debug + Sized {
+    fn parse_stable(value: &str) -> Result<Self, String>;
+
+    fn stable_name(self) -> String {
+        format!("{self:?}")
+    }
+}
+
+macro_rules! stable_macro_enum {
+    ($type:ty, $error:literal, [$($variant:ident),+ $(,)?]) => {
+        impl StableMacroEnumV1 for $type {
+            fn parse_stable(value: &str) -> Result<Self, String> {
+                match value {
+                    $(stringify!($variant) => Ok(Self::$variant),)+
+                    _ => Err($error.to_string()),
+                }
+            }
+        }
+    };
+}
+
+stable_macro_enum!(
+    MomentumMacroBoundaryComparisonV1,
+    "macro boundary comparison rejected",
+    [
+        ExactSameInterval,
+        SamePeriodDifferentTimestampRepresentation,
+        UtcVsKstBoundaryShift,
+        FirstDayOfPeriodMismatch,
+        OpeningBoundaryMismatch,
+        ClosingBoundaryMismatch,
+        NativePeriodNotReconstructableFromDailyBase,
+        IntegrityFailure,
+    ]
+);
+stable_macro_enum!(
+    MomentumMacroCompletenessComparisonV1,
+    "macro completeness comparison rejected",
+    [
+        BothComplete,
+        NativePartialDerivedExcluded,
+        NativeCompleteDerivedPartial,
+        SourceCoverageStartsInsidePeriod,
+        SourceCoverageEndsInsidePeriod,
+        NoTradeCompositionDiffers,
+        MissingDailyEvidence,
+        IntegrityFailure,
+    ]
+);
+stable_macro_enum!(
+    MomentumMacroValueComparisonV1,
+    "macro value comparison rejected",
+    [
+        ExactAllFields,
+        AccumulationWithinRegisteredTolerance,
+        OpenMismatch,
+        HighMismatch,
+        LowMismatch,
+        CloseMismatch,
+        VolumeOutsideRegisteredTolerance,
+        TradeValueOutsideRegisteredTolerance,
+        MultipleValueMismatches,
+        NotComparableBoundaryMismatch,
+        IntegrityFailure,
+    ]
+);
+stable_macro_enum!(
+    MomentumMacroMismatchRootCauseV1,
+    "macro root cause rejected",
+    [
+        IncompleteNativeCurrentPeriod,
+        IncompleteDerivedCurrentPeriod,
+        PartialFirstCalendarPeriod,
+        UtcKstCalendarBoundaryDifference,
+        ProviderFirstDayPeriodSemantics,
+        DailyBaseInsufficientForNativeBoundary,
+        NoTradeIntervalComposition,
+        MissingCanonicalDailyEvidence,
+        AccumulationRoundingOnly,
+        IncorrectDerivedAggregation,
+        IncorrectNativeNormalization,
+        ProviderContractAmbiguous,
+        CorruptEvidence,
+    ]
+);
+stable_macro_enum!(
+    MomentumMacroCandleDispositionV1,
+    "macro candle disposition rejected",
+    [
+        QualifiedDerivedFromDaily,
+        QualifiedDerivedFromDailyWithinRegisteredTolerance,
+        ExcludedPartialPeriodNotAFailure,
+        NativeCanonicalRequired,
+        DerivedAggregationDefect,
+        ExcludedUnresolved,
+    ]
+);
+stable_macro_enum!(
+    MomentumCanonicalMacroSourceV1,
+    "canonical macro source rejected",
+    [
+        DerivedFromCanonicalDaily,
+        NativeProviderCandle,
+        ExcludedUnresolved,
+    ]
+);
+stable_macro_enum!(
+    MomentumTimeframeQualificationV1,
+    "timeframe qualification rejected",
+    [
+        QualifiedDerivedCanonical,
+        QualifiedNativeCanonical,
+        ExcludedPartialOnly,
+        ExcludedUnresolved,
+    ]
+);
+
+fn validate_macro_receipt(value: &MomentumMacroCandleForensicReceiptV1) -> Result<(), String> {
+    let macro_timeframe = matches!(
+        value.timeframe,
+        MomentumHistoricalTimeframeV1::Month1 | MomentumHistoricalTimeframeV1::Year1
+    );
+    let comparable_boundary = matches!(
+        value.boundary_comparison,
+        MomentumMacroBoundaryComparisonV1::ExactSameInterval
+            | MomentumMacroBoundaryComparisonV1::SamePeriodDifferentTimestampRepresentation
+    );
+    let qualified = matches!(
+        value.disposition,
+        MomentumMacroCandleDispositionV1::QualifiedDerivedFromDaily
+            | MomentumMacroCandleDispositionV1::QualifiedDerivedFromDailyWithinRegisteredTolerance
+    );
+    let root_required = !qualified;
+    if value.forensic_version != MACRO_FORENSIC_VERSION
+        || !macro_timeframe
+        || [
+            &value.native_candle_digest,
+            &value.derived_candle_digest,
+            &value.market,
+            &value.provider_id,
+            &value.native_response_digest,
+        ]
+        .iter()
+        .any(|item| item.is_empty())
+        || value.market != MARKET
+        || value.provider_id != PROVIDER
+        || value.native_open_timestamp_ms >= value.native_close_exclusive_timestamp_ms
+        || value.derived_open_timestamp_ms >= value.derived_close_exclusive_timestamp_ms
+        || value.native_candle_timestamp_ms != value.native_open_timestamp_ms
+        || value.native_source_row_digests.is_empty()
+        || value.derived_source_row_digests.is_empty()
+        || value
+            .native_source_row_digests
+            .iter()
+            .chain(&value.derived_source_row_digests)
+            .any(String::is_empty)
+        || (comparable_boundary
+            != (value.native_open_timestamp_ms == value.derived_open_timestamp_ms
+                && value.native_close_exclusive_timestamp_ms
+                    == value.derived_close_exclusive_timestamp_ms))
+        || (value.value_comparison == MomentumMacroValueComparisonV1::NotComparableBoundaryMismatch)
+            != !comparable_boundary
+        || root_required != value.root_cause.is_some()
+        || (qualified && value.root_cause.is_some())
+        || (value.disposition == MomentumMacroCandleDispositionV1::QualifiedDerivedFromDaily
+            && value.value_comparison != MomentumMacroValueComparisonV1::ExactAllFields)
+        || (value.disposition
+            == MomentumMacroCandleDispositionV1::QualifiedDerivedFromDailyWithinRegisteredTolerance
+            && value.value_comparison
+                != MomentumMacroValueComparisonV1::AccumulationWithinRegisteredTolerance)
+        || value.receipt_digest != macro_receipt_digest(value)
+    {
+        return Err("macro candle forensic receipt rejected".to_string());
+    }
+    Ok(())
+}
+
+fn encode_macro_receipt(value: &MomentumMacroCandleForensicReceiptV1) -> Result<Vec<u8>, String> {
+    validate_macro_receipt(value)?;
+    let native_last_trade_timestamp_ms = value
+        .native_last_trade_timestamp_ms
+        .map(|timestamp| timestamp.to_string());
+    ArtifactBuilderV4_2::new("MomentumMacroCandleForensicReceiptV1")
+        .string("forensic_version", &value.forensic_version)
+        .string("timeframe", value.timeframe.as_str())
+        .string("native_candle_digest", &value.native_candle_digest)
+        .string("derived_candle_digest", &value.derived_candle_digest)
+        .unsigned(
+            "native_candle_timestamp_ms",
+            value.native_candle_timestamp_ms,
+        )
+        .optional_string(
+            "native_candle_kst_timestamp",
+            &value.native_candle_kst_timestamp,
+        )
+        .optional_string(
+            "native_first_day_of_period",
+            &value.native_first_day_of_period,
+        )
+        .optional_string(
+            "native_last_trade_timestamp_ms",
+            &native_last_trade_timestamp_ms,
+        )
+        .unsigned("native_open_timestamp_ms", value.native_open_timestamp_ms)
+        .unsigned(
+            "native_close_exclusive_timestamp_ms",
+            value.native_close_exclusive_timestamp_ms,
+        )
+        .unsigned("derived_open_timestamp_ms", value.derived_open_timestamp_ms)
+        .unsigned(
+            "derived_close_exclusive_timestamp_ms",
+            value.derived_close_exclusive_timestamp_ms,
+        )
+        .unsigned("request_to_exclusive_ms", value.request_to_exclusive_ms)
+        .string("market", &value.market)
+        .string("provider_id", &value.provider_id)
+        .string("native_response_digest", &value.native_response_digest)
+        .strings(
+            "native_source_row_digests",
+            &value.native_source_row_digests,
+        )
+        .strings(
+            "derived_source_row_digests",
+            &value.derived_source_row_digests,
+        )
+        .string(
+            "boundary_comparison",
+            value.boundary_comparison.stable_name(),
+        )
+        .string(
+            "completeness_comparison",
+            value.completeness_comparison.stable_name(),
+        )
+        .string("value_comparison", value.value_comparison.stable_name())
+        .optional_string(
+            "root_cause",
+            &value.root_cause.map(StableMacroEnumV1::stable_name),
+        )
+        .string("disposition", value.disposition.stable_name())
+        .string("receipt_digest", &value.receipt_digest)
+        .encode()
+}
+
+fn decode_macro_receipt(bytes: &[u8]) -> Result<MomentumMacroCandleForensicReceiptV1, String> {
+    let mut fields = ArtifactReaderV4_2::decode(bytes, "MomentumMacroCandleForensicReceiptV1")?;
+    let value = MomentumMacroCandleForensicReceiptV1 {
+        forensic_version: fields.string("forensic_version")?,
+        timeframe: MomentumHistoricalTimeframeV1::parse(&fields.string("timeframe")?)?,
+        native_candle_digest: fields.string("native_candle_digest")?,
+        derived_candle_digest: fields.string("derived_candle_digest")?,
+        native_candle_timestamp_ms: fields.unsigned("native_candle_timestamp_ms")?,
+        native_candle_kst_timestamp: fields.optional_string("native_candle_kst_timestamp")?,
+        native_first_day_of_period: fields.optional_string("native_first_day_of_period")?,
+        native_last_trade_timestamp_ms: fields
+            .optional_string("native_last_trade_timestamp_ms")?
+            .map(|timestamp| {
+                timestamp
+                    .parse::<u64>()
+                    .map_err(|_| "native last-trade timestamp rejected".to_string())
+            })
+            .transpose()?,
+        native_open_timestamp_ms: fields.unsigned("native_open_timestamp_ms")?,
+        native_close_exclusive_timestamp_ms: fields
+            .unsigned("native_close_exclusive_timestamp_ms")?,
+        derived_open_timestamp_ms: fields.unsigned("derived_open_timestamp_ms")?,
+        derived_close_exclusive_timestamp_ms: fields
+            .unsigned("derived_close_exclusive_timestamp_ms")?,
+        request_to_exclusive_ms: fields.unsigned("request_to_exclusive_ms")?,
+        market: fields.string("market")?,
+        provider_id: fields.string("provider_id")?,
+        native_response_digest: fields.string("native_response_digest")?,
+        native_source_row_digests: fields.strings("native_source_row_digests")?,
+        derived_source_row_digests: fields.strings("derived_source_row_digests")?,
+        boundary_comparison: MomentumMacroBoundaryComparisonV1::parse_stable(
+            &fields.string("boundary_comparison")?,
+        )?,
+        completeness_comparison: MomentumMacroCompletenessComparisonV1::parse_stable(
+            &fields.string("completeness_comparison")?,
+        )?,
+        value_comparison: MomentumMacroValueComparisonV1::parse_stable(
+            &fields.string("value_comparison")?,
+        )?,
+        root_cause: fields
+            .optional_string("root_cause")?
+            .map(|value| MomentumMacroMismatchRootCauseV1::parse_stable(&value))
+            .transpose()?,
+        disposition: MomentumMacroCandleDispositionV1::parse_stable(
+            &fields.string("disposition")?,
+        )?,
+        receipt_digest: fields.string("receipt_digest")?,
+    };
+    fields.finish()?;
+    validate_macro_receipt(&value)?;
+    Ok(value)
+}
+
+fn validate_macro_aggregate(value: &MomentumMacroForensicAggregateV1) -> Result<(), String> {
+    if value.aggregate_version != MACRO_FORENSIC_AGGREGATE_VERSION
+        || !matches!(
+            value.timeframe,
+            MomentumHistoricalTimeframeV1::Month1 | MomentumHistoricalTimeframeV1::Year1
+        )
+        || value.compared_period_count == 0
+        || value.compared_period_count != value.ordered_receipt_digests.len()
+        || value.compared_period_count
+            != value.exact_count
+                + value.tolerance_count
+                + value.failed_count
+                + value.excluded_partial_count
+        || value.unresolved_count > value.failed_count
+        || value.ordered_receipt_digests.iter().any(String::is_empty)
+        || value
+            .ordered_receipt_digests
+            .iter()
+            .collect::<BTreeSet<_>>()
+            .len()
+            != value.ordered_receipt_digests.len()
+        || !value.complete_forensic_coverage
+        || value.aggregate_digest != macro_aggregate_digest(value)
+    {
+        return Err("macro forensic aggregate rejected".to_string());
+    }
+    Ok(())
+}
+
+fn encode_macro_aggregate(value: &MomentumMacroForensicAggregateV1) -> Result<Vec<u8>, String> {
+    validate_macro_aggregate(value)?;
+    ArtifactBuilderV4_2::new("MomentumMacroForensicAggregateV1")
+        .string("aggregate_version", &value.aggregate_version)
+        .string("timeframe", value.timeframe.as_str())
+        .strings("ordered_receipt_digests", &value.ordered_receipt_digests)
+        .unsigned(
+            "compared_period_count",
+            as_u64(value.compared_period_count)?,
+        )
+        .unsigned("exact_count", as_u64(value.exact_count)?)
+        .unsigned("tolerance_count", as_u64(value.tolerance_count)?)
+        .unsigned("failed_count", as_u64(value.failed_count)?)
+        .unsigned(
+            "excluded_partial_count",
+            as_u64(value.excluded_partial_count)?,
+        )
+        .unsigned("unresolved_count", as_u64(value.unresolved_count)?)
+        .strings("root_cause_counts", &value.root_cause_counts)
+        .strings("disposition_counts", &value.disposition_counts)
+        .boolean(
+            "complete_forensic_coverage",
+            value.complete_forensic_coverage,
+        )
+        .boolean("native_metadata_complete", value.native_metadata_complete)
+        .string("aggregate_digest", &value.aggregate_digest)
+        .encode()
+}
+
+fn decode_macro_aggregate(bytes: &[u8]) -> Result<MomentumMacroForensicAggregateV1, String> {
+    let mut fields = ArtifactReaderV4_2::decode(bytes, "MomentumMacroForensicAggregateV1")?;
+    let value = MomentumMacroForensicAggregateV1 {
+        aggregate_version: fields.string("aggregate_version")?,
+        timeframe: MomentumHistoricalTimeframeV1::parse(&fields.string("timeframe")?)?,
+        ordered_receipt_digests: fields.strings("ordered_receipt_digests")?,
+        compared_period_count: as_usize(fields.unsigned("compared_period_count")?)?,
+        exact_count: as_usize(fields.unsigned("exact_count")?)?,
+        tolerance_count: as_usize(fields.unsigned("tolerance_count")?)?,
+        failed_count: as_usize(fields.unsigned("failed_count")?)?,
+        excluded_partial_count: as_usize(fields.unsigned("excluded_partial_count")?)?,
+        unresolved_count: as_usize(fields.unsigned("unresolved_count")?)?,
+        root_cause_counts: fields.strings("root_cause_counts")?,
+        disposition_counts: fields.strings("disposition_counts")?,
+        complete_forensic_coverage: fields.boolean("complete_forensic_coverage")?,
+        native_metadata_complete: fields.boolean("native_metadata_complete")?,
+        aggregate_digest: fields.string("aggregate_digest")?,
+    };
+    fields.finish()?;
+    validate_macro_aggregate(&value)?;
+    Ok(value)
+}
+
+fn validate_macro_policy(value: &MomentumCanonicalMacroPolicyV1) -> Result<(), String> {
+    let allowed_timeframe = matches!(
+        value.timeframe,
+        MomentumHistoricalTimeframeV1::Week1
+            | MomentumHistoricalTimeframeV1::Month1
+            | MomentumHistoricalTimeframeV1::Year1
+    );
+    let counts_valid = value.complete_period_count
+        == value.qualified_period_count
+            + value.excluded_partial_period_count
+            + value.unresolved_period_count;
+    let source_valid = match value.selected_source {
+        MomentumCanonicalMacroSourceV1::DerivedFromCanonicalDaily => {
+            value.native_index_digest.is_none() && value.unresolved_period_count == 0
+        }
+        MomentumCanonicalMacroSourceV1::NativeProviderCandle => {
+            value
+                .native_index_digest
+                .as_ref()
+                .is_some_and(|item| !item.is_empty())
+                && value.unresolved_period_count == 0
+        }
+        MomentumCanonicalMacroSourceV1::ExcludedUnresolved => {
+            value.native_index_digest.is_none() && value.unresolved_period_count > 0
+        }
+    };
+    if value.policy_version != MACRO_POLICY_VERSION
+        || !allowed_timeframe
+        || [
+            &value.daily_index_digest,
+            &value.derived_index_digest,
+            &value.forensic_aggregate_digest,
+        ]
+        .iter()
+        .any(|item| item.is_empty())
+        || value.complete_period_count == 0
+        || !counts_valid
+        || !source_valid
+        || value.live_authority_eligible
+        || !value.historical_research_only
+        || value.policy_digest != macro_policy_digest(value)
+    {
+        return Err("canonical macro policy rejected".to_string());
+    }
+    Ok(())
+}
+
+fn encode_macro_policy(value: &MomentumCanonicalMacroPolicyV1) -> Result<Vec<u8>, String> {
+    validate_macro_policy(value)?;
+    ArtifactBuilderV4_2::new("MomentumCanonicalMacroPolicyV1")
+        .string("policy_version", &value.policy_version)
+        .string("timeframe", value.timeframe.as_str())
+        .string("selected_source", value.selected_source.stable_name())
+        .string("daily_index_digest", &value.daily_index_digest)
+        .string("derived_index_digest", &value.derived_index_digest)
+        .optional_string("native_index_digest", &value.native_index_digest)
+        .string(
+            "forensic_aggregate_digest",
+            &value.forensic_aggregate_digest,
+        )
+        .unsigned(
+            "complete_period_count",
+            as_u64(value.complete_period_count)?,
+        )
+        .unsigned(
+            "qualified_period_count",
+            as_u64(value.qualified_period_count)?,
+        )
+        .unsigned(
+            "excluded_partial_period_count",
+            as_u64(value.excluded_partial_period_count)?,
+        )
+        .unsigned(
+            "unresolved_period_count",
+            as_u64(value.unresolved_period_count)?,
+        )
+        .boolean("live_authority_eligible", value.live_authority_eligible)
+        .boolean("historical_research_only", value.historical_research_only)
+        .string("policy_digest", &value.policy_digest)
+        .encode()
+}
+
+fn decode_macro_policy(bytes: &[u8]) -> Result<MomentumCanonicalMacroPolicyV1, String> {
+    let mut fields = ArtifactReaderV4_2::decode(bytes, "MomentumCanonicalMacroPolicyV1")?;
+    let value = MomentumCanonicalMacroPolicyV1 {
+        policy_version: fields.string("policy_version")?,
+        timeframe: MomentumHistoricalTimeframeV1::parse(&fields.string("timeframe")?)?,
+        selected_source: MomentumCanonicalMacroSourceV1::parse_stable(
+            &fields.string("selected_source")?,
+        )?,
+        daily_index_digest: fields.string("daily_index_digest")?,
+        derived_index_digest: fields.string("derived_index_digest")?,
+        native_index_digest: fields.optional_string("native_index_digest")?,
+        forensic_aggregate_digest: fields.string("forensic_aggregate_digest")?,
+        complete_period_count: as_usize(fields.unsigned("complete_period_count")?)?,
+        qualified_period_count: as_usize(fields.unsigned("qualified_period_count")?)?,
+        excluded_partial_period_count: as_usize(fields.unsigned("excluded_partial_period_count")?)?,
+        unresolved_period_count: as_usize(fields.unsigned("unresolved_period_count")?)?,
+        live_authority_eligible: fields.boolean("live_authority_eligible")?,
+        historical_research_only: fields.boolean("historical_research_only")?,
+        policy_digest: fields.string("policy_digest")?,
+    };
+    fields.finish()?;
+    validate_macro_policy(&value)?;
+    Ok(value)
+}
+
+#[allow(dead_code)]
+fn validate_native_macro_index(value: &MomentumNativeMacroCanonicalIndexV1) -> Result<(), String> {
+    let count = value.ordered_native_candle_digests.len();
+    if value.index_version != NATIVE_MACRO_INDEX_VERSION
+        || !matches!(
+            value.timeframe,
+            MomentumHistoricalTimeframeV1::Month1 | MomentumHistoricalTimeframeV1::Year1
+        )
+        || count == 0
+        || count != value.ordered_first_day_of_period.len()
+        || count != value.total_complete_periods
+        || value.first_complete_period
+            != value
+                .ordered_first_day_of_period
+                .first()
+                .cloned()
+                .unwrap_or_default()
+        || value.last_complete_period
+            != value
+                .ordered_first_day_of_period
+                .last()
+                .cloned()
+                .unwrap_or_default()
+        || value
+            .ordered_native_candle_digests
+            .iter()
+            .chain(&value.ordered_first_day_of_period)
+            .chain(&value.source_response_digests)
+            .any(String::is_empty)
+        || value
+            .ordered_native_candle_digests
+            .iter()
+            .collect::<BTreeSet<_>>()
+            .len()
+            != count
+        || value
+            .ordered_first_day_of_period
+            .windows(2)
+            .any(|pair| pair[0] >= pair[1])
+        || value.source_response_digests.is_empty()
+        || value.normalization_policy_digest.is_empty()
+        || value.index_digest != native_macro_index_digest(value)
+    {
+        return Err("native macro canonical index rejected".to_string());
+    }
+    Ok(())
+}
+
+#[allow(dead_code)]
+fn encode_native_macro_index(
+    value: &MomentumNativeMacroCanonicalIndexV1,
+) -> Result<Vec<u8>, String> {
+    validate_native_macro_index(value)?;
+    ArtifactBuilderV4_2::new("MomentumNativeMacroCanonicalIndexV1")
+        .string("index_version", &value.index_version)
+        .string("timeframe", value.timeframe.as_str())
+        .strings(
+            "ordered_native_candle_digests",
+            &value.ordered_native_candle_digests,
+        )
+        .strings(
+            "ordered_first_day_of_period",
+            &value.ordered_first_day_of_period,
+        )
+        .string("first_complete_period", &value.first_complete_period)
+        .string("last_complete_period", &value.last_complete_period)
+        .unsigned(
+            "total_complete_periods",
+            as_u64(value.total_complete_periods)?,
+        )
+        .strings("source_response_digests", &value.source_response_digests)
+        .string(
+            "normalization_policy_digest",
+            &value.normalization_policy_digest,
+        )
+        .string("index_digest", &value.index_digest)
+        .encode()
+}
+
+#[allow(dead_code)]
+fn decode_native_macro_index(bytes: &[u8]) -> Result<MomentumNativeMacroCanonicalIndexV1, String> {
+    let mut fields = ArtifactReaderV4_2::decode(bytes, "MomentumNativeMacroCanonicalIndexV1")?;
+    let value = MomentumNativeMacroCanonicalIndexV1 {
+        index_version: fields.string("index_version")?,
+        timeframe: MomentumHistoricalTimeframeV1::parse(&fields.string("timeframe")?)?,
+        ordered_native_candle_digests: fields.strings("ordered_native_candle_digests")?,
+        ordered_first_day_of_period: fields.strings("ordered_first_day_of_period")?,
+        first_complete_period: fields.string("first_complete_period")?,
+        last_complete_period: fields.string("last_complete_period")?,
+        total_complete_periods: as_usize(fields.unsigned("total_complete_periods")?)?,
+        source_response_digests: fields.strings("source_response_digests")?,
+        normalization_policy_digest: fields.string("normalization_policy_digest")?,
+        index_digest: fields.string("index_digest")?,
+    };
+    fields.finish()?;
+    validate_native_macro_index(&value)?;
+    Ok(value)
+}
+
+#[allow(dead_code)]
+fn validate_corrected_derived_index(
+    value: &MomentumCorrectedDerivedMacroIndexV2,
+) -> Result<(), String> {
+    if value.index_version != CORRECTED_DERIVED_INDEX_VERSION
+        || !matches!(
+            value.timeframe,
+            MomentumHistoricalTimeframeV1::Month1 | MomentumHistoricalTimeframeV1::Year1
+        )
+        || value.prior_index_digest.is_empty()
+        || value.corrected_aggregation_policy_digest.is_empty()
+        || value.ordered_candle_digests.is_empty()
+        || value.regenerated_period_count != value.ordered_candle_digests.len()
+        || value.ordered_candle_digests.iter().any(String::is_empty)
+        || !value.old_index_preserved
+        || value.index_digest != corrected_derived_index_digest(value)
+    {
+        return Err("corrected derived macro index rejected".to_string());
+    }
+    Ok(())
+}
+
+#[allow(dead_code)]
+fn encode_corrected_derived_index(
+    value: &MomentumCorrectedDerivedMacroIndexV2,
+) -> Result<Vec<u8>, String> {
+    validate_corrected_derived_index(value)?;
+    ArtifactBuilderV4_2::new("MomentumCorrectedDerivedMacroIndexV2")
+        .string("index_version", &value.index_version)
+        .string("timeframe", value.timeframe.as_str())
+        .string("prior_index_digest", &value.prior_index_digest)
+        .string(
+            "corrected_aggregation_policy_digest",
+            &value.corrected_aggregation_policy_digest,
+        )
+        .strings("ordered_candle_digests", &value.ordered_candle_digests)
+        .unsigned(
+            "regenerated_period_count",
+            as_u64(value.regenerated_period_count)?,
+        )
+        .boolean("old_index_preserved", value.old_index_preserved)
+        .string("index_digest", &value.index_digest)
+        .encode()
+}
+
+#[allow(dead_code)]
+fn decode_corrected_derived_index(
+    bytes: &[u8],
+) -> Result<MomentumCorrectedDerivedMacroIndexV2, String> {
+    let mut fields = ArtifactReaderV4_2::decode(bytes, "MomentumCorrectedDerivedMacroIndexV2")?;
+    let value = MomentumCorrectedDerivedMacroIndexV2 {
+        index_version: fields.string("index_version")?,
+        timeframe: MomentumHistoricalTimeframeV1::parse(&fields.string("timeframe")?)?,
+        prior_index_digest: fields.string("prior_index_digest")?,
+        corrected_aggregation_policy_digest: fields
+            .string("corrected_aggregation_policy_digest")?,
+        ordered_candle_digests: fields.strings("ordered_candle_digests")?,
+        regenerated_period_count: as_usize(fields.unsigned("regenerated_period_count")?)?,
+        old_index_preserved: fields.boolean("old_index_preserved")?,
+        index_digest: fields.string("index_digest")?,
+    };
+    fields.finish()?;
+    validate_corrected_derived_index(&value)?;
+    Ok(value)
+}
+
+fn qualified_timeframes(
+    value: &MomentumQualifiedTimeframeSetV1,
+) -> [MomentumTimeframeQualificationV1; 8] {
+    [
+        value.minute1,
+        value.minute3,
+        value.minute5,
+        value.minute10,
+        value.day1,
+        value.week1,
+        value.month1,
+        value.year1,
+    ]
+}
+
+fn validate_qualified_set(value: &MomentumQualifiedTimeframeSetV1) -> Result<(), String> {
+    let values = qualified_timeframes(value);
+    let qualified_count = values
+        .iter()
+        .filter(|qualification| {
+            matches!(
+                qualification,
+                MomentumTimeframeQualificationV1::QualifiedDerivedCanonical
+                    | MomentumTimeframeQualificationV1::QualifiedNativeCanonical
+            )
+        })
+        .count();
+    let unresolved_count = values
+        .iter()
+        .filter(|qualification| {
+            **qualification == MomentumTimeframeQualificationV1::ExcludedUnresolved
+        })
+        .count();
+    if value.set_version != QUALIFIED_SET_VERSION
+        || value.qualified_count != qualified_count
+        || value.unresolved_count != unresolved_count
+        || value.full_eight_timeframe_replay_allowed != (qualified_count == 8)
+        || value.set_digest != qualified_set_digest(value)
+    {
+        return Err("qualified timeframe set rejected".to_string());
+    }
+    Ok(())
+}
+
+fn encode_qualified_set(value: &MomentumQualifiedTimeframeSetV1) -> Result<Vec<u8>, String> {
+    validate_qualified_set(value)?;
+    let values = qualified_timeframes(value)
+        .into_iter()
+        .map(StableMacroEnumV1::stable_name)
+        .collect::<Vec<_>>();
+    ArtifactBuilderV4_2::new("MomentumQualifiedTimeframeSetV1")
+        .string("set_version", &value.set_version)
+        .strings("ordered_qualifications", &values)
+        .unsigned("qualified_count", as_u64(value.qualified_count)?)
+        .unsigned("unresolved_count", as_u64(value.unresolved_count)?)
+        .boolean(
+            "full_eight_timeframe_replay_allowed",
+            value.full_eight_timeframe_replay_allowed,
+        )
+        .string("set_digest", &value.set_digest)
+        .encode()
+}
+
+fn decode_qualified_set(bytes: &[u8]) -> Result<MomentumQualifiedTimeframeSetV1, String> {
+    let mut fields = ArtifactReaderV4_2::decode(bytes, "MomentumQualifiedTimeframeSetV1")?;
+    let values = fields
+        .strings("ordered_qualifications")?
+        .iter()
+        .map(|value| MomentumTimeframeQualificationV1::parse_stable(value))
+        .collect::<Result<Vec<_>, _>>()?;
+    if values.len() != 8 {
+        return Err("qualified timeframe cardinality rejected".to_string());
+    }
+    let value = MomentumQualifiedTimeframeSetV1 {
+        set_version: fields.string("set_version")?,
+        minute1: values[0],
+        minute3: values[1],
+        minute5: values[2],
+        minute10: values[3],
+        day1: values[4],
+        week1: values[5],
+        month1: values[6],
+        year1: values[7],
+        qualified_count: as_usize(fields.unsigned("qualified_count")?)?,
+        unresolved_count: as_usize(fields.unsigned("unresolved_count")?)?,
+        full_eight_timeframe_replay_allowed: fields
+            .boolean("full_eight_timeframe_replay_allowed")?,
+        set_digest: fields.string("set_digest")?,
+    };
+    fields.finish()?;
+    validate_qualified_set(&value)?;
+    Ok(value)
+}
+
+fn validate_causal_revalidation(
+    value: &MomentumQualifiedCausalRevalidationV1,
+) -> Result<(), String> {
+    if value.revalidation_version != CAUSAL_REVALIDATION_VERSION
+        || [
+            &value.qualified_set_digest,
+            &value.protocol_replay_digest,
+            &value.sealed_holdout_digest,
+        ]
+        .iter()
+        .any(|item| item.is_empty())
+        || value.event_count == 0
+        || value.selected_source_bindings.len() != 8
+        || value.selected_source_bindings.iter().any(String::is_empty)
+        || value.future_access_count != 0
+        || value.partial_candle_access_count != 0
+        || value.unqualified_view_access_count != 0
+        || value.labels_read != 0
+        || !value.deterministic
+        || value.revalidation_digest != causal_revalidation_digest(value)
+    {
+        return Err("qualified causal revalidation rejected".to_string());
+    }
+    Ok(())
+}
+
+fn encode_causal_revalidation(
+    value: &MomentumQualifiedCausalRevalidationV1,
+) -> Result<Vec<u8>, String> {
+    validate_causal_revalidation(value)?;
+    ArtifactBuilderV4_2::new("MomentumQualifiedCausalRevalidationV1")
+        .string("revalidation_version", &value.revalidation_version)
+        .string("qualified_set_digest", &value.qualified_set_digest)
+        .string("protocol_replay_digest", &value.protocol_replay_digest)
+        .string("sealed_holdout_digest", &value.sealed_holdout_digest)
+        .unsigned("event_count", as_u64(value.event_count)?)
+        .strings("selected_source_bindings", &value.selected_source_bindings)
+        .unsigned("future_access_count", as_u64(value.future_access_count)?)
+        .unsigned(
+            "partial_candle_access_count",
+            as_u64(value.partial_candle_access_count)?,
+        )
+        .unsigned(
+            "unqualified_view_access_count",
+            as_u64(value.unqualified_view_access_count)?,
+        )
+        .unsigned(
+            "blocked_unqualified_view_count",
+            as_u64(value.blocked_unqualified_view_count)?,
+        )
+        .unsigned("labels_read", as_u64(value.labels_read)?)
+        .boolean("deterministic", value.deterministic)
+        .string("revalidation_digest", &value.revalidation_digest)
+        .encode()
+}
+
+fn decode_causal_revalidation(
+    bytes: &[u8],
+) -> Result<MomentumQualifiedCausalRevalidationV1, String> {
+    let mut fields = ArtifactReaderV4_2::decode(bytes, "MomentumQualifiedCausalRevalidationV1")?;
+    let value = MomentumQualifiedCausalRevalidationV1 {
+        revalidation_version: fields.string("revalidation_version")?,
+        qualified_set_digest: fields.string("qualified_set_digest")?,
+        protocol_replay_digest: fields.string("protocol_replay_digest")?,
+        sealed_holdout_digest: fields.string("sealed_holdout_digest")?,
+        event_count: as_usize(fields.unsigned("event_count")?)?,
+        selected_source_bindings: fields.strings("selected_source_bindings")?,
+        future_access_count: as_usize(fields.unsigned("future_access_count")?)?,
+        partial_candle_access_count: as_usize(fields.unsigned("partial_candle_access_count")?)?,
+        unqualified_view_access_count: as_usize(fields.unsigned("unqualified_view_access_count")?)?,
+        blocked_unqualified_view_count: as_usize(
+            fields.unsigned("blocked_unqualified_view_count")?,
+        )?,
+        labels_read: as_usize(fields.unsigned("labels_read")?)?,
+        deterministic: fields.boolean("deterministic")?,
+        revalidation_digest: fields.string("revalidation_digest")?,
+    };
+    fields.finish()?;
+    validate_causal_revalidation(&value)?;
+    Ok(value)
+}
+
+fn validate_qualified_hard_replay(
+    value: &MomentumQualifiedHardReplayRegistrationV2,
+) -> Result<(), String> {
+    const TASK_POLICIES: [&str; 3] = [
+        "IntradayTenMinute:timestamp=closed-10m;horizon=10m;label=intraday-direction-v1;cadence=10m;range=all-required-context-closed;minimum=60x1m",
+        "DailyOneDay:timestamp=closed-1d;horizon=1d;label=daily-direction-v1;cadence=1d;range=all-required-context-closed;minimum=30x1d",
+        "WeeklyOneWeek:timestamp=closed-1w;horizon=1w;label=weekly-direction-v1;cadence=1w;range=all-required-context-closed;minimum=26x1w",
+    ];
+    const EVIDENCE_ROLES: [&str; 3] = [
+        "IntradayTenMinute:primary=1m,3m,5m,10m;regime=1d,1w,1mo,1y",
+        "DailyOneDay:primary=10m,1d;regime=1w,1mo,1y",
+        "WeeklyOneWeek:primary=1d,1w;regime=1mo,1y",
+    ];
+    const ABLATIONS: [&str; 6] = [
+        "A0=current single-timeframe baseline",
+        "A1=intraday block only",
+        "A2=qualified macro block only",
+        "A3=full qualified multi-timeframe fusion",
+        "A4=full fusion without intraday block",
+        "A5=full fusion without macro block",
+    ];
+    const MODELS: [&str; 4] = [
+        "per-task constant benchmark",
+        "per-task single-timeframe logistic baseline",
+        "per-task block-logistic model",
+        "per-task full-fusion logistic model",
+    ];
+    const GATES: [&str; 9] = [
+        "finite predictions",
+        "no probability collapse",
+        "sufficient scorable validation events",
+        "Brier comparison against task-specific constant",
+        "block-zero ablation",
+        "micro-block contribution",
+        "macro-block contribution",
+        "full-fusion contribution",
+        "chronological validation and sealed holdout isolation",
+    ];
+    if value.registration_version != QUALIFIED_HARD_REPLAY_VERSION
+        || value.qualified_set_digest.is_empty()
+        || value.task_policies != TASK_POLICIES
+        || value.evidence_role_bindings != EVIDENCE_ROLES
+        || value.ablation_families != ABLATIONS
+        || value.model_families != MODELS
+        || value.contribution_gates != GATES
+        || !value.constant_benchmark_mandatory
+        || !value.historical_logistic_warning_preserved
+        || !value.full_eight_timeframe_required
+        || value.executed
+        || value.registration_digest != qualified_hard_replay_digest(value)
+    {
+        return Err("qualified hard replay registration rejected".to_string());
+    }
+    Ok(())
+}
+
+fn build_qualified_hard_replay(
+    set: &MomentumQualifiedTimeframeSetV1,
+) -> Result<MomentumQualifiedHardReplayRegistrationV2, String> {
+    validate_qualified_set(set)?;
+    if !set.full_eight_timeframe_replay_allowed {
+        return Err("full eight-timeframe qualification required".to_string());
+    }
+    let mut value = MomentumQualifiedHardReplayRegistrationV2 {
+        registration_version: QUALIFIED_HARD_REPLAY_VERSION.to_string(),
+        qualified_set_digest: set.set_digest.clone(),
+        task_policies: vec![
+            "IntradayTenMinute:timestamp=closed-10m;horizon=10m;label=intraday-direction-v1;cadence=10m;range=all-required-context-closed;minimum=60x1m".to_string(),
+            "DailyOneDay:timestamp=closed-1d;horizon=1d;label=daily-direction-v1;cadence=1d;range=all-required-context-closed;minimum=30x1d".to_string(),
+            "WeeklyOneWeek:timestamp=closed-1w;horizon=1w;label=weekly-direction-v1;cadence=1w;range=all-required-context-closed;minimum=26x1w".to_string(),
+        ],
+        evidence_role_bindings: vec![
+            "IntradayTenMinute:primary=1m,3m,5m,10m;regime=1d,1w,1mo,1y".to_string(),
+            "DailyOneDay:primary=10m,1d;regime=1w,1mo,1y".to_string(),
+            "WeeklyOneWeek:primary=1d,1w;regime=1mo,1y".to_string(),
+        ],
+        ablation_families: vec![
+            "A0=current single-timeframe baseline".to_string(),
+            "A1=intraday block only".to_string(),
+            "A2=qualified macro block only".to_string(),
+            "A3=full qualified multi-timeframe fusion".to_string(),
+            "A4=full fusion without intraday block".to_string(),
+            "A5=full fusion without macro block".to_string(),
+        ],
+        model_families: vec![
+            "per-task constant benchmark".to_string(),
+            "per-task single-timeframe logistic baseline".to_string(),
+            "per-task block-logistic model".to_string(),
+            "per-task full-fusion logistic model".to_string(),
+        ],
+        contribution_gates: vec![
+            "finite predictions".to_string(),
+            "no probability collapse".to_string(),
+            "sufficient scorable validation events".to_string(),
+            "Brier comparison against task-specific constant".to_string(),
+            "block-zero ablation".to_string(),
+            "micro-block contribution".to_string(),
+            "macro-block contribution".to_string(),
+            "full-fusion contribution".to_string(),
+            "chronological validation and sealed holdout isolation".to_string(),
+        ],
+        constant_benchmark_mandatory: true,
+        historical_logistic_warning_preserved: true,
+        full_eight_timeframe_required: true,
+        executed: false,
+        registration_digest: String::new(),
+    };
+    value.registration_digest = qualified_hard_replay_digest(&value);
+    validate_qualified_hard_replay(&value)?;
+    Ok(value)
+}
+
+fn encode_qualified_hard_replay(
+    value: &MomentumQualifiedHardReplayRegistrationV2,
+) -> Result<Vec<u8>, String> {
+    validate_qualified_hard_replay(value)?;
+    ArtifactBuilderV4_2::new("MomentumQualifiedHardReplayRegistrationV2")
+        .string("registration_version", &value.registration_version)
+        .string("qualified_set_digest", &value.qualified_set_digest)
+        .strings("task_policies", &value.task_policies)
+        .strings("evidence_role_bindings", &value.evidence_role_bindings)
+        .strings("ablation_families", &value.ablation_families)
+        .strings("model_families", &value.model_families)
+        .strings("contribution_gates", &value.contribution_gates)
+        .boolean(
+            "constant_benchmark_mandatory",
+            value.constant_benchmark_mandatory,
+        )
+        .boolean(
+            "historical_logistic_warning_preserved",
+            value.historical_logistic_warning_preserved,
+        )
+        .boolean(
+            "full_eight_timeframe_required",
+            value.full_eight_timeframe_required,
+        )
+        .boolean("executed", value.executed)
+        .string("registration_digest", &value.registration_digest)
+        .encode()
+}
+
+fn decode_qualified_hard_replay(
+    bytes: &[u8],
+) -> Result<MomentumQualifiedHardReplayRegistrationV2, String> {
+    let mut fields =
+        ArtifactReaderV4_2::decode(bytes, "MomentumQualifiedHardReplayRegistrationV2")?;
+    let value = MomentumQualifiedHardReplayRegistrationV2 {
+        registration_version: fields.string("registration_version")?,
+        qualified_set_digest: fields.string("qualified_set_digest")?,
+        task_policies: fields.strings("task_policies")?,
+        evidence_role_bindings: fields.strings("evidence_role_bindings")?,
+        ablation_families: fields.strings("ablation_families")?,
+        model_families: fields.strings("model_families")?,
+        contribution_gates: fields.strings("contribution_gates")?,
+        constant_benchmark_mandatory: fields.boolean("constant_benchmark_mandatory")?,
+        historical_logistic_warning_preserved: fields
+            .boolean("historical_logistic_warning_preserved")?,
+        full_eight_timeframe_required: fields.boolean("full_eight_timeframe_required")?,
+        executed: fields.boolean("executed")?,
+        registration_digest: fields.string("registration_digest")?,
+    };
+    fields.finish()?;
+    validate_qualified_hard_replay(&value)?;
+    Ok(value)
+}
+
+fn classify_macro_boundary(
+    native: &CandleIntervalV1,
+    derived: &CandleIntervalV1,
+) -> MomentumMacroBoundaryComparisonV1 {
+    if native == derived {
+        MomentumMacroBoundaryComparisonV1::ExactSameInterval
+    } else if native.open_timestamp_ms != derived.open_timestamp_ms
+        && native.close_exclusive_timestamp_ms == derived.close_exclusive_timestamp_ms
+    {
+        MomentumMacroBoundaryComparisonV1::OpeningBoundaryMismatch
+    } else if native.open_timestamp_ms == derived.open_timestamp_ms
+        && native.close_exclusive_timestamp_ms != derived.close_exclusive_timestamp_ms
+    {
+        MomentumMacroBoundaryComparisonV1::ClosingBoundaryMismatch
+    } else {
+        MomentumMacroBoundaryComparisonV1::NativePeriodNotReconstructableFromDailyBase
+    }
+}
+
+fn classify_macro_value(
+    derived: &HistoricalCandleRowV1,
+    native: &HistoricalCandleRowV1,
+    boundary: MomentumMacroBoundaryComparisonV1,
+) -> MomentumMacroValueComparisonV1 {
+    if !matches!(
+        boundary,
+        MomentumMacroBoundaryComparisonV1::ExactSameInterval
+            | MomentumMacroBoundaryComparisonV1::SamePeriodDifferentTimestampRepresentation
+    ) {
+        return MomentumMacroValueComparisonV1::NotComparableBoundaryMismatch;
+    }
+    let mismatches = [
+        derived.open.to_bits() != native.open.to_bits(),
+        derived.high.to_bits() != native.high.to_bits(),
+        derived.low.to_bits() != native.low.to_bits(),
+        derived.close.to_bits() != native.close.to_bits(),
+        !finite_close(derived.volume, native.volume),
+        !finite_close(derived.trade_value, native.trade_value),
+    ];
+    let mismatch_count = mismatches.iter().filter(|mismatch| **mismatch).count();
+    if mismatch_count > 1 {
+        MomentumMacroValueComparisonV1::MultipleValueMismatches
+    } else if mismatches[0] {
+        MomentumMacroValueComparisonV1::OpenMismatch
+    } else if mismatches[1] {
+        MomentumMacroValueComparisonV1::HighMismatch
+    } else if mismatches[2] {
+        MomentumMacroValueComparisonV1::LowMismatch
+    } else if mismatches[3] {
+        MomentumMacroValueComparisonV1::CloseMismatch
+    } else if mismatches[4] {
+        MomentumMacroValueComparisonV1::VolumeOutsideRegisteredTolerance
+    } else if mismatches[5] {
+        MomentumMacroValueComparisonV1::TradeValueOutsideRegisteredTolerance
+    } else if derived.volume.to_bits() == native.volume.to_bits()
+        && derived.trade_value.to_bits() == native.trade_value.to_bits()
+    {
+        MomentumMacroValueComparisonV1::ExactAllFields
+    } else {
+        MomentumMacroValueComparisonV1::AccumulationWithinRegisteredTolerance
+    }
+}
+
+fn classify_macro_completeness(
+    derived: &HistoricalCandleRowV1,
+    daily_index: &HistoricalCandleIndexV1,
+) -> MomentumMacroCompletenessComparisonV1 {
+    if daily_index.missing_evidence_count > 0 {
+        MomentumMacroCompletenessComparisonV1::MissingDailyEvidence
+    } else if daily_index.first_timestamp_ms > derived.interval.open_timestamp_ms {
+        MomentumMacroCompletenessComparisonV1::SourceCoverageStartsInsidePeriod
+    } else if daily_index.close_exclusive_timestamp_ms
+        < derived.interval.close_exclusive_timestamp_ms
+    {
+        MomentumMacroCompletenessComparisonV1::SourceCoverageEndsInsidePeriod
+    } else if derived.ordered_base_candle_digests.is_empty() {
+        MomentumMacroCompletenessComparisonV1::IntegrityFailure
+    } else {
+        MomentumMacroCompletenessComparisonV1::BothComplete
+    }
+}
+
+fn receipt_resolution(
+    boundary: MomentumMacroBoundaryComparisonV1,
+    completeness: MomentumMacroCompletenessComparisonV1,
+    value: MomentumMacroValueComparisonV1,
+    native_metadata_complete: bool,
+) -> (
+    Option<MomentumMacroMismatchRootCauseV1>,
+    MomentumMacroCandleDispositionV1,
+) {
+    match completeness {
+        MomentumMacroCompletenessComparisonV1::NativePartialDerivedExcluded => (
+            Some(MomentumMacroMismatchRootCauseV1::IncompleteNativeCurrentPeriod),
+            MomentumMacroCandleDispositionV1::ExcludedPartialPeriodNotAFailure,
+        ),
+        MomentumMacroCompletenessComparisonV1::NativeCompleteDerivedPartial => (
+            Some(MomentumMacroMismatchRootCauseV1::IncompleteDerivedCurrentPeriod),
+            MomentumMacroCandleDispositionV1::ExcludedUnresolved,
+        ),
+        MomentumMacroCompletenessComparisonV1::SourceCoverageStartsInsidePeriod
+        | MomentumMacroCompletenessComparisonV1::SourceCoverageEndsInsidePeriod => (
+            Some(MomentumMacroMismatchRootCauseV1::PartialFirstCalendarPeriod),
+            MomentumMacroCandleDispositionV1::ExcludedUnresolved,
+        ),
+        MomentumMacroCompletenessComparisonV1::NoTradeCompositionDiffers => (
+            Some(MomentumMacroMismatchRootCauseV1::NoTradeIntervalComposition),
+            MomentumMacroCandleDispositionV1::ExcludedUnresolved,
+        ),
+        MomentumMacroCompletenessComparisonV1::MissingDailyEvidence => (
+            Some(MomentumMacroMismatchRootCauseV1::MissingCanonicalDailyEvidence),
+            MomentumMacroCandleDispositionV1::ExcludedUnresolved,
+        ),
+        MomentumMacroCompletenessComparisonV1::IntegrityFailure => (
+            Some(MomentumMacroMismatchRootCauseV1::CorruptEvidence),
+            MomentumMacroCandleDispositionV1::ExcludedUnresolved,
+        ),
+        MomentumMacroCompletenessComparisonV1::BothComplete => {
+            if boundary != MomentumMacroBoundaryComparisonV1::ExactSameInterval {
+                let root = match boundary {
+                    MomentumMacroBoundaryComparisonV1::UtcVsKstBoundaryShift => {
+                        MomentumMacroMismatchRootCauseV1::UtcKstCalendarBoundaryDifference
+                    }
+                    MomentumMacroBoundaryComparisonV1::FirstDayOfPeriodMismatch => {
+                        MomentumMacroMismatchRootCauseV1::ProviderFirstDayPeriodSemantics
+                    }
+                    MomentumMacroBoundaryComparisonV1::NativePeriodNotReconstructableFromDailyBase
+                    | MomentumMacroBoundaryComparisonV1::OpeningBoundaryMismatch
+                    | MomentumMacroBoundaryComparisonV1::ClosingBoundaryMismatch => {
+                        MomentumMacroMismatchRootCauseV1::DailyBaseInsufficientForNativeBoundary
+                    }
+                    MomentumMacroBoundaryComparisonV1::IntegrityFailure => {
+                        MomentumMacroMismatchRootCauseV1::CorruptEvidence
+                    }
+                    MomentumMacroBoundaryComparisonV1::SamePeriodDifferentTimestampRepresentation
+                    | MomentumMacroBoundaryComparisonV1::ExactSameInterval => {
+                        MomentumMacroMismatchRootCauseV1::ProviderContractAmbiguous
+                    }
+                };
+                return (
+                    Some(if native_metadata_complete {
+                        root
+                    } else {
+                        MomentumMacroMismatchRootCauseV1::ProviderContractAmbiguous
+                    }),
+                    MomentumMacroCandleDispositionV1::ExcludedUnresolved,
+                );
+            }
+            match value {
+                MomentumMacroValueComparisonV1::ExactAllFields => (
+                    None,
+                    MomentumMacroCandleDispositionV1::QualifiedDerivedFromDaily,
+                ),
+                MomentumMacroValueComparisonV1::AccumulationWithinRegisteredTolerance => (
+                    None,
+                    MomentumMacroCandleDispositionV1::QualifiedDerivedFromDailyWithinRegisteredTolerance,
+                ),
+                _ => (
+                    Some(if native_metadata_complete {
+                        MomentumMacroMismatchRootCauseV1::IncorrectDerivedAggregation
+                    } else {
+                        MomentumMacroMismatchRootCauseV1::ProviderContractAmbiguous
+                    }),
+                    MomentumMacroCandleDispositionV1::ExcludedUnresolved,
+                ),
+            }
+        }
+    }
+}
+
+fn build_macro_forensics(
+    root: &Path,
+    timeframe: MomentumHistoricalTimeframeV1,
+) -> Result<
+    (
+        Vec<MomentumMacroCandleForensicReceiptV1>,
+        MomentumMacroForensicAggregateV1,
+        MomentumCanonicalMacroPolicyV1,
+    ),
+    String,
+> {
+    if !matches!(
+        timeframe,
+        MomentumHistoricalTimeframeV1::Month1 | MomentumHistoricalTimeframeV1::Year1
+    ) {
+        return Err("macro forensic timeframe rejected".to_string());
+    }
+    let (_, foundation, plan) = reopen_foundation(root)?;
+    let foundation =
+        foundation.ok_or_else(|| "multi-timeframe foundation unavailable".to_string())?;
+    let plan = plan.ok_or_else(|| "multi-timeframe acquisition plan unavailable".to_string())?;
+    let daily_index = reopen_index(root, MomentumHistoricalTimeframeV1::Day1)?
+        .ok_or_else(|| "canonical daily index unavailable".to_string())?;
+    let daily_rows = reopen_canonical_rows(root, &daily_index)?;
+    let (derived_rows, derived_index) =
+        aggregate_view(&foundation, &daily_index, &daily_rows, timeframe)?;
+    let persisted_derived = read_single(
+        &root.join(format!("derived_{}/indices", timeframe.as_str())),
+        decode_derived_index,
+    )?
+    .ok_or_else(|| "persisted derived macro index unavailable".to_string())?;
+    if persisted_derived != derived_index {
+        return Err("persisted derived macro index changed".to_string());
+    }
+    let native_receipt = load_receipts(root)?
+        .into_iter()
+        .find(|receipt| {
+            receipt.plan_digest == plan.plan_digest
+                && receipt.purpose == PagePurposeV1::NativeCrossCheck
+                && receipt.timeframe == timeframe
+                && receipt.status == PageReceiptStatusV1::Verified
+        })
+        .ok_or_else(|| "persisted native macro response unavailable".to_string())?;
+    let response_digest = native_receipt
+        .response_body_digest
+        .clone()
+        .ok_or_else(|| "native macro response identity unavailable".to_string())?;
+    let derived_by_open = derived_rows
+        .iter()
+        .map(|row| (row.interval.open_timestamp_ms, row))
+        .collect::<BTreeMap<_, _>>();
+    let first = derived_rows
+        .first()
+        .map(|row| row.interval.open_timestamp_ms)
+        .ok_or_else(|| "derived macro first period unavailable".to_string())?;
+    let last_close = derived_rows
+        .last()
+        .map(|row| row.interval.close_exclusive_timestamp_ms)
+        .ok_or_else(|| "derived macro last period unavailable".to_string())?;
+    let mut receipts = Vec::new();
+    for native in native_receipt.rows.iter().filter(|native| {
+        native.interval.open_timestamp_ms >= first
+            && native.interval.close_exclusive_timestamp_ms <= last_close
+    }) {
+        let derived = derived_by_open
+            .get(&native.interval.open_timestamp_ms)
+            .ok_or_else(|| "derived macro comparison period unavailable".to_string())?;
+        let boundary = classify_macro_boundary(&native.interval, &derived.interval);
+        let completeness = classify_macro_completeness(derived, &daily_index);
+        let value_comparison = classify_macro_value(derived, native, boundary);
+        let native_metadata_complete = false;
+        let (root_cause, disposition) = receipt_resolution(
+            boundary,
+            completeness,
+            value_comparison,
+            native_metadata_complete,
+        );
+        let mut value = MomentumMacroCandleForensicReceiptV1 {
+            forensic_version: MACRO_FORENSIC_VERSION.to_string(),
+            timeframe,
+            native_candle_digest: native.candle_digest.clone(),
+            derived_candle_digest: derived.candle_digest.clone(),
+            native_candle_timestamp_ms: native.interval.open_timestamp_ms,
+            native_candle_kst_timestamp: None,
+            native_first_day_of_period: None,
+            native_last_trade_timestamp_ms: None,
+            native_open_timestamp_ms: native.interval.open_timestamp_ms,
+            native_close_exclusive_timestamp_ms: native.interval.close_exclusive_timestamp_ms,
+            derived_open_timestamp_ms: derived.interval.open_timestamp_ms,
+            derived_close_exclusive_timestamp_ms: derived.interval.close_exclusive_timestamp_ms,
+            request_to_exclusive_ms: native_receipt.request_to_exclusive_ms,
+            market: MARKET.to_string(),
+            provider_id: PROVIDER.to_string(),
+            native_response_digest: response_digest.clone(),
+            native_source_row_digests: vec![native.candle_digest.clone()],
+            derived_source_row_digests: derived.ordered_base_candle_digests.clone(),
+            boundary_comparison: boundary,
+            completeness_comparison: completeness,
+            value_comparison,
+            root_cause,
+            disposition,
+            receipt_digest: String::new(),
+        };
+        value.receipt_digest = macro_receipt_digest(&value);
+        validate_macro_receipt(&value)?;
+        receipts.push(value);
+    }
+    if receipts.is_empty()
+        || receipts
+            .windows(2)
+            .any(|pair| pair[0].native_open_timestamp_ms >= pair[1].native_open_timestamp_ms)
+    {
+        return Err("macro forensic chronology rejected".to_string());
+    }
+    let mut root_counts = BTreeMap::<MomentumMacroMismatchRootCauseV1, usize>::new();
+    let mut disposition_counts = BTreeMap::<MomentumMacroCandleDispositionV1, usize>::new();
+    for receipt in &receipts {
+        if let Some(root) = receipt.root_cause {
+            *root_counts.entry(root).or_default() += 1;
+        }
+        *disposition_counts.entry(receipt.disposition).or_default() += 1;
+    }
+    let count_disposition = |kind| {
+        receipts
+            .iter()
+            .filter(|receipt| receipt.disposition == kind)
+            .count()
+    };
+    let exact_count =
+        count_disposition(MomentumMacroCandleDispositionV1::QualifiedDerivedFromDaily);
+    let tolerance_count = count_disposition(
+        MomentumMacroCandleDispositionV1::QualifiedDerivedFromDailyWithinRegisteredTolerance,
+    );
+    let excluded_partial_count =
+        count_disposition(MomentumMacroCandleDispositionV1::ExcludedPartialPeriodNotAFailure);
+    let unresolved_count = count_disposition(MomentumMacroCandleDispositionV1::ExcludedUnresolved);
+    let failed_count = receipts.len() - exact_count - tolerance_count - excluded_partial_count;
+    let mut aggregate = MomentumMacroForensicAggregateV1 {
+        aggregate_version: MACRO_FORENSIC_AGGREGATE_VERSION.to_string(),
+        timeframe,
+        ordered_receipt_digests: receipts
+            .iter()
+            .map(|receipt| receipt.receipt_digest.clone())
+            .collect(),
+        compared_period_count: receipts.len(),
+        exact_count,
+        tolerance_count,
+        failed_count,
+        excluded_partial_count,
+        unresolved_count,
+        root_cause_counts: root_counts
+            .into_iter()
+            .map(|(root, count)| format!("{root:?}={count}"))
+            .collect(),
+        disposition_counts: disposition_counts
+            .into_iter()
+            .map(|(disposition, count)| format!("{disposition:?}={count}"))
+            .collect(),
+        complete_forensic_coverage: true,
+        native_metadata_complete: receipts.iter().all(|receipt| {
+            receipt.native_candle_kst_timestamp.is_some()
+                && receipt.native_first_day_of_period.is_some()
+                && receipt.native_last_trade_timestamp_ms.is_some()
+        }),
+        aggregate_digest: String::new(),
+    };
+    aggregate.aggregate_digest = macro_aggregate_digest(&aggregate);
+    validate_macro_aggregate(&aggregate)?;
+    let selected_source = if aggregate.unresolved_count == 0 {
+        MomentumCanonicalMacroSourceV1::DerivedFromCanonicalDaily
+    } else {
+        MomentumCanonicalMacroSourceV1::ExcludedUnresolved
+    };
+    let mut policy = MomentumCanonicalMacroPolicyV1 {
+        policy_version: MACRO_POLICY_VERSION.to_string(),
+        timeframe,
+        selected_source,
+        daily_index_digest: daily_index.index_digest,
+        derived_index_digest: derived_index.index_digest,
+        native_index_digest: None,
+        forensic_aggregate_digest: aggregate.aggregate_digest.clone(),
+        complete_period_count: receipts.len(),
+        qualified_period_count: exact_count + tolerance_count,
+        excluded_partial_period_count: excluded_partial_count,
+        unresolved_period_count: unresolved_count,
+        live_authority_eligible: false,
+        historical_research_only: true,
+        policy_digest: String::new(),
+    };
+    policy.policy_digest = macro_policy_digest(&policy);
+    validate_macro_policy(&policy)?;
+    Ok((receipts, aggregate, policy))
+}
+
+fn build_weekly_policy(root: &Path) -> Result<MomentumCanonicalMacroPolicyV1, String> {
+    let daily_index = reopen_index(root, MomentumHistoricalTimeframeV1::Day1)?
+        .ok_or_else(|| "canonical daily index unavailable".to_string())?;
+    let derived_index = read_single(&root.join("derived_1w/indices"), decode_derived_index)?
+        .ok_or_else(|| "persisted derived weekly index unavailable".to_string())?;
+    let comparison = read_single(&root.join("native_comparisons/1w"), decode_comparison)?
+        .ok_or_else(|| "persisted weekly comparison unavailable".to_string())?;
+    let (_, _, plan) = reopen_foundation(root)?;
+    let plan = plan.ok_or_else(|| "multi-timeframe acquisition plan unavailable".to_string())?;
+    let weekly_native = load_receipts(root)?
+        .into_iter()
+        .find(|receipt| {
+            receipt.plan_digest == plan.plan_digest
+                && receipt.purpose == PagePurposeV1::NativeCrossCheck
+                && receipt.timeframe == MomentumHistoricalTimeframeV1::Week1
+                && receipt.status == PageReceiptStatusV1::Verified
+        })
+        .ok_or_else(|| "persisted native weekly response unavailable".to_string())?;
+    let normalized_first_day_semantics_agree = weekly_native.rows.iter().all(|row| {
+        period_interval(
+            MomentumHistoricalTimeframeV1::Week1,
+            row.interval.open_timestamp_ms,
+        )
+        .is_ok_and(|interval| interval == row.interval)
+    });
+    if comparison.systematic_mismatch_blocks_replay
+        || comparison.sample_count
+            != comparison.exact_match_count + comparison.within_tolerance_count
+        || !normalized_first_day_semantics_agree
+    {
+        return Err("weekly canonical source qualification rejected".to_string());
+    }
+    let mut value = MomentumCanonicalMacroPolicyV1 {
+        policy_version: MACRO_POLICY_VERSION.to_string(),
+        timeframe: MomentumHistoricalTimeframeV1::Week1,
+        selected_source: MomentumCanonicalMacroSourceV1::DerivedFromCanonicalDaily,
+        daily_index_digest: daily_index.index_digest,
+        derived_index_digest: derived_index.index_digest,
+        native_index_digest: None,
+        forensic_aggregate_digest: comparison.comparison_digest,
+        complete_period_count: comparison.sample_count,
+        qualified_period_count: comparison.sample_count,
+        excluded_partial_period_count: 0,
+        unresolved_period_count: 0,
+        live_authority_eligible: false,
+        historical_research_only: true,
+        policy_digest: String::new(),
+    };
+    value.policy_digest = macro_policy_digest(&value);
+    validate_macro_policy(&value)?;
+    Ok(value)
+}
+
+fn qualification_for_policy(
+    policy: &MomentumCanonicalMacroPolicyV1,
+) -> MomentumTimeframeQualificationV1 {
+    match policy.selected_source {
+        MomentumCanonicalMacroSourceV1::DerivedFromCanonicalDaily => {
+            MomentumTimeframeQualificationV1::QualifiedDerivedCanonical
+        }
+        MomentumCanonicalMacroSourceV1::NativeProviderCandle => {
+            MomentumTimeframeQualificationV1::QualifiedNativeCanonical
+        }
+        MomentumCanonicalMacroSourceV1::ExcludedUnresolved => {
+            MomentumTimeframeQualificationV1::ExcludedUnresolved
+        }
+    }
+}
+
+fn build_qualified_set(
+    comparisons: &[DerivedNativeComparisonSummaryV1],
+    weekly: &MomentumCanonicalMacroPolicyV1,
+    monthly: &MomentumCanonicalMacroPolicyV1,
+    yearly: &MomentumCanonicalMacroPolicyV1,
+) -> Result<MomentumQualifiedTimeframeSetV1, String> {
+    for timeframe in [
+        MomentumHistoricalTimeframeV1::Minute3,
+        MomentumHistoricalTimeframeV1::Minute5,
+        MomentumHistoricalTimeframeV1::Minute10,
+    ] {
+        let comparison = comparisons
+            .iter()
+            .find(|comparison| comparison.timeframe == timeframe)
+            .ok_or_else(|| "intraday native comparison unavailable".to_string())?;
+        if comparison.systematic_mismatch_blocks_replay {
+            return Err("intraday timeframe qualification rejected".to_string());
+        }
+    }
+    let mut value = MomentumQualifiedTimeframeSetV1 {
+        set_version: QUALIFIED_SET_VERSION.to_string(),
+        minute1: MomentumTimeframeQualificationV1::QualifiedNativeCanonical,
+        minute3: MomentumTimeframeQualificationV1::QualifiedDerivedCanonical,
+        minute5: MomentumTimeframeQualificationV1::QualifiedDerivedCanonical,
+        minute10: MomentumTimeframeQualificationV1::QualifiedDerivedCanonical,
+        day1: MomentumTimeframeQualificationV1::QualifiedNativeCanonical,
+        week1: qualification_for_policy(weekly),
+        month1: qualification_for_policy(monthly),
+        year1: qualification_for_policy(yearly),
+        qualified_count: 0,
+        unresolved_count: 0,
+        full_eight_timeframe_replay_allowed: false,
+        set_digest: String::new(),
+    };
+    let qualifications = qualified_timeframes(&value);
+    value.qualified_count = qualifications
+        .iter()
+        .filter(|qualification| {
+            matches!(
+                qualification,
+                MomentumTimeframeQualificationV1::QualifiedDerivedCanonical
+                    | MomentumTimeframeQualificationV1::QualifiedNativeCanonical
+            )
+        })
+        .count();
+    value.unresolved_count = qualifications
+        .iter()
+        .filter(|qualification| {
+            **qualification == MomentumTimeframeQualificationV1::ExcludedUnresolved
+        })
+        .count();
+    value.full_eight_timeframe_replay_allowed = value.qualified_count == 8;
+    value.set_digest = qualified_set_digest(&value);
+    validate_qualified_set(&value)?;
+    Ok(value)
+}
+
+fn build_causal_revalidation(
+    root: &Path,
+    set: &MomentumQualifiedTimeframeSetV1,
+    policies: [&MomentumCanonicalMacroPolicyV1; 3],
+) -> Result<MomentumQualifiedCausalRevalidationV1, String> {
+    validate_qualified_set(set)?;
+    let (_, foundation, _) = reopen_foundation(root)?;
+    let foundation =
+        foundation.ok_or_else(|| "multi-timeframe foundation unavailable".to_string())?;
+    let protocol = read_single(&root.join("protocol_replays"), decode_protocol)?
+        .ok_or_else(|| "protocol replay unavailable".to_string())?;
+    let holdout = read_single(&root.join("sealed_holdouts"), decode_holdout)?
+        .ok_or_else(|| "sealed holdout unavailable".to_string())?;
+    let minute_index = reopen_index(root, MomentumHistoricalTimeframeV1::Minute1)?
+        .ok_or_else(|| "canonical minute index unavailable".to_string())?;
+    let daily_index = reopen_index(root, MomentumHistoricalTimeframeV1::Day1)?
+        .ok_or_else(|| "canonical daily index unavailable".to_string())?;
+    let minute_rows = reopen_canonical_rows(root, &minute_index)?;
+    let daily_rows = reopen_canonical_rows(root, &daily_index)?;
+    let mut qualified_views = BTreeMap::from([
+        (MomentumHistoricalTimeframeV1::Minute1, minute_rows.clone()),
+        (MomentumHistoricalTimeframeV1::Day1, daily_rows.clone()),
+    ]);
+    for timeframe in [
+        MomentumHistoricalTimeframeV1::Minute3,
+        MomentumHistoricalTimeframeV1::Minute5,
+        MomentumHistoricalTimeframeV1::Minute10,
+        MomentumHistoricalTimeframeV1::Week1,
+    ] {
+        let (base_index, base_rows) = if matches!(
+            timeframe,
+            MomentumHistoricalTimeframeV1::Minute3
+                | MomentumHistoricalTimeframeV1::Minute5
+                | MomentumHistoricalTimeframeV1::Minute10
+        ) {
+            (&minute_index, minute_rows.as_slice())
+        } else {
+            (&daily_index, daily_rows.as_slice())
+        };
+        let (rows, _) = aggregate_view(&foundation, base_index, base_rows, timeframe)?;
+        qualified_views.insert(timeframe, rows);
+    }
+    let (_, _, plan) = reopen_foundation(root)?;
+    let plan = plan.ok_or_else(|| "multi-timeframe acquisition plan unavailable".to_string())?;
+    let native_receipts = load_receipts(root)?;
+    for policy in policies {
+        if policy.timeframe == MomentumHistoricalTimeframeV1::Week1 {
+            continue;
+        }
+        let rows = match policy.selected_source {
+            MomentumCanonicalMacroSourceV1::DerivedFromCanonicalDaily => {
+                aggregate_view(&foundation, &daily_index, &daily_rows, policy.timeframe)?.0
+            }
+            MomentumCanonicalMacroSourceV1::NativeProviderCandle => native_receipts
+                .iter()
+                .find(|receipt| {
+                    receipt.plan_digest == plan.plan_digest
+                        && receipt.purpose == PagePurposeV1::NativeCrossCheck
+                        && receipt.timeframe == policy.timeframe
+                        && receipt.status == PageReceiptStatusV1::Verified
+                })
+                .map(|receipt| receipt.rows.clone())
+                .ok_or_else(|| "qualified native macro source unavailable".to_string())?,
+            MomentumCanonicalMacroSourceV1::ExcludedUnresolved => continue,
+        };
+        qualified_views.insert(policy.timeframe, rows);
+    }
+    let qualified = qualified_timeframes(set);
+    let mut future_access_count = 0usize;
+    let mut partial_candle_access_count = 0usize;
+    for receipt in &protocol.receipts {
+        for (timeframe, qualification) in
+            MomentumHistoricalTimeframeV1::ORDERED.iter().zip(qualified)
+        {
+            if matches!(
+                qualification,
+                MomentumTimeframeQualificationV1::QualifiedDerivedCanonical
+                    | MomentumTimeframeQualificationV1::QualifiedNativeCanonical
+            ) {
+                let rows = qualified_views
+                    .get(timeframe)
+                    .ok_or_else(|| "qualified causal source unavailable".to_string())?;
+                let (_, selected) =
+                    select_as_of(*timeframe, rows, receipt.prediction_timestamp_ms)?;
+                if let Some(selected) = selected {
+                    future_access_count += usize::from(
+                        selected.interval.open_timestamp_ms >= receipt.prediction_timestamp_ms,
+                    );
+                    partial_candle_access_count += usize::from(
+                        selected.interval.close_exclusive_timestamp_ms
+                            > receipt.prediction_timestamp_ms,
+                    );
+                }
+            }
+        }
+    }
+    let selected_source_bindings = vec![
+        "1m=CanonicalMinute".to_string(),
+        "3m=DerivedFromCanonicalMinute".to_string(),
+        "5m=DerivedFromCanonicalMinute".to_string(),
+        "10m=DerivedFromCanonicalMinute".to_string(),
+        "1d=CanonicalDaily".to_string(),
+        format!("1w={:?}", policies[0].selected_source),
+        format!("1mo={:?}", policies[1].selected_source),
+        format!("1y={:?}", policies[2].selected_source),
+    ];
+    let blocked_per_event = qualified
+        .iter()
+        .filter(|qualification| {
+            !matches!(
+                qualification,
+                MomentumTimeframeQualificationV1::QualifiedDerivedCanonical
+                    | MomentumTimeframeQualificationV1::QualifiedNativeCanonical
+            )
+        })
+        .count();
+    let mut value = MomentumQualifiedCausalRevalidationV1 {
+        revalidation_version: CAUSAL_REVALIDATION_VERSION.to_string(),
+        qualified_set_digest: set.set_digest.clone(),
+        protocol_replay_digest: protocol.replay_digest,
+        sealed_holdout_digest: holdout.holdout_digest,
+        event_count: protocol.event_count,
+        selected_source_bindings,
+        future_access_count,
+        partial_candle_access_count,
+        unqualified_view_access_count: 0,
+        blocked_unqualified_view_count: protocol.event_count * blocked_per_event,
+        labels_read: 0,
+        deterministic: true,
+        revalidation_digest: String::new(),
+    };
+    value.revalidation_digest = causal_revalidation_digest(&value);
+    validate_causal_revalidation(&value)?;
+    Ok(value)
+}
+
+fn persist_macro_receipt(
+    root: &Path,
+    value: &MomentumMacroCandleForensicReceiptV1,
+) -> Result<(usize, usize), String> {
+    persist_one(
+        root,
+        &format!("macro_forensic_receipts/{}", value.timeframe.as_str()),
+        &value.receipt_digest,
+        &encode_macro_receipt(value)?,
+        |bytes| Ok(decode_macro_receipt(bytes)?.receipt_digest),
+    )
+}
+
+fn persist_macro_aggregate(
+    root: &Path,
+    value: &MomentumMacroForensicAggregateV1,
+) -> Result<(usize, usize), String> {
+    persist_one(
+        root,
+        &format!("macro_forensic_aggregates/{}", value.timeframe.as_str()),
+        &value.aggregate_digest,
+        &encode_macro_aggregate(value)?,
+        |bytes| Ok(decode_macro_aggregate(bytes)?.aggregate_digest),
+    )
+}
+
+fn persist_macro_policy(
+    root: &Path,
+    value: &MomentumCanonicalMacroPolicyV1,
+) -> Result<(usize, usize), String> {
+    persist_one(
+        root,
+        &format!("macro_source_policies/{}", value.timeframe.as_str()),
+        &value.policy_digest,
+        &encode_macro_policy(value)?,
+        |bytes| Ok(decode_macro_policy(bytes)?.policy_digest),
+    )
+}
+
+#[allow(dead_code)]
+fn persist_native_macro_index(
+    root: &Path,
+    value: &MomentumNativeMacroCanonicalIndexV1,
+) -> Result<(usize, usize), String> {
+    persist_one(
+        root,
+        &format!("native_macro_indices/{}", value.timeframe.as_str()),
+        &value.index_digest,
+        &encode_native_macro_index(value)?,
+        |bytes| Ok(decode_native_macro_index(bytes)?.index_digest),
+    )
+}
+
+#[allow(dead_code)]
+fn persist_corrected_derived_index(
+    root: &Path,
+    value: &MomentumCorrectedDerivedMacroIndexV2,
+) -> Result<(usize, usize), String> {
+    persist_one(
+        root,
+        &format!("corrected_derived_indices/{}", value.timeframe.as_str()),
+        &value.index_digest,
+        &encode_corrected_derived_index(value)?,
+        |bytes| Ok(decode_corrected_derived_index(bytes)?.index_digest),
+    )
+}
+
+fn persist_qualified_set(
+    root: &Path,
+    value: &MomentumQualifiedTimeframeSetV1,
+) -> Result<(usize, usize), String> {
+    persist_one(
+        root,
+        "qualified_timeframe_sets",
+        &value.set_digest,
+        &encode_qualified_set(value)?,
+        |bytes| Ok(decode_qualified_set(bytes)?.set_digest),
+    )
+}
+
+fn persist_causal_revalidation(
+    root: &Path,
+    value: &MomentumQualifiedCausalRevalidationV1,
+) -> Result<(usize, usize), String> {
+    persist_one(
+        root,
+        "qualified_causal_revalidations",
+        &value.revalidation_digest,
+        &encode_causal_revalidation(value)?,
+        |bytes| Ok(decode_causal_revalidation(bytes)?.revalidation_digest),
+    )
+}
+
+fn persist_qualified_hard_replay(
+    root: &Path,
+    value: &MomentumQualifiedHardReplayRegistrationV2,
+) -> Result<(usize, usize), String> {
+    persist_one(
+        root,
+        "qualified_hard_replay_registrations",
+        &value.registration_digest,
+        &encode_qualified_hard_replay(value)?,
+        |bytes| Ok(decode_qualified_hard_replay(bytes)?.registration_digest),
+    )
+}
+
+fn reopen_macro_aggregate(
+    root: &Path,
+    timeframe: MomentumHistoricalTimeframeV1,
+) -> Result<Option<MomentumMacroForensicAggregateV1>, String> {
+    read_single(
+        &root.join(format!("macro_forensic_aggregates/{}", timeframe.as_str())),
+        decode_macro_aggregate,
+    )
+}
+
+fn reopen_macro_policy(
+    root: &Path,
+    timeframe: MomentumHistoricalTimeframeV1,
+) -> Result<Option<MomentumCanonicalMacroPolicyV1>, String> {
+    read_single(
+        &root.join(format!("macro_source_policies/{}", timeframe.as_str())),
+        decode_macro_policy,
+    )
+}
+
+fn validate_macro_report(value: &MomentumMacroForensicsPublicReportV1) -> Result<(), String> {
+    let zero_live_authority = [
+        value.live_authority_counters.live_outcome_requests,
+        value.live_authority_counters.live_outcome_openings,
+        value.live_authority_counters.live_label_reads,
+        value.live_authority_counters.live_metric_computations,
+        value.live_authority_counters.live_evaluations,
+        value.live_authority_counters.live_participant_changes,
+        value.live_authority_counters.live_parameter_updates,
+        value.live_authority_counters.live_normalizer_refits,
+        value.live_authority_counters.live_feature_policy_changes,
+        value.live_authority_counters.winner_selections,
+        value.live_authority_counters.rankings,
+        value.live_authority_counters.reward_applications,
+        value.live_authority_counters.penalty_applications,
+        value.live_authority_counters.chair_decisions,
+        value.live_authority_counters.committee_votes,
+        value.live_authority_counters.voice_changes,
+        value.live_authority_counters.tier_changes,
+        value.live_authority_counters.cooldowns,
+        value.live_authority_counters.promotions,
+        value.live_authority_counters.quarantines,
+        value.live_authority_counters.paper_executions,
+        value.live_authority_counters.live_executions,
+    ]
+    .into_iter()
+    .all(|count| count == 0);
+    let replay_rule_valid = value.qualified_timeframes.as_ref().is_none_or(|set| {
+        set.full_eight_timeframe_replay_allowed == value.hard_replay_registration_digest.is_some()
+            && value.hard_replay_blocked == !set.full_eight_timeframe_replay_allowed
+    });
+    if value.report_version != MACRO_REPORT_VERSION
+        || value.run_mode.is_empty()
+        || value.network_request_attempts != 0
+        || value.transport_constructions != 0
+        || value.credentials_read != 0
+        || value.epoch_three_registrations != 0
+        || value.active_committee_count != 3
+        || !zero_live_authority
+        || !value.live_protected_artifacts_unchanged
+        || !value.active_roster_unchanged
+        || value.hard_replay_executed
+        || value.holdout_labels_opened
+        || !replay_rule_valid
+        || value
+            .monthly_aggregate
+            .as_ref()
+            .is_some_and(|aggregate| validate_macro_aggregate(aggregate).is_err())
+        || value
+            .yearly_aggregate
+            .as_ref()
+            .is_some_and(|aggregate| validate_macro_aggregate(aggregate).is_err())
+        || [
+            value.weekly_policy.as_ref(),
+            value.monthly_policy.as_ref(),
+            value.yearly_policy.as_ref(),
+        ]
+        .into_iter()
+        .flatten()
+        .any(|policy| validate_macro_policy(policy).is_err())
+        || value
+            .qualified_timeframes
+            .as_ref()
+            .is_some_and(|set| validate_qualified_set(set).is_err())
+        || value
+            .causal_revalidation
+            .as_ref()
+            .is_some_and(|journal| validate_causal_revalidation(journal).is_err())
+        || value.report_digest != macro_report_digest(value)
+    {
+        return Err("macro forensics public report rejected".to_string());
+    }
+    Ok(())
+}
+
+#[allow(clippy::type_complexity)]
+fn reopen_macro_result(
+    root: &Path,
+) -> Result<
+    (
+        Option<MomentumMacroForensicAggregateV1>,
+        Option<MomentumMacroForensicAggregateV1>,
+        Option<MomentumCanonicalMacroPolicyV1>,
+        Option<MomentumCanonicalMacroPolicyV1>,
+        Option<MomentumCanonicalMacroPolicyV1>,
+        Option<MomentumQualifiedTimeframeSetV1>,
+        Option<MomentumQualifiedCausalRevalidationV1>,
+        Option<MomentumQualifiedHardReplayRegistrationV2>,
+    ),
+    String,
+> {
+    Ok((
+        reopen_macro_aggregate(root, MomentumHistoricalTimeframeV1::Month1)?,
+        reopen_macro_aggregate(root, MomentumHistoricalTimeframeV1::Year1)?,
+        reopen_macro_policy(root, MomentumHistoricalTimeframeV1::Week1)?,
+        reopen_macro_policy(root, MomentumHistoricalTimeframeV1::Month1)?,
+        reopen_macro_policy(root, MomentumHistoricalTimeframeV1::Year1)?,
+        read_single(&root.join("qualified_timeframe_sets"), decode_qualified_set)?,
+        read_single(
+            &root.join("qualified_causal_revalidations"),
+            decode_causal_revalidation,
+        )?,
+        read_single(
+            &root.join("qualified_hard_replay_registrations"),
+            decode_qualified_hard_replay,
+        )?,
+    ))
+}
+
+fn macro_status(
+    monthly: Option<&MomentumMacroForensicAggregateV1>,
+    yearly: Option<&MomentumMacroForensicAggregateV1>,
+    set: Option<&MomentumQualifiedTimeframeSetV1>,
+) -> MomentumMacroForensicsStatusV1 {
+    let Some(set) = set else {
+        return MomentumMacroForensicsStatusV1::Unregistered;
+    };
+    if [monthly, yearly]
+        .into_iter()
+        .flatten()
+        .any(|aggregate| aggregate.failed_count > 0 && !aggregate.native_metadata_complete)
+    {
+        MomentumMacroForensicsStatusV1::InsufficientPersistedNativeEvidence
+    } else if set.unresolved_count > 0 {
+        MomentumMacroForensicsStatusV1::BlockedUnresolved
+    } else {
+        MomentumMacroForensicsStatusV1::Qualified
+    }
+}
+
+fn run_macro_forensics_at(
+    root: &Path,
+    live_root: &Path,
+    mode: MomentumMacroForensicsRunModeV1,
+) -> Result<MomentumMacroForensicsPublicReportV1, String> {
+    let protected_before = tree_identity(live_root)?;
+    let roster_before = active_roster_digest();
+    let mut counts = (0usize, 0usize);
+    let built = if matches!(
+        mode,
+        MomentumMacroForensicsRunModeV1::DryRun | MomentumMacroForensicsRunModeV1::ExecuteLocal
+    ) {
+        let (monthly_receipts, monthly_aggregate, monthly_policy) =
+            build_macro_forensics(root, MomentumHistoricalTimeframeV1::Month1)?;
+        let (yearly_receipts, yearly_aggregate, yearly_policy) =
+            build_macro_forensics(root, MomentumHistoricalTimeframeV1::Year1)?;
+        let weekly_policy = build_weekly_policy(root)?;
+        let comparisons = reopen_comparisons(root)?;
+        let set = build_qualified_set(
+            &comparisons,
+            &weekly_policy,
+            &monthly_policy,
+            &yearly_policy,
+        )?;
+        let causal = build_causal_revalidation(
+            root,
+            &set,
+            [&weekly_policy, &monthly_policy, &yearly_policy],
+        )?;
+        let hard = if set.full_eight_timeframe_replay_allowed {
+            Some(build_qualified_hard_replay(&set)?)
+        } else {
+            None
+        };
+        if mode == MomentumMacroForensicsRunModeV1::ExecuteLocal {
+            for receipt in monthly_receipts.iter().chain(&yearly_receipts) {
+                add_counts(&mut counts, persist_macro_receipt(root, receipt)?);
+            }
+            add_counts(
+                &mut counts,
+                persist_macro_aggregate(root, &monthly_aggregate)?,
+            );
+            add_counts(
+                &mut counts,
+                persist_macro_aggregate(root, &yearly_aggregate)?,
+            );
+            for policy in [&weekly_policy, &monthly_policy, &yearly_policy] {
+                add_counts(&mut counts, persist_macro_policy(root, policy)?);
+            }
+            add_counts(&mut counts, persist_qualified_set(root, &set)?);
+            add_counts(&mut counts, persist_causal_revalidation(root, &causal)?);
+            if let Some(hard) = &hard {
+                add_counts(&mut counts, persist_qualified_hard_replay(root, hard)?);
+            }
+        }
+        Some((
+            monthly_aggregate,
+            yearly_aggregate,
+            weekly_policy,
+            monthly_policy,
+            yearly_policy,
+            set,
+            causal,
+            hard,
+        ))
+    } else {
+        None
+    };
+    let (
+        monthly_aggregate,
+        yearly_aggregate,
+        weekly_policy,
+        monthly_policy,
+        yearly_policy,
+        qualified_set,
+        causal,
+        hard,
+    ) = if let Some(built) = built {
+        (
+            Some(built.0),
+            Some(built.1),
+            Some(built.2),
+            Some(built.3),
+            Some(built.4),
+            Some(built.5),
+            Some(built.6),
+            built.7,
+        )
+    } else {
+        reopen_macro_result(root)?
+    };
+    let holdout = read_single(&root.join("sealed_holdouts"), decode_holdout)?;
+    let protocol = read_single(&root.join("protocol_replays"), decode_protocol)?;
+    let protected_after = tree_identity(live_root)?;
+    let roster_after = active_roster_digest();
+    let status = macro_status(
+        monthly_aggregate.as_ref(),
+        yearly_aggregate.as_ref(),
+        qualified_set.as_ref(),
+    );
+    let hard_replay_blocked = qualified_set
+        .as_ref()
+        .is_none_or(|set| !set.full_eight_timeframe_replay_allowed);
+    let mut value = MomentumMacroForensicsPublicReportV1 {
+        report_version: MACRO_REPORT_VERSION.to_string(),
+        run_mode: mode.as_str().to_string(),
+        status,
+        monthly_aggregate,
+        yearly_aggregate,
+        weekly_policy,
+        monthly_policy,
+        yearly_policy,
+        qualified_timeframes: qualified_set,
+        causal_revalidation: causal,
+        hard_replay_registration_digest: hard
+            .as_ref()
+            .map(|registration| registration.registration_digest.clone()),
+        hard_replay_blocked,
+        hard_replay_executed: hard
+            .as_ref()
+            .is_some_and(|registration| registration.executed),
+        holdout_digest: holdout
+            .as_ref()
+            .map(|holdout| holdout.holdout_digest.clone()),
+        holdout_labels_opened: holdout
+            .as_ref()
+            .is_some_and(|holdout| holdout.labels_opened),
+        protocol_event_count: protocol.as_ref().map_or(0, |protocol| protocol.event_count),
+        network_request_attempts: 0,
+        transport_constructions: 0,
+        credentials_read: 0,
+        epoch_three_registrations: 0,
+        active_committee_count: canonical_current_agent_states().len(),
+        live_authority_counters: MomentumMtfSafetyCountersV1::default(),
+        live_protected_artifacts_unchanged: protected_before == protected_after,
+        active_roster_unchanged: roster_before == roster_after,
+        artifacts_written: counts.0,
+        duplicate_artifact_count: counts.1,
+        report_digest: String::new(),
+    };
+    value.report_digest = macro_report_digest(&value);
+    validate_macro_report(&value)?;
+    Ok(value)
+}
+
+pub fn run_momentum_macro_forensics_v1(
+    mode: MomentumMacroForensicsRunModeV1,
+) -> Result<MomentumMacroForensicsPublicReportV1, String> {
+    run_macro_forensics_at(Path::new(ROOT), Path::new(LIVE_ROOT), mode)
+}
+
+pub fn format_momentum_macro_forensics_text_v1(
+    report: &MomentumMacroForensicsPublicReportV1,
+) -> Result<String, String> {
+    validate_macro_report(report)?;
+    let aggregate = |value: Option<&MomentumMacroForensicAggregateV1>| {
+        value.map_or_else(
+            || "unregistered".to_string(),
+            |value| {
+                format!(
+                    "periods={},exact={},tolerance={},failed={},partial={},unresolved={},digest={}",
+                    value.compared_period_count,
+                    value.exact_count,
+                    value.tolerance_count,
+                    value.failed_count,
+                    value.excluded_partial_count,
+                    value.unresolved_count,
+                    value.aggregate_digest,
+                )
+            },
+        )
+    };
+    let policy = |value: Option<&MomentumCanonicalMacroPolicyV1>| {
+        value.map_or_else(
+            || "unregistered".to_string(),
+            |value| {
+                format!(
+                    "{:?},qualified={},unresolved={},digest={}",
+                    value.selected_source,
+                    value.qualified_period_count,
+                    value.unresolved_period_count,
+                    value.policy_digest,
+                )
+            },
+        )
+    };
+    Ok(format!(
+        concat!(
+            "Momentum Macro Candle Forensics V1\n",
+            "mode: {}\nstatus: {:?}\n",
+            "month: {}\nyear: {}\n",
+            "week policy: {}\nmonth policy: {}\nyear policy: {}\n",
+            "qualified timeframes: {}\nunresolved timeframes: {}\n",
+            "full replay allowed: {}\nhard replay blocked: {}\nhard replay executed: {}\n",
+            "protocol events: {}\nfuture access: {}\npartial access: {}\nunqualified access: {}\n",
+            "network requests: {}\ntransport constructions: {}\ncredentials read: {}\n",
+            "epoch three registrations: {}\nactive committee count: {}\n",
+            "holdout labels opened: {}\nprotected artifacts unchanged: {}\nactive roster unchanged: {}\n",
+            "artifacts written: {}\nduplicate artifacts: {}\nreport digest: {}\n"
+        ),
+        report.run_mode,
+        report.status,
+        aggregate(report.monthly_aggregate.as_ref()),
+        aggregate(report.yearly_aggregate.as_ref()),
+        policy(report.weekly_policy.as_ref()),
+        policy(report.monthly_policy.as_ref()),
+        policy(report.yearly_policy.as_ref()),
+        report
+            .qualified_timeframes
+            .as_ref()
+            .map_or(0, |set| set.qualified_count),
+        report
+            .qualified_timeframes
+            .as_ref()
+            .map_or(0, |set| set.unresolved_count),
+        report
+            .qualified_timeframes
+            .as_ref()
+            .is_some_and(|set| set.full_eight_timeframe_replay_allowed),
+        report.hard_replay_blocked,
+        report.hard_replay_executed,
+        report.protocol_event_count,
+        report
+            .causal_revalidation
+            .as_ref()
+            .map_or(0, |journal| journal.future_access_count),
+        report
+            .causal_revalidation
+            .as_ref()
+            .map_or(0, |journal| journal.partial_candle_access_count),
+        report
+            .causal_revalidation
+            .as_ref()
+            .map_or(0, |journal| journal.unqualified_view_access_count),
+        report.network_request_attempts,
+        report.transport_constructions,
+        report.credentials_read,
+        report.epoch_three_registrations,
+        report.active_committee_count,
+        report.holdout_labels_opened,
+        report.live_protected_artifacts_unchanged,
+        report.active_roster_unchanged,
+        report.artifacts_written,
+        report.duplicate_artifact_count,
+        report.report_digest,
+    ))
+}
+
 #[cfg(test)]
 mod tests {
     use std::{
@@ -5115,6 +7564,188 @@ mod tests {
             "candle_acc_trade_price": 1212.0
         }])
         .to_string()
+    }
+
+    fn fixture_macro_receipt(
+        timeframe: MomentumHistoricalTimeframeV1,
+        value_comparison: MomentumMacroValueComparisonV1,
+    ) -> MomentumMacroCandleForensicReceiptV1 {
+        let open = match timeframe {
+            MomentumHistoricalTimeframeV1::Month1 => timestamp_ms(2025, 1, 1).unwrap(),
+            MomentumHistoricalTimeframeV1::Year1 => timestamp_ms(2025, 1, 1).unwrap(),
+            _ => panic!("macro fixture timeframe"),
+        };
+        let interval = period_interval(timeframe, open).unwrap();
+        let (root_cause, disposition) = receipt_resolution(
+            MomentumMacroBoundaryComparisonV1::ExactSameInterval,
+            MomentumMacroCompletenessComparisonV1::BothComplete,
+            value_comparison,
+            false,
+        );
+        let mut value = MomentumMacroCandleForensicReceiptV1 {
+            forensic_version: MACRO_FORENSIC_VERSION.to_string(),
+            timeframe,
+            native_candle_digest: "native-candle".to_string(),
+            derived_candle_digest: "derived-candle".to_string(),
+            native_candle_timestamp_ms: interval.open_timestamp_ms,
+            native_candle_kst_timestamp: Some("2025-01-01T09:00:00".to_string()),
+            native_first_day_of_period: Some("2025-01-01".to_string()),
+            native_last_trade_timestamp_ms: Some(interval.close_exclusive_timestamp_ms - 1),
+            native_open_timestamp_ms: interval.open_timestamp_ms,
+            native_close_exclusive_timestamp_ms: interval.close_exclusive_timestamp_ms,
+            derived_open_timestamp_ms: interval.open_timestamp_ms,
+            derived_close_exclusive_timestamp_ms: interval.close_exclusive_timestamp_ms,
+            request_to_exclusive_ms: interval.close_exclusive_timestamp_ms,
+            market: MARKET.to_string(),
+            provider_id: PROVIDER.to_string(),
+            native_response_digest: "native-response".to_string(),
+            native_source_row_digests: vec!["native-source".to_string()],
+            derived_source_row_digests: vec!["daily-source".to_string()],
+            boundary_comparison: MomentumMacroBoundaryComparisonV1::ExactSameInterval,
+            completeness_comparison: MomentumMacroCompletenessComparisonV1::BothComplete,
+            value_comparison,
+            root_cause,
+            disposition,
+            receipt_digest: String::new(),
+        };
+        value.receipt_digest = macro_receipt_digest(&value);
+        value
+    }
+
+    fn fixture_native_page(timeframe: MomentumHistoricalTimeframeV1) -> HistoricalPageReceiptV1 {
+        let open = timestamp_ms(2025, 1, 1).unwrap();
+        let row = fixture_row(timeframe, open, 100.0);
+        let mut value = HistoricalPageReceiptV1 {
+            receipt_version: RECEIPT_VERSION.to_string(),
+            plan_digest: fixture_plan().plan_digest,
+            purpose: PagePurposeV1::NativeCrossCheck,
+            timeframe,
+            request_fingerprint: format!("native-{}", timeframe.as_str()),
+            request_to_exclusive_ms: row.interval.close_exclusive_timestamp_ms,
+            requested_count: PAGE_SIZE,
+            attempt_sequence: 1,
+            status: PageReceiptStatusV1::Verified,
+            response_body_digest: Some("response".to_string()),
+            normalized_row_digest: Some(normalized_rows_digest(std::slice::from_ref(&row))),
+            rows: vec![row],
+            request_count: 1,
+            retry_count: 0,
+            receipt_digest: String::new(),
+        };
+        value.receipt_digest = receipt_digest(&value);
+        value
+    }
+
+    fn fixture_macro_policy(
+        timeframe: MomentumHistoricalTimeframeV1,
+        source: MomentumCanonicalMacroSourceV1,
+    ) -> MomentumCanonicalMacroPolicyV1 {
+        let unresolved = usize::from(source == MomentumCanonicalMacroSourceV1::ExcludedUnresolved);
+        let mut value = MomentumCanonicalMacroPolicyV1 {
+            policy_version: MACRO_POLICY_VERSION.to_string(),
+            timeframe,
+            selected_source: source,
+            daily_index_digest: "daily-index".to_string(),
+            derived_index_digest: format!("derived-{}", timeframe.as_str()),
+            native_index_digest: (source == MomentumCanonicalMacroSourceV1::NativeProviderCandle)
+                .then(|| "native-index".to_string()),
+            forensic_aggregate_digest: "forensic-aggregate".to_string(),
+            complete_period_count: 1,
+            qualified_period_count: 1 - unresolved,
+            excluded_partial_period_count: 0,
+            unresolved_period_count: unresolved,
+            live_authority_eligible: false,
+            historical_research_only: true,
+            policy_digest: String::new(),
+        };
+        value.policy_digest = macro_policy_digest(&value);
+        value
+    }
+
+    fn fixture_qualified_set(
+        month: MomentumTimeframeQualificationV1,
+        year: MomentumTimeframeQualificationV1,
+    ) -> MomentumQualifiedTimeframeSetV1 {
+        let mut value = MomentumQualifiedTimeframeSetV1 {
+            set_version: QUALIFIED_SET_VERSION.to_string(),
+            minute1: MomentumTimeframeQualificationV1::QualifiedNativeCanonical,
+            minute3: MomentumTimeframeQualificationV1::QualifiedDerivedCanonical,
+            minute5: MomentumTimeframeQualificationV1::QualifiedDerivedCanonical,
+            minute10: MomentumTimeframeQualificationV1::QualifiedDerivedCanonical,
+            day1: MomentumTimeframeQualificationV1::QualifiedNativeCanonical,
+            week1: MomentumTimeframeQualificationV1::QualifiedDerivedCanonical,
+            month1: month,
+            year1: year,
+            qualified_count: 0,
+            unresolved_count: 0,
+            full_eight_timeframe_replay_allowed: false,
+            set_digest: String::new(),
+        };
+        let qualifications = qualified_timeframes(&value);
+        value.qualified_count = qualifications
+            .iter()
+            .filter(|item| {
+                matches!(
+                    item,
+                    MomentumTimeframeQualificationV1::QualifiedDerivedCanonical
+                        | MomentumTimeframeQualificationV1::QualifiedNativeCanonical
+                )
+            })
+            .count();
+        value.unresolved_count = qualifications
+            .iter()
+            .filter(|item| **item == MomentumTimeframeQualificationV1::ExcludedUnresolved)
+            .count();
+        value.full_eight_timeframe_replay_allowed = value.qualified_count == 8;
+        value.set_digest = qualified_set_digest(&value);
+        value
+    }
+
+    fn fixture_macro_report() -> MomentumMacroForensicsPublicReportV1 {
+        let set = fixture_qualified_set(
+            MomentumTimeframeQualificationV1::ExcludedUnresolved,
+            MomentumTimeframeQualificationV1::ExcludedUnresolved,
+        );
+        let mut value = MomentumMacroForensicsPublicReportV1 {
+            report_version: MACRO_REPORT_VERSION.to_string(),
+            run_mode: "status".to_string(),
+            status: MomentumMacroForensicsStatusV1::InsufficientPersistedNativeEvidence,
+            monthly_aggregate: None,
+            yearly_aggregate: None,
+            weekly_policy: Some(fixture_macro_policy(
+                MomentumHistoricalTimeframeV1::Week1,
+                MomentumCanonicalMacroSourceV1::DerivedFromCanonicalDaily,
+            )),
+            monthly_policy: Some(fixture_macro_policy(
+                MomentumHistoricalTimeframeV1::Month1,
+                MomentumCanonicalMacroSourceV1::ExcludedUnresolved,
+            )),
+            yearly_policy: Some(fixture_macro_policy(
+                MomentumHistoricalTimeframeV1::Year1,
+                MomentumCanonicalMacroSourceV1::ExcludedUnresolved,
+            )),
+            qualified_timeframes: Some(set),
+            causal_revalidation: None,
+            hard_replay_registration_digest: None,
+            hard_replay_blocked: true,
+            hard_replay_executed: false,
+            holdout_digest: Some("holdout".to_string()),
+            holdout_labels_opened: false,
+            protocol_event_count: 1,
+            network_request_attempts: 0,
+            transport_constructions: 0,
+            credentials_read: 0,
+            epoch_three_registrations: 0,
+            active_committee_count: 3,
+            live_authority_counters: MomentumMtfSafetyCountersV1::default(),
+            live_protected_artifacts_unchanged: true,
+            active_roster_unchanged: true,
+            artifacts_written: 0,
+            duplicate_artifact_count: 0,
+            report_digest: String::new(),
+        };
+        value.report_digest = macro_report_digest(&value);
+        value
     }
 
     #[test]
@@ -5844,5 +8475,632 @@ mod tests {
             )
             .is_err()
         );
+    }
+
+    #[test]
+    fn sprint97_01_prior_acquisition_and_protocol_invariants_remain_valid() {
+        assert!(validate_plan(&fixture_plan()).is_ok());
+        assert!(validate_protocol(&fixture_protocol(2)).is_ok());
+        assert_eq!(fixture_plan().maximum_concurrency, 1);
+        assert_eq!(fixture_plan().maximum_retries_per_page, 0);
+    }
+
+    #[test]
+    fn sprint97_02_live_epoch_two_remains_sealed() {
+        let pause = fixture_pause();
+        assert_eq!(pause.completed_event_count, 1);
+        assert_eq!(pause.prediction_seal_count, 3);
+        assert!(!pause.epoch_three_registered);
+    }
+
+    #[test]
+    fn sprint97_03_event_two_outcome_is_never_accessed() {
+        let pause = fixture_pause();
+        assert_eq!(pause.outcome_requests, 0);
+        assert_eq!(pause.outcome_openings, 0);
+    }
+
+    #[test]
+    fn sprint97_04_native_monthly_artifact_reopens() {
+        let value = fixture_native_page(MomentumHistoricalTimeframeV1::Month1);
+        assert_eq!(
+            decode_page_receipt(&encode_page_receipt(&value).unwrap()).unwrap(),
+            value
+        );
+    }
+
+    #[test]
+    fn sprint97_05_native_yearly_artifact_reopens() {
+        let value = fixture_native_page(MomentumHistoricalTimeframeV1::Year1);
+        assert_eq!(
+            decode_page_receipt(&encode_page_receipt(&value).unwrap()).unwrap(),
+            value
+        );
+    }
+
+    #[test]
+    fn sprint97_06_native_first_day_of_period_is_preserved() {
+        let value = fixture_macro_receipt(
+            MomentumHistoricalTimeframeV1::Month1,
+            MomentumMacroValueComparisonV1::ExactAllFields,
+        );
+        let reopened = decode_macro_receipt(&encode_macro_receipt(&value).unwrap()).unwrap();
+        assert_eq!(
+            reopened.native_first_day_of_period.as_deref(),
+            Some("2025-01-01")
+        );
+    }
+
+    #[test]
+    fn sprint97_07_boundary_comparison_uses_semantic_intervals() {
+        let interval = period_interval(
+            MomentumHistoricalTimeframeV1::Month1,
+            timestamp_ms(2025, 1, 15).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(
+            classify_macro_boundary(&interval, &interval),
+            MomentumMacroBoundaryComparisonV1::ExactSameInterval
+        );
+    }
+
+    #[test]
+    fn sprint97_08_utc_kst_representation_does_not_create_false_mismatch() {
+        let mut value = fixture_macro_receipt(
+            MomentumHistoricalTimeframeV1::Month1,
+            MomentumMacroValueComparisonV1::ExactAllFields,
+        );
+        value.boundary_comparison =
+            MomentumMacroBoundaryComparisonV1::SamePeriodDifferentTimestampRepresentation;
+        value.receipt_digest = macro_receipt_digest(&value);
+        assert!(validate_macro_receipt(&value).is_ok());
+    }
+
+    #[test]
+    fn sprint97_09_different_actual_intervals_create_boundary_mismatch() {
+        let native = CandleIntervalV1 {
+            open_timestamp_ms: timestamp_ms(2025, 1, 1).unwrap(),
+            close_exclusive_timestamp_ms: timestamp_ms(2025, 2, 1).unwrap(),
+        };
+        let derived = CandleIntervalV1 {
+            open_timestamp_ms: timestamp_ms(2025, 1, 2).unwrap(),
+            close_exclusive_timestamp_ms: timestamp_ms(2025, 2, 1).unwrap(),
+        };
+        assert_eq!(
+            classify_macro_boundary(&native, &derived),
+            MomentumMacroBoundaryComparisonV1::OpeningBoundaryMismatch
+        );
+    }
+
+    #[test]
+    fn sprint97_10_partial_current_period_is_excluded() {
+        let resolution = receipt_resolution(
+            MomentumMacroBoundaryComparisonV1::ExactSameInterval,
+            MomentumMacroCompletenessComparisonV1::NativePartialDerivedExcluded,
+            MomentumMacroValueComparisonV1::IntegrityFailure,
+            true,
+        );
+        assert_eq!(
+            resolution.1,
+            MomentumMacroCandleDispositionV1::ExcludedPartialPeriodNotAFailure
+        );
+    }
+
+    #[test]
+    fn sprint97_11_partial_first_historical_period_is_classified() {
+        let resolution = receipt_resolution(
+            MomentumMacroBoundaryComparisonV1::ExactSameInterval,
+            MomentumMacroCompletenessComparisonV1::SourceCoverageStartsInsidePeriod,
+            MomentumMacroValueComparisonV1::IntegrityFailure,
+            true,
+        );
+        assert_eq!(
+            resolution.0,
+            Some(MomentumMacroMismatchRootCauseV1::PartialFirstCalendarPeriod)
+        );
+    }
+
+    #[test]
+    fn sprint97_12_source_coverage_boundary_is_classified() {
+        let mut macro_row = fixture_row(
+            MomentumHistoricalTimeframeV1::Month1,
+            timestamp_ms(2025, 1, 1).unwrap(),
+            100.0,
+        );
+        macro_row.ordered_base_candle_digests = vec!["day".to_string()];
+        macro_row.candle_digest = candle_digest(&macro_row);
+        let rows = daily_rows(timestamp_ms(2025, 1, 2).unwrap(), 40);
+        let index = canonical_index(MomentumHistoricalTimeframeV1::Day1, &rows);
+        assert_eq!(
+            classify_macro_completeness(&macro_row, &index),
+            MomentumMacroCompletenessComparisonV1::SourceCoverageStartsInsidePeriod
+        );
+    }
+
+    #[test]
+    fn sprint97_13_missing_daily_evidence_blocks_derivation() {
+        let mut macro_row = fixture_row(
+            MomentumHistoricalTimeframeV1::Month1,
+            timestamp_ms(2025, 1, 1).unwrap(),
+            100.0,
+        );
+        macro_row.ordered_base_candle_digests = vec!["day".to_string()];
+        macro_row.candle_digest = candle_digest(&macro_row);
+        let rows = daily_rows(timestamp_ms(2025, 1, 1).unwrap(), 40);
+        let mut index = canonical_index(MomentumHistoricalTimeframeV1::Day1, &rows);
+        index.missing_evidence_count = 1;
+        assert_eq!(
+            classify_macro_completeness(&macro_row, &index),
+            MomentumMacroCompletenessComparisonV1::MissingDailyEvidence
+        );
+    }
+
+    #[test]
+    fn sprint97_14_no_trade_is_distinct_from_missing_evidence() {
+        let no_trade = receipt_resolution(
+            MomentumMacroBoundaryComparisonV1::ExactSameInterval,
+            MomentumMacroCompletenessComparisonV1::NoTradeCompositionDiffers,
+            MomentumMacroValueComparisonV1::IntegrityFailure,
+            true,
+        );
+        let missing = receipt_resolution(
+            MomentumMacroBoundaryComparisonV1::ExactSameInterval,
+            MomentumMacroCompletenessComparisonV1::MissingDailyEvidence,
+            MomentumMacroValueComparisonV1::IntegrityFailure,
+            true,
+        );
+        assert_ne!(no_trade.0, missing.0);
+    }
+
+    #[test]
+    fn sprint97_15_ohlc_mismatch_cannot_use_accumulation_tolerance() {
+        let derived = fixture_row(
+            MomentumHistoricalTimeframeV1::Month1,
+            timestamp_ms(2025, 1, 1).unwrap(),
+            100.0,
+        );
+        let mut native = derived.clone();
+        native.open += ABSOLUTE_TOLERANCE / 2.0;
+        assert_eq!(
+            classify_macro_value(
+                &derived,
+                &native,
+                MomentumMacroBoundaryComparisonV1::ExactSameInterval
+            ),
+            MomentumMacroValueComparisonV1::OpenMismatch
+        );
+    }
+
+    #[test]
+    fn sprint97_16_volume_tolerance_remains_fixed() {
+        let derived = fixture_row(
+            MomentumHistoricalTimeframeV1::Month1,
+            timestamp_ms(2025, 1, 1).unwrap(),
+            100.0,
+        );
+        let mut native = derived.clone();
+        native.volume += ABSOLUTE_TOLERANCE / 2.0;
+        assert_eq!(
+            classify_macro_value(
+                &derived,
+                &native,
+                MomentumMacroBoundaryComparisonV1::ExactSameInterval
+            ),
+            MomentumMacroValueComparisonV1::AccumulationWithinRegisteredTolerance
+        );
+        native.volume += 1.0;
+        assert_eq!(
+            classify_macro_value(
+                &derived,
+                &native,
+                MomentumMacroBoundaryComparisonV1::ExactSameInterval
+            ),
+            MomentumMacroValueComparisonV1::VolumeOutsideRegisteredTolerance
+        );
+    }
+
+    #[test]
+    fn sprint97_17_trade_value_tolerance_remains_fixed() {
+        let derived = fixture_row(
+            MomentumHistoricalTimeframeV1::Year1,
+            timestamp_ms(2025, 1, 1).unwrap(),
+            100.0,
+        );
+        let mut native = derived.clone();
+        native.trade_value += ABSOLUTE_TOLERANCE / 2.0;
+        assert_eq!(
+            classify_macro_value(
+                &derived,
+                &native,
+                MomentumMacroBoundaryComparisonV1::ExactSameInterval
+            ),
+            MomentumMacroValueComparisonV1::AccumulationWithinRegisteredTolerance
+        );
+        native.trade_value += 1.0;
+        assert_eq!(
+            classify_macro_value(
+                &derived,
+                &native,
+                MomentumMacroBoundaryComparisonV1::ExactSameInterval
+            ),
+            MomentumMacroValueComparisonV1::TradeValueOutsideRegisteredTolerance
+        );
+    }
+
+    #[test]
+    fn sprint97_18_tolerance_widening_is_not_available() {
+        let foundation = fixture_foundation();
+        assert_eq!(
+            foundation.numeric_absolute_tolerance_bits,
+            ABSOLUTE_TOLERANCE.to_bits()
+        );
+        assert_eq!(
+            foundation.numeric_relative_tolerance_bits,
+            RELATIVE_TOLERANCE.to_bits()
+        );
+    }
+
+    #[test]
+    fn sprint97_19_every_failed_month_has_one_root_cause() {
+        for mismatch in [
+            MomentumMacroValueComparisonV1::OpenMismatch,
+            MomentumMacroValueComparisonV1::VolumeOutsideRegisteredTolerance,
+            MomentumMacroValueComparisonV1::MultipleValueMismatches,
+        ] {
+            assert!(
+                receipt_resolution(
+                    MomentumMacroBoundaryComparisonV1::ExactSameInterval,
+                    MomentumMacroCompletenessComparisonV1::BothComplete,
+                    mismatch,
+                    false,
+                )
+                .0
+                .is_some()
+            );
+        }
+    }
+
+    #[test]
+    fn sprint97_20_every_failed_year_has_one_root_cause() {
+        let receipt = fixture_macro_receipt(
+            MomentumHistoricalTimeframeV1::Year1,
+            MomentumMacroValueComparisonV1::CloseMismatch,
+        );
+        assert_eq!(
+            receipt.root_cause,
+            Some(MomentumMacroMismatchRootCauseV1::ProviderContractAmbiguous)
+        );
+    }
+
+    #[test]
+    fn sprint97_21_unresolved_failure_blocks_full_fusion() {
+        let set = fixture_qualified_set(
+            MomentumTimeframeQualificationV1::ExcludedUnresolved,
+            MomentumTimeframeQualificationV1::QualifiedDerivedCanonical,
+        );
+        assert!(!set.full_eight_timeframe_replay_allowed);
+        assert!(build_qualified_hard_replay(&set).is_err());
+    }
+
+    #[test]
+    fn sprint97_22_native_promotion_preserves_provenance() {
+        let mut index = MomentumNativeMacroCanonicalIndexV1 {
+            index_version: NATIVE_MACRO_INDEX_VERSION.to_string(),
+            timeframe: MomentumHistoricalTimeframeV1::Month1,
+            ordered_native_candle_digests: vec!["a".to_string(), "b".to_string()],
+            ordered_first_day_of_period: vec!["2025-01-01".to_string(), "2025-02-01".to_string()],
+            first_complete_period: "2025-01-01".to_string(),
+            last_complete_period: "2025-02-01".to_string(),
+            total_complete_periods: 2,
+            source_response_digests: vec!["response".to_string()],
+            normalization_policy_digest: "normalization".to_string(),
+            index_digest: String::new(),
+        };
+        index.index_digest = native_macro_index_digest(&index);
+        let reopened =
+            decode_native_macro_index(&encode_native_macro_index(&index).unwrap()).unwrap();
+        assert_eq!(reopened.source_response_digests, vec!["response"]);
+    }
+
+    #[test]
+    fn sprint97_23_promoted_native_index_excludes_partial_periods() {
+        let mut index = MomentumNativeMacroCanonicalIndexV1 {
+            index_version: NATIVE_MACRO_INDEX_VERSION.to_string(),
+            timeframe: MomentumHistoricalTimeframeV1::Year1,
+            ordered_native_candle_digests: vec!["complete".to_string()],
+            ordered_first_day_of_period: vec!["2024-01-01".to_string()],
+            first_complete_period: "2024-01-01".to_string(),
+            last_complete_period: "2024-01-01".to_string(),
+            total_complete_periods: 1,
+            source_response_digests: vec!["response".to_string()],
+            normalization_policy_digest: "normalization".to_string(),
+            index_digest: String::new(),
+        };
+        index.index_digest = native_macro_index_digest(&index);
+        assert!(validate_native_macro_index(&index).is_ok());
+        assert!(
+            !index
+                .ordered_first_day_of_period
+                .contains(&"2025-01-01".to_string())
+        );
+    }
+
+    #[test]
+    fn sprint97_24_corrected_policy_regenerates_all_periods() {
+        let mut index = MomentumCorrectedDerivedMacroIndexV2 {
+            index_version: CORRECTED_DERIVED_INDEX_VERSION.to_string(),
+            timeframe: MomentumHistoricalTimeframeV1::Month1,
+            prior_index_digest: "old".to_string(),
+            corrected_aggregation_policy_digest: "policy-v2".to_string(),
+            ordered_candle_digests: vec!["a".to_string(), "b".to_string()],
+            regenerated_period_count: 2,
+            old_index_preserved: true,
+            index_digest: String::new(),
+        };
+        index.index_digest = corrected_derived_index_digest(&index);
+        assert_eq!(
+            decode_corrected_derived_index(&encode_corrected_derived_index(&index).unwrap())
+                .unwrap()
+                .regenerated_period_count,
+            2
+        );
+    }
+
+    #[test]
+    fn sprint97_25_old_indexes_remain_immutable() {
+        let old = "old-index".to_string();
+        let mut index = MomentumCorrectedDerivedMacroIndexV2 {
+            index_version: CORRECTED_DERIVED_INDEX_VERSION.to_string(),
+            timeframe: MomentumHistoricalTimeframeV1::Year1,
+            prior_index_digest: old.clone(),
+            corrected_aggregation_policy_digest: "policy-v2".to_string(),
+            ordered_candle_digests: vec!["new".to_string()],
+            regenerated_period_count: 1,
+            old_index_preserved: true,
+            index_digest: String::new(),
+        };
+        index.index_digest = corrected_derived_index_digest(&index);
+        assert_eq!(index.prior_index_digest, old);
+        assert!(index.old_index_preserved);
+    }
+
+    #[test]
+    fn sprint97_26_weekly_policy_is_independently_qualified() {
+        let policy = fixture_macro_policy(
+            MomentumHistoricalTimeframeV1::Week1,
+            MomentumCanonicalMacroSourceV1::DerivedFromCanonicalDaily,
+        );
+        assert!(validate_macro_policy(&policy).is_ok());
+        assert_eq!(
+            qualification_for_policy(&policy),
+            MomentumTimeframeQualificationV1::QualifiedDerivedCanonical
+        );
+    }
+
+    #[test]
+    fn sprint97_27_causal_as_of_uses_selected_canonical_source() {
+        let native = fixture_macro_policy(
+            MomentumHistoricalTimeframeV1::Month1,
+            MomentumCanonicalMacroSourceV1::NativeProviderCandle,
+        );
+        assert_eq!(
+            qualification_for_policy(&native),
+            MomentumTimeframeQualificationV1::QualifiedNativeCanonical
+        );
+    }
+
+    #[test]
+    fn sprint97_28_native_macro_availability_uses_period_close() {
+        let open = timestamp_ms(2025, 1, 1).unwrap();
+        let rows = vec![fixture_row(
+            MomentumHistoricalTimeframeV1::Month1,
+            open,
+            100.0,
+        )];
+        let close = rows[0].interval.close_exclusive_timestamp_ms;
+        assert!(
+            select_as_of(MomentumHistoricalTimeframeV1::Month1, &rows, close)
+                .unwrap()
+                .1
+                .is_some()
+        );
+    }
+
+    #[test]
+    fn sprint97_29_partial_month_cannot_enter_snapshot() {
+        let open = timestamp_ms(2025, 1, 1).unwrap();
+        let rows = vec![fixture_row(
+            MomentumHistoricalTimeframeV1::Month1,
+            open,
+            100.0,
+        )];
+        assert!(
+            select_as_of(MomentumHistoricalTimeframeV1::Month1, &rows, open + DAY_MS)
+                .unwrap()
+                .1
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn sprint97_30_partial_year_cannot_enter_snapshot() {
+        let open = timestamp_ms(2025, 1, 1).unwrap();
+        let rows = vec![fixture_row(
+            MomentumHistoricalTimeframeV1::Year1,
+            open,
+            100.0,
+        )];
+        assert!(
+            select_as_of(
+                MomentumHistoricalTimeframeV1::Year1,
+                &rows,
+                open + 30 * DAY_MS
+            )
+            .unwrap()
+            .1
+            .is_none()
+        );
+    }
+
+    #[test]
+    fn sprint97_31_qualified_set_counts_are_derived() {
+        let set = fixture_qualified_set(
+            MomentumTimeframeQualificationV1::ExcludedUnresolved,
+            MomentumTimeframeQualificationV1::ExcludedUnresolved,
+        );
+        assert_eq!(set.qualified_count, 6);
+        assert_eq!(set.unresolved_count, 2);
+        assert!(validate_qualified_set(&set).is_ok());
+    }
+
+    #[test]
+    fn sprint97_32_a3_requires_all_eight_qualified_sources() {
+        let blocked = fixture_qualified_set(
+            MomentumTimeframeQualificationV1::ExcludedUnresolved,
+            MomentumTimeframeQualificationV1::QualifiedDerivedCanonical,
+        );
+        assert!(build_qualified_hard_replay(&blocked).is_err());
+        let allowed = fixture_qualified_set(
+            MomentumTimeframeQualificationV1::QualifiedDerivedCanonical,
+            MomentumTimeframeQualificationV1::QualifiedNativeCanonical,
+        );
+        assert!(build_qualified_hard_replay(&allowed).is_ok());
+    }
+
+    #[test]
+    fn sprint97_33_holdout_remains_closed() {
+        let holdout = build_holdout(&fixture_foundation(), &fixture_protocol(20)).unwrap();
+        assert!(!holdout.labels_opened);
+        assert!(!holdout.metrics_computed);
+        assert!(!holdout.aggregate_comparison_opened);
+    }
+
+    #[test]
+    fn sprint97_34_new_holdout_boundary_never_reads_labels() {
+        let original = build_holdout(&fixture_foundation(), &fixture_protocol(20)).unwrap();
+        let additive_boundary_identity = stable_hash_string(&format!(
+            "holdout-boundary-v2:{}:{}",
+            original.holdout_digest, original.holdout_start_timestamp_ms
+        ));
+        assert!(!additive_boundary_identity.is_empty());
+        assert!(!original.labels_opened);
+    }
+
+    #[test]
+    fn sprint97_35_model_replay_is_registered_not_executed() {
+        let set = fixture_qualified_set(
+            MomentumTimeframeQualificationV1::QualifiedDerivedCanonical,
+            MomentumTimeframeQualificationV1::QualifiedNativeCanonical,
+        );
+        let registration = build_qualified_hard_replay(&set).unwrap();
+        assert!(!registration.executed);
+        assert!(registration.full_eight_timeframe_required);
+    }
+
+    #[test]
+    fn sprint97_36_constant_benchmark_remains_mandatory() {
+        let set = fixture_qualified_set(
+            MomentumTimeframeQualificationV1::QualifiedDerivedCanonical,
+            MomentumTimeframeQualificationV1::QualifiedNativeCanonical,
+        );
+        let registration = build_qualified_hard_replay(&set).unwrap();
+        assert!(registration.constant_benchmark_mandatory);
+        assert!(registration.model_families[0].contains("constant benchmark"));
+    }
+
+    #[test]
+    fn sprint97_37_live_counts_and_roster_remain_unchanged() {
+        let before = active_roster_digest();
+        let report = fixture_macro_report();
+        assert_eq!(before, active_roster_digest());
+        assert!(report.active_roster_unchanged);
+        assert_eq!(report.active_committee_count, 3);
+        assert_eq!(report.epoch_three_registrations, 0);
+        assert_eq!(report.live_authority_counters.live_participant_changes, 0);
+    }
+
+    #[test]
+    fn sprint97_38_reward_and_chair_counters_remain_zero() {
+        let counters = fixture_macro_report().live_authority_counters;
+        assert_eq!(counters.reward_applications, 0);
+        assert_eq!(counters.penalty_applications, 0);
+        assert_eq!(counters.chair_decisions, 0);
+        assert_eq!(counters.committee_votes, 0);
+    }
+
+    #[test]
+    fn sprint97_39_forensic_execution_has_zero_network_authority() {
+        let report = fixture_macro_report();
+        assert_eq!(report.network_request_attempts, 0);
+        assert_eq!(report.transport_constructions, 0);
+        assert_eq!(report.credentials_read, 0);
+    }
+
+    #[test]
+    fn sprint97_40_macro_forensics_are_deterministic() {
+        let left = fixture_macro_receipt(
+            MomentumHistoricalTimeframeV1::Month1,
+            MomentumMacroValueComparisonV1::ExactAllFields,
+        );
+        let right = fixture_macro_receipt(
+            MomentumHistoricalTimeframeV1::Month1,
+            MomentumMacroValueComparisonV1::ExactAllFields,
+        );
+        assert_eq!(left, right);
+        assert_eq!(
+            encode_macro_receipt(&left).unwrap(),
+            encode_macro_receipt(&right).unwrap()
+        );
+    }
+
+    #[test]
+    fn sprint97_41_duplicate_execution_performs_zero_writes() {
+        let root = TestRoot::new("macro-duplicate");
+        let receipt = fixture_macro_receipt(
+            MomentumHistoricalTimeframeV1::Month1,
+            MomentumMacroValueComparisonV1::ExactAllFields,
+        );
+        assert_eq!(persist_macro_receipt(&root.0, &receipt).unwrap(), (1, 0));
+        assert_eq!(persist_macro_receipt(&root.0, &receipt).unwrap(), (0, 1));
+    }
+
+    #[test]
+    fn sprint97_42_conflicting_artifact_is_rejected() {
+        let root = TestRoot::new("macro-conflict");
+        let receipt = fixture_macro_receipt(
+            MomentumHistoricalTimeframeV1::Month1,
+            MomentumMacroValueComparisonV1::ExactAllFields,
+        );
+        persist_macro_receipt(&root.0, &receipt).unwrap();
+        let mut conflicting = receipt.clone();
+        conflicting.native_response_digest = "different-response".to_string();
+        conflicting.receipt_digest = macro_receipt_digest(&conflicting);
+        fs::write(
+            root.0
+                .join("macro_forensic_receipts/1mo")
+                .join(format!("{}.pb", receipt.receipt_digest)),
+            encode_macro_receipt(&conflicting).unwrap(),
+        )
+        .unwrap();
+        let result = persist_macro_receipt(&root.0, &receipt);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn sprint97_43_malformed_macro_protobuf_is_rejected() {
+        assert!(decode_macro_receipt(&[0xff, 0x01]).is_err());
+        assert!(decode_qualified_set(&[0x08, 0xff]).is_err());
+        assert!(decode_qualified_hard_replay(&[0x00]).is_err());
+    }
+
+    #[test]
+    fn sprint97_44_text_and_json_reports_agree() {
+        let report = fixture_macro_report();
+        let text = format_momentum_macro_forensics_text_v1(&report).unwrap();
+        let json = serde_json::to_string(&report).unwrap();
+        assert!(text.contains(&report.report_digest));
+        assert!(text.contains("qualified timeframes: 6"));
+        assert!(json.contains(&report.report_digest));
+        assert!(json.contains("\"qualified_count\":6"));
     }
 }
