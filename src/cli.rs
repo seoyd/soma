@@ -99,6 +99,15 @@ pub struct CliArgs {
     #[arg(long, default_value_t = false)]
     pub momentum_v4_prospective_series: bool,
     #[arg(long, default_value_t = false)]
+    pub momentum_v4_historical_replay: bool,
+    #[arg(long, default_value_t = false)]
+    pub momentum_v4_historical_backfill_plan: bool,
+    #[arg(
+        long,
+        value_parser = ["protocol-replay", "expanding-window-walk-forward"]
+    )]
+    pub mode: Option<String>,
+    #[arg(long, default_value_t = false)]
     pub register_next_epoch: bool,
     #[arg(long)]
     pub epoch: Option<u64>,
@@ -156,6 +165,57 @@ pub struct CliArgs {
 
 pub fn run() -> Result<(), String> {
     let args = CliArgs::parse();
+    if args.momentum_v4_historical_replay {
+        if args.allow_network {
+            return Err("Momentum V4 historical replay is offline-only".to_string());
+        }
+        if args.momentum_v4_historical_backfill_plan
+            || args.execute
+            || args.full_auto
+            || args.register_next_epoch
+            || args.epoch.is_some()
+            || args.execute_input
+            || args.confirm_single_public_candle_request
+            || args.confirm_one_time_outcome_request
+            || args.confirm_one_time_prospective_opening
+            || args.confirm_one_time_learning_evidence_request
+            || args.confirm_composite_learning_evidence_epoch
+            || args.confirm_one_time_future_input_request
+            || args.confirm_one_time_future_outcome_request
+            || args.confirm_one_time_future_outcome_opening
+            || args.confirm_one_time_prospective_input_request
+        {
+            return Err("Momentum V4 historical replay rejects authority flags".to_string());
+        }
+        return run_momentum_historical_replay_cli(
+            &args.output_format,
+            args.status,
+            args.dry_run,
+            args.execute_local,
+            args.mode.as_deref(),
+        );
+    }
+    if args.momentum_v4_historical_backfill_plan {
+        if args.allow_network {
+            return Err("Momentum V4 historical backfill plan is offline-only".to_string());
+        }
+        if !args.status
+            || args.dry_run
+            || args.execute_local
+            || args.execute
+            || args.mode.is_some()
+            || args.full_auto
+            || args.register_next_epoch
+            || args.epoch.is_some()
+            || args.execute_input
+        {
+            return Err("Momentum V4 historical backfill plan supports status only".to_string());
+        }
+        return run_momentum_historical_backfill_plan_cli(&args.output_format);
+    }
+    if args.mode.is_some() {
+        return Err("historical replay mode requires --momentum-v4-historical-replay".to_string());
+    }
     if args.momentum_v4_prospective_series {
         if args.momentum_v4_future_prediction
             || args.momentum_v4_future_outcome
@@ -3056,6 +3116,228 @@ fn format_momentum_v4_supplemental_text(report: &MomentumSupplementalCliReportV4
     );
     let _ = writeln!(output, "report_digest={}", report.report_digest);
     output
+}
+
+fn run_momentum_historical_replay_cli(
+    output_format: &str,
+    status: bool,
+    dry_run: bool,
+    execute_local: bool,
+    mode: Option<&str>,
+) -> Result<(), String> {
+    let selected = usize::from(status) + usize::from(dry_run) + usize::from(execute_local);
+    if selected != 1 {
+        return Err(
+            "Momentum V4 historical replay requires exactly one of --status, --dry-run, or --execute-local"
+                .to_string(),
+        );
+    }
+    if execute_local && mode.is_none() {
+        return Err("Momentum V4 historical execute-local requires --mode".to_string());
+    }
+    let run_mode = if status {
+        crate::model::MomentumHistoricalRunModeV1::Status
+    } else if dry_run {
+        crate::model::MomentumHistoricalRunModeV1::DryRun
+    } else {
+        crate::model::MomentumHistoricalRunModeV1::ExecuteLocal
+    };
+    let replay_mode = crate::model::MomentumHistoricalReplayModeV1::parse(
+        mode.unwrap_or("expanding-window-walk-forward"),
+    )?;
+    let report = crate::model::run_momentum_historical_replay_v1(run_mode, replay_mode)?;
+    match output_format {
+        "json" => println!(
+            "{}",
+            serde_json::to_string_pretty(&report)
+                .map_err(|_| "historical replay JSON encoding failed".to_string())?
+        ),
+        "text" => println!("{}", format_momentum_historical_replay_text(&report)),
+        _ => return Err("historical replay output format rejected".to_string()),
+    }
+    Ok(())
+}
+
+fn format_momentum_historical_replay_text(
+    report: &crate::model::MomentumHistoricalPublicReportV1,
+) -> String {
+    let mut output = String::new();
+    let _ = writeln!(output, "report_version={}", report.report_version);
+    let _ = writeln!(output, "run_mode={}", report.run_mode);
+    let _ = writeln!(output, "replay_mode={:?}", report.replay_mode);
+    let _ = writeln!(output, "offline={}", report.offline);
+    let _ = writeln!(output, "evidence_use_class={:?}", report.evidence_use_class);
+    let _ = writeln!(
+        output,
+        "dataset_snapshot_digest={}",
+        report.dataset_snapshot_digest
+    );
+    let _ = writeln!(
+        output,
+        "contamination_audit_digest={}",
+        report.contamination_audit_digest
+    );
+    let _ = writeln!(output, "registration_digest={}", report.registration_digest);
+    let _ = writeln!(output, "row_count={}", report.row_count);
+    let _ = writeln!(output, "first_timestamp_ms={}", report.first_timestamp_ms);
+    let _ = writeln!(output, "last_timestamp_ms={}", report.last_timestamp_ms);
+    let _ = writeln!(output, "eligible_fold_count={}", report.eligible_fold_count);
+    let _ = writeln!(
+        output,
+        "completed_fold_count={}",
+        report.completed_fold_count
+    );
+    let _ = writeln!(output, "scorable_fold_count={}", report.scorable_fold_count);
+    let _ = writeln!(output, "neutral_fold_count={}", report.neutral_fold_count);
+    let _ = writeln!(output, "invalid_fold_count={}", report.invalid_fold_count);
+    for participant in &report.participants {
+        let _ = writeln!(
+            output,
+            "participant={} scorable_fold_count={} mean_brier_score={} binary_correctness_rate={} benchmark_relative_brier_delta={} comparison_status={:?} research_only={}",
+            participant.participant_id,
+            participant.scorable_fold_count,
+            participant.mean_brier_score,
+            participant.binary_correctness_rate,
+            participant.benchmark_relative_brier_delta,
+            participant.comparison_status,
+            participant.research_only,
+        );
+    }
+    let _ = writeln!(output, "comparison_status={:?}", report.comparison_status);
+    let _ = writeln!(
+        output,
+        "chronology_audit_passed={}",
+        report.chronology_audit_passed
+    );
+    let _ = writeln!(
+        output,
+        "leakage_audit_passed={}",
+        report.leakage_audit_passed
+    );
+    let _ = writeln!(
+        output,
+        "prediction_before_reveal_audit_passed={}",
+        report.prediction_before_reveal_audit_passed
+    );
+    let _ = writeln!(
+        output,
+        "replay_deterministic={}",
+        report.replay_deterministic
+    );
+    let _ = writeln!(
+        output,
+        "existing_completed_replay={}",
+        report.existing_completed_replay
+    );
+    let _ = writeln!(output, "artifacts_written={}", report.artifacts_written);
+    let _ = writeln!(
+        output,
+        "duplicate_artifact_count={}",
+        report.duplicate_artifact_count
+    );
+    let _ = writeln!(output, "runtime_duration_ms={}", report.runtime_duration_ms);
+    let _ = writeln!(
+        output,
+        "evidence_labels={}",
+        report.evidence_labels.join(",")
+    );
+    let _ = writeln!(
+        output,
+        "trading_simulation_status={:?}",
+        report.trading_simulation_status
+    );
+    let _ = writeln!(
+        output,
+        "backfill_plan_digest={}",
+        report.backfill_plan.backfill_plan_digest
+    );
+    let _ = writeln!(
+        output,
+        "backfill_executed={}",
+        report.backfill_plan.executed
+    );
+    let safety = &report.safety_counters;
+    for (name, value) in [
+        ("network_requests", safety.network_requests),
+        ("transport_constructions", safety.transport_constructions),
+        ("credential_reads", safety.credential_reads),
+        (
+            "live_prospective_event_count_changes",
+            safety.live_prospective_event_count_changes,
+        ),
+        (
+            "live_prospective_scorable_count_changes",
+            safety.live_prospective_scorable_count_changes,
+        ),
+        ("live_participant_changes", safety.live_participant_changes),
+        ("live_parameter_updates", safety.live_parameter_updates),
+        ("live_normalizer_refits", safety.live_normalizer_refits),
+        ("winner_selections", safety.winner_selections),
+        ("rankings", safety.rankings),
+        ("reward_applications", safety.reward_applications),
+        ("penalty_applications", safety.penalty_applications),
+        ("chair_decisions", safety.chair_decisions),
+        ("committee_votes", safety.committee_votes),
+        ("voice_changes", safety.voice_changes),
+        ("tier_changes", safety.tier_changes),
+        ("cooldowns", safety.cooldowns),
+        ("promotions", safety.promotions),
+        ("quarantines", safety.quarantines),
+        ("paper_executions", safety.paper_executions),
+        ("live_executions", safety.live_executions),
+        ("active_committee_count", safety.active_committee_count),
+    ] {
+        let _ = writeln!(output, "{name}={value}");
+    }
+    let _ = writeln!(
+        output,
+        "protected_artifacts_unchanged={}",
+        report.protected_artifacts_unchanged
+    );
+    let _ = writeln!(
+        output,
+        "active_roster_unchanged={}",
+        report.active_roster_unchanged
+    );
+    let _ = writeln!(output, "replay_digest={}", report.replay_digest);
+    output
+}
+
+fn run_momentum_historical_backfill_plan_cli(output_format: &str) -> Result<(), String> {
+    let plan = crate::model::historical_backfill_plan_status_v1()?;
+    match output_format {
+        "json" => println!(
+            "{}",
+            serde_json::to_string_pretty(&plan)
+                .map_err(|_| "historical backfill JSON encoding failed".to_string())?
+        ),
+        "text" => println!("{}", format_momentum_historical_backfill_plan_text(&plan)),
+        _ => return Err("historical backfill output format rejected".to_string()),
+    }
+    Ok(())
+}
+
+fn format_momentum_historical_backfill_plan_text(
+    plan: &crate::model::MomentumHistoricalBackfillPlanV1,
+) -> String {
+    format!(
+        "plan_version={}\nprovider_id={}\nmarket={}\nsymbol={}\ncadence={}\nexisting_first_timestamp_ms={}\nexisting_last_timestamp_ms={}\ndesired_direction={:?}\nrequest_count_upper_bound={}\nrequest_limit_known={}\nmaximum_concurrency={}\nmaximum_retries={}\nexplicit_network_authorization_required={}\nexecuted={}\nbackfill_plan_digest={}",
+        plan.plan_version,
+        plan.provider_id,
+        plan.market,
+        plan.symbol,
+        plan.cadence,
+        plan.existing_first_timestamp_ms,
+        plan.existing_last_timestamp_ms,
+        plan.desired_direction,
+        plan.request_count_upper_bound,
+        plan.request_limit_known,
+        plan.maximum_concurrency,
+        plan.maximum_retries,
+        plan.explicit_network_authorization_required,
+        plan.executed,
+        plan.backfill_plan_digest,
+    )
 }
 
 fn run_momentum_v4_supplemental_cli(
@@ -12156,5 +12438,140 @@ mod tests {
             Some(&failed_receipt),
             None
         ));
+    }
+
+    #[test]
+    fn sprint94_43_historical_text_and_json_agree_without_private_fold_material() {
+        let safety = crate::model::MomentumHistoricalSafetyCountersV1 {
+            network_requests: 0,
+            transport_constructions: 0,
+            credential_reads: 0,
+            live_prospective_event_count_changes: 0,
+            live_prospective_scorable_count_changes: 0,
+            live_participant_changes: 0,
+            live_parameter_updates: 0,
+            live_normalizer_refits: 0,
+            winner_selections: 0,
+            rankings: 0,
+            reward_applications: 0,
+            penalty_applications: 0,
+            chair_decisions: 0,
+            committee_votes: 0,
+            voice_changes: 0,
+            tier_changes: 0,
+            cooldowns: 0,
+            promotions: 0,
+            quarantines: 0,
+            paper_executions: 0,
+            live_executions: 0,
+            active_committee_count: 3,
+        };
+        let report = crate::model::MomentumHistoricalPublicReportV1 {
+            report_version: "momentum-historical-public-report-v1".to_string(),
+            run_mode: "execute-local".to_string(),
+            replay_mode:
+                crate::model::MomentumHistoricalReplayModeV1::ExpandingWindowWalkForward,
+            offline: true,
+            evidence_use_class:
+                crate::model::HistoricalEvidenceUseClassV1::PreviouslyConsumedResearchEvidence,
+            dataset_snapshot_digest: "dataset".to_string(),
+            contamination_audit_digest: "audit".to_string(),
+            registration_digest: "registration".to_string(),
+            row_count: 100,
+            first_timestamp_ms: 1,
+            last_timestamp_ms: 100,
+            eligible_fold_count: 20,
+            completed_fold_count: 20,
+            scorable_fold_count: 18,
+            neutral_fold_count: 2,
+            invalid_fold_count: 0,
+            participants: vec![crate::model::MomentumHistoricalParticipantAggregateV1 {
+                participant_id: "HistoricalRawFeatureLogisticV1".to_string(),
+                scorable_fold_count: 18,
+                mean_brier_score: 0.2,
+                binary_correctness_rate: 0.6,
+                benchmark_relative_brier_delta: -0.01,
+                comparison_status:
+                    crate::model::MomentumHistoricalComparisonStatusV1::LearnedBetterOnResearchReplay,
+                research_only: true,
+                aggregate_digest: "participant".to_string(),
+            }],
+            comparison_status:
+                crate::model::MomentumHistoricalComparisonStatusV1::MixedResearchEvidence,
+            chronology_audit_passed: true,
+            leakage_audit_passed: true,
+            prediction_before_reveal_audit_passed: true,
+            replay_deterministic: true,
+            existing_completed_replay: false,
+            artifacts_written: 124,
+            duplicate_artifact_count: 0,
+            runtime_duration_ms: 42,
+            evidence_labels: vec![
+                "HistoricalResearchOnly".to_string(),
+                "NotIndependentHoldout".to_string(),
+                "NotProspectiveAuthority".to_string(),
+            ],
+            trading_simulation_status:
+                crate::model::MomentumHistoricalTradingSimulationStatusV1::BlockedNoFrozenExecutionPolicy,
+            backfill_plan: crate::model::MomentumHistoricalBackfillPlanV1 {
+                plan_version: "momentum-historical-backfill-plan-v1".to_string(),
+                provider_id: "upbit".to_string(),
+                market: "BtcCrypto".to_string(),
+                symbol: "KRW-BTC".to_string(),
+                cadence: "1d".to_string(),
+                existing_first_timestamp_ms: 1,
+                existing_last_timestamp_ms: 100,
+                desired_direction:
+                    crate::model::HistoricalBackfillDirectionV1::OlderThanExistingSnapshot,
+                request_count_upper_bound: 0,
+                request_limit_known: false,
+                maximum_concurrency: 1,
+                maximum_retries: 0,
+                explicit_network_authorization_required: true,
+                executed: false,
+                backfill_plan_digest: "backfill".to_string(),
+            },
+            safety_counters: safety,
+            protected_artifacts_unchanged: true,
+            active_roster_unchanged: true,
+            replay_digest: "replay".to_string(),
+        };
+        let text = format_momentum_historical_replay_text(&report);
+        let json = serde_json::to_value(&report).unwrap();
+        for field in [
+            "eligible_fold_count",
+            "completed_fold_count",
+            "scorable_fold_count",
+            "neutral_fold_count",
+            "invalid_fold_count",
+            "artifacts_written",
+            "duplicate_artifact_count",
+            "runtime_duration_ms",
+        ] {
+            assert!(text.contains(&format!("{field}={}", json[field])));
+        }
+        for field in [
+            "network_requests",
+            "live_prospective_event_count_changes",
+            "reward_applications",
+            "chair_decisions",
+            "paper_executions",
+            "live_executions",
+            "active_committee_count",
+        ] {
+            assert!(text.contains(&format!("{field}={}", json["safety_counters"][field])));
+        }
+        let rendered_json = serde_json::to_string(&report).unwrap();
+        for forbidden in [
+            "private_prediction",
+            "private_label",
+            "raw_rows",
+            "feature_vector",
+            "normalizer_values",
+            "local_path",
+        ] {
+            assert!(!text.contains(forbidden));
+            assert!(!rendered_json.contains(forbidden));
+        }
     }
 }
