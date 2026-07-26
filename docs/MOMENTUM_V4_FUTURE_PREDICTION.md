@@ -1,5 +1,27 @@
 # Momentum V4 Future-Prediction Lifecycle
 
+## Sprint 95 epoch-two live seal
+
+PR #25 was merged without changing the existing live registration, request
+fingerprint, participant identities, parameters, normalizers, features, or
+label policy. The preregistered epoch-two request executed exactly once during
+the legal window and accepted only its single missing finalized input row.
+
+The existing 15 canonical rows and one new row formed the registered 16-row
+context. The unchanged raw logistic, interaction logistic, and
+training-prevalence benchmark each produced one private seal. Prediction
+capsule `f0fc2d24e1c920e4`, journal `ed46f8a8b3f4f806`, and outcome plan
+`ae798b355d36bb74` now reopen as `PredictionAlreadySealed`.
+
+One recovery defect was found after the successful operation: persisted seals
+were enumerated by digest filename while the capsule retained participant
+order. Validation now matches each seal and prediction by their frozen digest
+binding, independent of directory order. Status, dry-run, and repeated
+execute-input replay perform zero new work.
+
+Event two remains sealed and unscored. Outcome requests, labels, metrics,
+winner selection, reward, Chair, and trading actions remain zero.
+
 ## Sprint 90 prospective-series operation
 
 The epoch-two contract now provides matching read-only status and dry-run

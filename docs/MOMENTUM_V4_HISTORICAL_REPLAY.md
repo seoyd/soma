@@ -129,3 +129,11 @@ and accounting policy. No such policy is inferred from these results.
 
 Official Mamba-3 is not implemented or evaluated by this lab. Chair is
 inactive.
+
+## Sprint 95 live-lane isolation
+
+The epoch-two live input and prediction seal completed without reading or
+changing historical replay artifacts. Historical fold counts, metrics,
+classifications, parameters, normalizers, and replay identity had no influence
+on the frozen live roster or predictions. The backfill plan remains
+unexecuted.
