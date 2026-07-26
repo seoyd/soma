@@ -4191,14 +4191,22 @@ fn validate_persisted_prediction_chain(
     journal: &MomentumProspectiveSeriesJournalEntryV4,
     outcome_plan: &MomentumProspectiveSeriesOutcomePlanV4,
 ) -> Result<(), String> {
-    let seal_digests = seals
+    let seals_by_digest = seals
         .iter()
-        .map(|value| value.seal_digest.clone())
-        .collect::<Vec<_>>();
-    let prediction_digests = seals
-        .iter()
-        .map(|value| value.prediction_digest.clone())
-        .collect::<Vec<_>>();
+        .map(|value| (value.seal_digest.as_str(), value))
+        .collect::<BTreeMap<_, _>>();
+    let capsule_seal_bindings_match = seals_by_digest.len() == seals.len()
+        && prediction_capsule.participant_seal_digests.len() == seals.len()
+        && prediction_capsule.participant_prediction_digests.len() == seals.len()
+        && prediction_capsule
+            .participant_seal_digests
+            .iter()
+            .zip(&prediction_capsule.participant_prediction_digests)
+            .all(|(seal_digest, prediction_digest)| {
+                seals_by_digest
+                    .get(seal_digest.as_str())
+                    .is_some_and(|seal| seal.prediction_digest == *prediction_digest)
+            });
     if receipt.status != MomentumProspectiveSeriesInputStatusV4::EvidenceAcquired
         || receipt.epoch_registration_digest != registration.registration_digest
         || receipt.input_capsule_digest.as_deref() != Some(input_capsule.capsule_digest.as_str())
@@ -4225,8 +4233,7 @@ fn validate_persisted_prediction_chain(
         || prediction_capsule.input_receipt_digest != receipt.receipt_digest
         || prediction_capsule.input_capsule_digest != input_capsule.capsule_digest
         || prediction_capsule.context_assembly_proof_digest != assembly.proof_digest
-        || prediction_capsule.participant_seal_digests != seal_digests
-        || prediction_capsule.participant_prediction_digests != prediction_digests
+        || !capsule_seal_bindings_match
         || prediction_capsule.reward_applied
         || prediction_capsule.penalty_applied
         || prediction_capsule.chair_action_taken
@@ -4234,8 +4241,9 @@ fn validate_persisted_prediction_chain(
         || journal.event_one_adoption_digest != adoption.adoption_digest
         || journal.context_delta_plan_digest != registration.context_delta_plan_digest
         || journal.prediction_capsule_digest != prediction_capsule.capsule_digest
-        || journal.participant_seal_digests != seal_digests
-        || journal.participant_prediction_digests != prediction_digests
+        || journal.participant_seal_digests != prediction_capsule.participant_seal_digests
+        || journal.participant_prediction_digests
+            != prediction_capsule.participant_prediction_digests
         || journal.prior_event_correctness_read
         || outcome_plan.epoch_registration_digest != registration.registration_digest
         || outcome_plan.prediction_capsule_digest != prediction_capsule.capsule_digest
@@ -6282,5 +6290,27 @@ mod tests {
         assert!(input_acquisition_allowed(
             MomentumProspectiveEpochReadinessV4::ReadyForInputAcquisition
         ));
+    }
+
+    #[test]
+    fn sprint95_53_completed_chain_validation_is_independent_of_directory_order() {
+        let chain = fixture_prediction_chain();
+        let mut reopened_seals = chain.8.clone();
+        reopened_seals.reverse();
+        assert!(
+            validate_persisted_prediction_chain(
+                &chain.1,
+                &chain.3,
+                &chain.4,
+                &chain.5,
+                &chain.6,
+                &chain.7,
+                &reopened_seals,
+                &chain.9,
+                &chain.10,
+                &chain.11,
+            )
+            .is_ok()
+        );
     }
 }
