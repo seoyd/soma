@@ -111,6 +111,10 @@ pub struct CliArgs {
     #[arg(long, default_value_t = false)]
     pub momentum_mtf_qualified_six_replay: bool,
     #[arg(long, default_value_t = false)]
+    pub momentum_mtf_qualified_six_diagnostics: bool,
+    #[arg(long, default_value_t = false)]
+    pub momentum_mtf_qualified_six_challenger_requirements: bool,
+    #[arg(long, default_value_t = false)]
     pub register: bool,
     #[arg(long, value_parser = ["development", "validation"])]
     pub partition: Option<String>,
@@ -187,6 +191,112 @@ pub struct CliArgs {
 
 pub fn run() -> Result<(), String> {
     let args = CliArgs::parse();
+    if args.momentum_mtf_qualified_six_diagnostics
+        || args.momentum_mtf_qualified_six_challenger_requirements
+    {
+        if args.momentum_mtf_qualified_six_diagnostics
+            && args.momentum_mtf_qualified_six_challenger_requirements
+        {
+            return Err("qualified-six diagnostic selector conflict rejected".to_string());
+        }
+        if args.historical_provider_smoke_config.is_some()
+            || args.historical_snapshot_campaign_config.is_some()
+            || args.momentum_temporal_diagnostics
+            || args.momentum_cross_market_report
+            || args.btc_multi_regime_report
+            || args.btc_cross_regime_diagnostics
+            || args.btc_cycle_risk_shadow_report
+            || args.learned_agent_shadow_deliberation
+            || args.learned_agent_scope_alignment
+            || args.joint_canonical_scope_replay
+            || args.joint_momentum_failure_forensics
+            || args.joint_canonical_scope_replay_v2
+            || args.joint_momentum_closure_forensics_v3
+            || args.joint_canonical_scope_registration_v3
+            || args.joint_canonical_scope_replay_v3
+            || args.chair_shadow_observation_inbox
+            || args.chair_shadow_owner_advisory_review
+            || args.learned_reward_eligibility
+            || args.prospective_external_row_admission
+            || args.acquire_one_upbit_prospective_candle
+            || args.register_prospective_outcome_opening
+            || args.prospective_event_maturity_preflight
+            || args.prospective_outcome_acquisition
+            || args.prospective_outcome_opening
+            || args.agent_private_learning_sessions
+            || args.agent_candidate_evidence_audit
+            || args.register_agent_candidate_evaluation
+            || args.agent_private_learning_candidates_v1
+            || args.register_agent_candidate_evaluation_v1
+            || args.agent_canonical_view_gap_v1
+            || args.migrate_persisted_learning_intent_v1
+            || args.momentum_mamba_repair_v2
+            || args.momentum_mamba_representation_v3
+            || args.momentum_raw_feature_v4
+            || args.momentum_v4_supplemental_qualification
+            || args.momentum_v4_future_prediction
+            || args.momentum_v4_future_outcome
+            || args.momentum_v4_future_outcome_opening
+            || args.momentum_v4_prospective_series
+            || args.momentum_v4_historical_replay
+            || args.momentum_v4_historical_backfill_plan
+            || args.momentum_mtf_history
+            || args.momentum_mtf_macro_forensics
+            || args.momentum_mtf_hard_replay_registration
+            || args.momentum_mtf_qualified_six_replay
+            || args.register_foundation
+            || args.execute_backfill
+            || args.confirm_bounded_mtf_history_backfill
+            || args.derive_views
+            || args.protocol_replay
+            || args.mode.is_some()
+            || args.register_next_epoch
+            || args.epoch.is_some()
+            || args.execute_input
+            || args.execute
+            || args.full_auto
+            || args.confirm_single_public_candle_request
+            || args.confirm_one_time_outcome_request
+            || args.confirm_one_time_prospective_opening
+            || args.confirm_one_time_learning_evidence_request
+            || args.confirm_composite_learning_evidence_epoch
+            || args.confirm_one_time_future_input_request
+            || args.confirm_one_time_future_outcome_request
+            || args.confirm_one_time_future_outcome_opening
+            || args.confirm_one_time_prospective_input_request
+            || args.btc_prospective_challenge_create
+            || args.btc_prospective_challenge_status
+            || args.btc_prospective_challenge_confirm_preregistration
+            || args.btc_prospective_registry_close
+            || args.btc_prospective_accumulate
+            || args.btc_prospective_evaluate
+            || args.toss_historical_contract_report
+            || args.toss_kr_historical_manifest.is_some()
+            || args.toss_us_historical_manifest.is_some()
+            || args.allow_network
+            || args.partition.is_some()
+        {
+            return Err(
+                "qualified-six diagnostics reject unrelated, network, live, holdout, or authority flags"
+                    .to_string(),
+            );
+        }
+        if args.momentum_mtf_qualified_six_challenger_requirements {
+            if !args.status || args.dry_run || args.register || args.execute_local {
+                return Err(
+                    "qualified-six challenger requirements require status-only mode".to_string(),
+                );
+            }
+            return run_momentum_qualified_six_challenger_requirements_cli_v1(&args.output_format);
+        }
+        return run_momentum_qualified_six_diagnostics_cli_v1(
+            &args.output_format,
+            args.status,
+            args.dry_run,
+            args.register,
+            args.execute_local,
+        );
+    }
     if args.momentum_mtf_qualified_six_replay {
         if args.historical_provider_smoke_config.is_some()
             || args.historical_snapshot_campaign_config.is_some()
@@ -3368,6 +3478,66 @@ fn format_momentum_v4_supplemental_text(report: &MomentumSupplementalCliReportV4
     );
     let _ = writeln!(output, "report_digest={}", report.report_digest);
     output
+}
+
+fn run_momentum_qualified_six_diagnostics_cli_v1(
+    output_format: &str,
+    status: bool,
+    dry_run: bool,
+    register: bool,
+    execute_local: bool,
+) -> Result<(), String> {
+    let selected = usize::from(status) + usize::from(dry_run) + usize::from(register);
+    let mode = if status && selected == 1 && !execute_local {
+        crate::model::MomentumQualifiedDiagnosticRunModeV1::Status
+    } else if dry_run && selected == 1 && !execute_local {
+        crate::model::MomentumQualifiedDiagnosticRunModeV1::DryRun
+    } else if register && selected == 1 && execute_local && output_format == "json" {
+        crate::model::MomentumQualifiedDiagnosticRunModeV1::RegisterAndExecuteLocal
+    } else {
+        return Err("qualified-six diagnostics require exactly one supported mode".to_string());
+    };
+    let report = crate::model::run_momentum_qualified_six_diagnostics_v1(mode)?;
+    if output_format == "json" {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&report)
+                .map_err(|_| "qualified-six diagnostic JSON serialization failed".to_string())?
+        );
+    } else if output_format == "text" {
+        print!(
+            "{}",
+            crate::model::format_momentum_qualified_six_diagnostics_text_v1(&report)
+        );
+    } else {
+        return Err("qualified-six diagnostic output format rejected".to_string());
+    }
+    Ok(())
+}
+
+fn run_momentum_qualified_six_challenger_requirements_cli_v1(
+    output_format: &str,
+) -> Result<(), String> {
+    let requirements = crate::model::read_momentum_qualified_six_challenger_requirements_v1()?
+        .ok_or_else(|| "qualified-six challenger requirements unavailable".to_string())?;
+    if output_format == "json" {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&requirements).map_err(|_| {
+                "qualified-six challenger requirements JSON serialization failed".to_string()
+            })?
+        );
+    } else if output_format == "text" {
+        print!(
+            "{}",
+            crate::model::format_momentum_qualified_six_challenger_requirements_text_v1(
+                &requirements
+            )
+        );
+    } else {
+        return Err("qualified-six challenger requirements output format rejected".to_string());
+    }
+    Ok(())
 }
 
 fn run_momentum_qualified_six_replay_cli_v1(

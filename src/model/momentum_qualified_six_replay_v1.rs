@@ -26,7 +26,7 @@ use super::{
     momentum_raw_feature_v4::train_head_v4,
 };
 
-const ROOT: &str = "state/historical_replay/momentum_qualified_six/v1";
+pub(super) const ROOT: &str = "state/historical_replay/momentum_qualified_six/v1";
 const REGISTRATION_VERSION: &str = "momentum-qualified-six-replay-registration-v1";
 const LABEL_POLICY_VERSION: &str = "momentum-ten-minute-direction-label-policy-v1";
 const PARTITION_POLICY_VERSION: &str = "momentum-qualified-six-partition-policy-v1";
@@ -58,8 +58,8 @@ const DEVELOPMENT_PERCENT: usize = 70;
 const VALIDATION_PERCENT: usize = 15;
 const TRAINING_DIMENSION_MULTIPLIER: usize = 10;
 const MAX_TRAINING_EXAMPLES: usize = 4_096;
-const COMPARISON_EPSILON: f64 = 1e-12;
-const COLLAPSE_VARIANCE_THRESHOLD: f64 = 1e-6;
+pub(super) const COMPARISON_EPSILON: f64 = 1e-12;
+pub(super) const COLLAPSE_VARIANCE_THRESHOLD: f64 = 1e-6;
 const PUBLIC_LABELS: [&str; 4] = [
     "HistoricalResearchOnly",
     "QualifiedSixNotFullEight",
@@ -90,7 +90,7 @@ pub enum MomentumReplayPartitionV1 {
 }
 
 impl MomentumReplayPartitionV1 {
-    fn as_str(self) -> &'static str {
+    pub(super) fn as_str(self) -> &'static str {
         match self {
             Self::Development => "development",
             Self::Validation => "validation",
@@ -118,7 +118,7 @@ pub enum MomentumQualifiedParticipantV1 {
 }
 
 impl MomentumQualifiedParticipantV1 {
-    const ORDERED: [Self; 5] = [
+    pub(super) const ORDERED: [Self; 5] = [
         Self::Q0TrainingPrevalenceConstant,
         Self::Q1TenMinuteAnchorLogistic,
         Self::Q2MicroBlockLogistic,
@@ -126,7 +126,7 @@ impl MomentumQualifiedParticipantV1 {
         Self::Q4QualifiedSixFusionLogistic,
     ];
 
-    fn id(self) -> &'static str {
+    pub(super) fn id(self) -> &'static str {
         match self {
             Self::Q0TrainingPrevalenceConstant => "QualifiedSixTrainingPrevalenceConstantV1",
             Self::Q1TenMinuteAnchorLogistic => "QualifiedSixTenMinuteAnchorLogisticV1",
@@ -659,6 +659,72 @@ pub struct MomentumQualifiedSixReplayReportV1 {
     pub metric_recomputation_count: usize,
     pub runtime_duration_ms: u64,
     pub report_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct MomentumQualifiedDiagnosticSourceHeaderV1 {
+    pub registration_digest: String,
+    pub replay_journal_digest: String,
+    pub public_report_digest: String,
+    pub participant_ids: Vec<String>,
+    pub development_boundary_digest: String,
+    pub validation_boundary_digest: String,
+    pub holdout_boundary_digest: String,
+    pub development_aggregate_digest: String,
+    pub validation_aggregate_digest: String,
+    pub development_metrics: Vec<MomentumQualifiedParticipantMetricsV1>,
+    pub validation_metrics: Vec<MomentumQualifiedParticipantMetricsV1>,
+    pub benchmark_comparisons: Vec<MomentumQualifiedBenchmarkReceiptV1>,
+    pub contribution_comparisons: Vec<MomentumQualifiedContributionReceiptV1>,
+    pub holdout_label_reads: usize,
+    pub holdout_metric_computations: usize,
+    pub holdout_participant_predictions: usize,
+    pub month_view_load_count: usize,
+    pub year_view_load_count: usize,
+    pub full_eight_a3_blocked: bool,
+    pub chronology_audit_passed: bool,
+    pub leakage_audit_passed: bool,
+    pub protected_live_tree_digest: String,
+    pub protected_active_roster_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct MomentumQualifiedDiagnosticEventEvidenceV1 {
+    pub partition: MomentumReplayPartitionV1,
+    pub prediction_timestamp_ms: u64,
+    pub target_timestamp_ms: u64,
+    pub event_plan_digest: String,
+    pub daily_refit_receipt_digest: String,
+    pub probabilities: Vec<f64>,
+    pub label_status: MomentumQualifiedLabelStatusV1,
+    pub label: Option<f64>,
+    pub brier_values: Vec<f64>,
+    pub correctness: Vec<bool>,
+    pub micro_volatility: Option<f64>,
+    pub daily_trend_return: Option<f64>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct MomentumQualifiedDiagnosticRefitEvidenceV1 {
+    pub partition: MomentumReplayPartitionV1,
+    pub utc_day_boundary_ms: u64,
+    pub refit_digest: String,
+    pub parameter_digests: Vec<String>,
+    pub normalizer_digests: Vec<String>,
+    pub parameter_norms: Vec<f64>,
+    pub normalizer_profiles: Vec<Vec<f64>>,
+    pub parameter_finite: bool,
+    pub normalizer_finite: bool,
+    pub training_example_count: usize,
+    pub training_class_prevalence: f64,
+    pub training_loss_finite: bool,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct MomentumQualifiedDiagnosticSourceV1 {
+    pub header: MomentumQualifiedDiagnosticSourceHeaderV1,
+    pub events: Vec<MomentumQualifiedDiagnosticEventEvidenceV1>,
+    pub refits: Vec<MomentumQualifiedDiagnosticRefitEvidenceV1>,
 }
 
 #[derive(Clone, Debug)]
@@ -5507,6 +5573,360 @@ fn read_partition_aggregate(
     partition: MomentumReplayPartitionV1,
 ) -> Result<Option<MomentumQualifiedPartitionAggregateV1>, String> {
     read_only(&aggregate_category(partition), decode_aggregate)
+}
+
+fn read_all<T>(
+    category: &str,
+    decode: impl Fn(&[u8]) -> Result<T, String>,
+) -> Result<Vec<T>, String> {
+    let root = Path::new(ROOT).join(category);
+    if !root.exists() {
+        return Ok(Vec::new());
+    }
+    let mut paths = fs::read_dir(root)
+        .map_err(|_| "qualified-six diagnostic source directory read failed".to_string())?
+        .map(|entry| {
+            entry
+                .map(|entry| entry.path())
+                .map_err(|_| "qualified-six diagnostic source entry read failed".to_string())
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    paths.retain(|path| path.extension().is_some_and(|extension| extension == "pb"));
+    paths.sort();
+    paths
+        .iter()
+        .map(|path| {
+            fs::read(path)
+                .map_err(|_| "qualified-six diagnostic source read failed".to_string())
+                .and_then(|bytes| decode(&bytes))
+        })
+        .collect()
+}
+
+pub(super) fn load_momentum_qualified_diagnostic_source_header_v1()
+-> Result<MomentumQualifiedDiagnosticSourceHeaderV1, String> {
+    let registration = read_only("registrations", decode_registration)?
+        .ok_or_else(|| "qualified-six diagnostic source registration unavailable".to_string())?;
+    let development = read_partition_aggregate(MomentumReplayPartitionV1::Development)?
+        .ok_or_else(|| "qualified-six diagnostic development aggregate unavailable".to_string())?;
+    let validation = read_partition_aggregate(MomentumReplayPartitionV1::Validation)?
+        .ok_or_else(|| "qualified-six diagnostic validation aggregate unavailable".to_string())?;
+    let holdout = read_only("holdout_boundaries", decode_holdout)?
+        .ok_or_else(|| "qualified-six diagnostic holdout boundary unavailable".to_string())?;
+    let journal = read_only("replay_journals", decode_journal)?
+        .ok_or_else(|| "qualified-six diagnostic replay journal unavailable".to_string())?;
+    let report = read_only("final_reports", decode_report)?
+        .ok_or_else(|| "qualified-six diagnostic public report unavailable".to_string())?;
+    if report.status != MomentumQualifiedReplayStatusV1::Complete
+        || report.registration_digest.as_deref() != Some(&registration.registration_digest)
+        || report.replay_digest.as_deref() != Some(&journal.replay_digest)
+        || journal.registration_digest != registration.registration_digest
+        || journal.development_aggregate_digest != development.aggregate_digest
+        || journal.validation_aggregate_digest != validation.aggregate_digest
+        || journal.holdout_boundary_digest != holdout.boundary_digest
+        || development.registration_digest != registration.registration_digest
+        || validation.registration_digest != registration.registration_digest
+        || development.partition != MomentumReplayPartitionV1::Development
+        || validation.partition != MomentumReplayPartitionV1::Validation
+        || report.holdout_label_reads != 0
+        || report.holdout_metric_computations != 0
+        || report.holdout_participant_predictions != 0
+        || report.month_view_load_count != 0
+        || report.year_view_load_count != 0
+        || !report.full_eight_a3_blocked
+        || !report.chronology_audit_passed
+        || !report.leakage_audit_passed
+        || !report.prediction_before_reveal_passed
+        || report
+            .protected_live_tree_digest_before
+            .as_deref()
+            .is_none_or(str::is_empty)
+        || report
+            .protected_active_roster_digest_before
+            .as_deref()
+            .is_none_or(str::is_empty)
+    {
+        return Err("qualified-six diagnostic source identity rejected".to_string());
+    }
+    Ok(MomentumQualifiedDiagnosticSourceHeaderV1 {
+        registration_digest: registration.registration_digest,
+        replay_journal_digest: journal.replay_digest,
+        public_report_digest: report.report_digest,
+        participant_ids: MomentumQualifiedParticipantV1::ORDERED
+            .iter()
+            .map(|participant| participant.id().to_string())
+            .collect(),
+        development_boundary_digest: registration.development_boundary_digest,
+        validation_boundary_digest: registration.validation_boundary_digest,
+        holdout_boundary_digest: holdout.boundary_digest,
+        development_aggregate_digest: development.aggregate_digest,
+        validation_aggregate_digest: validation.aggregate_digest,
+        development_metrics: development.participant_metrics,
+        validation_metrics: validation.participant_metrics,
+        benchmark_comparisons: report.benchmark_comparisons,
+        contribution_comparisons: report.contribution_comparisons,
+        holdout_label_reads: report.holdout_label_reads,
+        holdout_metric_computations: report.holdout_metric_computations,
+        holdout_participant_predictions: report.holdout_participant_predictions,
+        month_view_load_count: report.month_view_load_count,
+        year_view_load_count: report.year_view_load_count,
+        full_eight_a3_blocked: report.full_eight_a3_blocked,
+        chronology_audit_passed: report.chronology_audit_passed,
+        leakage_audit_passed: report.leakage_audit_passed,
+        protected_live_tree_digest: report.protected_live_tree_digest_before.unwrap_or_default(),
+        protected_active_roster_digest: report
+            .protected_active_roster_digest_before
+            .unwrap_or_default(),
+    })
+}
+
+fn past_micro_volatility(
+    rows: &[MomentumQualifiedReplayCandleEvidenceV1],
+    prediction_timestamp_ms: u64,
+) -> Option<f64> {
+    let end =
+        rows.partition_point(|row| row.close_exclusive_timestamp_ms <= prediction_timestamp_ms);
+    if end < 145 {
+        return None;
+    }
+    let context = &rows[end - 145..end];
+    if context
+        .iter()
+        .any(|row| row.missing_evidence || !row.close.is_finite() || row.close <= 0.0)
+    {
+        return None;
+    }
+    let returns = context
+        .windows(2)
+        .map(|pair| pair[1].close / pair[0].close - 1.0)
+        .collect::<Vec<_>>();
+    let mean = returns.iter().sum::<f64>() / returns.len() as f64;
+    let variance = returns
+        .iter()
+        .map(|value| (value - mean).powi(2))
+        .sum::<f64>()
+        / returns.len() as f64;
+    let volatility = variance.sqrt();
+    volatility.is_finite().then_some(volatility)
+}
+
+fn past_daily_trend(
+    rows: &[MomentumQualifiedReplayCandleEvidenceV1],
+    prediction_timestamp_ms: u64,
+) -> Option<f64> {
+    let end =
+        rows.partition_point(|row| row.close_exclusive_timestamp_ms <= prediction_timestamp_ms);
+    if end < 16 {
+        return None;
+    }
+    let context = &rows[end - 16..end];
+    if context
+        .iter()
+        .any(|row| row.missing_evidence || !row.close.is_finite() || row.close <= 0.0)
+    {
+        return None;
+    }
+    let trend = context.last()?.close / context.first()?.close - 1.0;
+    trend.is_finite().then_some(trend)
+}
+
+fn parameter_norm(value: &MomentumQualifiedDailyParticipantReceiptV1) -> Option<f64> {
+    if value.participant == MomentumQualifiedParticipantV1::Q0TrainingPrevalenceConstant {
+        return value.private_prevalence.is_finite().then_some(0.0);
+    }
+    let bias = f64::from(value.private_head_bias?);
+    let mut squared = bias * bias;
+    for weight in &value.private_head_weights {
+        let weight = f64::from(*weight);
+        if !weight.is_finite() {
+            return None;
+        }
+        squared += weight * weight;
+    }
+    let norm = squared.sqrt();
+    norm.is_finite().then_some(norm)
+}
+
+pub(super) fn load_momentum_qualified_diagnostic_source_v1(
+    expected_header: &MomentumQualifiedDiagnosticSourceHeaderV1,
+) -> Result<MomentumQualifiedDiagnosticSourceV1, String> {
+    let header = load_momentum_qualified_diagnostic_source_header_v1()?;
+    if &header != expected_header {
+        return Err("qualified-six diagnostic source changed".to_string());
+    }
+    let source = load_momentum_qualified_six_evidence_v1()?;
+    let ten_minute_rows = source
+        .views
+        .get(&MomentumHistoricalTimeframeV1::Minute10)
+        .ok_or_else(|| "qualified-six diagnostic 10m regime source unavailable".to_string())?;
+    let daily_rows = source
+        .views
+        .get(&MomentumHistoricalTimeframeV1::Day1)
+        .ok_or_else(|| "qualified-six diagnostic daily regime source unavailable".to_string())?;
+    let mut events = Vec::new();
+    let mut refits = Vec::new();
+    for partition in [
+        MomentumReplayPartitionV1::Development,
+        MomentumReplayPartitionV1::Validation,
+    ] {
+        let prediction_bundles = read_all(
+            &format!("daily_predictions/{}", partition.as_str()),
+            decode_prediction_bundle,
+        )?;
+        let evaluation_bundles = read_all(
+            &format!("daily_evaluations/{}", partition.as_str()),
+            decode_evaluation_bundle,
+        )?
+        .into_iter()
+        .map(|bundle| (bundle.prediction_bundle_digest.clone(), bundle))
+        .collect::<BTreeMap<_, _>>();
+        let refit_bundles = read_all(
+            &format!("daily_refits/{}", partition.as_str()),
+            decode_refit_bundle,
+        )?;
+        if prediction_bundles.is_empty()
+            || prediction_bundles.len() != evaluation_bundles.len()
+            || prediction_bundles.len() != refit_bundles.len()
+        {
+            return Err("qualified-six diagnostic daily source cardinality rejected".to_string());
+        }
+        for bundle in refit_bundles {
+            if bundle.partition != partition
+                || bundle.registration_digest != header.registration_digest
+            {
+                return Err("qualified-six diagnostic refit source rejected".to_string());
+            }
+            let parameter_norms = bundle
+                .participant_receipts
+                .iter()
+                .map(parameter_norm)
+                .collect::<Option<Vec<_>>>()
+                .ok_or_else(|| "qualified-six diagnostic parameter integrity failed".to_string())?;
+            let normalizer_profiles = bundle
+                .normalizer_receipts
+                .iter()
+                .map(|receipt| {
+                    receipt
+                        .private_means
+                        .iter()
+                        .chain(&receipt.private_scales)
+                        .map(|value| f64::from(*value))
+                        .collect::<Vec<_>>()
+                })
+                .collect::<Vec<_>>();
+            let normalizer_finite = normalizer_profiles
+                .iter()
+                .flatten()
+                .all(|value| value.is_finite());
+            let prevalence = bundle
+                .participant_receipts
+                .first()
+                .map(|receipt| receipt.private_prevalence)
+                .ok_or_else(|| "qualified-six diagnostic prevalence unavailable".to_string())?;
+            let prevalence_consistent = bundle
+                .participant_receipts
+                .iter()
+                .all(|receipt| receipt.private_prevalence.to_bits() == prevalence.to_bits());
+            refits.push(MomentumQualifiedDiagnosticRefitEvidenceV1 {
+                partition,
+                utc_day_boundary_ms: bundle.utc_day_boundary_ms,
+                refit_digest: bundle.refit_receipt.refit_digest,
+                parameter_digests: bundle.refit_receipt.participant_parameter_digests,
+                normalizer_digests: bundle.refit_receipt.timeframe_normalizer_digests,
+                parameter_norms,
+                normalizer_profiles,
+                parameter_finite: true,
+                normalizer_finite,
+                training_example_count: bundle.refit_receipt.used_training_event_count,
+                training_class_prevalence: prevalence,
+                training_loss_finite: prevalence_consistent && prevalence.is_finite(),
+            });
+        }
+        for prediction in prediction_bundles {
+            if prediction.partition != partition
+                || prediction.registration_digest != header.registration_digest
+            {
+                return Err("qualified-six diagnostic prediction source rejected".to_string());
+            }
+            let evaluation = evaluation_bundles
+                .get(&prediction.bundle_digest)
+                .ok_or_else(|| {
+                    "qualified-six diagnostic evaluation source unavailable".to_string()
+                })?;
+            if evaluation.partition != partition
+                || evaluation.utc_day_boundary_ms != prediction.utc_day_boundary_ms
+                || evaluation.evaluations.len() != prediction.event_plans.len()
+                || prediction.prediction_seals.len() != prediction.event_plans.len() * 5
+            {
+                return Err("qualified-six diagnostic daily bundle mismatch".to_string());
+            }
+            for (event_index, plan) in prediction.event_plans.iter().enumerate() {
+                let seals = &prediction.prediction_seals[event_index * 5..(event_index + 1) * 5];
+                let evaluation = &evaluation.evaluations[event_index];
+                if plan.partition != partition
+                    || evaluation.event_plan_digest != plan.event_plan_digest
+                    || seals
+                        .iter()
+                        .map(|seal| seal.participant)
+                        .collect::<Vec<_>>()
+                        != MomentumQualifiedParticipantV1::ORDERED
+                {
+                    return Err("qualified-six diagnostic event identity rejected".to_string());
+                }
+                events.push(MomentumQualifiedDiagnosticEventEvidenceV1 {
+                    partition,
+                    prediction_timestamp_ms: plan.prediction_timestamp_ms,
+                    target_timestamp_ms: plan.target_timestamp_ms,
+                    event_plan_digest: plan.event_plan_digest.clone(),
+                    daily_refit_receipt_digest: plan.daily_refit_receipt_digest.clone(),
+                    probabilities: seals.iter().map(|seal| seal.private_probability).collect(),
+                    label_status: evaluation.label_status,
+                    label: evaluation.private_label,
+                    brier_values: evaluation.private_brier_values.clone(),
+                    correctness: evaluation.private_correctness.clone(),
+                    micro_volatility: past_micro_volatility(
+                        ten_minute_rows,
+                        plan.prediction_timestamp_ms,
+                    ),
+                    daily_trend_return: past_daily_trend(daily_rows, plan.prediction_timestamp_ms),
+                });
+            }
+        }
+    }
+    events.sort_by_key(|event| {
+        (
+            match event.partition {
+                MomentumReplayPartitionV1::Development => 0,
+                MomentumReplayPartitionV1::Validation => 1,
+                MomentumReplayPartitionV1::SealedHoldout => 2,
+            },
+            event.prediction_timestamp_ms,
+        )
+    });
+    refits.sort_by_key(|refit| {
+        (
+            match refit.partition {
+                MomentumReplayPartitionV1::Development => 0,
+                MomentumReplayPartitionV1::Validation => 1,
+                MomentumReplayPartitionV1::SealedHoldout => 2,
+            },
+            refit.utc_day_boundary_ms,
+        )
+    });
+    if events
+        .iter()
+        .any(|event| event.partition == MomentumReplayPartitionV1::SealedHoldout)
+        || refits
+            .iter()
+            .any(|refit| refit.partition == MomentumReplayPartitionV1::SealedHoldout)
+    {
+        return Err("qualified-six diagnostic holdout source rejected".to_string());
+    }
+    Ok(MomentumQualifiedDiagnosticSourceV1 {
+        header,
+        events,
+        refits,
+    })
 }
 
 fn require_persisted_registration(prepared: &PreparedReplay) -> Result<(), String> {

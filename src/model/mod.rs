@@ -29,6 +29,7 @@ pub mod momentum_mamba_repair;
 pub mod momentum_mamba_representation;
 pub mod momentum_multitimeframe_history_v1;
 pub mod momentum_prospective_series_v4;
+pub mod momentum_qualified_six_diagnostics_v1;
 pub mod momentum_qualified_six_replay_v1;
 pub mod momentum_raw_feature_supplemental;
 pub mod momentum_raw_feature_v4;
@@ -925,6 +926,26 @@ pub use momentum_mamba_repair::{
 };
 pub use momentum_mamba_representation::*;
 pub use momentum_multitimeframe_history_v1::*;
+pub use momentum_qualified_six_diagnostics_v1::{
+    MomentumCalendarStabilityDiagnosticV1, MomentumCalibrationBinDiagnosticV1,
+    MomentumCalibrationDiagnosticV1, MomentumDiagnosticCalendarGrainV1,
+    MomentumDiagnosticRelationV1, MomentumHoldoutEligibilityReceiptV1,
+    MomentumModelDriftDiagnosticV1, MomentumPairedBrierDiagnosticV1,
+    MomentumPartitionStabilityReceiptV1, MomentumPrevalenceDriftDiagnosticV1,
+    MomentumProbabilityDistributionDiagnosticV1, MomentumQualifiedChallengerRequirementsV1,
+    MomentumQualifiedDailyTrendRegimeV1, MomentumQualifiedDiagnosticEvidenceClassV1,
+    MomentumQualifiedDiagnosticRunModeV1, MomentumQualifiedDiagnosticStatusV1,
+    MomentumQualifiedHoldoutEligibilityV1, MomentumQualifiedModelDriftStatusV1,
+    MomentumQualifiedPartitionStabilityV1, MomentumQualifiedProbabilityCollapseStatusV1,
+    MomentumQualifiedSaturationStatusV1, MomentumQualifiedSixDiagnosticRegistrationV1,
+    MomentumQualifiedSixDiagnosticReportV1, MomentumQualifiedVolatilityRegimeV1,
+    MomentumRegimeMetricDiagnosticV1, MomentumResearchPriorityV1,
+    MomentumRollingStabilityDiagnosticV1,
+    format_momentum_qualified_six_challenger_requirements_text_v1,
+    format_momentum_qualified_six_diagnostics_text_v1,
+    read_momentum_qualified_six_challenger_requirements_v1,
+    run_momentum_qualified_six_diagnostics_v1,
+};
 pub use momentum_qualified_six_replay_v1::{
     MomentumQualifiedBenchmarkComparisonV1, MomentumQualifiedBenchmarkReceiptV1,
     MomentumQualifiedContributionReceiptV1, MomentumQualifiedContributionStatusV1,
