@@ -115,6 +115,12 @@ pub struct CliArgs {
     #[arg(long, default_value_t = false)]
     pub momentum_mtf_qualified_six_challenger_requirements: bool,
     #[arg(long, default_value_t = false)]
+    pub momentum_micro_label_forensics: bool,
+    #[arg(long, default_value_t = false)]
+    pub momentum_micro_feature_forensics: bool,
+    #[arg(long, default_value_t = false)]
+    pub momentum_micro_challenger_registration: bool,
+    #[arg(long, default_value_t = false)]
     pub register: bool,
     #[arg(long, value_parser = ["development", "validation"])]
     pub partition: Option<String>,
@@ -199,6 +205,15 @@ pub struct CliArgs {
 
 pub fn run() -> Result<(), String> {
     let args = CliArgs::parse();
+    let micro_selector_count = usize::from(args.momentum_micro_label_forensics)
+        + usize::from(args.momentum_micro_feature_forensics)
+        + usize::from(args.momentum_micro_challenger_registration);
+    if micro_selector_count > 0 {
+        if micro_selector_count != 1 {
+            return Err("micro research selector conflict rejected".to_string());
+        }
+        return run_momentum_micro_research_cli_v1(&args);
+    }
     let prospective_outcome_authority = args.execute_outcome
         || args.open_outcome
         || args.confirm_one_time_prospective_outcome_request
@@ -3503,6 +3518,351 @@ fn format_momentum_v4_supplemental_text(report: &MomentumSupplementalCliReportV4
     );
     let _ = writeln!(output, "report_digest={}", report.report_digest);
     output
+}
+
+fn micro_research_has_unrelated_authority(args: &CliArgs) -> bool {
+    args.full_auto
+        || args.symbol != "BTCUSDT"
+        || args.historical_provider_smoke_config.is_some()
+        || args.momentum_temporal_diagnostics
+        || args.momentum_cross_market_report
+        || args.btc_multi_regime_report
+        || args.btc_cross_regime_diagnostics
+        || args.btc_cycle_risk_shadow_report
+        || args.learned_agent_shadow_deliberation
+        || args.learned_agent_scope_alignment
+        || args.joint_canonical_scope_replay
+        || args.joint_momentum_failure_forensics
+        || args.joint_canonical_scope_replay_v2
+        || args.joint_momentum_closure_forensics_v3
+        || args.joint_canonical_scope_registration_v3
+        || args.joint_canonical_scope_replay_v3
+        || args.chair_shadow_observation_inbox
+        || args.chair_shadow_owner_advisory_review
+        || args.learned_reward_eligibility
+        || args.prospective_external_row_admission
+        || args.acquire_one_upbit_prospective_candle
+        || args.register_prospective_outcome_opening
+        || args.prospective_event_maturity_preflight
+        || args.prospective_outcome_acquisition
+        || args.prospective_outcome_opening
+        || args.agent_private_learning_sessions
+        || args.agent_candidate_evidence_audit
+        || args.register_agent_candidate_evaluation
+        || args.agent_private_learning_candidates_v1
+        || args.register_agent_candidate_evaluation_v1
+        || args.agent_canonical_view_gap_v1
+        || args.migrate_persisted_learning_intent_v1
+        || args.momentum_mamba_repair_v2
+        || args.momentum_mamba_representation_v3
+        || args.momentum_raw_feature_v4
+        || args.momentum_v4_supplemental_qualification
+        || args.momentum_v4_future_prediction
+        || args.momentum_v4_future_outcome
+        || args.momentum_v4_future_outcome_opening
+        || args.momentum_v4_prospective_series
+        || args.momentum_v4_historical_replay
+        || args.momentum_v4_historical_backfill_plan
+        || args.momentum_mtf_history
+        || args.momentum_mtf_macro_forensics
+        || args.momentum_mtf_hard_replay_registration
+        || args.momentum_mtf_qualified_six_replay
+        || args.momentum_mtf_qualified_six_diagnostics
+        || args.momentum_mtf_qualified_six_challenger_requirements
+        || args.partition.is_some()
+        || args.register_foundation
+        || args.execute_backfill
+        || args.confirm_bounded_mtf_history_backfill
+        || args.derive_views
+        || args.protocol_replay
+        || args.mode.is_some()
+        || args.register_next_epoch
+        || args.epoch.is_some()
+        || args.execute_input
+        || args.execute_outcome
+        || args.open_outcome
+        || args.execute
+        || args.confirm_single_public_candle_request
+        || args.confirm_one_time_outcome_request
+        || args.confirm_one_time_prospective_opening
+        || args.confirm_one_time_learning_evidence_request
+        || args.confirm_composite_learning_evidence_epoch
+        || args.confirm_one_time_future_input_request
+        || args.confirm_one_time_future_outcome_request
+        || args.confirm_one_time_future_outcome_opening
+        || args.confirm_one_time_prospective_input_request
+        || args.confirm_one_time_prospective_outcome_request
+        || args.confirm_one_time_prospective_outcome_opening
+        || args.btc_prospective_challenge_create
+        || args.btc_prospective_challenge_status
+        || args.btc_prospective_challenge_confirm_preregistration
+        || args.btc_prospective_registry_close
+        || args.btc_prospective_accumulate
+        || args.btc_prospective_evaluate
+        || args.toss_historical_contract_report
+        || args.toss_kr_historical_manifest.is_some()
+        || args.toss_us_historical_manifest.is_some()
+        || args.allow_network
+}
+
+fn momentum_micro_historical_boundary_digest_v1(root: &Path) -> Result<String, String> {
+    let state_root = root
+        .parent()
+        .ok_or_else(|| "micro historical state root unavailable".to_string())?;
+    let historical_root = state_root.join("historical_replay");
+    if !historical_root.is_dir() {
+        return Err("micro historical store unavailable".to_string());
+    }
+    let excluded_roots = [
+        historical_root.join("momentum_micro_label_forensics"),
+        historical_root.join("momentum_micro_challenger_design"),
+    ];
+    let mut stack = vec![historical_root.clone()];
+    let mut entries = Vec::new();
+    while let Some(current) = stack.pop() {
+        let mut paths = fs::read_dir(&current)
+            .map_err(|_| "micro historical store read failed".to_string())?
+            .map(|entry| {
+                entry
+                    .map(|entry| entry.path())
+                    .map_err(|_| "micro historical entry read failed".to_string())
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        paths.sort_by(|left, right| right.cmp(left));
+        for path in paths {
+            if excluded_roots.iter().any(|excluded| path == *excluded) {
+                continue;
+            }
+            if path.is_dir() {
+                stack.push(path);
+            } else if path.is_file() {
+                let metadata = fs::metadata(&path)
+                    .map_err(|_| "micro historical metadata read failed".to_string())?;
+                let bytes = fs::read(&path)
+                    .map_err(|_| "micro historical artifact read failed".to_string())?;
+                entries.push((
+                    path.strip_prefix(&historical_root)
+                        .map_err(|_| "micro historical path rejected".to_string())?
+                        .to_path_buf(),
+                    metadata.len(),
+                    crate::stable_hash_string(&format!(
+                        "historical-store:artifact-bytes:{bytes:?}"
+                    )),
+                ));
+            }
+        }
+    }
+    entries.sort();
+    Ok(crate::stable_hash_string(&format!(
+        "historical-store:{entries:?}"
+    )))
+}
+
+fn load_momentum_micro_protected_state_v1(
+    config_path: &Path,
+) -> Result<crate::model::MomentumMicroProtectedBeforeStateV1, String> {
+    verify_momentum_v4_outcome_prior_boundary(config_path)?;
+    let provider_config = crate::data::UpbitHistoricalPilotConfigV0::from_toml_path(config_path)?;
+    let snapshots =
+        crate::model::load_local_learning_snapshots_v0(Path::new("data/local_snapshots"))?;
+    let root = crate::model::default_private_learning_root_v0();
+    let reservation = crate::model::load_protected_evaluation_reservation_v1(
+        config_path
+            .parent()
+            .ok_or("micro research reservation directory unavailable")?,
+    )?;
+    let live = crate::model::momentum_prospective_series_v4::run_momentum_prospective_outcome_v4(
+        root,
+        &snapshots,
+        &reservation,
+        &provider_config,
+        current_utc_timestamp_ms(),
+        crate::model::momentum_prospective_series_v4::MomentumProspectiveOutcomeRunModeV4::Status,
+        false,
+        false,
+        false,
+        None,
+    )?;
+    let status = &live.status;
+    let pause = live
+        .completed_pause
+        .as_ref()
+        .ok_or_else(|| "micro research completed pause unavailable".to_string())?;
+    if status.readiness
+        != crate::model::momentum_prospective_series_v4::MomentumProspectiveOutcomeReadinessV4::OutcomeAlreadyOpened
+        || status.eligibility_status
+            != crate::model::momentum_prospective_series_v4::MomentumProspectiveSeriesEligibilityV4::IneligibleMinimumSamples
+        || pause.policy
+            != crate::model::momentum_prospective_series_v4::LiveProspectiveContinuationPolicyV2::PausedAfterCompletedEpochTwo
+        || !status.protected_artifacts_unchanged
+        || !status.active_state_unchanged
+        || status.artifacts_written != 0
+        || status.safety_counters
+            != crate::model::momentum_prospective_series_v4::MomentumProspectiveOutcomeSafetyCountersV4::default()
+        || pause.scheduler_count != 0
+        || pause.automatic_registration_count != 0
+        || pause.network_authority_count != 0
+    {
+        return Err("micro research completed live lane rejected".to_string());
+    }
+    let mut protected = crate::model::MomentumMicroProtectedBeforeStateV1 {
+        series_digest: status.series_digest.clone(),
+        event_two_outcome_receipt_digest: status
+            .outcome_receipt_digest
+            .clone()
+            .ok_or_else(|| "micro research outcome receipt unavailable".to_string())?,
+        event_two_outcome_capsule_digest: status
+            .outcome_capsule_digest
+            .clone()
+            .ok_or_else(|| "micro research outcome capsule unavailable".to_string())?,
+        opening_authorization_digest: status
+            .opening_authorization_digest
+            .clone()
+            .ok_or_else(|| "micro research opening authorization unavailable".to_string())?,
+        opening_bundle_digest: status
+            .opening_bundle_digest
+            .clone()
+            .ok_or_else(|| "micro research opening bundle unavailable".to_string())?,
+        event_two_ledger_entry_digest: status
+            .event_two_ledger_entry_digest
+            .clone()
+            .ok_or_else(|| "micro research event ledger unavailable".to_string())?,
+        eligibility_receipt_digest: status
+            .eligibility_receipt_digest
+            .clone()
+            .ok_or_else(|| "micro research eligibility receipt unavailable".to_string())?,
+        completed_pause_digest: status
+            .completed_pause_digest
+            .clone()
+            .ok_or_else(|| "micro research completed pause digest unavailable".to_string())?,
+        completed_event_count: status.completed_event_count,
+        scorable_event_count: status.scorable_event_count,
+        eligibility_status: format!("{:?}", status.eligibility_status),
+        epoch_three_registered: status.epoch_three_registered || pause.epoch_three_registered,
+        live_parameter_digests: status.participant_parameter_digests.clone(),
+        live_normalizer_digests: status.participant_normalizer_digests.clone(),
+        protected_live_aggregate_digest: status.protected_live_aggregate_digest.clone(),
+        historical_store_digest: momentum_micro_historical_boundary_digest_v1(root)?,
+        qualified_six_replay_digest: status.qualified_six_replay_digest.clone(),
+        diagnostic_store_digest: status.diagnostic_store_digest.clone(),
+        active_roster_digest: status.active_roster_digest.clone(),
+        zero_authority_and_action_counters: true,
+        state_digest: String::new(),
+    };
+    protected.state_digest =
+        crate::model::momentum_micro_protected_before_state_digest_v1(&protected);
+    crate::model::validate_momentum_micro_protected_before_state_v1(&protected)?;
+    Ok(protected)
+}
+
+fn run_momentum_micro_research_cli_v1(args: &CliArgs) -> Result<(), String> {
+    if micro_research_has_unrelated_authority(args) {
+        return Err("micro research selector rejects unrelated authority".to_string());
+    }
+    let config_path = args
+        .historical_snapshot_campaign_config
+        .as_deref()
+        .unwrap_or_else(|| Path::new("config/local/historical_provider.local.toml"));
+    let protected_before = load_momentum_micro_protected_state_v1(config_path)?;
+    if args.momentum_micro_label_forensics {
+        let selected =
+            usize::from(args.status) + usize::from(args.dry_run) + usize::from(args.execute_local);
+        let mode = if selected != 1 || args.register {
+            return Err("micro label forensics requires exactly one supported mode".to_string());
+        } else if args.status {
+            crate::model::MomentumMicroLabelForensicsRunModeV1::Status
+        } else if args.dry_run {
+            crate::model::MomentumMicroLabelForensicsRunModeV1::DryRun
+        } else if args.output_format == "json" {
+            crate::model::MomentumMicroLabelForensicsRunModeV1::ExecuteLocal
+        } else {
+            return Err("micro label execution requires JSON output".to_string());
+        };
+        let report = crate::model::run_momentum_micro_label_forensics_v1(mode, &protected_before)?;
+        let protected_after = load_momentum_micro_protected_state_v1(config_path)?;
+        if protected_before != protected_after {
+            return Err("micro label forensics changed protected state".to_string());
+        }
+        if args.output_format == "json" {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&report)
+                    .map_err(|_| "micro label JSON serialization failed".to_string())?
+            );
+        } else {
+            print!(
+                "{}",
+                crate::model::format_momentum_micro_label_forensics_text_v1(&report)
+            );
+        }
+        return Ok(());
+    }
+    if args.momentum_micro_feature_forensics {
+        let selected = usize::from(args.status) + usize::from(args.execute_local);
+        let mode = if selected != 1 || args.dry_run || args.register {
+            return Err("micro feature forensics requires exactly one supported mode".to_string());
+        } else if args.status {
+            crate::model::MomentumMicroFeatureForensicsRunModeV1::Status
+        } else if args.output_format == "json" {
+            crate::model::MomentumMicroFeatureForensicsRunModeV1::ExecuteLocal
+        } else {
+            return Err("micro feature execution requires JSON output".to_string());
+        };
+        let report =
+            crate::model::run_momentum_micro_feature_forensics_v1(mode, &protected_before)?;
+        let protected_after = load_momentum_micro_protected_state_v1(config_path)?;
+        if protected_before != protected_after {
+            return Err("micro feature forensics changed protected state".to_string());
+        }
+        if args.output_format == "json" {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&report)
+                    .map_err(|_| "micro feature JSON serialization failed".to_string())?
+            );
+        } else {
+            print!(
+                "{}",
+                crate::model::format_momentum_micro_feature_forensics_text_v1(&report)
+            );
+        }
+        return Ok(());
+    }
+    if args.status {
+        if args.register || args.execute_local || args.dry_run {
+            return Err("micro challenger status rejects registration authority".to_string());
+        }
+    } else if !args.register || !args.execute_local || args.dry_run {
+        return Err(
+            "micro challenger registration requires --register --execute-local".to_string(),
+        );
+    } else if args.output_format != "json" {
+        return Err("micro challenger registration requires JSON output".to_string());
+    }
+    let mode = if args.status {
+        crate::model::MomentumMicroChallengerRegistrationRunModeV1::Status
+    } else {
+        crate::model::MomentumMicroChallengerRegistrationRunModeV1::RegisterLocal
+    };
+    let report =
+        crate::model::run_momentum_micro_challenger_registration_v1(mode, &protected_before)?;
+    let protected_after = load_momentum_micro_protected_state_v1(config_path)?;
+    if protected_before != protected_after {
+        return Err("micro challenger registration changed protected state".to_string());
+    }
+    if args.output_format == "json" {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&report)
+                .map_err(|_| "micro challenger JSON serialization failed".to_string())?
+        );
+    } else {
+        print!(
+            "{}",
+            crate::model::format_momentum_micro_challenger_design_text_v1(&report)
+        );
+    }
+    Ok(())
 }
 
 fn run_momentum_qualified_six_diagnostics_cli_v1(

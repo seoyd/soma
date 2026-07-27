@@ -82,7 +82,7 @@ pub enum MomentumQualifiedRefitPolicyV1 {
     RefitAtUtcDayBoundary,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum MomentumReplayPartitionV1 {
     Development,
     Validation,
@@ -143,7 +143,7 @@ impl MomentumQualifiedParticipantV1 {
             .ok_or_else(|| "qualified-six participant rejected".to_string())
     }
 
-    fn timeframes(self) -> Vec<MomentumHistoricalTimeframeV1> {
+    pub(super) fn timeframes(self) -> Vec<MomentumHistoricalTimeframeV1> {
         match self {
             Self::Q0TrainingPrevalenceConstant => Vec::new(),
             Self::Q1TenMinuteAnchorLogistic => {
