@@ -96,8 +96,12 @@ Validation and holdout cannot fit calibration. T60 remains diagnostic-only.
 The future screening gate requires lower mean Brier than C0 in both
 development and validation, finite predictions and metrics, sufficient paired
 support, and clean chronology, leakage, probability, and integrity audits.
-Correctness cannot override a Brier failure. This gate is registered but not
-executed in this version.
+Correctness cannot override a Brier failure.
+
+The subsequent T10-only execution is recorded in
+`MOMENTUM_T10_MICRO_SCREENING_V1.md`. It did not execute T30 or T60, did not
+open holdout, and produced no eligible T10 holdout cohort. The frozen
+registration and gate in this document remain unchanged.
 
 ## Persistence, determinism, and CLI
 

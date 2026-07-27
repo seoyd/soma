@@ -88,3 +88,11 @@ the two protected states to be identical. The historical identity freezes all
 pre-existing historical, Qualified-Six replay, and Qualified-Six diagnostic
 artifacts while excluding only the two runtime roots owned by this research
 operation, avoiding a self-referential digest.
+
+## T10 screening continuation
+
+The later T10-only screening reopened this report by its frozen digest and did
+not rerun or overwrite label forensics. T30 and T60 remained unexecuted,
+historical holdout remained closed, and the live lane remained paused. The
+screening result and its empty proposed cohort are recorded in
+`RESTART_SPRINT102_REPORT.md`.
