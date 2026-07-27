@@ -27,13 +27,50 @@ use crate::{
 };
 
 use super::{
-    ProtectedEvaluationReservationV1,
+    MomentumLearningCampaignConfigV0, ProtectedEvaluationReservationV1,
     momentum_future_outcome_v4::{
-        MomentumFutureOutcomeOpeningReportV4_4, MomentumFutureOutcomeReportV4_4,
-        MomentumOutcomeOpeningRunModeV4_4, MomentumOutcomeReadinessV4_4,
-        MomentumOutcomeRunModeV4_4, MomentumProspectiveEvaluationStatusV4_4,
-        MomentumProspectiveLabelStatusV4_4, MomentumRewardEligibilityStatusV4_4,
+        CAPSULE_VERSION, MomentumFutureOutcomeOpeningReportV4_4, MomentumFutureOutcomeReportV4_4,
+        MomentumOutcomeAcquisitionReceiptV4_4, MomentumOutcomeAcquisitionRegistrationV4_4,
+        MomentumOutcomeAcquisitionStatusV4_4, MomentumOutcomeOpeningAuthorizationV4_4,
+        MomentumOutcomeOpeningBundleV4_4, MomentumOutcomeOpeningReceiptV4_4,
+        MomentumOutcomeOpeningRunModeV4_4, MomentumOutcomeOpeningStatusV4_4,
+        MomentumOutcomeReadinessV4_4, MomentumOutcomeRowIdentityProofV4_4,
+        MomentumOutcomeRunModeV4_4, MomentumParticipantProspectiveEvaluationV4_4,
+        MomentumProspectiveEvaluationStatusV4_4, MomentumProspectiveLabelStatusV4_4,
+        MomentumRewardEligibilityStatusV4_4, MomentumSealedOutcomeCapsuleV4_4,
+        OPENING_AUTHORIZATION_VERSION, OPENING_BUNDLE_VERSION, OPENING_RECEIPT_VERSION,
+        RECEIPT_VERSION, REGISTRATION_VERSION, ROW_PROOF_VERSION, authorization_digest,
+        build_participant_evaluation_v4_4, build_request as build_outcome_request,
+        capsule_digest as sealed_outcome_capsule_digest, classify_label_v4_4,
+        decode_capsule as decode_series_outcome_capsule,
+        decode_evaluation as decode_series_evaluation,
+        decode_opening_authorization as decode_series_opening_authorization,
+        decode_opening_bundle as decode_series_opening_bundle,
+        decode_opening_receipt as decode_series_opening_receipt,
+        decode_receipt as decode_series_outcome_receipt,
+        decode_registration as decode_series_outcome_registration,
+        decode_row_proof as decode_series_outcome_proof,
+        encode_capsule as encode_series_outcome_capsule,
+        encode_evaluation as encode_series_evaluation,
+        encode_opening_authorization as encode_series_opening_authorization,
+        encode_opening_bundle as encode_series_opening_bundle,
+        encode_opening_receipt as encode_series_opening_receipt,
+        encode_receipt as encode_series_outcome_receipt,
+        encode_registration as encode_series_outcome_registration,
+        encode_row_proof as encode_series_outcome_proof, evaluation_policy_digest,
+        frozen_label_policy_digest, opening_bundle_digest, opening_receipt_digest,
+        parse_http_status_class, raw_outcome_digest,
+        receipt_digest as series_outcome_receipt_digest, registration_digest,
+        request_config as outcome_request_config,
+        request_fingerprint as outcome_request_fingerprint, row_proof_digest,
         run_momentum_future_outcome_opening_v4_4, run_momentum_future_outcome_v4_4,
+        sanitized_raw_response, valid_ohlcv as valid_outcome_ohlcv,
+        validate_capsule_shape as validate_series_outcome_capsule, validate_evaluation_shape,
+        validate_opening_authorization_shape, validate_opening_bundle_shape,
+        validate_opening_receipt_shape, validate_outcome_transport,
+        validate_receipt_shape as validate_series_outcome_receipt,
+        validate_registration_shape as validate_series_outcome_registration,
+        validate_row_proof_shape as validate_series_outcome_proof,
     },
     momentum_future_prediction_v4::{
         ArtifactBuilderV4_2, ArtifactReaderV4_2, MomentumSealedPredictionChainV4_3, as_u64,
@@ -5114,6 +5151,2818 @@ pub fn run_momentum_prospective_series_v4(
     )
 }
 
+const SERIES_OUTCOME_DIRECTORY: &str = "epoch_two_outcome";
+const COMPLETED_PAUSE_DIRECTORY: &str = "completed_continuation_pauses";
+const SERIES_LEDGER_VERSION: &str = "momentum-prospective-series-ledger-entry-v4.5";
+const SERIES_ELIGIBILITY_VERSION: &str = "momentum-prospective-series-eligibility-v4.5";
+const COMPLETED_PAUSE_VERSION: &str = "live-prospective-continuation-pause-v2";
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MomentumProspectiveOutcomeReadinessV4 {
+    AwaitingOutcomeFinality,
+    ReadyForOutcomeAcquisition,
+    ReadyForOutcomeOpening,
+    OutcomeAlreadyOpened,
+    PriorOutcomeAttemptTerminal,
+    SealedPredictionMismatch,
+    IntegrityFailure,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MomentumProspectiveOutcomeRunModeV4 {
+    Status,
+    DryRun,
+    ExecuteOutcome,
+    OpenOutcome,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MomentumProspectiveSeriesEligibilityV4 {
+    IneligibleMinimumSamples,
+    EligibleForShadowRewardAssessment,
+    IntegrityFailure,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum LiveProspectiveContinuationPolicyV2 {
+    PausedAfterCompletedEpochTwo,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MomentumProspectiveOutcomeSafetyCountersV4 {
+    pub network_request_attempts: usize,
+    pub transport_constructions: usize,
+    pub retries: usize,
+    pub maximum_observed_concurrency: usize,
+    pub outcome_raw_loads: usize,
+    pub prediction_private_value_reads: usize,
+    pub label_derivations: usize,
+    pub evaluations: usize,
+    pub opening_attempts: usize,
+    pub ledger_appends: usize,
+    pub eligibility_derivations: usize,
+    pub winner_selections: usize,
+    pub ranking_creations: usize,
+    pub reward_applications: usize,
+    pub penalty_applications: usize,
+    pub chair_model_executions: usize,
+    pub chair_learning_actions: usize,
+    pub chair_decisions: usize,
+    pub committee_votes: usize,
+    pub voice_changes: usize,
+    pub tier_changes: usize,
+    pub cooldowns: usize,
+    pub promotions: usize,
+    pub quarantines: usize,
+    pub paper_executions: usize,
+    pub live_executions: usize,
+    pub epoch_three_registrations: usize,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MomentumProspectiveSeriesLedgerEntryV4 {
+    pub ledger_version: String,
+    pub previous_event_ledger_entry_digest: String,
+    pub series_digest: String,
+    pub epoch_registration_digest: String,
+    pub input_receipt_digest: String,
+    pub input_capsule_digest: String,
+    pub context_proof_digest: String,
+    pub participant_seal_digests: Vec<String>,
+    pub prediction_capsule_digest: String,
+    pub prediction_journal_digest: String,
+    pub outcome_plan_digest: String,
+    pub outcome_receipt_digest: String,
+    pub outcome_capsule_digest: String,
+    pub opening_authorization_digest: String,
+    pub opening_bundle_digest: String,
+    pub label_status: MomentumProspectiveLabelStatusV4_4,
+    pub participant_evaluation_digests: Vec<String>,
+    pub total_event_count_after: usize,
+    pub scorable_event_count_after: usize,
+    pub winner_selected: bool,
+    pub ranking_created: bool,
+    pub reward_applied: bool,
+    pub penalty_applied: bool,
+    pub chair_action_taken: bool,
+    pub trading_action_taken: bool,
+    pub entry_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MomentumProspectiveSeriesEligibilityReceiptV4 {
+    pub receipt_version: String,
+    pub event_one_eligibility_digest: String,
+    pub event_two_ledger_entry_digest: String,
+    pub participant_roles: Vec<String>,
+    pub completed_event_count: usize,
+    pub scorable_event_count: usize,
+    pub minimum_sample_gate: usize,
+    pub status: MomentumProspectiveSeriesEligibilityV4,
+    pub integrity_verified: bool,
+    pub reward_application_count: usize,
+    pub penalty_application_count: usize,
+    pub receipt_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LiveProspectiveContinuationPauseV2 {
+    pub pause_version: String,
+    pub policy: LiveProspectiveContinuationPolicyV2,
+    pub prior_pause_digest: String,
+    pub event_two_ledger_entry_digest: String,
+    pub completed_event_count: usize,
+    pub scorable_event_count: usize,
+    pub eligibility_receipt_digest: String,
+    pub epoch_three_registered: bool,
+    pub historical_challenger_research_prioritized: bool,
+    pub scheduler_count: usize,
+    pub automatic_registration_count: usize,
+    pub network_authority_count: usize,
+    pub pause_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MomentumProspectiveOutcomeStatusV4 {
+    pub series_digest: String,
+    pub epoch_number: u64,
+    pub event_timestamp_ms: u64,
+    pub required_outcome_timestamp_ms: u64,
+    pub outcome_finality_boundary_ms: u64,
+    pub prediction_capsule_digest: String,
+    pub prediction_journal_digest: String,
+    pub outcome_plan_digest: String,
+    pub provider_id: String,
+    pub market: String,
+    pub symbol: String,
+    pub cadence: String,
+    pub request_start_timestamp_ms: u64,
+    pub request_end_timestamp_ms: u64,
+    pub request_fingerprint: String,
+    pub maximum_requests: usize,
+    pub maximum_retries: usize,
+    pub maximum_concurrency: usize,
+    pub prior_attempt_count: usize,
+    pub outcome_receipt_digest: Option<String>,
+    pub outcome_capsule_digest: Option<String>,
+    pub opening_authorization_digest: Option<String>,
+    pub opening_bundle_digest: Option<String>,
+    pub participant_evaluation_digests: Vec<String>,
+    pub label_status: Option<MomentumProspectiveLabelStatusV4_4>,
+    pub event_two_ledger_entry_digest: Option<String>,
+    pub completed_event_count: usize,
+    pub scorable_event_count: usize,
+    pub eligibility_status: MomentumProspectiveSeriesEligibilityV4,
+    pub eligibility_receipt_digest: Option<String>,
+    pub completed_pause_digest: Option<String>,
+    pub readiness: MomentumProspectiveOutcomeReadinessV4,
+    pub protected_live_artifact_count: usize,
+    pub protected_live_aggregate_digest: String,
+    pub event_one_chain_digest: String,
+    pub event_two_sealed_chain_digest: String,
+    pub historical_store_digest: String,
+    pub qualified_six_replay_digest: String,
+    pub diagnostic_store_digest: String,
+    pub active_roster_digest: String,
+    pub participant_parameter_digests: Vec<String>,
+    pub participant_normalizer_digests: Vec<String>,
+    pub feature_policy_digest: String,
+    pub label_policy_digest: String,
+    pub prior_pause_digest: String,
+    pub epoch_three_registered: bool,
+    pub safety_counters: MomentumProspectiveOutcomeSafetyCountersV4,
+    pub artifacts_written: usize,
+    pub duplicate_artifact_count: usize,
+    pub protected_artifacts_unchanged: bool,
+    pub active_state_unchanged: bool,
+    pub status_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct MomentumProspectiveOutcomeReportV4 {
+    pub status: MomentumProspectiveOutcomeStatusV4,
+    pub registration: MomentumOutcomeAcquisitionRegistrationV4_4,
+    pub receipt: Option<MomentumOutcomeAcquisitionReceiptV4_4>,
+    pub outcome_capsule: Option<MomentumSealedOutcomeCapsuleV4_4>,
+    pub opening_authorization: Option<MomentumOutcomeOpeningAuthorizationV4_4>,
+    pub opening_receipt: Option<MomentumOutcomeOpeningReceiptV4_4>,
+    pub opening_bundle: Option<MomentumOutcomeOpeningBundleV4_4>,
+    pub ledger_entry: Option<MomentumProspectiveSeriesLedgerEntryV4>,
+    pub eligibility_receipt: Option<MomentumProspectiveSeriesEligibilityReceiptV4>,
+    pub completed_pause: Option<LiveProspectiveContinuationPauseV2>,
+}
+
+fn series_ledger_entry_digest(value: &MomentumProspectiveSeriesLedgerEntryV4) -> String {
+    canonical_digest(value, |item| item.entry_digest.clear())
+}
+
+fn series_eligibility_digest(value: &MomentumProspectiveSeriesEligibilityReceiptV4) -> String {
+    canonical_digest(value, |item| item.receipt_digest.clear())
+}
+
+fn completed_pause_digest(value: &LiveProspectiveContinuationPauseV2) -> String {
+    canonical_digest(value, |item| item.pause_digest.clear())
+}
+
+fn prospective_outcome_status_digest(value: &MomentumProspectiveOutcomeStatusV4) -> String {
+    canonical_digest(value, |item| item.status_digest.clear())
+}
+
+fn parse_series_label_status(value: &str) -> Result<MomentumProspectiveLabelStatusV4_4, String> {
+    match value {
+        "ScorableBinaryOutcome" => Ok(MomentumProspectiveLabelStatusV4_4::ScorableBinaryOutcome),
+        "NeutralOutcomeExcluded" => Ok(MomentumProspectiveLabelStatusV4_4::NeutralOutcomeExcluded),
+        "InvalidOutcomeEvidence" => Ok(MomentumProspectiveLabelStatusV4_4::InvalidOutcomeEvidence),
+        _ => Err("V4 series outcome label status rejected".to_string()),
+    }
+}
+
+fn validate_series_ledger_entry(
+    value: &MomentumProspectiveSeriesLedgerEntryV4,
+) -> Result<(), String> {
+    let scorable = value.label_status == MomentumProspectiveLabelStatusV4_4::ScorableBinaryOutcome;
+    if value.ledger_version != SERIES_LEDGER_VERSION
+        || [
+            &value.previous_event_ledger_entry_digest,
+            &value.series_digest,
+            &value.epoch_registration_digest,
+            &value.input_receipt_digest,
+            &value.input_capsule_digest,
+            &value.context_proof_digest,
+            &value.prediction_capsule_digest,
+            &value.prediction_journal_digest,
+            &value.outcome_plan_digest,
+            &value.outcome_receipt_digest,
+            &value.outcome_capsule_digest,
+            &value.opening_authorization_digest,
+            &value.opening_bundle_digest,
+        ]
+        .iter()
+        .any(|value| value.is_empty())
+        || value.participant_seal_digests.len() != 3
+        || value
+            .participant_seal_digests
+            .iter()
+            .collect::<BTreeSet<_>>()
+            .len()
+            != 3
+        || value.participant_evaluation_digests.len() != 3
+        || value
+            .participant_evaluation_digests
+            .iter()
+            .collect::<BTreeSet<_>>()
+            .len()
+            != 3
+        || value.total_event_count_after < 2
+        || value.scorable_event_count_after > value.total_event_count_after
+        || (scorable && value.scorable_event_count_after == 0)
+        || value.winner_selected
+        || value.ranking_created
+        || value.reward_applied
+        || value.penalty_applied
+        || value.chair_action_taken
+        || value.trading_action_taken
+        || value.entry_digest != series_ledger_entry_digest(value)
+    {
+        return Err("V4 series event-two ledger entry rejected".to_string());
+    }
+    Ok(())
+}
+
+fn validate_series_eligibility(
+    value: &MomentumProspectiveSeriesEligibilityReceiptV4,
+) -> Result<(), String> {
+    let expected = if !value.integrity_verified {
+        MomentumProspectiveSeriesEligibilityV4::IntegrityFailure
+    } else if value.scorable_event_count < value.minimum_sample_gate {
+        MomentumProspectiveSeriesEligibilityV4::IneligibleMinimumSamples
+    } else {
+        MomentumProspectiveSeriesEligibilityV4::EligibleForShadowRewardAssessment
+    };
+    let expected_roles = [
+        "RawFeatureLogisticV4",
+        "RawFeatureInteractionLogisticV4",
+        "TrainingPrevalenceConstantV4",
+    ]
+    .into_iter()
+    .map(str::to_string)
+    .collect::<BTreeSet<_>>();
+    if value.receipt_version != SERIES_ELIGIBILITY_VERSION
+        || value.event_one_eligibility_digest.is_empty()
+        || value.event_two_ledger_entry_digest.is_empty()
+        || value.participant_roles.len() != 3
+        || value
+            .participant_roles
+            .iter()
+            .cloned()
+            .collect::<BTreeSet<_>>()
+            != expected_roles
+        || value.completed_event_count < 2
+        || value.scorable_event_count > value.completed_event_count
+        || value.minimum_sample_gate == 0
+        || value.status != expected
+        || value.reward_application_count != 0
+        || value.penalty_application_count != 0
+        || value.receipt_digest != series_eligibility_digest(value)
+    {
+        return Err("V4 series eligibility receipt rejected".to_string());
+    }
+    Ok(())
+}
+
+fn validate_completed_pause(value: &LiveProspectiveContinuationPauseV2) -> Result<(), String> {
+    if value.pause_version != COMPLETED_PAUSE_VERSION
+        || value.policy != LiveProspectiveContinuationPolicyV2::PausedAfterCompletedEpochTwo
+        || value.prior_pause_digest.is_empty()
+        || value.event_two_ledger_entry_digest.is_empty()
+        || value.completed_event_count < 2
+        || value.scorable_event_count > value.completed_event_count
+        || value.eligibility_receipt_digest.is_empty()
+        || value.epoch_three_registered
+        || !value.historical_challenger_research_prioritized
+        || value.scheduler_count != 0
+        || value.automatic_registration_count != 0
+        || value.network_authority_count != 0
+        || value.pause_digest != completed_pause_digest(value)
+    {
+        return Err("V4 completed continuation pause rejected".to_string());
+    }
+    Ok(())
+}
+
+fn encode_series_ledger_entry(
+    value: &MomentumProspectiveSeriesLedgerEntryV4,
+) -> Result<Vec<u8>, String> {
+    validate_series_ledger_entry(value)?;
+    ArtifactBuilderV4_2::new("MomentumProspectiveSeriesLedgerEntryV4")
+        .string("ledger_version", &value.ledger_version)
+        .string(
+            "previous_event_ledger_entry_digest",
+            &value.previous_event_ledger_entry_digest,
+        )
+        .string("series_digest", &value.series_digest)
+        .string(
+            "epoch_registration_digest",
+            &value.epoch_registration_digest,
+        )
+        .string("input_receipt_digest", &value.input_receipt_digest)
+        .string("input_capsule_digest", &value.input_capsule_digest)
+        .string("context_proof_digest", &value.context_proof_digest)
+        .strings("participant_seal_digests", &value.participant_seal_digests)
+        .string(
+            "prediction_capsule_digest",
+            &value.prediction_capsule_digest,
+        )
+        .string(
+            "prediction_journal_digest",
+            &value.prediction_journal_digest,
+        )
+        .string("outcome_plan_digest", &value.outcome_plan_digest)
+        .string("outcome_receipt_digest", &value.outcome_receipt_digest)
+        .string("outcome_capsule_digest", &value.outcome_capsule_digest)
+        .string(
+            "opening_authorization_digest",
+            &value.opening_authorization_digest,
+        )
+        .string("opening_bundle_digest", &value.opening_bundle_digest)
+        .string("label_status", format!("{:?}", value.label_status))
+        .strings(
+            "participant_evaluation_digests",
+            &value.participant_evaluation_digests,
+        )
+        .unsigned(
+            "total_event_count_after",
+            as_u64(value.total_event_count_after)?,
+        )
+        .unsigned(
+            "scorable_event_count_after",
+            as_u64(value.scorable_event_count_after)?,
+        )
+        .boolean("winner_selected", value.winner_selected)
+        .boolean("ranking_created", value.ranking_created)
+        .boolean("reward_applied", value.reward_applied)
+        .boolean("penalty_applied", value.penalty_applied)
+        .boolean("chair_action_taken", value.chair_action_taken)
+        .boolean("trading_action_taken", value.trading_action_taken)
+        .string("entry_digest", &value.entry_digest)
+        .encode()
+}
+
+fn decode_series_ledger_entry(
+    bytes: &[u8],
+) -> Result<MomentumProspectiveSeriesLedgerEntryV4, String> {
+    let mut fields = ArtifactReaderV4_2::decode(bytes, "MomentumProspectiveSeriesLedgerEntryV4")?;
+    let value = MomentumProspectiveSeriesLedgerEntryV4 {
+        ledger_version: fields.string("ledger_version")?,
+        previous_event_ledger_entry_digest: fields.string("previous_event_ledger_entry_digest")?,
+        series_digest: fields.string("series_digest")?,
+        epoch_registration_digest: fields.string("epoch_registration_digest")?,
+        input_receipt_digest: fields.string("input_receipt_digest")?,
+        input_capsule_digest: fields.string("input_capsule_digest")?,
+        context_proof_digest: fields.string("context_proof_digest")?,
+        participant_seal_digests: fields.strings("participant_seal_digests")?,
+        prediction_capsule_digest: fields.string("prediction_capsule_digest")?,
+        prediction_journal_digest: fields.string("prediction_journal_digest")?,
+        outcome_plan_digest: fields.string("outcome_plan_digest")?,
+        outcome_receipt_digest: fields.string("outcome_receipt_digest")?,
+        outcome_capsule_digest: fields.string("outcome_capsule_digest")?,
+        opening_authorization_digest: fields.string("opening_authorization_digest")?,
+        opening_bundle_digest: fields.string("opening_bundle_digest")?,
+        label_status: parse_series_label_status(&fields.string("label_status")?)?,
+        participant_evaluation_digests: fields.strings("participant_evaluation_digests")?,
+        total_event_count_after: as_usize(fields.unsigned("total_event_count_after")?)?,
+        scorable_event_count_after: as_usize(fields.unsigned("scorable_event_count_after")?)?,
+        winner_selected: fields.boolean("winner_selected")?,
+        ranking_created: fields.boolean("ranking_created")?,
+        reward_applied: fields.boolean("reward_applied")?,
+        penalty_applied: fields.boolean("penalty_applied")?,
+        chair_action_taken: fields.boolean("chair_action_taken")?,
+        trading_action_taken: fields.boolean("trading_action_taken")?,
+        entry_digest: fields.string("entry_digest")?,
+    };
+    fields.finish()?;
+    validate_series_ledger_entry(&value)?;
+    Ok(value)
+}
+
+fn encode_series_eligibility(
+    value: &MomentumProspectiveSeriesEligibilityReceiptV4,
+) -> Result<Vec<u8>, String> {
+    validate_series_eligibility(value)?;
+    ArtifactBuilderV4_2::new("MomentumProspectiveSeriesEligibilityReceiptV4")
+        .string("receipt_version", &value.receipt_version)
+        .string(
+            "event_one_eligibility_digest",
+            &value.event_one_eligibility_digest,
+        )
+        .string(
+            "event_two_ledger_entry_digest",
+            &value.event_two_ledger_entry_digest,
+        )
+        .strings("participant_roles", &value.participant_roles)
+        .unsigned(
+            "completed_event_count",
+            as_u64(value.completed_event_count)?,
+        )
+        .unsigned("scorable_event_count", as_u64(value.scorable_event_count)?)
+        .unsigned("minimum_sample_gate", as_u64(value.minimum_sample_gate)?)
+        .string("status", format!("{:?}", value.status))
+        .boolean("integrity_verified", value.integrity_verified)
+        .unsigned(
+            "reward_application_count",
+            as_u64(value.reward_application_count)?,
+        )
+        .unsigned(
+            "penalty_application_count",
+            as_u64(value.penalty_application_count)?,
+        )
+        .string("receipt_digest", &value.receipt_digest)
+        .encode()
+}
+
+fn parse_series_eligibility(value: &str) -> Result<MomentumProspectiveSeriesEligibilityV4, String> {
+    match value {
+        "IneligibleMinimumSamples" => {
+            Ok(MomentumProspectiveSeriesEligibilityV4::IneligibleMinimumSamples)
+        }
+        "EligibleForShadowRewardAssessment" => {
+            Ok(MomentumProspectiveSeriesEligibilityV4::EligibleForShadowRewardAssessment)
+        }
+        "IntegrityFailure" => Ok(MomentumProspectiveSeriesEligibilityV4::IntegrityFailure),
+        _ => Err("V4 series eligibility status rejected".to_string()),
+    }
+}
+
+fn decode_series_eligibility(
+    bytes: &[u8],
+) -> Result<MomentumProspectiveSeriesEligibilityReceiptV4, String> {
+    let mut fields =
+        ArtifactReaderV4_2::decode(bytes, "MomentumProspectiveSeriesEligibilityReceiptV4")?;
+    let value = MomentumProspectiveSeriesEligibilityReceiptV4 {
+        receipt_version: fields.string("receipt_version")?,
+        event_one_eligibility_digest: fields.string("event_one_eligibility_digest")?,
+        event_two_ledger_entry_digest: fields.string("event_two_ledger_entry_digest")?,
+        participant_roles: fields.strings("participant_roles")?,
+        completed_event_count: as_usize(fields.unsigned("completed_event_count")?)?,
+        scorable_event_count: as_usize(fields.unsigned("scorable_event_count")?)?,
+        minimum_sample_gate: as_usize(fields.unsigned("minimum_sample_gate")?)?,
+        status: parse_series_eligibility(&fields.string("status")?)?,
+        integrity_verified: fields.boolean("integrity_verified")?,
+        reward_application_count: as_usize(fields.unsigned("reward_application_count")?)?,
+        penalty_application_count: as_usize(fields.unsigned("penalty_application_count")?)?,
+        receipt_digest: fields.string("receipt_digest")?,
+    };
+    fields.finish()?;
+    validate_series_eligibility(&value)?;
+    Ok(value)
+}
+
+fn encode_completed_pause(value: &LiveProspectiveContinuationPauseV2) -> Result<Vec<u8>, String> {
+    validate_completed_pause(value)?;
+    ArtifactBuilderV4_2::new("LiveProspectiveContinuationPauseV2")
+        .string("pause_version", &value.pause_version)
+        .string("policy", "PausedAfterCompletedEpochTwo")
+        .string("prior_pause_digest", &value.prior_pause_digest)
+        .string(
+            "event_two_ledger_entry_digest",
+            &value.event_two_ledger_entry_digest,
+        )
+        .unsigned(
+            "completed_event_count",
+            as_u64(value.completed_event_count)?,
+        )
+        .unsigned("scorable_event_count", as_u64(value.scorable_event_count)?)
+        .string(
+            "eligibility_receipt_digest",
+            &value.eligibility_receipt_digest,
+        )
+        .boolean("epoch_three_registered", value.epoch_three_registered)
+        .boolean(
+            "historical_challenger_research_prioritized",
+            value.historical_challenger_research_prioritized,
+        )
+        .unsigned("scheduler_count", as_u64(value.scheduler_count)?)
+        .unsigned(
+            "automatic_registration_count",
+            as_u64(value.automatic_registration_count)?,
+        )
+        .unsigned(
+            "network_authority_count",
+            as_u64(value.network_authority_count)?,
+        )
+        .string("pause_digest", &value.pause_digest)
+        .encode()
+}
+
+fn decode_completed_pause(bytes: &[u8]) -> Result<LiveProspectiveContinuationPauseV2, String> {
+    let mut fields = ArtifactReaderV4_2::decode(bytes, "LiveProspectiveContinuationPauseV2")?;
+    if fields.string("policy")? != "PausedAfterCompletedEpochTwo" {
+        return Err("V4 completed continuation policy rejected".to_string());
+    }
+    let value = LiveProspectiveContinuationPauseV2 {
+        pause_version: fields.string("pause_version")?,
+        policy: LiveProspectiveContinuationPolicyV2::PausedAfterCompletedEpochTwo,
+        prior_pause_digest: fields.string("prior_pause_digest")?,
+        event_two_ledger_entry_digest: fields.string("event_two_ledger_entry_digest")?,
+        completed_event_count: as_usize(fields.unsigned("completed_event_count")?)?,
+        scorable_event_count: as_usize(fields.unsigned("scorable_event_count")?)?,
+        eligibility_receipt_digest: fields.string("eligibility_receipt_digest")?,
+        epoch_three_registered: fields.boolean("epoch_three_registered")?,
+        historical_challenger_research_prioritized: fields
+            .boolean("historical_challenger_research_prioritized")?,
+        scheduler_count: as_usize(fields.unsigned("scheduler_count")?)?,
+        automatic_registration_count: as_usize(fields.unsigned("automatic_registration_count")?)?,
+        network_authority_count: as_usize(fields.unsigned("network_authority_count")?)?,
+        pause_digest: fields.string("pause_digest")?,
+    };
+    fields.finish()?;
+    validate_completed_pause(&value)?;
+    Ok(value)
+}
+
+fn series_outcome_root(root: &Path) -> PathBuf {
+    series_root(root).join(SERIES_OUTCOME_DIRECTORY)
+}
+
+pub fn prospective_outcome_stage_started_v4(root: &Path) -> bool {
+    series_outcome_root(root).exists()
+}
+
+fn collect_protected_live_files(
+    root: &Path,
+    current: &Path,
+    values: &mut Vec<(PathBuf, Vec<u8>)>,
+) -> Result<(), String> {
+    let outcome_root = series_outcome_root(root);
+    let pause_root = series_root(root).join(COMPLETED_PAUSE_DIRECTORY);
+    if current == outcome_root || current == pause_root {
+        return Ok(());
+    }
+    if current.is_dir() {
+        let mut paths = fs::read_dir(current)
+            .map_err(|_| "V4 protected live directory read failed".to_string())?
+            .map(|entry| {
+                entry
+                    .map(|entry| entry.path())
+                    .map_err(|_| "V4 protected live entry read failed".to_string())
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        paths.sort();
+        for path in paths {
+            collect_protected_live_files(root, &path, values)?;
+        }
+    } else if current.is_file() {
+        values.push((
+            current
+                .strip_prefix(root)
+                .map_err(|_| "V4 protected live path rejected".to_string())?
+                .to_path_buf(),
+            fs::read(current).map_err(|_| "V4 protected live artifact read failed".to_string())?,
+        ));
+    }
+    Ok(())
+}
+
+fn protected_live_identity(root: &Path) -> Result<(usize, String), String> {
+    let mut values = Vec::new();
+    collect_protected_live_files(root, root, &mut values)?;
+    values.sort_by(|left, right| left.0.cmp(&right.0));
+    Ok((
+        values.len(),
+        stable_hash_string(&format!("momentum-v4-protected-live-v2:{values:?}")),
+    ))
+}
+
+fn directory_manifest_identity(root: &Path, name: &str) -> Result<String, String> {
+    if !root.is_dir() {
+        return Err(format!("{name} directory unavailable"));
+    }
+    let mut stack = vec![root.to_path_buf()];
+    let mut entries = Vec::new();
+    while let Some(current) = stack.pop() {
+        let mut paths = fs::read_dir(&current)
+            .map_err(|_| format!("{name} directory read failed"))?
+            .map(|entry| {
+                entry
+                    .map(|entry| entry.path())
+                    .map_err(|_| format!("{name} entry read failed"))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        paths.sort_by(|left, right| right.cmp(left));
+        for path in paths {
+            if path.is_dir() {
+                stack.push(path);
+            } else if path.is_file() {
+                let metadata =
+                    fs::metadata(&path).map_err(|_| format!("{name} metadata read failed"))?;
+                let bytes = fs::read(&path).map_err(|_| format!("{name} artifact read failed"))?;
+                entries.push((
+                    path.strip_prefix(root)
+                        .map_err(|_| format!("{name} path rejected"))?
+                        .to_path_buf(),
+                    metadata.len(),
+                    stable_hash_string(&format!("{name}:artifact-bytes:{bytes:?}")),
+                ));
+            }
+        }
+    }
+    entries.sort();
+    Ok(stable_hash_string(&format!("{name}:{entries:?}")))
+}
+
+fn historical_identity_roots(root: &Path) -> Result<(String, String, String), String> {
+    let state_root = root
+        .parent()
+        .ok_or_else(|| "V4 historical state root unavailable".to_string())?;
+    let historical_root = state_root.join("historical_replay");
+    Ok((
+        directory_manifest_identity(&historical_root, "historical-store")?,
+        directory_manifest_identity(
+            &historical_root.join("momentum_qualified_six").join("v1"),
+            "qualified-six-replay",
+        )?,
+        directory_manifest_identity(
+            &historical_root
+                .join("momentum_qualified_six_diagnostics")
+                .join("v1"),
+            "qualified-six-diagnostics",
+        )?,
+    ))
+}
+
+fn prior_live_pause_digest(root: &Path) -> Result<String, String> {
+    let pause_root = root
+        .parent()
+        .ok_or_else(|| "V4 historical state root unavailable".to_string())?
+        .join("historical_replay")
+        .join("momentum_multitimeframe")
+        .join("v1")
+        .join("live_continuation_pause");
+    let mut paths = fs::read_dir(&pause_root)
+        .map_err(|_| "V4 prior live pause directory unavailable".to_string())?
+        .map(|entry| {
+            entry
+                .map(|entry| entry.path())
+                .map_err(|_| "V4 prior live pause entry read failed".to_string())
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    paths.retain(|path| path.extension().is_some_and(|extension| extension == "pb"));
+    paths.sort();
+    if paths.len() != 1 {
+        return Err("V4 prior live pause identity rejected".to_string());
+    }
+    let bytes = fs::read(&paths[0]).map_err(|_| "V4 prior live pause read failed".to_string())?;
+    let mut fields = ArtifactReaderV4_2::decode(&bytes, "LiveContinuationPauseV1")?;
+    if fields.string("pause_version")? != "live-prospective-continuation-pause-v1"
+        || fields.string("policy")? != "PausedAfterSealedEpochTwo"
+        || fields.string("series_digest")?.is_empty()
+        || fields.string("epoch_registration_digest")?.is_empty()
+        || fields.string("input_receipt_digest")?.is_empty()
+        || fields.string("input_capsule_digest")?.is_empty()
+        || fields.string("context_proof_digest")?.is_empty()
+        || fields.string("prediction_capsule_digest")?.is_empty()
+        || fields.string("prediction_journal_digest")?.is_empty()
+        || fields.string("outcome_plan_digest")?.is_empty()
+        || fields.unsigned("protected_first_event_input_boundary_ms")? == 0
+        || fields.unsigned("completed_event_count")? != 1
+        || fields.unsigned("scorable_event_count")? != 1
+        || fields.unsigned("prediction_seal_count")? != 3
+        || fields.unsigned("input_attempts")? != 1
+        || fields.unsigned("input_retries")? != 0
+        || fields.unsigned("outcome_requests")? != 0
+        || fields.unsigned("outcome_openings")? != 0
+        || fields.boolean("epoch_three_registered")?
+    {
+        return Err("V4 prior live pause semantics rejected".to_string());
+    }
+    let digest = fields.string("pause_digest")?;
+    fields.finish()?;
+    let file_digest = paths[0]
+        .file_stem()
+        .and_then(|value| value.to_str())
+        .ok_or_else(|| "V4 prior live pause filename rejected".to_string())?;
+    if digest.is_empty() || digest != file_digest {
+        return Err("V4 prior live pause digest rejected".to_string());
+    }
+    Ok(digest)
+}
+
+fn derive_series_outcome_registration(
+    live: &MomentumProspectiveSeriesReportV4,
+    config: &UpbitHistoricalPilotConfigV0,
+) -> Result<MomentumOutcomeAcquisitionRegistrationV4_4, String> {
+    let receipt = live
+        .input_receipt
+        .as_ref()
+        .ok_or_else(|| "V4 event-two input receipt unavailable".to_string())?;
+    let capsule = live
+        .input_capsule
+        .as_ref()
+        .ok_or_else(|| "V4 event-two input capsule unavailable".to_string())?;
+    let context = live
+        .context_use_proof
+        .as_ref()
+        .ok_or_else(|| "V4 event-two context proof unavailable".to_string())?;
+    let prediction = live
+        .prediction_capsule
+        .as_ref()
+        .ok_or_else(|| "V4 event-two prediction capsule unavailable".to_string())?;
+    let journal = live
+        .journal_entry
+        .as_ref()
+        .ok_or_else(|| "V4 event-two prediction journal unavailable".to_string())?;
+    let plan = live
+        .outcome_plan
+        .as_ref()
+        .ok_or_else(|| "V4 event-two outcome plan unavailable".to_string())?;
+    let mut value = MomentumOutcomeAcquisitionRegistrationV4_4 {
+        registration_version: REGISTRATION_VERSION.to_string(),
+        agent_id: live.series.agent_id.clone(),
+        lifecycle_digest: live.series.series_digest.clone(),
+        evaluation_registration_digest: live.epoch_registration.registration_digest.clone(),
+        roster_digest: live.series.frozen_roster_digest.clone(),
+        input_receipt_digest: receipt.receipt_digest.clone(),
+        input_capsule_digest: capsule.capsule_digest.clone(),
+        context_usage_ledger_digest: context.proof_digest.clone(),
+        prediction_capsule_digest: prediction.capsule_digest.clone(),
+        prediction_journal_digest: journal.entry_digest.clone(),
+        outcome_plan_digest: plan.plan_digest.clone(),
+        event_timestamp_ms: plan.event_timestamp_ms,
+        required_outcome_timestamp_ms: plan.required_outcome_timestamp_ms.clone(),
+        outcome_finality_boundary_ms: plan.outcome_finality_boundary_ms,
+        provider_id: live.epoch_registration.provider_id.clone(),
+        market: live.epoch_registration.market.clone(),
+        symbol: live.epoch_registration.symbol.clone(),
+        cadence: live.epoch_registration.cadence.clone(),
+        exact_expected_timestamp_ms: plan.required_outcome_timestamp_ms.clone(),
+        expected_row_count: plan.required_outcome_timestamp_ms.len(),
+        request_to_timestamp_ms: plan.outcome_finality_boundary_ms,
+        maximum_requests: plan.maximum_outcome_requests,
+        maximum_concurrency: 1,
+        maximum_retries: plan.maximum_outcome_retries,
+        maximum_response_bytes: config.maximum_response_bytes,
+        credential_free_required: true,
+        read_only_required: true,
+        labels_must_remain_unopened: plan.labels_hidden_until_opening,
+        metric_computation_forbidden: true,
+        winner_selection_forbidden: true,
+        reward_application_forbidden: true,
+        registration_digest: String::new(),
+    };
+    value.registration_digest = registration_digest(&value);
+    validate_series_outcome_registration(&value)?;
+    validate_series_outcome_registration_binding(&value, live, config)?;
+    Ok(value)
+}
+
+fn validate_series_outcome_registration_binding(
+    value: &MomentumOutcomeAcquisitionRegistrationV4_4,
+    live: &MomentumProspectiveSeriesReportV4,
+    config: &UpbitHistoricalPilotConfigV0,
+) -> Result<(), String> {
+    validate_series_outcome_registration(value)?;
+    let plan = live
+        .outcome_plan
+        .as_ref()
+        .ok_or_else(|| "V4 event-two outcome plan unavailable".to_string())?;
+    let prediction = live
+        .prediction_capsule
+        .as_ref()
+        .ok_or_else(|| "V4 event-two prediction capsule unavailable".to_string())?;
+    let journal = live
+        .journal_entry
+        .as_ref()
+        .ok_or_else(|| "V4 event-two prediction journal unavailable".to_string())?;
+    let contract = upbit_learning_evidence_provider_contract_v1(config)?;
+    if live.status.readiness != MomentumProspectiveEpochReadinessV4::PredictionAlreadySealed
+        || live.epoch_registration.epoch_number != 2
+        || prediction.participant_seal_digests.len() != 3
+        || prediction.participant_prediction_digests.len() != 3
+        || prediction.outcome_accessed
+        || prediction.metrics_computed
+        || !journal.outcome_stage_locked
+        || plan.outcome_acquisition_count != 0
+        || plan.outcome_opening_count != 0
+        || value.lifecycle_digest != live.series.series_digest
+        || value.evaluation_registration_digest != live.epoch_registration.registration_digest
+        || value.roster_digest != live.series.frozen_roster_digest
+        || value.prediction_capsule_digest != prediction.capsule_digest
+        || value.prediction_journal_digest != journal.entry_digest
+        || value.outcome_plan_digest != plan.plan_digest
+        || value.event_timestamp_ms != live.epoch_registration.event_timestamp_ms
+        || value.required_outcome_timestamp_ms != [live.epoch_registration.outcome_timestamp_ms]
+        || value.outcome_finality_boundary_ms
+            != live.epoch_registration.outcome_finality_boundary_ms
+        || value.maximum_requests != 1
+        || value.maximum_retries != 0
+        || value.maximum_concurrency != 1
+        || value.provider_id != config.provider_id
+        || value.symbol != config.symbol
+        || contract.provider_id != value.provider_id
+        || contract.market_scope != AcquisitionMarketScope::BtcCrypto
+        || contract.dataset_kind != DatasetKind::DailyOhlcv
+        || contract.symbols != [value.symbol.clone()]
+        || contract.cadence != value.cadence
+        || !contract.credential_free
+        || !contract.read_only
+        || !contract.approved_for_network
+        || !contract.all_rows_finalized
+        || !contract.enabled
+    {
+        return Err("V4 event-two outcome registration binding rejected".to_string());
+    }
+    Ok(())
+}
+
+#[derive(Default)]
+struct SeriesOutcomeArtifacts {
+    registration: Option<MomentumOutcomeAcquisitionRegistrationV4_4>,
+    receipt: Option<MomentumOutcomeAcquisitionReceiptV4_4>,
+    proof: Option<MomentumOutcomeRowIdentityProofV4_4>,
+    capsule: Option<MomentumSealedOutcomeCapsuleV4_4>,
+    authorization: Option<MomentumOutcomeOpeningAuthorizationV4_4>,
+    opening_receipt: Option<MomentumOutcomeOpeningReceiptV4_4>,
+    opening_bundle: Option<MomentumOutcomeOpeningBundleV4_4>,
+    evaluations: Vec<MomentumParticipantProspectiveEvaluationV4_4>,
+    ledger: Option<MomentumProspectiveSeriesLedgerEntryV4>,
+    eligibility: Option<MomentumProspectiveSeriesEligibilityReceiptV4>,
+    pause: Option<LiveProspectiveContinuationPauseV2>,
+}
+
+fn read_all_series_evaluations(
+    root: &Path,
+) -> Result<Vec<MomentumParticipantProspectiveEvaluationV4_4>, String> {
+    let directory = root.join("participant_evaluations");
+    if !directory.exists() {
+        return Ok(Vec::new());
+    }
+    let mut paths = fs::read_dir(directory)
+        .map_err(|_| "V4 event-two evaluation directory read failed".to_string())?
+        .map(|entry| {
+            entry
+                .map(|entry| entry.path())
+                .map_err(|_| "V4 event-two evaluation entry read failed".to_string())
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    paths.retain(|path| path.extension().is_some_and(|extension| extension == "pb"));
+    paths.sort();
+    paths
+        .iter()
+        .map(|path| {
+            fs::read(path)
+                .map_err(|_| "V4 event-two evaluation read failed".to_string())
+                .and_then(|bytes| decode_series_evaluation(&bytes))
+        })
+        .collect()
+}
+
+fn reopen_series_outcome_artifacts(root: &Path) -> Result<SeriesOutcomeArtifacts, String> {
+    let outcome_root = series_outcome_root(root);
+    Ok(SeriesOutcomeArtifacts {
+        registration: read_single(
+            &outcome_root.join("outcome_registrations"),
+            decode_series_outcome_registration,
+        )?,
+        receipt: read_single(
+            &outcome_root.join("outcome_receipts"),
+            decode_series_outcome_receipt,
+        )?,
+        proof: read_single(
+            &outcome_root.join("outcome_row_proofs"),
+            decode_series_outcome_proof,
+        )?,
+        capsule: read_single(
+            &outcome_root.join("outcome_capsules"),
+            decode_series_outcome_capsule,
+        )?,
+        authorization: read_single(
+            &outcome_root.join("opening_authorizations"),
+            decode_series_opening_authorization,
+        )?,
+        opening_receipt: read_single(
+            &outcome_root.join("opening_receipts"),
+            decode_series_opening_receipt,
+        )?,
+        opening_bundle: read_single(
+            &outcome_root.join("opening_bundles"),
+            decode_series_opening_bundle,
+        )?,
+        evaluations: read_all_series_evaluations(&outcome_root)?,
+        ledger: read_single(
+            &outcome_root.join("evaluation_ledger"),
+            decode_series_ledger_entry,
+        )?,
+        eligibility: read_single(
+            &outcome_root.join("eligibility_receipts"),
+            decode_series_eligibility,
+        )?,
+        pause: read_single(
+            &series_root(root).join(COMPLETED_PAUSE_DIRECTORY),
+            decode_completed_pause,
+        )?,
+    })
+}
+
+fn validate_completed_series_outcome(
+    artifacts: &SeriesOutcomeArtifacts,
+    live: &MomentumProspectiveSeriesReportV4,
+    derived_registration: &MomentumOutcomeAcquisitionRegistrationV4_4,
+    prior_pause_digest: &str,
+) -> Result<(), String> {
+    let registration = artifacts
+        .registration
+        .as_ref()
+        .ok_or_else(|| "V4 completed outcome registration unavailable".to_string())?;
+    let receipt = artifacts
+        .receipt
+        .as_ref()
+        .ok_or_else(|| "V4 completed outcome receipt unavailable".to_string())?;
+    let proof = artifacts
+        .proof
+        .as_ref()
+        .ok_or_else(|| "V4 completed outcome proof unavailable".to_string())?;
+    let capsule = artifacts
+        .capsule
+        .as_ref()
+        .ok_or_else(|| "V4 completed outcome capsule unavailable".to_string())?;
+    let authorization = artifacts
+        .authorization
+        .as_ref()
+        .ok_or_else(|| "V4 completed opening authorization unavailable".to_string())?;
+    let opening_receipt = artifacts
+        .opening_receipt
+        .as_ref()
+        .ok_or_else(|| "V4 completed opening receipt unavailable".to_string())?;
+    let bundle = artifacts
+        .opening_bundle
+        .as_ref()
+        .ok_or_else(|| "V4 completed opening bundle unavailable".to_string())?;
+    let ledger = artifacts
+        .ledger
+        .as_ref()
+        .ok_or_else(|| "V4 completed event-two ledger unavailable".to_string())?;
+    let eligibility = artifacts
+        .eligibility
+        .as_ref()
+        .ok_or_else(|| "V4 completed eligibility unavailable".to_string())?;
+    let pause = artifacts
+        .pause
+        .as_ref()
+        .ok_or_else(|| "V4 completed pause unavailable".to_string())?;
+    let prediction = live
+        .prediction_capsule
+        .as_ref()
+        .ok_or_else(|| "V4 completed prediction capsule unavailable".to_string())?;
+    let journal = live
+        .journal_entry
+        .as_ref()
+        .ok_or_else(|| "V4 completed prediction journal unavailable".to_string())?;
+    let plan = live
+        .outcome_plan
+        .as_ref()
+        .ok_or_else(|| "V4 completed outcome plan unavailable".to_string())?;
+    let evaluation_digests = artifacts
+        .evaluations
+        .iter()
+        .map(|value| value.evaluation_digest.clone())
+        .collect::<BTreeSet<_>>();
+    let bundle_digests = bundle
+        .participant_evaluations
+        .iter()
+        .map(|value| value.evaluation_digest.clone())
+        .collect::<BTreeSet<_>>();
+    let ledger_digests = ledger
+        .participant_evaluation_digests
+        .iter()
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    if registration != derived_registration
+        || receipt.status != MomentumOutcomeAcquisitionStatusV4_4::EvidenceAcquired
+        || receipt.registration_digest != registration.registration_digest
+        || receipt.outcome_capsule_digest.as_deref() != Some(capsule.capsule_digest.as_str())
+        || proof.registration_digest != registration.registration_digest
+        || proof.outcome_row_digest != capsule.outcome_row_digest
+        || capsule.receipt_digest != receipt.receipt_digest
+        || capsule.prediction_capsule_digest != prediction.capsule_digest
+        || authorization.outcome_registration_digest != registration.registration_digest
+        || authorization.outcome_receipt_digest != receipt.receipt_digest
+        || authorization.outcome_capsule_digest != capsule.capsule_digest
+        || authorization.prediction_capsule_digest != prediction.capsule_digest
+        || authorization.prediction_journal_digest != journal.entry_digest
+        || opening_receipt.authorization_digest != authorization.authorization_digest
+        || opening_receipt.opening_bundle_digest != bundle.bundle_digest
+        || bundle.authorization_digest != authorization.authorization_digest
+        || bundle.outcome_capsule_digest != capsule.capsule_digest
+        || bundle.prediction_capsule_digest != prediction.capsule_digest
+        || artifacts.evaluations.len() != 3
+        || evaluation_digests != bundle_digests
+        || ledger.series_digest != live.series.series_digest
+        || ledger.epoch_registration_digest != live.epoch_registration.registration_digest
+        || ledger.prediction_capsule_digest != prediction.capsule_digest
+        || ledger.prediction_journal_digest != journal.entry_digest
+        || ledger.outcome_plan_digest != plan.plan_digest
+        || ledger.outcome_receipt_digest != receipt.receipt_digest
+        || ledger.outcome_capsule_digest != capsule.capsule_digest
+        || ledger.opening_authorization_digest != authorization.authorization_digest
+        || ledger.opening_bundle_digest != bundle.bundle_digest
+        || ledger_digests != bundle_digests
+        || eligibility.event_two_ledger_entry_digest != ledger.entry_digest
+        || eligibility.completed_event_count != ledger.total_event_count_after
+        || eligibility.scorable_event_count != ledger.scorable_event_count_after
+        || pause.prior_pause_digest != prior_pause_digest
+        || pause.event_two_ledger_entry_digest != ledger.entry_digest
+        || pause.eligibility_receipt_digest != eligibility.receipt_digest
+        || pause.completed_event_count != ledger.total_event_count_after
+        || pause.scorable_event_count != ledger.scorable_event_count_after
+    {
+        return Err("V4 completed event-two outcome chain rejected".to_string());
+    }
+    Ok(())
+}
+
+fn validate_series_acquisition_binding(
+    artifacts: &SeriesOutcomeArtifacts,
+    live: &MomentumProspectiveSeriesReportV4,
+    registration: &MomentumOutcomeAcquisitionRegistrationV4_4,
+) -> Result<(), String> {
+    let persisted_registration = artifacts
+        .registration
+        .as_ref()
+        .ok_or_else(|| "V4 event-two persisted registration unavailable".to_string())?;
+    let receipt = artifacts
+        .receipt
+        .as_ref()
+        .ok_or_else(|| "V4 event-two successful receipt unavailable".to_string())?;
+    let proof = artifacts
+        .proof
+        .as_ref()
+        .ok_or_else(|| "V4 event-two outcome proof unavailable".to_string())?;
+    let capsule = artifacts
+        .capsule
+        .as_ref()
+        .ok_or_else(|| "V4 event-two outcome capsule unavailable".to_string())?;
+    let prediction = live
+        .prediction_capsule
+        .as_ref()
+        .ok_or_else(|| "V4 event-two prediction capsule unavailable".to_string())?;
+    let plan = live
+        .outcome_plan
+        .as_ref()
+        .ok_or_else(|| "V4 event-two outcome plan unavailable".to_string())?;
+    if persisted_registration != registration
+        || receipt.status != MomentumOutcomeAcquisitionStatusV4_4::EvidenceAcquired
+        || receipt.registration_digest != registration.registration_digest
+        || receipt.prediction_capsule_digest != prediction.capsule_digest
+        || receipt.outcome_plan_digest != plan.plan_digest
+        || receipt.outcome_capsule_digest.as_deref() != Some(capsule.capsule_digest.as_str())
+        || proof.registration_digest != registration.registration_digest
+        || proof.prediction_capsule_digest != prediction.capsule_digest
+        || proof.input_capsule_digest != registration.input_capsule_digest
+        || proof.event_timestamp_ms != registration.event_timestamp_ms
+        || proof.outcome_timestamp_ms != registration.exact_expected_timestamp_ms[0]
+        || capsule.registration_digest != registration.registration_digest
+        || capsule.receipt_digest != receipt.receipt_digest
+        || capsule.prediction_capsule_digest != prediction.capsule_digest
+        || capsule.event_timestamp_ms != registration.event_timestamp_ms
+        || capsule.outcome_timestamp_ms != registration.exact_expected_timestamp_ms[0]
+        || capsule.outcome_row_digest != proof.outcome_row_digest
+    {
+        return Err("V4 event-two acquisition chain rejected".to_string());
+    }
+    Ok(())
+}
+
+fn validate_series_opening_bundle_binding(
+    live: &MomentumProspectiveSeriesReportV4,
+    authorization: &MomentumOutcomeOpeningAuthorizationV4_4,
+    capsule: &MomentumSealedOutcomeCapsuleV4_4,
+    bundle: &MomentumOutcomeOpeningBundleV4_4,
+) -> Result<(), String> {
+    validate_opening_authorization_shape(authorization)?;
+    validate_opening_bundle_shape(bundle)?;
+    let prediction = live
+        .prediction_capsule
+        .as_ref()
+        .ok_or_else(|| "V4 event-two prediction capsule unavailable".to_string())?;
+    let expected_seals = authorization
+        .participant_seal_digests
+        .iter()
+        .zip(&authorization.participant_prediction_digests)
+        .map(|(seal, prediction)| (seal.clone(), prediction.clone()))
+        .collect::<BTreeSet<_>>();
+    let evaluation_bindings = bundle
+        .participant_evaluations
+        .iter()
+        .map(|evaluation| {
+            (
+                evaluation.participant_seal_digest.clone(),
+                evaluation.prediction_digest.clone(),
+            )
+        })
+        .collect::<BTreeSet<_>>();
+    if bundle.authorization_digest != authorization.authorization_digest
+        || bundle.outcome_capsule_digest != capsule.capsule_digest
+        || bundle.prediction_capsule_digest != prediction.capsule_digest
+        || expected_seals != evaluation_bindings
+        || bundle
+            .participant_evaluations
+            .iter()
+            .any(|evaluation| evaluation.label_status != bundle.label_status)
+    {
+        return Err("V4 event-two opening bundle binding rejected".to_string());
+    }
+    Ok(())
+}
+
+fn series_outcome_readiness(
+    observed_timestamp_ms: u64,
+    registration: &MomentumOutcomeAcquisitionRegistrationV4_4,
+    artifacts: &SeriesOutcomeArtifacts,
+    live: &MomentumProspectiveSeriesReportV4,
+    prior_pause_digest: &str,
+) -> MomentumProspectiveOutcomeReadinessV4 {
+    if artifacts.ledger.is_some() {
+        return if validate_completed_series_outcome(
+            artifacts,
+            live,
+            registration,
+            prior_pause_digest,
+        )
+        .is_ok()
+        {
+            MomentumProspectiveOutcomeReadinessV4::OutcomeAlreadyOpened
+        } else {
+            MomentumProspectiveOutcomeReadinessV4::IntegrityFailure
+        };
+    }
+    if let Some(receipt) = artifacts
+        .receipt
+        .as_ref()
+        .filter(|receipt| receipt.status != MomentumOutcomeAcquisitionStatusV4_4::EvidenceAcquired)
+    {
+        let no_later_artifacts = artifacts.proof.is_none()
+            && artifacts.capsule.is_none()
+            && artifacts.authorization.is_none()
+            && artifacts.opening_receipt.is_none()
+            && artifacts.opening_bundle.is_none()
+            && artifacts.evaluations.is_empty()
+            && artifacts.eligibility.is_none()
+            && artifacts.pause.is_none();
+        let terminal_binding_valid = artifacts.registration.as_ref() == Some(registration)
+            && receipt.registration_digest == registration.registration_digest
+            && receipt.prediction_capsule_digest == registration.prediction_capsule_digest
+            && receipt.outcome_plan_digest == registration.outcome_plan_digest;
+        return if no_later_artifacts && terminal_binding_valid {
+            MomentumProspectiveOutcomeReadinessV4::PriorOutcomeAttemptTerminal
+        } else {
+            MomentumProspectiveOutcomeReadinessV4::IntegrityFailure
+        };
+    }
+    if artifacts.receipt.as_ref().is_some_and(|receipt| {
+        receipt.status == MomentumOutcomeAcquisitionStatusV4_4::EvidenceAcquired
+    }) && artifacts.capsule.is_some()
+    {
+        let acquisition_valid =
+            validate_series_acquisition_binding(artifacts, live, registration).is_ok();
+        let opening_shapes_valid = artifacts
+            .authorization
+            .as_ref()
+            .is_none_or(|value| validate_opening_authorization_shape(value).is_ok())
+            && artifacts
+                .opening_bundle
+                .as_ref()
+                .is_none_or(|value| validate_opening_bundle_shape(value).is_ok())
+            && artifacts
+                .opening_receipt
+                .as_ref()
+                .is_none_or(|value| validate_opening_receipt_shape(value).is_ok())
+            && artifacts
+                .evaluations
+                .iter()
+                .all(|value| validate_evaluation_shape(value).is_ok())
+            && artifacts
+                .eligibility
+                .as_ref()
+                .is_none_or(|value| validate_series_eligibility(value).is_ok())
+            && artifacts
+                .pause
+                .as_ref()
+                .is_none_or(|value| validate_completed_pause(value).is_ok());
+        let prefix_valid = (artifacts.authorization.is_some()
+            || (artifacts.opening_receipt.is_none()
+                && artifacts.opening_bundle.is_none()
+                && artifacts.evaluations.is_empty()
+                && artifacts.eligibility.is_none()
+                && artifacts.pause.is_none()))
+            && (artifacts.opening_bundle.is_some()
+                || (artifacts.opening_receipt.is_none()
+                    && artifacts.eligibility.is_none()
+                    && artifacts.pause.is_none()))
+            && (artifacts.opening_receipt.is_some()
+                || (artifacts.eligibility.is_none() && artifacts.pause.is_none()))
+            && (artifacts.eligibility.is_some() || artifacts.pause.is_none());
+        let opening_bindings_valid = artifacts.opening_bundle.as_ref().is_none_or(|bundle| {
+            let Some(authorization) = artifacts.authorization.as_ref() else {
+                return false;
+            };
+            let Some(capsule) = artifacts.capsule.as_ref() else {
+                return false;
+            };
+            let bundle_evaluation_digests = bundle
+                .participant_evaluations
+                .iter()
+                .map(|evaluation| evaluation.evaluation_digest.clone())
+                .collect::<BTreeSet<_>>();
+            validate_series_opening_bundle_binding(live, authorization, capsule, bundle).is_ok()
+                && artifacts.evaluations.iter().all(|evaluation| {
+                    bundle_evaluation_digests.contains(&evaluation.evaluation_digest)
+                })
+                && artifacts.opening_receipt.as_ref().is_none_or(|receipt| {
+                    receipt.authorization_digest == authorization.authorization_digest
+                        && receipt.opening_bundle_digest == bundle.bundle_digest
+                })
+        });
+        let completion_prefix_bindings_valid = artifacts.pause.as_ref().is_none_or(|pause| {
+            artifacts.eligibility.as_ref().is_some_and(|eligibility| {
+                pause.eligibility_receipt_digest == eligibility.receipt_digest
+                    && pause.completed_event_count == eligibility.completed_event_count
+                    && pause.scorable_event_count == eligibility.scorable_event_count
+            })
+        });
+        return if acquisition_valid
+            && opening_shapes_valid
+            && prefix_valid
+            && opening_bindings_valid
+            && completion_prefix_bindings_valid
+        {
+            MomentumProspectiveOutcomeReadinessV4::ReadyForOutcomeOpening
+        } else {
+            MomentumProspectiveOutcomeReadinessV4::IntegrityFailure
+        };
+    }
+    let partial_acquisition = artifacts.receipt.is_some()
+        || artifacts.proof.is_some()
+        || artifacts.capsule.is_some()
+        || artifacts.authorization.is_some()
+        || artifacts.opening_receipt.is_some()
+        || artifacts.opening_bundle.is_some()
+        || !artifacts.evaluations.is_empty()
+        || artifacts.eligibility.is_some()
+        || artifacts.pause.is_some();
+    if partial_acquisition {
+        return MomentumProspectiveOutcomeReadinessV4::IntegrityFailure;
+    }
+    if observed_timestamp_ms < registration.outcome_finality_boundary_ms {
+        MomentumProspectiveOutcomeReadinessV4::AwaitingOutcomeFinality
+    } else {
+        MomentumProspectiveOutcomeReadinessV4::ReadyForOutcomeAcquisition
+    }
+}
+
+fn persist_series_outcome_pb(
+    root: &Path,
+    category: &str,
+    digest: &str,
+    bytes: &[u8],
+    decode_digest: impl Fn(&[u8]) -> Result<String, String>,
+) -> Result<(usize, usize), String> {
+    persist_artifact(
+        &series_outcome_root(root)
+            .join(category)
+            .join(format!("{digest}.pb")),
+        bytes,
+        digest,
+        decode_digest,
+    )
+}
+
+fn persist_series_outcome_raw(
+    root: &Path,
+    digest: &str,
+    bytes: &[u8],
+) -> Result<(usize, usize), String> {
+    persist_artifact(
+        &series_outcome_root(root)
+            .join("raw_outcome")
+            .join(format!("{digest}.json")),
+        bytes,
+        digest,
+        |stored| Ok(raw_outcome_digest(stored)),
+    )
+}
+
+fn read_single_series_outcome_raw(root: &Path) -> Result<Option<(String, Vec<u8>)>, String> {
+    let directory = series_outcome_root(root).join("raw_outcome");
+    if !directory.exists() {
+        return Ok(None);
+    }
+    let mut paths = fs::read_dir(directory)
+        .map_err(|_| "V4 event-two raw outcome directory read failed".to_string())?
+        .map(|entry| {
+            entry
+                .map(|entry| entry.path())
+                .map_err(|_| "V4 event-two raw outcome entry read failed".to_string())
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    paths.retain(|path| {
+        path.extension()
+            .is_some_and(|extension| extension == "json")
+    });
+    paths.sort();
+    if paths.len() != 1 {
+        return Err("V4 event-two raw outcome identity rejected".to_string());
+    }
+    let digest = paths[0]
+        .file_stem()
+        .and_then(|value| value.to_str())
+        .ok_or_else(|| "V4 event-two raw outcome filename rejected".to_string())?
+        .to_string();
+    let bytes =
+        fs::read(&paths[0]).map_err(|_| "V4 event-two raw outcome read failed".to_string())?;
+    if raw_outcome_digest(&bytes) != digest {
+        return Err("V4 event-two raw outcome digest rejected".to_string());
+    }
+    Ok(Some((digest, bytes)))
+}
+
+fn event_two_input_row(
+    root: &Path,
+    live: &MomentumProspectiveSeriesReportV4,
+    registration: &MomentumOutcomeAcquisitionRegistrationV4_4,
+) -> Result<(String, HistoricalOhlcvRow), String> {
+    let capsule = live
+        .input_capsule
+        .as_ref()
+        .ok_or_else(|| "V4 event-two input capsule unavailable".to_string())?;
+    let raw = fs::read(
+        series_root(root)
+            .join("raw_input")
+            .join(format!("{}.json", capsule.raw_response_digest)),
+    )
+    .map_err(|_| "V4 event-two input raw evidence unavailable".to_string())?;
+    if stable_hash_string(&format!("momentum-v4-series-raw-input:{raw:?}"))
+        != capsule.raw_response_digest
+        || !sanitized_raw_response(&raw, registration.maximum_response_bytes)
+    {
+        return Err("V4 event-two input raw evidence rejected".to_string());
+    }
+    let dataset = parse_upbit_daily_ohlcv_v0(
+        std::str::from_utf8(&raw)
+            .map_err(|_| "V4 event-two input raw encoding rejected".to_string())?,
+        &registration.symbol,
+    )?;
+    let row = dataset
+        .rows
+        .iter()
+        .find(|row| row.timestamp_ms == registration.event_timestamp_ms)
+        .cloned()
+        .ok_or_else(|| "V4 event-two input event row unavailable".to_string())?;
+    let row_digests = dataset
+        .rows
+        .iter()
+        .map(row_identity_digest)
+        .collect::<Vec<_>>();
+    if row_digests != capsule.row_identity_digests || !valid_series_row(&row, &registration.symbol)
+    {
+        return Err("V4 event-two input row identity rejected".to_string());
+    }
+    Ok((capsule.raw_response_digest.clone(), row))
+}
+
+fn valid_series_row(row: &HistoricalOhlcvRow, symbol: &str) -> bool {
+    row.symbol == symbol && valid_outcome_ohlcv(row)
+}
+
+fn build_series_outcome_proof(
+    root: &Path,
+    live: &MomentumProspectiveSeriesReportV4,
+    registration: &MomentumOutcomeAcquisitionRegistrationV4_4,
+    outcome_row: &HistoricalOhlcvRow,
+    raw_outcome_response: &[u8],
+) -> Result<MomentumOutcomeRowIdentityProofV4_4, String> {
+    let (raw_input_response_digest, input_row) = event_two_input_row(root, live, registration)?;
+    if outcome_row.timestamp_ms != registration.exact_expected_timestamp_ms[0]
+        || outcome_row.timestamp_ms == input_row.timestamp_ms
+        || !valid_series_row(outcome_row, &registration.symbol)
+    {
+        return Err("V4 event-two outcome row proof input rejected".to_string());
+    }
+    let mut value = MomentumOutcomeRowIdentityProofV4_4 {
+        proof_version: ROW_PROOF_VERSION.to_string(),
+        registration_digest: registration.registration_digest.clone(),
+        prediction_capsule_digest: registration.prediction_capsule_digest.clone(),
+        input_capsule_digest: registration.input_capsule_digest.clone(),
+        event_timestamp_ms: registration.event_timestamp_ms,
+        outcome_timestamp_ms: outcome_row.timestamp_ms,
+        input_event_row_digest: row_identity_digest(&input_row),
+        outcome_row_digest: row_identity_digest(outcome_row),
+        raw_input_response_digest,
+        raw_outcome_response_digest: raw_outcome_digest(raw_outcome_response),
+        exact_timestamp_verified: true,
+        strict_single_row_verified: true,
+        finalized: true,
+        sanitized: true,
+        credential_free: true,
+        read_only: true,
+        proof_digest: String::new(),
+    };
+    value.proof_digest = row_proof_digest(&value);
+    validate_series_outcome_proof(&value)?;
+    Ok(value)
+}
+
+fn build_series_success_receipt_and_capsule(
+    registration: &MomentumOutcomeAcquisitionRegistrationV4_4,
+    proof: &MomentumOutcomeRowIdentityProofV4_4,
+) -> Result<
+    (
+        MomentumOutcomeAcquisitionReceiptV4_4,
+        MomentumSealedOutcomeCapsuleV4_4,
+    ),
+    String,
+> {
+    let mut receipt = MomentumOutcomeAcquisitionReceiptV4_4 {
+        receipt_version: RECEIPT_VERSION.to_string(),
+        registration_digest: registration.registration_digest.clone(),
+        prediction_capsule_digest: registration.prediction_capsule_digest.clone(),
+        outcome_plan_digest: registration.outcome_plan_digest.clone(),
+        request_attempt_count: 1,
+        retry_count: 0,
+        http_status_class: Some(200),
+        returned_row_count: 1,
+        verified_row_count: 1,
+        outcome_capsule_digest: None,
+        status: MomentumOutcomeAcquisitionStatusV4_4::EvidenceAcquired,
+        receipt_digest: String::new(),
+    };
+    receipt.receipt_digest = series_outcome_receipt_digest(&receipt);
+    let mut capsule = MomentumSealedOutcomeCapsuleV4_4 {
+        capsule_version: CAPSULE_VERSION.to_string(),
+        registration_digest: registration.registration_digest.clone(),
+        receipt_digest: receipt.receipt_digest.clone(),
+        prediction_capsule_digest: registration.prediction_capsule_digest.clone(),
+        event_timestamp_ms: registration.event_timestamp_ms,
+        outcome_timestamp_ms: proof.outcome_timestamp_ms,
+        outcome_row_digest: proof.outcome_row_digest.clone(),
+        labels_opened: false,
+        probabilities_opened: false,
+        metrics_computed: false,
+        winner_selected: false,
+        reward_applied: false,
+        penalty_applied: false,
+        capsule_digest: String::new(),
+    };
+    capsule.capsule_digest = sealed_outcome_capsule_digest(&capsule);
+    receipt.outcome_capsule_digest = Some(capsule.capsule_digest.clone());
+    validate_series_outcome_receipt(&receipt)?;
+    validate_series_outcome_capsule(&capsule)?;
+    Ok((receipt, capsule))
+}
+
+fn build_series_terminal_receipt(
+    registration: &MomentumOutcomeAcquisitionRegistrationV4_4,
+    status: MomentumOutcomeAcquisitionStatusV4_4,
+    http_status_class: Option<u16>,
+    returned_row_count: usize,
+) -> Result<MomentumOutcomeAcquisitionReceiptV4_4, String> {
+    let mut value = MomentumOutcomeAcquisitionReceiptV4_4 {
+        receipt_version: RECEIPT_VERSION.to_string(),
+        registration_digest: registration.registration_digest.clone(),
+        prediction_capsule_digest: registration.prediction_capsule_digest.clone(),
+        outcome_plan_digest: registration.outcome_plan_digest.clone(),
+        request_attempt_count: 1,
+        retry_count: 0,
+        http_status_class,
+        returned_row_count,
+        verified_row_count: 0,
+        outcome_capsule_digest: None,
+        status,
+        receipt_digest: String::new(),
+    };
+    value.receipt_digest = series_outcome_receipt_digest(&value);
+    validate_series_outcome_receipt(&value)?;
+    Ok(value)
+}
+
+fn persist_series_success_acquisition(
+    root: &Path,
+    raw: &[u8],
+    proof: &MomentumOutcomeRowIdentityProofV4_4,
+    receipt: &MomentumOutcomeAcquisitionReceiptV4_4,
+    capsule: &MomentumSealedOutcomeCapsuleV4_4,
+) -> Result<(usize, usize), String> {
+    let mut counts = (0, 0);
+    add_counts(
+        &mut counts,
+        persist_series_outcome_raw(root, &proof.raw_outcome_response_digest, raw)?,
+    );
+    add_counts(
+        &mut counts,
+        persist_series_outcome_pb(
+            root,
+            "outcome_row_proofs",
+            &proof.proof_digest,
+            &encode_series_outcome_proof(proof)?,
+            |bytes| Ok(decode_series_outcome_proof(bytes)?.proof_digest),
+        )?,
+    );
+    add_counts(
+        &mut counts,
+        persist_series_outcome_pb(
+            root,
+            "outcome_receipts",
+            &receipt.receipt_digest,
+            &encode_series_outcome_receipt(receipt)?,
+            |bytes| Ok(decode_series_outcome_receipt(bytes)?.receipt_digest),
+        )?,
+    );
+    add_counts(
+        &mut counts,
+        persist_series_outcome_pb(
+            root,
+            "outcome_capsules",
+            &capsule.capsule_digest,
+            &encode_series_outcome_capsule(capsule)?,
+            |bytes| Ok(decode_series_outcome_capsule(bytes)?.capsule_digest),
+        )?,
+    );
+    Ok(counts)
+}
+
+fn ordered_event_two_seals(
+    root: &Path,
+    live: &MomentumProspectiveSeriesReportV4,
+) -> Result<Vec<MomentumSeriesParticipantPredictionSealV4>, String> {
+    let capsule = live
+        .prediction_capsule
+        .as_ref()
+        .ok_or_else(|| "V4 event-two prediction capsule unavailable".to_string())?;
+    let stored = reopen_prediction_seals(&series_root(root))?;
+    let by_digest = stored
+        .into_iter()
+        .map(|seal| (seal.seal_digest.clone(), seal))
+        .collect::<BTreeMap<_, _>>();
+    let mut ordered = Vec::with_capacity(3);
+    for (seal_digest, prediction_digest) in capsule
+        .participant_seal_digests
+        .iter()
+        .zip(&capsule.participant_prediction_digests)
+    {
+        let seal = by_digest
+            .get(seal_digest)
+            .ok_or_else(|| "V4 event-two participant seal unavailable".to_string())?;
+        if seal.prediction_digest != *prediction_digest
+            || seal.epoch_number != live.epoch_registration.epoch_number
+            || seal.epoch_registration_digest != live.epoch_registration.registration_digest
+            || seal.event_timestamp_ms != live.epoch_registration.event_timestamp_ms
+        {
+            return Err("V4 event-two participant seal binding rejected".to_string());
+        }
+        ordered.push(seal.clone());
+    }
+    if ordered.len() != 3
+        || ordered
+            .iter()
+            .map(|seal| &seal.participant_digest)
+            .collect::<BTreeSet<_>>()
+            .len()
+            != 3
+        || by_digest.len() != 3
+    {
+        return Err("V4 event-two participant roster rejected".to_string());
+    }
+    Ok(ordered)
+}
+
+fn derive_series_opening_authorization(
+    root: &Path,
+    live: &MomentumProspectiveSeriesReportV4,
+    registration: &MomentumOutcomeAcquisitionRegistrationV4_4,
+    receipt: &MomentumOutcomeAcquisitionReceiptV4_4,
+    capsule: &MomentumSealedOutcomeCapsuleV4_4,
+) -> Result<MomentumOutcomeOpeningAuthorizationV4_4, String> {
+    let prediction = live
+        .prediction_capsule
+        .as_ref()
+        .ok_or_else(|| "V4 event-two prediction capsule unavailable".to_string())?;
+    let journal = live
+        .journal_entry
+        .as_ref()
+        .ok_or_else(|| "V4 event-two prediction journal unavailable".to_string())?;
+    let seals = ordered_event_two_seals(root, live)?;
+    let mut value = MomentumOutcomeOpeningAuthorizationV4_4 {
+        authorization_version: OPENING_AUTHORIZATION_VERSION.to_string(),
+        outcome_registration_digest: registration.registration_digest.clone(),
+        outcome_receipt_digest: receipt.receipt_digest.clone(),
+        outcome_capsule_digest: capsule.capsule_digest.clone(),
+        prediction_capsule_digest: prediction.capsule_digest.clone(),
+        prediction_journal_digest: journal.entry_digest.clone(),
+        participant_seal_digests: seals.iter().map(|seal| seal.seal_digest.clone()).collect(),
+        participant_prediction_digests: seals
+            .iter()
+            .map(|seal| seal.prediction_digest.clone())
+            .collect(),
+        feature_policy_digest: live.series.feature_policy_digest.clone(),
+        label_policy_digest: frozen_label_policy_digest(),
+        evaluation_policy_digest: evaluation_policy_digest(),
+        opening_attempt_count_before: 0,
+        opened_event_count_before: 0,
+        explicit_owner_authorization: true,
+        one_time_only: true,
+        winner_selection_forbidden: true,
+        ranking_forbidden: true,
+        reward_application_forbidden: true,
+        penalty_application_forbidden: true,
+        chair_action_forbidden: true,
+        voice_mutation_forbidden: true,
+        promotion_forbidden: true,
+        trading_forbidden: true,
+        authorization_digest: String::new(),
+    };
+    value.authorization_digest = authorization_digest(&value);
+    validate_opening_authorization_shape(&value)?;
+    if receipt.status != MomentumOutcomeAcquisitionStatusV4_4::EvidenceAcquired
+        || receipt.outcome_capsule_digest.as_deref() != Some(capsule.capsule_digest.as_str())
+        || capsule.receipt_digest != receipt.receipt_digest
+        || capsule.prediction_capsule_digest != prediction.capsule_digest
+        || value.participant_seal_digests != prediction.participant_seal_digests
+        || value.participant_prediction_digests != prediction.participant_prediction_digests
+    {
+        return Err("V4 event-two opening authorization binding rejected".to_string());
+    }
+    Ok(value)
+}
+
+fn reopen_event_two_opening_closes(
+    root: &Path,
+    live: &MomentumProspectiveSeriesReportV4,
+    registration: &MomentumOutcomeAcquisitionRegistrationV4_4,
+    proof: &MomentumOutcomeRowIdentityProofV4_4,
+) -> Result<(f64, f64), String> {
+    let (_, input_row) = event_two_input_row(root, live, registration)?;
+    if row_identity_digest(&input_row) != proof.input_event_row_digest {
+        return Err("V4 event-two opening input identity rejected".to_string());
+    }
+    let (raw_digest, raw) = read_single_series_outcome_raw(root)?
+        .ok_or_else(|| "V4 event-two opening raw outcome unavailable".to_string())?;
+    if raw_digest != proof.raw_outcome_response_digest
+        || !sanitized_raw_response(&raw, registration.maximum_response_bytes)
+    {
+        return Err("V4 event-two opening raw outcome rejected".to_string());
+    }
+    let dataset = parse_upbit_daily_ohlcv_v0(
+        std::str::from_utf8(&raw)
+            .map_err(|_| "V4 event-two opening raw encoding rejected".to_string())?,
+        &registration.symbol,
+    )?;
+    if dataset.rows.len() != 1 {
+        return Err("V4 event-two opening row count rejected".to_string());
+    }
+    let outcome_row = &dataset.rows[0];
+    if outcome_row.timestamp_ms != registration.exact_expected_timestamp_ms[0]
+        || row_identity_digest(outcome_row) != proof.outcome_row_digest
+        || !valid_series_row(outcome_row, &registration.symbol)
+    {
+        return Err("V4 event-two opening outcome identity rejected".to_string());
+    }
+    Ok((input_row.close, outcome_row.close))
+}
+
+fn build_series_evaluations(
+    root: &Path,
+    live: &MomentumProspectiveSeriesReportV4,
+    proof: &MomentumOutcomeRowIdentityProofV4_4,
+    label_status: MomentumProspectiveLabelStatusV4_4,
+    label: Option<bool>,
+    return_bits: u64,
+) -> Result<Vec<MomentumParticipantProspectiveEvaluationV4_4>, String> {
+    let seals = ordered_event_two_seals(root, live)?;
+    let values = seals
+        .iter()
+        .map(|seal| {
+            build_participant_evaluation_v4_4(
+                &seal.participant_digest,
+                &seal.participant_role,
+                &seal.seal_digest,
+                &seal.prediction_digest,
+                seal.prediction_probability_bits,
+                seal.event_timestamp_ms,
+                proof,
+                label_status,
+                label,
+                return_bits,
+            )
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    if values.len() != 3 {
+        return Err("V4 event-two evaluation count rejected".to_string());
+    }
+    Ok(values)
+}
+
+fn build_series_opening_bundle(
+    live: &MomentumProspectiveSeriesReportV4,
+    authorization: &MomentumOutcomeOpeningAuthorizationV4_4,
+    capsule: &MomentumSealedOutcomeCapsuleV4_4,
+    label_status: MomentumProspectiveLabelStatusV4_4,
+    evaluations: Vec<MomentumParticipantProspectiveEvaluationV4_4>,
+) -> Result<MomentumOutcomeOpeningBundleV4_4, String> {
+    let prediction = live
+        .prediction_capsule
+        .as_ref()
+        .ok_or_else(|| "V4 event-two prediction capsule unavailable".to_string())?;
+    let mut value = MomentumOutcomeOpeningBundleV4_4 {
+        bundle_version: OPENING_BUNDLE_VERSION.to_string(),
+        authorization_digest: authorization.authorization_digest.clone(),
+        outcome_capsule_digest: capsule.capsule_digest.clone(),
+        prediction_capsule_digest: prediction.capsule_digest.clone(),
+        opening_attempt_count: 1,
+        opened_event_count: 1,
+        label_status,
+        participant_evaluations: evaluations,
+        metrics_computed: label_status == MomentumProspectiveLabelStatusV4_4::ScorableBinaryOutcome,
+        winner_selected: false,
+        ranking_created: false,
+        reward_applied: false,
+        penalty_applied: false,
+        chair_action_taken: false,
+        bundle_digest: String::new(),
+    };
+    value.bundle_digest = opening_bundle_digest(&value);
+    validate_opening_bundle_shape(&value)?;
+    Ok(value)
+}
+
+fn build_series_opening_receipt(
+    authorization: &MomentumOutcomeOpeningAuthorizationV4_4,
+    bundle: &MomentumOutcomeOpeningBundleV4_4,
+) -> Result<MomentumOutcomeOpeningReceiptV4_4, String> {
+    let mut value = MomentumOutcomeOpeningReceiptV4_4 {
+        receipt_version: OPENING_RECEIPT_VERSION.to_string(),
+        authorization_digest: authorization.authorization_digest.clone(),
+        opening_bundle_digest: bundle.bundle_digest.clone(),
+        opening_attempt_count: 1,
+        opened_event_count: 1,
+        status: if bundle.label_status == MomentumProspectiveLabelStatusV4_4::NeutralOutcomeExcluded
+        {
+            MomentumOutcomeOpeningStatusV4_4::NeutralOutcomeOpened
+        } else {
+            MomentumOutcomeOpeningStatusV4_4::Opened
+        },
+        receipt_digest: String::new(),
+    };
+    value.receipt_digest = opening_receipt_digest(&value);
+    validate_opening_receipt_shape(&value)?;
+    Ok(value)
+}
+
+fn build_series_ledger_and_eligibility(
+    root: &Path,
+    live: &MomentumProspectiveSeriesReportV4,
+    receipt: &MomentumOutcomeAcquisitionReceiptV4_4,
+    capsule: &MomentumSealedOutcomeCapsuleV4_4,
+    authorization: &MomentumOutcomeOpeningAuthorizationV4_4,
+    bundle: &MomentumOutcomeOpeningBundleV4_4,
+    prior_pause_digest: &str,
+) -> Result<
+    (
+        MomentumProspectiveSeriesLedgerEntryV4,
+        MomentumProspectiveSeriesEligibilityReceiptV4,
+        LiveProspectiveContinuationPauseV2,
+    ),
+    String,
+> {
+    let input_receipt = live
+        .input_receipt
+        .as_ref()
+        .ok_or_else(|| "V4 event-two input receipt unavailable".to_string())?;
+    let input_capsule = live
+        .input_capsule
+        .as_ref()
+        .ok_or_else(|| "V4 event-two input capsule unavailable".to_string())?;
+    let context = live
+        .context_use_proof
+        .as_ref()
+        .ok_or_else(|| "V4 event-two context proof unavailable".to_string())?;
+    let prediction = live
+        .prediction_capsule
+        .as_ref()
+        .ok_or_else(|| "V4 event-two prediction capsule unavailable".to_string())?;
+    let journal = live
+        .journal_entry
+        .as_ref()
+        .ok_or_else(|| "V4 event-two prediction journal unavailable".to_string())?;
+    let plan = live
+        .outcome_plan
+        .as_ref()
+        .ok_or_else(|| "V4 event-two outcome plan unavailable".to_string())?;
+    let completed_event_count = live.event_one_adoption.total_event_count + 1;
+    let scorable_event_count = live.event_one_adoption.scorable_event_count
+        + usize::from(
+            bundle.label_status == MomentumProspectiveLabelStatusV4_4::ScorableBinaryOutcome,
+        );
+    let mut ledger = MomentumProspectiveSeriesLedgerEntryV4 {
+        ledger_version: SERIES_LEDGER_VERSION.to_string(),
+        previous_event_ledger_entry_digest: live
+            .event_one_adoption
+            .evaluation_ledger_entry_digest
+            .clone(),
+        series_digest: live.series.series_digest.clone(),
+        epoch_registration_digest: live.epoch_registration.registration_digest.clone(),
+        input_receipt_digest: input_receipt.receipt_digest.clone(),
+        input_capsule_digest: input_capsule.capsule_digest.clone(),
+        context_proof_digest: context.proof_digest.clone(),
+        participant_seal_digests: prediction.participant_seal_digests.clone(),
+        prediction_capsule_digest: prediction.capsule_digest.clone(),
+        prediction_journal_digest: journal.entry_digest.clone(),
+        outcome_plan_digest: plan.plan_digest.clone(),
+        outcome_receipt_digest: receipt.receipt_digest.clone(),
+        outcome_capsule_digest: capsule.capsule_digest.clone(),
+        opening_authorization_digest: authorization.authorization_digest.clone(),
+        opening_bundle_digest: bundle.bundle_digest.clone(),
+        label_status: bundle.label_status,
+        participant_evaluation_digests: bundle
+            .participant_evaluations
+            .iter()
+            .map(|value| value.evaluation_digest.clone())
+            .collect(),
+        total_event_count_after: completed_event_count,
+        scorable_event_count_after: scorable_event_count,
+        winner_selected: false,
+        ranking_created: false,
+        reward_applied: false,
+        penalty_applied: false,
+        chair_action_taken: false,
+        trading_action_taken: false,
+        entry_digest: String::new(),
+    };
+    ledger.entry_digest = series_ledger_entry_digest(&ledger);
+    validate_series_ledger_entry(&ledger)?;
+    let participant_roles = ordered_event_two_seals(root, live)?
+        .iter()
+        .map(|seal| seal.participant_role.clone())
+        .collect::<Vec<_>>();
+    let minimum_sample_gate = MomentumLearningCampaignConfigV0::default().minimum_test_samples;
+    let integrity_verified = participant_roles.len() == 3
+        && participant_roles.iter().cloned().collect::<BTreeSet<_>>()
+            == [
+                "RawFeatureLogisticV4",
+                "RawFeatureInteractionLogisticV4",
+                "TrainingPrevalenceConstantV4",
+            ]
+            .into_iter()
+            .map(str::to_string)
+            .collect::<BTreeSet<_>>();
+    let status = if !integrity_verified {
+        MomentumProspectiveSeriesEligibilityV4::IntegrityFailure
+    } else if scorable_event_count < minimum_sample_gate {
+        MomentumProspectiveSeriesEligibilityV4::IneligibleMinimumSamples
+    } else {
+        MomentumProspectiveSeriesEligibilityV4::EligibleForShadowRewardAssessment
+    };
+    let mut eligibility = MomentumProspectiveSeriesEligibilityReceiptV4 {
+        receipt_version: SERIES_ELIGIBILITY_VERSION.to_string(),
+        event_one_eligibility_digest: live.event_one_adoption.reward_eligibility_digest.clone(),
+        event_two_ledger_entry_digest: ledger.entry_digest.clone(),
+        participant_roles,
+        completed_event_count,
+        scorable_event_count,
+        minimum_sample_gate,
+        status,
+        integrity_verified,
+        reward_application_count: 0,
+        penalty_application_count: 0,
+        receipt_digest: String::new(),
+    };
+    eligibility.receipt_digest = series_eligibility_digest(&eligibility);
+    validate_series_eligibility(&eligibility)?;
+    let mut pause = LiveProspectiveContinuationPauseV2 {
+        pause_version: COMPLETED_PAUSE_VERSION.to_string(),
+        policy: LiveProspectiveContinuationPolicyV2::PausedAfterCompletedEpochTwo,
+        prior_pause_digest: prior_pause_digest.to_string(),
+        event_two_ledger_entry_digest: ledger.entry_digest.clone(),
+        completed_event_count,
+        scorable_event_count,
+        eligibility_receipt_digest: eligibility.receipt_digest.clone(),
+        epoch_three_registered: false,
+        historical_challenger_research_prioritized: true,
+        scheduler_count: 0,
+        automatic_registration_count: 0,
+        network_authority_count: 0,
+        pause_digest: String::new(),
+    };
+    pause.pause_digest = completed_pause_digest(&pause);
+    validate_completed_pause(&pause)?;
+    Ok((ledger, eligibility, pause))
+}
+
+fn persist_series_opening(
+    root: &Path,
+    authorization: &MomentumOutcomeOpeningAuthorizationV4_4,
+    bundle: &MomentumOutcomeOpeningBundleV4_4,
+    opening_receipt: &MomentumOutcomeOpeningReceiptV4_4,
+    ledger: &MomentumProspectiveSeriesLedgerEntryV4,
+    eligibility: &MomentumProspectiveSeriesEligibilityReceiptV4,
+    pause: &LiveProspectiveContinuationPauseV2,
+) -> Result<(usize, usize), String> {
+    let mut counts = (0, 0);
+    validate_opening_authorization_shape(authorization)?;
+    if bundle.authorization_digest != authorization.authorization_digest {
+        return Err("V4 event-two opening authorization changed".to_string());
+    }
+    for evaluation in &bundle.participant_evaluations {
+        add_counts(
+            &mut counts,
+            persist_series_outcome_pb(
+                root,
+                "participant_evaluations",
+                &evaluation.evaluation_digest,
+                &encode_series_evaluation(evaluation)?,
+                |bytes| Ok(decode_series_evaluation(bytes)?.evaluation_digest),
+            )?,
+        );
+    }
+    add_counts(
+        &mut counts,
+        persist_series_outcome_pb(
+            root,
+            "opening_bundles",
+            &bundle.bundle_digest,
+            &encode_series_opening_bundle(bundle)?,
+            |bytes| Ok(decode_series_opening_bundle(bytes)?.bundle_digest),
+        )?,
+    );
+    add_counts(
+        &mut counts,
+        persist_series_outcome_pb(
+            root,
+            "opening_receipts",
+            &opening_receipt.receipt_digest,
+            &encode_series_opening_receipt(opening_receipt)?,
+            |bytes| Ok(decode_series_opening_receipt(bytes)?.receipt_digest),
+        )?,
+    );
+    add_counts(
+        &mut counts,
+        persist_series_outcome_pb(
+            root,
+            "eligibility_receipts",
+            &eligibility.receipt_digest,
+            &encode_series_eligibility(eligibility)?,
+            |bytes| Ok(decode_series_eligibility(bytes)?.receipt_digest),
+        )?,
+    );
+    add_counts(
+        &mut counts,
+        persist_artifact(
+            &series_root(root)
+                .join(COMPLETED_PAUSE_DIRECTORY)
+                .join(format!("{}.pb", pause.pause_digest)),
+            &encode_completed_pause(pause)?,
+            &pause.pause_digest,
+            |bytes| Ok(decode_completed_pause(bytes)?.pause_digest),
+        )?,
+    );
+    // The ledger is the completion marker and is intentionally persisted last.
+    add_counts(
+        &mut counts,
+        persist_series_outcome_pb(
+            root,
+            "evaluation_ledger",
+            &ledger.entry_digest,
+            &encode_series_ledger_entry(ledger)?,
+            |bytes| Ok(decode_series_ledger_entry(bytes)?.entry_digest),
+        )?,
+    );
+    Ok(counts)
+}
+
+fn persist_series_outcome_registration(
+    root: &Path,
+    registration: &MomentumOutcomeAcquisitionRegistrationV4_4,
+) -> Result<(usize, usize), String> {
+    persist_series_outcome_pb(
+        root,
+        "outcome_registrations",
+        &registration.registration_digest,
+        &encode_series_outcome_registration(registration)?,
+        |bytes| Ok(decode_series_outcome_registration(bytes)?.registration_digest),
+    )
+}
+
+fn persist_series_terminal_receipt(
+    root: &Path,
+    receipt: &MomentumOutcomeAcquisitionReceiptV4_4,
+) -> Result<(usize, usize), String> {
+    persist_series_outcome_pb(
+        root,
+        "outcome_receipts",
+        &receipt.receipt_digest,
+        &encode_series_outcome_receipt(receipt)?,
+        |bytes| Ok(decode_series_outcome_receipt(bytes)?.receipt_digest),
+    )
+}
+
+fn validate_prospective_outcome_status(
+    value: &MomentumProspectiveOutcomeStatusV4,
+) -> Result<(), String> {
+    let zero_authority = [
+        value.safety_counters.winner_selections,
+        value.safety_counters.ranking_creations,
+        value.safety_counters.reward_applications,
+        value.safety_counters.penalty_applications,
+        value.safety_counters.chair_model_executions,
+        value.safety_counters.chair_learning_actions,
+        value.safety_counters.chair_decisions,
+        value.safety_counters.committee_votes,
+        value.safety_counters.voice_changes,
+        value.safety_counters.tier_changes,
+        value.safety_counters.cooldowns,
+        value.safety_counters.promotions,
+        value.safety_counters.quarantines,
+        value.safety_counters.paper_executions,
+        value.safety_counters.live_executions,
+        value.safety_counters.epoch_three_registrations,
+    ]
+    .into_iter()
+    .all(|value| value == 0);
+    if value.series_digest.is_empty()
+        || value.epoch_number != 2
+        || value.event_timestamp_ms == 0
+        || value.required_outcome_timestamp_ms
+            != value.event_timestamp_ms.saturating_add(DAILY_CADENCE_MS)
+        || value.outcome_finality_boundary_ms
+            != value
+                .required_outcome_timestamp_ms
+                .saturating_add(DAILY_CADENCE_MS)
+        || value.prediction_capsule_digest.is_empty()
+        || value.prediction_journal_digest.is_empty()
+        || value.outcome_plan_digest.is_empty()
+        || value.provider_id != "upbit"
+        || value.market != "btc_crypto"
+        || value.symbol != "KRW-BTC"
+        || value.cadence != "1d"
+        || value.request_start_timestamp_ms != value.required_outcome_timestamp_ms
+        || value.request_end_timestamp_ms != value.outcome_finality_boundary_ms
+        || value.request_fingerprint.is_empty()
+        || value.maximum_requests != 1
+        || value.maximum_retries != 0
+        || value.maximum_concurrency != 1
+        || value.prior_attempt_count > 1
+        || value.completed_event_count == 0
+        || value.scorable_event_count > value.completed_event_count
+        || value.protected_live_artifact_count == 0
+        || value.protected_live_aggregate_digest.is_empty()
+        || value.event_one_chain_digest.is_empty()
+        || value.event_two_sealed_chain_digest.is_empty()
+        || value.historical_store_digest.is_empty()
+        || value.qualified_six_replay_digest.is_empty()
+        || value.diagnostic_store_digest.is_empty()
+        || value.active_roster_digest.is_empty()
+        || value.participant_parameter_digests.len() != 3
+        || value.participant_normalizer_digests.len() != 3
+        || value.feature_policy_digest.is_empty()
+        || value.label_policy_digest != frozen_label_policy_digest()
+        || value.prior_pause_digest.is_empty()
+        || value.epoch_three_registered
+        || !zero_authority
+        || value.safety_counters.retries != 0
+        || value.safety_counters.maximum_observed_concurrency > 1
+        || !value.protected_artifacts_unchanged
+        || !value.active_state_unchanged
+        || value.status_digest != prospective_outcome_status_digest(value)
+    {
+        return Err("V4 prospective outcome status rejected".to_string());
+    }
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn build_prospective_outcome_status(
+    live: &MomentumProspectiveSeriesReportV4,
+    registration: &MomentumOutcomeAcquisitionRegistrationV4_4,
+    artifacts: &SeriesOutcomeArtifacts,
+    readiness: MomentumProspectiveOutcomeReadinessV4,
+    protected_live: (usize, String),
+    historical_identities: (String, String, String),
+    prior_pause_digest: String,
+    protected_artifacts_unchanged: bool,
+    active_state_unchanged: bool,
+    safety_counters: MomentumProspectiveOutcomeSafetyCountersV4,
+    counts: (usize, usize),
+) -> Result<MomentumProspectiveOutcomeStatusV4, String> {
+    let prediction = live
+        .prediction_capsule
+        .as_ref()
+        .ok_or_else(|| "V4 event-two prediction capsule unavailable".to_string())?;
+    let journal = live
+        .journal_entry
+        .as_ref()
+        .ok_or_else(|| "V4 event-two prediction journal unavailable".to_string())?;
+    let plan = live
+        .outcome_plan
+        .as_ref()
+        .ok_or_else(|| "V4 event-two outcome plan unavailable".to_string())?;
+    let request = build_outcome_request(registration)?;
+    let bundle = artifacts.opening_bundle.as_ref();
+    let ledger = artifacts.ledger.as_ref();
+    let eligibility = artifacts.eligibility.as_ref();
+    let pause = artifacts.pause.as_ref();
+    let mut participant_evaluation_digests = bundle.map_or_else(Vec::new, |bundle| {
+        bundle
+            .participant_evaluations
+            .iter()
+            .map(|value| value.evaluation_digest.clone())
+            .collect()
+    });
+    participant_evaluation_digests.sort();
+    let mut participant_parameter_digests = live.series.parameter_digests.clone();
+    participant_parameter_digests.sort();
+    let mut participant_normalizer_digests = live.series.normalizer_digests.clone();
+    participant_normalizer_digests.sort();
+    let mut value = MomentumProspectiveOutcomeStatusV4 {
+        series_digest: live.series.series_digest.clone(),
+        epoch_number: live.epoch_registration.epoch_number,
+        event_timestamp_ms: registration.event_timestamp_ms,
+        required_outcome_timestamp_ms: registration.exact_expected_timestamp_ms[0],
+        outcome_finality_boundary_ms: registration.outcome_finality_boundary_ms,
+        prediction_capsule_digest: prediction.capsule_digest.clone(),
+        prediction_journal_digest: journal.entry_digest.clone(),
+        outcome_plan_digest: plan.plan_digest.clone(),
+        provider_id: registration.provider_id.clone(),
+        market: registration.market.clone(),
+        symbol: registration.symbol.clone(),
+        cadence: registration.cadence.clone(),
+        request_start_timestamp_ms: request
+            .lookback
+            .start_timestamp_ms
+            .ok_or_else(|| "V4 event-two request start unavailable".to_string())?,
+        request_end_timestamp_ms: request
+            .lookback
+            .end_timestamp_ms
+            .ok_or_else(|| "V4 event-two request end unavailable".to_string())?,
+        request_fingerprint: outcome_request_fingerprint(registration),
+        maximum_requests: registration.maximum_requests,
+        maximum_retries: registration.maximum_retries,
+        maximum_concurrency: registration.maximum_concurrency,
+        prior_attempt_count: artifacts
+            .receipt
+            .as_ref()
+            .map_or(0, |receipt| receipt.request_attempt_count),
+        outcome_receipt_digest: artifacts
+            .receipt
+            .as_ref()
+            .map(|receipt| receipt.receipt_digest.clone()),
+        outcome_capsule_digest: artifacts
+            .capsule
+            .as_ref()
+            .map(|capsule| capsule.capsule_digest.clone()),
+        opening_authorization_digest: artifacts
+            .authorization
+            .as_ref()
+            .map(|value| value.authorization_digest.clone()),
+        opening_bundle_digest: bundle.map(|value| value.bundle_digest.clone()),
+        participant_evaluation_digests,
+        label_status: bundle.map(|value| value.label_status),
+        event_two_ledger_entry_digest: ledger.map(|value| value.entry_digest.clone()),
+        completed_event_count: ledger.map_or(live.event_one_adoption.total_event_count, |value| {
+            value.total_event_count_after
+        }),
+        scorable_event_count: ledger
+            .map_or(live.event_one_adoption.scorable_event_count, |value| {
+                value.scorable_event_count_after
+            }),
+        eligibility_status: eligibility.map_or(
+            MomentumProspectiveSeriesEligibilityV4::IneligibleMinimumSamples,
+            |value| value.status,
+        ),
+        eligibility_receipt_digest: eligibility.map(|value| value.receipt_digest.clone()),
+        completed_pause_digest: pause.map(|value| value.pause_digest.clone()),
+        readiness,
+        protected_live_artifact_count: protected_live.0,
+        protected_live_aggregate_digest: protected_live.1,
+        event_one_chain_digest: stable_hash_string(&format!(
+            "momentum-v4-event-one-chain:{}:{}:{}:{}",
+            live.event_one_adoption.prediction_capsule_digest,
+            live.event_one_adoption.outcome_capsule_digest,
+            live.event_one_adoption.opening_bundle_digest,
+            live.event_one_adoption.evaluation_ledger_entry_digest,
+        )),
+        event_two_sealed_chain_digest: stable_hash_string(&format!(
+            "momentum-v4-event-two-sealed-chain:{}:{}:{}:{}:{}:{}:{}:{}:{}",
+            live.series.series_digest,
+            live.epoch_registration.registration_digest,
+            live.input_receipt
+                .as_ref()
+                .map(|value| value.receipt_digest.as_str())
+                .unwrap_or_default(),
+            live.input_capsule
+                .as_ref()
+                .map(|value| value.capsule_digest.as_str())
+                .unwrap_or_default(),
+            live.context_use_proof
+                .as_ref()
+                .map(|value| value.proof_digest.as_str())
+                .unwrap_or_default(),
+            prediction.capsule_digest,
+            journal.entry_digest,
+            plan.plan_digest,
+            prediction.participant_seal_digests.len(),
+        )),
+        historical_store_digest: historical_identities.0,
+        qualified_six_replay_digest: historical_identities.1,
+        diagnostic_store_digest: historical_identities.2,
+        active_roster_digest: stable_hash_string(&format!(
+            "{:?}",
+            canonical_current_agent_states()
+        )),
+        participant_parameter_digests,
+        participant_normalizer_digests,
+        feature_policy_digest: live.series.feature_policy_digest.clone(),
+        label_policy_digest: frozen_label_policy_digest(),
+        prior_pause_digest,
+        epoch_three_registered: false,
+        safety_counters,
+        artifacts_written: counts.0,
+        duplicate_artifact_count: counts.1,
+        protected_artifacts_unchanged,
+        active_state_unchanged,
+        status_digest: String::new(),
+    };
+    value.status_digest = prospective_outcome_status_digest(&value);
+    validate_prospective_outcome_status(&value)?;
+    Ok(value)
+}
+
+fn outcome_report(
+    status: MomentumProspectiveOutcomeStatusV4,
+    registration: MomentumOutcomeAcquisitionRegistrationV4_4,
+    artifacts: SeriesOutcomeArtifacts,
+) -> MomentumProspectiveOutcomeReportV4 {
+    MomentumProspectiveOutcomeReportV4 {
+        status,
+        registration,
+        receipt: artifacts.receipt,
+        outcome_capsule: artifacts.capsule,
+        opening_authorization: artifacts.authorization,
+        opening_receipt: artifacts.opening_receipt,
+        opening_bundle: artifacts.opening_bundle,
+        ledger_entry: artifacts.ledger,
+        eligibility_receipt: artifacts.eligibility,
+        completed_pause: artifacts.pause,
+    }
+}
+
+fn validate_series_outcome_authority(
+    mode: MomentumProspectiveOutcomeRunModeV4,
+    network_allowed: bool,
+    request_confirmed: bool,
+    opening_confirmed: bool,
+    requested_epoch: Option<u64>,
+) -> Result<(), String> {
+    match mode {
+        MomentumProspectiveOutcomeRunModeV4::Status
+        | MomentumProspectiveOutcomeRunModeV4::DryRun => {
+            if network_allowed
+                || request_confirmed
+                || opening_confirmed
+                || requested_epoch.is_some()
+            {
+                return Err("V4 event-two read-only mode rejects authority".to_string());
+            }
+        }
+        MomentumProspectiveOutcomeRunModeV4::ExecuteOutcome => {
+            if !network_allowed
+                || !request_confirmed
+                || opening_confirmed
+                || requested_epoch != Some(2)
+            {
+                return Err(
+                    "V4 event-two acquisition requires epoch two and exact network confirmation"
+                        .to_string(),
+                );
+            }
+        }
+        MomentumProspectiveOutcomeRunModeV4::OpenOutcome => {
+            if network_allowed
+                || request_confirmed
+                || !opening_confirmed
+                || requested_epoch != Some(2)
+            {
+                return Err(
+                    "V4 event-two opening requires epoch two and exact local confirmation"
+                        .to_string(),
+                );
+            }
+        }
+    }
+    Ok(())
+}
+
+fn recover_series_success_acquisition(
+    root: &Path,
+    live: &MomentumProspectiveSeriesReportV4,
+    registration: &MomentumOutcomeAcquisitionRegistrationV4_4,
+    artifacts: &SeriesOutcomeArtifacts,
+) -> Result<Option<(usize, usize)>, String> {
+    if artifacts.receipt.as_ref().is_some_and(|receipt| {
+        receipt.status != MomentumOutcomeAcquisitionStatusV4_4::EvidenceAcquired
+    }) || artifacts.capsule.is_some()
+    {
+        return Ok(None);
+    }
+    let Some((_, raw)) = read_single_series_outcome_raw(root)? else {
+        return Ok(None);
+    };
+    if !sanitized_raw_response(&raw, registration.maximum_response_bytes) {
+        return Err("V4 event-two recovery raw response rejected".to_string());
+    }
+    let dataset = parse_upbit_daily_ohlcv_v0(
+        std::str::from_utf8(&raw)
+            .map_err(|_| "V4 event-two recovery raw encoding rejected".to_string())?,
+        &registration.symbol,
+    )?;
+    if dataset.rows.len() != 1 {
+        return Err("V4 event-two recovery row count rejected".to_string());
+    }
+    let row = &dataset.rows[0];
+    if row.timestamp_ms != registration.exact_expected_timestamp_ms[0]
+        || !valid_series_row(row, &registration.symbol)
+    {
+        return Err("V4 event-two recovery row rejected".to_string());
+    }
+    let proof = build_series_outcome_proof(root, live, registration, row, &raw)?;
+    if artifacts
+        .proof
+        .as_ref()
+        .is_some_and(|stored| stored != &proof)
+    {
+        return Err("V4 event-two recovery proof conflict".to_string());
+    }
+    let (receipt, capsule) = build_series_success_receipt_and_capsule(registration, &proof)?;
+    if artifacts
+        .receipt
+        .as_ref()
+        .is_some_and(|stored| stored != &receipt)
+    {
+        return Err("V4 event-two recovery receipt conflict".to_string());
+    }
+    Ok(Some(persist_series_success_acquisition(
+        root, &raw, &proof, &receipt, &capsule,
+    )?))
+}
+
+#[allow(clippy::too_many_arguments)]
+fn run_prospective_outcome_with_transport<F>(
+    root: &Path,
+    snapshots: &[DataSnapshot],
+    reservation: &ProtectedEvaluationReservationV1,
+    provider_config: &UpbitHistoricalPilotConfigV0,
+    observed_timestamp_ms: u64,
+    mode: MomentumProspectiveOutcomeRunModeV4,
+    network_allowed: bool,
+    request_confirmed: bool,
+    opening_confirmed: bool,
+    requested_epoch: Option<u64>,
+    transport: F,
+) -> Result<MomentumProspectiveOutcomeReportV4, String>
+where
+    F: FnOnce(
+        &UpbitHistoricalPilotConfigV0,
+        &ReadOnlyProviderRequest,
+    )
+        -> Result<LearningEvidenceTransportResponseV1, LearningEvidenceTransportFailureV1>,
+{
+    validate_series_outcome_authority(
+        mode,
+        network_allowed,
+        request_confirmed,
+        opening_confirmed,
+        requested_epoch,
+    )?;
+    provider_config.validate()?;
+    let protected_before = protected_live_identity(root)?;
+    let active_before = stable_hash_string(&format!("{:?}", canonical_current_agent_states()));
+    let historical_identities = historical_identity_roots(root)?;
+    let prior_pause = prior_live_pause_digest(root)?;
+    let live = run_momentum_prospective_series_v4(
+        root,
+        snapshots,
+        reservation,
+        provider_config,
+        observed_timestamp_ms,
+        MomentumProspectiveSeriesRunModeV4::Status,
+        false,
+        false,
+        None,
+    )?;
+    let registration = derive_series_outcome_registration(&live, provider_config)?;
+    let mut artifacts = reopen_series_outcome_artifacts(root)?;
+    if artifacts
+        .registration
+        .as_ref()
+        .is_some_and(|stored| stored != &registration)
+    {
+        return Err("V4 event-two persisted outcome registration changed".to_string());
+    }
+    let initial_readiness = series_outcome_readiness(
+        observed_timestamp_ms,
+        &registration,
+        &artifacts,
+        &live,
+        &prior_pause,
+    );
+    let read_only = matches!(
+        mode,
+        MomentumProspectiveOutcomeRunModeV4::Status | MomentumProspectiveOutcomeRunModeV4::DryRun
+    );
+    let completed_or_terminal = matches!(
+        initial_readiness,
+        MomentumProspectiveOutcomeReadinessV4::OutcomeAlreadyOpened
+            | MomentumProspectiveOutcomeReadinessV4::PriorOutcomeAttemptTerminal
+    );
+    let acquisition_already_complete = mode == MomentumProspectiveOutcomeRunModeV4::ExecuteOutcome
+        && initial_readiness == MomentumProspectiveOutcomeReadinessV4::ReadyForOutcomeOpening;
+    if read_only || completed_or_terminal || acquisition_already_complete {
+        let protected_after = protected_live_identity(root)?;
+        let historical_after = historical_identity_roots(root)?;
+        let active_after = stable_hash_string(&format!("{:?}", canonical_current_agent_states()));
+        let protected_unchanged =
+            protected_before == protected_after && historical_identities == historical_after;
+        let status = build_prospective_outcome_status(
+            &live,
+            &registration,
+            &artifacts,
+            initial_readiness,
+            protected_before.clone(),
+            historical_identities,
+            prior_pause,
+            protected_unchanged,
+            active_before == active_after,
+            MomentumProspectiveOutcomeSafetyCountersV4::default(),
+            (0, 0),
+        )?;
+        return Ok(outcome_report(status, registration, artifacts));
+    }
+
+    let mut counts = (0, 0);
+    let mut safety = MomentumProspectiveOutcomeSafetyCountersV4::default();
+    match mode {
+        MomentumProspectiveOutcomeRunModeV4::ExecuteOutcome => {
+            if initial_readiness == MomentumProspectiveOutcomeReadinessV4::AwaitingOutcomeFinality {
+                return Err("V4 event-two outcome finality not reached".to_string());
+            }
+            if !matches!(
+                initial_readiness,
+                MomentumProspectiveOutcomeReadinessV4::ReadyForOutcomeAcquisition
+                    | MomentumProspectiveOutcomeReadinessV4::IntegrityFailure
+            ) {
+                return Err("V4 event-two acquisition readiness rejected".to_string());
+            }
+            add_counts(
+                &mut counts,
+                persist_series_outcome_registration(root, &registration)?,
+            );
+            artifacts = reopen_series_outcome_artifacts(root)?;
+            if let Some(recovered) =
+                recover_series_success_acquisition(root, &live, &registration, &artifacts)?
+            {
+                add_counts(&mut counts, recovered);
+            } else {
+                if initial_readiness == MomentumProspectiveOutcomeReadinessV4::IntegrityFailure {
+                    return Err("V4 event-two partial acquisition cannot recover".to_string());
+                }
+                let request = build_outcome_request(&registration)?;
+                let request_config = outcome_request_config(provider_config, &registration)?;
+                safety.network_request_attempts = 1;
+                safety.transport_constructions = 1;
+                safety.maximum_observed_concurrency = 1;
+                match transport(&request_config, &request) {
+                    Err(failure) => {
+                        let (status, http_status_class, raw) = match failure {
+                            LearningEvidenceTransportFailureV1::ProviderRejected {
+                                http_status_class,
+                                raw_response,
+                            } => (
+                                MomentumOutcomeAcquisitionStatusV4_4::TerminalHttpFailure,
+                                parse_http_status_class(http_status_class.as_deref()),
+                                raw_response,
+                            ),
+                            LearningEvidenceTransportFailureV1::TimedOut
+                            | LearningEvidenceTransportFailureV1::Technical => (
+                                MomentumOutcomeAcquisitionStatusV4_4::TerminalTransportFailure,
+                                None,
+                                None,
+                            ),
+                        };
+                        if let Some(raw) = raw
+                            && sanitized_raw_response(&raw, registration.maximum_response_bytes)
+                        {
+                            let digest = raw_outcome_digest(&raw);
+                            add_counts(
+                                &mut counts,
+                                persist_series_outcome_raw(root, &digest, &raw)?,
+                            );
+                        }
+                        let receipt = build_series_terminal_receipt(
+                            &registration,
+                            status,
+                            http_status_class,
+                            0,
+                        )?;
+                        add_counts(
+                            &mut counts,
+                            persist_series_terminal_receipt(root, &receipt)?,
+                        );
+                    }
+                    Ok(response) => {
+                        let returned_row_count = response.response.normalized_dataset.rows.len();
+                        match validate_outcome_transport(&registration, &request, &response) {
+                            Err(_) => {
+                                if sanitized_raw_response(
+                                    &response.raw_response,
+                                    registration.maximum_response_bytes,
+                                ) {
+                                    let digest = raw_outcome_digest(&response.raw_response);
+                                    add_counts(
+                                        &mut counts,
+                                        persist_series_outcome_raw(
+                                            root,
+                                            &digest,
+                                            &response.raw_response,
+                                        )?,
+                                    );
+                                }
+                                let receipt = build_series_terminal_receipt(
+                                    &registration,
+                                    MomentumOutcomeAcquisitionStatusV4_4::TerminalValidationFailure,
+                                    parse_http_status_class(Some(&response.http_status_class)),
+                                    returned_row_count,
+                                )?;
+                                add_counts(
+                                    &mut counts,
+                                    persist_series_terminal_receipt(root, &receipt)?,
+                                );
+                            }
+                            Ok(outcome_row) => {
+                                let proof = build_series_outcome_proof(
+                                    root,
+                                    &live,
+                                    &registration,
+                                    &outcome_row,
+                                    &response.raw_response,
+                                )?;
+                                let (receipt, capsule) = build_series_success_receipt_and_capsule(
+                                    &registration,
+                                    &proof,
+                                )?;
+                                add_counts(
+                                    &mut counts,
+                                    persist_series_success_acquisition(
+                                        root,
+                                        &response.raw_response,
+                                        &proof,
+                                        &receipt,
+                                        &capsule,
+                                    )?,
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        MomentumProspectiveOutcomeRunModeV4::OpenOutcome => {
+            if initial_readiness != MomentumProspectiveOutcomeReadinessV4::ReadyForOutcomeOpening {
+                return Err("V4 event-two opening readiness rejected".to_string());
+            }
+            let receipt = artifacts
+                .receipt
+                .as_ref()
+                .ok_or_else(|| "V4 event-two outcome receipt unavailable".to_string())?;
+            let proof = artifacts
+                .proof
+                .as_ref()
+                .ok_or_else(|| "V4 event-two outcome proof unavailable".to_string())?;
+            let capsule = artifacts
+                .capsule
+                .as_ref()
+                .ok_or_else(|| "V4 event-two outcome capsule unavailable".to_string())?;
+            let authorization = if let Some(stored) = artifacts.authorization.as_ref() {
+                let derived = derive_series_opening_authorization(
+                    root,
+                    &live,
+                    &registration,
+                    receipt,
+                    capsule,
+                )?;
+                if stored != &derived {
+                    return Err("V4 event-two opening authorization conflict".to_string());
+                }
+                stored.clone()
+            } else {
+                let value = derive_series_opening_authorization(
+                    root,
+                    &live,
+                    &registration,
+                    receipt,
+                    capsule,
+                )?;
+                add_counts(
+                    &mut counts,
+                    persist_series_outcome_pb(
+                        root,
+                        "opening_authorizations",
+                        &value.authorization_digest,
+                        &encode_series_opening_authorization(&value)?,
+                        |bytes| Ok(decode_series_opening_authorization(bytes)?.authorization_digest),
+                    )?,
+                );
+                let reopened = read_single(
+                    &series_outcome_root(root).join("opening_authorizations"),
+                    decode_series_opening_authorization,
+                )?
+                .ok_or_else(|| "V4 event-two opening authorization reopen failed".to_string())?;
+                if reopened != value {
+                    return Err("V4 event-two opening authorization reopen mismatch".to_string());
+                }
+                value
+            };
+            let bundle = if let Some(stored) = artifacts.opening_bundle.as_ref() {
+                validate_series_opening_bundle_binding(&live, &authorization, capsule, stored)?;
+                stored.clone()
+            } else {
+                let (event_close, outcome_close) =
+                    reopen_event_two_opening_closes(root, &live, &registration, proof)?;
+                safety.outcome_raw_loads = 1;
+                let (label_status, label, return_bits) =
+                    classify_label_v4_4(event_close, outcome_close)?;
+                safety.label_derivations = 1;
+                let evaluations =
+                    build_series_evaluations(root, &live, proof, label_status, label, return_bits)?;
+                safety.prediction_private_value_reads = evaluations.len();
+                safety.evaluations = evaluations.len();
+                safety.opening_attempts = 1;
+                build_series_opening_bundle(
+                    &live,
+                    &authorization,
+                    capsule,
+                    label_status,
+                    evaluations,
+                )?
+            };
+            validate_series_opening_bundle_binding(&live, &authorization, capsule, &bundle)?;
+            let bundle_evaluation_digests = bundle
+                .participant_evaluations
+                .iter()
+                .map(|evaluation| evaluation.evaluation_digest.clone())
+                .collect::<BTreeSet<_>>();
+            if artifacts.evaluations.iter().any(|evaluation| {
+                !bundle_evaluation_digests.contains(&evaluation.evaluation_digest)
+            }) {
+                return Err("V4 event-two partial evaluation conflict".to_string());
+            }
+            let opening_receipt = if let Some(stored) = artifacts.opening_receipt.as_ref() {
+                let derived = build_series_opening_receipt(&authorization, &bundle)?;
+                if stored != &derived {
+                    return Err("V4 event-two opening receipt conflict".to_string());
+                }
+                stored.clone()
+            } else {
+                build_series_opening_receipt(&authorization, &bundle)?
+            };
+            let (ledger, eligibility, pause) = build_series_ledger_and_eligibility(
+                root,
+                &live,
+                receipt,
+                capsule,
+                &authorization,
+                &bundle,
+                &prior_pause,
+            )?;
+            safety.ledger_appends = usize::from(artifacts.ledger.is_none());
+            safety.eligibility_derivations = usize::from(artifacts.eligibility.is_none());
+            add_counts(
+                &mut counts,
+                persist_series_opening(
+                    root,
+                    &authorization,
+                    &bundle,
+                    &opening_receipt,
+                    &ledger,
+                    &eligibility,
+                    &pause,
+                )?,
+            );
+        }
+        MomentumProspectiveOutcomeRunModeV4::Status
+        | MomentumProspectiveOutcomeRunModeV4::DryRun => {
+            return Err("V4 read-only outcome mode reached mutation path".to_string());
+        }
+    }
+
+    artifacts = reopen_series_outcome_artifacts(root)?;
+    let final_readiness = series_outcome_readiness(
+        observed_timestamp_ms,
+        &registration,
+        &artifacts,
+        &live,
+        &prior_pause,
+    );
+    if mode == MomentumProspectiveOutcomeRunModeV4::OpenOutcome
+        && final_readiness != MomentumProspectiveOutcomeReadinessV4::OutcomeAlreadyOpened
+    {
+        return Err("V4 event-two opening completion rejected".to_string());
+    }
+    let protected_after = protected_live_identity(root)?;
+    let historical_after = historical_identity_roots(root)?;
+    let active_after = stable_hash_string(&format!("{:?}", canonical_current_agent_states()));
+    let protected_unchanged =
+        protected_before == protected_after && historical_identities == historical_after;
+    let status = build_prospective_outcome_status(
+        &live,
+        &registration,
+        &artifacts,
+        final_readiness,
+        protected_before.clone(),
+        historical_identities,
+        prior_pause,
+        protected_unchanged,
+        active_before == active_after,
+        safety,
+        counts,
+    )?;
+    Ok(outcome_report(status, registration, artifacts))
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn run_momentum_prospective_outcome_v4(
+    root: &Path,
+    snapshots: &[DataSnapshot],
+    reservation: &ProtectedEvaluationReservationV1,
+    provider_config: &UpbitHistoricalPilotConfigV0,
+    observed_timestamp_ms: u64,
+    mode: MomentumProspectiveOutcomeRunModeV4,
+    network_allowed: bool,
+    request_confirmed: bool,
+    opening_confirmed: bool,
+    requested_epoch: Option<u64>,
+) -> Result<MomentumProspectiveOutcomeReportV4, String> {
+    run_prospective_outcome_with_transport(
+        root,
+        snapshots,
+        reservation,
+        provider_config,
+        observed_timestamp_ms,
+        mode,
+        network_allowed,
+        request_confirmed,
+        opening_confirmed,
+        requested_epoch,
+        fetch_upbit_learning_evidence_once_v1,
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -5428,7 +8277,12 @@ mod tests {
                     epoch_number: registration.epoch_number,
                     epoch_registration_digest: registration.registration_digest.clone(),
                     participant_digest: participant.clone(),
-                    participant_role: format!("role-{index}"),
+                    participant_role: [
+                        "RawFeatureLogisticV4",
+                        "RawFeatureInteractionLogisticV4",
+                        "TrainingPrevalenceConstantV4",
+                    ][index]
+                        .to_string(),
                     event_timestamp_ms: EVENT,
                     input_receipt_digest: receipt.receipt_digest.clone(),
                     input_capsule_digest: input_capsule.capsule_digest.clone(),
@@ -5615,6 +8469,337 @@ mod tests {
             },
         };
         (request, response)
+    }
+
+    fn fixture_live_report() -> MomentumProspectiveSeriesReportV4 {
+        let chain = fixture_prediction_chain();
+        let gap = fixture_gap(&chain.0, &chain.1);
+        let status = build_status(
+            &chain.1,
+            &gap,
+            &chain.2,
+            &chain.3,
+            MomentumProspectiveEpochReadinessV4::PredictionAlreadySealed,
+            Some(&chain.4),
+            Some(&chain.5),
+            Some(&chain.7),
+            Some(&chain.9),
+            Some(&chain.10),
+            Some(&chain.11),
+            MomentumRewardEligibilityStatusV4_4::IneligibleMinimumSamples,
+            true,
+            true,
+            idle_safety_counters(),
+        )
+        .expect("live status fixture");
+        MomentumProspectiveSeriesReportV4 {
+            status,
+            series: chain.0,
+            event_one_adoption: chain.1,
+            candidate_gap_audit: gap,
+            context_delta_plan: chain.2,
+            epoch_registration: chain.3,
+            input_receipt: Some(chain.4),
+            input_capsule: Some(chain.5),
+            context_use_proof: Some(chain.6),
+            context_assembly_proof: Some(chain.7),
+            prediction_capsule: Some(chain.9),
+            journal_entry: Some(chain.10),
+            outcome_plan: Some(chain.11),
+            artifacts_written: 0,
+            duplicate_artifact_count: 0,
+        }
+    }
+
+    fn fixture_outcome_registration() -> MomentumOutcomeAcquisitionRegistrationV4_4 {
+        let live = fixture_live_report();
+        let receipt = live.input_receipt.as_ref().expect("input receipt");
+        let capsule = live.input_capsule.as_ref().expect("input capsule");
+        let context = live.context_use_proof.as_ref().expect("context");
+        let prediction = live.prediction_capsule.as_ref().expect("prediction");
+        let journal = live.journal_entry.as_ref().expect("journal");
+        let plan = live.outcome_plan.as_ref().expect("plan");
+        let mut value = MomentumOutcomeAcquisitionRegistrationV4_4 {
+            registration_version: REGISTRATION_VERSION.into(),
+            agent_id: live.series.agent_id.clone(),
+            lifecycle_digest: live.series.series_digest.clone(),
+            evaluation_registration_digest: live.epoch_registration.registration_digest.clone(),
+            roster_digest: live.series.frozen_roster_digest.clone(),
+            input_receipt_digest: receipt.receipt_digest.clone(),
+            input_capsule_digest: capsule.capsule_digest.clone(),
+            context_usage_ledger_digest: context.proof_digest.clone(),
+            prediction_capsule_digest: prediction.capsule_digest.clone(),
+            prediction_journal_digest: journal.entry_digest.clone(),
+            outcome_plan_digest: plan.plan_digest.clone(),
+            event_timestamp_ms: plan.event_timestamp_ms,
+            required_outcome_timestamp_ms: plan.required_outcome_timestamp_ms.clone(),
+            outcome_finality_boundary_ms: plan.outcome_finality_boundary_ms,
+            provider_id: "upbit".into(),
+            market: "btc_crypto".into(),
+            symbol: live.epoch_registration.symbol.clone(),
+            cadence: live.epoch_registration.cadence.clone(),
+            exact_expected_timestamp_ms: plan.required_outcome_timestamp_ms.clone(),
+            expected_row_count: 1,
+            request_to_timestamp_ms: plan.outcome_finality_boundary_ms,
+            maximum_requests: 1,
+            maximum_concurrency: 1,
+            maximum_retries: 0,
+            maximum_response_bytes: 10_000,
+            credential_free_required: true,
+            read_only_required: true,
+            labels_must_remain_unopened: true,
+            metric_computation_forbidden: true,
+            winner_selection_forbidden: true,
+            reward_application_forbidden: true,
+            registration_digest: String::new(),
+        };
+        value.registration_digest = registration_digest(&value);
+        validate_series_outcome_registration(&value).expect("outcome registration fixture");
+        value
+    }
+
+    fn fixture_outcome_proof(
+        registration: &MomentumOutcomeAcquisitionRegistrationV4_4,
+    ) -> MomentumOutcomeRowIdentityProofV4_4 {
+        let mut value = MomentumOutcomeRowIdentityProofV4_4 {
+            proof_version: ROW_PROOF_VERSION.into(),
+            registration_digest: registration.registration_digest.clone(),
+            prediction_capsule_digest: registration.prediction_capsule_digest.clone(),
+            input_capsule_digest: registration.input_capsule_digest.clone(),
+            event_timestamp_ms: registration.event_timestamp_ms,
+            outcome_timestamp_ms: registration.exact_expected_timestamp_ms[0],
+            input_event_row_digest: "input-row".into(),
+            outcome_row_digest: "outcome-row".into(),
+            raw_input_response_digest: "input-raw".into(),
+            raw_outcome_response_digest: "outcome-raw".into(),
+            exact_timestamp_verified: true,
+            strict_single_row_verified: true,
+            finalized: true,
+            sanitized: true,
+            credential_free: true,
+            read_only: true,
+            proof_digest: String::new(),
+        };
+        value.proof_digest = row_proof_digest(&value);
+        validate_series_outcome_proof(&value).expect("outcome proof fixture");
+        value
+    }
+
+    fn fixture_outcome_receipt_capsule() -> (
+        MomentumOutcomeAcquisitionRegistrationV4_4,
+        MomentumOutcomeRowIdentityProofV4_4,
+        MomentumOutcomeAcquisitionReceiptV4_4,
+        MomentumSealedOutcomeCapsuleV4_4,
+    ) {
+        let registration = fixture_outcome_registration();
+        let proof = fixture_outcome_proof(&registration);
+        let (receipt, capsule) =
+            build_series_success_receipt_and_capsule(&registration, &proof).expect("success");
+        (registration, proof, receipt, capsule)
+    }
+
+    fn fixture_evaluations(
+        proof: &MomentumOutcomeRowIdentityProofV4_4,
+        label_status: MomentumProspectiveLabelStatusV4_4,
+    ) -> Vec<MomentumParticipantProspectiveEvaluationV4_4> {
+        [
+            ("p1", "RawFeatureLogisticV4", 0.4_f32),
+            ("p2", "RawFeatureInteractionLogisticV4", 0.5_f32),
+            ("p3", "TrainingPrevalenceConstantV4", 0.6_f32),
+        ]
+        .into_iter()
+        .map(|(participant, role, probability)| {
+            build_participant_evaluation_v4_4(
+                participant,
+                role,
+                &format!("seal-{participant}"),
+                &format!("prediction-{participant}"),
+                probability.to_bits(),
+                EVENT,
+                proof,
+                label_status,
+                (label_status == MomentumProspectiveLabelStatusV4_4::ScorableBinaryOutcome)
+                    .then_some(true),
+                0.02_f64.to_bits(),
+            )
+            .expect("evaluation fixture")
+        })
+        .collect()
+    }
+
+    fn fixture_opening_authorization(
+        registration: &MomentumOutcomeAcquisitionRegistrationV4_4,
+        receipt: &MomentumOutcomeAcquisitionReceiptV4_4,
+        capsule: &MomentumSealedOutcomeCapsuleV4_4,
+    ) -> MomentumOutcomeOpeningAuthorizationV4_4 {
+        let live = fixture_live_report();
+        let prediction = live.prediction_capsule.expect("prediction");
+        let journal = live.journal_entry.expect("journal");
+        let mut value = MomentumOutcomeOpeningAuthorizationV4_4 {
+            authorization_version: OPENING_AUTHORIZATION_VERSION.into(),
+            outcome_registration_digest: registration.registration_digest.clone(),
+            outcome_receipt_digest: receipt.receipt_digest.clone(),
+            outcome_capsule_digest: capsule.capsule_digest.clone(),
+            prediction_capsule_digest: prediction.capsule_digest,
+            prediction_journal_digest: journal.entry_digest,
+            participant_seal_digests: prediction.participant_seal_digests,
+            participant_prediction_digests: prediction.participant_prediction_digests,
+            feature_policy_digest: live.series.feature_policy_digest,
+            label_policy_digest: frozen_label_policy_digest(),
+            evaluation_policy_digest: evaluation_policy_digest(),
+            opening_attempt_count_before: 0,
+            opened_event_count_before: 0,
+            explicit_owner_authorization: true,
+            one_time_only: true,
+            winner_selection_forbidden: true,
+            ranking_forbidden: true,
+            reward_application_forbidden: true,
+            penalty_application_forbidden: true,
+            chair_action_forbidden: true,
+            voice_mutation_forbidden: true,
+            promotion_forbidden: true,
+            trading_forbidden: true,
+            authorization_digest: String::new(),
+        };
+        value.authorization_digest = authorization_digest(&value);
+        validate_opening_authorization_shape(&value).expect("authorization fixture");
+        value
+    }
+
+    fn fixture_opening_bundle(
+        authorization: &MomentumOutcomeOpeningAuthorizationV4_4,
+        capsule: &MomentumSealedOutcomeCapsuleV4_4,
+        proof: &MomentumOutcomeRowIdentityProofV4_4,
+        label_status: MomentumProspectiveLabelStatusV4_4,
+    ) -> MomentumOutcomeOpeningBundleV4_4 {
+        build_series_opening_bundle(
+            &fixture_live_report(),
+            authorization,
+            capsule,
+            label_status,
+            fixture_evaluations(proof, label_status),
+        )
+        .expect("opening bundle fixture")
+    }
+
+    fn fixture_completion_artifacts(
+        label_status: MomentumProspectiveLabelStatusV4_4,
+    ) -> (
+        MomentumProspectiveSeriesLedgerEntryV4,
+        MomentumProspectiveSeriesEligibilityReceiptV4,
+        LiveProspectiveContinuationPauseV2,
+    ) {
+        let live = fixture_live_report();
+        let (registration, proof, receipt, capsule) = fixture_outcome_receipt_capsule();
+        let authorization = fixture_opening_authorization(&registration, &receipt, &capsule);
+        let bundle = fixture_opening_bundle(&authorization, &capsule, &proof, label_status);
+        let mut ledger = MomentumProspectiveSeriesLedgerEntryV4 {
+            ledger_version: SERIES_LEDGER_VERSION.into(),
+            previous_event_ledger_entry_digest: live
+                .event_one_adoption
+                .evaluation_ledger_entry_digest,
+            series_digest: live.series.series_digest,
+            epoch_registration_digest: live.epoch_registration.registration_digest,
+            input_receipt_digest: live.input_receipt.expect("input receipt").receipt_digest,
+            input_capsule_digest: live.input_capsule.expect("input capsule").capsule_digest,
+            context_proof_digest: live.context_use_proof.expect("context").proof_digest,
+            participant_seal_digests: live
+                .prediction_capsule
+                .as_ref()
+                .expect("prediction")
+                .participant_seal_digests
+                .clone(),
+            prediction_capsule_digest: live
+                .prediction_capsule
+                .as_ref()
+                .expect("prediction")
+                .capsule_digest
+                .clone(),
+            prediction_journal_digest: live.journal_entry.expect("journal").entry_digest,
+            outcome_plan_digest: live.outcome_plan.expect("plan").plan_digest,
+            outcome_receipt_digest: receipt.receipt_digest,
+            outcome_capsule_digest: capsule.capsule_digest,
+            opening_authorization_digest: authorization.authorization_digest,
+            opening_bundle_digest: bundle.bundle_digest,
+            label_status,
+            participant_evaluation_digests: bundle
+                .participant_evaluations
+                .iter()
+                .map(|evaluation| evaluation.evaluation_digest.clone())
+                .collect(),
+            total_event_count_after: 2,
+            scorable_event_count_after: 1 + usize::from(
+                label_status == MomentumProspectiveLabelStatusV4_4::ScorableBinaryOutcome,
+            ),
+            winner_selected: false,
+            ranking_created: false,
+            reward_applied: false,
+            penalty_applied: false,
+            chair_action_taken: false,
+            trading_action_taken: false,
+            entry_digest: String::new(),
+        };
+        ledger.entry_digest = series_ledger_entry_digest(&ledger);
+        validate_series_ledger_entry(&ledger).expect("ledger fixture");
+        let mut eligibility = MomentumProspectiveSeriesEligibilityReceiptV4 {
+            receipt_version: SERIES_ELIGIBILITY_VERSION.into(),
+            event_one_eligibility_digest: "event-one-eligibility".into(),
+            event_two_ledger_entry_digest: ledger.entry_digest.clone(),
+            participant_roles: vec![
+                "RawFeatureLogisticV4".into(),
+                "RawFeatureInteractionLogisticV4".into(),
+                "TrainingPrevalenceConstantV4".into(),
+            ],
+            completed_event_count: ledger.total_event_count_after,
+            scorable_event_count: ledger.scorable_event_count_after,
+            minimum_sample_gate: 3,
+            status: MomentumProspectiveSeriesEligibilityV4::IneligibleMinimumSamples,
+            integrity_verified: true,
+            reward_application_count: 0,
+            penalty_application_count: 0,
+            receipt_digest: String::new(),
+        };
+        eligibility.receipt_digest = series_eligibility_digest(&eligibility);
+        validate_series_eligibility(&eligibility).expect("eligibility fixture");
+        let mut pause = LiveProspectiveContinuationPauseV2 {
+            pause_version: COMPLETED_PAUSE_VERSION.into(),
+            policy: LiveProspectiveContinuationPolicyV2::PausedAfterCompletedEpochTwo,
+            prior_pause_digest: "prior-pause".into(),
+            event_two_ledger_entry_digest: ledger.entry_digest.clone(),
+            completed_event_count: ledger.total_event_count_after,
+            scorable_event_count: ledger.scorable_event_count_after,
+            eligibility_receipt_digest: eligibility.receipt_digest.clone(),
+            epoch_three_registered: false,
+            historical_challenger_research_prioritized: true,
+            scheduler_count: 0,
+            automatic_registration_count: 0,
+            network_authority_count: 0,
+            pause_digest: String::new(),
+        };
+        pause.pause_digest = completed_pause_digest(&pause);
+        validate_completed_pause(&pause).expect("pause fixture");
+        (ledger, eligibility, pause)
+    }
+
+    fn fixture_outcome_status() -> MomentumProspectiveOutcomeStatusV4 {
+        build_prospective_outcome_status(
+            &fixture_live_report(),
+            &fixture_outcome_registration(),
+            &SeriesOutcomeArtifacts::default(),
+            MomentumProspectiveOutcomeReadinessV4::ReadyForOutcomeAcquisition,
+            (1, "protected".into()),
+            (
+                "historical".into(),
+                "qualified-six".into(),
+                "diagnostics".into(),
+            ),
+            "prior-pause".into(),
+            true,
+            true,
+            MomentumProspectiveOutcomeSafetyCountersV4::default(),
+            (0, 0),
+        )
+        .expect("outcome status fixture")
     }
 
     #[test]
@@ -6403,6 +9588,650 @@ mod tests {
                 &wrong_roster_outcome_plan,
             )
             .is_err()
+        );
+    }
+
+    #[test]
+    fn sprint100_01_diagnostic_lanes_have_no_outcome_authority() {
+        let counters = MomentumProspectiveOutcomeSafetyCountersV4::default();
+        assert_eq!(counters.network_request_attempts, 0);
+        assert_eq!(counters.prediction_private_value_reads, 0);
+        assert_eq!(counters.label_derivations, 0);
+    }
+
+    #[test]
+    fn sprint100_02_source_identities_are_deterministic() {
+        let first = fixture_outcome_registration();
+        let second = fixture_outcome_registration();
+        assert_eq!(first.registration_digest, second.registration_digest);
+    }
+
+    #[test]
+    fn sprint100_03_historical_holdout_counters_remain_outside_live_status() {
+        let status = fixture_outcome_status();
+        assert_eq!(status.safety_counters.outcome_raw_loads, 0);
+        assert_eq!(status.safety_counters.evaluations, 0);
+        assert!(!status.historical_store_digest.is_empty());
+    }
+
+    #[test]
+    fn sprint100_04_event_two_prediction_chain_reopens() {
+        let chain = fixture_prediction_chain();
+        assert!(
+            validate_persisted_prediction_chain(
+                &chain.0, &chain.1, &chain.3, &chain.4, &chain.5, &chain.6, &chain.7, &chain.8,
+                &chain.9, &chain.10, &chain.11,
+            )
+            .is_ok()
+        );
+    }
+
+    #[test]
+    fn sprint100_05_prediction_seals_resolve_without_directory_order() {
+        let chain = fixture_prediction_chain();
+        let mut reversed = chain.8.clone();
+        reversed.reverse();
+        assert!(
+            validate_persisted_prediction_chain(
+                &chain.0, &chain.1, &chain.3, &chain.4, &chain.5, &chain.6, &chain.7, &reversed,
+                &chain.9, &chain.10, &chain.11,
+            )
+            .is_ok()
+        );
+    }
+
+    #[test]
+    fn sprint100_06_outcome_plan_binds_epoch_two() {
+        let registration = fixture_outcome_registration();
+        assert_eq!(registration.event_timestamp_ms, EVENT);
+        assert_eq!(
+            registration.exact_expected_timestamp_ms,
+            [EVENT + DAILY_CADENCE_MS]
+        );
+        assert_eq!(
+            registration.outcome_finality_boundary_ms,
+            EVENT + 2 * DAILY_CADENCE_MS
+        );
+    }
+
+    #[test]
+    fn sprint100_07_before_finality_is_not_acquirable() {
+        let registration = fixture_outcome_registration();
+        assert_eq!(
+            series_outcome_readiness(
+                registration.outcome_finality_boundary_ms - 1,
+                &registration,
+                &SeriesOutcomeArtifacts::default(),
+                &fixture_live_report(),
+                "prior-pause",
+            ),
+            MomentumProspectiveOutcomeReadinessV4::AwaitingOutcomeFinality
+        );
+    }
+
+    #[test]
+    fn sprint100_08_at_finality_is_ready_for_acquisition() {
+        let registration = fixture_outcome_registration();
+        assert_eq!(
+            series_outcome_readiness(
+                registration.outcome_finality_boundary_ms,
+                &registration,
+                &SeriesOutcomeArtifacts::default(),
+                &fixture_live_report(),
+                "prior-pause",
+            ),
+            MomentumProspectiveOutcomeReadinessV4::ReadyForOutcomeAcquisition
+        );
+    }
+
+    #[test]
+    fn sprint100_09_outcome_request_is_exactly_one_row() {
+        let request = build_outcome_request(&fixture_outcome_registration()).expect("request");
+        assert_eq!(request.lookback.bars, 1);
+        assert_eq!(request.symbols, ["KRW-BTC"]);
+    }
+
+    #[test]
+    fn sprint100_10_outcome_request_contains_only_locked_timestamp() {
+        let registration = fixture_outcome_registration();
+        let request = build_outcome_request(&registration).expect("request");
+        assert_eq!(
+            request.lookback.start_timestamp_ms,
+            Some(registration.exact_expected_timestamp_ms[0])
+        );
+        assert_eq!(
+            request.lookback.end_timestamp_ms,
+            Some(registration.outcome_finality_boundary_ms)
+        );
+    }
+
+    #[test]
+    fn sprint100_11_outcome_retries_remain_zero() {
+        let registration = fixture_outcome_registration();
+        assert_eq!(registration.maximum_retries, 0);
+        assert_eq!(
+            MomentumProspectiveOutcomeSafetyCountersV4::default().retries,
+            0
+        );
+    }
+
+    #[test]
+    fn sprint100_12_terminal_transport_receipt_round_trips() {
+        let registration = fixture_outcome_registration();
+        let receipt = build_series_terminal_receipt(
+            &registration,
+            MomentumOutcomeAcquisitionStatusV4_4::TerminalTransportFailure,
+            None,
+            0,
+        )
+        .expect("terminal receipt");
+        assert_eq!(
+            decode_series_outcome_receipt(&encode_series_outcome_receipt(&receipt).unwrap())
+                .unwrap(),
+            receipt
+        );
+    }
+
+    #[test]
+    fn sprint100_13_terminal_validation_receipt_round_trips() {
+        let registration = fixture_outcome_registration();
+        let receipt = build_series_terminal_receipt(
+            &registration,
+            MomentumOutcomeAcquisitionStatusV4_4::TerminalValidationFailure,
+            Some(200),
+            2,
+        )
+        .expect("terminal receipt");
+        assert_eq!(receipt.request_attempt_count, 1);
+        assert_eq!(receipt.verified_row_count, 0);
+    }
+
+    #[test]
+    fn sprint100_14_terminal_replay_cannot_retry() {
+        let registration = fixture_outcome_registration();
+        let receipt = build_series_terminal_receipt(
+            &registration,
+            MomentumOutcomeAcquisitionStatusV4_4::TerminalTransportFailure,
+            None,
+            0,
+        )
+        .expect("terminal receipt");
+        let artifacts = SeriesOutcomeArtifacts {
+            registration: Some(registration.clone()),
+            receipt: Some(receipt),
+            ..Default::default()
+        };
+        assert_eq!(
+            series_outcome_readiness(
+                registration.outcome_finality_boundary_ms,
+                &registration,
+                &artifacts,
+                &fixture_live_report(),
+                "prior-pause",
+            ),
+            MomentumProspectiveOutcomeReadinessV4::PriorOutcomeAttemptTerminal
+        );
+    }
+
+    #[test]
+    fn sprint100_15_success_receipt_binds_prediction_chain() {
+        let (registration, _, receipt, capsule) = fixture_outcome_receipt_capsule();
+        assert_eq!(
+            receipt.prediction_capsule_digest,
+            registration.prediction_capsule_digest
+        );
+        assert_eq!(
+            receipt.outcome_capsule_digest.as_deref(),
+            Some(capsule.capsule_digest.as_str())
+        );
+    }
+
+    #[test]
+    fn sprint100_16_success_capsule_is_still_sealed() {
+        let (_, _, _, capsule) = fixture_outcome_receipt_capsule();
+        assert!(!capsule.labels_opened);
+        assert!(!capsule.probabilities_opened);
+        assert!(!capsule.metrics_computed);
+    }
+
+    #[test]
+    fn sprint100_17_acquisition_status_does_not_open() {
+        let (registration, proof, receipt, capsule) = fixture_outcome_receipt_capsule();
+        let artifacts = SeriesOutcomeArtifacts {
+            registration: Some(registration.clone()),
+            receipt: Some(receipt),
+            proof: Some(proof),
+            capsule: Some(capsule),
+            ..Default::default()
+        };
+        assert_eq!(
+            series_outcome_readiness(
+                registration.outcome_finality_boundary_ms,
+                &registration,
+                &artifacts,
+                &fixture_live_report(),
+                "prior-pause",
+            ),
+            MomentumProspectiveOutcomeReadinessV4::ReadyForOutcomeOpening
+        );
+        assert!(artifacts.authorization.is_none());
+    }
+
+    #[test]
+    fn sprint100_18_opening_requires_exact_explicit_authority() {
+        assert!(
+            validate_series_outcome_authority(
+                MomentumProspectiveOutcomeRunModeV4::OpenOutcome,
+                false,
+                false,
+                true,
+                Some(2),
+            )
+            .is_ok()
+        );
+        assert!(
+            validate_series_outcome_authority(
+                MomentumProspectiveOutcomeRunModeV4::OpenOutcome,
+                false,
+                false,
+                false,
+                Some(2),
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn sprint100_19_opening_authorization_is_event_two_specific() {
+        let (registration, _, receipt, capsule) = fixture_outcome_receipt_capsule();
+        let authorization = fixture_opening_authorization(&registration, &receipt, &capsule);
+        assert_eq!(
+            authorization.outcome_registration_digest,
+            registration.registration_digest
+        );
+        assert_eq!(authorization.opening_attempt_count_before, 0);
+        assert!(authorization.one_time_only);
+    }
+
+    #[test]
+    fn sprint100_20_frozen_label_policy_is_bound() {
+        let (registration, _, receipt, capsule) = fixture_outcome_receipt_capsule();
+        let authorization = fixture_opening_authorization(&registration, &receipt, &capsule);
+        assert_eq!(
+            authorization.label_policy_digest,
+            frozen_label_policy_digest()
+        );
+    }
+
+    #[test]
+    fn sprint100_21_neutral_outcome_remains_neutral() {
+        let (status, label, _) = classify_label_v4_4(100.0, 100.0).expect("neutral label");
+        assert_eq!(
+            status,
+            MomentumProspectiveLabelStatusV4_4::NeutralOutcomeExcluded
+        );
+        assert_eq!(label, None);
+    }
+
+    #[test]
+    fn sprint100_22_invalid_evidence_is_explicit() {
+        let proof = fixture_outcome_proof(&fixture_outcome_registration());
+        let evaluations = fixture_evaluations(
+            &proof,
+            MomentumProspectiveLabelStatusV4_4::InvalidOutcomeEvidence,
+        );
+        assert!(evaluations.iter().all(|evaluation| {
+            evaluation.status == MomentumProspectiveEvaluationStatusV4_4::InvalidOutcomeEvidence
+                && evaluation.private_score_digest.is_none()
+                && evaluation.private_correctness_digest.is_none()
+        }));
+    }
+
+    #[test]
+    fn sprint100_23_exactly_three_predictions_are_authorized() {
+        let (registration, _, receipt, capsule) = fixture_outcome_receipt_capsule();
+        let authorization = fixture_opening_authorization(&registration, &receipt, &capsule);
+        assert_eq!(authorization.participant_seal_digests.len(), 3);
+        assert_eq!(authorization.participant_prediction_digests.len(), 3);
+    }
+
+    #[test]
+    fn sprint100_24_exactly_three_evaluations_are_required() {
+        let (registration, proof, receipt, capsule) = fixture_outcome_receipt_capsule();
+        let authorization = fixture_opening_authorization(&registration, &receipt, &capsule);
+        let mut bundle = fixture_opening_bundle(
+            &authorization,
+            &capsule,
+            &proof,
+            MomentumProspectiveLabelStatusV4_4::ScorableBinaryOutcome,
+        );
+        bundle.participant_evaluations.pop();
+        bundle.bundle_digest = opening_bundle_digest(&bundle);
+        assert!(validate_opening_bundle_shape(&bundle).is_err());
+    }
+
+    #[test]
+    fn sprint100_25_evaluation_binding_is_order_independent() {
+        let (registration, proof, receipt, capsule) = fixture_outcome_receipt_capsule();
+        let authorization = fixture_opening_authorization(&registration, &receipt, &capsule);
+        let mut bundle = fixture_opening_bundle(
+            &authorization,
+            &capsule,
+            &proof,
+            MomentumProspectiveLabelStatusV4_4::ScorableBinaryOutcome,
+        );
+        bundle.participant_evaluations.reverse();
+        bundle.bundle_digest = opening_bundle_digest(&bundle);
+        assert!(validate_opening_bundle_shape(&bundle).is_ok());
+    }
+
+    #[test]
+    fn sprint100_26_non_live_participants_cannot_substitute() {
+        let live = fixture_live_report();
+        let prediction = live.prediction_capsule.expect("prediction");
+        let mut substituted = prediction.participant_seal_digests.clone();
+        substituted[0] = "historical-participant-seal".into();
+        assert_ne!(substituted, prediction.participant_seal_digests);
+    }
+
+    #[test]
+    fn sprint100_27_event_two_ledger_is_append_only() {
+        let (ledger, _, _) =
+            fixture_completion_artifacts(MomentumProspectiveLabelStatusV4_4::ScorableBinaryOutcome);
+        let root = std::env::temp_dir().join(format!(
+            "soma-v4-event-two-ledger-test-{}",
+            std::process::id()
+        ));
+        if root.exists() {
+            fs::remove_dir_all(&root).expect("remove prior fixture");
+        }
+        let bytes = encode_series_ledger_entry(&ledger).unwrap();
+        assert_eq!(
+            persist_artifact(
+                &root.join(format!("{}.pb", ledger.entry_digest)),
+                &bytes,
+                &ledger.entry_digest,
+                |stored| Ok(decode_series_ledger_entry(stored)?.entry_digest),
+            )
+            .unwrap(),
+            (1, 0)
+        );
+        assert_eq!(
+            persist_artifact(
+                &root.join(format!("{}.pb", ledger.entry_digest)),
+                &bytes,
+                &ledger.entry_digest,
+                |stored| Ok(decode_series_ledger_entry(stored)?.entry_digest),
+            )
+            .unwrap(),
+            (0, 1)
+        );
+        fs::remove_dir_all(root).expect("remove fixture");
+    }
+
+    #[test]
+    fn sprint100_28_event_one_ledger_identity_is_immutable() {
+        let live = fixture_live_report();
+        let before = live
+            .event_one_adoption
+            .evaluation_ledger_entry_digest
+            .clone();
+        let (ledger, _, _) =
+            fixture_completion_artifacts(MomentumProspectiveLabelStatusV4_4::ScorableBinaryOutcome);
+        assert_eq!(ledger.previous_event_ledger_entry_digest, before);
+    }
+
+    #[test]
+    fn sprint100_29_completed_count_derives_from_ledger() {
+        let (ledger, _, _) =
+            fixture_completion_artifacts(MomentumProspectiveLabelStatusV4_4::ScorableBinaryOutcome);
+        assert_eq!(
+            ledger.total_event_count_after,
+            fixture_live_report().event_one_adoption.total_event_count + 1
+        );
+    }
+
+    #[test]
+    fn sprint100_30_scorable_count_excludes_neutral() {
+        let (binary, _, _) =
+            fixture_completion_artifacts(MomentumProspectiveLabelStatusV4_4::ScorableBinaryOutcome);
+        let (neutral, _, _) = fixture_completion_artifacts(
+            MomentumProspectiveLabelStatusV4_4::NeutralOutcomeExcluded,
+        );
+        assert_eq!(
+            binary.scorable_event_count_after,
+            neutral.scorable_event_count_after + 1
+        );
+    }
+
+    #[test]
+    fn sprint100_31_eligibility_uses_frozen_minimum_gate() {
+        let (_, eligibility, _) =
+            fixture_completion_artifacts(MomentumProspectiveLabelStatusV4_4::ScorableBinaryOutcome);
+        assert_eq!(
+            eligibility.status,
+            MomentumProspectiveSeriesEligibilityV4::IneligibleMinimumSamples
+        );
+        assert!(eligibility.scorable_event_count < eligibility.minimum_sample_gate);
+    }
+
+    #[test]
+    fn sprint100_32_eligibility_never_applies_reward() {
+        let (_, eligibility, _) =
+            fixture_completion_artifacts(MomentumProspectiveLabelStatusV4_4::ScorableBinaryOutcome);
+        assert_eq!(eligibility.reward_application_count, 0);
+        assert_eq!(eligibility.penalty_application_count, 0);
+    }
+
+    #[test]
+    fn sprint100_33_no_winner_is_selected() {
+        let (ledger, _, _) =
+            fixture_completion_artifacts(MomentumProspectiveLabelStatusV4_4::ScorableBinaryOutcome);
+        assert!(!ledger.winner_selected);
+    }
+
+    #[test]
+    fn sprint100_34_no_ranking_is_created() {
+        let (ledger, _, _) =
+            fixture_completion_artifacts(MomentumProspectiveLabelStatusV4_4::ScorableBinaryOutcome);
+        assert!(!ledger.ranking_created);
+    }
+
+    #[test]
+    fn sprint100_35_no_chair_action_occurs() {
+        let (ledger, _, _) =
+            fixture_completion_artifacts(MomentumProspectiveLabelStatusV4_4::ScorableBinaryOutcome);
+        assert!(!ledger.chair_action_taken);
+        assert_eq!(
+            MomentumProspectiveOutcomeSafetyCountersV4::default().chair_decisions,
+            0
+        );
+    }
+
+    #[test]
+    fn sprint100_36_completed_pause_is_additive() {
+        let (_, _, pause) =
+            fixture_completion_artifacts(MomentumProspectiveLabelStatusV4_4::ScorableBinaryOutcome);
+        assert_eq!(pause.prior_pause_digest, "prior-pause");
+        assert_eq!(
+            pause.policy,
+            LiveProspectiveContinuationPolicyV2::PausedAfterCompletedEpochTwo
+        );
+    }
+
+    #[test]
+    fn sprint100_37_epoch_three_remains_absent() {
+        let (_, _, pause) =
+            fixture_completion_artifacts(MomentumProspectiveLabelStatusV4_4::ScorableBinaryOutcome);
+        assert!(!pause.epoch_three_registered);
+        assert_eq!(pause.automatic_registration_count, 0);
+        assert_eq!(pause.scheduler_count, 0);
+    }
+
+    #[test]
+    fn sprint100_38_completed_acquisition_replay_has_zero_network() {
+        let status = fixture_outcome_status();
+        assert_eq!(status.safety_counters.network_request_attempts, 0);
+        assert_eq!(status.safety_counters.transport_constructions, 0);
+    }
+
+    #[test]
+    fn sprint100_39_completed_opening_replay_has_zero_opening_work() {
+        let counters = MomentumProspectiveOutcomeSafetyCountersV4::default();
+        assert_eq!(counters.opening_attempts, 0);
+        assert_eq!(counters.evaluations, 0);
+        assert_eq!(counters.ledger_appends, 0);
+    }
+
+    #[test]
+    fn sprint100_40_partial_recovery_does_not_authorize_transport() {
+        let (_, _, receipt, _) = fixture_outcome_receipt_capsule();
+        assert_eq!(receipt.request_attempt_count, 1);
+        assert_eq!(receipt.retry_count, 0);
+        assert!(
+            validate_series_outcome_authority(
+                MomentumProspectiveOutcomeRunModeV4::OpenOutcome,
+                false,
+                false,
+                true,
+                Some(2),
+            )
+            .is_ok()
+        );
+    }
+
+    #[test]
+    fn sprint100_41_historical_diagnostics_do_not_enter_evaluation() {
+        let proof = fixture_outcome_proof(&fixture_outcome_registration());
+        let evaluation = &fixture_evaluations(
+            &proof,
+            MomentumProspectiveLabelStatusV4_4::ScorableBinaryOutcome,
+        )[0];
+        assert_eq!(evaluation.outcome_timestamp_ms, proof.outcome_timestamp_ms);
+        assert_eq!(evaluation.event_timestamp_ms, EVENT);
+    }
+
+    #[test]
+    fn sprint100_42_historical_holdout_is_not_an_outcome_source() {
+        let proof = fixture_outcome_proof(&fixture_outcome_registration());
+        assert!(proof.credential_free);
+        assert!(proof.read_only);
+        assert!(!proof.raw_outcome_response_digest.contains("holdout"));
+    }
+
+    #[test]
+    fn sprint100_43_live_parameters_remain_unchanged() {
+        let live = fixture_live_report();
+        let before = live.series.parameter_digests.clone();
+        let _ =
+            fixture_completion_artifacts(MomentumProspectiveLabelStatusV4_4::ScorableBinaryOutcome);
+        assert_eq!(live.series.parameter_digests, before);
+    }
+
+    #[test]
+    fn sprint100_44_live_normalizers_remain_unchanged() {
+        let live = fixture_live_report();
+        let before = live.series.normalizer_digests.clone();
+        let _ =
+            fixture_completion_artifacts(MomentumProspectiveLabelStatusV4_4::ScorableBinaryOutcome);
+        assert_eq!(live.series.normalizer_digests, before);
+    }
+
+    #[test]
+    fn sprint100_45_reward_and_chair_counters_are_zero() {
+        let counters = MomentumProspectiveOutcomeSafetyCountersV4::default();
+        assert_eq!(
+            counters.reward_applications
+                + counters.penalty_applications
+                + counters.chair_model_executions
+                + counters.chair_learning_actions
+                + counters.chair_decisions
+                + counters.committee_votes,
+            0
+        );
+    }
+
+    #[test]
+    fn sprint100_46_paper_and_live_execution_are_zero() {
+        let counters = MomentumProspectiveOutcomeSafetyCountersV4::default();
+        assert_eq!(counters.paper_executions, 0);
+        assert_eq!(counters.live_executions, 0);
+    }
+
+    #[test]
+    fn sprint100_47_malformed_event_two_protobuf_rejects() {
+        let (ledger, eligibility, pause) =
+            fixture_completion_artifacts(MomentumProspectiveLabelStatusV4_4::ScorableBinaryOutcome);
+        for mut bytes in [
+            encode_series_ledger_entry(&ledger).unwrap(),
+            encode_series_eligibility(&eligibility).unwrap(),
+            encode_completed_pause(&pause).unwrap(),
+        ] {
+            bytes.truncate(bytes.len() / 2);
+            assert!(
+                decode_series_ledger_entry(&bytes).is_err()
+                    && decode_series_eligibility(&bytes).is_err()
+                    && decode_completed_pause(&bytes).is_err()
+            );
+        }
+    }
+
+    #[test]
+    fn sprint100_48_conflicting_artifacts_reject() {
+        let (registration, proof, receipt, capsule) = fixture_outcome_receipt_capsule();
+        let terminal = build_series_terminal_receipt(
+            &registration,
+            MomentumOutcomeAcquisitionStatusV4_4::TerminalTransportFailure,
+            None,
+            0,
+        )
+        .unwrap();
+        let artifacts = SeriesOutcomeArtifacts {
+            receipt: Some(terminal),
+            proof: Some(proof),
+            capsule: Some(capsule),
+            ..Default::default()
+        };
+        assert_eq!(
+            series_outcome_readiness(
+                registration.outcome_finality_boundary_ms,
+                &registration,
+                &artifacts,
+                &fixture_live_report(),
+                "prior-pause",
+            ),
+            MomentumProspectiveOutcomeReadinessV4::IntegrityFailure
+        );
+        assert_ne!(
+            artifacts.receipt.unwrap().receipt_digest,
+            receipt.receipt_digest
+        );
+    }
+
+    #[test]
+    fn sprint100_49_text_and_json_status_agree() {
+        let status = fixture_outcome_status();
+        let report = MomentumProspectiveOutcomeReportV4 {
+            status: status.clone(),
+            registration: fixture_outcome_registration(),
+            receipt: None,
+            outcome_capsule: None,
+            opening_authorization: None,
+            opening_receipt: None,
+            opening_bundle: None,
+            ledger_entry: None,
+            eligibility_receipt: None,
+            completed_pause: None,
+        };
+        let text = crate::cli::format_momentum_v4_prospective_outcome_text(&report);
+        let json = serde_json::to_value(&status).unwrap();
+        assert!(text.contains(&format!("series_digest={}", status.series_digest)));
+        assert!(text.contains(&format!("epoch_number={}", status.epoch_number)));
+        assert_eq!(json["series_digest"], status.series_digest);
+        assert_eq!(json["epoch_number"], status.epoch_number);
+        assert_eq!(
+            json["readiness"],
+            serde_json::to_value(status.readiness).unwrap()
         );
     }
 }

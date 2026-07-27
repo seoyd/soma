@@ -9,13 +9,13 @@ outcome row may be referenced as context-only evidence for a later registered
 event, but its opening bundle, label, participant evaluations, scores, and
 eligibility state cannot supply features or affect cadence continuation.
 
-The next registered event has a separately locked horizon-one outcome plan.
-The prospective input stage performs zero outcome requests, openings, label
-access, metrics, winner selection, ranking, reward, or penalty work. A later
-Sprint must authorize any outcome acquisition and opening as a distinct stage.
+The second registered event had a separately locked horizon-one outcome plan.
+Its prospective input stage performed zero outcome requests, openings, label
+access, metrics, winner selection, ranking, reward, or penalty work. Outcome
+acquisition and opening later ran as two explicitly authorized stages.
 Official Mamba-3 is not implemented or evaluated, and Chair functionality
 remains inactive. See `MOMENTUM_V4_PROSPECTIVE_SERIES.md` for the append-only
-series and manual input contract.
+series and manual contracts.
 
 ## Boundary
 
@@ -184,3 +184,29 @@ This verifies the first immutable V4 prospective event and its fail-closed
 authority boundaries. It does not establish model improvement, participant
 superiority, a winner, reward effectiveness, promotion readiness, Chair
 learning, official Mamba-3 behavior, or trading readiness.
+
+## Event-two prospective-series close
+
+Event two was already sealed before its outcome became accessible. At
+`2026-07-27T03:58:12Z`, after its registered finality boundary, six read-only
+preflights agreed on `ReadyForOutcomeAcquisition`, the exact one-row request,
+and zero work.
+
+The registered request executed once, returned one finalized row at the exact
+timestamp, and used zero retries. Successful receipt `738d106d50a89df6` and
+closed outcome capsule `c67ab84dffddf3eb` were persisted before any label or
+private prediction access. Acquisition then reported
+`ReadyForOutcomeOpening`.
+
+Separate local authorization `e095a9064ad9711a` opened only the sealed
+event-two outcome and predictions. Opening bundle `6c7e1d55a1da912b`
+classified the result `ScorableBinaryOutcome`; each of the three live
+participants has public status `Scored`. Event-two ledger entry
+`9a8711351dbcb931` derives two completed and two scorable live events.
+Eligibility remains `IneligibleMinimumSamples`.
+
+No winner, ranking, reward, penalty, Chair action, vote, paper execution, live
+execution, or trade occurred. Additive completed pause
+`e616e1deb5e935c9` preserves the prior pause and records that epoch three is
+absent. Completed status and dry-run replays return `OutcomeAlreadyOpened`
+with all work counters zero. The historical holdout remains closed.

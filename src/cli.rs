@@ -140,6 +140,10 @@ pub struct CliArgs {
     #[arg(long, default_value_t = false)]
     pub execute_input: bool,
     #[arg(long, default_value_t = false)]
+    pub execute_outcome: bool,
+    #[arg(long, default_value_t = false)]
+    pub open_outcome: bool,
+    #[arg(long, default_value_t = false)]
     pub status: bool,
     #[arg(long, default_value_t = false)]
     pub dry_run: bool,
@@ -166,6 +170,10 @@ pub struct CliArgs {
     #[arg(long, default_value_t = false)]
     pub confirm_one_time_prospective_input_request: bool,
     #[arg(long, default_value_t = false)]
+    pub confirm_one_time_prospective_outcome_request: bool,
+    #[arg(long, default_value_t = false)]
+    pub confirm_one_time_prospective_outcome_opening: bool,
+    #[arg(long, default_value_t = false)]
     pub btc_prospective_challenge_create: bool,
     #[arg(long, default_value_t = false)]
     pub btc_prospective_challenge_status: bool,
@@ -191,6 +199,15 @@ pub struct CliArgs {
 
 pub fn run() -> Result<(), String> {
     let args = CliArgs::parse();
+    let prospective_outcome_authority = args.execute_outcome
+        || args.open_outcome
+        || args.confirm_one_time_prospective_outcome_request
+        || args.confirm_one_time_prospective_outcome_opening;
+    if prospective_outcome_authority && !args.momentum_v4_prospective_series {
+        return Err(
+            "prospective outcome flags require --momentum-v4-prospective-series".to_string(),
+        );
+    }
     if args.momentum_mtf_qualified_six_diagnostics
         || args.momentum_mtf_qualified_six_challenger_requirements
     {
@@ -609,15 +626,23 @@ pub fn run() -> Result<(), String> {
             args.register_next_epoch,
             args.execute_local,
             args.execute_input,
+            args.execute_outcome,
+            args.open_outcome,
             args.epoch,
             args.allow_network,
             args.confirm_one_time_prospective_input_request,
+            args.confirm_one_time_prospective_outcome_request,
+            args.confirm_one_time_prospective_outcome_opening,
         );
     }
     if args.register_next_epoch
         || args.epoch.is_some()
         || args.execute_input
+        || args.execute_outcome
+        || args.open_outcome
         || args.confirm_one_time_prospective_input_request
+        || args.confirm_one_time_prospective_outcome_request
+        || args.confirm_one_time_prospective_outcome_opening
     {
         return Err(
             "prospective series flags require --momentum-v4-prospective-series".to_string(),
@@ -4190,6 +4215,54 @@ fn verify_momentum_v4_outcome_prior_boundary(config_path: &Path) -> Result<(), S
     Ok(())
 }
 
+fn verify_sprint100_historical_isolation() -> Result<(), String> {
+    let report = crate::model::run_momentum_qualified_six_diagnostics_v1(
+        crate::model::MomentumQualifiedDiagnosticRunModeV1::Status,
+    )?;
+    let requirements = report
+        .challenger_requirements
+        .as_ref()
+        .ok_or_else(|| "qualified-six challenger requirements unavailable".to_string())?;
+    if report.status != crate::model::MomentumQualifiedDiagnosticStatusV1::Complete
+        || report.evidence_class
+            != crate::model::MomentumQualifiedDiagnosticEvidenceClassV1::PostResultDiagnosticOnly
+        || report.confirmatory_claim_allowed
+        || report.holdout_authority
+        || report.live_authority
+        || report.trading_authority
+        || report.holdout_eligibility_receipts.len() != 4
+        || report.holdout_eligibility_receipts.iter().any(|receipt| {
+            receipt.eligibility
+                != crate::model::MomentumQualifiedHoldoutEligibilityV1::NotEligibleForSealedHoldout
+        })
+        || report.holdout_label_reads != 0
+        || report.holdout_prediction_reads != 0
+        || report.holdout_metric_reads != 0
+        || report.holdout_execution_modes != 0
+        || report.live_outcome_requests != 0
+        || report.live_outcome_openings != 0
+        || report.live_participant_changes != 0
+        || report.winner_selections != 0
+        || report.ranking_creations != 0
+        || report.reward_applications != 0
+        || report.penalty_applications != 0
+        || report.chair_decisions != 0
+        || report.trading_actions != 0
+        || report.network_request_attempts != 0
+        || report.artifacts_written != 0
+        || report.model_refit_count != 0
+        || report.prediction_computation_count != 0
+        || report.evaluation_computation_count != 0
+        || requirements.new_model_execution_authorized
+        || requirements.holdout_execution_authorized
+        || !report.protected_artifacts_unchanged
+        || !report.active_roster_unchanged
+    {
+        return Err("historical diagnostic and holdout isolation rejected".to_string());
+    }
+    Ok(())
+}
+
 #[derive(Serialize)]
 struct MomentumV4FutureOutcomeCliReport<'a> {
     #[serde(flatten)]
@@ -5057,6 +5130,293 @@ pub(crate) fn format_momentum_v4_prospective_series_text(
     Ok(output)
 }
 
+#[derive(Serialize)]
+struct MomentumV4ProspectiveOutcomeCliReport<'a> {
+    #[serde(flatten)]
+    status: &'a crate::model::momentum_prospective_series_v4::MomentumProspectiveOutcomeStatusV4,
+    outcome_acquisition_status: Option<crate::model::MomentumOutcomeAcquisitionStatusV4_4>,
+    opening_status: Option<crate::model::MomentumOutcomeOpeningStatusV4_4>,
+    participant_evaluation_statuses: Vec<String>,
+}
+
+fn prospective_outcome_evaluation_statuses(
+    report: &crate::model::momentum_prospective_series_v4::MomentumProspectiveOutcomeReportV4,
+) -> Vec<String> {
+    let mut values = report
+        .opening_bundle
+        .as_ref()
+        .map_or_else(Vec::new, |bundle| {
+            bundle
+                .participant_evaluations
+                .iter()
+                .map(|evaluation| {
+                    format!("{}={:?}", evaluation.participant_role, evaluation.status)
+                })
+                .collect()
+        });
+    values.sort();
+    values
+}
+
+pub(crate) fn format_momentum_v4_prospective_outcome_text(
+    report: &crate::model::momentum_prospective_series_v4::MomentumProspectiveOutcomeReportV4,
+) -> String {
+    let status = &report.status;
+    let mut output = String::new();
+    let _ = writeln!(output, "series_digest={}", status.series_digest);
+    let _ = writeln!(output, "epoch_number={}", status.epoch_number);
+    let _ = writeln!(output, "event_timestamp_ms={}", status.event_timestamp_ms);
+    let _ = writeln!(
+        output,
+        "required_outcome_timestamp_ms={}",
+        status.required_outcome_timestamp_ms
+    );
+    let _ = writeln!(
+        output,
+        "outcome_finality_boundary_ms={}",
+        status.outcome_finality_boundary_ms
+    );
+    let _ = writeln!(
+        output,
+        "prediction_capsule_digest={}",
+        status.prediction_capsule_digest
+    );
+    let _ = writeln!(
+        output,
+        "prediction_journal_digest={}",
+        status.prediction_journal_digest
+    );
+    let _ = writeln!(output, "outcome_plan_digest={}", status.outcome_plan_digest);
+    let _ = writeln!(output, "provider_id={}", status.provider_id);
+    let _ = writeln!(output, "market={}", status.market);
+    let _ = writeln!(output, "symbol={}", status.symbol);
+    let _ = writeln!(output, "cadence={}", status.cadence);
+    let _ = writeln!(
+        output,
+        "request_start_timestamp_ms={}",
+        status.request_start_timestamp_ms
+    );
+    let _ = writeln!(
+        output,
+        "request_end_timestamp_ms={}",
+        status.request_end_timestamp_ms
+    );
+    let _ = writeln!(output, "request_fingerprint={}", status.request_fingerprint);
+    let _ = writeln!(output, "maximum_requests={}", status.maximum_requests);
+    let _ = writeln!(output, "maximum_retries={}", status.maximum_retries);
+    let _ = writeln!(output, "maximum_concurrency={}", status.maximum_concurrency);
+    let _ = writeln!(output, "prior_attempt_count={}", status.prior_attempt_count);
+    let _ = writeln!(
+        output,
+        "outcome_receipt_digest={}",
+        status.outcome_receipt_digest.as_deref().unwrap_or("absent")
+    );
+    let _ = writeln!(
+        output,
+        "outcome_capsule_digest={}",
+        status.outcome_capsule_digest.as_deref().unwrap_or("absent")
+    );
+    let _ = writeln!(
+        output,
+        "outcome_acquisition_status={}",
+        report
+            .receipt
+            .as_ref()
+            .map(|receipt| format!("{:?}", receipt.status))
+            .unwrap_or_else(|| "absent".to_string())
+    );
+    let _ = writeln!(
+        output,
+        "opening_authorization_digest={}",
+        status
+            .opening_authorization_digest
+            .as_deref()
+            .unwrap_or("absent")
+    );
+    let _ = writeln!(
+        output,
+        "opening_bundle_digest={}",
+        status.opening_bundle_digest.as_deref().unwrap_or("absent")
+    );
+    let _ = writeln!(
+        output,
+        "opening_status={}",
+        report
+            .opening_receipt
+            .as_ref()
+            .map(|receipt| format!("{:?}", receipt.status))
+            .unwrap_or_else(|| "absent".to_string())
+    );
+    let _ = writeln!(
+        output,
+        "participant_evaluation_digests={:?}",
+        status.participant_evaluation_digests
+    );
+    let _ = writeln!(
+        output,
+        "participant_evaluation_statuses={:?}",
+        prospective_outcome_evaluation_statuses(report)
+    );
+    let _ = writeln!(output, "label_status={:?}", status.label_status);
+    let _ = writeln!(
+        output,
+        "event_two_ledger_entry_digest={}",
+        status
+            .event_two_ledger_entry_digest
+            .as_deref()
+            .unwrap_or("absent")
+    );
+    let _ = writeln!(
+        output,
+        "completed_event_count={}",
+        status.completed_event_count
+    );
+    let _ = writeln!(
+        output,
+        "scorable_event_count={}",
+        status.scorable_event_count
+    );
+    let _ = writeln!(output, "eligibility_status={:?}", status.eligibility_status);
+    let _ = writeln!(
+        output,
+        "eligibility_receipt_digest={}",
+        status
+            .eligibility_receipt_digest
+            .as_deref()
+            .unwrap_or("absent")
+    );
+    let _ = writeln!(
+        output,
+        "completed_pause_digest={}",
+        status.completed_pause_digest.as_deref().unwrap_or("absent")
+    );
+    let _ = writeln!(output, "readiness={:?}", status.readiness);
+    let _ = writeln!(
+        output,
+        "protected_live_artifact_count={}",
+        status.protected_live_artifact_count
+    );
+    let _ = writeln!(
+        output,
+        "protected_live_aggregate_digest={}",
+        status.protected_live_aggregate_digest
+    );
+    let _ = writeln!(
+        output,
+        "event_one_chain_digest={}",
+        status.event_one_chain_digest
+    );
+    let _ = writeln!(
+        output,
+        "event_two_sealed_chain_digest={}",
+        status.event_two_sealed_chain_digest
+    );
+    let _ = writeln!(
+        output,
+        "historical_store_digest={}",
+        status.historical_store_digest
+    );
+    let _ = writeln!(
+        output,
+        "qualified_six_replay_digest={}",
+        status.qualified_six_replay_digest
+    );
+    let _ = writeln!(
+        output,
+        "diagnostic_store_digest={}",
+        status.diagnostic_store_digest
+    );
+    let _ = writeln!(
+        output,
+        "active_roster_digest={}",
+        status.active_roster_digest
+    );
+    let _ = writeln!(
+        output,
+        "participant_parameter_digests={:?}",
+        status.participant_parameter_digests
+    );
+    let _ = writeln!(
+        output,
+        "participant_normalizer_digests={:?}",
+        status.participant_normalizer_digests
+    );
+    let _ = writeln!(
+        output,
+        "feature_policy_digest={}",
+        status.feature_policy_digest
+    );
+    let _ = writeln!(output, "label_policy_digest={}", status.label_policy_digest);
+    let _ = writeln!(output, "prior_pause_digest={}", status.prior_pause_digest);
+    let _ = writeln!(
+        output,
+        "epoch_three_registered={}",
+        status.epoch_three_registered
+    );
+    let counters = &status.safety_counters;
+    for (name, value) in [
+        (
+            "network_request_attempts",
+            counters.network_request_attempts,
+        ),
+        ("transport_constructions", counters.transport_constructions),
+        ("retries", counters.retries),
+        (
+            "maximum_observed_concurrency",
+            counters.maximum_observed_concurrency,
+        ),
+        ("outcome_raw_loads", counters.outcome_raw_loads),
+        (
+            "prediction_private_value_reads",
+            counters.prediction_private_value_reads,
+        ),
+        ("label_derivations", counters.label_derivations),
+        ("evaluations", counters.evaluations),
+        ("opening_attempts", counters.opening_attempts),
+        ("ledger_appends", counters.ledger_appends),
+        ("eligibility_derivations", counters.eligibility_derivations),
+        ("winner_selections", counters.winner_selections),
+        ("ranking_creations", counters.ranking_creations),
+        ("reward_applications", counters.reward_applications),
+        ("penalty_applications", counters.penalty_applications),
+        ("chair_model_executions", counters.chair_model_executions),
+        ("chair_learning_actions", counters.chair_learning_actions),
+        ("chair_decisions", counters.chair_decisions),
+        ("committee_votes", counters.committee_votes),
+        ("voice_changes", counters.voice_changes),
+        ("tier_changes", counters.tier_changes),
+        ("cooldowns", counters.cooldowns),
+        ("promotions", counters.promotions),
+        ("quarantines", counters.quarantines),
+        ("paper_executions", counters.paper_executions),
+        ("live_executions", counters.live_executions),
+        (
+            "epoch_three_registrations",
+            counters.epoch_three_registrations,
+        ),
+    ] {
+        let _ = writeln!(output, "{name}={value}");
+    }
+    let _ = writeln!(output, "artifacts_written={}", status.artifacts_written);
+    let _ = writeln!(
+        output,
+        "duplicate_artifact_count={}",
+        status.duplicate_artifact_count
+    );
+    let _ = writeln!(
+        output,
+        "protected_artifacts_unchanged={}",
+        status.protected_artifacts_unchanged
+    );
+    let _ = writeln!(
+        output,
+        "active_state_unchanged={}",
+        status.active_state_unchanged
+    );
+    let _ = writeln!(output, "status_digest={}", status.status_digest);
+    output
+}
+
 #[allow(clippy::too_many_arguments)]
 fn run_momentum_v4_prospective_series_cli(
     config_path: &Path,
@@ -5066,14 +5426,20 @@ fn run_momentum_v4_prospective_series_cli(
     register_next_epoch: bool,
     execute_local: bool,
     execute_input: bool,
+    execute_outcome: bool,
+    open_outcome: bool,
     epoch: Option<u64>,
     allow_network: bool,
-    confirmation: bool,
+    input_confirmation: bool,
+    outcome_confirmation: bool,
+    opening_confirmation: bool,
 ) -> Result<(), String> {
     if usize::from(status)
         + usize::from(dry_run)
         + usize::from(register_next_epoch)
         + usize::from(execute_input)
+        + usize::from(execute_outcome)
+        + usize::from(open_outcome)
         != 1
     {
         return Err("select exactly one Momentum V4 prospective series mode".to_string());
@@ -5082,36 +5448,124 @@ fn run_momentum_v4_prospective_series_cli(
         return Err("unsupported Momentum V4 prospective series output format".to_string());
     }
     if register_next_epoch {
-        if !execute_local || epoch.is_some() || allow_network || confirmation {
+        if !execute_local
+            || epoch.is_some()
+            || allow_network
+            || input_confirmation
+            || outcome_confirmation
+            || opening_confirmation
+        {
             return Err(
                 "Momentum V4 prospective registration requires only --execute-local".to_string(),
             );
         }
-    } else if execute_local {
-        return Err(
-            "Momentum V4 prospective --execute-local is reserved for registration".to_string(),
-        );
-    }
-    if execute_input {
-        if epoch.is_none() || !allow_network || !confirmation {
+    } else if execute_input {
+        if execute_local
+            || epoch.is_none()
+            || !allow_network
+            || !input_confirmation
+            || outcome_confirmation
+            || opening_confirmation
+        {
             return Err(
                 "Momentum V4 prospective input execution requires epoch, network permission, and exact confirmation"
                     .to_string(),
             );
         }
-    } else if epoch.is_some() || allow_network || confirmation {
-        return Err("Momentum V4 prospective read-only mode rejects input authority".to_string());
+    } else if execute_outcome {
+        if execute_local
+            || epoch != Some(2)
+            || !allow_network
+            || input_confirmation
+            || !outcome_confirmation
+            || opening_confirmation
+        {
+            return Err(
+                "Momentum V4 prospective outcome execution requires epoch two, network permission, and exact outcome confirmation"
+                    .to_string(),
+            );
+        }
+    } else if open_outcome {
+        if !execute_local
+            || epoch != Some(2)
+            || allow_network
+            || input_confirmation
+            || outcome_confirmation
+            || !opening_confirmation
+        {
+            return Err(
+                "Momentum V4 prospective outcome opening requires epoch two, local execution, and exact opening confirmation"
+                    .to_string(),
+            );
+        }
+    } else if execute_local
+        || epoch.is_some()
+        || allow_network
+        || input_confirmation
+        || outcome_confirmation
+        || opening_confirmation
+    {
+        return Err("Momentum V4 prospective read-only mode rejects authority".to_string());
     }
     verify_momentum_v4_outcome_prior_boundary(config_path)?;
     let provider_config = crate::data::UpbitHistoricalPilotConfigV0::from_toml_path(config_path)?;
     let snapshots =
         crate::model::load_local_learning_snapshots_v0(Path::new("data/local_snapshots"))?;
     let root = crate::model::default_private_learning_root_v0();
+    if !crate::model::momentum_prospective_series_v4::prospective_outcome_stage_started_v4(root) {
+        verify_sprint100_historical_isolation()?;
+    }
     let reservation = crate::model::load_protected_evaluation_reservation_v1(
         config_path
             .parent()
             .ok_or("Momentum V4 prospective reservation directory unavailable")?,
     )?;
+    if status || dry_run || execute_outcome || open_outcome {
+        let mode = if status {
+            crate::model::momentum_prospective_series_v4::MomentumProspectiveOutcomeRunModeV4::Status
+        } else if dry_run {
+            crate::model::momentum_prospective_series_v4::MomentumProspectiveOutcomeRunModeV4::DryRun
+        } else if execute_outcome {
+            crate::model::momentum_prospective_series_v4::MomentumProspectiveOutcomeRunModeV4::ExecuteOutcome
+        } else {
+            crate::model::momentum_prospective_series_v4::MomentumProspectiveOutcomeRunModeV4::OpenOutcome
+        };
+        let report =
+            crate::model::momentum_prospective_series_v4::run_momentum_prospective_outcome_v4(
+                root,
+                &snapshots,
+                &reservation,
+                &provider_config,
+                current_utc_timestamp_ms(),
+                mode,
+                allow_network,
+                outcome_confirmation,
+                opening_confirmation,
+                epoch,
+            )?;
+        if !report.status.protected_artifacts_unchanged || !report.status.active_state_unchanged {
+            return Err("Momentum V4 prospective outcome verification failed".to_string());
+        }
+        if output_format == "json" {
+            let public_report = MomentumV4ProspectiveOutcomeCliReport {
+                status: &report.status,
+                outcome_acquisition_status: report.receipt.as_ref().map(|receipt| receipt.status),
+                opening_status: report
+                    .opening_receipt
+                    .as_ref()
+                    .map(|receipt| receipt.status),
+                participant_evaluation_statuses: prospective_outcome_evaluation_statuses(&report),
+            };
+            println!(
+                "{}",
+                serde_json::to_string(&public_report)
+                    .map_err(|_| "Momentum V4 prospective outcome report encoding failed")?
+            );
+        } else {
+            print!("{}", format_momentum_v4_prospective_outcome_text(&report));
+        }
+        return Ok(());
+    }
     let mode = if status {
         crate::model::momentum_prospective_series_v4::MomentumProspectiveSeriesRunModeV4::Status
     } else if dry_run {
@@ -5129,7 +5583,7 @@ fn run_momentum_v4_prospective_series_cli(
         current_utc_timestamp_ms(),
         mode,
         allow_network,
-        confirmation,
+        input_confirmation,
         epoch,
     )?;
     if !report.status.protected_artifacts_unchanged || !report.status.active_state_unchanged {
