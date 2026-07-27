@@ -243,6 +243,11 @@ diagnostic report:  748dc5291fb165ab
 No winner, ranking, reward, penalty, Chair action, trading action, network
 attempt, live-outcome opening, or protected-artifact mutation occurred.
 
+Live event two later completed in the separate prospective lane without
+reading the sealed historical holdout or changing this diagnostic store,
+replay identity, candidate classifications, or challenger requirements. Its
+result does not alter the historical conclusions above.
+
 ## Verification
 
 All 48 focused diagnostic tests passed under Default and Metal. Formatting

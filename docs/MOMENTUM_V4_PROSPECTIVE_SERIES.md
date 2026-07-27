@@ -8,12 +8,11 @@ rewriting it, preserves the identical frozen three-participant roster, and
 derives each later candidate from the persisted daily cadence and actual
 registration time.
 
-The current completed prospective-event count is one. The current scorable
-event count is one, and reward eligibility remains
-`IneligibleMinimumSamples`. No winner, ranking, reward, penalty, Chair action,
-or trading action exists.
+The current completed prospective-event count is two. Both events are
+scorable, and reward eligibility remains `IneligibleMinimumSamples`. No
+winner, ranking, reward, penalty, Chair action, or trading action exists.
 
-## Current sealed state
+## Input-sealed state
 
 Epoch two is preregistered as event timestamp `1784937600000`. Its input
 finality is `1785024000000`, its horizon-one outcome timestamp is
@@ -21,7 +20,7 @@ finality is `1785024000000`, its horizon-one outcome timestamp is
 
 The exact registered input executed once inside the legal window. It consumed
 one request with zero retries, accepted the single missing finalized row, and
-sealed the unchanged three-participant live roster. Current readiness is
+sealed the unchanged three-participant live roster. Input-stage readiness was
 `PredictionAlreadySealed`.
 
 The exact 16-row context runs daily from `1783641600000` through
@@ -33,9 +32,36 @@ authority, and write work.
 
 The successful input receipt is `ec2806f2d5d234e5`, the input capsule is
 `3a918381cf1cedfa`, and the context-assembly proof is `41aa5585171d28a5`.
-Exactly three private seals are bound by prediction capsule
+Exactly three private seals were bound by prediction capsule
 `f0fc2d24e1c920e4`, journal `ed46f8a8b3f4f806`, and locked outcome plan
-`ae798b355d36bb74`. Numeric probabilities remain private.
+`ae798b355d36bb74` before outcome access. Numeric probabilities remain
+private.
+
+## Completed event-two outcome
+
+At `2026-07-27T03:58:12Z`, actual UTC was after the registered outcome
+finality boundary. Two text statuses, two JSON statuses, and text and JSON
+dry-runs agreed on `ReadyForOutcomeAcquisition`, the sealed event-two chain,
+the exact one-row request preview, and zero work.
+
+The public Upbit outcome request executed exactly once with zero retries and
+maximum concurrency one. The successful receipt is `738d106d50a89df6`; the
+still-closed outcome capsule is `c67ab84dffddf3eb`. Acquisition stopped at
+`ReadyForOutcomeOpening` with zero label derivations, private prediction
+reads, evaluations, or opening attempts.
+
+A separate network-free local authorization then opened only event two. The
+authorization is `e095a9064ad9711a`, the opening bundle is
+`6c7e1d55a1da912b`, and the event-two ledger entry is
+`9a8711351dbcb931`. The frozen policy classified the event
+`ScorableBinaryOutcome`; all three live participants have public evaluation
+status `Scored`. No numeric prediction, score, correctness value, return, or
+OHLCV was published.
+
+The complete append-only ledger now derives two completed and two scorable
+events. Eligibility receipt `c94ac1fe15dcfb0c` remains
+`IneligibleMinimumSamples`. Additive pause `e616e1deb5e935c9` records
+`PausedAfterCompletedEpochTwo`; epoch three remains absent.
 
 ## Immutable series contract
 
@@ -181,17 +207,43 @@ Execute one registered input:
 --output-format text|json
 ```
 
+Acquire the registered event-two outcome:
+
+```text
+--momentum-v4-prospective-series
+--epoch 2
+--execute-outcome
+--allow-network
+--confirm-one-time-prospective-outcome-request
+--output-format text|json
+```
+
+Open the acquired outcome locally:
+
+```text
+--momentum-v4-prospective-series
+--epoch 2
+--open-outcome
+--execute-local
+--confirm-one-time-prospective-outcome-opening
+--output-format text|json
+```
+
 No command registers and executes multiple epochs. There is no daemon,
 scheduler, background loop, automatic daily request, or automatic outcome
 opening.
 
 ## Persistence and scope
 
-All fourteen series artifacts use manual `prost::Message` contracts and the
-existing verified create-new temporary write, flush, sync, reopen/decode,
+The series and event-two artifacts use manual `prost::Message` contracts and
+the existing verified create-new temporary write, flush, sync, reopen/decode,
 atomic rename, and final reopen/decode sequence. Runtime evidence is
 append-only and separate from the first event.
 
-The next step is to keep the outcome stage closed until its registered
-finality boundary and a separate explicit authorization. Official Mamba-3 is
-not implemented or evaluated. Chair functionality remains inactive.
+Completed status, dry-run, acquisition replay, and opening replay all return
+`OutcomeAlreadyOpened` before transport construction, raw loading, private
+prediction access, label derivation, evaluation, ledger append, or writes.
+Live continuation is paused. The next research priority is micro
+feature/label challenger design in the historical research lane. Official
+Mamba-3 is not implemented or evaluated, and Chair functionality remains
+inactive.

@@ -36,14 +36,15 @@ use super::{
 
 const ROOT_VERSION_V4_4: &str = "v4_4";
 const DAILY_CADENCE_MS: u64 = 86_400_000;
-const REGISTRATION_VERSION: &str = "momentum-outcome-acquisition-registration-v4.4";
-const RECEIPT_VERSION: &str = "momentum-outcome-acquisition-receipt-v4.4";
-const ROW_PROOF_VERSION: &str = "momentum-outcome-row-identity-proof-v4.4";
-const CAPSULE_VERSION: &str = "momentum-sealed-outcome-capsule-v4.4";
-const OPENING_AUTHORIZATION_VERSION: &str = "momentum-outcome-opening-authorization-v4.4";
-const EVALUATION_VERSION: &str = "momentum-participant-prospective-evaluation-v4.4";
-const OPENING_BUNDLE_VERSION: &str = "momentum-outcome-opening-bundle-v4.4";
-const OPENING_RECEIPT_VERSION: &str = "momentum-outcome-opening-receipt-v4.4";
+pub(super) const REGISTRATION_VERSION: &str = "momentum-outcome-acquisition-registration-v4.4";
+pub(super) const RECEIPT_VERSION: &str = "momentum-outcome-acquisition-receipt-v4.4";
+pub(super) const ROW_PROOF_VERSION: &str = "momentum-outcome-row-identity-proof-v4.4";
+pub(super) const CAPSULE_VERSION: &str = "momentum-sealed-outcome-capsule-v4.4";
+pub(super) const OPENING_AUTHORIZATION_VERSION: &str =
+    "momentum-outcome-opening-authorization-v4.4";
+pub(super) const EVALUATION_VERSION: &str = "momentum-participant-prospective-evaluation-v4.4";
+pub(super) const OPENING_BUNDLE_VERSION: &str = "momentum-outcome-opening-bundle-v4.4";
+pub(super) const OPENING_RECEIPT_VERSION: &str = "momentum-outcome-opening-receipt-v4.4";
 const LEDGER_VERSION: &str = "momentum-prospective-evaluation-ledger-v4.4";
 const REWARD_RECEIPT_VERSION: &str = "momentum-reward-eligibility-replay-receipt-v4.4";
 const STATUS_VERSION: &str = "momentum-future-outcome-status-v4.4";
@@ -212,6 +213,7 @@ pub enum MomentumProspectiveLabelStatusV4_4 {
 pub enum MomentumProspectiveEvaluationStatusV4_4 {
     Scored,
     NeutralOutcomeExcluded,
+    InvalidOutcomeEvidence,
     PredictionIntegrityFailure,
     OutcomeIntegrityFailure,
 }
@@ -450,14 +452,14 @@ fn with_cleared_digest<T: Clone>(value: &T, clear: impl FnOnce(&mut T)) -> T {
     copy
 }
 
-fn registration_digest(value: &MomentumOutcomeAcquisitionRegistrationV4_4) -> String {
+pub(super) fn registration_digest(value: &MomentumOutcomeAcquisitionRegistrationV4_4) -> String {
     semantic_digest(
         "momentum-v4.4-outcome-registration",
         &with_cleared_digest(value, |value| value.registration_digest.clear()),
     )
 }
 
-fn receipt_digest(value: &MomentumOutcomeAcquisitionReceiptV4_4) -> String {
+pub(super) fn receipt_digest(value: &MomentumOutcomeAcquisitionReceiptV4_4) -> String {
     semantic_digest(
         "momentum-v4.4-outcome-receipt",
         &with_cleared_digest(value, |value| {
@@ -467,42 +469,42 @@ fn receipt_digest(value: &MomentumOutcomeAcquisitionReceiptV4_4) -> String {
     )
 }
 
-fn row_proof_digest(value: &MomentumOutcomeRowIdentityProofV4_4) -> String {
+pub(super) fn row_proof_digest(value: &MomentumOutcomeRowIdentityProofV4_4) -> String {
     semantic_digest(
         "momentum-v4.4-outcome-row-proof",
         &with_cleared_digest(value, |value| value.proof_digest.clear()),
     )
 }
 
-fn capsule_digest(value: &MomentumSealedOutcomeCapsuleV4_4) -> String {
+pub(super) fn capsule_digest(value: &MomentumSealedOutcomeCapsuleV4_4) -> String {
     semantic_digest(
         "momentum-v4.4-outcome-capsule",
         &with_cleared_digest(value, |value| value.capsule_digest.clear()),
     )
 }
 
-fn authorization_digest(value: &MomentumOutcomeOpeningAuthorizationV4_4) -> String {
+pub(super) fn authorization_digest(value: &MomentumOutcomeOpeningAuthorizationV4_4) -> String {
     semantic_digest(
         "momentum-v4.4-opening-authorization",
         &with_cleared_digest(value, |value| value.authorization_digest.clear()),
     )
 }
 
-fn evaluation_digest(value: &MomentumParticipantProspectiveEvaluationV4_4) -> String {
+pub(super) fn evaluation_digest(value: &MomentumParticipantProspectiveEvaluationV4_4) -> String {
     semantic_digest(
         "momentum-v4.4-participant-evaluation",
         &with_cleared_digest(value, |value| value.evaluation_digest.clear()),
     )
 }
 
-fn opening_bundle_digest(value: &MomentumOutcomeOpeningBundleV4_4) -> String {
+pub(super) fn opening_bundle_digest(value: &MomentumOutcomeOpeningBundleV4_4) -> String {
     semantic_digest(
         "momentum-v4.4-opening-bundle",
         &with_cleared_digest(value, |value| value.bundle_digest.clear()),
     )
 }
 
-fn opening_receipt_digest(value: &MomentumOutcomeOpeningReceiptV4_4) -> String {
+pub(super) fn opening_receipt_digest(value: &MomentumOutcomeOpeningReceiptV4_4) -> String {
     semantic_digest(
         "momentum-v4.4-opening-receipt",
         &with_cleared_digest(value, |value| value.receipt_digest.clear()),
@@ -537,7 +539,7 @@ fn status_digest(value: &MomentumFutureOutcomeStatusReceiptV4_4) -> String {
     )
 }
 
-fn encode_registration(
+pub(super) fn encode_registration(
     value: &MomentumOutcomeAcquisitionRegistrationV4_4,
 ) -> Result<Vec<u8>, String> {
     ArtifactBuilderV4_2::new("MomentumOutcomeAcquisitionRegistrationV4_4")
@@ -612,7 +614,9 @@ fn encode_registration(
         .encode()
 }
 
-fn decode_registration(bytes: &[u8]) -> Result<MomentumOutcomeAcquisitionRegistrationV4_4, String> {
+pub(super) fn decode_registration(
+    bytes: &[u8],
+) -> Result<MomentumOutcomeAcquisitionRegistrationV4_4, String> {
     let mut fields =
         ArtifactReaderV4_2::decode(bytes, "MomentumOutcomeAcquisitionRegistrationV4_4")?;
     let value = MomentumOutcomeAcquisitionRegistrationV4_4 {
@@ -668,7 +672,9 @@ fn parse_acquisition_status(value: &str) -> Result<MomentumOutcomeAcquisitionSta
     }
 }
 
-fn encode_receipt(value: &MomentumOutcomeAcquisitionReceiptV4_4) -> Result<Vec<u8>, String> {
+pub(super) fn encode_receipt(
+    value: &MomentumOutcomeAcquisitionReceiptV4_4,
+) -> Result<Vec<u8>, String> {
     ArtifactBuilderV4_2::new("MomentumOutcomeAcquisitionReceiptV4_4")
         .string("receipt_version", &value.receipt_version)
         .string("registration_digest", &value.registration_digest)
@@ -698,7 +704,9 @@ fn encode_receipt(value: &MomentumOutcomeAcquisitionReceiptV4_4) -> Result<Vec<u
         .encode()
 }
 
-fn decode_receipt(bytes: &[u8]) -> Result<MomentumOutcomeAcquisitionReceiptV4_4, String> {
+pub(super) fn decode_receipt(
+    bytes: &[u8],
+) -> Result<MomentumOutcomeAcquisitionReceiptV4_4, String> {
     let mut fields = ArtifactReaderV4_2::decode(bytes, "MomentumOutcomeAcquisitionReceiptV4_4")?;
     let http_status_values = fields.unsigneds("http_status_class")?;
     if http_status_values.len() > 1 {
@@ -729,7 +737,9 @@ fn decode_receipt(bytes: &[u8]) -> Result<MomentumOutcomeAcquisitionReceiptV4_4,
     Ok(value)
 }
 
-fn encode_row_proof(value: &MomentumOutcomeRowIdentityProofV4_4) -> Result<Vec<u8>, String> {
+pub(super) fn encode_row_proof(
+    value: &MomentumOutcomeRowIdentityProofV4_4,
+) -> Result<Vec<u8>, String> {
     ArtifactBuilderV4_2::new("MomentumOutcomeRowIdentityProofV4_4")
         .string("proof_version", &value.proof_version)
         .string("registration_digest", &value.registration_digest)
@@ -763,7 +773,9 @@ fn encode_row_proof(value: &MomentumOutcomeRowIdentityProofV4_4) -> Result<Vec<u
         .encode()
 }
 
-fn decode_row_proof(bytes: &[u8]) -> Result<MomentumOutcomeRowIdentityProofV4_4, String> {
+pub(super) fn decode_row_proof(
+    bytes: &[u8],
+) -> Result<MomentumOutcomeRowIdentityProofV4_4, String> {
     let mut fields = ArtifactReaderV4_2::decode(bytes, "MomentumOutcomeRowIdentityProofV4_4")?;
     let value = MomentumOutcomeRowIdentityProofV4_4 {
         proof_version: fields.string("proof_version")?,
@@ -789,7 +801,7 @@ fn decode_row_proof(bytes: &[u8]) -> Result<MomentumOutcomeRowIdentityProofV4_4,
     Ok(value)
 }
 
-fn encode_capsule(value: &MomentumSealedOutcomeCapsuleV4_4) -> Result<Vec<u8>, String> {
+pub(super) fn encode_capsule(value: &MomentumSealedOutcomeCapsuleV4_4) -> Result<Vec<u8>, String> {
     ArtifactBuilderV4_2::new("MomentumSealedOutcomeCapsuleV4_4")
         .string("capsule_version", &value.capsule_version)
         .string("registration_digest", &value.registration_digest)
@@ -811,7 +823,7 @@ fn encode_capsule(value: &MomentumSealedOutcomeCapsuleV4_4) -> Result<Vec<u8>, S
         .encode()
 }
 
-fn decode_capsule(bytes: &[u8]) -> Result<MomentumSealedOutcomeCapsuleV4_4, String> {
+pub(super) fn decode_capsule(bytes: &[u8]) -> Result<MomentumSealedOutcomeCapsuleV4_4, String> {
     let mut fields = ArtifactReaderV4_2::decode(bytes, "MomentumSealedOutcomeCapsuleV4_4")?;
     let value = MomentumSealedOutcomeCapsuleV4_4 {
         capsule_version: fields.string("capsule_version")?,
@@ -834,7 +846,7 @@ fn decode_capsule(bytes: &[u8]) -> Result<MomentumSealedOutcomeCapsuleV4_4, Stri
     Ok(value)
 }
 
-fn encode_opening_authorization(
+pub(super) fn encode_opening_authorization(
     value: &MomentumOutcomeOpeningAuthorizationV4_4,
 ) -> Result<Vec<u8>, String> {
     ArtifactBuilderV4_2::new("MomentumOutcomeOpeningAuthorizationV4_4")
@@ -895,7 +907,7 @@ fn encode_opening_authorization(
         .encode()
 }
 
-fn decode_opening_authorization(
+pub(super) fn decode_opening_authorization(
     bytes: &[u8],
 ) -> Result<MomentumOutcomeOpeningAuthorizationV4_4, String> {
     let mut fields = ArtifactReaderV4_2::decode(bytes, "MomentumOutcomeOpeningAuthorizationV4_4")?;
@@ -945,6 +957,9 @@ fn parse_evaluation_status(value: &str) -> Result<MomentumProspectiveEvaluationS
         "NeutralOutcomeExcluded" => {
             Ok(MomentumProspectiveEvaluationStatusV4_4::NeutralOutcomeExcluded)
         }
+        "InvalidOutcomeEvidence" => {
+            Ok(MomentumProspectiveEvaluationStatusV4_4::InvalidOutcomeEvidence)
+        }
         "PredictionIntegrityFailure" => {
             Ok(MomentumProspectiveEvaluationStatusV4_4::PredictionIntegrityFailure)
         }
@@ -955,7 +970,7 @@ fn parse_evaluation_status(value: &str) -> Result<MomentumProspectiveEvaluationS
     }
 }
 
-fn encode_evaluation(
+pub(super) fn encode_evaluation(
     value: &MomentumParticipantProspectiveEvaluationV4_4,
 ) -> Result<Vec<u8>, String> {
     ArtifactBuilderV4_2::new("MomentumParticipantProspectiveEvaluationV4_4")
@@ -982,7 +997,9 @@ fn encode_evaluation(
         .encode()
 }
 
-fn decode_evaluation(bytes: &[u8]) -> Result<MomentumParticipantProspectiveEvaluationV4_4, String> {
+pub(super) fn decode_evaluation(
+    bytes: &[u8],
+) -> Result<MomentumParticipantProspectiveEvaluationV4_4, String> {
     let mut fields =
         ArtifactReaderV4_2::decode(bytes, "MomentumParticipantProspectiveEvaluationV4_4")?;
     let value = MomentumParticipantProspectiveEvaluationV4_4 {
@@ -1006,7 +1023,9 @@ fn decode_evaluation(bytes: &[u8]) -> Result<MomentumParticipantProspectiveEvalu
     Ok(value)
 }
 
-fn encode_opening_bundle(value: &MomentumOutcomeOpeningBundleV4_4) -> Result<Vec<u8>, String> {
+pub(super) fn encode_opening_bundle(
+    value: &MomentumOutcomeOpeningBundleV4_4,
+) -> Result<Vec<u8>, String> {
     ArtifactBuilderV4_2::new("MomentumOutcomeOpeningBundleV4_4")
         .string("bundle_version", &value.bundle_version)
         .string("authorization_digest", &value.authorization_digest)
@@ -1039,7 +1058,9 @@ fn encode_opening_bundle(value: &MomentumOutcomeOpeningBundleV4_4) -> Result<Vec
         .encode()
 }
 
-fn decode_opening_bundle(bytes: &[u8]) -> Result<MomentumOutcomeOpeningBundleV4_4, String> {
+pub(super) fn decode_opening_bundle(
+    bytes: &[u8],
+) -> Result<MomentumOutcomeOpeningBundleV4_4, String> {
     let mut fields = ArtifactReaderV4_2::decode(bytes, "MomentumOutcomeOpeningBundleV4_4")?;
     let value = MomentumOutcomeOpeningBundleV4_4 {
         bundle_version: fields.string("bundle_version")?,
@@ -1083,7 +1104,9 @@ fn parse_opening_status(value: &str) -> Result<MomentumOutcomeOpeningStatusV4_4,
     }
 }
 
-fn encode_opening_receipt(value: &MomentumOutcomeOpeningReceiptV4_4) -> Result<Vec<u8>, String> {
+pub(super) fn encode_opening_receipt(
+    value: &MomentumOutcomeOpeningReceiptV4_4,
+) -> Result<Vec<u8>, String> {
     ArtifactBuilderV4_2::new("MomentumOutcomeOpeningReceiptV4_4")
         .string("receipt_version", &value.receipt_version)
         .string("authorization_digest", &value.authorization_digest)
@@ -1098,7 +1121,9 @@ fn encode_opening_receipt(value: &MomentumOutcomeOpeningReceiptV4_4) -> Result<V
         .encode()
 }
 
-fn decode_opening_receipt(bytes: &[u8]) -> Result<MomentumOutcomeOpeningReceiptV4_4, String> {
+pub(super) fn decode_opening_receipt(
+    bytes: &[u8],
+) -> Result<MomentumOutcomeOpeningReceiptV4_4, String> {
     let mut fields = ArtifactReaderV4_2::decode(bytes, "MomentumOutcomeOpeningReceiptV4_4")?;
     let value = MomentumOutcomeOpeningReceiptV4_4 {
         receipt_version: fields.string("receipt_version")?,
@@ -1485,7 +1510,7 @@ fn decode_status(bytes: &[u8]) -> Result<MomentumFutureOutcomeStatusReceiptV4_4,
     Ok(value)
 }
 
-fn validate_registration_shape(
+pub(super) fn validate_registration_shape(
     value: &MomentumOutcomeAcquisitionRegistrationV4_4,
 ) -> Result<(), String> {
     if value.registration_version != REGISTRATION_VERSION
@@ -1567,7 +1592,9 @@ fn validate_registration_chain(
     Ok(())
 }
 
-fn validate_receipt_shape(value: &MomentumOutcomeAcquisitionReceiptV4_4) -> Result<(), String> {
+pub(super) fn validate_receipt_shape(
+    value: &MomentumOutcomeAcquisitionReceiptV4_4,
+) -> Result<(), String> {
     let success = value.status == MomentumOutcomeAcquisitionStatusV4_4::EvidenceAcquired;
     if value.receipt_version != RECEIPT_VERSION
         || value.registration_digest.is_empty()
@@ -1589,7 +1616,9 @@ fn validate_receipt_shape(value: &MomentumOutcomeAcquisitionReceiptV4_4) -> Resu
     Ok(())
 }
 
-fn validate_row_proof_shape(value: &MomentumOutcomeRowIdentityProofV4_4) -> Result<(), String> {
+pub(super) fn validate_row_proof_shape(
+    value: &MomentumOutcomeRowIdentityProofV4_4,
+) -> Result<(), String> {
     if value.proof_version != ROW_PROOF_VERSION
         || value.registration_digest.is_empty()
         || value.prediction_capsule_digest.is_empty()
@@ -1611,7 +1640,9 @@ fn validate_row_proof_shape(value: &MomentumOutcomeRowIdentityProofV4_4) -> Resu
     Ok(())
 }
 
-fn validate_capsule_shape(value: &MomentumSealedOutcomeCapsuleV4_4) -> Result<(), String> {
+pub(super) fn validate_capsule_shape(
+    value: &MomentumSealedOutcomeCapsuleV4_4,
+) -> Result<(), String> {
     if value.capsule_version != CAPSULE_VERSION
         || value.registration_digest.is_empty()
         || value.receipt_digest.is_empty()
@@ -1630,7 +1661,7 @@ fn validate_capsule_shape(value: &MomentumSealedOutcomeCapsuleV4_4) -> Result<()
     Ok(())
 }
 
-fn validate_opening_authorization_shape(
+pub(super) fn validate_opening_authorization_shape(
     value: &MomentumOutcomeOpeningAuthorizationV4_4,
 ) -> Result<(), String> {
     if value.authorization_version != OPENING_AUTHORIZATION_VERSION
@@ -1675,11 +1706,12 @@ fn validate_opening_authorization_shape(
     Ok(())
 }
 
-fn validate_evaluation_shape(
+pub(super) fn validate_evaluation_shape(
     value: &MomentumParticipantProspectiveEvaluationV4_4,
 ) -> Result<(), String> {
     let scored = value.status == MomentumProspectiveEvaluationStatusV4_4::Scored;
     let neutral = value.status == MomentumProspectiveEvaluationStatusV4_4::NeutralOutcomeExcluded;
+    let invalid = value.status == MomentumProspectiveEvaluationStatusV4_4::InvalidOutcomeEvidence;
     if value.evaluation_version != EVALUATION_VERSION
         || value.participant_digest.is_empty()
         || !matches!(
@@ -1700,7 +1732,11 @@ fn validate_evaluation_shape(
             && (value.label_status != MomentumProspectiveLabelStatusV4_4::NeutralOutcomeExcluded
                 || value.private_score_digest.is_some()
                 || value.private_correctness_digest.is_some()))
-        || (!scored && !neutral)
+        || (invalid
+            && (value.label_status != MomentumProspectiveLabelStatusV4_4::InvalidOutcomeEvidence
+                || value.private_score_digest.is_some()
+                || value.private_correctness_digest.is_some()))
+        || (!scored && !neutral && !invalid)
         || value.evaluation_digest != evaluation_digest(value)
     {
         return Err("V4.4 participant evaluation rejected".to_string());
@@ -1708,7 +1744,9 @@ fn validate_evaluation_shape(
     Ok(())
 }
 
-fn validate_opening_bundle_shape(value: &MomentumOutcomeOpeningBundleV4_4) -> Result<(), String> {
+pub(super) fn validate_opening_bundle_shape(
+    value: &MomentumOutcomeOpeningBundleV4_4,
+) -> Result<(), String> {
     let scorable = value.label_status == MomentumProspectiveLabelStatusV4_4::ScorableBinaryOutcome;
     if value.bundle_version != OPENING_BUNDLE_VERSION
         || value.authorization_digest.is_empty()
@@ -1737,7 +1775,9 @@ fn validate_opening_bundle_shape(value: &MomentumOutcomeOpeningBundleV4_4) -> Re
     Ok(())
 }
 
-fn validate_opening_receipt_shape(value: &MomentumOutcomeOpeningReceiptV4_4) -> Result<(), String> {
+pub(super) fn validate_opening_receipt_shape(
+    value: &MomentumOutcomeOpeningReceiptV4_4,
+) -> Result<(), String> {
     if value.receipt_version != OPENING_RECEIPT_VERSION
         || value.authorization_digest.is_empty()
         || value.opening_bundle_digest.is_empty()
@@ -1893,7 +1933,7 @@ fn v4_4_root(root: &Path, agent_id: &str) -> PathBuf {
     root.join(ROOT_VERSION_V4_4).join(agent_id)
 }
 
-fn raw_outcome_digest(bytes: &[u8]) -> String {
+pub(super) fn raw_outcome_digest(bytes: &[u8]) -> String {
     stable_hash_string(&format!("momentum-v4.4-raw-outcome:{bytes:?}"))
 }
 
@@ -1901,7 +1941,7 @@ fn raw_input_digest(bytes: &[u8]) -> String {
     stable_hash_string(&format!("momentum-v4.3-raw-input:{bytes:?}"))
 }
 
-fn sanitized_raw_response(bytes: &[u8], maximum_bytes: usize) -> bool {
+pub(super) fn sanitized_raw_response(bytes: &[u8], maximum_bytes: usize) -> bool {
     let Ok(text) = std::str::from_utf8(bytes) else {
         return false;
     };
@@ -1996,7 +2036,7 @@ fn derive_registration(
     Ok(value)
 }
 
-fn request_fingerprint(value: &MomentumOutcomeAcquisitionRegistrationV4_4) -> String {
+pub(super) fn request_fingerprint(value: &MomentumOutcomeAcquisitionRegistrationV4_4) -> String {
     stable_hash_string(&format!(
         "momentum-v4.4-outcome-request:{}:{}:{}:{:?}:{}:1",
         value.provider_id,
@@ -2007,7 +2047,7 @@ fn request_fingerprint(value: &MomentumOutcomeAcquisitionRegistrationV4_4) -> St
     ))
 }
 
-fn build_request(
+pub(super) fn build_request(
     value: &MomentumOutcomeAcquisitionRegistrationV4_4,
 ) -> Result<ReadOnlyProviderRequest, String> {
     validate_registration_shape(value)?;
@@ -2033,7 +2073,7 @@ fn build_request(
     })
 }
 
-fn request_config(
+pub(super) fn request_config(
     config: &UpbitHistoricalPilotConfigV0,
     registration: &MomentumOutcomeAcquisitionRegistrationV4_4,
 ) -> Result<UpbitHistoricalPilotConfigV0, String> {
@@ -2226,7 +2266,7 @@ fn receipt_after_attempt(
     value
 }
 
-fn parse_http_status_class(value: Option<&str>) -> Option<u16> {
+pub(super) fn parse_http_status_class(value: Option<&str>) -> Option<u16> {
     value.and_then(|value| {
         let digit = value.as_bytes().first().copied()?;
         digit
@@ -2235,7 +2275,7 @@ fn parse_http_status_class(value: Option<&str>) -> Option<u16> {
     })
 }
 
-fn valid_ohlcv(row: &HistoricalOhlcvRow) -> bool {
+pub(super) fn valid_ohlcv(row: &HistoricalOhlcvRow) -> bool {
     row.open.is_finite()
         && row.high.is_finite()
         && row.low.is_finite()
@@ -2253,7 +2293,7 @@ fn valid_ohlcv(row: &HistoricalOhlcvRow) -> bool {
         && row.trade_value.is_none_or(|value| value >= 0.0)
 }
 
-fn validate_outcome_transport(
+pub(super) fn validate_outcome_transport(
     registration: &MomentumOutcomeAcquisitionRegistrationV4_4,
     request: &ReadOnlyProviderRequest,
     transport: &LearningEvidenceTransportResponseV1,
@@ -2758,7 +2798,7 @@ pub fn run_momentum_future_outcome_v4_4(
     )
 }
 
-fn frozen_label_policy_digest() -> String {
+pub(super) fn frozen_label_policy_digest() -> String {
     let config = MomentumLearningCampaignConfigV0::default();
     let sequence = &config.sequence_config;
     stable_hash_string(&format!(
@@ -2771,7 +2811,7 @@ fn frozen_label_policy_digest() -> String {
     ))
 }
 
-fn evaluation_policy_digest() -> String {
+pub(super) fn evaluation_policy_digest() -> String {
     let config = MomentumLearningCampaignConfigV0::default();
     stable_hash_string(&format!(
         "momentum-v4.4-single-event-brier-correctness:{}:no-ranking:no-winner:no-authority",
@@ -2966,6 +3006,80 @@ fn reopen_private_opening_rows(
     Ok((event_row.close, outcome_row.close))
 }
 
+#[allow(clippy::too_many_arguments)]
+pub(super) fn build_participant_evaluation_v4_4(
+    participant_digest: &str,
+    participant_role: &str,
+    participant_seal_digest: &str,
+    prediction_digest: &str,
+    prediction_probability_bits: u32,
+    event_timestamp_ms: u64,
+    proof: &MomentumOutcomeRowIdentityProofV4_4,
+    label_status: MomentumProspectiveLabelStatusV4_4,
+    label: Option<bool>,
+    private_return_bits: u64,
+) -> Result<MomentumParticipantProspectiveEvaluationV4_4, String> {
+    validate_row_proof_shape(proof)?;
+    let probability = f32::from_bits(prediction_probability_bits);
+    if !probability.is_finite() || !(0.0..=1.0).contains(&probability) {
+        return Err("V4.4 sealed prediction value rejected".to_string());
+    }
+    let private_label_digest = stable_hash_string(&format!(
+        "momentum-v4.4-private-label:{}:{label_status:?}:{label:?}:{private_return_bits}",
+        proof.proof_digest
+    ));
+    let private_prediction_digest = stable_hash_string(&format!(
+        "momentum-v4.4-private-prediction:{participant_seal_digest}:{prediction_digest}:{prediction_probability_bits}"
+    ));
+    let (private_score_digest, private_correctness_digest, status) = if let Some(label) = label {
+        let target = if label { 1.0_f64 } else { 0.0_f64 };
+        let prediction = f64::from(probability);
+        let score = (prediction - target).powi(2);
+        let correct = (prediction >= 0.5) == label;
+        (
+            Some(stable_hash_string(&format!(
+                "momentum-v4.4-private-brier:{prediction_digest}:{}",
+                score.to_bits()
+            ))),
+            Some(stable_hash_string(&format!(
+                "momentum-v4.4-private-correctness:{prediction_digest}:{correct}"
+            ))),
+            MomentumProspectiveEvaluationStatusV4_4::Scored,
+        )
+    } else if label_status == MomentumProspectiveLabelStatusV4_4::NeutralOutcomeExcluded {
+        (
+            None,
+            None,
+            MomentumProspectiveEvaluationStatusV4_4::NeutralOutcomeExcluded,
+        )
+    } else {
+        (
+            None,
+            None,
+            MomentumProspectiveEvaluationStatusV4_4::InvalidOutcomeEvidence,
+        )
+    };
+    let mut value = MomentumParticipantProspectiveEvaluationV4_4 {
+        evaluation_version: EVALUATION_VERSION.to_string(),
+        participant_digest: participant_digest.to_string(),
+        participant_role: participant_role.to_string(),
+        participant_seal_digest: participant_seal_digest.to_string(),
+        prediction_digest: prediction_digest.to_string(),
+        event_timestamp_ms,
+        outcome_timestamp_ms: proof.outcome_timestamp_ms,
+        label_status,
+        private_label_digest,
+        private_prediction_digest,
+        private_score_digest,
+        private_correctness_digest,
+        status,
+        evaluation_digest: String::new(),
+    };
+    value.evaluation_digest = evaluation_digest(&value);
+    validate_evaluation_shape(&value)?;
+    Ok(value)
+}
+
 fn build_participant_evaluations(
     chain: &MomentumSealedPredictionChainV4_3,
     proof: &MomentumOutcomeRowIdentityProofV4_4,
@@ -2976,62 +3090,18 @@ fn build_participant_evaluations(
     validate_row_proof_shape(proof)?;
     let mut values = Vec::with_capacity(3);
     for seal in &chain.prediction_capsule.participant_prediction_seals {
-        let probability = f32::from_bits(seal.prediction_probability_bits);
-        if !probability.is_finite() || !(0.0..=1.0).contains(&probability) {
-            return Err("V4.4 sealed prediction value rejected".to_string());
-        }
-        let private_label_digest = stable_hash_string(&format!(
-            "momentum-v4.4-private-label:{}:{label_status:?}:{label:?}:{private_return_bits}",
-            proof.proof_digest
-        ));
-        let private_prediction_digest = stable_hash_string(&format!(
-            "momentum-v4.4-private-prediction:{}:{}:{}",
-            seal.seal_digest, seal.prediction_digest, seal.prediction_probability_bits
-        ));
-        let (private_score_digest, private_correctness_digest, status) = if let Some(label) = label
-        {
-            let target = if label { 1.0_f64 } else { 0.0_f64 };
-            let prediction = f64::from(probability);
-            let score = (prediction - target).powi(2);
-            let correct = (prediction >= 0.5) == label;
-            (
-                Some(stable_hash_string(&format!(
-                    "momentum-v4.4-private-brier:{}:{}",
-                    seal.prediction_digest,
-                    score.to_bits()
-                ))),
-                Some(stable_hash_string(&format!(
-                    "momentum-v4.4-private-correctness:{}:{correct}",
-                    seal.prediction_digest
-                ))),
-                MomentumProspectiveEvaluationStatusV4_4::Scored,
-            )
-        } else {
-            (
-                None,
-                None,
-                MomentumProspectiveEvaluationStatusV4_4::NeutralOutcomeExcluded,
-            )
-        };
-        let mut value = MomentumParticipantProspectiveEvaluationV4_4 {
-            evaluation_version: EVALUATION_VERSION.to_string(),
-            participant_digest: seal.participant_digest.clone(),
-            participant_role: seal.participant_role.clone(),
-            participant_seal_digest: seal.seal_digest.clone(),
-            prediction_digest: seal.prediction_digest.clone(),
-            event_timestamp_ms: seal.event_timestamp_ms,
-            outcome_timestamp_ms: proof.outcome_timestamp_ms,
+        values.push(build_participant_evaluation_v4_4(
+            &seal.participant_digest,
+            &seal.participant_role,
+            &seal.seal_digest,
+            &seal.prediction_digest,
+            seal.prediction_probability_bits,
+            seal.event_timestamp_ms,
+            proof,
             label_status,
-            private_label_digest,
-            private_prediction_digest,
-            private_score_digest,
-            private_correctness_digest,
-            status,
-            evaluation_digest: String::new(),
-        };
-        value.evaluation_digest = evaluation_digest(&value);
-        validate_evaluation_shape(&value)?;
-        values.push(value);
+            label,
+            private_return_bits,
+        )?);
     }
     if values.len() != 3 {
         return Err("V4.4 participant evaluation count rejected".to_string());
