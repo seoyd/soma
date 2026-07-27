@@ -94,7 +94,7 @@ impl MomentumHistoricalTimeframeV1 {
         Self::Year1,
     ];
 
-    fn as_str(self) -> &'static str {
+    pub(super) fn as_str(self) -> &'static str {
         match self {
             Self::Minute1 => "1m",
             Self::Minute3 => "3m",
@@ -982,6 +982,7 @@ pub(super) struct MomentumQualifiedReplayCandleEvidenceV1 {
     pub low: f64,
     pub close: f64,
     pub volume: f64,
+    pub trade_value: f64,
     pub candle_digest: String,
     pub missing_evidence: bool,
 }
@@ -7243,6 +7244,7 @@ fn replay_candle_evidence(row: &HistoricalCandleRowV1) -> MomentumQualifiedRepla
         low: row.low,
         close: row.close,
         volume: row.volume,
+        trade_value: row.trade_value,
         candle_digest: row.candle_digest.clone(),
         missing_evidence: matches!(
             row.presence,

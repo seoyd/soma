@@ -247,3 +247,13 @@ Live continuation is paused. The next research priority is micro
 feature/label challenger design in the historical research lane. Official
 Mamba-3 is not implemented or evaluated, and Chair functionality remains
 inactive.
+
+## Bounded historical continuation
+
+Live events one and two remain complete, continuation remains paused after
+completed epoch two, and no epoch three exists. Q1 and Q2 require feature and
+label redesign.
+
+The separate historical lane completed label and feature diagnostics and
+registered compact micro challengers. It trained no challenger model and
+opened no historical holdout.

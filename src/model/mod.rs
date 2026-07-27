@@ -27,6 +27,8 @@ pub mod momentum_future_prediction_v4;
 pub mod momentum_historical_replay_v1;
 pub mod momentum_mamba_repair;
 pub mod momentum_mamba_representation;
+pub mod momentum_micro_challenger_design_v1;
+pub mod momentum_micro_label_forensics_v1;
 pub mod momentum_multitimeframe_history_v1;
 pub mod momentum_prospective_series_v4;
 pub mod momentum_qualified_six_diagnostics_v1;
@@ -925,6 +927,20 @@ pub use momentum_mamba_repair::{
     encode_momentum_qualification_receipt_protobuf_v2, run_momentum_mamba_repair_v2,
 };
 pub use momentum_mamba_representation::*;
+pub use momentum_micro_challenger_design_v1::*;
+pub use momentum_micro_label_forensics_v1::{
+    MomentumMicroChallengerDesignEvidenceClassV1, MomentumMicroHorizonDiagnosticDispositionV1,
+    MomentumMicroHorizonDiagnosticV1, MomentumMicroHorizonDispositionReceiptV1,
+    MomentumMicroLabelForensicsRegistrationV1, MomentumMicroLabelForensicsReportV1,
+    MomentumMicroLabelForensicsRunModeV1, MomentumMicroLabelForensicsSafetyCountersV1,
+    MomentumMicroLabelForensicsStatusV1, MomentumMicroLabelStatusV1,
+    MomentumMicroPredictionHorizonV1, MomentumMicroProtectedBeforeStateV1,
+    MomentumMicroSerialDependenceReceiptV1, MomentumMicroTargetDistributionV1,
+    MomentumMicroTargetOverlapReceiptV1, MomentumMicroTemporalStabilityV1,
+    format_momentum_micro_label_forensics_text_v1, momentum_micro_protected_before_state_digest_v1,
+    read_momentum_micro_label_forensics_report_v1, run_momentum_micro_label_forensics_v1,
+    validate_momentum_micro_protected_before_state_v1,
+};
 pub use momentum_multitimeframe_history_v1::*;
 pub use momentum_qualified_six_diagnostics_v1::{
     MomentumCalendarStabilityDiagnosticV1, MomentumCalibrationBinDiagnosticV1,

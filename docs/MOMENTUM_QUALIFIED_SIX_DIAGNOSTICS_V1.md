@@ -256,3 +256,13 @@ workspace testing passed with `1,104 + 404 + 12` tests under Default and
 `1,105 + 404 + 12` under Metal, together with the separately executed
 prospective, historical replay, multi-timeframe foundation, macro forensic,
 and Qualified-Six replay suites.
+
+## Bounded micro-research continuation
+
+Live events one and two are complete, live continuation remains paused, and
+no epoch three exists. Q1 and Q2 remain non-confirmatory and require feature
+and label redesign.
+
+The bounded historical continuation completed label and feature diagnostics
+and registered compact micro challengers without training a challenger model.
+All historical holdouts remain closed.

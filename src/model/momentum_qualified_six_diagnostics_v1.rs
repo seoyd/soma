@@ -4697,6 +4697,11 @@ pub fn run_momentum_qualified_six_diagnostics_v1(
     }
 }
 
+pub(super) fn read_momentum_qualified_six_diagnostic_report_snapshot_v1()
+-> Result<Option<MomentumQualifiedSixDiagnosticReportV1>, String> {
+    read_single("final_reports", decode_report)
+}
+
 pub fn read_momentum_qualified_six_challenger_requirements_v1()
 -> Result<Option<MomentumQualifiedChallengerRequirementsV1>, String> {
     Ok(read_single("final_reports", decode_report)?
