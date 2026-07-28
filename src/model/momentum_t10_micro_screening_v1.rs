@@ -34,9 +34,11 @@ use super::{
     momentum_multitimeframe_history_v1::{
         MomentumHistoricalTimeframeV1, MomentumQualifiedReplayCandleEvidenceV1,
         MomentumQualifiedSixEvidenceV1, load_momentum_qualified_six_evidence_v1,
+        load_momentum_qualified_t10_micro_evidence_v1,
     },
     momentum_qualified_six_replay_v1::{
         COLLAPSE_VARIANCE_THRESHOLD, COMPARISON_EPSILON, MomentumReplayPartitionV1,
+        past_micro_volatility,
     },
     momentum_raw_feature_v4::train_head_v4,
 };
@@ -624,6 +626,31 @@ struct PreparedScreening {
     validation_boundary_event_count: usize,
     development_boundary_days: BTreeSet<u64>,
     validation_boundary_days: BTreeSet<u64>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct MomentumT10ConsumedEventEvidenceV1 {
+    pub partition: MomentumReplayPartitionV1,
+    pub prediction_timestamp_ms: u64,
+    pub target_timestamp_ms: u64,
+    pub event_plan_digest: String,
+    pub source_event_digest: String,
+    pub probabilities: Vec<f64>,
+    pub label: Option<f64>,
+    pub brier_values: Vec<f64>,
+    pub correctness: Vec<bool>,
+    pub target_return: f64,
+    pub past_micro_volatility: f64,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct MomentumT10ConsumedActionabilityEvidenceV1 {
+    pub partition: MomentumReplayPartitionV1,
+    pub prediction_timestamp_ms: u64,
+    pub target_timestamp_ms: u64,
+    pub source_event_digest: String,
+    pub target_return: f64,
+    pub past_micro_volatility: f64,
 }
 
 #[derive(Clone)]
@@ -3746,6 +3773,268 @@ fn read_aggregate(
 pub fn read_momentum_t10_micro_screening_report_v1()
 -> Result<Option<MomentumT10MicroScreeningReportV1>, String> {
     read_single(&Path::new(ROOT).join("final_reports"), decode_report)
+}
+
+pub(super) fn read_momentum_t10_consumed_event_evidence_v1(
+    partition: MomentumReplayPartitionV1,
+) -> Result<Vec<MomentumT10ConsumedEventEvidenceV1>, String> {
+    if partition == MomentumReplayPartitionV1::SealedHoldout {
+        return Err("T10 sealed holdout evidence read rejected".to_string());
+    }
+    let report = read_momentum_t10_micro_screening_report_v1()?
+        .ok_or_else(|| "T10 completed screening report unavailable".to_string())?;
+    validate_report(&report)?;
+    if report.status != MomentumT10MicroScreeningStatusV1::Complete {
+        return Err("T10 completed screening evidence unavailable".to_string());
+    }
+    let aggregate = match partition {
+        MomentumReplayPartitionV1::Development => report.development.as_ref(),
+        MomentumReplayPartitionV1::Validation => report.validation.as_ref(),
+        MomentumReplayPartitionV1::SealedHoldout => None,
+    }
+    .ok_or_else(|| "T10 consumed aggregate unavailable".to_string())?;
+    let evidence = load_momentum_qualified_t10_micro_evidence_v1()?;
+    if evidence.prior_holdout.labels_opened
+        || evidence.prior_holdout.metrics_computed
+        || evidence.prior_holdout.aggregate_comparison_opened
+    {
+        return Err("T10 consumed source holdout opened".to_string());
+    }
+    let ten_minute = &evidence.ten_minute;
+    let partition_root = Path::new(ROOT)
+        .join("daily")
+        .join(partition_name(partition));
+    let mut day_roots = fs::read_dir(&partition_root)
+        .map_err(|_| "T10 consumed daily evidence unavailable".to_string())?
+        .map(|entry| {
+            entry
+                .map(|entry| entry.path())
+                .map_err(|_| "T10 consumed daily entry rejected".to_string())
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    day_roots.sort();
+    let mut result = Vec::new();
+    let mut prediction_digests = Vec::new();
+    let mut evaluation_digests = Vec::new();
+    for day_root in day_roots {
+        if !day_root.is_dir() {
+            return Err("T10 consumed daily path rejected".to_string());
+        }
+        let prediction = read_single(&day_root.join("prediction_shards"), decode_prediction_shard)?
+            .ok_or_else(|| "T10 consumed prediction shard unavailable".to_string())?;
+        let evaluation = read_single(&day_root.join("evaluation_shards"), decode_evaluation_shard)?
+            .ok_or_else(|| "T10 consumed evaluation shard unavailable".to_string())?;
+        validate_prediction_shard(&prediction)?;
+        validate_evaluation_shard(&evaluation)?;
+        if prediction.partition != partition
+            || evaluation.partition != partition
+            || evaluation.prediction_shard_digest != prediction.shard_digest
+            || prediction.event_plans.len() != evaluation.evaluations.len()
+        {
+            return Err("T10 consumed shard binding rejected".to_string());
+        }
+        prediction_digests.push(prediction.shard_digest.clone());
+        evaluation_digests.push(evaluation.shard_digest.clone());
+        for (index, (plan, item)) in prediction
+            .event_plans
+            .iter()
+            .zip(&evaluation.evaluations)
+            .enumerate()
+        {
+            if item.event_plan_digest != plan.plan_digest {
+                return Err("T10 consumed event binding rejected".to_string());
+            }
+            let current_index = ten_minute.partition_point(|row| {
+                row.close_exclusive_timestamp_ms < plan.prediction_timestamp_ms
+            });
+            let target_index = ten_minute
+                .partition_point(|row| row.close_exclusive_timestamp_ms < plan.target_timestamp_ms);
+            let current = ten_minute
+                .get(current_index)
+                .filter(|row| row.close_exclusive_timestamp_ms == plan.prediction_timestamp_ms)
+                .ok_or_else(|| "T10 consumed current candle unavailable".to_string())?;
+            let target = ten_minute
+                .get(target_index)
+                .filter(|row| row.close_exclusive_timestamp_ms == plan.target_timestamp_ms)
+                .ok_or_else(|| "T10 consumed target candle unavailable".to_string())?;
+            if current.missing_evidence
+                || target.missing_evidence
+                || !current.close.is_finite()
+                || !target.close.is_finite()
+                || current.close <= 0.0
+                || target.close <= 0.0
+            {
+                return Err("T10 consumed target return rejected".to_string());
+            }
+            let target_return = target.close / current.close - 1.0;
+            let volatility = past_micro_volatility(ten_minute, plan.prediction_timestamp_ms)
+                .ok_or_else(|| "T10 consumed past volatility unavailable".to_string())?;
+            if !target_return.is_finite() || !volatility.is_finite() || volatility < 0.0 {
+                return Err("T10 consumed finite evidence rejected".to_string());
+            }
+            result.push(MomentumT10ConsumedEventEvidenceV1 {
+                partition,
+                prediction_timestamp_ms: plan.prediction_timestamp_ms,
+                target_timestamp_ms: plan.target_timestamp_ms,
+                event_plan_digest: plan.plan_digest.clone(),
+                source_event_digest: plan.source_event_digest.clone(),
+                probabilities: prediction.private_probabilities[index * 5..(index + 1) * 5]
+                    .to_vec(),
+                label: item.private_label,
+                brier_values: item.private_brier_values.clone(),
+                correctness: item.private_correctness.clone(),
+                target_return,
+                past_micro_volatility: volatility,
+            });
+        }
+    }
+    if prediction_digests != aggregate.prediction_shard_digests
+        || evaluation_digests != aggregate.evaluation_shard_digests
+        || result.len() != aggregate.prediction_count
+        || result
+            .windows(2)
+            .any(|pair| pair[0].prediction_timestamp_ms >= pair[1].prediction_timestamp_ms)
+        || result.iter().filter(|event| event.label.is_some()).count() != aggregate.scorable_count
+        || result.iter().any(|event| {
+            event.partition != partition
+                || event.target_timestamp_ms <= event.prediction_timestamp_ms
+                || event.event_plan_digest.is_empty()
+                || event.source_event_digest.is_empty()
+                || event.probabilities.len() != PARTICIPANTS.len()
+                || event
+                    .probabilities
+                    .iter()
+                    .any(|value| !value.is_finite() || !(0.0..=1.0).contains(value))
+                || !event.target_return.is_finite()
+                || !event.past_micro_volatility.is_finite()
+                || event.past_micro_volatility < 0.0
+                || (event.label.is_some()
+                    && (event.brier_values.len() != PARTICIPANTS.len()
+                        || event.correctness.len() != PARTICIPANTS.len()
+                        || event
+                            .brier_values
+                            .iter()
+                            .any(|value| !value.is_finite() || !(0.0..=1.0).contains(value))))
+                || (event.label.is_none()
+                    && (!event.brier_values.is_empty() || !event.correctness.is_empty()))
+        })
+        || result.iter().enumerate().any(|(index, event)| {
+            result[..index].iter().any(|prior| {
+                prior.event_plan_digest == event.event_plan_digest
+                    || prior.source_event_digest == event.source_event_digest
+            })
+        })
+    {
+        return Err("T10 consumed event evidence rejected".to_string());
+    }
+    Ok(result)
+}
+
+pub(super) fn read_momentum_t10_consumed_actionability_evidence_v1(
+    partition: MomentumReplayPartitionV1,
+) -> Result<Vec<MomentumT10ConsumedActionabilityEvidenceV1>, String> {
+    if partition == MomentumReplayPartitionV1::SealedHoldout {
+        return Err("T10 sealed actionability evidence read rejected".to_string());
+    }
+    let report = read_momentum_t10_micro_screening_report_v1()?
+        .ok_or_else(|| "T10 actionability screening report unavailable".to_string())?;
+    validate_report(&report)?;
+    if report.status != MomentumT10MicroScreeningStatusV1::Complete {
+        return Err("T10 actionability screening incomplete".to_string());
+    }
+    let boundary = report
+        .t10_boundary
+        .as_ref()
+        .ok_or_else(|| "T10 actionability boundary unavailable".to_string())?;
+    let (start, end, expected_count) = match partition {
+        MomentumReplayPartitionV1::Development => (
+            boundary.eligible_start_timestamp_ms,
+            boundary.development_end_exclusive_ms,
+            boundary.development_event_count,
+        ),
+        MomentumReplayPartitionV1::Validation => (
+            boundary.development_end_exclusive_ms,
+            boundary.validation_end_exclusive_ms,
+            boundary.validation_event_count,
+        ),
+        MomentumReplayPartitionV1::SealedHoldout => unreachable!(),
+    };
+    let evidence = load_momentum_qualified_t10_micro_evidence_v1()?;
+    if evidence.prior_holdout.labels_opened
+        || evidence.prior_holdout.metrics_computed
+        || evidence.prior_holdout.aggregate_comparison_opened
+    {
+        return Err("T10 actionability source holdout opened".to_string());
+    }
+    let ten_minute = &evidence.ten_minute;
+    let mut result = Vec::with_capacity(expected_count);
+    let mut source_event_count = 0usize;
+    for event in evidence.protocol_events.iter().filter(|event| {
+        event.prediction_timestamp_ms >= start && event.prediction_timestamp_ms < end
+    }) {
+        source_event_count += 1;
+        let Some(volatility) = past_micro_volatility(ten_minute, event.prediction_timestamp_ms)
+        else {
+            continue;
+        };
+        let current_index = ten_minute.partition_point(|row| {
+            row.close_exclusive_timestamp_ms < event.prediction_timestamp_ms
+        });
+        let target_index = ten_minute
+            .partition_point(|row| row.close_exclusive_timestamp_ms < event.target_timestamp_ms);
+        let current = ten_minute
+            .get(current_index)
+            .filter(|row| row.close_exclusive_timestamp_ms == event.prediction_timestamp_ms)
+            .ok_or_else(|| "T10 actionability current candle unavailable".to_string())?;
+        let target = ten_minute
+            .get(target_index)
+            .filter(|row| row.close_exclusive_timestamp_ms == event.target_timestamp_ms)
+            .ok_or_else(|| "T10 actionability target candle unavailable".to_string())?;
+        if current.missing_evidence
+            || target.missing_evidence
+            || !current.close.is_finite()
+            || !target.close.is_finite()
+            || current.close <= 0.0
+            || target.close <= 0.0
+        {
+            return Err("T10 actionability candle evidence rejected".to_string());
+        }
+        let target_return = target.close / current.close - 1.0;
+        if !target_return.is_finite() || !volatility.is_finite() || volatility < 0.0 {
+            return Err("T10 actionability finite evidence rejected".to_string());
+        }
+        result.push(MomentumT10ConsumedActionabilityEvidenceV1 {
+            partition,
+            prediction_timestamp_ms: event.prediction_timestamp_ms,
+            target_timestamp_ms: event.target_timestamp_ms,
+            source_event_digest: event.receipt_digest.clone(),
+            target_return,
+            past_micro_volatility: volatility,
+        });
+    }
+    if source_event_count != expected_count
+        || result.is_empty()
+        || result.len() > source_event_count
+        || result
+            .windows(2)
+            .any(|pair| pair[0].prediction_timestamp_ms >= pair[1].prediction_timestamp_ms)
+        || result.iter().any(|event| {
+            event.partition != partition
+                || event.target_timestamp_ms <= event.prediction_timestamp_ms
+                || event.source_event_digest.is_empty()
+                || !event.target_return.is_finite()
+                || !event.past_micro_volatility.is_finite()
+                || event.past_micro_volatility < 0.0
+        })
+        || result.iter().enumerate().any(|(index, event)| {
+            result[..index]
+                .iter()
+                .any(|prior| prior.source_event_digest == event.source_event_digest)
+        })
+    {
+        return Err("T10 actionability event set rejected".to_string());
+    }
+    Ok(result)
 }
 
 fn anchor_features(
