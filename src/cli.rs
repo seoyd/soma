@@ -125,6 +125,14 @@ pub struct CliArgs {
     #[arg(long, default_value_t = false)]
     pub momentum_t10_holdout_cohort: bool,
     #[arg(long, default_value_t = false)]
+    pub momentum_t10_failure_forensics: bool,
+    #[arg(long, default_value_t = false)]
+    pub momentum_t10_actionability_design: bool,
+    #[arg(long, default_value_t = false)]
+    pub momentum_t10_selective_challenger_registration: bool,
+    #[arg(long, default_value_t = false)]
+    pub momentum_t10_fresh_evidence_split: bool,
+    #[arg(long, default_value_t = false)]
     pub authorize: bool,
     #[arg(long, default_value_t = false)]
     pub register: bool,
@@ -218,7 +226,11 @@ pub fn run() -> Result<(), String> {
         + usize::from(args.momentum_micro_feature_forensics)
         + usize::from(args.momentum_micro_challenger_registration)
         + usize::from(args.momentum_t10_micro_screening)
-        + usize::from(args.momentum_t10_holdout_cohort);
+        + usize::from(args.momentum_t10_holdout_cohort)
+        + usize::from(args.momentum_t10_failure_forensics)
+        + usize::from(args.momentum_t10_actionability_design)
+        + usize::from(args.momentum_t10_selective_challenger_registration)
+        + usize::from(args.momentum_t10_fresh_evidence_split);
     if micro_selector_count > 0 {
         if micro_selector_count != 1 {
             return Err("micro research selector conflict rejected".to_string());
@@ -3633,6 +3645,8 @@ fn momentum_micro_historical_boundary_digest_v1(root: &Path) -> Result<String, S
         historical_root.join("momentum_micro_label_forensics"),
         historical_root.join("momentum_micro_challenger_design"),
         historical_root.join("momentum_t10_micro_screening"),
+        historical_root.join("momentum_t10_failure_forensics"),
+        historical_root.join("momentum_t10_actionability_design"),
     ];
     let mut stack = vec![historical_root.clone()];
     let mut entries = Vec::new();
@@ -3773,6 +3787,13 @@ fn load_momentum_micro_protected_state_v1(
 }
 
 fn run_momentum_micro_research_cli_v1(args: &CliArgs) -> Result<(), String> {
+    if args.momentum_t10_failure_forensics
+        || args.momentum_t10_actionability_design
+        || args.momentum_t10_selective_challenger_registration
+        || args.momentum_t10_fresh_evidence_split
+    {
+        return run_momentum_t10_actionability_research_cli_v1(args);
+    }
     if args.momentum_t10_micro_screening || args.momentum_t10_holdout_cohort {
         return run_momentum_t10_micro_screening_cli_v1(args);
     }
@@ -3880,6 +3901,124 @@ fn run_momentum_micro_research_cli_v1(args: &CliArgs) -> Result<(), String> {
         print!(
             "{}",
             crate::model::format_momentum_micro_challenger_design_text_v1(&report)
+        );
+    }
+    Ok(())
+}
+
+fn run_momentum_t10_actionability_research_cli_v1(args: &CliArgs) -> Result<(), String> {
+    if micro_research_has_unrelated_authority(args, false, false)
+        || args.authorize
+        || args.partition.is_some()
+        || args.dry_run
+    {
+        return Err("T10 actionability research rejects unrelated authority".to_string());
+    }
+    let config_path = args
+        .historical_snapshot_campaign_config
+        .as_deref()
+        .unwrap_or_else(|| Path::new("config/local/historical_provider.local.toml"));
+    let protected_before = load_momentum_micro_protected_state_v1(config_path)?;
+    if args.momentum_t10_failure_forensics {
+        let mode = if args.status && !args.execute_local && !args.register {
+            crate::model::MomentumT10FailureForensicsRunModeV1::Status
+        } else if args.execute_local && !args.status && !args.register {
+            crate::model::MomentumT10FailureForensicsRunModeV1::ExecuteLocal
+        } else {
+            return Err("T10 failure forensics mode rejected".to_string());
+        };
+        if mode == crate::model::MomentumT10FailureForensicsRunModeV1::ExecuteLocal
+            && args.output_format != "json"
+        {
+            return Err("T10 failure forensics execution requires JSON output".to_string());
+        }
+        let report = crate::model::run_momentum_t10_failure_forensics_v1(mode, &protected_before)?;
+        let protected_after = load_momentum_micro_protected_state_v1(config_path)?;
+        if protected_before != protected_after {
+            return Err("T10 failure forensics changed protected state".to_string());
+        }
+        if args.output_format == "json" {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&report)
+                    .map_err(|_| "T10 failure JSON serialization failed".to_string())?
+            );
+        } else {
+            print!(
+                "{}",
+                crate::model::format_momentum_t10_failure_forensics_text_v1(&report)
+            );
+        }
+        return Ok(());
+    }
+    if args.momentum_t10_fresh_evidence_split {
+        if !args.status || args.execute_local || args.register {
+            return Err("T10 fresh-evidence split is status-only".to_string());
+        }
+        let report = crate::model::run_momentum_t10_failure_forensics_v1(
+            crate::model::MomentumT10FailureForensicsRunModeV1::Status,
+            &protected_before,
+        )?;
+        let protected_after = load_momentum_micro_protected_state_v1(config_path)?;
+        if protected_before != protected_after {
+            return Err("T10 fresh-evidence status changed protected state".to_string());
+        }
+        if args.output_format == "json" {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&report.fresh_evidence_split)
+                    .map_err(|_| "T10 fresh-evidence JSON serialization failed".to_string())?
+            );
+        } else {
+            println!(
+                "fresh_validation_event_count={}",
+                report
+                    .fresh_evidence_split
+                    .fresh_validation_event_digests
+                    .len()
+            );
+            println!(
+                "final_holdout_event_count={}",
+                report
+                    .fresh_evidence_split
+                    .final_holdout_event_digests
+                    .len()
+            );
+            println!("split_digest={}", report.fresh_evidence_split.split_digest);
+        }
+        return Ok(());
+    }
+    let status_only = args.momentum_t10_selective_challenger_registration;
+    let mode = if args.status && !args.execute_local && !args.register {
+        crate::model::MomentumT10ActionabilityDesignRunModeV1::Status
+    } else if !status_only && args.register && args.execute_local && !args.status {
+        crate::model::MomentumT10ActionabilityDesignRunModeV1::RegisterAndExecuteLocal
+    } else {
+        return Err("T10 actionability design mode rejected".to_string());
+    };
+    if status_only && mode != crate::model::MomentumT10ActionabilityDesignRunModeV1::Status {
+        return Err("T10 selective challenger registration is status-only".to_string());
+    }
+    if mode == crate::model::MomentumT10ActionabilityDesignRunModeV1::RegisterAndExecuteLocal
+        && args.output_format != "json"
+    {
+        return Err("T10 actionability registration requires JSON output".to_string());
+    }
+    let report = crate::model::run_momentum_t10_actionability_design_v1(mode, &protected_before)?;
+    let protected_after = load_momentum_micro_protected_state_v1(config_path)?;
+    if protected_before != protected_after {
+        return Err("T10 actionability design changed protected state".to_string());
+    }
+    if args.output_format == "json" {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&report)
+                .map_err(|_| "T10 actionability JSON serialization failed".to_string())?
+        );
+    } else {
+        print!(
+            "{}",
+            crate::model::format_momentum_t10_actionability_design_text_v1(&report)
         );
     }
     Ok(())

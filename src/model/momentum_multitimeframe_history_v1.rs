@@ -1005,6 +1005,20 @@ pub(super) struct MomentumQualifiedReplayHoldoutEvidenceV1 {
     pub aggregate_comparison_opened: bool,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(super) struct MomentumQualifiedSealedProtocolMetadataV1 {
+    pub protocol_replay_digest: String,
+    pub protocol_events: Vec<MomentumQualifiedReplayProtocolEventV1>,
+    pub prior_holdout: MomentumQualifiedReplayHoldoutEvidenceV1,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct MomentumQualifiedT10MicroEvidenceV1 {
+    pub ten_minute: Vec<MomentumQualifiedReplayCandleEvidenceV1>,
+    pub protocol_events: Vec<MomentumQualifiedReplayProtocolEventV1>,
+    pub prior_holdout: MomentumQualifiedReplayHoldoutEvidenceV1,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct MomentumQualifiedSixEvidenceV1 {
     pub qualified_timeframe_set_digest: String,
@@ -7449,6 +7463,100 @@ pub(super) fn load_momentum_qualified_six_evidence_v1()
             labels_opened: prior_holdout.labels_opened,
             metrics_computed: prior_holdout.metrics_computed,
             aggregate_comparison_opened: prior_holdout.aggregate_comparison_opened,
+        },
+    })
+}
+
+pub(super) fn load_momentum_qualified_t10_micro_evidence_v1()
+-> Result<MomentumQualifiedT10MicroEvidenceV1, String> {
+    let root = Path::new(ROOT);
+    let (_, foundation, _) = reopen_foundation(root)?;
+    let foundation =
+        foundation.ok_or_else(|| "qualified T10 foundation unavailable".to_string())?;
+    if f64::from_bits(foundation.numeric_absolute_tolerance_bits) != ABSOLUTE_TOLERANCE
+        || f64::from_bits(foundation.numeric_relative_tolerance_bits) != RELATIVE_TOLERANCE
+    {
+        return Err("qualified T10 tolerance contract changed".to_string());
+    }
+    let minute_index = reopen_index(root, MomentumHistoricalTimeframeV1::Minute1)?
+        .ok_or_else(|| "qualified T10 minute index unavailable".to_string())?;
+    let minute_rows = reopen_canonical_rows(root, &minute_index)?;
+    let (ten_minute, derived_index) = aggregate_view(
+        &foundation,
+        &minute_index,
+        &minute_rows,
+        MomentumHistoricalTimeframeV1::Minute10,
+    )?;
+    let persisted_index = read_single(
+        &root.join(format!(
+            "derived_{}/indices",
+            MomentumHistoricalTimeframeV1::Minute10.as_str()
+        )),
+        decode_derived_index,
+    )?
+    .ok_or_else(|| "qualified T10 derived index unavailable".to_string())?;
+    if persisted_index != derived_index || derived_index.missing_evidence_count != 0 {
+        return Err("qualified T10 derived index rejected".to_string());
+    }
+    let metadata = load_momentum_qualified_sealed_protocol_metadata_v1()?;
+    Ok(MomentumQualifiedT10MicroEvidenceV1 {
+        ten_minute: ten_minute.iter().map(replay_candle_evidence).collect(),
+        protocol_events: metadata.protocol_events,
+        prior_holdout: metadata.prior_holdout,
+    })
+}
+
+pub(super) fn load_momentum_qualified_sealed_protocol_metadata_v1()
+-> Result<MomentumQualifiedSealedProtocolMetadataV1, String> {
+    let root = Path::new(ROOT);
+    let protocol = read_single(&root.join("protocol_replays"), decode_protocol)?
+        .ok_or_else(|| "qualified-six sealed protocol unavailable".to_string())?;
+    if !protocol.all_views_closed
+        || protocol.future_access_count != 0
+        || protocol.partial_candle_access_count != 0
+        || !protocol.prediction_before_reveal
+        || protocol.performance_claim_produced
+        || protocol.event_count != protocol.receipts.len()
+    {
+        return Err("qualified-six sealed protocol contract rejected".to_string());
+    }
+    let protocol_events = protocol
+        .receipts
+        .iter()
+        .map(|receipt| MomentumQualifiedReplayProtocolEventV1 {
+            prediction_timestamp_ms: receipt.prediction_timestamp_ms,
+            target_timestamp_ms: receipt.target_timestamp_ms,
+            receipt_digest: receipt.receipt_digest.clone(),
+        })
+        .collect::<Vec<_>>();
+    if protocol_events.windows(2).any(|pair| {
+        pair[0].prediction_timestamp_ms >= pair[1].prediction_timestamp_ms
+            || pair[0].target_timestamp_ms >= pair[1].target_timestamp_ms
+    }) || protocol_events.iter().enumerate().any(|(index, event)| {
+        event.receipt_digest.is_empty()
+            || event.target_timestamp_ms <= event.prediction_timestamp_ms
+            || protocol_events[..index]
+                .iter()
+                .any(|prior| prior.receipt_digest == event.receipt_digest)
+    }) {
+        return Err("qualified-six sealed protocol chronology or identity rejected".to_string());
+    }
+    let holdout = read_single(&root.join("sealed_holdouts"), decode_holdout)?
+        .ok_or_else(|| "qualified-six sealed holdout unavailable".to_string())?;
+    if holdout.labels_opened || holdout.metrics_computed || holdout.aggregate_comparison_opened {
+        return Err("qualified-six sealed holdout opened".to_string());
+    }
+    Ok(MomentumQualifiedSealedProtocolMetadataV1 {
+        protocol_replay_digest: protocol.replay_digest,
+        protocol_events,
+        prior_holdout: MomentumQualifiedReplayHoldoutEvidenceV1 {
+            holdout_digest: holdout.holdout_digest,
+            eligible_start_timestamp_ms: holdout.eligible_start_timestamp_ms,
+            eligible_end_timestamp_ms: holdout.eligible_end_timestamp_ms,
+            holdout_start_timestamp_ms: holdout.holdout_start_timestamp_ms,
+            labels_opened: holdout.labels_opened,
+            metrics_computed: holdout.metrics_computed,
+            aggregate_comparison_opened: holdout.aggregate_comparison_opened,
         },
     })
 }

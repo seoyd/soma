@@ -5680,7 +5680,7 @@ pub(super) fn load_momentum_qualified_diagnostic_source_header_v1()
     })
 }
 
-fn past_micro_volatility(
+pub(super) fn past_micro_volatility(
     rows: &[MomentumQualifiedReplayCandleEvidenceV1],
     prediction_timestamp_ms: u64,
 ) -> Option<f64> {
@@ -7110,5 +7110,50 @@ mod tests {
         }
         assert!(text.contains(&format!("status={:?}", report.status)));
         assert!(text.contains(&format!("report_digest={}", report.report_digest)));
+    }
+
+    #[test]
+    fn sprint103_past_micro_volatility_requires_145_closed_candles() {
+        let rows = (0..145)
+            .map(|index| MomentumQualifiedReplayCandleEvidenceV1 {
+                timeframe: MomentumHistoricalTimeframeV1::Minute10,
+                open_timestamp_ms: index * 600_000,
+                close_exclusive_timestamp_ms: (index + 1) * 600_000,
+                open: 100.0 + index as f64,
+                high: 101.0 + index as f64,
+                low: 99.0 + index as f64,
+                close: 100.0 + index as f64,
+                volume: 1.0,
+                trade_value: 100.0,
+                candle_digest: format!("candle-{index}"),
+                missing_evidence: false,
+            })
+            .collect::<Vec<_>>();
+        assert!(past_micro_volatility(&rows[..144], 144 * 600_000).is_none());
+        assert!(past_micro_volatility(&rows, 145 * 600_000).is_some());
+    }
+
+    #[test]
+    fn sprint103_future_candle_cannot_change_past_micro_volatility() {
+        let mut rows = (0..146)
+            .map(|index| MomentumQualifiedReplayCandleEvidenceV1 {
+                timeframe: MomentumHistoricalTimeframeV1::Minute10,
+                open_timestamp_ms: index * 600_000,
+                close_exclusive_timestamp_ms: (index + 1) * 600_000,
+                open: 100.0 + index as f64,
+                high: 101.0 + index as f64,
+                low: 99.0 + index as f64,
+                close: 100.0 + index as f64,
+                volume: 1.0,
+                trade_value: 100.0,
+                candle_digest: format!("candle-{index}"),
+                missing_evidence: false,
+            })
+            .collect::<Vec<_>>();
+        let prediction_timestamp_ms = 145 * 600_000;
+        let before = past_micro_volatility(&rows, prediction_timestamp_ms).unwrap();
+        rows[145].close = 1_000_000.0;
+        let after = past_micro_volatility(&rows, prediction_timestamp_ms).unwrap();
+        assert_eq!(before.to_bits(), after.to_bits());
     }
 }

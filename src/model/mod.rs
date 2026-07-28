@@ -35,6 +35,8 @@ pub mod momentum_qualified_six_diagnostics_v1;
 pub mod momentum_qualified_six_replay_v1;
 pub mod momentum_raw_feature_supplemental;
 pub mod momentum_raw_feature_v4;
+pub mod momentum_t10_actionability_design_v1;
+pub mod momentum_t10_failure_forensics_v1;
 pub mod momentum_t10_micro_screening_v1;
 pub mod prediction;
 pub mod sequence_dataset_export;
@@ -974,6 +976,8 @@ pub use momentum_qualified_six_replay_v1::{
 };
 pub use momentum_raw_feature_supplemental::*;
 pub use momentum_raw_feature_v4::*;
+pub use momentum_t10_actionability_design_v1::*;
+pub use momentum_t10_failure_forensics_v1::*;
 pub use momentum_t10_micro_screening_v1::*;
 pub use prediction::{
     PredictionFrame, PredictionImportConfig, PredictionInputFormat, PredictionRow,
