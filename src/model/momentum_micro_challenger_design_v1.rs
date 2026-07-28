@@ -2893,6 +2893,24 @@ fn compact_event(
     })
 }
 
+pub(super) fn extract_compact_micro_event_v1(
+    policy: &MomentumCompactMicroFeaturePolicyV1,
+    views: &BTreeMap<MomentumHistoricalTimeframeV1, Vec<MomentumQualifiedReplayCandleEvidenceV1>>,
+    timestamp_ms: u64,
+) -> Result<(Vec<f32>, usize, usize), String> {
+    let result = compact_event(policy, views, timestamp_ms)?;
+    let values = result
+        .values
+        .into_iter()
+        .map(checked_f32)
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok((
+        values,
+        result.zero_range_fallbacks,
+        result.zero_denominator_fallbacks,
+    ))
+}
+
 fn compact_matrix(
     policy: &MomentumCompactMicroFeaturePolicyV1,
     source: &MomentumQualifiedDiagnosticSourceV1,

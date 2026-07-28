@@ -121,6 +121,12 @@ pub struct CliArgs {
     #[arg(long, default_value_t = false)]
     pub momentum_micro_challenger_registration: bool,
     #[arg(long, default_value_t = false)]
+    pub momentum_t10_micro_screening: bool,
+    #[arg(long, default_value_t = false)]
+    pub momentum_t10_holdout_cohort: bool,
+    #[arg(long, default_value_t = false)]
+    pub authorize: bool,
+    #[arg(long, default_value_t = false)]
     pub register: bool,
     #[arg(long, value_parser = ["development", "validation"])]
     pub partition: Option<String>,
@@ -205,9 +211,14 @@ pub struct CliArgs {
 
 pub fn run() -> Result<(), String> {
     let args = CliArgs::parse();
+    if args.authorize && !args.momentum_t10_micro_screening {
+        return Err("T10 screening authorization selector required".to_string());
+    }
     let micro_selector_count = usize::from(args.momentum_micro_label_forensics)
         + usize::from(args.momentum_micro_feature_forensics)
-        + usize::from(args.momentum_micro_challenger_registration);
+        + usize::from(args.momentum_micro_challenger_registration)
+        + usize::from(args.momentum_t10_micro_screening)
+        + usize::from(args.momentum_t10_holdout_cohort);
     if micro_selector_count > 0 {
         if micro_selector_count != 1 {
             return Err("micro research selector conflict rejected".to_string());
@@ -3520,7 +3531,11 @@ fn format_momentum_v4_supplemental_text(report: &MomentumSupplementalCliReportV4
     output
 }
 
-fn micro_research_has_unrelated_authority(args: &CliArgs) -> bool {
+fn micro_research_has_unrelated_authority(
+    args: &CliArgs,
+    partition_allowed: bool,
+    authorize_allowed: bool,
+) -> bool {
     args.full_auto
         || args.symbol != "BTCUSDT"
         || args.historical_provider_smoke_config.is_some()
@@ -3569,7 +3584,8 @@ fn micro_research_has_unrelated_authority(args: &CliArgs) -> bool {
         || args.momentum_mtf_qualified_six_replay
         || args.momentum_mtf_qualified_six_diagnostics
         || args.momentum_mtf_qualified_six_challenger_requirements
-        || args.partition.is_some()
+        || (!partition_allowed && args.partition.is_some())
+        || (!authorize_allowed && args.authorize)
         || args.register_foundation
         || args.execute_backfill
         || args.confirm_bounded_mtf_history_backfill
@@ -3616,6 +3632,7 @@ fn momentum_micro_historical_boundary_digest_v1(root: &Path) -> Result<String, S
     let excluded_roots = [
         historical_root.join("momentum_micro_label_forensics"),
         historical_root.join("momentum_micro_challenger_design"),
+        historical_root.join("momentum_t10_micro_screening"),
     ];
     let mut stack = vec![historical_root.clone()];
     let mut entries = Vec::new();
@@ -3756,7 +3773,10 @@ fn load_momentum_micro_protected_state_v1(
 }
 
 fn run_momentum_micro_research_cli_v1(args: &CliArgs) -> Result<(), String> {
-    if micro_research_has_unrelated_authority(args) {
+    if args.momentum_t10_micro_screening || args.momentum_t10_holdout_cohort {
+        return run_momentum_t10_micro_screening_cli_v1(args);
+    }
+    if micro_research_has_unrelated_authority(args, false, false) {
         return Err("micro research selector rejects unrelated authority".to_string());
     }
     let config_path = args
@@ -3860,6 +3880,88 @@ fn run_momentum_micro_research_cli_v1(args: &CliArgs) -> Result<(), String> {
         print!(
             "{}",
             crate::model::format_momentum_micro_challenger_design_text_v1(&report)
+        );
+    }
+    Ok(())
+}
+
+fn run_momentum_t10_micro_screening_cli_v1(args: &CliArgs) -> Result<(), String> {
+    if micro_research_has_unrelated_authority(args, true, true)
+        || args.register
+        || (args.momentum_t10_holdout_cohort
+            && (!args.status
+                || args.dry_run
+                || args.execute_local
+                || args.authorize
+                || args.partition.is_some()))
+    {
+        return Err("T10 micro screening rejects unrelated authority".to_string());
+    }
+    let mode = if args.momentum_t10_holdout_cohort {
+        crate::model::MomentumT10MicroScreeningRunModeV1::Status
+    } else if args.status
+        && !args.dry_run
+        && !args.execute_local
+        && !args.authorize
+        && args.partition.is_none()
+    {
+        crate::model::MomentumT10MicroScreeningRunModeV1::Status
+    } else if args.dry_run
+        && !args.status
+        && !args.execute_local
+        && !args.authorize
+        && args.partition.is_none()
+    {
+        crate::model::MomentumT10MicroScreeningRunModeV1::DryRun
+    } else if args.authorize
+        && args.execute_local
+        && !args.status
+        && !args.dry_run
+        && args.partition.is_none()
+    {
+        crate::model::MomentumT10MicroScreeningRunModeV1::Authorize
+    } else if args.execute_local && !args.status && !args.dry_run && !args.authorize {
+        match args.partition.as_deref() {
+            Some("development") => {
+                crate::model::MomentumT10MicroScreeningRunModeV1::ExecuteDevelopment
+            }
+            Some("validation") => {
+                crate::model::MomentumT10MicroScreeningRunModeV1::ExecuteValidation
+            }
+            _ => return Err("T10 micro screening partition rejected".to_string()),
+        }
+    } else {
+        return Err("T10 micro screening mode rejected".to_string());
+    };
+    if matches!(
+        mode,
+        crate::model::MomentumT10MicroScreeningRunModeV1::Authorize
+            | crate::model::MomentumT10MicroScreeningRunModeV1::ExecuteDevelopment
+            | crate::model::MomentumT10MicroScreeningRunModeV1::ExecuteValidation
+    ) && args.output_format != "json"
+    {
+        return Err("T10 micro screening execution requires JSON output".to_string());
+    }
+    let config_path = args
+        .historical_snapshot_campaign_config
+        .as_deref()
+        .unwrap_or_else(|| Path::new("config/local/historical_provider.local.toml"));
+    let protected_before = load_momentum_micro_protected_state_v1(config_path)?;
+    let report = crate::model::run_momentum_t10_micro_screening_v1(mode, &protected_before)?;
+    let protected_after = load_momentum_micro_protected_state_v1(config_path)?;
+    if protected_before != protected_after {
+        return Err("T10 micro screening changed protected state".to_string());
+    }
+    if args.output_format == "json" {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&report)
+                .map_err(|_| "T10 micro screening JSON serialization failed".to_string())?
+        );
+    } else {
+        print!(
+            "{}",
+            crate::model::format_momentum_t10_micro_screening_text_v1(&report)
         );
     }
     Ok(())

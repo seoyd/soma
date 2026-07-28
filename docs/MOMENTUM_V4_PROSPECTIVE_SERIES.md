@@ -254,6 +254,9 @@ Live events one and two remain complete, continuation remains paused after
 completed epoch two, and no epoch three exists. Q1 and Q2 require feature and
 label redesign.
 
-The separate historical lane completed label and feature diagnostics and
-registered compact micro challengers. It trained no challenger model and
-opened no historical holdout.
+The separate historical lane completed label and feature diagnostics,
+registered compact micro challengers, and subsequently executed only the
+authorized T10 development/validation screen. It did not execute T30 or T60,
+opened no historical holdout, selected no winner, and produced no eligible
+holdout cohort. The live lane, roster, parameters, counts, and pause state
+remain unchanged.
