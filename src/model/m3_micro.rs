@@ -31,6 +31,7 @@ const PROBABILITY_EPSILON: f32 = 1e-6;
 pub enum M3MicroError {
     InvalidConfiguration,
     InvalidShape,
+    InvalidChronology,
     InsufficientHistory,
     UnavailableSourceEvidence,
     NonCausalFormula,
@@ -56,6 +57,7 @@ impl std::fmt::Display for M3MicroError {
         let message = match self {
             Self::InvalidConfiguration => "invalid M3-Micro configuration",
             Self::InvalidShape => "M3-Micro tensor shape rejected",
+            Self::InvalidChronology => "M3-Micro chronology rejected",
             Self::InsufficientHistory => "insufficient causal history",
             Self::UnavailableSourceEvidence => "UnavailableSourceEvidence",
             Self::NonCausalFormula => "non-causal Formula rejected",
@@ -2344,7 +2346,7 @@ pub struct EvaluationHistoryEntry {
     pub source_index: usize,
     pub loss: f32,
     pub prediction_digest: String,
-    pub persisted_before_reveal: bool,
+    pub stage_evidence: ValidationStageEvidence,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -2439,6 +2441,10 @@ impl IndependentM3MicroAgent {
             || self.spec.prospective_candidate
             || self.spec.live_authority
             || self.spec.trading_authority
+            || self
+                .evaluation_history
+                .iter()
+                .any(|entry| entry.stage_evidence.validate_complete().is_err())
         {
             return Err(M3MicroError::InvalidConfiguration);
         }
@@ -2539,7 +2545,7 @@ impl IndependentM3MicroAgent {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct M3MicroRoster {
     pub roster_version: String,
-    pub agents: BTreeMap<AgentId, IndependentM3MicroAgent>,
+    agents: BTreeMap<AgentId, IndependentM3MicroAgent>,
     pub roster_digest: String,
 }
 
@@ -2628,10 +2634,120 @@ impl M3MicroRoster {
             .expect("fixed three-agent roster")
     }
 
-    pub fn agent_mut(&mut self, agent_id: AgentId) -> &mut IndependentM3MicroAgent {
-        self.agents
-            .get_mut(&agent_id)
-            .expect("fixed three-agent roster")
+    pub fn agents(&self) -> impl Iterator<Item = &IndependentM3MicroAgent> {
+        self.agents.values()
+    }
+
+    fn mutate_agent<T>(
+        &mut self,
+        agent_id: AgentId,
+        mutation: impl FnOnce(&mut IndependentM3MicroAgent) -> Result<T, M3MicroError>,
+    ) -> Result<T, M3MicroError> {
+        self.validate()?;
+        let mut candidate = self
+            .agents
+            .get(&agent_id)
+            .ok_or(M3MicroError::WrongAgent)?
+            .clone();
+        let result = mutation(&mut candidate)?;
+        candidate.validate()?;
+
+        let prior_digest = self.roster_digest.clone();
+        let prior = self
+            .agents
+            .insert(agent_id, candidate)
+            .ok_or(M3MicroError::WrongAgent)?;
+        self.refresh_digest();
+        if let Err(error) = self.validate() {
+            self.agents.insert(agent_id, prior);
+            self.roster_digest = prior_digest;
+            return Err(error);
+        }
+        Ok(result)
+    }
+
+    pub fn fit_agent_normalizer(
+        &mut self,
+        agent_id: AgentId,
+        partition: HistoricalPartition,
+        rows: &[(usize, Vec<f32>)],
+    ) -> Result<(), M3MicroError> {
+        self.mutate_agent(agent_id, |agent| agent.fit_normalizer(partition, rows))
+    }
+
+    pub fn train_agent_development_step(
+        &mut self,
+        agent_id: AgentId,
+        partition: HistoricalPartition,
+        normalized_sequence: &[Vec<f32>],
+        target: &M3MicroTarget,
+    ) -> Result<f32, M3MicroError> {
+        self.mutate_agent(agent_id, |agent| {
+            agent.train_development_step(partition, normalized_sequence, target)
+        })
+    }
+
+    pub fn infer_agent(
+        &mut self,
+        agent_id: AgentId,
+        schema_digest: &str,
+        raw_sequence: &[Vec<f32>],
+    ) -> Result<M3MicroPrediction, M3MicroError> {
+        self.mutate_agent(agent_id, |agent| agent.infer(schema_digest, raw_sequence))
+    }
+
+    pub fn predict_validation(
+        &self,
+        input: &M3MicroValidationInput,
+        boundary: &HistoricalPartitionBoundary,
+    ) -> Result<(Vec<f32>, M3MicroPrediction), M3MicroError> {
+        self.validate()?;
+        let agent = self
+            .agents
+            .get(&input.input.agent_id)
+            .ok_or(M3MicroError::WrongAgent)?;
+        input.input.validate(agent, boundary)?;
+        agent.predict_stateless_raw(&input.input.input_schema_digest, &input.input.raw_sequence)
+    }
+
+    fn record_agent_evaluation(
+        &mut self,
+        agent_id: AgentId,
+        entry: EvaluationHistoryEntry,
+    ) -> Result<(), M3MicroError> {
+        if entry.partition != HistoricalPartition::Validation
+            || !entry.loss.is_finite()
+            || entry.prediction_digest.is_empty()
+        {
+            return Err(M3MicroError::InvalidConfiguration);
+        }
+        entry.stage_evidence.validate_complete()?;
+        self.mutate_agent(agent_id, |agent| {
+            agent.evaluation_history.push(entry);
+            Ok(())
+        })
+    }
+
+    pub fn materialize_agent_checkpoint(
+        &mut self,
+        agent_id: AgentId,
+        store: &M3MicroCheckpointStore,
+    ) -> Result<SavedM3MicroCheckpoint, M3MicroError> {
+        self.mutate_agent(agent_id, |agent| store.save(agent))
+    }
+
+    pub fn promote_agent_challenger(
+        &mut self,
+        agent_id: AgentId,
+        challenger: FormulaChallenger,
+        evidence: &ManualPromotionEvidence,
+    ) -> Result<(), M3MicroError> {
+        if challenger.challenger.agent_id() != agent_id {
+            return Err(M3MicroError::WrongAgent);
+        }
+        self.mutate_agent(agent_id, |champion| {
+            promote_formula_challenger(champion, challenger, evidence)
+        })
     }
 
     pub fn total_parameter_count(&self) -> usize {
@@ -2838,20 +2954,78 @@ pub fn promote_formula_challenger(
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct M3MicroCheckpointPayload {
+    pub agent_id: AgentId,
+    pub spec: IndependentAgentSpec,
+    pub model: M3MicroModel,
+    pub recurrent_state: M3MicroState,
+    pub optimizer_state: M3MicroOptimizerState,
+    pub normalizer: AgentNormalizer,
+    pub formula_genome: AgentFormulaGenome,
+    pub training_history: Vec<TrainingHistoryEntry>,
+    pub evaluation_history: Vec<EvaluationHistoryEntry>,
+    pub artifact_identity: String,
+    pub promotion_history: Vec<PromotionHistoryEntry>,
+}
+
+impl M3MicroCheckpointPayload {
+    fn from_agent(agent: &IndependentM3MicroAgent) -> Result<Self, M3MicroError> {
+        agent.validate()?;
+        Ok(Self {
+            agent_id: agent.agent_id(),
+            spec: agent.spec.clone(),
+            model: agent.model.clone(),
+            recurrent_state: agent.recurrent_state.clone(),
+            optimizer_state: agent.optimizer_state.clone(),
+            normalizer: agent.normalizer.clone(),
+            formula_genome: agent.formula_genome.clone(),
+            training_history: agent.training_history.clone(),
+            evaluation_history: agent.evaluation_history.clone(),
+            artifact_identity: agent.artifact_identity.clone(),
+            promotion_history: agent.promotion_history.clone(),
+        })
+    }
+
+    fn to_agent(
+        &self,
+        checkpoint_identity: String,
+    ) -> Result<IndependentM3MicroAgent, M3MicroError> {
+        let agent = IndependentM3MicroAgent {
+            spec: self.spec.clone(),
+            model: self.model.clone(),
+            recurrent_state: self.recurrent_state.clone(),
+            optimizer_state: self.optimizer_state.clone(),
+            normalizer: self.normalizer.clone(),
+            formula_genome: self.formula_genome.clone(),
+            training_history: self.training_history.clone(),
+            evaluation_history: self.evaluation_history.clone(),
+            checkpoint_identity,
+            artifact_identity: self.artifact_identity.clone(),
+            promotion_history: self.promotion_history.clone(),
+        };
+        if self.agent_id != agent.agent_id() {
+            return Err(M3MicroError::WrongCheckpoint);
+        }
+        agent.validate()?;
+        Ok(agent)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct M3MicroCheckpoint {
     pub format_version: u32,
     pub agent_id: AgentId,
-    pub agent: IndependentM3MicroAgent,
+    pub payload: M3MicroCheckpointPayload,
     pub checkpoint_digest: String,
 }
 
 impl M3MicroCheckpoint {
     pub fn from_agent(agent: &IndependentM3MicroAgent) -> Result<Self, M3MicroError> {
-        agent.validate()?;
+        let payload = M3MicroCheckpointPayload::from_agent(agent)?;
         let mut checkpoint = Self {
-            format_version: 1,
+            format_version: 2,
             agent_id: agent.agent_id(),
-            agent: agent.clone(),
+            payload,
             checkpoint_digest: String::new(),
         };
         checkpoint.checkpoint_digest = checkpoint.computed_digest()?;
@@ -2859,19 +3033,21 @@ impl M3MicroCheckpoint {
     }
 
     fn computed_digest(&self) -> Result<String, M3MicroError> {
-        let bytes = serde_json::to_vec(&(self.format_version, self.agent_id, &self.agent))
+        let bytes = serde_json::to_vec(&(self.format_version, self.agent_id, &self.payload))
             .map_err(|_| M3MicroError::CorruptArtifact)?;
         Ok(stable_hash_string(&format!("{bytes:?}")))
     }
 
     pub fn validate(&self) -> Result<(), M3MicroError> {
-        if self.format_version != 1
-            || self.agent_id != self.agent.agent_id()
+        if self.format_version != 2
+            || self.agent_id != self.payload.agent_id
             || self.checkpoint_digest != self.computed_digest()?
         {
             return Err(M3MicroError::WrongCheckpoint);
         }
-        self.agent.validate()
+        self.payload
+            .to_agent(self.checkpoint_digest.clone())
+            .map(|_| ())
     }
 
     pub fn to_bytes(&self) -> Result<Vec<u8>, M3MicroError> {
@@ -2888,12 +3064,16 @@ impl M3MicroCheckpoint {
 
     pub fn restore(self) -> Result<IndependentM3MicroAgent, M3MicroError> {
         self.validate()?;
-        let digest = self.checkpoint_digest.clone();
-        let mut agent = self.agent;
-        agent.checkpoint_identity = digest;
-        agent.validate()?;
-        Ok(agent)
+        self.payload.to_agent(self.checkpoint_digest)
     }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SavedM3MicroCheckpoint {
+    pub agent_id: AgentId,
+    pub checkpoint_digest: String,
+    pub path: PathBuf,
+    pub byte_len: usize,
 }
 
 #[derive(Clone, Debug)]
@@ -2920,7 +3100,10 @@ impl M3MicroCheckpointStore {
             .join(format!("{digest}.json")))
     }
 
-    pub fn save(&self, agent: &mut IndependentM3MicroAgent) -> Result<PathBuf, M3MicroError> {
+    pub fn save(
+        &self,
+        agent: &mut IndependentM3MicroAgent,
+    ) -> Result<SavedM3MicroCheckpoint, M3MicroError> {
         let checkpoint = M3MicroCheckpoint::from_agent(agent)?;
         let bytes = checkpoint.to_bytes()?;
         let digest = checkpoint.checkpoint_digest.clone();
@@ -2931,8 +3114,22 @@ impl M3MicroCheckpointStore {
                 .map_err(|error| error.to_string())
         })
         .map_err(|_| M3MicroError::Io)?;
-        agent.checkpoint_identity = digest;
-        Ok(path)
+        let reopened_bytes = fs::read(&path).map_err(|_| M3MicroError::Io)?;
+        let reopened = M3MicroCheckpoint::from_bytes(&reopened_bytes)?;
+        if reopened.agent_id != agent.agent_id()
+            || reopened.checkpoint_digest != digest
+            || reopened_bytes != bytes
+        {
+            return Err(M3MicroError::WrongCheckpoint);
+        }
+        agent.checkpoint_identity = digest.clone();
+        agent.validate()?;
+        Ok(SavedM3MicroCheckpoint {
+            agent_id: agent.agent_id(),
+            checkpoint_digest: digest,
+            path,
+            byte_len: bytes.len(),
+        })
     }
 
     pub fn load(
@@ -2960,29 +3157,258 @@ pub enum HistoricalPartition {
     Validation,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct HistoricalPartitionBoundary {
+    pub partition: HistoricalPartition,
+    pub start_index: usize,
+    pub end_index: usize,
+    pub boundary_version: String,
+    pub boundary_digest: String,
+}
+
+impl HistoricalPartitionBoundary {
+    pub fn new(
+        partition: HistoricalPartition,
+        start_index: usize,
+        end_index: usize,
+        boundary_version: impl Into<String>,
+    ) -> Result<Self, M3MicroError> {
+        let mut boundary = Self {
+            partition,
+            start_index,
+            end_index,
+            boundary_version: boundary_version.into(),
+            boundary_digest: String::new(),
+        };
+        boundary.boundary_digest = boundary.computed_digest()?;
+        boundary.validate()?;
+        Ok(boundary)
+    }
+
+    fn computed_digest(&self) -> Result<String, M3MicroError> {
+        let bytes = serde_json::to_vec(&(
+            self.partition,
+            self.start_index,
+            self.end_index,
+            &self.boundary_version,
+        ))
+        .map_err(|_| M3MicroError::CorruptArtifact)?;
+        Ok(stable_hash_string(&format!("{bytes:?}")))
+    }
+
+    #[cfg(test)]
+    fn refresh_digest(&mut self) -> Result<(), M3MicroError> {
+        self.boundary_digest = self.computed_digest()?;
+        Ok(())
+    }
+
+    pub fn validate(&self) -> Result<(), M3MicroError> {
+        if self.start_index > self.end_index || self.boundary_version.is_empty() {
+            return Err(M3MicroError::InvalidChronology);
+        }
+        if self.boundary_digest != self.computed_digest()? {
+            return Err(M3MicroError::CorruptArtifact);
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct M3MicroTargetReference {
+    pub agent_id: AgentId,
+    pub partition: HistoricalPartition,
+    pub target_index: usize,
+    pub target_policy: TargetPolicy,
+    pub event_digest: String,
+    pub target_commitment: Option<String>,
+    pub reference_digest: String,
+}
+
+impl M3MicroTargetReference {
+    pub fn new(
+        agent_id: AgentId,
+        partition: HistoricalPartition,
+        target_index: usize,
+        target_policy: TargetPolicy,
+        event_digest: impl Into<String>,
+        target_commitment: Option<String>,
+    ) -> Result<Self, M3MicroError> {
+        let mut reference = Self {
+            agent_id,
+            partition,
+            target_index,
+            target_policy,
+            event_digest: event_digest.into(),
+            target_commitment,
+            reference_digest: String::new(),
+        };
+        reference.reference_digest = reference.computed_digest()?;
+        reference.validate_integrity()?;
+        Ok(reference)
+    }
+
+    pub fn commitment_for(target: &M3MicroTarget) -> Result<String, M3MicroError> {
+        let bytes = serde_json::to_vec(target).map_err(|_| M3MicroError::CorruptArtifact)?;
+        Ok(stable_hash_string(&format!("{bytes:?}")))
+    }
+
+    fn computed_digest(&self) -> Result<String, M3MicroError> {
+        let bytes = serde_json::to_vec(&(
+            self.agent_id,
+            self.partition,
+            self.target_index,
+            self.target_policy,
+            &self.event_digest,
+            &self.target_commitment,
+        ))
+        .map_err(|_| M3MicroError::CorruptArtifact)?;
+        Ok(stable_hash_string(&format!("{bytes:?}")))
+    }
+
+    fn validate_integrity(&self) -> Result<(), M3MicroError> {
+        if self.event_digest.is_empty()
+            || self
+                .target_commitment
+                .as_ref()
+                .is_some_and(|value| value.is_empty())
+            || self.reference_digest != self.computed_digest()?
+        {
+            return Err(M3MicroError::CorruptArtifact);
+        }
+        Ok(())
+    }
+
+    fn validate_for(
+        &self,
+        agent: &IndependentM3MicroAgent,
+        partition: HistoricalPartition,
+        target_index: usize,
+    ) -> Result<(), M3MicroError> {
+        self.validate_integrity()?;
+        if self.agent_id != agent.agent_id()
+            || self.partition != partition
+            || self.target_index != target_index
+            || self.target_policy != agent.spec.target_policy
+        {
+            return Err(M3MicroError::WrongAgent);
+        }
+        Ok(())
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct M3MicroHistoricalExample {
+pub struct M3MicroHistoricalInput {
     pub agent_id: AgentId,
     pub partition: HistoricalPartition,
     pub sequence_start: usize,
     pub sequence_end: usize,
     pub target_index: usize,
+    pub horizon_bars: usize,
+    pub boundary: HistoricalPartitionBoundary,
     pub input_schema_digest: String,
     pub raw_sequence: Vec<Vec<f32>>,
-    pub target: M3MicroTarget,
+    pub target_reference: M3MicroTargetReference,
+    pub input_digest: String,
 }
 
-impl M3MicroHistoricalExample {
-    fn validate(&self, agent: &IndependentM3MicroAgent) -> Result<(), M3MicroError> {
-        let horizon = self.target_index.saturating_sub(self.sequence_end);
-        if self.agent_id != agent.agent_id()
-            || self.target.agent_id != agent.agent_id()
-            || self.input_schema_digest != agent.formula_genome.input_schema_digest
-            || self.raw_sequence.is_empty()
+impl M3MicroHistoricalInput {
+    pub fn new(
+        agent_id: AgentId,
+        partition: HistoricalPartition,
+        sequence_start: usize,
+        sequence_end: usize,
+        target_index: usize,
+        horizon_bars: usize,
+        boundary: HistoricalPartitionBoundary,
+        input_schema_digest: impl Into<String>,
+        raw_sequence: Vec<Vec<f32>>,
+        target_reference: M3MicroTargetReference,
+    ) -> Result<Self, M3MicroError> {
+        let mut input = Self {
+            agent_id,
+            partition,
+            sequence_start,
+            sequence_end,
+            target_index,
+            horizon_bars,
+            boundary,
+            input_schema_digest: input_schema_digest.into(),
+            raw_sequence,
+            target_reference,
+            input_digest: String::new(),
+        };
+        input.refresh_digest()?;
+        Ok(input)
+    }
+
+    fn computed_digest(&self) -> Result<String, M3MicroError> {
+        let bytes = serde_json::to_vec(&(
+            2u32,
+            self.agent_id,
+            self.partition,
+            self.sequence_start,
+            self.sequence_end,
+            self.target_index,
+            self.horizon_bars,
+            &self.boundary,
+            &self.input_schema_digest,
+            &self.raw_sequence,
+            &self.target_reference,
+        ))
+        .map_err(|_| M3MicroError::CorruptArtifact)?;
+        Ok(stable_hash_string(&format!("{bytes:?}")))
+    }
+
+    fn refresh_digest(&mut self) -> Result<(), M3MicroError> {
+        self.input_digest = self.computed_digest()?;
+        Ok(())
+    }
+
+    fn validate(
+        &self,
+        agent: &IndependentM3MicroAgent,
+        canonical_boundary: &HistoricalPartitionBoundary,
+    ) -> Result<(), M3MicroError> {
+        canonical_boundary.validate()?;
+        self.boundary.validate()?;
+        if self.boundary != *canonical_boundary
+            || self.partition != canonical_boundary.partition
+            || self.agent_id != agent.agent_id()
+        {
+            return Err(M3MicroError::InvalidChronology);
+        }
+        self.target_reference
+            .validate_for(agent, self.partition, self.target_index)?;
+        if self.input_schema_digest != agent.formula_genome.input_schema_digest {
+            return Err(M3MicroError::WrongSchema);
+        }
+        if self.horizon_bars == 0
+            || self.sequence_start < canonical_boundary.start_index
             || self.sequence_start > self.sequence_end
-            || self.target_index <= self.sequence_end
-            || row_is_unsafe(self.sequence_end, self.target_index, horizon)
-            || self.raw_sequence.len() != self.sequence_end - self.sequence_start + 1
+            || self.sequence_end >= self.target_index
+        {
+            return Err(M3MicroError::InvalidChronology);
+        }
+        let expected_target = self
+            .sequence_end
+            .checked_add(self.horizon_bars)
+            .ok_or(M3MicroError::InvalidChronology)?;
+        if self.target_index != expected_target
+            || self.target_index > canonical_boundary.end_index
+            || row_is_unsafe(
+                self.sequence_end,
+                canonical_boundary.end_index,
+                self.horizon_bars,
+            )
+        {
+            return Err(M3MicroError::InvalidChronology);
+        }
+        let expected_length = self
+            .sequence_end
+            .checked_sub(self.sequence_start)
+            .and_then(|length| length.checked_add(1))
+            .ok_or(M3MicroError::InvalidChronology)?;
+        if self.raw_sequence.len() != expected_length
             || self.raw_sequence.iter().any(|row| {
                 row.len() != agent.model.config.input_dim
                     || row.iter().any(|value| !value.is_finite())
@@ -2990,7 +3416,272 @@ impl M3MicroHistoricalExample {
         {
             return Err(M3MicroError::InvalidShape);
         }
-        self.target.validate()
+        if self.input_digest != self.computed_digest()? {
+            return Err(M3MicroError::CorruptArtifact);
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct M3MicroDevelopmentExample {
+    pub input: M3MicroHistoricalInput,
+    pub target: M3MicroTarget,
+}
+
+impl M3MicroDevelopmentExample {
+    fn validate(
+        &self,
+        agent: &IndependentM3MicroAgent,
+        boundary: &HistoricalPartitionBoundary,
+    ) -> Result<(), M3MicroError> {
+        if self.input.partition != HistoricalPartition::Development {
+            return Err(M3MicroError::InvalidChronology);
+        }
+        self.input.validate(agent, boundary)?;
+        self.target.validate()?;
+        if self.target.agent_id != self.input.agent_id {
+            return Err(M3MicroError::WrongAgent);
+        }
+        if let Some(commitment) = &self.input.target_reference.target_commitment {
+            if commitment != &M3MicroTargetReference::commitment_for(&self.target)? {
+                return Err(M3MicroError::CorruptArtifact);
+            }
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct M3MicroValidationInput {
+    pub input: M3MicroHistoricalInput,
+}
+
+impl M3MicroValidationInput {
+    fn validate(
+        &self,
+        agent: &IndependentM3MicroAgent,
+        boundary: &HistoricalPartitionBoundary,
+    ) -> Result<(), M3MicroError> {
+        if self.input.partition != HistoricalPartition::Validation {
+            return Err(M3MicroError::InvalidChronology);
+        }
+        self.input.validate(agent, boundary)
+    }
+}
+
+#[derive(Clone, PartialEq)]
+pub struct M3MicroValidationTargetSource {
+    targets: BTreeMap<String, M3MicroTarget>,
+    access_count: usize,
+}
+
+impl std::fmt::Debug for M3MicroValidationTargetSource {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("M3MicroValidationTargetSource")
+            .field("registered_target_count", &self.targets.len())
+            .field("access_count", &self.access_count)
+            .finish()
+    }
+}
+
+impl M3MicroValidationTargetSource {
+    pub fn new(
+        registrations: Vec<(M3MicroTargetReference, M3MicroTarget)>,
+    ) -> Result<Self, M3MicroError> {
+        let mut targets = BTreeMap::new();
+        for (reference, target) in registrations {
+            reference.validate_integrity()?;
+            if targets.insert(reference.reference_digest, target).is_some() {
+                return Err(M3MicroError::InvalidConfiguration);
+            }
+        }
+        Ok(Self {
+            targets,
+            access_count: 0,
+        })
+    }
+
+    pub fn access_count(&self) -> usize {
+        self.access_count
+    }
+
+    fn registered_reference_digests(&self) -> BTreeSet<String> {
+        self.targets.keys().cloned().collect()
+    }
+
+    fn reveal(
+        &mut self,
+        verified_prediction: &VerifiedPersistedPrediction,
+        target_reference: &M3MicroTargetReference,
+    ) -> Result<M3MicroTarget, M3MicroError> {
+        target_reference.validate_integrity()?;
+        verified_prediction.validate_target_reference(target_reference)?;
+        self.access_count = self
+            .access_count
+            .checked_add(1)
+            .ok_or(M3MicroError::InvalidConfiguration)?;
+        let target = self
+            .targets
+            .get(&target_reference.reference_digest)
+            .ok_or(M3MicroError::CorruptArtifact)?
+            .clone();
+        target.validate()?;
+        if target.agent_id != target_reference.agent_id {
+            return Err(M3MicroError::WrongAgent);
+        }
+        if let Some(commitment) = &target_reference.target_commitment {
+            if commitment != &M3MicroTargetReference::commitment_for(&target)? {
+                return Err(M3MicroError::CorruptArtifact);
+            }
+        }
+        Ok(target)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct M3MicroHistoricalDataset {
+    pub boundaries: BTreeMap<HistoricalPartition, HistoricalPartitionBoundary>,
+    pub development: BTreeMap<AgentId, Vec<M3MicroDevelopmentExample>>,
+    pub validation_inputs: BTreeMap<AgentId, Vec<M3MicroValidationInput>>,
+    pub validation_targets: M3MicroValidationTargetSource,
+}
+
+impl M3MicroHistoricalDataset {
+    pub fn target_access_count(&self) -> usize {
+        self.validation_targets.access_count()
+    }
+
+    fn validate(&self, roster: &M3MicroRoster) -> Result<(), M3MicroError> {
+        let expected_partitions = BTreeSet::from([
+            HistoricalPartition::Development,
+            HistoricalPartition::Validation,
+        ]);
+        if self.boundaries.keys().copied().collect::<BTreeSet<_>>() != expected_partitions
+            || self.development.keys().copied().collect::<Vec<_>>() != AgentId::ORDERED
+            || self.validation_inputs.keys().copied().collect::<Vec<_>>() != AgentId::ORDERED
+        {
+            return Err(M3MicroError::InvalidConfiguration);
+        }
+        let development_boundary = self
+            .boundaries
+            .get(&HistoricalPartition::Development)
+            .ok_or(M3MicroError::InvalidConfiguration)?;
+        let validation_boundary = self
+            .boundaries
+            .get(&HistoricalPartition::Validation)
+            .ok_or(M3MicroError::InvalidConfiguration)?;
+        development_boundary.validate()?;
+        validation_boundary.validate()?;
+        if development_boundary.end_index >= validation_boundary.start_index {
+            return Err(M3MicroError::InvalidChronology);
+        }
+
+        let mut expected_references = BTreeSet::new();
+        let mut validation_count = 0usize;
+        for agent_id in AgentId::ORDERED {
+            let agent = roster.agent(agent_id);
+            let development = self
+                .development
+                .get(&agent_id)
+                .ok_or(M3MicroError::InvalidConfiguration)?;
+            let validation = self
+                .validation_inputs
+                .get(&agent_id)
+                .ok_or(M3MicroError::InvalidConfiguration)?;
+            if development.is_empty()
+                || validation.is_empty()
+                || development
+                    .iter()
+                    .any(|example| example.validate(agent, development_boundary).is_err())
+                || validation
+                    .iter()
+                    .any(|input| input.validate(agent, validation_boundary).is_err())
+                || development.windows(2).any(|pair| {
+                    pair[1].input.sequence_end <= pair[0].input.sequence_end
+                        || pair[1].input.target_index <= pair[0].input.target_index
+                })
+                || validation.windows(2).any(|pair| {
+                    pair[1].input.sequence_end <= pair[0].input.sequence_end
+                        || pair[1].input.target_index <= pair[0].input.target_index
+                })
+            {
+                return Err(M3MicroError::InvalidChronology);
+            }
+            for input in validation {
+                validation_count = validation_count
+                    .checked_add(1)
+                    .ok_or(M3MicroError::InvalidConfiguration)?;
+                if !expected_references
+                    .insert(input.input.target_reference.reference_digest.clone())
+                {
+                    return Err(M3MicroError::InvalidConfiguration);
+                }
+            }
+        }
+        if expected_references.len() != validation_count
+            || expected_references != self.validation_targets.registered_reference_digests()
+        {
+            return Err(M3MicroError::InvalidConfiguration);
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ValidationStage {
+    InputValidated,
+    PredictionComputed,
+    PredictionPersisted,
+    PredictionReopenedAndVerified,
+    TargetRevealed,
+    Evaluated,
+}
+
+impl ValidationStage {
+    const ORDERED: [Self; 6] = [
+        Self::InputValidated,
+        Self::PredictionComputed,
+        Self::PredictionPersisted,
+        Self::PredictionReopenedAndVerified,
+        Self::TargetRevealed,
+        Self::Evaluated,
+    ];
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ValidationStageEvidence {
+    pub stages: Vec<ValidationStage>,
+}
+
+impl ValidationStageEvidence {
+    fn advance(&mut self, stage: ValidationStage) -> Result<(), M3MicroError> {
+        if ValidationStage::ORDERED.get(self.stages.len()).copied() != Some(stage) {
+            return Err(M3MicroError::CorruptArtifact);
+        }
+        self.stages.push(stage);
+        Ok(())
+    }
+
+    fn validate_complete(&self) -> Result<(), M3MicroError> {
+        if self.stages == ValidationStage::ORDERED {
+            Ok(())
+        } else {
+            Err(M3MicroError::CorruptArtifact)
+        }
+    }
+
+    fn prediction_before_reveal(&self) -> bool {
+        self.validate_complete().is_ok()
+            && self
+                .stages
+                .iter()
+                .position(|stage| *stage == ValidationStage::PredictionReopenedAndVerified)
+                < self
+                    .stages
+                    .iter()
+                    .position(|stage| *stage == ValidationStage::TargetRevealed)
     }
 }
 
@@ -3047,12 +3738,24 @@ impl Sprint103SafetyCounters {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct PersistedValidationPrediction {
     version: u32,
     agent_id: AgentId,
-    source_index: usize,
+    partition: HistoricalPartition,
+    sequence_start: usize,
+    sequence_end: usize,
+    target_index: usize,
+    horizon_bars: usize,
+    partition_start_index: usize,
+    partition_end_index: usize,
+    partition_boundary_digest: String,
     model_identity: String,
     schema_digest: String,
+    genome_digest: String,
+    input_digest: String,
+    event_digest: String,
+    target_reference_digest: String,
     prediction: M3MicroPrediction,
     prediction_digest: String,
 }
@@ -3060,40 +3763,151 @@ struct PersistedValidationPrediction {
 impl PersistedValidationPrediction {
     fn new(
         agent: &IndependentM3MicroAgent,
-        source_index: usize,
+        input: &M3MicroValidationInput,
         prediction: M3MicroPrediction,
-    ) -> Self {
+    ) -> Result<Self, M3MicroError> {
+        let historical_input = &input.input;
         let mut value = Self {
-            version: 1,
+            version: 2,
             agent_id: agent.agent_id(),
-            source_index,
+            partition: historical_input.partition,
+            sequence_start: historical_input.sequence_start,
+            sequence_end: historical_input.sequence_end,
+            target_index: historical_input.target_index,
+            horizon_bars: historical_input.horizon_bars,
+            partition_start_index: historical_input.boundary.start_index,
+            partition_end_index: historical_input.boundary.end_index,
+            partition_boundary_digest: historical_input.boundary.boundary_digest.clone(),
             model_identity: agent.model.model_identity.clone(),
             schema_digest: agent.formula_genome.input_schema_digest.clone(),
+            genome_digest: agent.formula_genome.genome_digest.clone(),
+            input_digest: historical_input.input_digest.clone(),
+            event_digest: historical_input.target_reference.event_digest.clone(),
+            target_reference_digest: historical_input.target_reference.reference_digest.clone(),
             prediction,
             prediction_digest: String::new(),
         };
-        value.prediction_digest = value.computed_digest();
-        value
+        value.prediction_digest = value.computed_digest()?;
+        value.validate()?;
+        Ok(value)
     }
 
-    fn computed_digest(&self) -> String {
-        stable_hash_string(&format!(
-            "{}:{:?}:{}:{}:{}:{:?}",
-            self.version,
-            self.agent_id,
-            self.source_index,
-            self.model_identity,
-            self.schema_digest,
-            self.prediction
-        ))
+    fn computed_digest(&self) -> Result<String, M3MicroError> {
+        let mut canonical = self.clone();
+        canonical.prediction_digest.clear();
+        let bytes = serde_json::to_vec(&canonical).map_err(|_| M3MicroError::CorruptArtifact)?;
+        Ok(stable_hash_string(&format!("{bytes:?}")))
     }
 
     fn validate(&self) -> Result<(), M3MicroError> {
-        if self.version != 1
+        let expected_target = self
+            .sequence_end
+            .checked_add(self.horizon_bars)
+            .ok_or(M3MicroError::InvalidChronology)?;
+        if self.version != 2
+            || self.partition != HistoricalPartition::Validation
+            || self.sequence_start > self.sequence_end
+            || self.horizon_bars == 0
+            || self.target_index != expected_target
+            || self.target_index > self.partition_end_index
             || self.model_identity.is_empty()
             || self.schema_digest.is_empty()
+            || self.genome_digest.is_empty()
+            || self.input_digest.is_empty()
+            || self.event_digest.is_empty()
+            || self.target_reference_digest.is_empty()
+            || self.partition_boundary_digest.is_empty()
             || self.prediction.agent_id != self.agent_id
-            || self.prediction_digest != self.computed_digest()
+            || self.prediction_digest != self.computed_digest()?
+        {
+            return Err(M3MicroError::CorruptArtifact);
+        }
+        Ok(())
+    }
+
+    fn validate_bindings(
+        &self,
+        agent: &IndependentM3MicroAgent,
+        input: &M3MicroValidationInput,
+        boundary: &HistoricalPartitionBoundary,
+    ) -> Result<(), M3MicroError> {
+        self.validate()?;
+        input.validate(agent, boundary)?;
+        let historical_input = &input.input;
+        if self.agent_id != agent.agent_id()
+            || self.partition != historical_input.partition
+            || self.sequence_start != historical_input.sequence_start
+            || self.sequence_end != historical_input.sequence_end
+            || self.target_index != historical_input.target_index
+            || self.horizon_bars != historical_input.horizon_bars
+            || self.partition_start_index != boundary.start_index
+            || self.partition_end_index != boundary.end_index
+            || self.partition_boundary_digest != boundary.boundary_digest
+            || self.model_identity != agent.model.model_identity
+            || self.schema_digest != agent.formula_genome.input_schema_digest
+            || self.genome_digest != agent.formula_genome.genome_digest
+            || self.input_digest != historical_input.input_digest
+            || self.event_digest != historical_input.target_reference.event_digest
+            || self.target_reference_digest != historical_input.target_reference.reference_digest
+        {
+            return Err(M3MicroError::CorruptArtifact);
+        }
+        Ok(())
+    }
+
+    fn persist(&self, artifact_root: &Path) -> Result<PathBuf, M3MicroError> {
+        self.validate()?;
+        let bytes = serde_json::to_vec(self).map_err(|_| M3MicroError::CorruptArtifact)?;
+        let path = artifact_root
+            .join(format!("{:?}", self.agent_id))
+            .join(format!("{}.json", self.prediction_digest));
+        persist_artifact(&path, &bytes, &self.prediction_digest, |bytes| {
+            let value: PersistedValidationPrediction = serde_json::from_slice(bytes)
+                .map_err(|_| "validation prediction decode failed".to_string())?;
+            value.validate().map_err(|error| error.to_string())?;
+            Ok(value.prediction_digest)
+        })
+        .map_err(|_| M3MicroError::Io)?;
+        Ok(path)
+    }
+}
+
+#[derive(Clone, Debug)]
+struct VerifiedPersistedPrediction {
+    artifact: PersistedValidationPrediction,
+    path: PathBuf,
+}
+
+impl VerifiedPersistedPrediction {
+    fn reopen(
+        path: PathBuf,
+        expected_digest: &str,
+        agent: &IndependentM3MicroAgent,
+        input: &M3MicroValidationInput,
+        boundary: &HistoricalPartitionBoundary,
+    ) -> Result<Self, M3MicroError> {
+        let bytes = fs::read(&path).map_err(|_| M3MicroError::Io)?;
+        let artifact: PersistedValidationPrediction =
+            serde_json::from_slice(&bytes).map_err(|_| M3MicroError::CorruptArtifact)?;
+        artifact.validate_bindings(agent, input, boundary)?;
+        if artifact.prediction_digest != expected_digest
+            || path.file_stem().and_then(|value| value.to_str()) != Some(expected_digest)
+        {
+            return Err(M3MicroError::CorruptArtifact);
+        }
+        Ok(Self { artifact, path })
+    }
+
+    fn validate_target_reference(
+        &self,
+        target_reference: &M3MicroTargetReference,
+    ) -> Result<(), M3MicroError> {
+        if self.artifact.target_reference_digest != target_reference.reference_digest
+            || self.artifact.event_digest != target_reference.event_digest
+            || self.artifact.agent_id != target_reference.agent_id
+            || self.artifact.partition != target_reference.partition
+            || self.artifact.target_index != target_reference.target_index
+            || self.path.as_os_str().is_empty()
         {
             return Err(M3MicroError::CorruptArtifact);
         }
@@ -3162,7 +3976,7 @@ fn inverse_tanh(value: f32) -> f32 {
 
 fn constant_baseline_raw(
     agent_id: AgentId,
-    development: &[&M3MicroHistoricalExample],
+    development: &[&M3MicroDevelopmentExample],
 ) -> Result<Vec<f32>, M3MicroError> {
     if development.is_empty() {
         return Err(M3MicroError::InvalidShape);
@@ -3296,46 +4110,39 @@ impl Sprint103HistoricalRunner {
 
     pub fn run(
         roster: &mut M3MicroRoster,
-        examples: &BTreeMap<AgentId, Vec<M3MicroHistoricalExample>>,
+        dataset: &mut M3MicroHistoricalDataset,
         artifact_root: &Path,
     ) -> Result<Sprint103HistoricalReport, M3MicroError> {
         let counters = Sprint103SafetyCounters::default();
         counters.validate_zero()?;
         roster.validate()?;
+        dataset.validate(roster)?;
+        let validation_boundary = dataset
+            .boundaries
+            .get(&HistoricalPartition::Validation)
+            .ok_or(M3MicroError::InvalidConfiguration)?
+            .clone();
         let mut agent_results = Vec::with_capacity(3);
         for agent_id in AgentId::ORDERED {
-            let agent_examples = examples.get(&agent_id).ok_or(M3MicroError::InvalidShape)?;
-            let agent = roster.agent_mut(agent_id);
-            if agent_examples.is_empty()
-                || agent_examples
-                    .iter()
-                    .any(|example| example.validate(agent).is_err())
-                || agent_examples.windows(2).any(|pair| {
-                    pair[1].sequence_end <= pair[0].sequence_end
-                        || pair[1].partition < pair[0].partition
-                })
-            {
-                return Err(M3MicroError::InvalidShape);
-            }
-            let development = agent_examples
+            let development = dataset
+                .development
+                .get(&agent_id)
+                .ok_or(M3MicroError::InvalidConfiguration)?
                 .iter()
-                .filter(|example| example.partition == HistoricalPartition::Development)
                 .collect::<Vec<_>>();
-            let validation = agent_examples
-                .iter()
-                .filter(|example| example.partition == HistoricalPartition::Validation)
-                .collect::<Vec<_>>();
-            if development.is_empty()
-                || validation.is_empty()
-                || development.last().unwrap().target_index
-                    >= validation.first().unwrap().sequence_start
-            {
-                return Err(M3MicroError::InvalidShape);
-            }
+            let validation = dataset
+                .validation_inputs
+                .get(&agent_id)
+                .ok_or(M3MicroError::InvalidConfiguration)?
+                .clone();
             let mut unique_rows = BTreeMap::<usize, Vec<f32>>::new();
             for example in &development {
-                for (offset, row) in example.raw_sequence.iter().enumerate() {
-                    let index = example.sequence_start + offset;
+                for (offset, row) in example.input.raw_sequence.iter().enumerate() {
+                    let index = example
+                        .input
+                        .sequence_start
+                        .checked_add(offset)
+                        .ok_or(M3MicroError::InvalidChronology)?;
                     if unique_rows
                         .insert(index, row.clone())
                         .is_some_and(|prior| prior != *row)
@@ -3345,12 +4152,15 @@ impl Sprint103HistoricalRunner {
                 }
             }
             let rows = unique_rows.into_iter().collect::<Vec<_>>();
-            agent.fit_normalizer(HistoricalPartition::Development, &rows)?;
+            roster.fit_agent_normalizer(agent_id, HistoricalPartition::Development, &rows)?;
             let mut development_losses = Vec::with_capacity(development.len());
             for example in &development {
-                let normalized = agent
-                    .normalize_sequence(&example.input_schema_digest, &example.raw_sequence)?;
-                development_losses.push(agent.train_development_step(
+                let normalized = roster.agent(agent_id).normalize_sequence(
+                    &example.input.input_schema_digest,
+                    &example.input.raw_sequence,
+                )?;
+                development_losses.push(roster.train_agent_development_step(
+                    agent_id,
                     HistoricalPartition::Development,
                     &normalized,
                     &example.target,
@@ -3361,48 +4171,61 @@ impl Sprint103HistoricalRunner {
             let mut constant_baseline_losses = Vec::with_capacity(validation.len());
             let mut mathematical_baseline_losses = Vec::with_capacity(validation.len());
             let mut artifact_count = 0usize;
-            for example in &validation {
-                let (raw, prediction) = agent
-                    .predict_stateless_raw(&example.input_schema_digest, &example.raw_sequence)?;
+            let history_start = roster.agent(agent_id).evaluation_history.len();
+            for input in &validation {
+                let mut stage_evidence = ValidationStageEvidence::default();
+                input.validate(roster.agent(agent_id), &validation_boundary)?;
+                stage_evidence.advance(ValidationStage::InputValidated)?;
+                let (raw, prediction) = roster.predict_validation(input, &validation_boundary)?;
+                stage_evidence.advance(ValidationStage::PredictionComputed)?;
                 let persisted =
-                    PersistedValidationPrediction::new(agent, example.sequence_end, prediction);
-                persisted.validate()?;
-                let bytes =
-                    serde_json::to_vec(&persisted).map_err(|_| M3MicroError::CorruptArtifact)?;
-                let path = artifact_root
-                    .join(format!("{agent_id:?}"))
-                    .join(format!("{}.json", persisted.prediction_digest));
-                persist_artifact(&path, &bytes, &persisted.prediction_digest, |bytes| {
-                    let value: PersistedValidationPrediction = serde_json::from_slice(bytes)
-                        .map_err(|_| "validation prediction decode failed".to_string())?;
-                    value.validate().map_err(|error| error.to_string())?;
-                    Ok(value.prediction_digest)
-                })
-                .map_err(|_| M3MicroError::Io)?;
+                    PersistedValidationPrediction::new(roster.agent(agent_id), input, prediction)?;
+                let path = persisted.persist(artifact_root)?;
+                stage_evidence.advance(ValidationStage::PredictionPersisted)?;
+                let verified = VerifiedPersistedPrediction::reopen(
+                    path,
+                    &persisted.prediction_digest,
+                    roster.agent(agent_id),
+                    input,
+                    &validation_boundary,
+                )?;
+                stage_evidence.advance(ValidationStage::PredictionReopenedAndVerified)?;
                 artifact_count += 1;
-
-                // Target reveal and evaluation intentionally occur only after
-                // the target-free prediction artifact has been persisted.
-                let (loss, _) = loss_and_output_gradient(agent_id, &raw, &example.target)?;
+                let target = dataset
+                    .validation_targets
+                    .reveal(&verified, &input.input.target_reference)?;
+                stage_evidence.advance(ValidationStage::TargetRevealed)?;
+                let (loss, _) = loss_and_output_gradient(agent_id, &raw, &target)?;
                 validation_losses.push(loss);
                 let (constant_loss, _) =
-                    loss_and_output_gradient(agent_id, &constant_raw, &example.target)?;
+                    loss_and_output_gradient(agent_id, &constant_raw, &target)?;
                 constant_baseline_losses.push(constant_loss);
-                let normalized = agent
-                    .normalize_sequence(&example.input_schema_digest, &example.raw_sequence)?;
+                let normalized = roster.agent(agent_id).normalize_sequence(
+                    &input.input.input_schema_digest,
+                    &input.input.raw_sequence,
+                )?;
                 let mathematical_raw = agent_mathematical_baseline_raw(agent_id, &normalized)?;
                 let (mathematical_loss, _) =
-                    loss_and_output_gradient(agent_id, &mathematical_raw, &example.target)?;
+                    loss_and_output_gradient(agent_id, &mathematical_raw, &target)?;
                 mathematical_baseline_losses.push(mathematical_loss);
-                agent.evaluation_history.push(EvaluationHistoryEntry {
-                    partition: HistoricalPartition::Validation,
-                    source_index: example.sequence_end,
-                    loss,
-                    prediction_digest: persisted.prediction_digest,
-                    persisted_before_reveal: true,
-                });
+                stage_evidence.advance(ValidationStage::Evaluated)?;
+                roster.record_agent_evaluation(
+                    agent_id,
+                    EvaluationHistoryEntry {
+                        partition: HistoricalPartition::Validation,
+                        source_index: input.input.sequence_end,
+                        loss,
+                        prediction_digest: persisted.prediction_digest,
+                        stage_evidence,
+                    },
+                )?;
             }
             let mean = |values: &[f32]| values.iter().sum::<f32>() / values.len().max(1) as f32;
+            let agent = roster.agent(agent_id);
+            let development_end = development
+                .last()
+                .map(|example| example.input.sequence_end)
+                .ok_or(M3MicroError::InvalidChronology)?;
             agent_results.push(AgentHistoricalResult {
                 agent_id,
                 development_example_count: development.len(),
@@ -3411,12 +4234,16 @@ impl Sprint103HistoricalRunner {
                 mean_validation_loss: mean(&validation_losses),
                 parameter_count: agent.parameter_count(),
                 prediction_artifact_count: artifact_count,
-                normalizer_training_only: agent.normalizer.fitted_on_end
-                    <= development.last().map(|example| example.sequence_end),
+                normalizer_training_only: agent.normalizer.fitted_on_end <= Some(development_end),
                 prediction_before_reveal: agent
                     .evaluation_history
-                    .iter()
-                    .all(|entry| entry.persisted_before_reveal),
+                    .get(history_start..)
+                    .is_some_and(|entries| {
+                        !entries.is_empty()
+                            && entries
+                                .iter()
+                                .all(|entry| entry.stage_evidence.prediction_before_reveal())
+                    }),
                 baseline_comparison: AgentBaselineComparison {
                     m3_micro_mean_loss: mean(&validation_losses),
                     training_prevalence_constant_mean_loss: mean(&constant_baseline_losses),
@@ -3427,7 +4254,6 @@ impl Sprint103HistoricalRunner {
             });
         }
         counters.validate_zero()?;
-        roster.refresh_digest();
         roster.validate()?;
         let mut report = Sprint103HistoricalReport {
             status: HistoricalIntegrationStatus::CompletedDevelopmentValidationOnly,
@@ -3684,6 +4510,117 @@ mod tests {
         }
     }
 
+    fn historical_input(
+        roster: &M3MicroRoster,
+        agent_id: AgentId,
+        partition: HistoricalPartition,
+        sequence_start: usize,
+        sequence_end: usize,
+        target_index: usize,
+        horizon_bars: usize,
+        boundary: &HistoricalPartitionBoundary,
+        raw_sequence: Vec<Vec<f32>>,
+        expected_target: &M3MicroTarget,
+    ) -> M3MicroHistoricalInput {
+        let agent = roster.agent(agent_id);
+        let reference = M3MicroTargetReference::new(
+            agent_id,
+            partition,
+            target_index,
+            agent.spec.target_policy,
+            format!("{agent_id:?}:{partition:?}:{target_index}"),
+            Some(M3MicroTargetReference::commitment_for(expected_target).unwrap()),
+        )
+        .unwrap();
+        M3MicroHistoricalInput::new(
+            agent_id,
+            partition,
+            sequence_start,
+            sequence_end,
+            target_index,
+            horizon_bars,
+            boundary.clone(),
+            agent.formula_genome.input_schema_digest.clone(),
+            raw_sequence,
+            reference,
+        )
+        .unwrap()
+    }
+
+    fn historical_dataset(roster: &M3MicroRoster) -> M3MicroHistoricalDataset {
+        let development_boundary = HistoricalPartitionBoundary::new(
+            HistoricalPartition::Development,
+            0,
+            2,
+            "fixture-development-v2",
+        )
+        .unwrap();
+        let validation_boundary = HistoricalPartitionBoundary::new(
+            HistoricalPartition::Validation,
+            4,
+            6,
+            "fixture-validation-v2",
+        )
+        .unwrap();
+        let mut development = BTreeMap::new();
+        let mut validation_inputs = BTreeMap::new();
+        let mut target_registrations = Vec::new();
+        for agent_id in AgentId::ORDERED {
+            let width = roster.agent(agent_id).model.config.input_dim;
+            let expected_target = target(agent_id);
+            let development_input = historical_input(
+                roster,
+                agent_id,
+                HistoricalPartition::Development,
+                0,
+                1,
+                2,
+                1,
+                &development_boundary,
+                vec![row(width, 0.1, 0.2), row(width, 0.2, 0.3)],
+                &expected_target,
+            );
+            let validation_input = historical_input(
+                roster,
+                agent_id,
+                HistoricalPartition::Validation,
+                4,
+                5,
+                6,
+                1,
+                &validation_boundary,
+                vec![row(width, 0.3, 0.4), row(width, 0.4, 0.5)],
+                &expected_target,
+            );
+            target_registrations.push((
+                validation_input.target_reference.clone(),
+                expected_target.clone(),
+            ));
+            development.insert(
+                agent_id,
+                vec![M3MicroDevelopmentExample {
+                    input: development_input,
+                    target: expected_target,
+                }],
+            );
+            validation_inputs.insert(
+                agent_id,
+                vec![M3MicroValidationInput {
+                    input: validation_input,
+                }],
+            );
+        }
+        M3MicroHistoricalDataset {
+            boundaries: BTreeMap::from([
+                (HistoricalPartition::Development, development_boundary),
+                (HistoricalPartition::Validation, validation_boundary),
+            ]),
+            development,
+            validation_inputs,
+            validation_targets: M3MicroValidationTargetSource::new(target_registrations).unwrap(),
+        }
+    }
+
     fn temp_root(label: &str) -> PathBuf {
         let nonce = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -3733,7 +4670,7 @@ mod tests {
     fn sprint103_roster_budget_and_no_shared_trainable_storage() {
         let roster = test_roster();
         roster.validate().unwrap();
-        assert_eq!(roster.agents.len(), 3);
+        assert_eq!(roster.agents().count(), 3);
         assert_eq!(
             roster.agent(AgentId::TrendContinuation).parameter_count(),
             141_573
@@ -3749,13 +4686,11 @@ mod tests {
         assert_eq!(roster.total_parameter_count(), 424_784);
         assert!(
             roster
-                .agents
-                .values()
+                .agents()
                 .all(|agent| agent.parameter_count() < PARAMETER_LIMIT)
         );
         let parameter_storage = roster
-            .agents
-            .values()
+            .agents()
             .map(|agent| agent.model.parameters.storage_identity())
             .collect::<BTreeSet<_>>();
         assert_eq!(parameter_storage.len(), 3);
@@ -3763,10 +4698,7 @@ mod tests {
 
     #[test]
     fn sprint103_zero_constant_impulse_and_long_sequence_are_finite() {
-        let agent = test_roster()
-            .agents
-            .remove(&AgentId::TrendContinuation)
-            .unwrap();
+        let agent = test_roster().agent(AgentId::TrendContinuation).clone();
         let width = agent.model.config.input_dim;
         let zero = vec![vec![0.0; width]; 16];
         let mut first_state = M3MicroState::zero(&agent.model.config).unwrap();
@@ -3800,10 +4732,7 @@ mod tests {
 
     #[test]
     fn sprint103_two_point_memory_and_selective_forgetting() {
-        let agent = test_roster()
-            .agents
-            .remove(&AgentId::TrendContinuation)
-            .unwrap();
+        let agent = test_roster().agent(AgentId::TrendContinuation).clone();
         let width = agent.model.config.input_dim;
         let current = row(width, 0.0, 1.0);
         let prior_signal = row(width, 1.0, 0.0);
@@ -3884,8 +4813,7 @@ mod tests {
 
     #[test]
     fn sprint103_wrong_shape_schema_nan_inf_gradient_and_state_explosion_reject() {
-        let mut roster = test_roster();
-        let agent = roster.agent_mut(AgentId::TrendContinuation);
+        let mut agent = test_roster().agent(AgentId::TrendContinuation).clone();
         let mut state = M3MicroState::zero(&agent.model.config).unwrap();
         assert_eq!(
             agent.model.forward(&[vec![0.0; 7]], &mut state),
@@ -3924,6 +4852,7 @@ mod tests {
     #[test]
     fn sprint103_parameter_state_and_optimizer_isolation() {
         let mut roster = test_roster();
+        let roster_digest_before = roster.roster_digest.clone();
         let before_parameters =
             AgentId::ORDERED.map(|agent_id| roster.agent(agent_id).parameter_digest());
         let before_optimizers =
@@ -3935,8 +4864,8 @@ mod tests {
             .config
             .input_dim;
         roster
-            .agent_mut(AgentId::TrendContinuation)
-            .train_development_step(
+            .train_agent_development_step(
+                AgentId::TrendContinuation,
                 HistoricalPartition::Development,
                 &[row(width, 1.0, 0.0), row(width, 0.0, 0.5)],
                 &trend_target(),
@@ -3966,6 +4895,8 @@ mod tests {
             before_optimizers[2],
             roster.agent(AgentId::ReversalDistortion).optimizer_digest()
         );
+        assert_ne!(roster_digest_before, roster.roster_digest);
+        roster.validate().unwrap();
 
         let schema = roster
             .agent(AgentId::TrendContinuation)
@@ -3973,8 +4904,11 @@ mod tests {
             .input_schema_digest
             .clone();
         roster
-            .agent_mut(AgentId::TrendContinuation)
-            .infer(&schema, &[row(width, 0.2, -0.1)])
+            .infer_agent(
+                AgentId::TrendContinuation,
+                &schema,
+                &[row(width, 0.2, -0.1)],
+            )
             .unwrap();
         assert_ne!(
             before_states[0],
@@ -3988,6 +4922,7 @@ mod tests {
             before_states[2],
             roster.agent(AgentId::ReversalDistortion).state_digest()
         );
+        roster.validate().unwrap();
     }
 
     #[test]
@@ -3997,9 +4932,10 @@ mod tests {
         let mut roster = test_roster();
         let mut digests = BTreeMap::new();
         for agent_id in AgentId::ORDERED {
-            let agent = roster.agent_mut(agent_id);
-            store.save(agent).unwrap();
-            digests.insert(agent_id, agent.checkpoint_identity.clone());
+            let saved = roster
+                .materialize_agent_checkpoint(agent_id, &store)
+                .unwrap();
+            digests.insert(agent_id, saved.checkpoint_digest);
         }
         let agent2_before = roster.agent(AgentId::VolatilityRegime).parameter_digest();
         let agent3_before = roster.agent(AgentId::ReversalDistortion).parameter_digest();
@@ -4051,6 +4987,66 @@ mod tests {
             roster.agent(AgentId::ReversalDistortion).parameter_digest(),
             agent3_before
         );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn sprint103_checkpoint_canonical_payload_is_idempotent_and_bound() {
+        let root = temp_root("checkpoint-idempotence");
+        let store = M3MicroCheckpointStore::new(&root).unwrap();
+        let mut agent = test_roster().agent(AgentId::TrendContinuation).clone();
+        let canonical_before = M3MicroCheckpoint::from_agent(&agent).unwrap();
+        let first = store.save(&mut agent).unwrap();
+        let first_bytes = fs::read(&first.path).unwrap();
+        let second = store.save(&mut agent).unwrap();
+        let second_bytes = fs::read(&second.path).unwrap();
+        assert_eq!(first.checkpoint_digest, second.checkpoint_digest);
+        assert_eq!(first.path, second.path);
+        assert_eq!(first_bytes, second_bytes);
+
+        let mut identity_only = agent.clone();
+        identity_only.checkpoint_identity = "derived-identity-is-not-canonical".into();
+        assert_eq!(
+            canonical_before.checkpoint_digest,
+            M3MicroCheckpoint::from_agent(&identity_only)
+                .unwrap()
+                .checkpoint_digest
+        );
+
+        let mut loaded = store
+            .load(AgentId::TrendContinuation, &first.checkpoint_digest)
+            .unwrap();
+        let loaded_save = store.save(&mut loaded).unwrap();
+        assert_eq!(first.checkpoint_digest, loaded_save.checkpoint_digest);
+        assert_eq!(first_bytes, fs::read(&loaded_save.path).unwrap());
+
+        let width = agent.model.config.input_dim;
+        agent
+            .train_development_step(
+                HistoricalPartition::Development,
+                &[row(width, 0.8, -0.2), row(width, 0.2, 0.4)],
+                &trend_target(),
+            )
+            .unwrap();
+        assert_ne!(
+            first.checkpoint_digest,
+            M3MicroCheckpoint::from_agent(&agent)
+                .unwrap()
+                .checkpoint_digest
+        );
+
+        let mut wrong_version = canonical_before.clone();
+        wrong_version.format_version = 1;
+        assert!(wrong_version.validate().is_err());
+        let mut wrong_binding = canonical_before.clone();
+        wrong_binding.agent_id = AgentId::VolatilityRegime;
+        assert!(wrong_binding.validate().is_err());
+        let mut wrong_digest = canonical_before.clone();
+        wrong_digest.checkpoint_digest = "0".repeat(16);
+        assert!(wrong_digest.validate().is_err());
+        let mut wrong_payload = canonical_before;
+        wrong_payload.payload.agent_id = AgentId::VolatilityRegime;
+        assert!(wrong_payload.validate().is_err());
         fs::remove_dir_all(root).unwrap();
     }
 
@@ -4171,12 +5167,84 @@ mod tests {
     }
 
     #[test]
+    fn sprint103_roster_promotion_and_failed_mutation_are_atomic() {
+        let mut roster = test_roster();
+        let registry = FormulaRegistry::sprint103();
+        let selected = AgentId::TrendContinuation;
+        let other_identities = [
+            roster
+                .agent(AgentId::VolatilityRegime)
+                .model
+                .model_identity
+                .clone(),
+            roster
+                .agent(AgentId::ReversalDistortion)
+                .model
+                .model_identity
+                .clone(),
+        ];
+        let plan = ManualFormulaMutationPlan::new(
+            roster.agent(selected),
+            FormulaId::LogReturn1,
+            FormulaId::TrendPersistence20,
+        );
+        let mut challenger =
+            create_formula_challenger(roster.agent(selected), plan, &registry, 11_003).unwrap();
+        challenger.promotion_eligible = true;
+        let evidence = ManualPromotionEvidence {
+            challenger_identity: challenger.challenger_identity.clone(),
+            development_complete: true,
+            validation_complete: true,
+            sealed_holdout_reads: 0,
+            automatic: false,
+            evidence_digest: stable_hash_string("manual-fixture-promotion-evidence"),
+        };
+        let roster_digest_before = roster.roster_digest.clone();
+        let selected_genome_before = roster.agent(selected).formula_genome.genome_digest.clone();
+        roster
+            .promote_agent_challenger(selected, challenger, &evidence)
+            .unwrap();
+        roster.validate().unwrap();
+        assert_ne!(roster_digest_before, roster.roster_digest);
+        assert_ne!(
+            selected_genome_before,
+            roster.agent(selected).formula_genome.genome_digest
+        );
+        assert_eq!(
+            other_identities[0],
+            roster.agent(AgentId::VolatilityRegime).model.model_identity
+        );
+        assert_eq!(
+            other_identities[1],
+            roster
+                .agent(AgentId::ReversalDistortion)
+                .model
+                .model_identity
+        );
+
+        let roster_before_failure = roster.clone();
+        assert_eq!(
+            roster.mutate_agent(selected, |agent| {
+                agent.model.parameters.values[0] += 1.0;
+                Err::<(), _>(M3MicroError::InvalidShape)
+            }),
+            Err(M3MicroError::InvalidShape)
+        );
+        assert_eq!(roster, roster_before_failure);
+        roster.validate().unwrap();
+    }
+
+    #[test]
     fn sprint103_synthetic_learning_decreases_role_losses() {
         let mut roster = test_roster();
         for agent_id in AgentId::ORDERED {
-            let agent = roster.agent_mut(agent_id);
-            agent.optimizer_state.config.learning_rate = 0.003;
-            let width = agent.model.config.input_dim;
+            roster
+                .mutate_agent(agent_id, |agent| {
+                    agent.optimizer_state.config.learning_rate = 0.003;
+                    Ok(())
+                })
+                .unwrap();
+            let width = roster.agent(agent_id).model.config.input_dim;
             let sequence = match agent_id {
                 AgentId::TrendContinuation => vec![
                     row(width, 1.0, 0.0),
@@ -4198,17 +5266,32 @@ mod tests {
                 ],
             };
             let expected = target(agent_id);
-            let initial = model_loss_and_gradients(&agent.model, agent_id, &sequence, &expected)
-                .unwrap()
-                .0;
+            let initial = model_loss_and_gradients(
+                &roster.agent(agent_id).model,
+                agent_id,
+                &sequence,
+                &expected,
+            )
+            .unwrap()
+            .0;
             for _ in 0..5 {
-                agent
-                    .train_development_step(HistoricalPartition::Development, &sequence, &expected)
+                roster
+                    .train_agent_development_step(
+                        agent_id,
+                        HistoricalPartition::Development,
+                        &sequence,
+                        &expected,
+                    )
                     .unwrap();
             }
-            let final_loss = model_loss_and_gradients(&agent.model, agent_id, &sequence, &expected)
-                .unwrap()
-                .0;
+            let final_loss = model_loss_and_gradients(
+                &roster.agent(agent_id).model,
+                agent_id,
+                &sequence,
+                &expected,
+            )
+            .unwrap()
+            .0;
             assert!(
                 final_loss < initial,
                 "{agent_id:?}: initial={initial}, final={final_loss}"
@@ -4219,9 +5302,17 @@ mod tests {
     #[test]
     fn sprint103_synthetic_delayed_signal_recall_loss_decreases() {
         let mut roster = test_roster();
-        let agent = roster.agent_mut(AgentId::TrendContinuation);
-        agent.optimizer_state.config.learning_rate = 0.003;
-        let width = agent.model.config.input_dim;
+        roster
+            .mutate_agent(AgentId::TrendContinuation, |agent| {
+                agent.optimizer_state.config.learning_rate = 0.003;
+                Ok(())
+            })
+            .unwrap();
+        let width = roster
+            .agent(AgentId::TrendContinuation)
+            .model
+            .config
+            .input_dim;
         let sequence = vec![
             row(width, 1.0, -0.5),
             vec![0.0; width],
@@ -4230,19 +5321,32 @@ mod tests {
             vec![0.0; width],
         ];
         let expected = trend_target();
-        let initial =
-            model_loss_and_gradients(&agent.model, agent.agent_id(), &sequence, &expected)
-                .unwrap()
-                .0;
+        let initial = model_loss_and_gradients(
+            &roster.agent(AgentId::TrendContinuation).model,
+            AgentId::TrendContinuation,
+            &sequence,
+            &expected,
+        )
+        .unwrap()
+        .0;
         for _ in 0..4 {
-            agent
-                .train_development_step(HistoricalPartition::Development, &sequence, &expected)
+            roster
+                .train_agent_development_step(
+                    AgentId::TrendContinuation,
+                    HistoricalPartition::Development,
+                    &sequence,
+                    &expected,
+                )
                 .unwrap();
         }
-        let final_loss =
-            model_loss_and_gradients(&agent.model, agent.agent_id(), &sequence, &expected)
-                .unwrap()
-                .0;
+        let final_loss = model_loss_and_gradients(
+            &roster.agent(AgentId::TrendContinuation).model,
+            AgentId::TrendContinuation,
+            &sequence,
+            &expected,
+        )
+        .unwrap()
+        .0;
         assert!(final_loss < initial);
     }
 
@@ -4250,38 +5354,9 @@ mod tests {
     fn sprint103_historical_boundary_persists_before_reveal_and_never_fits_validation() {
         let root = temp_root("historical");
         let mut roster = test_roster();
-        let mut examples = BTreeMap::new();
-        for agent_id in AgentId::ORDERED {
-            let agent = roster.agent(agent_id);
-            let width = agent.model.config.input_dim;
-            let schema = agent.formula_genome.input_schema_digest.clone();
-            examples.insert(
-                agent_id,
-                vec![
-                    M3MicroHistoricalExample {
-                        agent_id,
-                        partition: HistoricalPartition::Development,
-                        sequence_start: 0,
-                        sequence_end: 1,
-                        target_index: 2,
-                        input_schema_digest: schema.clone(),
-                        raw_sequence: vec![row(width, 0.1, 0.2), row(width, 0.2, 0.3)],
-                        target: target(agent_id),
-                    },
-                    M3MicroHistoricalExample {
-                        agent_id,
-                        partition: HistoricalPartition::Validation,
-                        sequence_start: 4,
-                        sequence_end: 5,
-                        target_index: 6,
-                        input_schema_digest: schema,
-                        raw_sequence: vec![row(width, 0.3, 0.4), row(width, 0.4, 0.5)],
-                        target: target(agent_id),
-                    },
-                ],
-            );
-        }
-        let report = Sprint103HistoricalRunner::run(&mut roster, &examples, &root).unwrap();
+        let mut dataset = historical_dataset(&roster);
+        assert_eq!(dataset.target_access_count(), 0);
+        let report = Sprint103HistoricalRunner::run(&mut roster, &mut dataset, &root).unwrap();
         assert_eq!(
             report.status,
             HistoricalIntegrationStatus::CompletedDevelopmentValidationOnly
@@ -4307,13 +5382,19 @@ mod tests {
                     .legacy_historical_logistic_mean_loss
                     .is_none()
         }));
-        let agent = roster.agent_mut(AgentId::TrendContinuation);
+        assert_eq!(dataset.target_access_count(), 3);
+        roster.validate().unwrap();
         assert_eq!(
-            agent.fit_normalizer(HistoricalPartition::Validation, &[]),
+            roster.fit_agent_normalizer(
+                AgentId::TrendContinuation,
+                HistoricalPartition::Validation,
+                &[]
+            ),
             Err(M3MicroError::ValidationFitForbidden)
         );
         assert_eq!(
-            agent.train_development_step(
+            roster.train_agent_development_step(
+                AgentId::TrendContinuation,
                 HistoricalPartition::Validation,
                 &[vec![0.0; 8]],
                 &trend_target()
@@ -4321,6 +5402,230 @@ mod tests {
             Err(M3MicroError::ValidationFitForbidden)
         );
         fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn sprint103_validation_capability_reveals_only_after_verified_reopen() {
+        let root = temp_root("validation-capability");
+        let roster = test_roster();
+        let mut dataset = historical_dataset(&roster);
+        let boundary = dataset
+            .boundaries
+            .get(&HistoricalPartition::Validation)
+            .unwrap()
+            .clone();
+        let input = dataset.validation_inputs[&AgentId::TrendContinuation][0].clone();
+        let agent_before = roster.agent(AgentId::TrendContinuation).clone();
+        assert_eq!(dataset.target_access_count(), 0);
+
+        let (raw, prediction) = roster.predict_validation(&input, &boundary).unwrap();
+        assert!(raw.iter().all(|value| value.is_finite()));
+        let agent_after_prediction = roster.agent(AgentId::TrendContinuation);
+        assert_eq!(
+            agent_before.parameter_digest(),
+            agent_after_prediction.parameter_digest()
+        );
+        assert_eq!(
+            agent_before.optimizer_digest(),
+            agent_after_prediction.optimizer_digest()
+        );
+        assert_eq!(
+            agent_before.state_digest(),
+            agent_after_prediction.state_digest()
+        );
+        assert_eq!(
+            agent_before.normalizer.normalizer_digest,
+            agent_after_prediction.normalizer.normalizer_digest
+        );
+        assert_eq!(
+            agent_before.training_history,
+            agent_after_prediction.training_history
+        );
+
+        let persisted =
+            PersistedValidationPrediction::new(agent_after_prediction, &input, prediction).unwrap();
+        let artifact_value = serde_json::to_value(&persisted).unwrap();
+        let artifact_fields = artifact_value.as_object().unwrap();
+        assert!(!artifact_fields.contains_key("target"));
+        assert!(!artifact_fields.contains_key("target_value"));
+        assert!(!artifact_fields.contains_key("target_commitment"));
+        assert!(!artifact_fields.contains_key("loss"));
+        assert!(!artifact_fields.contains_key("correctness"));
+
+        let path = persisted.persist(&root).unwrap();
+        assert_eq!(dataset.target_access_count(), 0);
+        let verified = VerifiedPersistedPrediction::reopen(
+            path,
+            &persisted.prediction_digest,
+            roster.agent(AgentId::TrendContinuation),
+            &input,
+            &boundary,
+        )
+        .unwrap();
+        assert_eq!(dataset.target_access_count(), 0);
+        let revealed = dataset
+            .validation_targets
+            .reveal(&verified, &input.input.target_reference)
+            .unwrap();
+        assert_eq!(dataset.target_access_count(), 1);
+        assert_eq!(revealed, trend_target());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn sprint103_persist_and_reopen_failures_do_not_reveal_or_evaluate() {
+        let persistence_root = temp_root("persistence-failure");
+        fs::write(&persistence_root, b"not-a-directory").unwrap();
+        let mut persistence_roster = test_roster();
+        let mut persistence_dataset = historical_dataset(&persistence_roster);
+        assert!(
+            Sprint103HistoricalRunner::run(
+                &mut persistence_roster,
+                &mut persistence_dataset,
+                &persistence_root
+            )
+            .is_err()
+        );
+        assert_eq!(persistence_dataset.target_access_count(), 0);
+        assert!(
+            persistence_roster
+                .agents()
+                .all(|agent| agent.evaluation_history.is_empty())
+        );
+        fs::remove_file(persistence_root).unwrap();
+
+        let corruption_root = temp_root("reopen-corruption");
+        let corruption_roster = test_roster();
+        let corruption_dataset = historical_dataset(&corruption_roster);
+        let boundary = corruption_dataset
+            .boundaries
+            .get(&HistoricalPartition::Validation)
+            .unwrap()
+            .clone();
+        let input = corruption_dataset.validation_inputs[&AgentId::TrendContinuation][0].clone();
+        let (_, prediction) = corruption_roster
+            .predict_validation(&input, &boundary)
+            .unwrap();
+        let persisted = PersistedValidationPrediction::new(
+            corruption_roster.agent(AgentId::TrendContinuation),
+            &input,
+            prediction,
+        )
+        .unwrap();
+        let path = persisted.persist(&corruption_root).unwrap();
+        fs::write(&path, b"corrupt-after-persist").unwrap();
+        assert!(
+            VerifiedPersistedPrediction::reopen(
+                path,
+                &persisted.prediction_digest,
+                corruption_roster.agent(AgentId::TrendContinuation),
+                &input,
+                &boundary,
+            )
+            .is_err()
+        );
+        assert_eq!(corruption_dataset.target_access_count(), 0);
+        assert!(
+            corruption_roster
+                .agents()
+                .all(|agent| agent.evaluation_history.is_empty())
+        );
+        fs::remove_dir_all(corruption_root).unwrap();
+    }
+
+    #[test]
+    fn sprint103_independent_partition_boundary_rejects_all_chronology_spoofs() {
+        let roster = test_roster();
+        let dataset = historical_dataset(&roster);
+        dataset.validate(&roster).unwrap();
+        let agent = roster.agent(AgentId::TrendContinuation);
+        let boundary = dataset
+            .boundaries
+            .get(&HistoricalPartition::Validation)
+            .unwrap();
+        let exact = dataset.validation_inputs[&AgentId::TrendContinuation][0]
+            .input
+            .clone();
+        exact.validate(agent, boundary).unwrap();
+        assert_eq!(exact.target_index, boundary.end_index);
+
+        let crossing_target = trend_target();
+        let crossing = historical_input(
+            &roster,
+            AgentId::TrendContinuation,
+            HistoricalPartition::Validation,
+            4,
+            5,
+            7,
+            2,
+            boundary,
+            vec![row(agent.model.config.input_dim, 0.1, 0.2); 2],
+            &crossing_target,
+        );
+        assert_eq!(
+            crossing.validate(agent, boundary),
+            Err(M3MicroError::InvalidChronology)
+        );
+
+        let mut inconsistent = exact.clone();
+        inconsistent.horizon_bars = 2;
+        inconsistent.refresh_digest().unwrap();
+        assert_eq!(
+            inconsistent.validate(agent, boundary),
+            Err(M3MicroError::InvalidChronology)
+        );
+        let mut zero_horizon = exact.clone();
+        zero_horizon.horizon_bars = 0;
+        zero_horizon.refresh_digest().unwrap();
+        assert_eq!(
+            zero_horizon.validate(agent, boundary),
+            Err(M3MicroError::InvalidChronology)
+        );
+
+        let overflow_boundary = HistoricalPartitionBoundary::new(
+            HistoricalPartition::Validation,
+            usize::MAX - 1,
+            usize::MAX,
+            "overflow-boundary-v2",
+        )
+        .unwrap();
+        let overflow = historical_input(
+            &roster,
+            AgentId::TrendContinuation,
+            HistoricalPartition::Validation,
+            usize::MAX - 1,
+            usize::MAX - 1,
+            usize::MAX,
+            2,
+            &overflow_boundary,
+            vec![row(agent.model.config.input_dim, 0.1, 0.2)],
+            &crossing_target,
+        );
+        assert_eq!(
+            overflow.validate(agent, &overflow_boundary),
+            Err(M3MicroError::InvalidChronology)
+        );
+
+        let mut spoofed = exact;
+        spoofed.boundary.end_index += 1;
+        spoofed.boundary.refresh_digest().unwrap();
+        spoofed.refresh_digest().unwrap();
+        assert_eq!(
+            spoofed.validate(agent, boundary),
+            Err(M3MicroError::InvalidChronology)
+        );
+
+        let mut overlap = historical_dataset(&roster);
+        let development_boundary = overlap
+            .boundaries
+            .get_mut(&HistoricalPartition::Development)
+            .unwrap();
+        development_boundary.end_index = boundary.start_index;
+        development_boundary.refresh_digest().unwrap();
+        assert_eq!(
+            overlap.validate(&roster),
+            Err(M3MicroError::InvalidChronology)
+        );
     }
 
     #[test]
@@ -4378,7 +5683,7 @@ mod tests {
     fn sprint103_metal_feature_has_same_architecture_and_finite_reference_output() {
         assert!(M3MicroBackendKind::MetalFeaturePortableReference.available());
         let roster = test_roster();
-        for agent in roster.agents.values() {
+        for agent in roster.agents() {
             assert_eq!(
                 agent.parameter_count(),
                 M3MicroLayout::new(&agent.model.config)

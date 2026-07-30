@@ -1,12 +1,13 @@
-# Sprint 103 M3-Micro Three-Agent Report
+# Sprint 103-R1 M3-Micro Evidence Contract Repair Report
 
 ## 1. Mode and scope
 
-`IMPROVE`, offline historical research only. This sprint introduces three
-independent, trainable Soma-specific `M3-Micro` agents. It does not implement
-official Mamba-3, modify a live/prospective roster, open a sealed holdout, or
-grant trading, Chair, voting, reward, penalty, automatic mutation, or automatic
-promotion authority.
+`IMPROVE`, offline historical research only. This repair keeps the existing
+three independent Soma-specific `M3-Micro` agents and corrects four evidence
+contracts: prediction-before-reveal ordering, canonical checkpoint identity,
+roster-controlled mutation, and independent partition boundaries. It does not
+change the recurrent model equations or grant live, trading, Chair, voting,
+reward, penalty, automatic mutation, or automatic promotion authority.
 
 ## 2. Repository state before change
 
@@ -20,9 +21,6 @@ The repository already contained:
 - train-only normalizers, chronological splits, leakage guards, deterministic
   hashing, serialization, and verified atomic artifact persistence;
 - Default CPU and `backend-metal` feature boundaries, but no Candle dependency.
-
-The working tree already contained untracked `work.md` and `untitled.md`. They
-are user-owned and are not modified by this implementation.
 
 ## 3. Architecture decision
 
@@ -115,10 +113,15 @@ runtime or network dependency is introduced.
 - Trend distribution/continuation/return loss, Volatility QLIKE/regime/risk
   loss, and Reversal event/return/direction loss;
 - manual Formula mutation challenger and fail-closed manual promotion boundary;
-- isolated JSON checkpoint reconstruction using the existing verified atomic
-  artifact writer;
-- development/validation-only runner with persisted prediction-before-reveal,
-  C0/agent-specific baseline comparison, and no holdout partition type;
+- canonical checkpoint payloads and deterministic JSON reconstruction using
+  the existing verified atomic artifact writer;
+- target-free validation inputs, a gated target source, a verified persisted
+  prediction capability, and ordered validation stage evidence;
+- canonical development/validation partition registration with explicit
+  checked horizons and independent split-end boundaries;
+- controlled roster mutation APIs with selected-Agent atomic rollback;
+- development/validation-only runner with C0/agent-specific baseline
+  comparison and no holdout partition type;
 - Brier, RPS, and QLIKE evaluation utilities, safety counters, resource
   measurement, and focused unit/synthetic tests.
 
@@ -184,12 +187,12 @@ one four-step `[4,8]` input per agent:
 
 | Agent | Parameters | JSON checkpoint | Recurrent state | Inference |
 | --- | ---: | ---: | ---: | ---: |
-| Trend | 141,573 | 2,875,776 B | 9,224 B | 16,592,125 ns |
-| Volatility | 141,573 | 2,876,376 B | 9,224 B | 16,760,041 ns |
-| Reversal | 141,638 | 2,878,018 B | 9,224 B | 16,268,583 ns |
+| Trend | 141,573 | 2,875,768 B | 9,224 B | 15,745,458 ns |
+| Volatility | 141,573 | 2,876,367 B | 9,224 B | 15,521,875 ns |
+| Reversal | 141,638 | 2,878,011 B | 9,224 B | 15,842,250 ns |
 
 Total parameters are 424,784. Sequential three-agent inference was
-49,620,749 ns. A shared-model batch is intentionally unsupported. The
+47,109,583 ns. A shared-model batch is intentionally unsupported. The
 deterministic owned-tensor estimate is 2,274,392 B for one Trend/Volatility
 training step, 2,275,432 B for one Reversal training step, and 1,726,808 B for
 three-agent inference. These are owned tensor/state estimates, not process RSS
@@ -217,35 +220,96 @@ only that optimization and the recurrent computation work.
 
 ## 12. Historical integration status
 
-The integration accepts development and validation examples only, fits
-normalizers and parameters on development only, persists each validation
-prediction before target reveal, and exposes no sealed-holdout partition.
-Until an explicit offline historical run is executed, status is
+The integration accepts development and validation only. Normalizers and
+parameters fit on development; validation inference is stateless and accepts
+only a target-free validation input. No real market development/validation run
+was executed, so the non-fixture status remains
 `ImplementationCompleteEvidencePending`.
 
 The focused fixture completed all three development/validation lanes, wrote
-one target-free validation prediction artifact per agent before reveal, fitted
-only on development rows, compared each result to its training-prevalence C0
-and role-specific mathematical baseline, and kept legacy Logistic results
-read-only/unexecuted. No real market development/validation result was run or
-claimed.
+one validation prediction artifact per agent, fitted only on development rows,
+compared each result to its training-prevalence C0 and role-specific
+mathematical baseline, and kept legacy Logistic results read-only/unexecuted.
+
+### Prediction-before-reveal structural boundary
+
+- `M3MicroValidationInput` contains only `M3MicroHistoricalInput`; neither type
+  has a target field.
+- Validation inference accepts `M3MicroValidationInput`, not the
+  target-bearing development example.
+- The persisted artifact binds Agent, model, schema, Genome, input/event,
+  chronology, boundary, target-reference digest, and prediction. It contains
+  no target value, loss, correctness, or realized outcome.
+- Persistence is followed by an explicit file read, decode, digest check, and
+  binding check. Only that path constructs `VerifiedPersistedPrediction`.
+- The target source accepts that verified capability plus the matching
+  target-reference. Focused evidence observed access count `0` before
+  persistence, `0` after persistence, `0` after verified reopen, and `1` only
+  at reveal. Persist and reopen-corruption failures kept access and evaluation
+  history at zero.
+- Evaluation history records the enforced ordered stages
+  `InputValidated -> PredictionComputed -> PredictionPersisted ->
+  PredictionReopenedAndVerified -> TargetRevealed -> Evaluated`; the report
+  derives prediction-before-reveal from that evidence.
+
+### Checkpoint idempotence evidence
+
+- Checkpoint format version 2 hashes `M3MicroCheckpointPayload`.
+- The payload contains semantic Agent state and excludes
+  `checkpoint_identity`, checkpoint digest, path, time, nonce, and addresses.
+- Repeated same-state save produced identical digest, path, and bytes.
+- Load-save produced the same digest and bytes.
+- Changing only prior checkpoint identity did not change the digest; a
+  development training step did change it.
+- Wrong format, Agent binding, digest, payload binding, and corrupt bytes were
+  rejected.
+
+### Roster controlled-mutation evidence
+
+- The roster's Agent map is private and the public raw mutable-Agent accessor
+  is removed.
+- Normalizer fitting, development training, inference, checkpoint
+  materialization, evaluation recording, and Formula promotion pass through
+  roster methods.
+- Each mutation runs against a selected-Agent clone, validates it, refreshes
+  the roster digest, and commits only after full-roster validation. Failure
+  leaves the selected Agent, other Agents, and roster digest unchanged.
+- Training and Formula promotion leave the roster immediately valid without a
+  caller refresh. Existing selected-Agent-only parameter, optimizer, state,
+  Formula, checkpoint, and storage-isolation checks continue to pass.
+
+### Independent partition boundary evidence
+
+- Canonical `HistoricalPartitionBoundary` registrations own development and
+  validation start/end indices and a digest; every input must match its
+  registered boundary exactly.
+- `horizon_bars`, `target_index`, `sequence_end`, and partition end are
+  independent values. `checked_add` enforces
+  `target_index == sequence_end + horizon_bars`.
+- Exact-boundary targets are accepted. One-bar crossing, inconsistent target
+  index, zero horizon, arithmetic overflow, spoofed boundary, and overlapping
+  development/validation registrations are rejected.
 
 ## 13. Default/Metal verification
 
 All Rust commands used `CARGO_BUILD_JOBS=1` and never overlapped:
 
-- `cargo check --lib`: passed; one new unused import was found and removed;
-- Default focused suite: 13 passed, 0 failed;
-- `backend-metal` focused suite: 14 passed, 0 failed, including exact portable
+- `cargo fmt --all -- --check`: passed;
+- `cargo check --lib`: passed with 4 warnings;
+- Default focused suite: 18 passed, 0 failed;
+- `backend-metal` focused suite: 19 passed, 0 failed, including portable
   reference architecture/state/output parity;
-- `cargo fmt --all`: passed;
+- full library suite: 1,289 passed, 0 failed;
+- full `--tests` run: 1,289 unit, 404 core integration, and 12
+  timeout-reduction integration tests passed with 0 failures;
+- dedicated timeout-reduction target: 12 passed, 0 failed;
 - `git diff --check`: passed.
 
-The only reported test warning is the pre-existing dead-code warning for
-`train_encoded_head` in `learning_campaign.rs`. Metal support here means the
-same portable architecture and parameter contract compiled under
-`backend-metal`; no Candle dependency existed before the change, and no Metal
-custom kernel or acceleration claim is made.
+The four `cargo check --lib` warnings are existing dead-code warnings in
+unchanged files: two functions in `persona_card.rs` and two functions in
+`learning_campaign.rs`. This repair introduced no warning. Metal support here
+means the same portable architecture and parameter contract compiled under
+`backend-metal`; no Metal custom kernel or acceleration claim is made.
 
 ## 14. Safety counter verification
 
@@ -255,19 +319,23 @@ market, sealed holdout, live prediction/outcome, paper/live trade, order,
 account, winner-selection, Chair, voting, reward/penalty, automatic promotion,
 automatic Formula mutation, and prospective-state-write counters at zero.
 
-The aggregate SHA-256 identity of existing paths containing
-`prospective|live|holdout` was
-`9624ca230998a5fa761923a52a426a892b8e867c0e809fdde1121d70ba4c4703`
-before and after implementation.
+The path-and-content aggregate SHA-256 identity of the four tracked paths whose
+names contain `prospective|live|holdout` was
+`348697df425c12a30790132095a59f4a24c08ed3fb5e9d9f6ec055d9cece7459`
+before and after this repair. None of those paths appears in the diff.
 
 ## 15. What this proves
 
 The permitted claims are limited to:
 
-- M3-Micro operates as a trainable lightweight time-series core;
-- three agents have independent model, state, and learning boundaries;
-- a Formula challenger replacement boundary exists;
-- existing Soma safety and evidence boundaries remain preserved.
+- validation targets are structurally unavailable before prediction artifact
+  persistence and verified reopen;
+- same-state checkpoint persistence is idempotent;
+- successful roster mutation leaves the roster immediately valid and failed
+  mutation is atomic;
+- an independently registered partition boundary blocks horizon crossing;
+- the existing three-Agent independence and safety boundaries remain
+  preserved.
 
 ## 16. What this does not prove
 
@@ -284,10 +352,7 @@ autonomous agent evolution.
   evaluation; their existence is not predictive evidence.
 - Memory figures are deterministic owned-tensor estimates rather than measured
   process peak RSS.
-- Focused changed-scope tests passed; the user-requested test scope explicitly
-  excluded the full repository suite.
 
 ## 18. Exactly one next recommended step
 
-Run one preregistered, development/validation-only historical evaluation
-without opening the sealed holdout.
+Review the Sprint 103-R1 diff and regression evidence.
