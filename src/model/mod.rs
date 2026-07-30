@@ -14,6 +14,7 @@ pub mod learned_agent_opinion;
 pub mod learned_agent_scope;
 pub mod learning;
 pub mod learning_campaign;
+pub mod m3_micro;
 pub mod mamba3;
 pub mod mamba3fin_lite_plan;
 pub mod mamba_readiness;
