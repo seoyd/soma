@@ -12630,8 +12630,7 @@ mod tests {
 
     #[test]
     fn v1_four_prospective_timestamps_enter_exclusion() {
-        let reservation =
-            load_protected_evaluation_reservation_v1(Path::new("config/local")).unwrap();
+        let reservation = v1_reservation();
         assert_eq!(reservation.reserved_timestamp_ms.len(), 4);
         let report = v1_evaluation_report();
         assert!(

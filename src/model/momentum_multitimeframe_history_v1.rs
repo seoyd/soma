@@ -10,6 +10,17 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
+#[cfg(test)]
+use crate::{
+    core::ReasonCode,
+    data::{
+        DataLookback, DatasetKind, NetworkConsentV0, SnapshotAdjustmentSemanticsV1,
+        SnapshotCompatibilityV1, SnapshotProvenance, SnapshotQualitySummary, SnapshotSourceType,
+        historical_replay_dataset_digest_v0,
+    },
+    league::HistoricalReplayDataset,
+};
+
 use crate::{
     data::{
         AcquisitionMarketScope, CurlHttpClient, DataSnapshot, MarketDataHttpClient,
@@ -7253,9 +7264,17 @@ fn replay_candle_evidence(row: &HistoricalCandleRowV1) -> MomentumQualifiedRepla
     }
 }
 
-pub(super) fn load_momentum_qualified_six_evidence_v1()
--> Result<MomentumQualifiedSixEvidenceV1, String> {
-    let root = Path::new(ROOT);
+pub(super) fn qualified_six_unresolved_contract_valid_v1(
+    monthly_unresolved_count: usize,
+    yearly_unresolved_count: usize,
+    unresolved_root_count: usize,
+) -> bool {
+    monthly_unresolved_count == 15 && yearly_unresolved_count == 4 && unresolved_root_count == 19
+}
+
+pub(super) fn load_momentum_qualified_six_evidence_v1_at(
+    root: &Path,
+) -> Result<MomentumQualifiedSixEvidenceV1, String> {
     let (_, foundation, _) = reopen_foundation(root)?;
     let foundation =
         foundation.ok_or_else(|| "qualified-six foundation unavailable".to_string())?;
@@ -7300,11 +7319,12 @@ pub(super) fn load_momentum_qualified_six_evidence_v1()
         .collect::<Result<Vec<_>, _>>()?
         .into_iter()
         .sum::<usize>();
-    if monthly_aggregate.unresolved_count != 15
-        || yearly_aggregate.unresolved_count != 4
-        || unresolved_root_count != 19
-        || weekly_policy.selected_source
-            != MomentumCanonicalMacroSourceV1::DerivedFromCanonicalDaily
+    if !qualified_six_unresolved_contract_valid_v1(
+        monthly_aggregate.unresolved_count,
+        yearly_aggregate.unresolved_count,
+        unresolved_root_count,
+    ) || weekly_policy.selected_source
+        != MomentumCanonicalMacroSourceV1::DerivedFromCanonicalDaily
         || monthly_policy.selected_source != MomentumCanonicalMacroSourceV1::ExcludedUnresolved
         || yearly_policy.selected_source != MomentumCanonicalMacroSourceV1::ExcludedUnresolved
         || qualified_set.qualified_count != 6
@@ -7453,11 +7473,18 @@ pub(super) fn load_momentum_qualified_six_evidence_v1()
     })
 }
 
-pub(super) fn momentum_qualified_replay_protected_state_v1()
--> Result<MomentumQualifiedReplayProtectedStateV1, String> {
-    let (pause, _, _) = reopen_foundation(Path::new(ROOT))?;
+pub(super) fn load_momentum_qualified_six_evidence_v1()
+-> Result<MomentumQualifiedSixEvidenceV1, String> {
+    load_momentum_qualified_six_evidence_v1_at(Path::new(ROOT))
+}
+
+pub(super) fn momentum_qualified_replay_protected_state_v1_at(
+    historical_root: &Path,
+    live_root: &Path,
+) -> Result<MomentumQualifiedReplayProtectedStateV1, String> {
+    let (pause, _, _) = reopen_foundation(historical_root)?;
     let pause = pause.ok_or_else(|| "qualified-six live pause unavailable".to_string())?;
-    let (live_tree_file_count, live_tree_digest) = tree_identity(Path::new(LIVE_ROOT))?;
+    let (live_tree_file_count, live_tree_digest) = tree_identity(live_root)?;
     Ok(MomentumQualifiedReplayProtectedStateV1 {
         live_tree_file_count,
         live_tree_digest,
@@ -7472,6 +7499,11 @@ pub(super) fn momentum_qualified_replay_protected_state_v1()
         epoch_three_registered: pause.epoch_three_registered,
         active_committee_count: canonical_current_agent_states().len(),
     })
+}
+
+pub(super) fn momentum_qualified_replay_protected_state_v1()
+-> Result<MomentumQualifiedReplayProtectedStateV1, String> {
+    momentum_qualified_replay_protected_state_v1_at(Path::new(ROOT), Path::new(LIVE_ROOT))
 }
 
 pub fn format_momentum_macro_forensics_text_v1(
@@ -7569,6 +7601,196 @@ pub fn format_momentum_macro_forensics_text_v1(
         report.duplicate_artifact_count,
         report.report_digest,
     ))
+}
+
+#[cfg(test)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(super) struct QualifiedSixTestFoundationReceiptV1 {
+    pub source_identity: String,
+    pub pause_identity: String,
+    pub foundation_identity: String,
+    pub plan_identity: String,
+    pub pause_artifact_path: PathBuf,
+    pub foundation_artifact_path: PathBuf,
+}
+
+#[cfg(test)]
+fn qualified_six_test_pause_v1(source_identity: &str) -> LiveContinuationPauseV1 {
+    let protected_boundary = u64::try_from(PILOT_DAYS + 2).unwrap_or_default() * DAY_MS;
+    let mut value = LiveContinuationPauseV1 {
+        pause_version: PAUSE_VERSION.to_string(),
+        policy: LiveProspectiveContinuationPolicyV1::PausedAfterSealedEpochTwo,
+        series_digest: source_identity.to_string(),
+        epoch_registration_digest: stable_hash_string(&format!(
+            "qualified-six-test-epoch:{source_identity}"
+        )),
+        input_receipt_digest: stable_hash_string(&format!(
+            "qualified-six-test-input-receipt:{source_identity}"
+        )),
+        input_capsule_digest: stable_hash_string(&format!(
+            "qualified-six-test-input-capsule:{source_identity}"
+        )),
+        context_proof_digest: stable_hash_string(&format!(
+            "qualified-six-test-context:{source_identity}"
+        )),
+        prediction_capsule_digest: stable_hash_string(&format!(
+            "qualified-six-test-prediction-capsule:{source_identity}"
+        )),
+        prediction_journal_digest: stable_hash_string(&format!(
+            "qualified-six-test-prediction-journal:{source_identity}"
+        )),
+        outcome_plan_digest: stable_hash_string(&format!(
+            "qualified-six-test-outcome-plan:{source_identity}"
+        )),
+        protected_first_event_input_boundary_ms: protected_boundary,
+        completed_event_count: 1,
+        scorable_event_count: 1,
+        prediction_seal_count: 3,
+        input_attempts: 1,
+        input_retries: 0,
+        outcome_requests: 0,
+        outcome_openings: 0,
+        epoch_three_registered: false,
+        pause_digest: String::new(),
+    };
+    value.pause_digest = pause_digest(&value);
+    value
+}
+
+#[cfg(test)]
+fn qualified_six_test_daily_snapshot_v1(source_seed: u64) -> DataSnapshot {
+    let rows = [0_u64, 1]
+        .into_iter()
+        .map(|index| {
+            let close = 100.0 + index as f64 + source_seed as f64 * 0.001;
+            HistoricalOhlcvRow {
+                symbol: MARKET.to_string(),
+                timestamp_ms: (index + 1) * DAY_MS,
+                open: close - 0.25,
+                high: close + 0.5,
+                low: close - 0.5,
+                close,
+                volume: 10.0 + index as f64,
+                trade_value: Some(close * (10.0 + index as f64)),
+            }
+        })
+        .collect::<Vec<_>>();
+    let dataset = HistoricalReplayDataset {
+        symbol: MARKET.to_string(),
+        rows,
+        source: "qualified-six-test-canonical-daily-v1".to_string(),
+        reason_codes: vec![ReasonCode::DeterministicPath],
+    };
+    let content_digest = historical_replay_dataset_digest_v0(&dataset);
+    let first_timestamp_ms = dataset.rows.first().map(|row| row.timestamp_ms);
+    let last_timestamp_ms = dataset.rows.last().map(|row| row.timestamp_ms);
+    DataSnapshot {
+        snapshot_id: stable_hash_string(&format!(
+            "qualified-six-test-snapshot-v1:{content_digest}"
+        )),
+        request_key: "qualified-six-test-daily".to_string(),
+        provider_id: PROVIDER.to_string(),
+        dataset_kind: DatasetKind::CryptoDailyOhlcv,
+        market_scope: AcquisitionMarketScope::BtcCrypto,
+        symbols: vec![MARKET.to_string()],
+        requested_lookback: DataLookback {
+            bars: dataset.rows.len(),
+            start_timestamp_ms: first_timestamp_ms,
+            end_timestamp_ms: last_timestamp_ms,
+        },
+        actual_start_timestamp_ms: first_timestamp_ms,
+        actual_end_timestamp_ms: last_timestamp_ms,
+        fetched_at_ms: 3 * DAY_MS,
+        normalized_at_ms: 3 * DAY_MS,
+        schema_version: 1,
+        row_count: dataset.rows.len(),
+        quality_summary: SnapshotQualitySummary {
+            accepted: true,
+            row_count: dataset.rows.len(),
+            reason_codes: vec![ReasonCode::DeterministicPath],
+        },
+        content_digest,
+        sanitized: true,
+        read_only: true,
+        compatibility: Some(SnapshotCompatibilityV1 {
+            cadence: "1d".to_string(),
+            adjustment_semantics: SnapshotAdjustmentSemanticsV1::NotApplicable,
+            source_schema: "qualified-six-test-canonical-v1".to_string(),
+            requested_cutoff_timestamp_ms: last_timestamp_ms,
+            maximum_staleness_ms: DAY_MS,
+            all_rows_finalized: true,
+        }),
+        normalized_dataset: dataset,
+        provenance: SnapshotProvenance {
+            provider_id: PROVIDER.to_string(),
+            acquisition_request_id: "qualified-six-test-acquisition".to_string(),
+            fetch_receipt_id: "qualified-six-test-fetch".to_string(),
+            source_type: SnapshotSourceType::Mock,
+            sanitized: true,
+            credential_free: true,
+            reason_codes: vec![ReasonCode::DeterministicPath],
+        },
+        reason_codes: vec![ReasonCode::DeterministicPath],
+    }
+}
+
+#[cfg(test)]
+fn qualified_six_test_config_v1() -> UpbitHistoricalPilotConfigV0 {
+    UpbitHistoricalPilotConfigV0 {
+        provider_id: PROVIDER.to_string(),
+        enabled: true,
+        market: AcquisitionMarketScope::BtcCrypto,
+        symbol: MARKET.to_string(),
+        start_timestamp_ms: 1,
+        end_timestamp_ms: 2,
+        maximum_rows: PAGE_SIZE,
+        timeout_seconds: 10,
+        max_retries: 1,
+        maximum_response_bytes: 262_144,
+        snapshot_output_dir: "test-owned-snapshot-root".to_string(),
+        network_consent: NetworkConsentV0::ManualLocalSmoke,
+        manual_smoke_enabled: true,
+        page_size: PAGE_SIZE,
+        target_rows: PAGE_SIZE,
+        maximum_pages: 1,
+        stop_when_campaign_sufficient: false,
+        campaign_attempt_enabled: false,
+        minimum_inter_request_delay_ms: 1,
+    }
+}
+
+#[cfg(test)]
+pub(super) fn materialize_qualified_six_test_foundation_v1(
+    root: &Path,
+    source_seed: u64,
+) -> Result<QualifiedSixTestFoundationReceiptV1, String> {
+    let daily = qualified_six_test_daily_snapshot_v1(source_seed);
+    let source_identity = daily.content_digest.clone();
+    let pause = qualified_six_test_pause_v1(&source_identity);
+    let foundation = build_foundation(&pause, &daily)?;
+    let plan = build_plan(&foundation, &qualified_six_test_config_v1())?;
+    persist_pause(root, &pause)?;
+    persist_foundation(root, &foundation)?;
+    persist_plan(root, &plan)?;
+    let (reopened_pause, reopened_foundation, reopened_plan) = reopen_foundation(root)?;
+    if reopened_pause.as_ref() != Some(&pause)
+        || reopened_foundation.as_ref() != Some(&foundation)
+        || reopened_plan.as_ref() != Some(&plan)
+    {
+        return Err("qualified-six test foundation reopen mismatch".to_string());
+    }
+    Ok(QualifiedSixTestFoundationReceiptV1 {
+        source_identity,
+        pause_identity: pause.pause_digest.clone(),
+        foundation_identity: foundation.registration_digest.clone(),
+        plan_identity: plan.plan_digest,
+        pause_artifact_path: root
+            .join("live_continuation_pause")
+            .join(format!("{}.pb", pause.pause_digest)),
+        foundation_artifact_path: root
+            .join("foundation_registrations")
+            .join(format!("{}.pb", foundation.registration_digest)),
+    })
 }
 
 #[cfg(test)]

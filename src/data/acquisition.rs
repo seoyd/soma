@@ -7529,8 +7529,42 @@ pub fn execute_autonomous_data_cycle(
 
 #[cfg(test)]
 mod tests {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
     use super::*;
     use crate::league::canonical_current_agent_states;
+
+    static TEST_ROOT_SEQUENCE: AtomicUsize = AtomicUsize::new(0);
+
+    struct TestProtectedRoot(PathBuf);
+
+    impl TestProtectedRoot {
+        fn new(name: &str, relative_paths: &[&str]) -> Self {
+            let root = std::env::temp_dir().join(format!(
+                "soma-acquisition-{name}-{}-{}",
+                std::process::id(),
+                TEST_ROOT_SEQUENCE.fetch_add(1, Ordering::Relaxed)
+            ));
+            fs::create_dir_all(&root).expect("protected test root");
+            for relative_path in relative_paths {
+                let path = root.join(relative_path);
+                fs::create_dir_all(path.parent().expect("protected test parent"))
+                    .expect("protected test parent");
+                fs::write(
+                    path,
+                    format!("test-owned-protected-sentinel:{relative_path}"),
+                )
+                .expect("protected test sentinel");
+            }
+            Self(root)
+        }
+    }
+
+    impl Drop for TestProtectedRoot {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.0);
+        }
+    }
 
     fn universe() -> ConfiguredUniverse {
         ConfiguredUniverse {
@@ -8034,7 +8068,7 @@ mod tests {
 
     #[test]
     fn learning_network_pilot_is_deferred_and_isolated_with_zero_authority() {
-        let protected_paths = [
+        let protected_relative_paths = [
             "config/local/prospective_shadow_challenge_v0.json",
             "config/local/cycle_risk_prospective_local_state_v0.json",
             "config/local/prospective_external_row_admission_registration_v0.json",
@@ -8044,6 +8078,11 @@ mod tests {
             "config/local/prospective_network_export_capsule_v0.json",
             "config/local/prospective_one_time_opening_registration_v0.json",
         ];
+        let root = TestProtectedRoot::new("network-pilot", &protected_relative_paths);
+        let protected_paths = protected_relative_paths
+            .iter()
+            .map(|path| root.0.join(path))
+            .collect::<Vec<_>>();
         let before = protected_paths
             .iter()
             .map(fs::read)
