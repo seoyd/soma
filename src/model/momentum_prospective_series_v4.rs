@@ -2507,6 +2507,114 @@ fn validate_status(value: &MomentumProspectiveEpochStatusReceiptV4) -> Result<()
     Ok(())
 }
 
+pub(super) fn validate_sealed_epoch_two_report_v4(
+    report: &MomentumProspectiveSeriesReportV4,
+) -> Result<(), String> {
+    validate_status(&report.status)?;
+    validate_series(&report.series)?;
+    validate_adoption(&report.event_one_adoption)?;
+    validate_gap_audit(&report.candidate_gap_audit)?;
+    validate_delta_plan(&report.context_delta_plan)?;
+    validate_epoch_registration(&report.epoch_registration)?;
+    let (
+        Some(input_receipt),
+        Some(input_capsule),
+        Some(context_use_proof),
+        Some(context_assembly_proof),
+        Some(prediction_capsule),
+        Some(journal_entry),
+        Some(outcome_plan),
+    ) = (
+        report.input_receipt.as_ref(),
+        report.input_capsule.as_ref(),
+        report.context_use_proof.as_ref(),
+        report.context_assembly_proof.as_ref(),
+        report.prediction_capsule.as_ref(),
+        report.journal_entry.as_ref(),
+        report.outcome_plan.as_ref(),
+    )
+    else {
+        return Err("V4 sealed epoch-two report lineage rejected".to_string());
+    };
+    validate_input_receipt(input_receipt)?;
+    validate_input_capsule(input_capsule)?;
+    validate_context_use_proof(context_use_proof)?;
+    validate_context_assembly(context_assembly_proof)?;
+    validate_prediction_capsule(prediction_capsule)?;
+    validate_journal(journal_entry)?;
+    validate_outcome_plan(outcome_plan)?;
+
+    let status = &report.status;
+    let series_digest = &report.series.series_digest;
+    let registration_digest = &report.epoch_registration.registration_digest;
+    if status.readiness != MomentumProspectiveEpochReadinessV4::PredictionAlreadySealed
+        || status.epoch_number != 2
+        || report.epoch_registration.epoch_number != 2
+        || status.series_digest != *series_digest
+        || status.event_one_adoption_digest != report.event_one_adoption.adoption_digest
+        || status.candidate_gap_audit_digest != report.candidate_gap_audit.audit_digest
+        || status.context_delta_plan_digest != report.context_delta_plan.plan_digest
+        || status.epoch_registration_digest != *registration_digest
+        || status.input_receipt_digest.as_deref() != Some(input_receipt.receipt_digest.as_str())
+        || status.input_capsule_digest.as_deref() != Some(input_capsule.capsule_digest.as_str())
+        || status.context_assembly_proof_digest.as_deref()
+            != Some(context_assembly_proof.proof_digest.as_str())
+        || status.prediction_capsule_digest.as_deref()
+            != Some(prediction_capsule.capsule_digest.as_str())
+        || status.journal_entry_digest.as_deref() != Some(journal_entry.entry_digest.as_str())
+        || status.outcome_plan_digest.as_deref() != Some(outcome_plan.plan_digest.as_str())
+        || status.participant_prediction_digests
+            != prediction_capsule.participant_prediction_digests
+        || status.total_event_count != report.event_one_adoption.total_event_count
+        || status.scorable_event_count != report.event_one_adoption.scorable_event_count
+        || status.exact_context_timestamp_ms != report.epoch_registration.exact_context_timestamp_ms
+        || status.exact_missing_timestamp_ms != report.epoch_registration.exact_missing_timestamp_ms
+        || report.event_one_adoption.series_digest != *series_digest
+        || report.candidate_gap_audit.series_digest != *series_digest
+        || report.context_delta_plan.series_digest != *series_digest
+        || report.context_delta_plan.epoch_number != 2
+        || report.epoch_registration.series_digest != *series_digest
+        || report.epoch_registration.context_delta_plan_digest
+            != report.context_delta_plan.plan_digest
+        || input_receipt.series_digest != *series_digest
+        || input_receipt.epoch_registration_digest != *registration_digest
+        || input_receipt.status != MomentumProspectiveSeriesInputStatusV4::EvidenceAcquired
+        || input_receipt.input_capsule_digest.as_deref()
+            != Some(input_capsule.capsule_digest.as_str())
+        || input_capsule.series_digest != *series_digest
+        || input_capsule.epoch_registration_digest != *registration_digest
+        || input_capsule.context_delta_plan_digest != report.context_delta_plan.plan_digest
+        || context_use_proof.series_digest != *series_digest
+        || context_use_proof.epoch_registration_digest != *registration_digest
+        || context_assembly_proof.series_digest != *series_digest
+        || context_assembly_proof.epoch_registration_digest != *registration_digest
+        || context_assembly_proof.input_capsule_digest != input_capsule.capsule_digest
+        || context_assembly_proof.context_use_proof_digest != context_use_proof.proof_digest
+        || prediction_capsule.series_digest != *series_digest
+        || prediction_capsule.epoch_registration_digest != *registration_digest
+        || prediction_capsule.input_receipt_digest != input_receipt.receipt_digest
+        || prediction_capsule.input_capsule_digest != input_capsule.capsule_digest
+        || prediction_capsule.context_assembly_proof_digest != context_assembly_proof.proof_digest
+        || journal_entry.series_digest != *series_digest
+        || journal_entry.epoch_number != 2
+        || journal_entry.event_one_adoption_digest != report.event_one_adoption.adoption_digest
+        || journal_entry.context_delta_plan_digest != report.context_delta_plan.plan_digest
+        || journal_entry.prediction_capsule_digest != prediction_capsule.capsule_digest
+        || journal_entry.participant_prediction_digests
+            != prediction_capsule.participant_prediction_digests
+        || outcome_plan.series_digest != *series_digest
+        || outcome_plan.epoch_registration_digest != *registration_digest
+        || outcome_plan.prediction_capsule_digest != prediction_capsule.capsule_digest
+        || outcome_plan.required_outcome_timestamp_ms
+            != [report.epoch_registration.outcome_timestamp_ms]
+        || outcome_plan.outcome_finality_boundary_ms
+            != report.epoch_registration.outcome_finality_boundary_ms
+    {
+        return Err("V4 sealed epoch-two report lineage rejected".to_string());
+    }
+    Ok(())
+}
+
 fn encode_status(value: &MomentumProspectiveEpochStatusReceiptV4) -> Result<Vec<u8>, String> {
     ArtifactBuilderV4_2::new("series-epoch-status")
         .string("status_version", &value.status_version)
@@ -7964,7 +8072,7 @@ pub fn run_momentum_prospective_outcome_v4(
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use crate::{
         data::ReadOnlyProviderResponse,
@@ -8471,7 +8579,8 @@ mod tests {
         (request, response)
     }
 
-    fn fixture_live_report() -> MomentumProspectiveSeriesReportV4 {
+    pub(crate) fn deterministic_sealed_epoch_two_report_fixture_v4()
+    -> MomentumProspectiveSeriesReportV4 {
         let chain = fixture_prediction_chain();
         let gap = fixture_gap(&chain.0, &chain.1);
         let status = build_status(
@@ -8509,6 +8618,10 @@ mod tests {
             artifacts_written: 0,
             duplicate_artifact_count: 0,
         }
+    }
+
+    fn fixture_live_report() -> MomentumProspectiveSeriesReportV4 {
+        deterministic_sealed_epoch_two_report_fixture_v4()
     }
 
     fn fixture_outcome_registration() -> MomentumOutcomeAcquisitionRegistrationV4_4 {

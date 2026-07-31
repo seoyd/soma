@@ -1,237 +1,308 @@
-# Sprint 103-P1 Hermetic Test Evidence Report
+# SOMA Sprint 103-P1-R4 Work Report
 
-## 1. Mode and scope
+## 1. Mode
 
-- Mode: implementation-only prerequisite repair.
-- Branch: `agent/sprint103-prereq-hermetic-qualified-six-tests-v1`.
-- Base: `origin/main` at `f3a8ec255add0588c395700f605f6170188cdf49`.
-- Scope: repair the 38 pre-existing non-hermetic tests, add the required hermeticity
-  regressions, and preserve production fail-closed behavior.
-- No commit, push, PR mutation, M3 implementation, runtime evidence generation, or
-  network access was performed.
+- MODE: IMPROVE_AND_VERIFY
+- SCOPE: DOCUMENTATION_ONLY
+- BRANCH: `agent/sprint103-prereq-hermetic-qualified-six-tests-v1`.
+- STARTING HEAD: `d35bbd5c0451c1bed4764e091054934021e45080`.
+- COMMIT: 수행하지 않음
+- PUSH: 수행하지 않음
+- PR ACTION: 없음
 
-## 2. Reproduction on authoritative main
+The runtime evidence below was produced during R3, when all Cargo commands were
+executed one at a time with `CARGO_BUILD_JOBS=1`, `CARGO_INCREMENTAL=0`, and fresh
+external Cargo targets. R4 is a documentation-only contract correction and did
+not rerun runtime verification.
 
-A detached temporary worktree was created directly from `origin/main`. It contained
-no production runtime state or ignored local evidence. All Rust commands used
-`CARGO_BUILD_JOBS=1`, `CARGO_INCREMENTAL=0`, and one test thread.
+## 2. Failure Reproduction
 
-Baseline full-library result:
+- clean worktree: reproduced from the exact starting HEAD before the R3 edit.
+- external Cargo target: yes; the worktree-local build-output parent was absent.
+- integration target: `minimal_ai_committee_core`.
+- exact failed tests:
+  - `automated_news_intake_normalizes_local_fixture_without_network`;
+  - `autonomous_paper_config_rejects_remote_and_unsafe_fields`;
+  - `autonomous_paper_loop_runs_cycles_attention_queue_and_archive_safely`.
+- missing parent paths: the three tests attempted their first fixture/config write
+  beneath worktree-relative build-output paths whose parents had not been created.
+- root causes: fixture setup depended on a worktree-local Cargo target or residue
+  from an earlier test. With an external Cargo target, all three first writes
+  returned `NotFound`. This was a fixture lifecycle defect, not a production
+  semantic failure.
 
-```text
-1271 total
-1233 passed
-38 failed
-```
+The authoritative R3 reproduction result was 401 passed and 3 failed. No retry
+was used to replace that result. R4 did not reproduce the failure again.
 
-Exact failure categories and tests:
+## 3. Scope
 
-| Category | Count | Tests |
-| --- | ---: | --- |
-| Data acquisition | 1 | `learning_network_pilot_is_deferred_and_isolated_with_zero_authority` |
-| Agent learning session | 1 | `v1_four_prospective_timestamps_enter_exclusion` |
-| Qualified-Six replay | 32 | `sprint98_01`–`12`, `14`–`19`, `24`–`31`, `33`–`34`, `43`–`45`, and `47` |
-| Qualified-Six diagnostics | 4 | `sprint99_01`, `02`, `07`, and `42` |
+- R3 integration code change: `tests/minimal_ai_committee_core.rs`, preserved
+  without modification during R4.
+- R4 changed file: this existing report only.
+- production files changed during R4: none.
+- R1 code identity preserved: yes. The combined binary diff digest of the six R1
+  code files remained
+  `50b226aea89bc638853acbea5ffb5f5b9ad76750c4d90e792d40909064a61104`.
+- R3 test-helper identity preserved during R4: yes.
+- new files created during R4: none.
 
-The result is classified as `ConfirmedPreExistingNonHermeticTests`.
+No source file, dependency, placeholder directory, or ignored fixture file was
+added. Existing R1/R2/R3 tracked changes were preserved.
 
-## 3. Root cause
+## 4. Fixture Lifecycle Repair
 
-The failures were test prerequisite defects, not a production fallback defect.
+The following lifecycle repair was implemented in R3 and was not modified in R4.
 
-| Tests | First hidden dependency | Expected location | Producer / consumer | Repair |
-| --- | --- | --- | --- | --- |
-| Data acquisition test | Eight protected-file sentinels | `config/local/...` | Developer-local protected files / acquisition safety assertion | Test-owned root with deterministic sentinel bytes |
-| Agent learning test | Opening, momentum, and risk reservation metadata | `config/local/...` | Local prospective registrations / reservation loader | Existing deterministic `v1_reservation()` fixture |
-| Replay source-dependent tests | Qualified-Six foundation, pause, and source views | `state/historical_replay/momentum_multitimeframe/v1` | Multi-timeframe persistence / `prepare_replay()` | Explicit evidence input plus test-owned foundation and pause |
-| Replay `sprint98_44`–`45` | Persisted pause and live protected-tree state | historical root and `state/learning_data` | Protected-state loader / live safety assertions | Explicit historical and live roots |
-| Diagnostics `sprint99_01`, `02`, `07` | Completed replay header artifacts | `state/historical_replay/momentum_qualified_six/v1` | Replay serializers / diagnostic header loader | Test-owned completed replay header |
-| Diagnostics `sprint99_42` | Persisted pause and live protected-tree state | historical and live roots | Protected-state loader / live safety assertion | Explicit test-owned roots |
+- workspace allocator: a test-local `IntegrationFixtureWorkspace` was added to the
+  existing integration test file. It uses a named 128-attempt bound and explicit
+  errors on exhaustion.
+- exclusive root: each candidate is an exact direct child of the captured system
+  temporary directory and is acquired with `fs::create_dir`; `AlreadyExists`
+  candidates are skipped without reuse, mutation, or deletion.
+- parent preparation: `prepare_parent` and `prepare_directory` create only paths
+  resolved below the exclusively owned root, before the first write.
+- relative-path validation: empty paths, absolute paths, missing filenames,
+  `ParentDir`, `CurDir`, root, and platform-prefix components are rejected.
+- ownership marker: `.soma-integration-fixture-owner` is created with
+  `create_new(true)`, receives a process/sequence/label ownership token, and is
+  written, flushed, and synced before publication.
+- cleanup: recursive deletion occurs only after proving the root is the expected
+  direct temporary child, is a real non-symlink directory, and contains the exact
+  regular non-symlink marker with the exact token. Consuming cleanup reports
+  errors; `Drop` performs the same checks best-effort.
+- stale candidate behavior: stale roots are left byte-for-byte untouched and a
+  later candidate is allocated. Marker mismatch leaves the root untouched; the
+  regression test restores only its own marker before final cleanup.
 
-The replay `OnceLock` cached a value produced through repository-relative production
-state. That made many otherwise pure contract tests fail when run before a local
-runtime producer, or pass only on a developer machine that already had ignored
-artifacts. Diagnostics had the same repository-relative replay-header dependency.
-The other two failures had separate `config/local` dependencies and were repaired
-locally rather than being coupled to the Qualified-Six fixture.
+Each repaired fixture uses a separate workspace. No fixture shares filesystem
+state with another fixture or relies on a prior run.
 
-## 4. Evidence dependency graph
+## 5. Assertion Preservation
 
-```text
-deterministic canonical daily candles
-    -> production foundation constructor
-    -> validated pause + foundation + acquisition plan
-    -> official encode / atomic persist / reopen / digest verification
+### Fixture 1 — autonomous loop
 
-deterministic six-view replay source
-    -> explicit prepare_replay_from_evidence
-    -> replay registration and partition contracts
-    -> existing aggregate / benchmark / contribution / report builders
-    -> official encode / atomic persist / decode
-    -> diagnostic source header loaded from an explicit replay root
-```
+- test: `autonomous_paper_loop_runs_cycles_attention_queue_and_archive_safely`.
+- original purpose: prove deterministic autonomous paper-loop cycles, attention
+  queues, archives, watchlist rechecks, fixed-count behavior, memory progression,
+  and no broker/order/account, model-training, or live-inference authority.
+- preserved assertions: the first and second runs are equal; cycle, queue, archive,
+  triage, recheck, paper-only, safety, fixed-count, and member-state assertions are
+  unchanged.
+- path lifecycle-only change: isolated config, output directory, and fixed config
+  use one fixture-specific owned root. The owned output child is reset between the
+  two deterministic runs.
+- result: all original assertions pass; both config files are verified and the
+  workspace is removed after cleanup.
 
-Each test materializes only the stage it needs. Negative and corruption tests own
-private roots and do not share mutable evidence.
+### Fixture 2 — unsafe configuration rejection
 
-## 5. Architecture decision
+- test: `autonomous_paper_config_rejects_remote_and_unsafe_fields`.
+- original purpose: reject remote autonomous input and reject an unsafe config
+  field.
+- preserved assertions: remote market-data validation fails with the local-path
+  reason; parsing the unsafe config fails with the unsafe-field reason.
+- path lifecycle-only change: the unsafe config lives below a distinct owned
+  workspace and its nested parent is prepared before writing.
+- result: all original rejection assertions pass; the file is verified and the
+  owned root is absent after cleanup.
 
-- Existing production constants remain the default paths.
-- Minimal internal `_at` functions accept explicit roots for foundation loading,
-  protected-state loading, replay artifact persistence/reading, and diagnostic
-  source-header loading.
-- Existing production wrappers call those functions with their original constants.
-- `prepare_replay_from_evidence` contains the deterministic core; the production
-  `prepare_replay` wrapper still loads production evidence and therefore still fails
-  closed when evidence is absent.
-- `QualifiedSixTestWorldV1` is `#[cfg(test)]`, creates unique roots from the process
-  id plus an atomic sequence, and removes only its owned root in `Drop`.
-- No environment override, current-directory mutation, global mutable path, new
-  dependency, or repository-root inference was introduced.
+### Fixture 3 — news acquisition fixture
 
-## 6. Foundation fixture
+- test: `automated_news_intake_normalizes_local_fixture_without_network`.
+- original purpose: normalize a local news fixture without network access and
+  enforce item capping and safe path/source policy.
+- preserved assertions: two items collected, one snapshot after capping, expected
+  symbol and positive sentiment, explicit no-network safety note, deterministic
+  two-item conversion, remote domain rejection, and traversal rejection.
+- path lifecycle-only change: the fixture writes below its own workspace after
+  asserting that the parent is initially absent and preparing it explicitly.
+- result: all original assertions pass; the written file is verified and the owned
+  root is absent after explicit cleanup.
 
-The fixture creates two strictly ordered, finite, positive, completed daily candles.
-Changing the seed changes an allowed candle value and therefore changes the canonical
-dataset digest. The fixture then uses the existing production `build_foundation` and
-`build_plan` constructors.
+## 6. Focused Verification
 
-Pause, foundation, and plan artifacts use the existing validators, encoders, atomic
-persistence, decoders, and `reopen_foundation` path. Reopened values must exactly
-match the constructed values. No production digest, report bytes, or developer
-runtime artifact is copied.
+These are preserved R3 results; R4 did not rerun them.
 
-## 7. Live-pause fixture
+- exact test 1: news intake test, 1 passed.
+- exact test 2: unsafe/remote config rejection test, 1 passed.
+- exact test 3: autonomous paper-loop test, 1 passed.
+- integration target: 411 passed, 0 failed.
+- timeout target: 12 passed, 0 failed.
+- allocator/path regressions: 7 passed, covering absent parents, uniqueness, stale
+  candidates, traversal/absolute/curdir rejection, marker mismatch, repeated
+  execution, and internal eight-thread allocation.
+- external-target run: all focused commands used a fresh external Cargo target.
+- parallel run: the seven workspace regressions passed with the default test
+  thread setting; the Qualified-Six focused set also passed 116 tests with the
+  default test thread setting.
 
-The pause represents the existing
-`PausedAfterSealedEpochTwo` contract with deterministic identity bindings:
+## 7. Baseline Residue
 
-- outcome requests and openings are zero;
-- epoch three is not registered;
-- training, tournament, and live authority remain forbidden;
-- time boundaries derive from constants rather than the current date;
-- persistence and reopen use the normal pause artifact path.
+These baseline measurements were produced during R3 and were not remeasured in
+R4.
 
-The fixture performs no network request, market outcome read, live trade, or real
-live-state copy.
+- baseline commit: `d35bbd5c0451c1bed4764e091054934021e45080`.
+- Default library: 1,281 passed.
+- integration: the authoritative target stopped at 401 passed and 3 failed for the
+  reproduced missing-parent defects.
+- regular files: 110 at that interruption point. Because Cargo did not reach the
+  later existing timeout target, that target was run once in a separate fresh
+  starting-HEAD worktree; it produced the same additional 612 pre-existing test
+  outputs seen after repaired full completion. Matched baseline coverage is 722.
+- symlinks: 0.
+- non-empty directories: 7 at the interruption point; 32 under matched baseline
+  coverage.
+- empty directories: 2 under both interrupted and matched baseline coverage.
+- classification: `BaselinePreExistingResidueUnchanged`. The supplemental target
+  itself passed 12 tests and changed no source.
 
-## 8. Test migrations
+The supplemental baseline is reported separately because calling the interrupted
+baseline a complete residue baseline would be misleading.
 
-- Data acquisition now snapshots eight deterministic sentinels inside its own
-  temporary root, retaining the original before/after byte-equality assertions.
-- Agent learning now uses the existing deterministic protected reservation fixture,
-  retaining the four reserved timestamps and exclusion assertions.
-- Qualified-Six replay tests use a deterministic in-memory six-timeframe source.
-  Tests that specifically require pause/foundation state create a private world.
-- Qualified-Six diagnostics tests create only a private foundation, completed replay
-  header, or protected state as required.
-- Ten `sprint103_p1_*` tests implement the required A–J hermeticity checks.
-- No assertion was removed, ignored, converted to an early success, or relaxed to
-  accept missing production evidence.
+## 8. Clean Run 1
 
-## 9. Hermeticity proof
+This is preserved R3 runtime evidence.
 
-The A–J regression set proves:
+- Default library: 1,304 passed, 0 failed.
+- Metal library: 1,305 passed, 0 failed.
+- integration: complete pass; `minimal_ai_committee_core` reported 411 passed and
+  the existing timeout target reported 12 passed.
+- timeout: exact target rerun, 12 passed.
+- parallel focused: Qualified-Six 116 passed; integration workspace 7 passed.
+- integration fixture roots: 0 remaining; ownership markers: 0 remaining.
+- new repository residue: 722 regular files, 32 non-empty directories, 2 empty
+  directories, and 0 symlinks, exactly matching the starting-HEAD matched-command
+  baseline. Increment versus that baseline: 0 in every class.
 
-- an empty explicit root fails with `qualified-six foundation unavailable` and
-  performs zero materialization;
-- foundation and pause artifacts persist, reopen, bind, and validate;
-- two physical roots produce equal semantic identities for equal source data;
-- a canonical candle mutation changes source and dependent foundation identities;
-- explicit evidence preparation succeeds without repository state;
-- independent workspace creation order does not change results;
-- corruption in one private workspace fails closed and leaves another valid;
-- short and long root paths do not enter semantic digests;
-- the production replay artifact default remains
-  `state/historical_replay/momentum_qualified_six/v1`.
+Formatting, Default check, and Metal check also passed before the Run 1 test
+sequence.
 
-The code contains no test root environment override, `set_current_dir`, shared
-mutable evidence store, or production-state copy.
+## 9. Clean Run 2
 
-## 10. Verification
+This is preserved R3 runtime evidence.
 
-All commands were sequential with one Cargo build job and one test thread.
+- Default library: 1,304 passed, 0 failed.
+- Metal library: 1,305 passed, 0 failed.
+- integration: complete pass; `minimal_ai_committee_core` reported 411 passed and
+  the existing timeout target reported 12 passed.
+- integration fixture roots: 0 remaining; ownership markers: 0 remaining.
+- new repository residue: 722 regular files, 32 non-empty directories, 2 empty
+  directories, and 0 symlinks, exactly matching the matched-command baseline.
+- result equal to Run 1: yes. Pass/fail results, warning class, repair-owned
+  residue, and all repository-relative residue path/type sets matched.
 
-| Verification | Result |
-| --- | --- |
-| `cargo fmt --all -- --check` | pass |
-| `cargo check --lib` | pass |
-| Data acquisition focused | 1 passed |
-| Agent learning focused | 1 passed |
-| Qualified-Six replay focused | 61 passed |
-| Qualified-Six diagnostics focused | 48 passed |
-| New A–J hermetic tests | 10 passed |
-| Default full library | 1281 passed |
-| Metal full library | 1282 passed |
-| `cargo test --tests` | library 1281, integration 404, timeout queue 12 passed |
-| Exact `workspace_timeout_reduction_queue` target | 12 passed |
-| Clean-style full library Run 1 | 1281 passed |
-| Clean-style full library Run 2 | 1281 passed |
-| `git diff --check` | pass |
+Run 1's worktree and external Cargo target were removed before Run 2. Run 2 used a
+new worktree and a new external Cargo target and copied no Run 1 filesystem state.
 
-For clean-style verification, the tracked source diff was applied to a detached
-`origin/main` worktree with no runtime evidence. Run 1 left no runtime
-artifact files. Its empty `state/learning_data` directory was removed before Run 2,
-which produced the same result. The temporary worktree was then removed.
+## 10. Differential Residue
 
-The optional default-thread parallel focused run was not performed because the
-explicit machine-safety instruction required Rust execution to remain single-job
-and single-threaded. Root collision, order independence, and corruption isolation
-are instead covered directly by A–J.
+- owned roots remaining: 0 integration workspace roots; 0 Qualified-Six or
+  acquisition test-lease roots attributable to these runs.
+- ownership markers remaining: 0.
+- new files versus baseline: 0 with matched command coverage.
+- new symlinks versus baseline: 0.
+- new non-empty directories versus baseline: 0.
+- new empty directories versus baseline: 0.
+- pre-existing residue: the same 722 regular files, 32 non-empty directories, and
+  2 empty directories are produced by starting HEAD under matched command coverage.
+- strict zero-residue claimed: no. The correct verdict is unchanged pre-existing
+  test residue plus zero R3-owned residue and zero differential repository residue.
 
-## 11. Warnings
+No workspace parent created by any repaired fixture remained after cleanup.
 
-No new warning was introduced. The existing library check still reports four
-dead-code warnings:
+## 11. Full Verification
 
-- `apply_agent_feedback`
-- `proposal_is_valid_for`
-- `train_encoded_head`
-- `empty_result`
+- full runtime verification provenance: R3.
+- R4 runtime rerun: 수행하지 않음 — documentation-only correction.
 
-The library-test build reports the existing `train_encoded_head` warning.
+- cargo fmt: pass.
+- Default check: pass.
+- Metal check: pass with `backend-metal`.
+- Default test count: 1,304 passed in each clean run.
+- Metal test count: 1,305 passed in each clean run.
+- integration count: full command passed in both runs; repaired integration target
+  411 passed.
+- timeout count: 12 passed in the full integration runs and in the required exact
+  Run 1 execution.
+- focused count: Qualified-Six 116 passed; integration workspace regressions 7
+  passed; each of the three repaired fixtures passed individually.
+- R3 git diff --check: pass.
+- R4 documentation-only checks: `git diff --check`, 16-section structure, MODE,
+  Final Status, and Exactly One Next Step checks passed; no runtime test was run.
+- warnings: four pre-existing dead-code warnings in both check configurations;
+  new warnings introduced by R3: 0.
 
-## 12. Safety
+Verification-harness notes: an initial Run 1 output session could not be recovered
+and was not counted. The first logged Default rerun reported all 1,304 tests as
+passing, but its missing log directory made the shell wrapper exit nonzero; after
+creating that directory, the exact command passed again with exit code 0. One
+Metal attempt named the nonexistent `metal` feature and Cargo rejected it before
+building or testing; the required `backend-metal` command then passed. No source
+change occurred between these harness corrections and the recorded passing runs.
 
-- Production missing-evidence behavior remains fail-closed.
-- Production default roots and public behavior remain unchanged.
-- No network, live outcome, trading, reward, chair, or model-selection authority was
-  added.
-- No opaque generated replay bundle or production runtime evidence was committed.
-- No unrelated source, M3 implementation, commit, push, or PR state was changed.
-- Temporary cleanup targeted only test-owned roots and the dedicated validation
-  worktree.
+## 12. Documentation
 
-## 13. What this proves
+- R2 failure recorded: yes; the exact three failures and their missing-parent cause
+  are retained above.
+- R3 repair recorded: yes; ownership, path validation, cleanup, assertion
+  preservation, verification, and residue results are recorded.
+- R4 report contract correction recorded: yes.
+- concrete external user filenames present: 0.
+- external instruction references present: 0.
+- actual results only: yes. The initial failure, baseline interruption, supplemental
+  baseline measurement, and every completed verification are distinguished.
+- 16-section structure verified: yes.
 
-- The original 38 failures reproduce on authoritative `origin/main`.
-- The repaired tests run without developer-local runtime evidence.
-- Qualified-Six test prerequisites are explicit and path-injected.
-- Representative ordering, path identity, empty-root, and corruption contracts are
-  regression-tested.
-- Production missing evidence still fails closed.
-- The branch is ready for independent review and later PR validation.
+## 13. Safety
 
-## 14. What this does not prove
+- external user content read: 0.
+- external user content touched: 0.
+- market network: 0 requests and 0 downloads.
+- live: 0 live requests and 0 live inference.
+- holdout: 0 sealed holdout reads.
+- real model operations: 0 real fits, predictions, or target reveals.
+- real predictions: 0.
+- trading: 0 paper trades, live trades, orders, or account access.
+- Chair execution, committee vote, reward mutation, and penalty mutation: 0.
+- production source mutation during R4: 0.
+- test source mutation during R4: 0.
+- PR #35 mutation: none.
+- PR #36 remote mutation: none.
+- Sprint 104 changes: none.
 
-- It does not reproduce real market outcomes or Qualified-Six investment performance.
-- It does not validate M3-Micro predictive quality or authorize production trading.
-- It does not make production execution succeed without genuine production evidence.
-- It does not claim that every future repository test can never become flaky.
+No automatic promotion or Formula mutation occurred.
 
-## 15. Remaining risks
+## 14. Remaining Risks
 
-- The optional multi-threaded focused run was intentionally omitted under the
-  machine-safety constraint. Collision resistance is supported by unique roots and
-  direct regression tests rather than an additional parallel stress run.
-- Synthetic fixtures validate artifact and causal contracts; they are not substitutes
-  for real production evidence or market evaluation.
+R3는 확인된 세 fixture의 경로 생명주기 문제를 제한적으로 교정했다.
+이번 결과만으로 integration test 파일 전체가 완전히 hermetic하다고 증명된
+것은 아니다.
 
-## 16. Final status
+Read-only inspection of the tracked integration test confirms that existing tests
+still use repository-relative shared `target` paths:
 
-`READY_FOR_REVIEW`
+- `watchlist_recheck_direct_cycle_loads_local_paths` creates the shared `target`
+  parent and writes its market-data and news fixtures directly beneath it.
+- `owner_intent_policy_table_loads_prioritizes_and_rejects_safely` writes JSON and
+  TOML fixtures directly beneath the shared parent without acquiring an exclusive
+  test-owned workspace.
+- `news_provider_layer_collects_local_and_defers_remote_safely` likewise writes
+  local news fixtures directly beneath the shared parent without independently
+  owning that parent lifecycle.
 
-## 17. Exactly one next step
+These tests were not observed failing in the completed R3 integration run, so this
+section does not claim a current failure or a production defect. It records that
+some existing tests may not independently own their parent lifecycle and that the
+entire integration target's execution-order independence and full hermeticity have
+not yet been separately proven. This limitation does not invalidate the passing R3
+result for the three repaired fixtures. A complete integration-fixture inventory
+and broader hermeticization remain a separate follow-up scope.
 
-Have an independent reviewer inspect this diff and evidence report before any
-authorized commit, push, or draft-PR publication.
+## 15. Final Status
+
+- READY_FOR_REVIEW
+
+## 16. Exactly One Next Step
+
+- 수정된 보고서와 전체 8-file local diff에 대해 한 번의 독립적인
+  review-only 검토를 수행한다.

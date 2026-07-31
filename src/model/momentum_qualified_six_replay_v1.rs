@@ -21,7 +21,8 @@ use super::{
     momentum_multitimeframe_history_v1::{
         MomentumHistoricalTimeframeV1, MomentumQualifiedReplayCandleEvidenceV1,
         MomentumQualifiedReplayProtectedStateV1, MomentumQualifiedSixEvidenceV1,
-        load_momentum_qualified_six_evidence_v1, momentum_qualified_replay_protected_state_v1,
+        ROOT as HISTORICAL_ROOT, load_momentum_qualified_six_evidence_v1,
+        load_momentum_qualified_six_evidence_v1_at, momentum_qualified_replay_protected_state_v1,
     },
     momentum_raw_feature_v4::train_head_v4,
 };
@@ -1829,7 +1830,11 @@ fn prepare_replay_from_evidence(
 }
 
 fn prepare_replay() -> Result<PreparedReplay, String> {
-    prepare_replay_from_evidence(load_momentum_qualified_six_evidence_v1()?)
+    prepare_replay_at(Path::new(HISTORICAL_ROOT))
+}
+
+fn prepare_replay_at(historical_root: &Path) -> Result<PreparedReplay, String> {
+    prepare_replay_from_evidence(load_momentum_qualified_six_evidence_v1_at(historical_root)?)
 }
 
 fn encode_label_policy(value: &MomentumTenMinuteDirectionLabelPolicyV1) -> Result<Vec<u8>, String> {
@@ -6377,22 +6382,20 @@ pub fn format_momentum_qualified_six_replay_text_v1(
 
 #[cfg(test)]
 pub(super) mod test_support {
-    use std::sync::atomic::{AtomicUsize, Ordering};
-
     use super::super::momentum_multitimeframe_history_v1::{
         MomentumQualifiedReplayHoldoutEvidenceV1, MomentumQualifiedReplayProtocolEventV1,
         QualifiedSixTestFoundationReceiptV1, materialize_qualified_six_test_foundation_v1,
         momentum_qualified_replay_protected_state_v1_at,
     };
     use super::*;
+    use crate::test_support::TestWorkspaceLease;
 
     const TEST_HISTORY_ROWS: usize = 64;
     const TEST_EVENT_COUNT: usize = 24;
     const TEST_WEEK_MS: u64 = 7 * DAY_MS;
 
-    static TEST_WORLD_SEQUENCE: AtomicUsize = AtomicUsize::new(0);
-
     pub(crate) struct QualifiedSixTestWorldV1 {
+        _lease: TestWorkspaceLease,
         root: PathBuf,
         historical_root: PathBuf,
         live_root: PathBuf,
@@ -6401,19 +6404,28 @@ pub(super) mod test_support {
 
     impl QualifiedSixTestWorldV1 {
         pub(crate) fn new(name: &str) -> Result<Self, String> {
-            let root = std::env::temp_dir().join(format!(
-                "soma-qualified-six-world-{name}-{}-{}",
-                std::process::id(),
-                TEST_WORLD_SEQUENCE.fetch_add(1, Ordering::Relaxed)
-            ));
-            let historical_root = root.join("historical");
-            let live_root = root.join("live");
-            let replay_root = root.join("replay");
-            for path in [&historical_root, &live_root, &replay_root] {
-                fs::create_dir_all(path)
-                    .map_err(|_| "qualified-six test workspace create failed".to_string())?;
+            let lease = TestWorkspaceLease::new(name)?;
+            let root = lease.root().to_path_buf();
+            let mut children = Vec::new();
+            for child in ["historical", "live", "replay"] {
+                match lease.create_child_dir(child) {
+                    Ok(path) => children.push(path),
+                    Err(error) => {
+                        let cleanup = lease.cleanup();
+                        return Err(match cleanup {
+                            Ok(()) => error,
+                            Err(cleanup_error) => {
+                                format!("{error}; owned cleanup failed: {cleanup_error}")
+                            }
+                        });
+                    }
+                }
             }
+            let [historical_root, live_root, replay_root] = children
+                .try_into()
+                .map_err(|_| "qualified-six test workspace shape rejected".to_string())?;
             Ok(Self {
+                _lease: lease,
                 root,
                 historical_root,
                 live_root,
@@ -6446,15 +6458,16 @@ pub(super) mod test_support {
             momentum_qualified_replay_protected_state_v1_at(&self.historical_root, &self.live_root)
         }
 
-        pub(crate) fn materialize_completed_replay_header(
+        pub(crate) fn materialize_synthetic_downstream_replay_header(
             &self,
         ) -> Result<MomentumQualifiedDiagnosticSourceHeaderV1, String> {
-            let prepared = prepared_test_replay_v1()?;
-            let development = test_aggregate(
+            self.materialize_foundation(0)?;
+            let prepared = prepare_replay_at(&self.historical_root)?;
+            let development = synthetic_downstream_aggregate(
                 &prepared.registration.registration_digest,
                 MomentumReplayPartitionV1::Development,
             );
-            let validation = test_aggregate(
+            let validation = synthetic_downstream_aggregate(
                 &prepared.registration.registration_digest,
                 MomentumReplayPartitionV1::Validation,
             );
@@ -6543,12 +6556,6 @@ pub(super) mod test_support {
                 |bytes| Ok(decode_report(bytes)?.report_digest),
             )?;
             load_momentum_qualified_diagnostic_source_header_v1_at(&self.replay_root)
-        }
-    }
-
-    impl Drop for QualifiedSixTestWorldV1 {
-        fn drop(&mut self) {
-            let _ = fs::remove_dir_all(&self.root);
         }
     }
 
@@ -6710,7 +6717,7 @@ pub(super) mod test_support {
         }
     }
 
-    pub(super) fn prepared_test_replay_v1() -> Result<PreparedReplay, String> {
+    pub(super) fn prepared_in_memory_test_fixture_v1() -> Result<PreparedReplay, String> {
         prepare_replay_from_evidence(test_evidence_v1(0))
     }
 
@@ -6740,7 +6747,7 @@ pub(super) mod test_support {
         value
     }
 
-    fn test_aggregate(
+    fn synthetic_downstream_aggregate(
         registration_digest: &str,
         partition: MomentumReplayPartitionV1,
     ) -> MomentumQualifiedPartitionAggregateV1 {
@@ -6788,7 +6795,9 @@ mod tests {
     use super::super::momentum_multitimeframe_history_v1::{
         load_momentum_qualified_six_evidence_v1_at, qualified_six_unresolved_contract_valid_v1,
     };
-    use super::test_support::{QualifiedSixTestWorldV1, prepared_test_replay_v1, test_evidence_v1};
+    use super::test_support::{
+        QualifiedSixTestWorldV1, prepared_in_memory_test_fixture_v1, test_evidence_v1,
+    };
     use super::*;
 
     static TEMP_SEQUENCE: AtomicUsize = AtomicUsize::new(0);
@@ -6813,7 +6822,9 @@ mod tests {
 
     fn prepared() -> &'static PreparedReplay {
         static PREPARED: OnceLock<PreparedReplay> = OnceLock::new();
-        PREPARED.get_or_init(|| prepared_test_replay_v1().expect("qualified-six fixture"))
+        PREPARED.get_or_init(|| {
+            prepared_in_memory_test_fixture_v1().expect("qualified-six in-memory fixture")
+        })
     }
 
     fn feature_block_fixture() -> MomentumQualifiedTimeframeFeatureBlockV1 {
@@ -7071,9 +7082,14 @@ mod tests {
 
     #[test]
     fn sprint98_02_all_nineteen_macro_failures_remain_unresolved() {
-        let evidence = test_evidence_v1(0);
+        let world = QualifiedSixTestWorldV1::new("unresolved-contract").expect("test world");
+        world.materialize_foundation(0).expect("foundation");
+        let evidence = load_momentum_qualified_six_evidence_v1_at(world.historical_root())
+            .expect("persisted evidence");
         assert_eq!(evidence.excluded_timeframes, excluded_timeframes());
-        assert_eq!(prepared().evidence.excluded_timeframes.len(), 2);
+        let prepared =
+            prepare_replay_at(world.historical_root()).expect("persisted replay preparation");
+        assert_eq!(prepared.evidence.excluded_timeframes.len(), 2);
         assert!(qualified_six_unresolved_contract_valid_v1(15, 4, 19));
         assert!(!qualified_six_unresolved_contract_valid_v1(14, 4, 18));
     }
@@ -7081,9 +7097,13 @@ mod tests {
     #[test]
     fn sprint98_03_forensic_tolerance_contract_remains_unchanged() {
         let world = QualifiedSixTestWorldV1::new("tolerance-contract").expect("test world");
-        let receipt = world.materialize_foundation(0).expect("foundation");
-        assert!(!receipt.foundation_identity.is_empty());
-        assert!(world.protected_state().is_ok());
+        world.materialize_foundation(0).expect("foundation");
+        let evidence = load_momentum_qualified_six_evidence_v1_at(world.historical_root())
+            .expect("fixed-tolerance persisted evidence");
+        let prepared =
+            prepare_replay_at(world.historical_root()).expect("persisted replay preparation");
+        assert_eq!(prepared.evidence, evidence);
+        assert!(validate_eligibility(&prepared.eligibility_audit).is_ok());
     }
 
     #[test]
@@ -7534,14 +7554,51 @@ mod tests {
     }
 
     #[test]
+    fn sprint103_r1_missing_pause_remains_unavailable_without_repair() {
+        let world = QualifiedSixTestWorldV1::new("missing-pause").expect("test world");
+        let receipt = world.materialize_foundation(0).expect("foundation");
+        fs::remove_file(receipt.pause_artifact_path).expect("remove test-owned pause");
+        let error = load_momentum_qualified_six_evidence_v1_at(world.historical_root())
+            .expect_err("missing pause");
+        assert_eq!(error, "qualified-six live pause unavailable");
+    }
+
+    #[test]
+    fn sprint103_r1_missing_foundation_remains_unavailable_without_repair() {
+        let world = QualifiedSixTestWorldV1::new("missing-foundation").expect("test world");
+        let receipt = world.materialize_foundation(0).expect("foundation");
+        fs::remove_file(receipt.foundation_artifact_path).expect("remove test-owned foundation");
+        let error = load_momentum_qualified_six_evidence_v1_at(world.historical_root())
+            .expect_err("missing foundation");
+        assert_eq!(error, "qualified-six foundation unavailable");
+    }
+
+    #[test]
+    fn sprint103_r1_missing_replay_registration_remains_unavailable() {
+        let world = QualifiedSixTestWorldV1::new("missing-registration").expect("test world");
+        let error = load_momentum_qualified_diagnostic_source_header_v1_at(world.replay_root())
+            .expect_err("missing registration");
+        assert_eq!(
+            error,
+            "qualified-six diagnostic source registration unavailable"
+        );
+    }
+
+    #[test]
     fn sprint103_p1_builder_persists_reopens_and_validates_foundation() {
         let world = QualifiedSixTestWorldV1::new("foundation").expect("test world");
         let receipt = world.materialize_foundation(0).expect("foundation");
         assert!(receipt.foundation_artifact_path.is_file());
+        assert!(receipt.plan_artifact_path.is_file());
         assert!(!receipt.source_identity.is_empty());
         assert!(!receipt.pause_identity.is_empty());
         assert!(!receipt.foundation_identity.is_empty());
         assert!(!receipt.plan_identity.is_empty());
+        let loaded = load_momentum_qualified_six_evidence_v1_at(world.historical_root())
+            .expect("persisted evidence");
+        let prepared =
+            prepare_replay_at(world.historical_root()).expect("persisted replay preparation");
+        assert_eq!(prepared.evidence, loaded);
         assert!(world.protected_state().is_ok());
     }
 
@@ -7599,7 +7656,7 @@ mod tests {
     }
 
     #[test]
-    fn sprint103_p1_explicit_source_requires_no_repository_state() {
+    fn sprint103_p1_in_memory_pure_fixture_requires_no_repository_state() {
         let first = prepare_replay_from_evidence(test_evidence_v1(0)).expect("first");
         let second = prepare_replay_from_evidence(test_evidence_v1(0)).expect("second");
         assert_eq!(first.registration, second.registration);
@@ -7636,6 +7693,55 @@ mod tests {
         fs::write(&corrupt_receipt.foundation_artifact_path, bytes).expect("corrupt private copy");
         assert!(load_momentum_qualified_six_evidence_v1_at(corrupt.historical_root()).is_err());
         assert!(pristine.protected_state().is_ok());
+    }
+
+    #[test]
+    fn sprint103_r1_corrupt_pause_fails_closed() {
+        let world = QualifiedSixTestWorldV1::new("corrupt-pause").expect("test world");
+        let receipt = world.materialize_foundation(0).expect("foundation");
+        let mut bytes = fs::read(&receipt.pause_artifact_path).expect("pause bytes");
+        bytes[0] ^= 0xff;
+        fs::write(&receipt.pause_artifact_path, bytes).expect("corrupt pause");
+        assert!(load_momentum_qualified_six_evidence_v1_at(world.historical_root()).is_err());
+    }
+
+    #[test]
+    fn sprint103_r1_corrupt_plan_fails_closed() {
+        let world = QualifiedSixTestWorldV1::new("corrupt-plan").expect("test world");
+        let receipt = world.materialize_foundation(0).expect("foundation");
+        let mut bytes = fs::read(&receipt.plan_artifact_path).expect("plan bytes");
+        bytes[0] ^= 0xff;
+        fs::write(&receipt.plan_artifact_path, bytes).expect("corrupt plan");
+        assert!(load_momentum_qualified_six_evidence_v1_at(world.historical_root()).is_err());
+    }
+
+    #[test]
+    fn sprint103_r1_foundation_plan_binding_mismatch_is_rejected() {
+        let left = QualifiedSixTestWorldV1::new("binding-left").expect("left world");
+        let right = QualifiedSixTestWorldV1::new("binding-right").expect("right world");
+        let left_receipt = left.materialize_foundation(0).expect("left foundation");
+        let right_receipt = right.materialize_foundation(1).expect("right foundation");
+        fs::remove_file(&left_receipt.plan_artifact_path).expect("remove left plan");
+        let left_plan_root = left.historical_root().join("acquisition_plans");
+        let replacement = left_plan_root.join(
+            right_receipt
+                .plan_artifact_path
+                .file_name()
+                .expect("right plan name"),
+        );
+        fs::copy(&right_receipt.plan_artifact_path, replacement).expect("copy mismatched plan");
+        let error = load_momentum_qualified_six_evidence_v1_at(left.historical_root())
+            .expect_err("binding mismatch");
+        assert_eq!(error, "qualified-six foundation binding rejected");
+    }
+
+    #[test]
+    fn sprint103_r1_in_memory_fixture_never_falls_back_for_missing_persisted_evidence() {
+        let world = QualifiedSixTestWorldV1::new("no-in-memory-fallback").expect("test world");
+        let in_memory = test_evidence_v1(0);
+        assert_eq!(in_memory.included_timeframes, included_timeframes());
+        assert!(prepare_replay_at(world.historical_root()).is_err());
+        assert!(load_momentum_qualified_six_evidence_v1_at(world.historical_root()).is_err());
     }
 
     #[test]

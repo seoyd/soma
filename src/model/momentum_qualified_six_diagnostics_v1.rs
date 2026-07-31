@@ -5073,9 +5073,8 @@ mod tests {
     #[test]
     fn sprint99_01_qualified_six_replay_invariants_reopen() {
         let world = QualifiedSixTestWorldV1::new("diagnostic-invariants").expect("test world");
-        world.materialize_foundation(0).expect("foundation");
         world
-            .materialize_completed_replay_header()
+            .materialize_synthetic_downstream_replay_header()
             .expect("materialize replay");
         let header = load_momentum_qualified_diagnostic_source_header_v1_at(world.replay_root())
             .expect("header");
@@ -5086,8 +5085,9 @@ mod tests {
     #[test]
     fn sprint99_02_merged_replay_identities_are_complete() {
         let world = QualifiedSixTestWorldV1::new("diagnostic-identities").expect("test world");
-        world.materialize_foundation(0).expect("foundation");
-        let header = world.materialize_completed_replay_header().expect("header");
+        let header = world
+            .materialize_synthetic_downstream_replay_header()
+            .expect("header");
         assert!(!header.registration_digest.is_empty());
         assert!(!header.replay_journal_digest.is_empty());
         assert!(!header.public_report_digest.is_empty());
@@ -5135,8 +5135,9 @@ mod tests {
     #[test]
     fn sprint99_07_live_outcome_remains_unreadable() {
         let world = QualifiedSixTestWorldV1::new("diagnostic-live-outcome").expect("test world");
-        world.materialize_foundation(0).expect("foundation");
-        let header = world.materialize_completed_replay_header().expect("header");
+        let header = world
+            .materialize_synthetic_downstream_replay_header()
+            .expect("header");
         assert_eq!(header.holdout_label_reads, 0);
         let protected = world.protected_state().expect("protected");
         assert_eq!(protected.live_outcome_requests, 0);
