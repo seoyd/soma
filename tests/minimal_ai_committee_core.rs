@@ -1,6 +1,8 @@
 use std::{
-    fs,
-    path::PathBuf,
+    ffi::OsString,
+    fs::{self, OpenOptions},
+    io::{self, ErrorKind, Write},
+    path::{Component, Path, PathBuf},
     process::Command,
     sync::atomic::{AtomicU64, Ordering},
     time::{SystemTime, UNIX_EPOCH},
@@ -7598,6 +7600,380 @@ fn sprint170_contract_inputs() -> (
         output_schema,
         contracts,
     )
+}
+
+const INTEGRATION_FIXTURE_ALLOCATION_ATTEMPTS: usize = 128;
+const INTEGRATION_FIXTURE_OWNER_MARKER: &str = ".soma-integration-fixture-owner";
+static INTEGRATION_FIXTURE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+
+#[derive(Debug)]
+struct IntegrationFixtureWorkspace {
+    base: PathBuf,
+    root: PathBuf,
+    marker_path: PathBuf,
+    ownership_token: String,
+    expected_root_name: OsString,
+    owns_root: bool,
+}
+
+impl IntegrationFixtureWorkspace {
+    fn new(label: &str) -> io::Result<Self> {
+        Self::allocate(
+            label,
+            INTEGRATION_FIXTURE_ALLOCATION_ATTEMPTS,
+            &INTEGRATION_FIXTURE_SEQUENCE,
+        )
+    }
+
+    fn allocate(label: &str, maximum_attempts: usize, sequence: &AtomicU64) -> io::Result<Self> {
+        validate_integration_fixture_label(label)?;
+        if maximum_attempts == 0 {
+            return Err(io::Error::new(
+                ErrorKind::AlreadyExists,
+                "integration fixture allocation attempts exhausted",
+            ));
+        }
+        let base = std::env::temp_dir();
+        for _ in 0..maximum_attempts {
+            let candidate_sequence = sequence.fetch_add(1, Ordering::Relaxed);
+            let root = integration_fixture_candidate(&base, label, candidate_sequence);
+            match fs::create_dir(&root) {
+                Ok(()) => {}
+                Err(error) if error.kind() == ErrorKind::AlreadyExists => continue,
+                Err(error) => return Err(error),
+            }
+            let expected_root_name = root
+                .file_name()
+                .ok_or_else(|| {
+                    io::Error::new(
+                        ErrorKind::InvalidInput,
+                        "integration fixture root name unavailable",
+                    )
+                })?
+                .to_os_string();
+            let marker_path = root.join(INTEGRATION_FIXTURE_OWNER_MARKER);
+            let ownership_token = format!(
+                "soma-integration-fixture-owner-v1:{}:{candidate_sequence}:{label}",
+                std::process::id()
+            );
+            let mut marker = match OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&marker_path)
+            {
+                Ok(marker) => marker,
+                Err(error) => {
+                    let _ = fs::remove_dir(&root);
+                    return Err(error);
+                }
+            };
+            if let Err(error) = marker
+                .write_all(ownership_token.as_bytes())
+                .and_then(|_| marker.flush())
+                .and_then(|_| marker.sync_all())
+            {
+                drop(marker);
+                let _ = fs::remove_file(&marker_path);
+                let _ = fs::remove_dir(&root);
+                return Err(error);
+            }
+            return Ok(Self {
+                base,
+                root,
+                marker_path,
+                ownership_token,
+                expected_root_name,
+                owns_root: true,
+            });
+        }
+        Err(io::Error::new(
+            ErrorKind::AlreadyExists,
+            "integration fixture allocation attempts exhausted",
+        ))
+    }
+
+    fn root(&self) -> &Path {
+        &self.root
+    }
+
+    fn resolve_relative(&self, relative: &Path) -> io::Result<PathBuf> {
+        self.verify_ownership()?;
+        if relative.as_os_str().is_empty()
+            || relative.is_absolute()
+            || relative.file_name().is_none()
+            || !relative
+                .components()
+                .all(|component| matches!(component, Component::Normal(_)))
+        {
+            return Err(io::Error::new(
+                ErrorKind::InvalidInput,
+                "integration fixture relative path rejected",
+            ));
+        }
+        let resolved = self.root.join(relative);
+        if !resolved.starts_with(&self.root) {
+            return Err(io::Error::new(
+                ErrorKind::InvalidInput,
+                "integration fixture path escaped workspace",
+            ));
+        }
+        Ok(resolved)
+    }
+
+    fn prepare_parent(&self, relative_file: &Path) -> io::Result<PathBuf> {
+        let path = self.resolve_relative(relative_file)?;
+        let parent = path.parent().ok_or_else(|| {
+            io::Error::new(
+                ErrorKind::InvalidInput,
+                "integration fixture parent unavailable",
+            )
+        })?;
+        if parent != self.root {
+            fs::create_dir_all(parent)?;
+        }
+        Ok(path)
+    }
+
+    fn prepare_directory(&self, relative_directory: &Path) -> io::Result<PathBuf> {
+        let path = self.resolve_relative(relative_directory)?;
+        fs::create_dir_all(&path)?;
+        Ok(path)
+    }
+
+    fn cleanup(mut self) -> io::Result<()> {
+        self.cleanup_verified()
+    }
+
+    fn verify_ownership(&self) -> io::Result<()> {
+        if !self.owns_root
+            || self.root.parent() != Some(self.base.as_path())
+            || self.root.file_name() != Some(self.expected_root_name.as_os_str())
+            || self.root != self.base.join(&self.expected_root_name)
+            || self.marker_path != self.root.join(INTEGRATION_FIXTURE_OWNER_MARKER)
+        {
+            return Err(io::Error::new(
+                ErrorKind::PermissionDenied,
+                "integration fixture ownership boundary rejected",
+            ));
+        }
+        let root_metadata = fs::symlink_metadata(&self.root)?;
+        if root_metadata.file_type().is_symlink() || !root_metadata.file_type().is_dir() {
+            return Err(io::Error::new(
+                ErrorKind::PermissionDenied,
+                "integration fixture root type rejected",
+            ));
+        }
+        let marker_metadata = fs::symlink_metadata(&self.marker_path)?;
+        if marker_metadata.file_type().is_symlink() || !marker_metadata.file_type().is_file() {
+            return Err(io::Error::new(
+                ErrorKind::PermissionDenied,
+                "integration fixture marker type rejected",
+            ));
+        }
+        if fs::read_to_string(&self.marker_path)? != self.ownership_token {
+            return Err(io::Error::new(
+                ErrorKind::PermissionDenied,
+                "integration fixture ownership token mismatch",
+            ));
+        }
+        Ok(())
+    }
+
+    fn cleanup_verified(&mut self) -> io::Result<()> {
+        self.verify_ownership()?;
+        fs::remove_dir_all(&self.root)?;
+        self.owns_root = false;
+        Ok(())
+    }
+
+    fn candidate_root_for_test(label: &str, sequence: u64) -> io::Result<PathBuf> {
+        validate_integration_fixture_label(label)?;
+        Ok(integration_fixture_candidate(
+            &std::env::temp_dir(),
+            label,
+            sequence,
+        ))
+    }
+
+    fn new_with_sequence_for_test(
+        label: &str,
+        maximum_attempts: usize,
+        sequence: &AtomicU64,
+    ) -> io::Result<Self> {
+        Self::allocate(label, maximum_attempts, sequence)
+    }
+}
+
+impl Drop for IntegrationFixtureWorkspace {
+    fn drop(&mut self) {
+        if self.owns_root {
+            let _ = self.cleanup_verified();
+        }
+    }
+}
+
+fn integration_fixture_candidate(base: &Path, label: &str, sequence: u64) -> PathBuf {
+    base.join(format!(
+        "soma-integration-fixture-{label}-{}-{sequence}",
+        std::process::id()
+    ))
+}
+
+fn validate_integration_fixture_label(label: &str) -> io::Result<()> {
+    if label.is_empty()
+        || label == "."
+        || label == ".."
+        || label.len() > 96
+        || label.contains(['/', '\\'])
+        || !label
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_'))
+    {
+        return Err(io::Error::new(
+            ErrorKind::InvalidInput,
+            "integration fixture label rejected",
+        ));
+    }
+    Ok(())
+}
+
+#[test]
+fn integration_fixture_workspace_prepares_absent_parent_and_reopens() {
+    let workspace = IntegrationFixtureWorkspace::new("parent-reopen").expect("workspace");
+    let parent = workspace
+        .resolve_relative(Path::new("nested"))
+        .expect("nested parent path");
+    assert!(!parent.exists());
+    let fixture = workspace
+        .prepare_parent(Path::new("nested/fixture.json"))
+        .expect("prepare fixture parent");
+    assert!(parent.is_dir());
+    fs::write(&fixture, b"fixture-bytes").expect("write fixture");
+    assert!(fixture.is_file());
+    assert_eq!(
+        fs::read(&fixture).expect("reopen fixture"),
+        b"fixture-bytes"
+    );
+    let root = workspace.root().to_path_buf();
+    workspace.cleanup().expect("cleanup workspace");
+    assert!(!root.exists());
+}
+
+#[test]
+fn integration_fixture_workspace_roots_are_unique() {
+    let left = IntegrationFixtureWorkspace::new("unique-left").expect("left workspace");
+    let right = IntegrationFixtureWorkspace::new("unique-right").expect("right workspace");
+    assert_ne!(left.root(), right.root());
+    let left_root = left.root().to_path_buf();
+    let right_root = right.root().to_path_buf();
+    left.cleanup().expect("cleanup left workspace");
+    right.cleanup().expect("cleanup right workspace");
+    assert!(!left_root.exists());
+    assert!(!right_root.exists());
+}
+
+#[test]
+fn integration_fixture_workspace_skips_stale_candidate_unchanged() {
+    static STALE_LABEL_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+    let label = format!(
+        "stale-{}",
+        STALE_LABEL_SEQUENCE.fetch_add(1, Ordering::Relaxed)
+    );
+    let stale = IntegrationFixtureWorkspace::candidate_root_for_test(&label, 0)
+        .expect("stale candidate path");
+    fs::create_dir(&stale).expect("reserve stale candidate");
+    let sentinel = stale.join("sentinel.txt");
+    fs::write(&sentinel, b"stale-owned-by-regression").expect("write stale sentinel");
+    let sequence = AtomicU64::new(0);
+    let workspace = IntegrationFixtureWorkspace::new_with_sequence_for_test(&label, 2, &sequence)
+        .expect("allocate after stale candidate");
+    assert_ne!(workspace.root(), stale);
+    workspace.cleanup().expect("cleanup allocated workspace");
+    assert_eq!(
+        fs::read(&sentinel).expect("reopen stale sentinel"),
+        b"stale-owned-by-regression"
+    );
+    fs::remove_file(&sentinel).expect("remove owned stale sentinel");
+    fs::remove_dir(&stale).expect("remove owned stale candidate");
+}
+
+#[test]
+fn integration_fixture_workspace_rejects_path_traversal_and_absolute_paths() {
+    let workspace = IntegrationFixtureWorkspace::new("path-validation").expect("workspace");
+    for rejected in [
+        PathBuf::from("../outside"),
+        PathBuf::from("nested/../../outside"),
+        PathBuf::from("./inside"),
+        std::env::temp_dir().join("absolute-outside"),
+    ] {
+        assert!(
+            workspace.resolve_relative(&rejected).is_err(),
+            "{rejected:?}"
+        );
+    }
+    workspace.cleanup().expect("cleanup workspace");
+}
+
+#[test]
+fn integration_fixture_workspace_marker_mismatch_prevents_cleanup() {
+    let mut workspace = IntegrationFixtureWorkspace::new("marker-mismatch").expect("workspace");
+    let root = workspace.root.clone();
+    let ownership_token = workspace.ownership_token.clone();
+    fs::write(&workspace.marker_path, b"mismatched-token").expect("mutate owned marker");
+    let error = workspace
+        .cleanup_verified()
+        .expect_err("mismatched marker must reject cleanup");
+    assert_eq!(error.kind(), ErrorKind::PermissionDenied);
+    assert!(root.is_dir());
+    fs::write(&workspace.marker_path, ownership_token).expect("restore owned marker");
+    workspace.cleanup().expect("cleanup restored workspace");
+    assert!(!root.exists());
+}
+
+#[test]
+fn integration_fixture_workspace_repeated_execution_is_independent() {
+    let mut reopened = Vec::new();
+    for _ in 0..2 {
+        let workspace = IntegrationFixtureWorkspace::new("repeated").expect("workspace");
+        let fixture = workspace
+            .prepare_parent(Path::new("layout/fixture.json"))
+            .expect("prepare fixture");
+        fs::write(&fixture, b"deterministic-fixture").expect("write fixture");
+        reopened.push(fs::read(&fixture).expect("reopen fixture"));
+        workspace.cleanup().expect("cleanup workspace");
+    }
+    assert_eq!(reopened[0], reopened[1]);
+}
+
+#[test]
+fn integration_fixture_workspace_parallel_allocations_do_not_collide() {
+    let handles = (0..8)
+        .map(|_| {
+            std::thread::spawn(|| {
+                let workspace =
+                    IntegrationFixtureWorkspace::new("parallel").expect("parallel workspace");
+                let fixture = workspace
+                    .prepare_parent(Path::new("parallel/fixture.json"))
+                    .expect("prepare parallel fixture");
+                fs::write(&fixture, b"parallel-fixture").expect("write parallel fixture");
+                assert_eq!(
+                    fs::read(&fixture).expect("reopen parallel fixture"),
+                    b"parallel-fixture"
+                );
+                let root = workspace.root().to_path_buf();
+                workspace.cleanup().expect("cleanup parallel workspace");
+                root
+            })
+        })
+        .collect::<Vec<_>>();
+    let mut roots = handles
+        .into_iter()
+        .map(|handle| handle.join().expect("join parallel workspace"))
+        .collect::<Vec<_>>();
+    roots.sort();
+    roots.dedup();
+    assert_eq!(roots.len(), 8);
+    assert!(roots.iter().all(|root| !root.exists()));
 }
 
 fn sprint171_temp_json_path(stem: &str) -> PathBuf {
@@ -21736,27 +22112,28 @@ fn autonomous_paper_loop_runs_cycles_attention_queue_and_archive_safely_inner() 
             .all(|candidate| candidate.paper_only)
     );
 
-    let isolated_config_path =
-        sprint171_temp_json_path("sprint135-autonomous-core-config").with_extension("toml");
-    let isolated_output_root =
-        sprint171_temp_json_path("sprint135-autonomous-core-output-root").with_extension("");
+    let workspace =
+        IntegrationFixtureWorkspace::new("autonomous-paper-loop").expect("fixture workspace");
+    let isolated_config_path = workspace
+        .prepare_parent(Path::new("isolated/autonomous-core-config.toml"))
+        .expect("prepare isolated config parent");
+    let isolated_output_root = workspace
+        .prepare_directory(Path::new("isolated/autonomous-core-output"))
+        .expect("prepare isolated output root");
     let isolated_output_prefix = format!("{}/minimal_", isolated_output_root.display());
     let isolated_config = std::fs::read_to_string("examples/soma_minimal_ai_committee_core.toml")
         .expect("read autonomous core config")
         .replace("target/minimal_", &isolated_output_prefix);
     std::fs::write(&isolated_config_path, isolated_config).expect("write isolated config");
-    let _ = std::fs::remove_dir_all(&isolated_output_root);
-    std::fs::create_dir_all(&isolated_output_root).expect("create isolated output root");
+    assert!(isolated_config_path.is_file());
 
     let first = run_autonomous_paper_committee_loop_from_config_path(&isolated_config_path)
         .expect("first autonomous run");
-    let _ = std::fs::remove_dir_all(&isolated_output_root);
-    std::fs::create_dir_all(&isolated_output_root).expect("reset isolated output root");
+    std::fs::remove_dir_all(&isolated_output_root).expect("remove owned output root");
+    std::fs::create_dir(&isolated_output_root).expect("reset owned output root");
     let second = run_autonomous_paper_committee_loop_from_config_path(&isolated_config_path)
         .expect("second autonomous run");
     assert_eq!(first, second);
-    let _ = std::fs::remove_dir_all(&isolated_output_root);
-    let _ = std::fs::remove_file(&isolated_config_path);
 
     assert_eq!(first.run_id, "soma-autonomous-paper-sprint135");
     assert_eq!(first.cycle_count, 1);
@@ -21895,9 +22272,11 @@ fn autonomous_paper_loop_runs_cycles_attention_queue_and_archive_safely_inner() 
     assert!(recheck.safety_summary.no_model_training);
     assert!(recheck.safety_summary.no_live_inference);
 
-    let fixed_config_path = std::path::Path::new("target/sprint135_autonomous_fixed.toml");
+    let fixed_config_path = workspace
+        .prepare_parent(Path::new("fixed/autonomous.toml"))
+        .expect("prepare fixed config parent");
     std::fs::write(
-        fixed_config_path,
+        &fixed_config_path,
         r#"
 input_path = "examples/minimal_ai_committee_multi_market_sample.json"
 offline_member_output_batch_path = "examples/minimal_offline_member_output_batch.sample.json"
@@ -21915,7 +22294,8 @@ style_mapping_mode = "LocalFixture"
 "#,
     )
     .expect("write fixed autonomous config");
-    let fixed = run_autonomous_paper_committee_loop_from_config_path(fixed_config_path)
+    assert!(fixed_config_path.is_file());
+    let fixed = run_autonomous_paper_committee_loop_from_config_path(&fixed_config_path)
         .expect("fixed autonomous run");
     assert_eq!(fixed.cycle_count, 2);
     assert!(
@@ -21942,7 +22322,9 @@ style_mapping_mode = "LocalFixture"
             >= first_risk_state.memory_state.recent_opinion_count
     );
     assert_eq!(fixed.attention_queue.requires_owner_input_count, 0);
-    let _ = std::fs::remove_file(fixed_config_path);
+    let workspace_root = workspace.root().to_path_buf();
+    workspace.cleanup().expect("cleanup fixture workspace");
+    assert!(!workspace_root.exists());
 }
 
 #[test]
@@ -24360,9 +24742,13 @@ fn autonomous_paper_config_rejects_remote_and_unsafe_fields() {
         .expect_err("remote autonomous market path must fail");
     assert!(err.contains("local_market_data_path must be local"));
 
-    let unsafe_config_path = std::path::Path::new("target/sprint135_unsafe_autonomous.toml");
+    let workspace =
+        IntegrationFixtureWorkspace::new("autonomous-config-rejection").expect("fixture workspace");
+    let unsafe_config_path = workspace
+        .prepare_parent(Path::new("unsafe/autonomous.toml"))
+        .expect("prepare unsafe config parent");
     std::fs::write(
-        unsafe_config_path,
+        &unsafe_config_path,
         r#"
 input_path = "examples/minimal_ai_committee_multi_market_sample.json"
 batch_mode = true
@@ -24373,10 +24759,13 @@ broker = "not allowed"
 "#,
     )
     .expect("write unsafe autonomous config");
-    let err = MinimalAiCommitteeCycleConfig::from_toml_path(unsafe_config_path)
+    assert!(unsafe_config_path.is_file());
+    let err = MinimalAiCommitteeCycleConfig::from_toml_path(&unsafe_config_path)
         .expect_err("unsafe autonomous config must fail");
     assert!(err.contains("unsafe field or instruction"));
-    let _ = std::fs::remove_file(unsafe_config_path);
+    let workspace_root = workspace.root().to_path_buf();
+    workspace.cleanup().expect("cleanup fixture workspace");
+    assert!(!workspace_root.exists());
 }
 
 #[test]
@@ -25392,7 +25781,16 @@ rejection_message = "custom toml policy rejected token"
 
 #[test]
 fn automated_news_intake_normalizes_local_fixture_without_network() {
-    let fixture_path = std::path::Path::new("target/sprint146_news_fixture.json");
+    let workspace =
+        IntegrationFixtureWorkspace::new("automated-news-intake").expect("fixture workspace");
+    let fixture_parent = workspace
+        .resolve_relative(Path::new("news"))
+        .expect("news fixture parent path");
+    assert!(!fixture_parent.exists());
+    let fixture_path = workspace
+        .prepare_parent(Path::new("news/fixture.json"))
+        .expect("prepare news fixture parent");
+    assert!(fixture_parent.is_dir());
     let items = vec![
         CollectedNewsItem {
             symbol: "005930.KS".to_string(),
@@ -25418,10 +25816,11 @@ fn automated_news_intake_normalizes_local_fixture_without_network() {
         },
     ];
     std::fs::write(
-        fixture_path,
+        &fixture_path,
         serde_json::to_string_pretty(&items).expect("serialize news fixture"),
     )
     .expect("write news fixture");
+    assert!(fixture_path.is_file());
 
     let result = collect_news_snapshots(&NewsCollectionConfig {
         source_mode: NewsCollectionSourceMode::LocalFixture,
@@ -25481,7 +25880,9 @@ fn automated_news_intake_normalizes_local_fixture_without_network() {
     })
     .expect_err("news fixture traversal rejected");
     assert!(traversal_err.contains("parent-directory traversal"));
-    let _ = std::fs::remove_file(fixture_path);
+    let workspace_root = workspace.root().to_path_buf();
+    workspace.cleanup().expect("cleanup fixture workspace");
+    assert!(!workspace_root.exists());
 }
 
 #[test]

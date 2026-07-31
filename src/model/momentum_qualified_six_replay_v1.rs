@@ -21,7 +21,8 @@ use super::{
     momentum_multitimeframe_history_v1::{
         MomentumHistoricalTimeframeV1, MomentumQualifiedReplayCandleEvidenceV1,
         MomentumQualifiedReplayProtectedStateV1, MomentumQualifiedSixEvidenceV1,
-        load_momentum_qualified_six_evidence_v1, momentum_qualified_replay_protected_state_v1,
+        ROOT as HISTORICAL_ROOT, load_momentum_qualified_six_evidence_v1,
+        load_momentum_qualified_six_evidence_v1_at, momentum_qualified_replay_protected_state_v1,
     },
     momentum_raw_feature_v4::train_head_v4,
 };
@@ -1589,8 +1590,9 @@ fn build_partition_policy(
     Ok(value)
 }
 
-fn prepare_replay() -> Result<PreparedReplay, String> {
-    let evidence = load_momentum_qualified_six_evidence_v1()?;
+fn prepare_replay_from_evidence(
+    evidence: MomentumQualifiedSixEvidenceV1,
+) -> Result<PreparedReplay, String> {
     if evidence.included_timeframes != included_timeframes()
         || evidence.excluded_timeframes != excluded_timeframes()
         || evidence.views.len() != 6
@@ -1825,6 +1827,14 @@ fn prepare_replay() -> Result<PreparedReplay, String> {
         participants,
         registration,
     })
+}
+
+fn prepare_replay() -> Result<PreparedReplay, String> {
+    prepare_replay_at(Path::new(HISTORICAL_ROOT))
+}
+
+fn prepare_replay_at(historical_root: &Path) -> Result<PreparedReplay, String> {
+    prepare_replay_from_evidence(load_momentum_qualified_six_evidence_v1_at(historical_root)?)
 }
 
 fn encode_label_policy(value: &MomentumTenMinuteDirectionLabelPolicyV1) -> Result<Vec<u8>, String> {
@@ -2268,8 +2278,28 @@ fn decode_registration(bytes: &[u8]) -> Result<MomentumQualifiedSixReplayRegistr
     Ok(value)
 }
 
+fn artifact_path_at(root: &Path, category: &str, digest: &str) -> PathBuf {
+    root.join(category).join(format!("{digest}.pb"))
+}
+
+#[cfg(test)]
 fn artifact_path(category: &str, digest: &str) -> PathBuf {
-    Path::new(ROOT).join(category).join(format!("{digest}.pb"))
+    artifact_path_at(Path::new(ROOT), category, digest)
+}
+
+fn persist_one_at(
+    root: &Path,
+    category: &str,
+    digest: &str,
+    bytes: &[u8],
+    decode_digest: impl Fn(&[u8]) -> Result<String, String>,
+) -> Result<(usize, usize), String> {
+    persist_artifact(
+        &artifact_path_at(root, category, digest),
+        bytes,
+        digest,
+        decode_digest,
+    )
 }
 
 fn persist_one(
@@ -2278,20 +2308,16 @@ fn persist_one(
     bytes: &[u8],
     decode_digest: impl Fn(&[u8]) -> Result<String, String>,
 ) -> Result<(usize, usize), String> {
-    persist_artifact(
-        &artifact_path(category, digest),
-        bytes,
-        digest,
-        decode_digest,
-    )
+    persist_one_at(Path::new(ROOT), category, digest, bytes, decode_digest)
 }
 
-fn read_exact<T>(
+fn read_exact_at<T>(
+    root: &Path,
     category: &str,
     digest: &str,
     decode: impl Fn(&[u8]) -> Result<T, String>,
 ) -> Result<Option<T>, String> {
-    let path = artifact_path(category, digest);
+    let path = artifact_path_at(root, category, digest);
     if !path.exists() {
         return Ok(None);
     }
@@ -2299,11 +2325,20 @@ fn read_exact<T>(
     decode(&bytes).map(Some)
 }
 
-fn read_only<T>(
+fn read_exact<T>(
+    category: &str,
+    digest: &str,
+    decode: impl Fn(&[u8]) -> Result<T, String>,
+) -> Result<Option<T>, String> {
+    read_exact_at(Path::new(ROOT), category, digest, decode)
+}
+
+fn read_only_at<T>(
+    root: &Path,
     category: &str,
     decode: impl Fn(&[u8]) -> Result<T, String>,
 ) -> Result<Option<T>, String> {
-    let root = Path::new(ROOT).join(category);
+    let root = root.join(category);
     if !root.exists() {
         return Ok(None);
     }
@@ -2328,6 +2363,13 @@ fn read_only<T>(
                 .and_then(|bytes| decode(&bytes))
         })
         .transpose()
+}
+
+fn read_only<T>(
+    category: &str,
+    decode: impl Fn(&[u8]) -> Result<T, String>,
+) -> Result<Option<T>, String> {
+    read_only_at(Path::new(ROOT), category, decode)
 }
 
 fn add_counts(total: &mut (usize, usize), next: (usize, usize)) {
@@ -5572,7 +5614,14 @@ fn decode_report(bytes: &[u8]) -> Result<MomentumQualifiedSixReplayReportV1, Str
 fn read_partition_aggregate(
     partition: MomentumReplayPartitionV1,
 ) -> Result<Option<MomentumQualifiedPartitionAggregateV1>, String> {
-    read_only(&aggregate_category(partition), decode_aggregate)
+    read_partition_aggregate_at(Path::new(ROOT), partition)
+}
+
+fn read_partition_aggregate_at(
+    root: &Path,
+    partition: MomentumReplayPartitionV1,
+) -> Result<Option<MomentumQualifiedPartitionAggregateV1>, String> {
+    read_only_at(root, &aggregate_category(partition), decode_aggregate)
 }
 
 fn read_all<T>(
@@ -5603,19 +5652,26 @@ fn read_all<T>(
         .collect()
 }
 
-pub(super) fn load_momentum_qualified_diagnostic_source_header_v1()
--> Result<MomentumQualifiedDiagnosticSourceHeaderV1, String> {
-    let registration = read_only("registrations", decode_registration)?
+pub(super) fn load_momentum_qualified_diagnostic_source_header_v1_at(
+    replay_root: &Path,
+) -> Result<MomentumQualifiedDiagnosticSourceHeaderV1, String> {
+    let registration = read_only_at(replay_root, "registrations", decode_registration)?
         .ok_or_else(|| "qualified-six diagnostic source registration unavailable".to_string())?;
-    let development = read_partition_aggregate(MomentumReplayPartitionV1::Development)?
-        .ok_or_else(|| "qualified-six diagnostic development aggregate unavailable".to_string())?;
-    let validation = read_partition_aggregate(MomentumReplayPartitionV1::Validation)?
-        .ok_or_else(|| "qualified-six diagnostic validation aggregate unavailable".to_string())?;
-    let holdout = read_only("holdout_boundaries", decode_holdout)?
+    let development =
+        read_partition_aggregate_at(replay_root, MomentumReplayPartitionV1::Development)?
+            .ok_or_else(|| {
+                "qualified-six diagnostic development aggregate unavailable".to_string()
+            })?;
+    let validation =
+        read_partition_aggregate_at(replay_root, MomentumReplayPartitionV1::Validation)?
+            .ok_or_else(|| {
+                "qualified-six diagnostic validation aggregate unavailable".to_string()
+            })?;
+    let holdout = read_only_at(replay_root, "holdout_boundaries", decode_holdout)?
         .ok_or_else(|| "qualified-six diagnostic holdout boundary unavailable".to_string())?;
-    let journal = read_only("replay_journals", decode_journal)?
+    let journal = read_only_at(replay_root, "replay_journals", decode_journal)?
         .ok_or_else(|| "qualified-six diagnostic replay journal unavailable".to_string())?;
-    let report = read_only("final_reports", decode_report)?
+    let report = read_only_at(replay_root, "final_reports", decode_report)?
         .ok_or_else(|| "qualified-six diagnostic public report unavailable".to_string())?;
     if report.status != MomentumQualifiedReplayStatusV1::Complete
         || report.registration_digest.as_deref() != Some(&registration.registration_digest)
@@ -5678,6 +5734,11 @@ pub(super) fn load_momentum_qualified_diagnostic_source_header_v1()
             .protected_active_roster_digest_before
             .unwrap_or_default(),
     })
+}
+
+pub(super) fn load_momentum_qualified_diagnostic_source_header_v1()
+-> Result<MomentumQualifiedDiagnosticSourceHeaderV1, String> {
+    load_momentum_qualified_diagnostic_source_header_v1_at(Path::new(ROOT))
 }
 
 fn past_micro_volatility(
@@ -6320,12 +6381,423 @@ pub fn format_momentum_qualified_six_replay_text_v1(
 }
 
 #[cfg(test)]
+pub(super) mod test_support {
+    use super::super::momentum_multitimeframe_history_v1::{
+        MomentumQualifiedReplayHoldoutEvidenceV1, MomentumQualifiedReplayProtocolEventV1,
+        QualifiedSixTestFoundationReceiptV1, materialize_qualified_six_test_foundation_v1,
+        momentum_qualified_replay_protected_state_v1_at,
+    };
+    use super::*;
+    use crate::test_support::TestWorkspaceLease;
+
+    const TEST_HISTORY_ROWS: usize = 64;
+    const TEST_EVENT_COUNT: usize = 24;
+    const TEST_WEEK_MS: u64 = 7 * DAY_MS;
+
+    pub(crate) struct QualifiedSixTestWorldV1 {
+        _lease: TestWorkspaceLease,
+        root: PathBuf,
+        historical_root: PathBuf,
+        live_root: PathBuf,
+        replay_root: PathBuf,
+    }
+
+    impl QualifiedSixTestWorldV1 {
+        pub(crate) fn new(name: &str) -> Result<Self, String> {
+            let lease = TestWorkspaceLease::new(name)?;
+            let root = lease.root().to_path_buf();
+            let mut children = Vec::new();
+            for child in ["historical", "live", "replay"] {
+                match lease.create_child_dir(child) {
+                    Ok(path) => children.push(path),
+                    Err(error) => {
+                        let cleanup = lease.cleanup();
+                        return Err(match cleanup {
+                            Ok(()) => error,
+                            Err(cleanup_error) => {
+                                format!("{error}; owned cleanup failed: {cleanup_error}")
+                            }
+                        });
+                    }
+                }
+            }
+            let [historical_root, live_root, replay_root] = children
+                .try_into()
+                .map_err(|_| "qualified-six test workspace shape rejected".to_string())?;
+            Ok(Self {
+                _lease: lease,
+                root,
+                historical_root,
+                live_root,
+                replay_root,
+            })
+        }
+
+        pub(crate) fn root(&self) -> &Path {
+            &self.root
+        }
+
+        pub(crate) fn historical_root(&self) -> &Path {
+            &self.historical_root
+        }
+
+        pub(crate) fn replay_root(&self) -> &Path {
+            &self.replay_root
+        }
+
+        pub(crate) fn materialize_foundation(
+            &self,
+            source_seed: u64,
+        ) -> Result<QualifiedSixTestFoundationReceiptV1, String> {
+            materialize_qualified_six_test_foundation_v1(&self.historical_root, source_seed)
+        }
+
+        pub(crate) fn protected_state(
+            &self,
+        ) -> Result<MomentumQualifiedReplayProtectedStateV1, String> {
+            momentum_qualified_replay_protected_state_v1_at(&self.historical_root, &self.live_root)
+        }
+
+        pub(crate) fn materialize_synthetic_downstream_replay_header(
+            &self,
+        ) -> Result<MomentumQualifiedDiagnosticSourceHeaderV1, String> {
+            self.materialize_foundation(0)?;
+            let prepared = prepare_replay_at(&self.historical_root)?;
+            let development = synthetic_downstream_aggregate(
+                &prepared.registration.registration_digest,
+                MomentumReplayPartitionV1::Development,
+            );
+            let validation = synthetic_downstream_aggregate(
+                &prepared.registration.registration_digest,
+                MomentumReplayPartitionV1::Validation,
+            );
+            let benchmarks = build_benchmarks(&development, &validation)?;
+            let contributions = build_contributions(&development, &validation)?;
+            let mut journal = MomentumQualifiedReplayJournalV1 {
+                journal_version: JOURNAL_VERSION.to_string(),
+                registration_digest: prepared.registration.registration_digest.clone(),
+                eligibility_audit_digest: prepared.eligibility_audit.audit_digest.clone(),
+                development_aggregate_digest: development.aggregate_digest.clone(),
+                validation_aggregate_digest: validation.aggregate_digest.clone(),
+                benchmark_comparison_digests: benchmarks
+                    .iter()
+                    .map(|value| value.comparison_digest.clone())
+                    .collect(),
+                contribution_comparison_digests: contributions
+                    .iter()
+                    .map(|value| value.comparison_digest.clone())
+                    .collect(),
+                holdout_boundary_digest: prepared.holdout_boundary.boundary_digest.clone(),
+                holdout_label_reads: 0,
+                holdout_metric_computations: 0,
+                holdout_participant_predictions: 0,
+                deterministic: true,
+                replay_digest: String::new(),
+            };
+            journal.replay_digest = journal_digest(&journal);
+            validate_journal(&journal)?;
+            let protected = self.protected_state()?;
+            let report = build_report(
+                "test-owned-complete",
+                Some(&prepared),
+                Some(&development),
+                Some(&validation),
+                benchmarks,
+                contributions,
+                Some(&journal),
+                &protected,
+                &protected,
+                (0, 0),
+                0,
+                0,
+                0,
+                0,
+            )?;
+            persist_test_artifact(
+                &self.replay_root,
+                "registrations",
+                &prepared.registration.registration_digest,
+                &encode_registration(&prepared.registration)?,
+                |bytes| Ok(decode_registration(bytes)?.registration_digest),
+            )?;
+            persist_test_artifact(
+                &self.replay_root,
+                &aggregate_category(MomentumReplayPartitionV1::Development),
+                &development.aggregate_digest,
+                &encode_aggregate(&development)?,
+                |bytes| Ok(decode_aggregate(bytes)?.aggregate_digest),
+            )?;
+            persist_test_artifact(
+                &self.replay_root,
+                &aggregate_category(MomentumReplayPartitionV1::Validation),
+                &validation.aggregate_digest,
+                &encode_aggregate(&validation)?,
+                |bytes| Ok(decode_aggregate(bytes)?.aggregate_digest),
+            )?;
+            persist_test_artifact(
+                &self.replay_root,
+                "holdout_boundaries",
+                &prepared.holdout_boundary.boundary_digest,
+                &encode_holdout(&prepared.holdout_boundary)?,
+                |bytes| Ok(decode_holdout(bytes)?.boundary_digest),
+            )?;
+            persist_test_artifact(
+                &self.replay_root,
+                "replay_journals",
+                &journal.replay_digest,
+                &encode_journal(&journal)?,
+                |bytes| Ok(decode_journal(bytes)?.replay_digest),
+            )?;
+            persist_test_artifact(
+                &self.replay_root,
+                "final_reports",
+                &report.report_digest,
+                &encode_report(&report)?,
+                |bytes| Ok(decode_report(bytes)?.report_digest),
+            )?;
+            load_momentum_qualified_diagnostic_source_header_v1_at(&self.replay_root)
+        }
+    }
+
+    fn persist_test_artifact(
+        root: &Path,
+        category: &str,
+        digest: &str,
+        bytes: &[u8],
+        decode_digest: impl Fn(&[u8]) -> Result<String, String>,
+    ) -> Result<(), String> {
+        let result = persist_one_at(root, category, digest, bytes, decode_digest)?;
+        if result != (1, 0) {
+            return Err("qualified-six test artifact persistence rejected".to_string());
+        }
+        Ok(())
+    }
+
+    fn timeframe_cadence(timeframe: MomentumHistoricalTimeframeV1) -> u64 {
+        match timeframe {
+            MomentumHistoricalTimeframeV1::Minute1 => 60_000,
+            MomentumHistoricalTimeframeV1::Minute3 => 3 * 60_000,
+            MomentumHistoricalTimeframeV1::Minute5 => 5 * 60_000,
+            MomentumHistoricalTimeframeV1::Minute10 => TEN_MINUTE_MS,
+            MomentumHistoricalTimeframeV1::Day1 => DAY_MS,
+            MomentumHistoricalTimeframeV1::Week1 => TEST_WEEK_MS,
+            MomentumHistoricalTimeframeV1::Month1 | MomentumHistoricalTimeframeV1::Year1 => {
+                unreachable!()
+            }
+        }
+    }
+
+    fn test_view(
+        timeframe: MomentumHistoricalTimeframeV1,
+        source_seed: u64,
+        anchor_timestamp_ms: u64,
+    ) -> Vec<MomentumQualifiedReplayCandleEvidenceV1> {
+        let cadence = timeframe_cadence(timeframe);
+        let row_count = TEST_HISTORY_ROWS
+            .max(TEST_HISTORY_ROWS * usize::try_from(TEN_MINUTE_MS / cadence).unwrap_or(1));
+        let first_open = anchor_timestamp_ms - as_u64(row_count).unwrap() * cadence;
+        (0..row_count)
+            .map(|index| {
+                let open_timestamp_ms = first_open + as_u64(index).unwrap() * cadence;
+                let close_exclusive_timestamp_ms = open_timestamp_ms + cadence;
+                let source_offset = source_seed as f64 * 0.001;
+                let close = 100.0
+                    + source_offset
+                    + index as f64 * 0.1
+                    + (index % 5) as f64 * 0.01;
+                let open = close - 0.05;
+                let high = close + 0.2;
+                let low = open - 0.2;
+                let volume = 10.0 + (index % 7) as f64;
+                let trade_value = volume * close;
+                let candle_digest = stable_hash_string(&format!(
+                    "qualified-six-test-candle-v1:{timeframe:?}:{open_timestamp_ms}:{close_exclusive_timestamp_ms}:{:?}:{:?}:{:?}:{:?}:{:?}:{:?}",
+                    open.to_bits(),
+                    high.to_bits(),
+                    low.to_bits(),
+                    close.to_bits(),
+                    volume.to_bits(),
+                    trade_value.to_bits(),
+                ));
+                MomentumQualifiedReplayCandleEvidenceV1 {
+                    timeframe,
+                    open_timestamp_ms,
+                    close_exclusive_timestamp_ms,
+                    open,
+                    high,
+                    low,
+                    close,
+                    volume,
+                    trade_value,
+                    candle_digest,
+                    missing_evidence: false,
+                }
+            })
+            .collect()
+    }
+
+    pub(super) fn test_evidence_v1(source_seed: u64) -> MomentumQualifiedSixEvidenceV1 {
+        let anchor_timestamp_ms = as_u64(TEST_HISTORY_ROWS + 2).unwrap() * TEST_WEEK_MS;
+        let included_timeframes = included_timeframes();
+        let views = included_timeframes
+            .iter()
+            .map(|timeframe| {
+                (
+                    *timeframe,
+                    test_view(*timeframe, source_seed, anchor_timestamp_ms),
+                )
+            })
+            .collect::<BTreeMap<_, _>>();
+        let ten_minute = views
+            .get(&MomentumHistoricalTimeframeV1::Minute10)
+            .expect("test 10m view");
+        let first_event_index = ten_minute.len() - TEST_EVENT_COUNT - 1;
+        let protocol_events = (first_event_index..first_event_index + TEST_EVENT_COUNT)
+            .map(|index| {
+                let prediction_timestamp_ms = ten_minute[index].close_exclusive_timestamp_ms;
+                let target_timestamp_ms = ten_minute[index + 1].close_exclusive_timestamp_ms;
+                MomentumQualifiedReplayProtocolEventV1 {
+                    prediction_timestamp_ms,
+                    target_timestamp_ms,
+                    receipt_digest: stable_hash_string(&format!(
+                        "qualified-six-test-protocol-v1:{source_seed}:{prediction_timestamp_ms}:{target_timestamp_ms}"
+                    )),
+                }
+            })
+            .collect::<Vec<_>>();
+        let source_identity = stable_hash_string(&format!("qualified-six-test-views-v1:{views:?}"));
+        let eligible_start_timestamp_ms = protocol_events
+            .first()
+            .expect("test first protocol")
+            .prediction_timestamp_ms;
+        let eligible_end_timestamp_ms = protocol_events
+            .last()
+            .expect("test last protocol")
+            .target_timestamp_ms;
+        MomentumQualifiedSixEvidenceV1 {
+            qualified_timeframe_set_digest: stable_hash_string(&format!(
+                "qualified-six-test-set-v1:{source_identity}"
+            )),
+            monthly_policy_digest: stable_hash_string(&format!(
+                "qualified-six-test-month-policy-v1:{source_identity}"
+            )),
+            yearly_policy_digest: stable_hash_string(&format!(
+                "qualified-six-test-year-policy-v1:{source_identity}"
+            )),
+            causal_revalidation_digest: stable_hash_string(&format!(
+                "qualified-six-test-causal-v1:{source_identity}"
+            )),
+            protocol_replay_digest: stable_hash_string(&format!(
+                "qualified-six-test-protocol-replay-v1:{protocol_events:?}"
+            )),
+            included_timeframes: included_timeframes.clone(),
+            excluded_timeframes: excluded_timeframes(),
+            view_index_digests: included_timeframes
+                .iter()
+                .map(|timeframe| {
+                    stable_hash_string(&format!(
+                        "qualified-six-test-view-index-v1:{timeframe:?}:{}",
+                        views[timeframe].len()
+                    ))
+                })
+                .collect(),
+            views,
+            protocol_events,
+            prior_holdout: MomentumQualifiedReplayHoldoutEvidenceV1 {
+                holdout_digest: stable_hash_string(&format!(
+                    "qualified-six-test-prior-holdout-v1:{source_identity}"
+                )),
+                eligible_start_timestamp_ms,
+                eligible_end_timestamp_ms,
+                holdout_start_timestamp_ms: eligible_end_timestamp_ms,
+                labels_opened: false,
+                metrics_computed: false,
+                aggregate_comparison_opened: false,
+            },
+        }
+    }
+
+    pub(super) fn prepared_in_memory_test_fixture_v1() -> Result<PreparedReplay, String> {
+        prepare_replay_from_evidence(test_evidence_v1(0))
+    }
+
+    fn test_metrics(
+        participant: MomentumQualifiedParticipantV1,
+        partition: MomentumReplayPartitionV1,
+        score: f64,
+    ) -> MomentumQualifiedParticipantMetricsV1 {
+        let mut value = MomentumQualifiedParticipantMetricsV1 {
+            participant_id: participant.id().to_string(),
+            partition,
+            total_prediction_events: 10,
+            scorable_events: 8,
+            neutral_events: 2,
+            invalid_events: 0,
+            finite_prediction_count: 10,
+            probability_collapsed: false,
+            mean_brier_score: Some(score),
+            binary_correctness: Some(0.625),
+            delta_versus_constant: Some(score - 0.25),
+            paired_scorable_count: 8,
+            chronology_audit_passed: true,
+            leakage_audit_passed: true,
+            metrics_digest: String::new(),
+        };
+        value.metrics_digest = metrics_digest(&value);
+        value
+    }
+
+    fn synthetic_downstream_aggregate(
+        registration_digest: &str,
+        partition: MomentumReplayPartitionV1,
+    ) -> MomentumQualifiedPartitionAggregateV1 {
+        let participant_metrics = MomentumQualifiedParticipantV1::ORDERED
+            .iter()
+            .zip([0.25, 0.24, 0.23, 0.22, 0.21])
+            .map(|(participant, score)| test_metrics(*participant, partition, score))
+            .collect();
+        let mut value = MomentumQualifiedPartitionAggregateV1 {
+            aggregate_version: AGGREGATE_VERSION.to_string(),
+            registration_digest: registration_digest.to_string(),
+            partition,
+            partition_event_count: 10,
+            training_only_event_count: 0,
+            prediction_event_count: 10,
+            scorable_event_count: 8,
+            neutral_event_count: 2,
+            invalid_event_count: 0,
+            daily_refit_count: 1,
+            daily_prediction_bundle_digests: vec![stable_hash_string(&format!(
+                "qualified-six-test-prediction-bundle-v1:{partition:?}"
+            ))],
+            daily_evaluation_bundle_digests: vec![stable_hash_string(&format!(
+                "qualified-six-test-evaluation-bundle-v1:{partition:?}"
+            ))],
+            participant_metrics,
+            target_access_before_capsule_count: 0,
+            future_access_count: 0,
+            partial_access_count: 0,
+            unqualified_access_count: 0,
+            aggregate_digest: String::new(),
+        };
+        value.aggregate_digest = aggregate_digest(&value);
+        value
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use std::sync::{
         OnceLock,
         atomic::{AtomicUsize, Ordering},
     };
 
+    use super::super::momentum_multitimeframe_history_v1::{
+        load_momentum_qualified_six_evidence_v1_at, qualified_six_unresolved_contract_valid_v1,
+    };
+    use super::test_support::{
+        QualifiedSixTestWorldV1, prepared_in_memory_test_fixture_v1, test_evidence_v1,
+    };
     use super::*;
 
     static TEMP_SEQUENCE: AtomicUsize = AtomicUsize::new(0);
@@ -6350,7 +6822,9 @@ mod tests {
 
     fn prepared() -> &'static PreparedReplay {
         static PREPARED: OnceLock<PreparedReplay> = OnceLock::new();
-        PREPARED.get_or_init(|| prepare_replay().expect("qualified-six fixture"))
+        PREPARED.get_or_init(|| {
+            prepared_in_memory_test_fixture_v1().expect("qualified-six in-memory fixture")
+        })
     }
 
     fn feature_block_fixture() -> MomentumQualifiedTimeframeFeatureBlockV1 {
@@ -6608,13 +7082,28 @@ mod tests {
 
     #[test]
     fn sprint98_02_all_nineteen_macro_failures_remain_unresolved() {
-        assert!(load_momentum_qualified_six_evidence_v1().is_ok());
-        assert_eq!(prepared().evidence.excluded_timeframes.len(), 2);
+        let world = QualifiedSixTestWorldV1::new("unresolved-contract").expect("test world");
+        world.materialize_foundation(0).expect("foundation");
+        let evidence = load_momentum_qualified_six_evidence_v1_at(world.historical_root())
+            .expect("persisted evidence");
+        assert_eq!(evidence.excluded_timeframes, excluded_timeframes());
+        let prepared =
+            prepare_replay_at(world.historical_root()).expect("persisted replay preparation");
+        assert_eq!(prepared.evidence.excluded_timeframes.len(), 2);
+        assert!(qualified_six_unresolved_contract_valid_v1(15, 4, 19));
+        assert!(!qualified_six_unresolved_contract_valid_v1(14, 4, 18));
     }
 
     #[test]
     fn sprint98_03_forensic_tolerance_contract_remains_unchanged() {
-        assert!(load_momentum_qualified_six_evidence_v1().is_ok());
+        let world = QualifiedSixTestWorldV1::new("tolerance-contract").expect("test world");
+        world.materialize_foundation(0).expect("foundation");
+        let evidence = load_momentum_qualified_six_evidence_v1_at(world.historical_root())
+            .expect("fixed-tolerance persisted evidence");
+        let prepared =
+            prepare_replay_at(world.historical_root()).expect("persisted replay preparation");
+        assert_eq!(prepared.evidence, evidence);
+        assert!(validate_eligibility(&prepared.eligibility_audit).is_ok());
     }
 
     #[test]
@@ -7008,15 +7497,19 @@ mod tests {
 
     #[test]
     fn sprint98_44_live_event_two_outcome_access_stays_zero() {
-        let state = momentum_qualified_replay_protected_state_v1().expect("protected state");
+        let world = QualifiedSixTestWorldV1::new("live-outcome").expect("test world");
+        world.materialize_foundation(0).expect("foundation");
+        let state = world.protected_state().expect("protected state");
         assert_eq!(state.live_outcome_requests, 0);
         assert_eq!(state.live_outcome_openings, 0);
     }
 
     #[test]
     fn sprint98_45_live_counts_remain_unchanged() {
-        let before = momentum_qualified_replay_protected_state_v1().expect("before");
-        let after = momentum_qualified_replay_protected_state_v1().expect("after");
+        let world = QualifiedSixTestWorldV1::new("live-counts").expect("test world");
+        world.materialize_foundation(0).expect("foundation");
+        let before = world.protected_state().expect("before");
+        let after = world.protected_state().expect("after");
         assert_eq!(before, after);
     }
 
@@ -7043,6 +7536,245 @@ mod tests {
             prepared().registration.registration_digest,
             registration_digest(&prepared().registration)
         );
+    }
+
+    #[test]
+    fn sprint103_p1_empty_root_fails_closed_without_materialization() {
+        let world = QualifiedSixTestWorldV1::new("empty-root").expect("test world");
+        let before = fs::read_dir(world.historical_root())
+            .expect("empty root")
+            .count();
+        let error = load_momentum_qualified_six_evidence_v1_at(world.historical_root())
+            .expect_err("missing evidence must fail");
+        let after = fs::read_dir(world.historical_root())
+            .expect("empty root")
+            .count();
+        assert_eq!(error, "qualified-six foundation unavailable");
+        assert_eq!((before, after), (0, 0));
+    }
+
+    #[test]
+    fn sprint103_r1_missing_pause_remains_unavailable_without_repair() {
+        let world = QualifiedSixTestWorldV1::new("missing-pause").expect("test world");
+        let receipt = world.materialize_foundation(0).expect("foundation");
+        fs::remove_file(receipt.pause_artifact_path).expect("remove test-owned pause");
+        let error = load_momentum_qualified_six_evidence_v1_at(world.historical_root())
+            .expect_err("missing pause");
+        assert_eq!(error, "qualified-six live pause unavailable");
+    }
+
+    #[test]
+    fn sprint103_r1_missing_foundation_remains_unavailable_without_repair() {
+        let world = QualifiedSixTestWorldV1::new("missing-foundation").expect("test world");
+        let receipt = world.materialize_foundation(0).expect("foundation");
+        fs::remove_file(receipt.foundation_artifact_path).expect("remove test-owned foundation");
+        let error = load_momentum_qualified_six_evidence_v1_at(world.historical_root())
+            .expect_err("missing foundation");
+        assert_eq!(error, "qualified-six foundation unavailable");
+    }
+
+    #[test]
+    fn sprint103_r1_missing_replay_registration_remains_unavailable() {
+        let world = QualifiedSixTestWorldV1::new("missing-registration").expect("test world");
+        let error = load_momentum_qualified_diagnostic_source_header_v1_at(world.replay_root())
+            .expect_err("missing registration");
+        assert_eq!(
+            error,
+            "qualified-six diagnostic source registration unavailable"
+        );
+    }
+
+    #[test]
+    fn sprint103_p1_builder_persists_reopens_and_validates_foundation() {
+        let world = QualifiedSixTestWorldV1::new("foundation").expect("test world");
+        let receipt = world.materialize_foundation(0).expect("foundation");
+        assert!(receipt.foundation_artifact_path.is_file());
+        assert!(receipt.plan_artifact_path.is_file());
+        assert!(!receipt.source_identity.is_empty());
+        assert!(!receipt.pause_identity.is_empty());
+        assert!(!receipt.foundation_identity.is_empty());
+        assert!(!receipt.plan_identity.is_empty());
+        let loaded = load_momentum_qualified_six_evidence_v1_at(world.historical_root())
+            .expect("persisted evidence");
+        let prepared =
+            prepare_replay_at(world.historical_root()).expect("persisted replay preparation");
+        assert_eq!(prepared.evidence, loaded);
+        assert!(world.protected_state().is_ok());
+    }
+
+    #[test]
+    fn sprint103_p1_live_pause_is_test_owned_and_zero_authority() {
+        let world = QualifiedSixTestWorldV1::new("live-pause").expect("test world");
+        let receipt = world.materialize_foundation(0).expect("foundation");
+        let protected = world.protected_state().expect("protected");
+        assert!(receipt.pause_artifact_path.is_file());
+        assert!(!receipt.pause_identity.is_empty());
+        assert_eq!(protected.live_tree_file_count, 0);
+        assert_eq!(protected.live_outcome_requests, 0);
+        assert_eq!(protected.live_outcome_openings, 0);
+        assert!(!protected.epoch_three_registered);
+    }
+
+    #[test]
+    fn sprint103_p1_two_roots_share_semantic_identity_not_physical_path() {
+        let left = QualifiedSixTestWorldV1::new("same-source-left").expect("left");
+        let right = QualifiedSixTestWorldV1::new("same-source-right-long-name").expect("right");
+        let left_receipt = left.materialize_foundation(0).expect("left foundation");
+        let right_receipt = right.materialize_foundation(0).expect("right foundation");
+        assert_ne!(left.root(), right.root());
+        assert_ne!(
+            left_receipt.foundation_artifact_path,
+            right_receipt.foundation_artifact_path
+        );
+        assert_eq!(left_receipt.source_identity, right_receipt.source_identity);
+        assert_eq!(left_receipt.pause_identity, right_receipt.pause_identity);
+        assert_eq!(
+            left_receipt.foundation_identity,
+            right_receipt.foundation_identity
+        );
+        assert_eq!(left_receipt.plan_identity, right_receipt.plan_identity);
+    }
+
+    #[test]
+    fn sprint103_p1_source_mutation_changes_dependent_identity() {
+        let original = QualifiedSixTestWorldV1::new("source-original").expect("original");
+        let mutated = QualifiedSixTestWorldV1::new("source-mutated").expect("mutated");
+        let original_receipt = original
+            .materialize_foundation(0)
+            .expect("original foundation");
+        let mutated_receipt = mutated
+            .materialize_foundation(1)
+            .expect("mutated foundation");
+        assert_ne!(
+            original_receipt.source_identity,
+            mutated_receipt.source_identity
+        );
+        assert_ne!(
+            original_receipt.foundation_identity,
+            mutated_receipt.foundation_identity
+        );
+    }
+
+    #[test]
+    fn sprint103_p1_in_memory_pure_fixture_requires_no_repository_state() {
+        let first = prepare_replay_from_evidence(test_evidence_v1(0)).expect("first");
+        let second = prepare_replay_from_evidence(test_evidence_v1(0)).expect("second");
+        assert_eq!(first.registration, second.registration);
+        assert_eq!(first.partition_policy, second.partition_policy);
+        assert_eq!(first.events.len(), second.events.len());
+    }
+
+    #[test]
+    fn sprint103_p1_independent_world_order_does_not_change_result() {
+        let second = QualifiedSixTestWorldV1::new("order-second").expect("second");
+        let first = QualifiedSixTestWorldV1::new("order-first").expect("first");
+        let second_receipt = second.materialize_foundation(0).expect("second foundation");
+        let first_receipt = first.materialize_foundation(0).expect("first foundation");
+        assert_eq!(
+            first_receipt.foundation_identity,
+            second_receipt.foundation_identity
+        );
+        assert_eq!(first.protected_state(), second.protected_state());
+    }
+
+    #[test]
+    fn sprint103_p1_private_corruption_fails_closed_and_isolated() {
+        let corrupt = QualifiedSixTestWorldV1::new("corrupt").expect("corrupt world");
+        let pristine = QualifiedSixTestWorldV1::new("pristine").expect("pristine world");
+        let corrupt_receipt = corrupt
+            .materialize_foundation(0)
+            .expect("corrupt foundation");
+        pristine
+            .materialize_foundation(0)
+            .expect("pristine foundation");
+        let mut bytes =
+            fs::read(&corrupt_receipt.foundation_artifact_path).expect("foundation bytes");
+        bytes[0] ^= 0xff;
+        fs::write(&corrupt_receipt.foundation_artifact_path, bytes).expect("corrupt private copy");
+        assert!(load_momentum_qualified_six_evidence_v1_at(corrupt.historical_root()).is_err());
+        assert!(pristine.protected_state().is_ok());
+    }
+
+    #[test]
+    fn sprint103_r1_corrupt_pause_fails_closed() {
+        let world = QualifiedSixTestWorldV1::new("corrupt-pause").expect("test world");
+        let receipt = world.materialize_foundation(0).expect("foundation");
+        let mut bytes = fs::read(&receipt.pause_artifact_path).expect("pause bytes");
+        bytes[0] ^= 0xff;
+        fs::write(&receipt.pause_artifact_path, bytes).expect("corrupt pause");
+        assert!(load_momentum_qualified_six_evidence_v1_at(world.historical_root()).is_err());
+    }
+
+    #[test]
+    fn sprint103_r1_corrupt_plan_fails_closed() {
+        let world = QualifiedSixTestWorldV1::new("corrupt-plan").expect("test world");
+        let receipt = world.materialize_foundation(0).expect("foundation");
+        let mut bytes = fs::read(&receipt.plan_artifact_path).expect("plan bytes");
+        bytes[0] ^= 0xff;
+        fs::write(&receipt.plan_artifact_path, bytes).expect("corrupt plan");
+        assert!(load_momentum_qualified_six_evidence_v1_at(world.historical_root()).is_err());
+    }
+
+    #[test]
+    fn sprint103_r1_foundation_plan_binding_mismatch_is_rejected() {
+        let left = QualifiedSixTestWorldV1::new("binding-left").expect("left world");
+        let right = QualifiedSixTestWorldV1::new("binding-right").expect("right world");
+        let left_receipt = left.materialize_foundation(0).expect("left foundation");
+        let right_receipt = right.materialize_foundation(1).expect("right foundation");
+        fs::remove_file(&left_receipt.plan_artifact_path).expect("remove left plan");
+        let left_plan_root = left.historical_root().join("acquisition_plans");
+        let replacement = left_plan_root.join(
+            right_receipt
+                .plan_artifact_path
+                .file_name()
+                .expect("right plan name"),
+        );
+        fs::copy(&right_receipt.plan_artifact_path, replacement).expect("copy mismatched plan");
+        let error = load_momentum_qualified_six_evidence_v1_at(left.historical_root())
+            .expect_err("binding mismatch");
+        assert_eq!(error, "qualified-six foundation binding rejected");
+    }
+
+    #[test]
+    fn sprint103_r1_in_memory_fixture_never_falls_back_for_missing_persisted_evidence() {
+        let world = QualifiedSixTestWorldV1::new("no-in-memory-fallback").expect("test world");
+        let in_memory = test_evidence_v1(0);
+        assert_eq!(in_memory.included_timeframes, included_timeframes());
+        assert!(prepare_replay_at(world.historical_root()).is_err());
+        assert!(load_momentum_qualified_six_evidence_v1_at(world.historical_root()).is_err());
+    }
+
+    #[test]
+    fn sprint103_p1_root_path_is_excluded_from_semantic_digest() {
+        let short = QualifiedSixTestWorldV1::new("x").expect("short");
+        let long = QualifiedSixTestWorldV1::new(
+            "a-deliberately-long-test-owned-root-name-for-path-independence",
+        )
+        .expect("long");
+        let short_receipt = short.materialize_foundation(0).expect("short foundation");
+        let long_receipt = long.materialize_foundation(0).expect("long foundation");
+        assert_ne!(
+            short_receipt.foundation_artifact_path,
+            long_receipt.foundation_artifact_path
+        );
+        assert_eq!(
+            short_receipt.foundation_identity,
+            long_receipt.foundation_identity
+        );
+    }
+
+    #[test]
+    fn sprint103_p1_production_default_path_semantics_are_preserved() {
+        let production = artifact_path("registrations", "semantic-digest");
+        let world = QualifiedSixTestWorldV1::new("default-path").expect("test world");
+        let injected = artifact_path_at(world.replay_root(), "registrations", "semantic-digest");
+        assert_eq!(
+            production,
+            Path::new(ROOT)
+                .join("registrations")
+                .join("semantic-digest.pb")
+        );
+        assert_ne!(production, injected);
     }
 
     #[test]

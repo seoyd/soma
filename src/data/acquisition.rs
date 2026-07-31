@@ -8033,22 +8033,7 @@ mod tests {
     }
 
     #[test]
-    fn learning_network_pilot_is_deferred_and_isolated_with_zero_authority() {
-        let protected_paths = [
-            "config/local/prospective_shadow_challenge_v0.json",
-            "config/local/cycle_risk_prospective_local_state_v0.json",
-            "config/local/prospective_external_row_admission_registration_v0.json",
-            "config/local/prospective_external_row_capsule_v0.json",
-            "config/local/prospective_public_export_acquisition_registration_v0.json",
-            "config/local/prospective_public_export_acquisition_receipt_v0.json",
-            "config/local/prospective_network_export_capsule_v0.json",
-            "config/local/prospective_one_time_opening_registration_v0.json",
-        ];
-        let before = protected_paths
-            .iter()
-            .map(fs::read)
-            .collect::<Result<Vec<_>, _>>()
-            .unwrap();
+    fn learning_network_pilot_planner_is_pure_zero_authority_and_namespace_disjoint() {
         let plan = plan_learning_network_pilot_v0(&LearningNetworkPilotInputV0 {
             explicit_network_consent: false,
             non_overlapping_request_proven: false,
@@ -8064,6 +8049,18 @@ mod tests {
             &plan.storage_namespace
         )));
         assert!(!plan.storage_namespace.contains("prospective"));
+        let planned_write_namespaces = [Path::new(&plan.storage_namespace)];
+        assert_eq!(planned_write_namespaces.len(), 1);
+        for protected_namespace in [
+            Path::new("config/local"),
+            Path::new("state/live"),
+            Path::new("state/learning_data/prospective"),
+        ] {
+            assert!(planned_write_namespaces.iter().all(|planned| {
+                !planned.starts_with(protected_namespace)
+                    && !protected_namespace.starts_with(planned)
+            }));
+        }
         assert_eq!(
             (
                 plan.maximum_requests,
@@ -8083,12 +8080,6 @@ mod tests {
         assert_eq!(plan.safety_counters.penalties, 0);
         assert_eq!(plan.safety_counters.voice_changes, 0);
         assert_eq!(plan.safety_counters.executions, 0);
-        let after = protected_paths
-            .iter()
-            .map(fs::read)
-            .collect::<Result<Vec<_>, _>>()
-            .unwrap();
-        assert_eq!(before, after);
     }
 
     #[test]

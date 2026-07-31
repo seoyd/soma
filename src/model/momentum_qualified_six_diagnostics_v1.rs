@@ -4879,6 +4879,10 @@ pub fn format_momentum_qualified_six_challenger_requirements_text_v1(
 mod tests {
     use std::sync::atomic::{AtomicUsize, Ordering};
 
+    use super::super::momentum_qualified_six_replay_v1::{
+        load_momentum_qualified_diagnostic_source_header_v1_at,
+        test_support::QualifiedSixTestWorldV1,
+    };
     use super::*;
 
     static TEMP_SEQUENCE: AtomicUsize = AtomicUsize::new(0);
@@ -5068,14 +5072,22 @@ mod tests {
 
     #[test]
     fn sprint99_01_qualified_six_replay_invariants_reopen() {
-        let header = load_momentum_qualified_diagnostic_source_header_v1().expect("header");
+        let world = QualifiedSixTestWorldV1::new("diagnostic-invariants").expect("test world");
+        world
+            .materialize_synthetic_downstream_replay_header()
+            .expect("materialize replay");
+        let header = load_momentum_qualified_diagnostic_source_header_v1_at(world.replay_root())
+            .expect("header");
         assert_eq!(header.participant_ids, participant_ids());
         assert!(header.chronology_audit_passed && header.leakage_audit_passed);
     }
 
     #[test]
     fn sprint99_02_merged_replay_identities_are_complete() {
-        let header = load_momentum_qualified_diagnostic_source_header_v1().expect("header");
+        let world = QualifiedSixTestWorldV1::new("diagnostic-identities").expect("test world");
+        let header = world
+            .materialize_synthetic_downstream_replay_header()
+            .expect("header");
         assert!(!header.registration_digest.is_empty());
         assert!(!header.replay_journal_digest.is_empty());
         assert!(!header.public_report_digest.is_empty());
@@ -5122,9 +5134,12 @@ mod tests {
 
     #[test]
     fn sprint99_07_live_outcome_remains_unreadable() {
-        let header = load_momentum_qualified_diagnostic_source_header_v1().expect("header");
+        let world = QualifiedSixTestWorldV1::new("diagnostic-live-outcome").expect("test world");
+        let header = world
+            .materialize_synthetic_downstream_replay_header()
+            .expect("header");
         assert_eq!(header.holdout_label_reads, 0);
-        let protected = momentum_qualified_replay_protected_state_v1().expect("protected");
+        let protected = world.protected_state().expect("protected");
         assert_eq!(protected.live_outcome_requests, 0);
         assert_eq!(protected.live_outcome_openings, 0);
     }
@@ -5479,8 +5494,10 @@ mod tests {
 
     #[test]
     fn sprint99_42_live_counts_and_roster_remain_unchanged() {
-        let before = momentum_qualified_replay_protected_state_v1().expect("before");
-        let after = momentum_qualified_replay_protected_state_v1().expect("after");
+        let world = QualifiedSixTestWorldV1::new("diagnostic-live-counts").expect("test world");
+        world.materialize_foundation(0).expect("foundation");
+        let before = world.protected_state().expect("before");
+        let after = world.protected_state().expect("after");
         assert_eq!(before, after);
     }
 

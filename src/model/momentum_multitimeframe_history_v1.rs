@@ -10,6 +10,17 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
+#[cfg(test)]
+use crate::{
+    core::ReasonCode,
+    data::{
+        DataLookback, DatasetKind, NetworkConsentV0, SnapshotAdjustmentSemanticsV1,
+        SnapshotCompatibilityV1, SnapshotProvenance, SnapshotQualitySummary, SnapshotSourceType,
+        historical_replay_dataset_digest_v0,
+    },
+    league::HistoricalReplayDataset,
+};
+
 use crate::{
     data::{
         AcquisitionMarketScope, CurlHttpClient, DataSnapshot, MarketDataHttpClient,
@@ -26,10 +37,14 @@ use super::{
     },
     momentum_prospective_series_v4::{
         MomentumProspectiveEpochReadinessV4, MomentumProspectiveSeriesReportV4,
+        validate_sealed_epoch_two_report_v4,
     },
 };
 
-const ROOT: &str = "state/historical_replay/momentum_multitimeframe/v1";
+#[cfg(test)]
+use super::momentum_prospective_series_v4::tests::deterministic_sealed_epoch_two_report_fixture_v4;
+
+pub(super) const ROOT: &str = "state/historical_replay/momentum_multitimeframe/v1";
 const LIVE_ROOT: &str = "state/learning_data";
 const MARKET: &str = "KRW-BTC";
 const PROVIDER: &str = "upbit";
@@ -1552,6 +1567,7 @@ fn select_daily_snapshot(snapshots: &[DataSnapshot]) -> Result<DataSnapshot, Str
 fn build_pause(
     live: &MomentumProspectiveSeriesReportV4,
 ) -> Result<LiveContinuationPauseV1, String> {
+    validate_sealed_epoch_two_report_v4(live)?;
     let status = &live.status;
     if status.readiness != MomentumProspectiveEpochReadinessV4::PredictionAlreadySealed
         || status.epoch_number != 2
@@ -7253,12 +7269,27 @@ fn replay_candle_evidence(row: &HistoricalCandleRowV1) -> MomentumQualifiedRepla
     }
 }
 
-pub(super) fn load_momentum_qualified_six_evidence_v1()
--> Result<MomentumQualifiedSixEvidenceV1, String> {
-    let root = Path::new(ROOT);
-    let (_, foundation, _) = reopen_foundation(root)?;
+pub(super) fn qualified_six_unresolved_contract_valid_v1(
+    monthly_unresolved_count: usize,
+    yearly_unresolved_count: usize,
+    unresolved_root_count: usize,
+) -> bool {
+    monthly_unresolved_count == 15 && yearly_unresolved_count == 4 && unresolved_root_count == 19
+}
+
+pub(super) fn load_momentum_qualified_six_evidence_v1_at(
+    root: &Path,
+) -> Result<MomentumQualifiedSixEvidenceV1, String> {
+    let (pause, foundation, plan) = reopen_foundation(root)?;
     let foundation =
         foundation.ok_or_else(|| "qualified-six foundation unavailable".to_string())?;
+    let pause = pause.ok_or_else(|| "qualified-six live pause unavailable".to_string())?;
+    let plan = plan.ok_or_else(|| "qualified-six acquisition plan unavailable".to_string())?;
+    if foundation.pause_digest != pause.pause_digest
+        || plan.foundation_registration_digest != foundation.registration_digest
+    {
+        return Err("qualified-six foundation binding rejected".to_string());
+    }
     if f64::from_bits(foundation.numeric_absolute_tolerance_bits) != ABSOLUTE_TOLERANCE
         || f64::from_bits(foundation.numeric_relative_tolerance_bits) != RELATIVE_TOLERANCE
     {
@@ -7300,11 +7331,12 @@ pub(super) fn load_momentum_qualified_six_evidence_v1()
         .collect::<Result<Vec<_>, _>>()?
         .into_iter()
         .sum::<usize>();
-    if monthly_aggregate.unresolved_count != 15
-        || yearly_aggregate.unresolved_count != 4
-        || unresolved_root_count != 19
-        || weekly_policy.selected_source
-            != MomentumCanonicalMacroSourceV1::DerivedFromCanonicalDaily
+    if !qualified_six_unresolved_contract_valid_v1(
+        monthly_aggregate.unresolved_count,
+        yearly_aggregate.unresolved_count,
+        unresolved_root_count,
+    ) || weekly_policy.selected_source
+        != MomentumCanonicalMacroSourceV1::DerivedFromCanonicalDaily
         || monthly_policy.selected_source != MomentumCanonicalMacroSourceV1::ExcludedUnresolved
         || yearly_policy.selected_source != MomentumCanonicalMacroSourceV1::ExcludedUnresolved
         || qualified_set.qualified_count != 6
@@ -7453,11 +7485,18 @@ pub(super) fn load_momentum_qualified_six_evidence_v1()
     })
 }
 
-pub(super) fn momentum_qualified_replay_protected_state_v1()
--> Result<MomentumQualifiedReplayProtectedStateV1, String> {
-    let (pause, _, _) = reopen_foundation(Path::new(ROOT))?;
+pub(super) fn load_momentum_qualified_six_evidence_v1()
+-> Result<MomentumQualifiedSixEvidenceV1, String> {
+    load_momentum_qualified_six_evidence_v1_at(Path::new(ROOT))
+}
+
+pub(super) fn momentum_qualified_replay_protected_state_v1_at(
+    historical_root: &Path,
+    live_root: &Path,
+) -> Result<MomentumQualifiedReplayProtectedStateV1, String> {
+    let (pause, _, _) = reopen_foundation(historical_root)?;
     let pause = pause.ok_or_else(|| "qualified-six live pause unavailable".to_string())?;
-    let (live_tree_file_count, live_tree_digest) = tree_identity(Path::new(LIVE_ROOT))?;
+    let (live_tree_file_count, live_tree_digest) = tree_identity(live_root)?;
     Ok(MomentumQualifiedReplayProtectedStateV1 {
         live_tree_file_count,
         live_tree_digest,
@@ -7472,6 +7511,11 @@ pub(super) fn momentum_qualified_replay_protected_state_v1()
         epoch_three_registered: pause.epoch_three_registered,
         active_committee_count: canonical_current_agent_states().len(),
     })
+}
+
+pub(super) fn momentum_qualified_replay_protected_state_v1()
+-> Result<MomentumQualifiedReplayProtectedStateV1, String> {
+    momentum_qualified_replay_protected_state_v1_at(Path::new(ROOT), Path::new(LIVE_ROOT))
 }
 
 pub fn format_momentum_macro_forensics_text_v1(
@@ -7572,36 +7616,468 @@ pub fn format_momentum_macro_forensics_text_v1(
 }
 
 #[cfg(test)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(super) struct QualifiedSixTestFoundationReceiptV1 {
+    pub source_identity: String,
+    pub pause_identity: String,
+    pub foundation_identity: String,
+    pub plan_identity: String,
+    pub pause_artifact_path: PathBuf,
+    pub foundation_artifact_path: PathBuf,
+    pub plan_artifact_path: PathBuf,
+}
+
+#[cfg(test)]
+fn qualified_six_test_daily_snapshot_v1(
+    source_seed: u64,
+    protected_boundary_ms: u64,
+) -> DataSnapshot {
+    const TEST_DAILY_ROW_COUNT: usize = 800;
+    let first_timestamp_ms = protected_boundary_ms
+        .checked_sub(u64::try_from(TEST_DAILY_ROW_COUNT).unwrap_or_default() * DAY_MS)
+        .expect("qualified-six test daily start");
+    let rows = (0..TEST_DAILY_ROW_COUNT)
+        .map(|index| {
+            let timestamp_ms =
+                first_timestamp_ms + u64::try_from(index).unwrap_or_default() * DAY_MS;
+            let close = 100.0 + index as f64 * 0.01 + source_seed as f64 * 0.001;
+            HistoricalOhlcvRow {
+                symbol: MARKET.to_string(),
+                timestamp_ms,
+                open: close - 0.25,
+                high: close + 0.5,
+                low: close - 0.5,
+                close,
+                volume: 10.0 + index as f64,
+                trade_value: Some(close * (10.0 + index as f64)),
+            }
+        })
+        .collect::<Vec<_>>();
+    let dataset = HistoricalReplayDataset {
+        symbol: MARKET.to_string(),
+        rows,
+        source: "qualified-six-test-canonical-daily-v1".to_string(),
+        reason_codes: vec![ReasonCode::DeterministicPath],
+    };
+    let content_digest = historical_replay_dataset_digest_v0(&dataset);
+    let first_timestamp_ms = dataset.rows.first().map(|row| row.timestamp_ms);
+    let last_timestamp_ms = dataset.rows.last().map(|row| row.timestamp_ms);
+    DataSnapshot {
+        snapshot_id: stable_hash_string(&format!(
+            "qualified-six-test-snapshot-v1:{content_digest}"
+        )),
+        request_key: "qualified-six-test-daily".to_string(),
+        provider_id: PROVIDER.to_string(),
+        dataset_kind: DatasetKind::CryptoDailyOhlcv,
+        market_scope: AcquisitionMarketScope::BtcCrypto,
+        symbols: vec![MARKET.to_string()],
+        requested_lookback: DataLookback {
+            bars: dataset.rows.len(),
+            start_timestamp_ms: first_timestamp_ms,
+            end_timestamp_ms: last_timestamp_ms,
+        },
+        actual_start_timestamp_ms: first_timestamp_ms,
+        actual_end_timestamp_ms: last_timestamp_ms,
+        fetched_at_ms: protected_boundary_ms,
+        normalized_at_ms: protected_boundary_ms,
+        schema_version: 1,
+        row_count: dataset.rows.len(),
+        quality_summary: SnapshotQualitySummary {
+            accepted: true,
+            row_count: dataset.rows.len(),
+            reason_codes: vec![ReasonCode::DeterministicPath],
+        },
+        content_digest,
+        sanitized: true,
+        read_only: true,
+        compatibility: Some(SnapshotCompatibilityV1 {
+            cadence: "1d".to_string(),
+            adjustment_semantics: SnapshotAdjustmentSemanticsV1::NotApplicable,
+            source_schema: "qualified-six-test-canonical-v1".to_string(),
+            requested_cutoff_timestamp_ms: last_timestamp_ms,
+            maximum_staleness_ms: DAY_MS,
+            all_rows_finalized: true,
+        }),
+        normalized_dataset: dataset,
+        provenance: SnapshotProvenance {
+            provider_id: PROVIDER.to_string(),
+            acquisition_request_id: "qualified-six-test-acquisition".to_string(),
+            fetch_receipt_id: "qualified-six-test-fetch".to_string(),
+            source_type: SnapshotSourceType::Mock,
+            sanitized: true,
+            credential_free: true,
+            reason_codes: vec![ReasonCode::DeterministicPath],
+        },
+        reason_codes: vec![ReasonCode::DeterministicPath],
+    }
+}
+
+#[cfg(test)]
+fn qualified_six_test_config_v1() -> UpbitHistoricalPilotConfigV0 {
+    UpbitHistoricalPilotConfigV0 {
+        provider_id: PROVIDER.to_string(),
+        enabled: true,
+        market: AcquisitionMarketScope::BtcCrypto,
+        symbol: MARKET.to_string(),
+        start_timestamp_ms: 1,
+        end_timestamp_ms: 2,
+        maximum_rows: PAGE_SIZE,
+        timeout_seconds: 10,
+        max_retries: 1,
+        maximum_response_bytes: 262_144,
+        snapshot_output_dir: "test-owned-snapshot-root".to_string(),
+        network_consent: NetworkConsentV0::ManualLocalSmoke,
+        manual_smoke_enabled: true,
+        page_size: PAGE_SIZE,
+        target_rows: PAGE_SIZE,
+        maximum_pages: 1,
+        stop_when_campaign_sufficient: false,
+        campaign_attempt_enabled: false,
+        minimum_inter_request_delay_ms: 1,
+    }
+}
+
+#[cfg(test)]
+fn qualified_six_test_candle_v1(
+    timeframe: MomentumHistoricalTimeframeV1,
+    open_timestamp_ms: u64,
+    ordinal: usize,
+    source_seed: u64,
+) -> Result<HistoricalCandleRowV1, String> {
+    let close = 100.0 + ordinal as f64 * 0.01 + source_seed as f64 * 0.001;
+    let volume = 10.0 + (ordinal % 17) as f64;
+    let mut value = HistoricalCandleRowV1 {
+        timeframe,
+        interval: period_interval(timeframe, open_timestamp_ms)?,
+        open: close - 0.05,
+        high: close + 0.2,
+        low: close - 0.25,
+        close,
+        volume,
+        trade_value: volume * close,
+        ordered_base_candle_digests: Vec::new(),
+        presence: CandleIntervalPresenceV1::ObservedTradeCandle,
+        candle_digest: String::new(),
+    };
+    value.candle_digest = candle_digest(&value);
+    validate_candle(&value)?;
+    Ok(value)
+}
+
+#[cfg(test)]
+fn qualified_six_test_comparison_v1(
+    timeframe: MomentumHistoricalTimeframeV1,
+) -> Result<DerivedNativeComparisonSummaryV1, String> {
+    let mut value = DerivedNativeComparisonSummaryV1 {
+        comparison_version: COMPARISON_VERSION.to_string(),
+        timeframe,
+        sample_count: 1,
+        exact_match_count: 1,
+        within_tolerance_count: 0,
+        boundary_mismatch_count: 0,
+        missing_native_count: 0,
+        completeness_failure_count: 0,
+        integrity_failure_count: 0,
+        systematic_mismatch_blocks_replay: false,
+        comparison_digest: String::new(),
+    };
+    value.comparison_digest = comparison_digest(&value);
+    validate_comparison(&value)?;
+    Ok(value)
+}
+
+#[cfg(test)]
+fn qualified_six_test_macro_aggregate_v1(
+    timeframe: MomentumHistoricalTimeframeV1,
+    unresolved_count: usize,
+) -> Result<MomentumMacroForensicAggregateV1, String> {
+    let mut value = MomentumMacroForensicAggregateV1 {
+        aggregate_version: MACRO_FORENSIC_AGGREGATE_VERSION.to_string(),
+        timeframe,
+        ordered_receipt_digests: (0..unresolved_count)
+            .map(|ordinal| {
+                stable_hash_string(&format!(
+                    "qualified-six-test-unresolved-v1:{}:{ordinal}",
+                    timeframe.as_str()
+                ))
+            })
+            .collect(),
+        compared_period_count: unresolved_count,
+        exact_count: 0,
+        tolerance_count: 0,
+        failed_count: unresolved_count,
+        excluded_partial_count: 0,
+        unresolved_count,
+        root_cause_counts: vec![format!("ProviderContractAmbiguous={unresolved_count}")],
+        disposition_counts: vec![format!("ExcludedUnresolved={unresolved_count}")],
+        complete_forensic_coverage: true,
+        native_metadata_complete: false,
+        aggregate_digest: String::new(),
+    };
+    value.aggregate_digest = macro_aggregate_digest(&value);
+    validate_macro_aggregate(&value)?;
+    Ok(value)
+}
+
+#[cfg(test)]
+fn qualified_six_test_macro_policy_v1(
+    timeframe: MomentumHistoricalTimeframeV1,
+    source: MomentumCanonicalMacroSourceV1,
+    daily_index: &HistoricalCandleIndexV1,
+    derived_index: &DerivedViewIndexV1,
+    forensic_aggregate_digest: String,
+    complete_period_count: usize,
+    unresolved_period_count: usize,
+) -> Result<MomentumCanonicalMacroPolicyV1, String> {
+    let mut value = MomentumCanonicalMacroPolicyV1 {
+        policy_version: MACRO_POLICY_VERSION.to_string(),
+        timeframe,
+        selected_source: source,
+        daily_index_digest: daily_index.index_digest.clone(),
+        derived_index_digest: derived_index.index_digest.clone(),
+        native_index_digest: None,
+        forensic_aggregate_digest,
+        complete_period_count,
+        qualified_period_count: complete_period_count - unresolved_period_count,
+        excluded_partial_period_count: 0,
+        unresolved_period_count,
+        live_authority_eligible: false,
+        historical_research_only: true,
+        policy_digest: String::new(),
+    };
+    value.policy_digest = macro_policy_digest(&value);
+    validate_macro_policy(&value)?;
+    Ok(value)
+}
+
+#[cfg(test)]
+pub(super) fn materialize_qualified_six_test_foundation_v1(
+    root: &Path,
+    source_seed: u64,
+) -> Result<QualifiedSixTestFoundationReceiptV1, String> {
+    const TEST_MINUTE_ROW_COUNT: usize = 600;
+    let live = deterministic_sealed_epoch_two_report_fixture_v4();
+    let pause = build_pause(&live)?;
+    let daily = qualified_six_test_daily_snapshot_v1(
+        source_seed,
+        pause.protected_first_event_input_boundary_ms,
+    );
+    let source_identity = daily.content_digest.clone();
+    let foundation = build_foundation(&pause, &daily)?;
+    let plan = build_plan(&foundation, &qualified_six_test_config_v1())?;
+    persist_pause(root, &pause)?;
+    persist_foundation(root, &foundation)?;
+    persist_plan(root, &plan)?;
+
+    let minute_first_timestamp_ms = foundation
+        .minute_end_exclusive_timestamp_ms
+        .checked_sub(as_u64(TEST_MINUTE_ROW_COUNT)? * MINUTE_MS)
+        .ok_or_else(|| "qualified-six test minute start unavailable".to_string())?;
+    let minute_rows = (0..TEST_MINUTE_ROW_COUNT)
+        .map(|ordinal| {
+            qualified_six_test_candle_v1(
+                MomentumHistoricalTimeframeV1::Minute1,
+                minute_first_timestamp_ms + as_u64(ordinal)? * MINUTE_MS,
+                ordinal,
+                source_seed,
+            )
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    let daily_rows = daily
+        .normalized_dataset
+        .rows
+        .iter()
+        .enumerate()
+        .map(|(ordinal, row)| {
+            qualified_six_test_candle_v1(
+                MomentumHistoricalTimeframeV1::Day1,
+                row.timestamp_ms,
+                ordinal,
+                source_seed,
+            )
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    let (minute_chunks, minute_index) = build_chunks_and_index(
+        MomentumHistoricalTimeframeV1::Minute1,
+        &minute_rows,
+        foundation.minute_start_timestamp_ms,
+        foundation.minute_end_exclusive_timestamp_ms,
+    )
+    .map_err(|error| format!("qualified-six test minute index: {error}"))?;
+    let (daily_chunks, daily_index) = build_chunks_and_index(
+        MomentumHistoricalTimeframeV1::Day1,
+        &daily_rows,
+        daily_rows
+            .first()
+            .ok_or_else(|| "qualified-six test daily rows unavailable".to_string())?
+            .interval
+            .open_timestamp_ms,
+        daily_rows
+            .last()
+            .ok_or_else(|| "qualified-six test daily rows unavailable".to_string())?
+            .interval
+            .close_exclusive_timestamp_ms,
+    )
+    .map_err(|error| format!("qualified-six test daily index: {error}"))?;
+    persist_canonical_dataset(root, &minute_chunks, &minute_index)
+        .map_err(|error| format!("qualified-six test minute persistence: {error}"))?;
+    persist_canonical_dataset(root, &daily_chunks, &daily_index)
+        .map_err(|error| format!("qualified-six test daily persistence: {error}"))?;
+
+    let mut views = BTreeMap::from([
+        (MomentumHistoricalTimeframeV1::Minute1, minute_rows.clone()),
+        (MomentumHistoricalTimeframeV1::Day1, daily_rows.clone()),
+    ]);
+    let mut derived_indices = BTreeMap::new();
+    let mut comparisons = Vec::new();
+    for timeframe in [
+        MomentumHistoricalTimeframeV1::Minute3,
+        MomentumHistoricalTimeframeV1::Minute5,
+        MomentumHistoricalTimeframeV1::Minute10,
+        MomentumHistoricalTimeframeV1::Week1,
+        MomentumHistoricalTimeframeV1::Month1,
+        MomentumHistoricalTimeframeV1::Year1,
+    ] {
+        let (base_index, base_rows) = if matches!(
+            timeframe,
+            MomentumHistoricalTimeframeV1::Minute3
+                | MomentumHistoricalTimeframeV1::Minute5
+                | MomentumHistoricalTimeframeV1::Minute10
+        ) {
+            (&minute_index, minute_rows.as_slice())
+        } else {
+            (&daily_index, daily_rows.as_slice())
+        };
+        let (rows, index) =
+            aggregate_view(&foundation, base_index, base_rows, timeframe).map_err(|error| {
+                format!("qualified-six test derived {}: {error}", timeframe.as_str())
+            })?;
+        persist_derived_index(root, &index)?;
+        let comparison = qualified_six_test_comparison_v1(timeframe)?;
+        persist_comparison(root, &comparison)?;
+        views.insert(timeframe, rows);
+        derived_indices.insert(timeframe, index);
+        comparisons.push(comparison);
+    }
+
+    let mut protocol_foundation = foundation.clone();
+    protocol_foundation.minute_start_timestamp_ms = minute_first_timestamp_ms;
+    protocol_foundation.minute_end_exclusive_timestamp_ms =
+        foundation.minute_end_exclusive_timestamp_ms;
+    let protocol = build_protocol(&protocol_foundation, &comparisons, &views)
+        .map_err(|error| format!("qualified-six test protocol: {error}"))?;
+    let holdout = build_holdout(&foundation, &protocol)
+        .map_err(|error| format!("qualified-six test holdout: {error}"))?;
+    persist_protocol(root, &protocol)?;
+    persist_holdout(root, &holdout)?;
+
+    let monthly_aggregate =
+        qualified_six_test_macro_aggregate_v1(MomentumHistoricalTimeframeV1::Month1, 15)?;
+    let yearly_aggregate =
+        qualified_six_test_macro_aggregate_v1(MomentumHistoricalTimeframeV1::Year1, 4)?;
+    let weekly_policy = qualified_six_test_macro_policy_v1(
+        MomentumHistoricalTimeframeV1::Week1,
+        MomentumCanonicalMacroSourceV1::DerivedFromCanonicalDaily,
+        &daily_index,
+        derived_indices
+            .get(&MomentumHistoricalTimeframeV1::Week1)
+            .ok_or_else(|| "qualified-six test weekly index unavailable".to_string())?,
+        comparisons
+            .iter()
+            .find(|comparison| comparison.timeframe == MomentumHistoricalTimeframeV1::Week1)
+            .ok_or_else(|| "qualified-six test weekly comparison unavailable".to_string())?
+            .comparison_digest
+            .clone(),
+        1,
+        0,
+    )?;
+    let monthly_policy = qualified_six_test_macro_policy_v1(
+        MomentumHistoricalTimeframeV1::Month1,
+        MomentumCanonicalMacroSourceV1::ExcludedUnresolved,
+        &daily_index,
+        derived_indices
+            .get(&MomentumHistoricalTimeframeV1::Month1)
+            .ok_or_else(|| "qualified-six test monthly index unavailable".to_string())?,
+        monthly_aggregate.aggregate_digest.clone(),
+        15,
+        15,
+    )?;
+    let yearly_policy = qualified_six_test_macro_policy_v1(
+        MomentumHistoricalTimeframeV1::Year1,
+        MomentumCanonicalMacroSourceV1::ExcludedUnresolved,
+        &daily_index,
+        derived_indices
+            .get(&MomentumHistoricalTimeframeV1::Year1)
+            .ok_or_else(|| "qualified-six test yearly index unavailable".to_string())?,
+        yearly_aggregate.aggregate_digest.clone(),
+        4,
+        4,
+    )?;
+    let qualified_set = build_qualified_set(
+        &comparisons,
+        &weekly_policy,
+        &monthly_policy,
+        &yearly_policy,
+    )?;
+    let causal = build_causal_revalidation(
+        root,
+        &qualified_set,
+        [&weekly_policy, &monthly_policy, &yearly_policy],
+    )
+    .map_err(|error| format!("qualified-six test causal revalidation: {error}"))?;
+    persist_macro_aggregate(root, &monthly_aggregate)?;
+    persist_macro_aggregate(root, &yearly_aggregate)?;
+    persist_macro_policy(root, &weekly_policy)?;
+    persist_macro_policy(root, &monthly_policy)?;
+    persist_macro_policy(root, &yearly_policy)?;
+    persist_qualified_set(root, &qualified_set)?;
+    persist_causal_revalidation(root, &causal)?;
+
+    let (reopened_pause, reopened_foundation, reopened_plan) = reopen_foundation(root)?;
+    if reopened_pause.as_ref() != Some(&pause)
+        || reopened_foundation.as_ref() != Some(&foundation)
+        || reopened_plan.as_ref() != Some(&plan)
+        || foundation.pause_digest != pause.pause_digest
+        || plan.foundation_registration_digest != foundation.registration_digest
+    {
+        return Err("qualified-six test foundation reopen mismatch".to_string());
+    }
+    Ok(QualifiedSixTestFoundationReceiptV1 {
+        source_identity,
+        pause_identity: pause.pause_digest.clone(),
+        foundation_identity: foundation.registration_digest.clone(),
+        plan_identity: plan.plan_digest.clone(),
+        pause_artifact_path: root
+            .join("live_continuation_pause")
+            .join(format!("{}.pb", pause.pause_digest)),
+        foundation_artifact_path: root
+            .join("foundation_registrations")
+            .join(format!("{}.pb", foundation.registration_digest)),
+        plan_artifact_path: root
+            .join("acquisition_plans")
+            .join(format!("{}.pb", plan.plan_digest)),
+    })
+}
+
+#[cfg(test)]
 mod tests {
     use std::{
         cell::{Cell, RefCell},
         collections::{BTreeMap, BTreeSet, VecDeque},
-        sync::atomic::{AtomicUsize, Ordering},
     };
 
     use crate::data::{HttpClientError, NetworkConsentV0};
+    use crate::test_support::TestWorkspaceLease;
 
     use super::*;
 
-    static TEMP_SEQUENCE: AtomicUsize = AtomicUsize::new(0);
-
-    struct TestRoot(PathBuf);
+    struct TestRoot(PathBuf, #[allow(dead_code)] TestWorkspaceLease);
 
     impl TestRoot {
         fn new(name: &str) -> Self {
-            let path = std::env::temp_dir().join(format!(
-                "soma-mtf-sprint96-{name}-{}-{}",
-                std::process::id(),
-                TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed)
-            ));
-            fs::create_dir_all(&path).expect("test root");
-            Self(path)
-        }
-    }
-
-    impl Drop for TestRoot {
-        fn drop(&mut self) {
-            let _ = fs::remove_dir_all(&self.0);
+            let lease = TestWorkspaceLease::new(name).expect("test workspace lease");
+            let path = lease.root().to_path_buf();
+            Self(path, lease)
         }
     }
 
@@ -7630,30 +8106,8 @@ mod tests {
     }
 
     fn fixture_pause() -> LiveContinuationPauseV1 {
-        let mut value = LiveContinuationPauseV1 {
-            pause_version: PAUSE_VERSION.to_string(),
-            policy: LiveProspectiveContinuationPolicyV1::PausedAfterSealedEpochTwo,
-            series_digest: "series".to_string(),
-            epoch_registration_digest: "epoch-two".to_string(),
-            input_receipt_digest: "input-receipt".to_string(),
-            input_capsule_digest: "input-capsule".to_string(),
-            context_proof_digest: "context-proof".to_string(),
-            prediction_capsule_digest: "prediction-capsule".to_string(),
-            prediction_journal_digest: "prediction-journal".to_string(),
-            outcome_plan_digest: "outcome-plan".to_string(),
-            protected_first_event_input_boundary_ms: timestamp_ms(2026, 7, 26).unwrap(),
-            completed_event_count: 1,
-            scorable_event_count: 1,
-            prediction_seal_count: 3,
-            input_attempts: 1,
-            input_retries: 0,
-            outcome_requests: 0,
-            outcome_openings: 0,
-            epoch_three_registered: false,
-            pause_digest: String::new(),
-        };
-        value.pause_digest = pause_digest(&value);
-        value
+        build_pause(&deterministic_sealed_epoch_two_report_fixture_v4())
+            .expect("official sealed epoch-two pause fixture")
     }
 
     fn fixture_foundation() -> MomentumMtfFoundationRegistrationV1 {
@@ -8076,6 +8530,94 @@ mod tests {
         pause.epoch_three_registered = true;
         pause.pause_digest = pause_digest(&pause);
         assert!(validate_pause(&pause).is_err());
+    }
+
+    #[test]
+    fn sprint103_r1_official_report_builds_exactly_bound_pause() {
+        let live = deterministic_sealed_epoch_two_report_fixture_v4();
+        let pause = build_pause(&live).expect("official pause");
+        assert_eq!(pause.series_digest, live.status.series_digest);
+        assert_eq!(
+            pause.epoch_registration_digest,
+            live.status.epoch_registration_digest
+        );
+        assert_eq!(
+            pause.input_receipt_digest,
+            live.status.input_receipt_digest.expect("input receipt")
+        );
+        assert_eq!(
+            pause.input_capsule_digest,
+            live.status.input_capsule_digest.expect("input capsule")
+        );
+        assert_eq!(
+            pause.context_proof_digest,
+            live.status
+                .context_assembly_proof_digest
+                .expect("context proof")
+        );
+        assert_eq!(
+            pause.prediction_capsule_digest,
+            live.status
+                .prediction_capsule_digest
+                .expect("prediction capsule")
+        );
+        assert_eq!(
+            pause.prediction_journal_digest,
+            live.status.journal_entry_digest.expect("journal")
+        );
+        assert_eq!(
+            pause.outcome_plan_digest,
+            live.status.outcome_plan_digest.expect("outcome plan")
+        );
+        assert_eq!(
+            pause.protected_first_event_input_boundary_ms,
+            live.event_one_adoption.adopted_event_timestamp_ms
+        );
+    }
+
+    #[test]
+    fn sprint103_r1_malformed_official_report_lineage_is_rejected() {
+        let mut live = deterministic_sealed_epoch_two_report_fixture_v4();
+        live.series.series_digest.push_str("-tampered");
+        assert!(build_pause(&live).is_err());
+    }
+
+    #[test]
+    fn sprint103_r1_wrong_epoch_and_readiness_are_rejected() {
+        let mut wrong_epoch = deterministic_sealed_epoch_two_report_fixture_v4();
+        wrong_epoch.status.epoch_number = 3;
+        assert!(build_pause(&wrong_epoch).is_err());
+
+        let mut wrong_readiness = deterministic_sealed_epoch_two_report_fixture_v4();
+        wrong_readiness.status.readiness =
+            MomentumProspectiveEpochReadinessV4::ReadyForInputAcquisition;
+        assert!(build_pause(&wrong_readiness).is_err());
+    }
+
+    #[test]
+    fn sprint103_r1_official_pause_persists_and_reopens_exactly() {
+        let root = TestRoot::new("official-pause-reopen");
+        let pause =
+            build_pause(&deterministic_sealed_epoch_two_report_fixture_v4()).expect("pause");
+        assert_eq!(persist_pause(&root.0, &pause).expect("persist"), (1, 0));
+        let (reopened, foundation, plan) = reopen_foundation(&root.0).expect("reopen");
+        assert_eq!(reopened, Some(pause));
+        assert!(foundation.is_none());
+        assert!(plan.is_none());
+    }
+
+    #[test]
+    fn sprint103_r1_official_pause_lineage_has_zero_network_live_and_trade_authority() {
+        let live = deterministic_sealed_epoch_two_report_fixture_v4();
+        let pause = build_pause(&live).expect("pause");
+        assert_eq!(live.status.safety_counters.network_request_attempts, 0);
+        assert_eq!(live.status.safety_counters.outcome_requests, 0);
+        assert_eq!(live.status.safety_counters.outcome_openings, 0);
+        assert_eq!(live.status.safety_counters.paper_executions, 0);
+        assert_eq!(live.status.safety_counters.live_executions, 0);
+        assert_eq!(pause.outcome_requests, 0);
+        assert_eq!(pause.outcome_openings, 0);
+        assert!(!pause.epoch_three_registered);
     }
 
     #[test]

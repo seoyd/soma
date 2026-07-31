@@ -1507,3 +1507,430 @@ pub use model::{
     WorkspaceAcceptanceRemainingRiskStatus, WorkspaceAcceptanceTruthGate,
     WorkspaceAcceptanceTruthGateStatus, WorkspaceGateRecoveryV14, WorkspaceGateRecoveryV14Status,
 };
+
+#[cfg(test)]
+pub(crate) mod test_support {
+    use std::{
+        ffi::OsString,
+        fs::{self, OpenOptions},
+        io::{ErrorKind, Write},
+        path::{Path, PathBuf},
+        sync::atomic::{AtomicU64, Ordering},
+    };
+
+    pub(crate) const TEST_WORKSPACE_OWNER_MARKER: &str = ".soma-test-workspace-owner";
+    const TEST_WORKSPACE_ALLOCATION_RETRIES: usize = 128;
+    static TEST_WORKSPACE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+
+    #[derive(Debug)]
+    pub(crate) struct TestWorkspaceLease {
+        base: PathBuf,
+        root: PathBuf,
+        marker_path: PathBuf,
+        ownership_token: String,
+        expected_root_name: OsString,
+        owns_root: bool,
+    }
+
+    impl TestWorkspaceLease {
+        pub(crate) fn new(label: &str) -> Result<Self, String> {
+            Self::allocate(
+                label,
+                TEST_WORKSPACE_ALLOCATION_RETRIES,
+                &TEST_WORKSPACE_SEQUENCE,
+            )
+        }
+
+        fn allocate(
+            label: &str,
+            maximum_attempts: usize,
+            sequence: &AtomicU64,
+        ) -> Result<Self, String> {
+            validate_label(label)?;
+            if maximum_attempts == 0 {
+                return Err("test workspace retry exhausted".to_string());
+            }
+            let base = std::env::temp_dir();
+            for _ in 0..maximum_attempts {
+                let candidate_sequence = sequence.fetch_add(1, Ordering::Relaxed);
+                let root = candidate_root(&base, label, candidate_sequence);
+                match fs::create_dir(&root) {
+                    Ok(()) => {}
+                    Err(error) if error.kind() == ErrorKind::AlreadyExists => continue,
+                    Err(_) => return Err("test workspace exclusive create failed".to_string()),
+                }
+                let expected_root_name = root
+                    .file_name()
+                    .ok_or_else(|| "test workspace candidate name unavailable".to_string())?
+                    .to_os_string();
+                let marker_path = root.join(TEST_WORKSPACE_OWNER_MARKER);
+                let ownership_token = format!(
+                    "soma-test-workspace-owner-v1:{}:{candidate_sequence}:{label}",
+                    std::process::id()
+                );
+                let mut marker = match OpenOptions::new()
+                    .write(true)
+                    .create_new(true)
+                    .open(&marker_path)
+                {
+                    Ok(marker) => marker,
+                    Err(_) => {
+                        return Err(
+                            "test workspace ownership marker exclusive create failed".to_string()
+                        );
+                    }
+                };
+                if marker
+                    .write_all(ownership_token.as_bytes())
+                    .and_then(|_| marker.flush())
+                    .and_then(|_| marker.sync_all())
+                    .is_err()
+                {
+                    let mut lease = Self {
+                        base,
+                        root,
+                        marker_path,
+                        ownership_token,
+                        expected_root_name,
+                        owns_root: true,
+                    };
+                    let _ = lease.cleanup_verified();
+                    return Err("test workspace ownership marker persist failed".to_string());
+                }
+                return Ok(Self {
+                    base,
+                    root,
+                    marker_path,
+                    ownership_token,
+                    expected_root_name,
+                    owns_root: true,
+                });
+            }
+            Err("test workspace retry exhausted".to_string())
+        }
+
+        pub(crate) fn root(&self) -> &Path {
+            &self.root
+        }
+
+        pub(crate) fn marker_path(&self) -> &Path {
+            &self.marker_path
+        }
+
+        pub(crate) fn ownership_token(&self) -> &str {
+            &self.ownership_token
+        }
+
+        pub(crate) fn create_child_dir(&self, name: &str) -> Result<PathBuf, String> {
+            validate_label(name)?;
+            self.verify_ownership()?;
+            let path = self.root.join(name);
+            fs::create_dir(&path)
+                .map_err(|_| "test workspace child directory create failed".to_string())?;
+            Ok(path)
+        }
+
+        pub(crate) fn cleanup(mut self) -> Result<(), String> {
+            self.cleanup_verified()
+        }
+
+        fn verify_ownership(&self) -> Result<(), String> {
+            if !self.owns_root
+                || self.root.parent() != Some(self.base.as_path())
+                || self.root.file_name() != Some(self.expected_root_name.as_os_str())
+                || self.root != self.base.join(&self.expected_root_name)
+                || self.marker_path != self.root.join(TEST_WORKSPACE_OWNER_MARKER)
+            {
+                return Err("test workspace ownership boundary rejected".to_string());
+            }
+            let root_metadata = fs::symlink_metadata(&self.root)
+                .map_err(|_| "test workspace root metadata unavailable".to_string())?;
+            if root_metadata.file_type().is_symlink() || !root_metadata.file_type().is_dir() {
+                return Err("test workspace root type rejected".to_string());
+            }
+            let marker_metadata = fs::symlink_metadata(&self.marker_path)
+                .map_err(|_| "test workspace ownership marker unavailable".to_string())?;
+            if marker_metadata.file_type().is_symlink() || !marker_metadata.file_type().is_file() {
+                return Err("test workspace ownership marker type rejected".to_string());
+            }
+            let persisted_token = fs::read_to_string(&self.marker_path)
+                .map_err(|_| "test workspace ownership marker read failed".to_string())?;
+            if persisted_token != self.ownership_token {
+                return Err("test workspace ownership token mismatch".to_string());
+            }
+            Ok(())
+        }
+
+        fn cleanup_verified(&mut self) -> Result<(), String> {
+            self.verify_ownership()?;
+            fs::remove_dir_all(&self.root)
+                .map_err(|_| "test workspace owned cleanup failed".to_string())?;
+            self.owns_root = false;
+            Ok(())
+        }
+
+        pub(crate) fn candidate_root_for_test(
+            label: &str,
+            sequence: u64,
+        ) -> Result<PathBuf, String> {
+            validate_label(label)?;
+            Ok(candidate_root(&std::env::temp_dir(), label, sequence))
+        }
+
+        pub(crate) fn new_with_sequence_for_test(
+            label: &str,
+            maximum_attempts: usize,
+            sequence: &AtomicU64,
+        ) -> Result<Self, String> {
+            Self::allocate(label, maximum_attempts, sequence)
+        }
+    }
+
+    impl Drop for TestWorkspaceLease {
+        fn drop(&mut self) {
+            if self.owns_root {
+                let _ = self.cleanup_verified();
+            }
+        }
+    }
+
+    fn candidate_root(base: &Path, label: &str, sequence: u64) -> PathBuf {
+        base.join(format!(
+            "soma-test-workspace-{label}-{}-{sequence}",
+            std::process::id()
+        ))
+    }
+
+    fn validate_label(label: &str) -> Result<(), String> {
+        if label.is_empty()
+            || label == "."
+            || label == ".."
+            || label.len() > 96
+            || label.contains(['/', '\\'])
+            || !label
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_'))
+        {
+            return Err("test workspace label rejected".to_string());
+        }
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod test_workspace_lease_regression_tests {
+    use std::{
+        collections::BTreeSet,
+        fs,
+        io::ErrorKind,
+        path::{Path, PathBuf},
+        sync::{
+            Arc, Barrier,
+            atomic::{AtomicU64, Ordering},
+        },
+        thread,
+    };
+
+    use crate::test_support::{TEST_WORKSPACE_OWNER_MARKER, TestWorkspaceLease};
+
+    static COLLISION_LABEL_SEQUENCE: AtomicU64 = AtomicU64::new(0);
+
+    fn precreate_candidate(prefix: &str, sequence: u64) -> (String, PathBuf) {
+        for _ in 0..128 {
+            let label = format!(
+                "{prefix}-{}",
+                COLLISION_LABEL_SEQUENCE.fetch_add(1, Ordering::Relaxed)
+            );
+            let root = TestWorkspaceLease::candidate_root_for_test(&label, sequence)
+                .expect("valid candidate");
+            match fs::create_dir(&root) {
+                Ok(()) => return (label, root),
+                Err(error) if error.kind() == ErrorKind::AlreadyExists => continue,
+                Err(error) => panic!("precreate candidate failed: {error}"),
+            }
+        }
+        panic!("fresh collision candidate unavailable");
+    }
+
+    fn remove_test_residue(root: &Path) {
+        assert_eq!(root.parent(), Some(std::env::temp_dir().as_path()));
+        assert!(
+            root.file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name.starts_with("soma-test-workspace-"))
+        );
+        if root.is_symlink() {
+            fs::remove_file(root).expect("remove test symlink");
+        } else if root.exists() {
+            fs::remove_dir_all(root).expect("remove test residue");
+        }
+    }
+
+    #[test]
+    fn test_workspace_preexisting_candidate_is_skipped_unchanged_and_not_deleted() {
+        let (label, stale_root) = precreate_candidate("stale", 0);
+        let sentinel = stale_root.join("sentinel");
+        fs::write(&sentinel, b"preexisting").expect("write sentinel");
+        let sequence = AtomicU64::new(0);
+
+        let lease = TestWorkspaceLease::new_with_sequence_for_test(&label, 2, &sequence)
+            .expect("allocate after collision");
+        assert_ne!(lease.root(), stale_root);
+        assert_eq!(fs::read(&sentinel).expect("read sentinel"), b"preexisting");
+        assert!(lease.marker_path().is_file());
+        lease.cleanup().expect("owned cleanup");
+
+        assert_eq!(
+            fs::read(&sentinel).expect("stale root preserved"),
+            b"preexisting"
+        );
+        remove_test_residue(&stale_root);
+    }
+
+    #[test]
+    fn test_workspace_exclusive_allocations_have_distinct_roots_and_markers() {
+        let left = TestWorkspaceLease::new("exclusive-left").expect("left lease");
+        let right = TestWorkspaceLease::new("exclusive-right").expect("right lease");
+        assert_ne!(left.root(), right.root());
+        assert_eq!(
+            fs::read_to_string(left.marker_path()).expect("left marker"),
+            left.ownership_token()
+        );
+        assert_eq!(
+            fs::read_to_string(right.marker_path()).expect("right marker"),
+            right.ownership_token()
+        );
+        left.cleanup().expect("left cleanup");
+        right.cleanup().expect("right cleanup");
+    }
+
+    #[test]
+    fn test_workspace_owned_root_cleanup_succeeds() {
+        let lease = TestWorkspaceLease::new("owned-cleanup").expect("lease");
+        let root = lease.root().to_path_buf();
+        lease.cleanup().expect("cleanup");
+        assert!(!root.exists());
+    }
+
+    #[test]
+    fn test_workspace_missing_marker_cleanup_is_rejected_without_deletion() {
+        let lease = TestWorkspaceLease::new("missing-marker").expect("lease");
+        let root = lease.root().to_path_buf();
+        fs::remove_file(lease.marker_path()).expect("remove marker");
+        assert!(lease.cleanup().is_err());
+        assert!(root.is_dir());
+        remove_test_residue(&root);
+    }
+
+    #[test]
+    fn test_workspace_mismatched_marker_cleanup_is_rejected_without_deletion() {
+        let lease = TestWorkspaceLease::new("mismatched-marker").expect("lease");
+        let root = lease.root().to_path_buf();
+        fs::write(lease.marker_path(), b"not-the-owner").expect("tamper marker");
+        assert!(lease.cleanup().is_err());
+        assert!(root.is_dir());
+        remove_test_residue(&root);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_workspace_symlink_root_cleanup_is_rejected() {
+        use std::os::unix::fs::symlink;
+
+        let lease = TestWorkspaceLease::new("symlink-source").expect("source lease");
+        let source_root = lease.root().to_path_buf();
+        fs::remove_file(lease.marker_path()).expect("remove source marker");
+        fs::remove_dir(&source_root).expect("remove empty source root");
+        let target = TestWorkspaceLease::new("symlink-target").expect("target lease");
+        let target_root = target.root().to_path_buf();
+        symlink(&target_root, &source_root).expect("create root symlink");
+
+        assert!(lease.cleanup().is_err());
+        assert!(source_root.is_symlink());
+        assert!(target_root.is_dir());
+
+        remove_test_residue(&source_root);
+        target.cleanup().expect("target cleanup");
+    }
+
+    #[test]
+    fn test_workspace_allocation_exhaustion_fails_closed() {
+        let (label, first) = precreate_candidate("exhaustion", 0);
+        let second = TestWorkspaceLease::candidate_root_for_test(&label, 1).expect("second path");
+        fs::create_dir(&second).expect("second collision");
+        let sequence = AtomicU64::new(0);
+
+        let error = TestWorkspaceLease::new_with_sequence_for_test(&label, 2, &sequence)
+            .expect_err("allocation must exhaust");
+        assert!(error.contains("retry exhausted"));
+        assert!(first.is_dir());
+        assert!(second.is_dir());
+
+        remove_test_residue(&first);
+        remove_test_residue(&second);
+    }
+
+    #[test]
+    fn test_workspace_parallel_allocations_are_unique() {
+        const THREADS: usize = 8;
+        let barrier = Arc::new(Barrier::new(THREADS));
+        let handles = (0..THREADS)
+            .map(|_| {
+                let barrier = Arc::clone(&barrier);
+                thread::spawn(move || {
+                    barrier.wait();
+                    let lease = TestWorkspaceLease::new("parallel").expect("parallel lease");
+                    let root = lease.root().to_path_buf();
+                    assert_eq!(
+                        fs::read_to_string(lease.marker_path()).expect("marker"),
+                        lease.ownership_token()
+                    );
+                    lease.cleanup().expect("parallel cleanup");
+                    root
+                })
+            })
+            .collect::<Vec<_>>();
+        let roots = handles
+            .into_iter()
+            .map(|handle| handle.join().expect("join"))
+            .collect::<BTreeSet<_>>();
+        assert_eq!(roots.len(), THREADS);
+    }
+
+    #[test]
+    fn test_workspace_subdirectory_failure_cleans_only_owned_root() {
+        let (label, stale_root) = precreate_candidate("subdir-failure", 0);
+        let sentinel = stale_root.join("sentinel");
+        fs::write(&sentinel, b"stale").expect("stale sentinel");
+        let sequence = AtomicU64::new(0);
+        let lease = TestWorkspaceLease::new_with_sequence_for_test(&label, 2, &sequence)
+            .expect("fresh lease");
+        let owned_root = lease.root().to_path_buf();
+        fs::write(owned_root.join("blocked"), b"file").expect("blocking file");
+
+        assert!(lease.create_child_dir("blocked").is_err());
+        lease.cleanup().expect("owned cleanup after subdir failure");
+        assert!(!owned_root.exists());
+        assert_eq!(fs::read(&sentinel).expect("stale sentinel"), b"stale");
+
+        remove_test_residue(&stale_root);
+    }
+
+    #[test]
+    fn test_workspace_drop_never_deletes_unowned_root() {
+        let lease = TestWorkspaceLease::new("drop-unowned").expect("lease");
+        let root = lease.root().to_path_buf();
+        fs::write(root.join(TEST_WORKSPACE_OWNER_MARKER), b"ownership-revoked")
+            .expect("replace marker");
+        drop(lease);
+        assert!(root.is_dir());
+        remove_test_residue(&root);
+    }
+
+    #[test]
+    fn test_workspace_rejects_unsafe_labels() {
+        for label in ["", ".", "..", "a/b", "a\\b"] {
+            assert!(TestWorkspaceLease::new(label).is_err(), "{label:?}");
+        }
+    }
+}
