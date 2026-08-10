@@ -56,6 +56,7 @@ const RETENTION_RESPONSE_GAIN_V2: f32 = 16.0;
 const RETENTION_BASE_LOGIT_DEAD_ZONE_V2: f32 = 1.0;
 const RETENTION_BASE_LOGIT_RESPONSE_SCALE_V2: f32 = 0.5;
 const M3_MICRO_CORE_SCHEMA_V3: &str = "soma-m3-micro-core-v3";
+const M3_MICRO_V2_CANDIDATE_SCHEMA_V1: &str = "soma-m3-micro-v2-candidate-v1";
 const M3_MICRO_CHECKPOINT_FORMAT_VERSION_V4: u32 = 4;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -105,6 +106,7 @@ pub enum M3MicroError {
     AutomaticMutationForbidden,
     AutomaticPromotionForbidden,
     IneligiblePromotion,
+    UnsupportedCandidateBackend,
     Io,
 }
 
@@ -131,6 +133,7 @@ impl std::fmt::Display for M3MicroError {
             Self::AutomaticMutationForbidden => "automatic Formula mutation forbidden",
             Self::AutomaticPromotionForbidden => "automatic promotion forbidden",
             Self::IneligiblePromotion => "challenger is not promotion eligible",
+            Self::UnsupportedCandidateBackend => "V2 candidate backend is unsupported",
             Self::Io => "local artifact I/O failed",
         };
         formatter.write_str(message)
@@ -138,6 +141,12 @@ impl std::fmt::Display for M3MicroError {
 }
 
 impl std::error::Error for M3MicroError {}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum M3MicroCoreRevisionV2 {
+    V1Reduced,
+    V2Candidate,
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum AgentId {
@@ -1283,6 +1292,10 @@ impl M3MicroModel {
         self.parameters.len()
     }
 
+    pub fn revision(&self) -> M3MicroCoreRevisionV2 {
+        M3MicroCoreRevisionV2::V1Reduced
+    }
+
     pub fn parameter_digest(&self) -> String {
         self.parameters.digest()
     }
@@ -2157,9 +2170,9 @@ impl M3MicroOptimizerState {
             + std::mem::size_of::<M3MicroOptimizerConfig>()
     }
 
-    fn apply(&mut self, model: &mut M3MicroModel, gradients: &[f32]) -> Result<(), M3MicroError> {
-        self.validate(model.parameter_count())?;
-        if gradients.len() != model.parameter_count() {
+    fn apply_values(&mut self, values: &mut [f32], gradients: &[f32]) -> Result<(), M3MicroError> {
+        self.validate(values.len())?;
+        if gradients.len() != values.len() {
             return Err(M3MicroError::InvalidShape);
         }
         if gradients.iter().any(|value| !value.is_finite()) {
@@ -2185,8 +2198,7 @@ impl M3MicroOptimizerState {
         let correction1 = 1.0 - self.config.beta1.powf(self.step as f32);
         let correction2 = 1.0 - self.config.beta2.powf(self.step as f32);
         for index in 0..gradients.len() {
-            let gradient = gradients[index] * scale
-                + self.config.weight_decay * model.parameters.values[index];
+            let gradient = gradients[index] * scale + self.config.weight_decay * values[index];
             self.first_moment[index] =
                 self.config.beta1 * self.first_moment[index] + (1.0 - self.config.beta1) * gradient;
             self.second_moment[index] = self.config.beta2 * self.second_moment[index]
@@ -2197,11 +2209,16 @@ impl M3MicroOptimizerState {
             if !update.is_finite() {
                 return Err(M3MicroError::NonFiniteGradient);
             }
-            model.parameters.values[index] = (model.parameters.values[index] - update)
-                .clamp(-PARAMETER_ABS_LIMIT, PARAMETER_ABS_LIMIT);
+            values[index] =
+                (values[index] - update).clamp(-PARAMETER_ABS_LIMIT, PARAMETER_ABS_LIMIT);
         }
+        self.validate(values.len())?;
+        Ok(())
+    }
+
+    fn apply(&mut self, model: &mut M3MicroModel, gradients: &[f32]) -> Result<(), M3MicroError> {
+        self.apply_values(&mut model.parameters.values, gradients)?;
         model.parameters.validate(&model.config)?;
-        self.validate(model.parameter_count())?;
         model.refresh_identity();
         Ok(())
     }
@@ -2584,6 +2601,678 @@ fn model_loss_and_gradients(
 ) -> Result<(f32, Vec<f32>), M3MicroError> {
     model_loss_gradients_internal(model, agent_id, sequence, target, false)
         .map(|(loss, gradients, _)| (loss, gradients))
+}
+
+#[derive(Clone, Debug)]
+struct M3MicroV2BlockLayout {
+    w_local: Range<usize>,
+    b_local: Range<usize>,
+    gate_state_scale: Range<usize>,
+    gate_input_scale: Range<usize>,
+    gate_bias: Range<usize>,
+    candidate_state_scale: Range<usize>,
+    candidate_input_scale: Range<usize>,
+    candidate_bias: Range<usize>,
+    memory_read_scale: Range<usize>,
+}
+
+#[derive(Clone, Debug)]
+struct M3MicroV2Layout {
+    w_embed: Range<usize>,
+    b_embed: Range<usize>,
+    blocks: Vec<M3MicroV2BlockLayout>,
+    w_head: Range<usize>,
+    b_head: Range<usize>,
+    parameter_count: usize,
+}
+
+impl M3MicroV2Layout {
+    fn new(config: &M3MicroConfig) -> Result<Self, M3MicroError> {
+        let state_len = config
+            .d_model
+            .checked_mul(config.d_state)
+            .ok_or(M3MicroError::InvalidConfiguration)?;
+        let mut builder = LayoutBuilder::default();
+        let w_embed = builder.take(config.d_model * config.input_dim);
+        let b_embed = builder.take(config.d_model);
+        let mut blocks = Vec::with_capacity(config.block_count);
+        for _ in 0..config.block_count {
+            blocks.push(M3MicroV2BlockLayout {
+                w_local: builder.take(config.d_model * config.d_model),
+                b_local: builder.take(config.d_model),
+                gate_state_scale: builder.take(state_len),
+                gate_input_scale: builder.take(state_len),
+                gate_bias: builder.take(state_len),
+                candidate_state_scale: builder.take(state_len),
+                candidate_input_scale: builder.take(state_len),
+                candidate_bias: builder.take(state_len),
+                memory_read_scale: builder.take(state_len),
+            });
+        }
+        let w_head = builder.take(config.output_dim * config.d_model);
+        let b_head = builder.take(config.output_dim);
+        if builder.next > PARAMETER_LIMIT {
+            return Err(M3MicroError::InvalidConfiguration);
+        }
+        Ok(Self {
+            w_embed,
+            b_embed,
+            blocks,
+            w_head,
+            b_head,
+            parameter_count: builder.next,
+        })
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct M3MicroV2Parameters {
+    values: Vec<f32>,
+}
+
+impl M3MicroV2Parameters {
+    fn seeded(config: &M3MicroConfig, seed: u64) -> Result<Self, M3MicroError> {
+        let layout = M3MicroV2Layout::new(config)?;
+        let mut rng = DeterministicRng::new(seed);
+        let mut values = (0..layout.parameter_count)
+            .map(|_| rng.symmetric(0.02))
+            .collect::<Vec<_>>();
+        values[layout.b_embed.clone()].fill(0.0);
+        values[layout.b_head.clone()].fill(0.0);
+        for feature in 0..config.input_dim.min(config.d_model) {
+            values[layout.w_embed.start + feature * config.input_dim + feature] +=
+                INITIAL_INPUT_IDENTITY_SCALE_V2;
+        }
+        for block in &layout.blocks {
+            values[block.b_local.clone()].fill(0.0);
+            for feature in 0..config.d_model {
+                values[block.w_local.start + feature * config.d_model + feature] +=
+                    INITIAL_INPUT_IDENTITY_SCALE_V2;
+            }
+            values[block.gate_state_scale.clone()].fill(0.25);
+            values[block.gate_input_scale.clone()].fill(0.25);
+            values[block.gate_bias.clone()].fill(0.0);
+            values[block.candidate_state_scale.clone()].fill(0.5);
+            values[block.candidate_input_scale.clone()].fill(1.0);
+            values[block.candidate_bias.clone()].fill(0.0);
+            values[block.memory_read_scale.clone()].fill(1.0);
+        }
+        let parameters = Self { values };
+        parameters.validate(config)?;
+        Ok(parameters)
+    }
+
+    fn validate(&self, config: &M3MicroConfig) -> Result<(), M3MicroError> {
+        let expected = M3MicroV2Layout::new(config)?.parameter_count;
+        if self.values.len() != expected {
+            return Err(M3MicroError::InvalidShape);
+        }
+        if self
+            .values
+            .iter()
+            .any(|value| !value.is_finite() || value.abs() > PARAMETER_ABS_LIMIT)
+        {
+            return Err(M3MicroError::NonFiniteParameter);
+        }
+        Ok(())
+    }
+
+    pub fn len(&self) -> usize {
+        self.values.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.values.is_empty()
+    }
+
+    pub fn digest(&self) -> String {
+        stable_hash_string(&format!("{:?}", self.values))
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct M3MicroV2BlockState {
+    values: Vec<f32>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct M3MicroV2State {
+    pub blocks: Vec<M3MicroV2BlockState>,
+    pub step_index: usize,
+}
+
+impl M3MicroV2State {
+    pub fn zero(config: &M3MicroConfig) -> Result<Self, M3MicroError> {
+        config.validate()?;
+        let state_len = config
+            .d_model
+            .checked_mul(config.d_state)
+            .ok_or(M3MicroError::InvalidConfiguration)?;
+        Ok(Self {
+            blocks: (0..config.block_count)
+                .map(|_| M3MicroV2BlockState {
+                    values: vec![0.0; state_len],
+                })
+                .collect(),
+            step_index: 0,
+        })
+    }
+
+    pub fn validate(&self, config: &M3MicroConfig) -> Result<(), M3MicroError> {
+        let state_len = config
+            .d_model
+            .checked_mul(config.d_state)
+            .ok_or(M3MicroError::InvalidConfiguration)?;
+        if self.blocks.len() != config.block_count
+            || self
+                .blocks
+                .iter()
+                .any(|block| block.values.len() != state_len)
+        {
+            return Err(M3MicroError::InvalidShape);
+        }
+        if self
+            .blocks
+            .iter()
+            .flat_map(|block| &block.values)
+            .any(|value| !value.is_finite())
+        {
+            return Err(M3MicroError::NonFiniteOutput);
+        }
+        if self
+            .blocks
+            .iter()
+            .flat_map(|block| &block.values)
+            .any(|value| value.abs() > 1.0 + 1.0e-5)
+        {
+            return Err(M3MicroError::StateExplosion);
+        }
+        Ok(())
+    }
+
+    pub fn byte_size(&self) -> usize {
+        self.blocks
+            .iter()
+            .map(|block| block.values.len() * std::mem::size_of::<f32>())
+            .sum::<usize>()
+            + std::mem::size_of::<usize>()
+    }
+
+    pub fn value_count(&self) -> usize {
+        self.blocks.iter().map(|block| block.values.len()).sum()
+    }
+
+    pub fn digest(&self) -> String {
+        stable_hash_string(&format!("{self:?}"))
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct M3MicroV2Candidate {
+    pub config: M3MicroConfig,
+    pub parameters: M3MicroV2Parameters,
+    pub model_identity: String,
+}
+
+#[derive(Clone, Debug)]
+struct M3MicroV2BlockTape {
+    h_input: Vec<f32>,
+    u: Vec<f32>,
+    previous_state: Vec<f32>,
+    gate: Vec<f32>,
+    candidate: Vec<f32>,
+    next_state: Vec<f32>,
+    h_output: Vec<f32>,
+}
+
+#[derive(Clone, Debug)]
+struct M3MicroV2StepTape {
+    input: Vec<f32>,
+    embedded: Vec<f32>,
+    blocks: Vec<M3MicroV2BlockTape>,
+}
+
+#[derive(Clone, Debug)]
+struct M3MicroV2ForwardTape {
+    steps: Vec<M3MicroV2StepTape>,
+    raw_output: Vec<f32>,
+}
+
+impl M3MicroV2Candidate {
+    pub fn seeded(config: M3MicroConfig, seed: u64) -> Result<Self, M3MicroError> {
+        config.validate()?;
+        let parameters = M3MicroV2Parameters::seeded(&config, seed)?;
+        let mut model = Self {
+            config,
+            parameters,
+            model_identity: String::new(),
+        };
+        model.refresh_identity();
+        Ok(model)
+    }
+
+    pub fn revision(&self) -> M3MicroCoreRevisionV2 {
+        M3MicroCoreRevisionV2::V2Candidate
+    }
+
+    pub fn validate(&self) -> Result<(), M3MicroError> {
+        self.config.validate()?;
+        self.parameters.validate(&self.config)?;
+        if self.model_identity != self.computed_identity() {
+            return Err(M3MicroError::CorruptArtifact);
+        }
+        Ok(())
+    }
+
+    pub fn parameter_count(&self) -> usize {
+        self.parameters.len()
+    }
+
+    pub fn parameter_digest(&self) -> String {
+        self.parameters.digest()
+    }
+
+    pub fn zero_state(&self) -> Result<M3MicroV2State, M3MicroError> {
+        M3MicroV2State::zero(&self.config)
+    }
+
+    fn computed_identity(&self) -> String {
+        stable_hash_string(&format!(
+            "{M3_MICRO_V2_CANDIDATE_SCHEMA_V1}:{:?}:{}",
+            self.config,
+            self.parameters.digest()
+        ))
+    }
+
+    fn refresh_identity(&mut self) {
+        self.model_identity = self.computed_identity();
+    }
+
+    pub fn forward(
+        &self,
+        sequence: &[Vec<f32>],
+        state: &mut M3MicroV2State,
+    ) -> Result<Vec<f32>, M3MicroError> {
+        self.forward_with_work_counters(sequence, state)
+            .map(|(output, _)| output)
+    }
+
+    pub fn forward_with_work_counters(
+        &self,
+        sequence: &[Vec<f32>],
+        state: &mut M3MicroV2State,
+    ) -> Result<(Vec<f32>, M3MicroWorkCountersV1), M3MicroError> {
+        let mut counters = M3MicroWorkCountersV1::default();
+        let output = self
+            .forward_internal(sequence, state, false, true, &mut counters)?
+            .raw_output;
+        Ok((output, counters))
+    }
+
+    pub fn stream_step(
+        &self,
+        input: &[f32],
+        state: &mut M3MicroV2State,
+    ) -> Result<(Vec<f32>, M3MicroWorkCountersV1), M3MicroError> {
+        self.forward_with_work_counters(&[input.to_vec()], state)
+    }
+
+    pub fn forward_from_zero_with_work_counters(
+        &self,
+        sequence: &[Vec<f32>],
+    ) -> Result<(Vec<f32>, M3MicroV2State, M3MicroWorkCountersV1), M3MicroError> {
+        let mut state = self.zero_state()?;
+        let (output, mut counters) = self.forward_with_work_counters(sequence, &mut state)?;
+        counters.state_allocation_count = 1;
+        Ok((output, state, counters))
+    }
+
+    pub fn forward_with_backend(
+        &self,
+        backend: M3MicroBackendKind,
+        sequence: &[Vec<f32>],
+        state: &mut M3MicroV2State,
+    ) -> Result<Vec<f32>, M3MicroError> {
+        if backend != M3MicroBackendKind::DefaultCpu {
+            return Err(M3MicroError::UnsupportedCandidateBackend);
+        }
+        self.forward(sequence, state)
+    }
+
+    fn forward_internal(
+        &self,
+        sequence: &[Vec<f32>],
+        state: &mut M3MicroV2State,
+        record_tape: bool,
+        state_enabled: bool,
+        counters: &mut M3MicroWorkCountersV1,
+    ) -> Result<M3MicroV2ForwardTape, M3MicroError> {
+        self.validate()?;
+        state.validate(&self.config)?;
+        if sequence.is_empty()
+            || sequence.iter().any(|row| {
+                row.len() != self.config.input_dim || row.iter().any(|value| !value.is_finite())
+            })
+        {
+            return Err(M3MicroError::NonFiniteInput);
+        }
+        let layout = M3MicroV2Layout::new(&self.config)?;
+        let params = &self.parameters.values;
+        let state_len = self.config.d_model * self.config.d_state;
+        let mut tapes = Vec::with_capacity(sequence.len());
+        let mut final_hidden = vec![0.0; self.config.d_model];
+        for input in sequence {
+            counters.sequence_step_count = counters
+                .sequence_step_count
+                .checked_add(1)
+                .ok_or(M3MicroError::StateExplosion)?;
+            let embedded = affine_tanh(
+                params,
+                &layout.w_embed,
+                &layout.b_embed,
+                self.config.d_model,
+                self.config.input_dim,
+                input,
+            )?;
+            counters.projection_operation_count = counters
+                .projection_operation_count
+                .checked_add(1)
+                .ok_or(M3MicroError::StateExplosion)?;
+            let mut hidden = embedded.clone();
+            let mut block_tapes = Vec::with_capacity(self.config.block_count);
+            for (block_index, block_layout) in layout.blocks.iter().enumerate() {
+                let block_state = &mut state.blocks[block_index];
+                let previous_state = block_state.values.clone();
+                let u = affine_tanh(
+                    params,
+                    &block_layout.w_local,
+                    &block_layout.b_local,
+                    self.config.d_model,
+                    self.config.d_model,
+                    &hidden,
+                )?;
+                let mut gate = vec![0.0; state_len];
+                let mut candidate = vec![0.0; state_len];
+                let mut next_state = vec![0.0; state_len];
+                for index in 0..state_len {
+                    let channel = index / self.config.d_state;
+                    let projected_input = u[channel];
+                    gate[index] = sigmoid(
+                        params[block_layout.gate_state_scale.start + index] * previous_state[index]
+                            + params[block_layout.gate_input_scale.start + index] * projected_input
+                            + params[block_layout.gate_bias.start + index],
+                    );
+                    candidate[index] = (params[block_layout.candidate_state_scale.start + index]
+                        * previous_state[index]
+                        + params[block_layout.candidate_input_scale.start + index]
+                            * projected_input
+                        + params[block_layout.candidate_bias.start + index])
+                        .tanh();
+                    let value = previous_state[index]
+                        + gate[index] * (candidate[index] - previous_state[index]);
+                    if !value.is_finite() {
+                        return Err(M3MicroError::NonFiniteOutput);
+                    }
+                    next_state[index] = value;
+                }
+                let mut memory = vec![0.0; self.config.d_model];
+                for channel in 0..self.config.d_model {
+                    for state_index in 0..self.config.d_state {
+                        let index = channel * self.config.d_state + state_index;
+                        memory[channel] += next_state[index]
+                            * params[block_layout.memory_read_scale.start + index]
+                            / self.config.d_state as f32;
+                    }
+                }
+                let h_output = u
+                    .iter()
+                    .zip(&memory)
+                    .map(|(local, memory)| local + if state_enabled { *memory } else { 0.0 })
+                    .collect::<Vec<_>>();
+                if h_output.iter().any(|value| !value.is_finite()) {
+                    return Err(M3MicroError::NonFiniteOutput);
+                }
+                counters.projection_operation_count = counters
+                    .projection_operation_count
+                    .checked_add(1)
+                    .ok_or(M3MicroError::StateExplosion)?;
+                counters.state_transition_count = counters
+                    .state_transition_count
+                    .checked_add(state_len)
+                    .ok_or(M3MicroError::StateExplosion)?;
+                block_state.values.clone_from(&next_state);
+                if record_tape {
+                    block_tapes.push(M3MicroV2BlockTape {
+                        h_input: hidden,
+                        u,
+                        previous_state,
+                        gate,
+                        candidate,
+                        next_state,
+                        h_output: h_output.clone(),
+                    });
+                }
+                hidden = h_output;
+            }
+            final_hidden = hidden;
+            if record_tape {
+                tapes.push(M3MicroV2StepTape {
+                    input: input.clone(),
+                    embedded,
+                    blocks: block_tapes,
+                });
+            }
+            state.step_index = state
+                .step_index
+                .checked_add(1)
+                .ok_or(M3MicroError::StateExplosion)?;
+            state.validate(&self.config)?;
+        }
+        let raw_output = affine(
+            params,
+            &layout.w_head,
+            &layout.b_head,
+            self.config.output_dim,
+            self.config.d_model,
+            &final_hidden,
+        )?;
+        counters.projection_operation_count = counters
+            .projection_operation_count
+            .checked_add(1)
+            .ok_or(M3MicroError::StateExplosion)?;
+        if raw_output.iter().any(|value| !value.is_finite()) {
+            return Err(M3MicroError::NonFiniteOutput);
+        }
+        Ok(M3MicroV2ForwardTape {
+            steps: tapes,
+            raw_output,
+        })
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+struct M3MicroV2GradientResult {
+    loss: f32,
+    parameter_gradients: Vec<f32>,
+    input_gradients: Vec<Vec<f32>>,
+}
+
+impl M3MicroV2Candidate {
+    fn loss_gradients_internal(
+        &self,
+        agent_id: AgentId,
+        sequence: &[Vec<f32>],
+        target: &M3MicroTarget,
+        capture_input_gradients: bool,
+        state_enabled: bool,
+    ) -> Result<M3MicroV2GradientResult, M3MicroError> {
+        let mut state = self.zero_state()?;
+        let mut counters = M3MicroWorkCountersV1::default();
+        let tape =
+            self.forward_internal(sequence, &mut state, true, state_enabled, &mut counters)?;
+        let (loss, output_gradient) = loss_and_output_gradient(agent_id, &tape.raw_output, target)?;
+        let layout = M3MicroV2Layout::new(&self.config)?;
+        let params = &self.parameters.values;
+        let state_len = self.config.d_model * self.config.d_state;
+        let mut gradients = vec![0.0; params.len()];
+        let mut input_gradients = if capture_input_gradients {
+            vec![vec![0.0; self.config.input_dim]; tape.steps.len()]
+        } else {
+            Vec::new()
+        };
+        let final_hidden = tape
+            .steps
+            .last()
+            .and_then(|step| step.blocks.last())
+            .map(|block| &block.h_output)
+            .ok_or(M3MicroError::InvalidShape)?;
+        let head_hidden_gradient = add_affine_backward(
+            params,
+            &layout.w_head,
+            &layout.b_head,
+            self.config.output_dim,
+            self.config.d_model,
+            final_hidden,
+            &output_gradient,
+            &mut gradients,
+        )?;
+        let mut future_state_gradients = vec![vec![0.0; state_len]; self.config.block_count];
+        let last_step = tape.steps.len() - 1;
+        for (step_index, step) in tape.steps.iter().enumerate().rev() {
+            let mut hidden_gradient = if step_index == last_step {
+                head_hidden_gradient.clone()
+            } else {
+                vec![0.0; self.config.d_model]
+            };
+            for block_index in (0..self.config.block_count).rev() {
+                let block = &step.blocks[block_index];
+                let block_layout = &layout.blocks[block_index];
+                let mut u_gradient = hidden_gradient.clone();
+                let mut state_gradient = future_state_gradients[block_index].clone();
+                if state_enabled {
+                    for channel in 0..self.config.d_model {
+                        for state_index in 0..self.config.d_state {
+                            let index = channel * self.config.d_state + state_index;
+                            let read_scale = params[block_layout.memory_read_scale.start + index];
+                            state_gradient[index] +=
+                                hidden_gradient[channel] * read_scale / self.config.d_state as f32;
+                            gradients[block_layout.memory_read_scale.start + index] +=
+                                hidden_gradient[channel] * block.next_state[index]
+                                    / self.config.d_state as f32;
+                        }
+                    }
+                }
+                let mut previous_state_gradient = vec![0.0; state_len];
+                for index in 0..state_len {
+                    let channel = index / self.config.d_state;
+                    let state_derivative = state_gradient[index];
+                    let gate_gradient =
+                        state_derivative * (block.candidate[index] - block.previous_state[index]);
+                    let candidate_gradient = state_derivative * block.gate[index];
+                    let gate_pre_gradient =
+                        gate_gradient * block.gate[index] * (1.0 - block.gate[index]);
+                    let candidate_pre_gradient = candidate_gradient
+                        * (1.0 - block.candidate[index] * block.candidate[index]);
+                    let projected_input = block.u[channel];
+                    gradients[block_layout.gate_state_scale.start + index] +=
+                        gate_pre_gradient * block.previous_state[index];
+                    gradients[block_layout.gate_input_scale.start + index] +=
+                        gate_pre_gradient * projected_input;
+                    gradients[block_layout.gate_bias.start + index] += gate_pre_gradient;
+                    gradients[block_layout.candidate_state_scale.start + index] +=
+                        candidate_pre_gradient * block.previous_state[index];
+                    gradients[block_layout.candidate_input_scale.start + index] +=
+                        candidate_pre_gradient * projected_input;
+                    gradients[block_layout.candidate_bias.start + index] += candidate_pre_gradient;
+                    previous_state_gradient[index] = state_derivative * (1.0 - block.gate[index])
+                        + gate_pre_gradient * params[block_layout.gate_state_scale.start + index]
+                        + candidate_pre_gradient
+                            * params[block_layout.candidate_state_scale.start + index];
+                    u_gradient[channel] += gate_pre_gradient
+                        * params[block_layout.gate_input_scale.start + index]
+                        + candidate_pre_gradient
+                            * params[block_layout.candidate_input_scale.start + index];
+                }
+                let u_pre_gradient = u_gradient
+                    .iter()
+                    .zip(&block.u)
+                    .map(|(gradient, value)| gradient * (1.0 - value * value))
+                    .collect::<Vec<_>>();
+                hidden_gradient = add_affine_backward(
+                    params,
+                    &block_layout.w_local,
+                    &block_layout.b_local,
+                    self.config.d_model,
+                    self.config.d_model,
+                    &block.h_input,
+                    &u_pre_gradient,
+                    &mut gradients,
+                )?;
+                future_state_gradients[block_index] = previous_state_gradient;
+            }
+            let embed_pre_gradient = hidden_gradient
+                .iter()
+                .zip(&step.embedded)
+                .map(|(gradient, value)| gradient * (1.0 - value * value))
+                .collect::<Vec<_>>();
+            let input_gradient = add_affine_backward(
+                params,
+                &layout.w_embed,
+                &layout.b_embed,
+                self.config.d_model,
+                self.config.input_dim,
+                &step.input,
+                &embed_pre_gradient,
+                &mut gradients,
+            )?;
+            if capture_input_gradients {
+                input_gradients[step_index] = input_gradient;
+            }
+        }
+        if gradients.iter().any(|value| !value.is_finite()) {
+            return Err(M3MicroError::NonFiniteGradient);
+        }
+        Ok(M3MicroV2GradientResult {
+            loss,
+            parameter_gradients: gradients,
+            input_gradients,
+        })
+    }
+
+    fn apply_gradients(
+        &mut self,
+        optimizer: &mut M3MicroOptimizerState,
+        gradients: &[f32],
+    ) -> Result<(), M3MicroError> {
+        optimizer.apply_values(&mut self.parameters.values, gradients)?;
+        self.parameters.validate(&self.config)?;
+        self.refresh_identity();
+        Ok(())
+    }
+
+    fn train_step_with_state(
+        &mut self,
+        optimizer: &mut M3MicroOptimizerState,
+        agent_id: AgentId,
+        sequence: &[Vec<f32>],
+        target: &M3MicroTarget,
+        state_enabled: bool,
+    ) -> Result<f32, M3MicroError> {
+        let result =
+            self.loss_gradients_internal(agent_id, sequence, target, false, state_enabled)?;
+        self.apply_gradients(optimizer, &result.parameter_gradients)?;
+        Ok(result.loss)
+    }
+
+    pub fn train_development_step(
+        &mut self,
+        optimizer: &mut M3MicroOptimizerState,
+        agent_id: AgentId,
+        sequence: &[Vec<f32>],
+        target: &M3MicroTarget,
+    ) -> Result<f32, M3MicroError> {
+        self.train_step_with_state(optimizer, agent_id, sequence, target, true)
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -4850,7 +5539,7 @@ mod tests {
             OnceLock,
             atomic::{AtomicUsize, Ordering},
         },
-        time::{SystemTime, UNIX_EPOCH},
+        time::{Instant, SystemTime, UNIX_EPOCH},
     };
 
     const STATE_READOUT_GAIN_V2: f32 = 6.0;
@@ -6494,6 +7183,10 @@ mod tests {
         paired_prediction_separation: f32,
         predictions: Vec<f32>,
         state_digests: Vec<String>,
+        mean_final_state_l2_norm: f32,
+        mean_final_state_abs: f32,
+        max_final_state_abs: f32,
+        final_states_finite: bool,
         event_audits: Vec<DelayedMemoryEventAuditV1>,
     }
 
@@ -6547,6 +7240,14 @@ mod tests {
         no_state_ablation_receipt: String,
         base_event_audits: Vec<DelayedMemoryEventAuditV1>,
         no_state_event_audits: Vec<DelayedMemoryEventAuditV1>,
+        base_mean_final_state_l2_norm: f32,
+        base_mean_final_state_abs: f32,
+        base_max_final_state_abs: f32,
+        base_final_states_finite: bool,
+        no_state_mean_final_state_l2_norm: f32,
+        no_state_mean_final_state_abs: f32,
+        no_state_max_final_state_abs: f32,
+        no_state_final_states_finite: bool,
         comparator_snapshot: NoStateComparatorSnapshotV1,
     }
 
@@ -14737,6 +15438,10 @@ mod tests {
         let mut predictions = Vec::with_capacity(examples.len());
         let mut state_digests = Vec::with_capacity(examples.len());
         let mut event_audits = Vec::with_capacity(examples.len());
+        let mut final_state_l2_norms = Vec::with_capacity(examples.len());
+        let mut final_state_mean_abs = Vec::with_capacity(examples.len());
+        let mut max_final_state_abs = 0.0f32;
+        let mut final_states_finite = true;
         for example in examples {
             let (raw_output, state, _) =
                 model.forward_from_zero_with_work_counters(&example.sequence)?;
@@ -14763,6 +15468,27 @@ mod tests {
             }
             predictions.push(score);
             state_digests.push(state.digest());
+            let mut state_l2_sum = 0.0f32;
+            let mut state_abs_sum = 0.0f32;
+            let mut state_value_count = 0usize;
+            for value in state
+                .blocks
+                .iter()
+                .flat_map(|block| block.values.iter().chain(&block.previous_u))
+            {
+                final_states_finite &= value.is_finite();
+                state_l2_sum += value * value;
+                let absolute = value.abs();
+                state_abs_sum += absolute;
+                max_final_state_abs = max_final_state_abs.max(absolute);
+                state_value_count += 1;
+            }
+            if state_value_count == 0 {
+                return Err(M3MicroError::InvalidShape);
+            }
+            final_states_finite &= state.validate(&model.config).is_ok();
+            final_state_l2_norms.push(state_l2_sum.sqrt());
+            final_state_mean_abs.push(state_abs_sum / state_value_count as f32);
             event_audits.push(DelayedMemoryEventAuditV1 {
                 event_identity: stable_hash_string(&format!(
                     "m3-delayed-memory-event-v1:{}:{}:{:?}:{:?}",
@@ -14839,6 +15565,12 @@ mod tests {
             paired_prediction_separation: positive_mean_prediction - negative_mean_prediction,
             predictions,
             state_digests,
+            mean_final_state_l2_norm: final_state_l2_norms.iter().sum::<f32>()
+                / final_state_l2_norms.len() as f32,
+            mean_final_state_abs: final_state_mean_abs.iter().sum::<f32>()
+                / final_state_mean_abs.len() as f32,
+            max_final_state_abs,
+            final_states_finite,
             event_audits,
         })
     }
@@ -15049,6 +15781,14 @@ mod tests {
             no_state_ablation_receipt: no_state.ablation_receipt.unwrap(),
             base_event_audits: base_frozen.event_audits,
             no_state_event_audits: no_state_frozen.event_audits,
+            base_mean_final_state_l2_norm: base_frozen.mean_final_state_l2_norm,
+            base_mean_final_state_abs: base_frozen.mean_final_state_abs,
+            base_max_final_state_abs: base_frozen.max_final_state_abs,
+            base_final_states_finite: base_frozen.final_states_finite,
+            no_state_mean_final_state_l2_norm: no_state_frozen.mean_final_state_l2_norm,
+            no_state_mean_final_state_abs: no_state_frozen.mean_final_state_abs,
+            no_state_max_final_state_abs: no_state_frozen.max_final_state_abs,
+            no_state_final_states_finite: no_state_frozen.final_states_finite,
             comparator_snapshot,
         })
     }
@@ -15161,6 +15901,2609 @@ mod tests {
             paired_nll_win_rate: nll_deltas.iter().filter(|delta| **delta < 0.0).count() as f32
                 / nll_deltas.len() as f32,
         }
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum Sprint105DiagnosticPathV1 {
+        Base,
+        NoState,
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq)]
+    struct Sprint105ExampleDiagnosticV1 {
+        path: Sprint105DiagnosticPathV1,
+        sequence_length: usize,
+        example_index: usize,
+        correct: bool,
+        true_class_index: usize,
+        predicted_class_index: usize,
+        true_class_logit: f32,
+        top1_logit: f32,
+        second_logit: f32,
+        true_class_probability: f32,
+        top1_probability: f32,
+        top1_top2_logit_margin: f32,
+        true_class_margin: f32,
+        entropy: f32,
+        nll_contribution: f32,
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq)]
+    struct Sprint105LengthPathSummaryV1 {
+        path: Sprint105DiagnosticPathV1,
+        sequence_length: usize,
+        sample_count: usize,
+        accuracy: f32,
+        mean_nll: f32,
+        mean_true_class_probability: f32,
+        median_true_class_probability: f32,
+        mean_top1_probability: f32,
+        mean_top1_top2_logit_margin: f32,
+        median_top1_top2_logit_margin: f32,
+        mean_entropy: f32,
+        median_entropy: f32,
+        logit_mean: f32,
+        logit_std: f32,
+        logit_absolute_maximum: f32,
+        logit_l2_norm: f32,
+        mean_true_class_margin: f32,
+        mean_final_state_l2_norm: f32,
+        mean_final_state_abs: f32,
+        max_final_state_abs: f32,
+        final_states_finite: bool,
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq)]
+    struct Sprint105TemperatureDiagnosticV1 {
+        path: Sprint105DiagnosticPathV1,
+        sequence_length: usize,
+        temperature: f32,
+        accuracy: f32,
+        mean_nll: f32,
+        argmax_changed: usize,
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum Sprint105Length32BucketV1 {
+        CorrectStrongMargin,
+        CorrectWeakMargin,
+        WrongHighRelativeConfidence,
+        WrongLowRelativeConfidence,
+        TieOrNumericallyAmbiguous,
+    }
+
+    impl Sprint105Length32BucketV1 {
+        fn as_str(self) -> &'static str {
+            match self {
+                Self::CorrectStrongMargin => "A:correct-strong-relative-margin",
+                Self::CorrectWeakMargin => "B:correct-weak-relative-margin",
+                Self::WrongHighRelativeConfidence => "C:wrong-high-relative-confidence",
+                Self::WrongLowRelativeConfidence => "D:wrong-low-relative-confidence",
+                Self::TieOrNumericallyAmbiguous => "E:tie-or-numerically-ambiguous",
+            }
+        }
+    }
+
+    fn sprint105_median_v1(values: &[f32]) -> f32 {
+        assert!(!values.is_empty());
+        let mut values = values.to_vec();
+        values.sort_by(f32::total_cmp);
+        if values.len() % 2 == 0 {
+            (values[values.len() / 2 - 1] + values[values.len() / 2]) * 0.5
+        } else {
+            values[values.len() / 2]
+        }
+    }
+
+    fn sprint105_quantile_v1(values: &[f32], quantile: f32) -> f32 {
+        assert!(!values.is_empty());
+        assert!((0.0..=1.0).contains(&quantile));
+        let mut values = values.to_vec();
+        values.sort_by(f32::total_cmp);
+        let position = quantile * (values.len() - 1) as f32;
+        let lower = position.floor() as usize;
+        let upper = position.ceil() as usize;
+        values[lower] + (values[upper] - values[lower]) * (position - lower as f32)
+    }
+
+    fn sprint105_probabilities_v1(logits: &[f32; 3], temperature: f32) -> [f32; 3] {
+        assert!(temperature.is_finite() && temperature > 0.0);
+        let scaled = logits.map(|value| value / temperature);
+        let maximum = scaled.into_iter().fold(f32::NEG_INFINITY, f32::max);
+        let weights = scaled.map(|value| (value - maximum).exp());
+        let total = weights.iter().sum::<f32>();
+        assert!(total.is_finite() && total > 0.0);
+        weights.map(|weight| weight / total)
+    }
+
+    fn sprint105_top_two_indices_v1(logits: &[f32; 3]) -> [usize; 2] {
+        let mut indices = [0usize, 1, 2];
+        indices.sort_by(|left, right| {
+            logits[*right]
+                .total_cmp(&logits[*left])
+                .then_with(|| left.cmp(right))
+        });
+        [indices[0], indices[1]]
+    }
+
+    fn sprint105_target_index_v1(event: &DelayedMemoryEventAuditV1) -> usize {
+        match event.target {
+            0.0 => 0,
+            1.0 => 2,
+            _ => panic!("canonical delayed-recall target must be binary"),
+        }
+    }
+
+    fn sprint105_example_diagnostic_v1(
+        path: Sprint105DiagnosticPathV1,
+        event: &DelayedMemoryEventAuditV1,
+        example_index: usize,
+    ) -> Sprint105ExampleDiagnosticV1 {
+        assert_eq!(event.raw_output.len(), 5);
+        let logits: [f32; 3] = event.raw_output[..3].try_into().unwrap();
+        assert!(logits.iter().all(|value| value.is_finite()));
+        let probabilities = sprint105_probabilities_v1(&logits, 1.0);
+        let true_class_index = sprint105_target_index_v1(event);
+        let [top1_index, second_index] = sprint105_top_two_indices_v1(&logits);
+        let true_class_logit = logits[true_class_index];
+        let highest_other_logit = logits
+            .iter()
+            .enumerate()
+            .filter_map(|(index, value)| (index != true_class_index).then_some(*value))
+            .fold(f32::NEG_INFINITY, f32::max);
+        let true_class_probability = probabilities[true_class_index];
+        let entropy = -probabilities
+            .iter()
+            .map(|probability| probability * probability.ln())
+            .sum::<f32>();
+        let nll_contribution = -true_class_probability.max(PROBABILITY_EPSILON).ln();
+        assert!(within_r9_tolerance(
+            event.probability_of_true_class,
+            true_class_probability,
+            R9_PROBABILITY_NORMALIZATION_TOLERANCE as f32
+        ));
+        assert!(within_r9_tolerance(
+            event.event_nll,
+            nll_contribution,
+            R9_EVENT_NLL_TOLERANCE
+        ));
+        Sprint105ExampleDiagnosticV1 {
+            path,
+            sequence_length: event.sequence_length,
+            example_index,
+            correct: event.correct,
+            true_class_index,
+            predicted_class_index: top1_index,
+            true_class_logit,
+            top1_logit: logits[top1_index],
+            second_logit: logits[second_index],
+            true_class_probability,
+            top1_probability: probabilities[top1_index],
+            top1_top2_logit_margin: logits[top1_index] - logits[second_index],
+            true_class_margin: true_class_logit - highest_other_logit,
+            entropy,
+            nll_contribution,
+        }
+    }
+
+    fn sprint105_path_events_v1<'a>(
+        evidence: &'a DelayedRecallEvidenceV2,
+        path: Sprint105DiagnosticPathV1,
+    ) -> &'a [DelayedMemoryEventAuditV1] {
+        match path {
+            Sprint105DiagnosticPathV1::Base => &evidence.base_event_audits,
+            Sprint105DiagnosticPathV1::NoState => &evidence.no_state_event_audits,
+        }
+    }
+
+    fn sprint105_length_path_summary_v1(
+        evidence: &DelayedRecallEvidenceV2,
+        path: Sprint105DiagnosticPathV1,
+    ) -> Sprint105LengthPathSummaryV1 {
+        let events = sprint105_path_events_v1(evidence, path);
+        let examples = events
+            .iter()
+            .enumerate()
+            .map(|(index, event)| sprint105_example_diagnostic_v1(path, event, index))
+            .collect::<Vec<_>>();
+        let logits = events
+            .iter()
+            .flat_map(|event| event.raw_output[..3].iter().copied())
+            .collect::<Vec<_>>();
+        assert!(!examples.is_empty());
+        assert!(logits.iter().all(|value| value.is_finite()));
+        let logit_mean = logits.iter().sum::<f32>() / logits.len() as f32;
+        let logit_std = (logits
+            .iter()
+            .map(|value| (value - logit_mean).powi(2))
+            .sum::<f32>()
+            / logits.len() as f32)
+            .sqrt();
+        let (
+            mean_final_state_l2_norm,
+            mean_final_state_abs,
+            max_final_state_abs,
+            final_states_finite,
+        ) = match path {
+            Sprint105DiagnosticPathV1::Base => (
+                evidence.base_mean_final_state_l2_norm,
+                evidence.base_mean_final_state_abs,
+                evidence.base_max_final_state_abs,
+                evidence.base_final_states_finite,
+            ),
+            Sprint105DiagnosticPathV1::NoState => (
+                evidence.no_state_mean_final_state_l2_norm,
+                evidence.no_state_mean_final_state_abs,
+                evidence.no_state_max_final_state_abs,
+                evidence.no_state_final_states_finite,
+            ),
+        };
+        Sprint105LengthPathSummaryV1 {
+            path,
+            sequence_length: evidence.sequence_length,
+            sample_count: examples.len(),
+            accuracy: examples.iter().filter(|example| example.correct).count() as f32
+                / examples.len() as f32,
+            mean_nll: examples
+                .iter()
+                .map(|example| example.nll_contribution)
+                .sum::<f32>()
+                / examples.len() as f32,
+            mean_true_class_probability: examples
+                .iter()
+                .map(|example| example.true_class_probability)
+                .sum::<f32>()
+                / examples.len() as f32,
+            median_true_class_probability: sprint105_median_v1(
+                &examples
+                    .iter()
+                    .map(|example| example.true_class_probability)
+                    .collect::<Vec<_>>(),
+            ),
+            mean_top1_probability: examples
+                .iter()
+                .map(|example| example.top1_probability)
+                .sum::<f32>()
+                / examples.len() as f32,
+            mean_top1_top2_logit_margin: examples
+                .iter()
+                .map(|example| example.top1_top2_logit_margin)
+                .sum::<f32>()
+                / examples.len() as f32,
+            median_top1_top2_logit_margin: sprint105_median_v1(
+                &examples
+                    .iter()
+                    .map(|example| example.top1_top2_logit_margin)
+                    .collect::<Vec<_>>(),
+            ),
+            mean_entropy: examples.iter().map(|example| example.entropy).sum::<f32>()
+                / examples.len() as f32,
+            median_entropy: sprint105_median_v1(
+                &examples
+                    .iter()
+                    .map(|example| example.entropy)
+                    .collect::<Vec<_>>(),
+            ),
+            logit_mean,
+            logit_std,
+            logit_absolute_maximum: logits.iter().map(|value| value.abs()).fold(0.0, f32::max),
+            logit_l2_norm: logits.iter().map(|value| value * value).sum::<f32>().sqrt(),
+            mean_true_class_margin: examples
+                .iter()
+                .map(|example| example.true_class_margin)
+                .sum::<f32>()
+                / examples.len() as f32,
+            mean_final_state_l2_norm,
+            mean_final_state_abs,
+            max_final_state_abs,
+            final_states_finite,
+        }
+    }
+
+    fn sprint105_temperature_diagnostic_v1(
+        evidence: &DelayedRecallEvidenceV2,
+        path: Sprint105DiagnosticPathV1,
+        temperature: f32,
+    ) -> Sprint105TemperatureDiagnosticV1 {
+        let events = sprint105_path_events_v1(evidence, path);
+        let mut correct = 0usize;
+        let mut nll = 0.0f32;
+        let mut argmax_changed = 0usize;
+        for event in events {
+            let logits: [f32; 3] = event.raw_output[..3].try_into().unwrap();
+            let before = sprint105_top_two_indices_v1(&logits)[0];
+            let probabilities = sprint105_probabilities_v1(&logits, temperature);
+            let scaled_logits = logits.map(|value| value / temperature);
+            let after = sprint105_top_two_indices_v1(&scaled_logits)[0];
+            argmax_changed += usize::from(before != after);
+            let true_class_index = sprint105_target_index_v1(event);
+            let directional_correct =
+                (probabilities[2] > probabilities[0]) == (true_class_index == 2);
+            correct += usize::from(directional_correct);
+            nll += -probabilities[true_class_index]
+                .max(PROBABILITY_EPSILON)
+                .ln();
+        }
+        Sprint105TemperatureDiagnosticV1 {
+            path,
+            sequence_length: evidence.sequence_length,
+            temperature,
+            accuracy: correct as f32 / events.len() as f32,
+            mean_nll: nll / events.len() as f32,
+            argmax_changed,
+        }
+    }
+
+    fn sprint105_length32_buckets_v1(
+        examples: &[Sprint105ExampleDiagnosticV1],
+    ) -> Vec<(Sprint105Length32BucketV1, usize)> {
+        assert!(!examples.is_empty());
+        let correct_margins = examples
+            .iter()
+            .filter(|example| example.correct)
+            .map(|example| example.top1_top2_logit_margin)
+            .collect::<Vec<_>>();
+        let strong_margin_boundary = sprint105_median_v1(&correct_margins);
+        let confidence_boundary = sprint105_median_v1(
+            &examples
+                .iter()
+                .map(|example| example.top1_probability)
+                .collect::<Vec<_>>(),
+        );
+        let mut counts = [0usize; 5];
+        for example in examples {
+            let bucket = if example.top1_logit.to_bits() == example.second_logit.to_bits() {
+                Sprint105Length32BucketV1::TieOrNumericallyAmbiguous
+            } else if example.correct && example.top1_top2_logit_margin >= strong_margin_boundary {
+                Sprint105Length32BucketV1::CorrectStrongMargin
+            } else if example.correct {
+                Sprint105Length32BucketV1::CorrectWeakMargin
+            } else if example.top1_probability >= confidence_boundary {
+                Sprint105Length32BucketV1::WrongHighRelativeConfidence
+            } else {
+                Sprint105Length32BucketV1::WrongLowRelativeConfidence
+            };
+            let index = match bucket {
+                Sprint105Length32BucketV1::CorrectStrongMargin => 0,
+                Sprint105Length32BucketV1::CorrectWeakMargin => 1,
+                Sprint105Length32BucketV1::WrongHighRelativeConfidence => 2,
+                Sprint105Length32BucketV1::WrongLowRelativeConfidence => 3,
+                Sprint105Length32BucketV1::TieOrNumericallyAmbiguous => 4,
+            };
+            counts[index] += 1;
+        }
+        [
+            Sprint105Length32BucketV1::CorrectStrongMargin,
+            Sprint105Length32BucketV1::CorrectWeakMargin,
+            Sprint105Length32BucketV1::WrongHighRelativeConfidence,
+            Sprint105Length32BucketV1::WrongLowRelativeConfidence,
+            Sprint105Length32BucketV1::TieOrNumericallyAmbiguous,
+        ]
+        .into_iter()
+        .zip(counts)
+        .collect()
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum Sprint105Q1FamilyV1 {
+        DelayedCue,
+        OrderSensitive,
+        InterferenceRetention,
+        StateIrrelevantControl,
+    }
+
+    impl Sprint105Q1FamilyV1 {
+        const ORDERED: [Self; 4] = [
+            Self::DelayedCue,
+            Self::OrderSensitive,
+            Self::InterferenceRetention,
+            Self::StateIrrelevantControl,
+        ];
+
+        fn as_str(self) -> &'static str {
+            match self {
+                Self::DelayedCue => "DelayedCue",
+                Self::OrderSensitive => "OrderSensitive",
+                Self::InterferenceRetention => "InterferenceRetention",
+                Self::StateIrrelevantControl => "StateIrrelevantControl",
+            }
+        }
+
+        fn requires_history(self) -> bool {
+            !matches!(self, Self::StateIrrelevantControl)
+        }
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    struct Sprint105Q1ExampleV1 {
+        evidence: EvidenceExampleV2,
+        identity: String,
+        reset_after: Option<usize>,
+        variant: usize,
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    struct Sprint105Q1MetricsV1 {
+        samples: usize,
+        accuracy: f32,
+        mean_categorical_nll: f32,
+        mean_true_class_probability: f32,
+        mean_correct_class_margin: f32,
+        median_correct_class_margin: f32,
+        finite: bool,
+        mean_final_state_l2_norm: f32,
+        max_final_state_abs: f32,
+        total_tokens: usize,
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    struct Sprint105Q1StateFootprintV1 {
+        sequence_length: usize,
+        elements: usize,
+        bytes: usize,
+        block_count: usize,
+        step_index: usize,
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    struct Sprint105Q1EntryV1 {
+        family: Sprint105Q1FamilyV1,
+        sequence_length: usize,
+        development_ids: Vec<String>,
+        evaluation_ids: Vec<String>,
+        initial_development_loss: f32,
+        final_development_loss: f32,
+        comparator: NoStateComparatorSnapshotV1,
+        base: Sprint105Q1MetricsV1,
+        no_state: Sprint105Q1MetricsV1,
+        reset_base: Option<Sprint105Q1MetricsV1>,
+        mode_equivalent: bool,
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    struct Sprint105Q1EvidenceV1 {
+        entries: Vec<Sprint105Q1EntryV1>,
+        footprints: Vec<Sprint105Q1StateFootprintV1>,
+    }
+
+    fn sprint105_q1_fill_nuisance_v1(
+        input: &mut [f32],
+        step: usize,
+        variant: usize,
+        amplitude: f32,
+    ) {
+        let phase = step as f32 * 0.29 + variant as f32 * 0.17;
+        input[2] = phase.sin() * amplitude;
+        input[3] = phase.cos() * amplitude;
+        input[4] = ((step + variant) % 5) as f32 * amplitude * 0.25 - amplitude * 0.5;
+        input[5] = ((step * 3 + variant) % 7) as f32 * amplitude * 0.1 - amplitude * 0.3;
+    }
+
+    fn sprint105_q1_examples_v1(
+        family: Sprint105Q1FamilyV1,
+        width: usize,
+        length: usize,
+        frozen: bool,
+    ) -> Vec<Sprint105Q1ExampleV1> {
+        assert!(width >= 8 && length >= 8);
+        let variants = if frozen { [101, 113] } else { [11, 23] };
+        let order = if frozen {
+            [(false, 0), (true, 1), (true, 0), (false, 1)]
+        } else {
+            [(true, 0), (false, 1), (false, 0), (true, 1)]
+        };
+        order
+            .into_iter()
+            .enumerate()
+            .map(|(record, (positive, variant_index))| {
+                let variant = variants[variant_index];
+                let sign = if positive { 1.0 } else { -1.0 };
+                let mut sequence = vec![vec![0.0; width]; length];
+                match family {
+                    Sprint105Q1FamilyV1::DelayedCue => {
+                        sequence[0] = row(width, sign, -0.5 * sign);
+                        for (step, input) in sequence.iter_mut().enumerate().skip(1) {
+                            sprint105_q1_fill_nuisance_v1(input, step, variant, 0.08);
+                        }
+                        sequence[length - 1] = row(width, 0.25, -0.75);
+                    }
+                    Sprint105Q1FamilyV1::OrderSensitive => {
+                        sequence[0] = row(width, sign, 0.0);
+                        sequence[1] = row(width, -sign, 0.0);
+                        for (step, input) in sequence.iter_mut().enumerate().skip(2) {
+                            sprint105_q1_fill_nuisance_v1(input, step, variant, 0.08);
+                        }
+                        sequence[length - 1] = row(width, 0.25, -0.75);
+                    }
+                    Sprint105Q1FamilyV1::InterferenceRetention => {
+                        sequence[0] = row(width, sign, -0.5 * sign);
+                        for (step, input) in sequence.iter_mut().enumerate().skip(1) {
+                            sprint105_q1_fill_nuisance_v1(input, step, variant, 0.48);
+                            input[0] = if step % 2 == 0 { 0.65 } else { -0.65 };
+                            input[1] = -input[0] * 0.5;
+                        }
+                        sequence[length - 1] = row(width, 0.25, -0.75);
+                    }
+                    Sprint105Q1FamilyV1::StateIrrelevantControl => {
+                        for (step, input) in sequence.iter_mut().enumerate().take(length - 1) {
+                            sprint105_q1_fill_nuisance_v1(input, step, variant, 0.08);
+                        }
+                        sequence[length - 1] = row(width, sign, -0.5 * sign);
+                    }
+                }
+                Sprint105Q1ExampleV1 {
+                    identity: format!(
+                        "s105-q1:{}:{}:{}:{}:{}",
+                        family.as_str(),
+                        length,
+                        if frozen { "frozen" } else { "development" },
+                        variant,
+                        record
+                    ),
+                    evidence: EvidenceExampleV2 {
+                        sequence,
+                        target: classification_target_v2(positive),
+                        positive,
+                    },
+                    reset_after: match family {
+                        Sprint105Q1FamilyV1::DelayedCue
+                        | Sprint105Q1FamilyV1::InterferenceRetention => Some(1),
+                        Sprint105Q1FamilyV1::OrderSensitive => Some(2),
+                        Sprint105Q1FamilyV1::StateIrrelevantControl => None,
+                    },
+                    variant,
+                }
+            })
+            .collect()
+    }
+
+    fn sprint105_q1_state_magnitude_v1(state: &M3MicroState) -> (usize, f32, f32, bool) {
+        let values = state
+            .blocks
+            .iter()
+            .flat_map(|block| block.values.iter().chain(&block.previous_u))
+            .copied()
+            .collect::<Vec<_>>();
+        let elements = values.len();
+        let l2 = values.iter().map(|value| value * value).sum::<f32>().sqrt();
+        let max_abs = values.iter().map(|value| value.abs()).fold(0.0, f32::max);
+        (
+            elements,
+            l2,
+            max_abs,
+            values.iter().all(|value| value.is_finite()),
+        )
+    }
+
+    fn sprint105_q1_median_v1(values: &mut [f32]) -> f32 {
+        assert!(!values.is_empty());
+        values.sort_by(f32::total_cmp);
+        if values.len() % 2 == 0 {
+            (values[values.len() / 2 - 1] + values[values.len() / 2]) * 0.5
+        } else {
+            values[values.len() / 2]
+        }
+    }
+
+    fn sprint105_q1_metrics_v1(
+        model: &M3MicroModel,
+        examples: &[Sprint105Q1ExampleV1],
+        reset: bool,
+    ) -> Result<Sprint105Q1MetricsV1, M3MicroError> {
+        if examples.is_empty()
+            || (reset && examples.iter().any(|example| example.reset_after.is_none()))
+        {
+            return Err(M3MicroError::InvalidShape);
+        }
+        let mut correct = 0usize;
+        let mut nll = 0.0f32;
+        let mut true_probability = 0.0f32;
+        let mut margins = Vec::with_capacity(examples.len());
+        let mut l2_sum = 0.0f32;
+        let mut max_abs = 0.0f32;
+        let mut finite = true;
+        let mut total_tokens = 0usize;
+        for example in examples {
+            let (raw_output, state, expected_state_steps) = if reset {
+                let reset_after = example.reset_after.unwrap();
+                let mut state = M3MicroState::zero(&model.config)?;
+                model.forward(&example.evidence.sequence[..reset_after], &mut state)?;
+                state = M3MicroState::zero(&model.config)?;
+                let output =
+                    model.forward(&example.evidence.sequence[reset_after..], &mut state)?;
+                (output, state, example.evidence.sequence.len() - reset_after)
+            } else {
+                let (output, state, counters) =
+                    model.forward_from_zero_with_work_counters(&example.evidence.sequence)?;
+                assert_eq!(counters.state_allocation_count, 1);
+                total_tokens += counters.sequence_step_count;
+                (output, state, example.evidence.sequence.len())
+            };
+            if reset {
+                total_tokens += example.evidence.sequence.len();
+            }
+            let logits: [f32; 3] = raw_output[..3]
+                .try_into()
+                .map_err(|_| M3MicroError::InvalidShape)?;
+            let prediction = M3MicroPrediction::from_raw(AgentId::TrendContinuation, &raw_output)?;
+            let distribution = prediction
+                .direction_distribution
+                .ok_or(M3MicroError::InvalidShape)?;
+            let target_index = if example.evidence.positive { 2 } else { 0 };
+            let score = logits[2] - logits[0];
+            let margin = logits[target_index]
+                - logits
+                    .iter()
+                    .enumerate()
+                    .filter(|(index, _)| *index != target_index)
+                    .map(|(_, value)| *value)
+                    .fold(f32::NEG_INFINITY, f32::max);
+            correct += usize::from((score > 0.0) == example.evidence.positive);
+            nll += -distribution[target_index].max(PROBABILITY_EPSILON).ln();
+            true_probability += distribution[target_index];
+            margins.push(margin);
+            let (_, l2, state_max_abs, state_finite) = sprint105_q1_state_magnitude_v1(&state);
+            l2_sum += l2;
+            max_abs = max_abs.max(state_max_abs);
+            finite &= raw_output.iter().all(|value| value.is_finite())
+                && distribution.into_iter().all(f32::is_finite)
+                && state_finite
+                && state.step_index == expected_state_steps
+                && state.validate(&model.config).is_ok();
+        }
+        let sample_count = examples.len() as f32;
+        let mean_margin = margins.iter().sum::<f32>() / sample_count;
+        let median_margin = sprint105_q1_median_v1(&mut margins);
+        Ok(Sprint105Q1MetricsV1 {
+            samples: examples.len(),
+            accuracy: correct as f32 / sample_count,
+            mean_categorical_nll: nll / sample_count,
+            mean_true_class_probability: true_probability / sample_count,
+            mean_correct_class_margin: mean_margin,
+            median_correct_class_margin: median_margin,
+            finite: finite
+                && [
+                    nll,
+                    true_probability,
+                    mean_margin,
+                    median_margin,
+                    l2_sum,
+                    max_abs,
+                ]
+                .into_iter()
+                .all(f32::is_finite),
+            mean_final_state_l2_norm: l2_sum / sample_count,
+            max_final_state_abs: max_abs,
+            total_tokens,
+        })
+    }
+
+    fn sprint105_q1_cpu_modes_equivalent_v1(
+        model: &M3MicroModel,
+        sequence: &[Vec<f32>],
+    ) -> Result<bool, M3MicroError> {
+        let (full_output, full_state, _) = model.forward_from_zero_with_work_counters(sequence)?;
+
+        let mut streaming_state = M3MicroState::zero(&model.config)?;
+        let mut streaming_output = Vec::new();
+        for input in sequence {
+            streaming_output = model.stream_step(input, &mut streaming_state)?.0;
+        }
+
+        let mut chunked_state = M3MicroState::zero(&model.config)?;
+        let mut chunked_output = Vec::new();
+        for chunk in sequence.chunks(3) {
+            chunked_output = model.forward(chunk, &mut chunked_state)?;
+        }
+        Ok(full_output == streaming_output
+            && full_output == chunked_output
+            && full_state == streaming_state
+            && full_state == chunked_state)
+    }
+
+    fn sprint105_q1_fixture_integrity_v1(
+        family: Sprint105Q1FamilyV1,
+        development: &[Sprint105Q1ExampleV1],
+        frozen: &[Sprint105Q1ExampleV1],
+    ) {
+        assert_eq!(development.len(), 4);
+        assert_eq!(frozen.len(), 4);
+        assert_eq!(
+            development
+                .iter()
+                .filter(|example| example.evidence.positive)
+                .count(),
+            2
+        );
+        assert_eq!(
+            frozen
+                .iter()
+                .filter(|example| example.evidence.positive)
+                .count(),
+            2
+        );
+        let development_ids = development
+            .iter()
+            .map(|example| example.identity.clone())
+            .collect::<BTreeSet<_>>();
+        let frozen_ids = frozen
+            .iter()
+            .map(|example| example.identity.clone())
+            .collect::<BTreeSet<_>>();
+        assert_eq!(development_ids.len(), development.len());
+        assert_eq!(frozen_ids.len(), frozen.len());
+        assert!(development_ids.is_disjoint(&frozen_ids));
+        for records in [development, frozen] {
+            for variant in records
+                .iter()
+                .map(|example| example.variant)
+                .collect::<BTreeSet<_>>()
+            {
+                let positive = records
+                    .iter()
+                    .find(|example| example.variant == variant && example.evidence.positive)
+                    .unwrap();
+                let negative = records
+                    .iter()
+                    .find(|example| example.variant == variant && !example.evidence.positive)
+                    .unwrap();
+                match family {
+                    Sprint105Q1FamilyV1::StateIrrelevantControl => assert_eq!(
+                        &positive.evidence.sequence[..positive.evidence.sequence.len() - 1],
+                        &negative.evidence.sequence[..negative.evidence.sequence.len() - 1]
+                    ),
+                    _ => {
+                        let reset_after = positive.reset_after.unwrap();
+                        assert_eq!(
+                            &positive.evidence.sequence[reset_after..],
+                            &negative.evidence.sequence[reset_after..]
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    fn sprint105_q1_evidence_v1() -> Result<Sprint105Q1EvidenceV1, M3MicroError> {
+        let policy = delayed_recall_evidence_policy_v2();
+        let mut entries = Vec::new();
+        let mut footprints = Vec::new();
+        for family in Sprint105Q1FamilyV1::ORDERED {
+            for length in policy.sequence_lengths {
+                let initial_model = M3MicroRoster::new(V2_EVIDENCE_SEED)?
+                    .agent(AgentId::TrendContinuation)
+                    .model
+                    .clone();
+                let development =
+                    sprint105_q1_examples_v1(family, initial_model.config.input_dim, length, false);
+                let frozen =
+                    sprint105_q1_examples_v1(family, initial_model.config.input_dim, length, true);
+                sprint105_q1_fixture_integrity_v1(family, &development, &frozen);
+                let development_evidence = development
+                    .iter()
+                    .map(|example| example.evidence.clone())
+                    .collect::<Vec<_>>();
+                let frozen_evidence = frozen
+                    .iter()
+                    .map(|example| example.evidence.clone())
+                    .collect::<Vec<_>>();
+                let comparator = no_state_comparator_snapshot_v1(
+                    &initial_model,
+                    &development_evidence,
+                    &frozen_evidence,
+                    policy.fixed_training_budget,
+                )?;
+                let initial_development_loss =
+                    average_loss_v2(&initial_model, &development_evidence)?;
+                let base = train_balanced_model_v2(
+                    &initial_model,
+                    &development_evidence,
+                    policy.fixed_training_budget,
+                    None,
+                )?;
+                let no_state = train_balanced_model_v2(
+                    &initial_model,
+                    &development_evidence,
+                    policy.fixed_training_budget,
+                    Some(M3MicroAblationV1::NoRecurrentState),
+                )?;
+                let final_development_loss = average_loss_v2(&base.model, &development_evidence)?;
+                let base_metrics = sprint105_q1_metrics_v1(&base.model, &frozen, false)?;
+                let no_state_metrics = sprint105_q1_metrics_v1(&no_state.model, &frozen, false)?;
+                let reset_base = family
+                    .requires_history()
+                    .then(|| sprint105_q1_metrics_v1(&base.model, &frozen, true))
+                    .transpose()?;
+                let zero_state = M3MicroState::zero(&base.model.config)?;
+                let (elements, _, _, finite) = sprint105_q1_state_magnitude_v1(&zero_state);
+                assert!(finite);
+                footprints.push(Sprint105Q1StateFootprintV1 {
+                    sequence_length: length,
+                    elements,
+                    bytes: zero_state.byte_size(),
+                    block_count: zero_state.blocks.len(),
+                    step_index: zero_state.step_index,
+                });
+                let mode_equivalent = sprint105_q1_cpu_modes_equivalent_v1(
+                    &base.model,
+                    &frozen[0].evidence.sequence,
+                )?;
+                entries.push(Sprint105Q1EntryV1 {
+                    family,
+                    sequence_length: length,
+                    development_ids: development
+                        .iter()
+                        .map(|example| example.identity.clone())
+                        .collect(),
+                    evaluation_ids: frozen
+                        .iter()
+                        .map(|example| example.identity.clone())
+                        .collect(),
+                    initial_development_loss,
+                    final_development_loss,
+                    comparator,
+                    base: base_metrics,
+                    no_state: no_state_metrics,
+                    reset_base,
+                    mode_equivalent,
+                });
+            }
+        }
+        Ok(Sprint105Q1EvidenceV1 {
+            entries,
+            footprints,
+        })
+    }
+
+    #[test]
+    fn m3_micro_sprint105_q1_fixture_integrity() {
+        let width = M3MicroConfig::for_agent(AgentId::TrendContinuation, 8).input_dim;
+        for family in Sprint105Q1FamilyV1::ORDERED {
+            for length in delayed_recall_evidence_policy_v2().sequence_lengths {
+                sprint105_q1_fixture_integrity_v1(
+                    family,
+                    &sprint105_q1_examples_v1(family, width, length, false),
+                    &sprint105_q1_examples_v1(family, width, length, true),
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn m3_micro_sprint105_q1_core_viability_qualification() {
+        let started = Instant::now();
+        let first = sprint105_q1_evidence_v1().unwrap();
+        let second = sprint105_q1_evidence_v1().unwrap();
+        assert_eq!(first, second);
+        let policy = delayed_recall_evidence_policy_v2();
+        assert_eq!(
+            first.entries.len(),
+            Sprint105Q1FamilyV1::ORDERED.len() * policy.sequence_lengths.len()
+        );
+        assert!(first.entries.iter().all(|entry| {
+            entry.base.finite
+                && entry.no_state.finite
+                && entry
+                    .reset_base
+                    .as_ref()
+                    .is_none_or(|metrics| metrics.finite)
+                && entry.mode_equivalent
+                && entry.comparator.base_dataset_identity
+                    == entry.comparator.no_state_dataset_identity
+                && entry.comparator.base_training_policy_identity
+                    == entry.comparator.no_state_training_policy_identity
+                && entry.comparator.base_optimizer_digest
+                    == entry.comparator.no_state_optimizer_digest
+                && entry.comparator.differing_path_count
+                    == entry.comparator.state_capability_path_count
+                && entry.comparator.unexpected_path_count == 0
+                && entry.comparator.missing_path_count == 0
+        }));
+        for entry in &first.entries {
+            for (path, metrics) in [("Base", &entry.base), ("NoState", &entry.no_state)] {
+                println!(
+                    "S105_Q1_ROW family={} length={} path={} samples={} accuracy={} nll={} ptrue={} mean_margin={} median_margin={} finite={} state_l2={} state_abs_max={} tokens={}",
+                    entry.family.as_str(),
+                    entry.sequence_length,
+                    path,
+                    metrics.samples,
+                    metrics.accuracy,
+                    metrics.mean_categorical_nll,
+                    metrics.mean_true_class_probability,
+                    metrics.mean_correct_class_margin,
+                    metrics.median_correct_class_margin,
+                    metrics.finite,
+                    metrics.mean_final_state_l2_norm,
+                    metrics.max_final_state_abs,
+                    metrics.total_tokens,
+                );
+            }
+            if let Some(metrics) = &entry.reset_base {
+                println!(
+                    "S105_Q1_ROW family={} length={} path=StateResetBase samples={} accuracy={} nll={} ptrue={} mean_margin={} median_margin={} finite={} state_l2={} state_abs_max={} tokens={}",
+                    entry.family.as_str(),
+                    entry.sequence_length,
+                    metrics.samples,
+                    metrics.accuracy,
+                    metrics.mean_categorical_nll,
+                    metrics.mean_true_class_probability,
+                    metrics.mean_correct_class_margin,
+                    metrics.median_correct_class_margin,
+                    metrics.finite,
+                    metrics.mean_final_state_l2_norm,
+                    metrics.max_final_state_abs,
+                    metrics.total_tokens,
+                );
+            }
+            println!(
+                "S105_Q1_TRAINING family={} length={} initial_loss={} final_loss={} decreased={} mode_equivalent={} dev_eval_overlap={}",
+                entry.family.as_str(),
+                entry.sequence_length,
+                entry.initial_development_loss,
+                entry.final_development_loss,
+                entry.final_development_loss < entry.initial_development_loss,
+                entry.mode_equivalent,
+                entry
+                    .development_ids
+                    .iter()
+                    .filter(|id| entry.evaluation_ids.contains(id))
+                    .count(),
+            );
+        }
+        for footprint in &first.footprints {
+            println!(
+                "S105_Q1_FOOTPRINT length={} elements={} bytes={} blocks={} zero_step_index={}",
+                footprint.sequence_length,
+                footprint.elements,
+                footprint.bytes,
+                footprint.block_count,
+                footprint.step_index,
+            );
+        }
+        let maximum_length = *policy.sequence_lengths.iter().max().unwrap();
+        let state_utility_passed = first
+            .entries
+            .iter()
+            .filter(|entry| {
+                entry.family.requires_history() && entry.sequence_length == maximum_length
+            })
+            .all(|entry| entry.base.accuracy > entry.no_state.accuracy);
+        let state_causality_passed = first
+            .entries
+            .iter()
+            .filter(|entry| entry.family.requires_history())
+            .all(|entry| entry.base.accuracy > entry.reset_base.as_ref().unwrap().accuracy);
+        let local_control_passed = first
+            .entries
+            .iter()
+            .filter(|entry| entry.family == Sprint105Q1FamilyV1::StateIrrelevantControl)
+            .all(|entry| entry.base.accuracy >= entry.no_state.accuracy);
+        let footprint_constant = first.footprints.iter().all(|footprint| {
+            footprint.elements == first.footprints[0].elements
+                && footprint.bytes == first.footprints[0].bytes
+        });
+        println!(
+            "S105_Q1_GATE state_utility_max_length={} state_causality={} local_control={} footprint_constant={} numerical_finite={} determinism=true elapsed_ms={}",
+            state_utility_passed,
+            state_causality_passed,
+            local_control_passed,
+            footprint_constant,
+            first
+                .entries
+                .iter()
+                .all(|entry| entry.base.finite && entry.no_state.finite),
+            started.elapsed().as_millis(),
+        );
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    struct Sprint105V2P1Metrics {
+        samples: usize,
+        accuracy: f32,
+        mean_categorical_nll: f32,
+        mean_true_class_probability: f32,
+        mean_correct_class_margin: f32,
+        finite: bool,
+        mean_final_state_l2_norm: f32,
+        max_final_state_abs: f32,
+        total_tokens: usize,
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    struct Sprint105V2P1Footprint {
+        sequence_length: usize,
+        elements: usize,
+        bytes: usize,
+        blocks: usize,
+        step_index: usize,
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    struct Sprint105V2P1Entry {
+        family: Sprint105Q1FamilyV1,
+        sequence_length: usize,
+        initial_development_loss: f32,
+        final_development_loss: f32,
+        base: Sprint105V2P1Metrics,
+        no_state: Sprint105V2P1Metrics,
+        reset_base: Option<Sprint105V2P1Metrics>,
+        mode_equivalent: bool,
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    struct Sprint105V2P1Qualification {
+        entries: Vec<Sprint105V2P1Entry>,
+        footprints: Vec<Sprint105V2P1Footprint>,
+    }
+
+    fn sprint105_v2_initial_model_v1() -> Result<M3MicroV2Candidate, M3MicroError> {
+        M3MicroV2Candidate::seeded(
+            M3MicroConfig::for_agent(AgentId::TrendContinuation, 8),
+            V2_EVIDENCE_SEED,
+        )
+    }
+
+    fn sprint105_v2_state_magnitude_v1(state: &M3MicroV2State) -> (usize, f32, f32, bool) {
+        let values = state
+            .blocks
+            .iter()
+            .flat_map(|block| block.values.iter())
+            .copied()
+            .collect::<Vec<_>>();
+        let elements = values.len();
+        let l2 = values.iter().map(|value| value * value).sum::<f32>().sqrt();
+        let max_abs = values.iter().map(|value| value.abs()).fold(0.0, f32::max);
+        (
+            elements,
+            l2,
+            max_abs,
+            values.iter().all(|value| value.is_finite()),
+        )
+    }
+
+    fn sprint105_v2_average_loss_and_gradients_v1(
+        model: &M3MicroV2Candidate,
+        examples: &[EvidenceExampleV2],
+        state_enabled: bool,
+    ) -> Result<(f32, Vec<f32>), M3MicroError> {
+        if examples.is_empty() {
+            return Err(M3MicroError::InvalidShape);
+        }
+        let mut loss = 0.0;
+        let mut gradients = vec![0.0; model.parameter_count()];
+        for example in examples {
+            let result = model.loss_gradients_internal(
+                AgentId::TrendContinuation,
+                &example.sequence,
+                &example.target,
+                false,
+                state_enabled,
+            )?;
+            loss += result.loss / examples.len() as f32;
+            for (mean, gradient) in gradients.iter_mut().zip(result.parameter_gradients) {
+                *mean += gradient / examples.len() as f32;
+            }
+        }
+        Ok((loss, gradients))
+    }
+
+    fn sprint105_v2_train_balanced_v1(
+        initial: &M3MicroV2Candidate,
+        development: &[EvidenceExampleV2],
+        state_enabled: bool,
+    ) -> Result<(M3MicroV2Candidate, f32, f32, String), M3MicroError> {
+        let mut model = initial.clone();
+        let mut optimizer_config = M3MicroOptimizerConfig::default();
+        optimizer_config.learning_rate = V2_EVIDENCE_LEARNING_RATE;
+        let mut optimizer = M3MicroOptimizerState::new(model.parameter_count(), optimizer_config)?;
+        let (initial_loss, _) =
+            sprint105_v2_average_loss_and_gradients_v1(&model, development, state_enabled)?;
+        for _ in 0..delayed_recall_evidence_policy_v2().fixed_training_budget {
+            let (_, gradients) =
+                sprint105_v2_average_loss_and_gradients_v1(&model, development, state_enabled)?;
+            model.apply_gradients(&mut optimizer, &gradients)?;
+        }
+        let (final_loss, _) =
+            sprint105_v2_average_loss_and_gradients_v1(&model, development, state_enabled)?;
+        Ok((model, initial_loss, final_loss, optimizer.digest()))
+    }
+
+    fn sprint105_v2_metrics_v1(
+        model: &M3MicroV2Candidate,
+        examples: &[Sprint105Q1ExampleV1],
+        reset: bool,
+        state_enabled: bool,
+    ) -> Result<Sprint105V2P1Metrics, M3MicroError> {
+        if examples.is_empty()
+            || (reset && examples.iter().any(|example| example.reset_after.is_none()))
+        {
+            return Err(M3MicroError::InvalidShape);
+        }
+        let mut correct = 0usize;
+        let mut nll = 0.0;
+        let mut true_probability = 0.0;
+        let mut margins = Vec::with_capacity(examples.len());
+        let mut l2_sum = 0.0;
+        let mut max_abs = 0.0f32;
+        let mut finite = true;
+        let mut total_tokens = 0usize;
+        for example in examples {
+            let (raw_output, state, expected_steps) = if reset {
+                let reset_after = example.reset_after.ok_or(M3MicroError::InvalidShape)?;
+                let mut state = model.zero_state()?;
+                let mut counters = M3MicroWorkCountersV1::default();
+                model.forward_internal(
+                    &example.evidence.sequence[..reset_after],
+                    &mut state,
+                    false,
+                    state_enabled,
+                    &mut counters,
+                )?;
+                state = model.zero_state()?;
+                let output = model
+                    .forward_internal(
+                        &example.evidence.sequence[reset_after..],
+                        &mut state,
+                        false,
+                        state_enabled,
+                        &mut counters,
+                    )?
+                    .raw_output;
+                total_tokens += counters.sequence_step_count;
+                (output, state, example.evidence.sequence.len() - reset_after)
+            } else {
+                let mut state = model.zero_state()?;
+                let mut counters = M3MicroWorkCountersV1::default();
+                let output = model
+                    .forward_internal(
+                        &example.evidence.sequence,
+                        &mut state,
+                        false,
+                        state_enabled,
+                        &mut counters,
+                    )?
+                    .raw_output;
+                total_tokens += counters.sequence_step_count;
+                (output, state, example.evidence.sequence.len())
+            };
+            let logits: [f32; 3] = raw_output[..3]
+                .try_into()
+                .map_err(|_| M3MicroError::InvalidShape)?;
+            let prediction = M3MicroPrediction::from_raw(AgentId::TrendContinuation, &raw_output)?;
+            let distribution = prediction
+                .direction_distribution
+                .ok_or(M3MicroError::InvalidShape)?;
+            let target_index = if example.evidence.positive { 2 } else { 0 };
+            let score = logits[2] - logits[0];
+            let margin = logits[target_index]
+                - logits
+                    .iter()
+                    .enumerate()
+                    .filter(|(index, _)| *index != target_index)
+                    .map(|(_, value)| *value)
+                    .fold(f32::NEG_INFINITY, f32::max);
+            correct += usize::from((score > 0.0) == example.evidence.positive);
+            nll += -distribution[target_index].max(PROBABILITY_EPSILON).ln();
+            true_probability += distribution[target_index];
+            margins.push(margin);
+            let (_, l2, state_max_abs, state_finite) = sprint105_v2_state_magnitude_v1(&state);
+            l2_sum += l2;
+            max_abs = max_abs.max(state_max_abs);
+            finite &= raw_output.iter().all(|value| value.is_finite())
+                && distribution.into_iter().all(f32::is_finite)
+                && state_finite
+                && state.step_index == expected_steps
+                && state.validate(&model.config).is_ok();
+        }
+        let sample_count = examples.len() as f32;
+        let mean_margin = margins.iter().sum::<f32>() / sample_count;
+        Ok(Sprint105V2P1Metrics {
+            samples: examples.len(),
+            accuracy: correct as f32 / sample_count,
+            mean_categorical_nll: nll / sample_count,
+            mean_true_class_probability: true_probability / sample_count,
+            mean_correct_class_margin: mean_margin,
+            finite: finite
+                && [nll, true_probability, mean_margin, l2_sum, max_abs]
+                    .into_iter()
+                    .all(f32::is_finite),
+            mean_final_state_l2_norm: l2_sum / sample_count,
+            max_final_state_abs: max_abs,
+            total_tokens,
+        })
+    }
+
+    fn sprint105_v2_cpu_modes_equivalent_v1(
+        model: &M3MicroV2Candidate,
+        sequence: &[Vec<f32>],
+    ) -> Result<bool, M3MicroError> {
+        let (full_output, full_state, _) = model.forward_from_zero_with_work_counters(sequence)?;
+        let mut streaming_state = model.zero_state()?;
+        let mut streaming_output = Vec::new();
+        for input in sequence {
+            streaming_output = model.stream_step(input, &mut streaming_state)?.0;
+        }
+        let mut chunked_state = model.zero_state()?;
+        let mut chunked_output = Vec::new();
+        for chunk in sequence.chunks(3) {
+            chunked_output = model.forward(chunk, &mut chunked_state)?;
+        }
+        Ok(full_output == streaming_output
+            && full_output == chunked_output
+            && full_state == streaming_state
+            && full_state == chunked_state)
+    }
+
+    fn sprint105_v2_gradient_check_v1(
+        model: &M3MicroV2Candidate,
+        parameter_index: usize,
+        sequence: &[Vec<f32>],
+        target: &M3MicroTarget,
+    ) -> Result<(), M3MicroError> {
+        let analytical = model
+            .loss_gradients_internal(AgentId::TrendContinuation, sequence, target, false, true)?
+            .parameter_gradients[parameter_index];
+        let epsilon = 1.0e-3;
+        let mut plus = model.clone();
+        plus.parameters.values[parameter_index] += epsilon;
+        plus.refresh_identity();
+        let plus_loss = plus
+            .loss_gradients_internal(AgentId::TrendContinuation, sequence, target, false, true)?
+            .loss;
+        let mut minus = model.clone();
+        minus.parameters.values[parameter_index] -= epsilon;
+        minus.refresh_identity();
+        let minus_loss = minus
+            .loss_gradients_internal(AgentId::TrendContinuation, sequence, target, false, true)?
+            .loss;
+        let numerical = (plus_loss - minus_loss) / (2.0 * epsilon);
+        if !analytical.is_finite()
+            || !numerical.is_finite()
+            || (analytical - numerical).abs() > 2.0e-2
+        {
+            return Err(M3MicroError::NonFiniteGradient);
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn m3_micro_sprint105_v2_p1_revision_state_and_backend_boundaries() {
+        let config = M3MicroConfig::for_agent(AgentId::TrendContinuation, 8);
+        let v1 = M3MicroModel::seeded(config.clone(), V2_EVIDENCE_SEED).unwrap();
+        let v2 = M3MicroV2Candidate::seeded(config, V2_EVIDENCE_SEED).unwrap();
+        assert_eq!(v1.revision(), M3MicroCoreRevisionV2::V1Reduced);
+        assert_eq!(v2.revision(), M3MicroCoreRevisionV2::V2Candidate);
+        assert_ne!(v1.parameter_count(), v2.parameter_count());
+        let state = v2.zero_state().unwrap();
+        assert_eq!(state.step_index, 0);
+        assert_eq!(
+            state.value_count(),
+            v2.config.block_count * v2.config.d_model * v2.config.d_state
+        );
+        assert!(
+            state
+                .blocks
+                .iter()
+                .all(|block| block.values.len() == v2.config.d_model * v2.config.d_state)
+        );
+        assert!(
+            state
+                .blocks
+                .iter()
+                .all(|block| block.values.iter().all(|value| *value == 0.0))
+        );
+        let sequence = vec![row(v2.config.input_dim, 0.25, -0.75)];
+        let mut state = v2.zero_state().unwrap();
+        assert_eq!(
+            v2.forward_with_backend(
+                M3MicroBackendKind::ActualMetalCompute,
+                &sequence,
+                &mut state
+            ),
+            Err(M3MicroError::UnsupportedCandidateBackend)
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_v2_p1_v1_sentinel_and_focused_state_contracts() {
+        let config = M3MicroConfig::for_agent(AgentId::TrendContinuation, 8);
+        let v1 = M3MicroModel::seeded(config.clone(), V2_EVIDENCE_SEED).unwrap();
+        let sequence = vec![row(config.input_dim, 0.5, -0.25); 96];
+        let mut before_state = M3MicroState::zero(&config).unwrap();
+        let before = v1.forward(&sequence, &mut before_state).unwrap();
+        let v2 = M3MicroV2Candidate::seeded(config.clone(), V2_EVIDENCE_SEED).unwrap();
+        let mut after_state = M3MicroState::zero(&config).unwrap();
+        let after = v1.forward(&sequence, &mut after_state).unwrap();
+        assert_eq!(before, after);
+        assert_eq!(before_state, after_state);
+        let mut state = v2.zero_state().unwrap();
+        let mut counters = M3MicroWorkCountersV1::default();
+        let tape = v2
+            .forward_internal(&sequence, &mut state, true, true, &mut counters)
+            .unwrap();
+        assert_eq!(state.step_index, sequence.len());
+        state.validate(&v2.config).unwrap();
+        assert!(
+            state
+                .blocks
+                .iter()
+                .flat_map(|block| &block.values)
+                .all(|value| value.abs() <= 1.0 + 1.0e-5)
+        );
+        assert!(
+            tape.steps
+                .iter()
+                .flat_map(|step| step.blocks.iter())
+                .flat_map(|block| block.gate.iter())
+                .all(|gate| gate.is_finite() && *gate > 0.0 && *gate < 1.0)
+        );
+        let lengths = delayed_recall_evidence_policy_v2().sequence_lengths;
+        let footprints = lengths
+            .into_iter()
+            .map(|_| v2.zero_state().unwrap())
+            .map(|state| (state.value_count(), state.byte_size()))
+            .collect::<Vec<_>>();
+        assert!(footprints.windows(2).all(|window| window[0] == window[1]));
+        assert!(sprint105_v2_cpu_modes_equivalent_v1(&v2, &sequence).unwrap());
+    }
+
+    #[test]
+    fn m3_micro_sprint105_v2_p1_gradient_and_training_sanity() {
+        let model = sprint105_v2_initial_model_v1().unwrap();
+        let development = sprint105_q1_examples_v1(
+            Sprint105Q1FamilyV1::DelayedCue,
+            model.config.input_dim,
+            8,
+            false,
+        );
+        let evidence = development
+            .iter()
+            .map(|example| example.evidence.clone())
+            .collect::<Vec<_>>();
+        let layout = M3MicroV2Layout::new(&model.config).unwrap();
+        let sequence = &evidence[0].sequence;
+        let target = &evidence[0].target;
+        for parameter_index in [
+            layout.blocks[0].gate_input_scale.start,
+            layout.blocks[0].candidate_input_scale.start,
+            layout.blocks[0].memory_read_scale.start,
+            layout.w_head.start,
+        ] {
+            sprint105_v2_gradient_check_v1(&model, parameter_index, sequence, target).unwrap();
+        }
+        let (trained, initial_loss, final_loss, optimizer_digest) =
+            sprint105_v2_train_balanced_v1(&model, &evidence, true).unwrap();
+        assert!(initial_loss.is_finite() && final_loss.is_finite());
+        assert!(final_loss < initial_loss);
+        assert_ne!(trained.parameter_digest(), model.parameter_digest());
+        assert!(!optimizer_digest.is_empty());
+        let initial_digest = model.parameter_digest();
+        let (_, base_initial, _, _) =
+            sprint105_v2_train_balanced_v1(&model, &evidence, true).unwrap();
+        let (_, no_state_initial, _, _) =
+            sprint105_v2_train_balanced_v1(&model, &evidence, false).unwrap();
+        assert_eq!(model.parameter_digest(), initial_digest);
+        assert!(base_initial.is_finite() && no_state_initial.is_finite());
+    }
+
+    fn sprint105_v2_q1_freeze_audit_v1() -> Result<(), M3MicroError> {
+        let model = sprint105_v2_initial_model_v1()?;
+        for family in Sprint105Q1FamilyV1::ORDERED {
+            for length in delayed_recall_evidence_policy_v2().sequence_lengths {
+                let development =
+                    sprint105_q1_examples_v1(family, model.config.input_dim, length, false);
+                let frozen = sprint105_q1_examples_v1(family, model.config.input_dim, length, true);
+                sprint105_q1_fixture_integrity_v1(family, &development, &frozen);
+                if development
+                    .iter()
+                    .map(|example| &example.identity)
+                    .collect::<BTreeSet<_>>()
+                    .intersection(
+                        &frozen
+                            .iter()
+                            .map(|example| &example.identity)
+                            .collect::<BTreeSet<_>>(),
+                    )
+                    .next()
+                    .is_some()
+                {
+                    return Err(M3MicroError::CorruptArtifact);
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn sprint105_v2_p1_frozen_q1_once_v1() -> Result<Sprint105V2P1Qualification, M3MicroError> {
+        sprint105_v2_q1_freeze_audit_v1()?;
+        let policy = delayed_recall_evidence_policy_v2();
+        let mut entries = Vec::new();
+        let mut footprints = Vec::new();
+        for family in Sprint105Q1FamilyV1::ORDERED {
+            for length in policy.sequence_lengths {
+                let initial = sprint105_v2_initial_model_v1()?;
+                let development =
+                    sprint105_q1_examples_v1(family, initial.config.input_dim, length, false);
+                let frozen =
+                    sprint105_q1_examples_v1(family, initial.config.input_dim, length, true);
+                sprint105_q1_fixture_integrity_v1(family, &development, &frozen);
+                let development_evidence = development
+                    .iter()
+                    .map(|example| example.evidence.clone())
+                    .collect::<Vec<_>>();
+                let (base_model, initial_loss, final_loss, base_optimizer_digest) =
+                    sprint105_v2_train_balanced_v1(&initial, &development_evidence, true)?;
+                let (no_state_model, _, _, no_state_optimizer_digest) =
+                    sprint105_v2_train_balanced_v1(&initial, &development_evidence, false)?;
+                if base_optimizer_digest.is_empty() || no_state_optimizer_digest.is_empty() {
+                    return Err(M3MicroError::CorruptArtifact);
+                }
+                let base = sprint105_v2_metrics_v1(&base_model, &frozen, false, true)?;
+                let no_state = sprint105_v2_metrics_v1(&no_state_model, &frozen, false, false)?;
+                let reset_base = family
+                    .requires_history()
+                    .then(|| sprint105_v2_metrics_v1(&base_model, &frozen, true, true))
+                    .transpose()?;
+                let zero_state = initial.zero_state()?;
+                let (elements, _, _, finite) = sprint105_v2_state_magnitude_v1(&zero_state);
+                if !finite || zero_state.step_index != 0 {
+                    return Err(M3MicroError::NonFiniteOutput);
+                }
+                footprints.push(Sprint105V2P1Footprint {
+                    sequence_length: length,
+                    elements,
+                    bytes: zero_state.byte_size(),
+                    blocks: zero_state.blocks.len(),
+                    step_index: zero_state.step_index,
+                });
+                let mode_equivalent = sprint105_v2_cpu_modes_equivalent_v1(
+                    &base_model,
+                    &frozen[0].evidence.sequence,
+                )?;
+                entries.push(Sprint105V2P1Entry {
+                    family,
+                    sequence_length: length,
+                    initial_development_loss: initial_loss,
+                    final_development_loss: final_loss,
+                    base,
+                    no_state,
+                    reset_base,
+                    mode_equivalent,
+                });
+            }
+        }
+        Ok(Sprint105V2P1Qualification {
+            entries,
+            footprints,
+        })
+    }
+
+    #[test]
+    fn m3_micro_sprint105_v2_p1_q1_freeze_integrity() {
+        sprint105_v2_q1_freeze_audit_v1().unwrap();
+    }
+
+    #[test]
+    fn m3_micro_sprint105_v2_p1_frozen_q1_one_shot_qualification() {
+        let started = Instant::now();
+        let qualification = sprint105_v2_p1_frozen_q1_once_v1().unwrap();
+        let policy = delayed_recall_evidence_policy_v2();
+        assert_eq!(
+            qualification.entries.len(),
+            Sprint105Q1FamilyV1::ORDERED.len() * policy.sequence_lengths.len()
+        );
+        assert!(qualification.entries.iter().all(|entry| {
+            entry.base.finite
+                && entry.no_state.finite
+                && entry
+                    .reset_base
+                    .as_ref()
+                    .is_none_or(|metrics| metrics.finite)
+                && entry.mode_equivalent
+        }));
+        assert!(
+            qualification
+                .footprints
+                .windows(2)
+                .all(|window| window[0].elements == window[1].elements
+                    && window[0].bytes == window[1].bytes)
+        );
+        let maximum_length = *policy.sequence_lengths.iter().max().unwrap();
+        let state_utility = qualification
+            .entries
+            .iter()
+            .filter(|entry| {
+                entry.family.requires_history() && entry.sequence_length == maximum_length
+            })
+            .all(|entry| entry.base.accuracy > entry.no_state.accuracy);
+        let state_causality = qualification
+            .entries
+            .iter()
+            .filter(|entry| entry.family.requires_history())
+            .all(|entry| entry.base.accuracy > entry.reset_base.as_ref().unwrap().accuracy);
+        let local_control = qualification
+            .entries
+            .iter()
+            .filter(|entry| entry.family == Sprint105Q1FamilyV1::StateIrrelevantControl)
+            .all(|entry| entry.base.accuracy >= entry.no_state.accuracy);
+        let training = qualification
+            .entries
+            .iter()
+            .all(|entry| entry.final_development_loss < entry.initial_development_loss);
+        let structural = state_utility && state_causality && local_control && training;
+        let confidence_nll = qualification
+            .entries
+            .iter()
+            .map(|entry| entry.base.mean_categorical_nll)
+            .sum::<f32>()
+            / qualification.entries.len() as f32;
+        let verdict = if structural {
+            "V2_VIABLE_BASELINE"
+        } else {
+            "V2_CORE_NOT_VIABLE"
+        };
+        for entry in &qualification.entries {
+            println!(
+                "S105_V2_P1_Q1_ROW family={} length={} path=Base samples={} accuracy={} nll={} ptrue={} mean_margin={} finite={} state_l2={} state_abs_max={} tokens={}",
+                entry.family.as_str(),
+                entry.sequence_length,
+                entry.base.samples,
+                entry.base.accuracy,
+                entry.base.mean_categorical_nll,
+                entry.base.mean_true_class_probability,
+                entry.base.mean_correct_class_margin,
+                entry.base.finite,
+                entry.base.mean_final_state_l2_norm,
+                entry.base.max_final_state_abs,
+                entry.base.total_tokens,
+            );
+            println!(
+                "S105_V2_P1_Q1_ROW family={} length={} path=NoState samples={} accuracy={} nll={} ptrue={} mean_margin={} finite={} state_l2={} state_abs_max={} tokens={}",
+                entry.family.as_str(),
+                entry.sequence_length,
+                entry.no_state.samples,
+                entry.no_state.accuracy,
+                entry.no_state.mean_categorical_nll,
+                entry.no_state.mean_true_class_probability,
+                entry.no_state.mean_correct_class_margin,
+                entry.no_state.finite,
+                entry.no_state.mean_final_state_l2_norm,
+                entry.no_state.max_final_state_abs,
+                entry.no_state.total_tokens,
+            );
+            if let Some(reset) = &entry.reset_base {
+                println!(
+                    "S105_V2_P1_Q1_ROW family={} length={} path=StateResetBase samples={} accuracy={} nll={} ptrue={} mean_margin={} finite={} state_l2={} state_abs_max={} tokens={}",
+                    entry.family.as_str(),
+                    entry.sequence_length,
+                    reset.samples,
+                    reset.accuracy,
+                    reset.mean_categorical_nll,
+                    reset.mean_true_class_probability,
+                    reset.mean_correct_class_margin,
+                    reset.finite,
+                    reset.mean_final_state_l2_norm,
+                    reset.max_final_state_abs,
+                    reset.total_tokens,
+                );
+            }
+            println!(
+                "S105_V2_P1_Q1_TRAINING family={} length={} initial_loss={} final_loss={} decreased={} mode_equivalent={}",
+                entry.family.as_str(),
+                entry.sequence_length,
+                entry.initial_development_loss,
+                entry.final_development_loss,
+                entry.final_development_loss < entry.initial_development_loss,
+                entry.mode_equivalent,
+            );
+        }
+        for footprint in &qualification.footprints {
+            println!(
+                "S105_V2_P1_Q1_FOOTPRINT length={} elements={} bytes={} blocks={} zero_step_index={}",
+                footprint.sequence_length,
+                footprint.elements,
+                footprint.bytes,
+                footprint.blocks,
+                footprint.step_index,
+            );
+        }
+        println!(
+            "S105_V2_P1_Q1_GATE state_utility_max_length={} state_causality={} local_control={} training={} footprint_constant=true numerical_finite=true confidence_overlay_mean_nll={} verdict={} elapsed_ms={}",
+            state_utility,
+            state_causality,
+            local_control,
+            training,
+            confidence_nll,
+            verdict,
+            started.elapsed().as_millis(),
+        );
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    struct Sprint105Rd1ClassificationMetricsV1 {
+        samples: usize,
+        accuracy: f32,
+        mean_nll: f32,
+        mean_true_class_probability: f32,
+        mean_correct_class_margin: f32,
+        finite: bool,
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    struct Sprint105Rd1OrderProbeV1 {
+        path: &'static str,
+        state_difference_l2: f32,
+        final_hidden_difference_l2: f32,
+        raw_logit_difference_l2: f32,
+        finite: bool,
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    struct Sprint105Rd1InterferenceTracePointV1 {
+        step: usize,
+        state_l2: f32,
+        cue_state_cosine: f32,
+        positive_raw_margin: f32,
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    struct Sprint105Rd1InterferenceTraceV1 {
+        points: Vec<Sprint105Rd1InterferenceTracePointV1>,
+        final_state: Vec<f32>,
+        final_cue_state_cosine: f32,
+        final_positive_raw_margin: f32,
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    struct Sprint105Rd1InterferenceProbeV1 {
+        actual: Sprint105Rd1InterferenceTraceV1,
+        neutral: Sprint105Rd1InterferenceTraceV1,
+        actual_vs_neutral_final_state_l2: f32,
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    struct Sprint105Rd1LocalProbeV1 {
+        normal: Sprint105Rd1ClassificationMetricsV1,
+        reset_before_local_readout: Sprint105Rd1ClassificationMetricsV1,
+        same_weights_no_state: Sprint105Rd1ClassificationMetricsV1,
+        embedded_difference_l2: f32,
+        first_u_difference_l2: f32,
+        final_hidden_difference_l2: f32,
+        raw_logit_difference_l2: f32,
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    struct Sprint105Rd1EvidenceV1 {
+        untrained_order: Sprint105Rd1OrderProbeV1,
+        trained_order: Sprint105Rd1OrderProbeV1,
+        interference: Sprint105Rd1InterferenceProbeV1,
+        local: Sprint105Rd1LocalProbeV1,
+        state_elements: usize,
+        state_bytes: usize,
+        mode_equivalent: bool,
+    }
+
+    #[derive(Clone, Debug)]
+    struct Sprint105Rd1LastStepV1 {
+        embedded: Vec<f32>,
+        first_u: Vec<f32>,
+        final_hidden: Vec<f32>,
+        raw_output: Vec<f32>,
+    }
+
+    fn sprint105_rd1_l2_difference_v1(left: &[f32], right: &[f32]) -> f32 {
+        assert_eq!(left.len(), right.len());
+        left.iter()
+            .zip(right)
+            .map(|(left, right)| (left - right).powi(2))
+            .sum::<f32>()
+            .sqrt()
+    }
+
+    fn sprint105_rd1_state_values_v1(state: &M3MicroState) -> Vec<f32> {
+        state
+            .blocks
+            .iter()
+            .flat_map(|block| block.values.iter().chain(&block.previous_u))
+            .copied()
+            .collect()
+    }
+
+    fn sprint105_rd1_cosine_v1(left: &[f32], right: &[f32]) -> f32 {
+        assert_eq!(left.len(), right.len());
+        let numerator = left
+            .iter()
+            .zip(right)
+            .map(|(left, right)| left * right)
+            .sum::<f32>();
+        let left_l2 = left.iter().map(|value| value * value).sum::<f32>().sqrt();
+        let right_l2 = right.iter().map(|value| value * value).sum::<f32>().sqrt();
+        numerator / (left_l2 * right_l2).max(PROBABILITY_EPSILON)
+    }
+
+    fn sprint105_rd1_positive_margin_v1(raw_output: &[f32]) -> Result<f32, M3MicroError> {
+        let logits: [f32; 3] = raw_output[..3]
+            .try_into()
+            .map_err(|_| M3MicroError::InvalidShape)?;
+        Ok(logits[2] - logits[0].max(logits[1]))
+    }
+
+    fn sprint105_rd1_capture_last_step_v1(
+        model: &M3MicroModel,
+        state: &mut M3MicroState,
+        input: &[f32],
+    ) -> Result<Sprint105Rd1LastStepV1, M3MicroError> {
+        let mut counters = M3MicroWorkCountersV1::default();
+        let tape = model.forward_internal(&[input.to_vec()], state, true, &mut counters)?;
+        assert_eq!(tape.steps.len(), 1);
+        let step = &tape.steps[0];
+        let first_block = step.blocks.first().ok_or(M3MicroError::InvalidShape)?;
+        let final_block = step.blocks.last().ok_or(M3MicroError::InvalidShape)?;
+        Ok(Sprint105Rd1LastStepV1 {
+            embedded: step.embedded.clone(),
+            first_u: first_block.u.clone(),
+            final_hidden: final_block.h_output.clone(),
+            raw_output: tape.raw_output,
+        })
+    }
+
+    fn sprint105_rd1_initial_and_trained_v1(
+        family: Sprint105Q1FamilyV1,
+    ) -> Result<
+        (
+            M3MicroModel,
+            M3MicroModel,
+            Vec<Sprint105Q1ExampleV1>,
+            Vec<Sprint105Q1ExampleV1>,
+        ),
+        M3MicroError,
+    > {
+        let length = *delayed_recall_evidence_policy_v2()
+            .sequence_lengths
+            .iter()
+            .max()
+            .ok_or(M3MicroError::InvalidConfiguration)?;
+        let initial = M3MicroRoster::new(V2_EVIDENCE_SEED)?
+            .agent(AgentId::TrendContinuation)
+            .model
+            .clone();
+        let development = sprint105_q1_examples_v1(family, initial.config.input_dim, length, false);
+        let frozen = sprint105_q1_examples_v1(family, initial.config.input_dim, length, true);
+        sprint105_q1_fixture_integrity_v1(family, &development, &frozen);
+        let development_evidence = development
+            .iter()
+            .map(|example| example.evidence.clone())
+            .collect::<Vec<_>>();
+        let trained = train_balanced_model_v2(
+            &initial,
+            &development_evidence,
+            delayed_recall_evidence_policy_v2().fixed_training_budget,
+            None,
+        )?
+        .model;
+        Ok((initial, trained, development, frozen))
+    }
+
+    fn sprint105_rd1_order_probe_v1(
+        model: &M3MicroModel,
+        path: &'static str,
+    ) -> Result<Sprint105Rd1OrderProbeV1, M3MicroError> {
+        let width = model.config.input_dim;
+        let a = row(width, 1.0, 0.0);
+        let b = row(width, -1.0, 0.0);
+        let query = row(width, 0.25, -0.75);
+        let mut ab_state = M3MicroState::zero(&model.config)?;
+        let mut ba_state = M3MicroState::zero(&model.config)?;
+        model.forward(&[a.clone(), b.clone()], &mut ab_state)?;
+        model.forward(&[b, a], &mut ba_state)?;
+        let state_difference_l2 = sprint105_rd1_l2_difference_v1(
+            &sprint105_rd1_state_values_v1(&ab_state),
+            &sprint105_rd1_state_values_v1(&ba_state),
+        );
+        let ab = sprint105_rd1_capture_last_step_v1(model, &mut ab_state, &query)?;
+        let ba = sprint105_rd1_capture_last_step_v1(model, &mut ba_state, &query)?;
+        let final_hidden_difference_l2 =
+            sprint105_rd1_l2_difference_v1(&ab.final_hidden, &ba.final_hidden);
+        let raw_logit_difference_l2 =
+            sprint105_rd1_l2_difference_v1(&ab.raw_output, &ba.raw_output);
+        Ok(Sprint105Rd1OrderProbeV1 {
+            path,
+            state_difference_l2,
+            final_hidden_difference_l2,
+            raw_logit_difference_l2,
+            finite: [
+                state_difference_l2,
+                final_hidden_difference_l2,
+                raw_logit_difference_l2,
+            ]
+            .into_iter()
+            .all(f32::is_finite),
+        })
+    }
+
+    fn sprint105_rd1_interference_trace_v1(
+        model: &M3MicroModel,
+        sequence: &[Vec<f32>],
+    ) -> Result<Sprint105Rd1InterferenceTraceV1, M3MicroError> {
+        let mut state = M3MicroState::zero(&model.config)?;
+        let mut cue_state = Vec::new();
+        let mut points = Vec::with_capacity(sequence.len());
+        for (step, input) in sequence.iter().enumerate() {
+            let raw_output = model.forward(&[input.clone()], &mut state)?;
+            let state_values = sprint105_rd1_state_values_v1(&state);
+            if step == 0 {
+                cue_state = state_values.clone();
+            }
+            points.push(Sprint105Rd1InterferenceTracePointV1 {
+                step,
+                state_l2: state_values
+                    .iter()
+                    .map(|value| value * value)
+                    .sum::<f32>()
+                    .sqrt(),
+                cue_state_cosine: sprint105_rd1_cosine_v1(&cue_state, &state_values),
+                positive_raw_margin: sprint105_rd1_positive_margin_v1(&raw_output)?,
+            });
+        }
+        let final_state = sprint105_rd1_state_values_v1(&state);
+        Ok(Sprint105Rd1InterferenceTraceV1 {
+            final_cue_state_cosine: sprint105_rd1_cosine_v1(&cue_state, &final_state),
+            final_positive_raw_margin: points
+                .last()
+                .ok_or(M3MicroError::InvalidShape)?
+                .positive_raw_margin,
+            points,
+            final_state,
+        })
+    }
+
+    fn sprint105_rd1_interference_probe_v1(
+        model: &M3MicroModel,
+        positive: &Sprint105Q1ExampleV1,
+    ) -> Result<Sprint105Rd1InterferenceProbeV1, M3MicroError> {
+        let actual = sprint105_rd1_interference_trace_v1(model, &positive.evidence.sequence)?;
+        let mut neutral_sequence = positive.evidence.sequence.clone();
+        let distractor_count = neutral_sequence.len().saturating_sub(2);
+        for input in neutral_sequence.iter_mut().skip(1).take(distractor_count) {
+            input.fill(0.0);
+        }
+        let neutral = sprint105_rd1_interference_trace_v1(model, &neutral_sequence)?;
+        Ok(Sprint105Rd1InterferenceProbeV1 {
+            actual_vs_neutral_final_state_l2: sprint105_rd1_l2_difference_v1(
+                &actual.final_state,
+                &neutral.final_state,
+            ),
+            actual,
+            neutral,
+        })
+    }
+
+    fn sprint105_rd1_classification_metrics_v1(
+        model: &M3MicroModel,
+        examples: &[Sprint105Q1ExampleV1],
+        reset_before_last_input: bool,
+    ) -> Result<Sprint105Rd1ClassificationMetricsV1, M3MicroError> {
+        if examples.is_empty() {
+            return Err(M3MicroError::InvalidShape);
+        }
+        let mut correct = 0usize;
+        let mut nll = 0.0f32;
+        let mut probability = 0.0f32;
+        let mut margin = 0.0f32;
+        let mut finite = true;
+        for example in examples {
+            let raw_output = if reset_before_last_input {
+                let split = example.evidence.sequence.len() - 1;
+                let mut state = M3MicroState::zero(&model.config)?;
+                model.forward(&example.evidence.sequence[..split], &mut state)?;
+                state = M3MicroState::zero(&model.config)?;
+                model.forward(&example.evidence.sequence[split..], &mut state)?
+            } else {
+                model
+                    .forward_from_zero_with_work_counters(&example.evidence.sequence)?
+                    .0
+            };
+            let prediction = M3MicroPrediction::from_raw(AgentId::TrendContinuation, &raw_output)?;
+            let distribution = prediction
+                .direction_distribution
+                .ok_or(M3MicroError::InvalidShape)?;
+            let target_index = if example.evidence.positive { 2 } else { 0 };
+            let target_margin = raw_output[target_index]
+                - raw_output[..3]
+                    .iter()
+                    .enumerate()
+                    .filter(|(index, _)| *index != target_index)
+                    .map(|(_, value)| *value)
+                    .fold(f32::NEG_INFINITY, f32::max);
+            correct += usize::from((raw_output[2] > raw_output[0]) == example.evidence.positive);
+            nll += -distribution[target_index].max(PROBABILITY_EPSILON).ln();
+            probability += distribution[target_index];
+            margin += target_margin;
+            finite &= raw_output.iter().all(|value| value.is_finite())
+                && distribution.into_iter().all(f32::is_finite)
+                && target_margin.is_finite();
+        }
+        let sample_count = examples.len() as f32;
+        Ok(Sprint105Rd1ClassificationMetricsV1 {
+            samples: examples.len(),
+            accuracy: correct as f32 / sample_count,
+            mean_nll: nll / sample_count,
+            mean_true_class_probability: probability / sample_count,
+            mean_correct_class_margin: margin / sample_count,
+            finite: finite && [nll, probability, margin].into_iter().all(f32::is_finite),
+        })
+    }
+
+    fn sprint105_rd1_local_probe_v1(
+        model: &M3MicroModel,
+        frozen: &[Sprint105Q1ExampleV1],
+    ) -> Result<Sprint105Rd1LocalProbeV1, M3MicroError> {
+        let normal = sprint105_rd1_classification_metrics_v1(model, frozen, false)?;
+        let reset_before_local_readout =
+            sprint105_rd1_classification_metrics_v1(model, frozen, true)?;
+        let same_weights_no_state = sprint105_rd1_classification_metrics_v1(
+            &model.with_ablation(M3MicroAblationV1::NoRecurrentState)?,
+            frozen,
+            false,
+        )?;
+        let positive = frozen
+            .iter()
+            .find(|example| example.evidence.positive)
+            .ok_or(M3MicroError::InvalidShape)?;
+        let split = positive.evidence.sequence.len() - 1;
+        let mut normal_state = M3MicroState::zero(&model.config)?;
+        model.forward(&positive.evidence.sequence[..split], &mut normal_state)?;
+        let normal_capture = sprint105_rd1_capture_last_step_v1(
+            model,
+            &mut normal_state,
+            &positive.evidence.sequence[split],
+        )?;
+        let mut reset_state = M3MicroState::zero(&model.config)?;
+        let reset_capture = sprint105_rd1_capture_last_step_v1(
+            model,
+            &mut reset_state,
+            &positive.evidence.sequence[split],
+        )?;
+        Ok(Sprint105Rd1LocalProbeV1 {
+            normal,
+            reset_before_local_readout,
+            same_weights_no_state,
+            embedded_difference_l2: sprint105_rd1_l2_difference_v1(
+                &normal_capture.embedded,
+                &reset_capture.embedded,
+            ),
+            first_u_difference_l2: sprint105_rd1_l2_difference_v1(
+                &normal_capture.first_u,
+                &reset_capture.first_u,
+            ),
+            final_hidden_difference_l2: sprint105_rd1_l2_difference_v1(
+                &normal_capture.final_hidden,
+                &reset_capture.final_hidden,
+            ),
+            raw_logit_difference_l2: sprint105_rd1_l2_difference_v1(
+                &normal_capture.raw_output,
+                &reset_capture.raw_output,
+            ),
+        })
+    }
+
+    fn sprint105_rd1_evidence_v1() -> Result<Sprint105Rd1EvidenceV1, M3MicroError> {
+        let (order_initial, order_trained, _, order_frozen) =
+            sprint105_rd1_initial_and_trained_v1(Sprint105Q1FamilyV1::OrderSensitive)?;
+        let (_, interference_trained, _, interference_frozen) =
+            sprint105_rd1_initial_and_trained_v1(Sprint105Q1FamilyV1::InterferenceRetention)?;
+        let (_, local_trained, _, local_frozen) =
+            sprint105_rd1_initial_and_trained_v1(Sprint105Q1FamilyV1::StateIrrelevantControl)?;
+        let positive_interference = interference_frozen
+            .iter()
+            .find(|example| example.evidence.positive)
+            .ok_or(M3MicroError::InvalidShape)?;
+        let zero_state = M3MicroState::zero(&order_initial.config)?;
+        let (state_elements, _, _, finite) = sprint105_q1_state_magnitude_v1(&zero_state);
+        assert!(finite);
+        Ok(Sprint105Rd1EvidenceV1 {
+            untrained_order: sprint105_rd1_order_probe_v1(&order_initial, "untrained")?,
+            trained_order: sprint105_rd1_order_probe_v1(&order_trained, "trained")?,
+            interference: sprint105_rd1_interference_probe_v1(
+                &interference_trained,
+                positive_interference,
+            )?,
+            local: sprint105_rd1_local_probe_v1(&local_trained, &local_frozen)?,
+            state_elements,
+            state_bytes: zero_state.byte_size(),
+            mode_equivalent: sprint105_q1_cpu_modes_equivalent_v1(
+                &order_trained,
+                &order_frozen[0].evidence.sequence,
+            )?,
+        })
+    }
+
+    #[test]
+    fn m3_micro_sprint105_rd1_core_redesign_causal_audit() {
+        let started = Instant::now();
+        let first = sprint105_rd1_evidence_v1().unwrap();
+        let second = sprint105_rd1_evidence_v1().unwrap();
+        assert_eq!(first, second);
+        assert!(first.untrained_order.finite && first.trained_order.finite);
+        assert!(first.mode_equivalent);
+        assert_eq!(first.state_elements, 2304);
+        assert_eq!(first.state_bytes, 9224);
+        assert!(
+            first
+                .interference
+                .actual
+                .points
+                .iter()
+                .chain(&first.interference.neutral.points)
+                .all(|point| [
+                    point.state_l2,
+                    point.cue_state_cosine,
+                    point.positive_raw_margin,
+                ]
+                .into_iter()
+                .all(f32::is_finite))
+        );
+        assert!(
+            first.local.normal.finite
+                && first.local.reset_before_local_readout.finite
+                && first.local.same_weights_no_state.finite
+        );
+        for order in [&first.untrained_order, &first.trained_order] {
+            println!(
+                "S105_RD1_ORDER path={} state_l2={} hidden_l2={} logits_l2={} finite={}",
+                order.path,
+                order.state_difference_l2,
+                order.final_hidden_difference_l2,
+                order.raw_logit_difference_l2,
+                order.finite,
+            );
+        }
+        for (path, trace) in [
+            ("actual", &first.interference.actual),
+            ("neutral", &first.interference.neutral),
+        ] {
+            for point in &trace.points {
+                println!(
+                    "S105_RD1_INTERFERENCE path={} step={} state_l2={} cue_cosine={} raw_margin={}",
+                    path,
+                    point.step,
+                    point.state_l2,
+                    point.cue_state_cosine,
+                    point.positive_raw_margin,
+                );
+            }
+            println!(
+                "S105_RD1_INTERFERENCE_FINAL path={} cue_cosine={} raw_margin={}",
+                path, trace.final_cue_state_cosine, trace.final_positive_raw_margin,
+            );
+        }
+        println!(
+            "S105_RD1_INTERFERENCE_COMPARE actual_vs_neutral_final_state_l2={}",
+            first.interference.actual_vs_neutral_final_state_l2,
+        );
+        for (path, metrics) in [
+            ("normal", &first.local.normal),
+            (
+                "reset_before_local_readout",
+                &first.local.reset_before_local_readout,
+            ),
+            ("same_weights_no_state", &first.local.same_weights_no_state),
+        ] {
+            println!(
+                "S105_RD1_LOCAL path={} samples={} accuracy={} nll={} ptrue={} margin={} finite={}",
+                path,
+                metrics.samples,
+                metrics.accuracy,
+                metrics.mean_nll,
+                metrics.mean_true_class_probability,
+                metrics.mean_correct_class_margin,
+                metrics.finite,
+            );
+        }
+        println!(
+            "S105_RD1_LOCAL_REPRESENTATION embedded_l2={} first_u_l2={} final_hidden_l2={} raw_logits_l2={}",
+            first.local.embedded_difference_l2,
+            first.local.first_u_difference_l2,
+            first.local.final_hidden_difference_l2,
+            first.local.raw_logit_difference_l2,
+        );
+        println!(
+            "S105_RD1_GUARDS state_elements={} state_bytes={} mode_equivalent={} determinism=true elapsed_ms={}",
+            first.state_elements,
+            first.state_bytes,
+            first.mode_equivalent,
+            started.elapsed().as_millis(),
+        );
+    }
+
+    #[derive(Clone, Debug)]
+    struct Sprint105Rd1R1OrderCaptureV1 {
+        prefix_state: Vec<f32>,
+        fusion_pre_tanh: Vec<f32>,
+        fusion_post_tanh: Vec<f32>,
+        output_pre_affine_tanh: Vec<f32>,
+        output_post_affine_tanh: Vec<f32>,
+        raw_output: Vec<f32>,
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    struct Sprint105Rd1R1OrderActivationAuditV1 {
+        prefix_state_difference_l2: f32,
+        fusion_pre_tanh_difference_l2: f32,
+        fusion_post_tanh_difference_l2: f32,
+        output_pre_affine_tanh_difference_l2: f32,
+        output_post_affine_tanh_difference_l2: f32,
+        raw_logit_difference_l2: f32,
+        finite: bool,
+    }
+
+    fn sprint105_rd1_r1_order_capture_v1(
+        model: &M3MicroModel,
+        prefix: &[Vec<f32>],
+        query: &[f32],
+    ) -> Result<Sprint105Rd1R1OrderCaptureV1, M3MicroError> {
+        let mut state = M3MicroState::zero(&model.config)?;
+        model.forward(prefix, &mut state)?;
+        let prefix_state = sprint105_rd1_state_values_v1(&state);
+        let mut counters = M3MicroWorkCountersV1::default();
+        let tape = model.forward_internal(&[query.to_vec()], &mut state, true, &mut counters)?;
+        let step = tape.steps.first().ok_or(M3MicroError::InvalidShape)?;
+        let block = step.blocks.last().ok_or(M3MicroError::InvalidShape)?;
+        let layout = M3MicroLayout::new(&model.config)?;
+        let block_layout = layout.blocks.last().ok_or(M3MicroError::InvalidShape)?;
+        let inner = model.config.inner_dim();
+        let mut fusion_pre_tanh = vec![0.0; inner];
+        for channel in 0..inner {
+            let state_readout = (0..model.config.d_state)
+                .map(|state_index| {
+                    let index = channel * model.config.d_state + state_index;
+                    block.next_state[index]
+                        * model.parameters.values[block_layout.readout_scale.start + index].tanh()
+                        * REDUCED_CORE_MATH_PROFILE_V1.readout_gain
+                        / model.config.d_state as f32
+                })
+                .sum::<f32>();
+            fusion_pre_tanh[channel] = state_readout
+                + sigmoid(model.parameters.values[block_layout.skip.start + channel])
+                    * block.u[channel];
+        }
+        let fusion_post_tanh = fusion_pre_tanh
+            .iter()
+            .map(|value| value.tanh())
+            .collect::<Vec<_>>();
+        assert_eq!(fusion_post_tanh, block.z);
+        let output_pre_affine_tanh = affine(
+            &model.parameters.values,
+            &block_layout.w_out,
+            &block_layout.b_out,
+            model.config.d_model,
+            inner,
+            &fusion_post_tanh,
+        )?;
+        let output_post_affine_tanh = affine_tanh(
+            &model.parameters.values,
+            &block_layout.w_out,
+            &block_layout.b_out,
+            model.config.d_model,
+            inner,
+            &fusion_post_tanh,
+        )?;
+        assert_eq!(output_post_affine_tanh, block.h_output);
+        Ok(Sprint105Rd1R1OrderCaptureV1 {
+            prefix_state,
+            fusion_pre_tanh,
+            fusion_post_tanh,
+            output_pre_affine_tanh,
+            output_post_affine_tanh,
+            raw_output: tape.raw_output,
+        })
+    }
+
+    fn sprint105_rd1_r1_order_activation_audit_v1(
+        model: &M3MicroModel,
+    ) -> Result<Sprint105Rd1R1OrderActivationAuditV1, M3MicroError> {
+        let width = model.config.input_dim;
+        let a = row(width, 1.0, 0.0);
+        let b = row(width, -1.0, 0.0);
+        let query = row(width, 0.25, -0.75);
+        let ab = sprint105_rd1_r1_order_capture_v1(model, &[a.clone(), b.clone()], &query)?;
+        let ba = sprint105_rd1_r1_order_capture_v1(model, &[b, a], &query)?;
+        let values = [
+            sprint105_rd1_l2_difference_v1(&ab.prefix_state, &ba.prefix_state),
+            sprint105_rd1_l2_difference_v1(&ab.fusion_pre_tanh, &ba.fusion_pre_tanh),
+            sprint105_rd1_l2_difference_v1(&ab.fusion_post_tanh, &ba.fusion_post_tanh),
+            sprint105_rd1_l2_difference_v1(&ab.output_pre_affine_tanh, &ba.output_pre_affine_tanh),
+            sprint105_rd1_l2_difference_v1(
+                &ab.output_post_affine_tanh,
+                &ba.output_post_affine_tanh,
+            ),
+            sprint105_rd1_l2_difference_v1(&ab.raw_output, &ba.raw_output),
+        ];
+        Ok(Sprint105Rd1R1OrderActivationAuditV1 {
+            prefix_state_difference_l2: values[0],
+            fusion_pre_tanh_difference_l2: values[1],
+            fusion_post_tanh_difference_l2: values[2],
+            output_pre_affine_tanh_difference_l2: values[3],
+            output_post_affine_tanh_difference_l2: values[4],
+            raw_logit_difference_l2: values[5],
+            finite: values.into_iter().all(f32::is_finite),
+        })
+    }
+
+    #[test]
+    fn m3_micro_sprint105_rd1_r1_active_math_profile_resolution() {
+        assert_eq!(
+            REDUCED_CORE_MATH_PROFILE_V1,
+            CoreMathProfileV1 {
+                reinforced_retention: false,
+                readout_gain: 1.0,
+                softsign_activations: false,
+            }
+        );
+        let model = M3MicroRoster::new(V2_EVIDENCE_SEED)
+            .unwrap()
+            .agent(AgentId::TrendContinuation)
+            .model
+            .clone();
+        let sequence = vec![row(model.config.input_dim, 0.25, -0.75)];
+        let mut production_state = M3MicroState::zero(&model.config).unwrap();
+        let mut explicit_state = M3MicroState::zero(&model.config).unwrap();
+        let mut production_counters = M3MicroWorkCountersV1::default();
+        let mut explicit_counters = M3MicroWorkCountersV1::default();
+        let production = model
+            .forward_internal(
+                &sequence,
+                &mut production_state,
+                true,
+                &mut production_counters,
+            )
+            .unwrap();
+        let explicit = model
+            .forward_internal_with_profile(
+                &sequence,
+                &mut explicit_state,
+                true,
+                &mut explicit_counters,
+                REDUCED_CORE_MATH_PROFILE_V1,
+            )
+            .unwrap();
+        assert_eq!(production.raw_output, explicit.raw_output);
+        assert_eq!(production_state, explicit_state);
+        assert_eq!(production_counters, explicit_counters);
+        let block = production.steps[0].blocks.last().unwrap();
+        let layout = M3MicroLayout::new(&model.config).unwrap();
+        let block_layout = layout.blocks.last().unwrap();
+        let expected = affine_tanh(
+            &model.parameters.values,
+            &block_layout.w_out,
+            &block_layout.b_out,
+            model.config.d_model,
+            model.config.inner_dim(),
+            &block.z,
+        )
+        .unwrap();
+        assert_eq!(expected, block.h_output);
+        println!(
+            "S105_RD1_R1_PROFILE reinforced_retention={} readout_gain={} softsign_activations={} forward_matches_explicit_profile=true block_output=affine_tanh",
+            REDUCED_CORE_MATH_PROFILE_V1.reinforced_retention,
+            REDUCED_CORE_MATH_PROFILE_V1.readout_gain,
+            REDUCED_CORE_MATH_PROFILE_V1.softsign_activations,
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_rd1_r1_order_activation_compression_diagnostic() {
+        let (_, trained, _, _) =
+            sprint105_rd1_initial_and_trained_v1(Sprint105Q1FamilyV1::OrderSensitive).unwrap();
+        let first = sprint105_rd1_r1_order_activation_audit_v1(&trained).unwrap();
+        let second = sprint105_rd1_r1_order_activation_audit_v1(&trained).unwrap();
+        assert_eq!(first, second);
+        assert!(first.finite);
+        println!(
+            "S105_RD1_R1_ORDER_ACTIVATION state_l2={} fusion_pre_tanh_l2={} fusion_post_tanh_l2={} output_pre_affine_tanh_l2={} output_post_affine_tanh_l2={} logits_l2={} finite={}",
+            first.prefix_state_difference_l2,
+            first.fusion_pre_tanh_difference_l2,
+            first.fusion_post_tanh_difference_l2,
+            first.output_pre_affine_tanh_difference_l2,
+            first.output_post_affine_tanh_difference_l2,
+            first.raw_logit_difference_l2,
+            first.finite,
+        );
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq)]
+    struct Sprint105CalibrationRecordV2 {
+        logits: [f32; 3],
+        target_index: usize,
+    }
+
+    fn sprint105_calibration_record_identity_v2(example: &EvidenceExampleV2) -> String {
+        stable_hash_string(&format!(
+            "sprint105-c2-calibration-record-v2:{:?}:{:?}",
+            example.sequence, example.target
+        ))
+    }
+
+    fn sprint105_calibration_records_v2(
+        model: &M3MicroModel,
+        examples: &[EvidenceExampleV2],
+    ) -> Vec<Sprint105CalibrationRecordV2> {
+        examples
+            .iter()
+            .map(|example| {
+                let (raw_output, _, _) = model
+                    .forward_from_zero_with_work_counters(&example.sequence)
+                    .unwrap();
+                Sprint105CalibrationRecordV2 {
+                    logits: raw_output[..3].try_into().unwrap(),
+                    target_index: if example.positive { 2 } else { 0 },
+                }
+            })
+            .collect()
+    }
+
+    fn sprint105_calibration_nll_v2(records: &[Sprint105CalibrationRecordV2], gain: f32) -> f32 {
+        assert!(!records.is_empty());
+        assert!(gain.is_finite() && gain > 0.0);
+        records
+            .iter()
+            .map(|record| {
+                let probabilities =
+                    sprint105_probabilities_v1(&record.logits.map(|logit| logit * gain), 1.0);
+                -probabilities[record.target_index]
+                    .max(PROBABILITY_EPSILON)
+                    .ln()
+            })
+            .sum::<f32>()
+            / records.len() as f32
+    }
+
+    fn sprint105_calibration_gain_derivative_v2(
+        records: &[Sprint105CalibrationRecordV2],
+        gain: f32,
+    ) -> f32 {
+        assert!(!records.is_empty());
+        assert!(gain.is_finite() && gain > 0.0);
+        records
+            .iter()
+            .map(|record| {
+                let probabilities =
+                    sprint105_probabilities_v1(&record.logits.map(|logit| logit * gain), 1.0);
+                probabilities
+                    .iter()
+                    .zip(record.logits)
+                    .map(|(probability, logit)| probability * logit)
+                    .sum::<f32>()
+                    - record.logits[record.target_index]
+            })
+            .sum::<f32>()
+            / records.len() as f32
+    }
+
+    fn sprint105_calibration_gain_derivative_zero_limit_v2(
+        records: &[Sprint105CalibrationRecordV2],
+    ) -> f32 {
+        assert!(!records.is_empty());
+        records
+            .iter()
+            .map(|record| {
+                record.logits.iter().sum::<f32>() / record.logits.len() as f32
+                    - record.logits[record.target_index]
+            })
+            .sum::<f32>()
+            / records.len() as f32
+    }
+
+    fn sprint105_calibration_gain_derivative_infinite_limit_v2(
+        records: &[Sprint105CalibrationRecordV2],
+    ) -> f32 {
+        assert!(!records.is_empty());
+        records
+            .iter()
+            .map(|record| {
+                record.logits.into_iter().fold(f32::NEG_INFINITY, f32::max)
+                    - record.logits[record.target_index]
+            })
+            .sum::<f32>()
+            / records.len() as f32
+    }
+
+    #[test]
+    fn m3_micro_sprint105_c2_calibration_boundary_and_identifiability_probe() {
+        let policy = delayed_recall_evidence_policy_v2();
+        let mut records = Vec::new();
+        let mut calibration_identities = BTreeSet::new();
+        let mut evaluation_identities = BTreeSet::new();
+
+        for length in policy.sequence_lengths {
+            let initial_model = M3MicroRoster::new(V2_EVIDENCE_SEED)
+                .unwrap()
+                .agent(AgentId::TrendContinuation)
+                .model
+                .clone();
+            let development =
+                delayed_recall_examples_v2(initial_model.config.input_dim, length, false);
+            let frozen = delayed_recall_examples_v2(initial_model.config.input_dim, length, true);
+            calibration_identities.extend(
+                development
+                    .iter()
+                    .map(sprint105_calibration_record_identity_v2),
+            );
+            evaluation_identities
+                .extend(frozen.iter().map(sprint105_calibration_record_identity_v2));
+            let trained = train_balanced_model_v2(
+                &initial_model,
+                &development,
+                policy.fixed_training_budget,
+                None,
+            )
+            .unwrap();
+            records.extend(sprint105_calibration_records_v2(
+                &trained.model,
+                &development,
+            ));
+        }
+
+        assert_eq!(records.len(), policy.sequence_lengths.len() * 4);
+        assert!(calibration_identities.is_disjoint(&evaluation_identities));
+        assert!(records.iter().all(|record| {
+            record.logits.iter().all(|logit| logit.is_finite()) && record.target_index < 3
+        }));
+        assert!(!protected_interaction_passed_v1());
+
+        let derivative_zero = sprint105_calibration_gain_derivative_zero_limit_v2(&records);
+        let derivative_infinity = sprint105_calibration_gain_derivative_infinite_limit_v2(&records);
+        println!(
+            "S105_C2_CALIBRATION_PROBE records={} overlap={} nll_g1={} nll_g2={} derivative_zero={} derivative_g1={} derivative_infinity={}",
+            records.len(),
+            calibration_identities
+                .intersection(&evaluation_identities)
+                .count(),
+            sprint105_calibration_nll_v2(&records, 1.0),
+            sprint105_calibration_nll_v2(&records, 2.0),
+            derivative_zero,
+            sprint105_calibration_gain_derivative_v2(&records, 1.0),
+            derivative_infinity,
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_c1_length32_confidence_diagnostic() {
+        let evidence = delayed_recall_evidence_v2();
+        let policy = delayed_recall_evidence_policy_v2();
+        assert_eq!(
+            evidence
+                .iter()
+                .map(|item| item.sequence_length)
+                .collect::<Vec<_>>(),
+            policy.sequence_lengths
+        );
+
+        let structural = structural_loss_evidence_v1(evidence);
+        assert_eq!(structural.status, GateExecutionStatusV1::Passed);
+        assert!(structural_loss_evidence_complete_v1(&structural));
+
+        let mut summaries = Vec::new();
+        let mut temperatures = Vec::new();
+        for item in evidence {
+            let snapshot = &item.comparator_snapshot;
+            assert_eq!(
+                snapshot.base_dataset_identity,
+                snapshot.no_state_dataset_identity
+            );
+            assert_eq!(
+                snapshot.base_training_policy_identity,
+                snapshot.no_state_training_policy_identity
+            );
+            assert_eq!(
+                snapshot.base_optimizer_digest,
+                snapshot.no_state_optimizer_digest
+            );
+            assert_eq!(
+                snapshot.differing_path_count,
+                snapshot.state_capability_path_count
+            );
+            assert_eq!(snapshot.unexpected_path_count, 0);
+            assert_eq!(snapshot.missing_path_count, 0);
+
+            for path in [
+                Sprint105DiagnosticPathV1::Base,
+                Sprint105DiagnosticPathV1::NoState,
+            ] {
+                let summary = sprint105_length_path_summary_v1(item, path);
+                assert_eq!(
+                    summary.sample_count,
+                    policy.frozen_evaluation_examples_per_class * 2
+                );
+                assert!(summary.final_states_finite);
+                assert!(
+                    [
+                        summary.accuracy,
+                        summary.mean_nll,
+                        summary.mean_true_class_probability,
+                        summary.median_true_class_probability,
+                        summary.mean_top1_probability,
+                        summary.mean_top1_top2_logit_margin,
+                        summary.median_top1_top2_logit_margin,
+                        summary.mean_entropy,
+                        summary.median_entropy,
+                        summary.logit_mean,
+                        summary.logit_std,
+                        summary.logit_absolute_maximum,
+                        summary.logit_l2_norm,
+                        summary.mean_true_class_margin,
+                        summary.mean_final_state_l2_norm,
+                        summary.mean_final_state_abs,
+                        summary.max_final_state_abs,
+                    ]
+                    .into_iter()
+                    .all(f32::is_finite)
+                );
+                println!("S105_C1_LENGTH_SUMMARY={summary:?}");
+                summaries.push(summary);
+
+                for exponent in [-2i32, -1, 0, 1, 2] {
+                    let diagnostic =
+                        sprint105_temperature_diagnostic_v1(item, path, 2.0f32.powi(exponent));
+                    assert_eq!(diagnostic.argmax_changed, 0);
+                    assert_eq!(diagnostic.accuracy.to_bits(), summary.accuracy.to_bits());
+                    println!("S105_C1_TEMPERATURE={diagnostic:?}");
+                    temperatures.push(diagnostic);
+                }
+            }
+        }
+
+        let length32_base = summaries
+            .iter()
+            .find(|summary| {
+                summary.sequence_length == 32 && summary.path == Sprint105DiagnosticPathV1::Base
+            })
+            .unwrap();
+        let length32_no_state = summaries
+            .iter()
+            .find(|summary| {
+                summary.sequence_length == 32 && summary.path == Sprint105DiagnosticPathV1::NoState
+            })
+            .unwrap();
+        assert!(length32_base.accuracy > length32_no_state.accuracy);
+        assert!(length32_base.mean_nll > length32_no_state.mean_nll);
+
+        let length32_evidence = delayed_evidence_for_length_v2(32);
+        let mut examples =
+            sprint105_path_events_v1(length32_evidence, Sprint105DiagnosticPathV1::Base)
+                .iter()
+                .enumerate()
+                .map(|(index, event)| {
+                    sprint105_example_diagnostic_v1(Sprint105DiagnosticPathV1::Base, event, index)
+                })
+                .collect::<Vec<_>>();
+        examples.sort_by(|left, right| right.nll_contribution.total_cmp(&left.nll_contribution));
+        for example in &examples {
+            println!("S105_C1_LENGTH32_EXAMPLE={example:?}");
+        }
+        let nll_values = examples
+            .iter()
+            .map(|example| example.nll_contribution)
+            .collect::<Vec<_>>();
+        println!(
+            "S105_C1_LENGTH32_NLL_DISTRIBUTION=min={} q1={} median={} q3={} max={}",
+            sprint105_quantile_v1(&nll_values, 0.0),
+            sprint105_quantile_v1(&nll_values, 0.25),
+            sprint105_quantile_v1(&nll_values, 0.5),
+            sprint105_quantile_v1(&nll_values, 0.75),
+            sprint105_quantile_v1(&nll_values, 1.0),
+        );
+        for (bucket, count) in sprint105_length32_buckets_v1(&examples) {
+            println!("S105_C1_LENGTH32_BUCKET {}={count}", bucket.as_str());
+        }
+        assert_eq!(
+            temperatures
+                .iter()
+                .filter(|diagnostic| diagnostic.sequence_length == 32)
+                .map(|diagnostic| diagnostic.argmax_changed)
+                .sum::<usize>(),
+            0
+        );
     }
 
     #[test]
