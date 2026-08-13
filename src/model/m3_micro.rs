@@ -5525,8 +5525,8 @@ mod tests {
     use super::*;
     use crate::backtest::{Candle, Timeframe};
     use crate::model::m3_micro_capability::{
-        GateExecutionStatusV1, InvalidationIndexPolicyV2, InvalidationPositionV3,
-        M3MicroEvidenceLifecycleV2, NumericalGradientConformancePolicyV1,
+        DelayedRecallEvidencePolicyV2, GateExecutionStatusV1, InvalidationIndexPolicyV2,
+        InvalidationPositionV3, M3MicroEvidenceLifecycleV2, NumericalGradientConformancePolicyV1,
         delayed_recall_evidence_policy_v2, numerical_gradient_conformance_policy_v1,
         reinforcement_attribution_policy_v2, selective_forgetting_evidence_policy_v2,
         selective_forgetting_evidence_policy_v3,
@@ -16284,7 +16284,7 @@ mod tests {
         .collect()
     }
 
-    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
     enum Sprint105Q1FamilyV1 {
         DelayedCue,
         OrderSensitive,
@@ -16363,7 +16363,10 @@ mod tests {
     #[derive(Clone, Debug, PartialEq)]
     struct Sprint105Q1EvidenceV1 {
         entries: Vec<Sprint105Q1EntryV1>,
-        footprints: Vec<Sprint105Q1StateFootprintV1>,
+        footprints: Vec<Q1QualificationFootprintEvidenceV1<Sprint105Q1StateFootprintV1>>,
+        actual_policy: DelayedRecallEvidencePolicyV2,
+        gate_policy: Q1StructuralGatePolicyV1,
+        owner_binding: Q1QualificationOwnerBindingV1,
     }
 
     fn sprint105_q1_fill_nuisance_v1(
@@ -16605,22 +16608,26 @@ mod tests {
         family: Sprint105Q1FamilyV1,
         development: &[Sprint105Q1ExampleV1],
         frozen: &[Sprint105Q1ExampleV1],
+        policy: &DelayedRecallEvidencePolicyV2,
     ) {
-        assert_eq!(development.len(), 4);
-        assert_eq!(frozen.len(), 4);
+        assert!(policy.balanced_classes);
+        assert_eq!(
+            frozen.len(),
+            policy.frozen_evaluation_examples_per_class * 2
+        );
         assert_eq!(
             development
                 .iter()
                 .filter(|example| example.evidence.positive)
                 .count(),
-            2
+            development.len() / 2
         );
         assert_eq!(
             frozen
                 .iter()
                 .filter(|example| example.evidence.positive)
                 .count(),
-            2
+            policy.frozen_evaluation_examples_per_class
         );
         let development_ids = development
             .iter()
@@ -16664,8 +16671,11520 @@ mod tests {
         }
     }
 
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum Sprint105Q1SplitV1 {
+        Development,
+        Evaluation,
+    }
+
+    impl Sprint105Q1SplitV1 {
+        fn as_str(self) -> &'static str {
+            match self {
+                Self::Development => "development",
+                Self::Evaluation => "evaluation",
+            }
+        }
+    }
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct Q1QualificationContractRecordV1 {
+        family: Sprint105Q1FamilyV1,
+        sequence_length: usize,
+        split: Sprint105Q1SplitV1,
+        variant: usize,
+        identity: String,
+        class_label: bool,
+        input_rows: usize,
+        input_width: usize,
+        input_bits: Vec<u32>,
+        nuisance_and_distractor_bits: Vec<u32>,
+        target_bits: Vec<u32>,
+        reset_after: Option<usize>,
+    }
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct Q1QualificationContractIdentityV1 {
+        policy_identity: String,
+        family_identities: Vec<String>,
+        canonical_lengths: Vec<usize>,
+        records: Vec<Q1QualificationContractRecordV1>,
+        base_semantics: String,
+        no_state_semantics: String,
+        reset_base_semantics: String,
+        reset_semantics_identity: String,
+        seed_derivation_policy: String,
+        initialization_policy_identity: String,
+        training_budget: usize,
+        optimizer_identity: String,
+        metric_identity: String,
+        categorical_nll_identity: String,
+        structural_gate_identities: Vec<String>,
+    }
+
+    #[derive(Default)]
+    struct Sprint105CanonicalEncoderV1 {
+        bytes: Vec<u8>,
+    }
+
+    impl Sprint105CanonicalEncoderV1 {
+        fn field_bytes(&mut self, name: &str, value: &[u8]) {
+            self.bytes.extend_from_slice(b"Q1C1");
+            self.bytes
+                .extend_from_slice(&(name.len() as u64).to_le_bytes());
+            self.bytes.extend_from_slice(name.as_bytes());
+            self.bytes
+                .extend_from_slice(&(value.len() as u64).to_le_bytes());
+            self.bytes.extend_from_slice(value);
+        }
+
+        fn field_string(&mut self, name: &str, value: &str) {
+            self.field_bytes(name, value.as_bytes());
+        }
+
+        fn field_bool(&mut self, name: &str, value: bool) {
+            self.field_bytes(name, &[u8::from(value)]);
+        }
+
+        fn field_usize(&mut self, name: &str, value: usize) {
+            self.field_bytes(name, &(value as u64).to_le_bytes());
+        }
+
+        fn field_u64(&mut self, name: &str, value: u64) {
+            self.field_bytes(name, &value.to_le_bytes());
+        }
+
+        fn field_u32s(&mut self, name: &str, values: &[u32]) {
+            let mut bytes = Vec::with_capacity(8 + values.len() * std::mem::size_of::<u32>());
+            bytes.extend_from_slice(&(values.len() as u64).to_le_bytes());
+            for value in values {
+                bytes.extend_from_slice(&value.to_le_bytes());
+            }
+            self.field_bytes(name, &bytes);
+        }
+
+        fn field_usizes(&mut self, name: &str, values: &[usize]) {
+            let mut bytes = Vec::with_capacity(8 + values.len() * std::mem::size_of::<u64>());
+            bytes.extend_from_slice(&(values.len() as u64).to_le_bytes());
+            for value in values {
+                bytes.extend_from_slice(&(*value as u64).to_le_bytes());
+            }
+            self.field_bytes(name, &bytes);
+        }
+
+        fn field_strings(&mut self, name: &str, values: &[String]) {
+            let mut nested = Self::default();
+            nested.field_usize("count", values.len());
+            for value in values {
+                nested.field_string("item", value);
+            }
+            self.field_bytes(name, &nested.bytes);
+        }
+
+        fn field_record(&mut self, record: &Q1QualificationContractRecordV1) {
+            let mut nested = Self::default();
+            nested.field_string("family", record.family.as_str());
+            nested.field_usize("sequence_length", record.sequence_length);
+            nested.field_string("split", record.split.as_str());
+            nested.field_usize("variant", record.variant);
+            nested.field_string("identity", &record.identity);
+            nested.field_bool("class_label", record.class_label);
+            nested.field_usize("input_rows", record.input_rows);
+            nested.field_usize("input_width", record.input_width);
+            nested.field_u32s("input_bits", &record.input_bits);
+            nested.field_u32s(
+                "nuisance_and_distractor_bits",
+                &record.nuisance_and_distractor_bits,
+            );
+            nested.field_u32s("target_bits", &record.target_bits);
+            nested.field_bool("has_reset_after", record.reset_after.is_some());
+            if let Some(reset_after) = record.reset_after {
+                nested.field_usize("reset_after", reset_after);
+            }
+            self.field_bytes("record", &nested.bytes);
+        }
+    }
+
+    fn sprint105_q1_target_bits_v1(target: &M3MicroTarget) -> Vec<u32> {
+        fn append_scalar(bits: &mut Vec<u32>, value: Option<f32>) {
+            bits.push(u32::from(value.is_some()));
+            if let Some(value) = value {
+                bits.push(value.to_bits());
+            }
+        }
+
+        let mut bits = Vec::new();
+        bits.push(target.agent_id as u32);
+        bits.push(u32::from(target.direction_distribution.is_some()));
+        if let Some(distribution) = target.direction_distribution {
+            bits.extend(distribution.map(f32::to_bits));
+        }
+        append_scalar(&mut bits, target.future_return);
+        append_scalar(&mut bits, target.continuation);
+        append_scalar(&mut bits, target.future_variance);
+        bits.push(u32::from(target.volatility_regime.is_some()));
+        if let Some(distribution) = target.volatility_regime {
+            bits.extend(distribution.map(f32::to_bits));
+        }
+        append_scalar(&mut bits, target.risk_abstention);
+        append_scalar(&mut bits, target.reversal);
+        append_scalar(&mut bits, target.failed_breakout);
+        bits
+    }
+
+    fn sprint105_q1_contract_identity_v1() -> Q1QualificationContractIdentityV1 {
+        let policy = delayed_recall_evidence_policy_v2();
+        let config = M3MicroConfig::for_agent(AgentId::TrendContinuation, 8);
+        let mut optimizer = M3MicroOptimizerConfig::default();
+        optimizer.learning_rate = V2_EVIDENCE_LEARNING_RATE;
+        let mut records = Vec::new();
+        for family in Sprint105Q1FamilyV1::ORDERED {
+            for length in policy.sequence_lengths {
+                for (split, frozen) in [
+                    (Sprint105Q1SplitV1::Development, false),
+                    (Sprint105Q1SplitV1::Evaluation, true),
+                ] {
+                    for example in
+                        sprint105_q1_examples_v1(family, config.input_dim, length, frozen)
+                    {
+                        let input_rows = example.evidence.sequence.len();
+                        let input_width = example
+                            .evidence
+                            .sequence
+                            .first()
+                            .map(Vec::len)
+                            .expect("Q1 sequences are non-empty");
+                        let input_bits = example
+                            .evidence
+                            .sequence
+                            .iter()
+                            .flatten()
+                            .map(|value| value.to_bits())
+                            .collect::<Vec<_>>();
+                        let nuisance_and_distractor_bits = example
+                            .evidence
+                            .sequence
+                            .iter()
+                            .flat_map(|input| {
+                                let semantic_start = match family {
+                                    Sprint105Q1FamilyV1::InterferenceRetention => 0,
+                                    _ => 2,
+                                };
+                                input[semantic_start..].iter().map(|value| value.to_bits())
+                            })
+                            .collect::<Vec<_>>();
+                        records.push(Q1QualificationContractRecordV1 {
+                            family,
+                            sequence_length: length,
+                            split,
+                            variant: example.variant,
+                            identity: example.identity,
+                            class_label: example.evidence.positive,
+                            input_rows,
+                            input_width,
+                            nuisance_and_distractor_bits,
+                            input_bits,
+                            target_bits: sprint105_q1_target_bits_v1(&example.evidence.target),
+                            reset_after: example.reset_after,
+                        });
+                    }
+                }
+            }
+        }
+        records.sort_by(|left, right| {
+            left.family
+                .as_str()
+                .cmp(right.family.as_str())
+                .then(left.sequence_length.cmp(&right.sequence_length))
+                .then(left.split.as_str().cmp(right.split.as_str()))
+                .then(left.variant.cmp(&right.variant))
+                .then(left.identity.cmp(&right.identity))
+        });
+        Q1QualificationContractIdentityV1 {
+            policy_identity: "sprint105-q1-frozen-qualification-contract-v1".to_string(),
+            family_identities: Sprint105Q1FamilyV1::ORDERED
+                .into_iter()
+                .map(|family| family.as_str().to_string())
+                .collect(),
+            canonical_lengths: policy.sequence_lengths.to_vec(),
+            records,
+            base_semantics: "base=full-recurrent-state:shared-initial-model:shared-development-policy"
+                .to_string(),
+            no_state_semantics: format!(
+                "no-state={:?}:same-outer-model:state-contribution-disabled",
+                M3MicroAblationV1::NoRecurrentState
+            ),
+            reset_base_semantics: "reset-base=zero-state-after-family-reset-point:unchanged-suffix"
+                .to_string(),
+            reset_semantics_identity: "family-reset=DelayedCue:1,OrderSensitive:2,InterferenceRetention:1,StateIrrelevantControl:none"
+                .to_string(),
+            seed_derivation_policy: format!(
+                "roster-seed={V2_EVIDENCE_SEED}:agent={:?}:offset={}",
+                AgentId::TrendContinuation,
+                AgentId::TrendContinuation.seed_offset()
+            ),
+            initialization_policy_identity: format!(
+                "schema={M3_MICRO_CORE_SCHEMA_V3}:initialization={REDUCED_CORE_INITIALIZATION_POLICY_V2:?}:config={config:?}"
+            ),
+            training_budget: policy.fixed_training_budget,
+            optimizer_identity: format!("m3-micro-optimizer-v1:{optimizer:?}"),
+            metric_identity: "direction-accuracy=logit[2]-logit[0]:target-margin=target-logit-max-other-logit"
+                .to_string(),
+            categorical_nll_identity:
+                "categorical-nll=-ln(softmax(raw)[target-index].max(PROBABILITY_EPSILON))"
+                    .to_string(),
+            structural_gate_identities: vec![
+                "state-utility-at-maximum-length=history-base-accuracy>no-state".to_string(),
+                "state-causality=history-base-accuracy>reset-base".to_string(),
+                "length-retention=maximum-length-history-utility".to_string(),
+                "local-control=base-accuracy>=no-state".to_string(),
+                "numerical-stability=finite-output-distribution-state-metrics".to_string(),
+                "determinism=identical-repeated-evidence".to_string(),
+                "mode-equivalence=full-streaming-chunked-exact".to_string(),
+                "persistent-state-footprint=fixed-elements-and-bytes".to_string(),
+                "trainability-sanity=final-development-loss<initial-development-loss".to_string(),
+            ],
+        }
+    }
+
+    fn sprint105_q1_contract_digest_v1(contract: &Q1QualificationContractIdentityV1) -> String {
+        let mut encoder = Sprint105CanonicalEncoderV1::default();
+        encoder.field_string("policy_identity", &contract.policy_identity);
+        encoder.field_strings("family_identities", &contract.family_identities);
+        encoder.field_usizes("canonical_lengths", &contract.canonical_lengths);
+        encoder.field_usize("record_count", contract.records.len());
+        for record in &contract.records {
+            encoder.field_record(record);
+        }
+        encoder.field_string("base_semantics", &contract.base_semantics);
+        encoder.field_string("no_state_semantics", &contract.no_state_semantics);
+        encoder.field_string("reset_base_semantics", &contract.reset_base_semantics);
+        encoder.field_string(
+            "reset_semantics_identity",
+            &contract.reset_semantics_identity,
+        );
+        encoder.field_string("seed_derivation_policy", &contract.seed_derivation_policy);
+        encoder.field_string(
+            "initialization_policy_identity",
+            &contract.initialization_policy_identity,
+        );
+        encoder.field_usize("training_budget", contract.training_budget);
+        encoder.field_string("optimizer_identity", &contract.optimizer_identity);
+        encoder.field_string("metric_identity", &contract.metric_identity);
+        encoder.field_string(
+            "categorical_nll_identity",
+            &contract.categorical_nll_identity,
+        );
+        encoder.field_strings(
+            "structural_gate_identities",
+            &contract.structural_gate_identities,
+        );
+        let mut hex = String::with_capacity(encoder.bytes.len() * 2);
+        for byte in encoder.bytes {
+            use std::fmt::Write as _;
+            write!(&mut hex, "{byte:02x}").expect("writing to String cannot fail");
+        }
+        stable_hash_string(&hex)
+    }
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct V2Q1ModelShapeProjectionV1 {
+        input_dim: usize,
+        d_model: usize,
+        d_state: usize,
+        block_count: usize,
+        expansion: usize,
+        output_dim: usize,
+        decay_min_bits: u32,
+        decay_max_bits: u32,
+    }
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct V2Q1ParameterFamilyProjectionV1 {
+        identity: String,
+        block: Option<usize>,
+        start: usize,
+        element_count: usize,
+        initialized_bits: Vec<u32>,
+    }
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct V2Q1InitializationOwnerProjectionV1 {
+        policy_identity: String,
+        revision: M3MicroCoreRevisionV2,
+        q1_seed: u64,
+        shape: V2Q1ModelShapeProjectionV1,
+        parameter_layout_identity: String,
+        parameter_families: Vec<V2Q1ParameterFamilyProjectionV1>,
+        parameter_bits: Vec<u32>,
+        parameter_bits_digest: String,
+        parameter_element_count: usize,
+        initial_state_block_lengths: Vec<usize>,
+        initial_state_bits: Vec<u32>,
+        initial_state_bits_digest: String,
+        initial_state_element_count: usize,
+        initial_step_index: usize,
+        initialization_finite: bool,
+        determinism_identity: String,
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum V2Q1StateInterventionModeV1 {
+        Base,
+        NoState,
+    }
+
+    impl V2Q1StateInterventionModeV1 {
+        fn as_str(self) -> &'static str {
+            match self {
+                Self::Base => "base-state-enabled",
+                Self::NoState => "no-state-memory-contribution-disabled",
+            }
+        }
+
+        fn state_enabled(self) -> bool {
+            matches!(self, Self::Base)
+        }
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum V2Q1ExecutionPhaseV1 {
+        Training,
+        Evaluation,
+    }
+
+    impl V2Q1ExecutionPhaseV1 {
+        fn as_str(self) -> &'static str {
+            match self {
+                Self::Training => "training",
+                Self::Evaluation => "evaluation",
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum V2Q1ComparisonArmV1 {
+        Base,
+        NoState,
+    }
+
+    impl V2Q1ComparisonArmV1 {
+        fn as_str(self) -> &'static str {
+            match self {
+                Self::Base => "base",
+                Self::NoState => "no-state",
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    struct V2Q1StateModePlanEntryV1 {
+        phase: V2Q1ExecutionPhaseV1,
+        arm: V2Q1ComparisonArmV1,
+        mode: V2Q1StateInterventionModeV1,
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    struct V2Q1ExpectedStateModeProjectionEntryV1 {
+        phase: V2Q1ExecutionPhaseV1,
+        arm: V2Q1ComparisonArmV1,
+        mode: V2Q1StateInterventionModeV1,
+        state_enabled: bool,
+    }
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct V2Q1ExpectedStateModeProjectionV1 {
+        policy_identity: String,
+        plan_digest: String,
+        applications: Vec<V2Q1ExpectedStateModeProjectionEntryV1>,
+        duplicate_application_count: usize,
+        missing_application_count: usize,
+    }
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct V2Q1StateModeBindingsV1 {
+        plan: Vec<V2Q1StateModePlanEntryV1>,
+        training_base: V2Q1StateInterventionModeV1,
+        training_no_state: V2Q1StateInterventionModeV1,
+        evaluation_base: V2Q1StateInterventionModeV1,
+        evaluation_no_state: V2Q1StateInterventionModeV1,
+        expected_projection: V2Q1ExpectedStateModeProjectionV1,
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    struct V2Q1QualificationUnitIdentityV1 {
+        family: Sprint105Q1FamilyV1,
+        sequence_length: usize,
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    struct V2Q1ActualApplicationRequestV1 {
+        qualification_unit: V2Q1QualificationUnitIdentityV1,
+        phase: V2Q1ExecutionPhaseV1,
+        arm: V2Q1ComparisonArmV1,
+    }
+
+    enum V2Q1ActualApplicationContextV1<'a> {
+        Training {
+            initial: &'a M3MicroV2Candidate,
+            development: &'a [Sprint105Q1ExampleV1],
+            policy: &'a DelayedRecallEvidencePolicyV2,
+        },
+        Evaluation {
+            model: &'a M3MicroV2Candidate,
+            frozen: &'a [Sprint105Q1ExampleV1],
+        },
+    }
+
+    enum V2Q1ActualApplicationOutcomeV1 {
+        Training {
+            model: M3MicroV2Candidate,
+            initial_loss: f32,
+            final_loss: f32,
+            optimizer_digest: String,
+        },
+        Evaluation {
+            metrics: Sprint105V2P1Metrics,
+            reset_metrics: Option<Sprint105V2P1Metrics>,
+        },
+    }
+
+    mod v2_q1_actual_application_authority_v1 {
+        use super::*;
+
+        const ACTUAL_APPLICATION_RECORD_POLICY_V1: &str = "v2-q1-actual-application-record-v1";
+        const ACTUAL_EXECUTION_BOUNDARY_IDENTITY_V1: &str = "execute-actual-v2-q1-application-v1";
+        const VALIDATED_ACTUAL_APPLICATION_SET_POLICY_V1: &str =
+            "validated-actual-v2-q1-application-set-v1";
+        const ACTUAL_APPLICATION_SET_SEMANTIC_POLICY_V1: &str = "v2-q1-actual-application-set-v1";
+
+        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+        enum ActualApplicationOriginV1 {
+            ActualV2Q1ExecutionBoundary,
+            Synthetic,
+        }
+
+        impl ActualApplicationOriginV1 {
+            fn as_str(self) -> &'static str {
+                match self {
+                    Self::ActualV2Q1ExecutionBoundary => "actual-v2-q1-execution-boundary",
+                    Self::Synthetic => "synthetic",
+                }
+            }
+        }
+
+        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+        pub(super) struct V2Q1ResolvedActualStateModeV1 {
+            mode: V2Q1StateInterventionModeV1,
+            state_enabled: bool,
+        }
+
+        impl V2Q1ResolvedActualStateModeV1 {
+            pub(super) fn state_enabled(self) -> bool {
+                self.state_enabled
+            }
+        }
+
+        struct ActualRecordSemanticProjectionV1<'a> {
+            policy_identity: &'a str,
+            qualification_unit: V2Q1QualificationUnitIdentityV1,
+            phase: V2Q1ExecutionPhaseV1,
+            arm: V2Q1ComparisonArmV1,
+            mode: V2Q1StateInterventionModeV1,
+            state_enabled: bool,
+            execution_boundary_identity: &'a str,
+            origin: ActualApplicationOriginV1,
+            completed: bool,
+        }
+
+        #[derive(Clone, PartialEq, Eq)]
+        struct ActualV2Q1ApplicationRecordInnerV1 {
+            policy_identity: String,
+            qualification_unit: V2Q1QualificationUnitIdentityV1,
+            phase: V2Q1ExecutionPhaseV1,
+            arm: V2Q1ComparisonArmV1,
+            mode: V2Q1StateInterventionModeV1,
+            state_enabled: bool,
+            execution_boundary_identity: String,
+            origin: ActualApplicationOriginV1,
+            completed: bool,
+            semantic_digest: String,
+        }
+
+        #[derive(PartialEq, Eq)]
+        pub(super) struct OpaqueActualV2Q1ApplicationRecordV1 {
+            inner: ActualV2Q1ApplicationRecordInnerV1,
+        }
+
+        impl OpaqueActualV2Q1ApplicationRecordV1 {
+            pub(super) fn qualification_unit(&self) -> V2Q1QualificationUnitIdentityV1 {
+                self.inner.qualification_unit
+            }
+
+            pub(super) fn phase(&self) -> V2Q1ExecutionPhaseV1 {
+                self.inner.phase
+            }
+
+            pub(super) fn arm(&self) -> V2Q1ComparisonArmV1 {
+                self.inner.arm
+            }
+
+            pub(super) fn mode(&self) -> V2Q1StateInterventionModeV1 {
+                self.inner.mode
+            }
+
+            pub(super) fn state_enabled(&self) -> bool {
+                self.inner.state_enabled
+            }
+
+            pub(super) fn semantic_digest(&self) -> &str {
+                &self.inner.semantic_digest
+            }
+        }
+
+        struct ActualApplicationSetSemanticProjectionV1<'a> {
+            expected_plan_digest: &'a str,
+            record_digests: Vec<&'a str>,
+        }
+
+        #[derive(PartialEq, Eq)]
+        struct ValidatedActualV2Q1ApplicationSetInnerV1 {
+            policy_identity: String,
+            expected_plan_digest: String,
+            records: Vec<OpaqueActualV2Q1ApplicationRecordV1>,
+            semantic_digest: String,
+            expected_qualification_unit_count: usize,
+            actual_qualification_unit_count: usize,
+            expected_application_kind_count_per_unit: usize,
+            actual_application_kind_counts: Vec<usize>,
+            expected_total_record_count: usize,
+            actual_total_record_count: usize,
+            missing_record_count: usize,
+            duplicate_record_count: usize,
+            unexpected_record_count: usize,
+            actual_origin_count: usize,
+            synthetic_origin_count: usize,
+            mismatch_count: usize,
+        }
+
+        #[derive(PartialEq, Eq)]
+        pub(super) struct ValidatedActualV2Q1ApplicationSetV1 {
+            inner: ValidatedActualV2Q1ApplicationSetInnerV1,
+        }
+
+        impl std::fmt::Debug for ValidatedActualV2Q1ApplicationSetV1 {
+            fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter
+                    .debug_tuple("ValidatedActualV2Q1ApplicationSetV1")
+                    .field(&self.summary())
+                    .finish()
+            }
+        }
+
+        #[derive(Debug, PartialEq, Eq)]
+        pub(super) struct ActualApplicationSetSummaryV1 {
+            expected_plan_digest: String,
+            semantic_digest: String,
+            expected_qualification_unit_count: usize,
+            actual_qualification_unit_count: usize,
+            expected_application_kind_count_per_unit: usize,
+            actual_application_kind_counts: Vec<usize>,
+            expected_total_record_count: usize,
+            actual_total_record_count: usize,
+            missing_record_count: usize,
+            duplicate_record_count: usize,
+            unexpected_record_count: usize,
+            actual_origin_count: usize,
+            synthetic_origin_count: usize,
+            mismatch_count: usize,
+        }
+
+        impl ActualApplicationSetSummaryV1 {
+            pub(super) fn expected_plan_digest(&self) -> &str {
+                &self.expected_plan_digest
+            }
+
+            pub(super) fn semantic_digest(&self) -> &str {
+                &self.semantic_digest
+            }
+
+            pub(super) fn expected_qualification_unit_count(&self) -> usize {
+                self.expected_qualification_unit_count
+            }
+
+            pub(super) fn actual_qualification_unit_count(&self) -> usize {
+                self.actual_qualification_unit_count
+            }
+
+            pub(super) fn expected_application_kind_count_per_unit(&self) -> usize {
+                self.expected_application_kind_count_per_unit
+            }
+
+            pub(super) fn actual_application_kind_counts(&self) -> &[usize] {
+                &self.actual_application_kind_counts
+            }
+
+            pub(super) fn expected_total_record_count(&self) -> usize {
+                self.expected_total_record_count
+            }
+
+            pub(super) fn actual_total_record_count(&self) -> usize {
+                self.actual_total_record_count
+            }
+
+            pub(super) fn missing_record_count(&self) -> usize {
+                self.missing_record_count
+            }
+
+            pub(super) fn duplicate_record_count(&self) -> usize {
+                self.duplicate_record_count
+            }
+
+            pub(super) fn unexpected_record_count(&self) -> usize {
+                self.unexpected_record_count
+            }
+
+            pub(super) fn actual_origin_count(&self) -> usize {
+                self.actual_origin_count
+            }
+
+            pub(super) fn synthetic_origin_count(&self) -> usize {
+                self.synthetic_origin_count
+            }
+
+            pub(super) fn mismatch_count(&self) -> usize {
+                self.mismatch_count
+            }
+        }
+
+        impl ValidatedActualV2Q1ApplicationSetV1 {
+            pub(super) fn summary(&self) -> ActualApplicationSetSummaryV1 {
+                ActualApplicationSetSummaryV1 {
+                    expected_plan_digest: self.inner.expected_plan_digest.clone(),
+                    semantic_digest: self.inner.semantic_digest.clone(),
+                    expected_qualification_unit_count: self.inner.expected_qualification_unit_count,
+                    actual_qualification_unit_count: self.inner.actual_qualification_unit_count,
+                    expected_application_kind_count_per_unit: self
+                        .inner
+                        .expected_application_kind_count_per_unit,
+                    actual_application_kind_counts: self
+                        .inner
+                        .actual_application_kind_counts
+                        .clone(),
+                    expected_total_record_count: self.inner.expected_total_record_count,
+                    actual_total_record_count: self.inner.actual_total_record_count,
+                    missing_record_count: self.inner.missing_record_count,
+                    duplicate_record_count: self.inner.duplicate_record_count,
+                    unexpected_record_count: self.inner.unexpected_record_count,
+                    actual_origin_count: self.inner.actual_origin_count,
+                    synthetic_origin_count: self.inner.synthetic_origin_count,
+                    mismatch_count: self.inner.mismatch_count,
+                }
+            }
+        }
+
+        #[derive(Clone, PartialEq, Eq)]
+        struct VerifiedActualApplicationSetIdentityInnerV1 {
+            policy_identity: String,
+            semantic_digest: String,
+            expected_qualification_unit_count: usize,
+            actual_qualification_unit_count: usize,
+            expected_application_kind_count_per_unit: usize,
+            actual_application_kind_counts: Vec<usize>,
+            expected_total_record_count: usize,
+            actual_total_record_count: usize,
+            missing_record_count: usize,
+            duplicate_record_count: usize,
+            unexpected_record_count: usize,
+            actual_origin_count: usize,
+            synthetic_origin_count: usize,
+            mismatch_count: usize,
+            record_digests: Vec<String>,
+        }
+
+        #[derive(Clone, PartialEq, Eq)]
+        pub(super) struct VerifiedActualApplicationSetIdentityV1 {
+            inner: VerifiedActualApplicationSetIdentityInnerV1,
+        }
+
+        impl std::fmt::Debug for VerifiedActualApplicationSetIdentityV1 {
+            fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter
+                    .debug_struct("VerifiedActualApplicationSetIdentityV1")
+                    .field("semantic_digest", &self.inner.semantic_digest)
+                    .field("record_count", &self.inner.record_digests.len())
+                    .finish()
+            }
+        }
+
+        fn semantic_projection_v1(
+            record: &ActualV2Q1ApplicationRecordInnerV1,
+        ) -> ActualRecordSemanticProjectionV1<'_> {
+            ActualRecordSemanticProjectionV1 {
+                policy_identity: &record.policy_identity,
+                qualification_unit: record.qualification_unit,
+                phase: record.phase,
+                arm: record.arm,
+                mode: record.mode,
+                state_enabled: record.state_enabled,
+                execution_boundary_identity: &record.execution_boundary_identity,
+                origin: record.origin,
+                completed: record.completed,
+            }
+        }
+
+        fn actual_application_record_digest_v1(
+            projection: &ActualRecordSemanticProjectionV1<'_>,
+        ) -> String {
+            let mut encoder = Sprint105CanonicalEncoderV1::default();
+            encoder.field_string("policy_identity", projection.policy_identity);
+            encoder.field_string(
+                "qualification_family",
+                projection.qualification_unit.family.as_str(),
+            );
+            encoder.field_usize(
+                "qualification_sequence_length",
+                projection.qualification_unit.sequence_length,
+            );
+            encoder.field_string("phase", projection.phase.as_str());
+            encoder.field_string("arm", projection.arm.as_str());
+            encoder.field_string("mode", projection.mode.as_str());
+            encoder.field_bool("state_enabled", projection.state_enabled);
+            encoder.field_string(
+                "execution_boundary_identity",
+                projection.execution_boundary_identity,
+            );
+            encoder.field_string("origin", projection.origin.as_str());
+            encoder.field_bool("completed", projection.completed);
+            sprint105_r1_encoder_digest_v1(encoder)
+        }
+
+        fn actual_record_sequence_digest_v1(
+            projection: &ActualApplicationSetSemanticProjectionV1<'_>,
+        ) -> String {
+            let mut encoder = Sprint105CanonicalEncoderV1::default();
+            encoder.field_string("policy_identity", ACTUAL_APPLICATION_SET_SEMANTIC_POLICY_V1);
+            encoder.field_string("expected_plan_digest", projection.expected_plan_digest);
+            encoder.field_usize("record_count", projection.record_digests.len());
+            for record_digest in &projection.record_digests {
+                encoder.field_string("actual_record_digest", record_digest);
+            }
+            sprint105_r1_encoder_digest_v1(encoder)
+        }
+
+        pub(super) fn sprint105_execute_actual_v2_q1_application_v1(
+            expected_plan: &[V2Q1StateModePlanEntryV1],
+            request: V2Q1ActualApplicationRequestV1,
+            context: V2Q1ActualApplicationContextV1<'_>,
+        ) -> Result<
+            (
+                V2Q1ActualApplicationOutcomeV1,
+                OpaqueActualV2Q1ApplicationRecordV1,
+            ),
+            M3MicroError,
+        > {
+            let mode =
+                sprint105_v2_q1_state_mode_from_plan_v1(expected_plan, request.phase, request.arm)?;
+            let resolved_mode = V2Q1ResolvedActualStateModeV1 {
+                mode,
+                state_enabled: mode.state_enabled(),
+            };
+            let outcome = match (request.phase, context) {
+                (
+                    V2Q1ExecutionPhaseV1::Training,
+                    V2Q1ActualApplicationContextV1::Training {
+                        initial,
+                        development,
+                        policy,
+                    },
+                ) => {
+                    if !sprint105_v2_q1_examples_match_unit_v1(
+                        development,
+                        request.qualification_unit,
+                        false,
+                    ) {
+                        return Err(M3MicroError::CorruptArtifact);
+                    }
+                    let development_evidence = development
+                        .iter()
+                        .map(|example| example.evidence.clone())
+                        .collect::<Vec<_>>();
+                    let (model, initial_loss, final_loss, optimizer_digest) =
+                        sprint105_v2_train_balanced_v1(
+                            initial,
+                            &development_evidence,
+                            resolved_mode,
+                            policy,
+                        )?;
+                    if !initial_loss.is_finite()
+                        || !final_loss.is_finite()
+                        || optimizer_digest.is_empty()
+                    {
+                        return Err(M3MicroError::CorruptArtifact);
+                    }
+                    V2Q1ActualApplicationOutcomeV1::Training {
+                        model,
+                        initial_loss,
+                        final_loss,
+                        optimizer_digest,
+                    }
+                }
+                (
+                    V2Q1ExecutionPhaseV1::Evaluation,
+                    V2Q1ActualApplicationContextV1::Evaluation { model, frozen },
+                ) => {
+                    if !sprint105_v2_q1_examples_match_unit_v1(
+                        frozen,
+                        request.qualification_unit,
+                        true,
+                    ) {
+                        return Err(M3MicroError::CorruptArtifact);
+                    }
+                    let metrics = sprint105_v2_metrics_v1(model, frozen, false, resolved_mode)?;
+                    let reset_metrics = (request.arm == V2Q1ComparisonArmV1::Base
+                        && request.qualification_unit.family.requires_history())
+                    .then(|| sprint105_v2_metrics_v1(model, frozen, true, resolved_mode))
+                    .transpose()?;
+                    if !metrics.finite
+                        || reset_metrics
+                            .as_ref()
+                            .is_some_and(|reset_metrics| !reset_metrics.finite)
+                    {
+                        return Err(M3MicroError::CorruptArtifact);
+                    }
+                    V2Q1ActualApplicationOutcomeV1::Evaluation {
+                        metrics,
+                        reset_metrics,
+                    }
+                }
+                _ => return Err(M3MicroError::CorruptArtifact),
+            };
+            let origin = ActualApplicationOriginV1::ActualV2Q1ExecutionBoundary;
+            let projection = ActualRecordSemanticProjectionV1 {
+                policy_identity: ACTUAL_APPLICATION_RECORD_POLICY_V1,
+                qualification_unit: request.qualification_unit,
+                phase: request.phase,
+                arm: request.arm,
+                mode: resolved_mode.mode,
+                state_enabled: resolved_mode.state_enabled,
+                execution_boundary_identity: ACTUAL_EXECUTION_BOUNDARY_IDENTITY_V1,
+                origin,
+                completed: true,
+            };
+            let semantic_digest = actual_application_record_digest_v1(&projection);
+            let inner = ActualV2Q1ApplicationRecordInnerV1 {
+                policy_identity: projection.policy_identity.to_string(),
+                qualification_unit: projection.qualification_unit,
+                phase: projection.phase,
+                arm: projection.arm,
+                mode: projection.mode,
+                state_enabled: projection.state_enabled,
+                execution_boundary_identity: projection.execution_boundary_identity.to_string(),
+                origin: projection.origin,
+                completed: projection.completed,
+                semantic_digest,
+            };
+            Ok((outcome, OpaqueActualV2Q1ApplicationRecordV1 { inner }))
+        }
+
+        pub(super) fn sprint105_validate_actual_v2_q1_application_set_v1(
+            expected_plan: &[V2Q1StateModePlanEntryV1],
+            expected_units: &[V2Q1QualificationUnitIdentityV1],
+            mut records: Vec<OpaqueActualV2Q1ApplicationRecordV1>,
+        ) -> Result<ValidatedActualV2Q1ApplicationSetV1, M3MicroError> {
+            sprint105_v2_q1_validate_state_mode_plan_v1(expected_plan)?;
+            if expected_units.is_empty()
+                || expected_units.iter().enumerate().any(|(index, unit)| {
+                    expected_units[..index]
+                        .iter()
+                        .any(|previous| previous == unit)
+                })
+            {
+                return Err(M3MicroError::CorruptArtifact);
+            }
+            let expected_plan_digest = sprint105_v2_q1_state_mode_plan_digest_v1(expected_plan);
+            let expected_total_record_count = expected_units.len() * expected_plan.len();
+            let mut actual_units = Vec::new();
+            for record in &records {
+                if !actual_units.contains(&record.inner.qualification_unit) {
+                    actual_units.push(record.inner.qualification_unit);
+                }
+            }
+            let actual_application_kind_counts = expected_units
+                .iter()
+                .map(|unit| {
+                    records
+                        .iter()
+                        .filter(|record| record.inner.qualification_unit == *unit)
+                        .count()
+                })
+                .collect::<Vec<_>>();
+            let mut missing_record_count = 0usize;
+            let mut duplicate_record_count = 0usize;
+            for unit in expected_units {
+                for expected in expected_plan {
+                    let match_count = records
+                        .iter()
+                        .filter(|record| {
+                            record.inner.qualification_unit == *unit
+                                && record.inner.phase == expected.phase
+                                && record.inner.arm == expected.arm
+                        })
+                        .count();
+                    missing_record_count += usize::from(match_count == 0);
+                    duplicate_record_count += match_count.saturating_sub(1);
+                }
+            }
+            let unexpected_record_count = records
+                .iter()
+                .filter(|record| {
+                    !expected_units.contains(&record.inner.qualification_unit)
+                        || !expected_plan.iter().any(|expected| {
+                            expected.phase == record.inner.phase && expected.arm == record.inner.arm
+                        })
+                })
+                .count();
+            let actual_origin_count = records
+                .iter()
+                .filter(|record| {
+                    record.inner.origin == ActualApplicationOriginV1::ActualV2Q1ExecutionBoundary
+                })
+                .count();
+            let synthetic_origin_count = records.len().saturating_sub(actual_origin_count);
+            let mismatch_count = records
+                .iter()
+                .filter(|record| {
+                    let expected_mode = expected_plan
+                        .iter()
+                        .find(|expected| {
+                            expected.phase == record.inner.phase && expected.arm == record.inner.arm
+                        })
+                        .map(|expected| expected.mode);
+                    record.inner.policy_identity != ACTUAL_APPLICATION_RECORD_POLICY_V1
+                        || !record.inner.completed
+                        || record.inner.execution_boundary_identity
+                            != ACTUAL_EXECUTION_BOUNDARY_IDENTITY_V1
+                        || expected_mode != Some(record.inner.mode)
+                        || record.inner.state_enabled != record.inner.mode.state_enabled()
+                        || record.inner.semantic_digest
+                            != actual_application_record_digest_v1(&semantic_projection_v1(
+                                &record.inner,
+                            ))
+                })
+                .count();
+            if records.len() != expected_total_record_count
+                || missing_record_count != 0
+                || duplicate_record_count != 0
+                || unexpected_record_count != 0
+                || synthetic_origin_count != 0
+                || mismatch_count != 0
+                || actual_application_kind_counts
+                    .iter()
+                    .any(|count| *count != expected_plan.len())
+            {
+                return Err(M3MicroError::CorruptArtifact);
+            }
+            records.sort_by_key(|record| {
+                let unit_index = expected_units
+                    .iter()
+                    .position(|unit| *unit == record.inner.qualification_unit)
+                    .expect("validated actual record unit must be expected");
+                let plan_index = expected_plan
+                    .iter()
+                    .position(|expected| {
+                        expected.phase == record.inner.phase && expected.arm == record.inner.arm
+                    })
+                    .expect("validated actual record key must be expected");
+                (unit_index, plan_index)
+            });
+            let set_projection = ActualApplicationSetSemanticProjectionV1 {
+                expected_plan_digest: &expected_plan_digest,
+                record_digests: records
+                    .iter()
+                    .map(|record| record.inner.semantic_digest.as_str())
+                    .collect(),
+            };
+            let semantic_digest = actual_record_sequence_digest_v1(&set_projection);
+            let inner = ValidatedActualV2Q1ApplicationSetInnerV1 {
+                policy_identity: VALIDATED_ACTUAL_APPLICATION_SET_POLICY_V1.to_string(),
+                expected_plan_digest,
+                semantic_digest,
+                expected_qualification_unit_count: expected_units.len(),
+                actual_qualification_unit_count: actual_units.len(),
+                expected_application_kind_count_per_unit: expected_plan.len(),
+                actual_application_kind_counts,
+                expected_total_record_count,
+                actual_total_record_count: records.len(),
+                missing_record_count,
+                duplicate_record_count,
+                unexpected_record_count,
+                actual_origin_count,
+                synthetic_origin_count,
+                mismatch_count,
+                records,
+            };
+            Ok(ValidatedActualV2Q1ApplicationSetV1 { inner })
+        }
+
+        pub(super) fn verified_actual_application_set_identity_v1(
+            actual_set: &ValidatedActualV2Q1ApplicationSetV1,
+            expected_plan_digest: &str,
+        ) -> Result<VerifiedActualApplicationSetIdentityV1, M3MicroError> {
+            let set = &actual_set.inner;
+            if set.expected_plan_digest != expected_plan_digest
+                || set.missing_record_count != 0
+                || set.duplicate_record_count != 0
+                || set.unexpected_record_count != 0
+                || set.synthetic_origin_count != 0
+                || set.mismatch_count != 0
+                || set.records.iter().any(|record| {
+                    record.inner.semantic_digest
+                        != actual_application_record_digest_v1(&semantic_projection_v1(
+                            &record.inner,
+                        ))
+                })
+            {
+                return Err(M3MicroError::CorruptArtifact);
+            }
+            Ok(VerifiedActualApplicationSetIdentityV1 {
+                inner: VerifiedActualApplicationSetIdentityInnerV1 {
+                    policy_identity: set.policy_identity.clone(),
+                    semantic_digest: set.semantic_digest.clone(),
+                    expected_qualification_unit_count: set.expected_qualification_unit_count,
+                    actual_qualification_unit_count: set.actual_qualification_unit_count,
+                    expected_application_kind_count_per_unit: set
+                        .expected_application_kind_count_per_unit,
+                    actual_application_kind_counts: set.actual_application_kind_counts.clone(),
+                    expected_total_record_count: set.expected_total_record_count,
+                    actual_total_record_count: set.actual_total_record_count,
+                    missing_record_count: set.missing_record_count,
+                    duplicate_record_count: set.duplicate_record_count,
+                    unexpected_record_count: set.unexpected_record_count,
+                    actual_origin_count: set.actual_origin_count,
+                    synthetic_origin_count: set.synthetic_origin_count,
+                    mismatch_count: set.mismatch_count,
+                    record_digests: set
+                        .records
+                        .iter()
+                        .map(|record| record.inner.semantic_digest.clone())
+                        .collect(),
+                },
+            })
+        }
+
+        pub(super) fn encode_verified_actual_application_set_identity_v1(
+            encoder: &mut Sprint105CanonicalEncoderV1,
+            identity: &VerifiedActualApplicationSetIdentityV1,
+        ) {
+            let set = &identity.inner;
+            encoder.field_string(
+                "actual_application_set_policy_identity",
+                &set.policy_identity,
+            );
+            encoder.field_string(
+                "actual_application_set_semantic_digest",
+                &set.semantic_digest,
+            );
+            encoder.field_usize(
+                "expected_qualification_unit_count",
+                set.expected_qualification_unit_count,
+            );
+            encoder.field_usize(
+                "actual_qualification_unit_count",
+                set.actual_qualification_unit_count,
+            );
+            encoder.field_usize(
+                "expected_application_kind_count_per_unit",
+                set.expected_application_kind_count_per_unit,
+            );
+            encoder.field_usizes(
+                "actual_application_kind_counts",
+                &set.actual_application_kind_counts,
+            );
+            encoder.field_usize(
+                "expected_total_record_count",
+                set.expected_total_record_count,
+            );
+            encoder.field_usize("actual_total_record_count", set.actual_total_record_count);
+            encoder.field_usize("missing_record_count", set.missing_record_count);
+            encoder.field_usize("duplicate_record_count", set.duplicate_record_count);
+            encoder.field_usize("unexpected_record_count", set.unexpected_record_count);
+            encoder.field_usize("actual_origin_count", set.actual_origin_count);
+            encoder.field_usize("synthetic_origin_count", set.synthetic_origin_count);
+            encoder.field_usize("mismatch_count", set.mismatch_count);
+            encoder.field_usize("actual_record_count", set.record_digests.len());
+            for record_digest in &set.record_digests {
+                encoder.field_string("stored_actual_record_digest", record_digest);
+                encoder.field_string("recomputed_actual_record_digest", record_digest);
+            }
+        }
+
+        #[cfg(test)]
+        mod internal_tests {
+            use super::*;
+
+            fn representative_records_v1() -> (
+                Vec<V2Q1StateModePlanEntryV1>,
+                V2Q1QualificationUnitIdentityV1,
+                Vec<OpaqueActualV2Q1ApplicationRecordV1>,
+            ) {
+                let unit = sprint105_v2_q1_representative_unit_v1();
+                let plan = sprint105_v2_q1_state_mode_plan_v1();
+                let requests = sprint105_v2_q1_actual_requests_for_unit_v1(unit);
+                let records = sprint105_v2_q1_actual_records_for_requests_v1(&requests).unwrap();
+                (plan, unit, records)
+            }
+
+            fn clone_records_for_internal_test_v1(
+                records: &[OpaqueActualV2Q1ApplicationRecordV1],
+            ) -> Vec<OpaqueActualV2Q1ApplicationRecordV1> {
+                records
+                    .iter()
+                    .map(|record| OpaqueActualV2Q1ApplicationRecordV1 {
+                        inner: record.inner.clone(),
+                    })
+                    .collect()
+            }
+
+            fn resign_for_internal_test_v1(record: &mut OpaqueActualV2Q1ApplicationRecordV1) {
+                record.inner.semantic_digest =
+                    actual_application_record_digest_v1(&semantic_projection_v1(&record.inner));
+            }
+
+            fn rejects_v1(
+                plan: &[V2Q1StateModePlanEntryV1],
+                unit: V2Q1QualificationUnitIdentityV1,
+                records: Vec<OpaqueActualV2Q1ApplicationRecordV1>,
+            ) {
+                assert!(
+                    sprint105_validate_actual_v2_q1_application_set_v1(plan, &[unit], records)
+                        .is_err()
+                );
+            }
+
+            #[test]
+            fn m3_micro_sprint105_ef1_r1_r1_r1_r1_internal_record_tamper_suite() {
+                let (plan, unit, records) = representative_records_v1();
+
+                let mut wrong_mode = clone_records_for_internal_test_v1(&records);
+                wrong_mode[0].inner.mode = V2Q1StateInterventionModeV1::NoState;
+                resign_for_internal_test_v1(&mut wrong_mode[0]);
+                rejects_v1(&plan, unit, wrong_mode);
+
+                let mut wrong_state_enabled = clone_records_for_internal_test_v1(&records);
+                wrong_state_enabled[1].inner.state_enabled = true;
+                resign_for_internal_test_v1(&mut wrong_state_enabled[1]);
+                rejects_v1(&plan, unit, wrong_state_enabled);
+
+                let mut incomplete = clone_records_for_internal_test_v1(&records);
+                incomplete[0].inner.completed = false;
+                resign_for_internal_test_v1(&mut incomplete[0]);
+                rejects_v1(&plan, unit, incomplete);
+
+                let mut unexpected_unit = clone_records_for_internal_test_v1(&records);
+                unexpected_unit[0].inner.qualification_unit.sequence_length += 1;
+                resign_for_internal_test_v1(&mut unexpected_unit[0]);
+                rejects_v1(&plan, unit, unexpected_unit);
+
+                let mut wrong_boundary = clone_records_for_internal_test_v1(&records);
+                wrong_boundary[2]
+                    .inner
+                    .execution_boundary_identity
+                    .push_str(":mutated");
+                resign_for_internal_test_v1(&mut wrong_boundary[2]);
+                rejects_v1(&plan, unit, wrong_boundary);
+
+                let mut stale_digest = clone_records_for_internal_test_v1(&records);
+                stale_digest[3].inner.semantic_digest.push_str(":mutated");
+                rejects_v1(&plan, unit, stale_digest);
+
+                let mut resigned_inconsistency = clone_records_for_internal_test_v1(&records);
+                resigned_inconsistency[0]
+                    .inner
+                    .policy_identity
+                    .push_str(":mutated");
+                resign_for_internal_test_v1(&mut resigned_inconsistency[0]);
+                rejects_v1(&plan, unit, resigned_inconsistency);
+
+                let mut duplicate = clone_records_for_internal_test_v1(&records);
+                duplicate.push(OpaqueActualV2Q1ApplicationRecordV1 {
+                    inner: records[0].inner.clone(),
+                });
+                rejects_v1(&plan, unit, duplicate);
+
+                let mut missing = clone_records_for_internal_test_v1(&records);
+                missing.pop();
+                rejects_v1(&plan, unit, missing);
+            }
+
+            #[test]
+            fn m3_micro_sprint105_ef1_r1_r1_r1_r1_synthetic_origin_is_rejected() {
+                let (plan, unit, records) = representative_records_v1();
+                let mut synthetic = clone_records_for_internal_test_v1(&records);
+                synthetic[0].inner.origin = ActualApplicationOriginV1::Synthetic;
+                resign_for_internal_test_v1(&mut synthetic[0]);
+                rejects_v1(&plan, unit, synthetic);
+            }
+        }
+    }
+
+    use v2_q1_actual_application_authority_v1::{
+        OpaqueActualV2Q1ApplicationRecordV1, V2Q1ResolvedActualStateModeV1,
+        ValidatedActualV2Q1ApplicationSetV1, VerifiedActualApplicationSetIdentityV1,
+        encode_verified_actual_application_set_identity_v1,
+        sprint105_execute_actual_v2_q1_application_v1,
+        sprint105_validate_actual_v2_q1_application_set_v1,
+        verified_actual_application_set_identity_v1,
+    };
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct V2Q1StateExecutionWitnessV1 {
+        phase: V2Q1ExecutionPhaseV1,
+        arm: V2Q1ComparisonArmV1,
+        mode: V2Q1StateInterventionModeV1,
+        state_enabled: bool,
+        raw_output_bits: Vec<u32>,
+        returned_state_bits: Vec<u32>,
+        returned_state_identity: String,
+        returned_step_index: usize,
+        local_contribution_bits: Vec<u32>,
+        memory_contribution_bits: Vec<u32>,
+        previous_state_bits: Vec<u32>,
+        next_state_bits: Vec<u32>,
+        prior_state_read_observed: bool,
+        state_transition_applied: bool,
+        local_contribution_present: bool,
+        memory_contribution_present: bool,
+        finite: bool,
+    }
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct V2Q1StateInterventionOwnerProjectionV1 {
+        policy_identity: String,
+        state_mode_policy_identity: String,
+        state_mode_plan: Vec<V2Q1StateModePlanEntryV1>,
+        state_mode_plan_digest: String,
+        expected_applications: Vec<V2Q1ExpectedStateModeProjectionEntryV1>,
+        duplicate_application_count: usize,
+        missing_application_count: usize,
+        revision: M3MicroCoreRevisionV2,
+        forward_owner_identity: String,
+        initial_candidate_identity: String,
+        initial_state_identity: String,
+        probe_input_identity: String,
+        probe_sequence_length: usize,
+        base_witness: V2Q1StateExecutionWitnessV1,
+        no_state_witness: V2Q1StateExecutionWitnessV1,
+        finite: bool,
+        determinism_identity: String,
+    }
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct Q1QualificationContractIdentityV3 {
+        policy_identity: String,
+        shared_contract_v1: Q1QualificationContractIdentityV1,
+        v2_initialization_owner: V2Q1InitializationOwnerProjectionV1,
+        v2_state_intervention_owner: V2Q1StateInterventionOwnerProjectionV1,
+    }
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct Q1QualificationContractIdentityV4 {
+        policy_identity: String,
+        shared_contract_v1: Q1QualificationContractIdentityV1,
+        v2_initialization_owner: V2Q1InitializationOwnerProjectionV1,
+        expected_state_mode_plan_digest: String,
+        v2_actual_application_set: VerifiedActualApplicationSetIdentityV1,
+        v2_state_intervention_owner: V2Q1StateInterventionOwnerProjectionV1,
+    }
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct Q1QualificationContractIdentityV5 {
+        policy_identity: String,
+        historical_v4: Q1QualificationContractIdentityV4,
+        actual_policy_owner: Q1ActualPolicyOwnerProjectionV1,
+        structural_gate_policy_owner: HistoricalQ1V5StructuralGatePolicyOwnerProjectionV1,
+        qualification_owner_identity: String,
+    }
+
+    fn sprint105_r1_encoder_digest_v1(encoder: Sprint105CanonicalEncoderV1) -> String {
+        let mut hex = String::with_capacity(encoder.bytes.len() * 2);
+        for byte in encoder.bytes {
+            use std::fmt::Write as _;
+            write!(&mut hex, "{byte:02x}").expect("writing to String cannot fail");
+        }
+        stable_hash_string(&hex)
+    }
+
+    fn sprint105_r1_bits_digest_v1(identity: &str, bits: &[u32]) -> String {
+        let mut encoder = Sprint105CanonicalEncoderV1::default();
+        encoder.field_string("identity", identity);
+        encoder.field_u32s("bits", bits);
+        sprint105_r1_encoder_digest_v1(encoder)
+    }
+
+    fn sprint105_v2_q1_state_mode_plan_v1() -> Vec<V2Q1StateModePlanEntryV1> {
+        vec![
+            V2Q1StateModePlanEntryV1 {
+                phase: V2Q1ExecutionPhaseV1::Training,
+                arm: V2Q1ComparisonArmV1::Base,
+                mode: V2Q1StateInterventionModeV1::Base,
+            },
+            V2Q1StateModePlanEntryV1 {
+                phase: V2Q1ExecutionPhaseV1::Training,
+                arm: V2Q1ComparisonArmV1::NoState,
+                mode: V2Q1StateInterventionModeV1::NoState,
+            },
+            V2Q1StateModePlanEntryV1 {
+                phase: V2Q1ExecutionPhaseV1::Evaluation,
+                arm: V2Q1ComparisonArmV1::Base,
+                mode: V2Q1StateInterventionModeV1::Base,
+            },
+            V2Q1StateModePlanEntryV1 {
+                phase: V2Q1ExecutionPhaseV1::Evaluation,
+                arm: V2Q1ComparisonArmV1::NoState,
+                mode: V2Q1StateInterventionModeV1::NoState,
+            },
+        ]
+    }
+
+    fn sprint105_v2_q1_validate_state_mode_plan_v1(
+        plan: &[V2Q1StateModePlanEntryV1],
+    ) -> Result<(), M3MicroError> {
+        let required_keys = [
+            (V2Q1ExecutionPhaseV1::Training, V2Q1ComparisonArmV1::Base),
+            (V2Q1ExecutionPhaseV1::Training, V2Q1ComparisonArmV1::NoState),
+            (V2Q1ExecutionPhaseV1::Evaluation, V2Q1ComparisonArmV1::Base),
+            (
+                V2Q1ExecutionPhaseV1::Evaluation,
+                V2Q1ComparisonArmV1::NoState,
+            ),
+        ];
+        if plan.is_empty() || plan.len() != required_keys.len() {
+            return Err(M3MicroError::CorruptArtifact);
+        }
+        if plan.iter().any(|entry| {
+            !required_keys
+                .iter()
+                .any(|key| *key == (entry.phase, entry.arm))
+        }) {
+            return Err(M3MicroError::CorruptArtifact);
+        }
+        for (index, required_key) in required_keys.into_iter().enumerate() {
+            if plan
+                .iter()
+                .filter(|entry| (entry.phase, entry.arm) == required_key)
+                .count()
+                != 1
+                || (plan[index].phase, plan[index].arm) != required_key
+            {
+                return Err(M3MicroError::CorruptArtifact);
+            }
+        }
+        if plan.iter().any(|entry| {
+            !matches!(
+                (entry.arm, entry.mode),
+                (V2Q1ComparisonArmV1::Base, V2Q1StateInterventionModeV1::Base)
+                    | (
+                        V2Q1ComparisonArmV1::NoState,
+                        V2Q1StateInterventionModeV1::NoState
+                    )
+            )
+        }) {
+            return Err(M3MicroError::CorruptArtifact);
+        }
+        Ok(())
+    }
+
+    fn sprint105_v2_q1_state_mode_plan_digest_v1(plan: &[V2Q1StateModePlanEntryV1]) -> String {
+        let mut encoder = Sprint105CanonicalEncoderV1::default();
+        encoder.field_string("policy_identity", "v2-q1-canonical-state-mode-plan-v1");
+        encoder.field_usize("entry_count", plan.len());
+        for entry in plan {
+            let mut nested = Sprint105CanonicalEncoderV1::default();
+            nested.field_string("phase", entry.phase.as_str());
+            nested.field_string("arm", entry.arm.as_str());
+            nested.field_string("mode", entry.mode.as_str());
+            nested.field_bool("state_enabled", entry.mode.state_enabled());
+            encoder.field_bytes("entry", &nested.bytes);
+        }
+        sprint105_r1_encoder_digest_v1(encoder)
+    }
+
+    fn sprint105_v2_q1_state_mode_from_plan_v1(
+        plan: &[V2Q1StateModePlanEntryV1],
+        phase: V2Q1ExecutionPhaseV1,
+        arm: V2Q1ComparisonArmV1,
+    ) -> Result<V2Q1StateInterventionModeV1, M3MicroError> {
+        sprint105_v2_q1_validate_state_mode_plan_v1(plan)?;
+        plan.iter()
+            .find(|entry| entry.phase == phase && entry.arm == arm)
+            .map(|entry| entry.mode)
+            .ok_or(M3MicroError::CorruptArtifact)
+    }
+
+    fn sprint105_v2_q1_state_mode_bindings_from_plan_v1(
+        plan: Vec<V2Q1StateModePlanEntryV1>,
+    ) -> Result<V2Q1StateModeBindingsV1, M3MicroError> {
+        let training_base = sprint105_v2_q1_state_mode_from_plan_v1(
+            &plan,
+            V2Q1ExecutionPhaseV1::Training,
+            V2Q1ComparisonArmV1::Base,
+        )?;
+        let training_no_state = sprint105_v2_q1_state_mode_from_plan_v1(
+            &plan,
+            V2Q1ExecutionPhaseV1::Training,
+            V2Q1ComparisonArmV1::NoState,
+        )?;
+        let evaluation_base = sprint105_v2_q1_state_mode_from_plan_v1(
+            &plan,
+            V2Q1ExecutionPhaseV1::Evaluation,
+            V2Q1ComparisonArmV1::Base,
+        )?;
+        let evaluation_no_state = sprint105_v2_q1_state_mode_from_plan_v1(
+            &plan,
+            V2Q1ExecutionPhaseV1::Evaluation,
+            V2Q1ComparisonArmV1::NoState,
+        )?;
+        let applications = vec![
+            V2Q1ExpectedStateModeProjectionEntryV1 {
+                phase: V2Q1ExecutionPhaseV1::Training,
+                arm: V2Q1ComparisonArmV1::Base,
+                mode: training_base,
+                state_enabled: training_base.state_enabled(),
+            },
+            V2Q1ExpectedStateModeProjectionEntryV1 {
+                phase: V2Q1ExecutionPhaseV1::Training,
+                arm: V2Q1ComparisonArmV1::NoState,
+                mode: training_no_state,
+                state_enabled: training_no_state.state_enabled(),
+            },
+            V2Q1ExpectedStateModeProjectionEntryV1 {
+                phase: V2Q1ExecutionPhaseV1::Evaluation,
+                arm: V2Q1ComparisonArmV1::Base,
+                mode: evaluation_base,
+                state_enabled: evaluation_base.state_enabled(),
+            },
+            V2Q1ExpectedStateModeProjectionEntryV1 {
+                phase: V2Q1ExecutionPhaseV1::Evaluation,
+                arm: V2Q1ComparisonArmV1::NoState,
+                mode: evaluation_no_state,
+                state_enabled: evaluation_no_state.state_enabled(),
+            },
+        ];
+        let duplicate_application_count = plan
+            .iter()
+            .map(|entry| {
+                applications
+                    .iter()
+                    .filter(|application| {
+                        application.phase == entry.phase && application.arm == entry.arm
+                    })
+                    .count()
+                    .saturating_sub(1)
+            })
+            .sum();
+        let missing_application_count = plan
+            .iter()
+            .filter(|entry| {
+                !applications.iter().any(|application| {
+                    application.phase == entry.phase && application.arm == entry.arm
+                })
+            })
+            .count();
+        if applications.len() != plan.len()
+            || duplicate_application_count != 0
+            || missing_application_count != 0
+            || applications
+                .iter()
+                .any(|application| application.state_enabled != application.mode.state_enabled())
+        {
+            return Err(M3MicroError::CorruptArtifact);
+        }
+        Ok(V2Q1StateModeBindingsV1 {
+            expected_projection: V2Q1ExpectedStateModeProjectionV1 {
+                policy_identity: "v2-q1-state-mode-owner-application-v1".to_string(),
+                plan_digest: sprint105_v2_q1_state_mode_plan_digest_v1(&plan),
+                applications,
+                duplicate_application_count,
+                missing_application_count,
+            },
+            plan,
+            training_base,
+            training_no_state,
+            evaluation_base,
+            evaluation_no_state,
+        })
+    }
+
+    fn sprint105_v2_q1_state_mode_bindings_v1() -> Result<V2Q1StateModeBindingsV1, M3MicroError> {
+        sprint105_v2_q1_state_mode_bindings_from_plan_v1(sprint105_v2_q1_state_mode_plan_v1())
+    }
+
+    fn sprint105_v2_q1_expected_qualification_units_from_policy_v1(
+        policy: &DelayedRecallEvidencePolicyV2,
+    ) -> Vec<V2Q1QualificationUnitIdentityV1> {
+        let lengths = policy.sequence_lengths;
+        Sprint105Q1FamilyV1::ORDERED
+            .into_iter()
+            .flat_map(|family| {
+                lengths
+                    .into_iter()
+                    .map(move |sequence_length| V2Q1QualificationUnitIdentityV1 {
+                        family,
+                        sequence_length,
+                    })
+            })
+            .collect()
+    }
+
+    fn sprint105_v2_q1_expected_qualification_units_v1() -> Vec<V2Q1QualificationUnitIdentityV1> {
+        sprint105_v2_q1_expected_qualification_units_from_policy_v1(
+            &delayed_recall_evidence_policy_v2(),
+        )
+    }
+
+    fn sprint105_v2_q1_actual_requests_for_unit_v1(
+        qualification_unit: V2Q1QualificationUnitIdentityV1,
+    ) -> Vec<V2Q1ActualApplicationRequestV1> {
+        sprint105_v2_q1_state_mode_plan_v1()
+            .into_iter()
+            .map(|entry| V2Q1ActualApplicationRequestV1 {
+                qualification_unit,
+                phase: entry.phase,
+                arm: entry.arm,
+            })
+            .collect()
+    }
+
+    fn sprint105_v2_q1_examples_match_unit_v1(
+        examples: &[Sprint105Q1ExampleV1],
+        qualification_unit: V2Q1QualificationUnitIdentityV1,
+        frozen: bool,
+    ) -> bool {
+        let identity_prefix = format!(
+            "s105-q1:{}:{}:{}:",
+            qualification_unit.family.as_str(),
+            qualification_unit.sequence_length,
+            if frozen { "frozen" } else { "development" },
+        );
+        !examples.is_empty()
+            && examples.iter().all(|example| {
+                example.identity.starts_with(&identity_prefix)
+                    && example.evidence.sequence.len() == qualification_unit.sequence_length
+            })
+    }
+
+    fn sprint105_v2_q1_training_outcome_v1(
+        outcome: V2Q1ActualApplicationOutcomeV1,
+    ) -> Result<(M3MicroV2Candidate, f32, f32, String), M3MicroError> {
+        match outcome {
+            V2Q1ActualApplicationOutcomeV1::Training {
+                model,
+                initial_loss,
+                final_loss,
+                optimizer_digest,
+            } => Ok((model, initial_loss, final_loss, optimizer_digest)),
+            V2Q1ActualApplicationOutcomeV1::Evaluation { .. } => Err(M3MicroError::CorruptArtifact),
+        }
+    }
+
+    fn sprint105_v2_q1_evaluation_outcome_v1(
+        outcome: V2Q1ActualApplicationOutcomeV1,
+    ) -> Result<(Sprint105V2P1Metrics, Option<Sprint105V2P1Metrics>), M3MicroError> {
+        match outcome {
+            V2Q1ActualApplicationOutcomeV1::Evaluation {
+                metrics,
+                reset_metrics,
+            } => Ok((metrics, reset_metrics)),
+            V2Q1ActualApplicationOutcomeV1::Training { .. } => Err(M3MicroError::CorruptArtifact),
+        }
+    }
+
+    fn sprint105_r1_parameter_family_v1(
+        model: &M3MicroV2Candidate,
+        identity: String,
+        block: Option<usize>,
+        range: std::ops::Range<usize>,
+    ) -> V2Q1ParameterFamilyProjectionV1 {
+        V2Q1ParameterFamilyProjectionV1 {
+            identity,
+            block,
+            start: range.start,
+            element_count: range.len(),
+            initialized_bits: model.parameters.values[range]
+                .iter()
+                .map(|value| value.to_bits())
+                .collect(),
+        }
+    }
+
+    fn sprint105_r1_parameter_families_v1(
+        model: &M3MicroV2Candidate,
+        layout: &M3MicroV2Layout,
+    ) -> Vec<V2Q1ParameterFamilyProjectionV1> {
+        let mut families = vec![
+            sprint105_r1_parameter_family_v1(
+                model,
+                "w_embed".to_string(),
+                None,
+                layout.w_embed.clone(),
+            ),
+            sprint105_r1_parameter_family_v1(
+                model,
+                "b_embed".to_string(),
+                None,
+                layout.b_embed.clone(),
+            ),
+        ];
+        for (block_index, block) in layout.blocks.iter().enumerate() {
+            for (identity, range) in [
+                ("w_local", block.w_local.clone()),
+                ("b_local", block.b_local.clone()),
+                ("gate_state_scale", block.gate_state_scale.clone()),
+                ("gate_input_scale", block.gate_input_scale.clone()),
+                ("gate_bias", block.gate_bias.clone()),
+                ("candidate_state_scale", block.candidate_state_scale.clone()),
+                ("candidate_input_scale", block.candidate_input_scale.clone()),
+                ("candidate_bias", block.candidate_bias.clone()),
+                ("memory_read_scale", block.memory_read_scale.clone()),
+            ] {
+                families.push(sprint105_r1_parameter_family_v1(
+                    model,
+                    format!("block[{block_index}].{identity}"),
+                    Some(block_index),
+                    range,
+                ));
+            }
+        }
+        families.push(sprint105_r1_parameter_family_v1(
+            model,
+            "w_head".to_string(),
+            None,
+            layout.w_head.clone(),
+        ));
+        families.push(sprint105_r1_parameter_family_v1(
+            model,
+            "b_head".to_string(),
+            None,
+            layout.b_head.clone(),
+        ));
+        families.sort_by_key(|family| family.start);
+        families
+    }
+
+    fn sprint105_r1_parameter_layout_identity_v1(
+        families: &[V2Q1ParameterFamilyProjectionV1],
+        parameter_count: usize,
+    ) -> String {
+        let mut encoder = Sprint105CanonicalEncoderV1::default();
+        encoder.field_string("policy", "m3-micro-v2-layout-owner-projection-v1");
+        encoder.field_usize("parameter_count", parameter_count);
+        encoder.field_usize("family_count", families.len());
+        for family in families {
+            let mut nested = Sprint105CanonicalEncoderV1::default();
+            nested.field_string("identity", &family.identity);
+            nested.field_bool("has_block", family.block.is_some());
+            if let Some(block) = family.block {
+                nested.field_usize("block", block);
+            }
+            nested.field_usize("start", family.start);
+            nested.field_usize("element_count", family.element_count);
+            encoder.field_bytes("family", &nested.bytes);
+        }
+        sprint105_r1_encoder_digest_v1(encoder)
+    }
+
+    fn sprint105_v2_q1_initialization_owner_projection_v1()
+    -> Result<V2Q1InitializationOwnerProjectionV1, M3MicroError> {
+        let model = sprint105_v2_initial_model_v1()?;
+        let layout = M3MicroV2Layout::new(&model.config)?;
+        let state = model.zero_state()?;
+        let parameter_families = sprint105_r1_parameter_families_v1(&model, &layout);
+        let parameter_bits = model
+            .parameters
+            .values
+            .iter()
+            .map(|value| value.to_bits())
+            .collect::<Vec<_>>();
+        let initial_state_bits = state
+            .blocks
+            .iter()
+            .flat_map(|block| block.values.iter())
+            .map(|value| value.to_bits())
+            .collect::<Vec<_>>();
+        Ok(V2Q1InitializationOwnerProjectionV1 {
+            policy_identity: "v2-q1-actual-initialization-owner-projection-v1".to_string(),
+            revision: model.revision(),
+            q1_seed: V2_EVIDENCE_SEED,
+            shape: V2Q1ModelShapeProjectionV1 {
+                input_dim: model.config.input_dim,
+                d_model: model.config.d_model,
+                d_state: model.config.d_state,
+                block_count: model.config.block_count,
+                expansion: model.config.expansion,
+                output_dim: model.config.output_dim,
+                decay_min_bits: model.config.decay_min.to_bits(),
+                decay_max_bits: model.config.decay_max.to_bits(),
+            },
+            parameter_layout_identity: sprint105_r1_parameter_layout_identity_v1(
+                &parameter_families,
+                layout.parameter_count,
+            ),
+            parameter_bits_digest: sprint105_r1_bits_digest_v1(
+                "v2-q1-initial-parameters",
+                &parameter_bits,
+            ),
+            parameter_element_count: parameter_bits.len(),
+            parameter_families,
+            parameter_bits,
+            initial_state_block_lengths: state
+                .blocks
+                .iter()
+                .map(|block| block.values.len())
+                .collect(),
+            initial_state_bits_digest: sprint105_r1_bits_digest_v1(
+                "v2-q1-initial-state",
+                &initial_state_bits,
+            ),
+            initial_state_element_count: initial_state_bits.len(),
+            initial_state_bits,
+            initial_step_index: state.step_index,
+            initialization_finite: model
+                .parameters
+                .values
+                .iter()
+                .all(|value| value.is_finite())
+                && state
+                    .blocks
+                    .iter()
+                    .flat_map(|block| block.values.iter())
+                    .all(|value| value.is_finite()),
+            determinism_identity:
+                "same-actual-v2-q1-initializer-config-and-seed-yields-identical-projection"
+                    .to_string(),
+        })
+    }
+
+    fn sprint105_v2_q1_initialization_owner_digest_v1(
+        projection: &V2Q1InitializationOwnerProjectionV1,
+    ) -> String {
+        let mut encoder = Sprint105CanonicalEncoderV1::default();
+        encoder.field_string("policy_identity", &projection.policy_identity);
+        encoder.field_string("revision", &format!("{:?}", projection.revision));
+        encoder.field_u64("q1_seed", projection.q1_seed);
+        for (identity, value) in [
+            ("input_dim", projection.shape.input_dim),
+            ("d_model", projection.shape.d_model),
+            ("d_state", projection.shape.d_state),
+            ("block_count", projection.shape.block_count),
+            ("expansion", projection.shape.expansion),
+            ("output_dim", projection.shape.output_dim),
+        ] {
+            encoder.field_usize(identity, value);
+        }
+        encoder.field_u32s(
+            "decay_bits",
+            &[
+                projection.shape.decay_min_bits,
+                projection.shape.decay_max_bits,
+            ],
+        );
+        encoder.field_string(
+            "parameter_layout_identity",
+            &projection.parameter_layout_identity,
+        );
+        encoder.field_usize(
+            "parameter_family_count",
+            projection.parameter_families.len(),
+        );
+        for family in &projection.parameter_families {
+            let mut nested = Sprint105CanonicalEncoderV1::default();
+            nested.field_string("identity", &family.identity);
+            nested.field_bool("has_block", family.block.is_some());
+            if let Some(block) = family.block {
+                nested.field_usize("block", block);
+            }
+            nested.field_usize("start", family.start);
+            nested.field_usize("element_count", family.element_count);
+            nested.field_u32s("initialized_bits", &family.initialized_bits);
+            encoder.field_bytes("parameter_family", &nested.bytes);
+        }
+        encoder.field_u32s("parameter_bits", &projection.parameter_bits);
+        encoder.field_string("parameter_bits_digest", &projection.parameter_bits_digest);
+        encoder.field_usize(
+            "parameter_element_count",
+            projection.parameter_element_count,
+        );
+        encoder.field_usizes(
+            "initial_state_block_lengths",
+            &projection.initial_state_block_lengths,
+        );
+        encoder.field_u32s("initial_state_bits", &projection.initial_state_bits);
+        encoder.field_string(
+            "initial_state_bits_digest",
+            &projection.initial_state_bits_digest,
+        );
+        encoder.field_usize(
+            "initial_state_element_count",
+            projection.initial_state_element_count,
+        );
+        encoder.field_usize("initial_step_index", projection.initial_step_index);
+        encoder.field_bool("initialization_finite", projection.initialization_finite);
+        encoder.field_string("determinism_identity", &projection.determinism_identity);
+        sprint105_r1_encoder_digest_v1(encoder)
+    }
+
+    fn sprint105_r1_state_bits_v1(state: &M3MicroV2State) -> Vec<u32> {
+        state
+            .blocks
+            .iter()
+            .flat_map(|block| block.values.iter())
+            .map(|value| value.to_bits())
+            .collect()
+    }
+
+    fn sprint105_r1_state_execution_witness_v1(
+        model: &M3MicroV2Candidate,
+        initial_state: &M3MicroV2State,
+        probe: &[Vec<f32>],
+        application: V2Q1ExpectedStateModeProjectionEntryV1,
+    ) -> Result<V2Q1StateExecutionWitnessV1, M3MicroError> {
+        let mut state = initial_state.clone();
+        let mut counters = M3MicroWorkCountersV1::default();
+        let tape = model.forward_internal(
+            probe,
+            &mut state,
+            true,
+            application.mode.state_enabled(),
+            &mut counters,
+        )?;
+        let local_contribution_bits = tape
+            .steps
+            .iter()
+            .flat_map(|step| step.blocks.iter())
+            .flat_map(|block| block.u.iter())
+            .map(|value| value.to_bits())
+            .collect::<Vec<_>>();
+        let memory_contribution_bits = tape
+            .steps
+            .iter()
+            .flat_map(|step| step.blocks.iter())
+            .flat_map(|block| block.h_output.iter().zip(&block.u))
+            .map(|(output, local)| (output - local).to_bits())
+            .collect::<Vec<_>>();
+        let previous_state_bits = tape
+            .steps
+            .iter()
+            .flat_map(|step| step.blocks.iter())
+            .flat_map(|block| block.previous_state.iter())
+            .map(|value| value.to_bits())
+            .collect::<Vec<_>>();
+        let next_state_bits = tape
+            .steps
+            .iter()
+            .flat_map(|step| step.blocks.iter())
+            .flat_map(|block| block.next_state.iter())
+            .map(|value| value.to_bits())
+            .collect::<Vec<_>>();
+        let returned_state_bits = sprint105_r1_state_bits_v1(&state);
+        let finite = tape.raw_output.iter().all(|value| value.is_finite())
+            && state
+                .blocks
+                .iter()
+                .flat_map(|block| block.values.iter())
+                .all(|value| value.is_finite())
+            && tape
+                .steps
+                .iter()
+                .flat_map(|step| step.blocks.iter())
+                .flat_map(|block| {
+                    block
+                        .u
+                        .iter()
+                        .chain(&block.previous_state)
+                        .chain(&block.next_state)
+                        .chain(&block.h_output)
+                })
+                .all(|value| value.is_finite());
+        Ok(V2Q1StateExecutionWitnessV1 {
+            phase: application.phase,
+            arm: application.arm,
+            mode: application.mode,
+            state_enabled: application.mode.state_enabled(),
+            raw_output_bits: tape
+                .raw_output
+                .iter()
+                .map(|value| value.to_bits())
+                .collect(),
+            returned_state_identity: state.digest(),
+            returned_state_bits,
+            returned_step_index: state.step_index,
+            prior_state_read_observed: tape
+                .steps
+                .iter()
+                .skip(1)
+                .flat_map(|step| step.blocks.iter())
+                .flat_map(|block| block.previous_state.iter())
+                .any(|value| *value != 0.0),
+            state_transition_applied: tape
+                .steps
+                .iter()
+                .flat_map(|step| step.blocks.iter())
+                .any(|block| block.previous_state != block.next_state),
+            local_contribution_present: local_contribution_bits
+                .iter()
+                .any(|bits| *bits != 0.0f32.to_bits()),
+            memory_contribution_present: memory_contribution_bits
+                .iter()
+                .any(|bits| *bits != 0.0f32.to_bits()),
+            local_contribution_bits,
+            memory_contribution_bits,
+            previous_state_bits,
+            next_state_bits,
+            finite,
+        })
+    }
+
+    fn sprint105_v2_q1_state_intervention_owner_projection_v1()
+    -> Result<V2Q1StateInterventionOwnerProjectionV1, M3MicroError> {
+        let bindings = sprint105_v2_q1_state_mode_bindings_v1()?;
+        let model = sprint105_v2_initial_model_v1()?;
+        let initial_state = model.zero_state()?;
+        let probe = vec![
+            row(model.config.input_dim, 0.37, -0.61),
+            row(model.config.input_dim, -0.42, 0.29),
+            row(model.config.input_dim, 0.73, 0.18),
+        ];
+        let probe_bits = probe
+            .iter()
+            .flatten()
+            .map(|value| value.to_bits())
+            .collect::<Vec<_>>();
+        let base_application = bindings
+            .expected_projection
+            .applications
+            .iter()
+            .find(|application| {
+                application.phase == V2Q1ExecutionPhaseV1::Evaluation
+                    && application.arm == V2Q1ComparisonArmV1::Base
+            })
+            .copied()
+            .ok_or(M3MicroError::CorruptArtifact)?;
+        let no_state_application = bindings
+            .expected_projection
+            .applications
+            .iter()
+            .find(|application| {
+                application.phase == V2Q1ExecutionPhaseV1::Evaluation
+                    && application.arm == V2Q1ComparisonArmV1::NoState
+            })
+            .copied()
+            .ok_or(M3MicroError::CorruptArtifact)?;
+        let base_witness = sprint105_r1_state_execution_witness_v1(
+            &model,
+            &initial_state,
+            &probe,
+            base_application,
+        )?;
+        let no_state_witness = sprint105_r1_state_execution_witness_v1(
+            &model,
+            &initial_state,
+            &probe,
+            no_state_application,
+        )?;
+        Ok(V2Q1StateInterventionOwnerProjectionV1 {
+            policy_identity: "v2-q1-actual-state-intervention-owner-projection-v2".to_string(),
+            state_mode_policy_identity: bindings.expected_projection.policy_identity.clone(),
+            state_mode_plan: bindings.plan,
+            state_mode_plan_digest: bindings.expected_projection.plan_digest,
+            expected_applications: bindings.expected_projection.applications,
+            duplicate_application_count: bindings.expected_projection.duplicate_application_count,
+            missing_application_count: bindings.expected_projection.missing_application_count,
+            revision: model.revision(),
+            forward_owner_identity: "M3MicroV2Candidate::forward_internal/state_enabled-v1"
+                .to_string(),
+            initial_candidate_identity: model.model_identity,
+            initial_state_identity: initial_state.digest(),
+            probe_input_identity: sprint105_r1_bits_digest_v1(
+                "v2-q1-state-owner-probe-v1",
+                &probe_bits,
+            ),
+            probe_sequence_length: probe.len(),
+            finite: base_witness.finite && no_state_witness.finite,
+            base_witness,
+            no_state_witness,
+            determinism_identity:
+                "same-candidate-input-initial-state-and-mode-yields-identical-witness".to_string(),
+        })
+    }
+
+    fn sprint105_r1_encode_state_witness_v1(
+        encoder: &mut Sprint105CanonicalEncoderV1,
+        name: &str,
+        witness: &V2Q1StateExecutionWitnessV1,
+    ) {
+        let mut nested = Sprint105CanonicalEncoderV1::default();
+        nested.field_string("phase", witness.phase.as_str());
+        nested.field_string("arm", witness.arm.as_str());
+        nested.field_string("mode", witness.mode.as_str());
+        nested.field_bool("state_enabled", witness.state_enabled);
+        nested.field_u32s("raw_output_bits", &witness.raw_output_bits);
+        nested.field_u32s("returned_state_bits", &witness.returned_state_bits);
+        nested.field_string("returned_state_identity", &witness.returned_state_identity);
+        nested.field_usize("returned_step_index", witness.returned_step_index);
+        nested.field_u32s("local_contribution_bits", &witness.local_contribution_bits);
+        nested.field_u32s(
+            "memory_contribution_bits",
+            &witness.memory_contribution_bits,
+        );
+        nested.field_u32s("previous_state_bits", &witness.previous_state_bits);
+        nested.field_u32s("next_state_bits", &witness.next_state_bits);
+        nested.field_bool(
+            "prior_state_read_observed",
+            witness.prior_state_read_observed,
+        );
+        nested.field_bool("state_transition_applied", witness.state_transition_applied);
+        nested.field_bool(
+            "local_contribution_present",
+            witness.local_contribution_present,
+        );
+        nested.field_bool(
+            "memory_contribution_present",
+            witness.memory_contribution_present,
+        );
+        nested.field_bool("finite", witness.finite);
+        encoder.field_bytes(name, &nested.bytes);
+    }
+
+    fn sprint105_v2_q1_state_intervention_owner_digest_v1(
+        projection: &V2Q1StateInterventionOwnerProjectionV1,
+    ) -> String {
+        let mut encoder = Sprint105CanonicalEncoderV1::default();
+        encoder.field_string("policy_identity", &projection.policy_identity);
+        encoder.field_string(
+            "state_mode_policy_identity",
+            &projection.state_mode_policy_identity,
+        );
+        encoder.field_string("state_mode_plan_digest", &projection.state_mode_plan_digest);
+        encoder.field_usize("state_mode_plan_count", projection.state_mode_plan.len());
+        for entry in &projection.state_mode_plan {
+            let mut nested = Sprint105CanonicalEncoderV1::default();
+            nested.field_string("phase", entry.phase.as_str());
+            nested.field_string("arm", entry.arm.as_str());
+            nested.field_string("mode", entry.mode.as_str());
+            nested.field_bool("state_enabled", entry.mode.state_enabled());
+            encoder.field_bytes("state_mode_plan_entry", &nested.bytes);
+        }
+        encoder.field_usize(
+            "owner_application_count",
+            projection.expected_applications.len(),
+        );
+        for application in &projection.expected_applications {
+            let mut nested = Sprint105CanonicalEncoderV1::default();
+            nested.field_string("phase", application.phase.as_str());
+            nested.field_string("arm", application.arm.as_str());
+            nested.field_string("mode", application.mode.as_str());
+            nested.field_bool("state_enabled", application.state_enabled);
+            encoder.field_bytes("owner_application", &nested.bytes);
+        }
+        encoder.field_usize(
+            "duplicate_application_count",
+            projection.duplicate_application_count,
+        );
+        encoder.field_usize(
+            "missing_application_count",
+            projection.missing_application_count,
+        );
+        encoder.field_string("revision", &format!("{:?}", projection.revision));
+        encoder.field_string("forward_owner_identity", &projection.forward_owner_identity);
+        encoder.field_string(
+            "initial_candidate_identity",
+            &projection.initial_candidate_identity,
+        );
+        encoder.field_string("initial_state_identity", &projection.initial_state_identity);
+        encoder.field_string("probe_input_identity", &projection.probe_input_identity);
+        encoder.field_usize("probe_sequence_length", projection.probe_sequence_length);
+        sprint105_r1_encode_state_witness_v1(
+            &mut encoder,
+            "base_witness",
+            &projection.base_witness,
+        );
+        sprint105_r1_encode_state_witness_v1(
+            &mut encoder,
+            "no_state_witness",
+            &projection.no_state_witness,
+        );
+        encoder.field_bool("finite", projection.finite);
+        encoder.field_string("determinism_identity", &projection.determinism_identity);
+        sprint105_r1_encoder_digest_v1(encoder)
+    }
+
+    fn sprint105_q1_contract_identity_v3() -> Result<Q1QualificationContractIdentityV3, M3MicroError>
+    {
+        Ok(Q1QualificationContractIdentityV3 {
+            policy_identity: "sprint105-q1-frozen-qualification-contract-v3".to_string(),
+            shared_contract_v1: sprint105_q1_contract_identity_v1(),
+            v2_initialization_owner: sprint105_v2_q1_initialization_owner_projection_v1()?,
+            v2_state_intervention_owner: sprint105_v2_q1_state_intervention_owner_projection_v1()?,
+        })
+    }
+
+    fn sprint105_q1_contract_digest_v3(contract: &Q1QualificationContractIdentityV3) -> String {
+        let shared = &contract.shared_contract_v1;
+        let mut encoder = Sprint105CanonicalEncoderV1::default();
+        encoder.field_string("policy_identity", &contract.policy_identity);
+        encoder.field_string("shared_fixture_policy_identity", &shared.policy_identity);
+        encoder.field_strings("family_identities", &shared.family_identities);
+        encoder.field_usizes("canonical_lengths", &shared.canonical_lengths);
+        encoder.field_usize("record_count", shared.records.len());
+        for record in &shared.records {
+            encoder.field_record(record);
+        }
+        encoder.field_string("reset_base_semantics", &shared.reset_base_semantics);
+        encoder.field_string("reset_semantics_identity", &shared.reset_semantics_identity);
+        encoder.field_string("seed_derivation_policy", &shared.seed_derivation_policy);
+        encoder.field_usize("training_budget", shared.training_budget);
+        encoder.field_string("optimizer_identity", &shared.optimizer_identity);
+        encoder.field_string("metric_identity", &shared.metric_identity);
+        encoder.field_string("categorical_nll_identity", &shared.categorical_nll_identity);
+        encoder.field_strings(
+            "structural_gate_identities",
+            &shared.structural_gate_identities,
+        );
+        encoder.field_string(
+            "v2_initialization_owner_digest",
+            &sprint105_v2_q1_initialization_owner_digest_v1(&contract.v2_initialization_owner),
+        );
+        encoder.field_string(
+            "v2_state_intervention_owner_digest",
+            &sprint105_v2_q1_state_intervention_owner_digest_v1(
+                &contract.v2_state_intervention_owner,
+            ),
+        );
+        sprint105_r1_encoder_digest_v1(encoder)
+    }
+
+    fn sprint105_q1_contract_identity_v4(
+        actual_application_set: &ValidatedActualV2Q1ApplicationSetV1,
+    ) -> Result<Q1QualificationContractIdentityV4, M3MicroError> {
+        let v2_state_intervention_owner = sprint105_v2_q1_state_intervention_owner_projection_v1()?;
+        let expected_state_mode_plan_digest =
+            v2_state_intervention_owner.state_mode_plan_digest.clone();
+        let v2_actual_application_set = verified_actual_application_set_identity_v1(
+            actual_application_set,
+            &expected_state_mode_plan_digest,
+        )?;
+        Ok(Q1QualificationContractIdentityV4 {
+            policy_identity: "sprint105-q1-frozen-qualification-contract-v4".to_string(),
+            shared_contract_v1: sprint105_q1_contract_identity_v1(),
+            v2_initialization_owner: sprint105_v2_q1_initialization_owner_projection_v1()?,
+            expected_state_mode_plan_digest,
+            v2_actual_application_set,
+            v2_state_intervention_owner,
+        })
+    }
+
+    fn sprint105_q1_contract_digest_v4(contract: &Q1QualificationContractIdentityV4) -> String {
+        let historical_v3 = Q1QualificationContractIdentityV3 {
+            policy_identity: "sprint105-q1-frozen-qualification-contract-v3".to_string(),
+            shared_contract_v1: contract.shared_contract_v1.clone(),
+            v2_initialization_owner: contract.v2_initialization_owner.clone(),
+            v2_state_intervention_owner: contract.v2_state_intervention_owner.clone(),
+        };
+        let mut encoder = Sprint105CanonicalEncoderV1::default();
+        encoder.field_string("policy_identity", &contract.policy_identity);
+        encoder.field_string(
+            "historical_v3_semantic_digest",
+            &sprint105_q1_contract_digest_v3(&historical_v3),
+        );
+        encoder.field_string(
+            "expected_state_mode_plan_digest",
+            &contract.expected_state_mode_plan_digest,
+        );
+        encode_verified_actual_application_set_identity_v1(
+            &mut encoder,
+            &contract.v2_actual_application_set,
+        );
+        sprint105_r1_encoder_digest_v1(encoder)
+    }
+
+    fn sprint105_q1_contract_identity_v5_from_owners_v1(
+        historical_v4: Q1QualificationContractIdentityV4,
+        actual_policy_owner: Option<Q1ActualPolicyOwnerProjectionV1>,
+        structural_gate_policy_owner: Option<HistoricalQ1V5StructuralGatePolicyOwnerProjectionV1>,
+        owner_binding: Option<&Q1QualificationOwnerBindingV1>,
+    ) -> Result<Q1QualificationContractIdentityV5, M3MicroError> {
+        let actual_policy_owner = actual_policy_owner.ok_or(M3MicroError::CorruptArtifact)?;
+        let structural_gate_policy_owner =
+            structural_gate_policy_owner.ok_or(M3MicroError::CorruptArtifact)?;
+        let owner_binding = owner_binding.ok_or(M3MicroError::CorruptArtifact)?;
+        if owner_binding.actual_policy_owner_identity != actual_policy_owner.semantic_digest
+            || owner_binding.structural_gate_policy_owner_identity
+                != structural_gate_policy_owner.semantic_digest
+        {
+            return Err(M3MicroError::CorruptArtifact);
+        }
+        Ok(Q1QualificationContractIdentityV5 {
+            policy_identity: "sprint105-q1-frozen-qualification-contract-v5".to_string(),
+            historical_v4,
+            actual_policy_owner,
+            structural_gate_policy_owner,
+            qualification_owner_identity: owner_binding.qualification_owner_identity.clone(),
+        })
+    }
+
+    fn sprint105_q1_contract_identity_v5(
+        qualification: &Sprint105V2P1Qualification,
+    ) -> Result<Q1QualificationContractIdentityV5, M3MicroError> {
+        sprint105_q1_validate_qualification_owner_binding_v1(
+            Some(&qualification.owner_binding),
+            Some(&qualification.actual_policy),
+            Some(&qualification.gate_policy),
+        )?;
+        let owner_binding = sprint105_q1_historical_v5_qualification_owner_binding_v1(
+            &qualification.actual_policy,
+            &qualification.gate_policy,
+        )?;
+        sprint105_q1_contract_identity_v5_from_owners_v1(
+            sprint105_q1_contract_identity_v4(&qualification.actual_application_set)?,
+            Some(sprint105_q1_actual_policy_owner_projection_v1(
+                &qualification.actual_policy,
+            )?),
+            Some(sprint105_q1_historical_v5_gate_policy_owner_projection_v1(
+                &qualification.gate_policy,
+            )?),
+            Some(&owner_binding),
+        )
+    }
+
+    fn sprint105_q1_encode_owner_fields_v1<T>(
+        encoder: &mut Sprint105CanonicalEncoderV1,
+        label: &str,
+        fields: &[(T, &Q1OwnerFieldValueV1)],
+        field_name: impl Fn(T) -> &'static str,
+    ) where
+        T: Copy,
+    {
+        encoder.field_usize(&format!("{label}_field_count"), fields.len());
+        for (field, value) in fields {
+            let mut nested = Sprint105CanonicalEncoderV1::default();
+            nested.field_string("name", field_name(*field));
+            value.encode(&mut nested);
+            encoder.field_bytes(label, &nested.bytes);
+        }
+    }
+
+    fn sprint105_q1_contract_digest_v5(contract: &Q1QualificationContractIdentityV5) -> String {
+        sprint105_q1_contract_digest_v5_from_owner_refs_v1(
+            &contract.policy_identity,
+            &contract.historical_v4,
+            &contract.actual_policy_owner,
+            &contract.structural_gate_policy_owner,
+            &contract.qualification_owner_identity,
+        )
+    }
+
+    fn sprint105_q1_contract_digest_v5_from_owner_refs_v1(
+        policy_identity: &str,
+        historical_v4: &Q1QualificationContractIdentityV4,
+        actual_policy_owner: &Q1ActualPolicyOwnerProjectionV1,
+        structural_gate_policy_owner: &HistoricalQ1V5StructuralGatePolicyOwnerProjectionV1,
+        qualification_owner_identity: &str,
+    ) -> String {
+        let mut encoder = Sprint105CanonicalEncoderV1::default();
+        encoder.field_string("policy_identity", policy_identity);
+        encoder.field_string(
+            "historical_v4_semantic_digest",
+            &sprint105_q1_contract_digest_v4(historical_v4),
+        );
+        encoder.field_string(
+            "actual_policy_owner_policy_identity",
+            &actual_policy_owner.policy_identity,
+        );
+        encoder.field_string(
+            "actual_policy_owner_type_identity",
+            &actual_policy_owner.actual_owner_type_identity,
+        );
+        encoder.field_string(
+            "actual_policy_owner_revision_identity",
+            &actual_policy_owner.revision_identity,
+        );
+        encoder.field_string(
+            "actual_policy_field_inventory_identity",
+            &actual_policy_owner.field_inventory_identity,
+        );
+        sprint105_q1_encode_owner_fields_v1(
+            &mut encoder,
+            "actual_policy_field",
+            &actual_policy_owner
+                .fields
+                .iter()
+                .map(|field| (field.field, &field.value))
+                .collect::<Vec<_>>(),
+            Q1ActualPolicyFieldV1::as_str,
+        );
+        encoder.field_string(
+            "structural_gate_policy_identity",
+            &structural_gate_policy_owner.policy_identity,
+        );
+        encoder.field_string(
+            "structural_gate_policy_owner_type_identity",
+            &structural_gate_policy_owner.actual_owner_type_identity,
+        );
+        encoder.field_string(
+            "structural_gate_field_inventory_identity",
+            &structural_gate_policy_owner.field_inventory_identity,
+        );
+        encoder.field_string(
+            "structural_gate_inventory_identity",
+            &structural_gate_policy_owner.gate_inventory_identity,
+        );
+        sprint105_q1_encode_owner_fields_v1(
+            &mut encoder,
+            "structural_gate_policy_field",
+            &structural_gate_policy_owner
+                .fields
+                .iter()
+                .map(|field| (field.field, &field.value))
+                .collect::<Vec<_>>(),
+            HistoricalQ1V5GatePolicyFieldV1::as_str,
+        );
+        encoder.field_string("qualification_owner_identity", qualification_owner_identity);
+        sprint105_r1_encoder_digest_v1(encoder)
+    }
+
+    const SPRINT105_Q1_CONTRACT_GOLDEN_DIGEST_V4: &str = "3281944bf22b5197";
+
+    const SPRINT105_Q1_CONTRACT_GOLDEN_DIGEST_V5: &str = "580f6c9e83db6504";
+
+    const SPRINT105_Q1_CONTRACT_GOLDEN_DIGEST_V6: &str = "b4abe0f85a93ea28";
+
+    const SPRINT105_V2_Q1_ACTUAL_APPLICATION_SET_GOLDEN_DIGEST_V1: &str = "6db7d1a0c131569f";
+
+    const SPRINT105_Q1_CONTRACT_HISTORICAL_DIGEST_V3: &str = "14123bc604698aad";
+
+    const SPRINT105_Q1_CONTRACT_HISTORICAL_DIGEST_V2: &str = "c3b6d6bdac4d3782";
+
+    const SPRINT105_Q1_CONTRACT_HISTORICAL_DIGEST_V1: &str = "79fd431bc95dc971";
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum Sprint105ConfidenceOverlayV1 {
+        Clear,
+        NotEstablished,
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum Q1StructuralFailureRevisionV1 {
+        V1,
+        V2,
+    }
+
+    impl Q1StructuralFailureRevisionV1 {
+        fn identity(self) -> &'static str {
+            match self {
+                Self::V1 => "CORE_NOT_VIABLE",
+                Self::V2 => "V2_CORE_NOT_VIABLE",
+            }
+        }
+    }
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    enum Q1OwnerFieldValueV1 {
+        Bool(bool),
+        Usize(usize),
+        Usizes(Vec<usize>),
+        F32Bits(u32),
+        Identity(String),
+        Identities(Vec<String>),
+    }
+
+    impl Q1OwnerFieldValueV1 {
+        fn kind_identity(&self) -> &'static str {
+            match self {
+                Self::Bool(_) => "bool",
+                Self::Usize(_) => "usize",
+                Self::Usizes(_) => "usize-list",
+                Self::F32Bits(_) => "f32-bits",
+                Self::Identity(_) => "identity",
+                Self::Identities(_) => "identity-list",
+            }
+        }
+
+        fn encode(&self, encoder: &mut Sprint105CanonicalEncoderV1) {
+            encoder.field_string("kind", self.kind_identity());
+            match self {
+                Self::Bool(value) => encoder.field_bool("bool", *value),
+                Self::Usize(value) => encoder.field_usize("usize", *value),
+                Self::Usizes(values) => encoder.field_usizes("usizes", values),
+                Self::F32Bits(bits) => encoder.field_u64("f32_bits", u64::from(*bits)),
+                Self::Identity(value) => encoder.field_string("identity", value),
+                Self::Identities(values) => encoder.field_strings("identities", values),
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum Q1ActualPolicyFieldV1 {
+        SequenceLengths,
+        BalancedClasses,
+        FixedTrainingBudget,
+        FrozenEvaluationExamplesPerClass,
+        MinimumAccuracy,
+        MinimumBaseVsNoStateAccuracyGap,
+        MinimumCarriedPredictionSeparation,
+        MaximumResetPredictionSeparation,
+    }
+
+    impl Q1ActualPolicyFieldV1 {
+        const ORDERED: [Self; 8] = [
+            Self::SequenceLengths,
+            Self::BalancedClasses,
+            Self::FixedTrainingBudget,
+            Self::FrozenEvaluationExamplesPerClass,
+            Self::MinimumAccuracy,
+            Self::MinimumBaseVsNoStateAccuracyGap,
+            Self::MinimumCarriedPredictionSeparation,
+            Self::MaximumResetPredictionSeparation,
+        ];
+
+        fn as_str(self) -> &'static str {
+            match self {
+                Self::SequenceLengths => "sequence_lengths",
+                Self::BalancedClasses => "balanced_classes",
+                Self::FixedTrainingBudget => "fixed_training_budget",
+                Self::FrozenEvaluationExamplesPerClass => "frozen_evaluation_examples_per_class",
+                Self::MinimumAccuracy => "minimum_accuracy",
+                Self::MinimumBaseVsNoStateAccuracyGap => "minimum_base_vs_no_state_accuracy_gap",
+                Self::MinimumCarriedPredictionSeparation => "minimum_carried_prediction_separation",
+                Self::MaximumResetPredictionSeparation => "maximum_reset_prediction_separation",
+            }
+        }
+    }
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct Q1ActualPolicyFieldProjectionV1 {
+        field: Q1ActualPolicyFieldV1,
+        value: Q1OwnerFieldValueV1,
+    }
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct Q1ActualPolicyOwnerProjectionV1 {
+        policy_identity: String,
+        actual_owner_type_identity: String,
+        revision_identity: String,
+        field_inventory_identity: String,
+        fields: Vec<Q1ActualPolicyFieldProjectionV1>,
+        semantic_digest: String,
+    }
+
+    fn sprint105_q1_actual_policy_fields_v1(
+        policy: &DelayedRecallEvidencePolicyV2,
+    ) -> Vec<Q1ActualPolicyFieldProjectionV1> {
+        vec![
+            Q1ActualPolicyFieldProjectionV1 {
+                field: Q1ActualPolicyFieldV1::SequenceLengths,
+                value: Q1OwnerFieldValueV1::Usizes(policy.sequence_lengths.to_vec()),
+            },
+            Q1ActualPolicyFieldProjectionV1 {
+                field: Q1ActualPolicyFieldV1::BalancedClasses,
+                value: Q1OwnerFieldValueV1::Bool(policy.balanced_classes),
+            },
+            Q1ActualPolicyFieldProjectionV1 {
+                field: Q1ActualPolicyFieldV1::FixedTrainingBudget,
+                value: Q1OwnerFieldValueV1::Usize(policy.fixed_training_budget),
+            },
+            Q1ActualPolicyFieldProjectionV1 {
+                field: Q1ActualPolicyFieldV1::FrozenEvaluationExamplesPerClass,
+                value: Q1OwnerFieldValueV1::Usize(policy.frozen_evaluation_examples_per_class),
+            },
+            Q1ActualPolicyFieldProjectionV1 {
+                field: Q1ActualPolicyFieldV1::MinimumAccuracy,
+                value: Q1OwnerFieldValueV1::F32Bits(policy.minimum_accuracy.to_bits()),
+            },
+            Q1ActualPolicyFieldProjectionV1 {
+                field: Q1ActualPolicyFieldV1::MinimumBaseVsNoStateAccuracyGap,
+                value: Q1OwnerFieldValueV1::F32Bits(
+                    policy.minimum_base_vs_no_state_accuracy_gap.to_bits(),
+                ),
+            },
+            Q1ActualPolicyFieldProjectionV1 {
+                field: Q1ActualPolicyFieldV1::MinimumCarriedPredictionSeparation,
+                value: Q1OwnerFieldValueV1::F32Bits(
+                    policy.minimum_carried_prediction_separation.to_bits(),
+                ),
+            },
+            Q1ActualPolicyFieldProjectionV1 {
+                field: Q1ActualPolicyFieldV1::MaximumResetPredictionSeparation,
+                value: Q1OwnerFieldValueV1::F32Bits(
+                    policy.maximum_reset_prediction_separation.to_bits(),
+                ),
+            },
+        ]
+    }
+
+    fn sprint105_q1_validate_actual_policy_fields_v1(
+        fields: &[Q1ActualPolicyFieldProjectionV1],
+    ) -> Result<(), M3MicroError> {
+        if fields.len() != Q1ActualPolicyFieldV1::ORDERED.len()
+            || fields
+                .iter()
+                .zip(Q1ActualPolicyFieldV1::ORDERED)
+                .any(|(field, expected)| field.field != expected)
+            || fields.iter().enumerate().any(|(index, field)| {
+                fields[..index]
+                    .iter()
+                    .any(|previous| previous.field == field.field)
+            })
+        {
+            return Err(M3MicroError::CorruptArtifact);
+        }
+        Ok(())
+    }
+
+    fn sprint105_q1_owner_field_inventory_digest_v1(
+        identity: &str,
+        fields: &[(&str, &str)],
+    ) -> String {
+        let mut encoder = Sprint105CanonicalEncoderV1::default();
+        encoder.field_string("identity", identity);
+        encoder.field_usize("field_count", fields.len());
+        for (name, kind) in fields {
+            let mut nested = Sprint105CanonicalEncoderV1::default();
+            nested.field_string("name", name);
+            nested.field_string("kind", kind);
+            encoder.field_bytes("field", &nested.bytes);
+        }
+        sprint105_r1_encoder_digest_v1(encoder)
+    }
+
+    fn sprint105_q1_actual_policy_owner_projection_v1(
+        policy: &DelayedRecallEvidencePolicyV2,
+    ) -> Result<Q1ActualPolicyOwnerProjectionV1, M3MicroError> {
+        let fields = sprint105_q1_actual_policy_fields_v1(policy);
+        sprint105_q1_validate_actual_policy_fields_v1(&fields)?;
+        let inventory = fields
+            .iter()
+            .map(|field| (field.field.as_str(), field.value.kind_identity()))
+            .collect::<Vec<_>>();
+        let field_inventory_identity = sprint105_q1_owner_field_inventory_digest_v1(
+            "delayed-recall-evidence-policy-v2-field-inventory-v1",
+            &inventory,
+        );
+        let mut encoder = Sprint105CanonicalEncoderV1::default();
+        encoder.field_string("policy_identity", "delayed-recall-evidence-policy-v2");
+        encoder.field_string(
+            "actual_owner_type_identity",
+            "DelayedRecallEvidencePolicyV2",
+        );
+        encoder.field_string("revision_identity", "V2");
+        encoder.field_string("field_inventory_identity", &field_inventory_identity);
+        encoder.field_usize("field_count", fields.len());
+        for field in &fields {
+            let mut nested = Sprint105CanonicalEncoderV1::default();
+            nested.field_string("name", field.field.as_str());
+            field.value.encode(&mut nested);
+            encoder.field_bytes("field", &nested.bytes);
+        }
+        Ok(Q1ActualPolicyOwnerProjectionV1 {
+            policy_identity: "delayed-recall-evidence-policy-v2".to_string(),
+            actual_owner_type_identity: "DelayedRecallEvidencePolicyV2".to_string(),
+            revision_identity: "V2".to_string(),
+            field_inventory_identity,
+            fields,
+            semantic_digest: sprint105_r1_encoder_digest_v1(encoder),
+        })
+    }
+
+    fn sprint105_next_finite_f32_v1(value: f32) -> f32 {
+        assert!(value.is_finite() && value >= 0.0);
+        let next = f32::from_bits(value.to_bits().checked_add(1).unwrap());
+        assert!(next.is_finite() && next != value);
+        next
+    }
+
+    #[derive(Clone, Copy, Debug)]
+    struct Q1ActualPolicyMutationV1 {
+        field: Q1ActualPolicyFieldV1,
+        policy: DelayedRecallEvidencePolicyV2,
+    }
+
+    fn sprint105_q1_actual_policy_mutations_v1(
+        actual: DelayedRecallEvidencePolicyV2,
+    ) -> Vec<Q1ActualPolicyMutationV1> {
+        Q1ActualPolicyFieldV1::ORDERED
+            .into_iter()
+            .map(|field| {
+                let mut policy = actual;
+                match field {
+                    Q1ActualPolicyFieldV1::SequenceLengths => {
+                        policy.sequence_lengths[0] =
+                            policy.sequence_lengths[0].checked_add(1).unwrap();
+                    }
+                    Q1ActualPolicyFieldV1::BalancedClasses => {
+                        policy.balanced_classes = !policy.balanced_classes;
+                    }
+                    Q1ActualPolicyFieldV1::FixedTrainingBudget => {
+                        policy.fixed_training_budget =
+                            policy.fixed_training_budget.checked_add(1).unwrap();
+                    }
+                    Q1ActualPolicyFieldV1::FrozenEvaluationExamplesPerClass => {
+                        policy.frozen_evaluation_examples_per_class = policy
+                            .frozen_evaluation_examples_per_class
+                            .checked_add(1)
+                            .unwrap();
+                    }
+                    Q1ActualPolicyFieldV1::MinimumAccuracy => {
+                        policy.minimum_accuracy =
+                            sprint105_next_finite_f32_v1(policy.minimum_accuracy);
+                    }
+                    Q1ActualPolicyFieldV1::MinimumBaseVsNoStateAccuracyGap => {
+                        policy.minimum_base_vs_no_state_accuracy_gap = sprint105_next_finite_f32_v1(
+                            policy.minimum_base_vs_no_state_accuracy_gap,
+                        );
+                    }
+                    Q1ActualPolicyFieldV1::MinimumCarriedPredictionSeparation => {
+                        policy.minimum_carried_prediction_separation = sprint105_next_finite_f32_v1(
+                            policy.minimum_carried_prediction_separation,
+                        );
+                    }
+                    Q1ActualPolicyFieldV1::MaximumResetPredictionSeparation => {
+                        policy.maximum_reset_prediction_separation = sprint105_next_finite_f32_v1(
+                            policy.maximum_reset_prediction_separation,
+                        );
+                    }
+                }
+                Q1ActualPolicyMutationV1 { field, policy }
+            })
+            .collect()
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum Q1StructuralGatePolicyRevisionV1 {
+        R2R2,
+        MutationProbe,
+    }
+
+    impl Q1StructuralGatePolicyRevisionV1 {
+        fn as_str(self) -> &'static str {
+            match self {
+                Self::R2R2 => "r2-r2",
+                Self::MutationProbe => "mutation-probe",
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum Q1GateComparisonSemanticsV1 {
+        StrictGreater,
+        GreaterOrEqual,
+        StrictLess,
+        ExactElementsAndBytes,
+        ExactElementsOnly,
+        AllFinite,
+        RequiredTrue,
+    }
+
+    impl Q1GateComparisonSemanticsV1 {
+        fn as_str(self) -> &'static str {
+            match self {
+                Self::StrictGreater => "strict-greater-than",
+                Self::GreaterOrEqual => "greater-than-or-equal",
+                Self::StrictLess => "strict-less-than",
+                Self::ExactElementsAndBytes => "exact-elements-and-bytes",
+                Self::ExactElementsOnly => "exact-elements-only",
+                Self::AllFinite => "all-values-finite",
+                Self::RequiredTrue => "required-true",
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum Q1ApplicableLengthPolicyV1 {
+        MaximumActualPolicyLength,
+        MinimumActualPolicyLength,
+    }
+
+    impl Q1ApplicableLengthPolicyV1 {
+        fn as_str(self) -> &'static str {
+            match self {
+                Self::MaximumActualPolicyLength => "maximum-actual-policy-length",
+                Self::MinimumActualPolicyLength => "minimum-actual-policy-length",
+            }
+        }
+
+        fn resolve(self, policy: &DelayedRecallEvidencePolicyV2) -> Option<usize> {
+            match self {
+                Self::MaximumActualPolicyLength => policy.sequence_lengths.into_iter().max(),
+                Self::MinimumActualPolicyLength => policy.sequence_lengths.into_iter().min(),
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum Q1GateAggregatePolicyV1 {
+        AllApplicable,
+        AnyApplicable,
+    }
+
+    impl Q1GateAggregatePolicyV1 {
+        fn as_str(self) -> &'static str {
+            match self {
+                Self::AllApplicable => "all-applicable",
+                Self::AnyApplicable => "any-applicable",
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum Q1MissingEvidencePolicyV1 {
+        FailClosed,
+        VacuousPass,
+    }
+
+    impl Q1MissingEvidencePolicyV1 {
+        fn as_str(self) -> &'static str {
+            match self {
+                Self::FailClosed => "fail-closed",
+                Self::VacuousPass => "vacuous-pass",
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum Q1ConfidencePrecedenceV1 {
+        StructuralBeforeConfidence,
+        ConfidenceBeforeStructural,
+    }
+
+    impl Q1ConfidencePrecedenceV1 {
+        fn as_str(self) -> &'static str {
+            match self {
+                Self::StructuralBeforeConfidence => "structural-before-confidence",
+                Self::ConfidenceBeforeStructural => "confidence-before-structural",
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    struct Q1StructuralGatePolicyV1 {
+        revision: Q1StructuralGatePolicyRevisionV1,
+        history_families: [Sprint105Q1FamilyV1; 3],
+        local_control_family: Sprint105Q1FamilyV1,
+        applicable_length: Q1ApplicableLengthPolicyV1,
+        state_utility_comparison: Q1GateComparisonSemanticsV1,
+        state_causality_comparison: Q1GateComparisonSemanticsV1,
+        local_control_comparison: Q1GateComparisonSemanticsV1,
+        trainability_comparison: Q1GateComparisonSemanticsV1,
+        footprint_comparison: Q1GateComparisonSemanticsV1,
+        aggregate_policy: Q1GateAggregatePolicyV1,
+        missing_evidence_policy: Q1MissingEvidencePolicyV1,
+        require_numerical_stability: bool,
+        require_determinism: bool,
+        require_mode_equivalence: bool,
+        confidence_precedence: Q1ConfidencePrecedenceV1,
+        structural_failure_revision: Q1StructuralFailureRevisionV1,
+    }
+
+    fn sprint105_q1_structural_gate_policy_v1(
+        structural_failure_revision: Q1StructuralFailureRevisionV1,
+    ) -> Q1StructuralGatePolicyV1 {
+        Q1StructuralGatePolicyV1 {
+            revision: Q1StructuralGatePolicyRevisionV1::R2R2,
+            history_families: [
+                Sprint105Q1FamilyV1::DelayedCue,
+                Sprint105Q1FamilyV1::OrderSensitive,
+                Sprint105Q1FamilyV1::InterferenceRetention,
+            ],
+            local_control_family: Sprint105Q1FamilyV1::StateIrrelevantControl,
+            applicable_length: Q1ApplicableLengthPolicyV1::MaximumActualPolicyLength,
+            state_utility_comparison: Q1GateComparisonSemanticsV1::StrictGreater,
+            state_causality_comparison: Q1GateComparisonSemanticsV1::StrictGreater,
+            local_control_comparison: Q1GateComparisonSemanticsV1::GreaterOrEqual,
+            trainability_comparison: Q1GateComparisonSemanticsV1::StrictLess,
+            footprint_comparison: Q1GateComparisonSemanticsV1::ExactElementsAndBytes,
+            aggregate_policy: Q1GateAggregatePolicyV1::AllApplicable,
+            missing_evidence_policy: Q1MissingEvidencePolicyV1::FailClosed,
+            require_numerical_stability: true,
+            require_determinism: true,
+            require_mode_equivalence: true,
+            confidence_precedence: Q1ConfidencePrecedenceV1::StructuralBeforeConfidence,
+            structural_failure_revision,
+        }
+    }
+
+    fn sprint105_v1_q1_structural_gate_policy_v1() -> Q1StructuralGatePolicyV1 {
+        sprint105_q1_structural_gate_policy_v1(Q1StructuralFailureRevisionV1::V1)
+    }
+
+    fn sprint105_v2_q1_structural_gate_policy_v1() -> Q1StructuralGatePolicyV1 {
+        sprint105_q1_structural_gate_policy_v1(Q1StructuralFailureRevisionV1::V2)
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+    enum Q1StructuralGatePolicyFieldV1 {
+        Revision,
+        HistoryFamilies,
+        LocalControlFamily,
+        ApplicableLength,
+        StateUtilityComparison,
+        StateCausalityComparison,
+        LocalControlComparison,
+        TrainabilityComparison,
+        FootprintComparison,
+        AggregatePolicy,
+        MissingEvidencePolicy,
+        RequireNumericalStability,
+        RequireDeterminism,
+        RequireModeEquivalence,
+        ConfidencePrecedence,
+        StructuralFailureVerdict,
+    }
+
+    impl Q1StructuralGatePolicyFieldV1 {
+        const ORDERED: [Self; 16] = [
+            Self::Revision,
+            Self::HistoryFamilies,
+            Self::LocalControlFamily,
+            Self::ApplicableLength,
+            Self::StateUtilityComparison,
+            Self::StateCausalityComparison,
+            Self::LocalControlComparison,
+            Self::TrainabilityComparison,
+            Self::FootprintComparison,
+            Self::AggregatePolicy,
+            Self::MissingEvidencePolicy,
+            Self::RequireNumericalStability,
+            Self::RequireDeterminism,
+            Self::RequireModeEquivalence,
+            Self::ConfidencePrecedence,
+            Self::StructuralFailureVerdict,
+        ];
+
+        fn as_str(self) -> &'static str {
+            match self {
+                Self::Revision => "revision",
+                Self::HistoryFamilies => "history_families",
+                Self::LocalControlFamily => "local_control_family",
+                Self::ApplicableLength => "applicable_length",
+                Self::StateUtilityComparison => "state_utility_comparison",
+                Self::StateCausalityComparison => "state_causality_comparison",
+                Self::LocalControlComparison => "local_control_comparison",
+                Self::TrainabilityComparison => "trainability_comparison",
+                Self::FootprintComparison => "footprint_comparison",
+                Self::AggregatePolicy => "aggregate_policy",
+                Self::MissingEvidencePolicy => "missing_evidence_policy",
+                Self::RequireNumericalStability => "require_numerical_stability",
+                Self::RequireDeterminism => "require_determinism",
+                Self::RequireModeEquivalence => "require_mode_equivalence",
+                Self::ConfidencePrecedence => "confidence_precedence",
+                Self::StructuralFailureVerdict => "structural_failure_verdict",
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum HistoricalQ1V5GatePolicyFieldV1 {
+        Revision,
+        HistoryFamilies,
+        LocalControlFamily,
+        ApplicableLength,
+        StateUtilityComparison,
+        StateCausalityComparison,
+        LengthRetentionComparison,
+        LocalControlComparison,
+        TrainabilityComparison,
+        FootprintComparison,
+        AggregatePolicy,
+        MissingEvidencePolicy,
+        RequireNumericalStability,
+        RequireDeterminism,
+        RequireModeEquivalence,
+        ConfidencePrecedence,
+        StructuralFailureVerdict,
+    }
+
+    impl HistoricalQ1V5GatePolicyFieldV1 {
+        const ORDERED: [Self; 17] = [
+            Self::Revision,
+            Self::HistoryFamilies,
+            Self::LocalControlFamily,
+            Self::ApplicableLength,
+            Self::StateUtilityComparison,
+            Self::StateCausalityComparison,
+            Self::LengthRetentionComparison,
+            Self::LocalControlComparison,
+            Self::TrainabilityComparison,
+            Self::FootprintComparison,
+            Self::AggregatePolicy,
+            Self::MissingEvidencePolicy,
+            Self::RequireNumericalStability,
+            Self::RequireDeterminism,
+            Self::RequireModeEquivalence,
+            Self::ConfidencePrecedence,
+            Self::StructuralFailureVerdict,
+        ];
+
+        fn as_str(self) -> &'static str {
+            match self {
+                Self::Revision => "revision",
+                Self::HistoryFamilies => "history_families",
+                Self::LocalControlFamily => "local_control_family",
+                Self::ApplicableLength => "applicable_length",
+                Self::StateUtilityComparison => "state_utility_comparison",
+                Self::StateCausalityComparison => "state_causality_comparison",
+                Self::LengthRetentionComparison => "length_retention_comparison",
+                Self::LocalControlComparison => "local_control_comparison",
+                Self::TrainabilityComparison => "trainability_comparison",
+                Self::FootprintComparison => "footprint_comparison",
+                Self::AggregatePolicy => "aggregate_policy",
+                Self::MissingEvidencePolicy => "missing_evidence_policy",
+                Self::RequireNumericalStability => "require_numerical_stability",
+                Self::RequireDeterminism => "require_determinism",
+                Self::RequireModeEquivalence => "require_mode_equivalence",
+                Self::ConfidencePrecedence => "confidence_precedence",
+                Self::StructuralFailureVerdict => "structural_failure_verdict",
+            }
+        }
+    }
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct Q1StructuralGatePolicyFieldProjectionV1 {
+        field: Q1StructuralGatePolicyFieldV1,
+        value: Q1OwnerFieldValueV1,
+    }
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct Q1StructuralGatePolicyOwnerProjectionV1 {
+        policy_identity: String,
+        actual_owner_type_identity: String,
+        field_inventory_identity: String,
+        gate_inventory_identity: String,
+        fields: Vec<Q1StructuralGatePolicyFieldProjectionV1>,
+        semantic_digest: String,
+    }
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct HistoricalQ1V5GatePolicyFieldProjectionV1 {
+        field: HistoricalQ1V5GatePolicyFieldV1,
+        value: Q1OwnerFieldValueV1,
+    }
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct HistoricalQ1V5StructuralGatePolicyOwnerProjectionV1 {
+        policy_identity: String,
+        actual_owner_type_identity: String,
+        field_inventory_identity: String,
+        gate_inventory_identity: String,
+        fields: Vec<HistoricalQ1V5GatePolicyFieldProjectionV1>,
+        semantic_digest: String,
+    }
+
+    fn sprint105_q1_structural_gate_policy_fields_v1(
+        policy: &Q1StructuralGatePolicyV1,
+    ) -> Vec<Q1StructuralGatePolicyFieldProjectionV1> {
+        use Q1OwnerFieldValueV1::{Bool, Identities, Identity};
+        vec![
+            Q1StructuralGatePolicyFieldProjectionV1 {
+                field: Q1StructuralGatePolicyFieldV1::Revision,
+                value: Identity(policy.revision.as_str().to_string()),
+            },
+            Q1StructuralGatePolicyFieldProjectionV1 {
+                field: Q1StructuralGatePolicyFieldV1::HistoryFamilies,
+                value: Identities(
+                    policy
+                        .history_families
+                        .iter()
+                        .map(|family| family.as_str().to_string())
+                        .collect(),
+                ),
+            },
+            Q1StructuralGatePolicyFieldProjectionV1 {
+                field: Q1StructuralGatePolicyFieldV1::LocalControlFamily,
+                value: Identity(policy.local_control_family.as_str().to_string()),
+            },
+            Q1StructuralGatePolicyFieldProjectionV1 {
+                field: Q1StructuralGatePolicyFieldV1::ApplicableLength,
+                value: Identity(policy.applicable_length.as_str().to_string()),
+            },
+            Q1StructuralGatePolicyFieldProjectionV1 {
+                field: Q1StructuralGatePolicyFieldV1::StateUtilityComparison,
+                value: Identity(policy.state_utility_comparison.as_str().to_string()),
+            },
+            Q1StructuralGatePolicyFieldProjectionV1 {
+                field: Q1StructuralGatePolicyFieldV1::StateCausalityComparison,
+                value: Identity(policy.state_causality_comparison.as_str().to_string()),
+            },
+            Q1StructuralGatePolicyFieldProjectionV1 {
+                field: Q1StructuralGatePolicyFieldV1::LocalControlComparison,
+                value: Identity(policy.local_control_comparison.as_str().to_string()),
+            },
+            Q1StructuralGatePolicyFieldProjectionV1 {
+                field: Q1StructuralGatePolicyFieldV1::TrainabilityComparison,
+                value: Identity(policy.trainability_comparison.as_str().to_string()),
+            },
+            Q1StructuralGatePolicyFieldProjectionV1 {
+                field: Q1StructuralGatePolicyFieldV1::FootprintComparison,
+                value: Identity(policy.footprint_comparison.as_str().to_string()),
+            },
+            Q1StructuralGatePolicyFieldProjectionV1 {
+                field: Q1StructuralGatePolicyFieldV1::AggregatePolicy,
+                value: Identity(policy.aggregate_policy.as_str().to_string()),
+            },
+            Q1StructuralGatePolicyFieldProjectionV1 {
+                field: Q1StructuralGatePolicyFieldV1::MissingEvidencePolicy,
+                value: Identity(policy.missing_evidence_policy.as_str().to_string()),
+            },
+            Q1StructuralGatePolicyFieldProjectionV1 {
+                field: Q1StructuralGatePolicyFieldV1::RequireNumericalStability,
+                value: Bool(policy.require_numerical_stability),
+            },
+            Q1StructuralGatePolicyFieldProjectionV1 {
+                field: Q1StructuralGatePolicyFieldV1::RequireDeterminism,
+                value: Bool(policy.require_determinism),
+            },
+            Q1StructuralGatePolicyFieldProjectionV1 {
+                field: Q1StructuralGatePolicyFieldV1::RequireModeEquivalence,
+                value: Bool(policy.require_mode_equivalence),
+            },
+            Q1StructuralGatePolicyFieldProjectionV1 {
+                field: Q1StructuralGatePolicyFieldV1::ConfidencePrecedence,
+                value: Identity(policy.confidence_precedence.as_str().to_string()),
+            },
+            Q1StructuralGatePolicyFieldProjectionV1 {
+                field: Q1StructuralGatePolicyFieldV1::StructuralFailureVerdict,
+                value: Identity(policy.structural_failure_revision.identity().to_string()),
+            },
+        ]
+    }
+
+    fn sprint105_q1_validate_structural_gate_policy_fields_v1(
+        fields: &[Q1StructuralGatePolicyFieldProjectionV1],
+    ) -> Result<(), M3MicroError> {
+        if fields.len() != Q1StructuralGatePolicyFieldV1::ORDERED.len() {
+            return Err(M3MicroError::CorruptArtifact);
+        }
+        for (index, expected) in Q1StructuralGatePolicyFieldV1::ORDERED.iter().enumerate() {
+            if fields[index].field != *expected
+                || fields
+                    .iter()
+                    .filter(|projection| projection.field == *expected)
+                    .count()
+                    != 1
+            {
+                return Err(M3MicroError::CorruptArtifact);
+            }
+        }
+        Ok(())
+    }
+
+    fn sprint105_q1_historical_v5_gate_policy_fields_v1(
+        policy: &Q1StructuralGatePolicyV1,
+    ) -> Vec<HistoricalQ1V5GatePolicyFieldProjectionV1> {
+        use Q1OwnerFieldValueV1::{Bool, Identities, Identity};
+        vec![
+            HistoricalQ1V5GatePolicyFieldProjectionV1 {
+                field: HistoricalQ1V5GatePolicyFieldV1::Revision,
+                value: Identity("r2".to_string()),
+            },
+            HistoricalQ1V5GatePolicyFieldProjectionV1 {
+                field: HistoricalQ1V5GatePolicyFieldV1::HistoryFamilies,
+                value: Identities(
+                    policy
+                        .history_families
+                        .iter()
+                        .map(|family| family.as_str().to_string())
+                        .collect(),
+                ),
+            },
+            HistoricalQ1V5GatePolicyFieldProjectionV1 {
+                field: HistoricalQ1V5GatePolicyFieldV1::LocalControlFamily,
+                value: Identity(policy.local_control_family.as_str().to_string()),
+            },
+            HistoricalQ1V5GatePolicyFieldProjectionV1 {
+                field: HistoricalQ1V5GatePolicyFieldV1::ApplicableLength,
+                value: Identity(policy.applicable_length.as_str().to_string()),
+            },
+            HistoricalQ1V5GatePolicyFieldProjectionV1 {
+                field: HistoricalQ1V5GatePolicyFieldV1::StateUtilityComparison,
+                value: Identity(policy.state_utility_comparison.as_str().to_string()),
+            },
+            HistoricalQ1V5GatePolicyFieldProjectionV1 {
+                field: HistoricalQ1V5GatePolicyFieldV1::StateCausalityComparison,
+                value: Identity(policy.state_causality_comparison.as_str().to_string()),
+            },
+            HistoricalQ1V5GatePolicyFieldProjectionV1 {
+                field: HistoricalQ1V5GatePolicyFieldV1::LengthRetentionComparison,
+                value: Identity(
+                    Q1GateComparisonSemanticsV1::StrictGreater
+                        .as_str()
+                        .to_string(),
+                ),
+            },
+            HistoricalQ1V5GatePolicyFieldProjectionV1 {
+                field: HistoricalQ1V5GatePolicyFieldV1::LocalControlComparison,
+                value: Identity(policy.local_control_comparison.as_str().to_string()),
+            },
+            HistoricalQ1V5GatePolicyFieldProjectionV1 {
+                field: HistoricalQ1V5GatePolicyFieldV1::TrainabilityComparison,
+                value: Identity(policy.trainability_comparison.as_str().to_string()),
+            },
+            HistoricalQ1V5GatePolicyFieldProjectionV1 {
+                field: HistoricalQ1V5GatePolicyFieldV1::FootprintComparison,
+                value: Identity(policy.footprint_comparison.as_str().to_string()),
+            },
+            HistoricalQ1V5GatePolicyFieldProjectionV1 {
+                field: HistoricalQ1V5GatePolicyFieldV1::AggregatePolicy,
+                value: Identity(policy.aggregate_policy.as_str().to_string()),
+            },
+            HistoricalQ1V5GatePolicyFieldProjectionV1 {
+                field: HistoricalQ1V5GatePolicyFieldV1::MissingEvidencePolicy,
+                value: Identity(policy.missing_evidence_policy.as_str().to_string()),
+            },
+            HistoricalQ1V5GatePolicyFieldProjectionV1 {
+                field: HistoricalQ1V5GatePolicyFieldV1::RequireNumericalStability,
+                value: Bool(policy.require_numerical_stability),
+            },
+            HistoricalQ1V5GatePolicyFieldProjectionV1 {
+                field: HistoricalQ1V5GatePolicyFieldV1::RequireDeterminism,
+                value: Bool(policy.require_determinism),
+            },
+            HistoricalQ1V5GatePolicyFieldProjectionV1 {
+                field: HistoricalQ1V5GatePolicyFieldV1::RequireModeEquivalence,
+                value: Bool(policy.require_mode_equivalence),
+            },
+            HistoricalQ1V5GatePolicyFieldProjectionV1 {
+                field: HistoricalQ1V5GatePolicyFieldV1::ConfidencePrecedence,
+                value: Identity(policy.confidence_precedence.as_str().to_string()),
+            },
+            HistoricalQ1V5GatePolicyFieldProjectionV1 {
+                field: HistoricalQ1V5GatePolicyFieldV1::StructuralFailureVerdict,
+                value: Identity(policy.structural_failure_revision.identity().to_string()),
+            },
+        ]
+    }
+
+    fn sprint105_q1_validate_historical_v5_gate_policy_fields_v1(
+        fields: &[HistoricalQ1V5GatePolicyFieldProjectionV1],
+    ) -> Result<(), M3MicroError> {
+        if fields.len() != HistoricalQ1V5GatePolicyFieldV1::ORDERED.len() {
+            return Err(M3MicroError::CorruptArtifact);
+        }
+        for (index, expected) in HistoricalQ1V5GatePolicyFieldV1::ORDERED.iter().enumerate() {
+            if fields[index].field != *expected
+                || fields
+                    .iter()
+                    .filter(|projection| projection.field == *expected)
+                    .count()
+                    != 1
+            {
+                return Err(M3MicroError::CorruptArtifact);
+            }
+        }
+        Ok(())
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+    enum Q1StructuralGateV1 {
+        StateUtilityAtMaximumLength,
+        StateCausality,
+        LengthRetention,
+        LocalControl,
+        NumericalStability,
+        Determinism,
+        ModeEquivalence,
+        PersistentStateFootprint,
+        TrainabilitySanity,
+    }
+
+    impl Q1StructuralGateV1 {
+        const ORDERED: [Self; 8] = [
+            Self::StateUtilityAtMaximumLength,
+            Self::StateCausality,
+            Self::LocalControl,
+            Self::NumericalStability,
+            Self::Determinism,
+            Self::ModeEquivalence,
+            Self::PersistentStateFootprint,
+            Self::TrainabilitySanity,
+        ];
+
+        const HISTORICAL_V5_ORDERED: [Self; 9] = [
+            Self::StateUtilityAtMaximumLength,
+            Self::StateCausality,
+            Self::LengthRetention,
+            Self::LocalControl,
+            Self::NumericalStability,
+            Self::Determinism,
+            Self::ModeEquivalence,
+            Self::PersistentStateFootprint,
+            Self::TrainabilitySanity,
+        ];
+
+        fn as_str(self) -> &'static str {
+            match self {
+                Self::StateUtilityAtMaximumLength => "state-utility-at-maximum-length",
+                Self::StateCausality => "state-causality",
+                Self::LengthRetention => "length-retention",
+                Self::LocalControl => "local-control",
+                Self::NumericalStability => "numerical-stability",
+                Self::Determinism => "determinism",
+                Self::ModeEquivalence => "mode-equivalence",
+                Self::PersistentStateFootprint => "persistent-state-footprint",
+                Self::TrainabilitySanity => "trainability-sanity",
+            }
+        }
+    }
+
+    fn sprint105_q1_structural_gate_inventory_identity_v1() -> String {
+        let inventory = Q1StructuralGateV1::ORDERED
+            .iter()
+            .map(|gate| (gate.as_str(), "typed-structural-gate"))
+            .collect::<Vec<_>>();
+        sprint105_q1_owner_field_inventory_digest_v1(
+            "sprint105-q1-active-structural-gate-inventory-v2",
+            &inventory,
+        )
+    }
+
+    fn sprint105_q1_structural_gate_policy_owner_projection_v1(
+        policy: &Q1StructuralGatePolicyV1,
+    ) -> Result<Q1StructuralGatePolicyOwnerProjectionV1, M3MicroError> {
+        let fields = sprint105_q1_structural_gate_policy_fields_v1(policy);
+        sprint105_q1_validate_structural_gate_policy_fields_v1(&fields)?;
+        let inventory = fields
+            .iter()
+            .map(|field| (field.field.as_str(), field.value.kind_identity()))
+            .collect::<Vec<_>>();
+        let field_inventory_identity = sprint105_q1_owner_field_inventory_digest_v1(
+            "q1-active-structural-gate-policy-v2-field-inventory-v1",
+            &inventory,
+        );
+        let gate_inventory_identity = sprint105_q1_structural_gate_inventory_identity_v1();
+        let mut encoder = Sprint105CanonicalEncoderV1::default();
+        encoder.field_string(
+            "policy_identity",
+            "sprint105-q1-active-structural-gate-policy-v2",
+        );
+        encoder.field_string("actual_owner_type_identity", "Q1StructuralGatePolicyV1");
+        encoder.field_string("field_inventory_identity", &field_inventory_identity);
+        encoder.field_string("gate_inventory_identity", &gate_inventory_identity);
+        encoder.field_usize("field_count", fields.len());
+        for field in &fields {
+            let mut nested = Sprint105CanonicalEncoderV1::default();
+            nested.field_string("name", field.field.as_str());
+            field.value.encode(&mut nested);
+            encoder.field_bytes("field", &nested.bytes);
+        }
+        Ok(Q1StructuralGatePolicyOwnerProjectionV1 {
+            policy_identity: "sprint105-q1-active-structural-gate-policy-v2".to_string(),
+            actual_owner_type_identity: "Q1StructuralGatePolicyV1".to_string(),
+            field_inventory_identity,
+            gate_inventory_identity,
+            fields,
+            semantic_digest: sprint105_r1_encoder_digest_v1(encoder),
+        })
+    }
+
+    fn sprint105_q1_historical_v5_gate_inventory_identity_v1() -> String {
+        let inventory = Q1StructuralGateV1::HISTORICAL_V5_ORDERED
+            .iter()
+            .map(|gate| (gate.as_str(), "typed-structural-gate"))
+            .collect::<Vec<_>>();
+        sprint105_q1_owner_field_inventory_digest_v1(
+            "sprint105-q1-structural-gate-inventory-v1",
+            &inventory,
+        )
+    }
+
+    fn sprint105_q1_historical_v5_gate_policy_owner_projection_v1(
+        policy: &Q1StructuralGatePolicyV1,
+    ) -> Result<HistoricalQ1V5StructuralGatePolicyOwnerProjectionV1, M3MicroError> {
+        let fields = sprint105_q1_historical_v5_gate_policy_fields_v1(policy);
+        sprint105_q1_validate_historical_v5_gate_policy_fields_v1(&fields)?;
+        let inventory = fields
+            .iter()
+            .map(|field| (field.field.as_str(), field.value.kind_identity()))
+            .collect::<Vec<_>>();
+        let field_inventory_identity = sprint105_q1_owner_field_inventory_digest_v1(
+            "q1-structural-gate-policy-v1-field-inventory-v1",
+            &inventory,
+        );
+        let gate_inventory_identity = sprint105_q1_historical_v5_gate_inventory_identity_v1();
+        let mut encoder = Sprint105CanonicalEncoderV1::default();
+        encoder.field_string("policy_identity", "sprint105-q1-structural-gate-policy-v1");
+        encoder.field_string("actual_owner_type_identity", "Q1StructuralGatePolicyV1");
+        encoder.field_string("field_inventory_identity", &field_inventory_identity);
+        encoder.field_string("gate_inventory_identity", &gate_inventory_identity);
+        encoder.field_usize("field_count", fields.len());
+        for field in &fields {
+            let mut nested = Sprint105CanonicalEncoderV1::default();
+            nested.field_string("name", field.field.as_str());
+            field.value.encode(&mut nested);
+            encoder.field_bytes("field", &nested.bytes);
+        }
+        Ok(HistoricalQ1V5StructuralGatePolicyOwnerProjectionV1 {
+            policy_identity: "sprint105-q1-structural-gate-policy-v1".to_string(),
+            actual_owner_type_identity: "Q1StructuralGatePolicyV1".to_string(),
+            field_inventory_identity,
+            gate_inventory_identity,
+            fields,
+            semantic_digest: sprint105_r1_encoder_digest_v1(encoder),
+        })
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum Q1GateMetricOwnerV1 {
+        DirectionAccuracy,
+        FiniteQualificationMetrics,
+        DeterminismObservation,
+        ModeEquivalenceObservation,
+        PersistentStateFootprint,
+        DevelopmentLoss,
+    }
+
+    impl Q1GateMetricOwnerV1 {
+        fn as_str(self) -> &'static str {
+            match self {
+                Self::DirectionAccuracy => "direction-accuracy",
+                Self::FiniteQualificationMetrics => "finite-qualification-metrics",
+                Self::DeterminismObservation => "determinism-observation",
+                Self::ModeEquivalenceObservation => "mode-equivalence-observation",
+                Self::PersistentStateFootprint => "persistent-state-footprint",
+                Self::DevelopmentLoss => "development-loss",
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum Q1GateOperandOwnerV1 {
+        BaseAccuracy,
+        NoStateAccuracy,
+        ResetBaseAccuracy,
+        ObservedFiniteBundle,
+        RequiredFinite,
+        ObservedDeterminism,
+        RequiredTrue,
+        ObservedModeEquivalence,
+        ObservedFootprint,
+        CanonicalFootprint,
+        FinalDevelopmentLoss,
+        InitialDevelopmentLoss,
+    }
+
+    impl Q1GateOperandOwnerV1 {
+        fn as_str(self) -> &'static str {
+            match self {
+                Self::BaseAccuracy => "base-accuracy",
+                Self::NoStateAccuracy => "no-state-accuracy",
+                Self::ResetBaseAccuracy => "reset-base-accuracy",
+                Self::ObservedFiniteBundle => "observed-finite-bundle",
+                Self::RequiredFinite => "required-finite",
+                Self::ObservedDeterminism => "observed-determinism",
+                Self::RequiredTrue => "required-true",
+                Self::ObservedModeEquivalence => "observed-mode-equivalence",
+                Self::ObservedFootprint => "observed-footprint",
+                Self::CanonicalFootprint => "canonical-footprint",
+                Self::FinalDevelopmentLoss => "final-development-loss",
+                Self::InitialDevelopmentLoss => "initial-development-loss",
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum Q1GateInvalidValuePolicyV1 {
+        FailClosedNonFiniteOrMissing,
+    }
+
+    impl Q1GateInvalidValuePolicyV1 {
+        fn as_str(self) -> &'static str {
+            match self {
+                Self::FailClosedNonFiniteOrMissing => "fail-closed-non-finite-or-missing",
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum Q1GateApplicabilityV1 {
+        RequiredExpectedTypedSubset,
+        RequiredGlobalObservation,
+    }
+
+    impl Q1GateApplicabilityV1 {
+        fn as_str(self) -> &'static str {
+            match self {
+                Self::RequiredExpectedTypedSubset => "required-expected-typed-subset",
+                Self::RequiredGlobalObservation => "required-global-observation",
+            }
+        }
+    }
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct Q1StructuralGateSemanticSignatureV1 {
+        applicable_keys: Vec<Q1QualificationEvidenceKeyV1>,
+        metric_owner: Q1GateMetricOwnerV1,
+        left_operand: Q1GateOperandOwnerV1,
+        right_operand: Q1GateOperandOwnerV1,
+        comparison: Q1GateComparisonSemanticsV1,
+        aggregation: Q1GateAggregatePolicyV1,
+        missing_row_policy: Q1MissingEvidencePolicyV1,
+        missing_field_policy: Q1MissingEvidencePolicyV1,
+        invalid_value_policy: Q1GateInvalidValuePolicyV1,
+        applicability: Q1GateApplicabilityV1,
+        structural_precedence: Q1ConfidencePrecedenceV1,
+    }
+
+    fn sprint105_q1_gate_semantic_signature_v1(
+        gate: Q1StructuralGateV1,
+        domain: &ExpectedQ1EvidenceDomainV1,
+        policy: &Q1StructuralGatePolicyV1,
+    ) -> Q1StructuralGateSemanticSignatureV1 {
+        let (applicable_keys, metric_owner, left_operand, right_operand, comparison, applicability) =
+            match gate {
+                Q1StructuralGateV1::StateUtilityAtMaximumLength => (
+                    domain.maximum_history_keys.clone(),
+                    Q1GateMetricOwnerV1::DirectionAccuracy,
+                    Q1GateOperandOwnerV1::BaseAccuracy,
+                    Q1GateOperandOwnerV1::NoStateAccuracy,
+                    policy.state_utility_comparison,
+                    Q1GateApplicabilityV1::RequiredExpectedTypedSubset,
+                ),
+                Q1StructuralGateV1::LengthRetention => (
+                    domain.maximum_history_keys.clone(),
+                    Q1GateMetricOwnerV1::DirectionAccuracy,
+                    Q1GateOperandOwnerV1::BaseAccuracy,
+                    Q1GateOperandOwnerV1::NoStateAccuracy,
+                    Q1GateComparisonSemanticsV1::StrictGreater,
+                    Q1GateApplicabilityV1::RequiredExpectedTypedSubset,
+                ),
+                Q1StructuralGateV1::StateCausality => (
+                    domain.history_keys.clone(),
+                    Q1GateMetricOwnerV1::DirectionAccuracy,
+                    Q1GateOperandOwnerV1::BaseAccuracy,
+                    Q1GateOperandOwnerV1::ResetBaseAccuracy,
+                    policy.state_causality_comparison,
+                    Q1GateApplicabilityV1::RequiredExpectedTypedSubset,
+                ),
+                Q1StructuralGateV1::LocalControl => (
+                    domain.local_control_keys.clone(),
+                    Q1GateMetricOwnerV1::DirectionAccuracy,
+                    Q1GateOperandOwnerV1::BaseAccuracy,
+                    Q1GateOperandOwnerV1::NoStateAccuracy,
+                    policy.local_control_comparison,
+                    Q1GateApplicabilityV1::RequiredExpectedTypedSubset,
+                ),
+                Q1StructuralGateV1::NumericalStability => (
+                    domain.keys.clone(),
+                    Q1GateMetricOwnerV1::FiniteQualificationMetrics,
+                    Q1GateOperandOwnerV1::ObservedFiniteBundle,
+                    Q1GateOperandOwnerV1::RequiredFinite,
+                    Q1GateComparisonSemanticsV1::AllFinite,
+                    Q1GateApplicabilityV1::RequiredExpectedTypedSubset,
+                ),
+                Q1StructuralGateV1::Determinism => (
+                    domain.keys.clone(),
+                    Q1GateMetricOwnerV1::DeterminismObservation,
+                    Q1GateOperandOwnerV1::ObservedDeterminism,
+                    Q1GateOperandOwnerV1::RequiredTrue,
+                    Q1GateComparisonSemanticsV1::RequiredTrue,
+                    Q1GateApplicabilityV1::RequiredGlobalObservation,
+                ),
+                Q1StructuralGateV1::ModeEquivalence => (
+                    domain.keys.clone(),
+                    Q1GateMetricOwnerV1::ModeEquivalenceObservation,
+                    Q1GateOperandOwnerV1::ObservedModeEquivalence,
+                    Q1GateOperandOwnerV1::RequiredTrue,
+                    Q1GateComparisonSemanticsV1::RequiredTrue,
+                    Q1GateApplicabilityV1::RequiredExpectedTypedSubset,
+                ),
+                Q1StructuralGateV1::PersistentStateFootprint => (
+                    domain.footprint_keys.clone(),
+                    Q1GateMetricOwnerV1::PersistentStateFootprint,
+                    Q1GateOperandOwnerV1::ObservedFootprint,
+                    Q1GateOperandOwnerV1::CanonicalFootprint,
+                    policy.footprint_comparison,
+                    Q1GateApplicabilityV1::RequiredExpectedTypedSubset,
+                ),
+                Q1StructuralGateV1::TrainabilitySanity => (
+                    domain.keys.clone(),
+                    Q1GateMetricOwnerV1::DevelopmentLoss,
+                    Q1GateOperandOwnerV1::FinalDevelopmentLoss,
+                    Q1GateOperandOwnerV1::InitialDevelopmentLoss,
+                    policy.trainability_comparison,
+                    Q1GateApplicabilityV1::RequiredExpectedTypedSubset,
+                ),
+            };
+        Q1StructuralGateSemanticSignatureV1 {
+            applicable_keys,
+            metric_owner,
+            left_operand,
+            right_operand,
+            comparison,
+            aggregation: policy.aggregate_policy,
+            missing_row_policy: policy.missing_evidence_policy,
+            missing_field_policy: policy.missing_evidence_policy,
+            invalid_value_policy: Q1GateInvalidValuePolicyV1::FailClosedNonFiniteOrMissing,
+            applicability,
+            structural_precedence: policy.confidence_precedence,
+        }
+    }
+
+    fn sprint105_q1_gate_semantic_signature_digest_v1(
+        signature: &Q1StructuralGateSemanticSignatureV1,
+    ) -> String {
+        let mut encoder = Sprint105CanonicalEncoderV1::default();
+        encoder.field_usize("applicable_key_count", signature.applicable_keys.len());
+        for key in &signature.applicable_keys {
+            let mut nested = Sprint105CanonicalEncoderV1::default();
+            nested.field_string("family", key.family.as_str());
+            nested.field_usize("sequence_length", key.sequence_length);
+            encoder.field_bytes("applicable_key", &nested.bytes);
+        }
+        encoder.field_string("metric_owner", signature.metric_owner.as_str());
+        encoder.field_string("left_operand", signature.left_operand.as_str());
+        encoder.field_string("right_operand", signature.right_operand.as_str());
+        encoder.field_string("comparison", signature.comparison.as_str());
+        encoder.field_string("aggregation", signature.aggregation.as_str());
+        encoder.field_string("missing_row_policy", signature.missing_row_policy.as_str());
+        encoder.field_string(
+            "missing_field_policy",
+            signature.missing_field_policy.as_str(),
+        );
+        encoder.field_string(
+            "invalid_value_policy",
+            signature.invalid_value_policy.as_str(),
+        );
+        encoder.field_string("applicability", signature.applicability.as_str());
+        encoder.field_string(
+            "structural_precedence",
+            signature.structural_precedence.as_str(),
+        );
+        sprint105_r1_encoder_digest_v1(encoder)
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum Q1ContractVersionV1 {
+        V4,
+        V5,
+        V6,
+    }
+
+    impl Q1ContractVersionV1 {
+        fn as_str(self) -> &'static str {
+            match self {
+                Self::V4 => "v4",
+                Self::V5 => "v5",
+                Self::V6 => "v6",
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum Q1StructuralGateDispositionV1 {
+        Active,
+        RetiredDuplicateSemanticAlias {
+            canonical_gate: Q1StructuralGateV1,
+            predecessor_contract: Q1ContractVersionV1,
+        },
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum Q1DuplicateRetirementValidationErrorV1 {
+        ApplicableDomainMismatch,
+        MetricOwnerMismatch,
+        OperandMismatch,
+        ComparatorMismatch,
+        AggregationMismatch,
+        MissingPolicyMismatch,
+        InvalidValuePolicyMismatch,
+        ApplicabilityMismatch,
+        PrecedenceMismatch,
+        IndependentConsumerPresent,
+    }
+
+    fn sprint105_q1_independent_length_retention_consumer_count_v1() -> usize {
+        Q1StructuralGateV1::ORDERED
+            .iter()
+            .filter(|gate| **gate == Q1StructuralGateV1::LengthRetention)
+            .count()
+    }
+
+    fn sprint105_q1_validate_duplicate_retirement_v1(
+        state_utility: &Q1StructuralGateSemanticSignatureV1,
+        length_retention: &Q1StructuralGateSemanticSignatureV1,
+        independent_consumer_count: usize,
+    ) -> Result<Q1StructuralGateDispositionV1, Q1DuplicateRetirementValidationErrorV1> {
+        if state_utility.applicable_keys != length_retention.applicable_keys {
+            return Err(Q1DuplicateRetirementValidationErrorV1::ApplicableDomainMismatch);
+        }
+        if state_utility.metric_owner != length_retention.metric_owner {
+            return Err(Q1DuplicateRetirementValidationErrorV1::MetricOwnerMismatch);
+        }
+        if state_utility.left_operand != length_retention.left_operand
+            || state_utility.right_operand != length_retention.right_operand
+        {
+            return Err(Q1DuplicateRetirementValidationErrorV1::OperandMismatch);
+        }
+        if state_utility.comparison != length_retention.comparison {
+            return Err(Q1DuplicateRetirementValidationErrorV1::ComparatorMismatch);
+        }
+        if state_utility.aggregation != length_retention.aggregation {
+            return Err(Q1DuplicateRetirementValidationErrorV1::AggregationMismatch);
+        }
+        if state_utility.missing_row_policy != length_retention.missing_row_policy
+            || state_utility.missing_field_policy != length_retention.missing_field_policy
+        {
+            return Err(Q1DuplicateRetirementValidationErrorV1::MissingPolicyMismatch);
+        }
+        if state_utility.invalid_value_policy != length_retention.invalid_value_policy {
+            return Err(Q1DuplicateRetirementValidationErrorV1::InvalidValuePolicyMismatch);
+        }
+        if state_utility.applicability != length_retention.applicability {
+            return Err(Q1DuplicateRetirementValidationErrorV1::ApplicabilityMismatch);
+        }
+        if state_utility.structural_precedence != length_retention.structural_precedence {
+            return Err(Q1DuplicateRetirementValidationErrorV1::PrecedenceMismatch);
+        }
+        if independent_consumer_count != 0 {
+            return Err(Q1DuplicateRetirementValidationErrorV1::IndependentConsumerPresent);
+        }
+        Ok(
+            Q1StructuralGateDispositionV1::RetiredDuplicateSemanticAlias {
+                canonical_gate: Q1StructuralGateV1::StateUtilityAtMaximumLength,
+                predecessor_contract: Q1ContractVersionV1::V5,
+            },
+        )
+    }
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct ActiveQ1StructuralGateRegistryEntryV1 {
+        gate: Q1StructuralGateV1,
+        disposition: Q1StructuralGateDispositionV1,
+        semantic_signature: Q1StructuralGateSemanticSignatureV1,
+    }
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct ActiveQ1StructuralGateRegistryV1 {
+        entries: Vec<ActiveQ1StructuralGateRegistryEntryV1>,
+        semantic_digest: String,
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum ActiveQ1StructuralGateRegistryErrorV1 {
+        DuplicateGateIdentity,
+        DuplicateSemanticSignature,
+        RetiredGateActive,
+        MissingOrUnexpectedActiveGate,
+        NonDeterministicOrdering,
+    }
+
+    fn sprint105_q1_validate_active_gate_registry_entries_v1(
+        entries: &[ActiveQ1StructuralGateRegistryEntryV1],
+    ) -> Result<(), ActiveQ1StructuralGateRegistryErrorV1> {
+        for (index, entry) in entries.iter().enumerate() {
+            if entries[..index]
+                .iter()
+                .any(|prior| prior.gate == entry.gate)
+            {
+                return Err(ActiveQ1StructuralGateRegistryErrorV1::DuplicateGateIdentity);
+            }
+            if entries[..index]
+                .iter()
+                .any(|prior| prior.semantic_signature == entry.semantic_signature)
+            {
+                return Err(ActiveQ1StructuralGateRegistryErrorV1::DuplicateSemanticSignature);
+            }
+            if entry.gate == Q1StructuralGateV1::LengthRetention
+                || entry.disposition != Q1StructuralGateDispositionV1::Active
+            {
+                return Err(ActiveQ1StructuralGateRegistryErrorV1::RetiredGateActive);
+            }
+        }
+        let observed = entries.iter().map(|entry| entry.gate).collect::<Vec<_>>();
+        if observed.iter().copied().collect::<BTreeSet<_>>().len() != observed.len()
+            || Q1StructuralGateV1::ORDERED
+                .iter()
+                .any(|gate| !observed.contains(gate))
+            || observed
+                .iter()
+                .any(|gate| !Q1StructuralGateV1::ORDERED.contains(gate))
+        {
+            return Err(ActiveQ1StructuralGateRegistryErrorV1::MissingOrUnexpectedActiveGate);
+        }
+        if observed != Q1StructuralGateV1::ORDERED {
+            return Err(ActiveQ1StructuralGateRegistryErrorV1::NonDeterministicOrdering);
+        }
+        Ok(())
+    }
+
+    fn sprint105_q1_active_gate_registry_v1(
+        domain: &ExpectedQ1EvidenceDomainV1,
+        policy: &Q1StructuralGatePolicyV1,
+    ) -> Result<ActiveQ1StructuralGateRegistryV1, ActiveQ1StructuralGateRegistryErrorV1> {
+        let entries = Q1StructuralGateV1::ORDERED
+            .into_iter()
+            .map(|gate| ActiveQ1StructuralGateRegistryEntryV1 {
+                gate,
+                disposition: Q1StructuralGateDispositionV1::Active,
+                semantic_signature: sprint105_q1_gate_semantic_signature_v1(gate, domain, policy),
+            })
+            .collect::<Vec<_>>();
+        sprint105_q1_validate_active_gate_registry_entries_v1(&entries)?;
+        let mut encoder = Sprint105CanonicalEncoderV1::default();
+        encoder.field_string("registry_identity", "q1-active-structural-gate-registry-v2");
+        encoder.field_usize("active_gate_count", entries.len());
+        for entry in &entries {
+            let mut nested = Sprint105CanonicalEncoderV1::default();
+            nested.field_string("gate", entry.gate.as_str());
+            nested.field_string(
+                "semantic_signature",
+                &sprint105_q1_gate_semantic_signature_digest_v1(&entry.semantic_signature),
+            );
+            encoder.field_bytes("active_gate", &nested.bytes);
+        }
+        Ok(ActiveQ1StructuralGateRegistryV1 {
+            entries,
+            semantic_digest: sprint105_r1_encoder_digest_v1(encoder),
+        })
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum Q1PredecessorDispositionV1 {
+        Superseded,
+        Current,
+    }
+
+    impl Q1PredecessorDispositionV1 {
+        fn as_str(self) -> &'static str {
+            match self {
+                Self::Superseded => "superseded",
+                Self::Current => "current",
+            }
+        }
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum Q1GateRetirementReasonV1 {
+        DuplicateSemanticAlias,
+        MutationProbe,
+    }
+
+    impl Q1GateRetirementReasonV1 {
+        fn as_str(self) -> &'static str {
+            match self {
+                Self::DuplicateSemanticAlias => "duplicate-semantic-alias",
+                Self::MutationProbe => "mutation-probe",
+            }
+        }
+    }
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct Q1QualificationContractIdentityV6 {
+        policy_identity: String,
+        version: Q1ContractVersionV1,
+        predecessor_version: Q1ContractVersionV1,
+        predecessor_digest: String,
+        predecessor_disposition: Q1PredecessorDispositionV1,
+        retired_gate: Q1StructuralGateV1,
+        canonical_gate: Q1StructuralGateV1,
+        retirement_reason: Q1GateRetirementReasonV1,
+        retirement_disposition: Option<Q1StructuralGateDispositionV1>,
+        duplicate_semantic_signature_identity: String,
+        active_gate_registry_identity: String,
+        active_gate_policy_identity: String,
+        actual_policy_owner_identity: String,
+        qualification_owner_identity: String,
+        expected_evidence_domain_identity: String,
+        validated_adapter_identity: String,
+        actual_application_set_identity: String,
+        initializer_owner_identity: String,
+        initial_state_identity: String,
+        state_mode_owner_identity: String,
+        behavioral_witness_identity: String,
+        fixture_split_seed_metric_reset_owner_identity: String,
+    }
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct ValidatedQ1QualificationContractV6 {
+        identity: Q1QualificationContractIdentityV6,
+        semantic_digest: String,
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum Q1V6LineageValidationErrorV1 {
+        OwnerConstruction,
+        Version,
+        Predecessor,
+        PredecessorDisposition,
+        RetirementDisposition,
+        CanonicalReplacement,
+        DuplicateSemanticSignature,
+        ActiveRegistry,
+        CurrentOwnerIdentity,
+        SelfDigest,
+    }
+
+    fn sprint105_q1_expected_evidence_domain_identity_from_owners_v1(
+        domain: &ExpectedQ1EvidenceDomainV1,
+        actual_policy_owner: &Q1ActualPolicyOwnerProjectionV1,
+        active_gate_policy_owner: &Q1StructuralGatePolicyOwnerProjectionV1,
+    ) -> String {
+        let mut encoder = Sprint105CanonicalEncoderV1::default();
+        encoder.field_string("identity", "q1-expected-evidence-domain-v1");
+        encoder.field_string("actual_policy_owner", &actual_policy_owner.semantic_digest);
+        encoder.field_string(
+            "active_gate_policy_owner",
+            &active_gate_policy_owner.semantic_digest,
+        );
+        for (name, keys) in [
+            ("full", &domain.keys),
+            ("history", &domain.history_keys),
+            ("maximum_history", &domain.maximum_history_keys),
+            ("local_control", &domain.local_control_keys),
+            ("footprint", &domain.footprint_keys),
+        ] {
+            encoder.field_usize(&format!("{name}_count"), keys.len());
+            for key in keys {
+                let mut nested = Sprint105CanonicalEncoderV1::default();
+                nested.field_string("family", key.family.as_str());
+                nested.field_usize("sequence_length", key.sequence_length);
+                encoder.field_bytes(name, &nested.bytes);
+            }
+        }
+        encoder.field_usize("maximum_length", domain.maximum_length);
+        sprint105_r1_encoder_digest_v1(encoder)
+    }
+
+    fn sprint105_q1_validated_adapter_identity_v1(expected_domain_identity: &str) -> String {
+        let mut encoder = Sprint105CanonicalEncoderV1::default();
+        encoder.field_string("identity", "q1-exact-keyed-evidence-adapter-v1");
+        encoder.field_string("typed_key", "Q1QualificationEvidenceKeyV1");
+        encoder.field_string("expected_domain", expected_domain_identity);
+        encoder.field_string(
+            "metric_collection_validation",
+            "independent-missing-duplicate-unexpected-exact",
+        );
+        encoder.field_string(
+            "footprint_collection_validation",
+            "independent-missing-duplicate-unexpected-length-exact",
+        );
+        encoder.field_string("join", "expected-key-ordered-exact-typed-lookup");
+        encoder.field_string("raw_boundary", "raw-to-validated-exact-table-v1");
+        sprint105_r1_encoder_digest_v1(encoder)
+    }
+
+    fn sprint105_q1_contract_identity_v6(
+        qualification: &Sprint105V2P1Qualification,
+    ) -> Result<Q1QualificationContractIdentityV6, M3MicroError> {
+        let actual_policy_owner =
+            sprint105_q1_actual_policy_owner_projection_v1(&qualification.actual_policy)?;
+        let active_gate_policy_owner =
+            sprint105_q1_structural_gate_policy_owner_projection_v1(&qualification.gate_policy)?;
+        let current_binding = sprint105_q1_qualification_owner_binding_from_projections_v1(
+            &actual_policy_owner,
+            &active_gate_policy_owner,
+        );
+        if current_binding != qualification.owner_binding {
+            return Err(M3MicroError::CorruptArtifact);
+        }
+        let domain = sprint105_q1_expected_evidence_domain_v1(
+            &qualification.actual_policy,
+            &qualification.gate_policy,
+        )
+        .map_err(|_| M3MicroError::CorruptArtifact)?;
+        let active_registry =
+            sprint105_q1_active_gate_registry_v1(&domain, &qualification.gate_policy)
+                .map_err(|_| M3MicroError::CorruptArtifact)?;
+        sprint105_q1_contract_identity_v6_from_current_owners_v1(
+            qualification,
+            &current_binding,
+            &domain,
+            &actual_policy_owner,
+            &active_registry,
+            &qualification.gate_policy,
+            &active_gate_policy_owner,
+        )
+    }
+
+    fn sprint105_q1_contract_identity_v6_from_current_owners_v1(
+        qualification: &Sprint105V2P1Qualification,
+        current_binding: &Q1QualificationOwnerBindingV1,
+        domain: &ExpectedQ1EvidenceDomainV1,
+        actual_policy_owner: &Q1ActualPolicyOwnerProjectionV1,
+        active_registry: &ActiveQ1StructuralGateRegistryV1,
+        active_gate_policy: &Q1StructuralGatePolicyV1,
+        active_gate_policy_owner: &Q1StructuralGatePolicyOwnerProjectionV1,
+    ) -> Result<Q1QualificationContractIdentityV6, M3MicroError> {
+        let state_utility = sprint105_q1_gate_semantic_signature_v1(
+            Q1StructuralGateV1::StateUtilityAtMaximumLength,
+            domain,
+            active_gate_policy,
+        );
+        let length_retention = sprint105_q1_gate_semantic_signature_v1(
+            Q1StructuralGateV1::LengthRetention,
+            domain,
+            active_gate_policy,
+        );
+        let retirement_disposition = sprint105_q1_validate_duplicate_retirement_v1(
+            &state_utility,
+            &length_retention,
+            sprint105_q1_independent_length_retention_consumer_count_v1(),
+        )
+        .map_err(|_| M3MicroError::CorruptArtifact)?;
+        let historical_gate_policy_owner =
+            sprint105_q1_historical_v5_gate_policy_owner_projection_v1(active_gate_policy)?;
+        let historical_owner_binding =
+            sprint105_q1_historical_v5_qualification_owner_binding_from_projections_v1(
+                actual_policy_owner,
+                &historical_gate_policy_owner,
+            );
+        let historical_v4 =
+            sprint105_q1_contract_identity_v4(&qualification.actual_application_set)?;
+        let predecessor_digest = sprint105_q1_contract_digest_v5_from_owner_refs_v1(
+            "sprint105-q1-frozen-qualification-contract-v5",
+            &historical_v4,
+            actual_policy_owner,
+            &historical_gate_policy_owner,
+            &historical_owner_binding.qualification_owner_identity,
+        );
+        if predecessor_digest != SPRINT105_Q1_CONTRACT_GOLDEN_DIGEST_V5 {
+            return Err(M3MicroError::CorruptArtifact);
+        }
+        let expected_evidence_domain_identity =
+            sprint105_q1_expected_evidence_domain_identity_from_owners_v1(
+                domain,
+                actual_policy_owner,
+                active_gate_policy_owner,
+            );
+        let initializer = sprint105_v2_q1_initialization_owner_projection_v1()?;
+        let state_owner = sprint105_v2_q1_state_intervention_owner_projection_v1()?;
+        Ok(Q1QualificationContractIdentityV6 {
+            policy_identity: "sprint105-q1-current-authoritative-contract-v6".to_string(),
+            version: Q1ContractVersionV1::V6,
+            predecessor_version: Q1ContractVersionV1::V5,
+            predecessor_digest,
+            predecessor_disposition: Q1PredecessorDispositionV1::Superseded,
+            retired_gate: Q1StructuralGateV1::LengthRetention,
+            canonical_gate: Q1StructuralGateV1::StateUtilityAtMaximumLength,
+            retirement_reason: Q1GateRetirementReasonV1::DuplicateSemanticAlias,
+            retirement_disposition: Some(retirement_disposition),
+            duplicate_semantic_signature_identity: sprint105_q1_gate_semantic_signature_digest_v1(
+                &state_utility,
+            ),
+            active_gate_registry_identity: active_registry.semantic_digest.clone(),
+            active_gate_policy_identity: active_gate_policy_owner.semantic_digest.clone(),
+            actual_policy_owner_identity: actual_policy_owner.semantic_digest.clone(),
+            qualification_owner_identity: current_binding.qualification_owner_identity.clone(),
+            expected_evidence_domain_identity: expected_evidence_domain_identity.clone(),
+            validated_adapter_identity: sprint105_q1_validated_adapter_identity_v1(
+                &expected_evidence_domain_identity,
+            ),
+            actual_application_set_identity: qualification
+                .actual_application_set
+                .summary()
+                .semantic_digest()
+                .to_string(),
+            initializer_owner_identity: sprint105_v2_q1_initialization_owner_digest_v1(
+                &initializer,
+            ),
+            initial_state_identity: initializer.initial_state_bits_digest,
+            state_mode_owner_identity: state_owner.state_mode_plan_digest.clone(),
+            behavioral_witness_identity: sprint105_v2_q1_state_intervention_owner_digest_v1(
+                &state_owner,
+            ),
+            fixture_split_seed_metric_reset_owner_identity: sprint105_q1_contract_digest_v1(
+                &historical_v4.shared_contract_v1,
+            ),
+        })
+    }
+
+    fn sprint105_q1_contract_digest_v6(contract: &Q1QualificationContractIdentityV6) -> String {
+        let mut encoder = Sprint105CanonicalEncoderV1::default();
+        encoder.field_string("policy_identity", &contract.policy_identity);
+        encoder.field_string("version", contract.version.as_str());
+        encoder.field_string("predecessor_version", contract.predecessor_version.as_str());
+        encoder.field_string("predecessor_digest", &contract.predecessor_digest);
+        encoder.field_string(
+            "predecessor_disposition",
+            contract.predecessor_disposition.as_str(),
+        );
+        encoder.field_string("retired_gate", contract.retired_gate.as_str());
+        encoder.field_string("canonical_gate", contract.canonical_gate.as_str());
+        encoder.field_string("retirement_reason", contract.retirement_reason.as_str());
+        encoder.field_bool(
+            "has_retirement_disposition",
+            contract.retirement_disposition.is_some(),
+        );
+        if let Some(Q1StructuralGateDispositionV1::RetiredDuplicateSemanticAlias {
+            canonical_gate,
+            predecessor_contract,
+        }) = contract.retirement_disposition
+        {
+            encoder.field_string("disposition_canonical_gate", canonical_gate.as_str());
+            encoder.field_string(
+                "disposition_predecessor_contract",
+                predecessor_contract.as_str(),
+            );
+        }
+        for (name, identity) in [
+            (
+                "duplicate_semantic_signature_identity",
+                &contract.duplicate_semantic_signature_identity,
+            ),
+            (
+                "active_gate_registry_identity",
+                &contract.active_gate_registry_identity,
+            ),
+            (
+                "active_gate_policy_identity",
+                &contract.active_gate_policy_identity,
+            ),
+            (
+                "actual_policy_owner_identity",
+                &contract.actual_policy_owner_identity,
+            ),
+            (
+                "qualification_owner_identity",
+                &contract.qualification_owner_identity,
+            ),
+            (
+                "expected_evidence_domain_identity",
+                &contract.expected_evidence_domain_identity,
+            ),
+            (
+                "validated_adapter_identity",
+                &contract.validated_adapter_identity,
+            ),
+            (
+                "actual_application_set_identity",
+                &contract.actual_application_set_identity,
+            ),
+            (
+                "initializer_owner_identity",
+                &contract.initializer_owner_identity,
+            ),
+            ("initial_state_identity", &contract.initial_state_identity),
+            (
+                "state_mode_owner_identity",
+                &contract.state_mode_owner_identity,
+            ),
+            (
+                "behavioral_witness_identity",
+                &contract.behavioral_witness_identity,
+            ),
+            (
+                "fixture_split_seed_metric_reset_owner_identity",
+                &contract.fixture_split_seed_metric_reset_owner_identity,
+            ),
+        ] {
+            encoder.field_string(name, identity);
+        }
+        sprint105_r1_encoder_digest_v1(encoder)
+    }
+
+    fn sprint105_q1_validate_contract_v6(
+        contract: &ValidatedQ1QualificationContractV6,
+        qualification: &Sprint105V2P1Qualification,
+    ) -> Result<(), Q1V6LineageValidationErrorV1> {
+        let expected = sprint105_q1_contract_identity_v6(qualification)
+            .map_err(|_| Q1V6LineageValidationErrorV1::OwnerConstruction)?;
+        sprint105_q1_validate_contract_v6_against_expected_v1(contract, &expected)
+    }
+
+    fn sprint105_q1_validate_contract_v6_against_expected_v1(
+        contract: &ValidatedQ1QualificationContractV6,
+        expected: &Q1QualificationContractIdentityV6,
+    ) -> Result<(), Q1V6LineageValidationErrorV1> {
+        let identity = &contract.identity;
+        if identity.version != Q1ContractVersionV1::V6 {
+            return Err(Q1V6LineageValidationErrorV1::Version);
+        }
+        if identity.predecessor_version != Q1ContractVersionV1::V5
+            || identity.predecessor_digest != SPRINT105_Q1_CONTRACT_GOLDEN_DIGEST_V5
+        {
+            return Err(Q1V6LineageValidationErrorV1::Predecessor);
+        }
+        if identity.predecessor_disposition != Q1PredecessorDispositionV1::Superseded {
+            return Err(Q1V6LineageValidationErrorV1::PredecessorDisposition);
+        }
+        if identity.retired_gate != Q1StructuralGateV1::LengthRetention
+            || identity.retirement_reason != Q1GateRetirementReasonV1::DuplicateSemanticAlias
+            || identity.retirement_disposition
+                != Some(
+                    Q1StructuralGateDispositionV1::RetiredDuplicateSemanticAlias {
+                        canonical_gate: Q1StructuralGateV1::StateUtilityAtMaximumLength,
+                        predecessor_contract: Q1ContractVersionV1::V5,
+                    },
+                )
+        {
+            return Err(Q1V6LineageValidationErrorV1::RetirementDisposition);
+        }
+        if identity.canonical_gate != Q1StructuralGateV1::StateUtilityAtMaximumLength
+            || identity.canonical_gate == identity.retired_gate
+        {
+            return Err(Q1V6LineageValidationErrorV1::CanonicalReplacement);
+        }
+        if identity.duplicate_semantic_signature_identity
+            != expected.duplicate_semantic_signature_identity
+        {
+            return Err(Q1V6LineageValidationErrorV1::DuplicateSemanticSignature);
+        }
+        if Q1StructuralGateV1::ORDERED.contains(&identity.retired_gate)
+            || Q1StructuralGateV1::ORDERED
+                .iter()
+                .filter(|gate| **gate == identity.canonical_gate)
+                .count()
+                != 1
+        {
+            return Err(Q1V6LineageValidationErrorV1::ActiveRegistry);
+        }
+        if identity != expected {
+            return Err(Q1V6LineageValidationErrorV1::CurrentOwnerIdentity);
+        }
+        if contract.semantic_digest != sprint105_q1_contract_digest_v6(identity) {
+            return Err(Q1V6LineageValidationErrorV1::SelfDigest);
+        }
+        Ok(())
+    }
+
+    fn sprint105_q1_contract_v6(
+        qualification: &Sprint105V2P1Qualification,
+    ) -> Result<ValidatedQ1QualificationContractV6, M3MicroError> {
+        let identity = sprint105_q1_contract_identity_v6(qualification)?;
+        let contract = ValidatedQ1QualificationContractV6 {
+            semantic_digest: sprint105_q1_contract_digest_v6(&identity),
+            identity: identity.clone(),
+        };
+        sprint105_q1_validate_contract_v6_against_expected_v1(&contract, &identity)
+            .map_err(|_| M3MicroError::CorruptArtifact)?;
+        Ok(contract)
+    }
+
+    // SPRINT105_Q1_CURRENT_V6_AUTHORITY_V1_BEGIN
+    mod current_q1_contract_v6_authority {
+        use super::*;
+
+        #[derive(Clone, Debug, PartialEq, Eq)]
+        pub(super) struct CurrentQ1ContractV6SummaryV1 {
+            version: Q1ContractVersionV1,
+            semantic_digest: String,
+            active_gate_registry_identity: String,
+            active_gate_policy_identity: String,
+        }
+
+        pub(super) struct ValidatedCurrentQ1ContractV6 {
+            inner: ValidatedCurrentQ1ContractV6Inner,
+        }
+
+        struct ValidatedCurrentQ1GateOwnerBundleV1 {
+            inner: ValidatedCurrentQ1GateOwnerBundleInnerV1,
+        }
+
+        struct ValidatedCurrentQ1GateOwnerBundleInnerV1 {
+            actual_policy_owner: Q1ActualPolicyOwnerProjectionV1,
+            active_gate_registry: ActiveQ1StructuralGateRegistryV1,
+            active_gate_policy: Q1StructuralGatePolicyV1,
+            active_gate_policy_owner: Q1StructuralGatePolicyOwnerProjectionV1,
+            qualification_owner_binding: Q1QualificationOwnerBindingV1,
+        }
+
+        struct ValidatedCurrentQ1ContractV6Inner {
+            contract: ValidatedQ1QualificationContractV6,
+            gate_owners: ValidatedCurrentQ1GateOwnerBundleV1,
+            expected_evidence_domain_identity: String,
+            validated_adapter_identity: String,
+        }
+
+        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+        enum Q1GateOwnerBundleBuildModeV1 {
+            Canonical,
+            DuplicateAlias,
+            MixedPolicy,
+        }
+
+        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+        pub(super) struct Q1GateOwnerObjectWitnessV1 {
+            registry_same_object: bool,
+            policy_same_object: bool,
+        }
+
+        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+        pub(super) struct Q1SeparateOwnerBundleWitnessV1 {
+            registry_identity_equal: bool,
+            policy_identity_equal: bool,
+            registry_same_object: bool,
+            policy_same_object: bool,
+        }
+
+        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+        pub(super) enum Q1V6AuthorityCorruptionProbeV1 {
+            PredecessorVersion,
+            PredecessorDigest,
+            RetirementDisposition,
+            RetiredGate,
+            CanonicalReplacement,
+            ActiveRegistryIdentity,
+            ActivePolicyIdentity,
+            SelfDigest,
+            DuplicateAlias,
+        }
+
+        impl Q1GateOwnerObjectWitnessV1 {
+            pub(super) fn registry_same_object(self) -> bool {
+                self.registry_same_object
+            }
+
+            pub(super) fn policy_same_object(self) -> bool {
+                self.policy_same_object
+            }
+        }
+
+        impl Q1SeparateOwnerBundleWitnessV1 {
+            pub(super) fn registry_identity_equal(self) -> bool {
+                self.registry_identity_equal
+            }
+
+            pub(super) fn policy_identity_equal(self) -> bool {
+                self.policy_identity_equal
+            }
+
+            pub(super) fn registry_same_object(self) -> bool {
+                self.registry_same_object
+            }
+
+            pub(super) fn policy_same_object(self) -> bool {
+                self.policy_same_object
+            }
+        }
+
+        impl ValidatedCurrentQ1GateOwnerBundleV1 {
+            fn actual_policy_owner(&self) -> &Q1ActualPolicyOwnerProjectionV1 {
+                &self.inner.actual_policy_owner
+            }
+
+            fn active_gate_registry(&self) -> &ActiveQ1StructuralGateRegistryV1 {
+                &self.inner.active_gate_registry
+            }
+
+            fn active_gate_policy(&self) -> &Q1StructuralGatePolicyV1 {
+                &self.inner.active_gate_policy
+            }
+
+            fn active_gate_policy_owner(&self) -> &Q1StructuralGatePolicyOwnerProjectionV1 {
+                &self.inner.active_gate_policy_owner
+            }
+
+            fn qualification_owner_binding(&self) -> &Q1QualificationOwnerBindingV1 {
+                &self.inner.qualification_owner_binding
+            }
+
+            fn object_witness(
+                &self,
+                registry: &ActiveQ1StructuralGateRegistryV1,
+                policy: &Q1StructuralGatePolicyV1,
+            ) -> Q1GateOwnerObjectWitnessV1 {
+                Q1GateOwnerObjectWitnessV1 {
+                    registry_same_object: std::ptr::eq(self.active_gate_registry(), registry),
+                    policy_same_object: std::ptr::eq(self.active_gate_policy(), policy),
+                }
+            }
+        }
+
+        impl CurrentQ1ContractV6SummaryV1 {
+            pub(super) fn version(&self) -> Q1ContractVersionV1 {
+                self.version
+            }
+
+            pub(super) fn semantic_digest(&self) -> &str {
+                &self.semantic_digest
+            }
+
+            pub(super) fn active_gate_registry_identity(&self) -> &str {
+                &self.active_gate_registry_identity
+            }
+
+            pub(super) fn active_gate_policy_identity(&self) -> &str {
+                &self.active_gate_policy_identity
+            }
+        }
+
+        impl ValidatedCurrentQ1ContractV6 {
+            pub(super) fn summary(&self) -> CurrentQ1ContractV6SummaryV1 {
+                CurrentQ1ContractV6SummaryV1 {
+                    version: self.inner.contract.identity.version,
+                    semantic_digest: self.inner.contract.semantic_digest.clone(),
+                    active_gate_registry_identity: self
+                        .inner
+                        .contract
+                        .identity
+                        .active_gate_registry_identity
+                        .clone(),
+                    active_gate_policy_identity: self
+                        .inner
+                        .contract
+                        .identity
+                        .active_gate_policy_identity
+                        .clone(),
+                }
+            }
+
+            pub(super) fn active_gate_registry(&self) -> &ActiveQ1StructuralGateRegistryV1 {
+                self.inner.gate_owners.active_gate_registry()
+            }
+
+            pub(super) fn active_gate_policy(&self) -> &Q1StructuralGatePolicyV1 {
+                self.inner.gate_owners.active_gate_policy()
+            }
+
+            pub(super) fn active_gate_policy_owner(
+                &self,
+            ) -> &Q1StructuralGatePolicyOwnerProjectionV1 {
+                self.inner.gate_owners.active_gate_policy_owner()
+            }
+
+            pub(super) fn owner_object_witness(
+                &self,
+                registry: &ActiveQ1StructuralGateRegistryV1,
+                policy: &Q1StructuralGatePolicyV1,
+            ) -> Q1GateOwnerObjectWitnessV1 {
+                self.inner.gate_owners.object_witness(registry, policy)
+            }
+
+            pub(super) fn predecessor_version(&self) -> Q1ContractVersionV1 {
+                self.inner.contract.identity.predecessor_version
+            }
+
+            pub(super) fn predecessor_digest(&self) -> &str {
+                &self.inner.contract.identity.predecessor_digest
+            }
+
+            pub(super) fn retired_gate(&self) -> Q1StructuralGateV1 {
+                self.inner.contract.identity.retired_gate
+            }
+
+            pub(super) fn canonical_gate(&self) -> Q1StructuralGateV1 {
+                self.inner.contract.identity.canonical_gate
+            }
+
+            pub(super) fn retirement_reason(&self) -> Q1GateRetirementReasonV1 {
+                self.inner.contract.identity.retirement_reason
+            }
+
+            pub(super) fn retirement_disposition(&self) -> Option<Q1StructuralGateDispositionV1> {
+                self.inner.contract.identity.retirement_disposition
+            }
+
+            pub(super) fn validate_evidence_owner(
+                &self,
+                evidence: &ValidatedQ1QualificationEvidenceTableV1,
+            ) -> Result<(), M3MicroError> {
+                let evidence_domain_identity =
+                    sprint105_q1_expected_evidence_domain_identity_from_owners_v1(
+                        &evidence.domain,
+                        self.inner.gate_owners.actual_policy_owner(),
+                        self.active_gate_policy_owner(),
+                    );
+                if &evidence.domain.gate_policy != self.active_gate_policy()
+                    || evidence_domain_identity != self.inner.expected_evidence_domain_identity
+                    || sprint105_q1_validated_adapter_identity_v1(&evidence_domain_identity)
+                        != self.inner.validated_adapter_identity
+                {
+                    return Err(M3MicroError::CorruptArtifact);
+                }
+                Ok(())
+            }
+        }
+
+        fn build_validated_current_q1_gate_owner_bundle_v1(
+            qualification: &Sprint105V2P1Qualification,
+            expected_domain: &ExpectedQ1EvidenceDomainV1,
+            mode: Q1GateOwnerBundleBuildModeV1,
+        ) -> Result<ValidatedCurrentQ1GateOwnerBundleV1, M3MicroError> {
+            if expected_domain.actual_policy != qualification.actual_policy
+                || expected_domain.gate_policy != qualification.gate_policy
+            {
+                return Err(M3MicroError::CorruptArtifact);
+            }
+
+            let actual_policy_owner =
+                sprint105_q1_actual_policy_owner_projection_v1(&qualification.actual_policy)?;
+            let mut active_gate_registry =
+                sprint105_q1_active_gate_registry_v1(expected_domain, &qualification.gate_policy)
+                    .map_err(|_| M3MicroError::CorruptArtifact)?;
+            if mode == Q1GateOwnerBundleBuildModeV1::DuplicateAlias {
+                active_gate_registry.entries.insert(
+                    1,
+                    ActiveQ1StructuralGateRegistryEntryV1 {
+                        gate: Q1StructuralGateV1::LengthRetention,
+                        disposition: Q1StructuralGateDispositionV1::Active,
+                        semantic_signature: sprint105_q1_gate_semantic_signature_v1(
+                            Q1StructuralGateV1::StateUtilityAtMaximumLength,
+                            expected_domain,
+                            &qualification.gate_policy,
+                        ),
+                    },
+                );
+            }
+
+            let mut active_gate_policy = qualification.gate_policy;
+            if mode == Q1GateOwnerBundleBuildModeV1::MixedPolicy {
+                active_gate_policy.state_utility_comparison =
+                    Q1GateComparisonSemanticsV1::GreaterOrEqual;
+            }
+            let active_gate_policy_owner =
+                sprint105_q1_structural_gate_policy_owner_projection_v1(&active_gate_policy)?;
+            let qualification_owner_binding =
+                sprint105_q1_qualification_owner_binding_from_projections_v1(
+                    &actual_policy_owner,
+                    &active_gate_policy_owner,
+                );
+
+            sprint105_q1_validate_active_gate_registry_entries_v1(&active_gate_registry.entries)
+                .map_err(|_| M3MicroError::CorruptArtifact)?;
+            sprint105_q1_validate_structural_gate_policy_fields_v1(
+                &active_gate_policy_owner.fields,
+            )?;
+            if qualification_owner_binding != qualification.owner_binding
+                || active_gate_policy != qualification.gate_policy
+                || active_gate_policy_owner.gate_inventory_identity
+                    != sprint105_q1_structural_gate_inventory_identity_v1()
+                || active_gate_registry.semantic_digest.is_empty()
+                || active_gate_policy_owner.semantic_digest.is_empty()
+                || active_gate_registry.entries.iter().any(|entry| {
+                    entry.semantic_signature
+                        != sprint105_q1_gate_semantic_signature_v1(
+                            entry.gate,
+                            expected_domain,
+                            &active_gate_policy,
+                        )
+                })
+            {
+                return Err(M3MicroError::CorruptArtifact);
+            }
+
+            Ok(ValidatedCurrentQ1GateOwnerBundleV1 {
+                inner: ValidatedCurrentQ1GateOwnerBundleInnerV1 {
+                    actual_policy_owner,
+                    active_gate_registry,
+                    active_gate_policy,
+                    active_gate_policy_owner,
+                    qualification_owner_binding,
+                },
+            })
+        }
+
+        fn mint_validated_current_q1_contract_v6(
+            evidence: &ValidatedQ1QualificationEvidenceTableV1,
+            expected_domain: &ExpectedQ1EvidenceDomainV1,
+            expected_identity: &Q1QualificationContractIdentityV6,
+            contract: ValidatedQ1QualificationContractV6,
+            gate_owners: ValidatedCurrentQ1GateOwnerBundleV1,
+        ) -> Result<ValidatedCurrentQ1ContractV6, M3MicroError> {
+            sprint105_q1_validate_contract_v6_against_expected_v1(&contract, expected_identity)
+                .map_err(|_| M3MicroError::CorruptArtifact)?;
+            if evidence.domain != *expected_domain {
+                return Err(M3MicroError::CorruptArtifact);
+            }
+            let expected_evidence_domain_identity =
+                sprint105_q1_expected_evidence_domain_identity_from_owners_v1(
+                    expected_domain,
+                    gate_owners.actual_policy_owner(),
+                    gate_owners.active_gate_policy_owner(),
+                );
+            let validated_adapter_identity =
+                sprint105_q1_validated_adapter_identity_v1(&expected_evidence_domain_identity);
+            if contract.identity.active_gate_registry_identity
+                != gate_owners.active_gate_registry().semantic_digest
+                || contract.identity.active_gate_policy_identity
+                    != gate_owners.active_gate_policy_owner().semantic_digest
+                || contract.identity.expected_evidence_domain_identity
+                    != expected_evidence_domain_identity
+                || contract.identity.validated_adapter_identity != validated_adapter_identity
+                || sprint105_q1_contract_digest_v6(&contract.identity) != contract.semantic_digest
+            {
+                return Err(M3MicroError::CorruptArtifact);
+            }
+            Ok(ValidatedCurrentQ1ContractV6 {
+                inner: ValidatedCurrentQ1ContractV6Inner {
+                    contract,
+                    gate_owners,
+                    expected_evidence_domain_identity,
+                    validated_adapter_identity,
+                },
+            })
+        }
+
+        fn build_current_q1_contract_v6_authority_v1(
+            qualification: &Sprint105V2P1Qualification,
+            evidence: &ValidatedQ1QualificationEvidenceTableV1,
+            corruption: Option<Q1V6AuthorityCorruptionProbeV1>,
+        ) -> Result<ValidatedCurrentQ1ContractV6, M3MicroError> {
+            let expected_domain = sprint105_q1_expected_evidence_domain_v1(
+                &qualification.actual_policy,
+                &qualification.gate_policy,
+            )
+            .map_err(|_| M3MicroError::CorruptArtifact)?;
+            let bundle_mode = if corruption == Some(Q1V6AuthorityCorruptionProbeV1::DuplicateAlias)
+            {
+                Q1GateOwnerBundleBuildModeV1::DuplicateAlias
+            } else {
+                Q1GateOwnerBundleBuildModeV1::Canonical
+            };
+            let gate_owners = build_validated_current_q1_gate_owner_bundle_v1(
+                qualification,
+                &expected_domain,
+                bundle_mode,
+            )?;
+            let expected_identity = sprint105_q1_contract_identity_v6_from_current_owners_v1(
+                qualification,
+                gate_owners.qualification_owner_binding(),
+                &expected_domain,
+                gate_owners.actual_policy_owner(),
+                gate_owners.active_gate_registry(),
+                gate_owners.active_gate_policy(),
+                gate_owners.active_gate_policy_owner(),
+            )?;
+            let mut contract = ValidatedQ1QualificationContractV6 {
+                semantic_digest: sprint105_q1_contract_digest_v6(&expected_identity),
+                identity: expected_identity.clone(),
+            };
+            if let Some(probe) = corruption {
+                match probe {
+                    Q1V6AuthorityCorruptionProbeV1::PredecessorVersion => {
+                        contract.identity.predecessor_version = Q1ContractVersionV1::V4;
+                        contract.semantic_digest =
+                            sprint105_q1_contract_digest_v6(&contract.identity);
+                    }
+                    Q1V6AuthorityCorruptionProbeV1::PredecessorDigest => {
+                        contract.identity.predecessor_digest.push_str(":corrupt");
+                        contract.semantic_digest =
+                            sprint105_q1_contract_digest_v6(&contract.identity);
+                    }
+                    Q1V6AuthorityCorruptionProbeV1::RetirementDisposition => {
+                        contract.identity.retirement_disposition =
+                            Some(Q1StructuralGateDispositionV1::Active);
+                        contract.semantic_digest =
+                            sprint105_q1_contract_digest_v6(&contract.identity);
+                    }
+                    Q1V6AuthorityCorruptionProbeV1::RetiredGate => {
+                        contract.identity.retired_gate = Q1StructuralGateV1::StateCausality;
+                        contract.semantic_digest =
+                            sprint105_q1_contract_digest_v6(&contract.identity);
+                    }
+                    Q1V6AuthorityCorruptionProbeV1::CanonicalReplacement => {
+                        contract.identity.canonical_gate = Q1StructuralGateV1::LocalControl;
+                        contract.semantic_digest =
+                            sprint105_q1_contract_digest_v6(&contract.identity);
+                    }
+                    Q1V6AuthorityCorruptionProbeV1::ActiveRegistryIdentity => {
+                        contract
+                            .identity
+                            .active_gate_registry_identity
+                            .push_str(":corrupt");
+                        contract.semantic_digest =
+                            sprint105_q1_contract_digest_v6(&contract.identity);
+                    }
+                    Q1V6AuthorityCorruptionProbeV1::ActivePolicyIdentity => {
+                        contract
+                            .identity
+                            .active_gate_policy_identity
+                            .push_str(":corrupt");
+                        contract.semantic_digest =
+                            sprint105_q1_contract_digest_v6(&contract.identity);
+                    }
+                    Q1V6AuthorityCorruptionProbeV1::SelfDigest => {
+                        contract.semantic_digest.push_str(":corrupt");
+                    }
+                    Q1V6AuthorityCorruptionProbeV1::DuplicateAlias => {
+                        return Err(M3MicroError::CorruptArtifact);
+                    }
+                }
+            }
+            mint_validated_current_q1_contract_v6(
+                evidence,
+                &expected_domain,
+                &expected_identity,
+                contract,
+                gate_owners,
+            )
+        }
+
+        pub(super) fn build_and_validate_current_q1_contract_v6(
+            qualification: &Sprint105V2P1Qualification,
+            evidence: &ValidatedQ1QualificationEvidenceTableV1,
+        ) -> Result<ValidatedCurrentQ1ContractV6, M3MicroError> {
+            build_current_q1_contract_v6_authority_v1(qualification, evidence, None)
+        }
+
+        pub(super) fn build_corrupted_current_q1_contract_v6_for_test(
+            qualification: &Sprint105V2P1Qualification,
+            evidence: &ValidatedQ1QualificationEvidenceTableV1,
+            probe: Q1V6AuthorityCorruptionProbeV1,
+        ) -> Result<ValidatedCurrentQ1ContractV6, M3MicroError> {
+            build_current_q1_contract_v6_authority_v1(qualification, evidence, Some(probe))
+        }
+
+        pub(super) fn separate_owner_bundle_witness_for_test(
+            qualification: &Sprint105V2P1Qualification,
+        ) -> Result<Q1SeparateOwnerBundleWitnessV1, M3MicroError> {
+            let domain = sprint105_q1_expected_evidence_domain_v1(
+                &qualification.actual_policy,
+                &qualification.gate_policy,
+            )
+            .map_err(|_| M3MicroError::CorruptArtifact)?;
+            let first = build_validated_current_q1_gate_owner_bundle_v1(
+                qualification,
+                &domain,
+                Q1GateOwnerBundleBuildModeV1::Canonical,
+            )?;
+            let second = build_validated_current_q1_gate_owner_bundle_v1(
+                qualification,
+                &domain,
+                Q1GateOwnerBundleBuildModeV1::Canonical,
+            )?;
+            Ok(Q1SeparateOwnerBundleWitnessV1 {
+                registry_identity_equal: first.active_gate_registry().semantic_digest
+                    == second.active_gate_registry().semantic_digest,
+                policy_identity_equal: first.active_gate_policy_owner().semantic_digest
+                    == second.active_gate_policy_owner().semantic_digest,
+                registry_same_object: std::ptr::eq(
+                    first.active_gate_registry(),
+                    second.active_gate_registry(),
+                ),
+                policy_same_object: std::ptr::eq(
+                    first.active_gate_policy(),
+                    second.active_gate_policy(),
+                ),
+            })
+        }
+
+        pub(super) fn mixed_owner_bundle_rejected_for_test(
+            qualification: &Sprint105V2P1Qualification,
+        ) -> bool {
+            let Ok(domain) = sprint105_q1_expected_evidence_domain_v1(
+                &qualification.actual_policy,
+                &qualification.gate_policy,
+            ) else {
+                return true;
+            };
+            build_validated_current_q1_gate_owner_bundle_v1(
+                qualification,
+                &domain,
+                Q1GateOwnerBundleBuildModeV1::MixedPolicy,
+            )
+            .is_err()
+        }
+
+        pub(super) fn detached_registry_mutation_is_isolated_for_test(
+            authority: &ValidatedCurrentQ1ContractV6,
+            qualification: &Sprint105V2P1Qualification,
+        ) -> Result<bool, M3MicroError> {
+            let domain = sprint105_q1_expected_evidence_domain_v1(
+                &qualification.actual_policy,
+                &qualification.gate_policy,
+            )
+            .map_err(|_| M3MicroError::CorruptArtifact)?;
+            let mut detached =
+                sprint105_q1_active_gate_registry_v1(&domain, &qualification.gate_policy)
+                    .map_err(|_| M3MicroError::CorruptArtifact)?;
+            detached.entries.reverse();
+            Ok(!std::ptr::eq(authority.active_gate_registry(), &detached)
+                && authority
+                    .active_gate_registry()
+                    .entries
+                    .iter()
+                    .map(|entry| entry.gate)
+                    .collect::<Vec<_>>()
+                    == Q1StructuralGateV1::ORDERED
+                && detached
+                    .entries
+                    .iter()
+                    .map(|entry| entry.gate)
+                    .collect::<Vec<_>>()
+                    != Q1StructuralGateV1::ORDERED)
+        }
+    }
+    // SPRINT105_Q1_CURRENT_V6_AUTHORITY_V1_END
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+    enum Q1V6MutationFieldV1 {
+        RetiredGateIdentity,
+        CanonicalReplacement,
+        DispositionReason,
+        PredecessorVersion,
+        PredecessorDigest,
+        ActiveRegistryIdentity,
+        ActivePolicyIdentity,
+        DuplicateSemanticSignatureIdentity,
+    }
+
+    impl Q1V6MutationFieldV1 {
+        const ORDERED: [Self; 8] = [
+            Self::RetiredGateIdentity,
+            Self::CanonicalReplacement,
+            Self::DispositionReason,
+            Self::PredecessorVersion,
+            Self::PredecessorDigest,
+            Self::ActiveRegistryIdentity,
+            Self::ActivePolicyIdentity,
+            Self::DuplicateSemanticSignatureIdentity,
+        ];
+    }
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct Q1V6MutationV1 {
+        field: Q1V6MutationFieldV1,
+        identity: Q1QualificationContractIdentityV6,
+    }
+
+    fn sprint105_q1_v6_mutations_v1(
+        original: &Q1QualificationContractIdentityV6,
+    ) -> Vec<Q1V6MutationV1> {
+        Q1V6MutationFieldV1::ORDERED
+            .into_iter()
+            .map(|field| {
+                let mut identity = original.clone();
+                match field {
+                    Q1V6MutationFieldV1::RetiredGateIdentity => {
+                        identity.retired_gate = Q1StructuralGateV1::StateCausality;
+                    }
+                    Q1V6MutationFieldV1::CanonicalReplacement => {
+                        identity.canonical_gate = Q1StructuralGateV1::LocalControl;
+                    }
+                    Q1V6MutationFieldV1::DispositionReason => {
+                        identity.retirement_reason = Q1GateRetirementReasonV1::MutationProbe;
+                    }
+                    Q1V6MutationFieldV1::PredecessorVersion => {
+                        identity.predecessor_version = Q1ContractVersionV1::V4;
+                    }
+                    Q1V6MutationFieldV1::PredecessorDigest => {
+                        identity.predecessor_digest.push_str(":mutation");
+                    }
+                    Q1V6MutationFieldV1::ActiveRegistryIdentity => {
+                        identity.active_gate_registry_identity.push_str(":mutation");
+                    }
+                    Q1V6MutationFieldV1::ActivePolicyIdentity => {
+                        identity.active_gate_policy_identity.push_str(":mutation");
+                    }
+                    Q1V6MutationFieldV1::DuplicateSemanticSignatureIdentity => {
+                        identity
+                            .duplicate_semantic_signature_identity
+                            .push_str(":mutation");
+                    }
+                }
+                Q1V6MutationV1 { field, identity }
+            })
+            .collect()
+    }
+
+    #[derive(Clone, Copy, Debug)]
+    struct Q1StructuralGatePolicyMutationV1 {
+        field: Q1StructuralGatePolicyFieldV1,
+        policy: Q1StructuralGatePolicyV1,
+    }
+
+    fn sprint105_q1_structural_gate_policy_mutations_v1(
+        actual: Q1StructuralGatePolicyV1,
+    ) -> Vec<Q1StructuralGatePolicyMutationV1> {
+        Q1StructuralGatePolicyFieldV1::ORDERED
+            .into_iter()
+            .map(|field| {
+                let mut policy = actual;
+                match field {
+                    Q1StructuralGatePolicyFieldV1::Revision => {
+                        policy.revision = Q1StructuralGatePolicyRevisionV1::MutationProbe;
+                    }
+                    Q1StructuralGatePolicyFieldV1::HistoryFamilies => {
+                        policy.history_families[2] = Sprint105Q1FamilyV1::StateIrrelevantControl;
+                    }
+                    Q1StructuralGatePolicyFieldV1::LocalControlFamily => {
+                        policy.local_control_family = Sprint105Q1FamilyV1::DelayedCue;
+                    }
+                    Q1StructuralGatePolicyFieldV1::ApplicableLength => {
+                        policy.applicable_length =
+                            Q1ApplicableLengthPolicyV1::MinimumActualPolicyLength;
+                    }
+                    Q1StructuralGatePolicyFieldV1::StateUtilityComparison => {
+                        policy.state_utility_comparison =
+                            Q1GateComparisonSemanticsV1::GreaterOrEqual;
+                    }
+                    Q1StructuralGatePolicyFieldV1::StateCausalityComparison => {
+                        policy.state_causality_comparison =
+                            Q1GateComparisonSemanticsV1::GreaterOrEqual;
+                    }
+                    Q1StructuralGatePolicyFieldV1::LocalControlComparison => {
+                        policy.local_control_comparison =
+                            Q1GateComparisonSemanticsV1::StrictGreater;
+                    }
+                    Q1StructuralGatePolicyFieldV1::TrainabilityComparison => {
+                        policy.trainability_comparison =
+                            Q1GateComparisonSemanticsV1::GreaterOrEqual;
+                    }
+                    Q1StructuralGatePolicyFieldV1::FootprintComparison => {
+                        policy.footprint_comparison =
+                            Q1GateComparisonSemanticsV1::ExactElementsOnly;
+                    }
+                    Q1StructuralGatePolicyFieldV1::AggregatePolicy => {
+                        policy.aggregate_policy = Q1GateAggregatePolicyV1::AnyApplicable;
+                    }
+                    Q1StructuralGatePolicyFieldV1::MissingEvidencePolicy => {
+                        policy.missing_evidence_policy = Q1MissingEvidencePolicyV1::VacuousPass;
+                    }
+                    Q1StructuralGatePolicyFieldV1::RequireNumericalStability => {
+                        policy.require_numerical_stability = !policy.require_numerical_stability;
+                    }
+                    Q1StructuralGatePolicyFieldV1::RequireDeterminism => {
+                        policy.require_determinism = !policy.require_determinism;
+                    }
+                    Q1StructuralGatePolicyFieldV1::RequireModeEquivalence => {
+                        policy.require_mode_equivalence = !policy.require_mode_equivalence;
+                    }
+                    Q1StructuralGatePolicyFieldV1::ConfidencePrecedence => {
+                        policy.confidence_precedence =
+                            Q1ConfidencePrecedenceV1::ConfidenceBeforeStructural;
+                    }
+                    Q1StructuralGatePolicyFieldV1::StructuralFailureVerdict => {
+                        policy.structural_failure_revision = match policy
+                            .structural_failure_revision
+                        {
+                            Q1StructuralFailureRevisionV1::V1 => Q1StructuralFailureRevisionV1::V2,
+                            Q1StructuralFailureRevisionV1::V2 => Q1StructuralFailureRevisionV1::V1,
+                        };
+                    }
+                }
+                Q1StructuralGatePolicyMutationV1 { field, policy }
+            })
+            .collect()
+    }
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct Q1QualificationOwnerBindingV1 {
+        actual_policy_owner_identity: String,
+        structural_gate_policy_owner_identity: String,
+        qualification_owner_identity: String,
+    }
+
+    fn sprint105_q1_qualification_owner_binding_from_projections_v1(
+        actual_owner: &Q1ActualPolicyOwnerProjectionV1,
+        gate_owner: &Q1StructuralGatePolicyOwnerProjectionV1,
+    ) -> Q1QualificationOwnerBindingV1 {
+        let mut encoder = Sprint105CanonicalEncoderV1::default();
+        encoder.field_string("owner_identity", "sprint105-q1-qualification-owner-v1");
+        encoder.field_string(
+            "actual_policy_owner_identity",
+            &actual_owner.semantic_digest,
+        );
+        encoder.field_string(
+            "structural_gate_policy_owner_identity",
+            &gate_owner.semantic_digest,
+        );
+        Q1QualificationOwnerBindingV1 {
+            actual_policy_owner_identity: actual_owner.semantic_digest.clone(),
+            structural_gate_policy_owner_identity: gate_owner.semantic_digest.clone(),
+            qualification_owner_identity: sprint105_r1_encoder_digest_v1(encoder),
+        }
+    }
+
+    fn sprint105_q1_qualification_owner_binding_v1(
+        actual_policy: &DelayedRecallEvidencePolicyV2,
+        gate_policy: &Q1StructuralGatePolicyV1,
+    ) -> Result<Q1QualificationOwnerBindingV1, M3MicroError> {
+        let actual_owner = sprint105_q1_actual_policy_owner_projection_v1(actual_policy)?;
+        let gate_owner = sprint105_q1_structural_gate_policy_owner_projection_v1(gate_policy)?;
+        Ok(
+            sprint105_q1_qualification_owner_binding_from_projections_v1(
+                &actual_owner,
+                &gate_owner,
+            ),
+        )
+    }
+
+    fn sprint105_q1_historical_v5_qualification_owner_binding_from_projections_v1(
+        actual_owner: &Q1ActualPolicyOwnerProjectionV1,
+        gate_owner: &HistoricalQ1V5StructuralGatePolicyOwnerProjectionV1,
+    ) -> Q1QualificationOwnerBindingV1 {
+        let mut encoder = Sprint105CanonicalEncoderV1::default();
+        encoder.field_string("owner_identity", "sprint105-q1-qualification-owner-v1");
+        encoder.field_string(
+            "actual_policy_owner_identity",
+            &actual_owner.semantic_digest,
+        );
+        encoder.field_string(
+            "structural_gate_policy_owner_identity",
+            &gate_owner.semantic_digest,
+        );
+        Q1QualificationOwnerBindingV1 {
+            actual_policy_owner_identity: actual_owner.semantic_digest.clone(),
+            structural_gate_policy_owner_identity: gate_owner.semantic_digest.clone(),
+            qualification_owner_identity: sprint105_r1_encoder_digest_v1(encoder),
+        }
+    }
+
+    fn sprint105_q1_historical_v5_qualification_owner_binding_v1(
+        actual_policy: &DelayedRecallEvidencePolicyV2,
+        gate_policy: &Q1StructuralGatePolicyV1,
+    ) -> Result<Q1QualificationOwnerBindingV1, M3MicroError> {
+        let actual_owner = sprint105_q1_actual_policy_owner_projection_v1(actual_policy)?;
+        let gate_owner = sprint105_q1_historical_v5_gate_policy_owner_projection_v1(gate_policy)?;
+        Ok(
+            sprint105_q1_historical_v5_qualification_owner_binding_from_projections_v1(
+                &actual_owner,
+                &gate_owner,
+            ),
+        )
+    }
+
+    fn sprint105_q1_validate_qualification_owner_binding_v1(
+        binding: Option<&Q1QualificationOwnerBindingV1>,
+        actual_policy: Option<&DelayedRecallEvidencePolicyV2>,
+        gate_policy: Option<&Q1StructuralGatePolicyV1>,
+    ) -> Result<Q1QualificationOwnerBindingV1, M3MicroError> {
+        let binding = binding.ok_or(M3MicroError::CorruptArtifact)?;
+        let expected = sprint105_q1_qualification_owner_binding_v1(
+            actual_policy.ok_or(M3MicroError::CorruptArtifact)?,
+            gate_policy.ok_or(M3MicroError::CorruptArtifact)?,
+        )?;
+        if binding != &expected {
+            return Err(M3MicroError::CorruptArtifact);
+        }
+        Ok(expected)
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum Q1StructuralGateStatusV1 {
+        Passed,
+        Failed,
+    }
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct Q1StructuralGateDecisionV1 {
+        gate: Q1StructuralGateV1,
+        applicable: bool,
+        policy_owner_identity: String,
+        comparison_semantics_identity: String,
+        status: Q1StructuralGateStatusV1,
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq)]
+    struct Q1StructuralGateEvidenceEntryV1 {
+        family: Sprint105Q1FamilyV1,
+        sequence_length: usize,
+        initial_development_loss: Option<f32>,
+        final_development_loss: Option<f32>,
+        base_accuracy: Option<f32>,
+        no_state_accuracy: Option<f32>,
+        reset_base_accuracy: Option<f32>,
+        numerically_finite: Option<bool>,
+        mode_equivalent: Option<bool>,
+        footprint_elements: Option<usize>,
+        footprint_bytes: Option<usize>,
+    }
+
+    impl Q1StructuralGateEvidenceEntryV1 {
+        fn key(self) -> Q1QualificationEvidenceKeyV1 {
+            Q1QualificationEvidenceKeyV1 {
+                family: self.family,
+                sequence_length: self.sequence_length,
+            }
+        }
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    struct RawQ1QualificationEvidenceTableV1 {
+        rows: Vec<Q1StructuralGateEvidenceEntryV1>,
+        deterministic: Option<bool>,
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+    struct Q1QualificationEvidenceKeyV1 {
+        family: Sprint105Q1FamilyV1,
+        sequence_length: usize,
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    struct Q1QualificationFootprintEvidenceV1<T> {
+        key: Q1QualificationEvidenceKeyV1,
+        footprint: T,
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    struct Q1EvidenceCardinalityV1 {
+        expected: usize,
+        observed: usize,
+        missing: usize,
+        duplicate: usize,
+        unexpected: usize,
+    }
+
+    impl Q1EvidenceCardinalityV1 {
+        fn exact(self) -> bool {
+            self.expected == self.observed
+                && self.missing == 0
+                && self.duplicate == 0
+                && self.unexpected == 0
+        }
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    struct Q1EvidenceDomainDiagnosticsV1 {
+        full: Q1EvidenceCardinalityV1,
+        history: Q1EvidenceCardinalityV1,
+        maximum_history: Q1EvidenceCardinalityV1,
+        local_control: Q1EvidenceCardinalityV1,
+        footprint: Q1EvidenceCardinalityV1,
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum Q1EvidenceDomainValidationErrorKindV1 {
+        InvalidEvidenceDomain,
+        MissingEvidenceRow,
+        DuplicateEvidenceRow,
+        UnexpectedEvidenceRow,
+        EvidenceCardinalityMismatch,
+    }
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct Q1EvidenceDomainValidationErrorV1 {
+        kind: Q1EvidenceDomainValidationErrorKindV1,
+        offending_key: Option<Q1QualificationEvidenceKeyV1>,
+        diagnostics: Q1EvidenceDomainDiagnosticsV1,
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    struct ExpectedQ1EvidenceDomainV1 {
+        actual_policy: DelayedRecallEvidencePolicyV2,
+        gate_policy: Q1StructuralGatePolicyV1,
+        keys: Vec<Q1QualificationEvidenceKeyV1>,
+        history_keys: Vec<Q1QualificationEvidenceKeyV1>,
+        maximum_history_keys: Vec<Q1QualificationEvidenceKeyV1>,
+        local_control_keys: Vec<Q1QualificationEvidenceKeyV1>,
+        footprint_keys: Vec<Q1QualificationEvidenceKeyV1>,
+        maximum_length: usize,
+    }
+
+    #[derive(Debug, PartialEq)]
+    struct ValidatedQ1QualificationEvidenceTableV1 {
+        domain: ExpectedQ1EvidenceDomainV1,
+        rows: Vec<(
+            Q1QualificationEvidenceKeyV1,
+            Q1StructuralGateEvidenceEntryV1,
+        )>,
+        diagnostics: Q1EvidenceDomainDiagnosticsV1,
+        deterministic: Option<bool>,
+    }
+
+    struct ValidatedQ1EvidenceSubsetV1<'a> {
+        rows: Vec<&'a Q1StructuralGateEvidenceEntryV1>,
+        expected_count: usize,
+        observed_count: usize,
+    }
+
+    fn sprint105_q1_empty_domain_diagnostics_v1() -> Q1EvidenceDomainDiagnosticsV1 {
+        let empty = Q1EvidenceCardinalityV1 {
+            expected: 0,
+            observed: 0,
+            missing: 0,
+            duplicate: 0,
+            unexpected: 0,
+        };
+        Q1EvidenceDomainDiagnosticsV1 {
+            full: empty,
+            history: empty,
+            maximum_history: empty,
+            local_control: empty,
+            footprint: empty,
+        }
+    }
+
+    fn sprint105_q1_invalid_domain_error_v1() -> Q1EvidenceDomainValidationErrorV1 {
+        Q1EvidenceDomainValidationErrorV1 {
+            kind: Q1EvidenceDomainValidationErrorKindV1::InvalidEvidenceDomain,
+            offending_key: None,
+            diagnostics: sprint105_q1_empty_domain_diagnostics_v1(),
+        }
+    }
+
+    fn sprint105_q1_expected_evidence_domain_v1(
+        actual_policy: &DelayedRecallEvidencePolicyV2,
+        gate_policy: &Q1StructuralGatePolicyV1,
+    ) -> Result<ExpectedQ1EvidenceDomainV1, Q1EvidenceDomainValidationErrorV1> {
+        let families = Sprint105Q1FamilyV1::ORDERED;
+        let lengths = actual_policy.sequence_lengths;
+        if families.is_empty()
+            || lengths.is_empty()
+            || lengths.contains(&0)
+            || families.iter().copied().collect::<BTreeSet<_>>().len() != families.len()
+            || lengths.iter().copied().collect::<BTreeSet<_>>().len() != lengths.len()
+            || gate_policy
+                .history_families
+                .iter()
+                .any(|family| !families.contains(family))
+            || gate_policy
+                .history_families
+                .iter()
+                .copied()
+                .collect::<BTreeSet<_>>()
+                .len()
+                != gate_policy.history_families.len()
+            || !families.contains(&gate_policy.local_control_family)
+        {
+            return Err(sprint105_q1_invalid_domain_error_v1());
+        }
+        let expected_count = families
+            .len()
+            .checked_mul(lengths.len())
+            .ok_or_else(sprint105_q1_invalid_domain_error_v1)?;
+        let maximum_length = gate_policy
+            .applicable_length
+            .resolve(actual_policy)
+            .ok_or_else(sprint105_q1_invalid_domain_error_v1)?;
+        let keys = families
+            .into_iter()
+            .flat_map(|family| {
+                lengths
+                    .into_iter()
+                    .map(move |sequence_length| Q1QualificationEvidenceKeyV1 {
+                        family,
+                        sequence_length,
+                    })
+            })
+            .collect::<Vec<_>>();
+        if keys.len() != expected_count
+            || keys.iter().copied().collect::<BTreeSet<_>>().len() != keys.len()
+        {
+            return Err(sprint105_q1_invalid_domain_error_v1());
+        }
+        let history_keys = keys
+            .iter()
+            .copied()
+            .filter(|key| gate_policy.history_families.contains(&key.family))
+            .collect::<Vec<_>>();
+        let maximum_history_keys = history_keys
+            .iter()
+            .copied()
+            .filter(|key| key.sequence_length == maximum_length)
+            .collect::<Vec<_>>();
+        let local_control_keys = keys
+            .iter()
+            .copied()
+            .filter(|key| key.family == gate_policy.local_control_family)
+            .collect::<Vec<_>>();
+        if history_keys.is_empty()
+            || maximum_history_keys.is_empty()
+            || local_control_keys.is_empty()
+        {
+            return Err(sprint105_q1_invalid_domain_error_v1());
+        }
+        Ok(ExpectedQ1EvidenceDomainV1 {
+            actual_policy: *actual_policy,
+            gate_policy: *gate_policy,
+            footprint_keys: keys.clone(),
+            keys,
+            history_keys,
+            maximum_history_keys,
+            local_control_keys,
+            maximum_length,
+        })
+    }
+
+    fn sprint105_q1_evidence_cardinality_v1(
+        expected: &[Q1QualificationEvidenceKeyV1],
+        observed: &[Q1QualificationEvidenceKeyV1],
+    ) -> Q1EvidenceCardinalityV1 {
+        let expected_set = expected.iter().copied().collect::<BTreeSet<_>>();
+        let counts = observed.iter().copied().fold(
+            BTreeMap::<Q1QualificationEvidenceKeyV1, usize>::new(),
+            |mut counts, key| {
+                *counts.entry(key).or_default() += 1;
+                counts
+            },
+        );
+        Q1EvidenceCardinalityV1 {
+            expected: expected.len(),
+            observed: observed.len(),
+            missing: expected_set
+                .iter()
+                .filter(|key| !counts.contains_key(key))
+                .count(),
+            duplicate: counts.values().map(|count| count.saturating_sub(1)).sum(),
+            unexpected: counts
+                .iter()
+                .filter(|(key, _)| !expected_set.contains(key))
+                .map(|(_, count)| *count)
+                .sum(),
+        }
+    }
+
+    fn sprint105_q1_evidence_domain_diagnostics_v1(
+        domain: &ExpectedQ1EvidenceDomainV1,
+        observed: &[Q1QualificationEvidenceKeyV1],
+    ) -> Q1EvidenceDomainDiagnosticsV1 {
+        let history_observed = observed
+            .iter()
+            .copied()
+            .filter(|key| domain.gate_policy.history_families.contains(&key.family))
+            .collect::<Vec<_>>();
+        let maximum_history_observed = history_observed
+            .iter()
+            .copied()
+            .filter(|key| key.sequence_length == domain.maximum_length)
+            .collect::<Vec<_>>();
+        let local_observed = observed
+            .iter()
+            .copied()
+            .filter(|key| key.family == domain.gate_policy.local_control_family)
+            .collect::<Vec<_>>();
+        Q1EvidenceDomainDiagnosticsV1 {
+            full: sprint105_q1_evidence_cardinality_v1(&domain.keys, observed),
+            history: sprint105_q1_evidence_cardinality_v1(&domain.history_keys, &history_observed),
+            maximum_history: sprint105_q1_evidence_cardinality_v1(
+                &domain.maximum_history_keys,
+                &maximum_history_observed,
+            ),
+            local_control: sprint105_q1_evidence_cardinality_v1(
+                &domain.local_control_keys,
+                &local_observed,
+            ),
+            footprint: sprint105_q1_evidence_cardinality_v1(&domain.footprint_keys, observed),
+        }
+    }
+
+    fn sprint105_q1_validate_evidence_table_v1(
+        domain: ExpectedQ1EvidenceDomainV1,
+        raw: RawQ1QualificationEvidenceTableV1,
+    ) -> Result<ValidatedQ1QualificationEvidenceTableV1, Q1EvidenceDomainValidationErrorV1> {
+        let mut keyed_rows = raw
+            .rows
+            .into_iter()
+            .map(|row| (row.key(), row))
+            .collect::<Vec<_>>();
+        let observed = keyed_rows.iter().map(|(key, _)| *key).collect::<Vec<_>>();
+        let diagnostics = sprint105_q1_evidence_domain_diagnostics_v1(&domain, &observed);
+        if !diagnostics.full.exact() {
+            let expected = domain.keys.iter().copied().collect::<BTreeSet<_>>();
+            let counts = observed.iter().copied().fold(
+                BTreeMap::<Q1QualificationEvidenceKeyV1, usize>::new(),
+                |mut counts, key| {
+                    *counts.entry(key).or_default() += 1;
+                    counts
+                },
+            );
+            let unexpected = observed.iter().copied().find(|key| !expected.contains(key));
+            let duplicate = counts
+                .iter()
+                .find_map(|(key, count)| (*count > 1).then_some(*key));
+            let missing = domain
+                .keys
+                .iter()
+                .copied()
+                .find(|key| !counts.contains_key(key));
+            let (kind, offending_key) = if unexpected.is_some() {
+                (
+                    Q1EvidenceDomainValidationErrorKindV1::UnexpectedEvidenceRow,
+                    unexpected,
+                )
+            } else if duplicate.is_some() {
+                (
+                    Q1EvidenceDomainValidationErrorKindV1::DuplicateEvidenceRow,
+                    duplicate,
+                )
+            } else if missing.is_some() {
+                (
+                    Q1EvidenceDomainValidationErrorKindV1::MissingEvidenceRow,
+                    missing,
+                )
+            } else {
+                (
+                    Q1EvidenceDomainValidationErrorKindV1::EvidenceCardinalityMismatch,
+                    None,
+                )
+            };
+            return Err(Q1EvidenceDomainValidationErrorV1 {
+                kind,
+                offending_key,
+                diagnostics,
+            });
+        }
+        keyed_rows.sort_by_key(|(key, _)| *key);
+        Ok(ValidatedQ1QualificationEvidenceTableV1 {
+            domain,
+            rows: keyed_rows,
+            diagnostics,
+            deterministic: raw.deterministic,
+        })
+    }
+
+    impl ValidatedQ1QualificationEvidenceTableV1 {
+        fn exact_subset(
+            &self,
+            expected_keys: &[Q1QualificationEvidenceKeyV1],
+        ) -> Result<ValidatedQ1EvidenceSubsetV1<'_>, Q1EvidenceDomainValidationErrorV1> {
+            let expected = expected_keys.iter().copied().collect::<BTreeSet<_>>();
+            let rows = self
+                .rows
+                .iter()
+                .filter(|(key, _)| expected.contains(key))
+                .map(|(_, row)| row)
+                .collect::<Vec<_>>();
+            if expected.len() != expected_keys.len() || rows.len() != expected_keys.len() {
+                return Err(Q1EvidenceDomainValidationErrorV1 {
+                    kind: Q1EvidenceDomainValidationErrorKindV1::EvidenceCardinalityMismatch,
+                    offending_key: None,
+                    diagnostics: self.diagnostics,
+                });
+            }
+            Ok(ValidatedQ1EvidenceSubsetV1 {
+                expected_count: expected_keys.len(),
+                observed_count: rows.len(),
+                rows,
+            })
+        }
+    }
+
+    fn sprint105_q1_compare_f32_v1(
+        left: Option<f32>,
+        right: Option<f32>,
+        comparison: Q1GateComparisonSemanticsV1,
+        missing: Q1MissingEvidencePolicyV1,
+    ) -> bool {
+        let Some((left, right)) = left.zip(right) else {
+            return missing == Q1MissingEvidencePolicyV1::VacuousPass;
+        };
+        if !left.is_finite() || !right.is_finite() {
+            return false;
+        }
+        match comparison {
+            Q1GateComparisonSemanticsV1::StrictGreater => left > right,
+            Q1GateComparisonSemanticsV1::GreaterOrEqual => left >= right,
+            Q1GateComparisonSemanticsV1::StrictLess => left < right,
+            _ => false,
+        }
+    }
+
+    fn sprint105_q1_aggregate_v1(
+        values: impl IntoIterator<Item = bool>,
+        expected_applicable_count: usize,
+        observed_applicable_count: usize,
+        missing_value_count: usize,
+        policy: &Q1StructuralGatePolicyV1,
+    ) -> bool {
+        let values = values.into_iter().collect::<Vec<_>>();
+        if expected_applicable_count == 0
+            || observed_applicable_count != expected_applicable_count
+            || values.len() != observed_applicable_count
+            || missing_value_count != 0
+        {
+            return policy.missing_evidence_policy == Q1MissingEvidencePolicyV1::VacuousPass;
+        }
+        match policy.aggregate_policy {
+            Q1GateAggregatePolicyV1::AllApplicable => values.into_iter().all(|value| value),
+            Q1GateAggregatePolicyV1::AnyApplicable => values.into_iter().any(|value| value),
+        }
+    }
+
+    fn sprint105_q1_gate_decision_v1(
+        gate: Q1StructuralGateV1,
+        passed: bool,
+        comparison: Q1GateComparisonSemanticsV1,
+        owner: &Q1StructuralGatePolicyOwnerProjectionV1,
+    ) -> Q1StructuralGateDecisionV1 {
+        Q1StructuralGateDecisionV1 {
+            gate,
+            applicable: true,
+            policy_owner_identity: owner.semantic_digest.clone(),
+            comparison_semantics_identity: comparison.as_str().to_string(),
+            status: if passed {
+                Q1StructuralGateStatusV1::Passed
+            } else {
+                Q1StructuralGateStatusV1::Failed
+            },
+        }
+    }
+
+    // SPRINT105_Q1_EVALUATION_AUTHORITY_V1_BEGIN
+    mod q1_structural_evaluation_authority_v1 {
+        #![deny(private_interfaces)]
+
+        use super::*;
+
+        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+        struct InternalStructuralGateMatrixV1 {
+            state_utility_at_maximum_length: bool,
+            state_causality: bool,
+            local_control: bool,
+            numerical_stability: bool,
+            determinism: bool,
+            mode_equivalence: bool,
+            persistent_state_footprint: bool,
+            trainability_sanity: bool,
+        }
+
+        impl InternalStructuralGateMatrixV1 {
+            fn active_gate_results(self) -> Vec<(Q1StructuralGateV1, bool)> {
+                vec![
+                    (
+                        Q1StructuralGateV1::StateUtilityAtMaximumLength,
+                        self.state_utility_at_maximum_length,
+                    ),
+                    (Q1StructuralGateV1::StateCausality, self.state_causality),
+                    (Q1StructuralGateV1::LocalControl, self.local_control),
+                    (
+                        Q1StructuralGateV1::NumericalStability,
+                        self.numerical_stability,
+                    ),
+                    (Q1StructuralGateV1::Determinism, self.determinism),
+                    (Q1StructuralGateV1::ModeEquivalence, self.mode_equivalence),
+                    (
+                        Q1StructuralGateV1::PersistentStateFootprint,
+                        self.persistent_state_footprint,
+                    ),
+                    (
+                        Q1StructuralGateV1::TrainabilitySanity,
+                        self.trainability_sanity,
+                    ),
+                ]
+            }
+
+            fn all_required_structural_gates_pass(self) -> bool {
+                let results = self.active_gate_results();
+                results.iter().map(|(gate, _)| *gate).collect::<Vec<_>>()
+                    == Q1StructuralGateV1::ORDERED
+                    && results.into_iter().all(|(_, passed)| passed)
+            }
+        }
+
+        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+        enum InternalQualificationVerdictV1 {
+            V1CoreNotViable,
+            V2CoreNotViable,
+            ViableBaseline,
+            ConditionallyViable,
+            QualificationIncomplete,
+        }
+
+        #[derive(Clone, Debug, PartialEq, Eq)]
+        struct InternalQ1StructuralGateEvaluationV1 {
+            decisions: Vec<Q1StructuralGateDecisionV1>,
+            matrix: InternalStructuralGateMatrixV1,
+        }
+
+        #[derive(Clone, Debug, PartialEq, Eq)]
+        pub(super) struct StructuralGateStatusViewV1 {
+            gate_results: Vec<(Q1StructuralGateV1, bool)>,
+            policy_owner_identities: Vec<String>,
+        }
+
+        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+        pub(super) enum V1QualificationStatusViewV1 {
+            CoreNotViable,
+            ViableBaseline,
+            ConditionallyViable,
+            QualificationIncomplete,
+        }
+
+        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+        pub(super) enum V2QualificationStatusViewV1 {
+            CoreNotViable,
+            ViableBaseline,
+            ConditionallyViable,
+            QualificationIncomplete,
+        }
+
+        impl V2QualificationStatusViewV1 {
+            pub(super) fn as_str(self) -> &'static str {
+                match self {
+                    Self::CoreNotViable => "V2_CORE_NOT_VIABLE",
+                    Self::ViableBaseline => "VIABLE_BASELINE",
+                    Self::ConditionallyViable => "CONDITIONALLY_VIABLE",
+                    Self::QualificationIncomplete => "QUALIFICATION_INCOMPLETE",
+                }
+            }
+        }
+
+        impl StructuralGateStatusViewV1 {
+            pub(super) fn all_required_structural_gates_pass(&self) -> bool {
+                self.gate_results
+                    .iter()
+                    .map(|(gate, _)| *gate)
+                    .collect::<Vec<_>>()
+                    == Q1StructuralGateV1::ORDERED
+                    && self.gate_results.iter().all(|(_, passed)| *passed)
+            }
+
+            pub(super) fn gate_passed(&self, gate: Q1StructuralGateV1) -> Option<bool> {
+                self.gate_results
+                    .iter()
+                    .find(|(candidate, _)| *candidate == gate)
+                    .map(|(_, passed)| *passed)
+            }
+
+            pub(super) fn gate_ids(&self) -> Vec<Q1StructuralGateV1> {
+                self.gate_results.iter().map(|(gate, _)| *gate).collect()
+            }
+
+            pub(super) fn decision_count(&self) -> usize {
+                self.policy_owner_identities.len()
+            }
+
+            pub(super) fn decisions_all_owned_by(&self, expected: &str) -> bool {
+                self.policy_owner_identities
+                    .iter()
+                    .all(|identity| identity == expected)
+            }
+        }
+
+        fn structural_gate_status_view_v1(
+            evaluation: &InternalQ1StructuralGateEvaluationV1,
+        ) -> StructuralGateStatusViewV1 {
+            StructuralGateStatusViewV1 {
+                gate_results: evaluation.matrix.active_gate_results(),
+                policy_owner_identities: evaluation
+                    .decisions
+                    .iter()
+                    .map(|decision| decision.policy_owner_identity.clone())
+                    .collect(),
+            }
+        }
+
+        #[derive(Clone, Debug, PartialEq, Eq)]
+        pub(super) struct V1Q1StructuralGateEvaluationV1 {
+            inner: InternalQ1StructuralGateEvaluationV1,
+            gate_policy: Q1StructuralGatePolicyV1,
+        }
+
+        #[derive(Debug, PartialEq)]
+        pub(super) struct ValidatedDiagnosticQ1GateFixtureV1 {
+            inner: ValidatedQ1QualificationEvidenceTableV1,
+        }
+
+        #[derive(Clone, Debug, PartialEq, Eq)]
+        pub(super) struct DiagnosticQ1StructuralGateEvaluationV1 {
+            inner: InternalQ1StructuralGateEvaluationV1,
+            gate_policy: Q1StructuralGatePolicyV1,
+        }
+
+        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+        pub(super) enum DiagnosticQ1QualificationStatusV1 {
+            StructuralFailure,
+            ViableBaseline,
+            ConditionallyViable,
+            QualificationIncomplete,
+        }
+
+        pub(super) struct ValidatedV2Q1GateInputV1 {
+            inner: ValidatedQ1QualificationEvidenceTableV1,
+        }
+
+        #[derive(Debug, PartialEq, Eq)]
+        pub(super) struct V6AuthorizedV2StructuralGateMatrixV1 {
+            inner: V6AuthorizedV2StructuralGateMatrixInnerV1,
+        }
+
+        #[derive(Debug, PartialEq, Eq)]
+        struct V6AuthorizedV2StructuralGateMatrixInnerV1 {
+            evaluation: InternalQ1StructuralGateEvaluationV1,
+            owner_object_witness: current_q1_contract_v6_authority::Q1GateOwnerObjectWitnessV1,
+            q1_contract: current_q1_contract_v6_authority::CurrentQ1ContractV6SummaryV1,
+        }
+
+        #[derive(Debug, PartialEq, Eq)]
+        pub(super) struct V6AuthorizedV2EvaluationV1 {
+            inner: V6AuthorizedV2EvaluationInnerV1,
+        }
+
+        #[derive(Debug, PartialEq, Eq)]
+        struct V6AuthorizedV2EvaluationInnerV1 {
+            authorized_matrix: V6AuthorizedV2StructuralGateMatrixV1,
+            verdict: InternalQualificationVerdictV1,
+        }
+
+        #[derive(Clone, Debug, PartialEq, Eq)]
+        pub(super) struct Sprint105CanonicalShapeObservationV1 {
+            pub(super) matrix_contract:
+                current_q1_contract_v6_authority::CurrentQ1ContractV6SummaryV1,
+            pub(super) verdict_status: V2QualificationStatusViewV1,
+        }
+
+        fn sprint105_assert_canonical_pair_owner_shape_v1(
+            inner: &V6AuthorizedV2EvaluationInnerV1,
+        ) -> Sprint105CanonicalShapeObservationV1 {
+            let V6AuthorizedV2EvaluationInnerV1 {
+                authorized_matrix,
+                verdict,
+            } = inner;
+            Sprint105CanonicalShapeObservationV1 {
+                matrix_contract: authorized_matrix.q1_contract().clone(),
+                verdict_status: v2_status_view_v1(*verdict),
+            }
+        }
+
+        pub(super) fn exercise_canonical_pair_owner_shape_for_test(
+            evaluation: &V6AuthorizedV2EvaluationV1,
+        ) -> Sprint105CanonicalShapeObservationV1 {
+            sprint105_assert_canonical_pair_owner_shape_v1(&evaluation.inner)
+        }
+
+        #[derive(Debug, PartialEq, Eq)]
+        pub(super) struct Sprint105V2Q1QualificationResultV1 {
+            inner: Sprint105V2Q1QualificationResultInnerV1,
+        }
+
+        #[derive(Debug, PartialEq, Eq)]
+        struct Sprint105V2Q1QualificationResultInnerV1 {
+            evaluation: V6AuthorizedV2EvaluationV1,
+        }
+
+        impl V1Q1StructuralGateEvaluationV1 {
+            pub(super) fn structural_status(&self) -> StructuralGateStatusViewV1 {
+                structural_gate_status_view_v1(&self.inner)
+            }
+        }
+
+        impl DiagnosticQ1StructuralGateEvaluationV1 {
+            pub(super) fn structural_status(&self) -> StructuralGateStatusViewV1 {
+                structural_gate_status_view_v1(&self.inner)
+            }
+        }
+
+        impl ValidatedV2Q1GateInputV1 {
+            pub(super) fn evidence(&self) -> &ValidatedQ1QualificationEvidenceTableV1 {
+                &self.inner
+            }
+        }
+
+        impl V6AuthorizedV2StructuralGateMatrixV1 {
+            pub(super) fn structural_status(&self) -> StructuralGateStatusViewV1 {
+                structural_gate_status_view_v1(&self.inner.evaluation)
+            }
+
+            pub(super) fn q1_contract(
+                &self,
+            ) -> &current_q1_contract_v6_authority::CurrentQ1ContractV6SummaryV1 {
+                &self.inner.q1_contract
+            }
+
+            pub(super) fn owner_object_witness(
+                &self,
+            ) -> current_q1_contract_v6_authority::Q1GateOwnerObjectWitnessV1 {
+                self.inner.owner_object_witness
+            }
+        }
+
+        impl V6AuthorizedV2EvaluationV1 {
+            pub(super) fn status(&self) -> V2QualificationStatusViewV1 {
+                v2_status_view_v1(self.inner.verdict)
+            }
+
+            pub(super) fn authorized_matrix(&self) -> &V6AuthorizedV2StructuralGateMatrixV1 {
+                &self.inner.authorized_matrix
+            }
+
+            pub(super) fn q1_contract(
+                &self,
+            ) -> &current_q1_contract_v6_authority::CurrentQ1ContractV6SummaryV1 {
+                self.inner.authorized_matrix.q1_contract()
+            }
+        }
+
+        impl Sprint105V2Q1QualificationResultV1 {
+            pub(super) fn authorized_matrix(&self) -> &V6AuthorizedV2StructuralGateMatrixV1 {
+                self.inner.evaluation.authorized_matrix()
+            }
+
+            pub(super) fn status(&self) -> V2QualificationStatusViewV1 {
+                self.inner.evaluation.status()
+            }
+
+            pub(super) fn q1_contract(
+                &self,
+            ) -> &current_q1_contract_v6_authority::CurrentQ1ContractV6SummaryV1 {
+                self.inner.evaluation.q1_contract()
+            }
+        }
+
+        fn sprint105_q1_evaluate_structural_gates_with_owners_v1(
+            evidence: &ValidatedQ1QualificationEvidenceTableV1,
+            policy: &Q1StructuralGatePolicyV1,
+            owner: &Q1StructuralGatePolicyOwnerProjectionV1,
+            active_registry: &ActiveQ1StructuralGateRegistryV1,
+        ) -> Result<InternalQ1StructuralGateEvaluationV1, M3MicroError> {
+            let all_entries = evidence
+                .exact_subset(&evidence.domain.keys)
+                .map_err(|_| M3MicroError::CorruptArtifact)?;
+            let history_entries = evidence
+                .exact_subset(&evidence.domain.history_keys)
+                .map_err(|_| M3MicroError::CorruptArtifact)?;
+            let maximum_history_entries = evidence
+                .exact_subset(&evidence.domain.maximum_history_keys)
+                .map_err(|_| M3MicroError::CorruptArtifact)?;
+            let local_entries = evidence
+                .exact_subset(&evidence.domain.local_control_keys)
+                .map_err(|_| M3MicroError::CorruptArtifact)?;
+            let footprint_entries = evidence
+                .exact_subset(&evidence.domain.footprint_keys)
+                .map_err(|_| M3MicroError::CorruptArtifact)?;
+            let state_utility_at_maximum_length = sprint105_q1_aggregate_v1(
+                maximum_history_entries.rows.iter().map(|entry| {
+                    sprint105_q1_compare_f32_v1(
+                        entry.base_accuracy,
+                        entry.no_state_accuracy,
+                        policy.state_utility_comparison,
+                        policy.missing_evidence_policy,
+                    )
+                }),
+                maximum_history_entries.expected_count,
+                maximum_history_entries.observed_count,
+                maximum_history_entries
+                    .rows
+                    .iter()
+                    .filter(|entry| {
+                        entry.base_accuracy.is_none() || entry.no_state_accuracy.is_none()
+                    })
+                    .count(),
+                policy,
+            );
+            let state_causality = sprint105_q1_aggregate_v1(
+                history_entries.rows.iter().map(|entry| {
+                    sprint105_q1_compare_f32_v1(
+                        entry.base_accuracy,
+                        entry.reset_base_accuracy,
+                        policy.state_causality_comparison,
+                        policy.missing_evidence_policy,
+                    )
+                }),
+                history_entries.expected_count,
+                history_entries.observed_count,
+                history_entries
+                    .rows
+                    .iter()
+                    .filter(|entry| {
+                        entry.base_accuracy.is_none() || entry.reset_base_accuracy.is_none()
+                    })
+                    .count(),
+                policy,
+            );
+            let local_control = sprint105_q1_aggregate_v1(
+                local_entries.rows.iter().map(|entry| {
+                    sprint105_q1_compare_f32_v1(
+                        entry.base_accuracy,
+                        entry.no_state_accuracy,
+                        policy.local_control_comparison,
+                        policy.missing_evidence_policy,
+                    )
+                }),
+                local_entries.expected_count,
+                local_entries.observed_count,
+                local_entries
+                    .rows
+                    .iter()
+                    .filter(|entry| {
+                        entry.base_accuracy.is_none() || entry.no_state_accuracy.is_none()
+                    })
+                    .count(),
+                policy,
+            );
+            let numerical_stability = !policy.require_numerical_stability
+                || sprint105_q1_aggregate_v1(
+                    all_entries.rows.iter().map(|entry| {
+                        entry.numerically_finite == Some(true)
+                            && [
+                                entry.initial_development_loss,
+                                entry.final_development_loss,
+                                entry.base_accuracy,
+                                entry.no_state_accuracy,
+                            ]
+                            .into_iter()
+                            .all(|value| value.is_some_and(f32::is_finite))
+                            && (!policy.history_families.contains(&entry.family)
+                                || entry.reset_base_accuracy.is_some_and(f32::is_finite))
+                    }),
+                    all_entries.expected_count,
+                    all_entries.observed_count,
+                    all_entries
+                        .rows
+                        .iter()
+                        .filter(|entry| {
+                            entry.numerically_finite.is_none()
+                                || entry.initial_development_loss.is_none()
+                                || entry.final_development_loss.is_none()
+                                || entry.base_accuracy.is_none()
+                                || entry.no_state_accuracy.is_none()
+                                || (policy.history_families.contains(&entry.family)
+                                    && entry.reset_base_accuracy.is_none())
+                        })
+                        .count(),
+                    policy,
+                );
+            let determinism = !policy.require_determinism || evidence.deterministic == Some(true);
+            let mode_equivalence = !policy.require_mode_equivalence
+                || sprint105_q1_aggregate_v1(
+                    all_entries
+                        .rows
+                        .iter()
+                        .map(|entry| entry.mode_equivalent == Some(true)),
+                    all_entries.expected_count,
+                    all_entries.observed_count,
+                    all_entries
+                        .rows
+                        .iter()
+                        .filter(|entry| entry.mode_equivalent.is_none())
+                        .count(),
+                    policy,
+                );
+            let footprint_missing_values = footprint_entries
+                .rows
+                .iter()
+                .filter(|entry| {
+                    entry.footprint_elements.is_none()
+                        || (policy.footprint_comparison
+                            == Q1GateComparisonSemanticsV1::ExactElementsAndBytes
+                            && entry.footprint_bytes.is_none())
+                })
+                .count();
+            let persistent_state_footprint = footprint_entries.expected_count != 0
+                && footprint_entries.observed_count == footprint_entries.expected_count
+                && footprint_missing_values == 0
+                && footprint_entries.rows.first().is_some_and(|first| {
+                    let Some(first_elements) = first.footprint_elements else {
+                        return false;
+                    };
+                    footprint_entries.rows.iter().all(|entry| {
+                        entry.footprint_elements == Some(first_elements)
+                            && match policy.footprint_comparison {
+                                Q1GateComparisonSemanticsV1::ExactElementsAndBytes => {
+                                    first.footprint_bytes.is_some()
+                                        && entry.footprint_bytes == first.footprint_bytes
+                                }
+                                Q1GateComparisonSemanticsV1::ExactElementsOnly => true,
+                                _ => false,
+                            }
+                    })
+                });
+            let trainability_sanity = sprint105_q1_aggregate_v1(
+                all_entries.rows.iter().map(|entry| {
+                    sprint105_q1_compare_f32_v1(
+                        entry.final_development_loss,
+                        entry.initial_development_loss,
+                        policy.trainability_comparison,
+                        policy.missing_evidence_policy,
+                    )
+                }),
+                all_entries.expected_count,
+                all_entries.observed_count,
+                all_entries
+                    .rows
+                    .iter()
+                    .filter(|entry| {
+                        entry.final_development_loss.is_none()
+                            || entry.initial_development_loss.is_none()
+                    })
+                    .count(),
+                policy,
+            );
+            let matrix = InternalStructuralGateMatrixV1 {
+                state_utility_at_maximum_length,
+                state_causality,
+                local_control,
+                numerical_stability,
+                determinism,
+                mode_equivalence,
+                persistent_state_footprint,
+                trainability_sanity,
+            };
+            let active_results = matrix.active_gate_results();
+            if active_results
+                .iter()
+                .map(|(gate, _)| *gate)
+                .collect::<Vec<_>>()
+                != active_registry
+                    .entries
+                    .iter()
+                    .map(|entry| entry.gate)
+                    .collect::<Vec<_>>()
+            {
+                return Err(M3MicroError::CorruptArtifact);
+            }
+            let decisions = active_results
+                .into_iter()
+                .map(|(gate, passed)| {
+                    let comparison = match gate {
+                        Q1StructuralGateV1::StateUtilityAtMaximumLength => {
+                            policy.state_utility_comparison
+                        }
+                        Q1StructuralGateV1::StateCausality => policy.state_causality_comparison,
+                        Q1StructuralGateV1::LocalControl => policy.local_control_comparison,
+                        Q1StructuralGateV1::NumericalStability => {
+                            Q1GateComparisonSemanticsV1::AllFinite
+                        }
+                        Q1StructuralGateV1::Determinism | Q1StructuralGateV1::ModeEquivalence => {
+                            Q1GateComparisonSemanticsV1::RequiredTrue
+                        }
+                        Q1StructuralGateV1::PersistentStateFootprint => policy.footprint_comparison,
+                        Q1StructuralGateV1::TrainabilitySanity => policy.trainability_comparison,
+                        Q1StructuralGateV1::LengthRetention => {
+                            return Err(M3MicroError::CorruptArtifact);
+                        }
+                    };
+                    Ok(sprint105_q1_gate_decision_v1(
+                        gate, passed, comparison, owner,
+                    ))
+                })
+                .collect::<Result<Vec<_>, M3MicroError>>()?;
+            Ok(InternalQ1StructuralGateEvaluationV1 { decisions, matrix })
+        }
+
+        fn sprint105_q1_evaluate_structural_gates_v1(
+            evidence: &ValidatedQ1QualificationEvidenceTableV1,
+        ) -> Result<InternalQ1StructuralGateEvaluationV1, M3MicroError> {
+            let policy = evidence.domain.gate_policy;
+            let owner = sprint105_q1_structural_gate_policy_owner_projection_v1(&policy)?;
+            let active_registry = sprint105_q1_active_gate_registry_v1(&evidence.domain, &policy)
+                .map_err(|_| M3MicroError::CorruptArtifact)?;
+            sprint105_q1_evaluate_structural_gates_with_owners_v1(
+                evidence,
+                &policy,
+                &owner,
+                &active_registry,
+            )
+        }
+
+        fn sprint105_derive_qualification_verdict_v1(
+            matrix: InternalStructuralGateMatrixV1,
+            confidence: Sprint105ConfidenceOverlayV1,
+            implementation_complete: bool,
+            policy: &Q1StructuralGatePolicyV1,
+        ) -> InternalQualificationVerdictV1 {
+            if !implementation_complete {
+                return InternalQualificationVerdictV1::QualificationIncomplete;
+            }
+            let confidence_verdict = match confidence {
+                Sprint105ConfidenceOverlayV1::Clear => {
+                    InternalQualificationVerdictV1::ViableBaseline
+                }
+                Sprint105ConfidenceOverlayV1::NotEstablished => {
+                    InternalQualificationVerdictV1::ConditionallyViable
+                }
+            };
+            match policy.confidence_precedence {
+                Q1ConfidencePrecedenceV1::StructuralBeforeConfidence => {
+                    if !matrix.all_required_structural_gates_pass() {
+                        internal_structural_failure_verdict_v1(policy.structural_failure_revision)
+                    } else {
+                        confidence_verdict
+                    }
+                }
+                Q1ConfidencePrecedenceV1::ConfidenceBeforeStructural => {
+                    if confidence == Sprint105ConfidenceOverlayV1::NotEstablished {
+                        confidence_verdict
+                    } else if !matrix.all_required_structural_gates_pass() {
+                        internal_structural_failure_verdict_v1(policy.structural_failure_revision)
+                    } else {
+                        confidence_verdict
+                    }
+                }
+            }
+        }
+
+        fn internal_structural_failure_verdict_v1(
+            revision: Q1StructuralFailureRevisionV1,
+        ) -> InternalQualificationVerdictV1 {
+            match revision {
+                Q1StructuralFailureRevisionV1::V1 => {
+                    InternalQualificationVerdictV1::V1CoreNotViable
+                }
+                Q1StructuralFailureRevisionV1::V2 => {
+                    InternalQualificationVerdictV1::V2CoreNotViable
+                }
+            }
+        }
+
+        fn sprint105_derive_authorized_v2_qualification_verdict_v1(
+            matrix: InternalStructuralGateMatrixV1,
+            confidence: Sprint105ConfidenceOverlayV1,
+            implementation_complete: bool,
+        ) -> InternalQualificationVerdictV1 {
+            if !implementation_complete {
+                InternalQualificationVerdictV1::QualificationIncomplete
+            } else if !matrix.all_required_structural_gates_pass() {
+                InternalQualificationVerdictV1::V2CoreNotViable
+            } else {
+                match confidence {
+                    Sprint105ConfidenceOverlayV1::Clear => {
+                        InternalQualificationVerdictV1::ViableBaseline
+                    }
+                    Sprint105ConfidenceOverlayV1::NotEstablished => {
+                        InternalQualificationVerdictV1::ConditionallyViable
+                    }
+                }
+            }
+        }
+
+        pub(super) fn evaluate_v1_qualification(
+            evidence: &Sprint105Q1EvidenceV1,
+            determinism: bool,
+        ) -> Result<V1Q1StructuralGateEvaluationV1, M3MicroError> {
+            sprint105_q1_validate_qualification_owner_binding_v1(
+                Some(&evidence.owner_binding),
+                Some(&evidence.actual_policy),
+                Some(&evidence.gate_policy),
+            )?;
+            if evidence.gate_policy != sprint105_v1_q1_structural_gate_policy_v1() {
+                return Err(M3MicroError::CorruptArtifact);
+            }
+            let raw = sprint105_v1_structural_gate_evidence_v1(evidence, determinism)
+                .map_err(|_| M3MicroError::CorruptArtifact)?;
+            let validated = sprint105_q1_validate_raw_gate_evidence_v1(
+                raw,
+                &evidence.actual_policy,
+                &evidence.gate_policy,
+            )
+            .map_err(|_| M3MicroError::CorruptArtifact)?;
+            let inner = sprint105_q1_evaluate_structural_gates_v1(&validated)?;
+            Ok(V1Q1StructuralGateEvaluationV1 {
+                inner,
+                gate_policy: evidence.gate_policy,
+            })
+        }
+
+        pub(super) fn derive_v1_qualification_status(
+            evaluation: &V1Q1StructuralGateEvaluationV1,
+            confidence: Sprint105ConfidenceOverlayV1,
+            implementation_complete: bool,
+        ) -> V1QualificationStatusViewV1 {
+            v1_status_view_v1(sprint105_derive_qualification_verdict_v1(
+                evaluation.inner.matrix,
+                confidence,
+                implementation_complete,
+                &evaluation.gate_policy,
+            ))
+        }
+
+        pub(super) fn diagnostic_fixture_from_validated(
+            evidence: ValidatedQ1QualificationEvidenceTableV1,
+        ) -> ValidatedDiagnosticQ1GateFixtureV1 {
+            ValidatedDiagnosticQ1GateFixtureV1 { inner: evidence }
+        }
+
+        pub(super) fn evaluate_diagnostic_gate_fixture(
+            fixture: &ValidatedDiagnosticQ1GateFixtureV1,
+        ) -> Result<DiagnosticQ1StructuralGateEvaluationV1, M3MicroError> {
+            let inner = sprint105_q1_evaluate_structural_gates_v1(&fixture.inner)?;
+            Ok(DiagnosticQ1StructuralGateEvaluationV1 {
+                gate_policy: fixture.inner.domain.gate_policy,
+                inner,
+            })
+        }
+
+        fn diagnostic_status(
+            verdict: InternalQualificationVerdictV1,
+        ) -> DiagnosticQ1QualificationStatusV1 {
+            match verdict {
+                InternalQualificationVerdictV1::V1CoreNotViable
+                | InternalQualificationVerdictV1::V2CoreNotViable => {
+                    DiagnosticQ1QualificationStatusV1::StructuralFailure
+                }
+                InternalQualificationVerdictV1::ViableBaseline => {
+                    DiagnosticQ1QualificationStatusV1::ViableBaseline
+                }
+                InternalQualificationVerdictV1::ConditionallyViable => {
+                    DiagnosticQ1QualificationStatusV1::ConditionallyViable
+                }
+                InternalQualificationVerdictV1::QualificationIncomplete => {
+                    DiagnosticQ1QualificationStatusV1::QualificationIncomplete
+                }
+            }
+        }
+
+        fn v1_status_view_v1(
+            verdict: InternalQualificationVerdictV1,
+        ) -> V1QualificationStatusViewV1 {
+            match verdict {
+                InternalQualificationVerdictV1::V1CoreNotViable
+                | InternalQualificationVerdictV1::V2CoreNotViable => {
+                    V1QualificationStatusViewV1::CoreNotViable
+                }
+                InternalQualificationVerdictV1::ViableBaseline => {
+                    V1QualificationStatusViewV1::ViableBaseline
+                }
+                InternalQualificationVerdictV1::ConditionallyViable => {
+                    V1QualificationStatusViewV1::ConditionallyViable
+                }
+                InternalQualificationVerdictV1::QualificationIncomplete => {
+                    V1QualificationStatusViewV1::QualificationIncomplete
+                }
+            }
+        }
+
+        fn v2_status_view_v1(
+            verdict: InternalQualificationVerdictV1,
+        ) -> V2QualificationStatusViewV1 {
+            match verdict {
+                InternalQualificationVerdictV1::V1CoreNotViable
+                | InternalQualificationVerdictV1::V2CoreNotViable => {
+                    V2QualificationStatusViewV1::CoreNotViable
+                }
+                InternalQualificationVerdictV1::ViableBaseline => {
+                    V2QualificationStatusViewV1::ViableBaseline
+                }
+                InternalQualificationVerdictV1::ConditionallyViable => {
+                    V2QualificationStatusViewV1::ConditionallyViable
+                }
+                InternalQualificationVerdictV1::QualificationIncomplete => {
+                    V2QualificationStatusViewV1::QualificationIncomplete
+                }
+            }
+        }
+
+        pub(super) fn derive_diagnostic_qualification_status(
+            evaluation: &DiagnosticQ1StructuralGateEvaluationV1,
+            confidence: Sprint105ConfidenceOverlayV1,
+            implementation_complete: bool,
+        ) -> DiagnosticQ1QualificationStatusV1 {
+            diagnostic_status(sprint105_derive_qualification_verdict_v1(
+                evaluation.inner.matrix,
+                confidence,
+                implementation_complete,
+                &evaluation.gate_policy,
+            ))
+        }
+
+        pub(super) fn validate_v2_qualification_input(
+            qualification: &Sprint105V2P1Qualification,
+            determinism: bool,
+        ) -> Result<ValidatedV2Q1GateInputV1, M3MicroError> {
+            if qualification.gate_policy != sprint105_v2_q1_structural_gate_policy_v1() {
+                return Err(M3MicroError::CorruptArtifact);
+            }
+            Ok(ValidatedV2Q1GateInputV1 {
+                inner: sprint105_v2_validated_gate_evidence_v1(qualification, determinism)?,
+            })
+        }
+
+        pub(super) fn evaluate_v2_qualification(
+            input: &ValidatedV2Q1GateInputV1,
+            authority: &current_q1_contract_v6_authority::ValidatedCurrentQ1ContractV6,
+        ) -> Result<V6AuthorizedV2StructuralGateMatrixV1, M3MicroError> {
+            authority.validate_evidence_owner(&input.inner)?;
+            let active_registry = authority.active_gate_registry();
+            let active_policy = authority.active_gate_policy();
+            let evaluation = sprint105_q1_evaluate_structural_gates_with_owners_v1(
+                &input.inner,
+                active_policy,
+                authority.active_gate_policy_owner(),
+                active_registry,
+            )?;
+            Ok(V6AuthorizedV2StructuralGateMatrixV1 {
+                inner: V6AuthorizedV2StructuralGateMatrixInnerV1 {
+                    evaluation,
+                    owner_object_witness: authority
+                        .owner_object_witness(active_registry, active_policy),
+                    q1_contract: authority.summary(),
+                },
+            })
+        }
+
+        pub(super) fn matrix_evaluation_failure_is_atomic_for_test(
+            mut input: ValidatedV2Q1GateInputV1,
+            authority: &current_q1_contract_v6_authority::ValidatedCurrentQ1ContractV6,
+        ) -> bool {
+            input.inner.rows.pop();
+            evaluate_v2_qualification(&input, authority).is_err()
+        }
+
+        pub(super) fn finalize_v2_evaluation(
+            authorized_matrix: V6AuthorizedV2StructuralGateMatrixV1,
+            confidence: Sprint105ConfidenceOverlayV1,
+            implementation_complete: bool,
+        ) -> V6AuthorizedV2EvaluationV1 {
+            let verdict = sprint105_derive_authorized_v2_qualification_verdict_v1(
+                authorized_matrix.inner.evaluation.matrix,
+                confidence,
+                implementation_complete,
+            );
+            V6AuthorizedV2EvaluationV1 {
+                inner: V6AuthorizedV2EvaluationInnerV1 {
+                    authorized_matrix,
+                    verdict,
+                },
+            }
+        }
+
+        pub(super) fn build_v2_qualification_result(
+            evaluation: V6AuthorizedV2EvaluationV1,
+        ) -> Result<Sprint105V2Q1QualificationResultV1, M3MicroError> {
+            Ok(Sprint105V2Q1QualificationResultV1 {
+                inner: Sprint105V2Q1QualificationResultInnerV1 { evaluation },
+            })
+        }
+
+        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+        pub(super) struct V2ActualForbiddenJoinTypeNamesV1 {
+            pub(super) matrix: &'static str,
+            pub(super) internal_verdict: &'static str,
+            pub(super) evaluation: &'static str,
+            pub(super) evaluation_inner: &'static str,
+            pub(super) result: &'static str,
+        }
+
+        #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+        pub(super) struct V2ActualForbiddenJoinAuditV1 {
+            pub(super) pair_carrier_count: usize,
+            pub(super) canonical_exact_owner_count: usize,
+            pub(super) forbidden_alternate_carrier_count: usize,
+            pub(super) unclassified_pair_carrier_count: usize,
+            pub(super) forbidden_function_parameter_count: usize,
+            pub(super) forbidden_return_pair_count: usize,
+            pub(super) tuple_conversion_count: usize,
+            pub(super) pair_type_alias_count: usize,
+            pub(super) alternate_braced_pair_struct_count: usize,
+            pub(super) alternate_tuple_pair_struct_count: usize,
+            pub(super) alternate_pair_enum_variant_count: usize,
+            pub(super) pair_function_pointer_count: usize,
+            pub(super) pair_trait_method_count: usize,
+            pub(super) pair_trait_adapter_count: usize,
+            pub(super) pair_result_builder_count: usize,
+            pub(super) result_verdict_input_count: usize,
+            pub(super) capsule_verdict_input_count: usize,
+            pub(super) standalone_verdict_return_count: usize,
+        }
+
+        impl V2ActualForbiddenJoinAuditV1 {
+            pub(super) fn has_no_forbidden_edges(self) -> bool {
+                self.pair_carrier_count
+                    == self
+                        .canonical_exact_owner_count
+                        .checked_add(self.forbidden_alternate_carrier_count)
+                        .unwrap_or(usize::MAX)
+                    && self.canonical_exact_owner_count == 1
+                    && self.forbidden_alternate_carrier_count == 0
+                    && self.unclassified_pair_carrier_count == 0
+                    && self.forbidden_alternate_carrier_count
+                        == self
+                            .alternate_braced_pair_struct_count
+                            .checked_add(self.alternate_tuple_pair_struct_count)
+                            .unwrap_or(usize::MAX)
+                    && self.forbidden_function_parameter_count == 0
+                    && self.forbidden_return_pair_count == 0
+                    && self.tuple_conversion_count == 0
+                    && self.pair_type_alias_count == 0
+                    && self.alternate_braced_pair_struct_count == 0
+                    && self.alternate_tuple_pair_struct_count == 0
+                    && self.alternate_pair_enum_variant_count == 0
+                    && self.pair_function_pointer_count == 0
+                    && self.pair_trait_method_count == 0
+                    && self.pair_trait_adapter_count == 0
+                    && self.pair_result_builder_count == 0
+                    && self.result_verdict_input_count == 0
+                    && self.capsule_verdict_input_count == 0
+                    && self.standalone_verdict_return_count == 0
+            }
+        }
+
+        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+        pub(super) enum Sprint105StructBodyKindV2 {
+            Braced,
+            Tuple,
+            Unit,
+        }
+
+        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+        struct Sprint105StructDeclarationV2<'a> {
+            name: &'a str,
+            body_kind: Sprint105StructBodyKindV2,
+            body: &'a str,
+            start: usize,
+            end: usize,
+        }
+
+        #[derive(Clone, Debug, PartialEq, Eq)]
+        pub(super) struct Sprint105StructDeclarationSummaryV2 {
+            pub(super) name: String,
+            pub(super) body_kind: Sprint105StructBodyKindV2,
+            pub(super) ordered_field_signatures: Vec<Sprint105StructFieldSignatureV1>,
+            pub(super) field_count: usize,
+            pub(super) matrix_field_count: usize,
+            pub(super) internal_verdict_field_count: usize,
+            pub(super) contains_matrix: bool,
+            pub(super) contains_internal_verdict: bool,
+            pub(super) pair_carrier: bool,
+            pub(super) start: usize,
+            pub(super) end: usize,
+        }
+
+        #[derive(Clone, Debug, PartialEq, Eq)]
+        pub(super) struct Sprint105StructFieldSignatureV1 {
+            pub(super) name: Option<String>,
+            pub(super) normalized_terminal_type: String,
+        }
+
+        #[derive(Clone, Debug, PartialEq, Eq)]
+        pub(super) struct Sprint105CanonicalPairOwnerShapeV1 {
+            pub(super) name: String,
+            pub(super) body_kind: Sprint105StructBodyKindV2,
+            pub(super) ordered_field_signatures: Vec<Sprint105StructFieldSignatureV1>,
+            pub(super) matrix_field_count: usize,
+            pub(super) internal_verdict_field_count: usize,
+            pub(super) total_field_count: usize,
+        }
+
+        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+        pub(super) enum Sprint105PairCarrierRejectionReasonV1 {
+            WrongName,
+            MatrixMultiplicity,
+            VerdictMultiplicity,
+            UnexpectedField,
+            FieldNameMismatch,
+            FieldTypeMismatch,
+            TupleCarrier,
+        }
+
+        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+        pub(super) enum Sprint105PairCarrierDispositionV1 {
+            CanonicalExactOwner,
+            ForbiddenAlternateCarrier {
+                reason: Sprint105PairCarrierRejectionReasonV1,
+            },
+        }
+
+        #[derive(Clone, Debug, PartialEq, Eq)]
+        pub(super) struct Sprint105PairCarrierClassificationV1 {
+            pub(super) declaration: Sprint105StructDeclarationSummaryV2,
+            pub(super) disposition: Sprint105PairCarrierDispositionV1,
+        }
+
+        fn sprint105_actual_type_name_v1<T>() -> &'static str {
+            std::any::type_name::<T>()
+                .rsplit("::")
+                .next()
+                .expect("Rust type names are non-empty")
+        }
+
+        pub(super) fn actual_forbidden_join_type_names_for_test() -> V2ActualForbiddenJoinTypeNamesV1
+        {
+            V2ActualForbiddenJoinTypeNamesV1 {
+                matrix: sprint105_actual_type_name_v1::<V6AuthorizedV2StructuralGateMatrixV1>(),
+                internal_verdict: sprint105_actual_type_name_v1::<InternalQualificationVerdictV1>(),
+                evaluation: sprint105_actual_type_name_v1::<V6AuthorizedV2EvaluationV1>(),
+                evaluation_inner: sprint105_actual_type_name_v1::<V6AuthorizedV2EvaluationInnerV1>(
+                ),
+                result: sprint105_actual_type_name_v1::<Sprint105V2Q1QualificationResultV1>(),
+            }
+        }
+
+        fn sprint105_raw_string_end_v2(bytes: &[u8], start: usize) -> Option<Result<usize, ()>> {
+            let mut cursor = start;
+            if bytes.get(cursor) == Some(&b'b') {
+                cursor += 1;
+            }
+            if bytes.get(cursor) != Some(&b'r') {
+                return None;
+            }
+            cursor += 1;
+            let hashes_start = cursor;
+            while bytes.get(cursor) == Some(&b'#') {
+                cursor += 1;
+            }
+            if bytes.get(cursor) != Some(&b'"') {
+                return None;
+            }
+            let hash_count = cursor - hashes_start;
+            cursor += 1;
+            while cursor < bytes.len() {
+                if bytes[cursor] == b'"'
+                    && bytes
+                        .get(cursor + 1..cursor + 1 + hash_count)
+                        .is_some_and(|suffix| suffix.iter().all(|byte| *byte == b'#'))
+                {
+                    return Some(Ok(cursor + 1 + hash_count));
+                }
+                cursor += 1;
+            }
+            Some(Err(()))
+        }
+
+        fn sprint105_char_literal_end_v2(source: &str, start: usize) -> Option<usize> {
+            let tail = source.get(start + 1..)?;
+            let mut characters = tail.char_indices();
+            let (_, first) = characters.next()?;
+            let consumed = if first == '\\' {
+                let (_, escaped) = characters.next()?;
+                if escaped == 'u' && tail.as_bytes().get(2) == Some(&b'{') {
+                    let closing = tail[3..].find('}')? + 4;
+                    closing
+                } else {
+                    1 + escaped.len_utf8()
+                }
+            } else {
+                first.len_utf8()
+            };
+            (source.as_bytes().get(start + 1 + consumed) == Some(&b'\''))
+                .then_some(start + 2 + consumed)
+        }
+
+        fn sprint105_source_without_comments_or_strings_v1(
+            source: &str,
+        ) -> Result<String, &'static str> {
+            let bytes = source.as_bytes();
+            let mut clean = bytes.to_vec();
+            let mut cursor = 0;
+            while cursor < bytes.len() {
+                if let Some(raw_end) = sprint105_raw_string_end_v2(bytes, cursor) {
+                    let end = raw_end.map_err(|_| "unclosed raw string literal")?;
+                    clean[cursor..end].fill(b' ');
+                    cursor = end;
+                } else if bytes[cursor..].starts_with(b"//") {
+                    let start = cursor;
+                    cursor += 2;
+                    while cursor < bytes.len() && bytes[cursor] != b'\n' {
+                        cursor += 1;
+                    }
+                    clean[start..cursor].fill(b' ');
+                } else if bytes[cursor..].starts_with(b"/*") {
+                    let start = cursor;
+                    let mut depth = 1usize;
+                    cursor += 2;
+                    while cursor < bytes.len() && depth != 0 {
+                        if bytes[cursor..].starts_with(b"/*") {
+                            depth += 1;
+                            cursor += 2;
+                        } else if bytes[cursor..].starts_with(b"*/") {
+                            depth -= 1;
+                            cursor += 2;
+                        } else {
+                            cursor += 1;
+                        }
+                    }
+                    if depth != 0 {
+                        return Err("unclosed block comment");
+                    }
+                    clean[start..cursor].fill(b' ');
+                } else if bytes[cursor] == b'"' {
+                    let start = cursor;
+                    cursor += 1;
+                    while cursor < bytes.len() {
+                        if bytes[cursor] == b'\\' {
+                            cursor = (cursor + 2).min(bytes.len());
+                        } else if bytes[cursor] == b'"' {
+                            cursor += 1;
+                            break;
+                        } else {
+                            cursor += 1;
+                        }
+                    }
+                    if bytes.get(cursor.wrapping_sub(1)) != Some(&b'"') {
+                        return Err("unclosed string literal");
+                    }
+                    clean[start..cursor].fill(b' ');
+                } else if bytes[cursor] == b'\'' {
+                    if let Some(end) = sprint105_char_literal_end_v2(source, cursor) {
+                        clean[cursor..end].fill(b' ');
+                        cursor = end;
+                    } else {
+                        cursor += 1;
+                    }
+                } else {
+                    cursor += 1;
+                }
+            }
+            String::from_utf8(clean)
+                .map_err(|_| "source did not remain UTF-8 after lexical isolation")
+        }
+
+        fn sprint105_identifier_boundary_v1(byte: Option<u8>) -> bool {
+            byte.is_none_or(|byte| !byte.is_ascii_alphanumeric() && byte != b'_')
+        }
+
+        fn sprint105_identifier_offsets_v1(source: &str, identifier: &str) -> Vec<usize> {
+            source
+                .match_indices(identifier)
+                .filter_map(|(offset, _)| {
+                    let before = offset.checked_sub(1).map(|index| source.as_bytes()[index]);
+                    let after = source.as_bytes().get(offset + identifier.len()).copied();
+                    (sprint105_identifier_boundary_v1(before)
+                        && sprint105_identifier_boundary_v1(after))
+                    .then_some(offset)
+                })
+                .collect()
+        }
+
+        fn sprint105_contains_identifier_v1(source: &str, identifier: &str) -> bool {
+            !sprint105_identifier_offsets_v1(source, identifier).is_empty()
+        }
+
+        fn sprint105_matching_delimiter_v1(
+            source: &str,
+            opening: usize,
+            open: u8,
+            close: u8,
+        ) -> Option<usize> {
+            let mut depth = 0usize;
+            for (relative, byte) in source.as_bytes()[opening..].iter().copied().enumerate() {
+                if byte == open {
+                    depth += 1;
+                } else if byte == close {
+                    depth = depth.checked_sub(1)?;
+                    if depth == 0 {
+                        return Some(opening + relative);
+                    }
+                }
+            }
+            None
+        }
+
+        fn sprint105_declaration_end_v1(source: &str, start: usize) -> Option<usize> {
+            let mut parentheses = 0usize;
+            let mut brackets = 0usize;
+            for (relative, byte) in source.as_bytes()[start..].iter().copied().enumerate() {
+                match byte {
+                    b'(' => parentheses += 1,
+                    b')' => parentheses = parentheses.checked_sub(1)?,
+                    b'[' => brackets += 1,
+                    b']' => brackets = brackets.checked_sub(1)?,
+                    b'{' | b';' if parentheses == 0 && brackets == 0 => {
+                        return Some(start + relative);
+                    }
+                    _ => {}
+                }
+            }
+            None
+        }
+
+        fn sprint105_function_signatures_v1(source: &str) -> Vec<&str> {
+            sprint105_identifier_offsets_v1(source, "fn")
+                .into_iter()
+                .filter_map(|fn_start| {
+                    let start = source[..fn_start]
+                        .rfind('\n')
+                        .map_or(0, |newline| newline + 1);
+                    sprint105_declaration_end_v1(source, fn_start).map(|end| &source[start..end])
+                })
+                .collect()
+        }
+
+        fn sprint105_signature_parts_v1(signature: &str) -> Option<(&str, &str)> {
+            let opening = signature.find('(')?;
+            let closing = sprint105_matching_delimiter_v1(signature, opening, b'(', b')')?;
+            Some((&signature[opening + 1..closing], &signature[closing + 1..]))
+        }
+
+        fn sprint105_pair_in_v1(source: &str, names: V2ActualForbiddenJoinTypeNamesV1) -> bool {
+            sprint105_contains_identifier_v1(source, names.matrix)
+                && sprint105_contains_identifier_v1(source, names.internal_verdict)
+        }
+
+        fn sprint105_declared_name_v1<'a>(declaration: &'a str, keyword: &str) -> Option<&'a str> {
+            declaration
+                .trim_start()
+                .strip_prefix(keyword)?
+                .trim_start()
+                .split(|character: char| !character.is_ascii_alphanumeric() && character != '_')
+                .next()
+                .filter(|name| !name.is_empty())
+        }
+
+        fn sprint105_skip_ascii_whitespace_v2(source: &str, mut cursor: usize) -> usize {
+            while source
+                .as_bytes()
+                .get(cursor)
+                .is_some_and(u8::is_ascii_whitespace)
+            {
+                cursor += 1;
+            }
+            cursor
+        }
+
+        fn sprint105_identifier_at_v2(source: &str, start: usize) -> Option<(&str, usize)> {
+            let bytes = source.as_bytes();
+            let first = *bytes.get(start)?;
+            if !first.is_ascii_alphabetic() && first != b'_' {
+                return None;
+            }
+            let mut end = start + 1;
+            while bytes
+                .get(end)
+                .is_some_and(|byte| byte.is_ascii_alphanumeric() || *byte == b'_')
+            {
+                end += 1;
+            }
+            Some((&source[start..end], end))
+        }
+
+        fn sprint105_matching_angles_v2(source: &str, opening: usize) -> Option<usize> {
+            let mut depth = 0usize;
+            for (relative, byte) in source.as_bytes()[opening..].iter().copied().enumerate() {
+                if byte == b'<' {
+                    depth += 1;
+                } else if byte == b'>' {
+                    depth = depth.checked_sub(1)?;
+                    if depth == 0 {
+                        return Some(opening + relative);
+                    }
+                }
+            }
+            None
+        }
+
+        fn sprint105_where_body_or_unit_v2(source: &str, start: usize) -> Option<(usize, u8)> {
+            let mut parentheses = 0usize;
+            let mut brackets = 0usize;
+            let mut angles = 0usize;
+            for (relative, byte) in source.as_bytes()[start..].iter().copied().enumerate() {
+                match byte {
+                    b'(' => parentheses += 1,
+                    b')' => parentheses = parentheses.checked_sub(1)?,
+                    b'[' => brackets += 1,
+                    b']' => brackets = brackets.checked_sub(1)?,
+                    b'<' => angles += 1,
+                    b'>' => angles = angles.saturating_sub(1),
+                    b'{' | b';' if parentheses == 0 && brackets == 0 && angles == 0 => {
+                        return Some((start + relative, byte));
+                    }
+                    _ => {}
+                }
+            }
+            None
+        }
+
+        fn sprint105_struct_declarations_v2(
+            source: &str,
+        ) -> Result<Vec<Sprint105StructDeclarationV2<'_>>, &'static str> {
+            let mut declarations = Vec::new();
+            for start in sprint105_identifier_offsets_v1(source, "struct") {
+                let name_start = sprint105_skip_ascii_whitespace_v2(source, start + "struct".len());
+                let (name, mut cursor) = sprint105_identifier_at_v2(source, name_start)
+                    .ok_or("struct declaration is missing its identifier")?;
+                cursor = sprint105_skip_ascii_whitespace_v2(source, cursor);
+                if source.as_bytes().get(cursor) == Some(&b'<') {
+                    cursor = sprint105_matching_angles_v2(source, cursor)
+                        .ok_or("struct generic parameter list is unclosed")?
+                        + 1;
+                    cursor = sprint105_skip_ascii_whitespace_v2(source, cursor);
+                }
+
+                let (body_kind, body_start, body_end, end) = match source.as_bytes().get(cursor) {
+                    Some(b'{') => {
+                        let closing = sprint105_matching_delimiter_v1(source, cursor, b'{', b'}')
+                            .ok_or("braced struct body is unclosed")?;
+                        (
+                            Sprint105StructBodyKindV2::Braced,
+                            cursor + 1,
+                            closing,
+                            closing + 1,
+                        )
+                    }
+                    Some(b'(') => {
+                        let closing = sprint105_matching_delimiter_v1(source, cursor, b'(', b')')
+                            .ok_or("tuple struct body is unclosed")?;
+                        let after_body = sprint105_skip_ascii_whitespace_v2(source, closing + 1);
+                        let semicolon = if source.as_bytes().get(after_body) == Some(&b';') {
+                            after_body
+                        } else if sprint105_identifier_at_v2(source, after_body)
+                            .is_some_and(|(identifier, _)| identifier == "where")
+                        {
+                            sprint105_where_body_or_unit_v2(source, after_body)
+                                .filter(|(_, token)| *token == b';')
+                                .map(|(offset, _)| offset)
+                                .ok_or("tuple struct where-clause is missing its semicolon")?
+                        } else {
+                            return Err("tuple struct is missing its trailing semicolon");
+                        };
+                        (
+                            Sprint105StructBodyKindV2::Tuple,
+                            cursor + 1,
+                            closing,
+                            semicolon + 1,
+                        )
+                    }
+                    Some(b';') => (Sprint105StructBodyKindV2::Unit, cursor, cursor, cursor + 1),
+                    _ if sprint105_identifier_at_v2(source, cursor)
+                        .is_some_and(|(identifier, _)| identifier == "where") =>
+                    {
+                        let (boundary, token) = sprint105_where_body_or_unit_v2(source, cursor)
+                            .ok_or("struct where-clause has no body or semicolon")?;
+                        if token == b'{' {
+                            let closing =
+                                sprint105_matching_delimiter_v1(source, boundary, b'{', b'}')
+                                    .ok_or("braced struct body is unclosed")?;
+                            (
+                                Sprint105StructBodyKindV2::Braced,
+                                boundary + 1,
+                                closing,
+                                closing + 1,
+                            )
+                        } else {
+                            (
+                                Sprint105StructBodyKindV2::Unit,
+                                boundary,
+                                boundary,
+                                boundary + 1,
+                            )
+                        }
+                    }
+                    _ => return Err("struct declaration body kind is not recognized"),
+                };
+                declarations.push(Sprint105StructDeclarationV2 {
+                    name,
+                    body_kind,
+                    body: &source[body_start..body_end],
+                    start,
+                    end,
+                });
+            }
+            Ok(declarations)
+        }
+
+        fn sprint105_braced_declarations_v1<'a>(
+            source: &'a str,
+            keyword: &str,
+        ) -> Vec<(&'a str, &'a str)> {
+            sprint105_identifier_offsets_v1(source, keyword)
+                .into_iter()
+                .filter_map(|start| {
+                    let opening = source[start..].find('{').map(|offset| start + offset)?;
+                    let semicolon = source[start..opening].find(';');
+                    if semicolon.is_some() {
+                        return None;
+                    }
+                    let closing = sprint105_matching_delimiter_v1(source, opening, b'{', b'}')?;
+                    let header = &source[start..opening];
+                    let name = sprint105_declared_name_v1(header, keyword)?;
+                    Some((name, &source[opening + 1..closing]))
+                })
+                .collect()
+        }
+
+        fn sprint105_top_level_groups_v1(source: &str) -> Vec<&str> {
+            let mut groups = Vec::new();
+            let mut start = 0usize;
+            let mut braces = 0usize;
+            let mut parentheses = 0usize;
+            let mut brackets = 0usize;
+            let mut angles = 0usize;
+            for (offset, byte) in source.as_bytes().iter().copied().enumerate() {
+                match byte {
+                    b'{' => braces += 1,
+                    b'}' => braces = braces.saturating_sub(1),
+                    b'(' => parentheses += 1,
+                    b')' => parentheses = parentheses.saturating_sub(1),
+                    b'[' => brackets += 1,
+                    b']' => brackets = brackets.saturating_sub(1),
+                    b'<' => angles += 1,
+                    b'>' => angles = angles.saturating_sub(1),
+                    b',' if braces == 0 && parentheses == 0 && brackets == 0 && angles == 0 => {
+                        groups.push(&source[start..offset]);
+                        start = offset + 1;
+                    }
+                    _ => {}
+                }
+            }
+            groups.push(&source[start..]);
+            groups
+        }
+
+        fn sprint105_top_level_colon_v2(source: &str) -> Option<usize> {
+            let mut braces = 0usize;
+            let mut parentheses = 0usize;
+            let mut brackets = 0usize;
+            let mut angles = 0usize;
+            for (offset, byte) in source.as_bytes().iter().copied().enumerate() {
+                match byte {
+                    b'{' => braces += 1,
+                    b'}' => braces = braces.checked_sub(1)?,
+                    b'(' => parentheses += 1,
+                    b')' => parentheses = parentheses.checked_sub(1)?,
+                    b'[' => brackets += 1,
+                    b']' => brackets = brackets.checked_sub(1)?,
+                    b'<' => angles += 1,
+                    b'>' => angles = angles.saturating_sub(1),
+                    b':' if braces == 0
+                        && parentheses == 0
+                        && brackets == 0
+                        && angles == 0
+                        && source.as_bytes().get(offset + 1) != Some(&b':')
+                        && offset.checked_sub(1).map(|index| source.as_bytes()[index])
+                            != Some(b':') =>
+                    {
+                        return Some(offset);
+                    }
+                    _ => {}
+                }
+            }
+            None
+        }
+
+        #[derive(Clone, Copy)]
+        struct Sprint105ParsedStructFieldV1<'a> {
+            name: Option<&'a str>,
+            type_source: &'a str,
+        }
+
+        fn sprint105_last_identifier_v3(source: &str) -> Option<&str> {
+            let mut cursor = 0usize;
+            let mut last = None;
+            while cursor < source.len() {
+                if let Some((identifier, end)) = sprint105_identifier_at_v2(source, cursor) {
+                    last = Some(identifier);
+                    cursor = end;
+                } else {
+                    cursor += 1;
+                }
+            }
+            last
+        }
+
+        fn sprint105_normalized_terminal_type_v3(source: &str) -> String {
+            let trimmed = source.trim();
+            let path_segments = trimmed.split("::").collect::<Vec<_>>();
+            if !path_segments.is_empty()
+                && path_segments.iter().all(|segment| {
+                    let segment = segment.trim();
+                    sprint105_identifier_at_v2(segment, 0)
+                        .is_some_and(|(_, end)| end == segment.len())
+                })
+            {
+                return path_segments
+                    .last()
+                    .expect("non-empty path segments")
+                    .trim()
+                    .to_string();
+            }
+            trimmed
+                .chars()
+                .filter(|character| !character.is_whitespace())
+                .collect()
+        }
+
+        fn sprint105_struct_fields_v3<'a>(
+            declaration: Sprint105StructDeclarationV2<'a>,
+        ) -> Result<Vec<Sprint105ParsedStructFieldV1<'a>>, &'static str> {
+            match declaration.body_kind {
+                Sprint105StructBodyKindV2::Unit => Ok(Vec::new()),
+                Sprint105StructBodyKindV2::Tuple => {
+                    Ok(sprint105_top_level_groups_v1(declaration.body)
+                        .into_iter()
+                        .filter(|field| !field.trim().is_empty())
+                        .map(|type_source| Sprint105ParsedStructFieldV1 {
+                            name: None,
+                            type_source,
+                        })
+                        .collect())
+                }
+                Sprint105StructBodyKindV2::Braced => {
+                    sprint105_top_level_groups_v1(declaration.body)
+                        .into_iter()
+                        .filter(|field| !field.trim().is_empty())
+                        .map(|field| {
+                            let colon = sprint105_top_level_colon_v2(field)
+                                .ok_or("named struct field is missing its type separator")?;
+                            let name = sprint105_last_identifier_v3(&field[..colon])
+                                .ok_or("named struct field is missing its identifier")?;
+                            Ok(Sprint105ParsedStructFieldV1 {
+                                name: Some(name),
+                                type_source: &field[colon + 1..],
+                            })
+                        })
+                        .collect()
+                }
+            }
+        }
+
+        fn sprint105_struct_summary_v2(
+            declaration: Sprint105StructDeclarationV2<'_>,
+            names: V2ActualForbiddenJoinTypeNamesV1,
+        ) -> Result<Sprint105StructDeclarationSummaryV2, &'static str> {
+            let fields = sprint105_struct_fields_v3(declaration)?;
+            let matrix_field_count = fields
+                .iter()
+                .filter(|field| sprint105_contains_identifier_v1(field.type_source, names.matrix))
+                .count();
+            let internal_verdict_field_count = fields
+                .iter()
+                .filter(|field| {
+                    sprint105_contains_identifier_v1(field.type_source, names.internal_verdict)
+                })
+                .count();
+            let contains_matrix = matrix_field_count != 0;
+            let contains_internal_verdict = internal_verdict_field_count != 0;
+            let ordered_field_signatures = fields
+                .iter()
+                .map(|field| Sprint105StructFieldSignatureV1 {
+                    name: field.name.map(str::to_string),
+                    normalized_terminal_type: sprint105_normalized_terminal_type_v3(
+                        field.type_source,
+                    ),
+                })
+                .collect();
+            Ok(Sprint105StructDeclarationSummaryV2 {
+                name: declaration.name.to_string(),
+                body_kind: declaration.body_kind,
+                ordered_field_signatures,
+                field_count: fields.len(),
+                matrix_field_count,
+                internal_verdict_field_count,
+                contains_matrix,
+                contains_internal_verdict,
+                pair_carrier: contains_matrix && contains_internal_verdict,
+                start: declaration.start,
+                end: declaration.end,
+            })
+        }
+
+        fn sprint105_struct_summaries_v2(
+            source: &str,
+            names: V2ActualForbiddenJoinTypeNamesV1,
+        ) -> Result<Vec<Sprint105StructDeclarationSummaryV2>, &'static str> {
+            sprint105_struct_declarations_v2(source)?
+                .into_iter()
+                .map(|declaration| sprint105_struct_summary_v2(declaration, names))
+                .collect()
+        }
+
+        fn sprint105_canonical_pair_owner_shape_v3(
+            names: V2ActualForbiddenJoinTypeNamesV1,
+        ) -> Sprint105CanonicalPairOwnerShapeV1 {
+            Sprint105CanonicalPairOwnerShapeV1 {
+                name: names.evaluation_inner.to_string(),
+                body_kind: Sprint105StructBodyKindV2::Braced,
+                ordered_field_signatures: vec![
+                    Sprint105StructFieldSignatureV1 {
+                        name: Some("authorized_matrix".to_string()),
+                        normalized_terminal_type: names.matrix.to_string(),
+                    },
+                    Sprint105StructFieldSignatureV1 {
+                        name: Some("verdict".to_string()),
+                        normalized_terminal_type: names.internal_verdict.to_string(),
+                    },
+                ],
+                matrix_field_count: 1,
+                internal_verdict_field_count: 1,
+                total_field_count: 2,
+            }
+        }
+
+        fn sprint105_is_exact_canonical_pair_owner_v3(
+            declaration: &Sprint105StructDeclarationSummaryV2,
+            canonical_shape: &Sprint105CanonicalPairOwnerShapeV1,
+        ) -> bool {
+            declaration.name == canonical_shape.name
+                && declaration.body_kind == canonical_shape.body_kind
+                && declaration.matrix_field_count == canonical_shape.matrix_field_count
+                && declaration.internal_verdict_field_count
+                    == canonical_shape.internal_verdict_field_count
+                && declaration.field_count == canonical_shape.total_field_count
+                && declaration.ordered_field_signatures == canonical_shape.ordered_field_signatures
+        }
+
+        fn sprint105_classify_pair_carrier_v3(
+            declaration: &Sprint105StructDeclarationSummaryV2,
+            canonical_shape: &Sprint105CanonicalPairOwnerShapeV1,
+        ) -> Sprint105PairCarrierDispositionV1 {
+            debug_assert!(declaration.pair_carrier);
+            if sprint105_is_exact_canonical_pair_owner_v3(declaration, canonical_shape) {
+                return Sprint105PairCarrierDispositionV1::CanonicalExactOwner;
+            }
+            let reason = if declaration.body_kind == Sprint105StructBodyKindV2::Tuple {
+                Sprint105PairCarrierRejectionReasonV1::TupleCarrier
+            } else if declaration.name == canonical_shape.name {
+                if declaration.matrix_field_count != canonical_shape.matrix_field_count {
+                    Sprint105PairCarrierRejectionReasonV1::MatrixMultiplicity
+                } else if declaration.internal_verdict_field_count
+                    != canonical_shape.internal_verdict_field_count
+                {
+                    Sprint105PairCarrierRejectionReasonV1::VerdictMultiplicity
+                } else if declaration.field_count != canonical_shape.total_field_count {
+                    Sprint105PairCarrierRejectionReasonV1::UnexpectedField
+                } else if declaration
+                    .ordered_field_signatures
+                    .iter()
+                    .map(|field| &field.name)
+                    .ne(canonical_shape
+                        .ordered_field_signatures
+                        .iter()
+                        .map(|field| &field.name))
+                {
+                    Sprint105PairCarrierRejectionReasonV1::FieldNameMismatch
+                } else {
+                    Sprint105PairCarrierRejectionReasonV1::FieldTypeMismatch
+                }
+            } else {
+                Sprint105PairCarrierRejectionReasonV1::WrongName
+            };
+            Sprint105PairCarrierDispositionV1::ForbiddenAlternateCarrier { reason }
+        }
+
+        fn sprint105_pair_carrier_classifications_v3(
+            source: &str,
+            names: V2ActualForbiddenJoinTypeNamesV1,
+        ) -> Result<Vec<Sprint105PairCarrierClassificationV1>, &'static str> {
+            let canonical_shape = sprint105_canonical_pair_owner_shape_v3(names);
+            Ok(sprint105_struct_summaries_v2(source, names)?
+                .into_iter()
+                .filter(|declaration| declaration.pair_carrier)
+                .map(|declaration| {
+                    let disposition =
+                        sprint105_classify_pair_carrier_v3(&declaration, &canonical_shape);
+                    Sprint105PairCarrierClassificationV1 {
+                        declaration,
+                        disposition,
+                    }
+                })
+                .collect())
+        }
+
+        fn sprint105_actual_forbidden_join_audit_v1(
+            source: &str,
+        ) -> Result<V2ActualForbiddenJoinAuditV1, &'static str> {
+            let names = actual_forbidden_join_type_names_for_test();
+            let clean = sprint105_source_without_comments_or_strings_v1(source)?;
+            let signatures = sprint105_function_signatures_v1(&clean);
+            let forbidden_function_parameter_count = signatures
+                .iter()
+                .filter_map(|signature| sprint105_signature_parts_v1(signature))
+                .filter(|(parameters, _)| sprint105_pair_in_v1(parameters, names))
+                .count();
+            let forbidden_return_pair_count = signatures
+                .iter()
+                .filter_map(|signature| sprint105_signature_parts_v1(signature))
+                .filter(|(_, returns)| sprint105_pair_in_v1(returns, names))
+                .count();
+            let standalone_verdict_return_count = signatures
+                .iter()
+                .filter(|signature| signature.contains("pub(super)"))
+                .filter_map(|signature| sprint105_signature_parts_v1(signature))
+                .filter(|(_, returns)| {
+                    sprint105_contains_identifier_v1(returns, names.internal_verdict)
+                })
+                .count();
+            let pair_result_builder_count = signatures
+                .iter()
+                .filter(|signature| {
+                    sprint105_signature_parts_v1(signature)
+                        .is_some_and(|(parameters, _)| sprint105_pair_in_v1(parameters, names))
+                })
+                .filter(|signature| {
+                    sprint105_contains_identifier_v1(signature, names.result)
+                        || sprint105_declared_name_v1(signature, "fn")
+                            .is_some_and(|name| name.contains("result"))
+                })
+                .count();
+            let result_verdict_input_count = signatures
+                .iter()
+                .filter_map(|signature| {
+                    sprint105_signature_parts_v1(signature)
+                        .map(|(parameters, returns)| (*signature, parameters, returns))
+                })
+                .filter(|(signature, parameters, returns)| {
+                    sprint105_contains_identifier_v1(parameters, names.internal_verdict)
+                        && (sprint105_contains_identifier_v1(returns, names.result)
+                            || sprint105_declared_name_v1(signature, "fn")
+                                .is_some_and(|name| name.contains("result")))
+                })
+                .count();
+            let capsule_verdict_input_count = signatures
+                .iter()
+                .filter_map(|signature| {
+                    sprint105_signature_parts_v1(signature)
+                        .map(|(parameters, returns)| (parameters, returns))
+                })
+                .filter(|(parameters, returns)| {
+                    sprint105_contains_identifier_v1(parameters, names.internal_verdict)
+                        && sprint105_contains_identifier_v1(returns, names.evaluation)
+                })
+                .count();
+
+            let tuple_conversion_count = sprint105_identifier_offsets_v1(&clean, "impl")
+                .into_iter()
+                .filter_map(|start| {
+                    sprint105_declaration_end_v1(&clean, start).map(|end| &clean[start..end])
+                })
+                .filter(|header| {
+                    (sprint105_contains_identifier_v1(header, "From")
+                        || sprint105_contains_identifier_v1(header, "TryFrom"))
+                        && sprint105_pair_in_v1(header, names)
+                })
+                .count();
+
+            let aliases = sprint105_identifier_offsets_v1(&clean, "type")
+                .into_iter()
+                .filter_map(|start| {
+                    clean[start..]
+                        .find(';')
+                        .map(|end| &clean[start..start + end])
+                })
+                .filter(|alias| sprint105_pair_in_v1(alias, names))
+                .collect::<Vec<_>>();
+            let pair_function_pointer_count = aliases
+                .iter()
+                .filter(|alias| sprint105_contains_identifier_v1(alias, "fn"))
+                .count();
+            let pair_type_alias_count = aliases.len() - pair_function_pointer_count;
+
+            let pair_carriers = sprint105_pair_carrier_classifications_v3(&clean, names)?;
+            let pair_carrier_count = pair_carriers.len();
+            let canonical_exact_owner_count = pair_carriers
+                .iter()
+                .filter(|classification| {
+                    classification.disposition
+                        == Sprint105PairCarrierDispositionV1::CanonicalExactOwner
+                })
+                .count();
+            let forbidden_alternate_carrier_count = pair_carriers
+                .iter()
+                .filter(|classification| {
+                    matches!(
+                        classification.disposition,
+                        Sprint105PairCarrierDispositionV1::ForbiddenAlternateCarrier { .. }
+                    )
+                })
+                .count();
+            let classified_pair_carrier_count = canonical_exact_owner_count
+                .checked_add(forbidden_alternate_carrier_count)
+                .ok_or("pair-carrier classification count overflowed")?;
+            let unclassified_pair_carrier_count = pair_carrier_count
+                .checked_sub(classified_pair_carrier_count)
+                .ok_or("pair-carrier classification is not disjoint")?;
+            let alternate_braced_pair_struct_count = pair_carriers
+                .iter()
+                .filter(|classification| {
+                    classification.declaration.body_kind == Sprint105StructBodyKindV2::Braced
+                        && matches!(
+                            classification.disposition,
+                            Sprint105PairCarrierDispositionV1::ForbiddenAlternateCarrier { .. }
+                        )
+                })
+                .count();
+            let alternate_tuple_pair_struct_count = pair_carriers
+                .iter()
+                .filter(|classification| {
+                    classification.declaration.body_kind == Sprint105StructBodyKindV2::Tuple
+                        && matches!(
+                            classification.disposition,
+                            Sprint105PairCarrierDispositionV1::ForbiddenAlternateCarrier { .. }
+                        )
+                })
+                .count();
+
+            let alternate_pair_enum_variant_count =
+                sprint105_braced_declarations_v1(&clean, "enum")
+                    .into_iter()
+                    .flat_map(|(_, body)| sprint105_top_level_groups_v1(body))
+                    .filter(|variant| sprint105_pair_in_v1(variant, names))
+                    .count();
+
+            let pair_trait_method_count = sprint105_braced_declarations_v1(&clean, "trait")
+                .into_iter()
+                .flat_map(|(_, body)| sprint105_function_signatures_v1(body))
+                .filter_map(sprint105_signature_parts_v1)
+                .filter(|(parameters, _)| sprint105_pair_in_v1(parameters, names))
+                .count();
+            let pair_trait_adapter_count = sprint105_braced_declarations_v1(&clean, "impl")
+                .into_iter()
+                .flat_map(|(_, body)| sprint105_function_signatures_v1(body))
+                .filter_map(sprint105_signature_parts_v1)
+                .filter(|(parameters, _)| sprint105_pair_in_v1(parameters, names))
+                .count();
+
+            Ok(V2ActualForbiddenJoinAuditV1 {
+                pair_carrier_count,
+                canonical_exact_owner_count,
+                forbidden_alternate_carrier_count,
+                unclassified_pair_carrier_count,
+                forbidden_function_parameter_count,
+                forbidden_return_pair_count,
+                tuple_conversion_count,
+                pair_type_alias_count,
+                alternate_braced_pair_struct_count,
+                alternate_tuple_pair_struct_count,
+                alternate_pair_enum_variant_count,
+                pair_function_pointer_count,
+                pair_trait_method_count,
+                pair_trait_adapter_count,
+                pair_result_builder_count,
+                result_verdict_input_count,
+                capsule_verdict_input_count,
+                standalone_verdict_return_count,
+            })
+        }
+
+        pub(super) fn audit_actual_forbidden_joins_for_test(
+            source: &str,
+        ) -> Result<V2ActualForbiddenJoinAuditV1, &'static str> {
+            let begin = ["// SPRINT105_Q1_EVALUATION_AUTHORITY_V1", "_BEGIN"].concat();
+            let end = ["// SPRINT105_Q1_EVALUATION_AUTHORITY_V1", "_END"].concat();
+            if source.match_indices(&begin).count() != 1 || source.match_indices(&end).count() != 1
+            {
+                return Err("evaluation authority boundary must be unique");
+            }
+            let (_, tail) = source
+                .split_once(&begin)
+                .ok_or("evaluation authority begin boundary is missing")?;
+            let (module, _) = tail
+                .split_once(&end)
+                .ok_or("evaluation authority end boundary is missing")?;
+            if module.trim().is_empty() {
+                return Err("evaluation authority module is empty");
+            }
+            let module_marker = ["mod q1_structural_evaluation_authority_v1", " {"].concat();
+            if module.match_indices(&module_marker).count() != 1 {
+                return Err("evaluation authority module marker must be unique");
+            }
+            let module_audit = sprint105_actual_forbidden_join_audit_v1(module)?;
+            if module_audit.canonical_exact_owner_count != 1 {
+                return Err("canonical evaluation pair owner is not unique");
+            }
+            let full_audit = sprint105_actual_forbidden_join_audit_v1(source)?;
+            if full_audit.canonical_exact_owner_count != module_audit.canonical_exact_owner_count {
+                return Err("canonical evaluation pair owner escaped its child module");
+            }
+            if !full_audit.has_no_forbidden_edges() {
+                return Err("actual source contains a forbidden Matrix/Verdict carrier");
+            }
+            Ok(full_audit)
+        }
+
+        pub(super) fn audit_forbidden_join_fixture_for_test(
+            source: &str,
+        ) -> V2ActualForbiddenJoinAuditV1 {
+            sprint105_actual_forbidden_join_audit_v1(source)
+                .expect("forbidden-join fixture must be lexically and structurally valid")
+        }
+
+        pub(super) fn audit_forbidden_join_fixture_checked_for_test(
+            source: &str,
+        ) -> Result<V2ActualForbiddenJoinAuditV1, &'static str> {
+            sprint105_actual_forbidden_join_audit_v1(source)
+        }
+
+        pub(super) fn inspect_struct_declarations_for_test(
+            source: &str,
+        ) -> Result<Vec<Sprint105StructDeclarationSummaryV2>, &'static str> {
+            let clean = sprint105_source_without_comments_or_strings_v1(source)?;
+            sprint105_struct_summaries_v2(&clean, actual_forbidden_join_type_names_for_test())
+        }
+
+        pub(super) fn inspect_pair_carrier_classifications_for_test(
+            source: &str,
+        ) -> Result<Vec<Sprint105PairCarrierClassificationV1>, &'static str> {
+            let clean = sprint105_source_without_comments_or_strings_v1(source)?;
+            sprint105_pair_carrier_classifications_v3(
+                &clean,
+                actual_forbidden_join_type_names_for_test(),
+            )
+        }
+
+        pub(super) fn canonical_pair_owner_shape_for_test() -> Sprint105CanonicalPairOwnerShapeV1 {
+            sprint105_canonical_pair_owner_shape_v3(actual_forbidden_join_type_names_for_test())
+        }
+
+        #[derive(Clone, Debug, PartialEq, Eq)]
+        pub(super) struct Sprint105FunctionReturnDeclarationV1 {
+            pub(super) identity: String,
+            pub(super) scope_identity: String,
+            pub(super) visibility: String,
+            pub(super) generic_parameters: String,
+            pub(super) parameters: String,
+            pub(super) return_type: String,
+            pub(super) where_clause: String,
+            pub(super) declaration_terminator: char,
+        }
+
+        #[derive(Clone, Debug, PartialEq, Eq)]
+        pub(super) enum Sprint105RawInnerReturnExposureV1 {
+            Direct {
+                function: String,
+                return_type: String,
+                capability_path: Vec<String>,
+            },
+            Wrapped {
+                function: String,
+                return_type: String,
+                capability_path: Vec<String>,
+            },
+            TypeAlias {
+                function: String,
+                return_type: String,
+                alias_path: Vec<String>,
+            },
+            ImportAlias {
+                function: String,
+                return_type: String,
+                alias_path: Vec<String>,
+                canonical_target_path: Vec<String>,
+                terminal_target: String,
+            },
+        }
+
+        #[derive(Clone, Debug, PartialEq, Eq)]
+        pub(super) enum Sprint105RawInnerCapabilityGuardErrorV1 {
+            SourceSanitization,
+            MalformedFunctionDeclaration,
+            MalformedTypeAlias,
+            MalformedUseTree,
+            EmptyGroupedSelfPrefix,
+            MissingAlias,
+            DuplicateAlias { alias: String },
+            ShadowedLiveInnerIdentifier { declaration: String },
+            AliasCycle { alias_path: Vec<String> },
+            AmbiguousAlias { alias: String },
+            UnresolvedLocalAlias { alias: String, target: String },
+            RawInnerExposure(Sprint105RawInnerReturnExposureV1),
+        }
+
+        #[derive(Clone, Debug, Default, PartialEq, Eq)]
+        pub(super) struct Sprint105RawInnerCapabilityAuditV1 {
+            pub(super) inspected_function_count: usize,
+            pub(super) safe_function_return_count: usize,
+            pub(super) direct_exposure_count: usize,
+            pub(super) wrapped_exposure_count: usize,
+            pub(super) type_alias_exposure_count: usize,
+            pub(super) import_alias_exposure_count: usize,
+            pub(super) type_alias_count: usize,
+            pub(super) use_declaration_count: usize,
+            pub(super) import_alias_count: usize,
+            pub(super) grouped_use_count: usize,
+            pub(super) grouped_self_alias_count: usize,
+            pub(super) glob_import_count: usize,
+            pub(super) live_inner_import_alias_count: usize,
+            pub(super) tainted_import_alias_count: usize,
+            pub(super) alias_graph_node_count: usize,
+            pub(super) alias_graph_edge_count: usize,
+            pub(super) alias_cycle_count: usize,
+            pub(super) unresolved_local_alias_count: usize,
+            pub(super) function_returns: Vec<Sprint105FunctionReturnDeclarationV1>,
+            pub(super) live_exposure_paths: Vec<Sprint105RawInnerReturnExposureV1>,
+        }
+
+        #[derive(Clone, Debug, PartialEq, Eq)]
+        struct Sprint105TypeAliasDeclarationV1 {
+            identity: String,
+            scope_identity: String,
+            name: String,
+            generic_parameters: String,
+            type_expression: String,
+        }
+
+        #[derive(Clone, Debug, PartialEq, Eq)]
+        pub(super) struct Sprint105ImportAliasTargetV1 {
+            pub(super) canonical_segments: Vec<String>,
+            pub(super) terminal: String,
+        }
+
+        #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+        pub(super) enum Sprint105ImportAliasSourceKindV1 {
+            Direct,
+            GroupedName,
+            GroupedSelf,
+        }
+
+        #[derive(Clone, Debug, PartialEq, Eq)]
+        pub(super) struct Sprint105ImportAliasDeclarationV1 {
+            pub(super) identity: String,
+            pub(super) scope_identity: String,
+            pub(super) name: String,
+            pub(super) target: Sprint105ImportAliasTargetV1,
+            pub(super) source_kind: Sprint105ImportAliasSourceKindV1,
+        }
+
+        #[derive(Clone, Debug, Default, PartialEq, Eq)]
+        pub(super) struct Sprint105ImportInventoryV1 {
+            pub(super) use_declaration_count: usize,
+            pub(super) grouped_use_count: usize,
+            pub(super) grouped_self_alias_count: usize,
+            pub(super) glob_import_count: usize,
+            pub(super) aliases: Vec<Sprint105ImportAliasDeclarationV1>,
+        }
+
+        #[derive(Clone, Debug, PartialEq, Eq)]
+        struct Sprint105AliasGraphNodeV1 {
+            name: String,
+            import_alias: bool,
+            direct_live_inner: bool,
+            referenced_aliases: Vec<String>,
+            import_target: Option<Sprint105ImportAliasTargetV1>,
+            import_source_kind: Option<Sprint105ImportAliasSourceKindV1>,
+        }
+
+        fn sprint105_raw_inner_type_name_v1() -> &'static str {
+            sprint105_actual_type_name_v1::<V6AuthorizedV2EvaluationInnerV1>()
+        }
+
+        pub(super) fn live_private_inner_type_name_for_test() -> &'static str {
+            let qualified = std::any::type_name::<V6AuthorizedV2EvaluationInnerV1>();
+            debug_assert_eq!(
+                qualified.rsplit("::").next(),
+                Some(sprint105_raw_inner_type_name_v1())
+            );
+            qualified
+        }
+
+        fn sprint105_identifier_tokens_v5(source: &str) -> Vec<(String, usize)> {
+            let bytes = source.as_bytes();
+            let mut tokens = Vec::new();
+            let mut cursor = 0usize;
+            while cursor < bytes.len() {
+                if bytes[cursor].is_ascii_alphabetic() || bytes[cursor] == b'_' {
+                    let start = cursor;
+                    cursor += 1;
+                    while bytes
+                        .get(cursor)
+                        .is_some_and(|byte| byte.is_ascii_alphanumeric() || *byte == b'_')
+                    {
+                        cursor += 1;
+                    }
+                    tokens.push((source[start..cursor].to_string(), start));
+                } else {
+                    cursor += 1;
+                }
+            }
+            tokens
+        }
+
+        fn sprint105_scope_identity_v6(source: &str, declaration_start: usize) -> String {
+            const ROOT: &str = "q1_structural_evaluation_authority_v1";
+            let mut containing_modules = sprint105_identifier_offsets_v1(source, "mod")
+                .into_iter()
+                .filter_map(|mod_start| {
+                    let name_start =
+                        sprint105_skip_ascii_whitespace_v2(source, mod_start + "mod".len());
+                    let (name, name_end) = sprint105_identifier_at_v2(source, name_start)?;
+                    let opening = sprint105_skip_ascii_whitespace_v2(source, name_end);
+                    if source.as_bytes().get(opening) != Some(&b'{') {
+                        return None;
+                    }
+                    let closing = sprint105_matching_delimiter_v1(source, opening, b'{', b'}')?;
+                    (opening < declaration_start && declaration_start < closing)
+                        .then(|| (opening, name.to_string()))
+                })
+                .collect::<Vec<_>>();
+            containing_modules.sort_by_key(|(opening, _)| *opening);
+            let mut scope = vec![ROOT.to_string()];
+            for (_, name) in containing_modules {
+                if scope.len() == 1 && name == ROOT {
+                    continue;
+                }
+                scope.push(name);
+            }
+            scope.join("::")
+        }
+
+        fn sprint105_function_visibility_v5(source: &str, fn_start: usize) -> String {
+            let line_start = source[..fn_start]
+                .rfind('\n')
+                .map_or(0, |newline| newline + 1);
+            let prefix = source[line_start..fn_start].trim();
+            ["pub(super)", "pub(crate)", "pub(self)", "pub"]
+                .into_iter()
+                .find(|visibility| prefix.ends_with(visibility))
+                .unwrap_or("private")
+                .to_string()
+        }
+
+        fn sprint105_function_signature_boundary_v5(
+            source: &str,
+            start: usize,
+        ) -> Result<(usize, Option<usize>), Sprint105RawInnerCapabilityGuardErrorV1> {
+            let bytes = source.as_bytes();
+            let mut cursor = start;
+            let mut parentheses = 0usize;
+            let mut brackets = 0usize;
+            let mut angles = 0usize;
+            let mut where_start = None;
+            while cursor < bytes.len() {
+                if parentheses == 0 && brackets == 0 && angles == 0 {
+                    if bytes[cursor] == b'{' || bytes[cursor] == b';' {
+                        return Ok((cursor, where_start));
+                    }
+                    if source[cursor..].starts_with("where")
+                        && sprint105_identifier_boundary_v1(
+                            cursor.checked_sub(1).map(|index| bytes[index]),
+                        )
+                        && sprint105_identifier_boundary_v1(
+                            bytes.get(cursor + "where".len()).copied(),
+                        )
+                    {
+                        where_start.get_or_insert(cursor);
+                        cursor += "where".len();
+                        continue;
+                    }
+                }
+                match bytes[cursor] {
+                    b'(' => parentheses += 1,
+                    b')' => {
+                        parentheses = parentheses.checked_sub(1).ok_or(
+                            Sprint105RawInnerCapabilityGuardErrorV1::MalformedFunctionDeclaration,
+                        )?
+                    }
+                    b'[' => brackets += 1,
+                    b']' => {
+                        brackets = brackets.checked_sub(1).ok_or(
+                            Sprint105RawInnerCapabilityGuardErrorV1::MalformedFunctionDeclaration,
+                        )?
+                    }
+                    b'<' => angles += 1,
+                    b'>' => angles = angles.saturating_sub(1),
+                    _ => {}
+                }
+                cursor += 1;
+            }
+            Err(Sprint105RawInnerCapabilityGuardErrorV1::MalformedFunctionDeclaration)
+        }
+
+        fn sprint105_function_return_declarations_v5(
+            source: &str,
+        ) -> Result<
+            Vec<Sprint105FunctionReturnDeclarationV1>,
+            Sprint105RawInnerCapabilityGuardErrorV1,
+        > {
+            let mut declarations = Vec::new();
+            for fn_start in sprint105_identifier_offsets_v1(source, "fn") {
+                let name_start = sprint105_skip_ascii_whitespace_v2(source, fn_start + "fn".len());
+                let Some((name, mut cursor)) = sprint105_identifier_at_v2(source, name_start)
+                else {
+                    if source.as_bytes().get(name_start) == Some(&b'(') {
+                        continue;
+                    }
+                    return Err(
+                        Sprint105RawInnerCapabilityGuardErrorV1::MalformedFunctionDeclaration,
+                    );
+                };
+                cursor = sprint105_skip_ascii_whitespace_v2(source, cursor);
+                let generic_parameters = if source.as_bytes().get(cursor) == Some(&b'<') {
+                    let closing = sprint105_matching_angles_v2(source, cursor).ok_or(
+                        Sprint105RawInnerCapabilityGuardErrorV1::MalformedFunctionDeclaration,
+                    )?;
+                    let parameters = source[cursor + 1..closing].trim().to_string();
+                    cursor = sprint105_skip_ascii_whitespace_v2(source, closing + 1);
+                    parameters
+                } else {
+                    String::new()
+                };
+                if source.as_bytes().get(cursor) != Some(&b'(') {
+                    return Err(
+                        Sprint105RawInnerCapabilityGuardErrorV1::MalformedFunctionDeclaration,
+                    );
+                }
+                let parameters_end = sprint105_matching_delimiter_v1(source, cursor, b'(', b')')
+                    .ok_or(Sprint105RawInnerCapabilityGuardErrorV1::MalformedFunctionDeclaration)?;
+                let parameters = source[cursor + 1..parameters_end].trim().to_string();
+                let tail_start = parameters_end + 1;
+                let (boundary, where_start) =
+                    sprint105_function_signature_boundary_v5(source, tail_start)?;
+                let return_limit = where_start.unwrap_or(boundary);
+                let return_source = &source[tail_start..return_limit];
+                let return_type = return_source
+                    .find("->")
+                    .map(|arrow| return_source[arrow + 2..].trim().to_string())
+                    .unwrap_or_default();
+                let where_clause = where_start
+                    .map(|start| source[start + "where".len()..boundary].trim().to_string())
+                    .unwrap_or_default();
+                let ordinal = declarations.len();
+                let scope_identity = sprint105_scope_identity_v6(source, fn_start);
+                declarations.push(Sprint105FunctionReturnDeclarationV1 {
+                    identity: format!("{scope_identity}::{name}#{ordinal}"),
+                    scope_identity,
+                    visibility: sprint105_function_visibility_v5(source, fn_start),
+                    generic_parameters,
+                    parameters,
+                    return_type,
+                    where_clause,
+                    declaration_terminator: source.as_bytes()[boundary] as char,
+                });
+            }
+            Ok(declarations)
+        }
+
+        fn sprint105_type_alias_declarations_v5(
+            source: &str,
+        ) -> Result<Vec<Sprint105TypeAliasDeclarationV1>, Sprint105RawInnerCapabilityGuardErrorV1>
+        {
+            let bytes = source.as_bytes();
+            let mut declarations = Vec::new();
+            for type_start in sprint105_identifier_offsets_v1(source, "type") {
+                let name_start =
+                    sprint105_skip_ascii_whitespace_v2(source, type_start + "type".len());
+                let (name, mut cursor) = sprint105_identifier_at_v2(source, name_start)
+                    .ok_or(Sprint105RawInnerCapabilityGuardErrorV1::MalformedTypeAlias)?;
+                cursor = sprint105_skip_ascii_whitespace_v2(source, cursor);
+                let generic_parameters = if bytes.get(cursor) == Some(&b'<') {
+                    let closing = sprint105_matching_angles_v2(source, cursor)
+                        .ok_or(Sprint105RawInnerCapabilityGuardErrorV1::MalformedTypeAlias)?;
+                    let parameters = source[cursor + 1..closing].trim().to_string();
+                    cursor = closing + 1;
+                    parameters
+                } else {
+                    String::new()
+                };
+                let mut parentheses = 0usize;
+                let mut brackets = 0usize;
+                let mut angles = 0usize;
+                let equals = loop {
+                    let byte = *bytes
+                        .get(cursor)
+                        .ok_or(Sprint105RawInnerCapabilityGuardErrorV1::MalformedTypeAlias)?;
+                    match byte {
+                        b'(' => parentheses += 1,
+                        b')' => {
+                            parentheses = parentheses.checked_sub(1).ok_or(
+                                Sprint105RawInnerCapabilityGuardErrorV1::MalformedTypeAlias,
+                            )?
+                        }
+                        b'[' => brackets += 1,
+                        b']' => {
+                            brackets = brackets.checked_sub(1).ok_or(
+                                Sprint105RawInnerCapabilityGuardErrorV1::MalformedTypeAlias,
+                            )?
+                        }
+                        b'<' => angles += 1,
+                        b'>' => angles = angles.saturating_sub(1),
+                        b'=' if parentheses == 0 && brackets == 0 && angles == 0 => break cursor,
+                        b';' if parentheses == 0 && brackets == 0 && angles == 0 => {
+                            return Err(
+                                Sprint105RawInnerCapabilityGuardErrorV1::MalformedTypeAlias,
+                            );
+                        }
+                        _ => {}
+                    }
+                    cursor += 1;
+                };
+                cursor = equals + 1;
+                parentheses = 0;
+                brackets = 0;
+                angles = 0;
+                let end = loop {
+                    let byte = *bytes
+                        .get(cursor)
+                        .ok_or(Sprint105RawInnerCapabilityGuardErrorV1::MalformedTypeAlias)?;
+                    match byte {
+                        b'(' => parentheses += 1,
+                        b')' => {
+                            parentheses = parentheses.checked_sub(1).ok_or(
+                                Sprint105RawInnerCapabilityGuardErrorV1::MalformedTypeAlias,
+                            )?
+                        }
+                        b'[' => brackets += 1,
+                        b']' => {
+                            brackets = brackets.checked_sub(1).ok_or(
+                                Sprint105RawInnerCapabilityGuardErrorV1::MalformedTypeAlias,
+                            )?
+                        }
+                        b'<' => angles += 1,
+                        b'>' => angles = angles.saturating_sub(1),
+                        b';' if parentheses == 0 && brackets == 0 && angles == 0 => break cursor,
+                        _ => {}
+                    }
+                    cursor += 1;
+                };
+                let scope_identity = sprint105_scope_identity_v6(source, type_start);
+                declarations.push(Sprint105TypeAliasDeclarationV1 {
+                    identity: format!("{scope_identity}::{name}"),
+                    scope_identity,
+                    name: name.to_string(),
+                    generic_parameters,
+                    type_expression: source[equals + 1..end].trim().to_string(),
+                });
+            }
+            Ok(declarations)
+        }
+
+        #[derive(Clone, Debug, PartialEq, Eq)]
+        enum Sprint105UseTreeTokenV1 {
+            Identifier(String),
+            PathSeparator,
+            OpenGroup,
+            CloseGroup,
+            Comma,
+            Glob,
+        }
+
+        fn sprint105_use_tree_tokens_v6(
+            statement: &str,
+        ) -> Result<Vec<Sprint105UseTreeTokenV1>, Sprint105RawInnerCapabilityGuardErrorV1> {
+            let bytes = statement.as_bytes();
+            let mut tokens = Vec::new();
+            let mut cursor = 0usize;
+            while cursor < bytes.len() {
+                match bytes[cursor] {
+                    byte if byte.is_ascii_whitespace() => cursor += 1,
+                    byte if byte.is_ascii_alphabetic() || byte == b'_' => {
+                        let start = cursor;
+                        cursor += 1;
+                        while bytes
+                            .get(cursor)
+                            .is_some_and(|byte| byte.is_ascii_alphanumeric() || *byte == b'_')
+                        {
+                            cursor += 1;
+                        }
+                        tokens.push(Sprint105UseTreeTokenV1::Identifier(
+                            statement[start..cursor].to_string(),
+                        ));
+                    }
+                    b':' if bytes.get(cursor + 1) == Some(&b':') => {
+                        tokens.push(Sprint105UseTreeTokenV1::PathSeparator);
+                        cursor += 2;
+                    }
+                    b'{' => {
+                        tokens.push(Sprint105UseTreeTokenV1::OpenGroup);
+                        cursor += 1;
+                    }
+                    b'}' => {
+                        tokens.push(Sprint105UseTreeTokenV1::CloseGroup);
+                        cursor += 1;
+                    }
+                    b',' => {
+                        tokens.push(Sprint105UseTreeTokenV1::Comma);
+                        cursor += 1;
+                    }
+                    b'*' => {
+                        tokens.push(Sprint105UseTreeTokenV1::Glob);
+                        cursor += 1;
+                    }
+                    _ => return Err(Sprint105RawInnerCapabilityGuardErrorV1::MalformedUseTree),
+                }
+            }
+            (!tokens.is_empty())
+                .then_some(tokens)
+                .ok_or(Sprint105RawInnerCapabilityGuardErrorV1::MalformedUseTree)
+        }
+
+        fn sprint105_import_alias_target_v6(
+            canonical_segments: Vec<String>,
+        ) -> Result<Sprint105ImportAliasTargetV1, Sprint105RawInnerCapabilityGuardErrorV1> {
+            if canonical_segments.iter().any(String::is_empty) {
+                return Err(Sprint105RawInnerCapabilityGuardErrorV1::MalformedUseTree);
+            }
+            let terminal = canonical_segments
+                .last()
+                .cloned()
+                .ok_or(Sprint105RawInnerCapabilityGuardErrorV1::MalformedUseTree)?;
+            Ok(Sprint105ImportAliasTargetV1 {
+                canonical_segments,
+                terminal,
+            })
+        }
+
+        fn sprint105_record_import_alias_v6(
+            scope_identity: &str,
+            name: String,
+            canonical_segments: Vec<String>,
+            source_kind: Sprint105ImportAliasSourceKindV1,
+            inventory: &mut Sprint105ImportInventoryV1,
+        ) -> Result<(), Sprint105RawInnerCapabilityGuardErrorV1> {
+            if name.is_empty() {
+                return Err(Sprint105RawInnerCapabilityGuardErrorV1::MissingAlias);
+            }
+            if name != "_"
+                && inventory
+                    .aliases
+                    .iter()
+                    .any(|alias| alias.scope_identity == scope_identity && alias.name == name)
+            {
+                return Err(Sprint105RawInnerCapabilityGuardErrorV1::DuplicateAlias {
+                    alias: name,
+                });
+            }
+            if source_kind == Sprint105ImportAliasSourceKindV1::GroupedSelf {
+                inventory.grouped_self_alias_count += 1;
+            }
+            inventory.aliases.push(Sprint105ImportAliasDeclarationV1 {
+                identity: format!("{scope_identity}::{name}"),
+                scope_identity: scope_identity.to_string(),
+                name,
+                target: sprint105_import_alias_target_v6(canonical_segments)?,
+                source_kind,
+            });
+            Ok(())
+        }
+
+        fn sprint105_parse_use_tree_group_v6(
+            tokens: &[Sprint105UseTreeTokenV1],
+            cursor: &mut usize,
+            current_prefix: &[String],
+            scope_identity: &str,
+            inventory: &mut Sprint105ImportInventoryV1,
+        ) -> Result<(), Sprint105RawInnerCapabilityGuardErrorV1> {
+            if tokens.get(*cursor) != Some(&Sprint105UseTreeTokenV1::OpenGroup) {
+                return Err(Sprint105RawInnerCapabilityGuardErrorV1::MalformedUseTree);
+            }
+            *cursor += 1;
+            if tokens.get(*cursor) == Some(&Sprint105UseTreeTokenV1::CloseGroup) {
+                *cursor += 1;
+                return Ok(());
+            }
+            loop {
+                sprint105_parse_use_tree_v6(
+                    tokens,
+                    cursor,
+                    current_prefix,
+                    scope_identity,
+                    true,
+                    inventory,
+                )?;
+                match tokens.get(*cursor) {
+                    Some(Sprint105UseTreeTokenV1::Comma) => {
+                        *cursor += 1;
+                        if tokens.get(*cursor) == Some(&Sprint105UseTreeTokenV1::CloseGroup) {
+                            *cursor += 1;
+                            return Ok(());
+                        }
+                    }
+                    Some(Sprint105UseTreeTokenV1::CloseGroup) => {
+                        *cursor += 1;
+                        return Ok(());
+                    }
+                    _ => return Err(Sprint105RawInnerCapabilityGuardErrorV1::MalformedUseTree),
+                }
+            }
+        }
+
+        fn sprint105_parse_use_tree_rename_v6(
+            tokens: &[Sprint105UseTreeTokenV1],
+            cursor: &mut usize,
+        ) -> Result<String, Sprint105RawInnerCapabilityGuardErrorV1> {
+            *cursor += 1;
+            let Some(Sprint105UseTreeTokenV1::Identifier(alias)) = tokens.get(*cursor) else {
+                return Err(Sprint105RawInnerCapabilityGuardErrorV1::MissingAlias);
+            };
+            if alias == "as" {
+                return Err(Sprint105RawInnerCapabilityGuardErrorV1::MissingAlias);
+            }
+            *cursor += 1;
+            Ok(alias.clone())
+        }
+
+        fn sprint105_parse_use_tree_v6(
+            tokens: &[Sprint105UseTreeTokenV1],
+            cursor: &mut usize,
+            current_prefix: &[String],
+            scope_identity: &str,
+            grouped_leaf: bool,
+            inventory: &mut Sprint105ImportInventoryV1,
+        ) -> Result<(), Sprint105RawInnerCapabilityGuardErrorV1> {
+            match tokens.get(*cursor).cloned() {
+                Some(Sprint105UseTreeTokenV1::OpenGroup) => {
+                    return sprint105_parse_use_tree_group_v6(
+                        tokens,
+                        cursor,
+                        current_prefix,
+                        scope_identity,
+                        inventory,
+                    );
+                }
+                Some(Sprint105UseTreeTokenV1::Glob) => {
+                    *cursor += 1;
+                    inventory.glob_import_count += 1;
+                    return Ok(());
+                }
+                Some(Sprint105UseTreeTokenV1::Identifier(identifier)) => {
+                    *cursor += 1;
+                    if identifier == "as" {
+                        return Err(Sprint105RawInnerCapabilityGuardErrorV1::MalformedUseTree);
+                    }
+                    if grouped_leaf && identifier == "self" {
+                        if tokens.get(*cursor) == Some(&Sprint105UseTreeTokenV1::PathSeparator) {
+                            return Err(Sprint105RawInnerCapabilityGuardErrorV1::MalformedUseTree);
+                        }
+                        if matches!(
+                            tokens.get(*cursor),
+                            Some(Sprint105UseTreeTokenV1::Identifier(token)) if token == "as"
+                        ) {
+                            if current_prefix.is_empty() {
+                                return Err(
+                                    Sprint105RawInnerCapabilityGuardErrorV1::EmptyGroupedSelfPrefix,
+                                );
+                            }
+                            let alias = sprint105_parse_use_tree_rename_v6(tokens, cursor)?;
+                            return sprint105_record_import_alias_v6(
+                                scope_identity,
+                                alias,
+                                current_prefix.to_vec(),
+                                Sprint105ImportAliasSourceKindV1::GroupedSelf,
+                                inventory,
+                            );
+                        }
+                        return Ok(());
+                    }
+
+                    let mut canonical_segments = current_prefix.to_vec();
+                    canonical_segments.push(identifier);
+                    while tokens.get(*cursor) == Some(&Sprint105UseTreeTokenV1::PathSeparator) {
+                        *cursor += 1;
+                        match tokens.get(*cursor).cloned() {
+                            Some(Sprint105UseTreeTokenV1::Identifier(segment)) => {
+                                canonical_segments.push(segment);
+                                *cursor += 1;
+                            }
+                            Some(Sprint105UseTreeTokenV1::OpenGroup) => {
+                                return sprint105_parse_use_tree_group_v6(
+                                    tokens,
+                                    cursor,
+                                    &canonical_segments,
+                                    scope_identity,
+                                    inventory,
+                                );
+                            }
+                            Some(Sprint105UseTreeTokenV1::Glob) => {
+                                *cursor += 1;
+                                inventory.glob_import_count += 1;
+                                return Ok(());
+                            }
+                            _ => {
+                                return Err(
+                                    Sprint105RawInnerCapabilityGuardErrorV1::MalformedUseTree,
+                                );
+                            }
+                        }
+                    }
+                    if matches!(
+                        tokens.get(*cursor),
+                        Some(Sprint105UseTreeTokenV1::Identifier(token)) if token == "as"
+                    ) {
+                        let alias = sprint105_parse_use_tree_rename_v6(tokens, cursor)?;
+                        let source_kind = if grouped_leaf {
+                            Sprint105ImportAliasSourceKindV1::GroupedName
+                        } else {
+                            Sprint105ImportAliasSourceKindV1::Direct
+                        };
+                        return sprint105_record_import_alias_v6(
+                            scope_identity,
+                            alias,
+                            canonical_segments,
+                            source_kind,
+                            inventory,
+                        );
+                    }
+                    Ok(())
+                }
+                _ => Err(Sprint105RawInnerCapabilityGuardErrorV1::MalformedUseTree),
+            }
+        }
+
+        fn sprint105_import_alias_declarations_v6(
+            source: &str,
+        ) -> Result<Sprint105ImportInventoryV1, Sprint105RawInnerCapabilityGuardErrorV1> {
+            let bytes = source.as_bytes();
+            let mut inventory = Sprint105ImportInventoryV1::default();
+            for use_start in sprint105_identifier_offsets_v1(source, "use") {
+                let mut cursor = use_start + "use".len();
+                let mut braces = 0usize;
+                let mut end = None;
+                while cursor < bytes.len() {
+                    match bytes[cursor] {
+                        b'{' => braces += 1,
+                        b'}' => {
+                            braces = braces
+                                .checked_sub(1)
+                                .ok_or(Sprint105RawInnerCapabilityGuardErrorV1::MalformedUseTree)?
+                        }
+                        b';' if braces == 0 => {
+                            end = Some(cursor);
+                            break;
+                        }
+                        _ => {}
+                    }
+                    cursor += 1;
+                }
+                let end = end.ok_or(Sprint105RawInnerCapabilityGuardErrorV1::MalformedUseTree)?;
+                let statement = &source[use_start + "use".len()..end];
+                let tokens = sprint105_use_tree_tokens_v6(statement)?;
+                inventory.use_declaration_count += 1;
+                inventory.grouped_use_count += usize::from(
+                    tokens
+                        .iter()
+                        .any(|token| token == &Sprint105UseTreeTokenV1::OpenGroup),
+                );
+                let scope_identity = sprint105_scope_identity_v6(source, use_start);
+                let mut token_cursor = 0usize;
+                sprint105_parse_use_tree_v6(
+                    &tokens,
+                    &mut token_cursor,
+                    &[],
+                    &scope_identity,
+                    false,
+                    &mut inventory,
+                )?;
+                if token_cursor != tokens.len() {
+                    return Err(Sprint105RawInnerCapabilityGuardErrorV1::MalformedUseTree);
+                }
+            }
+            Ok(inventory)
+        }
+
+        pub(super) fn inspect_import_aliases_for_test(
+            source: &str,
+        ) -> Result<Sprint105ImportInventoryV1, Sprint105RawInnerCapabilityGuardErrorV1> {
+            let clean = sprint105_source_without_comments_or_strings_v1(source)
+                .map_err(|_| Sprint105RawInnerCapabilityGuardErrorV1::SourceSanitization)?;
+            sprint105_import_alias_declarations_v6(&clean)
+        }
+
+        fn sprint105_alias_identity_v6(scope_identity: &str, name: &str) -> String {
+            format!("{scope_identity}::{name}")
+        }
+
+        fn sprint105_import_target_alias_identity_v6(
+            scope_identity: &str,
+            target: &Sprint105ImportAliasTargetV1,
+        ) -> Option<String> {
+            let mut scope = scope_identity
+                .split("::")
+                .map(str::to_string)
+                .collect::<Vec<_>>();
+            let mut cursor = 0usize;
+            match target.canonical_segments.first().map(String::as_str)? {
+                "self" => cursor = 1,
+                "crate" => {
+                    scope.truncate(1);
+                    cursor = 1;
+                }
+                "super" => {
+                    while target
+                        .canonical_segments
+                        .get(cursor)
+                        .is_some_and(|segment| segment == "super")
+                    {
+                        if scope.len() == 1 {
+                            return None;
+                        }
+                        scope.pop();
+                        cursor += 1;
+                    }
+                }
+                _ => {}
+            }
+            let terminal_index = target.canonical_segments.len().saturating_sub(1);
+            if cursor < terminal_index {
+                for segment in &target.canonical_segments[cursor..terminal_index] {
+                    scope.push(segment.clone());
+                }
+            }
+            Some(sprint105_alias_identity_v6(
+                &scope.join("::"),
+                &target.terminal,
+            ))
+        }
+
+        fn sprint105_alias_graph_v5(
+            aliases: &[Sprint105TypeAliasDeclarationV1],
+            imports: &[Sprint105ImportAliasDeclarationV1],
+            live_inner: &str,
+        ) -> Result<
+            BTreeMap<String, Sprint105AliasGraphNodeV1>,
+            Sprint105RawInnerCapabilityGuardErrorV1,
+        > {
+            let mut identities = BTreeSet::new();
+            for alias in aliases {
+                if !identities.insert(alias.identity.clone()) {
+                    return Err(Sprint105RawInnerCapabilityGuardErrorV1::AmbiguousAlias {
+                        alias: alias.name.clone(),
+                    });
+                }
+            }
+            for import in imports.iter().filter(|import| import.name != "_") {
+                if !identities.insert(import.identity.clone()) {
+                    return Err(Sprint105RawInnerCapabilityGuardErrorV1::AmbiguousAlias {
+                        alias: import.name.clone(),
+                    });
+                }
+            }
+            let mut graph = BTreeMap::new();
+            for alias in aliases {
+                let tokens = sprint105_identifier_tokens_v5(&alias.type_expression);
+                for pair in tokens.windows(2) {
+                    let referenced_identity = match pair[0].0.as_str() {
+                        "self" => Some(sprint105_alias_identity_v6(
+                            &alias.scope_identity,
+                            &pair[1].0,
+                        )),
+                        "super" => alias
+                            .scope_identity
+                            .rsplit_once("::")
+                            .map(|(scope, _)| sprint105_alias_identity_v6(scope, &pair[1].0)),
+                        _ => None,
+                    };
+                    if referenced_identity.is_some()
+                        && pair[1].0 != live_inner
+                        && !referenced_identity
+                            .as_ref()
+                            .is_some_and(|identity| identities.contains(identity))
+                    {
+                        return Err(
+                            Sprint105RawInnerCapabilityGuardErrorV1::UnresolvedLocalAlias {
+                                alias: alias.name.clone(),
+                                target: pair[1].0.clone(),
+                            },
+                        );
+                    }
+                }
+                let referenced_aliases = tokens
+                    .iter()
+                    .map(|(token, _)| sprint105_alias_identity_v6(&alias.scope_identity, token))
+                    .filter(|identity| identities.contains(identity))
+                    .collect::<BTreeSet<_>>()
+                    .into_iter()
+                    .collect();
+                graph.insert(
+                    alias.identity.clone(),
+                    Sprint105AliasGraphNodeV1 {
+                        name: alias.identity.clone(),
+                        import_alias: false,
+                        direct_live_inner: tokens.iter().any(|(token, _)| token == live_inner),
+                        referenced_aliases,
+                        import_target: None,
+                        import_source_kind: None,
+                    },
+                );
+            }
+            for import in imports.iter().filter(|import| import.name != "_") {
+                let referenced_identity = sprint105_import_target_alias_identity_v6(
+                    &import.scope_identity,
+                    &import.target,
+                )
+                .filter(|identity| identities.contains(identity));
+                if referenced_identity.is_none()
+                    && identities.iter().any(|identity| {
+                        identity
+                            .rsplit("::")
+                            .next()
+                            .is_some_and(|name| name == import.target.terminal)
+                    })
+                    && import.target.terminal != live_inner
+                {
+                    return Err(
+                        Sprint105RawInnerCapabilityGuardErrorV1::UnresolvedLocalAlias {
+                            alias: import.name.clone(),
+                            target: import.target.terminal.clone(),
+                        },
+                    );
+                }
+                graph.insert(
+                    import.identity.clone(),
+                    Sprint105AliasGraphNodeV1 {
+                        name: import.identity.clone(),
+                        import_alias: true,
+                        direct_live_inner: import.target.terminal == live_inner,
+                        referenced_aliases: referenced_identity.into_iter().collect(),
+                        import_target: Some(import.target.clone()),
+                        import_source_kind: Some(import.source_kind),
+                    },
+                );
+            }
+            Ok(graph)
+        }
+
+        fn sprint105_visit_alias_v5(
+            name: &str,
+            graph: &BTreeMap<String, Sprint105AliasGraphNodeV1>,
+            states: &mut BTreeMap<String, u8>,
+            path: &mut Vec<String>,
+        ) -> Result<(), Sprint105RawInnerCapabilityGuardErrorV1> {
+            match states.get(name).copied().unwrap_or(0) {
+                2 => return Ok(()),
+                1 => {
+                    let cycle_start = path.iter().position(|entry| entry == name).unwrap_or(0);
+                    let mut alias_path = path[cycle_start..].to_vec();
+                    alias_path.push(name.to_string());
+                    return Err(Sprint105RawInnerCapabilityGuardErrorV1::AliasCycle { alias_path });
+                }
+                _ => {}
+            }
+            states.insert(name.to_string(), 1);
+            path.push(name.to_string());
+            let node = graph.get(name).ok_or_else(|| {
+                Sprint105RawInnerCapabilityGuardErrorV1::UnresolvedLocalAlias {
+                    alias: path.first().cloned().unwrap_or_else(|| name.to_string()),
+                    target: name.to_string(),
+                }
+            })?;
+            for referenced in &node.referenced_aliases {
+                sprint105_visit_alias_v5(referenced, graph, states, path)?;
+            }
+            path.pop();
+            states.insert(name.to_string(), 2);
+            Ok(())
+        }
+
+        fn sprint105_validate_alias_cycles_v5(
+            graph: &BTreeMap<String, Sprint105AliasGraphNodeV1>,
+        ) -> Result<(), Sprint105RawInnerCapabilityGuardErrorV1> {
+            let mut states = BTreeMap::new();
+            for name in graph.keys() {
+                sprint105_visit_alias_v5(name, graph, &mut states, &mut Vec::new())?;
+            }
+            Ok(())
+        }
+
+        #[derive(Clone, Debug, PartialEq, Eq)]
+        struct Sprint105AliasTaintV1 {
+            alias_path: Vec<String>,
+            import_target: Option<Sprint105ImportAliasTargetV1>,
+        }
+
+        fn sprint105_import_source_kind_label_v6(
+            source_kind: Sprint105ImportAliasSourceKindV1,
+        ) -> &'static str {
+            match source_kind {
+                Sprint105ImportAliasSourceKindV1::Direct => "Direct",
+                Sprint105ImportAliasSourceKindV1::GroupedName => "GroupedName",
+                Sprint105ImportAliasSourceKindV1::GroupedSelf => "GroupedSelf",
+            }
+        }
+
+        fn sprint105_alias_taint_path_v5(
+            name: &str,
+            graph: &BTreeMap<String, Sprint105AliasGraphNodeV1>,
+            live_inner: &str,
+        ) -> Option<Sprint105AliasTaintV1> {
+            let node = graph.get(name)?;
+            if node.direct_live_inner {
+                let mut alias_path = vec![node.name.clone()];
+                if let (Some(target), Some(source_kind)) =
+                    (&node.import_target, node.import_source_kind)
+                {
+                    alias_path.push("ImportAlias".to_string());
+                    alias_path.push(sprint105_import_source_kind_label_v6(source_kind).to_string());
+                    alias_path.push(target.canonical_segments.join("::"));
+                }
+                alias_path.push(live_inner.to_string());
+                return Some(Sprint105AliasTaintV1 {
+                    alias_path,
+                    import_target: node.import_target.clone(),
+                });
+            }
+            for referenced in &node.referenced_aliases {
+                if let Some(mut taint) =
+                    sprint105_alias_taint_path_v5(referenced, graph, live_inner)
+                {
+                    let mut prefix = vec![node.name.clone()];
+                    if let (Some(target), Some(source_kind)) =
+                        (&node.import_target, node.import_source_kind)
+                    {
+                        prefix.push("ImportAlias".to_string());
+                        prefix.push(sprint105_import_source_kind_label_v6(source_kind).to_string());
+                        prefix.push(target.canonical_segments.join("::"));
+                    }
+                    prefix.append(&mut taint.alias_path);
+                    taint.alias_path = prefix;
+                    return Some(taint);
+                }
+            }
+            None
+        }
+
+        fn sprint105_direct_capability_path_v5(return_type: &str, live_inner: &str) -> Vec<String> {
+            let mut path = vec!["FunctionReturn".to_string()];
+            let tokens = sprint105_identifier_tokens_v5(return_type);
+            let live_offset = tokens
+                .iter()
+                .find(|(token, _)| token == live_inner)
+                .map(|(_, offset)| *offset)
+                .unwrap_or(return_type.len());
+            if return_type.trim_start().starts_with('(') {
+                path.push("Tuple".to_string());
+            }
+            for (token, offset) in tokens {
+                if offset >= live_offset {
+                    break;
+                }
+                match token.as_str() {
+                    "self" | "super" | "crate" | "mut" | "static" | "dyn" | "impl" | "Item" => {}
+                    "fn" => path.push("FunctionPointer".to_string()),
+                    _ if !path.contains(&token) => path.push(token),
+                    _ => {}
+                }
+            }
+            if return_type[..live_offset].contains('&') {
+                path.push("Reference".to_string());
+            }
+            path.push("LivePrivateInner".to_string());
+            path
+        }
+
+        fn sprint105_classify_raw_inner_return_v5(
+            function: &Sprint105FunctionReturnDeclarationV1,
+            graph: &BTreeMap<String, Sprint105AliasGraphNodeV1>,
+            live_inner: &str,
+        ) -> Option<Sprint105RawInnerReturnExposureV1> {
+            let tokens = sprint105_identifier_tokens_v5(&function.return_type);
+            if tokens.iter().any(|(token, _)| token == live_inner) {
+                let wrapper_tokens = tokens
+                    .iter()
+                    .map(|(token, _)| token.as_str())
+                    .filter(|token| {
+                        !matches!(*token, "self" | "super" | "crate" | "mut" | "static")
+                            && *token != live_inner
+                    })
+                    .count();
+                let capability_path =
+                    sprint105_direct_capability_path_v5(&function.return_type, live_inner);
+                if wrapper_tokens == 0 {
+                    return Some(Sprint105RawInnerReturnExposureV1::Direct {
+                        function: function.identity.clone(),
+                        return_type: function.return_type.clone(),
+                        capability_path,
+                    });
+                }
+                return Some(Sprint105RawInnerReturnExposureV1::Wrapped {
+                    function: function.identity.clone(),
+                    return_type: function.return_type.clone(),
+                    capability_path,
+                });
+            }
+            for (token, _) in tokens {
+                let alias_identity = sprint105_alias_identity_v6(&function.scope_identity, &token);
+                let Some(taint) = sprint105_alias_taint_path_v5(&alias_identity, graph, live_inner)
+                else {
+                    continue;
+                };
+                let node = graph.get(&alias_identity)?;
+                if node.import_alias {
+                    let import_target = taint.import_target?;
+                    return Some(Sprint105RawInnerReturnExposureV1::ImportAlias {
+                        function: function.identity.clone(),
+                        return_type: function.return_type.clone(),
+                        alias_path: taint.alias_path,
+                        canonical_target_path: import_target.canonical_segments,
+                        terminal_target: import_target.terminal,
+                    });
+                }
+                return Some(Sprint105RawInnerReturnExposureV1::TypeAlias {
+                    function: function.identity.clone(),
+                    return_type: function.return_type.clone(),
+                    alias_path: taint.alias_path,
+                });
+            }
+            None
+        }
+
+        fn sprint105_raw_inner_capability_audit_v5(
+            source: &str,
+        ) -> Result<Sprint105RawInnerCapabilityAuditV1, Sprint105RawInnerCapabilityGuardErrorV1>
+        {
+            let clean = sprint105_source_without_comments_or_strings_v1(source)
+                .map_err(|_| Sprint105RawInnerCapabilityGuardErrorV1::SourceSanitization)?;
+            let live_inner = sprint105_raw_inner_type_name_v1();
+            let function_returns = sprint105_function_return_declarations_v5(&clean)?;
+            let aliases = sprint105_type_alias_declarations_v5(&clean)?;
+            let import_inventory = sprint105_import_alias_declarations_v6(&clean)?;
+            let imports = &import_inventory.aliases;
+            for declaration in function_returns
+                .iter()
+                .map(|function| {
+                    (
+                        function.identity.as_str(),
+                        function.generic_parameters.as_str(),
+                    )
+                })
+                .chain(
+                    aliases
+                        .iter()
+                        .map(|alias| (alias.name.as_str(), alias.generic_parameters.as_str())),
+                )
+            {
+                if sprint105_contains_identifier_v1(declaration.1, live_inner) {
+                    return Err(
+                        Sprint105RawInnerCapabilityGuardErrorV1::ShadowedLiveInnerIdentifier {
+                            declaration: declaration.0.to_string(),
+                        },
+                    );
+                }
+            }
+            let graph = sprint105_alias_graph_v5(&aliases, imports, live_inner)?;
+            sprint105_validate_alias_cycles_v5(&graph)?;
+            let live_inner_import_alias_count = imports
+                .iter()
+                .filter(|import| import.name != "_" && import.target.terminal == live_inner)
+                .count();
+            let tainted_import_alias_count = imports
+                .iter()
+                .filter(|import| {
+                    import.name != "_"
+                        && sprint105_alias_taint_path_v5(&import.identity, &graph, live_inner)
+                            .is_some()
+                })
+                .count();
+            let live_exposure_paths = function_returns
+                .iter()
+                .filter_map(|function| {
+                    sprint105_classify_raw_inner_return_v5(function, &graph, live_inner)
+                })
+                .collect::<Vec<_>>();
+            let direct_exposure_count = live_exposure_paths
+                .iter()
+                .filter(|exposure| {
+                    matches!(exposure, Sprint105RawInnerReturnExposureV1::Direct { .. })
+                })
+                .count();
+            let wrapped_exposure_count = live_exposure_paths
+                .iter()
+                .filter(|exposure| {
+                    matches!(exposure, Sprint105RawInnerReturnExposureV1::Wrapped { .. })
+                })
+                .count();
+            let type_alias_exposure_count = live_exposure_paths
+                .iter()
+                .filter(|exposure| {
+                    matches!(
+                        exposure,
+                        Sprint105RawInnerReturnExposureV1::TypeAlias { .. }
+                    )
+                })
+                .count();
+            let import_alias_exposure_count = live_exposure_paths
+                .iter()
+                .filter(|exposure| {
+                    matches!(
+                        exposure,
+                        Sprint105RawInnerReturnExposureV1::ImportAlias { .. }
+                    )
+                })
+                .count();
+            let safe_function_return_count = function_returns
+                .len()
+                .checked_sub(live_exposure_paths.len())
+                .ok_or(Sprint105RawInnerCapabilityGuardErrorV1::MalformedFunctionDeclaration)?;
+            Ok(Sprint105RawInnerCapabilityAuditV1 {
+                inspected_function_count: function_returns.len(),
+                safe_function_return_count,
+                direct_exposure_count,
+                wrapped_exposure_count,
+                type_alias_exposure_count,
+                import_alias_exposure_count,
+                type_alias_count: aliases.len(),
+                use_declaration_count: import_inventory.use_declaration_count,
+                import_alias_count: imports.len(),
+                grouped_use_count: import_inventory.grouped_use_count,
+                grouped_self_alias_count: import_inventory.grouped_self_alias_count,
+                glob_import_count: import_inventory.glob_import_count,
+                live_inner_import_alias_count,
+                tainted_import_alias_count,
+                alias_graph_node_count: graph.len(),
+                alias_graph_edge_count: graph
+                    .values()
+                    .map(|node| node.referenced_aliases.len() + usize::from(node.direct_live_inner))
+                    .sum(),
+                alias_cycle_count: 0,
+                unresolved_local_alias_count: 0,
+                function_returns,
+                live_exposure_paths,
+            })
+        }
+
+        pub(super) fn inspect_raw_inner_capabilities_for_test(
+            source: &str,
+        ) -> Result<Sprint105RawInnerCapabilityAuditV1, Sprint105RawInnerCapabilityGuardErrorV1>
+        {
+            sprint105_raw_inner_capability_audit_v5(source)
+        }
+
+        pub(super) fn validate_no_raw_inner_capabilities_for_test(
+            source: &str,
+        ) -> Result<Sprint105RawInnerCapabilityAuditV1, Sprint105RawInnerCapabilityGuardErrorV1>
+        {
+            let audit = sprint105_raw_inner_capability_audit_v5(source)?;
+            if let Some(exposure) = audit.live_exposure_paths.first() {
+                return Err(Sprint105RawInnerCapabilityGuardErrorV1::RawInnerExposure(
+                    exposure.clone(),
+                ));
+            }
+            Ok(audit)
+        }
+
+        pub(super) fn sanitize_witness_source_for_test(
+            source: &str,
+        ) -> Result<String, &'static str> {
+            sprint105_source_without_comments_or_strings_v1(source)
+        }
+
+        pub(super) fn extract_witness_function_for_test<'a>(
+            source: &'a str,
+            name: &str,
+        ) -> Result<(&'a str, &'a str), &'static str> {
+            let marker = ["fn ", name, "("].concat();
+            if source.match_indices(&marker).count() != 1 {
+                return Err("witness function definition must be unique");
+            }
+            let marker_start = source
+                .find(&marker)
+                .ok_or("witness function definition is missing")?;
+            let signature_start = marker_start + marker.len();
+            let opening = source[signature_start..]
+                .find('{')
+                .map(|offset| signature_start + offset)
+                .ok_or("witness function body is missing")?;
+            let closing = sprint105_matching_delimiter_v1(source, opening, b'{', b'}')
+                .ok_or("witness function body is unclosed")?;
+            Ok((
+                &source[signature_start..opening],
+                &source[opening + 1..closing],
+            ))
+        }
+    }
+    // SPRINT105_Q1_EVALUATION_AUTHORITY_V1_END
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    struct Q1QualificationEvidenceAdapterDiagnosticsV1 {
+        metric_entries: Q1EvidenceCardinalityV1,
+        footprints: Q1EvidenceCardinalityV1,
+        expected_minus_metric_entries: usize,
+        expected_minus_footprints: usize,
+        metric_entries_minus_expected: usize,
+        footprints_minus_expected: usize,
+        metric_entries_minus_footprints: usize,
+        footprints_minus_metric_entries: usize,
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum Q1QualificationEvidenceAdapterErrorKindV1 {
+        InvalidEvidenceDomain,
+        InvalidMetricEntryKey,
+        InvalidFootprintKey,
+        MissingMetricEntry,
+        DuplicateMetricEntry,
+        UnexpectedMetricEntry,
+        MetricEntryCardinalityMismatch,
+        MissingFootprint,
+        DuplicateFootprint,
+        UnexpectedFootprint,
+        FootprintCardinalityMismatch,
+        FootprintSequenceLengthMismatch,
+        SourceKeySetMismatch,
+        ExactJoinFailure,
+    }
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct Q1QualificationEvidenceAdapterErrorV1 {
+        kind: Q1QualificationEvidenceAdapterErrorKindV1,
+        offending_key: Option<Q1QualificationEvidenceKeyV1>,
+        diagnostics: Q1QualificationEvidenceAdapterDiagnosticsV1,
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    struct Q1MetricEntryKeyValidationErrorV1 {
+        offending_key: Q1QualificationEvidenceKeyV1,
+    }
+
+    #[derive(Clone, Copy)]
+    enum Q1QualificationEvidenceSourceV1 {
+        MetricEntry,
+        Footprint,
+    }
+
+    struct ValidatedQ1SourceCollectionV1<'a, T> {
+        rows: BTreeMap<Q1QualificationEvidenceKeyV1, &'a T>,
+    }
+
+    fn sprint105_q1_source_cardinality_v1(
+        expected: &[Q1QualificationEvidenceKeyV1],
+        observed: &[Q1QualificationEvidenceKeyV1],
+    ) -> Option<Q1EvidenceCardinalityV1> {
+        let expected_set = expected.iter().copied().collect::<BTreeSet<_>>();
+        let mut counts = BTreeMap::<Q1QualificationEvidenceKeyV1, usize>::new();
+        for key in observed {
+            let count = counts.entry(*key).or_default();
+            *count = count.checked_add(1)?;
+        }
+        let duplicate = counts.values().try_fold(0usize, |total, count| {
+            total.checked_add(count.checked_sub(1).unwrap_or(0))
+        })?;
+        let unexpected = counts.iter().try_fold(0usize, |total, (key, count)| {
+            if expected_set.contains(key) {
+                Some(total)
+            } else {
+                total.checked_add(*count)
+            }
+        })?;
+        Some(Q1EvidenceCardinalityV1 {
+            expected: expected.len(),
+            observed: observed.len(),
+            missing: expected_set
+                .iter()
+                .filter(|key| !counts.contains_key(key))
+                .count(),
+            duplicate,
+            unexpected,
+        })
+    }
+
+    fn sprint105_q1_source_adapter_diagnostics_v1(
+        expected: &[Q1QualificationEvidenceKeyV1],
+        entry_keys: &[Q1QualificationEvidenceKeyV1],
+        footprint_keys: &[Q1QualificationEvidenceKeyV1],
+    ) -> Option<Q1QualificationEvidenceAdapterDiagnosticsV1> {
+        let expected_set = expected.iter().copied().collect::<BTreeSet<_>>();
+        let entry_set = entry_keys.iter().copied().collect::<BTreeSet<_>>();
+        let footprint_set = footprint_keys.iter().copied().collect::<BTreeSet<_>>();
+        Some(Q1QualificationEvidenceAdapterDiagnosticsV1 {
+            metric_entries: sprint105_q1_source_cardinality_v1(expected, entry_keys)?,
+            footprints: sprint105_q1_source_cardinality_v1(expected, footprint_keys)?,
+            expected_minus_metric_entries: expected_set.difference(&entry_set).count(),
+            expected_minus_footprints: expected_set.difference(&footprint_set).count(),
+            metric_entries_minus_expected: entry_set.difference(&expected_set).count(),
+            footprints_minus_expected: footprint_set.difference(&expected_set).count(),
+            metric_entries_minus_footprints: entry_set.difference(&footprint_set).count(),
+            footprints_minus_metric_entries: footprint_set.difference(&entry_set).count(),
+        })
+    }
+
+    fn sprint105_q1_empty_source_adapter_diagnostics_v1()
+    -> Q1QualificationEvidenceAdapterDiagnosticsV1 {
+        let empty = Q1EvidenceCardinalityV1 {
+            expected: 0,
+            observed: 0,
+            missing: 0,
+            duplicate: 0,
+            unexpected: 0,
+        };
+        Q1QualificationEvidenceAdapterDiagnosticsV1 {
+            metric_entries: empty,
+            footprints: empty,
+            expected_minus_metric_entries: 0,
+            expected_minus_footprints: 0,
+            metric_entries_minus_expected: 0,
+            footprints_minus_expected: 0,
+            metric_entries_minus_footprints: 0,
+            footprints_minus_metric_entries: 0,
+        }
+    }
+
+    fn sprint105_q1_source_adapter_error_v1(
+        kind: Q1QualificationEvidenceAdapterErrorKindV1,
+        offending_key: Option<Q1QualificationEvidenceKeyV1>,
+        diagnostics: Q1QualificationEvidenceAdapterDiagnosticsV1,
+    ) -> Q1QualificationEvidenceAdapterErrorV1 {
+        Q1QualificationEvidenceAdapterErrorV1 {
+            kind,
+            offending_key,
+            diagnostics,
+        }
+    }
+
+    fn sprint105_q1_validate_source_collection_v1<'a, T>(
+        expected: &[Q1QualificationEvidenceKeyV1],
+        keyed_rows: Vec<(Q1QualificationEvidenceKeyV1, &'a T)>,
+        source: Q1QualificationEvidenceSourceV1,
+        diagnostics: Q1QualificationEvidenceAdapterDiagnosticsV1,
+    ) -> Result<ValidatedQ1SourceCollectionV1<'a, T>, Q1QualificationEvidenceAdapterErrorV1> {
+        let cardinality = match source {
+            Q1QualificationEvidenceSourceV1::MetricEntry => diagnostics.metric_entries,
+            Q1QualificationEvidenceSourceV1::Footprint => diagnostics.footprints,
+        };
+        if !cardinality.exact() {
+            let expected_set = expected.iter().copied().collect::<BTreeSet<_>>();
+            let mut counts = BTreeMap::<Q1QualificationEvidenceKeyV1, usize>::new();
+            for (key, _) in &keyed_rows {
+                let count = counts.entry(*key).or_default();
+                *count = count.checked_add(1).ok_or_else(|| {
+                    sprint105_q1_source_adapter_error_v1(
+                        match source {
+                            Q1QualificationEvidenceSourceV1::MetricEntry => {
+                                Q1QualificationEvidenceAdapterErrorKindV1::MetricEntryCardinalityMismatch
+                            }
+                            Q1QualificationEvidenceSourceV1::Footprint => {
+                                Q1QualificationEvidenceAdapterErrorKindV1::FootprintCardinalityMismatch
+                            }
+                        },
+                        Some(*key),
+                        diagnostics,
+                    )
+                })?;
+            }
+            let unexpected = keyed_rows
+                .iter()
+                .map(|(key, _)| *key)
+                .find(|key| !expected_set.contains(key));
+            let duplicate = counts
+                .iter()
+                .find_map(|(key, count)| (*count > 1).then_some(*key));
+            let missing = expected
+                .iter()
+                .copied()
+                .find(|key| !counts.contains_key(key));
+            let (kind, offending_key) = match source {
+                Q1QualificationEvidenceSourceV1::MetricEntry => {
+                    if let Some(key) = unexpected {
+                        (
+                            Q1QualificationEvidenceAdapterErrorKindV1::UnexpectedMetricEntry,
+                            Some(key),
+                        )
+                    } else if let Some(key) = duplicate {
+                        (
+                            Q1QualificationEvidenceAdapterErrorKindV1::DuplicateMetricEntry,
+                            Some(key),
+                        )
+                    } else if let Some(key) = missing {
+                        (
+                            Q1QualificationEvidenceAdapterErrorKindV1::MissingMetricEntry,
+                            Some(key),
+                        )
+                    } else {
+                        (
+                            Q1QualificationEvidenceAdapterErrorKindV1::MetricEntryCardinalityMismatch,
+                            None,
+                        )
+                    }
+                }
+                Q1QualificationEvidenceSourceV1::Footprint => {
+                    if let Some(key) = unexpected {
+                        (
+                            Q1QualificationEvidenceAdapterErrorKindV1::UnexpectedFootprint,
+                            Some(key),
+                        )
+                    } else if let Some(key) = duplicate {
+                        (
+                            Q1QualificationEvidenceAdapterErrorKindV1::DuplicateFootprint,
+                            Some(key),
+                        )
+                    } else if let Some(key) = missing {
+                        (
+                            Q1QualificationEvidenceAdapterErrorKindV1::MissingFootprint,
+                            Some(key),
+                        )
+                    } else {
+                        (
+                            Q1QualificationEvidenceAdapterErrorKindV1::FootprintCardinalityMismatch,
+                            None,
+                        )
+                    }
+                }
+            };
+            return Err(sprint105_q1_source_adapter_error_v1(
+                kind,
+                offending_key,
+                diagnostics,
+            ));
+        }
+        let rows = keyed_rows.into_iter().collect::<BTreeMap<_, _>>();
+        if rows.len() != expected.len() {
+            return Err(sprint105_q1_source_adapter_error_v1(
+                match source {
+                    Q1QualificationEvidenceSourceV1::MetricEntry => {
+                        Q1QualificationEvidenceAdapterErrorKindV1::MetricEntryCardinalityMismatch
+                    }
+                    Q1QualificationEvidenceSourceV1::Footprint => {
+                        Q1QualificationEvidenceAdapterErrorKindV1::FootprintCardinalityMismatch
+                    }
+                },
+                None,
+                diagnostics,
+            ));
+        }
+        Ok(ValidatedQ1SourceCollectionV1 { rows })
+    }
+
+    fn sprint105_q1_join_qualification_evidence_exact_v1<E, F>(
+        domain: &ExpectedQ1EvidenceDomainV1,
+        entries: &[E],
+        footprints: &[Q1QualificationFootprintEvidenceV1<F>],
+        deterministic: bool,
+        entry_key: fn(
+            &E,
+        )
+            -> Result<Q1QualificationEvidenceKeyV1, Q1MetricEntryKeyValidationErrorV1>,
+        footprint_sequence_length: fn(&F) -> usize,
+        combined_row: fn(Q1QualificationEvidenceKeyV1, &E, &F) -> Q1StructuralGateEvidenceEntryV1,
+    ) -> Result<RawQ1QualificationEvidenceTableV1, Q1QualificationEvidenceAdapterErrorV1> {
+        let mut invalid_entry_key = None;
+        let keyed_entries = entries
+            .iter()
+            .map(|entry| match entry_key(entry) {
+                Ok(key) => (key, entry),
+                Err(error) => {
+                    invalid_entry_key.get_or_insert(error.offending_key);
+                    (error.offending_key, entry)
+                }
+            })
+            .collect::<Vec<_>>();
+        let entry_keys = keyed_entries
+            .iter()
+            .map(|(key, _)| *key)
+            .collect::<Vec<_>>();
+        let footprint_keys = footprints
+            .iter()
+            .map(|evidence| evidence.key)
+            .collect::<Vec<_>>();
+        let diagnostics =
+            sprint105_q1_source_adapter_diagnostics_v1(&domain.keys, &entry_keys, &footprint_keys)
+                .ok_or_else(|| {
+                    sprint105_q1_source_adapter_error_v1(
+                        Q1QualificationEvidenceAdapterErrorKindV1::InvalidEvidenceDomain,
+                        None,
+                        sprint105_q1_empty_source_adapter_diagnostics_v1(),
+                    )
+                })?;
+        if let Some(key) = invalid_entry_key {
+            return Err(sprint105_q1_source_adapter_error_v1(
+                Q1QualificationEvidenceAdapterErrorKindV1::InvalidMetricEntryKey,
+                Some(key),
+                diagnostics,
+            ));
+        }
+        if let Some(key) = footprint_keys.iter().copied().find(|key| {
+            key.sequence_length == 0 || !Sprint105Q1FamilyV1::ORDERED.contains(&key.family)
+        }) {
+            return Err(sprint105_q1_source_adapter_error_v1(
+                Q1QualificationEvidenceAdapterErrorKindV1::InvalidFootprintKey,
+                Some(key),
+                diagnostics,
+            ));
+        }
+        let keyed_footprints = footprints
+            .iter()
+            .map(|evidence| (evidence.key, evidence))
+            .collect::<Vec<_>>();
+        let validated_entries = sprint105_q1_validate_source_collection_v1(
+            &domain.keys,
+            keyed_entries,
+            Q1QualificationEvidenceSourceV1::MetricEntry,
+            diagnostics,
+        )?;
+        let validated_footprints = sprint105_q1_validate_source_collection_v1(
+            &domain.footprint_keys,
+            keyed_footprints,
+            Q1QualificationEvidenceSourceV1::Footprint,
+            diagnostics,
+        )?;
+        if diagnostics.metric_entries_minus_footprints != 0
+            || diagnostics.footprints_minus_metric_entries != 0
+        {
+            return Err(sprint105_q1_source_adapter_error_v1(
+                Q1QualificationEvidenceAdapterErrorKindV1::SourceKeySetMismatch,
+                None,
+                diagnostics,
+            ));
+        }
+        if let Some(evidence) = validated_footprints
+            .rows
+            .values()
+            .copied()
+            .find(|evidence| {
+                evidence.key.sequence_length != footprint_sequence_length(&evidence.footprint)
+            })
+        {
+            return Err(sprint105_q1_source_adapter_error_v1(
+                Q1QualificationEvidenceAdapterErrorKindV1::FootprintSequenceLengthMismatch,
+                Some(evidence.key),
+                diagnostics,
+            ));
+        }
+        let mut rows = Vec::with_capacity(domain.keys.len());
+        for expected_key in &domain.keys {
+            let entry = validated_entries
+                .rows
+                .get(expected_key)
+                .copied()
+                .ok_or_else(|| {
+                    sprint105_q1_source_adapter_error_v1(
+                        Q1QualificationEvidenceAdapterErrorKindV1::ExactJoinFailure,
+                        Some(*expected_key),
+                        diagnostics,
+                    )
+                })?;
+            let rechecked_entry_key = entry_key(entry).map_err(|error| {
+                sprint105_q1_source_adapter_error_v1(
+                    Q1QualificationEvidenceAdapterErrorKindV1::InvalidMetricEntryKey,
+                    Some(error.offending_key),
+                    diagnostics,
+                )
+            })?;
+            let footprint_evidence = validated_footprints
+                .rows
+                .get(expected_key)
+                .copied()
+                .ok_or_else(|| {
+                    sprint105_q1_source_adapter_error_v1(
+                        Q1QualificationEvidenceAdapterErrorKindV1::ExactJoinFailure,
+                        Some(*expected_key),
+                        diagnostics,
+                    )
+                })?;
+            if rechecked_entry_key != *expected_key
+                || footprint_evidence.key != *expected_key
+                || footprint_sequence_length(&footprint_evidence.footprint)
+                    != expected_key.sequence_length
+            {
+                return Err(sprint105_q1_source_adapter_error_v1(
+                    Q1QualificationEvidenceAdapterErrorKindV1::ExactJoinFailure,
+                    Some(*expected_key),
+                    diagnostics,
+                ));
+            }
+            let row = combined_row(*expected_key, entry, &footprint_evidence.footprint);
+            if row.key() != *expected_key {
+                return Err(sprint105_q1_source_adapter_error_v1(
+                    Q1QualificationEvidenceAdapterErrorKindV1::ExactJoinFailure,
+                    Some(*expected_key),
+                    diagnostics,
+                ));
+            }
+            rows.push(row);
+        }
+        Ok(RawQ1QualificationEvidenceTableV1 {
+            rows,
+            deterministic: Some(deterministic),
+        })
+    }
+
+    fn sprint105_v1_metric_entry_key_v1(
+        entry: &Sprint105Q1EntryV1,
+    ) -> Result<Q1QualificationEvidenceKeyV1, Q1MetricEntryKeyValidationErrorV1> {
+        let key = Q1QualificationEvidenceKeyV1 {
+            family: entry.family,
+            sequence_length: entry.sequence_length,
+        };
+        if key.sequence_length == 0 || !Sprint105Q1FamilyV1::ORDERED.contains(&key.family) {
+            Err(Q1MetricEntryKeyValidationErrorV1 { offending_key: key })
+        } else {
+            Ok(key)
+        }
+    }
+
+    fn sprint105_v2_metric_entry_key_v1(
+        entry: &Sprint105V2P1Entry,
+    ) -> Result<Q1QualificationEvidenceKeyV1, Q1MetricEntryKeyValidationErrorV1> {
+        let key = Q1QualificationEvidenceKeyV1 {
+            family: entry.family,
+            sequence_length: entry.sequence_length,
+        };
+        if key.sequence_length == 0 || !Sprint105Q1FamilyV1::ORDERED.contains(&key.family) {
+            Err(Q1MetricEntryKeyValidationErrorV1 { offending_key: key })
+        } else {
+            Ok(key)
+        }
+    }
+
+    fn sprint105_v1_combined_gate_row_v1(
+        key: Q1QualificationEvidenceKeyV1,
+        entry: &Sprint105Q1EntryV1,
+        footprint: &Sprint105Q1StateFootprintV1,
+    ) -> Q1StructuralGateEvidenceEntryV1 {
+        Q1StructuralGateEvidenceEntryV1 {
+            family: key.family,
+            sequence_length: key.sequence_length,
+            initial_development_loss: Some(entry.initial_development_loss),
+            final_development_loss: Some(entry.final_development_loss),
+            base_accuracy: Some(entry.base.accuracy),
+            no_state_accuracy: Some(entry.no_state.accuracy),
+            reset_base_accuracy: entry.reset_base.as_ref().map(|metrics| metrics.accuracy),
+            numerically_finite: Some(
+                entry.base.finite
+                    && entry.no_state.finite
+                    && entry
+                        .reset_base
+                        .as_ref()
+                        .is_none_or(|metrics| metrics.finite),
+            ),
+            mode_equivalent: Some(entry.mode_equivalent),
+            footprint_elements: Some(footprint.elements),
+            footprint_bytes: Some(footprint.bytes),
+        }
+    }
+
+    fn sprint105_v2_combined_gate_row_v1(
+        key: Q1QualificationEvidenceKeyV1,
+        entry: &Sprint105V2P1Entry,
+        footprint: &Sprint105V2P1Footprint,
+    ) -> Q1StructuralGateEvidenceEntryV1 {
+        Q1StructuralGateEvidenceEntryV1 {
+            family: key.family,
+            sequence_length: key.sequence_length,
+            initial_development_loss: Some(entry.initial_development_loss),
+            final_development_loss: Some(entry.final_development_loss),
+            base_accuracy: Some(entry.base.accuracy),
+            no_state_accuracy: Some(entry.no_state.accuracy),
+            reset_base_accuracy: entry.reset_base.as_ref().map(|metrics| metrics.accuracy),
+            numerically_finite: Some(
+                entry.base.finite
+                    && entry.no_state.finite
+                    && entry
+                        .reset_base
+                        .as_ref()
+                        .is_none_or(|metrics| metrics.finite),
+            ),
+            mode_equivalent: Some(entry.mode_equivalent),
+            footprint_elements: Some(footprint.elements),
+            footprint_bytes: Some(footprint.bytes),
+        }
+    }
+
+    fn sprint105_v1_structural_gate_evidence_v1(
+        evidence: &Sprint105Q1EvidenceV1,
+        determinism: bool,
+    ) -> Result<RawQ1QualificationEvidenceTableV1, Q1QualificationEvidenceAdapterErrorV1> {
+        let domain = sprint105_q1_expected_evidence_domain_v1(
+            &evidence.actual_policy,
+            &evidence.gate_policy,
+        )
+        .map_err(|_| {
+            sprint105_q1_source_adapter_error_v1(
+                Q1QualificationEvidenceAdapterErrorKindV1::InvalidEvidenceDomain,
+                None,
+                sprint105_q1_empty_source_adapter_diagnostics_v1(),
+            )
+        })?;
+        sprint105_q1_join_qualification_evidence_exact_v1(
+            &domain,
+            &evidence.entries,
+            &evidence.footprints,
+            determinism,
+            sprint105_v1_metric_entry_key_v1,
+            |footprint| footprint.sequence_length,
+            sprint105_v1_combined_gate_row_v1,
+        )
+    }
+
+    fn sprint105_v2_structural_gate_evidence_v1(
+        qualification: &Sprint105V2P1Qualification,
+        determinism: bool,
+    ) -> Result<RawQ1QualificationEvidenceTableV1, Q1QualificationEvidenceAdapterErrorV1> {
+        let domain = sprint105_q1_expected_evidence_domain_v1(
+            &qualification.actual_policy,
+            &qualification.gate_policy,
+        )
+        .map_err(|_| {
+            sprint105_q1_source_adapter_error_v1(
+                Q1QualificationEvidenceAdapterErrorKindV1::InvalidEvidenceDomain,
+                None,
+                sprint105_q1_empty_source_adapter_diagnostics_v1(),
+            )
+        })?;
+        sprint105_q1_join_qualification_evidence_exact_v1(
+            &domain,
+            &qualification.entries,
+            &qualification.footprints,
+            determinism,
+            sprint105_v2_metric_entry_key_v1,
+            |footprint| footprint.sequence_length,
+            sprint105_v2_combined_gate_row_v1,
+        )
+    }
+
+    fn sprint105_q1_validate_raw_gate_evidence_v1(
+        raw: RawQ1QualificationEvidenceTableV1,
+        actual_policy: &DelayedRecallEvidencePolicyV2,
+        gate_policy: &Q1StructuralGatePolicyV1,
+    ) -> Result<ValidatedQ1QualificationEvidenceTableV1, Q1EvidenceDomainValidationErrorV1> {
+        sprint105_q1_validate_evidence_table_v1(
+            sprint105_q1_expected_evidence_domain_v1(actual_policy, gate_policy)?,
+            raw,
+        )
+    }
+
+    fn sprint105_v2_validated_gate_evidence_v1(
+        qualification: &Sprint105V2P1Qualification,
+        determinism: bool,
+    ) -> Result<ValidatedQ1QualificationEvidenceTableV1, M3MicroError> {
+        let raw = sprint105_v2_structural_gate_evidence_v1(qualification, determinism)
+            .map_err(|_| M3MicroError::CorruptArtifact)?;
+        sprint105_q1_validate_raw_gate_evidence_v1(
+            raw,
+            &qualification.actual_policy,
+            &qualification.gate_policy,
+        )
+        .map_err(|_| M3MicroError::CorruptArtifact)
+    }
+
+    fn sprint105_v2_authorized_qualification_result_v1(
+        qualification: &Sprint105V2P1Qualification,
+        determinism: bool,
+        confidence: Sprint105ConfidenceOverlayV1,
+        implementation_complete: bool,
+    ) -> Result<
+        q1_structural_evaluation_authority_v1::Sprint105V2Q1QualificationResultV1,
+        M3MicroError,
+    > {
+        let input = q1_structural_evaluation_authority_v1::validate_v2_qualification_input(
+            qualification,
+            determinism,
+        )?;
+        let authority =
+            current_q1_contract_v6_authority::build_and_validate_current_q1_contract_v6(
+                qualification,
+                input.evidence(),
+            )?;
+        let authorized_matrix =
+            q1_structural_evaluation_authority_v1::evaluate_v2_qualification(&input, &authority)?;
+        let evaluation = q1_structural_evaluation_authority_v1::finalize_v2_evaluation(
+            authorized_matrix,
+            confidence,
+            implementation_complete,
+        );
+        q1_structural_evaluation_authority_v1::build_v2_qualification_result(evaluation)
+    }
+
+    #[derive(Debug, PartialEq, Eq)]
+    struct Sprint105V2Q1AuthorityWiringAttemptV1 {
+        authority_mint_count: usize,
+        gate_matrix_mint_count: usize,
+        verdict_mint_count: usize,
+        evaluation_capsule_mint_count: usize,
+        result_mint_count: usize,
+        result: Result<
+            q1_structural_evaluation_authority_v1::Sprint105V2Q1QualificationResultV1,
+            M3MicroError,
+        >,
+    }
+
+    fn sprint105_v2_atomic_authority_wiring_attempt_v1(
+        qualification: &Sprint105V2P1Qualification,
+        corruption: Option<current_q1_contract_v6_authority::Q1V6AuthorityCorruptionProbeV1>,
+    ) -> Sprint105V2Q1AuthorityWiringAttemptV1 {
+        let mut authority_mint_count = 0usize;
+        let mut gate_matrix_mint_count = 0usize;
+        let mut verdict_mint_count = 0usize;
+        let mut evaluation_capsule_mint_count = 0usize;
+        let mut result_mint_count = 0usize;
+        let result = (|| {
+            let input = q1_structural_evaluation_authority_v1::validate_v2_qualification_input(
+                qualification,
+                true,
+            )?;
+            let authority = if let Some(probe) = corruption {
+                current_q1_contract_v6_authority::build_corrupted_current_q1_contract_v6_for_test(
+                    qualification,
+                    input.evidence(),
+                    probe,
+                )?
+            } else {
+                current_q1_contract_v6_authority::build_and_validate_current_q1_contract_v6(
+                    qualification,
+                    input.evidence(),
+                )?
+            };
+            authority_mint_count = authority_mint_count.checked_add(1).unwrap();
+            let authorized_matrix =
+                q1_structural_evaluation_authority_v1::evaluate_v2_qualification(
+                    &input, &authority,
+                )?;
+            gate_matrix_mint_count = gate_matrix_mint_count.checked_add(1).unwrap();
+            let evaluation = q1_structural_evaluation_authority_v1::finalize_v2_evaluation(
+                authorized_matrix,
+                Sprint105ConfidenceOverlayV1::NotEstablished,
+                true,
+            );
+            verdict_mint_count = verdict_mint_count.checked_add(1).unwrap();
+            evaluation_capsule_mint_count = evaluation_capsule_mint_count.checked_add(1).unwrap();
+            let result =
+                q1_structural_evaluation_authority_v1::build_v2_qualification_result(evaluation);
+            if result.is_ok() {
+                result_mint_count = result_mint_count.checked_add(1).unwrap();
+            }
+            result
+        })();
+        Sprint105V2Q1AuthorityWiringAttemptV1 {
+            authority_mint_count,
+            gate_matrix_mint_count,
+            verdict_mint_count,
+            evaluation_capsule_mint_count,
+            result_mint_count,
+            result,
+        }
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_q1_canonical_contract_identity() {
+        let contract = sprint105_q1_contract_identity_v1();
+        let actual_digest = sprint105_q1_contract_digest_v1(&contract);
+        println!("S105_EF1_Q1_CONTRACT_DIGEST={actual_digest}");
+        assert_eq!(actual_digest, SPRINT105_Q1_CONTRACT_HISTORICAL_DIGEST_V1);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_q1_contract_single_field_mutations_change_digest() {
+        let contract = sprint105_q1_contract_identity_v1();
+        let actual_digest = sprint105_q1_contract_digest_v1(&contract);
+        let mut mutations = Vec::new();
+
+        let mut label = contract.clone();
+        label.records[0].class_label = !label.records[0].class_label;
+        mutations.push(label);
+
+        let mut input = contract.clone();
+        input.records[0].input_bits[0] ^= 1;
+        mutations.push(input);
+
+        let mut variant = contract.clone();
+        variant.records[0].variant += 1;
+        mutations.push(variant);
+
+        let mut nuisance = contract.clone();
+        nuisance.records[0].nuisance_and_distractor_bits[2] ^= 1;
+        mutations.push(nuisance);
+
+        let mut split = contract.clone();
+        split.records[0].split = Sprint105Q1SplitV1::Evaluation;
+        mutations.push(split);
+
+        let mut reset_point = contract.clone();
+        reset_point.records[0].reset_after = Some(7);
+        mutations.push(reset_point);
+
+        let mut reset_semantics = contract.clone();
+        reset_semantics
+            .reset_semantics_identity
+            .push_str(":mutated");
+        mutations.push(reset_semantics);
+
+        let mut seed = contract.clone();
+        seed.seed_derivation_policy.push_str(":mutated");
+        mutations.push(seed);
+
+        let mut budget = contract.clone();
+        budget.training_budget += 1;
+        mutations.push(budget);
+
+        let mut optimizer = contract.clone();
+        optimizer.optimizer_identity.push_str(":mutated");
+        mutations.push(optimizer);
+
+        let mut metric = contract.clone();
+        metric.metric_identity.push_str(":mutated");
+        mutations.push(metric);
+
+        let mut gate_policy = contract.clone();
+        gate_policy.structural_gate_identities[0].push_str(":mutated");
+        mutations.push(gate_policy);
+
+        let mut no_state = contract.clone();
+        no_state.no_state_semantics.push_str(":mutated");
+        mutations.push(no_state);
+
+        let mut lengths = contract.clone();
+        lengths.canonical_lengths.pop();
+        mutations.push(lengths);
+
+        assert_eq!(mutations.len(), 14);
+        assert!(
+            mutations
+                .iter()
+                .all(|mutation| sprint105_q1_contract_digest_v1(mutation) != actual_digest)
+        );
+        assert_eq!(sprint105_q1_contract_digest_v1(&contract), actual_digest);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r1_actual_v2_initializer_owner() {
+        let projection = sprint105_v2_q1_initialization_owner_projection_v1().unwrap();
+        assert_eq!(projection.revision, M3MicroCoreRevisionV2::V2Candidate);
+        assert_eq!(projection.q1_seed, V2_EVIDENCE_SEED);
+        assert!(projection.initialization_finite);
+        assert_eq!(
+            projection.parameter_families.len(),
+            4 + projection.shape.block_count * 9
+        );
+        assert_eq!(
+            projection
+                .parameter_families
+                .iter()
+                .map(|family| &family.identity)
+                .collect::<BTreeSet<_>>()
+                .len(),
+            projection.parameter_families.len()
+        );
+        let mut expected_start = 0usize;
+        let mut projected_bits = Vec::new();
+        for family in &projection.parameter_families {
+            assert_eq!(family.start, expected_start);
+            assert!(family.element_count > 0);
+            assert_eq!(family.element_count, family.initialized_bits.len());
+            assert!(
+                family
+                    .initialized_bits
+                    .iter()
+                    .map(|bits| f32::from_bits(*bits))
+                    .all(f32::is_finite)
+            );
+            expected_start += family.element_count;
+            projected_bits.extend_from_slice(&family.initialized_bits);
+        }
+        assert_eq!(expected_start, projection.parameter_element_count);
+        assert_eq!(projected_bits, projection.parameter_bits);
+        assert_eq!(
+            sprint105_r1_bits_digest_v1("v2-q1-initial-parameters", &projection.parameter_bits),
+            projection.parameter_bits_digest
+        );
+        assert_eq!(
+            projection.initial_state_block_lengths.len(),
+            projection.shape.block_count
+        );
+        assert!(
+            projection
+                .initial_state_block_lengths
+                .iter()
+                .all(|length| *length == projection.shape.d_model * projection.shape.d_state)
+        );
+        assert_eq!(
+            projection.initial_state_block_lengths.iter().sum::<usize>(),
+            projection.initial_state_element_count
+        );
+        assert_eq!(
+            projection.initial_state_bits.len(),
+            projection.initial_state_element_count
+        );
+        assert_eq!(projection.initial_step_index, 0);
+        assert_eq!(
+            sprint105_r1_bits_digest_v1("v2-q1-initial-state", &projection.initial_state_bits),
+            projection.initial_state_bits_digest
+        );
+        let model = sprint105_v2_initial_model_v1().unwrap();
+        let footprints = delayed_recall_evidence_policy_v2()
+            .sequence_lengths
+            .map(|_| {
+                let state = model.zero_state().unwrap();
+                (state.value_count(), state.byte_size(), state.step_index)
+            });
+        assert!(footprints.windows(2).all(|window| window[0] == window[1]));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r1_initializer_determinism_and_sensitivity() {
+        let first = sprint105_v2_q1_initialization_owner_projection_v1().unwrap();
+        let second = sprint105_v2_q1_initialization_owner_projection_v1().unwrap();
+        assert_eq!(first, second);
+        let actual_digest = sprint105_v2_q1_initialization_owner_digest_v1(&first);
+        assert_eq!(
+            actual_digest,
+            sprint105_v2_q1_initialization_owner_digest_v1(&second)
+        );
+        let mut mutations = Vec::new();
+
+        let mut seed = first.clone();
+        seed.q1_seed += 1;
+        mutations.push(seed);
+
+        let mut shape = first.clone();
+        shape.shape.expansion += 1;
+        mutations.push(shape);
+
+        let mut parameter_bits = first.clone();
+        parameter_bits.parameter_families[0].initialized_bits[0] ^= 1;
+        mutations.push(parameter_bits);
+
+        let mut family_count = first.clone();
+        family_count.parameter_families[0].element_count += 1;
+        mutations.push(family_count);
+
+        let mut layout = first.clone();
+        layout.parameter_layout_identity.push_str(":mutated");
+        mutations.push(layout);
+
+        let mut state_bits = first.clone();
+        state_bits.initial_state_bits[0] ^= 1;
+        mutations.push(state_bits);
+
+        let mut step = first.clone();
+        step.initial_step_index += 1;
+        mutations.push(step);
+
+        assert_eq!(mutations.len(), 7);
+        assert!(mutations.iter().all(|mutation| {
+            sprint105_v2_q1_initialization_owner_digest_v1(mutation) != actual_digest
+        }));
+        assert_eq!(
+            sprint105_v2_q1_initialization_owner_digest_v1(&first),
+            actual_digest
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r1_actual_v2_state_intervention_owner() {
+        let projection = sprint105_v2_q1_state_intervention_owner_projection_v1().unwrap();
+        assert_eq!(projection.revision, M3MicroCoreRevisionV2::V2Candidate);
+        assert_eq!(projection.state_mode_plan.len(), 4);
+        assert_eq!(projection.expected_applications.len(), 4);
+        assert_eq!(projection.duplicate_application_count, 0);
+        assert_eq!(projection.missing_application_count, 0);
+        assert!(projection.probe_sequence_length > 1);
+        assert!(projection.finite);
+        assert_eq!(
+            projection.base_witness.mode,
+            V2Q1StateInterventionModeV1::Base
+        );
+        assert_eq!(
+            projection.no_state_witness.mode,
+            V2Q1StateInterventionModeV1::NoState
+        );
+        assert!(projection.base_witness.prior_state_read_observed);
+        assert!(projection.no_state_witness.prior_state_read_observed);
+        assert!(projection.base_witness.state_transition_applied);
+        assert!(projection.no_state_witness.state_transition_applied);
+        assert!(projection.base_witness.local_contribution_present);
+        assert!(projection.no_state_witness.local_contribution_present);
+        assert!(projection.base_witness.memory_contribution_present);
+        assert!(!projection.no_state_witness.memory_contribution_present);
+        assert_eq!(
+            projection.base_witness.returned_step_index,
+            projection.probe_sequence_length
+        );
+        assert_eq!(
+            projection.no_state_witness.returned_step_index,
+            projection.probe_sequence_length
+        );
+        assert_ne!(
+            projection.base_witness.raw_output_bits,
+            projection.no_state_witness.raw_output_bits
+        );
+        assert_ne!(projection.base_witness, projection.no_state_witness);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r1_state_intervention_determinism_and_sensitivity() {
+        let first = sprint105_v2_q1_state_intervention_owner_projection_v1().unwrap();
+        let second = sprint105_v2_q1_state_intervention_owner_projection_v1().unwrap();
+        assert_eq!(first, second);
+        let actual_digest = sprint105_v2_q1_state_intervention_owner_digest_v1(&first);
+        assert_eq!(
+            actual_digest,
+            sprint105_v2_q1_state_intervention_owner_digest_v1(&second)
+        );
+        let mut mutations = Vec::new();
+
+        let mut modes = first.clone();
+        modes.state_mode_plan[0].mode = V2Q1StateInterventionModeV1::NoState;
+        mutations.push(modes);
+
+        let mut state_enabled = first.clone();
+        state_enabled.expected_applications[3].state_enabled =
+            !state_enabled.expected_applications[3].state_enabled;
+        mutations.push(state_enabled);
+
+        let mut forward_owner = first.clone();
+        forward_owner.forward_owner_identity.push_str(":mutated");
+        mutations.push(forward_owner);
+
+        let mut initial_state = first.clone();
+        initial_state.initial_state_identity.push_str(":mutated");
+        mutations.push(initial_state);
+
+        let mut witness = first.clone();
+        witness.base_witness.raw_output_bits[0] ^= 1;
+        mutations.push(witness);
+
+        let mut returned_state = first.clone();
+        returned_state.no_state_witness.returned_step_index += 1;
+        mutations.push(returned_state);
+
+        let mut memory = first.clone();
+        memory.base_witness.memory_contribution_bits[0] ^= 1;
+        mutations.push(memory);
+
+        assert_eq!(mutations.len(), 7);
+        assert!(mutations.iter().all(|mutation| {
+            sprint105_v2_q1_state_intervention_owner_digest_v1(mutation) != actual_digest
+        }));
+        assert_eq!(
+            sprint105_v2_q1_state_intervention_owner_digest_v1(&first),
+            actual_digest
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r1_r1_historical_v3_contract_identity() {
+        let contract = sprint105_q1_contract_identity_v3().unwrap();
+        let actual_digest = sprint105_q1_contract_digest_v3(&contract);
+        println!("S105_EF1_R1_R1_Q1_CONTRACT_DIGEST={actual_digest}");
+        assert_ne!(actual_digest, SPRINT105_Q1_CONTRACT_HISTORICAL_DIGEST_V1);
+        assert_ne!(actual_digest, SPRINT105_Q1_CONTRACT_HISTORICAL_DIGEST_V2);
+        assert_eq!(actual_digest, SPRINT105_Q1_CONTRACT_HISTORICAL_DIGEST_V3);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r1_r1_q1_actual_owner_contract_drift() {
+        let contract = sprint105_q1_contract_identity_v3().unwrap();
+        let actual_digest = sprint105_q1_contract_digest_v3(&contract);
+
+        let mut parameter_owner = contract.clone();
+        parameter_owner.v2_initialization_owner.parameter_families[0].initialized_bits[0] ^= 1;
+        assert_ne!(
+            sprint105_q1_contract_digest_v3(&parameter_owner),
+            actual_digest
+        );
+
+        let mut initial_state_owner = contract.clone();
+        initial_state_owner
+            .v2_initialization_owner
+            .initial_state_bits[0] ^= 1;
+        assert_ne!(
+            sprint105_q1_contract_digest_v3(&initial_state_owner),
+            actual_digest
+        );
+
+        let mut intervention_owner = contract.clone();
+        intervention_owner
+            .v2_state_intervention_owner
+            .base_witness
+            .raw_output_bits[0] ^= 1;
+        assert_ne!(
+            sprint105_q1_contract_digest_v3(&intervention_owner),
+            actual_digest
+        );
+
+        let mut stale_v1_initializer_description = contract.clone();
+        stale_v1_initializer_description
+            .shared_contract_v1
+            .initialization_policy_identity
+            .push_str(":mutated");
+        assert_eq!(
+            sprint105_q1_contract_digest_v3(&stale_v1_initializer_description),
+            actual_digest
+        );
+
+        let mut stale_v1_no_state_description = contract.clone();
+        stale_v1_no_state_description
+            .shared_contract_v1
+            .no_state_semantics
+            .push_str(":mutated");
+        assert_eq!(
+            sprint105_q1_contract_digest_v3(&stale_v1_no_state_description),
+            actual_digest
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r1_r1_canonical_state_mode_plan_validation() {
+        let plan = sprint105_v2_q1_state_mode_plan_v1();
+        sprint105_v2_q1_validate_state_mode_plan_v1(&plan).unwrap();
+        assert_eq!(plan.len(), 4);
+        assert_eq!(
+            plan,
+            vec![
+                V2Q1StateModePlanEntryV1 {
+                    phase: V2Q1ExecutionPhaseV1::Training,
+                    arm: V2Q1ComparisonArmV1::Base,
+                    mode: V2Q1StateInterventionModeV1::Base,
+                },
+                V2Q1StateModePlanEntryV1 {
+                    phase: V2Q1ExecutionPhaseV1::Training,
+                    arm: V2Q1ComparisonArmV1::NoState,
+                    mode: V2Q1StateInterventionModeV1::NoState,
+                },
+                V2Q1StateModePlanEntryV1 {
+                    phase: V2Q1ExecutionPhaseV1::Evaluation,
+                    arm: V2Q1ComparisonArmV1::Base,
+                    mode: V2Q1StateInterventionModeV1::Base,
+                },
+                V2Q1StateModePlanEntryV1 {
+                    phase: V2Q1ExecutionPhaseV1::Evaluation,
+                    arm: V2Q1ComparisonArmV1::NoState,
+                    mode: V2Q1StateInterventionModeV1::NoState,
+                },
+            ]
+        );
+
+        assert!(sprint105_v2_q1_validate_state_mode_plan_v1(&[]).is_err());
+        let mut missing = plan.clone();
+        missing.pop();
+        assert!(sprint105_v2_q1_validate_state_mode_plan_v1(&missing).is_err());
+        let mut duplicate = plan.clone();
+        duplicate[3] = duplicate[0];
+        assert!(sprint105_v2_q1_validate_state_mode_plan_v1(&duplicate).is_err());
+        let mut reordered = plan.clone();
+        reordered.swap(0, 1);
+        assert!(sprint105_v2_q1_validate_state_mode_plan_v1(&reordered).is_err());
+        assert_eq!(plan, sprint105_v2_q1_state_mode_plan_v1());
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r1_r1_actual_q1_state_mode_owner_wiring() {
+        let training_helper: fn(
+            &M3MicroV2Candidate,
+            &[EvidenceExampleV2],
+            V2Q1ResolvedActualStateModeV1,
+            &DelayedRecallEvidencePolicyV2,
+        )
+            -> Result<(M3MicroV2Candidate, f32, f32, String), M3MicroError> =
+            sprint105_v2_train_balanced_v1;
+        let evaluation_helper: fn(
+            &M3MicroV2Candidate,
+            &[Sprint105Q1ExampleV1],
+            bool,
+            V2Q1ResolvedActualStateModeV1,
+        ) -> Result<Sprint105V2P1Metrics, M3MicroError> = sprint105_v2_metrics_v1;
+        let bindings = sprint105_v2_q1_state_mode_bindings_v1().unwrap();
+        assert_eq!(bindings.training_base, V2Q1StateInterventionModeV1::Base);
+        assert_eq!(
+            bindings.training_no_state,
+            V2Q1StateInterventionModeV1::NoState
+        );
+        assert_eq!(bindings.evaluation_base, V2Q1StateInterventionModeV1::Base);
+        assert_eq!(
+            bindings.evaluation_no_state,
+            V2Q1StateInterventionModeV1::NoState
+        );
+        assert_eq!(bindings.expected_projection.applications.len(), 4);
+        assert_eq!(bindings.expected_projection.duplicate_application_count, 0);
+        assert_eq!(bindings.expected_projection.missing_application_count, 0);
+        assert_eq!(
+            bindings.expected_projection.plan_digest,
+            sprint105_v2_q1_state_mode_plan_digest_v1(&bindings.plan)
+        );
+        let _ = (training_helper, evaluation_helper);
+    }
+
+    fn sprint105_assert_v2_q1_polarity_mutation_v1(
+        index: usize,
+        mutated_mode: V2Q1StateInterventionModeV1,
+    ) {
+        let original_plan = sprint105_v2_q1_state_mode_plan_v1();
+        let original_plan_digest = sprint105_v2_q1_state_mode_plan_digest_v1(&original_plan);
+        let original_contract = sprint105_q1_contract_identity_v3().unwrap();
+        let original_contract_digest = sprint105_q1_contract_digest_v3(&original_contract);
+        let mut mutated_plan = original_plan.clone();
+        mutated_plan[index].mode = mutated_mode;
+        assert!(sprint105_v2_q1_validate_state_mode_plan_v1(&mutated_plan).is_err());
+        assert_ne!(
+            sprint105_v2_q1_state_mode_plan_digest_v1(&mutated_plan),
+            original_plan_digest
+        );
+        let mut mutated_contract = original_contract.clone();
+        mutated_contract.v2_state_intervention_owner.state_mode_plan[index].mode = mutated_mode;
+        assert_ne!(
+            sprint105_q1_contract_digest_v3(&mutated_contract),
+            original_contract_digest
+        );
+        assert_eq!(original_plan, sprint105_v2_q1_state_mode_plan_v1());
+        assert_eq!(
+            sprint105_q1_contract_digest_v3(&original_contract),
+            original_contract_digest
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r1_r1_training_base_polarity_mutation() {
+        sprint105_assert_v2_q1_polarity_mutation_v1(0, V2Q1StateInterventionModeV1::NoState);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r1_r1_training_no_state_polarity_mutation() {
+        sprint105_assert_v2_q1_polarity_mutation_v1(1, V2Q1StateInterventionModeV1::Base);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r1_r1_evaluation_base_polarity_mutation() {
+        sprint105_assert_v2_q1_polarity_mutation_v1(2, V2Q1StateInterventionModeV1::NoState);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r1_r1_evaluation_no_state_polarity_mutation() {
+        sprint105_assert_v2_q1_polarity_mutation_v1(3, V2Q1StateInterventionModeV1::Base);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r1_r1_phase_identity_mutation() {
+        let original_plan = sprint105_v2_q1_state_mode_plan_v1();
+        let original_plan_digest = sprint105_v2_q1_state_mode_plan_digest_v1(&original_plan);
+        let original_contract = sprint105_q1_contract_identity_v3().unwrap();
+        let original_contract_digest = sprint105_q1_contract_digest_v3(&original_contract);
+        let mut mutated_plan = original_plan.clone();
+        mutated_plan[0].phase = V2Q1ExecutionPhaseV1::Evaluation;
+        assert!(sprint105_v2_q1_validate_state_mode_plan_v1(&mutated_plan).is_err());
+        assert_ne!(
+            sprint105_v2_q1_state_mode_plan_digest_v1(&mutated_plan),
+            original_plan_digest
+        );
+        let mut mutated_contract = original_contract.clone();
+        mutated_contract.v2_state_intervention_owner.state_mode_plan[0].phase =
+            V2Q1ExecutionPhaseV1::Evaluation;
+        assert_ne!(
+            sprint105_q1_contract_digest_v3(&mutated_contract),
+            original_contract_digest
+        );
+        assert_eq!(original_plan, sprint105_v2_q1_state_mode_plan_v1());
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r1_r1_state_mode_plan_determinism() {
+        let first = sprint105_v2_q1_state_mode_bindings_v1().unwrap();
+        let second = sprint105_v2_q1_state_mode_bindings_v1().unwrap();
+        assert_eq!(first, second);
+        assert_eq!(
+            sprint105_v2_q1_state_mode_plan_digest_v1(&first.plan),
+            sprint105_v2_q1_state_mode_plan_digest_v1(&second.plan)
+        );
+        assert_eq!(
+            first.expected_projection.plan_digest,
+            sprint105_v2_q1_state_mode_plan_digest_v1(&first.plan)
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r1_r1_behavioral_witness_uses_shared_owner() {
+        let bindings = sprint105_v2_q1_state_mode_bindings_v1().unwrap();
+        let projection = sprint105_v2_q1_state_intervention_owner_projection_v1().unwrap();
+        assert_eq!(projection.state_mode_plan, bindings.plan);
+        assert_eq!(
+            projection.state_mode_plan_digest,
+            bindings.expected_projection.plan_digest
+        );
+        assert_eq!(
+            projection.expected_applications,
+            bindings.expected_projection.applications
+        );
+        assert_eq!(
+            (
+                projection.base_witness.phase,
+                projection.base_witness.arm,
+                projection.base_witness.mode,
+                projection.base_witness.state_enabled,
+            ),
+            (
+                V2Q1ExecutionPhaseV1::Evaluation,
+                V2Q1ComparisonArmV1::Base,
+                bindings.evaluation_base,
+                bindings.evaluation_base.state_enabled(),
+            )
+        );
+        assert_eq!(
+            (
+                projection.no_state_witness.phase,
+                projection.no_state_witness.arm,
+                projection.no_state_witness.mode,
+                projection.no_state_witness.state_enabled,
+            ),
+            (
+                V2Q1ExecutionPhaseV1::Evaluation,
+                V2Q1ComparisonArmV1::NoState,
+                bindings.evaluation_no_state,
+                bindings.evaluation_no_state.state_enabled(),
+            )
+        );
+    }
+
+    fn sprint105_v2_q1_representative_unit_v1() -> V2Q1QualificationUnitIdentityV1 {
+        V2Q1QualificationUnitIdentityV1 {
+            family: Sprint105Q1FamilyV1::DelayedCue,
+            sequence_length: delayed_recall_evidence_policy_v2().sequence_lengths[0],
+        }
+    }
+
+    fn sprint105_v2_q1_actual_records_for_requests_v1(
+        requests: &[V2Q1ActualApplicationRequestV1],
+    ) -> Result<Vec<OpaqueActualV2Q1ApplicationRecordV1>, M3MicroError> {
+        let expected_plan = sprint105_v2_q1_state_mode_plan_v1();
+        let unit = sprint105_v2_q1_representative_unit_v1();
+        let policy = delayed_recall_evidence_policy_v2();
+        let initial = sprint105_v2_initial_model_v1()?;
+        let development = sprint105_q1_examples_v1(
+            unit.family,
+            initial.config.input_dim,
+            unit.sequence_length,
+            false,
+        );
+        let frozen = sprint105_q1_examples_v1(
+            unit.family,
+            initial.config.input_dim,
+            unit.sequence_length,
+            true,
+        );
+        let mut records = Vec::new();
+        for request in requests {
+            if request.qualification_unit != unit {
+                return Err(M3MicroError::CorruptArtifact);
+            }
+            let (_, record) = match request.phase {
+                V2Q1ExecutionPhaseV1::Training => sprint105_execute_actual_v2_q1_application_v1(
+                    &expected_plan,
+                    *request,
+                    V2Q1ActualApplicationContextV1::Training {
+                        initial: &initial,
+                        development: &development,
+                        policy: &policy,
+                    },
+                )?,
+                V2Q1ExecutionPhaseV1::Evaluation => sprint105_execute_actual_v2_q1_application_v1(
+                    &expected_plan,
+                    *request,
+                    V2Q1ActualApplicationContextV1::Evaluation {
+                        model: &initial,
+                        frozen: &frozen,
+                    },
+                )?,
+            };
+            records.push(record);
+        }
+        Ok(records)
+    }
+
+    fn sprint105_assert_v2_q1_actual_call_selection_mutation_v1(
+        index: usize,
+        phase: V2Q1ExecutionPhaseV1,
+        arm: V2Q1ComparisonArmV1,
+    ) {
+        let unit = sprint105_v2_q1_representative_unit_v1();
+        let expected_plan = sprint105_v2_q1_state_mode_plan_v1();
+        let canonical_requests = sprint105_v2_q1_actual_requests_for_unit_v1(unit);
+        let canonical_records =
+            sprint105_v2_q1_actual_records_for_requests_v1(&canonical_requests).unwrap();
+        let canonical_record_digests = canonical_records
+            .iter()
+            .map(|record| record.semantic_digest().to_string())
+            .collect::<Vec<_>>();
+        let mut mutated_requests = canonical_requests.clone();
+        mutated_requests[index].phase = phase;
+        mutated_requests[index].arm = arm;
+        let mutated_records =
+            sprint105_v2_q1_actual_records_for_requests_v1(&mutated_requests).unwrap();
+        assert_ne!(
+            mutated_records
+                .iter()
+                .map(|record| record.semantic_digest().to_string())
+                .collect::<Vec<_>>(),
+            canonical_record_digests
+        );
+        assert!(
+            sprint105_validate_actual_v2_q1_application_set_v1(
+                &expected_plan,
+                &[unit],
+                mutated_records,
+            )
+            .is_err()
+        );
+        assert!(
+            sprint105_validate_actual_v2_q1_application_set_v1(
+                &expected_plan,
+                &[unit],
+                canonical_records,
+            )
+            .is_ok()
+        );
+        assert_eq!(
+            canonical_requests,
+            sprint105_v2_q1_actual_requests_for_unit_v1(unit)
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r1_r1_r1_r1_actual_application_boundary_returns_opaque_record() {
+        let unit = sprint105_v2_q1_representative_unit_v1();
+        let expected_plan = sprint105_v2_q1_state_mode_plan_v1();
+        let model = sprint105_v2_initial_model_v1().unwrap();
+        let frozen = sprint105_q1_examples_v1(
+            unit.family,
+            model.config.input_dim,
+            unit.sequence_length,
+            true,
+        );
+        let request = V2Q1ActualApplicationRequestV1 {
+            qualification_unit: unit,
+            phase: V2Q1ExecutionPhaseV1::Evaluation,
+            arm: V2Q1ComparisonArmV1::Base,
+        };
+        let (outcome, record) = sprint105_execute_actual_v2_q1_application_v1(
+            &expected_plan,
+            request,
+            V2Q1ActualApplicationContextV1::Evaluation {
+                model: &model,
+                frozen: &frozen,
+            },
+        )
+        .unwrap();
+        let (metrics, reset_metrics) = sprint105_v2_q1_evaluation_outcome_v1(outcome).unwrap();
+        assert!(metrics.finite);
+        assert!(reset_metrics.is_some_and(|metrics| metrics.finite));
+        assert_eq!(record.qualification_unit(), unit);
+        assert_eq!(record.phase(), request.phase);
+        assert_eq!(record.arm(), request.arm);
+        assert_eq!(record.mode(), V2Q1StateInterventionModeV1::Base);
+        assert!(record.state_enabled());
+        assert!(!record.semantic_digest().is_empty());
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r1_r1_r1_r1_opaque_record_is_minted_post_execution() {
+        let unit = sprint105_v2_q1_representative_unit_v1();
+        let expected_plan = sprint105_v2_q1_state_mode_plan_v1();
+        let policy = delayed_recall_evidence_policy_v2();
+        let initial = sprint105_v2_initial_model_v1().unwrap();
+        let development = sprint105_q1_examples_v1(
+            unit.family,
+            initial.config.input_dim,
+            unit.sequence_length,
+            false,
+        );
+        let request = V2Q1ActualApplicationRequestV1 {
+            qualification_unit: unit,
+            phase: V2Q1ExecutionPhaseV1::Training,
+            arm: V2Q1ComparisonArmV1::Base,
+        };
+        let (outcome, record) = sprint105_execute_actual_v2_q1_application_v1(
+            &expected_plan,
+            request,
+            V2Q1ActualApplicationContextV1::Training {
+                initial: &initial,
+                development: &development,
+                policy: &policy,
+            },
+        )
+        .unwrap();
+        let (trained, initial_loss, final_loss, optimizer_digest) =
+            sprint105_v2_q1_training_outcome_v1(outcome).unwrap();
+        assert!(initial_loss.is_finite() && final_loss.is_finite());
+        assert_ne!(trained.parameter_digest(), initial.parameter_digest());
+        assert!(!optimizer_digest.is_empty());
+        assert_eq!(record.phase(), V2Q1ExecutionPhaseV1::Training);
+        assert_eq!(record.arm(), V2Q1ComparisonArmV1::Base);
+        assert!(!record.semantic_digest().is_empty());
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r1_r1_r1_r1_opaque_actual_application_set_is_complete() {
+        let unit = sprint105_v2_q1_representative_unit_v1();
+        let expected_plan = sprint105_v2_q1_state_mode_plan_v1();
+        let requests = sprint105_v2_q1_actual_requests_for_unit_v1(unit);
+        let records = sprint105_v2_q1_actual_records_for_requests_v1(&requests).unwrap();
+        let validated =
+            sprint105_validate_actual_v2_q1_application_set_v1(&expected_plan, &[unit], records)
+                .unwrap();
+        let summary = validated.summary();
+        assert_eq!(summary.expected_qualification_unit_count(), 1);
+        assert_eq!(summary.actual_qualification_unit_count(), 1);
+        assert_eq!(
+            summary.expected_application_kind_count_per_unit(),
+            expected_plan.len()
+        );
+        assert_eq!(
+            summary.actual_application_kind_counts(),
+            &[expected_plan.len()]
+        );
+        assert_eq!(summary.expected_total_record_count(), expected_plan.len());
+        assert_eq!(summary.actual_total_record_count(), expected_plan.len());
+        assert_eq!(summary.actual_origin_count(), expected_plan.len());
+        assert_eq!(summary.synthetic_origin_count(), 0);
+        assert_eq!(summary.missing_record_count(), 0);
+        assert_eq!(summary.duplicate_record_count(), 0);
+        assert_eq!(summary.unexpected_record_count(), 0);
+        assert_eq!(summary.mismatch_count(), 0);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r1_r1_r1_expected_multiplicity_is_policy_derived() {
+        let expected_units = sprint105_v2_q1_expected_qualification_units_v1();
+        let expected_plan = sprint105_v2_q1_state_mode_plan_v1();
+        assert_eq!(
+            expected_units.len(),
+            Sprint105Q1FamilyV1::ORDERED.len()
+                * delayed_recall_evidence_policy_v2().sequence_lengths.len()
+        );
+        assert_eq!(
+            expected_units.len() * expected_plan.len(),
+            Sprint105Q1FamilyV1::ORDERED.len()
+                * delayed_recall_evidence_policy_v2().sequence_lengths.len()
+                * sprint105_v2_q1_state_mode_plan_v1().len()
+        );
+        assert!(expected_units.iter().enumerate().all(|(index, unit)| {
+            !expected_units[..index]
+                .iter()
+                .any(|previous| previous == unit)
+        }));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r1_r1_r1_training_base_call_selection_mutation() {
+        sprint105_assert_v2_q1_actual_call_selection_mutation_v1(
+            0,
+            V2Q1ExecutionPhaseV1::Training,
+            V2Q1ComparisonArmV1::NoState,
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r1_r1_r1_training_no_state_call_selection_mutation() {
+        sprint105_assert_v2_q1_actual_call_selection_mutation_v1(
+            1,
+            V2Q1ExecutionPhaseV1::Training,
+            V2Q1ComparisonArmV1::Base,
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r1_r1_r1_evaluation_base_call_selection_mutation() {
+        sprint105_assert_v2_q1_actual_call_selection_mutation_v1(
+            2,
+            V2Q1ExecutionPhaseV1::Evaluation,
+            V2Q1ComparisonArmV1::NoState,
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r1_r1_r1_evaluation_no_state_call_selection_mutation() {
+        sprint105_assert_v2_q1_actual_call_selection_mutation_v1(
+            3,
+            V2Q1ExecutionPhaseV1::Evaluation,
+            V2Q1ComparisonArmV1::Base,
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r1_r1_r1_phase_call_selection_mutation() {
+        sprint105_assert_v2_q1_actual_call_selection_mutation_v1(
+            0,
+            V2Q1ExecutionPhaseV1::Evaluation,
+            V2Q1ComparisonArmV1::Base,
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r1_r1_r1_missing_actual_execution_is_rejected() {
+        let unit = sprint105_v2_q1_representative_unit_v1();
+        let expected_plan = sprint105_v2_q1_state_mode_plan_v1();
+        let mut requests = sprint105_v2_q1_actual_requests_for_unit_v1(unit);
+        requests.remove(1);
+        let records = sprint105_v2_q1_actual_records_for_requests_v1(&requests).unwrap();
+        assert_eq!(records.len() + 1, expected_plan.len());
+        assert!(
+            sprint105_validate_actual_v2_q1_application_set_v1(&expected_plan, &[unit], records,)
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r1_r1_r1_duplicate_actual_execution_is_rejected() {
+        let unit = sprint105_v2_q1_representative_unit_v1();
+        let expected_plan = sprint105_v2_q1_state_mode_plan_v1();
+        let mut requests = sprint105_v2_q1_actual_requests_for_unit_v1(unit);
+        requests.push(requests[0]);
+        let records = sprint105_v2_q1_actual_records_for_requests_v1(&requests).unwrap();
+        assert_eq!(records.len(), expected_plan.len() + 1);
+        assert!(
+            sprint105_validate_actual_v2_q1_application_set_v1(&expected_plan, &[unit], records,)
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r1_r1_r1_r1_plan_only_authority_bypass_is_blocked() {
+        let validator: fn(
+            &[V2Q1StateModePlanEntryV1],
+            &[V2Q1QualificationUnitIdentityV1],
+            Vec<OpaqueActualV2Q1ApplicationRecordV1>,
+        ) -> Result<ValidatedActualV2Q1ApplicationSetV1, M3MicroError> =
+            sprint105_validate_actual_v2_q1_application_set_v1;
+        let unit = sprint105_v2_q1_representative_unit_v1();
+        assert!(validator(&sprint105_v2_q1_state_mode_plan_v1(), &[unit], Vec::new(),).is_err());
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r1_r1_r1_r1_external_authority_surface_is_sealed() {
+        let source = include_str!("m3_micro.rs");
+        let module_marker = "    mod v2_q1_actual_application_authority_v1 {";
+        let import_marker = "\n    use v2_q1_actual_application_authority_v1::{";
+        let (outside_before, authority_and_after) = source.split_once(module_marker).unwrap();
+        let (authority, outside_after) = authority_and_after.split_once(import_marker).unwrap();
+        let outside = format!("{outside_before}{outside_after}");
+        for forbidden in [
+            ["ActualApplicationOriginV1", "::"].concat(),
+            ["ActualV2Q1ApplicationRecordInnerV1", " {"].concat(),
+            ["ActualRecordSemanticProjectionV1", " {"].concat(),
+            ["actual_application_record_", "digest_v1("].concat(),
+            ["ValidatedActualV2Q1ApplicationSetInnerV1", " {"].concat(),
+            ["VerifiedActualApplicationSetIdentityV1", " {"].concat(),
+            ["OpaqueActualV2Q1ApplicationRecordV1", " {"].concat(),
+            ["From<Synthetic", ">"].concat(),
+            ["TryFrom<Synthetic", ">"].concat(),
+            ["synthetic", ".into_actual()"].concat(),
+        ] {
+            assert!(
+                !outside.contains(&forbidden),
+                "exposed authority: {forbidden}"
+            );
+        }
+        for forbidden in [
+            "unsafe {",
+            "transmute",
+            "MaybeUninit",
+            "from_raw_parts",
+            "mem::zeroed",
+            "DerefMut",
+            "Deserialize",
+            "impl Default for OpaqueActualV2Q1ApplicationRecordV1",
+        ] {
+            assert!(
+                !authority.contains(forbidden),
+                "unsafe or constructible authority: {forbidden}"
+            );
+        }
+        let contract_builder: fn(
+            &ValidatedActualV2Q1ApplicationSetV1,
+        )
+            -> Result<Q1QualificationContractIdentityV4, M3MicroError> =
+            sprint105_q1_contract_identity_v4;
+        let _ = contract_builder;
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r1_r1_r1_actual_application_set_is_deterministic() {
+        let unit = sprint105_v2_q1_representative_unit_v1();
+        let expected_plan = sprint105_v2_q1_state_mode_plan_v1();
+        let requests = sprint105_v2_q1_actual_requests_for_unit_v1(unit);
+        let first = sprint105_validate_actual_v2_q1_application_set_v1(
+            &expected_plan,
+            &[unit],
+            sprint105_v2_q1_actual_records_for_requests_v1(&requests).unwrap(),
+        )
+        .unwrap();
+        let second = sprint105_validate_actual_v2_q1_application_set_v1(
+            &expected_plan,
+            &[unit],
+            sprint105_v2_q1_actual_records_for_requests_v1(&requests).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(first, second);
+        let first_summary = first.summary();
+        let second_summary = second.summary();
+        assert_eq!(
+            first_summary.actual_total_record_count(),
+            expected_plan.len()
+        );
+        assert_eq!(
+            first_summary.semantic_digest(),
+            second_summary.semantic_digest()
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r1_r1_r1_r1_actual_application_set_exact_identity() {
+        let qualification = sprint105_v2_p1_frozen_q1_once_v1().unwrap();
+        let summary = qualification.actual_application_set.summary();
+        assert_eq!(summary.expected_qualification_unit_count(), 12);
+        assert_eq!(summary.actual_qualification_unit_count(), 12);
+        assert_eq!(summary.expected_application_kind_count_per_unit(), 4);
+        assert!(
+            summary
+                .actual_application_kind_counts()
+                .iter()
+                .all(|count| *count == 4)
+        );
+        assert_eq!(summary.expected_total_record_count(), 48);
+        assert_eq!(summary.actual_total_record_count(), 48);
+        assert_eq!(summary.actual_origin_count(), 48);
+        assert_eq!(summary.synthetic_origin_count(), 0);
+        assert_eq!(
+            summary.semantic_digest(),
+            SPRINT105_V2_Q1_ACTUAL_APPLICATION_SET_GOLDEN_DIGEST_V1
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r1_r1_r1_execution_failure_produces_no_record() {
+        let unit = sprint105_v2_q1_representative_unit_v1();
+        let expected_plan = sprint105_v2_q1_state_mode_plan_v1();
+        let policy = delayed_recall_evidence_policy_v2();
+        let initial = sprint105_v2_initial_model_v1().unwrap();
+        let mut collector = Vec::new();
+        let result = sprint105_execute_actual_v2_q1_application_v1(
+            &expected_plan,
+            V2Q1ActualApplicationRequestV1 {
+                qualification_unit: unit,
+                phase: V2Q1ExecutionPhaseV1::Training,
+                arm: V2Q1ComparisonArmV1::Base,
+            },
+            V2Q1ActualApplicationContextV1::Training {
+                initial: &initial,
+                development: &[],
+                policy: &policy,
+            },
+        );
+        if let Ok((_, record)) = result {
+            collector.push(record);
+        }
+        assert!(collector.is_empty());
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r1_r1_r1_v4_q1_contract_identity() {
+        let qualification = sprint105_v2_p1_frozen_q1_once_v1().unwrap();
+        let contract =
+            sprint105_q1_contract_identity_v4(&qualification.actual_application_set).unwrap();
+        let actual_digest = sprint105_q1_contract_digest_v4(&contract);
+        let summary = qualification.actual_application_set.summary();
+        println!(
+            "S105_EF1_R1_R1_R1_ACTUAL_APPLICATION_SET_DIGEST={}",
+            summary.semantic_digest()
+        );
+        println!("S105_EF1_R1_R1_R1_Q1_CONTRACT_DIGEST={actual_digest}");
+        assert_eq!(
+            summary.semantic_digest(),
+            SPRINT105_V2_Q1_ACTUAL_APPLICATION_SET_GOLDEN_DIGEST_V1
+        );
+        assert_ne!(actual_digest, SPRINT105_Q1_CONTRACT_HISTORICAL_DIGEST_V3);
+        assert_eq!(actual_digest, SPRINT105_Q1_CONTRACT_GOLDEN_DIGEST_V4);
+        let repeated =
+            sprint105_q1_contract_identity_v4(&qualification.actual_application_set).unwrap();
+        assert_eq!(sprint105_q1_contract_digest_v4(&repeated), actual_digest);
+    }
+
+    fn sprint105_ef1_r2_synthetic_gate_evidence_v1() -> RawQ1QualificationEvidenceTableV1 {
+        let sequence_lengths = delayed_recall_evidence_policy_v2().sequence_lengths;
+        let entries = Sprint105Q1FamilyV1::ORDERED
+            .into_iter()
+            .flat_map(|family| {
+                sequence_lengths.into_iter().map(move |sequence_length| {
+                    let history = family.requires_history();
+                    Q1StructuralGateEvidenceEntryV1 {
+                        family,
+                        sequence_length,
+                        initial_development_loss: Some(1.0),
+                        final_development_loss: Some(0.5),
+                        base_accuracy: Some(if history { 0.8 } else { 0.5 }),
+                        no_state_accuracy: Some(0.5),
+                        reset_base_accuracy: history.then_some(0.4),
+                        numerically_finite: Some(true),
+                        mode_equivalent: Some(true),
+                        footprint_elements: Some(1_024),
+                        footprint_bytes: Some(4_096),
+                    }
+                })
+            })
+            .collect::<Vec<_>>();
+        RawQ1QualificationEvidenceTableV1 {
+            rows: entries,
+            deterministic: Some(true),
+        }
+    }
+
+    fn sprint105_ef1_r2_gate_behavior_fingerprint_v1(
+        policy: &Q1StructuralGatePolicyV1,
+    ) -> Vec<(
+        q1_structural_evaluation_authority_v1::StructuralGateStatusViewV1,
+        q1_structural_evaluation_authority_v1::DiagnosticQ1QualificationStatusV1,
+        q1_structural_evaluation_authority_v1::DiagnosticQ1QualificationStatusV1,
+    )> {
+        let actual_policy = delayed_recall_evidence_policy_v2();
+        let minimum_length = *actual_policy.sequence_lengths.iter().min().unwrap();
+        let maximum_length = *actual_policy.sequence_lengths.iter().max().unwrap();
+        let intermediate_length = *actual_policy
+            .sequence_lengths
+            .iter()
+            .find(|length| **length != minimum_length && **length != maximum_length)
+            .unwrap();
+        let base = sprint105_ef1_r2_synthetic_gate_evidence_v1();
+        let mut cases = vec![base.clone()];
+
+        let mut minimum_length_equal = base.clone();
+        for entry in minimum_length_equal.rows.iter_mut().filter(|entry| {
+            entry.family.requires_history() && entry.sequence_length == minimum_length
+        }) {
+            entry.base_accuracy = entry.no_state_accuracy;
+        }
+        cases.push(minimum_length_equal);
+
+        let mut maximum_length_equal = base.clone();
+        maximum_length_equal
+            .rows
+            .iter_mut()
+            .find(|entry| {
+                entry.family == Sprint105Q1FamilyV1::DelayedCue
+                    && entry.sequence_length == maximum_length
+            })
+            .unwrap()
+            .base_accuracy = Some(0.5);
+        cases.push(maximum_length_equal);
+
+        let mut reset_equal = base.clone();
+        reset_equal.rows[0].reset_base_accuracy = reset_equal.rows[0].base_accuracy;
+        cases.push(reset_equal);
+
+        let mut delayed_local_failure = base.clone();
+        let delayed = delayed_local_failure
+            .rows
+            .iter_mut()
+            .find(|entry| {
+                entry.family == Sprint105Q1FamilyV1::DelayedCue
+                    && entry.sequence_length == intermediate_length
+            })
+            .unwrap();
+        delayed.base_accuracy = Some(0.4);
+        delayed.no_state_accuracy = Some(0.5);
+        delayed.reset_base_accuracy = Some(0.3);
+        cases.push(delayed_local_failure);
+
+        let mut trainability_equal = base.clone();
+        trainability_equal.rows[0].final_development_loss = Some(1.0);
+        cases.push(trainability_equal);
+
+        let mut mixed_aggregate = base.clone();
+        mixed_aggregate
+            .rows
+            .iter_mut()
+            .find(|entry| {
+                entry.family == Sprint105Q1FamilyV1::DelayedCue
+                    && entry.sequence_length == maximum_length
+            })
+            .unwrap()
+            .base_accuracy = Some(0.5);
+        cases.push(mixed_aggregate);
+
+        let mut missing = base.clone();
+        missing.rows[0].base_accuracy = None;
+        cases.push(missing);
+
+        let mut nonfinite = base.clone();
+        nonfinite.rows[0].initial_development_loss = Some(f32::NAN);
+        nonfinite.rows[0].numerically_finite = Some(false);
+        cases.push(nonfinite);
+
+        let mut footprint_bytes = base.clone();
+        footprint_bytes.rows[0].footprint_bytes = Some(8_192);
+        cases.push(footprint_bytes);
+
+        let mut nondeterministic = base.clone();
+        nondeterministic.deterministic = Some(false);
+        cases.push(nondeterministic);
+
+        let mut mode_mismatch = base;
+        mode_mismatch.rows[0].mode_equivalent = Some(false);
+        cases.push(mode_mismatch);
+
+        cases
+            .iter()
+            .map(|evidence| {
+                let validated = sprint105_q1_validate_raw_gate_evidence_v1(
+                    evidence.clone(),
+                    &actual_policy,
+                    policy,
+                )
+                .unwrap();
+                let fixture =
+                    q1_structural_evaluation_authority_v1::diagnostic_fixture_from_validated(
+                        validated,
+                    );
+                let evaluation =
+                    q1_structural_evaluation_authority_v1::evaluate_diagnostic_gate_fixture(
+                        &fixture,
+                    )
+                    .unwrap();
+                let status = evaluation.structural_status();
+                (
+                    status,
+                    q1_structural_evaluation_authority_v1::derive_diagnostic_qualification_status(
+                        &evaluation,
+                        Sprint105ConfidenceOverlayV1::Clear,
+                        true,
+                    ),
+                    q1_structural_evaluation_authority_v1::derive_diagnostic_qualification_status(
+                        &evaluation,
+                        Sprint105ConfidenceOverlayV1::NotEstablished,
+                        true,
+                    ),
+                )
+            })
+            .collect()
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_actual_policy_inventory_exact() {
+        let policy = delayed_recall_evidence_policy_v2();
+        let fields = sprint105_q1_actual_policy_fields_v1(&policy);
+        sprint105_q1_validate_actual_policy_fields_v1(&fields).unwrap();
+        assert_eq!(fields.len(), Q1ActualPolicyFieldV1::ORDERED.len());
+        assert_eq!(
+            fields.iter().map(|field| field.field).collect::<Vec<_>>(),
+            Q1ActualPolicyFieldV1::ORDERED
+        );
+        assert!(Q1ActualPolicyFieldV1::ORDERED.iter().all(|field| {
+            fields
+                .iter()
+                .filter(|projection| projection.field == *field)
+                .count()
+                == 1
+        }));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_policy_owner_projection_exact() {
+        let policy = delayed_recall_evidence_policy_v2();
+        let first = sprint105_q1_actual_policy_owner_projection_v1(&policy).unwrap();
+        let second = sprint105_q1_actual_policy_owner_projection_v1(&policy).unwrap();
+        assert_eq!(first, second);
+        assert_eq!(first.policy_identity, "delayed-recall-evidence-policy-v2");
+        assert_eq!(
+            first.actual_owner_type_identity,
+            "DelayedRecallEvidencePolicyV2"
+        );
+        assert_eq!(first.revision_identity, "V2");
+        assert_eq!(first.fields, sprint105_q1_actual_policy_fields_v1(&policy));
+        assert!(!first.field_inventory_identity.is_empty());
+        assert!(!first.semantic_digest.is_empty());
+        println!(
+            "S105_EF1_R2_ACTUAL_POLICY_OWNER_DIGEST={}",
+            first.semantic_digest
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_policy_all_field_mutations() {
+        let qualification = sprint105_v2_p1_frozen_q1_once_v1().unwrap();
+        let original_policy = qualification.actual_policy;
+        let original_owner =
+            sprint105_q1_actual_policy_owner_projection_v1(&original_policy).unwrap();
+        let historical_v4 =
+            sprint105_q1_contract_identity_v4(&qualification.actual_application_set).unwrap();
+        let original_v5 = sprint105_q1_contract_identity_v5(&qualification).unwrap();
+        let original_v5_digest = sprint105_q1_contract_digest_v5(&original_v5);
+        let mutations = sprint105_q1_actual_policy_mutations_v1(original_policy);
+        let registered = mutations.len();
+        let mut executed = 0;
+        let mut detected = 0;
+        let mut multi_field = 0;
+        let mut seen = BTreeSet::new();
+        for mutation in mutations {
+            executed += 1;
+            seen.insert(mutation.field.as_str());
+            let owner = sprint105_q1_actual_policy_owner_projection_v1(&mutation.policy).unwrap();
+            let changed_fields = original_owner
+                .fields
+                .iter()
+                .zip(&owner.fields)
+                .filter(|(left, right)| left != right)
+                .count();
+            if changed_fields != 1 {
+                multi_field += 1;
+            }
+            assert_eq!(changed_fields, 1, "mutation={}", mutation.field.as_str());
+            assert_ne!(owner.semantic_digest, original_owner.semantic_digest);
+            let binding = sprint105_q1_historical_v5_qualification_owner_binding_v1(
+                &mutation.policy,
+                &qualification.gate_policy,
+            )
+            .unwrap();
+            let mutated_v5 = sprint105_q1_contract_identity_v5_from_owners_v1(
+                historical_v4.clone(),
+                Some(owner),
+                Some(
+                    sprint105_q1_historical_v5_gate_policy_owner_projection_v1(
+                        &qualification.gate_policy,
+                    )
+                    .unwrap(),
+                ),
+                Some(&binding),
+            )
+            .unwrap();
+            if sprint105_q1_contract_digest_v5(&mutated_v5) != original_v5_digest {
+                detected += 1;
+            }
+        }
+        assert_eq!(original_policy, delayed_recall_evidence_policy_v2());
+        assert_eq!(registered, Q1ActualPolicyFieldV1::ORDERED.len());
+        assert_eq!(executed, registered);
+        assert_eq!(detected, executed);
+        assert_eq!(seen.len(), registered);
+        assert_eq!(Q1ActualPolicyFieldV1::ORDERED.len() - seen.len(), 0);
+        assert_eq!(multi_field, 0);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_structural_gate_inventory_exact() {
+        assert_eq!(
+            Q1StructuralGateV1::ORDERED.len(),
+            Q1StructuralGateV1::HISTORICAL_V5_ORDERED
+                .len()
+                .checked_sub(1)
+                .unwrap()
+        );
+        assert!(!Q1StructuralGateV1::ORDERED.contains(&Q1StructuralGateV1::LengthRetention));
+        assert_eq!(
+            Q1StructuralGateV1::ORDERED
+                .iter()
+                .map(|gate| gate.as_str())
+                .collect::<Vec<_>>(),
+            vec![
+                "state-utility-at-maximum-length",
+                "state-causality",
+                "local-control",
+                "numerical-stability",
+                "determinism",
+                "mode-equivalence",
+                "persistent-state-footprint",
+                "trainability-sanity",
+            ]
+        );
+        assert!(!sprint105_q1_structural_gate_inventory_identity_v1().is_empty());
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_gate_policy_owner_exact() {
+        let policy = sprint105_v2_q1_structural_gate_policy_v1();
+        let first = sprint105_q1_structural_gate_policy_owner_projection_v1(&policy).unwrap();
+        let second = sprint105_q1_structural_gate_policy_owner_projection_v1(&policy).unwrap();
+        assert_eq!(first, second);
+        assert_eq!(first.actual_owner_type_identity, "Q1StructuralGatePolicyV1");
+        assert_eq!(
+            first.fields.len(),
+            Q1StructuralGatePolicyFieldV1::ORDERED.len()
+        );
+        assert_eq!(
+            first
+                .fields
+                .iter()
+                .map(|field| field.field)
+                .collect::<Vec<_>>(),
+            Q1StructuralGatePolicyFieldV1::ORDERED
+        );
+        assert_eq!(
+            first.gate_inventory_identity,
+            sprint105_q1_structural_gate_inventory_identity_v1()
+        );
+        println!(
+            "S105_EF1_R2_STRUCTURAL_GATE_POLICY_OWNER_DIGEST={}",
+            first.semantic_digest
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_gate_policy_all_field_mutations() {
+        let qualification = sprint105_v2_p1_frozen_q1_once_v1().unwrap();
+        let original_policy = qualification.gate_policy;
+        let original_owner =
+            sprint105_q1_structural_gate_policy_owner_projection_v1(&original_policy).unwrap();
+        let original_behavior = sprint105_ef1_r2_gate_behavior_fingerprint_v1(&original_policy);
+        let mutations = sprint105_q1_structural_gate_policy_mutations_v1(original_policy);
+        let registered = mutations.len();
+        let mut executed = 0;
+        let mut detected = 0;
+        let mut multi_field = 0;
+        let mut seen = BTreeSet::new();
+        for mutation in mutations {
+            executed += 1;
+            seen.insert(mutation.field.as_str());
+            let owner =
+                sprint105_q1_structural_gate_policy_owner_projection_v1(&mutation.policy).unwrap();
+            let changed_fields = original_owner
+                .fields
+                .iter()
+                .zip(&owner.fields)
+                .filter(|(left, right)| left != right)
+                .count();
+            if changed_fields != 1 {
+                multi_field += 1;
+            }
+            assert_eq!(changed_fields, 1, "mutation={}", mutation.field.as_str());
+            assert_ne!(owner.semantic_digest, original_owner.semantic_digest);
+            detected += usize::from(owner.semantic_digest != original_owner.semantic_digest);
+            let behavior = sprint105_ef1_r2_gate_behavior_fingerprint_v1(&mutation.policy);
+            assert!(
+                behavior != original_behavior
+                    || matches!(
+                        mutation.field,
+                        Q1StructuralGatePolicyFieldV1::Revision
+                            | Q1StructuralGatePolicyFieldV1::StructuralFailureVerdict
+                    ),
+                "behavior-insensitive mutation={}",
+                mutation.field.as_str()
+            );
+        }
+        assert_eq!(original_policy, sprint105_v2_q1_structural_gate_policy_v1());
+        assert_eq!(registered, Q1StructuralGatePolicyFieldV1::ORDERED.len());
+        assert_eq!(executed, registered);
+        assert_eq!(detected, executed);
+        assert_eq!(seen.len(), registered);
+        assert_eq!(Q1StructuralGatePolicyFieldV1::ORDERED.len() - seen.len(), 0);
+        assert_eq!(multi_field, 0);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_gate_boundary_truth_tables() {
+        use Q1GateComparisonSemanticsV1::{GreaterOrEqual, StrictGreater, StrictLess};
+        let missing = Q1MissingEvidencePolicyV1::FailClosed;
+        let cases = [
+            (Some(0.4), Some(0.5), false, false),
+            (Some(0.5), Some(0.5), false, true),
+            (Some(0.6), Some(0.5), true, true),
+            (None, Some(0.5), false, false),
+            (Some(f32::NAN), Some(0.5), false, false),
+        ];
+        for (left, right, strict_expected, inclusive_expected) in cases {
+            assert_eq!(
+                sprint105_q1_compare_f32_v1(left, right, StrictGreater, missing),
+                strict_expected
+            );
+            assert_eq!(
+                sprint105_q1_compare_f32_v1(left, right, GreaterOrEqual, missing),
+                inclusive_expected
+            );
+        }
+        for (left, right, expected) in [
+            (Some(0.4), Some(0.5), true),
+            (Some(0.5), Some(0.5), false),
+            (Some(0.6), Some(0.5), false),
+            (None, Some(0.5), false),
+            (Some(f32::INFINITY), Some(0.5), false),
+        ] {
+            assert_eq!(
+                sprint105_q1_compare_f32_v1(left, right, StrictLess, missing),
+                expected
+            );
+        }
+
+        let actual_policy = delayed_recall_evidence_policy_v2();
+        let gate_policy = sprint105_v2_q1_structural_gate_policy_v1();
+        let base = sprint105_ef1_r2_synthetic_gate_evidence_v1();
+        let validated =
+            sprint105_q1_validate_raw_gate_evidence_v1(base.clone(), &actual_policy, &gate_policy)
+                .unwrap();
+        let validated =
+            q1_structural_evaluation_authority_v1::diagnostic_fixture_from_validated(validated);
+        assert!(
+            q1_structural_evaluation_authority_v1::evaluate_diagnostic_gate_fixture(&validated)
+                .unwrap()
+                .structural_status()
+                .all_required_structural_gates_pass()
+        );
+        let mut missing_footprint = base.clone();
+        missing_footprint.rows[0].footprint_bytes = None;
+        let missing_footprint = sprint105_q1_validate_raw_gate_evidence_v1(
+            missing_footprint,
+            &actual_policy,
+            &gate_policy,
+        )
+        .unwrap();
+        let missing_footprint =
+            q1_structural_evaluation_authority_v1::diagnostic_fixture_from_validated(
+                missing_footprint,
+            );
+        assert!(
+            !q1_structural_evaluation_authority_v1::evaluate_diagnostic_gate_fixture(
+                &missing_footprint
+            )
+            .unwrap()
+            .structural_status()
+            .gate_passed(Q1StructuralGateV1::PersistentStateFootprint)
+            .unwrap()
+        );
+        let mut nonfinite = base;
+        nonfinite.rows[0].base_accuracy = Some(f32::NAN);
+        let nonfinite =
+            sprint105_q1_validate_raw_gate_evidence_v1(nonfinite, &actual_policy, &gate_policy)
+                .unwrap();
+        let nonfinite =
+            q1_structural_evaluation_authority_v1::diagnostic_fixture_from_validated(nonfinite);
+        assert!(
+            !q1_structural_evaluation_authority_v1::evaluate_diagnostic_gate_fixture(&nonfinite)
+                .unwrap()
+                .structural_status()
+                .gate_passed(Q1StructuralGateV1::NumericalStability)
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_v5_q1_contract_exact_identity() {
+        let qualification = sprint105_v2_p1_frozen_q1_once_v1().unwrap();
+        let contract = sprint105_q1_contract_identity_v5(&qualification).unwrap();
+        let digest = sprint105_q1_contract_digest_v5(&contract);
+        println!("S105_EF1_R2_Q1_CONTRACT_DIGEST={digest}");
+        assert_eq!(
+            sprint105_q1_contract_digest_v4(&contract.historical_v4),
+            SPRINT105_Q1_CONTRACT_GOLDEN_DIGEST_V4
+        );
+        assert_eq!(digest, SPRINT105_Q1_CONTRACT_GOLDEN_DIGEST_V5);
+        assert_eq!(
+            sprint105_q1_contract_digest_v5(
+                &sprint105_q1_contract_identity_v5(&qualification).unwrap()
+            ),
+            digest
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_actual_owner_wiring_exact() {
+        let qualification = sprint105_v2_p1_frozen_q1_once_v1().unwrap();
+        let policy_owner =
+            sprint105_q1_actual_policy_owner_projection_v1(&qualification.actual_policy).unwrap();
+        let gate_owner =
+            sprint105_q1_structural_gate_policy_owner_projection_v1(&qualification.gate_policy)
+                .unwrap();
+        let historical_gate_owner =
+            sprint105_q1_historical_v5_gate_policy_owner_projection_v1(&qualification.gate_policy)
+                .unwrap();
+        let binding = sprint105_q1_validate_qualification_owner_binding_v1(
+            Some(&qualification.owner_binding),
+            Some(&qualification.actual_policy),
+            Some(&qualification.gate_policy),
+        )
+        .unwrap();
+        let historical_binding = sprint105_q1_historical_v5_qualification_owner_binding_v1(
+            &qualification.actual_policy,
+            &qualification.gate_policy,
+        )
+        .unwrap();
+        let contract = sprint105_q1_contract_identity_v5(&qualification).unwrap();
+        let current_v6 = sprint105_q1_contract_v6(&qualification).unwrap();
+        assert_eq!(
+            binding.actual_policy_owner_identity,
+            policy_owner.semantic_digest
+        );
+        assert_eq!(
+            binding.structural_gate_policy_owner_identity,
+            gate_owner.semantic_digest
+        );
+        assert_eq!(
+            historical_binding.qualification_owner_identity,
+            contract.qualification_owner_identity
+        );
+        assert_eq!(contract.actual_policy_owner, policy_owner);
+        assert_eq!(contract.structural_gate_policy_owner, historical_gate_owner);
+        assert_eq!(
+            current_v6.identity.qualification_owner_identity,
+            binding.qualification_owner_identity
+        );
+        assert_eq!(
+            current_v6.identity.active_gate_policy_identity,
+            gate_owner.semantic_digest
+        );
+        let result = sprint105_v2_authorized_qualification_result_v1(
+            &qualification,
+            true,
+            Sprint105ConfidenceOverlayV1::Clear,
+            true,
+        )
+        .unwrap();
+        let status = result.authorized_matrix().structural_status();
+        assert_eq!(status.decision_count(), Q1StructuralGateV1::ORDERED.len());
+        assert!(status.decisions_all_owned_by(&gate_owner.semantic_digest));
+        assert!(
+            sprint105_q1_validate_qualification_owner_binding_v1(
+                None,
+                Some(&qualification.actual_policy),
+                Some(&qualification.gate_policy),
+            )
+            .is_err()
+        );
+        assert!(
+            sprint105_q1_contract_identity_v5_from_owners_v1(
+                contract.historical_v4.clone(),
+                None,
+                Some(historical_gate_owner),
+                Some(&historical_binding),
+            )
+            .is_err()
+        );
+    }
+
+    fn sprint105_ef1_r2_r1_canonical_domain_and_raw_v1() -> (
+        DelayedRecallEvidencePolicyV2,
+        Q1StructuralGatePolicyV1,
+        ExpectedQ1EvidenceDomainV1,
+        RawQ1QualificationEvidenceTableV1,
+    ) {
+        let actual_policy = delayed_recall_evidence_policy_v2();
+        let gate_policy = sprint105_v2_q1_structural_gate_policy_v1();
+        let domain =
+            sprint105_q1_expected_evidence_domain_v1(&actual_policy, &gate_policy).unwrap();
+        (
+            actual_policy,
+            gate_policy,
+            domain,
+            sprint105_ef1_r2_synthetic_gate_evidence_v1(),
+        )
+    }
+
+    fn sprint105_ef1_r2_r1_rejected_boundary_v1(
+        actual_policy: &DelayedRecallEvidencePolicyV2,
+        gate_policy: &Q1StructuralGatePolicyV1,
+        raw: RawQ1QualificationEvidenceTableV1,
+    ) -> Q1EvidenceDomainValidationErrorV1 {
+        sprint105_q1_validate_raw_gate_evidence_v1(raw, actual_policy, gate_policy).unwrap_err()
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r1_expected_full_evidence_domain_exact() {
+        let (actual_policy, gate_policy, domain, _) =
+            sprint105_ef1_r2_r1_canonical_domain_and_raw_v1();
+        let expected_total = Sprint105Q1FamilyV1::ORDERED
+            .len()
+            .checked_mul(actual_policy.sequence_lengths.len())
+            .unwrap();
+        assert_eq!(domain.keys.len(), expected_total);
+        assert_eq!(
+            domain.keys.iter().copied().collect::<BTreeSet<_>>().len(),
+            domain.keys.len()
+        );
+        assert_eq!(
+            domain.history_keys.len(),
+            gate_policy.history_families.len() * actual_policy.sequence_lengths.len()
+        );
+        assert_eq!(
+            domain.maximum_history_keys.len(),
+            gate_policy.history_families.len()
+        );
+        assert_eq!(
+            domain.local_control_keys.len(),
+            actual_policy.sequence_lengths.len()
+        );
+        assert_eq!(domain.footprint_keys, domain.keys);
+        assert_eq!(
+            domain.maximum_length,
+            *actual_policy.sequence_lengths.iter().max().unwrap()
+        );
+        let mut duplicate_length = actual_policy;
+        duplicate_length.sequence_lengths[1] = duplicate_length.sequence_lengths[0];
+        assert!(sprint105_q1_expected_evidence_domain_v1(&duplicate_length, &gate_policy).is_err());
+        let mut invalid_length = actual_policy;
+        invalid_length.sequence_lengths[0] = 0;
+        assert!(sprint105_q1_expected_evidence_domain_v1(&invalid_length, &gate_policy).is_err());
+        println!(
+            "S105_EF1_R2_R1_DOMAIN families={} lengths={} total={} history={} maximum_history={} local={} footprint={}",
+            Sprint105Q1FamilyV1::ORDERED.len(),
+            actual_policy.sequence_lengths.len(),
+            domain.keys.len(),
+            domain.history_keys.len(),
+            domain.maximum_history_keys.len(),
+            domain.local_control_keys.len(),
+            domain.footprint_keys.len(),
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r1_raw_to_validated_evidence_table_positive() {
+        let (actual_policy, gate_policy, domain, raw) =
+            sprint105_ef1_r2_r1_canonical_domain_and_raw_v1();
+        let validated = sprint105_q1_validate_evidence_table_v1(domain.clone(), raw).unwrap();
+        assert!(validated.diagnostics.full.exact());
+        assert!(validated.diagnostics.history.exact());
+        assert!(validated.diagnostics.maximum_history.exact());
+        assert!(validated.diagnostics.local_control.exact());
+        assert!(validated.diagnostics.footprint.exact());
+        assert_eq!(validated.rows.len(), domain.keys.len());
+        assert_eq!(validated.domain.actual_policy, actual_policy);
+        assert_eq!(validated.domain.gate_policy, gate_policy);
+
+        let empty = RawQ1QualificationEvidenceTableV1 {
+            rows: Vec::new(),
+            deterministic: Some(true),
+        };
+        let error = sprint105_q1_validate_evidence_table_v1(domain, empty).unwrap_err();
+        assert_eq!(error.diagnostics.full.observed, 0);
+        assert_eq!(
+            error.diagnostics.full.missing,
+            error.diagnostics.full.expected
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r1_maximum_history_absent_row_fails_closed() {
+        let (actual_policy, gate_policy, domain, mut raw) =
+            sprint105_ef1_r2_r1_canonical_domain_and_raw_v1();
+        let missing_key = domain.maximum_history_keys[0];
+        raw.rows.retain(|row| row.key() != missing_key);
+        let error = sprint105_ef1_r2_r1_rejected_boundary_v1(&actual_policy, &gate_policy, raw);
+        assert_eq!(
+            error.kind,
+            Q1EvidenceDomainValidationErrorKindV1::MissingEvidenceRow
+        );
+        assert_eq!(error.offending_key, Some(missing_key));
+        assert_eq!(error.diagnostics.full.missing, 1);
+        assert_eq!(error.diagnostics.history.missing, 1);
+        assert_eq!(error.diagnostics.maximum_history.missing, 1);
+        assert_eq!(error.diagnostics.footprint.missing, 1);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r1_nonmaximum_history_absent_row_fails_closed() {
+        let (actual_policy, gate_policy, domain, mut raw) =
+            sprint105_ef1_r2_r1_canonical_domain_and_raw_v1();
+        let missing_key = domain
+            .history_keys
+            .iter()
+            .copied()
+            .find(|key| key.sequence_length != domain.maximum_length)
+            .unwrap();
+        raw.rows.retain(|row| row.key() != missing_key);
+        let error = sprint105_ef1_r2_r1_rejected_boundary_v1(&actual_policy, &gate_policy, raw);
+        assert_eq!(error.diagnostics.full.missing, 1);
+        assert_eq!(error.diagnostics.history.missing, 1);
+        assert_eq!(error.diagnostics.maximum_history.missing, 0);
+        assert_eq!(error.diagnostics.footprint.missing, 1);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r1_local_control_absent_row_fails_closed() {
+        let (actual_policy, gate_policy, domain, mut raw) =
+            sprint105_ef1_r2_r1_canonical_domain_and_raw_v1();
+        let missing_key = domain.local_control_keys[0];
+        raw.rows.retain(|row| row.key() != missing_key);
+        let error = sprint105_ef1_r2_r1_rejected_boundary_v1(&actual_policy, &gate_policy, raw);
+        assert_eq!(error.diagnostics.full.missing, 1);
+        assert_eq!(error.diagnostics.local_control.missing, 1);
+        assert_eq!(error.diagnostics.history.missing, 0);
+        assert_eq!(error.diagnostics.footprint.missing, 1);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r1_footprint_absent_row_fails_closed() {
+        let (actual_policy, gate_policy, domain, mut raw) =
+            sprint105_ef1_r2_r1_canonical_domain_and_raw_v1();
+        let missing_key = *domain.footprint_keys.last().unwrap();
+        raw.rows.retain(|row| row.key() != missing_key);
+        let error = sprint105_ef1_r2_r1_rejected_boundary_v1(&actual_policy, &gate_policy, raw);
+        assert_eq!(error.diagnostics.full.missing, 1);
+        assert_eq!(error.diagnostics.footprint.missing, 1);
+        assert_ne!(
+            error.diagnostics.footprint.expected,
+            error.diagnostics.footprint.observed
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r1_duplicate_same_count_fails_closed() {
+        let (actual_policy, gate_policy, domain, mut raw) =
+            sprint105_ef1_r2_r1_canonical_domain_and_raw_v1();
+        let missing_key = domain.keys[0];
+        let duplicated_key = domain.keys[1];
+        let duplicate = raw
+            .rows
+            .iter()
+            .copied()
+            .find(|row| row.key() == duplicated_key)
+            .unwrap();
+        raw.rows.retain(|row| row.key() != missing_key);
+        raw.rows.push(duplicate);
+        let error = sprint105_ef1_r2_r1_rejected_boundary_v1(&actual_policy, &gate_policy, raw);
+        assert_eq!(
+            error.kind,
+            Q1EvidenceDomainValidationErrorKindV1::DuplicateEvidenceRow
+        );
+        assert_eq!(
+            error.diagnostics.full.expected,
+            error.diagnostics.full.observed
+        );
+        assert_eq!(error.diagnostics.full.missing, 1);
+        assert_eq!(error.diagnostics.full.duplicate, 1);
+        assert_eq!(error.diagnostics.full.unexpected, 0);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r1_unexpected_key_fails_closed() {
+        let (actual_policy, gate_policy, domain, mut raw) =
+            sprint105_ef1_r2_r1_canonical_domain_and_raw_v1();
+        let original_key = raw.rows[0].key();
+        let unexpected_length = actual_policy
+            .sequence_lengths
+            .iter()
+            .copied()
+            .max()
+            .unwrap()
+            .checked_add(1)
+            .unwrap();
+        assert!(!actual_policy.sequence_lengths.contains(&unexpected_length));
+        raw.rows[0].sequence_length = unexpected_length;
+        let error = sprint105_ef1_r2_r1_rejected_boundary_v1(&actual_policy, &gate_policy, raw);
+        assert_eq!(
+            error.kind,
+            Q1EvidenceDomainValidationErrorKindV1::UnexpectedEvidenceRow
+        );
+        assert_eq!(
+            error.diagnostics.full.expected,
+            error.diagnostics.full.observed
+        );
+        assert_eq!(error.diagnostics.full.missing, 1);
+        assert_eq!(error.diagnostics.full.unexpected, 1);
+        assert!(domain.keys.contains(&original_key));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r1_evidence_ordering_is_independent() {
+        let (_, _, domain, raw) = sprint105_ef1_r2_r1_canonical_domain_and_raw_v1();
+        let canonical =
+            sprint105_q1_validate_evidence_table_v1(domain.clone(), raw.clone()).unwrap();
+        let mut reversed = raw.clone();
+        reversed.rows.reverse();
+        let reversed = sprint105_q1_validate_evidence_table_v1(domain.clone(), reversed).unwrap();
+        let mut rotated = raw;
+        rotated.rows.rotate_left(1);
+        let rotated = sprint105_q1_validate_evidence_table_v1(domain, rotated).unwrap();
+        assert_eq!(canonical, reversed);
+        assert_eq!(canonical, rotated);
+        let canonical =
+            q1_structural_evaluation_authority_v1::diagnostic_fixture_from_validated(canonical);
+        let reversed =
+            q1_structural_evaluation_authority_v1::diagnostic_fixture_from_validated(reversed);
+        assert_eq!(
+            q1_structural_evaluation_authority_v1::evaluate_diagnostic_gate_fixture(&canonical)
+                .unwrap(),
+            q1_structural_evaluation_authority_v1::evaluate_diagnostic_gate_fixture(&reversed)
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r1_complete_structural_gate_evidence_passes() {
+        let (actual_policy, gate_policy, domain, raw) =
+            sprint105_ef1_r2_r1_canonical_domain_and_raw_v1();
+        let observed_rows = raw.rows.len();
+        let validated =
+            sprint105_q1_validate_raw_gate_evidence_v1(raw, &actual_policy, &gate_policy).unwrap();
+        assert_eq!(validated.diagnostics.full.expected, domain.keys.len());
+        assert_eq!(validated.diagnostics.full.observed, observed_rows);
+        let validated =
+            q1_structural_evaluation_authority_v1::diagnostic_fixture_from_validated(validated);
+        let evaluation =
+            q1_structural_evaluation_authority_v1::evaluate_diagnostic_gate_fixture(&validated)
+                .unwrap();
+        let status = evaluation.structural_status();
+        assert!(status.all_required_structural_gates_pass());
+        assert_eq!(status.decision_count(), Q1StructuralGateV1::ORDERED.len());
+    }
+
+    fn sprint105_ef1_r2_r1_r1_v2_metrics_v1(accuracy: f32) -> Sprint105V2P1Metrics {
+        Sprint105V2P1Metrics {
+            samples: 1,
+            accuracy,
+            mean_categorical_nll: 0.1,
+            mean_true_class_probability: 0.9,
+            mean_correct_class_margin: 0.8,
+            finite: true,
+            mean_final_state_l2_norm: 1.0,
+            max_final_state_abs: 1.0,
+            total_tokens: 1,
+        }
+    }
+
+    fn sprint105_ef1_r2_r1_r1_v2_sources_v1() -> (
+        ExpectedQ1EvidenceDomainV1,
+        Vec<Sprint105V2P1Entry>,
+        Vec<Q1QualificationFootprintEvidenceV1<Sprint105V2P1Footprint>>,
+    ) {
+        let actual_policy = delayed_recall_evidence_policy_v2();
+        let gate_policy = sprint105_v2_q1_structural_gate_policy_v1();
+        let domain =
+            sprint105_q1_expected_evidence_domain_v1(&actual_policy, &gate_policy).unwrap();
+        let entries = domain
+            .keys
+            .iter()
+            .copied()
+            .map(|key| Sprint105V2P1Entry {
+                family: key.family,
+                sequence_length: key.sequence_length,
+                initial_development_loss: 0.8,
+                final_development_loss: 0.2,
+                base: sprint105_ef1_r2_r1_r1_v2_metrics_v1(0.9),
+                no_state: sprint105_ef1_r2_r1_r1_v2_metrics_v1(0.1),
+                reset_base: key
+                    .family
+                    .requires_history()
+                    .then(|| sprint105_ef1_r2_r1_r1_v2_metrics_v1(0.1)),
+                mode_equivalent: true,
+            })
+            .collect::<Vec<_>>();
+        let footprints = domain
+            .footprint_keys
+            .iter()
+            .copied()
+            .map(|key| Q1QualificationFootprintEvidenceV1 {
+                key,
+                footprint: Sprint105V2P1Footprint {
+                    sequence_length: key.sequence_length,
+                    elements: 1_024,
+                    bytes: 4_096,
+                    blocks: 1,
+                    step_index: 0,
+                },
+            })
+            .collect::<Vec<_>>();
+        (domain, entries, footprints)
+    }
+
+    fn sprint105_ef1_r2_r1_r1_join_v2_sources_v1(
+        domain: &ExpectedQ1EvidenceDomainV1,
+        entries: &[Sprint105V2P1Entry],
+        footprints: &[Q1QualificationFootprintEvidenceV1<Sprint105V2P1Footprint>],
+    ) -> Result<RawQ1QualificationEvidenceTableV1, Q1QualificationEvidenceAdapterErrorV1> {
+        sprint105_q1_join_qualification_evidence_exact_v1(
+            domain,
+            entries,
+            footprints,
+            true,
+            sprint105_v2_metric_entry_key_v1,
+            |footprint| footprint.sequence_length,
+            sprint105_v2_combined_gate_row_v1,
+        )
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r1_r1_canonical_metric_entry_collection_positive() {
+        let (domain, entries, footprints) = sprint105_ef1_r2_r1_r1_v2_sources_v1();
+        let raw =
+            sprint105_ef1_r2_r1_r1_join_v2_sources_v1(&domain, &entries, &footprints).unwrap();
+        assert_eq!(entries.len(), domain.keys.len());
+        assert_eq!(raw.rows.len(), domain.keys.len());
+        assert_eq!(
+            raw.rows.iter().map(|row| row.key()).collect::<Vec<_>>(),
+            domain.keys
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r1_r1_canonical_keyed_footprint_collection_positive() {
+        let (domain, entries, footprints) = sprint105_ef1_r2_r1_r1_v2_sources_v1();
+        let raw =
+            sprint105_ef1_r2_r1_r1_join_v2_sources_v1(&domain, &entries, &footprints).unwrap();
+        assert_eq!(footprints.len(), domain.footprint_keys.len());
+        assert!(footprints.iter().all(|evidence| {
+            evidence.key.sequence_length == evidence.footprint.sequence_length
+        }));
+        assert!(raw.rows.iter().all(|row| {
+            row.footprint_elements == Some(1_024) && row.footprint_bytes == Some(4_096)
+        }));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r1_r1_exact_keyed_adapter_positive() {
+        let (domain, entries, footprints) = sprint105_ef1_r2_r1_r1_v2_sources_v1();
+        let raw =
+            sprint105_ef1_r2_r1_r1_join_v2_sources_v1(&domain, &entries, &footprints).unwrap();
+        let validated = sprint105_q1_validate_evidence_table_v1(domain, raw).unwrap();
+        assert!(validated.diagnostics.full.exact());
+        let validated =
+            q1_structural_evaluation_authority_v1::diagnostic_fixture_from_validated(validated);
+        assert!(
+            q1_structural_evaluation_authority_v1::evaluate_diagnostic_gate_fixture(&validated)
+                .unwrap()
+                .structural_status()
+                .all_required_structural_gates_pass()
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r1_r1_metric_extra_row_fails_closed() {
+        let (domain, mut entries, footprints) = sprint105_ef1_r2_r1_r1_v2_sources_v1();
+        let mut extra = entries[0].clone();
+        extra.sequence_length = domain.maximum_length.checked_add(1).unwrap();
+        entries.push(extra);
+        let error =
+            sprint105_ef1_r2_r1_r1_join_v2_sources_v1(&domain, &entries, &footprints).unwrap_err();
+        assert_eq!(
+            error.kind,
+            Q1QualificationEvidenceAdapterErrorKindV1::UnexpectedMetricEntry
+        );
+        assert_eq!(error.diagnostics.metric_entries.observed, entries.len());
+        assert_eq!(error.diagnostics.metric_entries.unexpected, 1);
+        assert_eq!(error.diagnostics.footprints.unexpected, 0);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r1_r1_metric_missing_row_fails_closed() {
+        let (domain, mut entries, footprints) = sprint105_ef1_r2_r1_r1_v2_sources_v1();
+        let missing = domain.keys[0];
+        entries.retain(|entry| sprint105_v2_metric_entry_key_v1(entry).unwrap() != missing);
+        let error =
+            sprint105_ef1_r2_r1_r1_join_v2_sources_v1(&domain, &entries, &footprints).unwrap_err();
+        assert_eq!(
+            error.kind,
+            Q1QualificationEvidenceAdapterErrorKindV1::MissingMetricEntry
+        );
+        assert_eq!(error.offending_key, Some(missing));
+        assert_eq!(error.diagnostics.metric_entries.missing, 1);
+        assert_eq!(error.diagnostics.footprints_minus_metric_entries, 1);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r1_r1_metric_duplicate_same_count_fails_closed() {
+        let (domain, mut entries, footprints) = sprint105_ef1_r2_r1_r1_v2_sources_v1();
+        let missing = domain.keys[0];
+        let duplicate = entries[1].clone();
+        entries.retain(|entry| sprint105_v2_metric_entry_key_v1(entry).unwrap() != missing);
+        entries.push(duplicate);
+        let error =
+            sprint105_ef1_r2_r1_r1_join_v2_sources_v1(&domain, &entries, &footprints).unwrap_err();
+        assert_eq!(
+            error.kind,
+            Q1QualificationEvidenceAdapterErrorKindV1::DuplicateMetricEntry
+        );
+        assert_eq!(error.diagnostics.metric_entries.expected, entries.len());
+        assert_eq!(error.diagnostics.metric_entries.missing, 1);
+        assert_eq!(error.diagnostics.metric_entries.duplicate, 1);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r1_r1_footprint_extra_row_fails_closed() {
+        let (domain, entries, mut footprints) = sprint105_ef1_r2_r1_r1_v2_sources_v1();
+        let unexpected_length = domain.maximum_length.checked_add(1).unwrap();
+        let mut extra = footprints[0];
+        extra.key.sequence_length = unexpected_length;
+        extra.footprint.sequence_length = unexpected_length;
+        footprints.push(extra);
+        let error =
+            sprint105_ef1_r2_r1_r1_join_v2_sources_v1(&domain, &entries, &footprints).unwrap_err();
+        assert_eq!(
+            error.kind,
+            Q1QualificationEvidenceAdapterErrorKindV1::UnexpectedFootprint
+        );
+        assert_eq!(error.diagnostics.footprints.observed, footprints.len());
+        assert_eq!(error.diagnostics.footprints.unexpected, 1);
+        assert_eq!(error.diagnostics.metric_entries.unexpected, 0);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r1_r1_footprint_missing_row_fails_closed() {
+        let (domain, entries, mut footprints) = sprint105_ef1_r2_r1_r1_v2_sources_v1();
+        let missing = domain.footprint_keys[0];
+        footprints.retain(|evidence| evidence.key != missing);
+        let error =
+            sprint105_ef1_r2_r1_r1_join_v2_sources_v1(&domain, &entries, &footprints).unwrap_err();
+        assert_eq!(
+            error.kind,
+            Q1QualificationEvidenceAdapterErrorKindV1::MissingFootprint
+        );
+        assert_eq!(error.offending_key, Some(missing));
+        assert_eq!(error.diagnostics.footprints.missing, 1);
+        assert_eq!(error.diagnostics.metric_entries_minus_footprints, 1);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r1_r1_footprint_duplicate_same_count_fails_closed() {
+        let (domain, entries, mut footprints) = sprint105_ef1_r2_r1_r1_v2_sources_v1();
+        let missing = domain.footprint_keys[0];
+        let duplicate = footprints[1];
+        footprints.retain(|evidence| evidence.key != missing);
+        footprints.push(duplicate);
+        let error =
+            sprint105_ef1_r2_r1_r1_join_v2_sources_v1(&domain, &entries, &footprints).unwrap_err();
+        assert_eq!(
+            error.kind,
+            Q1QualificationEvidenceAdapterErrorKindV1::DuplicateFootprint
+        );
+        assert_eq!(error.diagnostics.footprints.expected, footprints.len());
+        assert_eq!(error.diagnostics.footprints.missing, 1);
+        assert_eq!(error.diagnostics.footprints.duplicate, 1);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r1_r1_footprint_length_mismatch_fails_closed() {
+        let (domain, entries, mut footprints) = sprint105_ef1_r2_r1_r1_v2_sources_v1();
+        let key = footprints[0].key;
+        footprints[0].footprint.sequence_length = domain.maximum_length.checked_add(1).unwrap();
+        let error =
+            sprint105_ef1_r2_r1_r1_join_v2_sources_v1(&domain, &entries, &footprints).unwrap_err();
+        assert_eq!(
+            error.kind,
+            Q1QualificationEvidenceAdapterErrorKindV1::FootprintSequenceLengthMismatch
+        );
+        assert_eq!(error.offending_key, Some(key));
+        assert!(error.diagnostics.metric_entries.exact());
+        assert!(error.diagnostics.footprints.exact());
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r1_r1_entry_footprint_key_cross_fails_closed() {
+        let (domain, entries, mut footprints) = sprint105_ef1_r2_r1_r1_v2_sources_v1();
+        footprints[0].key = footprints[1].key;
+        footprints[0].footprint.sequence_length = footprints[1].key.sequence_length;
+        let error =
+            sprint105_ef1_r2_r1_r1_join_v2_sources_v1(&domain, &entries, &footprints).unwrap_err();
+        assert_eq!(
+            error.kind,
+            Q1QualificationEvidenceAdapterErrorKindV1::DuplicateFootprint
+        );
+        assert_eq!(error.diagnostics.footprints.missing, 1);
+        assert_eq!(error.diagnostics.footprints.duplicate, 1);
+        assert_eq!(error.diagnostics.metric_entries_minus_footprints, 1);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r1_r1_entry_only_reordering_is_independent() {
+        let (domain, entries, footprints) = sprint105_ef1_r2_r1_r1_v2_sources_v1();
+        let canonical =
+            sprint105_ef1_r2_r1_r1_join_v2_sources_v1(&domain, &entries, &footprints).unwrap();
+        let mut reversed_entries = entries;
+        reversed_entries.reverse();
+        let reordered =
+            sprint105_ef1_r2_r1_r1_join_v2_sources_v1(&domain, &reversed_entries, &footprints)
+                .unwrap();
+        assert_eq!(canonical, reordered);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r1_r1_footprint_only_reordering_is_independent() {
+        let (domain, entries, footprints) = sprint105_ef1_r2_r1_r1_v2_sources_v1();
+        let canonical =
+            sprint105_ef1_r2_r1_r1_join_v2_sources_v1(&domain, &entries, &footprints).unwrap();
+        let mut reversed_footprints = footprints;
+        reversed_footprints.reverse();
+        let reordered =
+            sprint105_ef1_r2_r1_r1_join_v2_sources_v1(&domain, &entries, &reversed_footprints)
+                .unwrap();
+        assert_eq!(canonical, reordered);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r1_r1_independent_source_permutation_is_exact() {
+        let (domain, mut entries, mut footprints) = sprint105_ef1_r2_r1_r1_v2_sources_v1();
+        let canonical =
+            sprint105_ef1_r2_r1_r1_join_v2_sources_v1(&domain, &entries, &footprints).unwrap();
+        entries.rotate_left(1);
+        footprints.rotate_right(2);
+        let permuted =
+            sprint105_ef1_r2_r1_r1_join_v2_sources_v1(&domain, &entries, &footprints).unwrap();
+        assert_eq!(canonical, permuted);
+        let canonical = sprint105_q1_validate_evidence_table_v1(domain.clone(), canonical).unwrap();
+        let permuted = sprint105_q1_validate_evidence_table_v1(domain, permuted).unwrap();
+        assert_eq!(canonical, permuted);
+        let canonical =
+            q1_structural_evaluation_authority_v1::diagnostic_fixture_from_validated(canonical);
+        let permuted =
+            q1_structural_evaluation_authority_v1::diagnostic_fixture_from_validated(permuted);
+        assert_eq!(
+            q1_structural_evaluation_authority_v1::evaluate_diagnostic_gate_fixture(&canonical)
+                .unwrap(),
+            q1_structural_evaluation_authority_v1::evaluate_diagnostic_gate_fixture(&permuted)
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r1_r1_empty_source_collections_fail_closed() {
+        let (domain, entries, footprints) = sprint105_ef1_r2_r1_r1_v2_sources_v1();
+        let empty_entries =
+            sprint105_ef1_r2_r1_r1_join_v2_sources_v1(&domain, &[], &footprints).unwrap_err();
+        assert_eq!(
+            empty_entries.kind,
+            Q1QualificationEvidenceAdapterErrorKindV1::MissingMetricEntry
+        );
+        assert_eq!(
+            empty_entries.diagnostics.metric_entries.missing,
+            domain.keys.len()
+        );
+        let empty_footprints =
+            sprint105_ef1_r2_r1_r1_join_v2_sources_v1(&domain, &entries, &[]).unwrap_err();
+        assert_eq!(
+            empty_footprints.kind,
+            Q1QualificationEvidenceAdapterErrorKindV1::MissingFootprint
+        );
+        assert_eq!(
+            empty_footprints.diagnostics.footprints.missing,
+            domain.footprint_keys.len()
+        );
+        let both_empty = sprint105_ef1_r2_r1_r1_join_v2_sources_v1(&domain, &[], &[]).unwrap_err();
+        assert_eq!(
+            both_empty.kind,
+            Q1QualificationEvidenceAdapterErrorKindV1::MissingMetricEntry
+        );
+    }
+
+    fn sprint105_ef1_r2_r1_r1_v1_metrics_v1(accuracy: f32) -> Sprint105Q1MetricsV1 {
+        Sprint105Q1MetricsV1 {
+            samples: 1,
+            accuracy,
+            mean_categorical_nll: 0.1,
+            mean_true_class_probability: 0.9,
+            mean_correct_class_margin: 0.8,
+            median_correct_class_margin: 0.8,
+            finite: true,
+            mean_final_state_l2_norm: 1.0,
+            max_final_state_abs: 1.0,
+            total_tokens: 1,
+        }
+    }
+
+    fn sprint105_ef1_r2_r1_r1_v1_comparator_v1() -> NoStateComparatorSnapshotV1 {
+        NoStateComparatorSnapshotV1 {
+            parameter_count: 1,
+            state_capability_path_count: 1,
+            differing_path_count: 1,
+            unexpected_path_count: 0,
+            missing_path_count: 0,
+            base_optimizer_digest: "base".to_string(),
+            no_state_optimizer_digest: "no-state".to_string(),
+            base_dataset_identity: "dataset".to_string(),
+            no_state_dataset_identity: "dataset".to_string(),
+            base_training_policy_identity: "policy".to_string(),
+            no_state_training_policy_identity: "policy".to_string(),
+            normalizer_identity: "normalizer".to_string(),
+        }
+    }
+
+    fn sprint105_ef1_r2_r1_r1_v1_actual_fixture_v1()
+    -> (ExpectedQ1EvidenceDomainV1, Sprint105Q1EvidenceV1) {
+        let actual_policy = delayed_recall_evidence_policy_v2();
+        let gate_policy = sprint105_v1_q1_structural_gate_policy_v1();
+        let domain =
+            sprint105_q1_expected_evidence_domain_v1(&actual_policy, &gate_policy).unwrap();
+        let entries = domain
+            .keys
+            .iter()
+            .copied()
+            .map(|key| Sprint105Q1EntryV1 {
+                family: key.family,
+                sequence_length: key.sequence_length,
+                development_ids: Vec::new(),
+                evaluation_ids: Vec::new(),
+                initial_development_loss: 0.8,
+                final_development_loss: 0.2,
+                comparator: sprint105_ef1_r2_r1_r1_v1_comparator_v1(),
+                base: sprint105_ef1_r2_r1_r1_v1_metrics_v1(0.9),
+                no_state: sprint105_ef1_r2_r1_r1_v1_metrics_v1(0.1),
+                reset_base: key
+                    .family
+                    .requires_history()
+                    .then(|| sprint105_ef1_r2_r1_r1_v1_metrics_v1(0.1)),
+                mode_equivalent: true,
+            })
+            .collect::<Vec<_>>();
+        let footprints = domain
+            .footprint_keys
+            .iter()
+            .copied()
+            .map(|key| Q1QualificationFootprintEvidenceV1 {
+                key,
+                footprint: Sprint105Q1StateFootprintV1 {
+                    sequence_length: key.sequence_length,
+                    elements: 1_024,
+                    bytes: 4_096,
+                    block_count: 1,
+                    step_index: 0,
+                },
+            })
+            .collect::<Vec<_>>();
+        let evidence = Sprint105Q1EvidenceV1 {
+            entries,
+            footprints,
+            owner_binding: sprint105_q1_qualification_owner_binding_v1(
+                &actual_policy,
+                &gate_policy,
+            )
+            .unwrap(),
+            actual_policy,
+            gate_policy,
+        };
+        (domain, evidence)
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r1_r1_v1_actual_adapter_positive() {
+        let (domain, evidence) = sprint105_ef1_r2_r1_r1_v1_actual_fixture_v1();
+        let raw = sprint105_v1_structural_gate_evidence_v1(&evidence, true).unwrap();
+        assert_eq!(raw.rows.len(), domain.keys.len());
+        assert_eq!(
+            raw.rows.iter().map(|row| row.key()).collect::<Vec<_>>(),
+            domain.keys
+        );
+        assert!(
+            q1_structural_evaluation_authority_v1::evaluate_v1_qualification(&evidence, true)
+                .unwrap()
+                .structural_status()
+                .all_required_structural_gates_pass()
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r1_r1_v2_actual_adapter_positive() {
+        let (domain, entries, footprints) = sprint105_ef1_r2_r1_r1_v2_sources_v1();
+        let raw =
+            sprint105_ef1_r2_r1_r1_join_v2_sources_v1(&domain, &entries, &footprints).unwrap();
+        let validated = sprint105_q1_validate_evidence_table_v1(domain.clone(), raw).unwrap();
+        assert_eq!(validated.rows.len(), domain.keys.len());
+        assert!(validated.diagnostics.full.exact());
+        let validated =
+            q1_structural_evaluation_authority_v1::diagnostic_fixture_from_validated(validated);
+        assert!(
+            q1_structural_evaluation_authority_v1::evaluate_diagnostic_gate_fixture(&validated)
+                .unwrap()
+                .structural_status()
+                .all_required_structural_gates_pass()
+        );
+    }
+
     fn sprint105_q1_evidence_v1() -> Result<Sprint105Q1EvidenceV1, M3MicroError> {
         let policy = delayed_recall_evidence_policy_v2();
+        let gate_policy = sprint105_v1_q1_structural_gate_policy_v1();
         let mut entries = Vec::new();
         let mut footprints = Vec::new();
         for family in Sprint105Q1FamilyV1::ORDERED {
@@ -16678,7 +28197,7 @@ mod tests {
                     sprint105_q1_examples_v1(family, initial_model.config.input_dim, length, false);
                 let frozen =
                     sprint105_q1_examples_v1(family, initial_model.config.input_dim, length, true);
-                sprint105_q1_fixture_integrity_v1(family, &development, &frozen);
+                sprint105_q1_fixture_integrity_v1(family, &development, &frozen, &policy);
                 let development_evidence = development
                     .iter()
                     .map(|example| example.evidence.clone())
@@ -16717,12 +28236,18 @@ mod tests {
                 let zero_state = M3MicroState::zero(&base.model.config)?;
                 let (elements, _, _, finite) = sprint105_q1_state_magnitude_v1(&zero_state);
                 assert!(finite);
-                footprints.push(Sprint105Q1StateFootprintV1 {
-                    sequence_length: length,
-                    elements,
-                    bytes: zero_state.byte_size(),
-                    block_count: zero_state.blocks.len(),
-                    step_index: zero_state.step_index,
+                footprints.push(Q1QualificationFootprintEvidenceV1 {
+                    key: Q1QualificationEvidenceKeyV1 {
+                        family,
+                        sequence_length: length,
+                    },
+                    footprint: Sprint105Q1StateFootprintV1 {
+                        sequence_length: length,
+                        elements,
+                        bytes: zero_state.byte_size(),
+                        block_count: zero_state.blocks.len(),
+                        step_index: zero_state.step_index,
+                    },
                 });
                 let mode_equivalent = sprint105_q1_cpu_modes_equivalent_v1(
                     &base.model,
@@ -16752,18 +28277,23 @@ mod tests {
         Ok(Sprint105Q1EvidenceV1 {
             entries,
             footprints,
+            owner_binding: sprint105_q1_qualification_owner_binding_v1(&policy, &gate_policy)?,
+            actual_policy: policy,
+            gate_policy,
         })
     }
 
     #[test]
     fn m3_micro_sprint105_q1_fixture_integrity() {
         let width = M3MicroConfig::for_agent(AgentId::TrendContinuation, 8).input_dim;
+        let policy = delayed_recall_evidence_policy_v2();
         for family in Sprint105Q1FamilyV1::ORDERED {
-            for length in delayed_recall_evidence_policy_v2().sequence_lengths {
+            for length in policy.sequence_lengths {
                 sprint105_q1_fixture_integrity_v1(
                     family,
                     &sprint105_q1_examples_v1(family, width, length, false),
                     &sprint105_q1_examples_v1(family, width, length, true),
+                    &policy,
                 );
             }
         }
@@ -16853,45 +28383,33 @@ mod tests {
         for footprint in &first.footprints {
             println!(
                 "S105_Q1_FOOTPRINT length={} elements={} bytes={} blocks={} zero_step_index={}",
-                footprint.sequence_length,
-                footprint.elements,
-                footprint.bytes,
-                footprint.block_count,
-                footprint.step_index,
+                footprint.footprint.sequence_length,
+                footprint.footprint.elements,
+                footprint.footprint.bytes,
+                footprint.footprint.block_count,
+                footprint.footprint.step_index,
             );
         }
-        let maximum_length = *policy.sequence_lengths.iter().max().unwrap();
-        let state_utility_passed = first
-            .entries
-            .iter()
-            .filter(|entry| {
-                entry.family.requires_history() && entry.sequence_length == maximum_length
-            })
-            .all(|entry| entry.base.accuracy > entry.no_state.accuracy);
-        let state_causality_passed = first
-            .entries
-            .iter()
-            .filter(|entry| entry.family.requires_history())
-            .all(|entry| entry.base.accuracy > entry.reset_base.as_ref().unwrap().accuracy);
-        let local_control_passed = first
-            .entries
-            .iter()
-            .filter(|entry| entry.family == Sprint105Q1FamilyV1::StateIrrelevantControl)
-            .all(|entry| entry.base.accuracy >= entry.no_state.accuracy);
-        let footprint_constant = first.footprints.iter().all(|footprint| {
-            footprint.elements == first.footprints[0].elements
-                && footprint.bytes == first.footprints[0].bytes
-        });
+        let status = q1_structural_evaluation_authority_v1::evaluate_v1_qualification(&first, true)
+            .unwrap()
+            .structural_status();
         println!(
             "S105_Q1_GATE state_utility_max_length={} state_causality={} local_control={} footprint_constant={} numerical_finite={} determinism=true elapsed_ms={}",
-            state_utility_passed,
-            state_causality_passed,
-            local_control_passed,
-            footprint_constant,
-            first
-                .entries
-                .iter()
-                .all(|entry| entry.base.finite && entry.no_state.finite),
+            status
+                .gate_passed(Q1StructuralGateV1::StateUtilityAtMaximumLength)
+                .unwrap(),
+            status
+                .gate_passed(Q1StructuralGateV1::StateCausality)
+                .unwrap(),
+            status
+                .gate_passed(Q1StructuralGateV1::LocalControl)
+                .unwrap(),
+            status
+                .gate_passed(Q1StructuralGateV1::PersistentStateFootprint)
+                .unwrap(),
+            status
+                .gate_passed(Q1StructuralGateV1::NumericalStability)
+                .unwrap(),
             started.elapsed().as_millis(),
         );
     }
@@ -16930,10 +28448,14 @@ mod tests {
         mode_equivalent: bool,
     }
 
-    #[derive(Clone, Debug, PartialEq)]
+    #[derive(Debug, PartialEq)]
     struct Sprint105V2P1Qualification {
         entries: Vec<Sprint105V2P1Entry>,
-        footprints: Vec<Sprint105V2P1Footprint>,
+        footprints: Vec<Q1QualificationFootprintEvidenceV1<Sprint105V2P1Footprint>>,
+        actual_application_set: ValidatedActualV2Q1ApplicationSetV1,
+        actual_policy: DelayedRecallEvidencePolicyV2,
+        gate_policy: Q1StructuralGatePolicyV1,
+        owner_binding: Q1QualificationOwnerBindingV1,
     }
 
     fn sprint105_v2_initial_model_v1() -> Result<M3MicroV2Candidate, M3MicroError> {
@@ -16964,7 +28486,7 @@ mod tests {
     fn sprint105_v2_average_loss_and_gradients_v1(
         model: &M3MicroV2Candidate,
         examples: &[EvidenceExampleV2],
-        state_enabled: bool,
+        resolved_mode: V2Q1ResolvedActualStateModeV1,
     ) -> Result<(f32, Vec<f32>), M3MicroError> {
         if examples.is_empty() {
             return Err(M3MicroError::InvalidShape);
@@ -16977,7 +28499,7 @@ mod tests {
                 &example.sequence,
                 &example.target,
                 false,
-                state_enabled,
+                resolved_mode.state_enabled(),
             )?;
             loss += result.loss / examples.len() as f32;
             for (mean, gradient) in gradients.iter_mut().zip(result.parameter_gradients) {
@@ -16990,21 +28512,22 @@ mod tests {
     fn sprint105_v2_train_balanced_v1(
         initial: &M3MicroV2Candidate,
         development: &[EvidenceExampleV2],
-        state_enabled: bool,
+        resolved_mode: V2Q1ResolvedActualStateModeV1,
+        policy: &DelayedRecallEvidencePolicyV2,
     ) -> Result<(M3MicroV2Candidate, f32, f32, String), M3MicroError> {
         let mut model = initial.clone();
         let mut optimizer_config = M3MicroOptimizerConfig::default();
         optimizer_config.learning_rate = V2_EVIDENCE_LEARNING_RATE;
         let mut optimizer = M3MicroOptimizerState::new(model.parameter_count(), optimizer_config)?;
         let (initial_loss, _) =
-            sprint105_v2_average_loss_and_gradients_v1(&model, development, state_enabled)?;
-        for _ in 0..delayed_recall_evidence_policy_v2().fixed_training_budget {
+            sprint105_v2_average_loss_and_gradients_v1(&model, development, resolved_mode)?;
+        for _ in 0..policy.fixed_training_budget {
             let (_, gradients) =
-                sprint105_v2_average_loss_and_gradients_v1(&model, development, state_enabled)?;
+                sprint105_v2_average_loss_and_gradients_v1(&model, development, resolved_mode)?;
             model.apply_gradients(&mut optimizer, &gradients)?;
         }
         let (final_loss, _) =
-            sprint105_v2_average_loss_and_gradients_v1(&model, development, state_enabled)?;
+            sprint105_v2_average_loss_and_gradients_v1(&model, development, resolved_mode)?;
         Ok((model, initial_loss, final_loss, optimizer.digest()))
     }
 
@@ -17012,7 +28535,7 @@ mod tests {
         model: &M3MicroV2Candidate,
         examples: &[Sprint105Q1ExampleV1],
         reset: bool,
-        state_enabled: bool,
+        resolved_mode: V2Q1ResolvedActualStateModeV1,
     ) -> Result<Sprint105V2P1Metrics, M3MicroError> {
         if examples.is_empty()
             || (reset && examples.iter().any(|example| example.reset_after.is_none()))
@@ -17036,7 +28559,7 @@ mod tests {
                     &example.evidence.sequence[..reset_after],
                     &mut state,
                     false,
-                    state_enabled,
+                    resolved_mode.state_enabled(),
                     &mut counters,
                 )?;
                 state = model.zero_state()?;
@@ -17045,7 +28568,7 @@ mod tests {
                         &example.evidence.sequence[reset_after..],
                         &mut state,
                         false,
-                        state_enabled,
+                        resolved_mode.state_enabled(),
                         &mut counters,
                     )?
                     .raw_output;
@@ -17059,7 +28582,7 @@ mod tests {
                         &example.evidence.sequence,
                         &mut state,
                         false,
-                        state_enabled,
+                        resolved_mode.state_enabled(),
                         &mut counters,
                     )?
                     .raw_output;
@@ -17249,6 +28772,12 @@ mod tests {
 
     #[test]
     fn m3_micro_sprint105_v2_p1_gradient_and_training_sanity() {
+        let expected_plan = sprint105_v2_q1_state_mode_plan_v1();
+        let policy = delayed_recall_evidence_policy_v2();
+        let qualification_unit = V2Q1QualificationUnitIdentityV1 {
+            family: Sprint105Q1FamilyV1::DelayedCue,
+            sequence_length: 8,
+        };
         let model = sprint105_v2_initial_model_v1().unwrap();
         let development = sprint105_q1_examples_v1(
             Sprint105Q1FamilyV1::DelayedCue,
@@ -17271,29 +28800,72 @@ mod tests {
         ] {
             sprint105_v2_gradient_check_v1(&model, parameter_index, sequence, target).unwrap();
         }
+        let (outcome, _) = sprint105_execute_actual_v2_q1_application_v1(
+            &expected_plan,
+            V2Q1ActualApplicationRequestV1 {
+                qualification_unit,
+                phase: V2Q1ExecutionPhaseV1::Training,
+                arm: V2Q1ComparisonArmV1::Base,
+            },
+            V2Q1ActualApplicationContextV1::Training {
+                initial: &model,
+                development: &development,
+                policy: &policy,
+            },
+        )
+        .unwrap();
         let (trained, initial_loss, final_loss, optimizer_digest) =
-            sprint105_v2_train_balanced_v1(&model, &evidence, true).unwrap();
+            sprint105_v2_q1_training_outcome_v1(outcome).unwrap();
         assert!(initial_loss.is_finite() && final_loss.is_finite());
         assert!(final_loss < initial_loss);
         assert_ne!(trained.parameter_digest(), model.parameter_digest());
         assert!(!optimizer_digest.is_empty());
         let initial_digest = model.parameter_digest();
-        let (_, base_initial, _, _) =
-            sprint105_v2_train_balanced_v1(&model, &evidence, true).unwrap();
+        let (base_outcome, _) = sprint105_execute_actual_v2_q1_application_v1(
+            &expected_plan,
+            V2Q1ActualApplicationRequestV1 {
+                qualification_unit,
+                phase: V2Q1ExecutionPhaseV1::Training,
+                arm: V2Q1ComparisonArmV1::Base,
+            },
+            V2Q1ActualApplicationContextV1::Training {
+                initial: &model,
+                development: &development,
+                policy: &policy,
+            },
+        )
+        .unwrap();
+        let (_, base_initial, _, _) = sprint105_v2_q1_training_outcome_v1(base_outcome).unwrap();
+        let (no_state_outcome, _) = sprint105_execute_actual_v2_q1_application_v1(
+            &expected_plan,
+            V2Q1ActualApplicationRequestV1 {
+                qualification_unit,
+                phase: V2Q1ExecutionPhaseV1::Training,
+                arm: V2Q1ComparisonArmV1::NoState,
+            },
+            V2Q1ActualApplicationContextV1::Training {
+                initial: &model,
+                development: &development,
+                policy: &policy,
+            },
+        )
+        .unwrap();
         let (_, no_state_initial, _, _) =
-            sprint105_v2_train_balanced_v1(&model, &evidence, false).unwrap();
+            sprint105_v2_q1_training_outcome_v1(no_state_outcome).unwrap();
         assert_eq!(model.parameter_digest(), initial_digest);
         assert!(base_initial.is_finite() && no_state_initial.is_finite());
     }
 
-    fn sprint105_v2_q1_freeze_audit_v1() -> Result<(), M3MicroError> {
+    fn sprint105_v2_q1_freeze_audit_v1(
+        policy: &DelayedRecallEvidencePolicyV2,
+    ) -> Result<(), M3MicroError> {
         let model = sprint105_v2_initial_model_v1()?;
         for family in Sprint105Q1FamilyV1::ORDERED {
-            for length in delayed_recall_evidence_policy_v2().sequence_lengths {
+            for length in policy.sequence_lengths {
                 let development =
                     sprint105_q1_examples_v1(family, model.config.input_dim, length, false);
                 let frozen = sprint105_q1_examples_v1(family, model.config.input_dim, length, true);
-                sprint105_q1_fixture_integrity_v1(family, &development, &frozen);
+                sprint105_q1_fixture_integrity_v1(family, &development, &frozen, policy);
                 if development
                     .iter()
                     .map(|example| &example.identity)
@@ -17315,46 +28887,116 @@ mod tests {
     }
 
     fn sprint105_v2_p1_frozen_q1_once_v1() -> Result<Sprint105V2P1Qualification, M3MicroError> {
-        sprint105_v2_q1_freeze_audit_v1()?;
         let policy = delayed_recall_evidence_policy_v2();
+        let gate_policy = sprint105_v2_q1_structural_gate_policy_v1();
+        sprint105_v2_q1_freeze_audit_v1(&policy)?;
+        let expected_plan = sprint105_v2_q1_state_mode_plan_v1();
+        sprint105_v2_q1_validate_state_mode_plan_v1(&expected_plan)?;
+        let expected_units = sprint105_v2_q1_expected_qualification_units_from_policy_v1(&policy);
         let mut entries = Vec::new();
         let mut footprints = Vec::new();
+        let mut actual_records = Vec::new();
         for family in Sprint105Q1FamilyV1::ORDERED {
             for length in policy.sequence_lengths {
+                let qualification_unit = V2Q1QualificationUnitIdentityV1 {
+                    family,
+                    sequence_length: length,
+                };
                 let initial = sprint105_v2_initial_model_v1()?;
                 let development =
                     sprint105_q1_examples_v1(family, initial.config.input_dim, length, false);
                 let frozen =
                     sprint105_q1_examples_v1(family, initial.config.input_dim, length, true);
-                sprint105_q1_fixture_integrity_v1(family, &development, &frozen);
-                let development_evidence = development
-                    .iter()
-                    .map(|example| example.evidence.clone())
-                    .collect::<Vec<_>>();
+                sprint105_q1_fixture_integrity_v1(family, &development, &frozen, &policy);
+                let (base_training_outcome, base_training_record) =
+                    sprint105_execute_actual_v2_q1_application_v1(
+                        &expected_plan,
+                        V2Q1ActualApplicationRequestV1 {
+                            qualification_unit,
+                            phase: V2Q1ExecutionPhaseV1::Training,
+                            arm: V2Q1ComparisonArmV1::Base,
+                        },
+                        V2Q1ActualApplicationContextV1::Training {
+                            initial: &initial,
+                            development: &development,
+                            policy: &policy,
+                        },
+                    )?;
+                actual_records.push(base_training_record);
                 let (base_model, initial_loss, final_loss, base_optimizer_digest) =
-                    sprint105_v2_train_balanced_v1(&initial, &development_evidence, true)?;
+                    sprint105_v2_q1_training_outcome_v1(base_training_outcome)?;
+                let (no_state_training_outcome, no_state_training_record) =
+                    sprint105_execute_actual_v2_q1_application_v1(
+                        &expected_plan,
+                        V2Q1ActualApplicationRequestV1 {
+                            qualification_unit,
+                            phase: V2Q1ExecutionPhaseV1::Training,
+                            arm: V2Q1ComparisonArmV1::NoState,
+                        },
+                        V2Q1ActualApplicationContextV1::Training {
+                            initial: &initial,
+                            development: &development,
+                            policy: &policy,
+                        },
+                    )?;
+                actual_records.push(no_state_training_record);
                 let (no_state_model, _, _, no_state_optimizer_digest) =
-                    sprint105_v2_train_balanced_v1(&initial, &development_evidence, false)?;
+                    sprint105_v2_q1_training_outcome_v1(no_state_training_outcome)?;
                 if base_optimizer_digest.is_empty() || no_state_optimizer_digest.is_empty() {
                     return Err(M3MicroError::CorruptArtifact);
                 }
-                let base = sprint105_v2_metrics_v1(&base_model, &frozen, false, true)?;
-                let no_state = sprint105_v2_metrics_v1(&no_state_model, &frozen, false, false)?;
-                let reset_base = family
-                    .requires_history()
-                    .then(|| sprint105_v2_metrics_v1(&base_model, &frozen, true, true))
-                    .transpose()?;
+                let (base_evaluation_outcome, base_evaluation_record) =
+                    sprint105_execute_actual_v2_q1_application_v1(
+                        &expected_plan,
+                        V2Q1ActualApplicationRequestV1 {
+                            qualification_unit,
+                            phase: V2Q1ExecutionPhaseV1::Evaluation,
+                            arm: V2Q1ComparisonArmV1::Base,
+                        },
+                        V2Q1ActualApplicationContextV1::Evaluation {
+                            model: &base_model,
+                            frozen: &frozen,
+                        },
+                    )?;
+                actual_records.push(base_evaluation_record);
+                let (base, reset_base) =
+                    sprint105_v2_q1_evaluation_outcome_v1(base_evaluation_outcome)?;
+                let (no_state_evaluation_outcome, no_state_evaluation_record) =
+                    sprint105_execute_actual_v2_q1_application_v1(
+                        &expected_plan,
+                        V2Q1ActualApplicationRequestV1 {
+                            qualification_unit,
+                            phase: V2Q1ExecutionPhaseV1::Evaluation,
+                            arm: V2Q1ComparisonArmV1::NoState,
+                        },
+                        V2Q1ActualApplicationContextV1::Evaluation {
+                            model: &no_state_model,
+                            frozen: &frozen,
+                        },
+                    )?;
+                actual_records.push(no_state_evaluation_record);
+                let (no_state, no_state_reset) =
+                    sprint105_v2_q1_evaluation_outcome_v1(no_state_evaluation_outcome)?;
+                if no_state_reset.is_some() {
+                    return Err(M3MicroError::CorruptArtifact);
+                }
                 let zero_state = initial.zero_state()?;
                 let (elements, _, _, finite) = sprint105_v2_state_magnitude_v1(&zero_state);
                 if !finite || zero_state.step_index != 0 {
                     return Err(M3MicroError::NonFiniteOutput);
                 }
-                footprints.push(Sprint105V2P1Footprint {
-                    sequence_length: length,
-                    elements,
-                    bytes: zero_state.byte_size(),
-                    blocks: zero_state.blocks.len(),
-                    step_index: zero_state.step_index,
+                footprints.push(Q1QualificationFootprintEvidenceV1 {
+                    key: Q1QualificationEvidenceKeyV1 {
+                        family: qualification_unit.family,
+                        sequence_length: qualification_unit.sequence_length,
+                    },
+                    footprint: Sprint105V2P1Footprint {
+                        sequence_length: length,
+                        elements,
+                        bytes: zero_state.byte_size(),
+                        blocks: zero_state.blocks.len(),
+                        step_index: zero_state.step_index,
+                    },
                 });
                 let mode_equivalent = sprint105_v2_cpu_modes_equivalent_v1(
                     &base_model,
@@ -17372,15 +29014,5241 @@ mod tests {
                 });
             }
         }
+        let actual_application_set = sprint105_validate_actual_v2_q1_application_set_v1(
+            &expected_plan,
+            &expected_units,
+            actual_records,
+        )?;
         Ok(Sprint105V2P1Qualification {
             entries,
             footprints,
+            actual_application_set,
+            owner_binding: sprint105_q1_qualification_owner_binding_v1(&policy, &gate_policy)?,
+            actual_policy: policy,
+            gate_policy,
         })
+    }
+
+    fn sprint105_ef1_r2_r2_signature_fixture_v1() -> (
+        ExpectedQ1EvidenceDomainV1,
+        Q1StructuralGatePolicyV1,
+        Q1StructuralGateSemanticSignatureV1,
+        Q1StructuralGateSemanticSignatureV1,
+    ) {
+        let actual_policy = delayed_recall_evidence_policy_v2();
+        let gate_policy = sprint105_v2_q1_structural_gate_policy_v1();
+        let domain =
+            sprint105_q1_expected_evidence_domain_v1(&actual_policy, &gate_policy).unwrap();
+        let state_utility = sprint105_q1_gate_semantic_signature_v1(
+            Q1StructuralGateV1::StateUtilityAtMaximumLength,
+            &domain,
+            &gate_policy,
+        );
+        let length_retention = sprint105_q1_gate_semantic_signature_v1(
+            Q1StructuralGateV1::LengthRetention,
+            &domain,
+            &gate_policy,
+        );
+        (domain, gate_policy, state_utility, length_retention)
+    }
+
+    fn sprint105_ef1_r2_r2_contract_with_identity_v1(
+        identity: Q1QualificationContractIdentityV6,
+    ) -> ValidatedQ1QualificationContractV6 {
+        ValidatedQ1QualificationContractV6 {
+            semantic_digest: sprint105_q1_contract_digest_v6(&identity),
+            identity,
+        }
+    }
+
+    fn sprint105_ef1_r2_r2_contract_with_active_registry_v1(
+        qualification: &Sprint105V2P1Qualification,
+        entries: &[ActiveQ1StructuralGateRegistryEntryV1],
+    ) -> Result<ValidatedQ1QualificationContractV6, M3MicroError> {
+        sprint105_q1_validate_active_gate_registry_entries_v1(entries)
+            .map_err(|_| M3MicroError::CorruptArtifact)?;
+        sprint105_q1_contract_v6(qualification)
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_state_utility_call_graph_contract() {
+        let (domain, policy, state_utility, _) = sprint105_ef1_r2_r2_signature_fixture_v1();
+        assert_eq!(state_utility.applicable_keys, domain.maximum_history_keys);
+        assert_eq!(
+            state_utility.metric_owner,
+            Q1GateMetricOwnerV1::DirectionAccuracy
+        );
+        assert_eq!(
+            state_utility.left_operand,
+            Q1GateOperandOwnerV1::BaseAccuracy
+        );
+        assert_eq!(
+            state_utility.right_operand,
+            Q1GateOperandOwnerV1::NoStateAccuracy
+        );
+        assert_eq!(state_utility.comparison, policy.state_utility_comparison);
+        assert_eq!(state_utility.aggregation, policy.aggregate_policy);
+        assert_eq!(
+            state_utility.missing_row_policy,
+            policy.missing_evidence_policy
+        );
+        assert_eq!(
+            state_utility.missing_field_policy,
+            policy.missing_evidence_policy
+        );
+        assert_eq!(
+            state_utility.invalid_value_policy,
+            Q1GateInvalidValuePolicyV1::FailClosedNonFiniteOrMissing
+        );
+        assert_eq!(
+            state_utility.applicability,
+            Q1GateApplicabilityV1::RequiredExpectedTypedSubset
+        );
+        assert_eq!(
+            state_utility.structural_precedence,
+            policy.confidence_precedence
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_length_retention_call_graph_contract() {
+        let (domain, policy, _, length_retention) = sprint105_ef1_r2_r2_signature_fixture_v1();
+        assert_eq!(
+            length_retention.applicable_keys,
+            domain.maximum_history_keys
+        );
+        assert_eq!(
+            length_retention.metric_owner,
+            Q1GateMetricOwnerV1::DirectionAccuracy
+        );
+        assert_eq!(
+            length_retention.left_operand,
+            Q1GateOperandOwnerV1::BaseAccuracy
+        );
+        assert_eq!(
+            length_retention.right_operand,
+            Q1GateOperandOwnerV1::NoStateAccuracy
+        );
+        assert_eq!(
+            length_retention.comparison,
+            Q1GateComparisonSemanticsV1::StrictGreater
+        );
+        assert_eq!(length_retention.aggregation, policy.aggregate_policy);
+        assert_eq!(
+            length_retention.missing_row_policy,
+            policy.missing_evidence_policy
+        );
+        assert_eq!(
+            length_retention.missing_field_policy,
+            policy.missing_evidence_policy
+        );
+        assert_eq!(
+            length_retention.invalid_value_policy,
+            Q1GateInvalidValuePolicyV1::FailClosedNonFiniteOrMissing
+        );
+        assert_eq!(
+            length_retention.applicability,
+            Q1GateApplicabilityV1::RequiredExpectedTypedSubset
+        );
+        assert_eq!(
+            length_retention.structural_precedence,
+            policy.confidence_precedence
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_duplicate_semantic_signature_is_exact() {
+        let (_, _, state_utility, length_retention) = sprint105_ef1_r2_r2_signature_fixture_v1();
+        assert_eq!(state_utility, length_retention);
+        assert_eq!(
+            sprint105_q1_gate_semantic_signature_digest_v1(&state_utility),
+            sprint105_q1_gate_semantic_signature_digest_v1(&length_retention)
+        );
+        assert_eq!(
+            sprint105_q1_independent_length_retention_consumer_count_v1(),
+            0
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_non_duplicate_sabotage_group_fails_closed() {
+        let (_, _, state_utility, length_retention) = sprint105_ef1_r2_r2_signature_fixture_v1();
+        let mut sabotages = Vec::new();
+
+        let mut domain = length_retention.clone();
+        domain.applicable_keys.pop();
+        sabotages.push((
+            domain,
+            Q1DuplicateRetirementValidationErrorV1::ApplicableDomainMismatch,
+        ));
+
+        let mut operands = length_retention.clone();
+        std::mem::swap(&mut operands.left_operand, &mut operands.right_operand);
+        sabotages.push((
+            operands,
+            Q1DuplicateRetirementValidationErrorV1::OperandMismatch,
+        ));
+
+        let mut comparator = length_retention.clone();
+        comparator.comparison = Q1GateComparisonSemanticsV1::GreaterOrEqual;
+        sabotages.push((
+            comparator,
+            Q1DuplicateRetirementValidationErrorV1::ComparatorMismatch,
+        ));
+
+        let mut aggregation = length_retention.clone();
+        aggregation.aggregation = Q1GateAggregatePolicyV1::AnyApplicable;
+        sabotages.push((
+            aggregation,
+            Q1DuplicateRetirementValidationErrorV1::AggregationMismatch,
+        ));
+
+        let mut missing = length_retention.clone();
+        missing.missing_row_policy = Q1MissingEvidencePolicyV1::VacuousPass;
+        missing.missing_field_policy = Q1MissingEvidencePolicyV1::VacuousPass;
+        sabotages.push((
+            missing,
+            Q1DuplicateRetirementValidationErrorV1::MissingPolicyMismatch,
+        ));
+
+        let mut applicability = length_retention.clone();
+        applicability.applicability = Q1GateApplicabilityV1::RequiredGlobalObservation;
+        sabotages.push((
+            applicability,
+            Q1DuplicateRetirementValidationErrorV1::ApplicabilityMismatch,
+        ));
+
+        let mut precedence = length_retention;
+        precedence.structural_precedence = Q1ConfidencePrecedenceV1::ConfidenceBeforeStructural;
+        sabotages.push((
+            precedence,
+            Q1DuplicateRetirementValidationErrorV1::PrecedenceMismatch,
+        ));
+
+        for (sabotage, expected) in sabotages {
+            assert_eq!(
+                sprint105_q1_validate_duplicate_retirement_v1(&state_utility, &sabotage, 0),
+                Err(expected)
+            );
+        }
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_typed_retirement_disposition_is_exact() {
+        let (_, _, state_utility, length_retention) = sprint105_ef1_r2_r2_signature_fixture_v1();
+        assert_eq!(
+            sprint105_q1_validate_duplicate_retirement_v1(
+                &state_utility,
+                &length_retention,
+                sprint105_q1_independent_length_retention_consumer_count_v1(),
+            ),
+            Ok(
+                Q1StructuralGateDispositionV1::RetiredDuplicateSemanticAlias {
+                    canonical_gate: Q1StructuralGateV1::StateUtilityAtMaximumLength,
+                    predecessor_contract: Q1ContractVersionV1::V5,
+                }
+            )
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_active_registry_semantics_are_unique() {
+        let (domain, policy, _, _) = sprint105_ef1_r2_r2_signature_fixture_v1();
+        let registry = sprint105_q1_active_gate_registry_v1(&domain, &policy).unwrap();
+        sprint105_q1_validate_active_gate_registry_entries_v1(&registry.entries).unwrap();
+        assert_eq!(registry.entries.len(), Q1StructuralGateV1::ORDERED.len());
+        assert_eq!(
+            registry
+                .entries
+                .iter()
+                .map(|entry| entry.gate)
+                .collect::<Vec<_>>(),
+            Q1StructuralGateV1::ORDERED
+        );
+        assert!(
+            registry
+                .entries
+                .iter()
+                .all(|entry| { entry.disposition == Q1StructuralGateDispositionV1::Active })
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_active_duplicate_alias_blocks_v6_construction() {
+        let qualification = sprint105_v2_p1_frozen_q1_once_v1().unwrap();
+        let domain = sprint105_q1_expected_evidence_domain_v1(
+            &qualification.actual_policy,
+            &qualification.gate_policy,
+        )
+        .unwrap();
+        let state_utility = sprint105_q1_gate_semantic_signature_v1(
+            Q1StructuralGateV1::StateUtilityAtMaximumLength,
+            &domain,
+            &qualification.gate_policy,
+        );
+        let mut entries = sprint105_q1_active_gate_registry_v1(&domain, &qualification.gate_policy)
+            .unwrap()
+            .entries;
+        entries.insert(
+            1,
+            ActiveQ1StructuralGateRegistryEntryV1 {
+                gate: Q1StructuralGateV1::LengthRetention,
+                disposition: Q1StructuralGateDispositionV1::Active,
+                semantic_signature: state_utility,
+            },
+        );
+        assert_eq!(
+            sprint105_q1_validate_active_gate_registry_entries_v1(&entries),
+            Err(ActiveQ1StructuralGateRegistryErrorV1::DuplicateSemanticSignature)
+        );
+        assert_eq!(
+            sprint105_ef1_r2_r2_contract_with_active_registry_v1(&qualification, &entries),
+            Err(M3MicroError::CorruptArtifact)
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_retired_gate_is_absent_from_current_registry() {
+        let (domain, policy, _, _) = sprint105_ef1_r2_r2_signature_fixture_v1();
+        let registry = sprint105_q1_active_gate_registry_v1(&domain, &policy).unwrap();
+        assert!(
+            !registry
+                .entries
+                .iter()
+                .any(|entry| entry.gate == Q1StructuralGateV1::LengthRetention)
+        );
+        assert!(!Q1StructuralGateV1::ORDERED.contains(&Q1StructuralGateV1::LengthRetention));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_surviving_canonical_gate_is_exactly_once() {
+        let (domain, policy, _, _) = sprint105_ef1_r2_r2_signature_fixture_v1();
+        let registry = sprint105_q1_active_gate_registry_v1(&domain, &policy).unwrap();
+        assert_eq!(
+            registry
+                .entries
+                .iter()
+                .filter(|entry| { entry.gate == Q1StructuralGateV1::StateUtilityAtMaximumLength })
+                .count(),
+            1
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_current_gate_policy_field_inventory() {
+        let policy = sprint105_v2_q1_structural_gate_policy_v1();
+        let fields = sprint105_q1_structural_gate_policy_fields_v1(&policy);
+        sprint105_q1_validate_structural_gate_policy_fields_v1(&fields).unwrap();
+        assert_eq!(fields.len(), Q1StructuralGatePolicyFieldV1::ORDERED.len());
+        assert_eq!(
+            fields.len(),
+            HistoricalQ1V5GatePolicyFieldV1::ORDERED
+                .len()
+                .checked_sub(1)
+                .unwrap()
+        );
+        assert!(
+            fields
+                .iter()
+                .all(|field| field.field.as_str() != "length_retention_comparison")
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_current_mutation_registry_is_complete() {
+        let policy = sprint105_v2_q1_structural_gate_policy_v1();
+        let owner = sprint105_q1_structural_gate_policy_owner_projection_v1(&policy).unwrap();
+        let mutations = sprint105_q1_structural_gate_policy_mutations_v1(policy);
+        let registered = mutations.len();
+        let mut executed = 0usize;
+        let mut detected = 0usize;
+        let mut seen = BTreeSet::new();
+        for mutation in mutations {
+            executed = executed.checked_add(1).unwrap();
+            seen.insert(mutation.field);
+            let mutated =
+                sprint105_q1_structural_gate_policy_owner_projection_v1(&mutation.policy).unwrap();
+            assert_eq!(
+                owner
+                    .fields
+                    .iter()
+                    .zip(&mutated.fields)
+                    .filter(|(left, right)| left != right)
+                    .count(),
+                1
+            );
+            detected = detected
+                .checked_add(usize::from(
+                    mutated.semantic_digest != owner.semantic_digest,
+                ))
+                .unwrap();
+        }
+        assert_eq!(registered, Q1StructuralGatePolicyFieldV1::ORDERED.len());
+        assert_eq!(executed, registered);
+        assert_eq!(detected, executed);
+        assert_eq!(seen.len(), registered);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_structural_matrix_has_no_duplicate_decision() {
+        let actual_policy = delayed_recall_evidence_policy_v2();
+        let gate_policy = sprint105_v2_q1_structural_gate_policy_v1();
+        let domain =
+            sprint105_q1_expected_evidence_domain_v1(&actual_policy, &gate_policy).unwrap();
+        let mut raw = sprint105_ef1_r2_synthetic_gate_evidence_v1();
+        let failed_key = domain.maximum_history_keys[0];
+        let failed = raw
+            .rows
+            .iter_mut()
+            .find(|row| row.key() == failed_key)
+            .unwrap();
+        failed.base_accuracy = Some(0.1);
+        failed.no_state_accuracy = Some(0.9);
+        let validated =
+            sprint105_q1_validate_raw_gate_evidence_v1(raw, &actual_policy, &gate_policy).unwrap();
+        let validated =
+            q1_structural_evaluation_authority_v1::diagnostic_fixture_from_validated(validated);
+        let evaluation =
+            q1_structural_evaluation_authority_v1::evaluate_diagnostic_gate_fixture(&validated)
+                .unwrap();
+        let status = evaluation.structural_status();
+        assert_eq!(
+            status.gate_passed(Q1StructuralGateV1::StateUtilityAtMaximumLength),
+            Some(false)
+        );
+        assert_eq!(status.gate_ids(), Q1StructuralGateV1::ORDERED);
+        assert!(
+            !status
+                .gate_ids()
+                .contains(&Q1StructuralGateV1::LengthRetention)
+        );
+        assert_eq!(
+            q1_structural_evaluation_authority_v1::derive_diagnostic_qualification_status(
+                &evaluation,
+                Sprint105ConfidenceOverlayV1::Clear,
+                true,
+            ),
+            q1_structural_evaluation_authority_v1::DiagnosticQ1QualificationStatusV1::StructuralFailure
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_missing_disposition_fails_lineage() {
+        let qualification = sprint105_v2_p1_frozen_q1_once_v1().unwrap();
+        let mut identity = sprint105_q1_contract_identity_v6(&qualification).unwrap();
+        identity.retirement_disposition = None;
+        let contract = sprint105_ef1_r2_r2_contract_with_identity_v1(identity);
+        assert_eq!(
+            sprint105_q1_validate_contract_v6(&contract, &qualification),
+            Err(Q1V6LineageValidationErrorV1::RetirementDisposition)
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_wrong_canonical_replacement_fails_lineage() {
+        let qualification = sprint105_v2_p1_frozen_q1_once_v1().unwrap();
+        let mut identity = sprint105_q1_contract_identity_v6(&qualification).unwrap();
+        identity.canonical_gate = Q1StructuralGateV1::LocalControl;
+        let contract = sprint105_ef1_r2_r2_contract_with_identity_v1(identity);
+        assert_eq!(
+            sprint105_q1_validate_contract_v6(&contract, &qualification),
+            Err(Q1V6LineageValidationErrorV1::CanonicalReplacement)
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_wrong_predecessor_fails_lineage() {
+        let qualification = sprint105_v2_p1_frozen_q1_once_v1().unwrap();
+        let original = sprint105_q1_contract_identity_v6(&qualification).unwrap();
+
+        let mut wrong_version = original.clone();
+        wrong_version.predecessor_version = Q1ContractVersionV1::V4;
+        let wrong_version = sprint105_ef1_r2_r2_contract_with_identity_v1(wrong_version);
+        assert_eq!(
+            sprint105_q1_validate_contract_v6(&wrong_version, &qualification),
+            Err(Q1V6LineageValidationErrorV1::Predecessor)
+        );
+
+        let mut wrong_disposition = original;
+        wrong_disposition.predecessor_disposition = Q1PredecessorDispositionV1::Current;
+        let wrong_disposition = sprint105_ef1_r2_r2_contract_with_identity_v1(wrong_disposition);
+        assert_eq!(
+            sprint105_q1_validate_contract_v6(&wrong_disposition, &qualification),
+            Err(Q1V6LineageValidationErrorV1::PredecessorDisposition)
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_current_v6_identity_is_deterministic() {
+        let qualification = sprint105_v2_p1_frozen_q1_once_v1().unwrap();
+        let first = sprint105_q1_contract_v6(&qualification).unwrap();
+        let second = sprint105_q1_contract_v6(&qualification).unwrap();
+        assert_eq!(first, second);
+        assert_eq!(first.identity.version, Q1ContractVersionV1::V6);
+        println!(
+            "S105_EF1_R2_R2_Q1_CONTRACT_V6_DIGEST={}",
+            first.semantic_digest
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_v6_lineage_self_validation() {
+        let qualification = sprint105_v2_p1_frozen_q1_once_v1().unwrap();
+        let contract = sprint105_q1_contract_v6(&qualification).unwrap();
+        sprint105_q1_validate_contract_v6(&contract, &qualification).unwrap();
+        assert_eq!(
+            contract.identity.predecessor_digest,
+            SPRINT105_Q1_CONTRACT_GOLDEN_DIGEST_V5
+        );
+        assert_eq!(
+            contract.identity.predecessor_disposition,
+            Q1PredecessorDispositionV1::Superseded
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_v6_mutation_sensitivity_group() {
+        let qualification = sprint105_v2_p1_frozen_q1_once_v1().unwrap();
+        let contract = sprint105_q1_contract_v6(&qualification).unwrap();
+        let mutations = sprint105_q1_v6_mutations_v1(&contract.identity);
+        let registered = mutations.len();
+        let mut executed = 0usize;
+        let mut detected = 0usize;
+        let mut seen = BTreeSet::new();
+        for mutation in mutations {
+            executed = executed.checked_add(1).unwrap();
+            seen.insert(mutation.field);
+            detected = detected
+                .checked_add(usize::from(
+                    sprint105_q1_contract_digest_v6(&mutation.identity) != contract.semantic_digest,
+                ))
+                .unwrap();
+        }
+        assert_eq!(registered, Q1V6MutationFieldV1::ORDERED.len());
+        assert_eq!(executed, registered);
+        assert_eq!(detected, executed);
+        assert_eq!(seen.len(), registered);
+    }
+
+    fn sprint105_ef1_r2_r2_r1_qualification_and_evidence_v1() -> (
+        Sprint105V2P1Qualification,
+        ValidatedQ1QualificationEvidenceTableV1,
+    ) {
+        let qualification = sprint105_v2_p1_frozen_q1_once_v1().unwrap();
+        let evidence = sprint105_v2_validated_gate_evidence_v1(&qualification, true).unwrap();
+        (qualification, evidence)
+    }
+
+    fn sprint105_ef1_r2_r2_r1_assert_corruption_rejected_v1(
+        probe: current_q1_contract_v6_authority::Q1V6AuthorityCorruptionProbeV1,
+    ) {
+        let qualification = sprint105_v2_p1_frozen_q1_once_v1().unwrap();
+        let attempt = sprint105_v2_atomic_authority_wiring_attempt_v1(&qualification, Some(probe));
+        assert_eq!(attempt.authority_mint_count, 0);
+        assert_eq!(attempt.gate_matrix_mint_count, 0);
+        assert_eq!(attempt.verdict_mint_count, 0);
+        assert_eq!(attempt.evaluation_capsule_mint_count, 0);
+        assert_eq!(attempt.result_mint_count, 0);
+        assert_eq!(attempt.result, Err(M3MicroError::CorruptArtifact));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_v6_consumer_scope_is_v2_only() {
+        let (qualification, evidence) = sprint105_ef1_r2_r2_r1_qualification_and_evidence_v1();
+        let contract = sprint105_q1_contract_v6(&qualification).unwrap();
+        assert!(!contract.identity.initializer_owner_identity.is_empty());
+        assert!(!contract.identity.initial_state_identity.is_empty());
+        assert!(!contract.identity.state_mode_owner_identity.is_empty());
+        assert!(!contract.identity.behavioral_witness_identity.is_empty());
+        assert_eq!(
+            contract.identity.actual_application_set_identity,
+            qualification
+                .actual_application_set
+                .summary()
+                .semantic_digest()
+        );
+        let authority =
+            current_q1_contract_v6_authority::build_and_validate_current_q1_contract_v6(
+                &qualification,
+                &evidence,
+            )
+            .unwrap();
+        authority.validate_evidence_owner(&evidence).unwrap();
+        let source = include_str!("m3_micro.rs");
+        let v1_wrapper = source
+            .split_once("pub(super) fn evaluate_v1_qualification(")
+            .unwrap()
+            .1
+            .split_once("pub(super) fn derive_v1_qualification_status(")
+            .unwrap()
+            .0;
+        assert!(!v1_wrapper.contains("ValidatedCurrentQ1ContractV6"));
+        assert!(!v1_wrapper.contains("build_and_validate_current_q1_contract_v6"));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_canonical_v6_authority_positive() {
+        let (qualification, evidence) = sprint105_ef1_r2_r2_r1_qualification_and_evidence_v1();
+        let authority =
+            current_q1_contract_v6_authority::build_and_validate_current_q1_contract_v6(
+                &qualification,
+                &evidence,
+            )
+            .unwrap();
+        let summary = authority.summary();
+        assert_eq!(summary.version(), Q1ContractVersionV1::V6);
+        assert_eq!(
+            summary.semantic_digest(),
+            SPRINT105_Q1_CONTRACT_GOLDEN_DIGEST_V6
+        );
+        assert_eq!(authority.predecessor_version(), Q1ContractVersionV1::V5);
+        assert_eq!(
+            authority.predecessor_digest(),
+            SPRINT105_Q1_CONTRACT_GOLDEN_DIGEST_V5
+        );
+        assert_eq!(
+            authority.retired_gate(),
+            Q1StructuralGateV1::LengthRetention
+        );
+        assert_eq!(
+            authority.canonical_gate(),
+            Q1StructuralGateV1::StateUtilityAtMaximumLength
+        );
+        assert_eq!(
+            authority.retirement_reason(),
+            Q1GateRetirementReasonV1::DuplicateSemanticAlias
+        );
+        assert_eq!(
+            authority.retirement_disposition(),
+            Some(
+                Q1StructuralGateDispositionV1::RetiredDuplicateSemanticAlias {
+                    canonical_gate: Q1StructuralGateV1::StateUtilityAtMaximumLength,
+                    predecessor_contract: Q1ContractVersionV1::V5,
+                }
+            )
+        );
+        assert_eq!(
+            summary.active_gate_registry_identity(),
+            authority.active_gate_registry().semantic_digest
+        );
+        assert_eq!(
+            summary.active_gate_policy_identity(),
+            authority.active_gate_policy_owner().semantic_digest
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_actual_v2_v6_authorized_wiring_positive() {
+        let qualification = sprint105_v2_p1_frozen_q1_once_v1().unwrap();
+        let result = sprint105_v2_authorized_qualification_result_v1(
+            &qualification,
+            true,
+            Sprint105ConfidenceOverlayV1::NotEstablished,
+            true,
+        )
+        .unwrap();
+        let status = result.authorized_matrix().structural_status();
+        assert_eq!(status.decision_count(), Q1StructuralGateV1::ORDERED.len());
+        assert_eq!(
+            result.authorized_matrix().q1_contract(),
+            result.q1_contract()
+        );
+        assert_eq!(
+            result.status(),
+            q1_structural_evaluation_authority_v1::V2QualificationStatusViewV1::CoreNotViable
+        );
+        assert!(status.decisions_all_owned_by(result.q1_contract().active_gate_policy_identity()));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_v2_result_binds_v6_version_and_digest() {
+        let qualification = sprint105_v2_p1_frozen_q1_once_v1().unwrap();
+        let result = sprint105_v2_authorized_qualification_result_v1(
+            &qualification,
+            true,
+            Sprint105ConfidenceOverlayV1::Clear,
+            true,
+        )
+        .unwrap();
+        assert_eq!(result.q1_contract().version(), Q1ContractVersionV1::V6);
+        assert_eq!(
+            result.q1_contract().semantic_digest(),
+            SPRINT105_Q1_CONTRACT_GOLDEN_DIGEST_V6
+        );
+        assert_eq!(
+            result.q1_contract(),
+            result.authorized_matrix().q1_contract()
+        );
+    }
+
+    fn sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1() -> (&'static str, String) {
+        let source = include_str!("m3_micro.rs");
+        let begin = ["// SPRINT105_Q1_EVALUATION_AUTHORITY_V1", "_BEGIN"].concat();
+        let end = ["// SPRINT105_Q1_EVALUATION_AUTHORITY_V1", "_END"].concat();
+        let (prefix, tail) = source.split_once(&begin).unwrap();
+        let (module, suffix) = tail.split_once(&end).unwrap();
+        (module, [prefix, suffix].concat())
+    }
+
+    fn sprint105_ef1_r2_r2_r1_r1_wrapper_signature_v1<'a>(module: &'a str, name: &str) -> &'a str {
+        let header = ["pub(super) fn ", name, "("].concat();
+        module
+            .split_once(&header)
+            .unwrap()
+            .1
+            .split_once('{')
+            .unwrap()
+            .0
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r1_evaluation_child_module_privacy_exact() {
+        let source = include_str!("m3_micro.rs");
+        let begin = ["// SPRINT105_Q1_EVALUATION_AUTHORITY_V1", "_BEGIN"].concat();
+        let end = ["// SPRINT105_Q1_EVALUATION_AUTHORITY_V1", "_END"].concat();
+        assert_eq!(source.match_indices(&begin).count(), 1);
+        assert_eq!(source.match_indices(&end).count(), 1);
+        let (module, outside) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let private_declaration = ["mod q1_structural_evaluation_authority_v1", " {"].concat();
+        let public_declaration = ["pub mod q1_structural_evaluation_authority_v1", " {"].concat();
+        let reexport = ["pub(super) use q1_structural_evaluation_authority_v1", "::"].concat();
+        assert_eq!(module.match_indices(&private_declaration).count(), 1);
+        assert!(!module.contains(&public_declaration));
+        assert!(!outside.contains(&reexport));
+        for escape_surface in [
+            "pub(super) use ",
+            ": fn(",
+            "-> fn(",
+            "-> impl Fn",
+            "-> Box<dyn Fn",
+            "impl AsRef<",
+            "impl Borrow<",
+            "impl Deref for",
+        ] {
+            assert!(!module.contains(escape_surface));
+        }
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r1_low_level_evaluator_private_surface_guard() {
+        let (module, outside) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        for name in [
+            ["sprint105_q1_evaluate_", "structural_gates_with_owners_v1"].concat(),
+            ["sprint105_q1_evaluate_", "structural_gates_v1"].concat(),
+        ] {
+            let definition = ["fn ", &name, "("].concat();
+            let call = [&name, "("].concat();
+            let super_visible = ["pub(super) fn ", &name, "("].concat();
+            let crate_visible = ["pub(crate) fn ", &name, "("].concat();
+            assert_eq!(module.match_indices(&definition).count(), 1);
+            assert!(!module.contains(&super_visible));
+            assert!(!module.contains(&crate_visible));
+            assert_eq!(outside.match_indices(&call).count(), 0);
+        }
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r1_low_level_verdict_private_surface_guard() {
+        let (module, outside) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let name = ["sprint105_derive_", "qualification_verdict_v1"].concat();
+        let definition = ["fn ", &name, "("].concat();
+        let call = [&name, "("].concat();
+        let super_visible = ["pub(super) fn ", &name, "("].concat();
+        let crate_visible = ["pub(crate) fn ", &name, "("].concat();
+        assert_eq!(module.match_indices(&definition).count(), 1);
+        assert!(!module.contains(&super_visible));
+        assert!(!module.contains(&crate_visible));
+        assert_eq!(outside.match_indices(&call).count(), 0);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r1_v1_wrapper_type_boundary_positive() {
+        let (_, evidence) = sprint105_ef1_r2_r1_r1_v1_actual_fixture_v1();
+        let evaluation =
+            q1_structural_evaluation_authority_v1::evaluate_v1_qualification(&evidence, true)
+                .unwrap();
+        assert!(
+            evaluation
+                .structural_status()
+                .all_required_structural_gates_pass()
+        );
+        assert_eq!(
+            q1_structural_evaluation_authority_v1::derive_v1_qualification_status(
+                &evaluation,
+                Sprint105ConfidenceOverlayV1::Clear,
+                true,
+            ),
+            q1_structural_evaluation_authority_v1::V1QualificationStatusViewV1::ViableBaseline
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r1_v2_wrapper_v6_authority_positive() {
+        let qualification = sprint105_v2_p1_frozen_q1_once_v1().unwrap();
+        let input = q1_structural_evaluation_authority_v1::validate_v2_qualification_input(
+            &qualification,
+            true,
+        )
+        .unwrap();
+        let authority =
+            current_q1_contract_v6_authority::build_and_validate_current_q1_contract_v6(
+                &qualification,
+                input.evidence(),
+            )
+            .unwrap();
+        let matrix =
+            q1_structural_evaluation_authority_v1::evaluate_v2_qualification(&input, &authority)
+                .unwrap();
+        let evaluation = q1_structural_evaluation_authority_v1::finalize_v2_evaluation(
+            matrix,
+            Sprint105ConfidenceOverlayV1::NotEstablished,
+            true,
+        );
+        assert_eq!(
+            evaluation.status(),
+            q1_structural_evaluation_authority_v1::V2QualificationStatusViewV1::CoreNotViable
+        );
+        assert_eq!(
+            evaluation.q1_contract().semantic_digest(),
+            SPRINT105_Q1_CONTRACT_GOLDEN_DIGEST_V6
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r1_diagnostic_only_wrapper_positive() {
+        let actual_policy = delayed_recall_evidence_policy_v2();
+        let gate_policy = sprint105_v2_q1_structural_gate_policy_v1();
+        let validated = sprint105_q1_validate_raw_gate_evidence_v1(
+            sprint105_ef1_r2_synthetic_gate_evidence_v1(),
+            &actual_policy,
+            &gate_policy,
+        )
+        .unwrap();
+        let fixture =
+            q1_structural_evaluation_authority_v1::diagnostic_fixture_from_validated(validated);
+        let evaluation =
+            q1_structural_evaluation_authority_v1::evaluate_diagnostic_gate_fixture(&fixture)
+                .unwrap();
+        assert!(
+            evaluation
+                .structural_status()
+                .all_required_structural_gates_pass()
+        );
+        assert_eq!(
+            q1_structural_evaluation_authority_v1::derive_diagnostic_qualification_status(
+                &evaluation,
+                Sprint105ConfidenceOverlayV1::Clear,
+                true,
+            ),
+            q1_structural_evaluation_authority_v1::DiagnosticQ1QualificationStatusV1::ViableBaseline
+        );
+        let (module, _) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let diagnostic_type = module
+            .split_once("pub(super) struct DiagnosticQ1StructuralGateEvaluationV1")
+            .unwrap()
+            .1
+            .split_once("pub(super) enum DiagnosticQ1QualificationStatusV1")
+            .unwrap()
+            .0;
+        assert!(!diagnostic_type.contains("q1_contract"));
+        assert!(!diagnostic_type.contains("ValidatedCurrentQ1ContractV6"));
+        assert!(!diagnostic_type.contains("Actual"));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r1_v2_authorized_matrix_opacity() {
+        let (module, outside) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let name = "V6AuthorizedV2StructuralGateMatrixV1";
+        let constructor = [name, " {"].concat();
+        let private_inner = ["pub(super) struct ", name, " {\n            inner:"].concat();
+        assert_eq!(outside.match_indices(&constructor).count(), 0);
+        assert_eq!(module.match_indices(&private_inner).count(), 1);
+        assert!(!module.contains("pub(super) inner:"));
+        for forbidden in [
+            ["impl Default for ", name].concat(),
+            ["From<InternalStructuralGate", "MatrixV1> for ", name].concat(),
+            ["TryFrom<InternalStructuralGate", "MatrixV1> for ", name].concat(),
+            ["impl Deserialize for ", name].concat(),
+            ["fn into_inner", "("].concat(),
+            ["fn inner_mut", "("].concat(),
+        ] {
+            assert!(!module.contains(&forbidden));
+        }
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r1_v2_atomic_evaluation_opacity() {
+        let (module, outside) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let name = "V6AuthorizedV2EvaluationV1";
+        let constructor = [name, " {"].concat();
+        let private_inner = ["pub(super) struct ", name, " {\n            inner:"].concat();
+        assert_eq!(outside.match_indices(&constructor).count(), 0);
+        assert_eq!(module.match_indices(&private_inner).count(), 1);
+        assert!(!module.contains("pub(super) inner:"));
+        for forbidden in [
+            ["impl Default for ", name].concat(),
+            ["From<InternalQualification", "VerdictV1> for ", name].concat(),
+            ["TryFrom<InternalQualification", "VerdictV1> for ", name].concat(),
+            ["impl Deserialize for ", name].concat(),
+            ["fn into_inner", "("].concat(),
+            ["fn into_parts", "("].concat(),
+            ["fn inner_mut", "("].concat(),
+        ] {
+            assert!(!module.contains(&forbidden));
+        }
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r1_authority_free_v2_gate_path_inventory() {
+        let (module, outside) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let signature =
+            sprint105_ef1_r2_r2_r1_r1_wrapper_signature_v1(module, "evaluate_v2_qualification");
+        assert!(signature.contains("ValidatedV2Q1GateInputV1"));
+        assert!(signature.contains("ValidatedCurrentQ1ContractV6"));
+        assert!(!signature.contains("Option<"));
+        assert!(!signature.contains("ValidatedQ1QualificationEvidenceTableV1"));
+        let low_level = [
+            ["sprint105_q1_evaluate_", "structural_gates_v1"].concat(),
+            "(".into(),
+        ]
+        .concat();
+        assert_eq!(outside.match_indices(&low_level).count(), 0);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r1_authority_free_v2_matrix_path_inventory() {
+        let (_, outside) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let constructor = ["V6AuthorizedV2StructuralGateMatrixV1", " {"].concat();
+        assert_eq!(outside.match_indices(&constructor).count(), 0);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r1_authority_free_v2_verdict_path_inventory() {
+        let (module, outside) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let signature =
+            sprint105_ef1_r2_r2_r1_r1_wrapper_signature_v1(module, "finalize_v2_evaluation");
+        let raw_matrix_name = ["InternalStructuralGate", "MatrixV1"].concat();
+        let raw_verdict_name = ["InternalQualification", "VerdictV1"].concat();
+        assert!(signature.contains("V6AuthorizedV2StructuralGateMatrixV1"));
+        assert!(!signature.contains(&raw_matrix_name));
+        assert!(!signature.contains("DiagnosticQ1StructuralGateEvaluationV1"));
+        assert!(!signature.contains("V1Q1StructuralGateEvaluationV1"));
+        let result_signature =
+            sprint105_ef1_r2_r2_r1_r1_wrapper_signature_v1(module, "build_v2_qualification_result");
+        assert!(result_signature.contains("V6AuthorizedV2EvaluationV1"));
+        assert!(!result_signature.contains("V6AuthorizedV2StructuralGateMatrixV1"));
+        assert!(!result_signature.contains(&raw_matrix_name));
+        assert!(!result_signature.contains(&raw_verdict_name));
+        assert!(!result_signature.contains("Diagnostic"));
+        assert!(!result_signature.contains("V1Q1StructuralGateEvaluationV1"));
+        let standalone = ["V6AuthorizedV2Qualification", "VerdictV1"].concat();
+        assert_eq!(module.match_indices(&standalone).count(), 0);
+        assert_eq!(outside.match_indices(&standalone).count(), 0);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r1_generic_matrix_to_v2_rejection_guard() {
+        let source = include_str!("m3_micro.rs");
+        for conversion in ["From", "TryFrom"] {
+            let pattern = [
+                conversion,
+                "<InternalStructuralGate",
+                "MatrixV1> for V6AuthorizedV2StructuralGateMatrixV1",
+            ]
+            .concat();
+            assert_eq!(source.match_indices(&pattern).count(), 0);
+        }
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r1_diagnostic_matrix_to_v2_rejection_guard() {
+        let source = include_str!("m3_micro.rs");
+        for destination in [
+            "V6AuthorizedV2StructuralGateMatrixV1",
+            "V6AuthorizedV2EvaluationV1",
+            "Sprint105V2Q1QualificationResultV1",
+        ] {
+            for conversion in ["From", "TryFrom"] {
+                let pattern = [
+                    conversion,
+                    "<DiagnosticQ1StructuralGateEvaluationV1> for ",
+                    destination,
+                ]
+                .concat();
+                assert_eq!(source.match_indices(&pattern).count(), 0);
+            }
+        }
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r1_v1_matrix_to_v2_rejection_guard() {
+        let source = include_str!("m3_micro.rs");
+        for destination in [
+            "V6AuthorizedV2StructuralGateMatrixV1",
+            "V6AuthorizedV2EvaluationV1",
+        ] {
+            for conversion in ["From", "TryFrom"] {
+                let pattern = [
+                    conversion,
+                    "<V1Q1StructuralGateEvaluationV1> for ",
+                    destination,
+                ]
+                .concat();
+                assert_eq!(source.match_indices(&pattern).count(), 0);
+            }
+        }
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r1_cross_revision_conversion_guard() {
+        let source = include_str!("m3_micro.rs");
+        for source_type in [
+            "V1Q1StructuralGateEvaluationV1",
+            "ValidatedDiagnosticQ1GateFixtureV1",
+            "DiagnosticQ1StructuralGateEvaluationV1",
+            "ValidatedQ1QualificationEvidenceTableV1",
+        ] {
+            for conversion in ["From", "TryFrom"] {
+                let pattern = [
+                    conversion,
+                    "<",
+                    source_type,
+                    "> for ValidatedV2Q1GateInputV1",
+                ]
+                .concat();
+                assert_eq!(source.match_indices(&pattern).count(), 0);
+            }
+        }
+        for shortcut in ["into_v2", "as_v2", "with_v6", "attach_v6"] {
+            let pattern = ["fn ", shortcut, "("].concat();
+            assert_eq!(source.match_indices(&pattern).count(), 0);
+        }
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r1_r1_raw_matrix_private_boundary() {
+        let (module, outside) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let name = ["InternalStructuralGate", "MatrixV1"].concat();
+        let definition = ["struct ", &name, " {"].concat();
+        assert_eq!(module.match_indices(&definition).count(), 1);
+        assert_eq!(outside.match_indices(&name).count(), 0);
+        let fields = module
+            .split_once(&definition)
+            .unwrap()
+            .1
+            .split_once('}')
+            .unwrap()
+            .0;
+        assert!(!fields.contains("pub"));
+        for field in [
+            "state_utility_at_maximum_length",
+            "state_causality",
+            "local_control",
+            "numerical_stability",
+            "determinism",
+            "mode_equivalence",
+            "persistent_state_footprint",
+            "trainability_sanity",
+        ] {
+            assert_eq!(fields.match_indices(field).count(), 1);
+        }
+        for forbidden in [
+            ["impl Default for ", &name].concat(),
+            ["impl Deserialize for ", &name].concat(),
+            ["fn into_parts", "("].concat(),
+            ["fn inner_mut", "("].concat(),
+            ["impl DerefMut for ", &name].concat(),
+        ] {
+            assert!(!module.contains(&forbidden));
+        }
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r1_r1_raw_verdict_private_boundary() {
+        let (module, outside) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let name = ["InternalQualification", "VerdictV1"].concat();
+        let definition = ["enum ", &name, " {"].concat();
+        assert_eq!(module.match_indices(&definition).count(), 1);
+        assert_eq!(outside.match_indices(&name).count(), 0);
+        assert!(!module.contains(&["pub(super) enum ", &name].concat()));
+        assert!(!module.contains(&["pub(crate) enum ", &name].concat()));
+        for forbidden in [
+            ["impl Default for ", &name].concat(),
+            ["impl Deserialize for ", &name].concat(),
+            ["impl From<", &name].concat(),
+            ["impl TryFrom<", &name].concat(),
+            ["fn into_parts", "("].concat(),
+        ] {
+            assert!(!module.contains(&forbidden));
+        }
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r1_r1_raw_constructor_inventory_guard() {
+        let (module, outside) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let name = ["InternalStructuralGate", "MatrixV1"].concat();
+        let constructor = ["let matrix = ", &name, " {"].concat();
+        let literal = [&name, " {"].concat();
+        assert_eq!(module.match_indices(&constructor).count(), 1);
+        assert_eq!(outside.match_indices(&literal).count(), 0);
+        for field in [
+            "state_utility_at_maximum_length",
+            "state_causality",
+            "local_control",
+            "numerical_stability",
+            "determinism",
+            "mode_equivalence",
+            "persistent_state_footprint",
+            "trainability_sanity",
+        ] {
+            let mutation = [".", field, " ="].concat();
+            assert_eq!(outside.match_indices(&mutation).count(), 0);
+        }
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r1_r1_raw_v2_verdict_constructor_guard() {
+        let (module, outside) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let name = ["InternalQualification", "VerdictV1"].concat();
+        let variant = [&name, "::V2CoreNot", "Viable"].concat();
+        let factory = ["internal_structural_failure_", "verdict_v1("].concat();
+        assert!(module.contains(&variant));
+        assert_eq!(outside.match_indices(&variant).count(), 0);
+        assert_eq!(outside.match_indices(&factory).count(), 0);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r1_r1_raw_v1_verdict_authority_constructor_guard() {
+        let (module, outside) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let name = ["InternalQualification", "VerdictV1"].concat();
+        let variant = [&name, "::V1CoreNot", "Viable"].concat();
+        let raw_derivation = ["sprint105_derive_qualification_", "verdict_v1("].concat();
+        assert!(module.contains(&variant));
+        assert_eq!(outside.match_indices(&variant).count(), 0);
+        assert_eq!(outside.match_indices(&raw_derivation).count(), 0);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r1_r1_all_pass_external_call_guard() {
+        let (module, outside) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let name = ["InternalStructuralGate", "MatrixV1"].concat();
+        let call = [&name, "::all_", "pass("].concat();
+        let constructor = ["fn all_", "pass("].concat();
+        assert_eq!(outside.match_indices(&call).count(), 0);
+        assert_eq!(module.match_indices(&constructor).count(), 0);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r1_r1_v1_official_wrapper_positive() {
+        let (domain, mut evidence) = sprint105_ef1_r2_r1_r1_v1_actual_fixture_v1();
+        let failed_key = domain.maximum_history_keys[0];
+        let failed = evidence
+            .entries
+            .iter_mut()
+            .find(|entry| {
+                entry.family == failed_key.family
+                    && entry.sequence_length == failed_key.sequence_length
+            })
+            .unwrap();
+        failed.base.accuracy = failed.no_state.accuracy;
+        let evaluation =
+            q1_structural_evaluation_authority_v1::evaluate_v1_qualification(&evidence, true)
+                .unwrap();
+        assert_eq!(
+            q1_structural_evaluation_authority_v1::derive_v1_qualification_status(
+                &evaluation,
+                Sprint105ConfidenceOverlayV1::Clear,
+                true,
+            ),
+            q1_structural_evaluation_authority_v1::V1QualificationStatusViewV1::CoreNotViable
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r1_r1_v2_v6_wrapper_positive() {
+        let qualification = sprint105_v2_p1_frozen_q1_once_v1().unwrap();
+        let result = sprint105_v2_authorized_qualification_result_v1(
+            &qualification,
+            true,
+            Sprint105ConfidenceOverlayV1::NotEstablished,
+            true,
+        )
+        .unwrap();
+        assert_eq!(
+            result.status(),
+            q1_structural_evaluation_authority_v1::V2QualificationStatusViewV1::CoreNotViable
+        );
+        assert_eq!(result.q1_contract().version(), Q1ContractVersionV1::V6);
+        assert_eq!(
+            result.q1_contract().semantic_digest(),
+            SPRINT105_Q1_CONTRACT_GOLDEN_DIGEST_V6
+        );
+        assert_eq!(
+            result.q1_contract(),
+            result.authorized_matrix().q1_contract()
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r1_r1_diagnostic_only_wrapper_positive() {
+        let actual_policy = delayed_recall_evidence_policy_v2();
+        let gate_policy = sprint105_v2_q1_structural_gate_policy_v1();
+        let mut raw = sprint105_ef1_r2_synthetic_gate_evidence_v1();
+        let maximum_length = *actual_policy.sequence_lengths.iter().max().unwrap();
+        let failed = raw
+            .rows
+            .iter_mut()
+            .find(|entry| {
+                entry.family.requires_history() && entry.sequence_length == maximum_length
+            })
+            .unwrap();
+        failed.base_accuracy = failed.no_state_accuracy;
+        let validated =
+            sprint105_q1_validate_raw_gate_evidence_v1(raw, &actual_policy, &gate_policy).unwrap();
+        let fixture =
+            q1_structural_evaluation_authority_v1::diagnostic_fixture_from_validated(validated);
+        let evaluation =
+            q1_structural_evaluation_authority_v1::evaluate_diagnostic_gate_fixture(&fixture)
+                .unwrap();
+        assert_eq!(
+            q1_structural_evaluation_authority_v1::derive_diagnostic_qualification_status(
+                &evaluation,
+                Sprint105ConfidenceOverlayV1::Clear,
+                true,
+            ),
+            q1_structural_evaluation_authority_v1::DiagnosticQ1QualificationStatusV1::StructuralFailure
+        );
+        let (module, _) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let status_body = module
+            .split_once("pub(super) enum DiagnosticQ1QualificationStatusV1")
+            .unwrap()
+            .1
+            .split_once('}')
+            .unwrap()
+            .0;
+        assert!(!status_body.contains("V1"));
+        assert!(!status_body.contains("V2"));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r1_r1_diagnostic_all_pass_input_positive() {
+        let actual_policy = delayed_recall_evidence_policy_v2();
+        let gate_policy = sprint105_v2_q1_structural_gate_policy_v1();
+        let validated = sprint105_q1_validate_raw_gate_evidence_v1(
+            sprint105_ef1_r2_synthetic_gate_evidence_v1(),
+            &actual_policy,
+            &gate_policy,
+        )
+        .unwrap();
+        let fixture =
+            q1_structural_evaluation_authority_v1::diagnostic_fixture_from_validated(validated);
+        let evaluation =
+            q1_structural_evaluation_authority_v1::evaluate_diagnostic_gate_fixture(&fixture)
+                .unwrap();
+        assert!(
+            evaluation
+                .structural_status()
+                .all_required_structural_gates_pass()
+        );
+        assert_eq!(
+            q1_structural_evaluation_authority_v1::derive_diagnostic_qualification_status(
+                &evaluation,
+                Sprint105ConfidenceOverlayV1::Clear,
+                true,
+            ),
+            q1_structural_evaluation_authority_v1::DiagnosticQ1QualificationStatusV1::ViableBaseline
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r1_r1_status_view_non_authority_guard() {
+        let source = include_str!("m3_micro.rs");
+        let (module, _) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let views = [
+            "V1QualificationStatusViewV1",
+            "V2QualificationStatusViewV1",
+            "DiagnosticQ1QualificationStatusV1",
+            "StructuralGateStatusViewV1",
+        ];
+        for builder in [
+            "evaluate_v2_qualification",
+            "finalize_v2_evaluation",
+            "build_v2_qualification_result",
+        ] {
+            let signature = sprint105_ef1_r2_r2_r1_r1_wrapper_signature_v1(module, builder);
+            for view in views {
+                assert!(!signature.contains(view));
+            }
+        }
+        for view in views {
+            for destination in [
+                "ValidatedV2Q1GateInputV1",
+                "V6AuthorizedV2StructuralGateMatrixV1",
+                "V6AuthorizedV2EvaluationV1",
+                "Sprint105V2Q1QualificationResultV1",
+            ] {
+                for conversion in ["From", "TryFrom"] {
+                    let pattern = [conversion, "<", view, "> for ", destination].concat();
+                    assert_eq!(source.match_indices(&pattern).count(), 0);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r1_r1_diagnostic_to_v2_conversion_guard() {
+        let source = include_str!("m3_micro.rs");
+        for source_type in [
+            "DiagnosticQ1StructuralGateEvaluationV1",
+            "DiagnosticQ1QualificationStatusV1",
+            "StructuralGateStatusViewV1",
+        ] {
+            for destination in [
+                "V6AuthorizedV2StructuralGateMatrixV1",
+                "V6AuthorizedV2EvaluationV1",
+                "Sprint105V2Q1QualificationResultV1",
+            ] {
+                for conversion in ["From", "TryFrom"] {
+                    let pattern = [conversion, "<", source_type, "> for ", destination].concat();
+                    assert_eq!(source.match_indices(&pattern).count(), 0);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r1_r1_v1_to_v2_conversion_guard() {
+        let source = include_str!("m3_micro.rs");
+        for source_type in [
+            "V1Q1StructuralGateEvaluationV1",
+            "V1QualificationStatusViewV1",
+        ] {
+            for destination in [
+                "ValidatedV2Q1GateInputV1",
+                "V6AuthorizedV2StructuralGateMatrixV1",
+                "V6AuthorizedV2EvaluationV1",
+                "Sprint105V2Q1QualificationResultV1",
+            ] {
+                for conversion in ["From", "TryFrom"] {
+                    let pattern = [conversion, "<", source_type, "> for ", destination].concat();
+                    assert_eq!(source.match_indices(&pattern).count(), 0);
+                }
+            }
+        }
+    }
+
+    fn sprint105_ef1_r2_r2_r1_r2_current_authority_source_v1() -> (&'static str, String) {
+        let source = include_str!("m3_micro.rs");
+        let begin = ["// SPRINT105_Q1_CURRENT_V6_AUTHORITY_V1", "_BEGIN"].concat();
+        let end = ["// SPRINT105_Q1_CURRENT_V6_AUTHORITY_V1", "_END"].concat();
+        let (prefix, tail) = source.split_once(&begin).unwrap();
+        let (authority, suffix) = tail.split_once(&end).unwrap();
+        (authority, [prefix, suffix].concat())
+    }
+
+    fn sprint105_ef1_r2_r2_r1_r2_function_region_v1<'a>(
+        source: &'a str,
+        name: &str,
+        next_name: &str,
+    ) -> &'a str {
+        source
+            .split_once(&["fn ", name, "("].concat())
+            .unwrap()
+            .1
+            .split_once(&["fn ", next_name, "("].concat())
+            .unwrap()
+            .0
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_owner_graph_call_graph_audit() {
+        let (authority, _) = sprint105_ef1_r2_r2_r1_r2_current_authority_source_v1();
+        let builder = sprint105_ef1_r2_r2_r1_r2_function_region_v1(
+            authority,
+            "build_current_q1_contract_v6_authority_v1",
+            "build_and_validate_current_q1_contract_v6",
+        );
+        assert_eq!(
+            builder
+                .match_indices("build_validated_current_q1_gate_owner_bundle_v1(")
+                .count(),
+            1
+        );
+        assert_eq!(
+            builder
+                .match_indices("sprint105_q1_contract_identity_v6_from_current_owners_v1(")
+                .count(),
+            1
+        );
+        assert!(builder.contains("gate_owners.active_gate_registry()"));
+        assert!(builder.contains("gate_owners.active_gate_policy()"));
+        assert!(builder.contains("gate_owners.active_gate_policy_owner()"));
+        assert!(builder.contains("gate_owners,"));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_duplicate_owner_inventory_audit() {
+        let (authority, _) = sprint105_ef1_r2_r2_r1_r2_current_authority_source_v1();
+        let source = include_str!("m3_micro.rs");
+        let (evaluation, _) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let bundle_builder = sprint105_ef1_r2_r2_r1_r2_function_region_v1(
+            authority,
+            "build_validated_current_q1_gate_owner_bundle_v1",
+            "mint_validated_current_q1_contract_v6",
+        );
+        let input_validator = sprint105_ef1_r2_r2_r1_r2_function_region_v1(
+            evaluation,
+            "validate_v2_qualification_input",
+            "evaluate_v2_qualification",
+        );
+        let v6_identity = sprint105_ef1_r2_r2_r1_r2_function_region_v1(
+            source,
+            "sprint105_q1_contract_identity_v6_from_current_owners_v1",
+            "sprint105_q1_contract_digest_v6",
+        );
+        assert_eq!(
+            bundle_builder
+                .match_indices("sprint105_q1_active_gate_registry_v1(")
+                .count(),
+            1
+        );
+        assert_eq!(
+            bundle_builder
+                .match_indices("sprint105_q1_structural_gate_policy_owner_projection_v1(")
+                .count(),
+            1
+        );
+        assert_eq!(
+            bundle_builder
+                .match_indices("sprint105_q1_actual_policy_owner_projection_v1(")
+                .count(),
+            1
+        );
+        for forbidden in [".clone()", ".to_owned()", "into_registry", "into_policy"] {
+            assert!(!bundle_builder.contains(forbidden));
+        }
+        for region in [input_validator, v6_identity] {
+            assert!(!region.contains("sprint105_q1_active_gate_registry_v1("));
+            assert!(!region.contains("sprint105_q1_structural_gate_policy_owner_projection_v1("));
+            assert!(!region.contains("sprint105_q1_validate_qualification_owner_binding_v1("));
+        }
+        assert!(!input_validator.contains(".clone()"));
+        assert!(!input_validator.contains(".to_owned()"));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_owner_bundle_private_boundary() {
+        let (authority, outside) = sprint105_ef1_r2_r2_r1_r2_current_authority_source_v1();
+        let bundle = ["ValidatedCurrentQ1Gate", "OwnerBundleV1"].concat();
+        let inner = ["ValidatedCurrentQ1Gate", "OwnerBundleInnerV1"].concat();
+        assert_eq!(
+            authority
+                .match_indices(&["struct ", &bundle, " {"].concat())
+                .count(),
+            1
+        );
+        assert_eq!(
+            authority
+                .match_indices(&["struct ", &inner, " {"].concat())
+                .count(),
+            1
+        );
+        assert_eq!(outside.match_indices(&bundle).count(), 0);
+        assert!(!authority.contains(&["pub(super) struct ", &bundle].concat()));
+        for forbidden in [
+            ["impl Clone for ", &bundle].concat(),
+            ["impl Default for ", &bundle].concat(),
+            ["impl Deserialize for ", &bundle].concat(),
+            ["impl From<", &bundle].concat(),
+            ["impl TryFrom<", &bundle].concat(),
+            ["fn into_inner", "("].concat(),
+            ["fn replace_registry", "("].concat(),
+            ["fn replace_policy", "("].concat(),
+            ["fn with_registry", "("].concat(),
+            ["fn with_policy", "("].concat(),
+        ] {
+            assert!(!authority.contains(&forbidden));
+        }
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_owner_bundle_exact_construction_positive() {
+        let (qualification, evidence) = sprint105_ef1_r2_r2_r1_qualification_and_evidence_v1();
+        let authority =
+            current_q1_contract_v6_authority::build_and_validate_current_q1_contract_v6(
+                &qualification,
+                &evidence,
+            )
+            .unwrap();
+        assert_eq!(
+            authority.active_gate_registry().semantic_digest,
+            authority.summary().active_gate_registry_identity()
+        );
+        assert_eq!(
+            authority.active_gate_policy_owner().semantic_digest,
+            authority.summary().active_gate_policy_identity()
+        );
+        assert_eq!(*authority.active_gate_policy(), qualification.gate_policy);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_bundle_registry_validation_positive() {
+        let (qualification, evidence) = sprint105_ef1_r2_r2_r1_qualification_and_evidence_v1();
+        let authority =
+            current_q1_contract_v6_authority::build_and_validate_current_q1_contract_v6(
+                &qualification,
+                &evidence,
+            )
+            .unwrap();
+        let registry = authority.active_gate_registry();
+        sprint105_q1_validate_active_gate_registry_entries_v1(&registry.entries).unwrap();
+        assert_eq!(
+            registry
+                .entries
+                .iter()
+                .map(|entry| entry.gate)
+                .collect::<Vec<_>>(),
+            Q1StructuralGateV1::ORDERED
+        );
+        assert!(
+            !registry
+                .entries
+                .iter()
+                .any(|entry| entry.gate == Q1StructuralGateV1::LengthRetention)
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_bundle_policy_validation_positive() {
+        let (qualification, evidence) = sprint105_ef1_r2_r2_r1_qualification_and_evidence_v1();
+        let authority =
+            current_q1_contract_v6_authority::build_and_validate_current_q1_contract_v6(
+                &qualification,
+                &evidence,
+            )
+            .unwrap();
+        let owner = authority.active_gate_policy_owner();
+        sprint105_q1_validate_structural_gate_policy_fields_v1(&owner.fields).unwrap();
+        assert_eq!(
+            owner
+                .fields
+                .iter()
+                .map(|field| field.field)
+                .collect::<Vec<_>>(),
+            Q1StructuralGatePolicyFieldV1::ORDERED
+        );
+        assert!(
+            owner
+                .fields
+                .iter()
+                .all(|field| field.field.as_str() != "length_retention_comparison")
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_v6_authority_owns_bundle() {
+        let (authority, _) = sprint105_ef1_r2_r2_r1_r2_current_authority_source_v1();
+        let authority_inner = authority
+            .split_once("struct ValidatedCurrentQ1ContractV6Inner {")
+            .unwrap()
+            .1
+            .split_once('}')
+            .unwrap()
+            .0;
+        assert!(
+            authority_inner
+                .contains(&["gate_owners: ValidatedCurrentQ1Gate", "OwnerBundleV1"].concat())
+        );
+        assert!(!authority_inner.contains("active_gate_registry:"));
+        assert!(!authority_inner.contains("active_gate_policy:"));
+        assert!(!authority_inner.contains("active_gate_policy_owner:"));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_evaluator_owner_exclusivity_guard() {
+        let (evaluation, _) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let signature =
+            sprint105_ef1_r2_r2_r1_r1_wrapper_signature_v1(evaluation, "evaluate_v2_qualification");
+        assert!(signature.contains("ValidatedV2Q1GateInputV1"));
+        assert!(signature.contains("ValidatedCurrentQ1ContractV6"));
+        for forbidden in [
+            "ActiveQ1StructuralGateRegistryV1",
+            "Q1StructuralGatePolicyV1",
+            "DelayedRecallEvidencePolicyV2",
+            "Q1StructuralGatePolicyOwnerProjectionV1",
+            "String",
+        ] {
+            assert!(!signature.contains(forbidden));
+        }
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_evaluator_reconstruction_guards() {
+        let (evaluation, _) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let body = sprint105_ef1_r2_r2_r1_r2_function_region_v1(
+            evaluation,
+            "evaluate_v2_qualification",
+            "finalize_v2_evaluation",
+        );
+        assert!(body.contains("let active_registry = authority.active_gate_registry()"));
+        assert!(body.contains("let active_policy = authority.active_gate_policy()"));
+        for forbidden in [
+            "sprint105_q1_active_gate_registry_v1(",
+            "sprint105_q1_structural_gate_policy_owner_projection_v1(",
+            "sprint105_v2_q1_structural_gate_policy_v1(",
+            ".clone()",
+            ".to_owned()",
+            "*authority.active_gate_policy()",
+        ] {
+            assert!(!body.contains(forbidden));
+        }
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_same_object_owner_witnesses() {
+        let qualification = sprint105_v2_p1_frozen_q1_once_v1().unwrap();
+        let input = q1_structural_evaluation_authority_v1::validate_v2_qualification_input(
+            &qualification,
+            true,
+        )
+        .unwrap();
+        let authority =
+            current_q1_contract_v6_authority::build_and_validate_current_q1_contract_v6(
+                &qualification,
+                input.evidence(),
+            )
+            .unwrap();
+        let matrix =
+            q1_structural_evaluation_authority_v1::evaluate_v2_qualification(&input, &authority)
+                .unwrap();
+        let witness = matrix.owner_object_witness();
+        assert!(witness.registry_same_object());
+        assert!(witness.policy_same_object());
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_official_v2_owner_graph_positive() {
+        let qualification = sprint105_v2_p1_frozen_q1_once_v1().unwrap();
+        let input = q1_structural_evaluation_authority_v1::validate_v2_qualification_input(
+            &qualification,
+            true,
+        )
+        .unwrap();
+        let authority =
+            current_q1_contract_v6_authority::build_and_validate_current_q1_contract_v6(
+                &qualification,
+                input.evidence(),
+            )
+            .unwrap();
+        let expected = authority.summary();
+        let matrix =
+            q1_structural_evaluation_authority_v1::evaluate_v2_qualification(&input, &authority)
+                .unwrap();
+        assert_eq!(matrix.q1_contract(), &expected);
+        assert!(matrix.owner_object_witness().registry_same_object());
+        assert!(matrix.owner_object_witness().policy_same_object());
+        let evaluation = q1_structural_evaluation_authority_v1::finalize_v2_evaluation(
+            matrix,
+            Sprint105ConfidenceOverlayV1::NotEstablished,
+            true,
+        );
+        assert_eq!(evaluation.q1_contract(), &expected);
+        assert_eq!(
+            evaluation.status(),
+            q1_structural_evaluation_authority_v1::V2QualificationStatusViewV1::CoreNotViable
+        );
+        let result =
+            q1_structural_evaluation_authority_v1::build_v2_qualification_result(evaluation)
+                .unwrap();
+        assert_eq!(result.q1_contract(), &expected);
+        assert_eq!(result.authorized_matrix().q1_contract(), &expected);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_double_owner_paths_are_blocked() {
+        let (evaluation, _) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let signature =
+            sprint105_ef1_r2_r2_r1_r1_wrapper_signature_v1(evaluation, "evaluate_v2_qualification");
+        assert!(!signature.contains("ActiveQ1StructuralGateRegistryV1"));
+        assert!(!signature.contains("Q1StructuralGatePolicyV1"));
+        assert!(!signature.contains("Q1StructuralGatePolicyOwnerProjectionV1"));
+        let qualification = sprint105_v2_p1_frozen_q1_once_v1().unwrap();
+        let separate = current_q1_contract_v6_authority::separate_owner_bundle_witness_for_test(
+            &qualification,
+        )
+        .unwrap();
+        assert!(separate.registry_identity_equal());
+        assert!(separate.policy_identity_equal());
+        assert!(!separate.registry_same_object());
+        assert!(!separate.policy_same_object());
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_mixed_owner_bundle_negative() {
+        let qualification = sprint105_v2_p1_frozen_q1_once_v1().unwrap();
+        assert!(
+            current_q1_contract_v6_authority::mixed_owner_bundle_rejected_for_test(&qualification)
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_registry_mutation_isolation() {
+        let (qualification, evidence) = sprint105_ef1_r2_r2_r1_qualification_and_evidence_v1();
+        let authority =
+            current_q1_contract_v6_authority::build_and_validate_current_q1_contract_v6(
+                &qualification,
+                &evidence,
+            )
+            .unwrap();
+        assert!(
+            current_q1_contract_v6_authority::detached_registry_mutation_is_isolated_for_test(
+                &authority,
+                &qualification,
+            )
+            .unwrap()
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_policy_mutation_isolation() {
+        let qualification = sprint105_v2_p1_frozen_q1_once_v1().unwrap();
+        let input = q1_structural_evaluation_authority_v1::validate_v2_qualification_input(
+            &qualification,
+            true,
+        )
+        .unwrap();
+        let authority =
+            current_q1_contract_v6_authority::build_and_validate_current_q1_contract_v6(
+                &qualification,
+                input.evidence(),
+            )
+            .unwrap();
+        let original_identity = authority
+            .summary()
+            .active_gate_policy_identity()
+            .to_string();
+        let mut detached = qualification.gate_policy;
+        detached.state_utility_comparison = Q1GateComparisonSemanticsV1::GreaterOrEqual;
+        assert_ne!(detached, *authority.active_gate_policy());
+        let matrix =
+            q1_structural_evaluation_authority_v1::evaluate_v2_qualification(&input, &authority)
+                .unwrap();
+        assert_eq!(
+            matrix.q1_contract().active_gate_policy_identity(),
+            original_identity
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_result_metadata_same_owner() {
+        let qualification = sprint105_v2_p1_frozen_q1_once_v1().unwrap();
+        let input = q1_structural_evaluation_authority_v1::validate_v2_qualification_input(
+            &qualification,
+            true,
+        )
+        .unwrap();
+        let authority =
+            current_q1_contract_v6_authority::build_and_validate_current_q1_contract_v6(
+                &qualification,
+                input.evidence(),
+            )
+            .unwrap();
+        let authority_summary = authority.summary();
+        let matrix =
+            q1_structural_evaluation_authority_v1::evaluate_v2_qualification(&input, &authority)
+                .unwrap();
+        assert_eq!(matrix.q1_contract(), &authority_summary);
+        let evaluation = q1_structural_evaluation_authority_v1::finalize_v2_evaluation(
+            matrix,
+            Sprint105ConfidenceOverlayV1::NotEstablished,
+            true,
+        );
+        assert_eq!(evaluation.q1_contract(), &authority_summary);
+        let result =
+            q1_structural_evaluation_authority_v1::build_v2_qualification_result(evaluation)
+                .unwrap();
+        for summary in [
+            result.q1_contract(),
+            result.authorized_matrix().q1_contract(),
+        ] {
+            assert_eq!(
+                summary.semantic_digest(),
+                authority_summary.semantic_digest()
+            );
+            assert_eq!(
+                summary.active_gate_registry_identity(),
+                authority_summary.active_gate_registry_identity()
+            );
+            assert_eq!(
+                summary.active_gate_policy_identity(),
+                authority_summary.active_gate_policy_identity()
+            );
+        }
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_owner_graph_source_guard() {
+        let (authority, _) = sprint105_ef1_r2_r2_r1_r2_current_authority_source_v1();
+        let (evaluation, _) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let evaluator = sprint105_ef1_r2_r2_r1_r2_function_region_v1(
+            evaluation,
+            "evaluate_v2_qualification",
+            "finalize_v2_evaluation",
+        );
+        let finalization = sprint105_ef1_r2_r2_r1_r2_function_region_v1(
+            evaluation,
+            "finalize_v2_evaluation",
+            "build_v2_qualification_result",
+        );
+        let result = evaluation
+            .split_once("pub(super) fn build_v2_qualification_result(")
+            .unwrap()
+            .1;
+        for region in [evaluator, finalization, result] {
+            assert!(!region.contains("sprint105_q1_active_gate_registry_v1("));
+            assert!(!region.contains("sprint105_q1_structural_gate_policy_owner_projection_v1("));
+        }
+        for forbidden in [
+            "pub(super) fn into_registry(",
+            "pub(super) fn into_policy(",
+            "pub(super) fn active_gate_registry_mut(",
+            "pub(super) fn active_gate_policy_mut(",
+            "pub(super) fn replace_registry(",
+            "pub(super) fn replace_policy(",
+        ] {
+            assert!(!authority.contains(forbidden));
+        }
+        assert!(!authority.contains("as usize"));
+        assert!(!authority.contains("as u64"));
+    }
+
+    fn sprint105_ef1_r2_r2_r1_r2_r1_function_signatures_v1(source: &str) -> Vec<&str> {
+        source
+            .match_indices("fn ")
+            .filter_map(|(offset, _)| {
+                let tail = &source[offset..];
+                tail.find('{').map(|end| &tail[..end])
+            })
+            .collect()
+    }
+
+    fn sprint105_ef1_r2_r2_r1_r2_r1_signature_parameters_v1(signature: &str) -> Option<&str> {
+        signature
+            .split_once('(')
+            .and_then(|(_, tail)| tail.split_once(')'))
+            .map(|(parameters, _)| parameters)
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_authority_lineage_graph_audit() {
+        let (module, _) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let finalize = sprint105_ef1_r2_r2_r1_r2_function_region_v1(
+            module,
+            "finalize_v2_evaluation",
+            "build_v2_qualification_result",
+        );
+        let result = module
+            .split_once("pub(super) fn build_v2_qualification_result(")
+            .unwrap()
+            .1;
+        assert!(finalize.contains("authorized_matrix: V6AuthorizedV2StructuralGateMatrixV1"));
+        assert!(finalize.contains("let verdict ="));
+        assert!(finalize.contains("authorized_matrix,"));
+        assert!(finalize.contains("verdict,"));
+        assert!(result.contains("evaluation: V6AuthorizedV2EvaluationV1"));
+        assert!(result.contains("Sprint105V2Q1QualificationResultInnerV1 { evaluation }"));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_pair_builder_inventory_is_closed() {
+        let audit = q1_structural_evaluation_authority_v1::audit_actual_forbidden_joins_for_test(
+            include_str!("m3_micro.rs"),
+        )
+        .unwrap();
+        assert_eq!(audit.forbidden_function_parameter_count, 0);
+        assert_eq!(audit.pair_result_builder_count, 0);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_atomic_capsule_private_boundary() {
+        let (module, outside) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let capsule = "V6AuthorizedV2EvaluationV1";
+        let inner = "V6AuthorizedV2EvaluationInnerV1";
+        assert_eq!(
+            module
+                .match_indices(&["pub(super) struct ", capsule, " {"].concat())
+                .count(),
+            1
+        );
+        assert_eq!(
+            module
+                .match_indices(&["struct ", inner, " {"].concat())
+                .count(),
+            1
+        );
+        assert_eq!(outside.match_indices(&[capsule, " {"].concat()).count(), 0);
+        let fields = module
+            .split_once(&["struct ", inner, " {"].concat())
+            .unwrap()
+            .1
+            .split_once('}')
+            .unwrap()
+            .0;
+        assert!(fields.contains("authorized_matrix: V6AuthorizedV2StructuralGateMatrixV1"));
+        assert!(fields.contains(&["verdict: InternalQualification", "VerdictV1"].concat()));
+        assert!(!fields.contains("pub(super)"));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_capsule_non_clone_non_deserialize_guard() {
+        let (module, _) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let capsule = "V6AuthorizedV2EvaluationV1";
+        for forbidden in [
+            ["impl Clone for ", capsule].concat(),
+            ["impl Default for ", capsule].concat(),
+            ["impl Deserialize for ", capsule].concat(),
+            ["impl From<", capsule].concat(),
+            ["impl TryFrom<", capsule].concat(),
+            ["fn into_inner", "("].concat(),
+            ["fn into_parts", "("].concat(),
+            ["fn replace_matrix", "("].concat(),
+            ["fn replace_verdict", "("].concat(),
+            ["fn with_matrix", "("].concat(),
+            ["fn with_verdict", "("].concat(),
+        ] {
+            assert!(!module.contains(&forbidden));
+        }
+        let definition = module
+            .split_once(&["pub(super) struct ", capsule, " {"].concat())
+            .unwrap()
+            .0
+            .rsplit_once("#[derive(")
+            .unwrap()
+            .1;
+        assert!(!definition.contains("Clone"));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_matrix_consuming_finalize_signature_guard() {
+        let (module, _) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let signature =
+            sprint105_ef1_r2_r2_r1_r1_wrapper_signature_v1(module, "finalize_v2_evaluation");
+        assert!(signature.contains("authorized_matrix: V6AuthorizedV2StructuralGateMatrixV1"));
+        assert!(!signature.contains("&V6AuthorizedV2StructuralGateMatrixV1"));
+        assert!(signature.contains("-> V6AuthorizedV2EvaluationV1"));
+        assert!(!signature.contains("CurrentQ1ContractV6SummaryV1"));
+        let body = sprint105_ef1_r2_r2_r1_r2_function_region_v1(
+            module,
+            "finalize_v2_evaluation",
+            "build_v2_qualification_result",
+        );
+        assert!(!body.contains("authorized_matrix.clone()"));
+        assert!(!body.contains("return ("));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_standalone_authorized_verdict_surface_guard() {
+        let source = include_str!("m3_micro.rs");
+        let standalone = ["V6AuthorizedV2Qualification", "VerdictV1"].concat();
+        let retired_derivation = ["derive_v2_qualification_", "verdict"].concat();
+        assert_eq!(source.match_indices(&standalone).count(), 0);
+        assert_eq!(source.match_indices(&retired_derivation).count(), 0);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_result_builder_single_capsule_signature_guard() {
+        let (module, _) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let signature =
+            sprint105_ef1_r2_r2_r1_r1_wrapper_signature_v1(module, "build_v2_qualification_result");
+        assert!(signature.contains("evaluation: V6AuthorizedV2EvaluationV1"));
+        for forbidden in [
+            "V6AuthorizedV2StructuralGateMatrixV1",
+            &["InternalQualification", "VerdictV1"].concat(),
+            "CurrentQ1ContractV6SummaryV1",
+            "active_gate_registry_identity",
+            "active_gate_policy_identity",
+            "semantic_digest",
+        ] {
+            assert!(!signature.contains(forbidden));
+        }
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_pair_result_constructor_guard() {
+        let source = include_str!("m3_micro.rs");
+        let audit =
+            q1_structural_evaluation_authority_v1::audit_actual_forbidden_joins_for_test(source)
+                .unwrap();
+        assert_eq!(audit.tuple_conversion_count, 0);
+        assert_eq!(audit.pair_type_alias_count, 0);
+        for retired in [
+            ["result_from_", "parts("].concat(),
+            ["attach_", "verdict("].concat(),
+            ["attach_", "matrix("].concat(),
+        ] {
+            assert_eq!(source.match_indices(&retired).count(), 0);
+        }
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_result_literal_authority_guard() {
+        let (module, outside) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let result = "Sprint105V2Q1QualificationResultV1";
+        assert_eq!(
+            module
+                .match_indices(&["Ok(", result, " {"].concat())
+                .count(),
+            1
+        );
+        assert_eq!(outside.match_indices(&[result, " {"].concat()).count(), 0);
+        let inner = module
+            .split_once("struct Sprint105V2Q1QualificationResultInnerV1 {")
+            .unwrap()
+            .1
+            .split_once('}')
+            .unwrap()
+            .0;
+        assert!(inner.contains("evaluation: V6AuthorizedV2EvaluationV1"));
+        assert!(!inner.contains("authorized_matrix:"));
+        assert!(!inner.contains("authorized_verdict:"));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_same_digest_separate_authority_negative() {
+        let qualification = sprint105_v2_p1_frozen_q1_once_v1().unwrap();
+        let input = q1_structural_evaluation_authority_v1::validate_v2_qualification_input(
+            &qualification,
+            true,
+        )
+        .unwrap();
+        let authority_a =
+            current_q1_contract_v6_authority::build_and_validate_current_q1_contract_v6(
+                &qualification,
+                input.evidence(),
+            )
+            .unwrap();
+        let authority_b =
+            current_q1_contract_v6_authority::build_and_validate_current_q1_contract_v6(
+                &qualification,
+                input.evidence(),
+            )
+            .unwrap();
+        assert_eq!(authority_a.summary(), authority_b.summary());
+        let matrix_a =
+            q1_structural_evaluation_authority_v1::evaluate_v2_qualification(&input, &authority_a)
+                .unwrap();
+        let matrix_b =
+            q1_structural_evaluation_authority_v1::evaluate_v2_qualification(&input, &authority_b)
+                .unwrap();
+        assert_eq!(matrix_a.q1_contract(), matrix_b.q1_contract());
+        let evaluation_b = q1_structural_evaluation_authority_v1::finalize_v2_evaluation(
+            matrix_b,
+            Sprint105ConfidenceOverlayV1::NotEstablished,
+            true,
+        );
+        let result_b =
+            q1_structural_evaluation_authority_v1::build_v2_qualification_result(evaluation_b)
+                .unwrap();
+        let evaluation_a = q1_structural_evaluation_authority_v1::finalize_v2_evaluation(
+            matrix_a,
+            Sprint105ConfidenceOverlayV1::NotEstablished,
+            true,
+        );
+        let result_a =
+            q1_structural_evaluation_authority_v1::build_v2_qualification_result(evaluation_a)
+                .unwrap();
+        assert_eq!(result_a.q1_contract(), result_b.q1_contract());
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_cross_authority_recombination_guard() {
+        let (module, _) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let signatures = sprint105_ef1_r2_r2_r1_r2_r1_function_signatures_v1(module);
+        let matrix = "V6AuthorizedV2StructuralGateMatrixV1";
+        let capsule = "V6AuthorizedV2EvaluationV1";
+        let result = "Sprint105V2Q1QualificationResultV1";
+        assert_eq!(
+            signatures
+                .iter()
+                .filter(|signature| {
+                    signature.contains(result)
+                        && sprint105_ef1_r2_r2_r1_r2_r1_signature_parameters_v1(signature)
+                            .is_some_and(|parameters| parameters.contains(matrix))
+                })
+                .count(),
+            0
+        );
+        assert_eq!(
+            signatures
+                .iter()
+                .filter(|signature| {
+                    signature.contains(result)
+                        && sprint105_ef1_r2_r2_r1_r2_r1_signature_parameters_v1(signature)
+                            .is_some_and(|parameters| parameters.contains(capsule))
+                })
+                .count(),
+            1
+        );
+        let result_builder =
+            sprint105_ef1_r2_r2_r1_r1_wrapper_signature_v1(module, "build_v2_qualification_result");
+        let parameters = result_builder
+            .split_once(')')
+            .unwrap()
+            .0
+            .trim()
+            .trim_end_matches(',');
+        assert!(!parameters.contains(','));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_official_v2_atomic_positive() {
+        let qualification = sprint105_v2_p1_frozen_q1_once_v1().unwrap();
+        let input = q1_structural_evaluation_authority_v1::validate_v2_qualification_input(
+            &qualification,
+            true,
+        )
+        .unwrap();
+        let authority =
+            current_q1_contract_v6_authority::build_and_validate_current_q1_contract_v6(
+                &qualification,
+                input.evidence(),
+            )
+            .unwrap();
+        let expected = authority.summary();
+        let matrix =
+            q1_structural_evaluation_authority_v1::evaluate_v2_qualification(&input, &authority)
+                .unwrap();
+        let evaluation = q1_structural_evaluation_authority_v1::finalize_v2_evaluation(
+            matrix,
+            Sprint105ConfidenceOverlayV1::NotEstablished,
+            true,
+        );
+        assert_eq!(evaluation.q1_contract(), &expected);
+        assert_eq!(
+            evaluation.status(),
+            q1_structural_evaluation_authority_v1::V2QualificationStatusViewV1::CoreNotViable
+        );
+        let result =
+            q1_structural_evaluation_authority_v1::build_v2_qualification_result(evaluation)
+                .unwrap();
+        assert_eq!(result.q1_contract(), &expected);
+        assert_eq!(
+            result.status(),
+            q1_structural_evaluation_authority_v1::V2QualificationStatusViewV1::CoreNotViable
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_atomicity_counter_positive() {
+        let qualification = sprint105_v2_p1_frozen_q1_once_v1().unwrap();
+        let attempt = sprint105_v2_atomic_authority_wiring_attempt_v1(&qualification, None);
+        assert_eq!(attempt.authority_mint_count, 1);
+        assert_eq!(attempt.gate_matrix_mint_count, 1);
+        assert_eq!(attempt.verdict_mint_count, 1);
+        assert_eq!(attempt.evaluation_capsule_mint_count, 1);
+        assert_eq!(attempt.result_mint_count, 1);
+        assert!(attempt.result.is_ok());
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_failure_atomicity_negative() {
+        let qualification = sprint105_v2_p1_frozen_q1_once_v1().unwrap();
+        let authority_failure = sprint105_v2_atomic_authority_wiring_attempt_v1(
+            &qualification,
+            Some(current_q1_contract_v6_authority::Q1V6AuthorityCorruptionProbeV1::SelfDigest),
+        );
+        assert_eq!(authority_failure.authority_mint_count, 0);
+        assert_eq!(authority_failure.gate_matrix_mint_count, 0);
+        assert_eq!(authority_failure.verdict_mint_count, 0);
+        assert_eq!(authority_failure.evaluation_capsule_mint_count, 0);
+        assert_eq!(authority_failure.result_mint_count, 0);
+
+        let input = q1_structural_evaluation_authority_v1::validate_v2_qualification_input(
+            &qualification,
+            true,
+        )
+        .unwrap();
+        let authority =
+            current_q1_contract_v6_authority::build_and_validate_current_q1_contract_v6(
+                &qualification,
+                input.evidence(),
+            )
+            .unwrap();
+        assert!(
+            q1_structural_evaluation_authority_v1::matrix_evaluation_failure_is_atomic_for_test(
+                input, &authority,
+            )
+        );
+        let (module, _) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let finalize = sprint105_ef1_r2_r2_r1_r2_function_region_v1(
+            module,
+            "finalize_v2_evaluation",
+            "build_v2_qualification_result",
+        );
+        assert!(!finalize.contains("Result<"));
+        assert!(!finalize.contains("return Err"));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_same_owner_bundle_preservation() {
+        let qualification = sprint105_v2_p1_frozen_q1_once_v1().unwrap();
+        let input = q1_structural_evaluation_authority_v1::validate_v2_qualification_input(
+            &qualification,
+            true,
+        )
+        .unwrap();
+        let authority =
+            current_q1_contract_v6_authority::build_and_validate_current_q1_contract_v6(
+                &qualification,
+                input.evidence(),
+            )
+            .unwrap();
+        let expected = authority.summary();
+        let matrix =
+            q1_structural_evaluation_authority_v1::evaluate_v2_qualification(&input, &authority)
+                .unwrap();
+        assert!(matrix.owner_object_witness().registry_same_object());
+        assert!(matrix.owner_object_witness().policy_same_object());
+        let evaluation = q1_structural_evaluation_authority_v1::finalize_v2_evaluation(
+            matrix,
+            Sprint105ConfidenceOverlayV1::NotEstablished,
+            true,
+        );
+        let result =
+            q1_structural_evaluation_authority_v1::build_v2_qualification_result(evaluation)
+                .unwrap();
+        assert_eq!(result.q1_contract(), &expected);
+        assert_eq!(result.authorized_matrix().q1_contract(), &expected);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_no_runtime_lineage_identity_guard() {
+        let (module, _) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        for forbidden in [
+            "AtomicUsize",
+            "thread_local!",
+            "random",
+            "nonce",
+            "Hmac",
+            "as usize",
+            "as u64",
+            "pointer_identity",
+        ] {
+            assert!(!module.contains(forbidden));
+        }
+    }
+
+    fn sprint105_actual_forbidden_join_fixture_audit_v1(
+        source: &str,
+    ) -> q1_structural_evaluation_authority_v1::V2ActualForbiddenJoinAuditV1 {
+        q1_structural_evaluation_authority_v1::audit_forbidden_join_fixture_for_test(source)
+    }
+
+    fn sprint105_actual_forbidden_join_structs_v2(
+        source: &str,
+    ) -> Result<
+        Vec<q1_structural_evaluation_authority_v1::Sprint105StructDeclarationSummaryV2>,
+        &'static str,
+    > {
+        q1_structural_evaluation_authority_v1::inspect_struct_declarations_for_test(source)
+    }
+
+    fn sprint105_actual_forbidden_join_authority_fixture_v2(body: &str) -> String {
+        let begin = ["// SPRINT105_Q1_EVALUATION_AUTHORITY_V1", "_BEGIN"].concat();
+        let end = ["// SPRINT105_Q1_EVALUATION_AUTHORITY_V1", "_END"].concat();
+        format!("{begin}\nmod q1_structural_evaluation_authority_v1 {{\n{body}\n}}\n{end}")
+    }
+
+    fn sprint105_exact_pair_owner_declaration_v3(
+        names: q1_structural_evaluation_authority_v1::V2ActualForbiddenJoinTypeNamesV1,
+    ) -> String {
+        format!(
+            "struct {} {{ authorized_matrix: {}, verdict: {} }}",
+            names.evaluation_inner, names.matrix, names.internal_verdict
+        )
+    }
+
+    fn sprint105_pair_carrier_classifications_v3(
+        source: &str,
+    ) -> Vec<q1_structural_evaluation_authority_v1::Sprint105PairCarrierClassificationV1> {
+        q1_structural_evaluation_authority_v1::inspect_pair_carrier_classifications_for_test(source)
+            .unwrap()
+    }
+
+    fn sprint105_assert_pair_carrier_authority_fixture_rejected_v3(body: &str) {
+        assert!(
+            q1_structural_evaluation_authority_v1::audit_actual_forbidden_joins_for_test(
+                &sprint105_actual_forbidden_join_authority_fixture_v2(body),
+            )
+            .is_err()
+        );
+    }
+
+    fn sprint105_compact_witness_source_v4(source: &str) -> String {
+        source
+            .chars()
+            .filter(|character| !character.is_whitespace())
+            .collect()
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum Sprint105WitnessReturnFlowRejectionV1 {
+        SourceSanitization,
+        FunctionPointerDummy,
+        HelperDefinition,
+        BoundaryDefinition,
+        HelperSignature,
+        HelperShape,
+        MatrixObservation,
+        VerdictObservation,
+        BoundarySignature,
+        ObservationAuthorityConversion,
+        RawInnerExposure,
+        DiscardedHelperResult,
+        UnderscoreDiscard,
+        ExplicitConstantReturn,
+        OverwrittenObservation,
+        UnreachableHelper,
+        ConditionalHelper,
+        RewrittenObservation,
+        DoubleHelperInvocation,
+        WrongWitnessObject,
+        IndependentObservationConstruction,
+        ConstantWitnessReturn,
+        NonCanonicalReturnFlow,
+    }
+
+    fn sprint105_validate_shape_witness_boundary_source_v4(
+        source: &str,
+    ) -> Result<(), Sprint105WitnessReturnFlowRejectionV1> {
+        let helper_name = "sprint105_assert_canonical_pair_owner_shape_v1";
+        let boundary_name = "exercise_canonical_pair_owner_shape_for_test";
+        let helper_marker = ["fn ", helper_name, "("].concat();
+        let boundary_marker = ["fn ", boundary_name, "("].concat();
+        let source =
+            q1_structural_evaluation_authority_v1::sanitize_witness_source_for_test(source)
+                .map_err(|_| Sprint105WitnessReturnFlowRejectionV1::SourceSanitization)?;
+        let compact_source = sprint105_compact_witness_source_v4(&source);
+        let pointer_dummy = ["let", "witness:fn("].concat();
+        let discarded_dummy = ["let_", "=witness;"].concat();
+        let black_box_dummy = ["black_box(", helper_name, ")"].concat();
+        if compact_source.contains(&pointer_dummy)
+            || compact_source.contains(&discarded_dummy)
+            || compact_source.contains(&black_box_dummy)
+        {
+            return Err(Sprint105WitnessReturnFlowRejectionV1::FunctionPointerDummy);
+        }
+        if source.match_indices(&helper_marker).count() != 1 {
+            return Err(Sprint105WitnessReturnFlowRejectionV1::HelperDefinition);
+        }
+        if source.match_indices(&boundary_marker).count() != 1 {
+            return Err(Sprint105WitnessReturnFlowRejectionV1::BoundaryDefinition);
+        }
+        let (helper_signature, helper) =
+            q1_structural_evaluation_authority_v1::extract_witness_function_for_test(
+                &source,
+                helper_name,
+            )
+            .map_err(|_| Sprint105WitnessReturnFlowRejectionV1::HelperDefinition)?;
+        let (boundary_signature, boundary) =
+            q1_structural_evaluation_authority_v1::extract_witness_function_for_test(
+                &source,
+                boundary_name,
+            )
+            .map_err(|_| Sprint105WitnessReturnFlowRejectionV1::BoundaryDefinition)?;
+        let helper_signature = sprint105_compact_witness_source_v4(helper_signature);
+        let helper = sprint105_compact_witness_source_v4(helper);
+        let boundary_signature = sprint105_compact_witness_source_v4(boundary_signature);
+        let boundary = sprint105_compact_witness_source_v4(boundary);
+        if ![
+            "inner:&V6AuthorizedV2EvaluationInnerV1)->Sprint105CanonicalShapeObservationV1",
+            "inner:&V6AuthorizedV2EvaluationInnerV1,)->Sprint105CanonicalShapeObservationV1",
+        ]
+        .contains(&helper_signature.as_str())
+        {
+            return Err(Sprint105WitnessReturnFlowRejectionV1::HelperSignature);
+        }
+        if ![
+            "letV6AuthorizedV2EvaluationInnerV1{authorized_matrix,verdict}=inner;",
+            "letV6AuthorizedV2EvaluationInnerV1{authorized_matrix,verdict,}=inner;",
+        ]
+        .iter()
+        .any(|destructure| helper.contains(destructure))
+            || helper.contains("..")
+        {
+            return Err(Sprint105WitnessReturnFlowRejectionV1::HelperShape);
+        }
+        if !helper.contains("authorized_matrix.q1_contract().clone()") {
+            return Err(Sprint105WitnessReturnFlowRejectionV1::MatrixObservation);
+        }
+        if !helper.contains("v2_status_view_v1(*verdict)") {
+            return Err(Sprint105WitnessReturnFlowRejectionV1::VerdictObservation);
+        }
+        if ![
+            "evaluation:&V6AuthorizedV2EvaluationV1)->Sprint105CanonicalShapeObservationV1",
+            "evaluation:&V6AuthorizedV2EvaluationV1,)->Sprint105CanonicalShapeObservationV1",
+        ]
+        .contains(&boundary_signature.as_str())
+        {
+            return Err(Sprint105WitnessReturnFlowRejectionV1::BoundarySignature);
+        }
+        for conversion in ["implFrom<", "implTryFrom<"] {
+            let conversion = [conversion, "Sprint105CanonicalShapeObservationV1>for"].concat();
+            if compact_source.contains(&conversion) {
+                return Err(Sprint105WitnessReturnFlowRejectionV1::ObservationAuthorityConversion);
+            }
+        }
+        if q1_structural_evaluation_authority_v1::validate_no_raw_inner_capabilities_for_test(
+            &source,
+        )
+        .is_err()
+        {
+            return Err(Sprint105WitnessReturnFlowRejectionV1::RawInnerExposure);
+        }
+
+        let canonical_call = "sprint105_assert_canonical_pair_owner_shape_v1(&evaluation.inner)";
+        let canonical_call_with_trailing_comma =
+            "sprint105_assert_canonical_pair_owner_shape_v1(&evaluation.inner,)";
+        if boundary == canonical_call || boundary == canonical_call_with_trailing_comma {
+            return Ok(());
+        }
+
+        let helper_call_count = boundary.match_indices(helper_name).count();
+        if boundary == "&evaluation.inner" || boundary == "return&evaluation.inner;" {
+            return Err(Sprint105WitnessReturnFlowRejectionV1::RawInnerExposure);
+        }
+        if helper_call_count > 1 {
+            return Err(Sprint105WitnessReturnFlowRejectionV1::DoubleHelperInvocation);
+        }
+        if helper_call_count == 1
+            && !boundary.contains(canonical_call)
+            && !boundary.contains(canonical_call_with_trailing_comma)
+        {
+            return Err(Sprint105WitnessReturnFlowRejectionV1::WrongWitnessObject);
+        }
+        if boundary.starts_with("iffalse{") {
+            return Err(Sprint105WitnessReturnFlowRejectionV1::UnreachableHelper);
+        }
+        if boundary.starts_with("if") || boundary.contains("else{") {
+            return Err(Sprint105WitnessReturnFlowRejectionV1::ConditionalHelper);
+        }
+        if boundary.starts_with("letmutobservation=")
+            && boundary
+                .split_once(';')
+                .is_some_and(|(_, tail)| tail.contains("observation="))
+        {
+            return Err(Sprint105WitnessReturnFlowRejectionV1::OverwrittenObservation);
+        }
+        if boundary.starts_with("let_=") || boundary.starts_with("let_ignored=") {
+            return Err(Sprint105WitnessReturnFlowRejectionV1::UnderscoreDiscard);
+        }
+        if boundary.contains("Sprint105CanonicalShapeObservationV1{") {
+            return Err(Sprint105WitnessReturnFlowRejectionV1::RewrittenObservation);
+        }
+        if boundary.contains(";return") {
+            return Err(Sprint105WitnessReturnFlowRejectionV1::ExplicitConstantReturn);
+        }
+        if boundary.starts_with("let") && helper_call_count == 1 {
+            return Err(Sprint105WitnessReturnFlowRejectionV1::DiscardedHelperResult);
+        }
+        if boundary.contains("v2_status_view_v1(") || boundary.contains(".status()") {
+            return Err(Sprint105WitnessReturnFlowRejectionV1::IndependentObservationConstruction);
+        }
+        if boundary.contains("Sprint105CanonicalShapeObservationV1::") {
+            return Err(Sprint105WitnessReturnFlowRejectionV1::ConstantWitnessReturn);
+        }
+        Err(Sprint105WitnessReturnFlowRejectionV1::NonCanonicalReturnFlow)
+    }
+
+    fn sprint105_validate_shape_witness_positive_source_v4(
+        source: &str,
+    ) -> Result<(), &'static str> {
+        let source = sprint105_compact_witness_source_v4(source);
+        let exercise = "exercise_canonical_pair_owner_shape_for_test(&evaluation,)";
+        let consume = "build_v2_qualification_result(evaluation)";
+        let evaluation_clone = ["evaluation", ".clone()"].concat();
+        if source.match_indices("letevaluation=").count() != 1
+            || source.match_indices("finalize_v2_evaluation(").count() != 1
+            || source.match_indices(exercise).count() != 1
+            || source.match_indices(consume).count() != 1
+        {
+            return Err("official witness path must create, inspect, and consume one evaluation");
+        }
+        if source.find(exercise) >= source.find(consume) {
+            return Err("the witnessed evaluation must be consumed after observation");
+        }
+        if source.contains(&evaluation_clone)
+            || source.contains("V6AuthorizedV2EvaluationInnerV1{")
+            || source.contains("V6AuthorizedV2EvaluationV1{")
+        {
+            return Err("manual or cloned evaluation is forbidden");
+        }
+        if !source.contains("observation.matrix_contract")
+            || !source.contains("observation.verdict_status")
+            || !source.contains("result.q1_contract()")
+            || !source.contains("result.status()")
+        {
+            return Err("both observation axes and result projections must be checked");
+        }
+        Ok(())
+    }
+
+    fn sprint105_shape_witness_boundary_fixture_v4(
+        helper_body: &str,
+        boundary_parameters: &str,
+        boundary_body: &str,
+    ) -> String {
+        format!(
+            "fn sprint105_assert_canonical_pair_owner_shape_v1(inner: &V6AuthorizedV2EvaluationInnerV1) -> Sprint105CanonicalShapeObservationV1 {{ {helper_body} }}\n\
+             pub(super) fn exercise_canonical_pair_owner_shape_for_test({boundary_parameters}) -> Sprint105CanonicalShapeObservationV1 {{ {boundary_body} }}\n\
+             pub(super) struct Sprint105V2Q1QualificationResultV1;"
+        )
+    }
+
+    fn sprint105_valid_shape_helper_body_fixture_v4() -> &'static str {
+        "let V6AuthorizedV2EvaluationInnerV1 { authorized_matrix, verdict } = inner; \
+         Sprint105CanonicalShapeObservationV1 { \
+             matrix_contract: authorized_matrix.q1_contract().clone(), \
+             verdict_status: v2_status_view_v1(*verdict), \
+         }"
+    }
+
+    fn sprint105_raw_inner_capability_fixture_v5(source: &str) -> String {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        source
+            .replace("LivePrivateInnerFixtureV1", names.evaluation_inner)
+            .replace("LiveEvaluationFixtureV1", names.evaluation)
+    }
+
+    fn sprint105_assert_direct_raw_inner_rejected_v5(source: &str) {
+        let source = sprint105_raw_inner_capability_fixture_v5(source);
+        assert!(matches!(
+            q1_structural_evaluation_authority_v1::validate_no_raw_inner_capabilities_for_test(
+                &source
+            ),
+            Err(q1_structural_evaluation_authority_v1::Sprint105RawInnerCapabilityGuardErrorV1::RawInnerExposure(
+                q1_structural_evaluation_authority_v1::Sprint105RawInnerReturnExposureV1::Direct { .. }
+            ))
+        ));
+    }
+
+    fn sprint105_assert_wrapped_raw_inner_rejected_v5(source: &str) {
+        let source = sprint105_raw_inner_capability_fixture_v5(source);
+        assert!(matches!(
+            q1_structural_evaluation_authority_v1::validate_no_raw_inner_capabilities_for_test(
+                &source
+            ),
+            Err(q1_structural_evaluation_authority_v1::Sprint105RawInnerCapabilityGuardErrorV1::RawInnerExposure(
+                q1_structural_evaluation_authority_v1::Sprint105RawInnerReturnExposureV1::Wrapped { .. }
+            ))
+        ));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r2_live_inner_compile_binding() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let qualified =
+            q1_structural_evaluation_authority_v1::live_private_inner_type_name_for_test();
+        assert_eq!(qualified.rsplit("::").next(), Some(names.evaluation_inner));
+        assert_eq!(names.evaluation_inner, "V6AuthorizedV2EvaluationInnerV1");
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r2_private_interfaces_backstop_active() {
+        let (module, _) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let deny = ["#![deny(", "private_interfaces", ")]"].concat();
+        let allow = ["allow(", "private_interfaces", ")"].concat();
+        assert_eq!(module.match_indices(&deny).count(), 1);
+        assert!(!module.contains(&allow));
+        assert!(module.contains("struct V6AuthorizedV2EvaluationInnerV1 {"));
+        assert!(!module.contains("pub(super) struct V6AuthorizedV2EvaluationInnerV1"));
+        assert!(!module.contains("pub(crate) struct V6AuthorizedV2EvaluationInnerV1"));
+        assert!(!module.contains("pub struct V6AuthorizedV2EvaluationInnerV1"));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r2_function_return_parser_positive() {
+        let source = "fn unit(value: OtherType) { consume(value) }\n\
+                      pub(super) fn checked<T>(value: T) -> Result<OtherType, Error> \
+                      where T: Trait<OtherType> { build(value) }\n\
+                      trait SafeTrait { fn item(&self) -> Option<OtherType>; }";
+        let audit =
+            q1_structural_evaluation_authority_v1::inspect_raw_inner_capabilities_for_test(source)
+                .unwrap();
+        assert_eq!(audit.inspected_function_count, 3);
+        assert_eq!(audit.safe_function_return_count, 3);
+        assert!(audit.function_returns.iter().any(|function| {
+            function.visibility == "pub(super)"
+                && function.generic_parameters == "T"
+                && function.return_type == "Result<OtherType, Error>"
+                && function.where_clause == "T: Trait<OtherType>"
+                && function.declaration_terminator == '{'
+        }));
+        assert!(
+            audit
+                .function_returns
+                .iter()
+                .any(|function| function.declaration_terminator == ';')
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r2_multiline_generic_return_parser_positive() {
+        let source = "fn callback<T>(\n    input: T,\n)\n    -> fn(OtherType) -> Result<OtherType, Error>\nwhere\n    T: Trait<OtherType>,\n{ build(input) }";
+        let audit =
+            q1_structural_evaluation_authority_v1::inspect_raw_inner_capabilities_for_test(source)
+                .unwrap();
+        assert_eq!(audit.inspected_function_count, 1);
+        assert_eq!(
+            audit.function_returns[0].return_type,
+            "fn(OtherType) -> Result<OtherType, Error>"
+        );
+        assert_eq!(
+            audit.function_returns[0].where_clause,
+            "T: Trait<OtherType>,"
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r2_malformed_return_fails_closed() {
+        let error = q1_structural_evaluation_authority_v1::inspect_raw_inner_capabilities_for_test(
+            "fn broken() -> Option<OtherType { unreachable!() }",
+        )
+        .unwrap_err();
+        assert_eq!(
+            error,
+            q1_structural_evaluation_authority_v1::Sprint105RawInnerCapabilityGuardErrorV1::MalformedFunctionDeclaration
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r2_malformed_aliases_fail_closed() {
+        assert_eq!(
+            q1_structural_evaluation_authority_v1::inspect_raw_inner_capabilities_for_test(
+                "type Broken = Option<OtherType;",
+            )
+            .unwrap_err(),
+            q1_structural_evaluation_authority_v1::Sprint105RawInnerCapabilityGuardErrorV1::MalformedTypeAlias
+        );
+        assert_eq!(
+            q1_structural_evaluation_authority_v1::inspect_raw_inner_capabilities_for_test(
+                "use self::{ OtherType as };",
+            )
+            .unwrap_err(),
+            q1_structural_evaluation_authority_v1::Sprint105RawInnerCapabilityGuardErrorV1::MissingAlias
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r2_ambiguous_alias_fails_closed() {
+        assert_eq!(
+            q1_structural_evaluation_authority_v1::inspect_raw_inner_capabilities_for_test(
+                "type Alias = OtherType; use self::OtherType as Alias;",
+            )
+            .unwrap_err(),
+            q1_structural_evaluation_authority_v1::Sprint105RawInnerCapabilityGuardErrorV1::AmbiguousAlias {
+                alias: "Alias".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r2_unresolved_local_alias_fails_closed() {
+        assert_eq!(
+            q1_structural_evaluation_authority_v1::inspect_raw_inner_capabilities_for_test(
+                "type Alias = self::MissingAlias; fn leak() -> Alias { unreachable!() }",
+            )
+            .unwrap_err(),
+            q1_structural_evaluation_authority_v1::Sprint105RawInnerCapabilityGuardErrorV1::UnresolvedLocalAlias {
+                alias: "Alias".to_string(),
+                target: "MissingAlias".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r2_type_alias_parser_positive() {
+        let source = "type SafeAlias<T> = Result<Option<T>, Error>; \
+                      fn safe() -> SafeAlias<OtherType> { build() }";
+        let audit =
+            q1_structural_evaluation_authority_v1::validate_no_raw_inner_capabilities_for_test(
+                source,
+            )
+            .unwrap();
+        assert_eq!(audit.type_alias_count, 1);
+        assert_eq!(audit.alias_graph_node_count, 1);
+        assert_eq!(audit.alias_graph_edge_count, 0);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r2_import_alias_parser_positive() {
+        let source = "use self::{ OtherType as SafeAlias, }; \
+                      fn safe() -> SafeAlias { build() }";
+        let audit =
+            q1_structural_evaluation_authority_v1::validate_no_raw_inner_capabilities_for_test(
+                source,
+            )
+            .unwrap();
+        assert_eq!(audit.import_alias_count, 1);
+        assert_eq!(audit.import_alias_exposure_count, 0);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r2_alias_graph_is_deterministic() {
+        let source = sprint105_raw_inner_capability_fixture_v5(
+            "type First<'a> = &'a LivePrivateInnerFixtureV1; \
+             type Second<'a> = Option<First<'a>>; \
+             fn leak() -> Second<'static> { unreachable!() }",
+        );
+        let first =
+            q1_structural_evaluation_authority_v1::inspect_raw_inner_capabilities_for_test(&source)
+                .unwrap();
+        let second =
+            q1_structural_evaluation_authority_v1::inspect_raw_inner_capabilities_for_test(&source)
+                .unwrap();
+        assert_eq!(first, second);
+        assert_eq!(first.alias_graph_node_count, 2);
+        assert_eq!(first.alias_graph_edge_count, 2);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r2_alias_cycles_fail_closed() {
+        for source in [
+            "type A = B; type B = A; fn leak() -> A { unreachable!() }",
+            "type A = Option<B>; type B = Result<A, Error>;",
+        ] {
+            assert!(matches!(
+                q1_structural_evaluation_authority_v1::validate_no_raw_inner_capabilities_for_test(
+                    source
+                ),
+                Err(q1_structural_evaluation_authority_v1::Sprint105RawInnerCapabilityGuardErrorV1::AliasCycle { .. })
+            ));
+        }
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r2_cycle_like_chain_to_inner_is_exposure() {
+        let source = sprint105_raw_inner_capability_fixture_v5(
+            "type A = B; type B = LivePrivateInnerFixtureV1; \
+             fn leak() -> A { unreachable!() }",
+        );
+        assert!(matches!(
+            q1_structural_evaluation_authority_v1::validate_no_raw_inner_capabilities_for_test(
+                &source
+            ),
+            Err(q1_structural_evaluation_authority_v1::Sprint105RawInnerCapabilityGuardErrorV1::RawInnerExposure(
+                q1_structural_evaluation_authority_v1::Sprint105RawInnerReturnExposureV1::TypeAlias { .. }
+            ))
+        ));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r2_direct_borrowed_return_rejected() {
+        sprint105_assert_direct_raw_inner_rejected_v5(
+            "fn leak(value: &LivePrivateInnerFixtureV1) -> &LivePrivateInnerFixtureV1 { value }",
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r2_mutable_borrowed_return_rejected() {
+        sprint105_assert_direct_raw_inner_rejected_v5(
+            "fn leak(value: &mut LivePrivateInnerFixtureV1) \
+             -> &mut LivePrivateInnerFixtureV1 { value }",
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r2_option_return_rejected() {
+        sprint105_assert_wrapped_raw_inner_rejected_v5(
+            "fn leak() -> Option<&LivePrivateInnerFixtureV1> { None }",
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r2_result_return_rejected() {
+        sprint105_assert_wrapped_raw_inner_rejected_v5(
+            "fn leak() -> Result<&LivePrivateInnerFixtureV1, Error> { unreachable!() }",
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r2_tuple_return_rejected() {
+        sprint105_assert_wrapped_raw_inner_rejected_v5(
+            "fn leak() -> (u64, &LivePrivateInnerFixtureV1) { unreachable!() }",
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r2_reversed_tuple_return_rejected() {
+        sprint105_assert_wrapped_raw_inner_rejected_v5(
+            "fn leak() -> (&LivePrivateInnerFixtureV1, u64) { unreachable!() }",
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r2_nested_wrapper_return_rejected() {
+        sprint105_assert_wrapped_raw_inner_rejected_v5(
+            "fn leak() -> Option<Result<(&LivePrivateInnerFixtureV1, u64), Error>> \
+             { unreachable!() }",
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r2_owned_inner_return_rejected() {
+        sprint105_assert_direct_raw_inner_rejected_v5(
+            "fn leak() -> LivePrivateInnerFixtureV1 { unreachable!() }",
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r2_boxed_inner_return_rejected() {
+        sprint105_assert_wrapped_raw_inner_rejected_v5(
+            "fn leak() -> Box<LivePrivateInnerFixtureV1> { unreachable!() }",
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r2_custom_wrapper_return_rejected() {
+        sprint105_assert_wrapped_raw_inner_rejected_v5(
+            "fn leak() -> Wrapper<&LivePrivateInnerFixtureV1> { unreachable!() }",
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r2_function_pointer_return_rejected() {
+        sprint105_assert_wrapped_raw_inner_rejected_v5(
+            "fn leak() -> fn() -> &'static LivePrivateInnerFixtureV1 { unreachable!() }",
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r2_impl_trait_associated_return_rejected() {
+        sprint105_assert_wrapped_raw_inner_rejected_v5(
+            "fn leak() -> impl Iterator<Item = &'static LivePrivateInnerFixtureV1> \
+             { unreachable!() }",
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r2_direct_type_alias_return_rejected() {
+        let source = sprint105_raw_inner_capability_fixture_v5(
+            "type Leaked<'a> = Option<&'a LivePrivateInnerFixtureV1>; \
+             fn leak() -> Leaked<'static> { unreachable!() }",
+        );
+        assert!(matches!(
+            q1_structural_evaluation_authority_v1::validate_no_raw_inner_capabilities_for_test(
+                &source
+            ),
+            Err(q1_structural_evaluation_authority_v1::Sprint105RawInnerCapabilityGuardErrorV1::RawInnerExposure(
+                q1_structural_evaluation_authority_v1::Sprint105RawInnerReturnExposureV1::TypeAlias { .. }
+            ))
+        ));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r2_alias_chain_return_rejected() {
+        let source = sprint105_raw_inner_capability_fixture_v5(
+            "type A<'a> = &'a LivePrivateInnerFixtureV1; \
+             type B<'a> = Option<A<'a>>; \
+             type C<'a> = Result<B<'a>, Error>; \
+             fn leak() -> C<'static> { unreachable!() }",
+        );
+        let error =
+            q1_structural_evaluation_authority_v1::validate_no_raw_inner_capabilities_for_test(
+                &source,
+            )
+            .unwrap_err();
+        let q1_structural_evaluation_authority_v1::Sprint105RawInnerCapabilityGuardErrorV1::RawInnerExposure(
+            q1_structural_evaluation_authority_v1::Sprint105RawInnerReturnExposureV1::TypeAlias {
+                alias_path, ..
+            },
+        ) = error
+        else {
+            panic!("alias-chain exposure must retain typed provenance");
+        };
+        assert!(
+            alias_path
+                .first()
+                .is_some_and(|alias| alias.ends_with("::C"))
+        );
+        assert_eq!(
+            alias_path.last().map(String::as_str),
+            Some("V6AuthorizedV2EvaluationInnerV1")
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r2_import_alias_return_rejected() {
+        let source = sprint105_raw_inner_capability_fixture_v5(
+            "use self::LivePrivateInnerFixtureV1 as LeakedInner; \
+             fn leak() -> Option<&LeakedInner> { None }",
+        );
+        assert!(matches!(
+            q1_structural_evaluation_authority_v1::validate_no_raw_inner_capabilities_for_test(
+                &source
+            ),
+            Err(q1_structural_evaluation_authority_v1::Sprint105RawInnerCapabilityGuardErrorV1::RawInnerExposure(
+                q1_structural_evaluation_authority_v1::Sprint105RawInnerReturnExposureV1::ImportAlias { .. }
+            ))
+        ));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r2_grouped_import_alias_return_rejected() {
+        let source = sprint105_raw_inner_capability_fixture_v5(
+            "use self::{ LivePrivateInnerFixtureV1 as LeakedInner, }; \
+             fn leak() -> Result<&LeakedInner, Error> { unreachable!() }",
+        );
+        assert!(matches!(
+            q1_structural_evaluation_authority_v1::validate_no_raw_inner_capabilities_for_test(
+                &source
+            ),
+            Err(q1_structural_evaluation_authority_v1::Sprint105RawInnerCapabilityGuardErrorV1::RawInnerExposure(
+                q1_structural_evaluation_authority_v1::Sprint105RawInnerReturnExposureV1::ImportAlias { .. }
+            ))
+        ));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r2_qualified_path_return_rejected() {
+        sprint105_assert_wrapped_raw_inner_rejected_v5(
+            "fn leak() -> Option<&super::LivePrivateInnerFixtureV1> { None }",
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r2_generic_shadow_rejected() {
+        let source = sprint105_raw_inner_capability_fixture_v5(
+            "fn leak<LivePrivateInnerFixtureV1>() -> LivePrivateInnerFixtureV1 \
+             { unreachable!() }",
+        );
+        assert!(matches!(
+            q1_structural_evaluation_authority_v1::validate_no_raw_inner_capabilities_for_test(
+                &source
+            ),
+            Err(q1_structural_evaluation_authority_v1::Sprint105RawInnerCapabilityGuardErrorV1::ShadowedLiveInnerIdentifier { .. })
+        ));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r2_parameter_only_positive() {
+        let source = sprint105_raw_inner_capability_fixture_v5(
+            "fn inspect(inner: &LivePrivateInnerFixtureV1) -> Observation { observe(inner) }",
+        );
+        let audit =
+            q1_structural_evaluation_authority_v1::validate_no_raw_inner_capabilities_for_test(
+                &source,
+            )
+            .unwrap();
+        assert_eq!(audit.inspected_function_count, 1);
+        assert_eq!(audit.safe_function_return_count, 1);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r2_safe_false_positive_fixtures() {
+        let source = sprint105_raw_inner_capability_fixture_v5(concat!(
+            "fn partial() -> Option<&LivePrivateInnerFixtureV1Backup> { None }\n",
+            "fn unrelated() -> Result<OtherType, Error> { build() }\n",
+            "type SafeAlias = Option<OtherType>;\n",
+            "fn alias_safe() -> SafeAlias { build() }\n",
+            "use self::OtherType as SafeImportAlias;\n",
+            "fn import_safe() -> SafeImportAlias { build() }\n",
+            "// fn comment_leak() -> Option<&LivePrivateInnerFixtureV1> { None }\n",
+            "/* outer /* fn block_leak() -> &LivePrivateInnerFixtureV1 {} */ */\n",
+            "const NORMAL: &str = \"fn string_leak() -> &LivePrivateInnerFixtureV1\";\n",
+            "const RAW: &str = r#\"type Leaked = LivePrivateInnerFixtureV1;\"#;\n",
+            "const BYTES: &[u8] = b\"fn byte_string_leak() -> &LivePrivateInnerFixtureV1\";\n",
+            "const CHARACTER: char = 'x';",
+        ));
+        let audit =
+            q1_structural_evaluation_authority_v1::validate_no_raw_inner_capabilities_for_test(
+                &source,
+            )
+            .unwrap();
+        assert_eq!(audit.inspected_function_count, 4);
+        assert_eq!(audit.safe_function_return_count, 4);
+        assert_eq!(audit.type_alias_count, 1);
+        assert_eq!(audit.import_alias_count, 1);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r2_mixed_actual_boundary_rejected() {
+        let source = sprint105_raw_inner_capability_fixture_v5(
+            "pub(super) fn leak(evaluation: &LiveEvaluationFixtureV1) \
+             -> Option<&LivePrivateInnerFixtureV1> { Some(&evaluation.inner) }",
+        );
+        let error =
+            q1_structural_evaluation_authority_v1::validate_no_raw_inner_capabilities_for_test(
+                &source,
+            )
+            .unwrap_err();
+        let q1_structural_evaluation_authority_v1::Sprint105RawInnerCapabilityGuardErrorV1::RawInnerExposure(
+            q1_structural_evaluation_authority_v1::Sprint105RawInnerReturnExposureV1::Wrapped {
+                capability_path,
+                ..
+            },
+        ) = error
+        else {
+            panic!("mixed accessor must retain wrapper provenance");
+        };
+        assert_eq!(
+            capability_path,
+            ["FunctionReturn", "Option", "Reference", "LivePrivateInner"]
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r2_actual_source_capability_graph() {
+        let (module, _) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let audit =
+            q1_structural_evaluation_authority_v1::validate_no_raw_inner_capabilities_for_test(
+                module,
+            )
+            .unwrap();
+        assert!(audit.inspected_function_count > 0);
+        assert_eq!(
+            audit.inspected_function_count,
+            audit.safe_function_return_count
+        );
+        assert_eq!(audit.direct_exposure_count, 0);
+        assert_eq!(audit.wrapped_exposure_count, 0);
+        assert_eq!(audit.type_alias_exposure_count, 0);
+        assert_eq!(audit.import_alias_exposure_count, 0);
+        assert_eq!(audit.alias_cycle_count, 0);
+        assert_eq!(audit.unresolved_local_alias_count, 0);
+        assert!(audit.live_exposure_paths.is_empty());
+        println!(
+            "S105_EF1_EXIT_R2_GRAPH functions={} type_aliases={} import_aliases={} nodes={} edges={} direct={} wrapped={} type_alias={} import_alias={} cycles={} unresolved={}",
+            audit.inspected_function_count,
+            audit.type_alias_count,
+            audit.import_alias_count,
+            audit.alias_graph_node_count,
+            audit.alias_graph_edge_count,
+            audit.direct_exposure_count,
+            audit.wrapped_exposure_count,
+            audit.type_alias_exposure_count,
+            audit.import_alias_exposure_count,
+            audit.alias_cycle_count,
+            audit.unresolved_local_alias_count,
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r2_actual_witness_positive() {
+        let (module, _) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        q1_structural_evaluation_authority_v1::validate_no_raw_inner_capabilities_for_test(module)
+            .unwrap();
+        sprint105_validate_shape_witness_boundary_source_v4(module).unwrap();
+        let (_, boundary) =
+            q1_structural_evaluation_authority_v1::extract_witness_function_for_test(
+                module,
+                "exercise_canonical_pair_owner_shape_for_test",
+            )
+            .unwrap();
+        assert_eq!(
+            sprint105_compact_witness_source_v4(boundary),
+            "sprint105_assert_canonical_pair_owner_shape_v1(&evaluation.inner)"
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r3_canonical_import_target_representation() {
+        let inventory = q1_structural_evaluation_authority_v1::inspect_import_aliases_for_test(
+            "use self::outer::OtherType as SafeAlias;",
+        )
+        .unwrap();
+        assert_eq!(inventory.use_declaration_count, 1);
+        assert_eq!(inventory.aliases.len(), 1);
+        let alias = &inventory.aliases[0];
+        assert_eq!(alias.name, "SafeAlias");
+        assert_eq!(
+            alias.target.canonical_segments,
+            ["self", "outer", "OtherType"]
+        );
+        assert_eq!(alias.target.terminal, "OtherType");
+        assert_eq!(
+            alias.source_kind,
+            q1_structural_evaluation_authority_v1::Sprint105ImportAliasSourceKindV1::Direct
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r3_direct_and_grouped_name_resolution() {
+        let direct = q1_structural_evaluation_authority_v1::inspect_import_aliases_for_test(
+            "use self::OtherType as DirectAlias;",
+        )
+        .unwrap();
+        let grouped = q1_structural_evaluation_authority_v1::inspect_import_aliases_for_test(
+            "use self::{ OtherType as GroupedAlias, };",
+        )
+        .unwrap();
+        assert_eq!(
+            direct.aliases[0].target.canonical_segments,
+            ["self", "OtherType"]
+        );
+        assert_eq!(
+            grouped.aliases[0].target.canonical_segments,
+            ["self", "OtherType"]
+        );
+        assert_eq!(
+            grouped.aliases[0].source_kind,
+            q1_structural_evaluation_authority_v1::Sprint105ImportAliasSourceKindV1::GroupedName
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r3_grouped_self_resolution() {
+        let source = sprint105_raw_inner_capability_fixture_v5(
+            "use self::LivePrivateInnerFixtureV1::{ self as LeakedInner, };",
+        );
+        let inventory =
+            q1_structural_evaluation_authority_v1::inspect_import_aliases_for_test(&source)
+                .unwrap();
+        assert_eq!(inventory.grouped_use_count, 1);
+        assert_eq!(inventory.grouped_self_alias_count, 1);
+        assert_eq!(
+            inventory.aliases[0].target.canonical_segments,
+            ["self", "V6AuthorizedV2EvaluationInnerV1"]
+        );
+        assert_eq!(
+            inventory.aliases[0].target.terminal,
+            "V6AuthorizedV2EvaluationInnerV1"
+        );
+        assert_eq!(
+            inventory.aliases[0].source_kind,
+            q1_structural_evaluation_authority_v1::Sprint105ImportAliasSourceKindV1::GroupedSelf
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r3_nested_and_deeper_grouped_self_resolution() {
+        for (source, expected) in [
+            (
+                "use self::{ Inner::{ self as Alias, }, };",
+                vec!["self", "Inner"],
+            ),
+            (
+                "use self::outer::{ Inner::{ self as Alias, }, };",
+                vec!["self", "outer", "Inner"],
+            ),
+        ] {
+            let inventory =
+                q1_structural_evaluation_authority_v1::inspect_import_aliases_for_test(source)
+                    .unwrap();
+            assert_eq!(inventory.aliases[0].target.canonical_segments, expected);
+            assert_eq!(inventory.aliases[0].target.terminal, "Inner");
+        }
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r3_exact_private_grouped_self_accessor_rejected() {
+        let source = sprint105_raw_inner_capability_fixture_v5(
+            "use self::LivePrivateInnerFixtureV1::{\n    self as LeakedInner,\n};\n\
+             fn leak(evaluation: &LiveEvaluationFixtureV1) -> Option<&LeakedInner> {\n\
+                 Some(&evaluation.inner)\n\
+             }",
+        );
+        let error =
+            q1_structural_evaluation_authority_v1::validate_no_raw_inner_capabilities_for_test(
+                &source,
+            )
+            .unwrap_err();
+        let q1_structural_evaluation_authority_v1::Sprint105RawInnerCapabilityGuardErrorV1::RawInnerExposure(
+            q1_structural_evaluation_authority_v1::Sprint105RawInnerReturnExposureV1::ImportAlias {
+                function,
+                return_type,
+                alias_path,
+                canonical_target_path,
+                terminal_target,
+            },
+        ) = error
+        else {
+            panic!("grouped-self accessor must be a typed import-alias exposure");
+        };
+        assert!(function.contains("::leak#"));
+        assert_eq!(return_type, "Option<&LeakedInner>");
+        assert_eq!(
+            canonical_target_path,
+            ["self", "V6AuthorizedV2EvaluationInnerV1"]
+        );
+        assert_eq!(terminal_target, "V6AuthorizedV2EvaluationInnerV1");
+        assert!(alias_path.iter().any(|entry| entry == "ImportAlias"));
+        assert!(alias_path.iter().any(|entry| entry == "GroupedSelf"));
+        assert!(
+            alias_path
+                .iter()
+                .any(|entry| entry == "self::V6AuthorizedV2EvaluationInnerV1")
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r3_multiline_grouped_self_rejected() {
+        let source = sprint105_raw_inner_capability_fixture_v5(
+            "use self::LivePrivateInnerFixtureV1::{\n    self\n        as\n        LeakedInner,\n};\n\
+             fn leak() -> Option<&LeakedInner> { None }",
+        );
+        assert!(matches!(
+            q1_structural_evaluation_authority_v1::validate_no_raw_inner_capabilities_for_test(
+                &source
+            ),
+            Err(q1_structural_evaluation_authority_v1::Sprint105RawInnerCapabilityGuardErrorV1::RawInnerExposure(
+                q1_structural_evaluation_authority_v1::Sprint105RawInnerReturnExposureV1::ImportAlias { .. }
+            ))
+        ));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r3_nested_grouped_self_rejected() {
+        let source = sprint105_raw_inner_capability_fixture_v5(
+            "use self::{ LivePrivateInnerFixtureV1::{ self as LeakedInner, }, }; \
+             fn leak() -> Option<&LeakedInner> { None }",
+        );
+        assert!(matches!(
+            q1_structural_evaluation_authority_v1::validate_no_raw_inner_capabilities_for_test(
+                &source
+            ),
+            Err(q1_structural_evaluation_authority_v1::Sprint105RawInnerCapabilityGuardErrorV1::RawInnerExposure(
+                q1_structural_evaluation_authority_v1::Sprint105RawInnerReturnExposureV1::ImportAlias { .. }
+            ))
+        ));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r3_deeper_grouped_self_rejected() {
+        let source = sprint105_raw_inner_capability_fixture_v5(
+            "use self::authority::{ LivePrivateInnerFixtureV1::{ self as LeakedInner, }, }; \
+             fn leak() -> Result<&LeakedInner, Error> { unreachable!() }",
+        );
+        let error =
+            q1_structural_evaluation_authority_v1::validate_no_raw_inner_capabilities_for_test(
+                &source,
+            )
+            .unwrap_err();
+        assert!(matches!(
+            error,
+            q1_structural_evaluation_authority_v1::Sprint105RawInnerCapabilityGuardErrorV1::RawInnerExposure(
+                q1_structural_evaluation_authority_v1::Sprint105RawInnerReturnExposureV1::ImportAlias {
+                    canonical_target_path,
+                    terminal_target,
+                    ..
+                }
+            ) if canonical_target_path == ["self", "authority", "V6AuthorizedV2EvaluationInnerV1"]
+                && terminal_target == "V6AuthorizedV2EvaluationInnerV1"
+        ));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r3_mixed_group_is_exact() {
+        let source = sprint105_raw_inner_capability_fixture_v5(
+            "use self::LivePrivateInnerFixtureV1::{ \
+                 self as LeakedInner, Other as SafeAlias, \
+             }; \
+             fn leak() -> LeakedInner { unreachable!() } \
+             fn safe() -> SafeAlias { unreachable!() }",
+        );
+        let audit =
+            q1_structural_evaluation_authority_v1::inspect_raw_inner_capabilities_for_test(&source)
+                .unwrap();
+        assert_eq!(audit.import_alias_count, 2);
+        assert_eq!(audit.tainted_import_alias_count, 1);
+        assert_eq!(audit.import_alias_exposure_count, 1);
+        assert_eq!(audit.safe_function_return_count, 1);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r3_two_grouped_self_aliases_are_tainted() {
+        let source = sprint105_raw_inner_capability_fixture_v5(
+            "use self::LivePrivateInnerFixtureV1::{ self as LeakA, self as LeakB, }; \
+             fn leak_a() -> LeakA { unreachable!() } \
+             fn leak_b() -> LeakB { unreachable!() }",
+        );
+        let audit =
+            q1_structural_evaluation_authority_v1::inspect_raw_inner_capabilities_for_test(&source)
+                .unwrap();
+        assert_eq!(audit.grouped_self_alias_count, 2);
+        assert_eq!(audit.tainted_import_alias_count, 2);
+        assert_eq!(audit.import_alias_exposure_count, 2);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r3_grouped_self_alias_chain_rejected() {
+        let source = sprint105_raw_inner_capability_fixture_v5(
+            "use self::LivePrivateInnerFixtureV1::{ self as LeakA, }; \
+             use self::LeakA as LeakB; \
+             fn leak() -> Option<&LeakB> { None }",
+        );
+        let error =
+            q1_structural_evaluation_authority_v1::validate_no_raw_inner_capabilities_for_test(
+                &source,
+            )
+            .unwrap_err();
+        let q1_structural_evaluation_authority_v1::Sprint105RawInnerCapabilityGuardErrorV1::RawInnerExposure(
+            q1_structural_evaluation_authority_v1::Sprint105RawInnerReturnExposureV1::ImportAlias {
+                alias_path,
+                canonical_target_path,
+                ..
+            },
+        ) = error
+        else {
+            panic!("grouped-self import chain must retain import provenance");
+        };
+        assert!(alias_path.iter().any(|entry| entry.ends_with("::LeakA")));
+        assert!(alias_path.iter().any(|entry| entry.ends_with("::LeakB")));
+        assert!(alias_path.iter().any(|entry| entry == "GroupedSelf"));
+        assert_eq!(
+            canonical_target_path,
+            ["self", "V6AuthorizedV2EvaluationInnerV1"]
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r3_grouped_self_cycle_fails_closed() {
+        let source = sprint105_raw_inner_capability_fixture_v5(
+            "use self::LivePrivateInnerFixtureV1::{ self as LeakA, }; \
+             type LeakB = LeakC; type LeakC = LeakB; \
+             fn leak() -> LeakB { unreachable!() }",
+        );
+        assert!(matches!(
+            q1_structural_evaluation_authority_v1::validate_no_raw_inner_capabilities_for_test(
+                &source
+            ),
+            Err(q1_structural_evaluation_authority_v1::Sprint105RawInnerCapabilityGuardErrorV1::AliasCycle { .. })
+        ));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r3_safe_grouped_aliases_pass() {
+        for source in [
+            "use self::OtherType::{ self as SafeAlias, }; fn safe() -> SafeAlias { build() }",
+            "use self::{ OtherType::{ self as SafeAlias, }, }; fn safe() -> SafeAlias { build() }",
+            "use self::{ OtherType as SafeAlias, }; fn safe() -> SafeAlias { build() }",
+        ] {
+            let audit =
+                q1_structural_evaluation_authority_v1::validate_no_raw_inner_capabilities_for_test(
+                    source,
+                )
+                .unwrap();
+            assert_eq!(audit.import_alias_exposure_count, 0);
+            assert_eq!(audit.tainted_import_alias_count, 0);
+        }
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r3_partial_target_is_safe() {
+        let source = sprint105_raw_inner_capability_fixture_v5(
+            "use self::LivePrivateInnerFixtureV1Backup::{ self as SafeAlias, }; \
+             fn safe() -> SafeAlias { build() }",
+        );
+        let audit =
+            q1_structural_evaluation_authority_v1::validate_no_raw_inner_capabilities_for_test(
+                &source,
+            )
+            .unwrap();
+        assert_eq!(audit.live_inner_import_alias_count, 0);
+        assert_eq!(audit.tainted_import_alias_count, 0);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r3_comment_string_and_raw_string_isolation() {
+        let source = sprint105_raw_inner_capability_fixture_v5(concat!(
+            "// use self::LivePrivateInnerFixtureV1::{ self as CommentAlias, };\n",
+            "const NORMAL: &str = \"use self::LivePrivateInnerFixtureV1::{ self as StringAlias, };\";\n",
+            "const RAW: &str = r#\"use self::LivePrivateInnerFixtureV1::{\n",
+            "    self as RawAlias,\n",
+            "};\"#;\n",
+            "fn safe() -> OtherType { build() }",
+        ));
+        let audit =
+            q1_structural_evaluation_authority_v1::validate_no_raw_inner_capabilities_for_test(
+                &source,
+            )
+            .unwrap();
+        assert_eq!(audit.use_declaration_count, 0);
+        assert_eq!(audit.import_alias_count, 0);
+        assert_eq!(audit.safe_function_return_count, 1);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r3_malformed_use_trees_fail_closed() {
+        for source in [
+            "use self::{ OtherType as Alias;",
+            "use self::{ as Alias, };",
+            "use self::::OtherType as Alias;",
+            "use self::{ OtherType::{ Safe as Alias, };",
+            "use self::{ self::OtherType as Alias, };",
+            "use self::{ OtherType as Alias Alias2, };",
+            "use self::{ * as Alias, };",
+        ] {
+            assert_eq!(
+                q1_structural_evaluation_authority_v1::inspect_raw_inner_capabilities_for_test(
+                    source,
+                )
+                .unwrap_err(),
+                q1_structural_evaluation_authority_v1::Sprint105RawInnerCapabilityGuardErrorV1::MalformedUseTree
+            );
+        }
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r3_missing_alias_fails_closed() {
+        for source in [
+            "use self::{ OtherType as };",
+            "use self::{ OtherType as as Alias, };",
+            "use self::OtherType as;",
+        ] {
+            assert_eq!(
+                q1_structural_evaluation_authority_v1::inspect_raw_inner_capabilities_for_test(
+                    source,
+                )
+                .unwrap_err(),
+                q1_structural_evaluation_authority_v1::Sprint105RawInnerCapabilityGuardErrorV1::MissingAlias
+            );
+        }
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r3_empty_grouped_self_prefix_fails_closed() {
+        assert_eq!(
+            q1_structural_evaluation_authority_v1::inspect_raw_inner_capabilities_for_test(
+                "use { self as Alias, };",
+            )
+            .unwrap_err(),
+            q1_structural_evaluation_authority_v1::Sprint105RawInnerCapabilityGuardErrorV1::EmptyGroupedSelfPrefix
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r3_duplicate_alias_fails_closed() {
+        assert_eq!(
+            q1_structural_evaluation_authority_v1::inspect_raw_inner_capabilities_for_test(
+                "use self::OtherType::{ self as Alias, Other as Alias, };",
+            )
+            .unwrap_err(),
+            q1_structural_evaluation_authority_v1::Sprint105RawInnerCapabilityGuardErrorV1::DuplicateAlias {
+                alias: "Alias".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r3_discard_alias_has_no_graph_node() {
+        let audit = q1_structural_evaluation_authority_v1::inspect_raw_inner_capabilities_for_test(
+            "use self::OtherType::{ self as _, }; fn safe() -> OtherType { build() }",
+        )
+        .unwrap();
+        assert_eq!(audit.import_alias_count, 1);
+        assert_eq!(audit.grouped_self_alias_count, 1);
+        assert_eq!(audit.alias_graph_node_count, 0);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r3_scopes_do_not_merge_aliases() {
+        let source = "mod left { \
+                          use self::OtherType as Alias; \
+                          fn safe() -> Alias { build() } \
+                      } \
+                      mod right { \
+                          use self::OtherType as Alias; \
+                          fn safe() -> Alias { build() } \
+                      }";
+        let audit =
+            q1_structural_evaluation_authority_v1::validate_no_raw_inner_capabilities_for_test(
+                source,
+            )
+            .unwrap();
+        assert_eq!(audit.import_alias_count, 2);
+        assert_eq!(audit.alias_graph_node_count, 2);
+        assert_eq!(audit.safe_function_return_count, 2);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r3_cross_scope_local_alias_is_unresolved() {
+        let source = "mod left { type OnlyThere = OtherType; } \
+                      mod right { \
+                          use self::OnlyThere as Alias; \
+                          fn leak() -> Alias { unreachable!() } \
+                      }";
+        assert_eq!(
+            q1_structural_evaluation_authority_v1::inspect_raw_inner_capabilities_for_test(source)
+                .unwrap_err(),
+            q1_structural_evaluation_authority_v1::Sprint105RawInnerCapabilityGuardErrorV1::UnresolvedLocalAlias {
+                alias: "Alias".to_string(),
+                target: "OnlyThere".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r3_actual_source_import_inventory_and_graph() {
+        let (module, _) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let audit =
+            q1_structural_evaluation_authority_v1::validate_no_raw_inner_capabilities_for_test(
+                module,
+            )
+            .unwrap();
+        assert_eq!(audit.use_declaration_count, 1);
+        assert_eq!(audit.import_alias_count, 0);
+        assert_eq!(audit.grouped_use_count, 0);
+        assert_eq!(audit.grouped_self_alias_count, 0);
+        assert_eq!(audit.glob_import_count, 1);
+        assert_eq!(audit.live_inner_import_alias_count, 0);
+        assert_eq!(audit.tainted_import_alias_count, 0);
+        assert_eq!(audit.direct_exposure_count, 0);
+        assert_eq!(audit.wrapped_exposure_count, 0);
+        assert_eq!(audit.type_alias_exposure_count, 0);
+        assert_eq!(audit.import_alias_exposure_count, 0);
+        assert_eq!(audit.alias_cycle_count, 0);
+        assert_eq!(audit.unresolved_local_alias_count, 0);
+        assert!(audit.live_exposure_paths.is_empty());
+        println!(
+            "S105_EF1_EXIT_R3_GRAPH functions={} uses={} grouped_uses={} import_aliases={} grouped_self_aliases={} globs={} live_inner_import_aliases={} tainted_import_aliases={} nodes={} edges={} direct={} wrapped={} type_alias={} import_alias={} cycles={} unresolved={}",
+            audit.inspected_function_count,
+            audit.use_declaration_count,
+            audit.grouped_use_count,
+            audit.import_alias_count,
+            audit.grouped_self_alias_count,
+            audit.glob_import_count,
+            audit.live_inner_import_alias_count,
+            audit.tainted_import_alias_count,
+            audit.alias_graph_node_count,
+            audit.alias_graph_edge_count,
+            audit.direct_exposure_count,
+            audit.wrapped_exposure_count,
+            audit.type_alias_exposure_count,
+            audit.import_alias_exposure_count,
+            audit.alias_cycle_count,
+            audit.unresolved_local_alias_count,
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r1_canonical_return_expression_positive() {
+        for body in [
+            "sprint105_assert_canonical_pair_owner_shape_v1(&evaluation.inner)",
+            "sprint105_assert_canonical_pair_owner_shape_v1(\n    &evaluation.inner,\n)",
+        ] {
+            let fixture = sprint105_shape_witness_boundary_fixture_v4(
+                sprint105_valid_shape_helper_body_fixture_v4(),
+                "evaluation: &V6AuthorizedV2EvaluationV1",
+                body,
+            );
+            sprint105_validate_shape_witness_boundary_source_v4(&fixture).unwrap();
+        }
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r1_discarded_result_constant_rejected() {
+        let fixture = sprint105_shape_witness_boundary_fixture_v4(
+            sprint105_valid_shape_helper_body_fixture_v4(),
+            "evaluation: &V6AuthorizedV2EvaluationV1",
+            "let ignored = sprint105_assert_canonical_pair_owner_shape_v1(&evaluation.inner); \
+             Sprint105CanonicalShapeObservationV1::Constant",
+        );
+        assert_eq!(
+            sprint105_validate_shape_witness_boundary_source_v4(&fixture),
+            Err(Sprint105WitnessReturnFlowRejectionV1::DiscardedHelperResult)
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r1_underscore_discard_rejected() {
+        let fixture = sprint105_shape_witness_boundary_fixture_v4(
+            sprint105_valid_shape_helper_body_fixture_v4(),
+            "evaluation: &V6AuthorizedV2EvaluationV1",
+            "let _ = sprint105_assert_canonical_pair_owner_shape_v1(&evaluation.inner); \
+             Sprint105CanonicalShapeObservationV1::Constant",
+        );
+        assert_eq!(
+            sprint105_validate_shape_witness_boundary_source_v4(&fixture),
+            Err(Sprint105WitnessReturnFlowRejectionV1::UnderscoreDiscard)
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r1_explicit_constant_return_rejected() {
+        let fixture = sprint105_shape_witness_boundary_fixture_v4(
+            sprint105_valid_shape_helper_body_fixture_v4(),
+            "evaluation: &V6AuthorizedV2EvaluationV1",
+            "sprint105_assert_canonical_pair_owner_shape_v1(&evaluation.inner); \
+             return Sprint105CanonicalShapeObservationV1::Constant;",
+        );
+        assert_eq!(
+            sprint105_validate_shape_witness_boundary_source_v4(&fixture),
+            Err(Sprint105WitnessReturnFlowRejectionV1::ExplicitConstantReturn)
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r1_overwritten_observation_rejected() {
+        let fixture = sprint105_shape_witness_boundary_fixture_v4(
+            sprint105_valid_shape_helper_body_fixture_v4(),
+            "evaluation: &V6AuthorizedV2EvaluationV1",
+            "let mut observation = \
+                 sprint105_assert_canonical_pair_owner_shape_v1(&evaluation.inner); \
+             observation = Sprint105CanonicalShapeObservationV1::Constant; \
+             observation",
+        );
+        assert_eq!(
+            sprint105_validate_shape_witness_boundary_source_v4(&fixture),
+            Err(Sprint105WitnessReturnFlowRejectionV1::OverwrittenObservation)
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r1_unreachable_helper_rejected() {
+        let fixture = sprint105_shape_witness_boundary_fixture_v4(
+            sprint105_valid_shape_helper_body_fixture_v4(),
+            "evaluation: &V6AuthorizedV2EvaluationV1",
+            "if false { \
+                 return sprint105_assert_canonical_pair_owner_shape_v1(&evaluation.inner); \
+             } \
+             Sprint105CanonicalShapeObservationV1::Constant",
+        );
+        assert_eq!(
+            sprint105_validate_shape_witness_boundary_source_v4(&fixture),
+            Err(Sprint105WitnessReturnFlowRejectionV1::UnreachableHelper)
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r1_conditional_helper_rejected() {
+        let fixture = sprint105_shape_witness_boundary_fixture_v4(
+            sprint105_valid_shape_helper_body_fixture_v4(),
+            "evaluation: &V6AuthorizedV2EvaluationV1",
+            "if condition { \
+                 sprint105_assert_canonical_pair_owner_shape_v1(&evaluation.inner) \
+             } else { \
+                 Sprint105CanonicalShapeObservationV1::Constant \
+             }",
+        );
+        assert_eq!(
+            sprint105_validate_shape_witness_boundary_source_v4(&fixture),
+            Err(Sprint105WitnessReturnFlowRejectionV1::ConditionalHelper)
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r1_rewritten_observation_rejected() {
+        let fixture = sprint105_shape_witness_boundary_fixture_v4(
+            sprint105_valid_shape_helper_body_fixture_v4(),
+            "evaluation: &V6AuthorizedV2EvaluationV1",
+            "let actual = \
+                 sprint105_assert_canonical_pair_owner_shape_v1(&evaluation.inner); \
+             Sprint105CanonicalShapeObservationV1 { \
+                 matrix_contract: actual.matrix_contract, \
+                 verdict_status: StaticVerdict, \
+             }",
+        );
+        assert_eq!(
+            sprint105_validate_shape_witness_boundary_source_v4(&fixture),
+            Err(Sprint105WitnessReturnFlowRejectionV1::RewrittenObservation)
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r1_double_helper_rejected() {
+        let fixture = sprint105_shape_witness_boundary_fixture_v4(
+            sprint105_valid_shape_helper_body_fixture_v4(),
+            "evaluation: &V6AuthorizedV2EvaluationV1",
+            "let _first = \
+                 sprint105_assert_canonical_pair_owner_shape_v1(&evaluation.inner); \
+             sprint105_assert_canonical_pair_owner_shape_v1(&evaluation.inner)",
+        );
+        assert_eq!(
+            sprint105_validate_shape_witness_boundary_source_v4(&fixture),
+            Err(Sprint105WitnessReturnFlowRejectionV1::DoubleHelperInvocation)
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r1_wrong_object_rejected() {
+        let fixture = sprint105_shape_witness_boundary_fixture_v4(
+            sprint105_valid_shape_helper_body_fixture_v4(),
+            "evaluation: &V6AuthorizedV2EvaluationV1",
+            "sprint105_assert_canonical_pair_owner_shape_v1(manual_inner)",
+        );
+        assert_eq!(
+            sprint105_validate_shape_witness_boundary_source_v4(&fixture),
+            Err(Sprint105WitnessReturnFlowRejectionV1::WrongWitnessObject)
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r1_raw_inner_return_rejected() {
+        let fixture = sprint105_shape_witness_boundary_fixture_v4(
+            sprint105_valid_shape_helper_body_fixture_v4(),
+            "evaluation: &V6AuthorizedV2EvaluationV1",
+            "&evaluation.inner",
+        );
+        assert_eq!(
+            sprint105_validate_shape_witness_boundary_source_v4(&fixture),
+            Err(Sprint105WitnessReturnFlowRejectionV1::RawInnerExposure)
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r1_lexical_false_positives_ignored() {
+        let canonical = sprint105_shape_witness_boundary_fixture_v4(
+            sprint105_valid_shape_helper_body_fixture_v4(),
+            "evaluation: &V6AuthorizedV2EvaluationV1",
+            "sprint105_assert_canonical_pair_owner_shape_v1(&evaluation.inner)",
+        );
+        let fixture = format!(
+            "{canonical}\n\
+             // fn sprint105_assert_canonical_pair_owner_shape_v1(fake: Fake) {{}}\n\
+             const NORMAL: &str = \"fn exercise_canonical_pair_owner_shape_for_test(fake: Fake) {{}}\";\n\
+             const RAW: &str = r#\"sprint105_assert_canonical_pair_owner_shape_v1(&fake.inner)\"#;\n\
+             const CHARACTER: char = 'x';"
+        );
+        sprint105_validate_shape_witness_boundary_source_v4(&fixture).unwrap();
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r1_actual_boundary_source_positive() {
+        let (module, outside) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        assert_eq!(
+            module
+                .match_indices("fn sprint105_assert_canonical_pair_owner_shape_v1(")
+                .count(),
+            1
+        );
+        assert_eq!(
+            module
+                .match_indices("fn exercise_canonical_pair_owner_shape_for_test(")
+                .count(),
+            1
+        );
+        assert!(!module.contains("sprint105_validate_shape_witness_boundary_source_v4"));
+        assert!(outside.contains("sprint105_validate_shape_witness_boundary_source_v4"));
+        sprint105_validate_shape_witness_boundary_source_v4(module).unwrap();
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_exit_r1_observation_non_authority() {
+        let (module, _) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let builder =
+            sprint105_ef1_r2_r2_r1_r1_wrapper_signature_v1(module, "build_v2_qualification_result");
+        assert!(!builder.contains("Sprint105CanonicalShapeObservationV1"));
+        for authority_surface in [
+            "impl From<Sprint105CanonicalShapeObservationV1",
+            "impl TryFrom<Sprint105CanonicalShapeObservationV1",
+            "Serialize for Sprint105CanonicalShapeObservationV1",
+            "Deserialize for Sprint105CanonicalShapeObservationV1",
+            "Default for Sprint105CanonicalShapeObservationV1",
+        ] {
+            assert!(!module.contains(authority_surface));
+        }
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_r1_r1_witness_source_guard_positive() {
+        let (module, _) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        sprint105_validate_shape_witness_boundary_source_v4(module).unwrap();
+        let helper = sprint105_ef1_r2_r2_r1_r2_function_region_v1(
+            module,
+            "sprint105_assert_canonical_pair_owner_shape_v1",
+            "exercise_canonical_pair_owner_shape_for_test",
+        );
+        assert!(!helper.contains(".."));
+        assert!(helper.contains("authorized_matrix"));
+        assert!(helper.contains("verdict"));
+
+        let result_builder =
+            sprint105_ef1_r2_r2_r1_r1_wrapper_signature_v1(module, "build_v2_qualification_result");
+        assert!(!result_builder.contains("Sprint105CanonicalShapeObservationV1"));
+        assert!(!module.contains("impl From<Sprint105CanonicalShapeObservationV1"));
+        assert!(!module.contains("impl TryFrom<Sprint105CanonicalShapeObservationV1"));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_r1_r1_actual_shape_witness_execution() {
+        let qualification = sprint105_v2_p1_frozen_q1_once_v1().unwrap();
+        let input = q1_structural_evaluation_authority_v1::validate_v2_qualification_input(
+            &qualification,
+            true,
+        )
+        .unwrap();
+        let authority =
+            current_q1_contract_v6_authority::build_and_validate_current_q1_contract_v6(
+                &qualification,
+                input.evidence(),
+            )
+            .unwrap();
+        let expected_contract = authority.summary();
+        let matrix =
+            q1_structural_evaluation_authority_v1::evaluate_v2_qualification(&input, &authority)
+                .unwrap();
+        let evaluation = q1_structural_evaluation_authority_v1::finalize_v2_evaluation(
+            matrix,
+            Sprint105ConfidenceOverlayV1::NotEstablished,
+            true,
+        );
+        let expected_status = evaluation.status();
+        let observation =
+            q1_structural_evaluation_authority_v1::exercise_canonical_pair_owner_shape_for_test(
+                &evaluation,
+            );
+        assert_eq!(observation.matrix_contract, expected_contract);
+        assert_eq!(observation.verdict_status, expected_status);
+
+        let result =
+            q1_structural_evaluation_authority_v1::build_v2_qualification_result(evaluation)
+                .unwrap();
+        assert_eq!(result.q1_contract(), &observation.matrix_contract);
+        assert_eq!(result.status(), observation.verdict_status);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_r1_r1_actual_shape_witness_call_graph() {
+        let source = include_str!("m3_micro.rs");
+        let positive = sprint105_ef1_r2_r2_r1_r2_function_region_v1(
+            source,
+            "m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_r1_r1_actual_shape_witness_execution",
+            "m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_r1_r1_actual_shape_witness_call_graph",
+        );
+        sprint105_validate_shape_witness_positive_source_v4(positive).unwrap();
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_r1_r1_pointer_only_sabotage_rejected() {
+        let pointer_declaration = [
+            "let ",
+            "witness: fn(&V6AuthorizedV2EvaluationInnerV1) = ",
+            "sprint105_assert_canonical_pair_owner_shape_v1;",
+        ]
+        .concat();
+        let discarded = ["let _", " = witness;"].concat();
+        let fixture = format!(
+            "fn sprint105_assert_canonical_pair_owner_shape_v1(inner: &V6AuthorizedV2EvaluationInnerV1) -> Sprint105CanonicalShapeObservationV1 {{ {} }}\n\
+             fn wrapper() {{ {pointer_declaration} {discarded} }}",
+            sprint105_valid_shape_helper_body_fixture_v4()
+        );
+        assert!(sprint105_validate_shape_witness_boundary_source_v4(&fixture).is_err());
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_r1_r1_constant_marker_sabotage_rejected() {
+        let fixture = sprint105_shape_witness_boundary_fixture_v4(
+            sprint105_valid_shape_helper_body_fixture_v4(),
+            "_evaluation: &V6AuthorizedV2EvaluationV1",
+            "Sprint105CanonicalShapeObservationV1::Exercised",
+        );
+        assert!(sprint105_validate_shape_witness_boundary_source_v4(&fixture).is_err());
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_r1_r1_wrong_object_sabotage_rejected() {
+        let fixture = sprint105_shape_witness_boundary_fixture_v4(
+            sprint105_valid_shape_helper_body_fixture_v4(),
+            "_evaluation: &V6AuthorizedV2EvaluationV1, manually_constructed_inner: &V6AuthorizedV2EvaluationInnerV1",
+            "sprint105_assert_canonical_pair_owner_shape_v1(manually_constructed_inner)",
+        );
+        assert!(sprint105_validate_shape_witness_boundary_source_v4(&fixture).is_err());
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_r1_r1_raw_inner_exposure_sabotage_rejected() {
+        let fixture = sprint105_shape_witness_boundary_fixture_v4(
+            sprint105_valid_shape_helper_body_fixture_v4(),
+            "evaluation: &V6AuthorizedV2EvaluationV1",
+            "sprint105_assert_canonical_pair_owner_shape_v1(&evaluation.inner)",
+        ) + "\nfn inner(evaluation: &V6AuthorizedV2EvaluationV1) -> &V6AuthorizedV2EvaluationInnerV1 { &evaluation.inner }";
+        assert!(sprint105_validate_shape_witness_boundary_source_v4(&fixture).is_err());
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_r1_r1_separate_evaluation_sabotage_rejected() {
+        let fixture = "let witness_evaluation = finalize_v2_evaluation(matrix_a); \
+                       let observation = exercise_canonical_pair_owner_shape_for_test(&witness_evaluation); \
+                       assert_observation(observation); \
+                       let result_evaluation = finalize_v2_evaluation(matrix_b); \
+                       let result = build_v2_qualification_result(result_evaluation); \
+                       assert_result(result);";
+        assert!(sprint105_validate_shape_witness_positive_source_v4(fixture).is_err());
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_r1_r1_shape_mutation_evidence() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let mutations = [
+            format!(
+                "struct {} {{ authorized_matrix: {} }}",
+                names.evaluation_inner, names.matrix
+            ),
+            format!(
+                "struct {} {{ authorized_matrix: {}, verdict: {}, extra: u64 }}",
+                names.evaluation_inner, names.matrix, names.internal_verdict
+            ),
+            format!(
+                "struct {} {{ authorized_matrix: MatrixReplacement, verdict: {} }}",
+                names.evaluation_inner, names.internal_verdict
+            ),
+            format!(
+                "struct {} {{ authorized_matrix: {}, verdict: VerdictReplacement }}",
+                names.evaluation_inner, names.matrix
+            ),
+        ];
+        for mutation in mutations {
+            assert!(
+                !sprint105_actual_forbidden_join_fixture_audit_v1(&mutation)
+                    .has_no_forbidden_edges()
+            );
+        }
+
+        let dot_dot_helper = sprint105_valid_shape_helper_body_fixture_v4().replace(
+            "authorized_matrix, verdict",
+            "authorized_matrix, verdict, ..",
+        );
+        let dot_dot_fixture = sprint105_shape_witness_boundary_fixture_v4(
+            &dot_dot_helper,
+            "evaluation: &V6AuthorizedV2EvaluationV1",
+            "sprint105_assert_canonical_pair_owner_shape_v1(&evaluation.inner)",
+        );
+        assert!(sprint105_validate_shape_witness_boundary_source_v4(&dot_dot_fixture).is_err());
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_r1_canonical_shape_source_projection() {
+        use q1_structural_evaluation_authority_v1::Sprint105StructBodyKindV2;
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let shape = q1_structural_evaluation_authority_v1::canonical_pair_owner_shape_for_test();
+        assert_eq!(shape.name, names.evaluation_inner);
+        assert_eq!(shape.body_kind, Sprint105StructBodyKindV2::Braced);
+        assert_eq!(shape.total_field_count, 2);
+        assert_eq!(shape.matrix_field_count, 1);
+        assert_eq!(shape.internal_verdict_field_count, 1);
+
+        let (module, _) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let declarations = sprint105_actual_forbidden_join_structs_v2(module).unwrap();
+        let actual = declarations
+            .iter()
+            .find(|declaration| declaration.name == names.evaluation_inner)
+            .expect("canonical inner declaration must be source-derived");
+        assert_eq!(actual.body_kind, shape.body_kind);
+        assert_eq!(actual.field_count, shape.total_field_count);
+        assert_eq!(
+            actual.ordered_field_signatures,
+            shape.ordered_field_signatures
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_r1_total_classification_positive() {
+        use q1_structural_evaluation_authority_v1::Sprint105PairCarrierDispositionV1;
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let canonical = sprint105_exact_pair_owner_declaration_v3(names);
+        let fixture = format!(
+            "{canonical}\nstruct Alternate {{ authorized_matrix: {}, verdict: {} }}",
+            names.matrix, names.internal_verdict
+        );
+        let classifications = sprint105_pair_carrier_classifications_v3(&fixture);
+        assert_eq!(classifications.len(), 2);
+        assert!(classifications.iter().all(|classification| matches!(
+            classification.disposition,
+            Sprint105PairCarrierDispositionV1::CanonicalExactOwner
+                | Sprint105PairCarrierDispositionV1::ForbiddenAlternateCarrier { .. }
+        )));
+        let audit = sprint105_actual_forbidden_join_fixture_audit_v1(&fixture);
+        assert_eq!(audit.pair_carrier_count, 2);
+        assert_eq!(audit.canonical_exact_owner_count, 1);
+        assert_eq!(audit.forbidden_alternate_carrier_count, 1);
+        assert_eq!(audit.unclassified_pair_carrier_count, 0);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_r1_canonical_only_positive() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let canonical = sprint105_exact_pair_owner_declaration_v3(names);
+        let audit = sprint105_actual_forbidden_join_fixture_audit_v1(&canonical);
+        assert_eq!(audit.pair_carrier_count, 1);
+        assert_eq!(audit.canonical_exact_owner_count, 1);
+        assert_eq!(audit.forbidden_alternate_carrier_count, 0);
+        assert_eq!(audit.unclassified_pair_carrier_count, 0);
+        assert!(audit.has_no_forbidden_edges());
+        assert!(
+            q1_structural_evaluation_authority_v1::audit_actual_forbidden_joins_for_test(
+                &sprint105_actual_forbidden_join_authority_fixture_v2(&canonical),
+            )
+            .is_ok()
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_r1_same_name_multi_matrix_shadow_negative() {
+        use q1_structural_evaluation_authority_v1::{
+            Sprint105PairCarrierDispositionV1, Sprint105PairCarrierRejectionReasonV1,
+        };
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let canonical = sprint105_exact_pair_owner_declaration_v3(names);
+        let fixture = format!(
+            "{canonical}\nmod bypass {{ struct {} {{ authorized_matrix: {}, matrix_b: {}, verdict: {} }} }}",
+            names.evaluation_inner, names.matrix, names.matrix, names.internal_verdict
+        );
+        let classifications = sprint105_pair_carrier_classifications_v3(&fixture);
+        assert_eq!(classifications.len(), 2);
+        assert_eq!(
+            classifications[1].disposition,
+            Sprint105PairCarrierDispositionV1::ForbiddenAlternateCarrier {
+                reason: Sprint105PairCarrierRejectionReasonV1::MatrixMultiplicity,
+            }
+        );
+        let audit = sprint105_actual_forbidden_join_fixture_audit_v1(&fixture);
+        assert_eq!(audit.pair_carrier_count, 2);
+        assert_eq!(audit.canonical_exact_owner_count, 1);
+        assert_eq!(audit.forbidden_alternate_carrier_count, 1);
+        assert!(!audit.has_no_forbidden_edges());
+        sprint105_assert_pair_carrier_authority_fixture_rejected_v3(&fixture);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_r1_same_name_multi_verdict_shadow_negative() {
+        use q1_structural_evaluation_authority_v1::{
+            Sprint105PairCarrierDispositionV1, Sprint105PairCarrierRejectionReasonV1,
+        };
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let canonical = sprint105_exact_pair_owner_declaration_v3(names);
+        let fixture = format!(
+            "{canonical}\nmod bypass {{ struct {} {{ authorized_matrix: {}, verdict: {}, verdict_b: {} }} }}",
+            names.evaluation_inner, names.matrix, names.internal_verdict, names.internal_verdict
+        );
+        let classifications = sprint105_pair_carrier_classifications_v3(&fixture);
+        assert_eq!(
+            classifications[1].disposition,
+            Sprint105PairCarrierDispositionV1::ForbiddenAlternateCarrier {
+                reason: Sprint105PairCarrierRejectionReasonV1::VerdictMultiplicity,
+            }
+        );
+        let audit = sprint105_actual_forbidden_join_fixture_audit_v1(&fixture);
+        assert_eq!(audit.canonical_exact_owner_count, 1);
+        assert_eq!(audit.forbidden_alternate_carrier_count, 1);
+        assert!(!audit.has_no_forbidden_edges());
+        sprint105_assert_pair_carrier_authority_fixture_rejected_v3(&fixture);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_r1_same_name_extra_field_shadow_negative() {
+        use q1_structural_evaluation_authority_v1::{
+            Sprint105PairCarrierDispositionV1, Sprint105PairCarrierRejectionReasonV1,
+        };
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let canonical = sprint105_exact_pair_owner_declaration_v3(names);
+        let fixture = format!(
+            "{canonical}\nmod bypass {{ struct {} {{ authorized_matrix: {}, verdict: {}, extra: u64 }} }}",
+            names.evaluation_inner, names.matrix, names.internal_verdict
+        );
+        let classifications = sprint105_pair_carrier_classifications_v3(&fixture);
+        assert_eq!(
+            classifications[1].disposition,
+            Sprint105PairCarrierDispositionV1::ForbiddenAlternateCarrier {
+                reason: Sprint105PairCarrierRejectionReasonV1::UnexpectedField,
+            }
+        );
+        let audit = sprint105_actual_forbidden_join_fixture_audit_v1(&fixture);
+        assert_eq!(audit.canonical_exact_owner_count, 1);
+        assert_eq!(audit.forbidden_alternate_carrier_count, 1);
+        assert!(!audit.has_no_forbidden_edges());
+        sprint105_assert_pair_carrier_authority_fixture_rejected_v3(&fixture);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_r1_same_name_exact_duplicate_negative() {
+        use q1_structural_evaluation_authority_v1::Sprint105PairCarrierDispositionV1;
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let canonical = sprint105_exact_pair_owner_declaration_v3(names);
+        let fixture = format!("{canonical}\nmod bypass {{ {canonical} }}");
+        let classifications = sprint105_pair_carrier_classifications_v3(&fixture);
+        assert_eq!(classifications.len(), 2);
+        assert!(classifications.iter().all(|classification| {
+            classification.disposition == Sprint105PairCarrierDispositionV1::CanonicalExactOwner
+        }));
+        let audit = sprint105_actual_forbidden_join_fixture_audit_v1(&fixture);
+        assert_eq!(audit.pair_carrier_count, 2);
+        assert_eq!(audit.canonical_exact_owner_count, 2);
+        assert_eq!(audit.forbidden_alternate_carrier_count, 0);
+        assert_eq!(audit.unclassified_pair_carrier_count, 0);
+        assert!(!audit.has_no_forbidden_edges());
+        sprint105_assert_pair_carrier_authority_fixture_rejected_v3(&fixture);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_r1_different_name_exact_shape_negative() {
+        use q1_structural_evaluation_authority_v1::{
+            Sprint105PairCarrierDispositionV1, Sprint105PairCarrierRejectionReasonV1,
+        };
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let canonical = sprint105_exact_pair_owner_declaration_v3(names);
+        let fixture = format!(
+            "{canonical}\nstruct Alternate {{ authorized_matrix: {}, verdict: {} }}",
+            names.matrix, names.internal_verdict
+        );
+        let classifications = sprint105_pair_carrier_classifications_v3(&fixture);
+        assert_eq!(
+            classifications[1].disposition,
+            Sprint105PairCarrierDispositionV1::ForbiddenAlternateCarrier {
+                reason: Sprint105PairCarrierRejectionReasonV1::WrongName,
+            }
+        );
+        let audit = sprint105_actual_forbidden_join_fixture_audit_v1(&fixture);
+        assert_eq!(audit.forbidden_alternate_carrier_count, 1);
+        assert!(!audit.has_no_forbidden_edges());
+        sprint105_assert_pair_carrier_authority_fixture_rejected_v3(&fixture);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_r1_same_name_tuple_struct_negative() {
+        use q1_structural_evaluation_authority_v1::{
+            Sprint105PairCarrierDispositionV1, Sprint105PairCarrierRejectionReasonV1,
+        };
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let canonical = sprint105_exact_pair_owner_declaration_v3(names);
+        let fixture = format!(
+            "{canonical}\nmod bypass {{ struct {}({}, {}); }}",
+            names.evaluation_inner, names.matrix, names.internal_verdict
+        );
+        let classifications = sprint105_pair_carrier_classifications_v3(&fixture);
+        assert_eq!(
+            classifications[1].disposition,
+            Sprint105PairCarrierDispositionV1::ForbiddenAlternateCarrier {
+                reason: Sprint105PairCarrierRejectionReasonV1::TupleCarrier,
+            }
+        );
+        let audit = sprint105_actual_forbidden_join_fixture_audit_v1(&fixture);
+        assert_eq!(audit.canonical_exact_owner_count, 1);
+        assert_eq!(audit.forbidden_alternate_carrier_count, 1);
+        assert_eq!(audit.alternate_tuple_pair_struct_count, 1);
+        assert!(!audit.has_no_forbidden_edges());
+        sprint105_assert_pair_carrier_authority_fixture_rejected_v3(&fixture);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_r1_malformed_canonical_only_negative() {
+        use q1_structural_evaluation_authority_v1::{
+            Sprint105PairCarrierDispositionV1, Sprint105PairCarrierRejectionReasonV1,
+        };
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "struct {} {{ authorized_matrix: {}, matrix_b: {}, verdict: {} }}",
+            names.evaluation_inner, names.matrix, names.matrix, names.internal_verdict
+        );
+        let classifications = sprint105_pair_carrier_classifications_v3(&fixture);
+        assert_eq!(classifications.len(), 1);
+        assert_eq!(
+            classifications[0].disposition,
+            Sprint105PairCarrierDispositionV1::ForbiddenAlternateCarrier {
+                reason: Sprint105PairCarrierRejectionReasonV1::MatrixMultiplicity,
+            }
+        );
+        let audit = sprint105_actual_forbidden_join_fixture_audit_v1(&fixture);
+        assert_eq!(audit.pair_carrier_count, 1);
+        assert_eq!(audit.canonical_exact_owner_count, 0);
+        assert_eq!(audit.forbidden_alternate_carrier_count, 1);
+        assert_eq!(audit.unclassified_pair_carrier_count, 0);
+        assert!(!audit.has_no_forbidden_edges());
+        sprint105_assert_pair_carrier_authority_fixture_rejected_v3(&fixture);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_r1_same_name_non_pair_not_classified() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixtures = [
+            format!(
+                "struct {} {{ authorized_matrix: {} }}",
+                names.evaluation_inner, names.matrix
+            ),
+            format!(
+                "struct {} {{ verdict: {} }}",
+                names.evaluation_inner, names.internal_verdict
+            ),
+        ];
+        for fixture in fixtures {
+            assert!(sprint105_pair_carrier_classifications_v3(&fixture).is_empty());
+            let audit = sprint105_actual_forbidden_join_fixture_audit_v1(&fixture);
+            assert_eq!(audit.pair_carrier_count, 0);
+            assert_eq!(audit.canonical_exact_owner_count, 0);
+            assert_eq!(audit.forbidden_alternate_carrier_count, 0);
+            assert_eq!(audit.unclassified_pair_carrier_count, 0);
+        }
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_r1_field_signature_rejection_diagnostics() {
+        use q1_structural_evaluation_authority_v1::{
+            Sprint105PairCarrierDispositionV1, Sprint105PairCarrierRejectionReasonV1,
+        };
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let wrong_name = format!(
+            "struct {} {{ matrix: {}, verdict: {} }}",
+            names.evaluation_inner, names.matrix, names.internal_verdict
+        );
+        let wrong_type = format!(
+            "struct {} {{ authorized_matrix: Box<{}>, verdict: {} }}",
+            names.evaluation_inner, names.matrix, names.internal_verdict
+        );
+        assert_eq!(
+            sprint105_pair_carrier_classifications_v3(&wrong_name)[0].disposition,
+            Sprint105PairCarrierDispositionV1::ForbiddenAlternateCarrier {
+                reason: Sprint105PairCarrierRejectionReasonV1::FieldNameMismatch,
+            }
+        );
+        assert_eq!(
+            sprint105_pair_carrier_classifications_v3(&wrong_type)[0].disposition,
+            Sprint105PairCarrierDispositionV1::ForbiddenAlternateCarrier {
+                reason: Sprint105PairCarrierRejectionReasonV1::FieldTypeMismatch,
+            }
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_r1_exhaustive_partition_invariant() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let canonical = sprint105_exact_pair_owner_declaration_v3(names);
+        let fixtures = [
+            canonical.clone(),
+            format!(
+                "{canonical}\nstruct Alternate {{ authorized_matrix: {}, verdict: {} }}",
+                names.matrix, names.internal_verdict
+            ),
+            format!(
+                "struct {}({}, {});",
+                names.evaluation_inner, names.matrix, names.internal_verdict
+            ),
+        ];
+        for fixture in fixtures {
+            let audit = sprint105_actual_forbidden_join_fixture_audit_v1(&fixture);
+            assert_eq!(
+                audit.pair_carrier_count,
+                audit.canonical_exact_owner_count + audit.forbidden_alternate_carrier_count
+            );
+            assert_eq!(audit.unclassified_pair_carrier_count, 0);
+        }
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_r1_name_only_predicate_regression_guard() {
+        let (module, _) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let classifier = sprint105_ef1_r2_r2_r1_r2_function_region_v1(
+            module,
+            "sprint105_classify_pair_carrier_v3",
+            "sprint105_pair_carrier_classifications_v3",
+        );
+        let forbidden_name_exclusion =
+            ["declaration.name", " != ", "canonical_shape.name"].concat();
+        assert!(classifier.contains("sprint105_is_exact_canonical_pair_owner_v3"));
+        assert!(classifier.contains("ForbiddenAlternateCarrier"));
+        assert!(!classifier.contains(&forbidden_name_exclusion));
+
+        let audit_region = sprint105_ef1_r2_r2_r1_r2_function_region_v1(
+            module,
+            "sprint105_actual_forbidden_join_audit_v1",
+            "audit_actual_forbidden_joins_for_test",
+        );
+        assert!(audit_region.contains("sprint105_pair_carrier_classifications_v3"));
+        assert!(audit_region.contains("unclassified_pair_carrier_count"));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_r1_actual_source_classification_ledger() {
+        use q1_structural_evaluation_authority_v1::{
+            Sprint105PairCarrierDispositionV1, Sprint105StructBodyKindV2,
+        };
+        let (module, _) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let classifications = sprint105_pair_carrier_classifications_v3(module);
+        assert_eq!(classifications.len(), 1);
+        assert_eq!(
+            classifications[0].disposition,
+            Sprint105PairCarrierDispositionV1::CanonicalExactOwner
+        );
+        assert_eq!(
+            classifications
+                .iter()
+                .filter(|entry| entry.declaration.body_kind == Sprint105StructBodyKindV2::Braced)
+                .count(),
+            1
+        );
+        assert_eq!(
+            classifications
+                .iter()
+                .filter(|entry| entry.declaration.body_kind == Sprint105StructBodyKindV2::Tuple)
+                .count(),
+            0
+        );
+
+        let audit = q1_structural_evaluation_authority_v1::audit_actual_forbidden_joins_for_test(
+            include_str!("m3_micro.rs"),
+        )
+        .unwrap();
+        assert_eq!(audit.pair_carrier_count, 1);
+        assert_eq!(audit.canonical_exact_owner_count, 1);
+        assert_eq!(audit.forbidden_alternate_carrier_count, 0);
+        assert_eq!(audit.alternate_braced_pair_struct_count, 0);
+        assert_eq!(audit.alternate_tuple_pair_struct_count, 0);
+        assert_eq!(audit.unclassified_pair_carrier_count, 0);
+        assert!(audit.has_no_forbidden_edges());
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_r1_graph_node_partition_ledger() {
+        let audit = q1_structural_evaluation_authority_v1::audit_actual_forbidden_joins_for_test(
+            include_str!("m3_micro.rs"),
+        )
+        .unwrap();
+        let pair_carrier_nodes = audit.pair_carrier_count;
+        let canonical_exact_owner_nodes = audit.canonical_exact_owner_count;
+        let forbidden_alternate_carrier_nodes = audit.forbidden_alternate_carrier_count;
+        let unclassified_pair_carrier_nodes = audit.unclassified_pair_carrier_count;
+        assert_eq!(pair_carrier_nodes, 1);
+        assert_eq!(canonical_exact_owner_nodes, 1);
+        assert_eq!(forbidden_alternate_carrier_nodes, 0);
+        assert_eq!(unclassified_pair_carrier_nodes, 0);
+        assert_eq!(
+            pair_carrier_nodes,
+            canonical_exact_owner_nodes + forbidden_alternate_carrier_nodes
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_struct_declaration_model_positive() {
+        use q1_structural_evaluation_authority_v1::Sprint105StructBodyKindV2;
+        let declarations = sprint105_actual_forbidden_join_structs_v2(
+            "struct Braced { value: u64 }\nstruct Tuple(u64, String);\nstruct Unit;",
+        )
+        .unwrap();
+        assert_eq!(declarations.len(), 3);
+        assert_eq!(declarations[0].body_kind, Sprint105StructBodyKindV2::Braced);
+        assert_eq!(declarations[0].field_count, 1);
+        assert_eq!(declarations[1].body_kind, Sprint105StructBodyKindV2::Tuple);
+        assert_eq!(declarations[1].field_count, 2);
+        assert_eq!(declarations[2].body_kind, Sprint105StructBodyKindV2::Unit);
+        assert_eq!(declarations[2].field_count, 0);
+        assert!(
+            declarations
+                .iter()
+                .all(|declaration| declaration.start < declaration.end)
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_generic_tuple_struct_parsing_positive() {
+        use q1_structural_evaluation_authority_v1::Sprint105StructBodyKindV2;
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "pub(super) struct Alternate<T>(\n {},\n {},\n core::marker::PhantomData<T>,\n) where T: Copy;",
+            names.matrix, names.internal_verdict
+        );
+        let declarations = sprint105_actual_forbidden_join_structs_v2(&fixture).unwrap();
+        assert_eq!(declarations.len(), 1);
+        assert_eq!(declarations[0].body_kind, Sprint105StructBodyKindV2::Tuple);
+        assert_eq!(declarations[0].field_count, 3);
+        assert_eq!(declarations[0].matrix_field_count, 1);
+        assert_eq!(declarations[0].internal_verdict_field_count, 1);
+        assert!(declarations[0].pair_carrier);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_where_clause_braced_struct_positive() {
+        use q1_structural_evaluation_authority_v1::Sprint105StructBodyKindV2;
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "struct Braced<T> where T: Fn({}, {}) {{ value: T }}",
+            names.matrix, names.internal_verdict
+        );
+        let declarations = sprint105_actual_forbidden_join_structs_v2(&fixture).unwrap();
+        assert_eq!(declarations[0].body_kind, Sprint105StructBodyKindV2::Braced);
+        assert_eq!(declarations[0].field_count, 1);
+        assert!(!declarations[0].pair_carrier);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_struct_parser_fail_closed() {
+        for malformed in [
+            "struct Alternate(Matrix, InternalVerdict;",
+            "struct Alternate(Matrix, InternalVerdict)",
+            "struct Alternate<T(Matrix, InternalVerdict);",
+        ] {
+            assert!(
+                q1_structural_evaluation_authority_v1::audit_forbidden_join_fixture_checked_for_test(
+                    malformed,
+                )
+                .is_err()
+            );
+        }
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_canonical_owner_fail_closed() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let canonical = format!(
+            "struct {} {{ authorized_matrix: {}, verdict: {} }}",
+            names.evaluation_inner, names.matrix, names.internal_verdict
+        );
+        let missing = sprint105_actual_forbidden_join_authority_fixture_v2("struct Other;");
+        let duplicate = sprint105_actual_forbidden_join_authority_fixture_v2(&format!(
+            "{canonical}\n{canonical}"
+        ));
+        let alternate = sprint105_actual_forbidden_join_authority_fixture_v2(&format!(
+            "{canonical}\nstruct Alternate {{ matrix: {}, verdict: {} }}",
+            names.matrix, names.internal_verdict
+        ));
+        let duplicate_field = sprint105_actual_forbidden_join_authority_fixture_v2(&format!(
+            "struct {} {{ matrix_a: {}, matrix_b: {}, verdict: {} }}",
+            names.evaluation_inner, names.matrix, names.matrix, names.internal_verdict
+        ));
+        for malformed in [missing, duplicate, alternate, duplicate_field] {
+            assert!(
+                q1_structural_evaluation_authority_v1::audit_actual_forbidden_joins_for_test(
+                    &malformed,
+                )
+                .is_err()
+            );
+        }
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_live_type_exact_token_matching() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let false_fixture = format!(
+            "struct Similar {{ {}: u64, {}: u64, matrix: {}Suffix, verdict: {}Backup }}",
+            names.matrix, names.internal_verdict, names.matrix, names.internal_verdict
+        );
+        let false_declaration =
+            &sprint105_actual_forbidden_join_structs_v2(&false_fixture).unwrap()[0];
+        assert!(!false_declaration.contains_matrix);
+        assert!(!false_declaration.contains_internal_verdict);
+        assert!(!false_declaration.pair_carrier);
+
+        let qualified_fixture = format!(
+            "struct Qualified(Box<super::{}>, Option<crate::guard::{}>);",
+            names.matrix, names.internal_verdict
+        );
+        let qualified = &sprint105_actual_forbidden_join_structs_v2(&qualified_fixture).unwrap()[0];
+        assert!(qualified.contains_matrix);
+        assert!(qualified.contains_internal_verdict);
+        assert!(qualified.pair_carrier);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_raw_string_and_char_false_positive() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "const RAW: &str = r###\"struct Alternate({}, {});\"###;\nconst TOKEN: char = '{{';",
+            names.matrix, names.internal_verdict
+        );
+        let declarations = sprint105_actual_forbidden_join_structs_v2(&fixture).unwrap();
+        assert!(declarations.is_empty());
+        let audit = sprint105_actual_forbidden_join_fixture_audit_v1(&fixture);
+        assert_eq!(audit.alternate_tuple_pair_struct_count, 0);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_tuple_struct_non_pair_positive() {
+        use q1_structural_evaluation_authority_v1::Sprint105StructBodyKindV2;
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "struct MatrixOnly({});\nstruct VerdictOnly({});\nstruct Other(u64, String);\nstruct Marker;",
+            names.matrix, names.internal_verdict
+        );
+        let declarations = sprint105_actual_forbidden_join_structs_v2(&fixture).unwrap();
+        assert_eq!(declarations.len(), 4);
+        assert_eq!(declarations[0].body_kind, Sprint105StructBodyKindV2::Tuple);
+        assert!(declarations[0].contains_matrix);
+        assert!(!declarations[0].pair_carrier);
+        assert!(declarations[1].contains_internal_verdict);
+        assert!(!declarations[1].pair_carrier);
+        assert!(!declarations[2].pair_carrier);
+        assert_eq!(declarations[3].body_kind, Sprint105StructBodyKindV2::Unit);
+        assert_eq!(
+            sprint105_actual_forbidden_join_fixture_audit_v1(&fixture)
+                .alternate_tuple_pair_struct_count,
+            0
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_one_line_tuple_struct_sabotage() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "struct Alternate({}, {});",
+            names.matrix, names.internal_verdict
+        );
+        assert_eq!(
+            sprint105_actual_forbidden_join_fixture_audit_v1(&fixture)
+                .alternate_tuple_pair_struct_count,
+            1
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_multiline_tuple_struct_sabotage() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "struct Alternate(\n {},\n {},\n);",
+            names.matrix, names.internal_verdict
+        );
+        assert_eq!(
+            sprint105_actual_forbidden_join_fixture_audit_v1(&fixture)
+                .alternate_tuple_pair_struct_count,
+            1
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_visibility_tuple_struct_sabotage() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "pub(super) struct Alternate(\n {},\n {},\n);",
+            names.matrix, names.internal_verdict
+        );
+        assert_eq!(
+            sprint105_actual_forbidden_join_fixture_audit_v1(&fixture)
+                .alternate_tuple_pair_struct_count,
+            1
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_generic_tuple_struct_sabotage() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "struct Alternate<T>({}, {}, core::marker::PhantomData<T>);",
+            names.matrix, names.internal_verdict
+        );
+        let audit = sprint105_actual_forbidden_join_fixture_audit_v1(&fixture);
+        assert_eq!(audit.alternate_tuple_pair_struct_count, 1);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_nested_tuple_struct_sabotage() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "struct Alternate(Box<{}>, Option<{}>);",
+            names.matrix, names.internal_verdict
+        );
+        let audit = sprint105_actual_forbidden_join_fixture_audit_v1(&fixture);
+        assert_eq!(audit.alternate_tuple_pair_struct_count, 1);
+        let declaration = &sprint105_actual_forbidden_join_structs_v2(&fixture).unwrap()[0];
+        assert_eq!(declaration.field_count, 2);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_mixed_ownership_function_sabotage_a() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "fn build(matrix: {}, verdict: &{}) -> {} {{ unreachable!() }}",
+            names.matrix, names.internal_verdict, names.evaluation
+        );
+        assert_eq!(
+            sprint105_actual_forbidden_join_fixture_audit_v1(&fixture)
+                .forbidden_function_parameter_count,
+            1
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_mixed_ownership_function_sabotage_b() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "fn build(matrix: &{}, verdict: {}) -> {} {{ unreachable!() }}",
+            names.matrix, names.internal_verdict, names.evaluation
+        );
+        assert_eq!(
+            sprint105_actual_forbidden_join_fixture_audit_v1(&fixture)
+                .forbidden_function_parameter_count,
+            1
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_generic_function_sabotage() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "fn build<T>(matrix: {}, verdict: {}, extra: T) -> {} where T: Copy {{ unreachable!() }}",
+            names.matrix, names.internal_verdict, names.evaluation
+        );
+        assert_eq!(
+            sprint105_actual_forbidden_join_fixture_audit_v1(&fixture)
+                .forbidden_function_parameter_count,
+            1
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_direct_tuple_return_sabotage() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "fn split() -> ({}, {}) {{ unreachable!() }}",
+            names.matrix, names.internal_verdict
+        );
+        assert_eq!(
+            sprint105_actual_forbidden_join_fixture_audit_v1(&fixture).forbidden_return_pair_count,
+            1
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_option_tuple_return_sabotage() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "fn split() -> Option<({}, {})> {{ unreachable!() }}",
+            names.matrix, names.internal_verdict
+        );
+        assert_eq!(
+            sprint105_actual_forbidden_join_fixture_audit_v1(&fixture).forbidden_return_pair_count,
+            1
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_reversed_tuple_return_sabotage() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "fn split() -> ({}, {}) {{ unreachable!() }}",
+            names.internal_verdict, names.matrix
+        );
+        assert_eq!(
+            sprint105_actual_forbidden_join_fixture_audit_v1(&fixture).forbidden_return_pair_count,
+            1
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_borrowed_from_sabotage() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "impl From<(&{}, &{})> for {} {{}}",
+            names.matrix, names.internal_verdict, names.evaluation
+        );
+        assert_eq!(
+            sprint105_actual_forbidden_join_fixture_audit_v1(&fixture).tuple_conversion_count,
+            1
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_borrowed_reversed_try_from_sabotage() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "impl TryFrom<(\n &{},\n &{},\n)> for {} {{}}",
+            names.internal_verdict, names.matrix, names.evaluation
+        );
+        assert_eq!(
+            sprint105_actual_forbidden_join_fixture_audit_v1(&fixture).tuple_conversion_count,
+            1
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_r1_actual_source_tuple_struct_inventory() {
+        use q1_structural_evaluation_authority_v1::Sprint105StructBodyKindV2;
+        let (module, _) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let tuple_structs = sprint105_actual_forbidden_join_structs_v2(module)
+            .unwrap()
+            .into_iter()
+            .filter(|declaration| declaration.body_kind == Sprint105StructBodyKindV2::Tuple)
+            .collect::<Vec<_>>();
+        for tuple in &tuple_structs {
+            assert!(!tuple.name.is_empty());
+            assert!(tuple.field_count > 0);
+            assert_eq!(
+                tuple.pair_carrier,
+                tuple.contains_matrix && tuple.contains_internal_verdict
+            );
+            assert!(
+                !tuple.pair_carrier,
+                "forbidden tuple carrier: {}",
+                tuple.name
+            );
+        }
+        let audit = sprint105_actual_forbidden_join_fixture_audit_v1(module);
+        assert_eq!(
+            audit.alternate_tuple_pair_struct_count,
+            tuple_structs
+                .iter()
+                .filter(|tuple| tuple.pair_carrier)
+                .count()
+        );
+        assert_eq!(audit.alternate_tuple_pair_struct_count, 0);
+        assert!(tuple_structs.is_empty());
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_live_authority_type_inventory() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        assert_eq!(names.matrix, "V6AuthorizedV2StructuralGateMatrixV1");
+        assert_eq!(names.internal_verdict, "InternalQualificationVerdictV1");
+        assert_eq!(names.evaluation, "V6AuthorizedV2EvaluationV1");
+        assert_eq!(names.evaluation_inner, "V6AuthorizedV2EvaluationInnerV1");
+        assert_eq!(names.result, "Sprint105V2Q1QualificationResultV1");
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_canonical_source_module_isolation() {
+        let source = include_str!("m3_micro.rs");
+        assert!(
+            q1_structural_evaluation_authority_v1::audit_actual_forbidden_joins_for_test(source)
+                .is_ok()
+        );
+        let begin = ["// SPRINT105_Q1_EVALUATION_AUTHORITY_V1", "_BEGIN"].concat();
+        let duplicated = [source, &begin].concat();
+        assert!(
+            q1_structural_evaluation_authority_v1::audit_actual_forbidden_joins_for_test(
+                &duplicated,
+            )
+            .is_err()
+        );
+        assert!(
+            q1_structural_evaluation_authority_v1::audit_actual_forbidden_joins_for_test("")
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_current_live_bypass_audit() {
+        let audit = q1_structural_evaluation_authority_v1::audit_actual_forbidden_joins_for_test(
+            include_str!("m3_micro.rs"),
+        )
+        .unwrap();
+        assert_eq!(audit.canonical_exact_owner_count, 1);
+        assert!(audit.has_no_forbidden_edges());
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_live_type_binding_guard_positive() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "fn pair(matrix: {}, verdict: {}) -> {} {{ unreachable!() }}",
+            names.matrix, names.internal_verdict, names.evaluation
+        );
+        let audit = sprint105_actual_forbidden_join_fixture_audit_v1(&fixture);
+        assert_eq!(audit.forbidden_function_parameter_count, 1);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_canonical_capsule_allowed_pair_positive() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "struct {} {{ authorized_matrix: {}, verdict: {} }}",
+            names.evaluation_inner, names.matrix, names.internal_verdict
+        );
+        let audit = sprint105_actual_forbidden_join_fixture_audit_v1(&fixture);
+        assert_eq!(audit.canonical_exact_owner_count, 1);
+        assert_eq!(audit.alternate_braced_pair_struct_count, 0);
+        assert_eq!(audit.alternate_tuple_pair_struct_count, 0);
+        assert!(audit.has_no_forbidden_edges());
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_local_internal_verdict_derivation_positive() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "fn finalize(matrix: {}) -> {} {{ let verdict: {} = derive(&matrix); consume(matrix, verdict) }}",
+            names.matrix, names.evaluation, names.internal_verdict
+        );
+        let audit = sprint105_actual_forbidden_join_fixture_audit_v1(&fixture);
+        assert_eq!(audit.forbidden_function_parameter_count, 0);
+        assert_eq!(audit.forbidden_return_pair_count, 0);
+        assert_eq!(audit.alternate_braced_pair_struct_count, 0);
+        assert_eq!(audit.alternate_tuple_pair_struct_count, 0);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_comment_string_false_positive_guard() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "// {} + {} is documentation only\nconst NOTE: &str = \"{} {}\";",
+            names.matrix, names.internal_verdict, names.matrix, names.internal_verdict
+        );
+        let audit = sprint105_actual_forbidden_join_fixture_audit_v1(&fixture);
+        assert_eq!(audit.forbidden_function_parameter_count, 0);
+        assert_eq!(audit.alternate_braced_pair_struct_count, 0);
+        assert_eq!(audit.alternate_tuple_pair_struct_count, 0);
+        assert_eq!(audit.canonical_exact_owner_count, 0);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_single_line_pair_builder_sabotage() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "fn build(matrix: {}, verdict: {}) -> {} {{ unreachable!() }}",
+            names.matrix, names.internal_verdict, names.evaluation
+        );
+        assert_eq!(
+            sprint105_actual_forbidden_join_fixture_audit_v1(&fixture)
+                .forbidden_function_parameter_count,
+            1
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_multiline_pair_builder_sabotage() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "fn build(\n matrix: {},\n verdict: {},\n) -> {} {{ unreachable!() }}",
+            names.matrix, names.internal_verdict, names.evaluation
+        );
+        assert_eq!(
+            sprint105_actual_forbidden_join_fixture_audit_v1(&fixture)
+                .forbidden_function_parameter_count,
+            1
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_reference_pair_builder_sabotage() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "fn build(matrix: &{}, verdict: &{}) -> {} {{ unreachable!() }}",
+            names.matrix, names.internal_verdict, names.evaluation
+        );
+        assert_eq!(
+            sprint105_actual_forbidden_join_fixture_audit_v1(&fixture)
+                .forbidden_function_parameter_count,
+            1
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_return_pair_sabotage() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "fn split() -> Result<({}, {}), Error> {{ unreachable!() }}",
+            names.matrix, names.internal_verdict
+        );
+        assert_eq!(
+            sprint105_actual_forbidden_join_fixture_audit_v1(&fixture).forbidden_return_pair_count,
+            1
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_tuple_from_sabotage() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "impl From<({}, {})> for {} {{}}",
+            names.matrix, names.internal_verdict, names.evaluation
+        );
+        assert_eq!(
+            sprint105_actual_forbidden_join_fixture_audit_v1(&fixture).tuple_conversion_count,
+            1
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_tuple_try_from_sabotage() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "impl TryFrom<(\n {},\n {},\n)> for {} {{}}",
+            names.matrix, names.internal_verdict, names.evaluation
+        );
+        assert_eq!(
+            sprint105_actual_forbidden_join_fixture_audit_v1(&fixture).tuple_conversion_count,
+            1
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_reversed_tuple_conversion_sabotage() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "impl From<({}, {})> for {} {{}}",
+            names.internal_verdict, names.matrix, names.evaluation
+        );
+        assert_eq!(
+            sprint105_actual_forbidden_join_fixture_audit_v1(&fixture).tuple_conversion_count,
+            1
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_pair_type_alias_sabotage() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "type Parts = Result<({}, {}), Error>;",
+            names.matrix, names.internal_verdict
+        );
+        assert_eq!(
+            sprint105_actual_forbidden_join_fixture_audit_v1(&fixture).pair_type_alias_count,
+            1
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_alternate_pair_struct_sabotage() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "struct Alternate {{ matrix: {}, verdict: {} }}",
+            names.matrix, names.internal_verdict
+        );
+        let audit = sprint105_actual_forbidden_join_fixture_audit_v1(&fixture);
+        assert_eq!(audit.canonical_exact_owner_count, 0);
+        assert_eq!(audit.alternate_braced_pair_struct_count, 1);
+        assert_eq!(audit.alternate_tuple_pair_struct_count, 0);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_alternate_pair_enum_sabotage() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "enum Alternate {{ Joined {{ matrix: {}, verdict: {} }} }}",
+            names.matrix, names.internal_verdict
+        );
+        assert_eq!(
+            sprint105_actual_forbidden_join_fixture_audit_v1(&fixture)
+                .alternate_pair_enum_variant_count,
+            1
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_function_pointer_pair_sabotage() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "type Builder = fn({}, {}) -> {};",
+            names.matrix, names.internal_verdict, names.evaluation
+        );
+        assert_eq!(
+            sprint105_actual_forbidden_join_fixture_audit_v1(&fixture).pair_function_pointer_count,
+            1
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_trait_method_pair_sabotage() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "trait Builder {{ fn build(matrix: {}, verdict: {}) -> {}; }}",
+            names.matrix, names.internal_verdict, names.evaluation
+        );
+        assert_eq!(
+            sprint105_actual_forbidden_join_fixture_audit_v1(&fixture).pair_trait_method_count,
+            1
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_trait_adapter_pair_sabotage() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "impl Builder for Adapter {{ fn build(matrix: {}, verdict: {}) -> {} {{ unreachable!() }} }}",
+            names.matrix, names.internal_verdict, names.evaluation
+        );
+        assert_eq!(
+            sprint105_actual_forbidden_join_fixture_audit_v1(&fixture).pair_trait_adapter_count,
+            1
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_result_builder_pair_sabotage() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "fn build_result(matrix: {}, verdict: {}) -> {} {{ unreachable!() }}",
+            names.matrix, names.internal_verdict, names.result
+        );
+        assert_eq!(
+            sprint105_actual_forbidden_join_fixture_audit_v1(&fixture).pair_result_builder_count,
+            1
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_capsule_builder_verdict_input_sabotage() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "fn mint(verdict: {}) -> {} {{ unreachable!() }}",
+            names.internal_verdict, names.evaluation
+        );
+        assert_eq!(
+            sprint105_actual_forbidden_join_fixture_audit_v1(&fixture).capsule_verdict_input_count,
+            1
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_result_verdict_input_sabotage() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let fixture = format!(
+            "fn mint_result(verdict: {}) -> {} {{ unreachable!() }}",
+            names.internal_verdict, names.result
+        );
+        assert_eq!(
+            sprint105_actual_forbidden_join_fixture_audit_v1(&fixture).result_verdict_input_count,
+            1
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_actual_source_forbidden_edge_inventory() {
+        let audit = q1_structural_evaluation_authority_v1::audit_actual_forbidden_joins_for_test(
+            include_str!("m3_micro.rs"),
+        )
+        .unwrap();
+        assert_eq!(audit.canonical_exact_owner_count, 1);
+        assert_eq!(audit.forbidden_function_parameter_count, 0);
+        assert_eq!(audit.forbidden_return_pair_count, 0);
+        assert_eq!(audit.tuple_conversion_count, 0);
+        assert_eq!(audit.pair_type_alias_count, 0);
+        assert_eq!(audit.alternate_braced_pair_struct_count, 0);
+        assert_eq!(audit.alternate_tuple_pair_struct_count, 0);
+        assert_eq!(audit.alternate_pair_enum_variant_count, 0);
+        assert_eq!(audit.pair_function_pointer_count, 0);
+        assert_eq!(audit.pair_trait_method_count, 0);
+        assert_eq!(audit.pair_trait_adapter_count, 0);
+        assert_eq!(audit.pair_result_builder_count, 0);
+        assert_eq!(audit.result_verdict_input_count, 0);
+        assert_eq!(audit.capsule_verdict_input_count, 0);
+        assert_eq!(audit.standalone_verdict_return_count, 0);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r2_r1_r1_obsolete_type_authority_dependence_guard() {
+        let names =
+            q1_structural_evaluation_authority_v1::actual_forbidden_join_type_names_for_test();
+        let obsolete = ["V6AuthorizedV2Qualification", "VerdictV1"].concat();
+        assert_eq!(names.internal_verdict, "InternalQualificationVerdictV1");
+        assert_ne!(names.internal_verdict, obsolete);
+        let (module, _) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let binding = sprint105_ef1_r2_r2_r1_r2_function_region_v1(
+            module,
+            "actual_forbidden_join_type_names_for_test",
+            "sprint105_source_without_comments_or_strings_v1",
+        );
+        assert!(
+            binding.contains("sprint105_actual_type_name_v1::<InternalQualificationVerdictV1>()")
+        );
+        assert!(!binding.contains(&obsolete));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_r1_missing_v6_signature_guard() {
+        let (module, _) = sprint105_ef1_r2_r2_r1_r1_evaluation_authority_source_v1();
+        let signature =
+            sprint105_ef1_r2_r2_r1_r1_wrapper_signature_v1(module, "evaluate_v2_qualification");
+        assert!(signature.contains("ValidatedCurrentQ1ContractV6"));
+        assert!(!signature.contains("Option<"));
+        assert!(!signature.contains("ValidatedQ1QualificationContractV6"));
+        assert!(!signature.contains("String"));
+        assert!(!signature.contains("bool"));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_corrupt_predecessor_version_rejected() {
+        sprint105_ef1_r2_r2_r1_assert_corruption_rejected_v1(
+            current_q1_contract_v6_authority::Q1V6AuthorityCorruptionProbeV1::PredecessorVersion,
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_corrupt_predecessor_digest_rejected() {
+        sprint105_ef1_r2_r2_r1_assert_corruption_rejected_v1(
+            current_q1_contract_v6_authority::Q1V6AuthorityCorruptionProbeV1::PredecessorDigest,
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_corrupt_retirement_disposition_rejected() {
+        sprint105_ef1_r2_r2_r1_assert_corruption_rejected_v1(
+            current_q1_contract_v6_authority::Q1V6AuthorityCorruptionProbeV1::RetirementDisposition,
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_corrupt_retired_gate_rejected() {
+        sprint105_ef1_r2_r2_r1_assert_corruption_rejected_v1(
+            current_q1_contract_v6_authority::Q1V6AuthorityCorruptionProbeV1::RetiredGate,
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_corrupt_canonical_replacement_rejected() {
+        sprint105_ef1_r2_r2_r1_assert_corruption_rejected_v1(
+            current_q1_contract_v6_authority::Q1V6AuthorityCorruptionProbeV1::CanonicalReplacement,
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_corrupt_active_registry_identity_rejected() {
+        sprint105_ef1_r2_r2_r1_assert_corruption_rejected_v1(
+            current_q1_contract_v6_authority::Q1V6AuthorityCorruptionProbeV1::ActiveRegistryIdentity,
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_corrupt_active_policy_identity_rejected() {
+        sprint105_ef1_r2_r2_r1_assert_corruption_rejected_v1(
+            current_q1_contract_v6_authority::Q1V6AuthorityCorruptionProbeV1::ActivePolicyIdentity,
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_corrupt_self_digest_rejected() {
+        sprint105_ef1_r2_r2_r1_assert_corruption_rejected_v1(
+            current_q1_contract_v6_authority::Q1V6AuthorityCorruptionProbeV1::SelfDigest,
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_duplicate_alias_reinsertion_rejected() {
+        sprint105_ef1_r2_r2_r1_assert_corruption_rejected_v1(
+            current_q1_contract_v6_authority::Q1V6AuthorityCorruptionProbeV1::DuplicateAlias,
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_historical_v5_rejected_as_current_authority() {
+        let qualification = sprint105_v2_p1_frozen_q1_once_v1().unwrap();
+        let historical_v5 = sprint105_q1_contract_identity_v5(&qualification).unwrap();
+        assert_eq!(
+            sprint105_q1_contract_digest_v5(&historical_v5),
+            SPRINT105_Q1_CONTRACT_GOLDEN_DIGEST_V5
+        );
+        let source = include_str!("m3_micro.rs")
+            .split_once("mod current_q1_contract_v6_authority {")
+            .unwrap()
+            .1
+            .split_once("enum Q1V6MutationFieldV1")
+            .unwrap()
+            .0;
+        assert!(
+            !source.contains(
+                "From<Q1QualificationContractIdentityV5> for ValidatedCurrentQ1ContractV6"
+            )
+        );
+        assert!(!source.contains(
+            "TryFrom<Q1QualificationContractIdentityV5> for ValidatedCurrentQ1ContractV6"
+        ));
+        assert!(!source.contains("build_current_q1_contract_v6_from_v5"));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_validated_v6_authority_is_deterministic() {
+        let (qualification, evidence) = sprint105_ef1_r2_r2_r1_qualification_and_evidence_v1();
+        let first = current_q1_contract_v6_authority::build_and_validate_current_q1_contract_v6(
+            &qualification,
+            &evidence,
+        )
+        .unwrap();
+        let second = current_q1_contract_v6_authority::build_and_validate_current_q1_contract_v6(
+            &qualification,
+            &evidence,
+        )
+        .unwrap();
+        assert_eq!(first.summary(), second.summary());
+        assert_eq!(first.active_gate_registry(), second.active_gate_registry());
+        assert_eq!(first.active_gate_policy(), second.active_gate_policy());
+        assert_eq!(first.predecessor_version(), second.predecessor_version());
+        assert_eq!(first.predecessor_digest(), second.predecessor_digest());
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_v6_exact_identity_is_preserved() {
+        let (qualification, evidence) = sprint105_ef1_r2_r2_r1_qualification_and_evidence_v1();
+        let contract = sprint105_q1_contract_v6(&qualification).unwrap();
+        let authority =
+            current_q1_contract_v6_authority::build_and_validate_current_q1_contract_v6(
+                &qualification,
+                &evidence,
+            )
+            .unwrap();
+        assert_eq!(
+            sprint105_q1_contract_digest_v6(&contract.identity),
+            SPRINT105_Q1_CONTRACT_GOLDEN_DIGEST_V6
+        );
+        assert_eq!(
+            contract.semantic_digest,
+            SPRINT105_Q1_CONTRACT_GOLDEN_DIGEST_V6
+        );
+        assert_eq!(
+            authority.summary().semantic_digest(),
+            contract.semantic_digest
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_r2_r2_r1_registry_and_policy_are_preserved() {
+        let (qualification, evidence) = sprint105_ef1_r2_r2_r1_qualification_and_evidence_v1();
+        let authority =
+            current_q1_contract_v6_authority::build_and_validate_current_q1_contract_v6(
+                &qualification,
+                &evidence,
+            )
+            .unwrap();
+        let registry = authority.active_gate_registry();
+        assert_eq!(registry.entries.len(), Q1StructuralGateV1::ORDERED.len());
+        sprint105_q1_validate_active_gate_registry_entries_v1(&registry.entries).unwrap();
+        assert!(
+            !registry
+                .entries
+                .iter()
+                .any(|entry| entry.gate == Q1StructuralGateV1::LengthRetention)
+        );
+        let fields = sprint105_q1_structural_gate_policy_fields_v1(authority.active_gate_policy());
+        sprint105_q1_validate_structural_gate_policy_fields_v1(&fields).unwrap();
+        assert_eq!(fields.len(), Q1StructuralGatePolicyFieldV1::ORDERED.len());
+        assert_eq!(
+            sprint105_q1_structural_gate_policy_mutations_v1(*authority.active_gate_policy()).len(),
+            Q1StructuralGatePolicyFieldV1::ORDERED.len()
+        );
     }
 
     #[test]
     fn m3_micro_sprint105_v2_p1_q1_freeze_integrity() {
-        sprint105_v2_q1_freeze_audit_v1().unwrap();
+        sprint105_v2_q1_freeze_audit_v1(&delayed_recall_evidence_policy_v2()).unwrap();
     }
 
     #[test]
@@ -17401,47 +34269,25 @@ mod tests {
                     .is_none_or(|metrics| metrics.finite)
                 && entry.mode_equivalent
         }));
-        assert!(
-            qualification
-                .footprints
-                .windows(2)
-                .all(|window| window[0].elements == window[1].elements
-                    && window[0].bytes == window[1].bytes)
-        );
-        let maximum_length = *policy.sequence_lengths.iter().max().unwrap();
-        let state_utility = qualification
-            .entries
-            .iter()
-            .filter(|entry| {
-                entry.family.requires_history() && entry.sequence_length == maximum_length
-            })
-            .all(|entry| entry.base.accuracy > entry.no_state.accuracy);
-        let state_causality = qualification
-            .entries
-            .iter()
-            .filter(|entry| entry.family.requires_history())
-            .all(|entry| entry.base.accuracy > entry.reset_base.as_ref().unwrap().accuracy);
-        let local_control = qualification
-            .entries
-            .iter()
-            .filter(|entry| entry.family == Sprint105Q1FamilyV1::StateIrrelevantControl)
-            .all(|entry| entry.base.accuracy >= entry.no_state.accuracy);
-        let training = qualification
-            .entries
-            .iter()
-            .all(|entry| entry.final_development_loss < entry.initial_development_loss);
-        let structural = state_utility && state_causality && local_control && training;
+        assert!(qualification.footprints.windows(2).all(|window| {
+            window[0].footprint.elements == window[1].footprint.elements
+                && window[0].footprint.bytes == window[1].footprint.bytes
+        }));
+        let result = sprint105_v2_authorized_qualification_result_v1(
+            &qualification,
+            true,
+            Sprint105ConfidenceOverlayV1::NotEstablished,
+            true,
+        )
+        .unwrap();
+        let structural_status = result.authorized_matrix().structural_status();
         let confidence_nll = qualification
             .entries
             .iter()
             .map(|entry| entry.base.mean_categorical_nll)
             .sum::<f32>()
             / qualification.entries.len() as f32;
-        let verdict = if structural {
-            "V2_VIABLE_BASELINE"
-        } else {
-            "V2_CORE_NOT_VIABLE"
-        };
+        let verdict = result.status();
         for entry in &qualification.entries {
             println!(
                 "S105_V2_P1_Q1_ROW family={} length={} path=Base samples={} accuracy={} nll={} ptrue={} mean_margin={} finite={} state_l2={} state_abs_max={} tokens={}",
@@ -17500,23 +34346,499 @@ mod tests {
         for footprint in &qualification.footprints {
             println!(
                 "S105_V2_P1_Q1_FOOTPRINT length={} elements={} bytes={} blocks={} zero_step_index={}",
-                footprint.sequence_length,
-                footprint.elements,
-                footprint.bytes,
-                footprint.blocks,
-                footprint.step_index,
+                footprint.footprint.sequence_length,
+                footprint.footprint.elements,
+                footprint.footprint.bytes,
+                footprint.footprint.blocks,
+                footprint.footprint.step_index,
             );
         }
         println!(
             "S105_V2_P1_Q1_GATE state_utility_max_length={} state_causality={} local_control={} training={} footprint_constant=true numerical_finite=true confidence_overlay_mean_nll={} verdict={} elapsed_ms={}",
-            state_utility,
-            state_causality,
-            local_control,
-            training,
+            structural_status
+                .gate_passed(Q1StructuralGateV1::StateUtilityAtMaximumLength)
+                .unwrap(),
+            structural_status
+                .gate_passed(Q1StructuralGateV1::StateCausality)
+                .unwrap(),
+            structural_status
+                .gate_passed(Q1StructuralGateV1::LocalControl)
+                .unwrap(),
+            structural_status
+                .gate_passed(Q1StructuralGateV1::TrainabilitySanity)
+                .unwrap(),
             confidence_nll,
-            verdict,
+            verdict.as_str(),
             started.elapsed().as_millis(),
         );
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum Sprint105V2GradientCategoryV1 {
+        GateStateScale,
+        GateInputScale,
+        GateBias,
+        CandidateStateScale,
+        CandidateInputScale,
+        CandidateBias,
+        MemoryReadScale,
+        RawHead,
+    }
+
+    impl Sprint105V2GradientCategoryV1 {
+        const RECURRENT: [Self; 7] = [
+            Self::GateStateScale,
+            Self::GateInputScale,
+            Self::GateBias,
+            Self::CandidateStateScale,
+            Self::CandidateInputScale,
+            Self::CandidateBias,
+            Self::MemoryReadScale,
+        ];
+
+        fn as_str(self) -> &'static str {
+            match self {
+                Self::GateStateScale => "gate-state-scale",
+                Self::GateInputScale => "gate-input-scale",
+                Self::GateBias => "gate-bias",
+                Self::CandidateStateScale => "candidate-state-scale",
+                Self::CandidateInputScale => "candidate-input-scale",
+                Self::CandidateBias => "candidate-bias",
+                Self::MemoryReadScale => "memory-read-scale",
+                Self::RawHead => "raw-head",
+            }
+        }
+
+        fn parameter_range(
+            self,
+            layout: &M3MicroV2Layout,
+            block: Option<usize>,
+        ) -> std::ops::Range<usize> {
+            match self {
+                Self::GateStateScale => layout.blocks[block.unwrap()].gate_state_scale.clone(),
+                Self::GateInputScale => layout.blocks[block.unwrap()].gate_input_scale.clone(),
+                Self::GateBias => layout.blocks[block.unwrap()].gate_bias.clone(),
+                Self::CandidateStateScale => {
+                    layout.blocks[block.unwrap()].candidate_state_scale.clone()
+                }
+                Self::CandidateInputScale => {
+                    layout.blocks[block.unwrap()].candidate_input_scale.clone()
+                }
+                Self::CandidateBias => layout.blocks[block.unwrap()].candidate_bias.clone(),
+                Self::MemoryReadScale => layout.blocks[block.unwrap()].memory_read_scale.clone(),
+                Self::RawHead => layout.w_head.clone(),
+            }
+        }
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    struct Sprint105V2GradientObservationV1 {
+        block: Option<usize>,
+        category: Sprint105V2GradientCategoryV1,
+        coordinate: usize,
+        analytical: f32,
+        numerical: f32,
+        absolute_error: f32,
+        relative_error: f32,
+        tolerance: f32,
+        passed: bool,
+    }
+
+    fn sprint105_v2_development_gradient_fixture_v1(
+        input_width: usize,
+    ) -> (Vec<Vec<f32>>, M3MicroTarget) {
+        (
+            vec![
+                row(input_width, 0.90, -0.60),
+                row(input_width, -0.35, 0.45),
+                row(input_width, 0.20, 0.80),
+                row(input_width, -0.70, -0.15),
+                row(input_width, 0.55, -0.75),
+            ],
+            classification_target_v2(true),
+        )
+    }
+
+    fn sprint105_v2_most_active_parameter_v1(
+        gradients: &[f32],
+        range: std::ops::Range<usize>,
+    ) -> usize {
+        assert!(!range.is_empty());
+        range
+            .max_by(|left, right| gradients[*left].abs().total_cmp(&gradients[*right].abs()))
+            .unwrap()
+    }
+
+    fn sprint105_v2_gradient_observation_v1(
+        model: &M3MicroV2Candidate,
+        parameter_index: usize,
+        block: Option<usize>,
+        category: Sprint105V2GradientCategoryV1,
+        sequence: &[Vec<f32>],
+        target: &M3MicroTarget,
+    ) -> Result<Sprint105V2GradientObservationV1, M3MicroError> {
+        let policy = numerical_gradient_conformance_policy_v1();
+        let analytical = model
+            .loss_gradients_internal(AgentId::TrendContinuation, sequence, target, false, true)?
+            .parameter_gradients[parameter_index];
+        let epsilon = policy.relative_step_scales[1]
+            * model.parameters.values[parameter_index].abs().max(1.0);
+        let mut plus = model.clone();
+        plus.parameters.values[parameter_index] += epsilon;
+        plus.refresh_identity();
+        let plus_loss = plus
+            .loss_gradients_internal(AgentId::TrendContinuation, sequence, target, false, true)?
+            .loss;
+        let mut minus = model.clone();
+        minus.parameters.values[parameter_index] -= epsilon;
+        minus.refresh_identity();
+        let minus_loss = minus
+            .loss_gradients_internal(AgentId::TrendContinuation, sequence, target, false, true)?
+            .loss;
+        let numerical = (plus_loss - minus_loss) / (2.0 * epsilon);
+        let absolute_error = (analytical - numerical).abs();
+        let gradient_scale = analytical
+            .abs()
+            .max(numerical.abs())
+            .max(policy.sign_check_floor);
+        let relative_error = absolute_error / gradient_scale;
+        let tolerance = policy.absolute_tolerance + policy.relative_tolerance * gradient_scale;
+        let coordinate = parameter_index
+            - category
+                .parameter_range(&M3MicroV2Layout::new(&model.config)?, block)
+                .start;
+        Ok(Sprint105V2GradientObservationV1 {
+            block,
+            category,
+            coordinate,
+            analytical,
+            numerical,
+            absolute_error,
+            relative_error,
+            tolerance,
+            passed: analytical.is_finite() && numerical.is_finite() && absolute_error <= tolerance,
+        })
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_v1_typed_q1_verdict_is_core_not_viable() {
+        let first = sprint105_q1_evidence_v1().unwrap();
+        let second = sprint105_q1_evidence_v1().unwrap();
+        let evaluation = q1_structural_evaluation_authority_v1::evaluate_v1_qualification(
+            &first,
+            first == second,
+        )
+        .unwrap();
+        let status = q1_structural_evaluation_authority_v1::derive_v1_qualification_status(
+            &evaluation,
+            Sprint105ConfidenceOverlayV1::NotEstablished,
+            true,
+        );
+        assert_eq!(
+            status,
+            q1_structural_evaluation_authority_v1::V1QualificationStatusViewV1::CoreNotViable
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_v2_typed_q1_verdict_is_core_not_viable() {
+        let first = sprint105_v2_p1_frozen_q1_once_v1().unwrap();
+        let second = sprint105_v2_p1_frozen_q1_once_v1().unwrap();
+        let expected_plan = sprint105_v2_q1_state_mode_plan_v1();
+        let expected_units = sprint105_v2_q1_expected_qualification_units_v1();
+        assert_eq!(first.actual_application_set, second.actual_application_set);
+        let actual_set_summary = first.actual_application_set.summary();
+        assert_eq!(
+            actual_set_summary.expected_plan_digest(),
+            sprint105_v2_q1_state_mode_plan_digest_v1(&expected_plan)
+        );
+        assert_eq!(
+            actual_set_summary.expected_qualification_unit_count(),
+            expected_units.len()
+        );
+        assert_eq!(
+            actual_set_summary.expected_total_record_count(),
+            expected_units.len() * expected_plan.len()
+        );
+        assert_eq!(
+            actual_set_summary.actual_total_record_count(),
+            actual_set_summary.expected_total_record_count()
+        );
+        assert_eq!(actual_set_summary.duplicate_record_count(), 0);
+        assert_eq!(actual_set_summary.missing_record_count(), 0);
+        let result = sprint105_v2_authorized_qualification_result_v1(
+            &first,
+            first == second,
+            Sprint105ConfidenceOverlayV1::NotEstablished,
+            true,
+        )
+        .unwrap();
+        assert_eq!(
+            result.status(),
+            q1_structural_evaluation_authority_v1::V2QualificationStatusViewV1::CoreNotViable
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_typed_verdict_sensitivity() {
+        let actual_policy = delayed_recall_evidence_policy_v2();
+        let v1_policy = sprint105_v1_q1_structural_gate_policy_v1();
+        let evaluate = |raw: RawQ1QualificationEvidenceTableV1,
+                        policy: &Q1StructuralGatePolicyV1| {
+            let validated =
+                sprint105_q1_validate_raw_gate_evidence_v1(raw, &actual_policy, policy).unwrap();
+            let fixture =
+                q1_structural_evaluation_authority_v1::diagnostic_fixture_from_validated(validated);
+            q1_structural_evaluation_authority_v1::evaluate_diagnostic_gate_fixture(&fixture)
+                .unwrap()
+        };
+        let passing_evidence = sprint105_ef1_r2_synthetic_gate_evidence_v1();
+        let passing = evaluate(passing_evidence.clone(), &v1_policy);
+        assert!(
+            passing
+                .structural_status()
+                .all_required_structural_gates_pass()
+        );
+        assert_eq!(
+            q1_structural_evaluation_authority_v1::derive_diagnostic_qualification_status(
+                &passing,
+                Sprint105ConfidenceOverlayV1::Clear,
+                true,
+            ),
+            q1_structural_evaluation_authority_v1::DiagnosticQ1QualificationStatusV1::ViableBaseline
+        );
+
+        let maximum_length = *actual_policy.sequence_lengths.iter().max().unwrap();
+        let mut structural_failure_evidence = passing_evidence.clone();
+        let maximum_history = structural_failure_evidence
+            .rows
+            .iter_mut()
+            .find(|entry| {
+                entry.family.requires_history() && entry.sequence_length == maximum_length
+            })
+            .unwrap();
+        maximum_history.base_accuracy = maximum_history.no_state_accuracy;
+        let structural_failure = evaluate(structural_failure_evidence, &v1_policy);
+        assert_eq!(
+            q1_structural_evaluation_authority_v1::derive_diagnostic_qualification_status(
+                &structural_failure,
+                Sprint105ConfidenceOverlayV1::Clear,
+                true,
+            ),
+            q1_structural_evaluation_authority_v1::DiagnosticQ1QualificationStatusV1::StructuralFailure
+        );
+        assert_eq!(
+            q1_structural_evaluation_authority_v1::derive_diagnostic_qualification_status(
+                &structural_failure,
+                Sprint105ConfidenceOverlayV1::NotEstablished,
+                true,
+            ),
+            q1_structural_evaluation_authority_v1::DiagnosticQ1QualificationStatusV1::StructuralFailure
+        );
+        let mut confidence_first = v1_policy;
+        confidence_first.confidence_precedence =
+            Q1ConfidencePrecedenceV1::ConfidenceBeforeStructural;
+        let confidence_first_failure = evaluate(
+            {
+                let mut evidence = passing_evidence.clone();
+                let maximum_history = evidence
+                    .rows
+                    .iter_mut()
+                    .find(|entry| {
+                        entry.family.requires_history() && entry.sequence_length == maximum_length
+                    })
+                    .unwrap();
+                maximum_history.base_accuracy = maximum_history.no_state_accuracy;
+                evidence
+            },
+            &confidence_first,
+        );
+        assert_eq!(
+            q1_structural_evaluation_authority_v1::derive_diagnostic_qualification_status(
+                &confidence_first_failure,
+                Sprint105ConfidenceOverlayV1::NotEstablished,
+                true,
+            ),
+            q1_structural_evaluation_authority_v1::DiagnosticQ1QualificationStatusV1::ConditionallyViable
+        );
+
+        let mut causality_failure_evidence = passing_evidence.clone();
+        let history = causality_failure_evidence
+            .rows
+            .iter_mut()
+            .find(|entry| entry.family.requires_history())
+            .unwrap();
+        history.reset_base_accuracy = history.base_accuracy;
+        let causality_failure = evaluate(causality_failure_evidence, &v1_policy);
+        assert_eq!(
+            q1_structural_evaluation_authority_v1::derive_diagnostic_qualification_status(
+                &causality_failure,
+                Sprint105ConfidenceOverlayV1::Clear,
+                true,
+            ),
+            q1_structural_evaluation_authority_v1::DiagnosticQ1QualificationStatusV1::StructuralFailure
+        );
+
+        assert_eq!(
+            q1_structural_evaluation_authority_v1::derive_diagnostic_qualification_status(
+                &passing,
+                Sprint105ConfidenceOverlayV1::NotEstablished,
+                true,
+            ),
+            q1_structural_evaluation_authority_v1::DiagnosticQ1QualificationStatusV1::ConditionallyViable
+        );
+        assert_eq!(
+            q1_structural_evaluation_authority_v1::derive_diagnostic_qualification_status(
+                &passing,
+                Sprint105ConfidenceOverlayV1::Clear,
+                false,
+            ),
+            q1_structural_evaluation_authority_v1::DiagnosticQ1QualificationStatusV1::QualificationIncomplete
+        );
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_v2_gradient_categories_cover_first_and_last_blocks() {
+        let model = sprint105_v2_initial_model_v1().unwrap();
+        let layout = M3MicroV2Layout::new(&model.config).unwrap();
+        assert!(layout.blocks.len() > 1);
+        let (sequence, target) =
+            sprint105_v2_development_gradient_fixture_v1(model.config.input_dim);
+        let gradients = model
+            .loss_gradients_internal(AgentId::TrendContinuation, &sequence, &target, false, true)
+            .unwrap()
+            .parameter_gradients;
+        let mut observations = Vec::new();
+        for block in [0, layout.blocks.len() - 1] {
+            for category in Sprint105V2GradientCategoryV1::RECURRENT {
+                let range = category.parameter_range(&layout, Some(block));
+                let parameter_index = sprint105_v2_most_active_parameter_v1(&gradients, range);
+                observations.push(
+                    sprint105_v2_gradient_observation_v1(
+                        &model,
+                        parameter_index,
+                        Some(block),
+                        category,
+                        &sequence,
+                        &target,
+                    )
+                    .unwrap(),
+                );
+            }
+        }
+        let raw_head_range = Sprint105V2GradientCategoryV1::RawHead.parameter_range(&layout, None);
+        let raw_head_index = sprint105_v2_most_active_parameter_v1(&gradients, raw_head_range);
+        observations.push(
+            sprint105_v2_gradient_observation_v1(
+                &model,
+                raw_head_index,
+                None,
+                Sprint105V2GradientCategoryV1::RawHead,
+                &sequence,
+                &target,
+            )
+            .unwrap(),
+        );
+        for observation in &observations {
+            println!(
+                "S105_EF1_V2_GRADIENT block={:?} family={} coordinate={} analytic={} numerical={} absolute_error={} relative_error={} tolerance={} passed={}",
+                observation.block,
+                observation.category.as_str(),
+                observation.coordinate,
+                observation.analytical,
+                observation.numerical,
+                observation.absolute_error,
+                observation.relative_error,
+                observation.tolerance,
+                observation.passed,
+            );
+        }
+        assert_eq!(
+            observations.len(),
+            Sprint105V2GradientCategoryV1::RECURRENT.len() * 2 + 1
+        );
+        assert!(observations.iter().all(|observation| observation.passed));
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_v2_multistep_bptt_gradient_is_temporally_active() {
+        let model = sprint105_v2_initial_model_v1().unwrap();
+        let layout = M3MicroV2Layout::new(&model.config).unwrap();
+        let (sequence, target) =
+            sprint105_v2_development_gradient_fixture_v1(model.config.input_dim);
+        assert!(sequence.len() > 1);
+        let mut carried_state = model.zero_state().unwrap();
+        model
+            .forward(&sequence[..sequence.len() - 1], &mut carried_state)
+            .unwrap();
+        let carried_output = model
+            .forward(&sequence[sequence.len() - 1..], &mut carried_state)
+            .unwrap();
+        let mut reset_state = model.zero_state().unwrap();
+        let reset_output = model
+            .forward(&sequence[sequence.len() - 1..], &mut reset_state)
+            .unwrap();
+        assert_ne!(carried_output, reset_output);
+        let carried_loss =
+            loss_and_output_gradient(AgentId::TrendContinuation, &carried_output, &target)
+                .unwrap()
+                .0;
+        let reset_loss =
+            loss_and_output_gradient(AgentId::TrendContinuation, &reset_output, &target)
+                .unwrap()
+                .0;
+        assert_ne!(carried_loss.to_bits(), reset_loss.to_bits());
+        let result = model
+            .loss_gradients_internal(AgentId::TrendContinuation, &sequence, &target, false, true)
+            .unwrap();
+        let range =
+            Sprint105V2GradientCategoryV1::CandidateStateScale.parameter_range(&layout, Some(0));
+        let parameter_index =
+            sprint105_v2_most_active_parameter_v1(&result.parameter_gradients, range);
+        let observation = sprint105_v2_gradient_observation_v1(
+            &model,
+            parameter_index,
+            Some(0),
+            Sprint105V2GradientCategoryV1::CandidateStateScale,
+            &sequence,
+            &target,
+        )
+        .unwrap();
+        assert!(
+            observation.analytical.abs()
+                > numerical_gradient_conformance_policy_v1().sign_check_floor
+        );
+        assert!(observation.passed);
+    }
+
+    #[test]
+    fn m3_micro_sprint105_ef1_v2_optimizer_updates_transition_parameter() {
+        let mut model = sprint105_v2_initial_model_v1().unwrap();
+        let layout = M3MicroV2Layout::new(&model.config).unwrap();
+        let (sequence, target) =
+            sprint105_v2_development_gradient_fixture_v1(model.config.input_dim);
+        let result = model
+            .loss_gradients_internal(AgentId::TrendContinuation, &sequence, &target, false, true)
+            .unwrap();
+        let range =
+            Sprint105V2GradientCategoryV1::CandidateStateScale.parameter_range(&layout, Some(0));
+        let parameter_index =
+            sprint105_v2_most_active_parameter_v1(&result.parameter_gradients, range);
+        let before = model.parameters.values[parameter_index];
+        assert!(before.is_finite());
+        assert!(
+            result.parameter_gradients[parameter_index].abs()
+                > numerical_gradient_conformance_policy_v1().sign_check_floor
+        );
+        let mut optimizer =
+            M3MicroOptimizerState::new(model.parameter_count(), M3MicroOptimizerConfig::default())
+                .unwrap();
+        model
+            .apply_gradients(&mut optimizer, &result.parameter_gradients)
+            .unwrap();
+        let after = model.parameters.values[parameter_index];
+        assert!(after.is_finite());
+        assert_ne!(before.to_bits(), after.to_bits());
     }
 
     #[derive(Clone, Debug, PartialEq)]
@@ -17658,7 +34980,8 @@ mod tests {
         ),
         M3MicroError,
     > {
-        let length = *delayed_recall_evidence_policy_v2()
+        let policy = delayed_recall_evidence_policy_v2();
+        let length = *policy
             .sequence_lengths
             .iter()
             .max()
@@ -17669,7 +34992,7 @@ mod tests {
             .clone();
         let development = sprint105_q1_examples_v1(family, initial.config.input_dim, length, false);
         let frozen = sprint105_q1_examples_v1(family, initial.config.input_dim, length, true);
-        sprint105_q1_fixture_integrity_v1(family, &development, &frozen);
+        sprint105_q1_fixture_integrity_v1(family, &development, &frozen, &policy);
         let development_evidence = development
             .iter()
             .map(|example| example.evidence.clone())
@@ -17677,7 +35000,7 @@ mod tests {
         let trained = train_balanced_model_v2(
             &initial,
             &development_evidence,
-            delayed_recall_evidence_policy_v2().fixed_training_budget,
+            policy.fixed_training_budget,
             None,
         )?
         .model;
